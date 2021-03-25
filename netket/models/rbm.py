@@ -22,7 +22,7 @@ from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
-from netket.utils.types import PRNGKey, Shape, Dtype, Array
+from netket.utils.types import PRNGKey, Shape, Dtype, Array, NNInitFunc
 
 from netket import nn as nknn
 from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal
@@ -48,11 +48,11 @@ class RBM(nn.Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
-    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    hidden_bias_init: NNInitFunc = default_kernel_init
     """Initializer for the hidden bias."""
-    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    visible_bias_init: NNInitFunc = default_kernel_init
     """Initializer for the visible bias."""
 
     @nn.compact
@@ -106,9 +106,9 @@ class RBMModPhase(nn.Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
-    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    hidden_bias_init: NNInitFunc = default_kernel_init
     """Initializer for the hidden bias."""
 
     @nn.compact
@@ -161,11 +161,11 @@ class RBMMultiVal(nn.Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
-    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    hidden_bias_init: NNInitFunc = default_kernel_init
     """Initializer for the hidden bias."""
-    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    visible_bias_init: NNInitFunc = default_kernel_init
     """Initializer for the visible bias."""
 
     def setup(self):
@@ -210,11 +210,11 @@ class RBMSymm(nn.Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    kernel_init: NNInitFunc = normal(stddev=0.1)
     """Initializer for the Dense layer matrix."""
-    hidden_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    hidden_bias_init: NNInitFunc = normal(stddev=0.1)
     """Initializer for the hidden bias."""
-    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = normal(stddev=0.1)
+    visible_bias_init: NNInitFunc = normal(stddev=0.1)
     """Initializer for the visible bias."""
 
     def setup(self):

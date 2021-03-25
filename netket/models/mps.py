@@ -25,7 +25,7 @@ from netket.nn.initializers import lecun_normal, variance_scaling, zeros
 
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
-from netket.utils.types import PRNGKey, Shape, Dtype, Array
+from netket.utils.types import PRNGKey, Shape, Dtype, Array, NNInitFunc
 
 default_kernel_init = lecun_normal()
 
@@ -62,7 +62,7 @@ class MPSPeriodic(nn.Module):
     bond_dim: int
     diag: bool = False
     symperiod: bool = None
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = jax.nn.initializers.normal(
+    kernel_init: NNInitFunc = jax.nn.initializers.normal(
         stddev=0.01
     )  # default standard deviation equals 1e-2
     dtype: Any = np.complex64
