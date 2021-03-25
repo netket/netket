@@ -23,7 +23,7 @@ def example(request):
 @pytest.mark.benchmark(
     min_rounds=10
 )
-def test_benchmark(example, benchmark, centered):
+def test_sr_solver(example, benchmark, centered):
     @benchmark
     def sr_solver():
         qgt = example.state.quantum_geometric_tensor(nk.optimizer.SR(diag_shift=0.01, centered=centered))
