@@ -22,7 +22,7 @@ from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
-from netket.utils.types import PRNGKey, Shape, Dtype, Array
+from netket.utils.types import PRNGKey, Shape, Dtype, Array, NNInitFunc
 
 from netket import nn as nknn
 from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal
@@ -39,14 +39,24 @@ class PureRBM(nn.Module):
     """
 
     dtype: Any = np.float64
+    """The dtype of the weights."""
     activation: Any = nknn.logcosh
+    """The nonlinear activation function."""
     alpha: Union[float, int] = 1
+    """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_hidden_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
     use_visible_bias: bool = True
+    """if True adds a bias to the input not passed through the nonlinear layer."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
-    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
+    kernel_init: NNInitFunc = default_kernel_init
+    """Initializer for the Dense layer matrix."""
+    hidden_bias_init: NNInitFunc = zeros
+    """Initializer for the hidden bias."""
+    visible_bias_init: NNInitFunc = zeros
+    """Initializer for the visible bias."""
 
     @nn.compact
     def __call__(self, σr, σc, symmetric=True):
@@ -56,7 +66,8 @@ class PureRBM(nn.Module):
             dtype=self.dtype,
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            bias_init=self.hidden_bias_init,
+            precision=self.precision,
         )
         xr = self.activation(W(σr)).sum(axis=-1)
         xc = self.activation(W(σc)).sum(axis=-1)
@@ -87,12 +98,20 @@ class MixedRBM(nn.Module):
     """
 
     dtype: Any = np.float64
+    """The dtype of the weights."""
     activation: Any = nknn.logcosh
+    """The nonlinear activation function."""
     alpha: Union[float, int] = 1
-    use_hidden_bias: bool = True
+    """feature density. Number of features equal to alpha * input.shape[-1]"""
+    use_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
+    kernel_init: NNInitFunc = default_kernel_init
+    """Initializer for the Dense layer matrix."""
+    bias_init: NNInitFunc = zeros
+    """Initializer for the hidden bias."""
 
     @nn.compact
     def __call__(self, σr, σc, symmetric=True):
@@ -102,6 +121,7 @@ class MixedRBM(nn.Module):
             dtype=self.dtype,
             use_bias=False,
             kernel_init=self.kernel_init,
+            precision=self.precision,
         )
         U_A = nknn.Dense(
             name="ASymm",
@@ -109,10 +129,11 @@ class MixedRBM(nn.Module):
             dtype=self.dtype,
             use_bias=False,
             kernel_init=self.kernel_init,
+            precision=self.precision,
         )
         y = U_S(0.5 * (σr + σc)) + 1j * U_A(0.5 * (σr - σc))
 
-        if self.use_hidden_bias:
+        if self.use_bias:
             bias = self.param(
                 "bias",
                 self.bias_init,
@@ -133,29 +154,35 @@ class NDM(nn.Module):
     Assumes real dtype.
     A discussion on the effect of the feature density for the pure and mixed part is
     given in Vicentini et Al, PRL 122, 250503 (2019).
-
-    Attributes:
-        activation: The nonlinear activation function.
-        alpha: The feature density for the pure-part of the ansatz.
-        beta: The feature density for the mixed-part of the ansatz.
-        use_bias: whever to use the hidden bias in the dense layers.
-        use_visible_bias: whever to use a visible bias.
-        dtype: The dtype of the parameters.
-        kernel_init: the initializer for the dense kernels.
-        bias_init: the initializer for the biases.
-        visible_bias_init: the initialzier for the visible bias.
     """
 
-    activation: Any = nknn.logcosh
-    alpha: Union[float, int] = 1
-    beta: Union[float, int] = 1
-    use_hidden_bias: bool = True
-    use_visible_bias: bool = True
     dtype: Any = np.float64
+    """The dtype of the weights."""
+    activation: Any = nknn.logcosh
+    """The nonlinear activation function."""
+    alpha: Union[float, int] = 1
+    """The feature density for the pure-part of the ansatz. 
+    Number of features equal to alpha * input.shape[-1]
+    """
+    beta: Union[float, int] = 1
+    """The feature density for the mixed-part of the ansatz. 
+    Number of features equal to beta * input.shape[-1]
+    """
+    use_hidden_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
+    use_ancilla_bias: bool = True
+    """if True uses a bias in the dense layer (hidden layer bias)."""
+    use_visible_bias: bool = True
+    """if True adds a bias to the input not passed through the nonlinear layer."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    visible_bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    kernel_init: NNInitFunc = default_kernel_init
+    """Initializer for the Dense layer matrix."""
+    bias_init: NNInitFunc = default_kernel_init
+    """Initializer for the hidden bias."""
+    visible_bias_init: NNInitFunc = default_kernel_init
+    """Initializer for the visible bias."""
 
     @nn.compact
     def __call__(self, σ):
@@ -170,7 +197,8 @@ class NDM(nn.Module):
             use_visible_bias=self.use_visible_bias,
             visible_bias_init=self.visible_bias_init,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            hidden_bias_init=self.bias_init,
+            precision=self.precision,
         )
 
         ψ_A = PureRBM(
@@ -182,17 +210,19 @@ class NDM(nn.Module):
             use_visible_bias=self.use_visible_bias,
             visible_bias_init=self.visible_bias_init,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init,
+            hidden_bias_init=self.bias_init,
+            precision=self.precision,
         )
 
         Π = MixedRBM(
             name="Mixed",
             alpha=self.beta,
             dtype=self.dtype,
-            use_hidden_bias=self.use_hidden_bias,
+            use_bias=self.use_ancilla_bias,
             activation=self.activation,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
+            precision=self.precision,
         )
         return (
             ψ_S(σr, σc, symmetric=True) + 1j * ψ_A(σr, σc, symmetric=False) + Π(σr, σc)
