@@ -196,7 +196,7 @@ class RBMSymm(nn.Module):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
 
     permutations: Callable[[], Array]
-    """See documentstion of :ref:`netket.nn.DenseSymm`."""
+    """See documentation of :ref:`netket.nn.DenseSymm`."""
     dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.logcosh
@@ -254,6 +254,20 @@ class RBMSymm(nn.Module):
 def create_RBMSymm(
     permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
 ):
+    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
+
+    Attributes:
+        permutations: See documentation of :func:`~netket.nn.create_DenseSymm`.
+        dtype: The dtype of the weights.
+        activation: The nonlinear activation function.
+        alpha: Feature density. Number of features equal to alpha * input.shape[-1]
+        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias).
+        use_visible_bias: if True adds a bias to the input not passed through the nonlinear layer.
+        percision: numerical precision of the computation see `jax.lax.Precision`for details.
+        kernel_init: Initializer for the Dense layer matrix.
+        hidden_bias_init: Initializer for the hidden bias.
+        visible_bias_init: Initializer for the visible bias.
+    """
     if isinstance(permutations, Callable):
         perm_fn = permutations
     elif isinstance(permutations, AbstractGraph):
@@ -267,6 +281,3 @@ def create_RBMSymm(
         perm_fn = lambda: permutations
 
     return RBMSymm(permutations=perm_fn, *args, **kwargs)
-
-
-create_RBMSymm.__doc__ = RBMSymm.__doc__

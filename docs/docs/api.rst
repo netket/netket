@@ -212,6 +212,7 @@ Linear Modules
    netket.nn.Dense
    netket.nn.DenseGeneral
    netket.nn.DenseSymm
+   netket.nn.create_DenseSymm
    netket.nn.Conv
    netket.nn.Embed
 
