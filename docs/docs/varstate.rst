@@ -3,10 +3,10 @@ The Variational State Interface
 *******************************
 
 A central element of NetKet is the :class:`~netket.variational.VariationalState` interface.
-A Variational State represents an approximate, variational description of a system, and can be used to 
-probe it. 
+A Variational State represents an approximate, variational description of a system, and can be used to
+probe it.
 
-As of now, NetKet has two types of Variational state implementations: 
+As of now, NetKet has two types of Variational state implementations:
 
 - :class:`~netket.variational.MCState`, which is a classical variational approximation of a pure state.
 
@@ -29,8 +29,8 @@ of functions :code:`(init, apply)` or an haiku module obtained by calling :code:
 It's also easy to use another jax-based framework with NetKet (though it's not yet documented). If you
 want to do that, you can have a look at the automatic conversion `code <https://github.com/netket/netket/tree/master/netket/utils/model_frameworks>`_ and get in touch with us.
 
-.. warning:: 
-    
+.. warning::
+
     Initializing a Variational State with non-Flax modules is still experimental. Complex modules,
     especially if mutable, might not work. If you have problems don't hesitate opening issues on
     GitHub so that we can address them. They are mostly easy fixes.
@@ -45,7 +45,7 @@ If you are not familiar with Flax, it's a package that allows to define Neural N
 parametrized functions. While we suggest to read carefully the `introduction to Flax <https://flax.readthedocs.io/en/latest/notebooks/flax_basics.html>`_, if you are impatient and just want to define some simple, easy
 models you can find some examples in the `Model Surgery <https://flax.readthedocs.io/en/latest/howtos/model_surgery.html>`_ section of Flax documentation.
 
-Over examples can be found in the source of the :ref:`Pre-built models <_Models>` distributed with NetKet, such as 
+Over examples can be found in the source of the :ref:`Pre-built models <_Models>` distributed with NetKet, such as
 :class:`~netket.models.RBM` (the simplest one), :class:`~netket.models.MPSPeriodic` and :class:`~netket.models.NDM` for
 more complicated examples.
 
@@ -65,7 +65,7 @@ Let's now assume we have a Flax module, :class:`~netket.models.RBM` and we want 
 on sampled with a simple :func:`~netket.sampler.MetropolisLocal` sampler.
 
 To do this, first you need to construct the model and the sampler, and then you can pass them, together with several
-parameters, to the constructor. 
+parameters, to the constructor.
 
 .. code:: python
 
@@ -77,7 +77,7 @@ parameters, to the constructor.
 
     vstate = nk.variational.MCState(sampler, model, n_samples=500)
 
-When constructed, the variational state will call the model's init method to generate the state and the 
+When constructed, the variational state will call the model's init method to generate the state and the
 parameters, and will also initialize the sampler.
 
 When constructing a variational state you can also pass a seed, that will be used to initialize both the
@@ -94,7 +94,7 @@ One you have a variational state, you can do many things with it.
 First of all, you can probe expectation values:
 
 .. code:: python
-    
+
     Ĥ = nk.operator.Ising(hilbert, nk.graph.Chain(hilbert.size), h=0.5)
 
     vstate.expect(Ĥ)
@@ -102,7 +102,7 @@ First of all, you can probe expectation values:
     >>> -4.98 ± 0.14 [σ²=9.51, R̂=1.0006]
 
 Notice that if you call multiple times :code:`expect`, the same set of
-samples will be used, and you will get the same result. To force sampling 
+samples will be used, and you will get the same result. To force sampling
 to happen again, you can call :py:meth:`~netket.variational.MCState.sample`.
 
 .. code:: python
@@ -117,25 +117,25 @@ to happen again, you can call :py:meth:`~netket.variational.MCState.sample`.
 
     >>> -4.90 ± 0.14 [σ²=9.54, R̂=1.0062]
 
-The set of the last sampled samples can be accessed from the attribute 
+The set of the last sampled samples can be accessed from the attribute
 :py:attr:`~netket.variational.MCState.samples`. If you access the samples
 from this attribute, but you haven't sampled already, :code:`sample()` will
 be called automatically.
 
-Note that when you update the parameters, the samples are automatically 
+Note that when you update the parameters, the samples are automatically
 discarded.
 
 Parameters can be accessed through the attribute :py:attr:`~netket.variational.VariationalState.parameters`,
 and you can modify them by assigning a new set of parameters to this attribute.
 
-Note that parameters cannot in general be modified in place, as they are 
+Note that parameters cannot in general be modified in place, as they are
 of type `FrozenDict` (they are frozen, aka can't be modified). A typical way
 to modify them, for example to add 0.1 to all parameters is to do the following:
 
 .. code:: python
-    
+
     import jax
-    
+
     # See the value of some parameters
     vstate.parameters['visible_bias']
 
@@ -156,12 +156,12 @@ Sampling
 ^^^^^^^^
 
 You can also change the number of samples to extract (note: this will
-trigger recompilation of the sample function, so you should not this 
+trigger recompilation of the sample function, so you should not this
 in a hot loop) by changing :py:attr:`~netket.variational.MCState.n_samples`, and
 the number of discarded samples at the beginning of every markov chain by
 changing :py:attr:`~netket.variational.MCState.n_discard`.
 
-By default, :py:attr:`~netket.variational.MCState.n_discard` is 10% of 
+By default, :py:attr:`~netket.variational.MCState.n_discard` is 10% of
 :py:attr:`~netket.variational.MCState.n_samples`.
 
 The number of samples is then split among the number of chains/batches of the sampler.
@@ -185,18 +185,18 @@ The number of samples is then split among the number of chains/batches of the sa
 
 You can see that 500 samples are split among 8 chains, giving :math:`500/8=62.5` (rounded to
 the next largest integer, 63). Therefore 8 chains of length 63 will be run.
-n_discard gives the number of discarded steps taken in the markov chain before actually storing 
+n_discard gives the number of discarded steps taken in the markov chain before actually storing
 them, so the Markov Chains are actually :code:`chain_length + n_discard` long. The default
 n_discard is 10% of the total samples, but you can change that to any number.
 
 .. _warn-mpi-sampling:
 
-.. warning:: 
+.. warning::
 
     When running your code under MPI, the length of the chain is computed not only by dividing the
     total number of samples by :code:`n_chains`, but also by diving it by the number of MPI processes.
 
-    Therefore, considering the number from the example above, if we had 4 MPI processes, we would have 
+    Therefore, considering the number from the example above, if we had 4 MPI processes, we would have
     found a chain length of :math:`500/(8*4) = 15.625 \rightarrow 16`.
 
 Collecting the state-vector
@@ -208,25 +208,26 @@ the ket it represents.
 This is achieved by using the :py:meth:`~netket.variational.VariationalState.to_array` method,
 which by defaults normalises the :math:`L_2` norm of the vector to 1 (but can be turned off).
 
-Mixed state ansatzes can be converted to their matrix representation with 
+Mixed state ansatzes can be converted to their matrix representation with
 :py:meth:`~netket.variational.MCMixedState.to_matrix`. In this case, the default
 normalisation sets the trace to 1.
 
 
 Manipulating the parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can access the parameters of a variational state through the :py:attr:`~netket.variational.VariationalState.parameters` attribute.
 Similarly, if your model has also a mutable state, you can access it through
 the :py:attr:`~netket.variational.VariationalState.model_state` attribute.
 
-Parameters are stored as a Flax :code:`FrozenDict`, which behaves like a standard python dictionary but cannot be modified. 
+Parameters are stored as a Flax :code:`FrozenDict`, which behaves like a standard python dictionary but cannot be modified.
 In Jax jargon, Parameters are a PyTree (see `PyTree documentation <https://jax.readthedocs.io/en/latest/pytrees.html>`_) and they
 can be operated upon with functions like `jax.tree_map <https://jax.readthedocs.io/en/latest/jax.tree_util.html?highlight=tree_map#jax.tree_util.tree_map>`_.
 
 You can also modify the parameters by _unfreezing_ them, using the command `flax.core.unfreeze`.
 
 .. code:: python
+
     import flax
 
     pars = flax.core.unfreeze(varstate.parameters)
@@ -251,12 +252,12 @@ A simple example to serialize data is provided below:
 .. code:: python
 
     # construct an RBM model on 10 spins
-    vstate = nk.variational.MCState(nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10), 
+    vstate = nk.variational.MCState(nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
                                     nk.models.RBM())
 
     import flax
 
-    with open("test.mpack", 'w') as file: 
+    with open("test.mpack", 'w') as file:
       file.write(flax.serialization.to_bytes(vstate))
 
 
@@ -265,16 +266,16 @@ And here we de-serialize it:
 .. code:: python
 
     # construct a new RBM model on 10 spins
-    vstate = nk.variational.MCState(nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10), 
+    vstate = nk.variational.MCState(nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
                                     nk.models.RBM())
 
     # load
-    with open("test.mpack", 'rb') as file: 
+    with open("test.mpack", 'rb') as file:
       vstate = flax.serialization.from_bytes(vstate, file.read())
 
 Note that this also serializes the state of the sampler.
 
-.. note:: 
+.. note::
 
     The JSonLog serializer only serializes the parameters of the model, and not the whole variational state.
     Therefore, if you wish to reload the parameters of a variational state, saved by the json logger, you should
@@ -282,6 +283,5 @@ Note that this also serializes the state of the sampler.
 
     .. code:: python
 
-        with open("parameters.mpack", 'rb') as file: 
+        with open("parameters.mpack", 'rb') as file:
           vstate.variables = flax.serialization.from_bytes(vstate.variables, file.read())
-

@@ -119,8 +119,9 @@ def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
 def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
     r"""Computes the numerically exact steady-state of a lindblad master equation.
     The computation is performed either through the exact diagonalization of the
-    hermitian L^\dagger L matrix, or by means of an iterative solver (bicgstabl)
-    targeting the solution of the non-hermitian system L\rho = 0 && \Tr[\rho] = 1.
+    hermitian :math:`L^\dagger L` matrix, or by means of an iterative solver (bicgstabl)
+    targeting the solution of the non-hermitian system :math:`L\rho = 0`
+    and :math:`\mathrm{Tr}[\rho] = 1`.
 
     Note that for systems with 7 or more sites it is usually computationally impossible
     to build the full lindblad operator and therefore only `iterative` will work.
@@ -135,18 +136,17 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
         rho0: starting density matrix for the iterative diagonalization (default: None)
         kwargs...: additional kwargs passed to bicgstabl
 
-    Optional args for iterative:
-        For full docs please consult SciPy documentation at
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.bicgstab.html
+    For full docs please consult SciPy documentation at
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.bicgstab.html
 
+    Keyword Args:
         maxiter: maximum number of iterations for the iterative solver (default: None)
         tol: The precision for the calculation (default: 1e-05)
         callback: User-supplied function to call after each iteration. It is called as callback(xk),
-         where xk is the current solution vector
+                  where xk is the current solution vector
 
     Returns:
         The steady-state density matrix.
-
     """
     from numpy import sqrt, array
 

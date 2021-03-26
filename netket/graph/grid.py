@@ -48,6 +48,7 @@ class Grid(NetworkX):
             50
 
             Also, a 2x2x3 lattice with open boundary conditions can be constructed as follows:
+
             >>> g=netket.graph.Grid(length=[2,2,3], pbc=False)
             >>> print(g.n_nodes)
             12

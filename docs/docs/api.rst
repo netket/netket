@@ -38,7 +38,6 @@ Hilbert
    netket.hilbert.Qubit
    netket.hilbert.Spin
    netket.hilbert.CustomHilbert
-   netket.hilbert.PauliStrings
    netket.hilbert.DoubledHilbert
 
 .. _operators-api:
