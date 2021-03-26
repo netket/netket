@@ -76,9 +76,9 @@ class MetropolisNumpySamplerState:
         return self.n_steps_proc * n_nodes
 
     @property
-    def n_steps(self) -> int:
+    def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        return sum_inplace(self.n_steps_proc)
+        return sum_inplace(self.n_accepted_proc)
 
     def __repr__(self):
         if self.n_steps > 0:
