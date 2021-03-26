@@ -38,16 +38,6 @@ PRNGKey = jnp.ndarray
 @struct.dataclass
 class MetropolisPtSamplerState(MetropolisSamplerState):
 
-    # σ: jnp.ndarray
-    # """Current batch of configurations in the markov chain."""
-    # rng: jnp.ndarray
-    # """State of the random number generator (key, in jax terms)."""
-    # rule_state: Optional[Any]
-    # """Optional state of a transition rule."""
-    # n_samples: int = 0
-    # """Number of moves performed along the chains since the last reset."""
-    # n_accepted: int = 0
-    # """Number of accepted transitions along the chains since the last reset."""
     beta: jnp.ndarray = None
 
     n_accepted_per_beta: jnp.ndarray = None
@@ -57,13 +47,21 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
     exchange_steps: int = 0
 
     def __repr__(self):
-        acceptance_rate = self.n_accepted / self.n_samples * 100
-        text = (
-            "MetropolisPtSamplerState("
-            + "# accepted = {}/{} ({}%), ".format(
-                self.n_accepted, self.n_samples, acceptance_rate
+        if self.n_steps > 0:
+            acc_string = "# accepted = {}/{} ({}%), ".format(
+                self.n_accepted, self.n_steps, self.acceptance_ratio
             )
-            + "rng state={}".format(self.rng)
+        else:
+            acc_string = ""
+
+        text = (
+            "MetropolisNumpySamplerState("
+            + acc_string
+            + "rng state={})".format(self.rng)
+        )
+
+        text = (
+            "MetropolisPtSamplerState(" + acc_string + "rng state={}".format(self.rng)
         )
         return text
 
@@ -162,8 +160,8 @@ class MetropolisPtSampler(MetropolisSampler):
             σ=σ,
             rng=key_state,
             rule_state=rule_state,
-            n_samples=0,
-            n_accepted=0,
+            n_steps_proc=0,
+            n_accepted_proc=0,
             beta=beta,
             beta_0_index=jnp.zeros((sampler.n_chains,), dtype=int),
             n_accepted_per_beta=jnp.zeros(
@@ -188,8 +186,8 @@ class MetropolisPtSampler(MetropolisSampler):
             σ=σ,
             rng=new_rng,
             rule_state=rule_state,
-            n_samples=0,
-            n_accepted=0,
+            n_steps_proc=0,
+            n_accepted_proc=0,
             n_accepted_per_beta=jnp.zeros((sampler.n_chains, sampler.n_replicas)),
             beta_position=jnp.zeros((sampler.n_chains,)),
             beta_diffusion=jnp.zeros((sampler.n_chains)),
@@ -402,7 +400,7 @@ class MetropolisPtSampler(MetropolisSampler):
                 rng=new_rng,
                 σ=s.σ,
                 # n_accepted=s.accepted,
-                n_samples=state.n_samples + sampler.n_sweeps * sampler.n_chains,
+                n_steps_proc=state.n_steps_proc + sampler.n_sweeps * sampler.n_chains,
                 beta=s.beta,
                 beta_0_index=s.beta_0_index,
                 beta_position=s.beta_position,

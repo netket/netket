@@ -24,6 +24,8 @@ from jax import numpy as jnp
 import jax
 
 from netket.hilbert import AbstractHilbert
+from netket.utils import n_nodes
+from netket.stats import sum_inplace
 
 from .metropolis import MetropolisSampler
 
@@ -51,10 +53,42 @@ class MetropolisNumpySamplerState:
     rng: Any
     """A numpy random generator."""
 
-    n_samples: int = 0
-    """Number of moves performed along the chains since the last reset."""
-    n_accepted: int = 0
-    """Number of accepted transitions along the chains since the last reset."""
+    n_steps_proc: int = 0
+    """Number of moves performed along the chains in this process since the last reset."""
+    n_accepted_proc: int = 0
+    """Number of accepted transitions among the chains in this process since the last reset."""
+
+    @property
+    def acceptance_ratio(self) -> float:
+        """The percentage of accepted moves across all chains and MPI processes.
+
+        The rate is computed since the last reset of the sampler.
+        Will return None if no sampling has been performed since then.
+        """
+        if self.n_steps == 0:
+            return None
+
+        return self.n_accepted / self.n_steps * 100
+
+    @property
+    def n_steps(self) -> int:
+        """Total number of moves performed across all processes since the last reset."""
+        return self.n_steps_proc * n_nodes
+
+    @property
+    def n_accepted(self) -> int:
+        """Total number of moves accepted across all processes since the last reset."""
+        return sum_inplace(self.n_accepted_proc)
+
+    def __repr__(self):
+        if self.n_steps > 0:
+            acc_string = "# accepted = {}/{} ({}%), ".format(
+                self.n_accepted, self.n_steps, self.acceptance_ratio
+            )
+        else:
+            acc_string = ""
+
+        return f"MetropolisNumpySamplerState({acc_string}rng state={self.rng})"
 
 
 @partial(jax.jit, static_argnums=0)
@@ -161,8 +195,8 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 random_uniform,
             )
 
-        state.n_samples += sampler.n_sweeps * sampler.n_chains
-        state.n_accepted += accepted
+        state.n_steps_proc += sampler.n_sweeps * sampler.n_chains
+        state.n_accepted_proc += accepted
 
         return state, state.σ
 
