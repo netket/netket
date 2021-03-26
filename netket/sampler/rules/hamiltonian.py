@@ -47,36 +47,36 @@ class HamiltonianRule(MetropolisRule):
     :class:`netket.sampler.MetropolisSamplerNumpy`.
 
     Attributes:
-        Ô: The (hermitian) operator giving the transition amplitudes.
+        Ô: The (hermitian) operator giving the transition amplitudes.
 
     """
 
-    Ô: AbstractOperator = struct.field(pytree_node=False)
+    Ô: AbstractOperator = struct.field(pytree_node=False)
 
     def init_state(rule, sampler, machine, params, key):
-        if sampler.hilbert != rule.Ô.hilbert:
+        if sampler.hilbert != rule.Ô.hilbert:
             raise ValueError(
                 f"""
             The hilbert space of the sampler ({sampler.hilbert}) and the hilbert space
-            of the operator ({rule.Ô.hilbert}) for HamiltonianRule must be the same.
+            of the operator ({rule.Ô.hilbert}) for HamiltonianRule must be the same.
             """
             )
-        return super().init_state(rule, sampler, machine, params, key)
+        return super().init_state(sampler, machine, params, key)
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
-        if not isinstance(self.Ô, AbstractOperator):
+        if not isinstance(self.Ô, AbstractOperator):
             raise TypeError(
                 "Argument to HamiltonianRule must be a valid operator.".format(
-                    type(self.Ô)
+                    type(self.Ô)
                 )
             )
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
 
         hilbert = sampler.hilbert
-        get_conn_flattened = rule.Ô._get_conn_flattened_closure()
-        n_conn_from_sections = rule.Ô._n_conn_from_sections
+        get_conn_flattened = rule.Ô._get_conn_flattened_closure()
+        n_conn_from_sections = rule.Ô._n_conn_from_sections
 
         @njit4jax(
             (
@@ -113,7 +113,7 @@ class HamiltonianRule(MetropolisRule):
         return σp, log_prob_correction
 
     def __repr__(self):
-        return f"HamiltonianRule({self.Ô})"
+        return f"HamiltonianRule({self.Ô})"
 
 
 @jit(nopython=True)
