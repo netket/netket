@@ -28,6 +28,7 @@ from netket.graph import AbstractGraph
 from jax import lax
 import jax.numpy as jnp
 import numpy as np
+import scipy.sparse
 
 
 PRNGKey = Any
@@ -242,11 +243,11 @@ class DenseSymm(Module):
         # note that this should be a sparse object, once jax supports them
         def symmetrizer_ijkl(i, j, k, l):
             jsymm = np.floor_divide(j, self.n_symm)
-            cond_k = k == jnp.asarray(perms)[j % self.n_symm, i]
+            cond_k = k == np.asarray(perms)[j % self.n_symm, i]
             cond_l = l == jsymm
-            return jnp.asarray(jnp.logical_and(cond_k, cond_l), dtype=int)
+            return np.asarray(np.logical_and(cond_k, cond_l), dtype=int)
 
-        self.symmetrizer = jnp.array(
+        symmetrizer = np.array(
             np.fromfunction(
                 symmetrizer_ijkl,
                 shape=(self.n_sites, self.n_hidden, self.n_sites, self.features),
@@ -254,16 +255,19 @@ class DenseSymm(Module):
             ),
             dtype=self.dtype,
         ).reshape(-1, self.features * self.n_sites)
+        symmetrizer = scipy.sparse.coo_matrix(symmetrizer)
+        # Of the COO matrix attributes, rows is just a range [0, ..., n_rows)
+        # and data is [1., ..., 1.]. Only cols needs to be stored.
+        self.symm_cols = jnp.asarray(symmetrizer.col)
 
     def full_kernel(self, kernel):
         """
         Converts the symmetry-reduced kernel of shape (n_sites, features) to
         the full Dense kernel of shape (n_sites, features * n_symm).
         """
-        # equivalent to: kernel = jnp.einsum("ijkl,kl->ij", self.symmetrizer, kernel)
-        # for appropriately shaped symmetrizer
-        kvec = kernel.reshape(-1)
-        return jnp.matmul(self.symmetrizer, kvec).reshape(self.n_sites, -1)
+        kernel = kernel.reshape(-1)
+        result = kernel[self.symm_cols]
+        return result.reshape(self.n_sites, -1)
 
     def full_bias(self, bias):
         """
@@ -324,9 +328,9 @@ def create_DenseSymm(
     if isinstance(permutations, Callable):
         perm_fn = permutations
     elif isinstance(permutations, AbstractGraph):
-        perm_fn = lambda: jnp.asarray(permutations.automorphisms())
+        perm_fn = lambda: np.asarray(permutations.automorphisms())
     else:
-        permutations = jnp.asarray(permutations)
+        permutations = np.asarray(permutations)
         if not permutations.ndim == 2:
             raise ValueError(
                 "permutations must be an array of shape (#permutations, #sites)."
