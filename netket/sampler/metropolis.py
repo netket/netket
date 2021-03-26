@@ -135,10 +135,10 @@ class MetropolisSamplerState(SamplerState):
     """State of the random number generator (key, in jax terms)."""
     rule_state: Optional[Any]
     """Optional state of a transition rule."""
-    n_samples: int = 0
-    """Number of moves performed along the chains since the last reset."""
-    n_accepted: int = 0
-    """Number of accepted transitions along the chains since the last reset."""
+    n_steps_proc: int = 0
+    """Number of moves performed along the chains in this process since the last reset."""
+    n_accepted_proc: int = 0
+    """Number of accepted transitions among the chains in this process since the last reset."""
 
     @property
     def acceptance_ratio(self) -> float:
@@ -147,21 +147,30 @@ class MetropolisSamplerState(SamplerState):
         The rate is computed since the last reset of the sampler.
         Will return None if no sampling has been performed since then.
         """
-        if self.n_samples == 0:
+        if self.n_steps == 0:
             return None
 
-        return sum_inplace(self.n_accepted / self.n_samples * 100) / n_nodes
+        return self.n_accepted / self.n_steps * 100
+
+    @property
+    def n_steps(self) -> int:
+        """Total number of moves performed across all processes since the last reset."""
+        return self.n_steps_proc * n_nodes
+
+    @property
+    def n_steps(self) -> int:
+        """Total number of moves accepted across all processes since the last reset."""
+        return sum_inplace(self.n_steps_proc)
 
     def __repr__(self):
-        if self.n_samples > 0:
+        if self.n_steps > 0:
             acc_string = "# accepted = {}/{} ({}%), ".format(
-                self.n_accepted, self.n_samples, self.acceptance_ratio
+                self.n_accepted, self.n_steps, self.acceptance_ratio
             )
         else:
             acc_string = ""
 
-        text = "MetropolisSamplerState(" + acc_string + "rng state={})".format(self.rng)
-        return text
+        return f"MetropolisNumpySamplerState({acc_string}rng state={self.rng})"
 
 
 @struct.dataclass
@@ -239,9 +248,7 @@ class MetropolisSampler(Sampler):
         rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
         σ = jnp.zeros((sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype)
 
-        state = MetropolisSamplerState(
-            σ=σ, rng=key_state, rule_state=rule_state, n_samples=0, n_accepted=0
-        )
+        state = MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
 
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
@@ -263,7 +270,7 @@ class MetropolisSampler(Sampler):
         rule_state = sampler.rule.reset(sampler, machine, parameters, state)
 
         return state.replace(
-            σ=σ, rng=new_rng, rule_state=rule_state, n_samples=0, n_accepted=0
+            σ=σ, rng=new_rng, rule_state=rule_state, n_steps_proc=0, n_accepted_proc=0
         )
 
     def _sample_next(sampler, machine, parameters, state):
@@ -275,7 +282,7 @@ class MetropolisSampler(Sampler):
             s.log_prob = sampler.machine_pow * machine(parameters, state.σ).real
 
             # for logging
-            s.accepted = state.n_accepted
+            s.accepted = state.n_accepted_proc
 
             for i in s.range(sampler.n_sweeps):
                 # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
@@ -305,8 +312,8 @@ class MetropolisSampler(Sampler):
             new_state = state.replace(
                 rng=new_rng,
                 σ=s.σ,
-                n_accepted=s.accepted,
-                n_samples=state.n_samples + sampler.n_sweeps * sampler.n_chains,
+                n_accepted_proc=s.accepted,
+                n_steps_proc=state.n_steps_proc + sampler.n_sweeps * sampler.n_chains,
             )
 
         return new_state, new_state.σ
