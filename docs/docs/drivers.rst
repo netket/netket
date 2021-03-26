@@ -3,13 +3,13 @@ The Drivers API
 ***************
 
 In this section we will briefly describe the capabilities of the drivers API.
-This page assumes that you have already read and are familiar witht the :docs:`Variational
+This page assumes that you have already read and are familiar witht the :ref:`Variational
 State interface <variational_state>`.
 
 In Netket there are two drivers, even though you can define your own; those are:
- 
+
 1. :class:`~netket.driver.VMC`, to find the ground state of an Hamiltonian
- 
+
 2. :class:`~netket.driver.SteadyState`, to find the steady-state of a liouvillian
 
 
@@ -20,7 +20,7 @@ may wish.
 Constructing a driver
 ---------------------
 
-There are two objects both drivers above need in order to be constructed: 
+There are two objects both drivers above need in order to be constructed:
 
 - The :class:`netket.operator.AbstractOperator` defining the problem we wish to solve, such as the Hamiltonian for which we want to find the ground state or the Lindbladian for which we want to find the Steady-State.
 
@@ -60,13 +60,13 @@ The latter is there to guarantee better compatibility with legacy codebases, the
 use the more first API, where the variational state is built explicitly.
 
 
-Running the optimisation 
+Running the optimisation
 ------------------------
 
 The simplest way to use optimization drivers to perform the optimisation is to use their :py:meth:`~netket.driver.AbstractVariationalDriver.run` method.
 
-This method will run the optimisation for the desired number of steps, while logging data to the 
-desired output. 
+This method will run the optimisation for the desired number of steps, while logging data to the
+desired output.
 
 The most important arguments are the following:
 
@@ -84,13 +84,13 @@ The most important arguments are the following:
 
   - :code:`Logger`: a logger, or iterable of loggers, respecting the standard loging interface. The available loggers are listed :ref:`here <logging-api>`.
 
-  - The :code:`callbacks` can be used to pass callbacks to the optimisation driver. Callbacks must be callables with the signature 
-  .. code:: python 
+  - The :code:`callbacks` can be used to pass callbacks to the optimisation driver. Callbacks must be callables with the signature
+    .. code:: python
 
       (step:int, logdata:dict, driver:AbstractVariationalDriver) -> bool
 
   The first argument is the step number, the second argument is the dictionary holding data that will be logged, and it can be modified by the callback, and the third is the driver itself, which can be used to access the current state or any other quantity.
-  The output of the callback must be a boolean, which signals whever to continue the optimisation or not. When any one of the callbacks return :code:`False`, the optimisation will be stopped. 
+  The output of the callback must be a boolean, which signals whever to continue the optimisation or not. When any one of the callbacks return :code:`False`, the optimisation will be stopped.
   Netket comes with a few built-in callbacks, listed :ref:`in the API <callbacks-api>`, but you can also implement your own.
 
 - :code:`step_size`: Data will be logged and callbacks will be called every :code:`step_size` optimisation steps. Useful if your callbacks have a high computational cost. If unspecified, logs at every step.

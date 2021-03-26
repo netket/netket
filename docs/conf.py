@@ -79,7 +79,9 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
-    #    "networkx": ("https://networkx.org/doc/reference/", None),
+    "jax": ("https://jax.readthedocs.io/en/latest/", None),
+    "flax": ("https://flax.readthedocs.io/en/latest/", None),
+    # "networkx": ("https://networkx.org/doc/reference/", None),
 }
 
 # (Optional) Logo. Should be small enough to fit the navbar (ideally 24x24).

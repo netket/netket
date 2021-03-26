@@ -28,15 +28,19 @@ class NetworkX(AbstractGraph):
         Constructs a netket graph from a networkx graph.
 
         Args:
-            graph: A networkx graph (might be a networkx.Graph or a networkx.MultiGraph)
+            graph: A networkx graph (might be a :class:`networkx.Graph` or a :class:`networkx.MultiGraph`)
+
         Examples:
+
             A graph of nodes [0,1,2] with edges [(0,1), (0,2), (1,2)]
+
             >>> import netket
             >>> import networkx
             >>> nx_g = networkx.Graph([(0,1), (0,2), (1,2)])
             >>> nk_g = netket.graph.NetworkX(nx_g)
             >>> print(nk_g.n_nodes)
             3
+
         """
         if not (
             isinstance(graph, _nx.classes.graph.Graph)
@@ -78,10 +82,12 @@ class NetworkX(AbstractGraph):
 
     @property
     def n_nodes(self) -> int:
+        r"""The number of nodes (or vertices) in the graph"""
         return self.graph.number_of_nodes()
 
     @property
     def n_edges(self) -> int:
+        r"""The number of edges in the graph."""
         return self.graph.size()
 
     def automorphisms(self) -> List[List]:

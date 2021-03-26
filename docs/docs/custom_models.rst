@@ -9,7 +9,7 @@ In this section we give some examples on how to define models for NetKet 3.
 There are mainly 3 ways to do that, and they all involve using some third party
 framework.
 Whatever you pick, we strongly advise you to read their documentation and whatch
-some examples. 
+some examples.
 
 The 3 frameworks that are supported are:
 
@@ -25,8 +25,8 @@ Whatever the framework you pick, your model must be able to accept batches of st
 The result *must* be a :code:`(B,)` vector  where every element is the evaluation of
 your network for that entry.
 
-If you have a model that is differnt to write in such a way to act on batches, you 
-can use `jax.vmap <https://jax.readthedocs.io/en/latest/jax.html#jax.vmap>`_ to vectorize it. 
+If you have a model that is differnt to write in such a way to act on batches, you
+can use `jax.vmap <https://jax.readthedocs.io/en/latest/jax.html#jax.vmap>`_ to vectorize it.
 
 Your model will be compilde with `jax.jit`. Therefore in general you should NEVER (unless you know what you are doing) use :code:`numpy`, but rather :code:`jax.numpy` inside of it.
 If you want to understand why, read `Jax 101 guide <https://jax.readthedocs.io/en/latest/jax-101/index.html>`_ ( however, even if you don't care, we think it's hard to us a tool you don't undrstand: so at least rad `Jax for the Impatient <https://flax.readthedocs.io/en/latest/notebooks/jax_for_the_impatient.html>`_, which is shorter).
@@ -35,12 +35,12 @@ If you want to understand why, read `Jax 101 guide <https://jax.readthedocs.io/e
 Defining models: init and apply functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Internally, variational states don't need a Flax model to work with, but only two functions: an initialization 
+Internally, variational states don't need a Flax model to work with, but only two functions: an initialization
 function, used to initialize the parameters and the state of the model, and an apply function, used to evaluate
 the model.
 
 If you don't want to use Flax, Haiku or other supported methods, you can define your own tuple of functions and
-pass it to the Variational State constructor. Keep in mind, however, that those two functions will be executed 
+pass it to the Variational State constructor. Keep in mind, however, that those two functions will be executed
 inside :code:`jax.jit` blocks, so they must be jit-compatible.
 
 
@@ -49,12 +49,12 @@ Using Flax Linen
 ----------------
 
 To define a model using Flax Linen you need to define a Flax Module. Normally those functionalities are present
-in the :code:`flax.linen` module, that people usually import with :code:`import flax.linen as nn` (some day in 
+in the :code:`flax.linen` module, that people usually import with :code:`import flax.linen as nn` (some day in
 a few months from now, :code:`import flax.nn` will work, but at the moment it won't, as it's importing a different,
 legacy, deprecated module).
 
 Flax supports complex numbers but does not make it overly easy to work with them.
-As such, netket exports a module, `netket.nn` which re-exports the functionality in `flax.nn`, but 
+As such, netket exports a module, `netket.nn` which re-exports the functionality in `flax.nn`, but
 with the additional support of complex numbers.
 
 To define a Flax Module, simply create a class that inherits from `nn.Module`.
@@ -84,7 +84,7 @@ passing any optional class attribute, such as:
 
 	model = Model1(y=0.5)
 
-If you want to use some layers inside your model, you can for example create them in the `__call__` function by decorating it with 
+If you want to use some layers inside your model, you can for example create them in the `__call__` function by decorating it with
 the :code:`@nn.compact` decorator. Don't worry: they will only be initialised once.
 
 .. code:: python
@@ -106,7 +106,7 @@ the :code:`@nn.compact` decorator. Don't worry: they will only be initialised on
 			# sum the output
 			return self.y * jnp.sum(x, axis=-1)
 
-For more advanced examples, you can check the `source-code <https://github.com/netket/netket/tree/master/netket/models>`_ 
+For more advanced examples, you can check the `source-code <https://github.com/netket/netket/tree/master/netket/models>`_
 of the models included in netket  or Flax documentation.
 
 Using Jax/Stax
@@ -115,9 +115,7 @@ Using Jax/Stax
 See tutorial :doc:`Using Jax: Netket 3 preview <../tutorials/jax>`
 
 
-Using Jax/Stax
+Using Haiku
 ---------------
 
 See `this example <https://github.com/netket/netket/blob/master/Examples/Ising1d/ising1d_hk.py>`_
-
-

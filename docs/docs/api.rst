@@ -38,7 +38,6 @@ Hilbert
    netket.hilbert.Qubit
    netket.hilbert.Spin
    netket.hilbert.CustomHilbert
-   netket.hilbert.PauliStrings
    netket.hilbert.DoubledHilbert
 
 .. _operators-api:
@@ -56,6 +55,7 @@ Operators
    netket.operator.LocalOperator
    netket.operator.Ising
    netket.operator.Heisenberg
+   netket.operator.PauliStrings
    netket.operator.LocalLiouvillian
 
 

@@ -16,10 +16,10 @@ from numba import jit
 
 import numpy as np
 import math
-from numpy.typing import DTypeLike
 
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert, Fock
+from netket.utils.types import Dtype
 
 from . import spin, boson
 from ._local_operator import LocalOperator
@@ -106,7 +106,7 @@ class Ising(SpecialHamiltonian):
     r"""
     The Transverse-Field Ising Hamiltonian :math:`-h\sum_i \sigma_i^{(x)} +J\sum_{\langle i,j\rangle} \sigma_i^{(z)}\sigma_j^{(z)}`.
 
-    This implementation is considerably faster than the Ising hamiltonian constructed by summing :class:`~LocalOperator`s.
+    This implementation is considerably faster than the Ising hamiltonian constructed by summing :class:`~netket.operator.LocalOperator` s.
     """
 
     def __init__(
@@ -115,17 +115,17 @@ class Ising(SpecialHamiltonian):
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
-        dtype: DTypeLike = float,
+        dtype: Dtype = float,
     ):
         r"""
-        Constructs a new ``Ising`` given a hilbert space, a transverse field,
-        and (if specified) a coupling constant.
+        Constructs the Ising Operator from an hilbert space and a
+        graph specifying the connectivity.
 
         Args:
             hilbert: Hilbert space the operator acts on.
             h: The strength of the transverse field.
             J: The strength of the coupling. Default is 1.0.
-            dtype: The dtype of the underlying matrix elements
+            dtype: The dtype of the matrix elements.
 
         Examples:
             Constructs an ``Ising`` operator for a 1D system.
@@ -168,7 +168,7 @@ class Ising(SpecialHamiltonian):
         return True
 
     @property
-    def dtype(self) -> DTypeLike:
+    def dtype(self) -> Dtype:
         return self._dtype
 
     def conjugate(self, *, concrete=True):
@@ -351,22 +351,23 @@ class Ising(SpecialHamiltonian):
 
 class Heisenberg(GraphOperator):
     r"""
-    The Heisemberg hamiltonian on a lattice.
+    The Heisenberg hamiltonian on a lattice.
     """
 
     def __init__(
         self,
-        hilbert,
-        graph,
-        J=1,
+        hilbert: AbstractHilbert,
+        graph: AbstractGraph,
+        J: float = 1,
         sign_rule=None,
     ):
         """
-        Constructs a new ``Heisenberg`` given a hilbert space.
+        Constructs an Heisenberg operator given a hilbert space and a graph providing the
+        connectivity of the lattice.
 
         Args:
             hilbert: Hilbert space the operator acts on.
-            grah: The graph upon which this hamiltonian is defined.
+            graph: The graph upon which this hamiltonian is defined.
             J: The strength of the coupling. Default is 1.
             sign_rule: If enabled, Marshal's sign rule will be used. On a bipartite
                        lattice, this corresponds to a basis change flipping the Sz direction
@@ -420,7 +421,8 @@ class Heisenberg(GraphOperator):
         )
 
     @property
-    def J(self):
+    def J(self) -> float:
+        """The coupling strength."""
         return self._J
 
     @property
@@ -445,27 +447,29 @@ class BoseHubbard(SpecialHamiltonian):
         V: float = 0.0,
         J: float = 1.0,
         mu: float = 0.0,
-        dtype: DTypeLike = float,
+        dtype: Dtype = float,
     ):
         r"""
-        Constructs a new ``BoseHubbard`` given a hilbert space and a Hubbard
-        interaction strength. The chemical potential and the density-density interaction strenght
+        Constructs a new BoseHubbard operator given a hilbert space, a graph
+        specifying the connectivity and the interaction strength.
+        The chemical potential and the density-density interaction strenght
         can be specified as well.
 
         Args:
-           hilbert (netket.hilbert.Boson): Hilbert space the operator acts on.
-           U (float): The Hubbard interaction term.
-           V (float): The strenght of density-density interaction term.
-           J (float): The hopping amplitude.
-           mu (float): The chemical potential.
+           hilbert: Hilbert space the operator acts on.
+           U: The on-site interaction term.
+           V: The strength of density-density interaction term.
+           J: The hopping amplitude.
+           mu: The chemical potential.
+           dtype: The dtype of the matrix eleements.
 
         Examples:
-           Constructs a ``BoseHubbard`` operator for a 2D system.
+           Constructs a BoseHubbard operator for a 2D system.
 
            >>> import netket as nk
            >>> g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
-           >>> hi = nk.hilbert.Boson(n_max=3, n_bosons=6, graph=g)
-           >>> op = nk.operator.BoseHubbard(U=4.0, hilbert=hi)
+           >>> hi = nk.hilbert.Boson(n_max=3, n_bosons=6, N=g.n_nodes)
+           >>> op = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
            >>> print(op.hilbert.size)
            9
         """
@@ -505,18 +509,22 @@ class BoseHubbard(SpecialHamiltonian):
 
     @property
     def U(self):
+        """The strength of on-site interaction term."""
         return self._U
 
     @property
     def V(self):
+        """The strength of density-density interaction term."""
         return self._V
 
     @property
     def J(self):
+        """The hopping amplitude."""
         return self._J
 
     @property
     def mu(self):
+        """The chemical potential."""
         return self._mu
 
     @property
