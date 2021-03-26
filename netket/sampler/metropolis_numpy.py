@@ -24,6 +24,8 @@ from jax import numpy as jnp
 import jax
 
 from netket.hilbert import AbstractHilbert
+from netket.utils import n_nodes
+from netket.stats import sum_inplace
 
 from .metropolis import MetropolisSampler
 
@@ -58,8 +60,15 @@ class MetropolisNumpySamplerState:
 
     @property
     def acceptance_ratio(self) -> float:
-        """The percentage of accepted moves since the last reset."""
-        return self.n_accepted / self.n_samples * 100
+        """The percentage of accepted moves across all chains and MPI processes.
+
+        The rate is computed since the last reset of the sampler.
+        Will return None if no sampling has been performed since then.
+        """
+        if self.n_samples is 0:
+            return None
+
+        return sum_inplace(self.n_accepted / self.n_samples * 100) / n_nodes
 
     def __repr__(self):
         if self.n_samples > 0:
