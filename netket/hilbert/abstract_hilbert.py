@@ -177,13 +177,13 @@ class AbstractHilbert(abc.ABC):
         rgen=None,
     ) -> jnp.ndarray:
         r"""Generates either a single or a batch of uniformly distributed random states.
-        random_state(self, key, size=None, dtype=np.float32)
+        Runs as :code:`random_state(self, key, size=None, dtype=np.float32)` by default.
 
         Args:
             key: rng state from a jax-style functional generator.
-            size: If provided, returns a batch of configurations of the form (size, #) if size
-                is an integer or (*size, #) if it is a tuple and where # is the Hilbert space size.
-                By default, a single random configuration with shape (#,) is returned.
+            size: If provided, returns a batch of configurations of the form :code:`(size, N)` if size
+                  is an integer or :code:`(*size, N)` if it is a tuple and where :math:`N` is the Hilbert space size.
+                  By default, a single random configuration with shape :code:`(#,)` is returned.
             dtype: Dtype of the resulting vector.
             out: Deprecated. Will be removed in v3.1
             rgen: Deprecated. Will be removed in v3.1
@@ -192,6 +192,7 @@ class AbstractHilbert(abc.ABC):
             A state or batch of states sampled from the uniform distribution on the hilbert space.
 
         Example:
+
             >>> hi = netket.hilbert.Qubit(N=2)
             >>> hi.random_state(jax.random.PRNGKey(0))
             array([0., 1.])

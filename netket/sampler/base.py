@@ -135,7 +135,7 @@ class Sampler(abc.ABC):
         a flax's dataclass), and it can be serialized using Flax serialization methods.
 
         Args:
-            machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+            machine: a Flax module or callable with the forward pass of the log-pdf.
             parameters: The PyTree of parameters of the model.
             seed: An optional seed or jax PRNGKey. If not specified, a random seed will be used.
 
@@ -156,14 +156,13 @@ class Sampler(abc.ABC):
         state: Optional[SamplerState] = None,
     ) -> SamplerState:
         """
-        Resets the state of the sampler. To be used every time
-        the parameters are changed.
+        Resets the state of the sampler. To be used every time the parameters are changed.
 
         Args:
-            machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+            machine: a Flax module or callable with the forward pass of the log-pdf.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If it's not provided, it will be constructed
-            by calling `sampler.init_state(machine, parameters)` with a random seed.
+                by calling :code:`sampler.init_state(machine, parameters)` with a random seed.
 
         Returns:
             A valid sampler state.
@@ -183,10 +182,10 @@ class Sampler(abc.ABC):
         Samples the next state in the markov chain.
 
         Args:
-            machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+            machine: a Flax module or callable apply function with the forward pass of the log-pdf.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If it's not provided, it will be constructed
-            by calling `sampler.reset(machine, parameters)` with a random seed.
+                by calling :code:`sampler.reset(machine, parameters)` with a random seed.
 
         Returns:
             state: The new state of the sampler
@@ -210,8 +209,8 @@ class Sampler(abc.ABC):
 
         Arguments:
             sampler: The Monte Carlo sampler.
-            machine: The model or apply_fun to sample from (if it's a function it should have
-                the signature f(parameters, σ) -> jnp.ndarray).
+            machine: The model or callable to sample from (if it's a function it should have
+                the signature :code:`f(parameters, σ) -> jnp.ndarray`).
             parameters: The PyTree of parameters of the model.
             state: current state of the sampler. If None, then initialises it.
             chain_length: (default=1), the length of the chains.
@@ -293,7 +292,7 @@ def sampler_state(
 
     Args:
         sampler: The Monte Carlo sampler.
-        machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+        machine: a Flax module or callable with the forward pass of the log-pdf.
         parameters: The PyTree of parameters of the model.
         seed: An optional seed or jax PRNGKey. If not specified, a random seed will be used.
 
@@ -311,15 +310,14 @@ def reset(
     state: Optional[SamplerState] = None,
 ) -> SamplerState:
     """
-    Resets the state of the sampler. To be used every time
-    the parameters are changed.
+    Resets the state of the sampler. To be used every time the parameters are changed.
 
     Args:
         sampler: The Monte Carlo sampler.
-        machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+        machine: a Flax module or Callable with the forward pass of the log-pdf.
         parameters: The PyTree of parameters of the model.
         state: The current state of the sampler. If it's not provided, it will be constructed
-        by calling `sampler.init_state(machine, parameters)` with a random seed.
+            by calling :code:`sampler.init_state(machine, parameters)` with a random seed.
 
     Returns:
         A valid sampler state.
@@ -338,10 +336,10 @@ def sample_next(
 
     Args:
         sampler: The Monte Carlo sampler.
-        machine: a Flax module or callable apply_fun with the forward pass of the log-pdf.
+        machine: a Flax module or callable with the forward pass of the log-pdf.
         parameters: The PyTree of parameters of the model.
         state: The current state of the sampler. If it's not provided, it will be constructed
-        by calling `sampler.reset(machine, parameters)` with a random seed.
+            by calling :code:`sampler.reset(machine, parameters)` with a random seed.
 
     Returns:
         state: The new state of the sampler
@@ -363,8 +361,8 @@ def sample(
 
     Arguments:
         sampler: The Monte Carlo sampler.
-        machine: The model or apply_fun to sample from (if it's a function it should have
-            the signature f(parameters, σ) -> jnp.ndarray).
+        machine: The model or Callable to sample from (if it's a function it should have
+            the signature :code:`f(parameters, σ) -> jnp.ndarray`).
         parameters: The PyTree of parameters of the model.
         state: current state of the sampler. If None, then initialises it.
         chain_length: (default=1), the length of the chains.
@@ -392,8 +390,8 @@ def samples(
 
     Arguments:
         sampler: The Monte Carlo sampler.
-        machine: The model or apply_fun to sample from (if it's a function it should have
-            the signature f(parameters, σ) -> jnp.ndarray).
+        machine: The model or Callable to sample from (if it's a function it should have
+            the signature :code:`f(parameters, σ) -> jnp.ndarray`).
         parameters: The PyTree of parameters of the model.
         state: current state of the sampler. If None, then initialises it.
         chain_length: (default=1), the length of the chains.

@@ -77,7 +77,8 @@ class MetropolisRule:
             sampler_state: The current state of the sampler. Should not modify it.
 
         Returns:
-            An Optional State. Must return the same type of `sampler_state.rule_state`.
+            An Optional State. Must return the same type of :py:meth:`sampler_state.rule_state`.
+
         """
         return sampler_state.rule_state
 

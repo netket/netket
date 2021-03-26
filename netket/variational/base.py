@@ -113,7 +113,8 @@ class VariationalState(abc.ABC):
         Re-initializes all the parameters with the provided initialization function, defaulting to
         the normal distribution of standard deviation 0.01.
 
-        .. warn::
+        .. warning::
+
             The init function will not change the dtype of the parameters, which is determined by the
             model. DO NOT SPECIFY IT INSIDE THE INIT FUNCTION
 

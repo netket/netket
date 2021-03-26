@@ -41,31 +41,30 @@ class MPSPeriodic(nn.Module):
 
     for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_1]` is a matrix
     of dimension (bdim,bdim), depending on the value of the local quantum number :math:`s_i`.
-
-    Attributes:
-        hilbert: Hilbert space on which the state is defined.
-        graph: The graph on which the system is defined.
-        bond_dim: Virtual dimension of the MPS tensors.
-        diag: Whether or not to use diagonal matrices in the MPS tensors.
-        symperiod: Periodicity in the chain of MPS tensors. The chain of
-            MPS tensors is constructed as a sequence of identical unit cells
-            consisting of symperiod tensors. if None, symperiod equals the
-            number of physical degrees of freedom.
-            default=None
-        kernel_init: the initializer for the MPS weights.
-        dtype: complex or float, whether the variational parameters of the MPS
-            are real or complex. default=complex
     """
 
     hilbert: AbstractHilbert
+    """"Hilbert space on which the state is defined."""
     graph: AbstractGraph
+    """The graph on which the system is defined."""
     bond_dim: int
+    """Virtual dimension of the MPS tensors."""
     diag: bool = False
+    """Whether or not to use diagonal matrices in the MPS tensors."""
     symperiod: bool = None
+    """
+    Periodicity in the chain of MPS tensors. 
+
+    The chain of MPS tensors is constructed as a sequence of identical 
+    unit cells consisting of symperiod tensors. if None, symperiod equals the
+    number of physical degrees of freedom.
+    """
     kernel_init: NNInitFunc = jax.nn.initializers.normal(
         stddev=0.01
     )  # default standard deviation equals 1e-2
+    """the initializer for the MPS weights."""
     dtype: Any = np.complex64
+    """complex or float, whether the variational parameters of the MPS are real or complex."""
 
     def setup(self):
         L = self.hilbert.size
