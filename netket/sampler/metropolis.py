@@ -138,11 +138,15 @@ class MetropolisSamplerState(SamplerState):
     n_accepted: int = 0
     """Number of accepted transitions along the chains since the last reset."""
 
+    @property
+    def acceptance_ratio(self) -> float:
+        """The percentage of accepted moves since the last reset."""
+        return self.n_accepted / self.n_samples * 100
+
     def __repr__(self):
         if self.n_samples > 0:
-            acceptance_rate = self.n_accepted / self.n_samples * 100
             acc_string = "# accepted = {}/{} ({}%), ".format(
-                self.n_accepted, self.n_samples, acceptance_rate
+                self.n_accepted, self.n_samples, self.acceptance_ratio
             )
         else:
             acc_string = ""
