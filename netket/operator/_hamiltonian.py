@@ -456,8 +456,8 @@ class BoseHubbard(SpecialHamiltonian):
 
         Args:
            hilbert: Hilbert space the operator acts on.
-           U: The Hubbard interaction term.
-           V: The strenght of density-density interaction term.
+           U: The on-site interaction term.
+           V: The strength of density-density interaction term.
            J: The hopping amplitude.
            mu: The chemical potential.
            dtype: The dtype of the matrix eleements.
