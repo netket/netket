@@ -351,7 +351,7 @@ class Ising(SpecialHamiltonian):
 
 class Heisenberg(GraphOperator):
     r"""
-    The Heisemberg hamiltonian on a lattice.
+    The Heisenberg hamiltonian on a lattice.
     """
 
     def __init__(
@@ -362,7 +362,8 @@ class Heisenberg(GraphOperator):
         sign_rule=None,
     ):
         """
-        Constructs a new ``Heisenberg`` given a hilbert space.
+        Constructs an Heisenberg operator given a hilbert space and a graph providing the
+        connectivity of the lattice.
 
         Args:
             hilbert: Hilbert space the operator acts on.
