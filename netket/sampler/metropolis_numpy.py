@@ -65,7 +65,7 @@ class MetropolisNumpySamplerState:
         The rate is computed since the last reset of the sampler.
         Will return None if no sampling has been performed since then.
         """
-        if self.n_samples is 0:
+        if self.n_samples == 0:
             return None
 
         return sum_inplace(self.n_accepted / self.n_samples * 100) / n_nodes
