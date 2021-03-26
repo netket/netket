@@ -508,12 +508,12 @@ class BoseHubbard(SpecialHamiltonian):
 
     @property
     def U(self):
-        """The strenght of density-density interaction term."""
+        """The strength of on-site interaction term."""
         return self._U
 
     @property
     def V(self):
-        """The strenght of density-density interaction term."""
+        """The strength of density-density interaction term."""
         return self._V
 
     @property
