@@ -53,6 +53,16 @@ class HamiltonianRule(MetropolisRule):
 
     Ô: AbstractOperator = struct.field(pytree_node=False)
 
+    def init_state(rule, sampler, machine, params, key):
+        if sampler.hilbert != rule.Ô.hilbert:
+            raise ValueError(
+                f"""
+            The hilbert space of the sampler ({sampler.hilbert}) and the hilbert space
+            of the operator ({rule.Ô.hilbert}) for HamiltonianRule must be the same.
+            """
+            )
+        return super().init_state(rule, sampler, machine, params, key)
+
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
         if not isinstance(self.Ô, AbstractOperator):

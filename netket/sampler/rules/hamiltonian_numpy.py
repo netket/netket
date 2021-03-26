@@ -60,6 +60,14 @@ class HamiltonianRuleNumpy(MetropolisRule):
             )
 
     def init_state(rule, sampler, machine, params, key):
+        if sampler.hilbert != rule.Ô.hilbert:
+            raise ValueError(
+                f"""
+            The hilbert space of the sampler ({sampler.hilbert}) and the hilbert space
+            of the operator ({rule.Ô.hilbert}) for HamiltonianRule must be the same.
+            """
+            )
+
         return HamiltonianRuleState(
             sections=np.empty(sampler.n_batches, dtype=np.int32)
         )
