@@ -184,7 +184,7 @@ class AbstractHilbert(abc.ABC):
             size: If provided, returns a batch of configurations of the form :code:`(size, N)` if size
                   is an integer or :code:`(*size, N)` if it is a tuple and where :math:`N` is the Hilbert space size.
                   By default, a single random configuration with shape :code:`(#,)` is returned.
-            dtype: Dtype of the resulting vector.
+            dtype: DType of the resulting vector.
             out: Deprecated. Will be removed in v3.1
             rgen: Deprecated. Will be removed in v3.1
 

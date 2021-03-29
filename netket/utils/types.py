@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Sequence, Callable
+from typing import Any, Sequence, Callable, Union
 
-PRNGKey = Any
+PRNGKeyT = Any
+SeedT = Union[int, PRNGKeyT]
+
 Shape = Sequence[int]
-Dtype = Any  # this could be a real type?
+DType = Any  # this could be a real type?
 Array = Any
 
-NNInitFunc = Callable[[PRNGKey, Shape, Dtype], Array]
+NNInitFunc = Callable[[PRNGKeyT, Shape, DType], Array]
+
+PyTree = Any

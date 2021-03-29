@@ -13,14 +13,12 @@
 # limitations under the License.
 
 from netket.hilbert import AbstractHilbert
-from numpy.typing import DTypeLike
+from netket.utils.types import DType
 
 from ._local_operator import LocalOperator as _LocalOperator
 
 
-def sigmax(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
-) -> _LocalOperator:
+def sigmax(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^x` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -43,7 +41,7 @@ def sigmax(
 
 
 def sigmay(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = complex
+    hilbert: AbstractHilbert, site: int, dtype: DType = complex
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^y` operator acting on the `site`-th of the Hilbert
@@ -66,9 +64,7 @@ def sigmay(
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmaz(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
-) -> _LocalOperator:
+def sigmaz(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^z` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -90,9 +86,7 @@ def sigmaz(
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmam(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
-) -> _LocalOperator:
+def sigmam(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^{-} = \\sigma^x - i \\sigma^y` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -115,9 +109,7 @@ def sigmam(
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmap(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
-) -> _LocalOperator:
+def sigmap(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^{+} = \\sigma^x + i \\sigma^y` operator acting on the
     `site`-th of the Hilbert space `hilbert`.

@@ -14,7 +14,7 @@
 
 import re
 from typing import List, Union
-from netket.utils.types import Dtype
+from netket.utils.types import DType
 
 import numpy as np
 from numba import jit
@@ -32,7 +32,7 @@ class PauliStrings(AbstractOperator):
         operators: List[str],
         weights: List[Union[float, complex]],
         cutoff: float = 1.0e-10,
-        dtype: Dtype = complex,
+        dtype: DType = complex,
     ):
         """
         Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
@@ -162,7 +162,7 @@ class PauliStrings(AbstractOperator):
         self._is_hermitian = np.allclose(self._weights.imag, 0.0)
 
     @property
-    def dtype(self) -> Dtype:
+    def dtype(self) -> DType:
         """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
         return self._dtype
 

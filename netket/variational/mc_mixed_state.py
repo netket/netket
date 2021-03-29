@@ -34,6 +34,7 @@ from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
 from netket.utils import flax as flax_utils, maybe_wrap_module
+from netket.utils.types import DType, Array, PyTree, PRNGKeyT, Shape, NNInitFunc
 from netket.optimizer import SR
 from netket.operator import (
     AbstractOperator,
@@ -46,11 +47,6 @@ from netket.operator import (
 from .base import VariationalState, VariationalMixedState
 from .mc_state import MCState
 
-PyTree = Any
-PRNGKey = jnp.ndarray
-InitFunType = Callable[
-    [nn.Module, Iterable[int], PRNGKey, np.dtype], Tuple[Optional[PyTree], PyTree]
-]
 AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
 ATrainFunType = Callable[
     [nn.Module, PyTree, jnp.ndarray, Union[bool, PyTree]], jnp.ndarray

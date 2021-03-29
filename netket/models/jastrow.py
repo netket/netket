@@ -17,13 +17,13 @@ import jax.numpy as jnp
 
 import netket as nk
 from netket.nn.initializers import normal
-from netket.utils.types import Dtype, Array, NNInitFunc
+from netket.utils.types import DType, Array, NNInitFunc
 
 
 class Jastrow(nn.Module):
     """Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`."""
 
-    dtype: Dtype = jnp.complex128
+    dtype: DType = jnp.complex128
     """The dtype of the weights."""
     kernel_init: NNInitFunc = normal()
     """Initializer for the weights."""

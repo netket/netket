@@ -22,7 +22,7 @@ from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
-from netket.utils.types import PRNGKey, Shape, Dtype, Array, NNInitFunc
+from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 
 from netket import nn as nknn
 from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal

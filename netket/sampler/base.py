@@ -27,11 +27,10 @@ from jax.experimental import loops
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.utils import get_afun_if_module
+from netket.utils.types import PyTree, PRNGKeyT
 from netket.jax import HashablePartial
 
-PyTree = Any
-PRNGKeyType = jnp.ndarray
-SeedType = Union[int, PRNGKeyType]
+SeedType = Union[int, PRNGKeyT]
 
 
 @struct.dataclass
@@ -68,7 +67,7 @@ class Sampler(abc.ABC):
     """Exponent of the pdf sampled"""
 
     dtype: type = struct.field(pytree_node=False, default=np.float64)
-    """Dtype of the states returned."""
+    """DType of the states returned."""
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert

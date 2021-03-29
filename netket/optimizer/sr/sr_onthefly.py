@@ -20,15 +20,13 @@ import flax
 from jax import numpy as jnp
 from flax import struct
 
+from netket.utils.types import PyTree, Array
 from netket.utils import rename_class
 import netket.jax as nkjax
 
 from .sr_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
 
 from .base import SR
-
-Ndarray = Any
-PyTree = Any
 
 
 @struct.dataclass
@@ -52,7 +50,7 @@ class SRLazy(SR):
     if the specified tolerance has not been achieved.
     """
 
-    M: Optional[Union[Callable, Ndarray]] = None
+    M: Optional[Union[Callable, Array]] = None
     """Preconditioner for A. The preconditioner should approximate the inverse of A. 
     Effective preconditioning dramatically improves the rate of convergence, which implies 
     that fewer iterations are needed to reach a given error tolerance.

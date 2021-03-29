@@ -31,9 +31,7 @@ from jax.util import as_hashable_function
 from jax.dtypes import dtype_real
 
 from netket.utils import MPI, n_nodes, rank, random_seed
-
-PyTree = Any
-PRNGKeyType = jnp.ndarray
+from netket.utils.types import PyTree, PRNGKeyT, SeedT
 
 
 def tree_ravel(pytree: PyTree) -> Tuple[jnp.ndarray, Callable]:
@@ -162,8 +160,8 @@ class HashablePartial(partial):
 
 
 def PRNGKey(
-    seed: Optional[Union[int, PRNGKeyType]] = None, root: int = 0, comm=MPI.COMM_WORLD
-) -> PRNGKeyType:
+    seed: Optional[SeedT] = None, root: int = 0, comm=MPI.COMM_WORLD
+) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
     The same seed will be distributed to all processes.
@@ -183,7 +181,7 @@ def PRNGKey(
     return key
 
 
-def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> PRNGKeyType:
+def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> PRNGKeyT:
     """
     Split a key across MPI nodes in the communicator.
     Only the input key on the root process matters.
@@ -214,7 +212,7 @@ class PRNGSeq:
     A sequence of PRNG keys genrated based on an initial key.
     """
 
-    def __init__(self, base_key: Optional[Union[int, PRNGKeyType]] = None):
+    def __init__(self, base_key: Optional[SeedT] = None):
         if base_key is None:
             base_key = PRNGKey()
         elif isinstance(base_key, int):
