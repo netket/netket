@@ -1,11 +1,11 @@
-# Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
-
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #    http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -13,36 +13,43 @@
 # limitations under the License.
 
 import netket as nk
+import numpy as np
+import jax
 
 # 1D Lattice
-g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+L = 20
+
+g = nk.graph.Chain(length=L, pbc=True)
+# Lattice translation operations
 
 # Hilbert space of spins on the graph
-# with total Sz equal to 0
-hi = nk.hilbert.Spin(s=0.5, graph=g, total_sz=0)
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes, total_sz=0)
 
-# Heisenberg hamiltonian
-ha = nk.operator.Heisenberg(hilbert=hi)
+# Ising spin hamiltonian
+ha = nk.operator.Heisenberg(hilbert=hi, graph=g)
 
-# Symmetric RBM Spin Machine
-ma = nk.machine.RbmSpinSymm(alpha=1, hilbert=hi)
-ma.init_random_parameters(seed=1234, sigma=0.01)
-
-# Metropolis Exchange Sampling
-# Notice that this sampler exchanges two neighboring sites
-# thus preservers the total magnetization
-sa = nk.sampler.MetropolisExchange(machine=ma)
-
-# Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.05)
-
-# Stochastic reconfiguration
-gs = nk.Vmc(
-    hamiltonian=ha,
-    sampler=sa,
-    optimizer=op,
-    n_samples=1000,
-    sr=nk.optimizer.SR(diag_shift=0.1)
+# RBM Spin Machine
+ma = nk.models.RBMSymm(
+    permutations=g.periodic_translations(),
+    alpha=4,
+    use_visible_bias=False,
+    use_hidden_bias=True,
+    dtype=float,
 )
 
-gs.run(out="test", n_iter=300)
+# Metropolis Local Sampling
+sa = nk.sampler.MetropolisExchange(hi, graph=g, n_chains=16)
+
+# Optimizer
+op = nk.optim.Sgd(learning_rate=0.01)
+sr = nk.optim.SR(0.1)
+
+# Variational monte carlo driver
+gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=100, sr=sr)
+
+# Print parameter structure
+print(f"# variational parameters: {gs.state.n_parameters}")
+
+
+# Run the optimization for 300 iterations
+gs.run(n_iter=300, out="test")

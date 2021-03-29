@@ -1,0 +1,102 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import flax
+from flax.core import freeze
+
+from .base import ModuleFramework, framework
+
+# expose jax-stax as a flax module
+class HaikuWrapper:
+    def __init__(self, transformed):
+        self.transformed = transformed
+
+    def init(self, rng, *args, **kwargs):
+        variables = self.transformed.init(rng["params"], *args, **kwargs)
+        return freeze({"params": variables})
+
+    def apply(self, variables, *args, rngs=None, method=None, mutable=False, **kwargs):
+        if mutable is not False:
+            raise ValueError("Not implemented")
+
+        return self.transformed.apply(variables["params"], rngs, *args, **kwargs)
+
+    def unwrap_params(self, variables):
+        return variables["params"]
+
+    def __repr__(self):
+        return f"HaikuWrapper({self.transformed})"
+
+
+@framework
+class HaikuFramework(ModuleFramework):
+
+    name: str = "Haiku"
+
+    @staticmethod
+    def is_loaded() -> bool:
+        # this should be not necessary, as netket requires and loads
+        # Flax, but let's set a good example
+        return "haiku" in sys.modules
+
+    @staticmethod
+    def is_my_module(module) -> bool:
+        # this will only get callede if the module is loaded
+        import haiku, inspect
+
+        # jax modules are tuples
+        if isinstance(module, haiku.Transformed):
+            return True
+
+        return False
+
+    @staticmethod
+    def wrap(module):
+        register_serialization_functions()
+        return HaikuWrapper(module)
+
+    @staticmethod
+    def wrap_params(variables):
+        return freeze({"params": variables})
+
+    @staticmethod
+    def unwrap_params(variables):
+        return variables["params"]
+
+
+from flax import serialization
+
+already_registered = False
+
+# Haiku uses FlatMapping objects instead of FrozenDict when freezing dicts.
+#  They are functionally equivalent but we must teach flax how to serialize them.
+def register_serialization_functions():
+    global already_registered
+    if not already_registered:
+        already_registered = True
+        import haiku
+
+        FlatMappingType = type(haiku.data_structures.to_immutable_dict({"ciao": 1}))
+
+        def serialize_flat_mapping(flat_mapping):
+            return dict(flat_mapping)
+
+        def deserialize_flat_mapping(flat_mapping, state_dict):
+            return haiku.data_structures.to_immutable_dict(flat_mapping)
+
+        serialization.register_serialization_state(
+            FlatMappingType,
+            serialize_flat_mapping,
+            deserialize_flat_mapping,
+        )

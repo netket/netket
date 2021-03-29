@@ -1,3 +1,7 @@
+#
+docs/tutorials/*.ipynb
+netket/_version.py
+
 # Compiled source #
 ###################
 *.com
@@ -10,6 +14,11 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+netket.egg-info/
+pip-wheel-metadata
+.ipynb_checkpoints
+.pytest_cache
+.mypy_cache
 
 # Packages #
 ############
@@ -30,6 +39,8 @@ __pycache__/
 *.sql
 *.sqlite
 *.json
+*.wf
+*.mpack
 
 # OS generated files #
 ######################
@@ -50,3 +61,20 @@ build/
 ###################
 .envrc
 .idea
+*.sublime-project
+*.sublime-workspace
+
+# Lyx temporary files #
+#######################
+*.lyx~
+*.lyx#
+
+# Coverage files #
+##################
+.coverage
+.coverage.*
+
+##
+_build
+_generated
+dist

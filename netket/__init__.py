@@ -1,4 +1,4 @@
-# Copyright 2019 The Simons Foundation, Inc. - All Rights Reserved.
+# Copyright 2020, 2021 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,48 +12,61 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# enable x64 on jax
+# must be done at 0 startup.
+from jax.config import config
+
+config.update("jax_enable_x64", True)
+del config
+
+from ._version import version as __version__  # noqa: F401
+
+from . import utils
+from .utils import config, deprecated_new_name as _deprecated
+
 __all__ = [
-    "dynamics",
     "exact",
     "graph",
+    "callbacks",
     "hilbert",
-    "layer",
-    "machine",
     "operator",
     "optimizer",
-    "output",
-    "random",
     "sampler",
     "stats",
-    "supervised",
     "utils",
     "variational",
+    "nn",
 ]
 
+from . import legacy
+
 from . import (
-    _C_netket,
-    dynamics,
-    exact,
-    graph,
     hilbert,
-    layer,
+    exact,
+    callbacks,
+    graph,
     logging,
-    machine,
     operator,
     optimizer,
-    output,
-    random,
+    models,
     sampler,
+    jax,
+    nn,
     stats,
-    supervised,
-    utils,
     variational,
-    _vmc,
-    _steadystate,
 )
-from ._C_netket import MPI
 
 # Main applications
-from ._vmc import Vmc
-from ._qsr import Qsr
-from ._steadystate import SteadyState
+from .driver import VMC
+from .driver import SteadyState
+
+# from .drivers import Qsr
+
+
+@_deprecated("VMC")
+def Vmc(*args, **kwarags):
+    return VMC(*args, **kwarags)
+
+
+# deprecations
+optim = optimizer

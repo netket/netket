@@ -1,17 +1,21 @@
 name: netket_env
 
 channels:
+  - numba
   - defaults
+  - conda-forge
 
 dependencies:
-  - python=3.7
-  - clang
-  - cmake
-  - ninja
+  - python>=3.8
+  - numpy>=1.20
+  - scipy>=1.5.2
+  - networkx
+  - mpi4jax>=0.2.15
+  - tqdm
   - pip
   - matplotlib
   - openmpi
   - mpi4py
-  - blas
   - mkl
   - numba
+  - dm-tree

@@ -1,11 +1,11 @@
-# Copyright 2018 The Simons Foundation, Inc. - All Rights Reserved.
-
+# Copyright 2020 The Netket Authors. - All Rights Reserved.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #    http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,17 +22,13 @@ import pytest
 from pytest import approx
 import os
 
-
 np.set_printoptions(linewidth=180)
-rg = nk.utils.RandomEngine(seed=1234)
 
 # 1D Lattice
-L = 5
-g = nk.graph.Hypercube(length=L, n_dim=1, pbc=False)
+L = 4
 
 # Hilbert space of spins on the graph
-hi = nk.hilbert.Spin(s=0.5, graph=g)
-
+hi = nk.hilbert.Spin(s=0.5) ** L
 
 # Defining the Ising hamiltonian (with sign problem here)
 # Using local operators
@@ -51,65 +47,83 @@ for i in range(L):
     j_ops.append(nk.operator.LocalOperator(hi, sigmam, [i]))
 
 
-# Create the lindbladian with
+#  Create the lindbladian with
 lind = nk.operator.LocalLiouvillian(ha, j_ops)
+
 
 def test_lindblad_form():
     ## Construct the lindbladian by hand:
-    idmat = sparse.eye(2**L)
+    idmat = sparse.eye(2 ** L)
 
     # Build the non hermitian matrix
     hnh_mat = ha.to_sparse()
     for j_op in j_ops:
         j_mat = j_op.to_sparse()
-        hnh_mat -= 0.5j * j_mat.H*j_mat
-
+        hnh_mat -= 0.5j * j_mat.H * j_mat
 
     # Compute the left and right product with identity
-    lind_mat = -1j*sparse.kron(idmat, hnh_mat) + 1j*sparse.kron(hnh_mat.H, idmat) 
+    lind_mat = -1j * sparse.kron(idmat, hnh_mat) + 1j * sparse.kron(hnh_mat.H, idmat)
     # add jump operators
     for j_op in j_ops:
         j_mat = j_op.to_sparse()
         lind_mat += sparse.kron(j_mat.conj(), j_mat)
 
+    np.testing.assert_allclose(lind_mat.todense(), lind.to_dense())
 
-    assert (lind_mat.todense() == lind.to_dense()).all()
+
+def test_liouvillian_no_dissipators():
+    lind = nk.operator.LocalLiouvillian(ha)
+
+    ## Construct the lindbladian by hand:
+    idmat = sparse.eye(2 ** L)
+    h_mat = ha.to_sparse()
+
+    lind_mat = -1j * sparse.kron(idmat, h_mat) + 1j * sparse.kron(h_mat, idmat)
+
+    np.testing.assert_allclose(lind.to_dense(), lind_mat.todense())
 
 
 def test_lindblad_zero_eigenvalue():
     lind_mat = lind.to_sparse()
-    w, v = linalg.eigsh(lind_mat.H*lind_mat, which='SM')
+    w, v = linalg.eigsh(lind_mat.H * lind_mat, which="SM")
     assert w[0] <= 10e-10
 
 
-def test_der_log_val():
-    ma = nk.machine.NdmSpinPhase(hilbert=hi, alpha=1, beta=1)
-    ma.init_random_parameters(seed=1234, sigma=0.01)
+def test_linear_operator():
+    l_sparse = lind.to_dense()
+    l_op = lind.to_linear_operator()
 
-    for i in range(0, lind.hilbert.n_states):
-        state = lind.hilbert.number_to_state(i)
-        der_loc_vals = nk.operator.der_local_values(lind, ma, state, center_derivative=False)
+    dm = np.random.rand(hi.n_states, hi.n_states) + 1j * np.random.rand(
+        hi.n_states, hi.n_states
+    )
+    dm = (dm + dm.T.conj()).reshape(-1)
 
-        log_val_s = ma.log_val(state)
-        der_log_s = ma.der_log(state)
+    res_sparse = l_sparse @ dm
+    res_op = l_op @ dm
 
-        statet, mel = lind.get_conn(state)
+    assert np.all(res_sparse - res_op == approx(0.0, rel=1e-6, abs=1e-6))
 
-        log_val_p = ma.log_val(statet)
-        der_log_p = ma.der_log(statet)
+    assert res_sparse.reshape((hi.n_states, hi.n_states)).trace() == approx(
+        0.0, rel=1e-6, abs=1e-6
+    )
+    assert res_op.reshape((hi.n_states, hi.n_states)).trace() == approx(
+        0.0, rel=1e-6, abs=1e-6
+    )
 
-        log_val_diff = mel * np.exp(log_val_p - log_val_s)
-        log_val_diff = log_val_diff.reshape((log_val_diff.size, 1))
+    l_op = lind.to_linear_operator(append_trace=True)
+    dmptr = np.zeros(dm.size + 1, dtype=dm.dtype).reshape(-1)
+    dmptr[:-1] = dm
+    res_op2 = l_op @ dmptr
 
-        grad = log_val_diff * (der_log_p) #- der_log_s) because derivative not centered
-        grad_all = grad.sum(axis=0)
-
-        np.testing.assert_array_almost_equal(grad_all, der_loc_vals.flatten())
+    assert np.all(res_op2[:-1] - res_op == approx(0.0, rel=1e-8, abs=1e-8))
+    assert res_op2[-1] - dm.reshape((hi.n_states, hi.n_states)).trace() == approx(
+        0.0, rel=1e-8, abs=1e-8
+    )
 
 
 # Construct the operators for Sx, Sy and Sz
 obs_sx = nk.operator.LocalOperator(hi)
-obs_sy = nk.operator.LocalOperator(hi)
+obs_sy = nk.operator.LocalOperator(hi, dtype=complex)
 obs_sz = nk.operator.LocalOperator(hi)
 for i in range(L):
     obs_sx += nk.operator.LocalOperator(hi, sx, [i])
@@ -120,5 +134,3 @@ for i in range(L):
 sxmat = obs_sx.to_dense()
 symat = obs_sy.to_dense()
 szmat = obs_sz.to_dense()
-
-

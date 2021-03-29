@@ -1,6 +1,11 @@
-include CMakeLists.txt
-recursive-include CMakeModules *
 include LICENSE
 include README.md
-recursive-include Sources *
-recursive-include External *
+
+prune .github
+prune conf
+prune docs
+prune Notes
+prune Tutorials
+
+exclude codecov.yml
+exclude postBuild
