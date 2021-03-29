@@ -244,7 +244,7 @@ class LocalLiouvillian(AbstractSuperOperator):
                 max_conns_Lrc += max_lr * max_lc
 
         # compose everything again
-        if self._xprime.shape[0] < self._max_conn_size * batch_size:
+        if self._xprime_f.shape[0] < self._max_conn_size * batch_size:
             # refcheck=False because otherwise this errors when testing
             self._xprime_f.resize(
                 self._max_conn_size * batch_size, self.hilbert.size, refcheck=False
