@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.utils.types import Dtype
+from netket.utils.types import DType
 
 from netket.hilbert import AbstractHilbert
 
@@ -20,7 +20,7 @@ from ._local_operator import LocalOperator as _LocalOperator
 
 
 def destroy(
-    hilbert: AbstractHilbert, site: int, dtype: Dtype = float
+    hilbert: AbstractHilbert, site: int, dtype: DType = float
 ) -> _LocalOperator:
     """
     Builds the boson destruction operator :math:`\\hat{a}` acting on the `site`-th of the
@@ -45,7 +45,7 @@ def destroy(
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def create(hilbert: AbstractHilbert, site: int, dtype: Dtype = float) -> _LocalOperator:
+def create(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
     Builds the boson creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th of the
      Hilbert space `hilbert`.
@@ -69,7 +69,7 @@ def create(hilbert: AbstractHilbert, site: int, dtype: Dtype = float) -> _LocalO
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def number(hilbert: AbstractHilbert, site: int, dtype: Dtype = float) -> _LocalOperator:
+def number(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
     Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the `site`-th of the
     Hilbert space `hilbert`.
@@ -94,7 +94,7 @@ def number(hilbert: AbstractHilbert, site: int, dtype: Dtype = float) -> _LocalO
 
 
 def proj(
-    hilbert: AbstractHilbert, site: int, n: int, dtype: Dtype = float
+    hilbert: AbstractHilbert, site: int, n: int, dtype: DType = float
 ) -> _LocalOperator:
     """
     Builds the projector operator :math:`|n\\rangle\\langle n |` acting on the `site`-th of the

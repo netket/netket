@@ -19,7 +19,7 @@ import math
 
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert, Fock
-from netket.utils.types import Dtype
+from netket.utils.types import DType
 
 from . import spin, boson
 from ._local_operator import LocalOperator
@@ -115,7 +115,7 @@ class Ising(SpecialHamiltonian):
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
-        dtype: Dtype = float,
+        dtype: DType = float,
     ):
         r"""
         Constructs the Ising Operator from an hilbert space and a
@@ -168,7 +168,7 @@ class Ising(SpecialHamiltonian):
         return True
 
     @property
-    def dtype(self) -> Dtype:
+    def dtype(self) -> DType:
         return self._dtype
 
     def conjugate(self, *, concrete=True):
@@ -447,7 +447,7 @@ class BoseHubbard(SpecialHamiltonian):
         V: float = 0.0,
         J: float = 1.0,
         mu: float = 0.0,
-        dtype: Dtype = float,
+        dtype: DType = float,
     ):
         r"""
         Constructs a new BoseHubbard operator given a hilbert space, a graph

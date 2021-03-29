@@ -17,7 +17,7 @@ from typing import Optional, Tuple, List
 
 import numpy as np
 import jax.numpy as jnp
-from netket.utils.types import Dtype
+from netket.utils.types import DType
 
 from scipy.sparse import csr_matrix as _csr_matrix
 from numba import jit
@@ -81,7 +81,7 @@ class AbstractOperator(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def dtype(self) -> Dtype:
+    def dtype(self) -> DType:
         """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
         raise NotImplementedError
 

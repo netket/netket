@@ -67,7 +67,7 @@ class Sampler(abc.ABC):
     """Exponent of the pdf sampled"""
 
     dtype: type = struct.field(pytree_node=False, default=np.float64)
-    """Dtype of the states returned."""
+    """DType of the states returned."""
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert

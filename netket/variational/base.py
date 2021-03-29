@@ -26,7 +26,7 @@ import netket.jax as nkjax
 import netket.nn as nknn
 from netket.operator import AbstractOperator, LocalLiouvillian
 from netket.hilbert import AbstractHilbert, DoubledHilbert
-from netket.utils.types import Dtype, Array, PyTree, PRNGKey, Shape, NNInitFunc
+from netket.utils.types import DType, Array, PyTree, PRNGKey, Shape, NNInitFunc
 from netket.stats import Stats
 
 

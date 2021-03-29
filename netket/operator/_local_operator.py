@@ -14,7 +14,7 @@
 
 import numbers
 from typing import Union, Tuple, List, Optional
-from netket.utils.types import Dtype, Array
+from netket.utils.types import DType, Array
 
 import numpy as np
 from numba import jit
@@ -49,7 +49,7 @@ def is_hermitian(a: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
     return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
 
 
-def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> Dtype:
+def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> DType:
     if isinstance(obj, numbers.Number):
         return type(obj)
     elif isinstance(obj, AbstractOperator):
@@ -63,7 +63,7 @@ def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> Dtype:
 def resize(
     arr: Array,
     shape: List[int],
-    dtype: Optional[Dtype] = None,
+    dtype: Optional[DType] = None,
     init: Optional[numbers.Number] = None,
 ) -> Array:
     """
@@ -171,7 +171,7 @@ class LocalOperator(AbstractOperator):
         operators: Union[List[Array], Array] = [],
         acting_on: Union[List[int], List[List[int]]] = [],
         constant: numbers.Number = 0,
-        dtype: Optional[Dtype] = None,
+        dtype: Optional[DType] = None,
     ):
         r"""
         Constructs a new ``LocalOperator`` given a hilbert space and (if
@@ -240,7 +240,7 @@ class LocalOperator(AbstractOperator):
         return actions
 
     @property
-    def dtype(self) -> Dtype:
+    def dtype(self) -> DType:
         return self._dtype
 
     @property

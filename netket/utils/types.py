@@ -16,9 +16,9 @@ from typing import Any, Sequence, Callable
 
 PRNGKey = Any
 Shape = Sequence[int]
-Dtype = Any  # this could be a real type?
+DType = Any  # this could be a real type?
 Array = Any
 
-NNInitFunc = Callable[[PRNGKey, Shape, Dtype], Array]
+NNInitFunc = Callable[[PRNGKey, Shape, DType], Array]
 
 PyTree = Any
