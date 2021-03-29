@@ -57,15 +57,15 @@ samplers["Metropolis(Exchange): Fock-1particle)"] = nk.sampler.MetropolisExchang
     hib, n_chains=16, graph=g
 )
 
-samplers["Metropolis(Hamiltonian): Spin"] = nk.sampler.MetropolisHamiltonian(
+samplers["Metropolis(Hamiltonian,Jax): Spin"] = nk.sampler.MetropolisHamiltonian(
     hi,
     hamiltonian=ha,
     reset_chain=True,
 )
 
-samplers["Metropolis(Hamiltonian,Jax): Spin"] = nk.sampler.MetropolisSampler(
+samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
     hi,
-    rule=nk.sampler.rules.HamiltonianRule(ha.to_local_operator()),
+    hamiltonian=ha,
     reset_chain=True,
 )
 
@@ -246,3 +246,34 @@ def test_correct_sampling(sampler_c, rbm_and_weights, set_pdf_power):
 
     s, pval = combine_pvalues(pvalues, method="fisher")
     assert pval > 0.01 or np.max(pvalues) > 0.01
+
+
+def test_throwing(rbm_and_weights):
+    with pytest.raises(TypeError):
+        nk.sampler.MetropolisHamiltonian(
+            hi,
+            hamiltonian=10,
+            reset_chain=True,
+        )
+
+    with pytest.raises(ValueError):
+        sampler = nk.sampler.MetropolisHamiltonian(
+            nk.hilbert.DoubledHilbert(hi),
+            hamiltonian=ha,
+            reset_chain=True,
+        )
+
+        ma, w = rbm_and_weights(hi)
+
+        sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+
+    with pytest.raises(ValueError):
+        sampler = nk.sampler.MetropolisHamiltonianNumpy(
+            nk.hilbert.DoubledHilbert(hi),
+            hamiltonian=ha,
+            reset_chain=True,
+        )
+
+        ma, w = rbm_and_weights(hi)
+
+        sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
