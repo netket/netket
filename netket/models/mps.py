@@ -25,7 +25,7 @@ from netket.nn.initializers import lecun_normal, variance_scaling, zeros
 
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
-from netket.utils.types import PRNGKey, Shape, DType, Array, NNInitFunc
+from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 
 default_kernel_init = lecun_normal()
 

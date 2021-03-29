@@ -23,7 +23,7 @@ from flax import struct
 from netket.hilbert import AbstractHilbert
 from netket.utils import n_nodes
 from netket.stats import sum_inplace
-from netket.utils.types import PyTree, PRNGKey
+from netket.utils.types import PyTree, PRNGKeyT
 
 from .base import Sampler, SamplerState
 
@@ -40,7 +40,7 @@ class MetropolisRule:
         sampler: Sampler,
         machine: Callable,
         params: PyTree,
-        key: PRNGKey,
+        key: PRNGKeyT,
     ) -> Optional[Any]:
         """
         Initialises the optional internal state of the Metropolis Sampler Transition
@@ -88,7 +88,7 @@ class MetropolisRule:
         machine: Callable,
         parameters: PyTree,
         state: SamplerState,
-        key: PRNGKey,
+        key: PRNGKeyT,
         σ: jnp.ndarray,
     ) -> jnp.ndarray:
 
@@ -100,7 +100,7 @@ class MetropolisRule:
         machine: Callable,
         parameters: PyTree,
         state: SamplerState,
-        key: PRNGKey,
+        key: PRNGKeyT,
     ):
         """
         Generates a random state compatible with this rule.

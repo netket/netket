@@ -35,7 +35,7 @@ from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
 from netket.utils import flax as flax_utils, n_nodes, maybe_wrap_module
-from netket.utils.types import PyTree, PRNGKey, Shape, NNInitFunc
+from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
 from netket.optimizer import SR
 from netket.operator import (
     AbstractOperator,
@@ -48,7 +48,6 @@ from netket.operator import (
 
 from .base import VariationalState
 
-SEED = Union[int, PRNGKey]
 AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
 ATrainFunType = Callable[
     [nn.Module, PyTree, jnp.ndarray, Union[bool, PyTree]], jnp.ndarray
@@ -116,8 +115,8 @@ class MCState(VariationalState):
         init_fun: NNInitFunc = None,
         apply_fun: Callable = None,
         sample_fun: Callable = None,
-        seed: Optional[SEED] = None,
-        sampler_seed: Optional[SEED] = None,
+        seed: Optional[SeedT] = None,
+        sampler_seed: Optional[SeedT] = None,
         mutable: bool = False,
         training_kwargs: Dict = {},
     ):

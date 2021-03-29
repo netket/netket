@@ -27,7 +27,7 @@ from flax import struct
 
 from netket import config
 from netket.hilbert import AbstractHilbert
-from netket.utils.types import PyTree, PRNGKey
+from netket.utils.types import PyTree, PRNGKeyT
 
 from .base import Sampler, SamplerState
 from .metropolis import MetropolisSamplerState, MetropolisSampler, MetropolisRule
@@ -142,7 +142,7 @@ class MetropolisPtSampler(MetropolisSampler):
         return self.n_chains * self.n_replicas
 
     def _init_state(
-        sampler, machine, params: PyTree, key: PRNGKey
+        sampler, machine, params: PyTree, key: PRNGKeyT
     ) -> MetropolisPtSamplerState:
         key_state, key_rule = jax.random.split(key, 2)
         σ = jnp.zeros(

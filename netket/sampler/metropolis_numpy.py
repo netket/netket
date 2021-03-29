@@ -26,11 +26,11 @@ import jax
 from netket.hilbert import AbstractHilbert
 from netket.utils import n_nodes
 from netket.stats import sum_inplace
-from netket.utils.types import PyTree, PRNGKey
+from netket.utils.types import PyTree, PRNGKeyT
 
 from .metropolis import MetropolisSampler
 
-SeedType = Union[int, PRNGKey]
+SeedType = Union[int, PRNGKeyT]
 
 
 @dataclass

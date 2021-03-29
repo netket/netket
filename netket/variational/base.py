@@ -26,7 +26,7 @@ import netket.jax as nkjax
 import netket.nn as nknn
 from netket.operator import AbstractOperator, LocalLiouvillian
 from netket.hilbert import AbstractHilbert, DoubledHilbert
-from netket.utils.types import DType, Array, PyTree, PRNGKey, Shape, NNInitFunc
+from netket.utils.types import DType, Array, PyTree, PRNGKeyT, Shape, NNInitFunc
 from netket.stats import Stats
 
 
@@ -102,7 +102,7 @@ class VariationalState(abc.ABC):
         self.model_state, self.parameters = vars.pop("params")
 
     def init_parameters(
-        self, init_fun: Optional[NNInitFunc] = None, *, seed: Optional[PRNGKey] = None
+        self, init_fun: Optional[NNInitFunc] = None, *, seed: Optional[PRNGKeyT] = None
     ):
         r"""
         Re-initializes all the parameters with the provided initialization function, defaulting to
