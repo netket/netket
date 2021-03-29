@@ -55,7 +55,7 @@ class HamiltonianRule(MetropolisRule):
             raise ValueError(
                 f"""
             The hilbert space of the sampler ({sampler.hilbert}) and the hilbert space
-            of the operator ({rule.Ô.hilbert}) for HamiltonianRule must be the same.
+            of the operator ({rule.operator.hilbert}) for HamiltonianRule must be the same.
             """
             )
         return super().init_state(sampler, machine, params, key)
