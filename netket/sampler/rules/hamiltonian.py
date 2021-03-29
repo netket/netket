@@ -51,7 +51,7 @@ class HamiltonianRule(MetropolisRule):
     """The (hermitian) operator giving the transition amplitudes."""
 
     def init_state(rule, sampler, machine, params, key):
-        if sampler.hilbert != rule.Ô.hilbert:
+        if sampler.hilbert != rule.operator.hilbert:
             raise ValueError(
                 f"""
             The hilbert space of the sampler ({sampler.hilbert}) and the hilbert space
