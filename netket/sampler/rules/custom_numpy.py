@@ -36,27 +36,29 @@ class CustomRuleState:
 
 @struct.dataclass
 class CustomRuleNumpy(MetropolisRule):
-    Ô: Any = struct.field(pytree_node=False)
+    operator: Any = struct.field(pytree_node=False)
     weight_list: Any = struct.field(pytree_node=False, default=None)
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
-        if not isinstance(self.Ô, AbstractOperator):
+        if not isinstance(self.operator, AbstractOperator):
             raise TypeError(
-                "Argument to HamiltonianRuleNumpy must be a valid operator.".format(
+                "Argument to CustomRuleNumpy must be a valid operator.".format(
                     type(operator)
                 )
             )
-        _check_operators(self.Ô.operators)
+        _check_operators(self.operator.operators)
 
         if self.weight_list is not None:
-            if self.weight_list.shape != (self.Ô.n_operators,):
+            if self.weight_list.shape != (self.operator.n_operators,):
                 raise ValueError("move_weights have the wrong shape")
             if self.weight_list.min() < 0:
                 raise ValueError("move_weights must be positive")
         else:
             object.__setattr__(
-                self, "weight_list", np.ones(self.Ô.n_operators, dtype=np.float32)
+                self,
+                "weight_list",
+                np.ones(self.operator.n_operators, dtype=np.float32),
             )
 
         object.__setattr__(
@@ -79,7 +81,7 @@ class CustomRuleNumpy(MetropolisRule):
             out=rule_state.rand_op_n,
         )
 
-        σ_conns, mels = rule.Ô.get_conn_filtered(
+        σ_conns, mels = rule.operator.get_conn_filtered(
             state.σ, rule_state.sections, rule_state.rand_op_n
         )
 
