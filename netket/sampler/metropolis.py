@@ -23,11 +23,9 @@ from flax import struct
 from netket.hilbert import AbstractHilbert
 from netket.utils import n_nodes
 from netket.stats import sum_inplace
+from netket.utils.types import PyTree, PRNGKey
 
 from .base import Sampler, SamplerState
-
-PyTree = Any
-PRNGKey = jnp.ndarray
 
 
 @struct.dataclass

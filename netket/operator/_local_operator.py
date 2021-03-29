@@ -14,7 +14,7 @@
 
 import numbers
 from typing import Union, Tuple, List, Optional
-from numpy.typing import DTypeLike, ArrayLike
+from netket.utils.types import Dtype, Array
 
 import numpy as np
 from numba import jit
@@ -49,7 +49,7 @@ def is_hermitian(a: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
     return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
 
 
-def _dtype(obj: Union[numbers.Number, ArrayLike, "LocalOperator"]) -> DTypeLike:
+def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> Dtype:
     if isinstance(obj, numbers.Number):
         return type(obj)
     elif isinstance(obj, AbstractOperator):
@@ -61,11 +61,11 @@ def _dtype(obj: Union[numbers.Number, ArrayLike, "LocalOperator"]) -> DTypeLike:
 
 
 def resize(
-    arr: ArrayLike,
+    arr: Array,
     shape: List[int],
-    dtype: Optional[DTypeLike] = None,
+    dtype: Optional[Dtype] = None,
     init: Optional[numbers.Number] = None,
-) -> ArrayLike:
+) -> Array:
     """
     resizes the input array to the new shape that must be larger than the old.
 
@@ -168,10 +168,10 @@ class LocalOperator(AbstractOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[List[ArrayLike], ArrayLike] = [],
+        operators: Union[List[Array], Array] = [],
         acting_on: Union[List[int], List[List[int]]] = [],
         constant: numbers.Number = 0,
-        dtype: Optional[DTypeLike] = None,
+        dtype: Optional[Dtype] = None,
     ):
         r"""
         Constructs a new ``LocalOperator`` given a hilbert space and (if
@@ -240,7 +240,7 @@ class LocalOperator(AbstractOperator):
         return actions
 
     @property
-    def dtype(self) -> DTypeLike:
+    def dtype(self) -> Dtype:
         return self._dtype
 
     @property
@@ -453,7 +453,7 @@ class LocalOperator(AbstractOperator):
         operators = [np.copy(op) for op in self._operators]
         return operators
 
-    def _add_operator(self, operator: ArrayLike, acting_on: List[int]):
+    def _add_operator(self, operator: Array, acting_on: List[int]):
         if not np.can_cast(operator, self.dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast type {operator.dtype} to {self.dtype}")
 

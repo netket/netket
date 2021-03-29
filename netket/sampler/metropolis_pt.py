@@ -25,14 +25,12 @@ from jax.experimental import host_callback as hcb
 
 from flax import struct
 
-from netket.hilbert import AbstractHilbert
 from netket import config
+from netket.hilbert import AbstractHilbert
+from netket.utils.types import PyTree, PRNGKey
 
 from .base import Sampler, SamplerState
 from .metropolis import MetropolisSamplerState, MetropolisSampler, MetropolisRule
-
-PyTree = Any
-PRNGKey = jnp.ndarray
 
 
 @struct.dataclass

@@ -20,3 +20,5 @@ Dtype = Any  # this could be a real type?
 Array = Any
 
 NNInitFunc = Callable[[PRNGKey, Shape, Dtype], Array]
+
+PyTree = Any

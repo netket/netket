@@ -15,7 +15,7 @@
 from numba import jit
 
 import numpy as np
-from numpy.typing import DTypeLike
+from netket.utils.types import Dtype
 
 from netket.graph import AbstractGraph
 from netket.hilbert import Fock, AbstractHilbert
@@ -37,7 +37,7 @@ class GraphOperator(LocalOperator):
         site_ops=[],
         bond_ops=[],
         bond_ops_colors=[],
-        dtype: DTypeLike = None,
+        dtype: Dtype = None,
     ):
         r"""
         A graph-based quantum operator. In its simplest terms, this is the sum of

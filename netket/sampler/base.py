@@ -27,11 +27,10 @@ from jax.experimental import loops
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.utils import get_afun_if_module
+from netket.utils.types import PyTree, PRNGKey
 from netket.jax import HashablePartial
 
-PyTree = Any
-PRNGKeyType = jnp.ndarray
-SeedType = Union[int, PRNGKeyType]
+SeedType = Union[int, PRNGKey]
 
 
 @struct.dataclass
