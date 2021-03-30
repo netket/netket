@@ -29,7 +29,6 @@ import jax
 from jax import lax
 import jax.numpy as jnp
 import numpy as np
-import scipy.sparse
 
 
 PRNGKey = Any
