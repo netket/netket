@@ -25,7 +25,6 @@ from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
 from netket.graph import AbstractGraph
 
-import jax
 from jax import lax
 import jax.numpy as jnp
 import numpy as np
@@ -264,7 +263,7 @@ class DenseSymm(Module):
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
 
-        self.symm_cols = jax.device_put(_symmetrizer_col(perms, self.features))
+        self.symm_cols = jnp.asarray(_symmetrizer_col(perms, self.features))
 
     def full_kernel(self, kernel):
         """

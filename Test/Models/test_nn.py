@@ -15,16 +15,15 @@
 import netket as nk
 import netket.nn.linear as linear
 
+import jax.numpy as jnp
 import numpy as np
 import scipy.sparse
 
 import pytest
 
 
-@pytest.mark.parametrize("permutations", ["trans", "autom"])
-@pytest.mark.parametrize("features", [1, 2, 5])
-def test_symmetrizer(permutations, features):
-    N = 16
+def _setup_symm(permutations, N):
+    hi = nk.hilbert.Spin(1 / 2, N)
 
     g = nk.graph.Chain(N)
     if permutations == "trans":
@@ -33,7 +32,33 @@ def test_symmetrizer(permutations, features):
     else:
         # All chain automorphisms, N_symm = 2 N_sites
         perms = g.automorphisms()
-    perms = np.array(perms)
+
+    return g, hi, np.asarray(perms)
+
+
+@pytest.mark.parametrize("permutations", ["trans", "autom"])
+@pytest.mark.parametrize("use_bias", [True, False])
+def test_DenseSymm(permutations, use_bias):
+    g, hi, perms = _setup_symm(permutations, N=8)
+
+    ma = nk.nn.create_DenseSymm(
+        permutations=perms,
+        features=8,
+        use_bias=use_bias,
+        bias_init=nk.nn.initializers.uniform(),
+    )
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
+
+    v = hi.random_state(3)
+    vals = [ma.apply(pars, v[..., p]) for p in perms]
+    for val in vals:
+        assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
+
+
+@pytest.mark.parametrize("permutations", ["trans", "autom"])
+@pytest.mark.parametrize("features", [1, 2, 5])
+def test_symmetrizer(permutations, features):
+    _, _, perms = _setup_symm(permutations, N=8)
 
     n_symm, n_sites = perms.shape
     n_hidden = features * n_symm
