@@ -25,6 +25,7 @@ from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
 from netket.graph import AbstractGraph
 
+import jax
 from jax import lax
 import jax.numpy as jnp
 import numpy as np
@@ -209,6 +210,29 @@ class Dense(Module):
         return y
 
 
+def _symmetrizer_col(perms, features):
+    """
+    Creates the mapping from symmetry-reduced kernel w to full kernel W, s.t.
+        W[ij] = S[ij][kl] w[kl]
+    where [ij] ∈ [0,...,n_sites×n_hidden) and [kl] ∈ [0,...,n_sites×features).
+    For each [ij] there is only one [kl] such that S[ij][kl] is non-zero, in which
+    case S[ij][kl] == 1. Thus, this method only returns the array of indices `col`
+    of shape (n_sites×n_hidden,) satisfying
+        W[ij] = w[col[ij]]  <=>  W = w[col].
+    """
+    n_symm, n_sites = perms.shape
+    n_hidden = features * n_symm
+
+    ij = np.arange(n_sites * n_hidden)
+    i, j = np.unravel_index(ij, (n_sites, n_hidden))
+
+    k = perms[j % n_symm, i]
+    l = np.floor_divide(j, n_symm)
+    kl = np.ravel_multi_index((k, l), (n_sites, features))
+
+    return kl
+
+
 class DenseSymm(Module):
     """A symmetrized linear transformation applied over the last dimension of the input.
     This layer uses a reduced number of parameters, which are arranged so that the full
@@ -235,30 +259,10 @@ class DenseSymm(Module):
 
     def setup(self):
         perms = self.permutations()
-
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
 
-        # symmetrization tensor, maps Wsymm to full W
-        # note that this should be a sparse object, once jax supports them
-        def symmetrizer_ijkl(i, j, k, l):
-            jsymm = np.floor_divide(j, self.n_symm)
-            cond_k = k == np.asarray(perms)[j % self.n_symm, i]
-            cond_l = l == jsymm
-            return np.asarray(np.logical_and(cond_k, cond_l), dtype=int)
-
-        symmetrizer = np.array(
-            np.fromfunction(
-                symmetrizer_ijkl,
-                shape=(self.n_sites, self.n_hidden, self.n_sites, self.features),
-                dtype=int,
-            ),
-            dtype=self.dtype,
-        ).reshape(-1, self.features * self.n_sites)
-        symmetrizer = scipy.sparse.coo_matrix(symmetrizer)
-        # Of the COO matrix attributes, rows is just a range [0, ..., n_rows)
-        # and data is [1., ..., 1.]. Only cols needs to be stored.
-        self.symm_cols = jnp.asarray(symmetrizer.col)
+        self.symm_cols = jax.device_put(_symmetrizer_col(perms, self.features))
 
     def full_kernel(self, kernel):
         """
