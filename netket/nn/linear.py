@@ -23,7 +23,7 @@ import flax
 from flax.linen.module import Module, compact
 from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
-from netket.graph import AbstractGraph
+from netket.graph import AbstractGraph, SymmGroup
 
 from jax import lax
 import jax.numpy as jnp
@@ -314,7 +314,9 @@ class DenseSymm(Module):
 
 
 def create_DenseSymm(
-    permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
+    permutations: Union[Callable[[], Array], AbstractGraph, Array, SymmGroup],
+    *args,
+    **kwargs,
 ):
     """A symmetrized linear transformation applied over the last dimension of the input.
     This layer uses a reduced number of parameters, which are arranged so that the full
@@ -330,10 +332,14 @@ def create_DenseSymm(
 
     See :ref:`netket.nn.DenseSymm` for the remaining parameters.
     """
-    if isinstance(permutations, Callable):
-        perm_fn = permutations
+    if isinstance(permutations, SymmGroup):
+        perms = permutations.indices()
+        perm_fn = lambda: perms
     elif isinstance(permutations, AbstractGraph):
-        perm_fn = lambda: np.asarray(permutations.automorphisms())
+        autom = np.asarray(permutations.automorphisms())
+        perm_fn = lambda: autom
+    elif isinstance(permutations, Callable):
+        perm_fn = permutations
     else:
         permutations = np.asarray(permutations)
         if not permutations.ndim == 2:

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .abstract_graph import AbstractGraph
+from .symmetry import SymmGroup
 
 from .graph import *
 from .grid import *
