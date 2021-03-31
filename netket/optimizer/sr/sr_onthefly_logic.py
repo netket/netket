@@ -85,15 +85,13 @@ def O_jvp(x, params, v, forward_fn):
     return res
 
 
-def O_vjp(x, params, v, forward_fn, *, allreduce=True):
+def O_vjp(x, params, v, forward_fn):
     _, vjp_fun = jax.vjp(forward_fn, params, x)
     res, _ = vjp_fun(v)
-    if allreduce:
-        res = jax.tree_map(sum_inplace, res)
-    return res
+    return jax.tree_map(sum_inplace, res)  # allreduce w/ MPI.SUM
 
 
-def O_mean(samples, params, forward_fn, **kwargs):
+def O_mean(samples, params, forward_fn):
     r"""
     compute \langle O \rangle
     i.e. the mean of the rows of the jacobian of forward_fn
@@ -101,13 +99,11 @@ def O_mean(samples, params, forward_fn, **kwargs):
 
     # determine the output type of the forward pass
     dtype = jax.eval_shape(forward_fn, params, samples).dtype
-
     v = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
+    return O_vjp(samples, params, v, forward_fn)
 
-    return O_vjp(samples, params, v, forward_fn, **kwargs)
 
-
-def OH_w(samples, params, w, forward_fn, **kwargs):
+def OH_w(samples, params, w, forward_fn):
     r"""
     compute  O^H w
     (where ^H is the hermitian transpose)
@@ -119,7 +115,7 @@ def OH_w(samples, params, w, forward_fn, **kwargs):
 
     # TODO The allreduce in O_vjp could be deferred until after the tree_cast
     # where the amount of data to be transferred would potentially be smaller
-    res = tree_conj(O_vjp(samples, params, w.conjugate(), forward_fn, **kwargs))
+    res = tree_conj(O_vjp(samples, params, w.conjugate(), forward_fn))
 
     return tree_cast(res, params)
 
@@ -156,12 +152,7 @@ def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn):
     where \Delta O = O - \langle O \rangle
     """
 
-    omean = O_mean(
-        samples,
-        params,
-        forward_fn,
-        allreduce=True,
-    )
+    omean = O_mean(samples, params, forward_fn)
 
     def forward_fn_centered(params, x):
         return forward_fn(params, x) - tree_dot(params, omean)
