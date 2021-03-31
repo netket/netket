@@ -15,6 +15,8 @@
 import netket as nk
 import jax.numpy as jnp
 
+from test_nn import _setup_symm
+
 import pytest
 
 
@@ -22,16 +24,7 @@ import pytest
 @pytest.mark.parametrize("use_visible_bias", [True, False])
 @pytest.mark.parametrize("permutations", ["trans", "autom"])
 def test_RBMSymm(use_hidden_bias, use_visible_bias, permutations):
-    N = 8
-    hi = nk.hilbert.Spin(1 / 2, N)
-
-    g = nk.graph.Chain(N)
-    if permutations == "trans":
-        # Only translations, N_symm = N_sites
-        perms = g.periodic_translations()
-    else:
-        # All chain automorphisms, N_symm = 2 N_sites
-        perms = g.automorphisms()
+    g, hi, perms = _setup_symm(permutations, N=8)
 
     ma = nk.models.RBMSymm(
         permutations=perms,

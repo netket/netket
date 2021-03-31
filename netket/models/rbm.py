@@ -271,9 +271,9 @@ def create_RBMSymm(
     if isinstance(permutations, Callable):
         perm_fn = permutations
     elif isinstance(permutations, AbstractGraph):
-        perm_fn = lambda: jnp.asarray(permutations.automorphisms())
+        perm_fn = lambda: np.asarray(permutations.automorphisms())
     else:
-        permutations = jnp.asarray(permutations)
+        permutations = np.asarray(permutations)
         if not permutations.ndim == 2:
             raise ValueError(
                 "permutations must be an array of shape (#permutations, #sites)."
