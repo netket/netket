@@ -24,6 +24,7 @@ Graph
    netket.graph.Lattice
    netket.graph.Chain
    netket.graph.Grid
+   netket.graph.SymmGroup
 
 .. _hilbert-api:
 
