@@ -68,6 +68,8 @@ class SteadyState(AbstractVariationalDriver):
         self.sr_restart = sr_restart
 
         self._dp = None
+        self._S = None
+        self._sr_info = None
 
     def _forward_and_backward(self):
         """
