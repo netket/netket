@@ -6,6 +6,7 @@ from pytest import approx
 from scipy.stats import power_divergence, combine_pvalues, chisquare
 
 import jax
+import flax
 from jax import numpy as jnp
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
@@ -278,7 +279,7 @@ def test_throwing(rbm_and_weights):
 
         sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
 
-    with pytest.raises():
+    with pytest.raises(flax.errors.ScopeParamShapeError):
         sampler = nk.sampler.MetropolisHamiltonianNumpy(
             nk.hilbert.DoubledHilbert(hi),
             hamiltonian=ha,
