@@ -25,12 +25,16 @@ namespace = {}
 dispatch = partial(multipledispatch.dispatch, namespace=namespace)
 
 
-class Element(Callable):
+class ElementBase(Callable):
+    pass
+
+
+class Element(ElementBase):
     pass
 
 
 @dataclass
-class Identity(Element):
+class Identity(ElementBase):
     def __call__(self, arg):
         return arg
 
@@ -65,6 +69,33 @@ class Composite(Element):
 @dispatch(Element, Element)
 def product(a: Element, b: Element):
     return Composite(a, b)
+
+
+@dispatch(Composite, Element)
+def product(ab: Composite, c: Element):
+    bc = product(ab.right, c)
+    if isinstance(bc, Composite):
+        return Composite(ab, c)
+    else:
+        return Composite(ab.left, bc)
+
+
+@dispatch(Element, Composite)
+def product(a: Element, bc: Composite):
+    ab = product(a, bc.left)
+    if isinstance(ab, Composite):
+        return Composite(a, bc)
+    else:
+        return Composite(ab, bc.right)
+
+
+@dispatch(Composite, Composite)
+def product(ab: Composite, cd: Composite):
+    bc = product(ab.right, cd.left)
+    if isinstance(bc, Composite):
+        return Composite(ab, cd)
+    else:
+        return Composite(ab.left, Composite(bc, cd.right))
 
 
 @dataclass
