@@ -269,7 +269,7 @@ def test_throwing(rbm_and_weights):
 
     with pytest.raises(ValueError):
         sampler = nk.sampler.MetropolisHamiltonianNumpy(
-            nk.hilbert.Fock(3)**hi.size,
+            nk.hilbert.Fock(3) ** hi.size,
             hamiltonian=ha,
             reset_chain=True,
         )
