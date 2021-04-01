@@ -15,6 +15,7 @@
 import json
 import dataclasses
 import orjson
+import time
 
 import os
 from os import path as _path
@@ -81,6 +82,7 @@ class JsonLog(RuntimeLog):
         save_params_every: int = 50,
         write_every: int = 50,
         save_params: bool = True,
+        autoflush_cost: float = 0.005,
     ):
         """
         Construct a Json Logger.
@@ -94,6 +96,8 @@ class JsonLog(RuntimeLog):
                 - `[a]ppend`: appends to the file if it exists, overwise creates a new file;
                 - `[x]` or `fail`: fails if file already exists;
             save_params: bool flag indicating whever parameters should be serialized
+            autoflush_cost: Maximum fraction of runtime that can be dedicated to serializing data. Defaults to
+                0.005 (0.5 per cent)
         """
         super().__init__()
 
@@ -140,13 +144,23 @@ class JsonLog(RuntimeLog):
         self._steps_notflushed_pars = 0
         self._save_params = save_params
 
+        self._autoflush_cost = autoflush_cost
+        self._last_flush_time = time.time()
+        self._last_flush_runtime = 0.0
+
     def __call__(self, step, item, variational_state):
         old_step = self._old_step
         super().__call__(step, item, variational_state)
 
+        # Check if the time from the last flush is higher than the maximum
+        # allowed runtime cost of flushing
+        elapsed_time = time.time() - self._last_flush_time
+        flush_anyway = (self._last_flush_runtime / elapsed_time) < self._autoflush_cost
+
         if (
             self._steps_notflushed_write % self._write_every == 0
             or step == old_step - 1
+            or flush_anyway
         ):
             self._flush_log()
         if (
@@ -160,10 +174,14 @@ class JsonLog(RuntimeLog):
         self._steps_notflushed_pars += 1
 
     def _flush_log(self):
+        self._last_flush_time = time.time()
         with open(self._prefix + ".log", "wb") as outfile:
 
             outfile.write(orjson.dumps(self.data, default=default))
             self._steps_notflushed_write = 0
+
+        # Time how long flushing data takes.
+        self._last_flush_runtime = time.time() - self._last_flush_time
 
     def _flush_params(self, variational_state):
         if not self._save_params:
