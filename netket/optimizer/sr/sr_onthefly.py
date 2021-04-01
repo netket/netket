@@ -174,18 +174,20 @@ class LazySMatrix:
             x0: optional initial guess for the solution.
 
         Returns:
-            the PyTree solving thhe system.s
+            x: the PyTree solving the system.
+            info: optional additional informations provided by the solver. Might be
+                None if there are no additional informations provided.
         """
         if x0 is None:
             x0 = self.x0
 
-        out = apply_onthefly(
+        out, info = apply_onthefly(
             self,
             y,
             x0,
         )
 
-        return out
+        return out, info
 
     @jax.jit
     def to_dense(self) -> jnp.ndarray:
@@ -225,8 +227,8 @@ def apply_onthefly(S: LazySMatrix, grad: PyTree, x0: Optional[PyTree]) -> PyTree
         centered=S.sr.centered,
     )
     solve_fun = S.sr.solve_fun()
-    out, _ = solve_fun(_mat_vec, grad, x0=x0)
-    return out
+    out, info = solve_fun(_mat_vec, grad, x0=x0)
+    return out, info
 
 
 @jax.jit

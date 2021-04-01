@@ -104,7 +104,7 @@ class VMC(AbstractVariationalDriver):
 
             # use the previous solution as an initial guess to speed up the solution of the linear system
             x0 = self._dp if self.sr_restart is False else None
-            self._dp = self._S.solve(self._loss_grad, x0=x0)
+            self._dp, self._sr_info = self._S.solve(self._loss_grad, x0=x0)
         else:
             # tree_map(lambda x, y: x if is_ccomplex(y) else x.real, self._grads, self.state.parameters)
             self._dp = self._loss_grad
