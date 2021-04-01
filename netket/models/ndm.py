@@ -114,7 +114,7 @@ class MixedRBM(nn.Module):
     """Initializer for the hidden bias."""
 
     @nn.compact
-    def __call__(self, σr, σc, symmetric=True):
+    def __call__(self, σr, σc):
         U_S = nknn.Dense(
             name="Symm",
             features=int(self.alpha * σr.shape[-1]),
