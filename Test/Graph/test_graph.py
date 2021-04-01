@@ -277,6 +277,8 @@ def test_grid_translations():
 
     g = Grid([8, 4, 3], pbc=[True, True, False])
     assert len(g.translations()) == 8 * 4
+    with pytest.raises(ValueError):
+        g.translations(dim=2)  # no translation symmetry along non-periodic dim
 
     g = Grid([8, 4, 3], pbc=[True, True, True])
     assert len(g.translations()) == 8 * 4 * 3
@@ -284,10 +286,13 @@ def test_grid_translations():
     assert len(g.translations(dim=1)) == 4
     assert len(g.translations(dim=2)) == 3
     assert len(g.translations(dim=0, period=2)) == 4
+    assert len(g.translations(dim=0, period=4) @ g.translations(dim=2)) == 6
 
     t1 = g.translations()
     t2 = g.translations(dim=0) @ g.translations(dim=1) @ g.translations(dim=2)
     assert np.all(t1.indices() == t2.indices())
+    t2 = g.translations(dim=2) @ g.translations(dim=1) @ g.translations(dim=0)
+    assert np.any(t1.indices() != t2.indices())
 
 
 def test_duplicate_atoms():

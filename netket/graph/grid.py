@@ -110,12 +110,12 @@ class Grid(NetworkX):
         else:
             self.pbc = [pbc] * len(length)
 
-        graph = _nx.generators.lattice.grid_graph(length, periodic=periodic)
+        graph = _nx.generators.lattice.grid_graph(length[::-1], periodic=periodic)
 
         # Remove unwanted periodic edges:
         if isinstance(pbc, list) and periodic:
             for e in graph.edges:
-                for i, (l, is_per) in enumerate(zip(length[::-1], pbc[::-1])):
+                for i, (l, is_per) in enumerate(zip(length, pbc)):
                     if l <= 2:
                         # Do not remove for short directions, because there is
                         # only one edge in that case.
@@ -130,7 +130,7 @@ class Grid(NetworkX):
                 # color is the first (and only) dimension in which
                 # the edge coordinates differ
                 diff = _np.array(e[0]) - _np.array(e[1])
-                color = int(_np.argwhere(diff[::-1] != 0))
+                color = int(_np.argwhere(diff != 0))
                 edges[e] = color
             _nx.set_edge_attributes(graph, edges, name="color")
         else:
@@ -163,11 +163,11 @@ class Grid(NetworkX):
             period: Period of the translations; should be a divisor of the length in
                 the corresponding lattice dimension.
         """
-        dims = self.length[::-1]
+        dims = self.length
         if dim is None:
             basis = [
                 range(0, l, period) if is_per else range(1)
-                for l, is_per in zip(dims, self.pbc[::-1])
+                for l, is_per in zip(dims, self.pbc)
             ]
         else:
             if not self.pbc[dim]:
