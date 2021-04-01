@@ -15,6 +15,7 @@ BASE_DEPENDENCIES = [
     "numpy>=1.18",
     "scipy>=1.5.2",
     "tqdm>=4.56.2",
+    "multipledispatch>=0.6.0",
     "numba>=0.52.0",
     "networkx>=2.4",
     "jax>=0.2.9",
