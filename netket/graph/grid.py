@@ -38,7 +38,7 @@ class Translation(Element):
         return sites.ravel()
 
     def __repr__(self):
-        return f"Translation{self.shifts}"
+        return f"T{self.shifts}"
 
 
 @dispatch(Translation, Translation)
