@@ -38,6 +38,9 @@ class Identity(ElementBase):
     def __call__(self, arg):
         return arg
 
+    def __repr__(self):
+        return "Id()"
+
 
 @dispatch(Identity, Identity)
 def product(a: Identity, _: Identity):
