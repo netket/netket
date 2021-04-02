@@ -314,7 +314,7 @@ class DenseSymm(Module):
 
 
 def create_DenseSymm(
-    permutations: Union[Callable[[], Array], AbstractGraph, Array, SymmGroup],
+    permutations: Union[AbstractGraph, Array],
     *args,
     **kwargs,
 ):
@@ -326,20 +326,16 @@ def create_DenseSymm(
 
     Arguments:
       permutations: Sequence of permutations over which the layer should be invariant.
-        Should be either an array-like object of shape (n_permutations, input_size),
-        an argument-less callable returning such an array, or :ref:`netket.graph.AbstractGraph`, in which
-        case the graph automorphisms are used.
+        Should be either an array-like object of shape (n_permutations, input_size)
+        (note that this includes to :ref:`netket.graph.SymmGroup`), or
+        :ref:`netket.graph.AbstractGraph`, in which case the `graph.automorphisms()`
+        is used.
 
     See :ref:`netket.nn.DenseSymm` for the remaining parameters.
     """
-    if isinstance(permutations, SymmGroup):
-        perms = permutations.indices()
-        perm_fn = lambda: perms
-    elif isinstance(permutations, AbstractGraph):
+    if isinstance(permutations, AbstractGraph):
         autom = np.asarray(permutations.automorphisms())
         perm_fn = lambda: autom
-    elif isinstance(permutations, Callable):
-        perm_fn = permutations
     else:
         permutations = np.asarray(permutations)
         if not permutations.ndim == 2:

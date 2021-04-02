@@ -17,7 +17,6 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Callable, List, Tuple
 
-from netket.utils.deprecation import deprecated_new_name
 from netket.utils.semigroup import Element, Identity, dispatch
 from .symmetry import SymmGroup
 from .graph import NetworkX
@@ -185,13 +184,6 @@ class Grid(NetworkX):
         translations = [Translation(el, dims) for el in translations]
 
         return SymmGroup([Identity()] + translations, graph=self)
-
-    @deprecated_new_name("translations().indices()")
-    def periodic_translations(self):
-        """
-        Deprecated, use `self.translations().indices()` instead.
-        """
-        return self.translations().indices()
 
 
 def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Grid:

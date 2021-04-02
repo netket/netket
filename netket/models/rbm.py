@@ -252,7 +252,7 @@ class RBMSymm(nn.Module):
 
 
 def create_RBMSymm(
-    permutations: Union[Callable[[], Array], AbstractGraph, Array, SymmGroup],
+    permutations: Union[AbstractGraph, Array],
     *args,
     **kwargs,
 ):
@@ -270,14 +270,9 @@ def create_RBMSymm(
         hidden_bias_init: Initializer for the hidden bias.
         visible_bias_init: Initializer for the visible bias.
     """
-    if isinstance(permutations, SymmGroup):
-        perms = permutations.indices()
-        perm_fn = lambda: perms
-    elif isinstance(permutations, AbstractGraph):
+    if isinstance(permutations, AbstractGraph):
         autom = np.asarray(permutations.automorphisms())
         perm_fn = lambda: autom
-    elif isinstance(permutations, Callable):
-        perm_fn = permutations
     else:
         permutations = np.asarray(permutations)
         if not permutations.ndim == 2:
