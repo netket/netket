@@ -65,7 +65,6 @@ def test_RBMSymm_creation():
     # Test different permutation argument types
     check_init(lambda: nk.models.RBMSymm(permutations=perms))
     check_init(lambda: nk.models.RBMSymm(permutations=jnp.array(perms)))
-    check_init(lambda: nk.models.RBMSymm(permutations=lambda: jnp.array(perms)))
 
     # wrong shape
     with pytest.raises(ValueError):
@@ -73,6 +72,13 @@ def test_RBMSymm_creation():
 
     # init with graph
     check_init(lambda: nk.models.RBMSymm(permutations=nk.graph.Chain(8), alpha=2))
+
+    # init with SymmGroup
+    check_init(
+        lambda: nk.models.RBMSymm(
+            permutations=nk.graph.Chain(8).translations(), alpha=2
+        )
+    )
 
     # alpha too small
     with pytest.raises(ValueError):

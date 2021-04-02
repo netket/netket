@@ -28,7 +28,7 @@ def _setup_symm(permutations, N):
     g = nk.graph.Chain(N)
     if permutations == "trans":
         # Only translations, N_symm = N_sites
-        perms = g.periodic_translations()
+        perms = g.translations()
     else:
         # All chain automorphisms, N_symm = 2 N_sites
         perms = g.automorphisms()
