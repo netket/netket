@@ -265,7 +265,7 @@ def test_grid_translations():
         assert len(translations) == g.n_nodes
 
         autom = g.automorphisms()
-        for t in translations.indices().tolist():
+        for t in translations.to_array().tolist():
             assert t in autom
 
         g = Grid([4] * ndim, pbc=False)
@@ -290,9 +290,29 @@ def test_grid_translations():
 
     t1 = g.translations()
     t2 = g.translations(dim=0) @ g.translations(dim=1) @ g.translations(dim=2)
-    assert np.all(t1.indices() == t2.indices())
+    assert t1 == t2
     t2 = g.translations(dim=2) @ g.translations(dim=1) @ g.translations(dim=0)
-    assert np.any(t1.indices() != t2.indices())
+    assert t1 != t2
+
+    from netket.graph.grid import Translation
+
+    assert Translation((1,), (2,)) @ Translation((1,), (2,)) == Translation((2,), (2,))
+
+    with pytest.raises(ValueError, match="Incompatible translations"):
+        Translation((1,), (2,)) @ Translation((1,), (8,))
+
+
+def test_SymmGroup_eq_hash():
+    from netket.utils.semigroup import Identity
+
+    def assert_eq_hash(a, b):
+        assert hash(a) == hash(b)
+        assert a == b
+
+    assert_eq_hash(Identity(), Identity())
+
+    tr = Grid([8, 4, 3]).translations
+    assert_eq_hash(tr(), tr(0) @ tr(1) @ tr(2))
 
 
 def test_duplicate_atoms():

@@ -40,6 +40,9 @@ class Translation(Element):
     def __repr__(self):
         return f"T{self.shifts}"
 
+    def __hash__(self):
+        return hash((self.shifts, self.dims))
+
 
 @dispatch(Translation, Translation)
 def product(a: Translation, b: Translation):
@@ -163,7 +166,7 @@ class Grid(NetworkX):
             period: Period of the translations; should be a divisor of the length in
                 the corresponding lattice dimension.
         """
-        dims = self.length
+        dims = tuple(self.length)
         if dim is None:
             basis = [
                 range(0, l, period) if is_per else range(1)

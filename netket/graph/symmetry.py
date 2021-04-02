@@ -36,13 +36,26 @@ class SymmGroup(SemiGroup):
 
         return SymmGroup(super().__matmul__(other).elems, self.graph)
 
-    def indices(self):
+    def to_array(self):
         """
         Convert the abstract group operations to an array of permutation indicies,
-        such that (for G = self)
-            G(graph.nodes()) == np.array(graph.nodes())[..., G.indices()]
+        such that (for :code:`G = self`)::
+            V = np.array(G.graph.nodes())
+            assert np.all(G(V) == V[..., G.to_array()])
         """
         return self.__call__(np.arange(self.graph.n_nodes))
+
+    def __array__(self, dtype=None):
+        return np.asarray(self.to_array(), dtype=dtype)
+
+    def __hash__(self):
+        return hash((super().__hash__(), hash(self.graph)))
+
+    @property
+    def shape(self):
+        """Tuple `(<# of group elements>, <# of graph nodes>)`,
+        same as :code:`self.to_array().shape`."""
+        return (len(self), self.graph.n_nodes)
 
     def __repr__(self):
         return super().__repr__()
