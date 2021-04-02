@@ -15,6 +15,8 @@
 import netket as nk
 import jax.numpy as jnp
 
+from test_nn import _setup_symm
+
 import pytest
 
 
@@ -22,16 +24,7 @@ import pytest
 @pytest.mark.parametrize("use_visible_bias", [True, False])
 @pytest.mark.parametrize("permutations", ["trans", "autom"])
 def test_RBMSymm(use_hidden_bias, use_visible_bias, permutations):
-    N = 8
-    hi = nk.hilbert.Spin(1 / 2, N)
-
-    g = nk.graph.Chain(N)
-    if permutations == "trans":
-        # Only translations, N_symm = N_sites
-        perms = g.periodic_translations()
-    else:
-        # All chain automorphisms, N_symm = 2 N_sites
-        perms = g.automorphisms()
+    g, hi, perms = _setup_symm(permutations, N=8)
 
     ma = nk.models.RBMSymm(
         permutations=perms,
@@ -72,7 +65,6 @@ def test_RBMSymm_creation():
     # Test different permutation argument types
     check_init(lambda: nk.models.RBMSymm(permutations=perms))
     check_init(lambda: nk.models.RBMSymm(permutations=jnp.array(perms)))
-    check_init(lambda: nk.models.RBMSymm(permutations=lambda: jnp.array(perms)))
 
     # wrong shape
     with pytest.raises(ValueError):
@@ -80,6 +72,13 @@ def test_RBMSymm_creation():
 
     # init with graph
     check_init(lambda: nk.models.RBMSymm(permutations=nk.graph.Chain(8), alpha=2))
+
+    # init with SymmGroup
+    check_init(
+        lambda: nk.models.RBMSymm(
+            permutations=nk.graph.Chain(8).translations(), alpha=2
+        )
+    )
 
     # alpha too small
     with pytest.raises(ValueError):

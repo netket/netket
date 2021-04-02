@@ -23,7 +23,7 @@ import flax
 from flax.linen.module import Module, compact
 from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
-from netket.graph import AbstractGraph
+from netket.graph import AbstractGraph, SymmGroup
 
 from jax import lax
 import jax.numpy as jnp
@@ -208,6 +208,32 @@ class Dense(Module):
         return y
 
 
+def _symmetrizer_col(perms, features):
+    """
+    Creates the mapping from symmetry-reduced kernel w to full kernel W, s.t.
+        W[ij] = S[ij][kl] w[kl]
+    where [ij] ∈ [0,...,n_sites×n_hidden) and [kl] ∈ [0,...,n_sites×features).
+    For each [ij] there is only one [kl] such that S[ij][kl] is non-zero, in which
+    case S[ij][kl] == 1. Thus, this method only returns the array of indices `col`
+    of shape (n_sites×n_hidden,) satisfying
+        W[ij] = w[col[ij]]  <=>  W = w[col].
+
+    See Test/Models/test_nn.py:test_symmetrizer for how this relates to the
+    matrix form of the symmetrizer.
+    """
+    n_symm, n_sites = perms.shape
+    n_hidden = features * n_symm
+
+    ij = np.arange(n_sites * n_hidden)
+    i, j = np.unravel_index(ij, (n_sites, n_hidden))
+
+    k = perms[j % n_symm, i]
+    l = np.floor_divide(j, n_symm)
+    kl = np.ravel_multi_index((k, l), (n_sites, features))
+
+    return kl
+
+
 class DenseSymm(Module):
     """A symmetrized linear transformation applied over the last dimension of the input.
     This layer uses a reduced number of parameters, which are arranged so that the full
@@ -234,36 +260,19 @@ class DenseSymm(Module):
 
     def setup(self):
         perms = self.permutations()
-
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
 
-        # symmetrization tensor, maps Wsymm to full W
-        # note that this should be a sparse object, once jax supports them
-        def symmetrizer_ijkl(i, j, k, l):
-            jsymm = np.floor_divide(j, self.n_symm)
-            cond_k = k == jnp.asarray(perms)[j % self.n_symm, i]
-            cond_l = l == jsymm
-            return jnp.asarray(jnp.logical_and(cond_k, cond_l), dtype=int)
-
-        self.symmetrizer = jnp.array(
-            np.fromfunction(
-                symmetrizer_ijkl,
-                shape=(self.n_sites, self.n_hidden, self.n_sites, self.features),
-                dtype=int,
-            ),
-            dtype=self.dtype,
-        ).reshape(-1, self.features * self.n_sites)
+        self.symm_cols = jnp.asarray(_symmetrizer_col(perms, self.features))
 
     def full_kernel(self, kernel):
         """
         Converts the symmetry-reduced kernel of shape (n_sites, features) to
         the full Dense kernel of shape (n_sites, features * n_symm).
         """
-        # equivalent to: kernel = jnp.einsum("ijkl,kl->ij", self.symmetrizer, kernel)
-        # for appropriately shaped symmetrizer
-        kvec = kernel.reshape(-1)
-        return jnp.matmul(self.symmetrizer, kvec).reshape(self.n_sites, -1)
+        kernel = kernel.reshape(-1)
+        result = kernel[self.symm_cols]
+        return result.reshape(self.n_sites, -1)
 
     def full_bias(self, bias):
         """
@@ -305,7 +314,9 @@ class DenseSymm(Module):
 
 
 def create_DenseSymm(
-    permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
+    permutations: Union[AbstractGraph, Array],
+    *args,
+    **kwargs,
 ):
     """A symmetrized linear transformation applied over the last dimension of the input.
     This layer uses a reduced number of parameters, which are arranged so that the full
@@ -315,18 +326,18 @@ def create_DenseSymm(
 
     Arguments:
       permutations: Sequence of permutations over which the layer should be invariant.
-        Should be either an array-like object of shape (n_permutations, input_size),
-        an argument-less callable returning such an array, or :ref:`netket.graph.AbstractGraph`, in which
-        case the graph automorphisms are used.
+        Should be either an array-like object of shape (n_permutations, input_size)
+        (note that this includes to :ref:`netket.graph.SymmGroup`), or
+        :ref:`netket.graph.AbstractGraph`, in which case the `graph.automorphisms()`
+        is used.
 
     See :ref:`netket.nn.DenseSymm` for the remaining parameters.
     """
-    if isinstance(permutations, Callable):
-        perm_fn = permutations
-    elif isinstance(permutations, AbstractGraph):
-        perm_fn = lambda: jnp.asarray(permutations.automorphisms())
+    if isinstance(permutations, AbstractGraph):
+        autom = np.asarray(permutations.automorphisms())
+        perm_fn = lambda: autom
     else:
-        permutations = jnp.asarray(permutations)
+        permutations = np.asarray(permutations)
         if not permutations.ndim == 2:
             raise ValueError(
                 "permutations must be an array of shape (#permutations, #sites)."

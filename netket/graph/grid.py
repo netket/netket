@@ -13,12 +13,42 @@
 # limitations under the License.
 
 import itertools
-from typing import List
+from dataclasses import dataclass
+from functools import partial
+from typing import Callable, List, Tuple
 
+from netket.utils.semigroup import Element, Identity, dispatch
+from .symmetry import SymmGroup
 from .graph import NetworkX
 
 import numpy as _np
 import networkx as _nx
+
+
+@dataclass
+class Translation(Element):
+    shifts: Tuple
+    dims: Tuple
+
+    def __call__(self, sites):
+        sites = sites.reshape(self.dims)
+        for i, n in enumerate(self.shifts):
+            sites = _np.roll(sites, shift=n, axis=i)
+        return sites.ravel()
+
+    def __repr__(self):
+        return f"T{self.shifts}"
+
+    def __hash__(self):
+        return hash((self.shifts, self.dims))
+
+
+@dispatch(Translation, Translation)
+def product(a: Translation, b: Translation):
+    if not a.dims == b.dims:
+        raise ValueError("Incompatible translations")
+    shifts = tuple(s1 + s2 for s1, s2 in zip(a.shifts, b.shifts))
+    return Translation(shifts=shifts, dims=a.dims)
 
 
 class Grid(NetworkX):
@@ -82,12 +112,12 @@ class Grid(NetworkX):
         else:
             self.pbc = [pbc] * len(length)
 
-        graph = _nx.generators.lattice.grid_graph(length, periodic=periodic)
+        graph = _nx.generators.lattice.grid_graph(length[::-1], periodic=periodic)
 
         # Remove unwanted periodic edges:
         if isinstance(pbc, list) and periodic:
             for e in graph.edges:
-                for i, (l, is_per) in enumerate(zip(length[::-1], pbc[::-1])):
+                for i, (l, is_per) in enumerate(zip(length, pbc)):
                     if l <= 2:
                         # Do not remove for short directions, because there is
                         # only one edge in that case.
@@ -102,7 +132,7 @@ class Grid(NetworkX):
                 # color is the first (and only) dimension in which
                 # the edge coordinates differ
                 diff = _np.array(e[0]) - _np.array(e[1])
-                color = int(_np.argwhere(diff[::-1] != 0))
+                color = int(_np.argwhere(diff != 0))
                 edges[e] = color
             _nx.set_edge_attributes(graph, edges, name="color")
         else:
@@ -122,28 +152,38 @@ class Grid(NetworkX):
             pbc = self.pbc
         return f"Grid(length={self.length}, pbc={pbc})"
 
-    def periodic_translations(self) -> List[List[int]]:
+    def translations(self, dim: int = None, period: int = 1) -> SymmGroup:
         """
         Returns all permutations of lattice sites that correspond to translations
         along the grid directions with periodic boundary conditions.
 
         The periodic translations are a subset of the permutations returned by
         `self.automorphisms()`.
+
+        Arguments:
+            dim: If set, only translations along `dim` will be returned.
+            period: Period of the translations; should be a divisor of the length in
+                the corresponding lattice dimension.
         """
-        basis = [
-            range(l) if is_per else range(1)
-            for l, is_per in zip(self.length[::-1], self.pbc[::-1])
-        ]
+        dims = tuple(self.length)
+        if dim is None:
+            basis = [
+                range(0, l, period) if is_per else range(1)
+                for l, is_per in zip(dims, self.pbc)
+            ]
+        else:
+            if not self.pbc[dim]:
+                raise ValueError(f"No translation symmetries in non-periodic dim={dim}")
+            basis = [
+                range(0, l, period) if i == dim else range(1)
+                for i, l in enumerate(dims)
+            ]
 
-        translation_group = itertools.product(*basis)
-        identity = _np.array(list(self.nodes())).reshape(*self.length[::-1])
+        translations = itertools.product(*basis)
+        next(translations)  # skip identity element here
+        translations = [Translation(el, dims) for el in translations]
 
-        def translate(el, sites):
-            for i, n in enumerate(el):
-                sites = _np.roll(sites, shift=n, axis=i)
-            return sites.ravel().tolist()
-
-        return [translate(el, identity) for el in translation_group]
+        return SymmGroup([Identity()] + translations, graph=self)
 
     def space_group(self, identity=None) -> List[List[int]]:
         """

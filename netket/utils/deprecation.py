@@ -55,13 +55,11 @@ def deprecated_new_name(message):
         @functools.wraps(func)
         def deprecated_func(*args, **kwargs):
             warnings.warn(
-                """{} has been renamed to {}. The old name is 
-                now deprecated and will be removed in the next minor version.
-                
-                Please update your code.
-                """.format(
-                    func.__name__, message
-                ),
+                (
+                    "{} has been renamed to {}. The old name is "
+                    "now deprecated and will be removed in the next minor version.\n"
+                    "Please update your code."
+                ).format(func.__name__, message),
                 category=FutureWarning,
                 stacklevel=2,
             )

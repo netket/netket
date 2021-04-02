@@ -21,7 +21,7 @@ from jax import numpy as jnp
 from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
-from netket.graph import AbstractGraph
+from netket.graph import AbstractGraph, SymmGroup
 from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 
 from netket import nn as nknn
@@ -252,7 +252,9 @@ class RBMSymm(nn.Module):
 
 
 def create_RBMSymm(
-    permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
+    permutations: Union[AbstractGraph, Array],
+    *args,
+    **kwargs,
 ):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
 
@@ -268,12 +270,11 @@ def create_RBMSymm(
         hidden_bias_init: Initializer for the hidden bias.
         visible_bias_init: Initializer for the visible bias.
     """
-    if isinstance(permutations, Callable):
-        perm_fn = permutations
-    elif isinstance(permutations, AbstractGraph):
-        perm_fn = lambda: jnp.asarray(permutations.automorphisms())
+    if isinstance(permutations, AbstractGraph):
+        autom = np.asarray(permutations.automorphisms())
+        perm_fn = lambda: autom
     else:
-        permutations = jnp.asarray(permutations)
+        permutations = np.asarray(permutations)
         if not permutations.ndim == 2:
             raise ValueError(
                 "permutations must be an array of shape (#permutations, #sites)."

@@ -256,28 +256,63 @@ def test_automorphisms():
 
 
 def test_grid_translations():
+    from netket.utils.semigroup import Identity
+
     for ndim in 1, 2:
         g = Grid([4] * ndim, pbc=True)
-        translations = g.periodic_translations()
+        translations = g.translations()
 
         assert len(translations) == g.n_nodes
 
         autom = g.automorphisms()
-        for t in translations:
+        for t in translations.to_array().tolist():
             assert t in autom
 
         g = Grid([4] * ndim, pbc=False)
-        translations = g.periodic_translations()
-        assert len(translations) == 1  # only identity
+        translations = g.translations()
+        assert translations.elems == [Identity()]  # only identity
 
     g = Grid([8, 4, 3], pbc=[True, False, False])
-    assert len(g.periodic_translations()) == 8
+    assert len(g.translations()) == 8
 
     g = Grid([8, 4, 3], pbc=[True, True, False])
-    assert len(g.periodic_translations()) == 8 * 4
+    assert len(g.translations()) == 8 * 4
+    with pytest.raises(ValueError):
+        g.translations(dim=2)  # no translation symmetry along non-periodic dim
 
     g = Grid([8, 4, 3], pbc=[True, True, True])
-    assert len(g.periodic_translations()) == 8 * 4 * 3
+    assert len(g.translations()) == 8 * 4 * 3
+    assert len(g.translations(dim=0)) == 8
+    assert len(g.translations(dim=1)) == 4
+    assert len(g.translations(dim=2)) == 3
+    assert len(g.translations(dim=0, period=2)) == 4
+    assert len(g.translations(dim=0, period=4) @ g.translations(dim=2)) == 6
+
+    t1 = g.translations()
+    t2 = g.translations(dim=0) @ g.translations(dim=1) @ g.translations(dim=2)
+    assert t1 == t2
+    t2 = g.translations(dim=2) @ g.translations(dim=1) @ g.translations(dim=0)
+    assert t1 != t2
+
+    from netket.graph.grid import Translation
+
+    assert Translation((1,), (2,)) @ Translation((1,), (2,)) == Translation((2,), (2,))
+
+    with pytest.raises(ValueError, match="Incompatible translations"):
+        Translation((1,), (2,)) @ Translation((1,), (8,))
+
+
+def test_SymmGroup_eq_hash():
+    from netket.utils.semigroup import Identity
+
+    def assert_eq_hash(a, b):
+        assert hash(a) == hash(b)
+        assert a == b
+
+    assert_eq_hash(Identity(), Identity())
+
+    tr = Grid([8, 4, 3]).translations
+    assert_eq_hash(tr(), tr(0) @ tr(1) @ tr(2))
 
 
 def test_duplicate_atoms():
