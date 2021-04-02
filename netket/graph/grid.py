@@ -42,20 +42,20 @@ class Translation(Element):
     def __hash__(self):
         return hash((self.shifts, self.dims))
 
+
 @dataclass
 class Planar_Rotation(Element):
-
     def __init__(self, info, dims):
-        self.num_quarter_rots, self.axes = info 
+        self.num_quarter_rots, self.axes = info
         self.dims = dims
 
-    def __call__(self,sites):
+    def __call__(self, sites):
         sites = sites.reshape(self.dims)
         apply_perm = _np.arange(len(self.dims))
         apply_perm[list(self.axes)] = self.axes[::-1]
         for i in range(self.num_quarter_rots):
             sites = sites.transpose(apply_perm)
-            sites = _np.roll(_np.flip(sites,self.axes[0]),1,self.axes[0])
+            sites = _np.roll(_np.flip(sites, self.axes[0]), 1, self.axes[0])
 
         return sites.ravel()
 
@@ -68,20 +68,20 @@ class Planar_Rotation(Element):
             return f"R({self.num_quarter_rots}π/2,{self.axes}"
 
     def __hash__(self):
-        return hash((self.num_quarter_rots,self.axes,self.dims))
+        return hash((self.num_quarter_rots, self.axes, self.dims))
 
-@dataclass   
+
+@dataclass
 class Reflection(Element):
-
     def __init__(self, info, dims):
-        self.reflect, self.axis = info 
+        self.reflect, self.axis = info
         self.dims = dims
-    
-    def __call__(self,sites):
+
+    def __call__(self, sites):
         sites = sites.reshape(self.dims)
 
         if reflect:
-            sites = _np.flip(sites,axis)
+            sites = _np.flip(sites, axis)
 
         return sites.ravel()
 
@@ -92,7 +92,8 @@ class Reflection(Element):
             return f"RF(0,{self.axis})"
 
     def __hash__(self):
-        return hash((self.reflect,self.axis,self.dims))
+        return hash((self.reflect, self.axis, self.dims))
+
 
 @dispatch(Translation, Translation)
 def product(a: Translation, b: Translation):
@@ -238,15 +239,10 @@ class Grid(NetworkX):
 
     def axis_rotations(self, axes: tuple, period: int = 1) -> List[List[int]]:
         """
-        Returns all possible rotations of lattice sites. Rotations are carried
-        out via planar rotations in planes with axes of equal length, then
-        duplicates are pruned
-
-        The rotation operations are a subset of the permutations returned by
-        `self.automorphisms()`.
+        Returns rotations about the origin in the plane defined by axes
 
         Arguments:
-            axes: If set, only rotate in the plane specified by dims.
+            axes: Axes that define the plane of rotation specified by dims.
             period: Period of the rotations; should be a divisor of 4.
         """
 
@@ -261,25 +257,35 @@ class Grid(NetworkX):
         rotations = itertools.product(*basis)
         next(rotations)
 
-        rotations = [Planar_Rotation(el,dims) for el in rotations]
+        rotations = [Planar_Rotation(el, dims) for el in rotations]
 
         return SymmGroup([Identity()] + rotations, graph=self)
 
     def rotations(self, period: int = 1) -> List[List[int]]:
+        """
+        Returns all possible rotations of a hypercube lattice
+
+        The rotations are a subset of the permutations returned by
+        `self.automorphisms()`.
+
+        Arguments:
+            period: Period of the rotations; should be a divisor of 4.
+        """
 
         iden_axes = []
         for i, l in enumerate(self.length):
             for j in range(i + 1, len(self.length)):
                 if l == self.length[j]:
-                    iden_axes.append((i,j))
+                    iden_axes.append((i, j))
 
-        for i,axes in enumerate(iden_axes):
+        for i, axes in enumerate(iden_axes):
             if i == 0:
-                group = self.axis_rotations(axes,period)
+                group = self.axis_rotations(axes, period)
             else:
-                group = group.__matmul__(self.axis_rotations(axes,period))
+                group = group.__matmul__(self.axis_rotations(axes, period))
 
         return group
+
 
 def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Grid:
     r"""A hypercube lattice of side L in d dimensions.
