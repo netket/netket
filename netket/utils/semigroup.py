@@ -26,7 +26,8 @@ dispatch = partial(multipledispatch.dispatch, namespace=namespace)
 
 
 class ElementBase(Callable):
-    pass
+    def __matmul__(self, other):
+        return product(self, other)
 
 
 class Element(ElementBase):
@@ -40,6 +41,9 @@ class Identity(ElementBase):
 
     def __repr__(self):
         return "Id()"
+
+    def __hash__(self):
+        return 0
 
 
 @dispatch(Identity, Identity)
@@ -67,6 +71,9 @@ class Composite(Element):
 
     def __repr__(self):
         return f"{self.left} @ {self.right}"
+
+    def __hash__(self):
+        return hash((self.left, self.right))
 
 
 @dispatch(Element, Element)
@@ -113,6 +120,9 @@ class NamedElement(Element):
     def __repr__(self):
         return f"{self.name}({self.info})"
 
+    def __hash__(self):
+        return hash((self.name, self.info, id(self.action)))
+
 
 @dataclass
 class SemiGroup:
@@ -123,16 +133,8 @@ class SemiGroup:
         Direct product of this group with `other`.
         """
         return SemiGroup(
-            elems=[
-                product(a, b) for a, b in itertools.product(self.elems, other.elems)
-            ],
+            elems=[a @ b for a, b in itertools.product(self.elems, other.elems)],
         )
-
-    def __getitem__(self, i):
-        return self.elems[i]
-
-    def __len__(self):
-        return len(self.elems)
 
     def __call__(self, initial):
         """
@@ -140,6 +142,18 @@ class SemiGroup:
         """
         initial = np.asarray(initial)
         return np.array([np.apply_along_axis(elem, -1, initial) for elem in self.elems])
+
+    def __getitem__(self, i):
+        return self.elems[i]
+
+    def __hash__(self):
+        return sum(hash(x) for x in self.elems)
+
+    def __iter__(self):
+        return iter(self.elems)
+
+    def __len__(self):
+        return len(self.elems)
 
     def __repr__(self):
         if len(self.elems) > 31:
