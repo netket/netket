@@ -42,6 +42,57 @@ class Translation(Element):
     def __hash__(self):
         return hash((self.shifts, self.dims))
 
+@dataclass
+class Planar_Rotation(Element):
+
+    def __init__(self, info, dims):
+        self.num_quarter_rots, self.axes = info 
+        self.dims = dims
+
+    def __call__(self,sites):
+        sites = sites.reshape(self.dims)
+        apply_perm = _np.arange(len(self.dims))
+        apply_perm[list(self.axes)] = self.axes[::-1]
+        for i in range(self.num_quarter_rots):
+            sites = sites.transpose(apply_perm)
+            sites = _np.roll(_np.flip(sites,self.axes[0]),1,self.axes[0])
+
+        return sites.ravel()
+
+    def __repr__(self):
+        if self.num_quarter_rots == 0:
+            return f"R(0,{self.axes})"
+        elif self.num_quarter_rots == 2:
+            return f"R(π,{self.axes})"
+        else:
+            return f"R({self.num_quarter_rots}π/2,{self.axes}"
+
+    def __hash__(self):
+        return hash((self.num_quarter_rots,self.axes,self.dims))
+
+@dataclass   
+class Reflection(Element):
+
+    def __init__(self, info, dims):
+        self.reflect, self.axis = info 
+        self.dims = dims
+    
+    def __call__(self,sites):
+        sites = sites.reshape(self.dims)
+
+        if reflect:
+            sites = _np.flip(sites,axis)
+
+        return sites.ravel()
+
+    def __repr__(self):
+        if reflect:
+            return f"RF(π,{self.axis})"
+        else:
+            return f"RF(0,{self.axis})"
+
+    def __hash__(self):
+        return hash((self.reflect,self.axis,self.dims))
 
 @dispatch(Translation, Translation)
 def product(a: Translation, b: Translation):
@@ -185,80 +236,50 @@ class Grid(NetworkX):
 
         return SymmGroup([Identity()] + translations, graph=self)
 
-    def space_group(self, identity=None) -> List[List[int]]:
+    def axis_rotations(self, axes: tuple, period: int = 1) -> List[List[int]]:
         """
-        Returns all permutations of lattice sites that correspond to space group
-        symmetry operations.
+        Returns all possible rotations of lattice sites. Rotations are carried
+        out via planar rotations in planes with axes of equal length, then
+        duplicates are pruned
 
-        The space group operations are a subset of the permutations returned by
+        The rotation operations are a subset of the permutations returned by
         `self.automorphisms()`.
+
+        Arguments:
+            axes: If set, only rotate in the plane specified by dims.
+            period: Period of the rotations; should be a divisor of 4.
         """
 
-        if not _np.any(identity):
-            identity = _np.expand_dims(
-                _np.array(list(self.nodes())).reshape(*self.length[::-1]), 0
-            )
-        ndim = len(self.length)
+        dims = tuple(self.length)
 
-        dup_axes = []
-        alr_dup = []
+        if not len(axes) == 2:
+            raise ValueError(f"Plane is specified by two axes")
+        if not self.length[axes[0]] == self.length[axes[1]]:
+            raise ValueError(f"Rotation is only defined for square planes")
 
+        basis = (range(0, 4, period), [axes])
+        rotations = itertools.product(*basis)
+        next(rotations)
+
+        rotations = [Planar_Rotation(el,dims) for el in rotations]
+
+        return SymmGroup([Identity()] + rotations, graph=self)
+
+    def rotations(self, period: int = 1) -> List[List[int]]:
+
+        iden_axes = []
         for i, l in enumerate(self.length):
-            if not (i in alr_dup):
-                dups = []
-                dups.append(ndim - i - 1)
-                for j in range(i + 1, ndim):
-                    if l == self.length[j]:
-                        dups.append(ndim - j - 1)
-                        alr_dup.append(j)
-                dup_axes.append(dups)
+            for j in range(i + 1, len(self.length)):
+                if l == self.length[j]:
+                    iden_axes.append((i,j))
 
-        for i in range(ndim):
+        for i,axes in enumerate(iden_axes):
             if i == 0:
-                perms = _np.concatenate((identity, _np.flip(identity, i + 1)), 0)
+                group = self.axis_rotations(axes,period)
             else:
-                perms = _np.concatenate((perms, _np.flip(perms, i + 1)), 0)
+                group = group.__matmul__(self.axis_rotations(axes,period))
 
-        for set_axes in dup_axes:
-
-            set_axes = [p + 1 for p in set_axes]
-            axis_perms = itertools.permutations(set_axes)
-
-            iden = perms.copy()
-
-            for i, axis_perm in enumerate(axis_perms):
-
-                apply_perm = _np.arange(ndim + 1)
-                apply_perm[set_axes] = axis_perm
-
-                if i > 0:
-                    perms = _np.concatenate((perms, iden.transpose(apply_perm)), 0)
-
-        perms = _np.reshape(perms, [len(perms), -1])
-
-        list_perms = []
-
-        for perm in perms:
-            list_perms.append(list(perm))
-
-        return list_perms
-
-    def lattice_group(self) -> List[List[int]]:
-        """
-        Returns all permutations of lattice sites that correspond to translation
-        and space group symmetry operations. Translation is applied first, followed
-        by reflection along lattice axes, followed by reflections along diagonals.
-
-        The lattice permuations are a subset of the permutations returned by
-        `self.automorphisms()`.
-        """
-
-        identity = _np.reshape(
-            _np.array(self.periodic_translations()), [-1, *self.length[::-1]]
-        )
-
-        return self.space_group(identity)
-
+        return group
 
 def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Grid:
     r"""A hypercube lattice of side L in d dimensions.
