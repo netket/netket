@@ -237,7 +237,7 @@ class Grid(NetworkX):
 
         return SymmGroup([Identity()] + translations, graph=self)
 
-    def planar_rotation(self, axes: tuple, period: int = 1) -> List[List[int]]:
+    def planar_rotation(self, axes: tuple, period: int = 1) -> SymmGroup:
         """
         Returns SymmGroup consisting of rotations about the origin in the plane defined by axes
 
@@ -279,7 +279,7 @@ class Grid(NetworkX):
 
         return SymmGroup([Identity()] + reflections, graph=self)
 
-    def rotations(self, period: int = 1) -> List[List[int]]:
+    def rotations(self, period: int = 1) -> SymmGroup:
         """
         Returns all possible rotations of a hypercube lattice
 
@@ -304,7 +304,7 @@ class Grid(NetworkX):
 
         return group
 
-    def space_group(self) -> List[List[int]]:
+    def space_group(self) -> SymmGroup:
         """
         Returns the full space grouup of a hypercube lattice
 
@@ -313,24 +313,18 @@ class Grid(NetworkX):
 
         """
 
-        group = self.rotations()
-        group = group @ self.axis_reflection()
+        return self.rotations() @ self.axis_reflection()
 
-        return group
-
-    def lattice_group(self) -> List[List[int]]:
+    def lattice_group(self) -> SymmGroup:
         """
-        Returns the full space grouup of a hypercube lattice
+        Returns the full lattice grouup of a hypercube lattice
 
-        The space group is a subset of the permutations returned by
+        The lattice group is a subset of the permutations returned by
         `self.automorphisms()`.
 
         """
 
-        group = self.translations()
-        group = group @ self.space_group()
-
-        return group
+        return self.translations() @ self.space_group()
 
 
 def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Grid:
