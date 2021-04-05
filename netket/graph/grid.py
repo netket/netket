@@ -80,13 +80,13 @@ class Reflection(Element):
     def __call__(self, sites):
         sites = sites.reshape(self.dims)
 
-        if reflect:
-            sites = _np.flip(sites, axis)
+        if self.reflect:
+            sites = _np.roll(_np.flip(sites, self.axis), 1, self.axis)
 
         return sites.ravel()
 
     def __repr__(self):
-        if reflect:
+        if self.reflect:
             return f"RF(π,{self.axis})"
         else:
             return f"RF(0,{self.axis})"
@@ -237,9 +237,9 @@ class Grid(NetworkX):
 
         return SymmGroup([Identity()] + translations, graph=self)
 
-    def axis_rotations(self, axes: tuple, period: int = 1) -> List[List[int]]:
+    def planar_rotation(self, axes: tuple, period: int = 1) -> List[List[int]]:
         """
-        Returns rotations about the origin in the plane defined by axes
+        Returns SymmGroup consisting of rotations about the origin in the plane defined by axes
 
         Arguments:
             axes: Axes that define the plane of rotation specified by dims.
@@ -261,6 +261,24 @@ class Grid(NetworkX):
 
         return SymmGroup([Identity()] + rotations, graph=self)
 
+    def axis_reflection(self, axis: int = -1) -> List[List[int]]:
+        """
+        Returns SymmGroup consisting of identity and the lattice
+        reflected about the hyperplane axis = 0
+
+        Arguments:
+            axis: Axis to be reflected about
+        """
+
+        dims = tuple(self.length)
+        basis = (range(0, 2), [axis])
+        reflections = itertools.product(*basis)
+        next(reflections)
+
+        reflections = [Reflection(el, dims) for el in reflections]
+
+        return SymmGroup([Identity()] + reflections, graph=self)
+
     def rotations(self, period: int = 1) -> List[List[int]]:
         """
         Returns all possible rotations of a hypercube lattice
@@ -280,9 +298,37 @@ class Grid(NetworkX):
 
         for i, axes in enumerate(iden_axes):
             if i == 0:
-                group = self.axis_rotations(axes, period)
+                group = self.planar_rotation(axes, period)
             else:
-                group = group.__matmul__(self.axis_rotations(axes, period))
+                group = group @ self.planar_rotation(axes, period)
+
+        return group
+
+    def space_group(self) -> List[List[int]]:
+        """
+        Returns the full space grouup of a hypercube lattice
+
+        The space group is a subset of the permutations returned by
+        `self.automorphisms()`.
+
+        """
+
+        group = self.rotations()
+        group = group @ self.axis_reflection()
+
+        return group
+
+    def lattice_group(self) -> List[List[int]]:
+        """
+        Returns the full space grouup of a hypercube lattice
+
+        The space group is a subset of the permutations returned by
+        `self.automorphisms()`.
+
+        """
+
+        group = self.translations()
+        group = group @ self.space_group()
 
         return group
 
