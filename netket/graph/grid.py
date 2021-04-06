@@ -44,7 +44,7 @@ class Translation(Element):
 
 
 @dataclass
-class Planar_Rotation(Element):
+class PlanarRotation(Element):
     def __init__(self, info, dims):
         self.num_quarter_rots, self.axes = info
         self.dims = dims
@@ -257,7 +257,7 @@ class Grid(NetworkX):
         rotations = itertools.product(*basis)
         next(rotations)
 
-        rotations = [Planar_Rotation(el, dims) for el in rotations]
+        rotations = [PlanarRotation(el, dims) for el in rotations]
 
         return SymmGroup([Identity()] + rotations, graph=self)
 
