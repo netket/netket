@@ -53,7 +53,7 @@ class PlanarRotation(Element):
         apply_perm[list(self.axes)] = self.axes[::-1]
         for i in range(self.num_quarter_rots):
             sites = sites.transpose(apply_perm)
-            sites = _np.roll(_np.flip(sites, self.axes[0]), 1, self.axes[0])
+            sites = _np.flip(sites, self.axes[0])
 
         return sites.ravel()
 
@@ -77,7 +77,7 @@ class Reflection(Element):
         sites = sites.reshape(self.dims)
 
         if self.reflect:
-            sites = _np.roll(_np.flip(sites, self.axis), 1, self.axis)
+            sites = _np.flip(sites, self.axis)
 
         return sites.ravel()
 
