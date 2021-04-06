@@ -27,7 +27,7 @@ import numpy as _np
 import networkx as _nx
 
 
-@dataclass
+@dataclass(frozen=True)
 class Translation(Element):
     shifts: Tuple
     dims: Tuple
@@ -40,9 +40,6 @@ class Translation(Element):
 
     def __repr__(self):
         return f"T{self.shifts}"
-
-    def __hash__(self):
-        return hash((self.shifts, self.dims))
 
 
 @dispatch(Translation, Translation)
