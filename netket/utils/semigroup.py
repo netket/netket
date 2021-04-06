@@ -34,16 +34,13 @@ class Element(ElementBase):
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Identity(ElementBase):
     def __call__(self, arg):
         return arg
 
     def __repr__(self):
         return "Id()"
-
-    def __hash__(self):
-        return 0
 
 
 @dispatch(Identity, Identity)
@@ -61,7 +58,7 @@ def product(a: Element, _: Identity):
     return a
 
 
-@dataclass
+@dataclass(frozen=True)
 class Composite(Element):
     left: Element
     right: Element
@@ -71,9 +68,6 @@ class Composite(Element):
 
     def __repr__(self):
         return f"{self.left} @ {self.right}"
-
-    def __hash__(self):
-        return hash((self.left, self.right))
 
 
 @dispatch(Element, Element)
@@ -108,7 +102,7 @@ def product(ab: Composite, cd: Composite):
         return Composite(ab.left, Composite(bc, cd.right))
 
 
-@dataclass
+@dataclass(frozen=True)
 class NamedElement(Element):
     name: str
     action: Callable
@@ -120,13 +114,16 @@ class NamedElement(Element):
     def __repr__(self):
         return f"{self.name}({self.info})"
 
-    def __hash__(self):
-        return hash((self.name, self.info, id(self.action)))
 
-
-@dataclass
+@dataclass(frozen=True)
 class SemiGroup:
     elems: List[Element]
+
+    def __post_init__(self):
+        # manually assign self.__hash == ... for frozen dataclass,
+        # see https://docs.python.org/3/library/dataclasses.html#frozen-instances
+        myhash = hash(tuple(hash(x) for x in self.elems))
+        object.__setattr__(self, "_SemiGroup__hash", myhash)
 
     def __matmul__(self, other):
         """
@@ -147,7 +144,7 @@ class SemiGroup:
         return self.elems[i]
 
     def __hash__(self):
-        return sum(hash(x) for x in self.elems)
+        return self.__hash
 
     def __iter__(self):
         return iter(self.elems)
