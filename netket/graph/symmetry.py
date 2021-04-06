@@ -36,7 +36,7 @@ class SymmGroup(SemiGroup):
         object.__setattr__(self, "_SymmGroup__hash", myhash)
 
     def __matmul__(self, other):
-        if isinstance(other, SymmGroup) and self.graph is not other.graph:
+        if isinstance(other, SymmGroup) and self.graph != other.graph:
             raise ValueError("Incompatible groups (underlying graph must be identical)")
 
         return SymmGroup(super().__matmul__(other).elems, self.graph)
