@@ -302,7 +302,7 @@ def test_grid_translations():
         Translation((1,), (2,)) @ Translation((1,), (8,))
 
 
-def test_SymmGroup_eq_hash():
+def test_SymmGroup():
     from netket.utils.semigroup import Identity
 
     def assert_eq_hash(a, b):
@@ -313,6 +313,11 @@ def test_SymmGroup_eq_hash():
 
     tr = Grid([8, 4, 3]).translations
     assert_eq_hash(tr(), tr(0) @ tr(1) @ tr(2))
+
+    assert_eq_hash(tr().remove_duplicates(), tr())
+
+    assert tr() @ tr() != tr()
+    assert_eq_hash((tr() @ tr()).remove_duplicates(), tr())
 
 
 def test_duplicate_atoms():
