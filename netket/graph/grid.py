@@ -25,10 +25,10 @@ import numpy as _np
 import networkx as _nx
 
 
-@dataclass
+@dataclass(frozen=True)
 class Translation(Element):
-    shifts: Tuple
-    dims: Tuple
+    shifts: Tuple[int]
+    dims: Tuple[int]
 
     def __call__(self, sites):
         sites = sites.reshape(self.dims)
@@ -39,15 +39,13 @@ class Translation(Element):
     def __repr__(self):
         return f"T{self.shifts}"
 
-    def __hash__(self):
-        return hash((self.shifts, self.dims))
 
-
-@dataclass
+@dataclass(frozen=True)
 class PlanarRotation(Element):
-    def __init__(self, info, dims):
-        self.num_quarter_rots, self.axes = info
-        self.dims = dims
+
+    num_quarter_rots: int
+    axes: Tuple[int]
+    dims: Tuple[int]
 
     def __call__(self, sites):
         sites = sites.reshape(self.dims)
@@ -67,15 +65,13 @@ class PlanarRotation(Element):
         else:
             return f"R({self.num_quarter_rots}π/2,{self.axes}"
 
-    def __hash__(self):
-        return hash((self.num_quarter_rots, self.axes, self.dims))
 
-
-@dataclass
+@dataclass(frozen=True)
 class Reflection(Element):
-    def __init__(self, info, dims):
-        self.reflect, self.axis = info
-        self.dims = dims
+
+    reflect: bool
+    axis: int
+    dims: Tuple[int]
 
     def __call__(self, sites):
         sites = sites.reshape(self.dims)
@@ -90,9 +86,6 @@ class Reflection(Element):
             return f"RF(π,{self.axis})"
         else:
             return f"RF(0,{self.axis})"
-
-    def __hash__(self):
-        return hash((self.reflect, self.axis, self.dims))
 
 
 @dispatch(Translation, Translation)
@@ -257,7 +250,7 @@ class Grid(NetworkX):
         rotations = itertools.product(*basis)
         next(rotations)
 
-        rotations = [PlanarRotation(el, dims) for el in rotations]
+        rotations = [PlanarRotation(num, ax, dims) for (num, ax) in rotations]
 
         return SymmGroup([Identity()] + rotations, graph=self)
 
@@ -275,7 +268,7 @@ class Grid(NetworkX):
         reflections = itertools.product(*basis)
         next(reflections)
 
-        reflections = [Reflection(el, dims) for el in reflections]
+        reflections = [Reflection(num, ax, dims) for (num, ax) in reflections]
 
         return SymmGroup([Identity()] + reflections, graph=self)
 
