@@ -283,7 +283,7 @@ class Grid(NetworkX):
 
     def space_group(self) -> SymmGroup:
         """
-        Returns the full space grouup of a hypercube lattice
+        Returns the full space group of the lattice.
 
         The space group is a subset of the permutations returned by
         `self.automorphisms()`.
