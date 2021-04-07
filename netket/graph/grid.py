@@ -260,13 +260,7 @@ class Grid(NetworkX):
             raise ValueError(f"Axis specified not in dims")
 
         dims = tuple(self.length)
-        basis = (range(0, 2), [axis])
-        reflections = itertools.product(*basis)
-        next(reflections)
-
-        reflections = [Reflection(num, ax, dims) for (num, ax) in reflections]
-
-        return SymmGroup([Identity()] + reflections, graph=self)
+        return SymmGroup([Identity(), Reflection(axis, dims)], graph=self)
 
     def rotations(self, period: int = 1) -> SymmGroup:
         """
