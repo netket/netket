@@ -257,14 +257,15 @@ class Grid(NetworkX):
         Arguments:
             axis: Axis to be reflected about
         """
-
         if abs(axis) > len(self.length) - 1:
             raise ValueError(f"Axis specified not in dims")
 
         dims = tuple(self.length)
         return SymmGroup([Identity(), Reflection(axis, dims)], graph=self)
 
-    def rotations(self, period: int = 1) -> SymmGroup:
+    def rotations(
+        self, period: int = 1, *, remove_duplicates: bool = True
+    ) -> SymmGroup:
         """
         Returns all possible rotation symmetries of the lattice.
 
@@ -273,26 +274,34 @@ class Grid(NetworkX):
 
         Arguments:
             period: Period of the rotations; should be a divisor of 4.
+            remove_duplicates: Only include unique rotations.
         """
-
         axes = itertools.combinations(range(len(self.length)), 2)
         group = SymmGroup([Identity()], graph=self)
 
         for axs in axes:
             group = group @ self.planar_rotation(axs, period)
 
-        return group
+        if remove_duplicates:
+            return group.remove_duplicates()
+        else:
+            return group
 
-    def space_group(self) -> SymmGroup:
+    def space_group(self, *, remove_duplicates: bool = True) -> SymmGroup:
         """
         Returns the full space group of the lattice.
 
         The space group is a subset of the permutations returned by
         `self.automorphisms()`.
 
+        Arguments:
+            remove_duplicates: Only include unique space group elements.
         """
-
-        return self.rotations() @ self.axis_reflection()
+        group = self.rotations() @ self.axis_reflection()
+        if remove_duplicates:
+            return group.remove_duplicates()
+        else:
+            return group
 
     def lattice_group(self) -> SymmGroup:
         """
@@ -302,7 +311,6 @@ class Grid(NetworkX):
         `self.automorphisms()`.
 
         """
-
         return self.translations() @ self.space_group()
 
 
