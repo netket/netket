@@ -58,12 +58,7 @@ class PlanarRotation(Element):
         return sites.ravel()
 
     def __repr__(self):
-        if self.num_quarter_rots == 0:
-            return f"R(0,{self.axes})"
-        elif self.num_quarter_rots == 2:
-            return f"R(π,{self.axes})"
-        else:
-            return f"R({self.num_quarter_rots}π/2,{self.axes}"
+        return f"Rot({self.num_quarter_rots / 2:.1f}π, axes={self.axes})"
 
 
 @dataclass(frozen=True)
