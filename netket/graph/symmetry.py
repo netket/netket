@@ -73,16 +73,11 @@ class SymmGroup(SemiGroup):
             return_index=True,
             return_inverse=return_inverse,
         )
-        unique_indices = result[1]
+        group = SymmGroup([self.elems[i] for i in sorted(result[1])], self.graph)
         if return_inverse:
-            return (
-                SymmGroup([self.elems[i] for i in sorted(unique_indices)], self.graph),
-                result[2],
-            )
+            return group, result[2]
         else:
-            return SymmGroup(
-                [self.elems[i] for i in sorted(unique_indices)], self.graph
-            )
+            return group
 
     @property
     def shape(self):

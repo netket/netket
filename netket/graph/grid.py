@@ -287,7 +287,7 @@ class Grid(NetworkX):
         else:
             return group
 
-    def space_group(self, *, remove_duplicates: bool = True) -> SymmGroup:
+    def space_group(self) -> SymmGroup:
         """
         Returns the full space group of the lattice.
 
@@ -297,11 +297,7 @@ class Grid(NetworkX):
         Arguments:
             remove_duplicates: Only include unique space group elements.
         """
-        group = self.rotations() @ self.axis_reflection()
-        if remove_duplicates:
-            return group.remove_duplicates()
-        else:
-            return group
+        return self.rotations() @ self.axis_reflection()
 
     def lattice_group(self) -> SymmGroup:
         """
