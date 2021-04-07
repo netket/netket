@@ -264,7 +264,7 @@ class Grid(NetworkX):
 
     def rotations(self, period: int = 1) -> SymmGroup:
         """
-        Returns all possible rotations of a hypercube lattice
+        Returns all possible rotation symmetries of the lattice.
 
         The rotations are a subset of the permutations returned by
         `self.automorphisms()`.
