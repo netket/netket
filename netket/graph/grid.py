@@ -230,7 +230,7 @@ class Grid(NetworkX):
 
         return SymmGroup([Identity()] + translations, graph=self)
 
-    def planar_rotation(self, axes: tuple, period: int = 1) -> SymmGroup:
+    def planar_rotation(self, axes: tuple = (0, 1), period: int = 1) -> SymmGroup:
         """
         Returns SymmGroup consisting of rotations about the origin in the plane defined by axes
 
