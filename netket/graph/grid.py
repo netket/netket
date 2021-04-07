@@ -243,10 +243,14 @@ class Grid(NetworkX):
 
         if not len(axes) == 2:
             raise ValueError(f"Plane is specified by two axes")
-        if not self.length[axes[0]] == self.length[axes[1]]:
-            raise ValueError(f"Rotation is only defined for square planes")
+        if len(dims) < 2:
+            raise ValueError(f"Rotations not defined for 1d systems")
 
-        basis = (range(0, 4, period), [axes])
+        if self.length[axes[0]] == self.length[axes[1]]:
+            basis = (range(0, 4, period), [axes])
+        else:
+            basis = (range(0, 4, 2 * period), [axes])
+
         rotations = itertools.product(*basis)
         next(rotations)
 
@@ -283,17 +287,11 @@ class Grid(NetworkX):
             period: Period of the rotations; should be a divisor of 4.
         """
 
-        iden_axes = []
-        for i, l in enumerate(self.length):
-            for j in range(i + 1, len(self.length)):
-                if l == self.length[j]:
-                    iden_axes.append((i, j))
+        axes = itertools.combinations(range(len(self.length)), 2)
+        group = SymmGroup([Identity()], graph=self)
 
-        for i, axes in enumerate(iden_axes):
-            if i == 0:
-                group = self.planar_rotation(axes, period)
-            else:
-                group = group @ self.planar_rotation(axes, period)
+        for axs in axes:
+            group = group @ self.planar_rotation(axs, period)
 
         return group
 
