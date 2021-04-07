@@ -245,6 +245,8 @@ class Grid(NetworkX):
             raise ValueError(f"Plane is specified by two axes")
         if len(dims) < 2:
             raise ValueError(f"Rotations not defined for 1d systems")
+        if _np.any(axes) > len(dims) - 1:
+            raise ValueError(f"Axis specified not in dims")
 
         if self.length[axes[0]] == self.length[axes[1]]:
             basis = (range(0, 4, period), [axes])
@@ -258,7 +260,7 @@ class Grid(NetworkX):
 
         return SymmGroup([Identity()] + rotations, graph=self)
 
-    def axis_reflection(self, axis: int = -1) -> List[List[int]]:
+    def axis_reflection(self, axis: int = 0) -> List[List[int]]:
         """
         Returns SymmGroup consisting of identity and the lattice
         reflected about the hyperplane axis = 0
@@ -266,6 +268,9 @@ class Grid(NetworkX):
         Arguments:
             axis: Axis to be reflected about
         """
+
+        if abs(axis) > len(self.length) - 1:
+            raise ValueError(f"Axis specified not in dims")
 
         dims = tuple(self.length)
         basis = (range(0, 2), [axis])
