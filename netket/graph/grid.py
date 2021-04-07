@@ -247,7 +247,7 @@ class Grid(NetworkX):
 
         return SymmGroup([Identity()] + rotations, graph=self)
 
-    def axis_reflection(self, axis: int = 0) -> List[List[int]]:
+    def axis_reflection(self, axis: int = 0) -> SymmGroup:
         """
         Returns SymmGroup consisting of identity and the lattice
         reflected about the hyperplane axis = 0
