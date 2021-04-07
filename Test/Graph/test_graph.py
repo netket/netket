@@ -255,6 +255,15 @@ def test_automorphisms():
                 assert autom_g[i] in autom
 
 
+def _check_symmgroup(graph, symmgroup):
+    """Asserts that symmgroup consists of automorphisms and has no duplicate elements."""
+    autom = graph.automorphisms()
+    for el in symmgroup.to_array().tolist():
+        assert el in autom
+
+    assert symmgroup == symmgroup.remove_duplicates()
+
+
 def test_grid_translations():
     from netket.utils.semigroup import Identity
 
@@ -264,9 +273,7 @@ def test_grid_translations():
 
         assert len(translations) == g.n_nodes
 
-        autom = g.automorphisms()
-        for t in translations.to_array().tolist():
-            assert t in autom
+        _check_symmgroup(g, translations)
 
         g = Grid([4] * ndim, pbc=False)
         translations = g.translations()
@@ -300,6 +307,55 @@ def test_grid_translations():
 
     with pytest.raises(ValueError, match="Incompatible translations"):
         Translation((1,), (2,)) @ Translation((1,), (8,))
+
+
+@pytest.mark.parametrize("n_dim", [1, 2, 3, 4])
+def test_grid_space_group_dim(n_dim):
+    # space group of n-dimensional Hypercube should be the
+    # hyperoctaherdal group of order 2^n n!, see
+    # https://en.wikipedia.org/wiki/Hyperoctahedral_group
+    space_group = Hypercube(length=3, n_dim=n_dim).space_group()
+    order = 2 ** n_dim * math.factorial(n_dim)
+    assert len(space_group) == order
+
+
+def test_grid_space_group():
+    def _check_symmgroups(g):
+        _check_symmgroup(g, g.rotations())
+        _check_symmgroup(g, g.space_group())
+        _check_symmgroup(g, g.lattice_group())
+
+    from netket.utils.semigroup import Identity
+
+    g = nk.graph.Chain(8)
+    _check_symmgroups(g)
+    assert g.rotations().elems == [Identity()]
+    assert len(g.space_group()) == 2  # one reflection
+    assert g.space_group() == g.axis_reflection() == g.axis_reflection(0)
+    with pytest.raises(ValueError):  # invalid axis
+        g.axis_reflection(1)
+    assert len(g.lattice_group()) == 8 * 2  # translations * reflection
+
+    g = nk.graph.Grid([8, 2], pbc=False)
+    _check_symmgroups(g)
+    assert len(g.rotations()) == 2  # one 180 deg rotation
+    assert len(g.space_group()) == 4
+    assert g.lattice_group() == g.space_group()  # no PBC, no translations
+
+    g = nk.graph.Grid([5, 4, 3], pbc=[True, False, False])
+    _check_symmgroups(g)
+    assert len(g.rotations(remove_duplicates=False)) > len(
+        g.rotations(remove_duplicates=True)
+    )
+
+    g = nk.graph.Hypercube(3, 2)
+    _check_symmgroups(g)
+    assert len(g.lattice_group()) == len(g.automorphisms())
+
+    g = nk.graph.Hypercube(4, 2)
+    _check_symmgroups(g)
+    # 4x4 cube has even higher symmetry
+    assert len(g.lattice_group()) < len(g.automorphisms())
 
 
 def test_SymmGroup():

@@ -53,13 +53,36 @@ class SymmGroup(SemiGroup):
     def __array__(self, dtype=None):
         return np.asarray(self.to_array(), dtype=dtype)
 
-    def remove_duplicates(self):
+    def remove_duplicates(self, *, return_inverse=False):
         """
         Returns a new :code:`SymmGroup` with duplicate elements (that is, elements which
         act on :code:`self.graph` identically) removed.
+
+        Arguments:
+            return_inverse: If True, also return indices to reconstruct the original
+                group from the result.
+
+        Returns:
+            symm_group: the symmetry group with duplicates removed.
+            return_inverse: Indices to reconstruct the original group from the result.
+                Only returned if `return_inverse` is True.
         """
-        _, unique_indices = np.unique(self.to_array(), axis=0, return_index=True)
-        return SymmGroup([self.elems[i] for i in sorted(unique_indices)], self.graph)
+        result = np.unique(
+            self.to_array(),
+            axis=0,
+            return_index=True,
+            return_inverse=return_inverse,
+        )
+        unique_indices = result[1]
+        if return_inverse:
+            return (
+                SymmGroup([self.elems[i] for i in sorted(unique_indices)], self.graph),
+                result[2],
+            )
+        else:
+            return SymmGroup(
+                [self.elems[i] for i in sorted(unique_indices)], self.graph
+            )
 
     @property
     def shape(self):
