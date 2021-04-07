@@ -63,24 +63,16 @@ class PlanarRotation(Element):
 
 @dataclass(frozen=True)
 class Reflection(Element):
-
-    reflect: bool
     axis: int
     dims: Tuple[int]
 
     def __call__(self, sites):
         sites = sites.reshape(self.dims)
-
-        if self.reflect:
-            sites = _np.flip(sites, self.axis)
-
+        sites = _np.flip(sites, self.axis)
         return sites.ravel()
 
     def __repr__(self):
-        if self.reflect:
-            return f"RF(π,{self.axis})"
-        else:
-            return f"RF(0,{self.axis})"
+        return f"Ref(axis={self.axis})"
 
 
 @dispatch(Translation, Translation)
