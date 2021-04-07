@@ -344,9 +344,12 @@ def test_grid_space_group():
 
     g = nk.graph.Grid([5, 4, 3], pbc=[True, False, False])
     _check_symmgroups(g)
-    assert len(g.rotations(remove_duplicates=False)) > len(
-        g.rotations(remove_duplicates=True)
-    )
+    rot1 = g.rotations(remove_duplicates=False)
+    rot2 = g.rotations(remove_duplicates=True)
+    assert len(rot1) > len(rot2)
+    rot3, inverse = rot1.remove_duplicates(return_inverse=True)
+    assert rot2 == rot3
+    assert np.all(rot3.to_array()[inverse] == rot1.to_array())
 
     g = nk.graph.Hypercube(3, 2)
     _check_symmgroups(g)
