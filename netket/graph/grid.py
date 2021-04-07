@@ -18,6 +18,8 @@ from functools import partial
 from typing import Callable, List, Tuple
 
 from netket.utils.semigroup import Element, Identity, dispatch
+
+
 from .symmetry import SymmGroup
 from .graph import NetworkX
 

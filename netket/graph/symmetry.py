@@ -20,7 +20,7 @@ from . import AbstractGraph
 from netket.utils.semigroup import SemiGroup
 
 
-@dataclass
+@dataclass(frozen=True)
 class SymmGroup(SemiGroup):
     """
     Collection of symmetry operations acting on the sites of a graph
@@ -30,8 +30,13 @@ class SymmGroup(SemiGroup):
     graph: AbstractGraph
     """Underlying graph"""
 
+    def __post_init__(self):
+        super().__post_init__()
+        myhash = hash((super().__hash__(), hash(self.graph)))
+        object.__setattr__(self, "_SymmGroup__hash", myhash)
+
     def __matmul__(self, other):
-        if isinstance(other, SymmGroup) and self.graph is not other.graph:
+        if isinstance(other, SymmGroup) and self.graph != other.graph:
             raise ValueError("Incompatible groups (underlying graph must be identical)")
 
         return SymmGroup(super().__matmul__(other).elems, self.graph)
@@ -48,14 +53,22 @@ class SymmGroup(SemiGroup):
     def __array__(self, dtype=None):
         return np.asarray(self.to_array(), dtype=dtype)
 
-    def __hash__(self):
-        return hash((super().__hash__(), hash(self.graph)))
+    def remove_duplicates(self):
+        """
+        Returns a new :code:`SymmGroup` with duplicate elements (that is, elements which
+        act on :code:`self.graph` identically) removed.
+        """
+        _, unique_indices = np.unique(self.to_array(), axis=0, return_index=True)
+        return SymmGroup([self.elems[i] for i in sorted(unique_indices)], self.graph)
 
     @property
     def shape(self):
         """Tuple `(<# of group elements>, <# of graph nodes>)`,
         same as :code:`self.to_array().shape`."""
         return (len(self), self.graph.n_nodes)
+
+    def __hash__(self):
+        return self.__hash
 
     def __repr__(self):
         return super().__repr__()
