@@ -294,7 +294,7 @@ class Grid(NetworkX):
 
     def lattice_group(self) -> SymmGroup:
         """
-        Returns the full lattice grouup of a hypercube lattice
+        Returns the full lattice symmetry group consisting of rotations, reflections, and periodic translation.
 
         The lattice group is a subset of the permutations returned by
         `self.automorphisms()`.
