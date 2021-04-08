@@ -35,7 +35,6 @@ Shape = Iterable[int]
 Dtype = Any  # this could be a real type?
 Array = Any
 
-
 default_kernel_init = normal(stddev=0.01)
 # complex_kernel_init = lecun_normal()
 
@@ -202,7 +201,7 @@ class Dense(Module):
             precision=self.precision,
         )
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            bias = self.param("bias", self.bias_init, (self.features), self.dtype)
             bias = jnp.asarray(bias, dtype)
             y = y + bias
         return y
@@ -294,6 +293,88 @@ class DenseSymm(Module):
 
         kernel = self.param(
             "kernel", self.kernel_init, (inputs.shape[-1], self.features), self.dtype
+        )
+        kernel = self.full_kernel(kernel)
+        kernel = jnp.asarray(kernel, dtype)
+
+        y = lax.dot_general(
+            inputs,
+            kernel,
+            (((inputs.ndim - 1,), (0,)), ((), ())),
+            precision=self.precision,
+        )
+
+        if self.use_bias:
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            bias = jnp.asarray(self.full_bias(bias), dtype)
+            y += bias
+
+        return y
+
+
+class DenseEquivariant(Module):
+    """A symmetrized linear transformation applied over the last dimension of the input.
+    This layer uses a reduced number of parameters, which are arranged so that the full
+    affine transformation is invariant under all of the given permutations when applied to s.
+
+    See :func:`~netket.nn.create_DenseSymm` for a more convenient constructor.
+    """
+
+    symm_group: SymmGroup
+    """Symmetry group over which layer is equivariant"""
+    features: int
+    """The number of symmetry-reduced features. The full output size is len(permutations) * features."""
+    use_bias: bool = True
+    """Whether to add a bias to the output (default: True)."""
+    dtype: Any = jnp.float64
+    """The dtype of the weights."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
+
+    kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
+    """Initializer for the Dense layer matrix."""
+    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = zeros
+    """Initializer for the bias."""
+
+    def setup(self):
+        self.group_algebra = self.symm_group.group_algebra()
+        self.n_symm = len(self.symm_group.remove_duplicates())
+        self.n_hidden = self.features * self.n_symm
+
+    def full_kernel(self, kernel):
+        """
+        Converts the symmetry-reduced kernel of shape (n_sites, features) to
+        the full Dense kernel of shape (n_sites, features * n_symm).
+        """
+        result = kernel[self.group_algebra]
+        result = result.reshape(self.n_symm, self.n_symm, self.features, self.features)
+        result = result.transpose(2, 0, 3, 1).reshape(self.n_symm * self.features, -1)
+
+        return result
+
+    def full_bias(self, bias):
+        """
+        Convert symmetry-reduced bias of shape (features,) to the full bias of
+        shape (n_symm * features,).
+        """
+        return jnp.repeat(bias, self.n_symm)
+
+    @compact
+    def __call__(self, inputs: Array) -> Array:
+        """Applies the symmetrized linear transformation to the inputs along the last dimension.
+        Args:
+          inputs: The nd-array to be transformed.
+        Returns:
+          The transformed input.
+        """
+        dtype = jnp.promote_types(inputs.dtype, self.dtype)
+        inputs = jnp.asarray(inputs, dtype)
+
+        kernel = self.param(
+            "kernel",
+            self.kernel_init,
+            (inputs.shape[-1], self.features, self.features),
+            self.dtype,
         )
         kernel = self.full_kernel(kernel)
         kernel = jnp.asarray(kernel, dtype)
