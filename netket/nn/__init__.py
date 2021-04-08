@@ -50,6 +50,7 @@ from .linear import (
     Dense,
     DenseGeneral,
     DenseSymm,
+    DenseEquivariant,
     create_DenseSymm,
 )
 from .module import Module
