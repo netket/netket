@@ -53,6 +53,9 @@ class SymmGroup(SemiGroup):
     def __array__(self, dtype=None):
         return np.asarray(self.to_array(), dtype=dtype)
 
+    def num_elements(self):
+        return len(self)
+
     def remove_duplicates(self):
         """
         Returns a new :code:`SymmGroup` with duplicate elements (that is, elements which
@@ -60,6 +63,35 @@ class SymmGroup(SemiGroup):
         """
         _, unique_indices = np.unique(self.to_array(), axis=0, return_index=True)
         return SymmGroup([self.elems[i] for i in sorted(unique_indices)], self.graph)
+
+    def inverse(self):
+
+        rm_dup = self.remove_duplicates()
+
+        n_elem = rm_dup.num_elements()
+        inverse = np.zeros([n_elem], dtype=int)
+        sq = rm_dup.__matmul__(rm_dup).to_array()
+        is_iden = np.where(~(sq - np.arange(sq.shape[-1])).any(axis=1))[0]
+
+        inverse[is_iden // n_elem] = is_iden % n_elem
+
+        return SymmGroup([self.elems[i] for i in inverse], self.graph)
+
+    def group_algebra(self):
+
+        group = self.remove_duplicates()
+        n_elem = group.num_elements()
+        group_algebra = np.zeros([n_elem, n_elem], dtype=int)
+        inverse = self.inverse()
+        comp = inverse.__matmul__(group).to_array()
+
+        for n, elem in enumerate(group.to_array()):
+
+            is_iden = np.where(~(comp - elem).any(axis=1))[0]
+
+            group_algebra[is_iden % n_elem, is_iden // n_elem] = n
+
+        return group_algebra.ravel()
 
     @property
     def shape(self):
