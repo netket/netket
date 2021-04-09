@@ -91,7 +91,7 @@ class SymmGroup(SemiGroup):
 
             group_algebra[is_iden % n_elem, is_iden // n_elem] = n
 
-        return group_algebra.ravel()
+        return tuple(group_algebra.ravel())
 
     @property
     def shape(self):
