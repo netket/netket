@@ -320,8 +320,8 @@ class DenseEquivariant(Module):
     See :func:`~netket.nn.create_DenseSymm` for a more convenient constructor.
     """
 
-    symm_group: SymmGroup
-    """Symmetry group over which layer is equivariant"""
+    group_algebra: Tuple
+    """Matrix with group algebra of symmetry group"""
     features: int
     """The number of symmetry-reduced features. The full output size is len(permutations) * features."""
     use_bias: bool = True
@@ -337,8 +337,7 @@ class DenseEquivariant(Module):
     """Initializer for the bias."""
 
     def setup(self):
-        self.group_algebra = self.symm_group.group_algebra()
-        self.n_symm = len(self.symm_group.remove_duplicates())
+        self.n_symm = int(np.sqrt(len(self.group_algebra)))       
         self.n_hidden = self.features * self.n_symm
 
     def full_kernel(self, kernel):
@@ -346,7 +345,7 @@ class DenseEquivariant(Module):
         Converts the symmetry-reduced kernel of shape (n_sites, features) to
         the full Dense kernel of shape (n_sites, features * n_symm).
         """
-        result = kernel[self.group_algebra]
+        result = jnp.take(kernel,self.group_algebra,0)
         result = result.reshape(self.n_symm, self.n_symm, self.features, self.features)
         result = result.transpose(2, 0, 3, 1).reshape(self.n_symm * self.features, -1)
 
@@ -403,7 +402,7 @@ def create_DenseSymm(
     This layer uses a reduced number of parameters, which are arranged so that the full
     affine transformation is invariant under all of the given permutations when applied to s.
 
-    This is a convenience wrapper for creating a :ref:`netket.nn.DenseSymm` layer.
+    This is a convenience wrapper for creating a :ref:`netket.nn.DenseSsymm` layer.
 
     Arguments:
       permutations: Sequence of permutations over which the layer should be invariant.
