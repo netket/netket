@@ -33,8 +33,10 @@ class GCNN(nn.Module):
     """Implements a group convolutional neural network with symmetry
     averaged eigenvalues."""
 
-    symm_group: SymmGroup
-    """Symmetry group over which invarianced is desired """
+    permutations: Callable[[],Array]
+    """permutations specifying symmetry group"""
+    group_algebra: Tuple
+    """Matrix specifying algebra of symmetry group given by SymmGroup"""
     layers: int
     """Number of layers (not including sum layer over output)"""
     features: int
@@ -49,20 +51,16 @@ class GCNN(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-
     kernel_init: NNInitFunc = lecun_complex()
     """Initializer for the Dense layer matrix."""
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias."""
 
     def setup(self):
-        self.sg_unique = self.symm_group.remove_duplicates()
-        self.n_symm = self.sg_unique.num_elements()
-
-        perms = lambda: self.symm_group.to_array()
-
+        self.n_symm = int(np.sqrt(len(self.group_algebra)))
+        
         self.dense_symm = nknn.DenseSymm(
-            permutations=perms,
+            permutations=self.permutations,
             features=self.features,
             dtype=self.dtype,
             use_bias=self.use_bias,
@@ -73,7 +71,7 @@ class GCNN(nn.Module):
 
         self.equivariant_layers = [
             nknn.DenseEquivariant(
-                symm_group=self.sg_unique,
+                group_algebra=self.group_algebra,
                 features=self.features,
                 use_bias=self.use_bias,
                 dtype=self.dtype,
