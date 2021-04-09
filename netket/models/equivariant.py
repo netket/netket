@@ -89,6 +89,6 @@ class GCNN(nn.Module):
             x = self.equivariant_layers[layer](x)
             x = self.activation(x)
 
-        x = jnp.sum(x, axis=-1)
+        x = jnp.mean(x, axis=-1)
 
         return x
