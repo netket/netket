@@ -43,7 +43,7 @@ class GCNN(nn.Module):
     """Number of features. The dimension of the hidden state is features*n_symm"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.swish
+    activation: Any = nknn.relu
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -89,6 +89,6 @@ class GCNN(nn.Module):
             x = self.equivariant_layers[layer](x)
             x = self.activation(x)
 
-        x = jnp.mean(x, axis=-1)
+        x = jnp.sum(x, axis=-1)
 
         return x
