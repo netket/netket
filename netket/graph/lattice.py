@@ -25,6 +25,7 @@ def get_edges(atoms_positions, cutoff):
     kdtree = cKDTree(atoms_positions)
     dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
     id1, id2, values = find(triu(dist_matrix))
+    
     pairs = []
     min_dists = {}  # keys are nodes, values are min dists
     for node in _np.unique(_np.concatenate((id1, id2))):
@@ -32,11 +33,13 @@ def get_edges(atoms_positions, cutoff):
         min_dists[node] = min_dist
     for node in _np.unique(id1):
         min_dist = _np.min(values[id1 == node])
-        mask = (id1 == node) & (values == min_dist)
+        mask = (id1 == node) & (_np.isclose(values, min_dist))
         first = id1[mask]
         second = id2[mask]
         for pair in zip(first, second):
-            if min_dist == min_dists[pair[0]] and min_dist == min_dists[pair[1]]:
+            if _np.isclose(min_dist, min_dists[pair[0]]) and _np.isclose(
+                min_dist, min_dists[pair[1]]
+            ):
                 pairs.append(pair)
     return pairs
 
