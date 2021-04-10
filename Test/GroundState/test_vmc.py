@@ -37,7 +37,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
         sr_config = nk.optimizer.SR()
     else:
         sr_config = None
-    driver = nk.Vmc(ha, op, variational_state=vs, sr=sr_config)
+    driver = nk.VMC(ha, op, variational_state=vs, sr=sr_config)
 
     return ha, sx, vs, sa, driver
 
@@ -106,7 +106,7 @@ def test_vmc_construction_vstate():
 
     with raises(TypeError):
         ha2 = nk.operator.LocalOperator(ha.hilbert * ha.hilbert)
-        driver = nk.Vmc(ha2, op, variational_state=driver.state)
+        driver = nk.VMC(ha2, op, variational_state=driver.state)
 
 
 def test_vmc_functions():
