@@ -85,24 +85,13 @@ def O_jvp(x, params, v, forward_fn):
     return res
 
 
-def O_vjp(
-    x, params, v, forward_fn, *, return_vjp_fun=False, vjp_fun=None, allreduce=True
-):
-
-    if vjp_fun is None:
-        _, vjp_fun = jax.vjp(forward_fn, params, x)
+def O_vjp(x, params, v, forward_fn):
+    _, vjp_fun = jax.vjp(forward_fn, params, x)
     res, _ = vjp_fun(v)
-
-    if allreduce:
-        res = jax.tree_map(sum_inplace, res)
-
-    if return_vjp_fun:
-        return res, vjp_fun
-    else:
-        return res
+    return jax.tree_map(sum_inplace, res)  # allreduce w/ MPI.SUM
 
 
-def O_mean(samples, params, forward_fn, **kwargs):
+def O_mean(samples, params, forward_fn):
     r"""
     compute \langle O \rangle
     i.e. the mean of the rows of the jacobian of forward_fn
@@ -110,13 +99,11 @@ def O_mean(samples, params, forward_fn, **kwargs):
 
     # determine the output type of the forward pass
     dtype = jax.eval_shape(forward_fn, params, samples).dtype
-
     v = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
+    return O_vjp(samples, params, v, forward_fn)
 
-    return O_vjp(samples, params, v, forward_fn, **kwargs)
 
-
-def OH_w(samples, params, w, forward_fn, **kwargs):
+def OH_w(samples, params, w, forward_fn):
     r"""
     compute  O^H w
     (where ^H is the hermitian transpose)
@@ -128,12 +115,12 @@ def OH_w(samples, params, w, forward_fn, **kwargs):
 
     # TODO The allreduce in O_vjp could be deferred until after the tree_cast
     # where the amount of data to be transferred would potentially be smaller
-    res = tree_conj(O_vjp(samples, params, w.conjugate(), forward_fn, **kwargs))
+    res = tree_conj(O_vjp(samples, params, w.conjugate(), forward_fn))
 
     return tree_cast(res, params)
 
 
-def Odagger_O_v(samples, params, v, forward_fn, *, vjp_fun=None, center=False):
+def Odagger_O_v(samples, params, v, forward_fn, *, center=False):
     r"""
     if center=False (default):
         compute \langle O^\dagger O \rangle v
@@ -141,8 +128,6 @@ def Odagger_O_v(samples, params, v, forward_fn, *, vjp_fun=None, center=False):
     else (center=True):
         compute \langle O^\dagger \Delta O \rangle v
         where \Delta O = O - \langle O \rangle
-
-    optional: pass vjp_fun to be reused
     """
 
     # w is an array of size n_samples; each MPI rank has its own slice
@@ -153,30 +138,21 @@ def Odagger_O_v(samples, params, v, forward_fn, *, vjp_fun=None, center=False):
     if center:
         w = subtract_mean(w)  # w/ MPI
 
-    return OH_w(samples, params, w, forward_fn, vjp_fun=vjp_fun)
+    return OH_w(samples, params, w, forward_fn)
 
 
 Odagger_DeltaO_v = partial(Odagger_O_v, center=True)
 
 
-def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
+def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn):
 
     r"""
     compute \langle \Delta O^\dagger \Delta O \rangle v
 
     where \Delta O = O - \langle O \rangle
-
-    optional: pass jvp_fun to be reused
     """
 
-    omean = O_mean(
-        samples,
-        params,
-        forward_fn,
-        return_vjp_fun=False,
-        vjp_fun=vjp_fun,
-        allreduce=True,
-    )
+    omean = O_mean(samples, params, forward_fn)
 
     def forward_fn_centered(params, x):
         return forward_fn(params, x) - tree_dot(params, omean)
@@ -184,8 +160,6 @@ def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, vjp_fun=None):
     return Odagger_O_v(samples, params, v, forward_fn_centered)
 
 
-# TODO allow passing vjp_fun from e.g. a preceding gradient calculation with the same samples
-# and optionally return vjp_fun so that it can be reused in subsequent calls
 # TODO block the computations (in the same way as done with MPI) if memory consumtion becomes an issue
 def mat_vec(v, forward_fn, params, samples, diag_shift, centered=True):
     r"""
