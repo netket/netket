@@ -57,7 +57,11 @@ class Spin(CustomHilbert):
         total_sz: Optional[float] = None,
         graph: Optional[AbstractGraph] = None,
     ):
-        r"""Hilbert space obtained as tensor product of local spin states.
+        r"""Hilbert space obtained as tensor product of local eigenstates of the spin operator S_z.
+            For spin 1/2 particles the local quantum numbers correspond to the eigensvalues of the Pauli matrix
+            sigma_z: (1,-1).
+            In general, for integer spin s, they correspond to the integer eigenvalues (s,s-1,..,0,..,-s+1,-s).
+            For semi-integer s, they correspond to the integer eigenvalues (2s,2s-2,..,-2s+2,-2s)
 
         Args:
            s: Spin at each site. Must be integer or half-integer.
@@ -83,7 +87,7 @@ class Spin(CustomHilbert):
 
         for i in range(local_size):
             local_states[i] = -round(2 * s) + 2 * i
-        local_states = local_states.tolist()
+        local_states = sorted(local_states.tolist(), reverse=True)
 
         _check_total_sz(total_sz, N)
         if total_sz is not None:
