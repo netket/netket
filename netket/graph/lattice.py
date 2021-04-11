@@ -22,25 +22,30 @@ import warnings
 
 
 def get_edges(atoms_positions, cutoff):
+
     kdtree = cKDTree(atoms_positions)
     dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
+
     id1, id2, values = find(triu(dist_matrix))
-    
+
     pairs = []
     min_dists = {}  # keys are nodes, values are min dists
     for node in _np.unique(_np.concatenate((id1, id2))):
         min_dist = _np.min(values[(id1 == node) | (id2 == node)])
         min_dists[node] = min_dist
+
     for node in _np.unique(id1):
         min_dist = _np.min(values[id1 == node])
         mask = (id1 == node) & (_np.isclose(values, min_dist))
         first = id1[mask]
         second = id2[mask]
+
         for pair in zip(first, second):
             if _np.isclose(min_dist, min_dists[pair[0]]) and _np.isclose(
                 min_dist, min_dists[pair[1]]
             ):
                 pairs.append(pair)
+
     return pairs
 
 
@@ -77,11 +82,12 @@ def create_points(basis_vectors, extent, atom_coords, pbc):
     return atoms, cellANDlabel_to_site
 
 
-def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent):
+def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent, tol=1e-05):
     atoms_positions = dicts_to_array(atoms, "r_coord")
     naive_edges = get_edges(
-        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max()
+        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max() + tol
     )
+
     true_edges = []
     for node1, node2 in naive_edges:
         atom1 = atoms[node1]
@@ -94,8 +100,9 @@ def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent):
             node1 = cellANDlabel_to_site[tuple(cell1)][atom1["Label"]]
             node2 = cellANDlabel_to_site[tuple(cell2)][atom2["Label"]]
             edge = (node1, node2)
-            if edge not in true_edges and (node2, node1) not in true_edges:
+            if edge not in true_edges and (node1, node2) not in true_edges:
                 true_edges.append(edge)
+
     return true_edges
 
 
@@ -191,6 +198,7 @@ class Lattice(NetworkX):
         atoms, cellANDlabel_to_site = create_points(
             self._basis_vectors, extent, atoms_coord_fractional, pbc
         )
+
         edges = get_true_edges(self._basis_vectors, atoms, cellANDlabel_to_site, extent)
         graph = _nx.MultiGraph(edges)
 
