@@ -26,12 +26,11 @@ from netket.graph import AbstractGraph, SymmGroup
 from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 
 from netket import nn as nknn
-from netket.nn.initializers import lecun_complex, zeros
-
+from netket.nn.initializers import lecun_complex, zeros, variance_scaling
 
 class GCNN(nn.Module):
     """Implements a group convolutional neural network with symmetry
-    averaged eigenvalues."""
+    averaging in the last layer as described in Roth et al. 2021."""
 
     permutations: Callable[[],Array]
     """permutations specifying symmetry group"""
@@ -51,7 +50,7 @@ class GCNN(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = lecun_complex()
+    kernel_init: NNInitFunc = variance_scaling(1.0,'fan_in','normal')
     """Initializer for the Dense layer matrix."""
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias."""
@@ -72,7 +71,8 @@ class GCNN(nn.Module):
         self.equivariant_layers = [
             nknn.DenseEquivariant(
                 group_algebra=self.group_algebra,
-                features=self.features,
+                in_features=self.features,
+                out_features=self.features,
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
