@@ -350,10 +350,7 @@ class DenseEquivariant(Module):
         the full Dense kernel of shape (n_sites, features * n_symm).
         """
 
-        print(kernel.shape)
         result = jnp.take(kernel, self.group_algebra, 0)
-        print(result.shape)
-
         result = result.reshape(
             self.n_symm, self.n_symm, self.in_features, self.out_features
         )
