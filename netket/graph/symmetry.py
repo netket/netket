@@ -20,6 +20,34 @@ from . import AbstractGraph
 from netket.utils.semigroup import SemiGroup
 
 
+def inverse(automorphisms):
+    n_symm = len(automorphisms)
+    inverse = np.zeros([n_symm], dtype=int)
+    automorphisms = np.array(automorphisms)
+    for i, perm1 in enumerate(automorphisms):
+        for j, perm2 in enumerate(automorphisms):
+            perm_sq = perm1[perm2]
+            if np.all(perm_sq == np.arange(len(perm_sq))):
+                inverse[i] = j
+
+    return automorphisms[inverse]
+
+
+def group_algebra(automorphisms, inverse):
+    n_symm = len(automorphisms)
+    group_algebra = np.zeros([n_symm, n_symm], dtype=int)
+
+    automorphisms = np.array(automorphisms)
+
+    for i, inv in enumerate(inverse):
+        for j, perm in enumerate(automorphisms):
+            for k, filter in enumerate(automorphisms):
+                if np.all(perm[inv] == filter):
+                    group_algebra[i, j] = k
+
+    return tuple(group_algebra.ravel())
+
+
 @dataclass(frozen=True)
 class SymmGroup(SemiGroup):
     """
@@ -66,32 +94,13 @@ class SymmGroup(SemiGroup):
 
     def inverse(self):
 
-        rm_dup = self.remove_duplicates()
-
-        n_elem = rm_dup.num_elements()
-        inverse = np.zeros([n_elem], dtype=int)
-        sq = rm_dup.__matmul__(rm_dup).to_array()
-        is_iden = np.where(~(sq - np.arange(sq.shape[-1])).any(axis=1))[0]
-
-        inverse[is_iden // n_elem] = is_iden % n_elem
-
-        return SymmGroup([self.elems[i] for i in inverse], self.graph)
+        return inverse(self.to_array())
 
     def group_algebra(self):
 
-        group = self.remove_duplicates()
-        n_elem = group.num_elements()
-        group_algebra = np.zeros([n_elem, n_elem], dtype=int)
         inverse = self.inverse()
-        comp = inverse.__matmul__(group).to_array()
 
-        for n, elem in enumerate(group.to_array()):
-
-            is_iden = np.where(~(comp - elem).any(axis=1))[0]
-
-            group_algebra[is_iden % n_elem, is_iden // n_elem] = n
-
-        return tuple(group_algebra.ravel())
+        return group_algebra(self.to_array(), inverse)
 
     @property
     def shape(self):
