@@ -29,12 +29,11 @@ from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 from netket import nn as nknn
 from netket.nn.initializers import lecun_complex, zeros, variance_scaling
 
-
 class GCNN(nn.Module):
     """Implements a group convolutional neural network with symmetry
     averaging in the last layer as described in Roth et al. 2021."""
 
-    permutations: Callable[[], Array]
+    permutations: Callable[[],Array]
     """permutations specifying symmetry group"""
     group_algebra: Tuple
     """Matrix specifying algebra of symmetry group given by SymmGroup"""
@@ -52,14 +51,14 @@ class GCNN(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = variance_scaling(1.0, "fan_in", "normal")
+    kernel_init: NNInitFunc = variance_scaling(1.0,'fan_in','normal')
     """Initializer for the Dense layer matrix."""
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias."""
 
     def setup(self):
-        self.n_symm, _ = self.permutations().shape
-
+        self.n_symm, _  = self.permutations().shape    
+        
         self.dense_symm = nknn.DenseSymm(
             permutations=self.permutations,
             features=self.features,
@@ -95,7 +94,6 @@ class GCNN(nn.Module):
 
         return x
 
-
 def create_GCNN(
     permutations: Union[AbstractGraph, Array],
     *args,
@@ -107,16 +105,16 @@ def create_GCNN(
     if isinstance(permutations, AbstractGraph):
         autom = np.asarray(permutations.automorphisms())
         inv = inverse(autom)
-        ga = group_algebra(autom, inv)
+        ga = group_algebra(autom,inv)
         perm_fn = lambda: autom
     else:
         permutations = np.asarray(permutations)
         inv = inverse(permutations)
-        ga = group_algebra(permutations, inv)
+        ga = group_algebra(permutations,inv)
         if not permutations.ndim == 2:
             raise ValueError(
                 "permutations must be an array of shape (#permutations, #sites)."
             )
         perm_fn = lambda: permutations
 
-    return GCNN(permutations=perm_fn, group_algebra=ga, *args, **kwargs)
+    return GCNN(permutations=perm_fn,group_algebra=ga, *args, **kwargs)
