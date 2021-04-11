@@ -259,6 +259,7 @@ class DenseSymm(Module):
 
     def setup(self):
         perms = self.permutations()
+
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
 
@@ -348,7 +349,11 @@ class DenseEquivariant(Module):
         Converts the symmetry-reduced kernel of shape (n_sites, features) to
         the full Dense kernel of shape (n_sites, features * n_symm).
         """
+
+        print(kernel.shape)
         result = jnp.take(kernel, self.group_algebra, 0)
+        print(result.shape)
+
         result = result.reshape(
             self.n_symm, self.n_symm, self.in_features, self.out_features
         )
@@ -367,7 +372,7 @@ class DenseEquivariant(Module):
 
     @compact
     def __call__(self, inputs: Array) -> Array:
-        """Applies the symmetrized linear transformation to the inputs along the last dimension.
+        """Applies the equivariant transform to the inputs along the last dimension.
         Args:
           inputs: The nd-array to be transformed.
         Returns:
