@@ -17,7 +17,7 @@ from .jastrow import Jastrow
 from .mps import MPSPeriodic
 
 from .ndm import NDM
-from .equivariant import GCNN
+from .equivariant import create_GCNN as GCNN
 
 from netket.utils import _hide_submodules
 
