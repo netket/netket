@@ -19,6 +19,9 @@ import numpy as _np
 import itertools
 import networkx as _nx
 import warnings
+from typing import Tuple, Union
+import matplotlib
+import matplotlib.pyplot as plt
 
 
 def get_edges(atoms_positions, cutoff):
@@ -78,8 +81,9 @@ def create_points(basis_vectors, extent, atom_coords, pbc):
 
 def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent):
     atoms_positions = dicts_to_array(atoms, "r_coord")
+    tol = 1e-5
     naive_edges = get_edges(
-        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max()
+        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max() + tol
     )
     true_edges = []
     for node1, node2 in naive_edges:
@@ -222,6 +226,38 @@ class Lattice(NetworkX):
         Coordinates of atoms in the unit cell.
         """
         return self._atoms_coord
+
+    def draw(
+        self, figsize: Tuple[Union[int, float]] = None, ax: matplotlib.axes.Axes = None
+    ):
+        """
+        Draws the ``Lattice`` graph
+
+        Args:
+            figsize: (width, height) tuple of the generated figure.
+            ax: Matplotlib axis object.
+
+        Returns:
+            Matplotlib axis object containing the graph's drawing.
+        """
+        positions = {n: self.site_to_coord(n) for n in self.nodes()}
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+        _nx.draw_networkx_nodes(self.graph, pos=positions, ax=ax)
+
+        # FIXME (future) as of 11Apr2021, networkx can draw curved
+        # edges only for directed graphs.
+        _nx.draw_networkx_edges(
+            self.graph.to_directed(),
+            pos=positions,
+            edgelist=self.edges(),
+            connectionstyle="arc3,rad=0.2",
+            ax=ax,
+            arrowsize=0.1,
+        )
+        _nx.draw_networkx_labels(self.graph, pos=positions, ax=ax)
+        ax.axis("equal")
+        return ax
 
     def atom_label(self, site):
         return self._atoms[site]["Label"]
