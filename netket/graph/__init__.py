@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from .abstract_graph import AbstractGraph
-from .symmetry import SymmGroup
+from .symmetry import SymmGroup, inverse, group_algebra
 
 from .graph import *
 from .grid import *
