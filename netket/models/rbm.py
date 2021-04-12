@@ -22,6 +22,7 @@ from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph, SymmGroup
+from netket.utils import HashableArray
 from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 
 from netket import nn as nknn
@@ -195,7 +196,7 @@ class RBMMultiVal(nn.Module):
 class RBMSymm(nn.Module):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
 
-    symmetries: Callable[[], Array]
+    symmetries: HashableArray
     """See documentation of :ref:`netket.nn.DenseSymm`."""
     dtype: Any = np.float64
     """The dtype of the weights."""
@@ -218,7 +219,7 @@ class RBMSymm(nn.Module):
     """Initializer for the visible bias."""
 
     def setup(self):
-        self.n_symm, self.n_sites = self.symmetries().shape
+        self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
         self.features = int(self.alpha * self.n_sites / self.n_symm)
         if self.alpha > 0 and self.features == 0:
             raise ValueError(
@@ -271,14 +272,12 @@ def create_RBMSymm(
         visible_bias_init: Initializer for the visible bias.
     """
     if isinstance(symmetries, AbstractGraph):
-        autom = np.asarray(symmetries.automorphisms())
-        perm_fn = lambda: autom
+        symmetries = np.asarray(symmetries.automorphisms())
     else:
         symmetries = np.asarray(symmetries)
         if not symmetries.ndim == 2:
             raise ValueError(
                 "symmetries must be an array of shape (#symmetries, #sites)."
             )
-        perm_fn = lambda: symmetries
 
-    return RBMSymm(symmetries=perm_fn, *args, **kwargs)
+    return RBMSymm(symmetries=HashableArray(symmetries), *args, **kwargs)

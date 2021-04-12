@@ -24,6 +24,7 @@ from flax.linen.module import Module, compact
 from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
 from netket.graph import AbstractGraph, SymmGroup
+from netket.utils import HashableArray
 
 from jax import lax
 import jax.numpy as jnp
@@ -242,7 +243,7 @@ class DenseSymm(Module):
     See :func:`~netket.nn.create_DenseSymm` for a more convenient constructor.
     """
 
-    symmetries: Callable[[], Array]
+    symmetries: HashableArray
     """Callable returning a sequence of symmetry operations over which the layer should be invariant."""
     features: int
     """The number of symmetry-reduced features. The full output size is len(symmetries) * features."""
@@ -259,7 +260,7 @@ class DenseSymm(Module):
     """Initializer for the bias."""
 
     def setup(self):
-        perms = self.symmetries()
+        perms = np.asarray(self.symmetries)
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
 
@@ -334,17 +335,15 @@ def create_DenseSymm(
     See :ref:`netket.nn.DenseSymm` for the remaining parameters.
     """
     if isinstance(symmetries, AbstractGraph):
-        autom = np.asarray(symmetries.automorphisms())
-        perm_fn = lambda: autom
+        symmetries = np.asarray(symmetries.automorphisms())
     else:
         symmetries = np.asarray(symmetries)
         if not symmetries.ndim == 2:
             raise ValueError(
                 "symmetries must be an array of shape (#symmetries, #sites)."
             )
-        perm_fn = lambda: symmetries
 
-    return DenseSymm(symmetries=perm_fn, *args, **kwargs)
+    return DenseSymm(symmetries=HashableArray(symmetries), *args, **kwargs)
 
 
 class Conv(Module):
