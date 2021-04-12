@@ -17,6 +17,28 @@ from numbers import Number
 import jax.numpy as jnp
 
 
+def _is_scalar(val):
+    """
+    Returns true if the input is a scalar-like object.
+
+    Checks whever it is a Python's number, or any numpy-API
+    scalar.
+    """
+    if isinstance(val, Number):
+        return True
+    elif np.isscalar(val):
+        return True
+    elif jnp.isscalar(val):
+        return True
+    elif hasattr(val, "ndim"):
+        if val.ndim == 0:
+            return True
+        else:
+            return False
+
+    return False
+
+
 class History:
     """
     A class to store a time-series of scalar data.
@@ -104,22 +126,6 @@ class History:
         """
         """ Returns the Iterator object """
         return iter(zip(self.iters, self.values))
-
-
-def _is_scalar(val):
-    if isinstance(val, Number):
-        return True
-    elif np.isscalar(val):
-        return True
-    elif jnp.isscalar(val):
-        return True
-    elif hasattr(val, "ndim"):
-        if val.ndim == 0:
-            return True
-        else:
-            return False
-
-    return False
 
 
 class MVHistory:
