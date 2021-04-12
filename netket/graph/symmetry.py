@@ -18,6 +18,7 @@ import numpy as np
 
 from . import AbstractGraph
 from netket.utils.semigroup import SemiGroup
+from netket.utils.types import Array
 
 
 @dataclass(frozen=True)

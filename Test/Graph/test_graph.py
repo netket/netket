@@ -246,10 +246,10 @@ def test_grid_color_pbc():
 
 def test_automorphisms():
     for graph in lattices:
+        autom_g = graph.automorphisms()
         if graph.is_connected():  # to avoid troubles with ig automorphisms
             g = ig.Graph(edges=graph.edges())
             autom = g.get_isomorphisms_vf2()
-            autom_g = graph.automorphisms()
             dim = len(autom_g)
             for i in range(dim):
                 assert autom_g[i] in autom
@@ -257,9 +257,11 @@ def test_automorphisms():
 
 def _check_symmgroup(graph, symmgroup):
     """Asserts that symmgroup consists of automorphisms and has no duplicate elements."""
+    from netket.utils.semigroup import Permutation
+
     autom = graph.automorphisms()
-    for el in symmgroup.to_array().tolist():
-        assert el in autom
+    for el in symmgroup.to_array():
+        assert Permutation(el) in autom.elems
 
     assert symmgroup == symmgroup.remove_duplicates()
 

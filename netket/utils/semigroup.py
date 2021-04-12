@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass
 from functools import partial
 import inspect
 import itertools
 from typing import Any, Callable, List, Optional, Tuple
 
-from dataclasses import dataclass
 import multipledispatch
 import numpy as np
+
+from netket.utils.types import Array
 
 namespace = {}
 dispatch = partial(multipledispatch.dispatch, namespace=namespace)
@@ -113,6 +115,32 @@ class NamedElement(Element):
 
     def __repr__(self):
         return f"{self.name}({self.info})"
+
+
+class Permutation(Element):
+    def __init__(self, permutation: Array):
+        self.permutation = np.array(permutation)
+        self.__hash = hash(self.permutation.tobytes())
+
+    def __call__(self, x):
+        return x[..., self.permutation]
+
+    def __hash__(self):
+        return self.__hash
+
+    def __eq__(self, other):
+        if isinstance(other, Permutation):
+            return np.all(self.permutation == other.permutation)
+        else:
+            return False
+
+    def __repr__(self):
+        return f"Permutation({self.permutation})"
+
+
+@dispatch(Permutation, Permutation)
+def product(p: Permutation, q: Permutation):
+    return Permutation(p(q.permutation))
 
 
 @dataclass(frozen=True)
