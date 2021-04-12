@@ -62,12 +62,16 @@ def test_lindblad_form():
         hnh_mat -= 0.5j * j_mat.H * j_mat
 
     # Compute the left and right product with identity
-    lind_mat = -1j * sparse.kron(idmat, hnh_mat) + 1j * sparse.kron(hnh_mat.H, idmat)
+    lind_mat = -1j * sparse.kron(hnh_mat, idmat) + 1j * sparse.kron(
+        idmat, hnh_mat.conj()
+    )
     # add jump operators
     for j_op in j_ops:
         j_mat = j_op.to_sparse()
-        lind_mat += sparse.kron(j_mat.conj(), j_mat)
+        lind_mat += sparse.kron(j_mat, j_mat.conj())
 
+    print(lind_mat.shape)
+    print(lind.to_dense().shape)
     np.testing.assert_allclose(lind_mat.todense(), lind.to_dense())
 
 
@@ -78,7 +82,7 @@ def test_liouvillian_no_dissipators():
     idmat = sparse.eye(2 ** L)
     h_mat = ha.to_sparse()
 
-    lind_mat = -1j * sparse.kron(idmat, h_mat) + 1j * sparse.kron(h_mat, idmat)
+    lind_mat = -1j * sparse.kron(h_mat, idmat) + 1j * sparse.kron(idmat, h_mat.conj())
 
     np.testing.assert_allclose(lind.to_dense(), lind_mat.todense())
 
