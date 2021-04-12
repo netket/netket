@@ -408,7 +408,7 @@ class LocalLiouvillian(AbstractSuperOperator):
 
                 drho = np.zeros((M, M), dtype=rho.dtype)
 
-                drho += rho @ iHnh + iHnh.conj().T @ rho
+                drho += iHnh @ rho + rho @ iHnh.conj().T
                 for J, J_c in zip(J_ops, J_ops_c):
                     drho += (J @ rho) @ J_c
 
@@ -433,7 +433,7 @@ class LocalLiouvillian(AbstractSuperOperator):
                 out = np.zeros((M ** 2 + 1), dtype=rho.dtype)
                 drho = out[:-1].reshape((M, M))
 
-                drho += rho @ iHnh + iHnh.conj().T @ rho
+                drho += iHnh @ rho + rho @ iHnh.conj().T
                 for J, J_c in zip(J_ops, J_ops_c):
                     drho += (J @ rho) @ J_c
 
