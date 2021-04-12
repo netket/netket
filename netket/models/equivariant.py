@@ -45,7 +45,9 @@ class GCNN(nn.Module):
     dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.relu
-    """The nonlinear activation function."""
+    """The nonlinear activation function between hidden layers."""
+    output_activation: Any = nknn.logcosh
+    """The nonlinear activation function between hidden layers."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
     use_bias: bool = True
@@ -88,9 +90,10 @@ class GCNN(nn.Module):
     def __call__(self, x_in):
         x = self.dense_symm(x_in)
         for layer in range(self.layers - 1):
-            x = self.equivariant_layers[layer](x)
             x = self.activation(x)
+            x = self.equivariant_layers[layer](x)
 
+        x = self.output_activation(x)
         x = jnp.sum(x, axis=-1)
 
         return x
