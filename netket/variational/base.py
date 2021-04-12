@@ -247,12 +247,17 @@ class VariationalMixedState(VariationalState):
         self,
         Ô: AbstractOperator,
         mutable: bool = None,
+        is_hermitian: Optional[bool] = None,
     ) -> Tuple[Stats, PyTree]:
         # do the computation in super-operator space
         if self.hilbert == Ô.hilbert:
-            return super().expect_and_grad(Ô, mutable=mutable)
+            return super().expect_and_grad(
+                Ô, mutable=mutable, is_hermitian=is_hermitian
+            )
         elif self.hilbert_physical == Ô.hilbert:
-            return super().expect_and_grad(Ô, mutable=mutable)
+            return super().expect_and_grad(
+                Ô, mutable=mutable, is_hermitian=is_hermitian
+            )
         else:
             return NotImplemented
 
