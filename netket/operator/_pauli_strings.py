@@ -81,6 +81,7 @@ class PauliStrings(AbstractOperator):
 
         self._cutoff = cutoff
         b_weights = np.asarray(weights, dtype=dtype)
+        self._is_hermitian = np.allclose(b_weights.imag, 0.0)
 
         b_to_change = [] * n_operators
         b_z_check = [] * n_operators
@@ -112,7 +113,7 @@ class PauliStrings(AbstractOperator):
             y_ops = find_char(op, "Y")
             if len(y_ops):
                 b_to_change += y_ops
-                b_weights *= (1.0j) ** (len(y_ops))
+                b_weights *= (-1.0j) ** (len(y_ops))
                 b_z_check += y_ops
 
             z_ops = find_char(op, "Z")
@@ -159,7 +160,6 @@ class PauliStrings(AbstractOperator):
         self._mels_max = np.empty((n_operators), dtype=dtype)
         self._n_operators = n_operators
         self._dtype = dtype
-        self._is_hermitian = np.allclose(self._weights.imag, 0.0)
 
     @property
     def dtype(self) -> DType:

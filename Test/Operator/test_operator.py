@@ -47,7 +47,7 @@ operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
 
 # Custom Hamiltonian
 sx = [[0, 1], [1, 0]]
-sy = [[0, 1.0j], [-1.0j, 0]]
+sy = [[0, -1.0j], [1.0j, 0]]
 sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
@@ -172,15 +172,15 @@ def test_pauli():
 
     op_l = (
         0.1
-        * nk.operator.LocalOperator(op.hilbert, sx, [0], dtype=complex)
-        * nk.operator.LocalOperator(op.hilbert, sx, [1])
+        * nk.operator.spin.sigmax(op.hilbert, 0, dtype=complex)
+        * nk.operator.spin.sigmax(op.hilbert, 1)
     )
     op_l += (
         0.2
-        * nk.operator.LocalOperator(op.hilbert, sy, [0])
-        * nk.operator.LocalOperator(op.hilbert, sz, [1])
+        * nk.operator.spin.sigmay(op.hilbert, 0)
+        * nk.operator.spin.sigmaz(op.hilbert, 1)
     )
-    op_l -= 1.4 * nk.operator.LocalOperator(op.hilbert, sz, [1])
+    op_l -= 1.4 * nk.operator.spin.sigmaz(op.hilbert, 1)
 
     assert np.allclose(op.to_dense(), op_l.to_dense())
 
