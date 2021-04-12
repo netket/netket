@@ -13,18 +13,16 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from functools import partial
 import inspect
 import itertools
 from typing import Any, Callable, List, Optional, Tuple
 
-import multipledispatch
 import numpy as np
+import plum
 
 from netket.utils.types import Array
 
-namespace = {}
-dispatch = partial(multipledispatch.dispatch, namespace=namespace)
+dispatch = plum.Dispatcher()
 
 
 class ElementBase(Callable):
