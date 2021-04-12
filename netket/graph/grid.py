@@ -15,7 +15,7 @@
 import itertools
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable, List, Tuple
+from typing import Callable, List, Sequence, Tuple, Union
 
 from netket.utils.semigroup import Element, Identity, dispatch
 
@@ -186,7 +186,9 @@ class Grid(NetworkX):
             pbc = self.pbc
         return f"Grid(length={self.length}, pbc={pbc})"
 
-    def translations(self, dim: int = None, period: int = 1) -> SymmGroup:
+    def translations(
+        self, dim: Union[int, Sequence[int]] = None, step: int = 1
+    ) -> SymmGroup:
         """
         Returns all permutations of lattice sites that correspond to translations
         along the grid directions with periodic boundary conditions.
@@ -195,22 +197,26 @@ class Grid(NetworkX):
         `self.automorphisms()`.
 
         Arguments:
-            dim: If set, only translations along `dim` will be returned.
-            period: Period of the translations; should be a divisor of the length in
-                the corresponding lattice dimension.
+            dim: If set, only translations along `dim` will be returned. Can be a either
+                a single dimension or a sequence of dimensions.
+            step: Return translations by multiples of `step` sites (default: 1); should
+                be a divisor of the length in the corresponding lattice dimension.
         """
         dims = tuple(self.length)
         if dim is None:
             basis = [
-                range(0, l, period) if is_per else range(1)
+                range(0, l, step) if is_per else range(1)
                 for l, is_per in zip(dims, self.pbc)
             ]
         else:
-            if not self.pbc[dim]:
-                raise ValueError(f"No translation symmetries in non-periodic dim={dim}")
+            if not isinstance(dim, Sequence):
+                dim = (dim,)
+            if not all(self.pbc[d] for d in dim):
+                raise ValueError(
+                    f"No translation symmetries in non-periodic dimensions"
+                )
             basis = [
-                range(0, l, period) if i == dim else range(1)
-                for i, l in enumerate(dims)
+                range(0, l, step) if i in dim else range(1) for i, l in enumerate(dims)
             ]
 
         translations = itertools.product(*basis)
@@ -219,13 +225,12 @@ class Grid(NetworkX):
 
         return SymmGroup([Identity()] + translations, graph=self)
 
-    def planar_rotation(self, axes: tuple = (0, 1), period: int = 1) -> SymmGroup:
+    def planar_rotation(self, axes: tuple = (0, 1)) -> SymmGroup:
         """
         Returns SymmGroup consisting of rotations about the origin in the plane defined by axes
 
         Arguments:
             axes: Axes that define the plane of rotation specified by dims.
-            period: Period of the rotations; should be a divisor of 4.
         """
 
         dims = tuple(self.length)
@@ -238,9 +243,9 @@ class Grid(NetworkX):
             raise ValueError(f"Axis specified not in dims")
 
         if self.length[axes[0]] == self.length[axes[1]]:
-            basis = (range(0, 4, period), [axes])
+            basis = (range(0, 4), [axes])
         else:
-            basis = (range(0, 4, 2 * period), [axes])
+            basis = (range(0, 4, 2), [axes])
 
         rotations = itertools.product(*basis)
         next(rotations)
@@ -263,9 +268,7 @@ class Grid(NetworkX):
         dims = tuple(self.length)
         return SymmGroup([Identity(), Reflection(axis, dims)], graph=self)
 
-    def rotations(
-        self, period: int = 1, *, remove_duplicates: bool = True
-    ) -> SymmGroup:
+    def rotations(self, *, remove_duplicates: bool = True) -> SymmGroup:
         """
         Returns all possible rotation symmetries of the lattice.
 
@@ -280,7 +283,7 @@ class Grid(NetworkX):
         group = SymmGroup([Identity()], graph=self)
 
         for axs in axes:
-            group = group @ self.planar_rotation(axs, period)
+            group = group @ self.planar_rotation(axs)
 
         if remove_duplicates:
             return group.remove_duplicates()

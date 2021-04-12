@@ -246,13 +246,13 @@ def test_grid_color_pbc():
 
 def test_automorphisms():
     for graph in lattices:
-        autom_g = graph.automorphisms()
         if graph.is_connected():  # to avoid troubles with ig automorphisms
             g = ig.Graph(edges=graph.edges())
             autom = g.get_isomorphisms_vf2()
+            autom_g = graph.automorphisms()
             dim = len(autom_g)
             for i in range(dim):
-                assert autom_g[i] in autom
+                assert autom_g[i].permutation.tolist() in autom
 
 
 def _check_symmgroup(graph, symmgroup):
@@ -268,6 +268,7 @@ def _check_symmgroup(graph, symmgroup):
 
 def test_grid_translations():
     from netket.utils.semigroup import Identity
+    from netket.graph.grid import Translation
 
     for ndim in 1, 2:
         g = Grid([4] * ndim, pbc=True)
@@ -294,8 +295,8 @@ def test_grid_translations():
     assert len(g.translations(dim=0)) == 8
     assert len(g.translations(dim=1)) == 4
     assert len(g.translations(dim=2)) == 3
-    assert len(g.translations(dim=0, period=2)) == 4
-    assert len(g.translations(dim=0, period=4) @ g.translations(dim=2)) == 6
+    assert len(g.translations(dim=0, step=2)) == 4
+    assert len(g.translations(dim=0, step=4) @ g.translations(dim=2)) == 6
 
     t1 = g.translations()
     t2 = g.translations(dim=0) @ g.translations(dim=1) @ g.translations(dim=2)
@@ -303,7 +304,7 @@ def test_grid_translations():
     t2 = g.translations(dim=2) @ g.translations(dim=1) @ g.translations(dim=0)
     assert t1 != t2
 
-    from netket.graph.grid import Translation
+    assert g.translations(dim=(0, 1)) == g.translations(0) @ g.translations(1)
 
     assert Translation((1,), (2,)) @ Translation((1,), (2,)) == Translation((2,), (2,))
 
