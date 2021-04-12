@@ -211,6 +211,6 @@ def local_value_cost(logpsi, pars, vp, mel, v):
 @partial(define_local_cost_function, static_argnums=0, batch_axes=(None, None, 0, 0, 0))
 def local_value_op_op_cost(logpsi, pars, σp, mel, σ):
 
-    σ_σp = jax.vmap(lambda σ, σp: jnp.hstack((σ, σp)), in_axes=(None, 0))(σ, σp)
+    σ_σp = jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(σp, σ)
     σ_σ = jnp.hstack((σ, σ))
     return jnp.sum(mel * jnp.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
