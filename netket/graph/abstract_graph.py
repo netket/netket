@@ -46,8 +46,8 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def automorphisms(self) -> List[List]:
-        r"""List containing the automorphisms of the graph"""
+    def automorphisms(self):
+        r"""Symmetry group containing the automorphisms of the graph"""
         raise NotImplementedError
 
     @property
