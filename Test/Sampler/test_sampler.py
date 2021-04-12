@@ -26,9 +26,7 @@ g = nk.graph.Hypercube(length=4, n_dim=1)
 # Hilbert space of spins from given graph
 hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
-move_op = sum(
-    [nk.operator.LocalOperator(hi, [[0, 1], [1, 0]], i) for i in range(hi.size)]
-)
+move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
 
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 
