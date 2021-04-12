@@ -242,10 +242,10 @@ class DenseSymm(Module):
     See :func:`~netket.nn.create_DenseSymm` for a more convenient constructor.
     """
 
-    permutations: Callable[[], Array]
-    """Callable returning a sequence of permutations over which the layer should be invariant."""
+    symmetries: Callable[[], Array]
+    """Callable returning a sequence of symmetry operations over which the layer should be invariant."""
     features: int
-    """The number of symmetry-reduced features. The full output size is len(permutations) * features."""
+    """The number of symmetry-reduced features. The full output size is len(symmetries) * features."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     dtype: Any = jnp.float64
@@ -259,7 +259,7 @@ class DenseSymm(Module):
     """Initializer for the bias."""
 
     def setup(self):
-        perms = self.permutations()
+        perms = self.symmetries()
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
 
@@ -314,7 +314,7 @@ class DenseSymm(Module):
 
 
 def create_DenseSymm(
-    permutations: Union[AbstractGraph, Array],
+    symmetries: Union[AbstractGraph, Array],
     *args,
     **kwargs,
 ):
@@ -325,7 +325,7 @@ def create_DenseSymm(
     This is a convenience wrapper for creating a :ref:`netket.nn.DenseSymm` layer.
 
     Arguments:
-      permutations: Sequence of permutations over which the layer should be invariant.
+      symmetries: Sequence of permutations over which the layer should be invariant.
         Should be either an array-like object of shape (n_permutations, input_size)
         (note that this includes to :ref:`netket.graph.SymmGroup`), or
         :ref:`netket.graph.AbstractGraph`, in which case the `graph.automorphisms()`
@@ -333,18 +333,18 @@ def create_DenseSymm(
 
     See :ref:`netket.nn.DenseSymm` for the remaining parameters.
     """
-    if isinstance(permutations, AbstractGraph):
-        autom = np.asarray(permutations.automorphisms())
+    if isinstance(symmetries, AbstractGraph):
+        autom = np.asarray(symmetries.automorphisms())
         perm_fn = lambda: autom
     else:
-        permutations = np.asarray(permutations)
-        if not permutations.ndim == 2:
+        symmetries = np.asarray(symmetries)
+        if not symmetries.ndim == 2:
             raise ValueError(
-                "permutations must be an array of shape (#permutations, #sites)."
+                "symmetries must be an array of shape (#symmetries, #sites)."
             )
-        perm_fn = lambda: permutations
+        perm_fn = lambda: symmetries
 
-    return DenseSymm(permutations=perm_fn, *args, **kwargs)
+    return DenseSymm(symmetries=perm_fn, *args, **kwargs)
 
 
 class Conv(Module):

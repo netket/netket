@@ -195,7 +195,7 @@ class RBMMultiVal(nn.Module):
 class RBMSymm(nn.Module):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
 
-    permutations: Callable[[], Array]
+    symmetries: Callable[[], Array]
     """See documentation of :ref:`netket.nn.DenseSymm`."""
     dtype: Any = np.float64
     """The dtype of the weights."""
@@ -218,7 +218,7 @@ class RBMSymm(nn.Module):
     """Initializer for the visible bias."""
 
     def setup(self):
-        self.n_symm, self.n_sites = self.permutations().shape
+        self.n_symm, self.n_sites = self.symmetries().shape
         self.features = int(self.alpha * self.n_sites / self.n_symm)
         if self.alpha > 0 and self.features == 0:
             raise ValueError(
@@ -230,7 +230,7 @@ class RBMSymm(nn.Module):
     def __call__(self, x_in):
         x = nknn.DenseSymm(
             name="Dense",
-            permutations=self.permutations,
+            symmetries=self.symmetries,
             features=self.features,
             dtype=self.dtype,
             use_bias=self.use_hidden_bias,
@@ -252,14 +252,14 @@ class RBMSymm(nn.Module):
 
 
 def create_RBMSymm(
-    permutations: Union[AbstractGraph, Array],
+    symmetries: Union[AbstractGraph, Array],
     *args,
     **kwargs,
 ):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
 
     Attributes:
-        permutations: See documentation of :func:`~netket.nn.create_DenseSymm`.
+        symmetries: See documentation of :func:`~netket.nn.create_DenseSymm`.
         dtype: The dtype of the weights.
         activation: The nonlinear activation function.
         alpha: Feature density. Number of features equal to alpha * input.shape[-1]
@@ -270,15 +270,15 @@ def create_RBMSymm(
         hidden_bias_init: Initializer for the hidden bias.
         visible_bias_init: Initializer for the visible bias.
     """
-    if isinstance(permutations, AbstractGraph):
-        autom = np.asarray(permutations.automorphisms())
+    if isinstance(symmetries, AbstractGraph):
+        autom = np.asarray(symmetries.automorphisms())
         perm_fn = lambda: autom
     else:
-        permutations = np.asarray(permutations)
-        if not permutations.ndim == 2:
+        symmetries = np.asarray(symmetries)
+        if not symmetries.ndim == 2:
             raise ValueError(
-                "permutations must be an array of shape (#permutations, #sites)."
+                "symmetries must be an array of shape (#symmetries, #sites)."
             )
-        perm_fn = lambda: permutations
+        perm_fn = lambda: symmetries
 
-    return RBMSymm(permutations=perm_fn, *args, **kwargs)
+    return RBMSymm(symmetries=perm_fn, *args, **kwargs)
