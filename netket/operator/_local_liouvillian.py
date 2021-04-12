@@ -109,7 +109,8 @@ class LocalLiouvillian(AbstractSuperOperator):
         max_conn_size = 0
         for L in self._jump_ops:
             Hnh = Hnh - 0.5j * L.conjugate().transpose() @ L
-            max_conn_size += (L.n_operators * L._max_op_size) ** 2
+            dim = L.n_operators * L._max_op_size
+            max_conn_size += dim ** 2 + 2 * dim
 
         self._max_dissipator_conn_size = max_conn_size
 
