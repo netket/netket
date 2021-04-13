@@ -58,7 +58,7 @@ class LocalLiouvillian(AbstractSuperOperator):
 
     .. math ::
 
-        \\mathcal{L} = -i \\hat{H}\\hat{\\rho} +i\\hat{\\rho}\\hat{H}^\\dagger + \\sum_i \\hat{L}_i\\hat{\\rho}\\hat{L}_i^\\dagger
+        \\mathcal{L} = -i \\hat{H}_{nh}\\hat{\\rho} +i\\hat{\\rho}\\hat{H}_{nh}^\\dagger + \\sum_i \\hat{L}_i\\hat{\\rho}\\hat{L}_i^\\dagger
 
     """
 
