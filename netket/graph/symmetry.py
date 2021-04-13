@@ -22,6 +22,13 @@ from netket.utils.types import Array
 
 
 def inverse(automorphisms):
+
+    """
+    Computes the inverse permutatations of automorphisms s.t. for each element,
+    applying inverse to automorphisms produces the identity
+
+    """
+
     n_symm = len(automorphisms)
     inverse = np.zeros([n_symm], dtype=int)
     automorphisms = np.array(automorphisms)
@@ -35,6 +42,15 @@ def inverse(automorphisms):
 
 
 def group_algebra(automorphisms, inverse):
+
+    """
+    Computes an array relative displacements between poses in automorphisms, s.t.
+    group_algebra[i,j] = inverse[i]*automorphisms[j]
+
+    This array is flattened and converted to a tuple before returning
+
+    """
+
     n_symm = len(automorphisms)
     group_algebra = np.zeros([n_symm, n_symm], dtype=int)
 
