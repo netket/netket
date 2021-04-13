@@ -259,7 +259,10 @@ class DenseSymm(Module):
     """Initializer for the bias."""
 
     def setup(self):
-        perms = self.symmetries()
+        if isinstance(self.symmetries, np.ndarray):
+            perms = self.symmetries
+        else:
+            perms = self.symmetries()
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
 
