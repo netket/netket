@@ -22,10 +22,15 @@ import scipy.sparse
 import pytest
 
 
-def _setup_symm(symmetries, N):
-    hi = nk.hilbert.Spin(1 / 2, N)
+def _setup_symm(symmetries, N, lattice="chain"):
 
-    g = nk.graph.Chain(N)
+    if lattice == "chain":
+        g = nk.graph.Chain(N)
+    else:
+        g = nk.graph.Square(N)
+
+    hi = nk.hilbert.Spin(1 / 2, g.n_nodes)
+
     if symmetries == "trans":
         # Only translations, N_symm = N_sites
         perms = g.translations()
