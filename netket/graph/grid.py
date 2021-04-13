@@ -13,12 +13,76 @@
 # limitations under the License.
 
 import itertools
-from typing import List
+from dataclasses import dataclass
+from functools import partial
+from typing import Callable, List, Sequence, Tuple, Union
 
+from netket.utils.semigroup import Element, Identity, dispatch
+
+
+from .symmetry import SymmGroup
 from .graph import NetworkX
 
 import numpy as _np
 import networkx as _nx
+
+
+@dataclass(frozen=True)
+class Translation(Element):
+    shifts: Tuple[int]
+    dims: Tuple[int]
+
+    def __call__(self, sites):
+        sites = sites.reshape(self.dims)
+        for i, n in enumerate(self.shifts):
+            sites = _np.roll(sites, shift=n, axis=i)
+        return sites.ravel()
+
+    def __repr__(self):
+        return f"T{self.shifts}"
+
+
+@dataclass(frozen=True)
+class PlanarRotation(Element):
+
+    num_quarter_rots: int
+    axes: Tuple[int]
+    dims: Tuple[int]
+
+    def __call__(self, sites):
+        sites = sites.reshape(self.dims)
+        apply_perm = _np.arange(len(self.dims))
+        apply_perm[list(self.axes)] = self.axes[::-1]
+        for i in range(self.num_quarter_rots):
+            sites = sites.transpose(apply_perm)
+            sites = _np.flip(sites, self.axes[0])
+
+        return sites.ravel()
+
+    def __repr__(self):
+        return f"Rot({self.num_quarter_rots / 2:.1f}π, axes={self.axes})"
+
+
+@dataclass(frozen=True)
+class Reflection(Element):
+    axis: int
+    dims: Tuple[int]
+
+    def __call__(self, sites):
+        sites = sites.reshape(self.dims)
+        sites = _np.flip(sites, self.axis)
+        return sites.ravel()
+
+    def __repr__(self):
+        return f"Ref(axis={self.axis})"
+
+
+@dispatch(Translation, Translation)
+def product(a: Translation, b: Translation):
+    if not a.dims == b.dims:
+        raise ValueError("Incompatible translations")
+    shifts = tuple(s1 + s2 for s1, s2 in zip(a.shifts, b.shifts))
+    return Translation(shifts=shifts, dims=a.dims)
 
 
 class Grid(NetworkX):
@@ -82,12 +146,12 @@ class Grid(NetworkX):
         else:
             self.pbc = [pbc] * len(length)
 
-        graph = _nx.generators.lattice.grid_graph(length, periodic=periodic)
+        graph = _nx.generators.lattice.grid_graph(length[::-1], periodic=periodic)
 
         # Remove unwanted periodic edges:
         if isinstance(pbc, list) and periodic:
             for e in graph.edges:
-                for i, (l, is_per) in enumerate(zip(length[::-1], pbc[::-1])):
+                for i, (l, is_per) in enumerate(zip(length, pbc)):
                     if l <= 2:
                         # Do not remove for short directions, because there is
                         # only one edge in that case.
@@ -102,7 +166,7 @@ class Grid(NetworkX):
                 # color is the first (and only) dimension in which
                 # the edge coordinates differ
                 diff = _np.array(e[0]) - _np.array(e[1])
-                color = int(_np.argwhere(diff[::-1] != 0))
+                color = int(_np.argwhere(diff != 0))
                 edges[e] = color
             _nx.set_edge_attributes(graph, edges, name="color")
         else:
@@ -122,28 +186,131 @@ class Grid(NetworkX):
             pbc = self.pbc
         return f"Grid(length={self.length}, pbc={pbc})"
 
-    def periodic_translations(self) -> List[List[int]]:
+    def translations(
+        self, dim: Union[int, Sequence[int]] = None, step: int = 1
+    ) -> SymmGroup:
         """
         Returns all permutations of lattice sites that correspond to translations
         along the grid directions with periodic boundary conditions.
 
         The periodic translations are a subset of the permutations returned by
         `self.automorphisms()`.
+
+        Arguments:
+            dim: If set, only translations along `dim` will be returned. Can be a either
+                a single dimension or a sequence of dimensions.
+            step: Return translations by multiples of `step` sites (default: 1); should
+                be a divisor of the length in the corresponding lattice dimension.
         """
-        basis = [
-            range(l) if is_per else range(1)
-            for l, is_per in zip(self.length[::-1], self.pbc[::-1])
-        ]
+        dims = tuple(self.length)
+        if dim is None:
+            basis = [
+                range(0, l, step) if is_per else range(1)
+                for l, is_per in zip(dims, self.pbc)
+            ]
+        else:
+            if not isinstance(dim, Sequence):
+                dim = (dim,)
+            if not all(self.pbc[d] for d in dim):
+                raise ValueError(
+                    f"No translation symmetries in non-periodic dimensions"
+                )
+            basis = [
+                range(0, l, step) if i in dim else range(1) for i, l in enumerate(dims)
+            ]
 
-        translation_group = itertools.product(*basis)
-        identity = _np.array(list(self.nodes())).reshape(*self.length[::-1])
+        translations = itertools.product(*basis)
+        next(translations)  # skip identity element here
+        translations = [Translation(el, dims) for el in translations]
 
-        def translate(el, sites):
-            for i, n in enumerate(el):
-                sites = _np.roll(sites, shift=n, axis=i)
-            return sites.ravel().tolist()
+        return SymmGroup([Identity()] + translations, graph=self)
 
-        return [translate(el, identity) for el in translation_group]
+    def planar_rotation(self, axes: tuple = (0, 1)) -> SymmGroup:
+        """
+        Returns SymmGroup consisting of rotations about the origin in the plane defined by axes
+
+        Arguments:
+            axes: Axes that define the plane of rotation specified by dims.
+        """
+
+        dims = tuple(self.length)
+
+        if not len(axes) == 2:
+            raise ValueError(f"Plane is specified by two axes")
+        if len(dims) < 2:
+            raise ValueError(f"Rotations not defined for 1d systems")
+        if _np.any(axes) > len(dims) - 1:
+            raise ValueError(f"Axis specified not in dims")
+
+        if self.length[axes[0]] == self.length[axes[1]]:
+            basis = (range(0, 4), [axes])
+        else:
+            basis = (range(0, 4, 2), [axes])
+
+        rotations = itertools.product(*basis)
+        next(rotations)
+
+        rotations = [PlanarRotation(num, ax, dims) for (num, ax) in rotations]
+
+        return SymmGroup([Identity()] + rotations, graph=self)
+
+    def axis_reflection(self, axis: int = 0) -> SymmGroup:
+        """
+        Returns SymmGroup consisting of identity and the lattice
+        reflected about the hyperplane axis = 0
+
+        Arguments:
+            axis: Axis to be reflected about
+        """
+        if abs(axis) > len(self.length) - 1:
+            raise ValueError(f"Axis specified not in dims")
+
+        dims = tuple(self.length)
+        return SymmGroup([Identity(), Reflection(axis, dims)], graph=self)
+
+    def rotations(self, *, remove_duplicates: bool = True) -> SymmGroup:
+        """
+        Returns all possible rotation symmetries of the lattice.
+
+        The rotations are a subset of the permutations returned by
+        `self.automorphisms()`.
+
+        Arguments:
+            period: Period of the rotations; should be a divisor of 4.
+            remove_duplicates: Only include unique rotations.
+        """
+        axes = itertools.combinations(range(len(self.length)), 2)
+        group = SymmGroup([Identity()], graph=self)
+
+        for axs in axes:
+            group = group @ self.planar_rotation(axs)
+
+        if remove_duplicates:
+            return group.remove_duplicates()
+        else:
+            return group
+
+    def space_group(self) -> SymmGroup:
+        """
+        Returns the full space group of the lattice.
+
+        The space group is a subset of the permutations returned by
+        `self.automorphisms()`.
+
+        Arguments:
+            remove_duplicates: Only include unique space group elements.
+        """
+        return self.rotations() @ self.axis_reflection()
+
+    def lattice_group(self) -> SymmGroup:
+        """
+        Returns the full lattice symmetry group consisting of rotations, reflections, and periodic translation.
+
+        The lattice group is a subset of the permutations returned by
+        `self.automorphisms()`.
+
+        """
+        return self.translations() @ self.space_group()
 
 
 def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Grid:

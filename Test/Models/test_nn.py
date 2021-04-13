@@ -22,13 +22,13 @@ import scipy.sparse
 import pytest
 
 
-def _setup_symm(permutations, N):
+def _setup_symm(symmetries, N):
     hi = nk.hilbert.Spin(1 / 2, N)
 
     g = nk.graph.Chain(N)
-    if permutations == "trans":
+    if symmetries == "trans":
         # Only translations, N_symm = N_sites
-        perms = g.periodic_translations()
+        perms = g.translations()
     else:
         # All chain automorphisms, N_symm = 2 N_sites
         perms = g.automorphisms()
@@ -36,13 +36,13 @@ def _setup_symm(permutations, N):
     return g, hi, np.asarray(perms)
 
 
-@pytest.mark.parametrize("permutations", ["trans", "autom"])
+@pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("use_bias", [True, False])
-def test_DenseSymm(permutations, use_bias):
-    g, hi, perms = _setup_symm(permutations, N=8)
+def test_DenseSymm(symmetries, use_bias):
+    g, hi, perms = _setup_symm(symmetries, N=8)
 
     ma = nk.nn.create_DenseSymm(
-        permutations=perms,
+        symmetries=perms,
         features=8,
         use_bias=use_bias,
         bias_init=nk.nn.initializers.uniform(),
@@ -55,10 +55,10 @@ def test_DenseSymm(permutations, use_bias):
         assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
 
 
-@pytest.mark.parametrize("permutations", ["trans", "autom"])
+@pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("features", [1, 2, 5])
-def test_symmetrizer(permutations, features):
-    _, _, perms = _setup_symm(permutations, N=8)
+def test_symmetrizer(symmetries, features):
+    _, _, perms = _setup_symm(symmetries, N=8)
 
     n_symm, n_sites = perms.shape
     n_hidden = features * n_symm

@@ -252,32 +252,134 @@ def test_automorphisms():
             autom_g = graph.automorphisms()
             dim = len(autom_g)
             for i in range(dim):
-                assert autom_g[i] in autom
+                assert autom_g[i].permutation.tolist() in autom
+
+
+def _check_symmgroup(graph, symmgroup):
+    """Asserts that symmgroup consists of automorphisms and has no duplicate elements."""
+    from netket.utils.semigroup import Permutation
+
+    autom = graph.automorphisms()
+    for el in symmgroup.to_array():
+        assert Permutation(el) in autom.elems
+
+    assert symmgroup == symmgroup.remove_duplicates()
 
 
 def test_grid_translations():
+    from netket.utils.semigroup import Identity
+    from netket.graph.grid import Translation
+
     for ndim in 1, 2:
         g = Grid([4] * ndim, pbc=True)
-        translations = g.periodic_translations()
+        translations = g.translations()
 
         assert len(translations) == g.n_nodes
 
-        autom = g.automorphisms()
-        for t in translations:
-            assert t in autom
+        _check_symmgroup(g, translations)
 
         g = Grid([4] * ndim, pbc=False)
-        translations = g.periodic_translations()
-        assert len(translations) == 1  # only identity
+        translations = g.translations()
+        assert translations.elems == [Identity()]  # only identity
 
     g = Grid([8, 4, 3], pbc=[True, False, False])
-    assert len(g.periodic_translations()) == 8
+    assert len(g.translations()) == 8
 
     g = Grid([8, 4, 3], pbc=[True, True, False])
-    assert len(g.periodic_translations()) == 8 * 4
+    assert len(g.translations()) == 8 * 4
+    with pytest.raises(ValueError):
+        g.translations(dim=2)  # no translation symmetry along non-periodic dim
 
     g = Grid([8, 4, 3], pbc=[True, True, True])
-    assert len(g.periodic_translations()) == 8 * 4 * 3
+    assert len(g.translations()) == 8 * 4 * 3
+    assert len(g.translations(dim=0)) == 8
+    assert len(g.translations(dim=1)) == 4
+    assert len(g.translations(dim=2)) == 3
+    assert len(g.translations(dim=0, step=2)) == 4
+    assert len(g.translations(dim=0, step=4) @ g.translations(dim=2)) == 6
+
+    t1 = g.translations()
+    t2 = g.translations(dim=0) @ g.translations(dim=1) @ g.translations(dim=2)
+    assert t1 == t2
+    t2 = g.translations(dim=2) @ g.translations(dim=1) @ g.translations(dim=0)
+    assert t1 != t2
+
+    assert g.translations(dim=(0, 1)) == g.translations(0) @ g.translations(1)
+
+    assert Translation((1,), (2,)) @ Translation((1,), (2,)) == Translation((2,), (2,))
+
+    with pytest.raises(ValueError, match="Incompatible translations"):
+        Translation((1,), (2,)) @ Translation((1,), (8,))
+
+
+@pytest.mark.parametrize("n_dim", [1, 2, 3, 4])
+def test_grid_space_group_dim(n_dim):
+    # space group of n-dimensional Hypercube should be the
+    # hyperoctaherdal group of order 2^n n!, see
+    # https://en.wikipedia.org/wiki/Hyperoctahedral_group
+    space_group = Hypercube(length=3, n_dim=n_dim).space_group()
+    order = 2 ** n_dim * math.factorial(n_dim)
+    assert len(space_group) == order
+
+
+def test_grid_space_group():
+    def _check_symmgroups(g):
+        _check_symmgroup(g, g.rotations())
+        _check_symmgroup(g, g.space_group())
+        _check_symmgroup(g, g.lattice_group())
+
+    from netket.utils.semigroup import Identity
+
+    g = nk.graph.Chain(8)
+    _check_symmgroups(g)
+    assert g.rotations().elems == [Identity()]
+    assert len(g.space_group()) == 2  # one reflection
+    assert g.space_group() == g.axis_reflection() == g.axis_reflection(0)
+    with pytest.raises(ValueError):  # invalid axis
+        g.axis_reflection(1)
+    assert len(g.lattice_group()) == 8 * 2  # translations * reflection
+
+    g = nk.graph.Grid([8, 2], pbc=False)
+    _check_symmgroups(g)
+    assert len(g.rotations()) == 2  # one 180 deg rotation
+    assert len(g.space_group()) == 4
+    assert g.lattice_group() == g.space_group()  # no PBC, no translations
+
+    g = nk.graph.Grid([5, 4, 3], pbc=[True, False, False])
+    _check_symmgroups(g)
+    rot1 = g.rotations(remove_duplicates=False)
+    rot2 = g.rotations(remove_duplicates=True)
+    assert len(rot1) > len(rot2)
+    rot3, inverse = rot1.remove_duplicates(return_inverse=True)
+    assert rot2 == rot3
+    assert np.all(rot3.to_array()[inverse] == rot1.to_array())
+
+    g = nk.graph.Hypercube(3, 2)
+    _check_symmgroups(g)
+    assert len(g.lattice_group()) == len(g.automorphisms())
+
+    g = nk.graph.Hypercube(4, 2)
+    _check_symmgroups(g)
+    # 4x4 cube has even higher symmetry
+    assert len(g.lattice_group()) < len(g.automorphisms())
+
+
+def test_SymmGroup():
+    from netket.utils.semigroup import Identity
+
+    def assert_eq_hash(a, b):
+        assert hash(a) == hash(b)
+        assert a == b
+
+    assert_eq_hash(Identity(), Identity())
+
+    tr = Grid([8, 4, 3]).translations
+    assert_eq_hash(tr(), tr(0) @ tr(1) @ tr(2))
+
+    assert_eq_hash(tr().remove_duplicates(), tr())
+
+    assert tr() @ tr() != tr()
+    assert_eq_hash((tr() @ tr()).remove_duplicates(), tr())
 
 
 def test_duplicate_atoms():

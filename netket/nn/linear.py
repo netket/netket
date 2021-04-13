@@ -23,7 +23,7 @@ import flax
 from flax.linen.module import Module, compact
 from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
-from netket.graph import AbstractGraph
+from netket.graph import AbstractGraph, SymmGroup
 
 from jax import lax
 import jax.numpy as jnp
@@ -242,10 +242,10 @@ class DenseSymm(Module):
     See :func:`~netket.nn.create_DenseSymm` for a more convenient constructor.
     """
 
-    permutations: Callable[[], Array]
-    """Callable returning a sequence of permutations over which the layer should be invariant."""
+    symmetries: Callable[[], Array]
+    """Callable returning a sequence of symmetry operations over which the layer should be invariant."""
     features: int
-    """The number of symmetry-reduced features. The full output size is len(permutations) * features."""
+    """The number of symmetry-reduced features. The full output size is len(symmetries) * features."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     dtype: Any = jnp.float64
@@ -259,7 +259,7 @@ class DenseSymm(Module):
     """Initializer for the bias."""
 
     def setup(self):
-        perms = self.permutations()
+        perms = self.symmetries()
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
 
@@ -314,7 +314,9 @@ class DenseSymm(Module):
 
 
 def create_DenseSymm(
-    permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
+    symmetries: Union[AbstractGraph, Array],
+    *args,
+    **kwargs,
 ):
     """A symmetrized linear transformation applied over the last dimension of the input.
     This layer uses a reduced number of parameters, which are arranged so that the full
@@ -323,26 +325,26 @@ def create_DenseSymm(
     This is a convenience wrapper for creating a :ref:`netket.nn.DenseSymm` layer.
 
     Arguments:
-      permutations: Sequence of permutations over which the layer should be invariant.
-        Should be either an array-like object of shape (n_permutations, input_size),
-        an argument-less callable returning such an array, or :ref:`netket.graph.AbstractGraph`, in which
-        case the graph automorphisms are used.
+      symmetries: Sequence of permutations over which the layer should be invariant.
+        Should be either an array-like object of shape (n_permutations, input_size)
+        (note that this includes to :ref:`netket.graph.SymmGroup`), or
+        :ref:`netket.graph.AbstractGraph`, in which case the `graph.automorphisms()`
+        is used.
 
     See :ref:`netket.nn.DenseSymm` for the remaining parameters.
     """
-    if isinstance(permutations, Callable):
-        perm_fn = permutations
-    elif isinstance(permutations, AbstractGraph):
-        perm_fn = lambda: np.asarray(permutations.automorphisms())
+    if isinstance(symmetries, AbstractGraph):
+        autom = np.asarray(symmetries.automorphisms())
+        perm_fn = lambda: autom
     else:
-        permutations = np.asarray(permutations)
-        if not permutations.ndim == 2:
+        symmetries = np.asarray(symmetries)
+        if not symmetries.ndim == 2:
             raise ValueError(
-                "permutations must be an array of shape (#permutations, #sites)."
+                "symmetries must be an array of shape (#symmetries, #sites)."
             )
-        perm_fn = lambda: permutations
+        perm_fn = lambda: symmetries
 
-    return DenseSymm(permutations=perm_fn, *args, **kwargs)
+    return DenseSymm(symmetries=perm_fn, *args, **kwargs)
 
 
 class Conv(Module):

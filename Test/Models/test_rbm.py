@@ -22,12 +22,12 @@ import pytest
 
 @pytest.mark.parametrize("use_hidden_bias", [True, False])
 @pytest.mark.parametrize("use_visible_bias", [True, False])
-@pytest.mark.parametrize("permutations", ["trans", "autom"])
-def test_RBMSymm(use_hidden_bias, use_visible_bias, permutations):
-    g, hi, perms = _setup_symm(permutations, N=8)
+@pytest.mark.parametrize("symmetries", ["trans", "autom"])
+def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
+    g, hi, perms = _setup_symm(symmetries, N=8)
 
     ma = nk.models.RBMSymm(
-        permutations=perms,
+        symmetries=perms,
         alpha=4,
         use_visible_bias=use_visible_bias,
         use_hidden_bias=use_hidden_bias,
@@ -63,21 +63,25 @@ def test_RBMSymm_creation():
     perms = [[0, 1, 2, 3, 4, 5, 6, 7]]
 
     # Test different permutation argument types
-    check_init(lambda: nk.models.RBMSymm(permutations=perms))
-    check_init(lambda: nk.models.RBMSymm(permutations=jnp.array(perms)))
-    check_init(lambda: nk.models.RBMSymm(permutations=lambda: jnp.array(perms)))
+    check_init(lambda: nk.models.RBMSymm(symmetries=perms))
+    check_init(lambda: nk.models.RBMSymm(symmetries=jnp.array(perms)))
 
     # wrong shape
     with pytest.raises(ValueError):
-        check_init(lambda: nk.models.RBMSymm(permutations=perms[0]))
+        check_init(lambda: nk.models.RBMSymm(symmetries=perms[0]))
 
     # init with graph
-    check_init(lambda: nk.models.RBMSymm(permutations=nk.graph.Chain(8), alpha=2))
+    check_init(lambda: nk.models.RBMSymm(symmetries=nk.graph.Chain(8), alpha=2))
+
+    # init with SymmGroup
+    check_init(
+        lambda: nk.models.RBMSymm(symmetries=nk.graph.Chain(8).translations(), alpha=2)
+    )
 
     # alpha too small
     with pytest.raises(ValueError):
         check_init(
-            lambda: nk.models.RBMSymm(permutations=nk.graph.Hypercube(8, 2), alpha=1)
+            lambda: nk.models.RBMSymm(symmetries=nk.graph.Hypercube(8, 2), alpha=1)
         )
 
 
