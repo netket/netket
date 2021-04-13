@@ -40,8 +40,10 @@ class GCNN(nn.Module):
     """Matrix specifying algebra of symmetry group given by SymmGroup"""
     layers: int
     """Number of layers (not including sum layer over output)"""
-    features: int
-    """Number of features. The dimension of the hidden state is features*n_symm"""
+    features: Union[Tuple, int]
+    """Number of features in each layer starting from the input. If
+    a single number is given, all layers will have the same number
+    of features"""
     dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.relu
@@ -60,9 +62,19 @@ class GCNN(nn.Module):
     def setup(self):
         self.n_symm, _ = self.symmetries().shape
 
+        if isinstance(self.features, int):
+            feature_dim = [self.features for layer in range(self.layers)]
+        else:
+            if not len(self.features) == self.layers:
+                raise ValueError(
+                    """Length of vector specifying feature dimensions must be the same as the number of layers"""
+                )
+            else:
+                feature_dim = tuple(self.features)
+
         self.dense_symm = nknn.DenseSymm(
             symmetries=self.symmetries,
-            features=self.features,
+            features=feature_dim[0],
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
@@ -73,8 +85,8 @@ class GCNN(nn.Module):
         self.equivariant_layers = [
             nknn.DenseEquivariant(
                 group_algebra=self.group_algebra,
-                in_features=self.features,
-                out_features=self.features,
+                in_features=feature_dim[layer],
+                out_features=feature_dim[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
