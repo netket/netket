@@ -61,7 +61,7 @@ jobs:
       uses: peaceiris/actions-gh-pages@v3
       with:
         publish_branch: gh-pages
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
         publish_dir: docs/_build/html/
         destination_dir: preview/${{ steps.determine-branch.outputs.branch }}
 
