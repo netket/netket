@@ -124,6 +124,11 @@ class AbstractOperator(abc.ABC):
         """
         raise NotImplementedError
 
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        raise NotImplementedError
+
     def get_conn_padded(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
         Starting from a batch of quantum numbers x={x_1, ... x_n} of size B x M

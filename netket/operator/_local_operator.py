@@ -760,6 +760,18 @@ class LocalOperator(AbstractOperator):
             constant=np.conjugate(self._constant),
         )
 
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        max_size = self.n_operators
+        for op in self._operators:
+            nnz_mat = np.abs(op) > self.mel_cutoff
+            nnz_mat[np.diag_indices(nnz_mat.shape[0])] = False
+            nnz_rows = np.sum(nnz_mat, axis=1)
+            max_size += np.max(nnz_rows)
+
+        return max_size
+
     def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
