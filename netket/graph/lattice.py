@@ -22,6 +22,8 @@ import warnings
 
 
 def get_edges(atoms_positions, cutoff):
+    tol = 1e-5
+    cutoff = cutoff + tol
     kdtree = cKDTree(atoms_positions)
     dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
     id1, id2, values = find(triu(dist_matrix))
