@@ -20,6 +20,7 @@ from . import AbstractGraph
 from netket.utils.semigroup import SemiGroup
 from netket.utils.types import Array
 
+
 def inverse(automorphisms):
     n_symm = len(automorphisms)
     inverse = np.zeros([n_symm], dtype=int)
@@ -31,6 +32,7 @@ def inverse(automorphisms):
                 inverse[i] = j
 
     return automorphisms[inverse]
+
 
 def group_algebra(automorphisms, inverse):
     n_symm = len(automorphisms)
