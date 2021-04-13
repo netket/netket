@@ -51,6 +51,8 @@ from .linear import (
     DenseGeneral,
     DenseSymm,
     create_DenseSymm,
+    DenseEquivariant,
+    create_DenseEquivariant,
 )
 from .module import Module
 from flax.linen.module import compact, enable_named_call, disable_named_call, Variable
