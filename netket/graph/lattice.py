@@ -26,6 +26,7 @@ This is necessary because of floating-point errors when computing the distance i
 lattices.
 """
 
+
 def get_edges(atoms_positions, cutoff):
     cutoff = cutoff + cutoff_tol
     kdtree = cKDTree(atoms_positions)
