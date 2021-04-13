@@ -53,6 +53,36 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     vmc.advance(1)
 
 
+@pytest.mark.parametrize("use_bias", [True, False])
+@pytest.mark.parametrize("symmetries", ["trans", "autom"])
+@pytest.mark.parametrize("lattice", ["chain", "square"])
+def test_gcnn(use_bias, symmetries, lattice):
+    g, hi, symms = _setup_symm(symmetries, N=3, lattice=lattice)
+
+    ma = nk.models.GCNN(
+        symmetries=symms,
+        layers=4,
+        features=4,
+        use_bias=use_bias,
+        bias_init=nk.nn.initializers.uniform(),
+    )
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
+
+    v = hi.random_state(3)
+    vals = [ma.apply(pars, v[..., s]) for s in symms]
+
+    for val in vals:
+        assert jnp.allclose(val, vals[0])
+
+    vmc = nk.VMC(
+        nk.operator.Ising(hi, g, h=1.0),
+        nk.optim.Sgd(0.1),
+        nk.sampler.MetropolisLocal(hi),
+        ma,
+    )
+    vmc.advance(1)
+
+
 def test_RBMSymm_creation():
     hi = nk.hilbert.Spin(1 / 2, N=8)
 
