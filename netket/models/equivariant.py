@@ -117,11 +117,16 @@ def create_GCNN(
     """
     Constructor for GCNN
     """
+
     if isinstance(symmetries, AbstractGraph):
         autom = np.asarray(symmetries.automorphisms())
         inv = inverse(autom)
         ga = group_algebra(autom, inv)
         perm_fn = lambda: autom
+    elif isinstance(symmetries, np.ndarray):
+        print("haha")
+
+        return GCNN(symmetries=symmetries, *args, **kwargs)
     else:
         symmetries = np.asarray(symmetries)
         inv = inverse(symmetries)
