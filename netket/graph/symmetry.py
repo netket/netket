@@ -110,13 +110,13 @@ class SymmGroup(SemiGroup):
 
     def inverse(self):
 
-        return _inverse(self.to_array())
+        return inverse(self.to_array())
 
     def group_algebra(self):
 
         inverse = self.inverse()
 
-        return _group_algebra(self.to_array(), inverse)
+        return group_algebra(self.to_array(), inverse)
 
     @property
     def shape(self):
