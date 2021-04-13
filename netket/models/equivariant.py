@@ -60,7 +60,10 @@ class GCNN(nn.Module):
     """Initializer for the hidden bias."""
 
     def setup(self):
-        self.n_symm, _ = self.symmetries().shape
+        if isinstance(self.symmetries, np.ndarray):
+            self.n_symm = len(self.symmetries)
+        else:
+            self.n_symm, _ = self.symmetries().shape
 
         if isinstance(self.features, int):
             feature_dim = [self.features for layer in range(self.layers)]
@@ -124,7 +127,6 @@ def create_GCNN(
         ga = group_algebra(autom, inv)
         perm_fn = lambda: autom
     elif isinstance(symmetries, np.ndarray):
-        print("haha")
 
         return GCNN(symmetries=symmetries, *args, **kwargs)
     else:
