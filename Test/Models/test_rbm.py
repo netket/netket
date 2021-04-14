@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+import numpy as np
 import jax.numpy as jnp
 
 from test_nn import _setup_symm
@@ -39,7 +40,7 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     print(pars)
 
     v = hi.random_state(3)
-    vals = [ma.apply(pars, v[..., p]) for p in perms]
+    vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
 
     for val in vals:
         assert jnp.allclose(val, vals[0])
@@ -70,9 +71,6 @@ def test_RBMSymm_creation():
     with pytest.raises(ValueError):
         check_init(lambda: nk.models.RBMSymm(symmetries=perms[0]))
 
-    # init with graph
-    check_init(lambda: nk.models.RBMSymm(symmetries=nk.graph.Chain(8), alpha=2))
-
     # init with SymmGroup
     check_init(
         lambda: nk.models.RBMSymm(symmetries=nk.graph.Chain(8).translations(), alpha=2)
@@ -81,7 +79,9 @@ def test_RBMSymm_creation():
     # alpha too small
     with pytest.raises(ValueError):
         check_init(
-            lambda: nk.models.RBMSymm(symmetries=nk.graph.Hypercube(8, 2), alpha=1)
+            lambda: nk.models.RBMSymm(
+                symmetries=nk.graph.Hypercube(8, 2).automorphisms(), alpha=1
+            )
         )
 
 

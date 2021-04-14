@@ -239,12 +239,10 @@ class DenseSymm(Module):
     """A symmetrized linear transformation applied over the last dimension of the input.
     This layer uses a reduced number of parameters, which are arranged so that the full
     affine transformation is invariant under all of the given permutations when applied to s.
-
-    See :func:`~netket.nn.create_DenseSymm` for a more convenient constructor.
     """
 
-    symmetries: HashableArray
-    """Callable returning a sequence of symmetry operations over which the layer should be invariant."""
+    symmetries: Union[HashableArray, SymmGroup]
+    """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant."""
     features: int
     """The number of symmetry-reduced features. The full output size is len(symmetries) * features."""
     use_bias: bool = True
@@ -312,38 +310,6 @@ class DenseSymm(Module):
             y += bias
 
         return y
-
-
-def create_DenseSymm(
-    symmetries: Union[AbstractGraph, Array],
-    *args,
-    **kwargs,
-):
-    """A symmetrized linear transformation applied over the last dimension of the input.
-    This layer uses a reduced number of parameters, which are arranged so that the full
-    affine transformation is invariant under all of the given permutations when applied to s.
-
-    This is a convenience wrapper for creating a :ref:`netket.nn.DenseSymm` layer.
-
-    Arguments:
-      symmetries: Sequence of permutations over which the layer should be invariant.
-        Should be either an array-like object of shape (n_permutations, input_size)
-        (note that this includes to :ref:`netket.graph.SymmGroup`), or
-        :ref:`netket.graph.AbstractGraph`, in which case the `graph.automorphisms()`
-        is used.
-
-    See :ref:`netket.nn.DenseSymm` for the remaining parameters.
-    """
-    if isinstance(symmetries, AbstractGraph):
-        symmetries = np.asarray(symmetries.automorphisms())
-    else:
-        symmetries = np.asarray(symmetries)
-        if not symmetries.ndim == 2:
-            raise ValueError(
-                "symmetries must be an array of shape (#symmetries, #sites)."
-            )
-
-    return DenseSymm(symmetries=HashableArray(symmetries), *args, **kwargs)
 
 
 class Conv(Module):

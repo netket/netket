@@ -196,8 +196,8 @@ class RBMMultiVal(nn.Module):
 class RBMSymm(nn.Module):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
 
-    symmetries: HashableArray
-    """See documentation of :ref:`netket.nn.DenseSymm`."""
+    symmetries: Union[HashableArray, SymmGroup]
+    """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant."""
     dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.logcosh
@@ -250,34 +250,3 @@ class RBMSymm(nn.Module):
             return x + out_bias
         else:
             return x
-
-
-def create_RBMSymm(
-    symmetries: Union[AbstractGraph, Array],
-    *args,
-    **kwargs,
-):
-    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
-
-    Attributes:
-        symmetries: See documentation of :func:`~netket.nn.create_DenseSymm`.
-        dtype: The dtype of the weights.
-        activation: The nonlinear activation function.
-        alpha: Feature density. Number of features equal to alpha * input.shape[-1]
-        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias).
-        use_visible_bias: if True adds a bias to the input not passed through the nonlinear layer.
-        percision: numerical precision of the computation see `jax.lax.Precision`for details.
-        kernel_init: Initializer for the Dense layer matrix.
-        hidden_bias_init: Initializer for the hidden bias.
-        visible_bias_init: Initializer for the visible bias.
-    """
-    if isinstance(symmetries, AbstractGraph):
-        symmetries = np.asarray(symmetries.automorphisms())
-    else:
-        symmetries = np.asarray(symmetries)
-        if not symmetries.ndim == 2:
-            raise ValueError(
-                "symmetries must be an array of shape (#symmetries, #sites)."
-            )
-
-    return RBMSymm(symmetries=HashableArray(symmetries), *args, **kwargs)
