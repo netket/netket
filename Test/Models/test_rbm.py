@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+import numpy as np
 import jax.numpy as jnp
 
 from test_nn import _setup_symm
@@ -39,7 +40,7 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     print(pars)
 
     v = hi.random_state(3)
-    vals = [ma.apply(pars, v[..., p]) for p in perms]
+    vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
 
     for val in vals:
         assert jnp.allclose(val, vals[0])
@@ -57,11 +58,10 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("lattice", ["chain", "square"])
 def test_gcnn(use_bias, symmetries, lattice):
-    g, hi, symms, ga = _setup_symm(symmetries, N=3, lattice=lattice, return_ga=True)
+    g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
     ma = nk.models.GCNN(
-        symmetries=symms,
-        group_algebra=ga,
+        symmetries=perms,
         layers=4,
         features=4,
         use_bias=use_bias,
@@ -70,7 +70,7 @@ def test_gcnn(use_bias, symmetries, lattice):
     pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
 
     v = hi.random_state(3)
-    vals = [ma.apply(pars, v[..., s]) for s in symms]
+    vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
 
     for val in vals:
         assert jnp.allclose(val, vals[0])
@@ -101,9 +101,6 @@ def test_RBMSymm_creation():
     with pytest.raises(ValueError):
         check_init(lambda: nk.models.RBMSymm(symmetries=perms[0]))
 
-    # init with graph
-    check_init(lambda: nk.models.RBMSymm(symmetries=nk.graph.Chain(8), alpha=2))
-
     # init with SymmGroup
     check_init(
         lambda: nk.models.RBMSymm(symmetries=nk.graph.Chain(8).translations(), alpha=2)
@@ -112,8 +109,59 @@ def test_RBMSymm_creation():
     # alpha too small
     with pytest.raises(ValueError):
         check_init(
-            lambda: nk.models.RBMSymm(symmetries=nk.graph.Hypercube(8, 2), alpha=1)
+            lambda: nk.models.RBMSymm(
+                symmetries=nk.graph.Hypercube(8, 2).automorphisms(), alpha=1
+            )
         )
+
+
+def test_GCNN_creation():
+    hi = nk.hilbert.Spin(1 / 2, N=8)
+
+    def check_init(creator):
+        ma = creator()
+        p = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(0))
+
+    perms = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]]
+
+    # Test different permutation argument types
+    check_init(
+        lambda: nk.models.GCNN(
+            symmetries=perms, layers=2, features=4, group_algebra=np.arange(4)
+        )
+    )
+    check_init(
+        lambda: nk.models.GCNN(
+            symmetries=jnp.array(perms),
+            layers=2,
+            features=4,
+            group_algebra=np.arange(4),
+        )
+    )
+
+    # wrong shape
+    with pytest.raises(ValueError):
+        check_init(
+            lambda: nk.models.GCNN(
+                symmetries=perms[0], layers=2, features=4, group_algebra=np.arange(4)
+            )
+        )
+        check_init(
+            lambda: nk.models.GCNN(
+                symmetries=perms, layers=2, features=4, group_algebra=np.arange(3)
+            )
+        )
+
+    # need to specify group algebra
+    with pytest.raises(AttributeError):
+        check_init(lambda: nk.models.GCNN(symmetries=perms, layers=2, features=4))
+
+    # init with SymmGroup
+    check_init(
+        lambda: nk.models.GCNN(
+            symmetries=nk.graph.Chain(8).translations(), layers=2, features=4
+        )
+    )
 
 
 @pytest.mark.parametrize("use_hidden_bias", [True, False])
