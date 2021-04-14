@@ -252,7 +252,7 @@ def test_automorphisms():
             autom_g = graph.automorphisms()
             dim = len(autom_g)
             for i in range(dim):
-                assert autom_g[i].permutation.tolist() in autom
+                assert np.asarray(autom_g[i]).tolist() in autom
 
 
 def _check_symmgroup(graph, symmgroup):
