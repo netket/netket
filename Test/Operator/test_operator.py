@@ -72,50 +72,62 @@ operators["Pauli Hamiltonian"] = nk.operator.PauliStrings(
 )
 
 
-def test_produce_elements_in_hilbert():
-    for name, ha in operators.items():
-        hi = ha.hilbert
-        print(name, hi)
-        assert len(hi.local_states) == hi.local_size
-        assert hi.size > 0
-        rstate = np.zeros(hi.size)
+@pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in operators.items()]
+)
+def test_produce_elements_in_hilbert(op):
+    hi = op.hilbert
+    assert len(hi.local_states) == hi.local_size
+    assert hi.size > 0
+    rstate = np.zeros(hi.size)
 
-        local_states = hi.local_states
+    local_states = hi.local_states
 
-        for i in range(1000):
-            hi.random_state(out=rstate)
+    max_conn_size = op.max_conn_size
 
-            rstatet, _ = ha.get_conn(rstate)
+    for i in range(1000):
+        hi.random_state(out=rstate)
 
-            assert np.all(np.isin(rstatet, local_states))
+        rstatet, mels = op.get_conn(rstate)
+
+        assert np.all(np.isin(rstatet, local_states))
+        assert len(mels) <= max_conn_size
 
 
-def test_operator_is_hermitean():
-    for name, ha in operators.items():
-        hi = ha.hilbert
-        print(name, hi)
-        assert len(hi.local_states) == hi.local_size
+@pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in operators.items()]
+)
+def test_is_hermitean(op):
+    hi = op.hilbert
+    assert len(hi.local_states) == hi.local_size
 
-        rstate = np.zeros(hi.size)
+    rstate = np.zeros(hi.size)
 
-        local_states = hi.local_states
+    local_states = hi.local_states
 
-        for i in range(100):
-            hi.random_state(out=rstate)
-            rstatet, mels = ha.get_conn(rstate)
+    for i in range(100):
+        hi.random_state(out=rstate)
+        rstatet, mels = op.get_conn(rstate)
 
-            for k, state in enumerate(rstatet):
+        for k, state in enumerate(rstatet):
 
-                invstates, mels1 = ha.get_conn(state)
+            invstates, mels1 = op.get_conn(state)
 
-                found = False
-                for kp, invstate in enumerate(invstates):
-                    if np.array_equal(rstate, invstate.flatten()):
-                        found = True
-                        assert mels1[kp] == np.conj(mels[k])
-                        break
+            found = False
+            for kp, invstate in enumerate(invstates):
+                if np.array_equal(rstate, invstate.flatten()):
+                    found = True
+                    assert mels1[kp] == np.conj(mels[k])
+                    break
 
-                assert found
+            assert found
+
+
+@pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in operators.items()]
+)
+def test_repr(op):
+    assert type(op).__name__ in repr(op)
 
 
 def test_no_segfault():
@@ -185,8 +197,3 @@ def test_pauli():
     assert np.allclose(op.to_dense(), op_l.to_dense())
 
     assert op.to_sparse().shape == op_l.to_sparse().shape
-
-
-def test_repr():
-    for op in operators.values():
-        assert type(op).__name__ in repr(op)

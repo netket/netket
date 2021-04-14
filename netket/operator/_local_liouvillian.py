@@ -106,19 +106,14 @@ class LocalLiouvillian(AbstractSuperOperator):
     def _compute_hnh(self):
         # There is no i here because it's inserted in the kernel
         Hnh = 1.0 * self._H
-        max_conn_size = 0
+        self._max_dissipator_conn_size = 0
         for L in self._jump_ops:
             Hnh = Hnh - 0.5j * L.conjugate().transpose() @ L
-            dim = L.n_operators * L._max_op_size
-            max_conn_size += dim ** 2 + 2 * dim
-
-        self._max_dissipator_conn_size = max_conn_size
+            self._max_dissipator_conn_size += L.max_conn_size ** 2
 
         self._Hnh = Hnh.collect()
 
-        max_conn_size = (
-            self._max_dissipator_conn_size + Hnh.n_operators * Hnh._max_op_size
-        )
+        max_conn_size = self._max_dissipator_conn_size + Hnh.max_conn_size
         self._max_conn_size = max_conn_size
         self._xprime = np.empty((max_conn_size, self.hilbert.size))
         self._xr_prime = np.empty((max_conn_size, self.hilbert.physical.size))

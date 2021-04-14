@@ -171,6 +171,12 @@ class PauliStrings(AbstractOperator):
         """Returns true if this operator is hermitian."""
         return self._is_hermitian
 
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        # 1 connection for every operator X, Y, Z...
+        return self._n_operators
+
     @staticmethod
     @jit(nopython=True)
     def _flattened_kernel(

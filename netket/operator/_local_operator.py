@@ -61,6 +61,17 @@ def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> DType:
         raise TypeError(f"cannot deduce dtype of object type {type(obj)}: {obj}")
 
 
+def has_nonzero_diagonal(op: "LocalOperator") -> bool:
+    """
+    Returns True if at least one element in the diagonal of the operator
+    is nonzero.
+    """
+    return (
+        np.any(np.abs(op._diag_mels) >= op.mel_cutoff)
+        or np.abs(op._constant) >= op.mel_cutoff
+    )
+
+
 def _is_sorted(a):
     for i in range(len(a) - 1):
         if a[i + 1] < a[i]:
@@ -134,8 +145,8 @@ def _reorder_kronecker_product(hi, mat, acting_on):
     operators in such a way to sort acting_on.
 
     A conceptual example is the following:
-    if `mat = Â ⊗ B̂ ⊗ Ĉ` and `acting_on = [[2],[1],[3]`
-    you will get `result = B̂ ⊗ Â ⊗ Ĉ, [[1], [2], [3]].
+    if `mat = Â ⊗ B̂ ⊗ Ĉ` and `acting_on = [[2],[1],[3]`
+    you will get `result = B̂ ⊗ Â ⊗ Ĉ, [[1], [2], [3]].
 
     However, essentially, A,B,C represent some operators acting on
     thei sub-space acting_on[1], [2] and [3] of the hilbert space.
@@ -181,10 +192,6 @@ def _reorder_kronecker_product(hi, mat, acting_on):
     mat_sorted = mat[n_unsorted, :][:, n_unsorted]
 
     return mat_sorted, acting_on_sorted
-
-
-def _sort_hilbert_states_and_matrix(hi, mat, acting_sites):
-    pass
 
 
 class LocalOperator(AbstractOperator):
@@ -257,6 +264,10 @@ class LocalOperator(AbstractOperator):
         self._init_zero()
 
         self.mel_cutoff = 1.0e-6
+
+        self._nonzero_diagonal = np.abs(self._constant) >= self.mel_cutoff
+        """True if at least one element in the diagonal of the operator is
+        nonzero"""
 
         for op, act in zip(operators, acting_on):
             if len(act) > 0:
@@ -337,6 +348,7 @@ class LocalOperator(AbstractOperator):
                 self._add_operator(operator, acting_on)
 
             self._constant += other.constant
+            self._nonzero_diagonal = has_nonzero_diagonal(self)
 
             return self
         if isinstance(other, numbers.Number):
@@ -347,6 +359,7 @@ class LocalOperator(AbstractOperator):
                 )
 
             self._constant += other
+            self._nonzero_diagonal = has_nonzero_diagonal(self)
             return self
 
         return NotImplemented
@@ -379,6 +392,8 @@ class LocalOperator(AbstractOperator):
         for _op in op._operators:
             _op *= other
 
+        op._nonzero_diagonal = has_nonzero_diagonal(op)
+
         return op
 
     def __imul__(self, other):
@@ -398,6 +413,8 @@ class LocalOperator(AbstractOperator):
 
         for _op in self._operators:
             _op *= other
+
+        self._nonzero_diagonal = has_nonzero_diagonal(self)
 
         return self
 
@@ -445,6 +462,8 @@ class LocalOperator(AbstractOperator):
 
         if np.abs(self_constant) > self.mel_cutoff:
             self += other * self_constant
+
+        self._nonzero_diagonal = has_nonzero_diagonal(self)
 
         return self
 
@@ -550,6 +569,7 @@ class LocalOperator(AbstractOperator):
                 isherm = isherm and is_hermitian(op)
 
             self._is_hermitian = isherm
+            self._nonzero_diagonal = has_nonzero_diagonal(self)
         else:
             self.__add_new_operator__(operator, acting_on)
 
@@ -662,6 +682,8 @@ class LocalOperator(AbstractOperator):
             isherm = isherm and is_hermitian(op)
 
         self._is_hermitian = isherm
+
+        self._nonzero_diagonal = has_nonzero_diagonal(self)
 
     @staticmethod
     @jit(nopython=True)
@@ -801,6 +823,18 @@ class LocalOperator(AbstractOperator):
             constant=np.conjugate(self._constant),
         )
 
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        max_size = self.n_operators if self._nonzero_diagonal else 0
+        for op in self._operators:
+            nnz_mat = np.abs(op) > self.mel_cutoff
+            nnz_mat[np.diag_indices(nnz_mat.shape[0])] = False
+            nnz_rows = np.sum(nnz_mat, axis=1)
+            max_size += np.max(nnz_rows)
+
+        return max_size
+
     def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
@@ -836,6 +870,7 @@ class LocalOperator(AbstractOperator):
             self._x_prime,
             self._acting_on,
             self._acting_size,
+            self._nonzero_diagonal,
             pad,
         )
 
@@ -849,6 +884,8 @@ class LocalOperator(AbstractOperator):
         _x_prime = self._x_prime
         _acting_on = self._acting_on
         _acting_size = self._acting_size
+        _nonzero_diagonal = self._nonzero_diagonal
+
         fun = self._get_conn_flattened_kernel
 
         def gccf_fun(x, sections):
@@ -864,6 +901,7 @@ class LocalOperator(AbstractOperator):
                 _x_prime,
                 _acting_on,
                 _acting_size,
+                _nonzero_diagonal,
             )
 
         return jit(nopython=True)(gccf_fun)
@@ -882,6 +920,7 @@ class LocalOperator(AbstractOperator):
         all_x_prime,
         acting_on,
         acting_size,
+        nonzero_diagonal,
         pad=False,
     ):
         batch_size = x.shape[0]
@@ -898,7 +937,7 @@ class LocalOperator(AbstractOperator):
 
         for b in range(batch_size):
             # diagonal element
-            conn_b = 1
+            conn_b = 1 if nonzero_diagonal else 0
 
             # counting the off-diagonal elements
             for i in range(n_operators):
@@ -933,13 +972,19 @@ class LocalOperator(AbstractOperator):
         c = 0
         for b in range(batch_size):
             c_diag = c
-            mels[c_diag] = constant
             x_batch = x[b]
-            x_prime[c_diag] = np.copy(x_batch)
-            c += 1
+
+            if nonzero_diagonal:
+                mels[c_diag] = constant
+                x_prime[c_diag] = np.copy(x_batch)
+                c += 1
+
             for i in range(n_operators):
 
                 # Diagonal part
+                #  If nonzero_diagonal, this goes to c_diag = 0 ....
+                # if zero_diagonal this just sets the last element to 0
+                # so it's not worth it skipping it
                 mels[c_diag] += diag_mels[i, xs_n[b, i]]
                 n_conn_i = n_conns[i, xs_n[b, i]]
 
