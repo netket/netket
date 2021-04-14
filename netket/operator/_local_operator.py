@@ -70,8 +70,8 @@ def has_nonzero_diagonal(op: "LocalOperator") -> bool:
         np.any(np.abs(op._diag_mels) >= op.mel_cutoff)
         or np.abs(op._constant) >= op.mel_cutoff
     )
-  
-  
+
+
 def _is_sorted(a):
     for i in range(len(a) - 1):
         if a[i + 1] < a[i]:
