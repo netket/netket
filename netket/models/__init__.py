@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .rbm import RBM, RBMModPhase, RBMMultiVal, create_RBMSymm as RBMSymm
-from .equivariant import create_GCNN as GCNN
+from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm
+from .equivariant import GCNN
 from .jastrow import Jastrow
 from .mps import MPSPeriodic
 
