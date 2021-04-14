@@ -45,9 +45,6 @@ jobs:
         name: DocumentationHTML
         path: docs/_build/html/
 
-    - name: Setup Debug Session
-      uses: csexton/debugger-action@master
-
     # Publish built docs to gh-pages branch.
     # https://github.com/peaceiris/actions-gh-pages
     - name: Deploy Website and Docs
@@ -79,3 +76,7 @@ jobs:
           https://netket.github.io/netket/preview/${{ steps.determine-branch.outputs.branch }}
 
           Once the PR is closed or merged, the preview will be automatically deleted.
+
+    - name: Setup tmate session
+      if: ${{ failure() }}
+      uses: mxschmitt/action-tmate@v3
