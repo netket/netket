@@ -23,6 +23,7 @@ from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph, SymmGroup
+from netket.utils import HashableArray
 from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 
 
@@ -34,16 +35,20 @@ class GCNN(nn.Module):
     """Implements a group convolutional neural network with symmetry
     averaging in the last layer as described in Roth et al. 2021."""
 
-    symmetries: Callable[[], Array]
-    """permutations specifying symmetry group"""
-    group_algebra: Tuple
-    """Matrix specifying algebra of symmetry group given by SymmGroup"""
+    symmetries: Union[HashableArray, SymmGroup]
+    """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
+    Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`. 
+    """
     layers: int
     """Number of layers (not including sum layer over output)"""
     features: Union[Tuple, int]
     """Number of features in each layer starting from the input. If
     a single number is given, all layers will have the same number
     of features"""
+    group_algebra: HashableArray = None
+    """A flattened array representing the mapping between relative and absolute poses.
+    Does not to be specified if symmetries is a SymmGroup
+    """
     dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.relu
@@ -61,7 +66,22 @@ class GCNN(nn.Module):
 
     def setup(self):
 
-        self.n_symm, _ = self.symmetries().shape
+        self.n_symm = np.asarray(self.symmetries).shape[0]
+
+        if not np.any(self.group_algebra) and not isinstance(
+            self.symmetries, SymmGroup
+        ):
+            raise AttributeError(
+                "Group algebra must be specified if symmetries are given as an array"
+            )
+
+        if not np.any(self.group_algebra):
+            group_algebra = self.symmetries.group_algebra()
+        else:
+            group_algebra = self.group_algebra
+
+        if not np.asarray(group_algebra).shape[0] == np.square(self.n_symm):
+            raise ValueError("Group algebra must have shape [n_symm*n_symm]")
 
         if isinstance(self.features, int):
             feature_dim = [self.features for layer in range(self.layers)]
@@ -85,7 +105,7 @@ class GCNN(nn.Module):
 
         self.equivariant_layers = [
             nknn.DenseEquivariant(
-                group_algebra=self.group_algebra,
+                group_algebra=group_algebra,
                 in_features=feature_dim[layer],
                 out_features=feature_dim[layer + 1],
                 use_bias=self.use_bias,
@@ -108,34 +128,3 @@ class GCNN(nn.Module):
         x = jnp.sum(x, axis=-1)
 
         return x
-
-
-def create_GCNN(
-    symmetries: Union[AbstractGraph, Array],
-    *args,
-    **kwargs,
-):
-    """
-    Constructor for GCNN
-    """
-
-    if isinstance(symmetries, AbstractGraph):
-        autom = np.asarray(symmetries.automorphisms())
-        inv = inverse(autom)
-        ga = group_algebra(autom, inv)
-        perm_fn = lambda: autom
-    elif isinstance(symmetries, SymmGroup):
-        autom = np.asarray(symmetries.automorphisms())
-        inv = inverse(autom)
-        ga = group_algebra(autom, inv)
-        perm_fn = lambda: autom
-    else:
-        symmetries = np.asarray(symmetries)
-        if not symmetries.ndim == 2:
-            raise ValueError(
-                "permutations must be an array of shape (#permutations, #sites)."
-            )
-        perm_fn = lambda: symmetries
-        return GCNN(symmetries=perm_fn, *args, **kwargs)
-
-    return GCNN(symmetries=perm_fn, group_algebra=ga, *args, **kwargs)
