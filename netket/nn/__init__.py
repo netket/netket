@@ -50,7 +50,6 @@ from .linear import (
     Dense,
     DenseGeneral,
     DenseSymm,
-    create_DenseSymm,
 )
 from .module import Module
 from flax.linen.module import compact, enable_named_call, disable_named_call, Variable

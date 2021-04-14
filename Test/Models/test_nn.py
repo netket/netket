@@ -33,7 +33,7 @@ def _setup_symm(symmetries, N):
         # All chain automorphisms, N_symm = 2 N_sites
         perms = g.automorphisms()
 
-    return g, hi, np.asarray(perms)
+    return g, hi, perms
 
 
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
@@ -41,7 +41,7 @@ def _setup_symm(symmetries, N):
 def test_DenseSymm(symmetries, use_bias):
     g, hi, perms = _setup_symm(symmetries, N=8)
 
-    ma = nk.nn.create_DenseSymm(
+    ma = nk.nn.DenseSymm(
         symmetries=perms,
         features=8,
         use_bias=use_bias,
@@ -50,7 +50,7 @@ def test_DenseSymm(symmetries, use_bias):
     pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
 
     v = hi.random_state(3)
-    vals = [ma.apply(pars, v[..., p]) for p in perms]
+    vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
     for val in vals:
         assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
 
@@ -83,4 +83,6 @@ def test_symmetrizer(symmetries, features):
     # and data is [1., ..., 1.]. Only cols is non-trivial.
     assert np.all(symmetrizer.row == np.arange(symmetrizer.shape[0]))
     assert np.all(symmetrizer.data == 1.0)
-    assert np.all(symmetrizer.col == linear._symmetrizer_col(perms, features))
+    assert np.all(
+        symmetrizer.col == linear._symmetrizer_col(np.asarray(perms), features)
+    )

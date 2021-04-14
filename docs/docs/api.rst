@@ -331,6 +331,19 @@ Those are the loggers that can be used with the optimization drivers.
    netket.logging.TBLog
 
 
+.. _utils-api:
+
+Utils
+-----
+
+Utility functions and classes.
+
+.. autosummary::
+   :toctree: _generated/utils
+   :nosignatures:
+
+   netket.utils.HashableArray
+
 .. _callbacks-api:
 
 Callbacks
