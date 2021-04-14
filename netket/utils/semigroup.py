@@ -20,7 +20,8 @@ from typing import Any, Callable, List, Optional, Tuple
 import numpy as np
 import plum
 
-from netket.utils.types import Array
+from netket.utils import HashableArray
+from netket.utils.types import Array, DType
 
 dispatch = plum.Dispatcher()
 
@@ -117,23 +118,25 @@ class NamedElement(Element):
 
 class Permutation(Element):
     def __init__(self, permutation: Array):
-        self.permutation = np.array(permutation)
-        self.__hash = hash(self.permutation.tobytes())
+        self.permutation = HashableArray(np.asarray(permutation))
 
     def __call__(self, x):
         return x[..., self.permutation]
 
     def __hash__(self):
-        return self.__hash
+        return hash(self.permutation)
 
     def __eq__(self, other):
         if isinstance(other, Permutation):
-            return np.all(self.permutation == other.permutation)
+            return self.permutation == other.permutation
         else:
             return False
 
     def __repr__(self):
         return f"Permutation({self.permutation})"
+
+    def __array__(self, dtype: DType = None):
+        return np.asarray(self.permutation, dtype)
 
 
 @dispatch(Permutation, Permutation)
