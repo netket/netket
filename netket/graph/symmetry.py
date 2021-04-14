@@ -21,50 +21,6 @@ from netket.utils.semigroup import SemiGroup
 from netket.utils.types import Array
 
 
-def inverse(automorphisms):
-
-    """
-    Computes the inverse permutatations of automorphisms s.t. for each element,
-    applying inverse to automorphisms produces the identity
-
-    """
-
-    n_symm = len(automorphisms)
-    inverse = np.zeros([n_symm], dtype=int)
-    automorphisms = np.array(automorphisms)
-    for i, perm1 in enumerate(automorphisms):
-        for j, perm2 in enumerate(automorphisms):
-            perm_sq = perm1[perm2]
-            if np.all(perm_sq == np.arange(len(perm_sq))):
-                inverse[i] = j
-
-    return automorphisms[inverse]
-
-
-def group_algebra(automorphisms, inverse):
-
-    """
-    Computes an array relative displacements between poses in automorphisms, s.t.
-    group_algebra[i,j] = inverse[i]*automorphisms[j]
-
-    This array is flattened and converted to a tuple before returning
-
-    """
-
-    n_symm = len(automorphisms)
-    group_algebra = np.zeros([n_symm, n_symm], dtype=int)
-
-    automorphisms = np.array(automorphisms)
-
-    for i, inv in enumerate(inverse):
-        for j, perm in enumerate(automorphisms):
-            for k, filter in enumerate(automorphisms):
-                if np.all(perm[inv] == filter):
-                    group_algebra[i, j] = k
-
-    return tuple(group_algebra.ravel())
-
-
 @dataclass(frozen=True)
 class SymmGroup(SemiGroup):
     """
@@ -126,13 +82,46 @@ class SymmGroup(SemiGroup):
 
     def inverse(self):
 
-        return inverse(self.to_array())
+        """
+        Computes the inverse permutatations of automorphisms s.t. for each element,
+        applying inverse to automorphisms produces the identity
+
+        """
+
+        automorphisms = self.to_array()
+        n_symm = len(automorphisms)
+        inverse = np.zeros([n_symm], dtype=int)
+        automorphisms = np.array(automorphisms)
+        for i, perm1 in enumerate(automorphisms):
+            for j, perm2 in enumerate(automorphisms):
+                perm_sq = perm1[perm2]
+                if np.all(perm_sq == np.arange(len(perm_sq))):
+                    inverse[i] = j
+
+        return automorphisms[inverse]
 
     def group_algebra(self):
 
-        inverse = self.inverse()
+        """
+        Computes an array relative displacements between poses in automorphisms, s.t.
+        group_algebra[i,j] = inverse[i]*automorphisms[j]
 
-        return group_algebra(self.to_array(), inverse)
+        This array is flattened and converted to a tuple before returning
+
+        """
+
+        automorphisms = self.to_array()
+        n_symm = len(automorphisms)
+        inverse = self.inverse()
+        group_algebra = np.zeros([n_symm, n_symm], dtype=int)
+
+        for i, inv in enumerate(inverse):
+            for j, perm in enumerate(automorphisms):
+                for k, filter in enumerate(automorphisms):
+                    if np.all(perm[inv] == filter):
+                        group_algebra[i, j] = k
+
+        return tuple(group_algebra.ravel())
 
     @property
     def shape(self):
