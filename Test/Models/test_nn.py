@@ -22,12 +22,8 @@ import scipy.sparse
 import pytest
 
 
-def _setup_symm(symmetries, N, lattice="chain"):
-
-    if lattice == "chain":
-        g = nk.graph.Chain(N)
-    else:
-        g = nk.graph.Square(N)
+def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
+     g = lattice(N)
 
     hi = nk.hilbert.Spin(1 / 2, g.n_nodes)
 
