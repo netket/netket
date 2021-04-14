@@ -19,6 +19,7 @@ import numpy as np
 from . import AbstractGraph
 from netket.utils.semigroup import SemiGroup
 from netket.utils.types import Array
+from netket.utils import HashableArray
 
 
 @dataclass(frozen=True)
@@ -121,7 +122,7 @@ class SymmGroup(SemiGroup):
                     if np.all(perm[inv] == filter):
                         group_algebra[i, j] = k
 
-        return tuple(group_algebra.ravel())
+        return HashableArray(group_algebra.ravel())
 
     @property
     def shape(self):
