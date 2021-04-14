@@ -273,6 +273,9 @@ def create_RBMSymm(
     if isinstance(symmetries, AbstractGraph):
         autom = np.asarray(symmetries.automorphisms())
         perm_fn = lambda: autom
+    elif isinstance(symmetries, SymmGroup):
+        autom = symmetries.to_array()
+        perm_fn = lambda: autom
     else:
         symmetries = np.asarray(symmetries)
         if not symmetries.ndim == 2:
