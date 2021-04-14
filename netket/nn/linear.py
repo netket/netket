@@ -242,7 +242,9 @@ class DenseSymm(Module):
     """
 
     symmetries: Union[HashableArray, SymmGroup]
-    """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant."""
+    """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
+        Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
+    """
     features: int
     """The number of symmetry-reduced features. The full output size is len(symmetries) * features."""
     use_bias: bool = True

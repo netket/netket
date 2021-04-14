@@ -197,7 +197,9 @@ class RBMSymm(nn.Module):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
 
     symmetries: Union[HashableArray, SymmGroup]
-    """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant."""
+    """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
+    Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
+    """
     dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.logcosh
