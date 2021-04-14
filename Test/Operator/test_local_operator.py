@@ -324,3 +324,9 @@ def test_copy():
             assert o1 is not o2
             assert np.all(o1 == o2)
         same_matrices(op, op_copy)
+
+
+def test_raises_unsorted_hilbert():
+    hi = nk.hilbert.CustomHilbert([-1, 1, 0], N=3)
+    with pytest.raises(ValueError):
+        nk.operator.LocalOperator(hi)
