@@ -45,6 +45,9 @@ jobs:
         name: DocumentationHTML
         path: docs/_build/html/
 
+    - name: Setup Debug Session
+      uses: csexton/debugger-action@master
+
     # Publish built docs to gh-pages branch.
     # https://github.com/peaceiris/actions-gh-pages
     - name: Deploy Website and Docs
