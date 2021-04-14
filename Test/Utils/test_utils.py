@@ -13,8 +13,13 @@
 # limitations under the License.
 
 from netket.jax import PRNGKey, PRNGSeq
+from netket.utils import HashableArray
 
+import pytest
+import numpy as np
 import jax.numpy as jnp
+
+from numpy.testing import assert_equal
 
 
 def test_PRNGSeq():
@@ -31,3 +36,23 @@ def test_PRNGSeq():
     seq1 = PRNGSeq(12)
     seq2 = PRNGSeq(12)
     assert jnp.all(seq1.take(10) == seq2.take(10))
+
+
+@pytest.mark.parametrize("numpy", [np, jnp])
+def test_HashableArray(numpy):
+    a = numpy.asarray(np.random.rand(256, 128))
+    b = 2 * a
+
+    wa = HashableArray(a)
+    wa2 = HashableArray(a.copy())
+    wb = HashableArray(b)
+
+    assert hash(wa) == hash(wa2)
+    assert wa == wa2
+
+    assert hash(wb) == hash(wb)
+    assert wb == wb
+
+    assert wa != wb
+
+    assert_equal(wa.wrapped, np.asarray(wa))
