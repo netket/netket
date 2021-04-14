@@ -22,7 +22,7 @@ from jax import numpy as jnp
 from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
-from netket.graph import AbstractGraph, SymmGroup, inverse, group_algebra
+from netket.graph import AbstractGraph, SymmGroup
 from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 
 
@@ -60,10 +60,8 @@ class GCNN(nn.Module):
     """Initializer for the hidden bias."""
 
     def setup(self):
-        if isinstance(self.symmetries, np.ndarray):
-            self.n_symm = len(self.symmetries)
-        else:
-            self.n_symm, _ = self.symmetries().shape
+
+        self.n_symm, _ = self.symmetries().shape
 
         if isinstance(self.features, int):
             feature_dim = [self.features for layer in range(self.layers)]
@@ -126,17 +124,18 @@ def create_GCNN(
         inv = inverse(autom)
         ga = group_algebra(autom, inv)
         perm_fn = lambda: autom
-    elif isinstance(symmetries, np.ndarray):
-
-        return GCNN(symmetries=symmetries, *args, **kwargs)
+    elif isinstance(symmetries, SymmGroup):
+        autom = np.asarray(symmetries.automorphisms())
+        inv = inverse(autom)
+        ga = group_algebra(autom, inv)
+        perm_fn = lambda: autom
     else:
         symmetries = np.asarray(symmetries)
-        inv = inverse(symmetries)
-        ga = group_algebra(symmetries, inv)
         if not symmetries.ndim == 2:
             raise ValueError(
                 "permutations must be an array of shape (#permutations, #sites)."
             )
         perm_fn = lambda: symmetries
+        return GCNN(symmetries=perm_fn, *args, **kwargs)
 
     return GCNN(symmetries=perm_fn, group_algebra=ga, *args, **kwargs)
