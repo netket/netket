@@ -379,7 +379,7 @@ class LocalOperator(AbstractOperator):
         for _op in self._operators:
             _op *= other
 
-        op._nonzero_diagonal = has_nonzero_diagonal(self)
+        self._nonzero_diagonal = has_nonzero_diagonal(self)
 
         return self
 
