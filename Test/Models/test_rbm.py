@@ -57,10 +57,11 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("lattice", ["chain", "square"])
 def test_gcnn(use_bias, symmetries, lattice):
-    g, hi, symms = _setup_symm(symmetries, N=3, lattice=lattice)
+    g, hi, symms, ga = _setup_symm(symmetries, N=3, lattice=lattice, return_ga=True)
 
     ma = nk.models.GCNN(
         symmetries=symms,
+        group_algebra=ga,
         layers=4,
         features=4,
         use_bias=use_bias,
