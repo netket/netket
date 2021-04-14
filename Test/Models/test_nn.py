@@ -22,7 +22,7 @@ import scipy.sparse
 import pytest
 
 
-def _setup_symm(symmetries, N, lattice="chain"):
+def _setup_symm(symmetries, N, lattice="chain", return_ga=False):
 
     if lattice == "chain":
         g = nk.graph.Chain(N)
@@ -38,7 +38,11 @@ def _setup_symm(symmetries, N, lattice="chain"):
         # All chain automorphisms, N_symm = 2 N_sites
         perms = g.automorphisms()
 
-    return g, hi, np.asarray(perms)
+    if return_ga:
+        ga = perms.group_algebra()
+        return g, hi, np.asarray(perms), ga
+    else:
+        return g, hi, np.asarray(perms)
 
 
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
