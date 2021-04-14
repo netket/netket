@@ -23,7 +23,7 @@ import flax
 from flax.linen.module import Module, compact
 from netket.nn.initializers import lecun_normal, normal, variance_scaling, zeros
 from netket import jax as nkjax
-from netket.graph import AbstractGraph, SymmGroup, inverse, group_algebra
+from netket.graph import AbstractGraph, SymmGroup
 
 from jax import lax
 import jax.numpy as jnp
@@ -259,10 +259,7 @@ class DenseSymm(Module):
     """Initializer for the bias."""
 
     def setup(self):
-        if isinstance(self.symmetries, np.ndarray):
-            perms = self.symmetries
-        else:
-            perms = self.symmetries()
+        perms = self.symmetries()
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
 
