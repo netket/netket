@@ -17,9 +17,9 @@ NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
 It is a Python library built on [JAX](https://github.com/google/jax).
 
-- **Homepage:** <https://netket.org>
+- **Homepage:** <https://www.netket.org>
 - **Citing:** <https://www.netket.org/citing>
-- **Documentation:** <https://netket.org/documentation>
+- **Documentation:** <https://www.netket.org/documentation>
 - **Tutorials:** <https://www.netket.org/tutorials>
 - **Examples:** <https://github.com/netket/netket/tree/master/Examples>
 - **Source code:** <https://github.com/netket/netket>
