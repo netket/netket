@@ -30,10 +30,10 @@ class HashableArray:
     """
 
     wrapped: Array
-    """The wrapped array. Note that this array is read-only and modifying it without
-    recreating `HashableArray` will result in incorrect behavior."""
+    """The wrapped array. Note that this array is read-only."""
 
     def __post_init__(self):
+        object.__setattr__(self, "wrapped", self.wrapped.copy())
         if isinstance(self.wrapped, np.ndarray):
             self.wrapped.flags.writeable = False
         object.__setattr__(self, "_HashableArray__hash", hash(self.wrapped.tobytes()))

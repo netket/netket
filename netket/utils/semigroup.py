@@ -118,7 +118,7 @@ class NamedElement(Element):
 
 class Permutation(Element):
     def __init__(self, permutation: Array):
-        self.permutation = HashableArray(np.array(permutation))
+        self.permutation = HashableArray(np.asarray(permutation))
 
     def __call__(self, x):
         return x[..., self.permutation]
