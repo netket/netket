@@ -15,6 +15,7 @@
 import numbers
 from typing import Union, Tuple, List, Optional
 from netket.utils.types import DType, Array
+from textwrap import dedent
 
 import numpy as np
 from numba import jit
@@ -58,6 +59,13 @@ def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> DType:
         return obj.dtype
     else:
         raise TypeError(f"cannot deduce dtype of object type {type(obj)}: {obj}")
+
+
+def _is_sorted(a):
+    for i in range(len(a) - 1):
+        if a[i + 1] < a[i]:
+            return False
+    return True
 
 
 def resize(
@@ -120,7 +128,23 @@ def resize(
     return new_arr
 
 
-def _reorder_matrix(hi, mat, acting_on):
+def _reorder_kronecker_product(hi, mat, acting_on):
+    """
+    Reorders the matrix resulting from a kronecker product of several
+    operators in such a way to sort acting_on.
+
+    A conceptual example is the following:
+    if `mat = Â ⊗ B̂ ⊗ Ĉ` and `acting_on = [[2],[1],[3]`
+    you will get `result = B̂ ⊗ Â ⊗ Ĉ, [[1], [2], [3]].
+
+    However, essentially, A,B,C represent some operators acting on
+    thei sub-space acting_on[1], [2] and [3] of the hilbert space.
+
+    This function also handles any possible set of values in acting_on.
+
+    The inner logic uses the Fock.all_states(), number_to_state and
+    state_to_number to perform the re-ordering.
+    """
     acting_on_sorted = np.sort(acting_on)
     if np.all(acting_on_sorted == acting_on):
         return mat, acting_on
@@ -159,6 +183,10 @@ def _reorder_matrix(hi, mat, acting_on):
     return mat_sorted, acting_on_sorted
 
 
+def _sort_hilbert_states_and_matrix(hi, mat, acting_sites):
+    pass
+
+
 class LocalOperator(AbstractOperator):
     """A custom local operator. This is a sum of an arbitrary number of operators
     acting locally on a limited set of k quantum numbers (i.e. k-local,
@@ -195,6 +223,17 @@ class LocalOperator(AbstractOperator):
         """
         super().__init__(hilbert)
         self._constant = constant
+
+        if not all(
+            [_is_sorted(hilbert.states_at_index(i)) for i in range(hilbert.size)]
+        ):
+            raise ValueError(
+                dedent(
+                    """LocalOperator needs an hilbert space with sorted state values at
+                every site.
+                """
+                )
+            )
 
         # check if passing a single operator or a list of operators
         if isinstance(acting_on, numbers.Number):
@@ -473,7 +512,9 @@ class LocalOperator(AbstractOperator):
             return
 
         # re-sort the operator
-        operator, acting_on = _reorder_matrix(self.hilbert, operator, acting_on)
+        operator, acting_on = _reorder_kronecker_product(
+            self.hilbert, operator, acting_on
+        )
 
         # find overlapping support
         support_i = None
@@ -700,8 +741,8 @@ class LocalOperator(AbstractOperator):
                             _op_i = np.kron(_op_i, I)
 
                 # reorder
-                _op, _act = _reorder_matrix(self.hilbert, _op, _act)
-                _op_i, _act_i = _reorder_matrix(self.hilbert, _op_i, _act_i)
+                _op, _act = _reorder_kronecker_product(self.hilbert, _op, _act)
+                _op_i, _act_i = _reorder_kronecker_product(self.hilbert, _op_i, _act_i)
 
                 if len(_act) == len(_act_i) and np.array_equal(_act, _act_i):
                     # non-interesecting with same support
