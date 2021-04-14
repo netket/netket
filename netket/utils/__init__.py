@@ -14,6 +14,7 @@
 
 from .config_flags import config
 
+from .array import HashableArray
 from .jax import jit_if_singleproc, get_afun_if_module
 from .mpi import (
     mpi_available,
