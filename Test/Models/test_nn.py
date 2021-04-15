@@ -58,11 +58,12 @@ def test_DenseSymm(symmetries, use_bias):
     for val in vals:
         assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
 
+
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("use_bias", [True, False])
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
-def test_DenseEquivariant(symmetries,use_bias,lattice):
-    g, hi, perms = _setup_symm(symmetries,N=3,lattice=lattice)
+def test_DenseEquivariant(symmetries, use_bias, lattice):
+    g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
     ga = perms.group_algebra()
     n_symm = np.asarray(perms).shape[0]
@@ -75,21 +76,22 @@ def test_DenseEquivariant(symmetries,use_bias,lattice):
         bias_init=nk.nn.initializers.uniform(),
     )
 
-    pars = ma.init(nk.jax.PRNGKey(),np.random.normal(0,1,[1,n_symm]))
+    pars = ma.init(nk.jax.PRNGKey(), np.random.normal(0, 1, [1, n_symm]))
 
-    #inverse ga computes chosen_op = gh^-1 instead of g^-1h from usual group algebra
+    # inverse ga computes chosen_op = gh^-1 instead of g^-1h from usual group algebra
     chosen_op = np.random.randint(n_symm)
-    inverse_ga = np.asarray(perms.inverse().group_algebra()).reshape(n_symm,n_symm)
-    sym_op = np.where(inverse_ga==chosen_op,1.,0.)
+    inverse_ga = np.asarray(perms.inverse().group_algebra()).reshape(n_symm, n_symm)
+    sym_op = np.where(inverse_ga == chosen_op, 1.0, 0.0)
 
-    v = random.normal(random.PRNGKey(0),[3,n_symm])
-    v_trans = dot(v,sym_op)
+    v = random.normal(random.PRNGKey(0), [3, n_symm])
+    v_trans = dot(v, sym_op)
 
     out = ma.apply(pars, v)
     out_trans = ma.apply(pars, v_trans)
 
-    #output should be involution
-    assert jnp.allclose(dot(out,sym_op.transpose(0,1)),out_trans)
+    # output should be involution
+    assert jnp.allclose(dot(out, sym_op.transpose(0, 1)), out_trans)
+
 
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("features", [1, 2, 5])
