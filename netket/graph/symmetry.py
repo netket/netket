@@ -82,7 +82,6 @@ class SymmGroup(SemiGroup):
             return group
 
     def inverse(self):
-
         """
         Returns reordered symmgroup where the each element is the inverse of
         the original symmetry element
