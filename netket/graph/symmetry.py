@@ -84,8 +84,8 @@ class SymmGroup(SemiGroup):
     def inverse(self):
 
         """
-        Computes the inverse permutatations of automorphisms s.t. for each element,
-        applying inverse to automorphisms produces the identity
+        Returns reordered symmgroup where the each element is the inverse of
+        the original symmetry element
 
         """
 
@@ -99,7 +99,7 @@ class SymmGroup(SemiGroup):
                 if np.all(perm_sq == np.arange(len(perm_sq))):
                     inverse[i] = j
 
-        return automorphisms[inverse]
+        return SymmGroup([self.elems[i] for i in inverse], self.graph)
 
     def group_algebra(self):
 
@@ -113,7 +113,7 @@ class SymmGroup(SemiGroup):
 
         automorphisms = self.to_array()
         n_symm = len(automorphisms)
-        inverse = self.inverse()
+        inverse = self.inverse().to_array()
         group_algebra = np.zeros([n_symm, n_symm], dtype=int)
 
         for i, inv in enumerate(inverse):
