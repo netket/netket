@@ -17,13 +17,12 @@ import inspect
 import itertools
 from typing import Any, Callable, List, Optional, Tuple
 
+from plum import dispatch
+
 import numpy as np
-import plum
 
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType
-
-dispatch = plum.Dispatcher()
 
 
 class ElementBase(Callable):
