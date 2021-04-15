@@ -101,7 +101,6 @@ class SymmGroup(SemiGroup):
         return SymmGroup([self.elems[i] for i in inverse], self.graph)
 
     def group_algebra(self):
-
         """
         Computes an array relative displacements between poses in automorphisms, s.t.
         group_algebra[i,j] = inverse[i]*automorphisms[j]
