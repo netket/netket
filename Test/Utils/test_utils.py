@@ -56,3 +56,4 @@ def test_HashableArray(numpy):
     assert wa != wb
 
     assert_equal(wa.wrapped, np.asarray(wa))
+    assert wa.wrapped is not wa
