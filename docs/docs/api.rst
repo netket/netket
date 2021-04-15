@@ -190,6 +190,7 @@ neural quantum states.
    netket.models.Jastrow
    netket.models.MPSPeriodic
    netket.models.NDM
+   netket.models.GCNN
 
 
 Model tools
@@ -214,7 +215,7 @@ Linear Modules
    netket.nn.Dense
    netket.nn.DenseGeneral
    netket.nn.DenseSymm
-   netket.nn.create_DenseSymm
+   netket.nn.DenseEquivariant
    netket.nn.Conv
    netket.nn.Embed
 
