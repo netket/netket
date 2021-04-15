@@ -17,14 +17,15 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Callable, List, Sequence, Tuple, Union
 
-from netket.utils.semigroup import Element, Identity, dispatch
-
-
-from .symmetry import SymmGroup
-from .graph import NetworkX
+from plum import dispatch
 
 import numpy as _np
 import networkx as _nx
+
+from netket.utils.semigroup import Element, Identity
+
+from .symmetry import SymmGroup
+from .graph import NetworkX
 
 
 @dataclass(frozen=True)
