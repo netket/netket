@@ -202,6 +202,11 @@ class Ising(SpecialHamiltonian):
 
         return out
 
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        return self.size + 1
+
     def copy(self):
         graph = Graph(edges=[list(edge) for edge in self.edges])
         return Ising(hilbert=self.hilbert, graph=graph, J=self.J, h=self.h)
@@ -585,6 +590,12 @@ class BoseHubbard(SpecialHamiltonian):
         self._U -= other.U
         self._J -= other.J
         self._V -= other.V
+
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        # 1 diagonal element + 2 for every coupling
+        return 1 + 2 * len(self._edges)
 
     def get_conn(self, x):
         r"""Finds the connected elements of the Operator. Starting

@@ -25,6 +25,7 @@ class HashableArray:
     This class wraps a numpy or jax array in order to make it hashable and
     equality comparable (which is necessary since a well-defined hashable object
     needs to satisfy :code:`obj1 == obj2` whenever :code:`hash(obj1) == hash(obj2)`.
+
     The underlying array can also be accessed using :code:`numpy.asarray(self)`.
     """
 

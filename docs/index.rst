@@ -112,6 +112,7 @@
 
    docs/getting_started
    docs/whats_new
+   docs/superop
    docs/varstate
    docs/drivers
    docs/custom_models
