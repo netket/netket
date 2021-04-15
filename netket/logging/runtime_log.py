@@ -21,7 +21,7 @@ from flax import serialization
 
 from jax.tree_util import tree_map
 
-from netket.utils import History, accum_histories_in_tree
+from netket.utils import MVHistory, accum_histories_in_tree
 
 
 class RuntimeLog:

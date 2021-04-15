@@ -16,116 +16,17 @@ import numpy as np
 from numbers import Number
 import jax.numpy as jnp
 
-
-def _is_scalar(val):
-    """
-    Returns true if the input is a scalar-like object.
-
-    Checks whever it is a Python's number, or any numpy-API
-    scalar.
-    """
-    if isinstance(val, Number):
-        return True
-    elif np.isscalar(val):
-        return True
-    elif jnp.isscalar(val):
-        return True
-    elif hasattr(val, "ndim"):
-        if val.ndim == 0:
-            return True
-        else:
-            return False
-
-    return False
+from .numbers import dtype, is_scalar
 
 
-class History:
-    """
-    A class to store a time-series of scalar data.
-
-    It has two member variables, `iter` and `values`.
-    The first stores the `time` of the time series, while `values`
-    stores the values at each iteration.
-    """
-
-    def __init__(self, values=[], iters=None, dtype=None, iter_dtype=None):
-        if isinstance(values, Number):
-            values = np.array([values], dtype=dtype)
-
-        if iters is None:
-            if iter_dtype is None:
-                iter_dtype = np.int32
-            iters = np.arange(len(values), dtype=iter_dtype)
-
-        elif isinstance(iters, Number):
-            iters = np.array([iters], dtype=iter_dtype)
-
-        if len(values) != len(iters):
-            raise ErrorException("Not matching lengths")
-
-        self.iters = np.array(iters, dtype=iter_dtype)
-        self.values = np.array(values, dtype=dtype)
-
-    def append(self, val, it=None):
-        """
-        Append another value to this history object.
-
-        Args:
-            val: the value in the next timestep
-            it: the time corresponding to this new value. If
-                not defined, increment by 1.
-        """
-        if isinstance(val, History):
-            self.values = np.concatenate([self.values, val.values])
-            self.iters = np.concatenate([self.iters, val.iters])
-            return
-
-        try:
-            self.values.resize(len(self.values) + 1)
-        except:
-            self.values = np.resize(self.values, (len(self.values) + 1))
-
-        try:
-            self.iters.resize(len(self.iters) + 1)
-        except:
-            self.iters = np.resize(self.iters, (len(self.iters) + 1))
-
-        if it is None:
-            if len(self.iters) > 2:
-                it = self.iters[-1] - self.iters[-2]
-            else:
-                it = len(self.iters)  # 0, 1...
-
-        self.values[-1] = val
-        self.iters[-1] = it
-
-    def get(self):
-        """
-        Returns a tuple containing times and values of this history object
-        """
-        return self.iters, self.values
-
-    def to_dict(self):
-        """
-        Converts the history object to dict.
-
-        Used for serialization
-        """
-        return {"iters": self.iters, "values": self.values}
-
-    def __array__(self, *args, **kwargs):
-        """
-        Automatically transform this object to a numpy array when calling
-        asarray, by only considering the values and neglecting the times.
-        """
-        return np.array(self.values, *args, **kwargs)
-
-    def __iter__(self):
-        """
-        You can iterate the values in history object.
-        """
-        """ Returns the Iterator object """
-        return iter(zip(self.iters, self.values))
+def raise_if_len_not_match(length, expected_length, string):
+    if length != expected_length:
+        raise ValueError(
+            """
+            Length mismatch: expected object of length {expected_length}, but
+            got object of length {length} for key {string}.
+            """
+        )
 
 
 class MVHistory:
@@ -138,57 +39,63 @@ class MVHistory:
     """
 
     def __init__(self, values=[], iters=None, dtype=None, iter_dtype=None):
-        _value_dict = {}
-        _value_name = None
-        _len = 0
-        _single_value = False
-        _keys = []
-
-        # Catch numpy/jax scalars and convert them to pytohn numbers
-        # if hasattr(values, 'ndim'):
-        #    if values.ndim == 0:
-        #        values = values.copy().tolist()
-
-        if _is_scalar(values):
-            values = np.array([values], dtype=dtype)
-            _value_name = "value"
-            _value_dict["value"] = values
-            _single_value = True
-            _keys.append("value")
-            _len = 1
-
-        elif hasattr(values, "to_compound"):
-            _value_name, value_dict = values.to_compound()
-            _value_dict = {}
-            _len = 1
-            for (key, val) in value_dict.items():
-                _value_dict[key] = np.array([val], dtype=dtype)
-                _keys.append(key)
+        value_name = None
+        single_value = False
 
         if iters is None:
-            if iter_dtype is None:
-                iter_dtype = np.int32
-            _value_dict["iters"] = np.arange(_len, dtype=iter_dtype)
+            iters = 0
 
-        elif isinstance(iters, Number):
-            if _len != 1:
-                print("shape:", values.shape)
-                raise ValueError(
-                    f"""Need at least one iteration: {values}, {type(values)}, 
-                                {_is_scalar(values)}, {iters}, len:{_len},
-                                {values.shape}, {values.ndim}
-                                """
-                )
-            _value_dict["iters"] = np.array([iters], dtype=iter_dtype)
+        if is_scalar(iters):
+            iters = np.array([iters], dtype=iter_dtype)
+        elif isinstance(iters, list):
+            iters = np.array(iters, dtype=iter_dtype)
 
-        if _len != len(_value_dict["iters"]):
-            raise ErrorException("Not matching lengths")
+        n_elements = len(iters)
 
-        self._value_dict = _value_dict
-        self._value_name = _value_name
-        self._len = _len
-        self._single_value = _single_value
-        self._keys = _keys
+        if is_scalar(values):
+            values = {"value": values}
+            main_value_name = "value"
+            single_value = True
+
+        elif hasattr(values, "__array__"):
+            values = {"value": values}
+            main_value_name = "value"
+            single_value = True
+
+        elif hasattr(values, "to_compound"):
+            main_value_name, values = values.to_compound()
+
+        elif isinstance(values, dict) or hasattr(values, "items"):
+            pass
+
+        else:
+            values = {"value": [values]}
+            main_value_name = "value"
+            single_value = True
+
+        value_dict = {"iters": iters}
+        for (key, val) in values.items():
+            if key == "iters":
+                raise ValueError("cannot have a field called iters")
+
+            if is_scalar(val):
+                raise_if_len_not_match(1, n_elements, key)
+                val = np.asarray(val, dtype=dtype)
+
+            elif hasattr(val, "__array__"):
+                val = np.asarray(val, dtype=dtype)
+                if n_elements == 1 and len(val) != 1:
+                    val = np.reshape(val, (1,) + val.shape)
+
+                raise_if_len_not_match(len(val), n_elements, key)
+
+            value_dict[key] = val
+
+        self._value_dict = value_dict
+        self._value_name = main_value_name
+        self._len = n_elements
+        self._single_value = single_value
+        self._keys = list(value_dict.keys())
 
     @property
     def iters(self):
