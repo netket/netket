@@ -14,6 +14,29 @@
 
 import numpy as np
 from numbers import Number
+import jax.numpy as jnp
+
+
+def _is_scalar(val):
+    """
+    Returns true if the input is a scalar-like object.
+
+    Checks whever it is a Python's number, or any numpy-API
+    scalar.
+    """
+    if isinstance(val, Number):
+        return True
+    elif np.isscalar(val):
+        return True
+    elif jnp.isscalar(val):
+        return True
+    elif hasattr(val, "ndim"):
+        if val.ndim == 0:
+            return True
+        else:
+            return False
+
+    return False
 
 
 class History:
@@ -121,7 +144,12 @@ class MVHistory:
         _single_value = False
         _keys = []
 
-        if isinstance(values, Number):
+        # Catch numpy/jax scalars and convert them to pytohn numbers
+        # if hasattr(values, 'ndim'):
+        #    if values.ndim == 0:
+        #        values = values.copy().tolist()
+
+        if _is_scalar(values):
             values = np.array([values], dtype=dtype)
             _value_name = "value"
             _value_dict["value"] = values
@@ -144,7 +172,13 @@ class MVHistory:
 
         elif isinstance(iters, Number):
             if _len != 1:
-                raise ValueError("Need at least one iteration")
+                print("shape:", values.shape)
+                raise ValueError(
+                    f"""Need at least one iteration: {values}, {type(values)}, 
+                                {_is_scalar(values)}, {iters}, len:{_len},
+                                {values.shape}, {values.ndim}
+                                """
+                )
             _value_dict["iters"] = np.array([iters], dtype=iter_dtype)
 
         if _len != len(_value_dict["iters"]):
@@ -197,7 +231,7 @@ class MVHistory:
             self._len = len(self) + len(val)
             return
 
-        if self._single_value and isinstance(val, Number):
+        if self._single_value and _is_scalar(val):
             val_dict = {"value": val}
         else:
             _, val_dict = val.to_compound()

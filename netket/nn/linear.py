@@ -237,14 +237,14 @@ def _symmetrizer_col(perms, features):
 
 class DenseSymm(Module):
     """A symmetrized linear transformation applied over the last dimension of the input.
-    This layer uses a reduced number of parameters, which are arranged so that the full
-    affine transformation is invariant under all of the given symmetries when applied to s.
 
-    See :func:`~netket.nn.create_DenseSymm` for a more convenient constructor.
+    This layer uses a reduced number of parameters, which are arranged so that the full
+    affine transformation is invariant under all of the given permutations when applied to s.
     """
 
     symmetries: Union[HashableArray, SymmGroup]
     """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
+
         Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
     features: int
@@ -287,8 +287,10 @@ class DenseSymm(Module):
     @compact
     def __call__(self, inputs: Array) -> Array:
         """Applies the symmetrized linear transformation to the inputs along the last dimension.
+        
         Args:
           inputs: The nd-array to be transformed.
+          
         Returns:
           The transformed input.
         """
@@ -404,8 +406,8 @@ class DenseEquivariant(Module):
 
         return y
 
-
-class Conv(Module):
+      
+ class Conv(Module):
     """Convolution Module wrapping lax.conv_general_dilated.
 
     Attributes:

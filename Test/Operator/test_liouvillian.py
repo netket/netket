@@ -22,6 +22,8 @@ import pytest
 from pytest import approx
 import os
 
+from netket.operator import spin
+
 np.set_printoptions(linewidth=180)
 
 # 1D Lattice
@@ -30,21 +32,15 @@ L = 4
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=0.5) ** L
 
-# Defining the Ising hamiltonian (with sign problem here)
-# Using local operators
-sx = [[0, 1], [1, 0]]
-sy = [[0, -1j], [1j, 0]]
-sz = [[1, 0], [0, -1]]
-
-sigmam = [[0, 0], [1, 0]]
-
-ha = nk.operator.LocalOperator(hi)
+ha = nk.operator.LocalOperator(hi, dtype=complex)
 j_ops = []
 
 for i in range(L):
-    ha += nk.operator.LocalOperator(hi, sx, [i])
-    ha += nk.operator.LocalOperator(hi, np.kron(sz, sz), [i, (i + 1) % L])
-    j_ops.append(nk.operator.LocalOperator(hi, sigmam, [i]))
+    ha += spin.sigmax(hi, i)
+    ha += spin.sigmay(hi, i)
+    ha += spin.sigmaz(hi, i) @ spin.sigmaz(hi, (i + 1) % L)
+    j_ops.append(spin.sigmam(hi, i))
+    j_ops.append(1j * spin.sigmam(hi, i))
 
 
 #  Create the lindbladian with
@@ -62,12 +58,16 @@ def test_lindblad_form():
         hnh_mat -= 0.5j * j_mat.H * j_mat
 
     # Compute the left and right product with identity
-    lind_mat = -1j * sparse.kron(idmat, hnh_mat) + 1j * sparse.kron(hnh_mat.H, idmat)
+    lind_mat = -1j * sparse.kron(hnh_mat, idmat) + 1j * sparse.kron(
+        idmat, hnh_mat.conj()
+    )
     # add jump operators
     for j_op in j_ops:
         j_mat = j_op.to_sparse()
-        lind_mat += sparse.kron(j_mat.conj(), j_mat)
+        lind_mat += sparse.kron(j_mat, j_mat.conj())
 
+    print(lind_mat.shape)
+    print(lind.to_dense().shape)
     np.testing.assert_allclose(lind_mat.todense(), lind.to_dense())
 
 
@@ -78,7 +78,7 @@ def test_liouvillian_no_dissipators():
     idmat = sparse.eye(2 ** L)
     h_mat = ha.to_sparse()
 
-    lind_mat = -1j * sparse.kron(idmat, h_mat) + 1j * sparse.kron(h_mat, idmat)
+    lind_mat = -1j * sparse.kron(h_mat, idmat) + 1j * sparse.kron(idmat, h_mat.conj())
 
     np.testing.assert_allclose(lind.to_dense(), lind_mat.todense())
 
@@ -119,18 +119,3 @@ def test_linear_operator():
     assert res_op2[-1] - dm.reshape((hi.n_states, hi.n_states)).trace() == approx(
         0.0, rel=1e-8, abs=1e-8
     )
-
-
-# Construct the operators for Sx, Sy and Sz
-obs_sx = nk.operator.LocalOperator(hi)
-obs_sy = nk.operator.LocalOperator(hi, dtype=complex)
-obs_sz = nk.operator.LocalOperator(hi)
-for i in range(L):
-    obs_sx += nk.operator.LocalOperator(hi, sx, [i])
-    obs_sy += nk.operator.LocalOperator(hi, sy, [i])
-    obs_sz += nk.operator.LocalOperator(hi, sz, [i])
-
-
-sxmat = obs_sx.to_dense()
-symat = obs_sy.to_dense()
-szmat = obs_sz.to_dense()

@@ -344,7 +344,6 @@ Utility functions and classes.
 
    netket.utils.HashableArray
 
-
 .. _callbacks-api:
 
 Callbacks
