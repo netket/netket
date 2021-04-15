@@ -287,10 +287,10 @@ class DenseSymm(Module):
     @compact
     def __call__(self, inputs: Array) -> Array:
         """Applies the symmetrized linear transformation to the inputs along the last dimension.
-        
+
         Args:
           inputs: The nd-array to be transformed.
-          
+
         Returns:
           The transformed input.
         """
@@ -406,8 +406,8 @@ class DenseEquivariant(Module):
 
         return y
 
-      
- class Conv(Module):
+
+class Conv(Module):
     """Convolution Module wrapping lax.conv_general_dilated.
 
     Attributes:
