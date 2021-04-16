@@ -57,3 +57,25 @@ def test_accum_mvhistory():
 
     # check compound master type
     np.testing.assert_allclose(np.array(tree["compound"]), np.arange(10) * 10)
+
+
+def test_append():
+    a1 = nk.utils.MVHistory(create_mock_data_iter(0))
+    a2 = nk.utils.MVHistory(create_mock_data_iter(1), iters=1)
+    a1.append(a2)
+
+    assert set(a1.keys()) == set(a2.keys())
+    for key in a1.keys():
+        assert len(a1[key]) == 2
+    assert all(a1.iters == np.arange(2))
+
+    a0 = a1[-1]
+    for key in a1.keys():
+        assert len(a0[key]) == 1
+    len(a1.iters) == 1
+    a1.iters[0] == 1
+
+    a0 = a1[0:]
+    for key in a1.keys():
+        assert len(a0[key]) == 2
+    assert all(a1.iters == np.arange(2))

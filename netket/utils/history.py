@@ -95,6 +95,11 @@ class MVHistory:
 
                 raise_if_len_not_match(len(val), n_elements, key)
 
+            elif isinstance(val, list):
+                pass
+            else:
+                val = [val]
+
             value_dict[key] = val
             keys.append(key)
 
@@ -116,7 +121,32 @@ class MVHistory:
         return self._len
 
     def __getitem__(self, key):
+        # if its an int corresponding to an element not inside the dict,
+        # treat it as accessing a slice of a single element
+        if isinstance(key, int) and not key in self:
+            return self._get_slice(key)
+
+        # support slice syntax
+        if isinstance(key, slice):
+            return self._get_slice(key)
+
         return self._value_dict[key]
+
+    def _get_slice(self, slce: slice) -> "MVHistory":
+        """
+        get a slice of iterations from this history object
+        """
+        values_sliced = {}
+        for key in self.keys():
+            values_sliced[key] = self[key][slce]
+
+        iters = self.iters[slce]
+
+        hist = MVHistory(values_sliced, iters)
+        hist._single_value = self._single_value
+        hist._value_name = self._value_name
+
+        return hist
 
     def __contains__(self, key):
         return key in self._value_dict
@@ -187,10 +217,10 @@ def append(self: MVHistory, val: MVHistory, it: object = None):
     if not set(self.keys()) == set(val.keys()):
         raise ValueError("cannot concatenate MVHistories with different keys")
 
-    self._value_dict["iters"] = np.concatenate([self.iters, val.iters])
-
     for key in self.keys():
         self._value_dict[key] = np.concatenate([self[key], val[key]])
+
+    self._value_dict["iters"] = np.concatenate([self.iters, val.iters])
 
     self._len = len(self) + len(val)
 
@@ -292,14 +322,6 @@ def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):
         return accum_in_tree(fun, tree_accum, tree.to_dict(), **kwargs)
     else:
         return fun(tree_accum, tree, **kwargs)
-
-
-def accum_histories(accum, data, *, step=0):
-    if accum is None:
-        return History([data], step)
-    else:
-        accum.append(data, it=step)
-        return accum
 
 
 def accum_mvhistories(accum, data, *, step=0):
