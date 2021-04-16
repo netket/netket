@@ -226,13 +226,13 @@ def append(self: MVHistory, values: dict, it: object = None):
 @dispatch.annotations()
 def append(self: MVHistory, val: object, it: object = None):
     if self._single_value and is_scalar(val) or hasattr(val, "__array__"):
-        self.append({"value": val}, it)
+        append(self, {"value": val}, it)
     elif hasattr(val, "to_compound"):
-        self.append(val.to_compound()[1], it)
+        append(self, val.to_compound()[1], it)
     elif hasattr(val, "to_dict"):
-        self.append(val.to_dict(), it)
+        append(self, val.to_dict(), it)
     else:
-        self.append({"value": val}, it)
+        append(self, {"value": val}, it)
 
 
 from functools import partial
