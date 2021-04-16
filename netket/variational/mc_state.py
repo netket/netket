@@ -378,13 +378,20 @@ class MCState(VariationalState):
 
         σ = self.samples
 
+        if jnp.ndim(σ) != 2:
+            σ = σ.reshape((-1, σ.shape[-1]))
+
         if isinstance(Ô, Squared):
             Ô = Ô.parent
             kernel = local_value_squared_kernel
         else:
             kernel = local_value_kernel
 
-        σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
+        σp, mels = Ô.get_conn_padded(np.asarray(σ))
+
+        # add an extra dummy dim so that the apply_fun still gets a batched input after the local_value_vmap
+        # (σp is already has it)
+        σ = jnp.expand_dims(σ, 1)
 
         return _expect(
             self.sampler,
@@ -534,9 +541,6 @@ def _expect(
     mels: jnp.ndarray,
 ) -> Stats:
     σ_shape = σ.shape
-
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
 
     logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
 
