@@ -83,8 +83,9 @@ class SymmGroup(SemiGroup):
 
     def inverse(self):
         """
-        Returns reordered symmgroup where the each element is the inverse of
-        the original symmetry element
+        Returns reordered SymmGroup where the each element is the inverse of
+        the original symmetry element. If g = self[element] and h = self.inverse()[element]
+        gh = I for all elements.
 
         """
 
@@ -102,10 +103,11 @@ class SymmGroup(SemiGroup):
 
     def group_algebra(self):
         """
-        Computes an array relative displacements between poses in automorphisms, s.t.
-        group_algebra[i,j] = inverse[i]*automorphisms[j]
+        Computes an array of relative displacements between orientations in SymmGroup.
+        So for two symmetry elements, g = self[element] and h = self[element2],
+        self[group_algebra[element1,element2]] = g^{-1} h
 
-        This array is flattened and converted to a tuple before returning
+        This array is flattened before returning
 
         """
 
@@ -114,11 +116,24 @@ class SymmGroup(SemiGroup):
         inverse = self.inverse().to_array()
         group_algebra = np.zeros([n_symm, n_symm], dtype=int)
 
-        for i, inv in enumerate(inverse):
-            for j, perm in enumerate(automorphisms):
-                for k, filter in enumerate(automorphisms):
-                    if np.all(perm[inv] == filter):
-                        group_algebra[i, j] = k
+        inv_t = inverse.transpose()
+        auto_t = automorphisms.transpose()
+        inv_auto = auto_t[inv_t].reshape(-1, n_symm * n_symm).transpose()
+
+        hash_auto = {
+            hash(element.tobytes()): index
+            for index, element in enumerate(automorphisms)
+        }
+
+        inds = [
+            (index, hash_auto[hash(element.tobytes())])
+            for index, element in enumerate(inv_auto)
+            if hash(element.tobytes()) in hash_auto
+        ]
+
+        inds = np.asarray(inds)
+
+        group_algebra[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
 
         return HashableArray(group_algebra.ravel())
 
