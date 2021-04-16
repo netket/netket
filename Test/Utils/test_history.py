@@ -15,6 +15,20 @@ class MockCompoundType:
         return "field2", {"field1": self.field1, "field2": self.field2}
 
 
+@dataclass
+class MockDictType:
+    field1: int
+    field2: float
+
+    def to_dict(self):
+        return {"field1": self.field1, "field2": self.field2}
+
+
+@dataclass
+class MockClass:
+    field1: int
+
+
 def create_mock_data_iter(iter):
     return {
         "int": iter,
@@ -23,6 +37,9 @@ def create_mock_data_iter(iter):
         "jaxcomplex": jnp.array(iter + 1j * iter),
         "dict": {"int": iter},
         "compound": MockCompoundType(iter, iter * 10),
+        "mockdict": MockDictType(iter, iter * 10),
+        "mock": MockClass(iter),
+        "matrix": np.full((3, 4), iter),
     }
 
 

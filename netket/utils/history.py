@@ -16,6 +16,8 @@ import numpy as np
 from numbers import Number
 import jax.numpy as jnp
 
+from plum import dispatch
+
 from .numbers import dtype, is_scalar
 
 
@@ -39,7 +41,7 @@ class MVHistory:
     """
 
     def __init__(self, values=[], iters=None, dtype=None, iter_dtype=None):
-        value_name = None
+        main_value_name = None
         single_value = False
 
         if iters is None:
@@ -65,6 +67,9 @@ class MVHistory:
         elif hasattr(values, "to_compound"):
             main_value_name, values = values.to_compound()
 
+        elif hasattr(values, "to_dict"):
+            values = values.to_dict()
+
         elif isinstance(values, dict) or hasattr(values, "items"):
             pass
 
@@ -74,13 +79,14 @@ class MVHistory:
             single_value = True
 
         value_dict = {"iters": iters}
+        keys = []
         for (key, val) in values.items():
             if key == "iters":
                 raise ValueError("cannot have a field called iters")
 
             if is_scalar(val):
                 raise_if_len_not_match(1, n_elements, key)
-                val = np.asarray(val, dtype=dtype)
+                val = np.asarray([val], dtype=dtype)
 
             elif hasattr(val, "__array__"):
                 val = np.asarray(val, dtype=dtype)
@@ -90,12 +96,13 @@ class MVHistory:
                 raise_if_len_not_match(len(val), n_elements, key)
 
             value_dict[key] = val
+            keys.append(key)
 
         self._value_dict = value_dict
         self._value_name = main_value_name
         self._len = n_elements
         self._single_value = single_value
-        self._keys = list(value_dict.keys())
+        self._keys = keys
 
     @property
     def iters(self):
@@ -126,41 +133,7 @@ class MVHistory:
             it: the time corresponding to this new value. If
                 not defined, increment by 1.
         """
-        if isinstance(val, MVHistory):
-            if not set(self.keys()) == set(val.keys()):
-                raise ValueError("cannot concatenate MVHistories with different keys")
-
-            self._value_dict["iters"] = np.concatenate([self.iters, val.iters])
-
-            for key in self.keys():
-                self._value_dict[key] = np.concatenate([self[key], val[key]])
-
-            self._len = len(self) + len(val)
-            return
-
-        if self._single_value and _is_scalar(val):
-            val_dict = {"value": val}
-        else:
-            _, val_dict = val.to_compound()
-
-        for key in val_dict.keys():
-            try:
-                self[key].resize(len(self) + 1)
-            except:
-                self._value_dict[key] = np.resize(self[key], (len(self) + 1))
-
-            self[key][-1] = val_dict[key]
-
-        try:
-            self.iters.resize(len(self.iters) + 1)
-        except:
-            self._value_dict["iters"] = np.resize(self.iters, (len(self.iters) + 1))
-
-        if it is None:
-            it = self.iters[-1] - self.iters[-2]
-
-        self.iters[-1] = it
-        self._len += 1
+        append(self, val, it)
 
     def get(self):
         """
@@ -207,6 +180,59 @@ class MVHistory:
 
     def __str__(self):
         return f"MVHistory(keys={self.keys()}, n_iters={len(self.iters)})"
+
+
+@dispatch.annotations()
+def append(self: MVHistory, val: MVHistory, it: object = None):
+    if not set(self.keys()) == set(val.keys()):
+        raise ValueError("cannot concatenate MVHistories with different keys")
+
+    self._value_dict["iters"] = np.concatenate([self.iters, val.iters])
+
+    for key in self.keys():
+        self._value_dict[key] = np.concatenate([self[key], val[key]])
+
+    self._len = len(self) + len(val)
+
+
+@dispatch.annotations()
+def append(self: MVHistory, values: dict, it: object = None):
+    for key, val in values.items():
+        _vals = self._value_dict[key]
+
+        if isinstance(_vals, list):
+            _vals.append(val)
+        elif isinstance(_vals, np.ndarray):
+            new_shape = (len(_vals) + 1,) + _vals.shape[1:]
+            try:
+                _vals.resize(new_shape)
+            except:
+                _vals = np.resize(_vals, new_shape)
+                self._value_dict[key] = _vals
+
+            _vals[-1] = val
+        else:
+            raise TypeError(f"Unknown accumulator type {type(_vals)} for key {key}.")
+
+    try:
+        self.iters.resize(len(self.iters) + 1)
+    except:
+        self._value_dict["iters"] = np.resize(self.iters, (len(self.iters) + 1))
+
+    self.iters[-1] = it
+    self._len += 1
+
+
+@dispatch.annotations()
+def append(self: MVHistory, val: object, it: object = None):
+    if self._single_value and is_scalar(val) or hasattr(val, "__array__"):
+        self.append({"value": val}, it)
+    elif hasattr(val, "to_compound"):
+        self.append(val.to_compound()[1], it)
+    elif hasattr(val, "to_dict"):
+        self.append(val.to_dict(), it)
+    else:
+        self.append({"value": val}, it)
 
 
 from functools import partial

@@ -15,7 +15,7 @@ def dtype(x: Number):
     return type(x)
 
 
-@dispatch(ArrayT)
+@dispatch.annotations()
 def dtype(x: ArrayT):
     return x.dtype
 
@@ -23,7 +23,8 @@ def dtype(x: ArrayT):
 dispatch.annotations()
 
 
-def is_scalar(x: Any):
+@dispatch.annotations()
+def is_scalar(x: object):
     return False
 
 
@@ -32,6 +33,6 @@ def is_scalar(x: Number):
     return True
 
 
-@dispatch(ArrayT)
+@dispatch.annotations()
 def is_scalar(x: ArrayT):
     return x.ndim == 0
