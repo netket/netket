@@ -12,11 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import warnings
+from textwrap import dedent
+
 from distutils.version import LooseVersion as _LooseVersion
+
+_mpi4py_loaded = False
+_mpi4jax_loaded = False
 
 try:
     from mpi4py import MPI
 
+    _mpi4py_loaded = True
     mpi_available = True
 
     #  We don't use the standard communicator because Jax and
@@ -39,6 +47,8 @@ try:
 
     import mpi4jax
 
+    _mpi4jax_loaded = True
+
 
 except ImportError:
     mpi_available = False
@@ -52,6 +62,36 @@ except ImportError:
         COMM_WORLD = None
 
     MPI = FakeMPI()
+
+    # Try to detect if we are running under MPI and warn that mpi4py is not installed
+    _MPI_ENV_VARIABLES = [
+        "OMPI_COMM_WORLD_SIZE",
+        "I_MPI_HYDRA_HOST_FILE",
+        "MPI_LOCALRANKID",
+    ]
+    for varname in _MPI_ENV_VARIABLES:
+        if varname in os.environ:
+            warnings.warn(
+                dedent(
+                    f"""
+                MPI WARNING: It seems you might be running Python with MPI, but dependencies required
+                by NetKet to enable MPI support are missing or cannot be loaded, so MPI support is
+                disabled.
+
+                NetKet will not be taking advantage of MPI, and every MPI rank will execute the
+                same code of the others.
+
+                MPI dependencies are:
+                  - mpi4py>=3.0.1     ....... {"available" if _mpi4py_loaded else "missing"}
+                  - mpi4jax>=0.2.11   ....... {"available" if _mpi4jax_loaded else "missing"}
+
+                To enable MPI support, install the missing dependencies.
+                To learn more about MPI and NetKet consult the documentation at 
+                https://www.netket.org/docs/getting_started.html
+                """
+                )
+            )
+
 
 if mpi_available:
     _min_mpi4jax_version = "0.2.11"
