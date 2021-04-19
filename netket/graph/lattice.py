@@ -21,10 +21,17 @@ import networkx as _nx
 import warnings
 from typing import Tuple, Union, Optional
 
+cutoff_tol = 1e-5
+"""Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
+This is necessary because of floating-point errors when computing the distance in non-trivial 
+lattices.
+"""
 
-def get_edges(atoms_positions, cutoff, tol=1e-5):
+
+def get_edges(atoms_positions, cutoff):
+    cutoff = cutoff + cutoff_tol
     kdtree = cKDTree(atoms_positions)
-    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff + tol)
+    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
     id1, id2, values = find(triu(dist_matrix))
     pairs = []
     min_dists = {}  # keys are nodes, values are min dists
