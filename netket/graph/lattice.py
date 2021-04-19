@@ -235,12 +235,12 @@ class Lattice(NetworkX):
         self,
         ax=None,
         figsize: Optional[Tuple[Union[int, float]]] = None,
-        node_color: Optional[str] = "#1f78b4",
-        node_size: Optional[int] = 300,
-        edge_color: Optional[str] = "k",
-        curvature: Optional[float] = 0.2,
-        font_size: Optional[int] = 12,
-        font_color: Optional[str] = "k",
+        node_color: str = "#1f78b4",
+        node_size: int = 300,
+        edge_color: str = "k",
+        curvature: float = 0.2,
+        font_size: int = 12,
+        font_color: str = "k",
     ):
         """
         Draws the ``Lattice`` graph
