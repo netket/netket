@@ -254,7 +254,19 @@ class Lattice(NetworkX):
         """
         import matplotlib.pyplot as plt
 
-        positions = {n: self.site_to_coord(n) for n in self.nodes()}
+        # Check if lattice is 1D or 2D... or not
+        ndim = len(self._atoms[0]["r_coord"])
+        if ndim == 1:
+            positions = {
+                n: _np.pad(self.site_to_coord(n), (0, 1), "constant")
+                for n in self.nodes()
+            }
+        elif ndim == 2:
+            positions = {n: self.site_to_coord(n) for n in self.nodes()}
+        else:
+            raise ValueError(
+                f"Make sure that the graph is 1D or 2D in order to be drawn. Now it is {ndim}D"
+            )
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize)
 
@@ -268,6 +280,7 @@ class Lattice(NetworkX):
             ax=ax,
             arrowsize=0.1,
             edge_color=edge_color,
+            node_size=node_size,
         )
         _nx.draw_networkx_nodes(
             self.graph, pos=positions, ax=ax, node_color=node_color, node_size=node_size
