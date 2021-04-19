@@ -81,8 +81,8 @@ except ImportError:
                     by NetKet to enable MPI support are missing or cannot be loaded, so MPI support is
                     disabled.
 
-                    NetKet will not be taking advantage of MPI, and every MPI rank will execute the
-                    same code of the others.
+                    NetKet will not take advantage of MPI, and every MPI rank will execute the
+                    same code independently.
 
                     MPI dependencies are:
                       - mpi4py>=3.0.1     ....... {"available" if _mpi4py_loaded else "missing"}
