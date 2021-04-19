@@ -34,7 +34,7 @@ from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
-from netket.utils import flax as flax_utils, n_nodes, maybe_wrap_module
+from netket.utils import flax as flax_utils, n_nodes, maybe_wrap_module, deprecated
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
 from netket.optimizer import SR
 from netket.operator import (
@@ -366,11 +366,21 @@ class MCState(VariationalState):
             self.sample()
         return self._samples
 
-    def evaluate(self, σ: jnp.ndarray) -> jnp.ndarray:
+    def log_value(self, σ: jnp.ndarray) -> jnp.ndarray:
         """
-        Evaluate the variational state given a batch of states.
+        Evaluate the variational state for a batch of states and return
+        the logarithm of the probability amplitude for those inputs.
+
+        Given a batch of inputs (Nb, N), returns a batch of outputs (Nb,).
         """
         return apply(self._apply_fun, self.variables, σ)
+
+    @deprecated("Use MCState.log_value(σ) instead.")
+    def evaluate(self, σ: jnp.ndarray) -> jnp.ndarray:
+        """
+        DEPRECATED: use log_value instead.
+        """
+        return self.log_value(σ)
 
     def expect(self, Ô: AbstractOperator) -> Stats:
         if not self.hilbert == Ô.hilbert:
