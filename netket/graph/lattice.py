@@ -19,9 +19,7 @@ import numpy as _np
 import itertools
 import networkx as _nx
 import warnings
-from typing import Tuple, Union
-import matplotlib
-import matplotlib.pyplot as plt
+from typing import Tuple, Union, Optional
 
 
 def get_edges(atoms_positions, cutoff, tol=1e-5):
@@ -227,22 +225,38 @@ class Lattice(NetworkX):
         return self._atoms_coord
 
     def draw(
-        self, figsize: Tuple[Union[int, float]] = None, ax: matplotlib.axes.Axes = None
+        self,
+        ax=None,
+        figsize: Optional[Tuple[Union[int, float]]] = None,
+        node_color: Optional[str] = "#1f78b4",
+        node_size: Optional[int] = 300,
+        edge_color: Optional[str] = "k",
+        curvature: Optional[float] = 0.2,
+        font_size: Optional[int] = 12,
+        font_color: Optional[str] = "k",
     ):
         """
         Draws the ``Lattice`` graph
 
         Args:
-            figsize: (width, height) tuple of the generated figure.
             ax: Matplotlib axis object.
+            figsize: (width, height) tuple of the generated figure.
+            node_color: String with the colour of the nodes.
+            node_size: Area of the nodes (as in matplotlib.pyplot.scatter).
+            edge_color: String with the colour of the edges.
+            curvature: A Bezier curve is fit, where the "height" of the curve is `curvature`
+                times the "length" of the curvature.
+            font_size: fontsize of the labels for each node.
+            font_color: Colour of the font used to label nodes.
 
         Returns:
             Matplotlib axis object containing the graph's drawing.
         """
+        import matplotlib.pyplot as plt
+
         positions = {n: self.site_to_coord(n) for n in self.nodes()}
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize)
-        _nx.draw_networkx_nodes(self.graph, pos=positions, ax=ax)
 
         # FIXME (future) as of 11Apr2021, networkx can draw curved
         # edges only for directed graphs.
@@ -250,11 +264,17 @@ class Lattice(NetworkX):
             self.graph.to_directed(),
             pos=positions,
             edgelist=self.edges(),
-            connectionstyle="arc3,rad=0.2",
+            connectionstyle=f"arc3,rad={curvature}",
             ax=ax,
             arrowsize=0.1,
+            edge_color=edge_color,
         )
-        _nx.draw_networkx_labels(self.graph, pos=positions, ax=ax)
+        _nx.draw_networkx_nodes(
+            self.graph, pos=positions, ax=ax, node_color=node_color, node_size=node_size
+        )
+        _nx.draw_networkx_labels(
+            self.graph, pos=positions, ax=ax, font_size=font_size, font_color=font_color
+        )
         ax.axis("equal")
         return ax
 
