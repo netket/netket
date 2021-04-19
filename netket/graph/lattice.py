@@ -24,9 +24,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-def get_edges(atoms_positions, cutoff):
+def get_edges(atoms_positions, cutoff, tol=1e-5):
     kdtree = cKDTree(atoms_positions)
-    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
+    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff + tol)
     id1, id2, values = find(triu(dist_matrix))
     pairs = []
     min_dists = {}  # keys are nodes, values are min dists
@@ -81,9 +81,8 @@ def create_points(basis_vectors, extent, atom_coords, pbc):
 
 def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent):
     atoms_positions = dicts_to_array(atoms, "r_coord")
-    tol = 1e-5
     naive_edges = get_edges(
-        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max() + tol
+        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max()
     )
     true_edges = []
     for node1, node2 in naive_edges:
