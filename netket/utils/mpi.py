@@ -18,6 +18,8 @@ from textwrap import dedent
 
 from distutils.version import LooseVersion as _LooseVersion
 
+from .config_flags import config
+
 _mpi4py_loaded = False
 _mpi4jax_loaded = False
 
@@ -64,33 +66,36 @@ except ImportError:
     MPI = FakeMPI()
 
     # Try to detect if we are running under MPI and warn that mpi4py is not installed
-    _MPI_ENV_VARIABLES = [
-        "OMPI_COMM_WORLD_SIZE",
-        "I_MPI_HYDRA_HOST_FILE",
-        "MPI_LOCALRANKID",
-    ]
-    for varname in _MPI_ENV_VARIABLES:
-        if varname in os.environ:
-            warnings.warn(
-                dedent(
-                    f"""
-                MPI WARNING: It seems you might be running Python with MPI, but dependencies required
-                by NetKet to enable MPI support are missing or cannot be loaded, so MPI support is
-                disabled.
+    if config.FLAGS["NETKET_MPI_WARNING"]:
+        _MPI_ENV_VARIABLES = [
+            "OMPI_COMM_WORLD_SIZE",
+            "I_MPI_HYDRA_HOST_FILE",
+            "MPI_LOCALRANKID",
+        ]
+        for varname in _MPI_ENV_VARIABLES:
+            if varname in os.environ:
+                warnings.warn(
+                    dedent(
+                        f"""
+                    MPI WARNING: It seems you might be running Python with MPI, but dependencies required
+                    by NetKet to enable MPI support are missing or cannot be loaded, so MPI support is
+                    disabled.
 
-                NetKet will not be taking advantage of MPI, and every MPI rank will execute the
-                same code of the others.
+                    NetKet will not be taking advantage of MPI, and every MPI rank will execute the
+                    same code of the others.
 
-                MPI dependencies are:
-                  - mpi4py>=3.0.1     ....... {"available" if _mpi4py_loaded else "missing"}
-                  - mpi4jax>=0.2.11   ....... {"available" if _mpi4jax_loaded else "missing"}
+                    MPI dependencies are:
+                      - mpi4py>=3.0.1     ....... {"available" if _mpi4py_loaded else "missing"}
+                      - mpi4jax>=0.2.11   ....... {"available" if _mpi4jax_loaded else "missing"}
 
-                To enable MPI support, install the missing dependencies.
-                To learn more about MPI and NetKet consult the documentation at 
-                https://www.netket.org/docs/getting_started.html
-                """
+                    To enable MPI support, install the missing dependencies.
+                    To learn more about MPI and NetKet consult the documentation at 
+                    https://www.netket.org/docs/getting_started.html
+
+                    To disable this warning, set the environment variable `NETKET_MPI_WARNING=0`
+                    """
+                    )
                 )
-            )
 
 
 if mpi_available:
