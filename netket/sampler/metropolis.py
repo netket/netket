@@ -168,7 +168,7 @@ class MetropolisSamplerState(SamplerState):
         else:
             acc_string = ""
 
-        return f"MetropolisNumpySamplerState({acc_string}rng state={self.rng})"
+        return f"MetropolisSamplerState({acc_string}rng state={self.rng})"
 
 
 @struct.dataclass
