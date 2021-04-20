@@ -41,6 +41,7 @@ jobs:
 
     # Create an artifact of the html output.
     - uses: actions/upload-artifact@v1
+      if: github.event.pull_request.head.repo.full_name != 'netket/netket'
       with:
         name: DocumentationHTML
         path: docs/_build/html/
@@ -57,16 +58,16 @@ jobs:
         cname: www.netket.org
 
     - name: Deploy Website and Docs Preview
-      if: success() && github.ref != 'refs/heads/master'
+      if: success() && github.ref != 'refs/heads/master' && github.event.pull_request.head.repo.full_name == 'netket/netket'
       uses: peaceiris/actions-gh-pages@v3
       with:
         publish_branch: gh-pages
-        deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: docs/_build/html/
         destination_dir: preview/${{ steps.determine-branch.outputs.branch }}
 
     - name: Comment on PR 
-      if: success() && github.ref != 'refs/heads/master'
+      if: success() && github.ref != 'refs/heads/master' && github.event.pull_request.head.repo.full_name == 'netket/netket' 
       uses: marocchino/sticky-pull-request-comment@v2
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -76,7 +77,3 @@ jobs:
           https://netket.github.io/netket/preview/${{ steps.determine-branch.outputs.branch }}
 
           Once the PR is closed or merged, the preview will be automatically deleted.
-
-    - name: Setup tmate session
-      if: ${{ failure() }}
-      uses: mxschmitt/action-tmate@v3
