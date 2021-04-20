@@ -1,13 +1,14 @@
 from numbers import Number
 
-from typing import Union, Any
-from plum import dispatch
+from typing import Any
+from plum import dispatch, Union
 
 import numpy as np
 import jax
 import jaxlib
 
-ArrayT = {np.ndarray, jaxlib.xla_extension.DeviceArray, jax.core.Tracer}
+# TODO: when next version of Plum is released, use typing.Union and Union[...]
+ArrayT = Union(np.ndarray, jaxlib.xla_extension.DeviceArray, jax.core.Tracer)
 
 
 @dispatch.annotations()
@@ -18,9 +19,6 @@ def dtype(x: Number):
 @dispatch.annotations()
 def dtype(x: ArrayT):
     return x.dtype
-
-
-dispatch.annotations()
 
 
 @dispatch.annotations()

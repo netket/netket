@@ -31,7 +31,7 @@ def raise_if_len_not_match(length, expected_length, string):
         )
 
 
-class MVHistory:
+class History:
     """
     A class to store a time-series of scalar data.
 
@@ -132,7 +132,7 @@ class MVHistory:
 
         return self._value_dict[key]
 
-    def _get_slice(self, slce: slice) -> "MVHistory":
+    def _get_slice(self, slce: slice) -> "History":
         """
         get a slice of iterations from this history object
         """
@@ -142,7 +142,7 @@ class MVHistory:
 
         iters = self.iters[slce]
 
-        hist = MVHistory(values_sliced, iters)
+        hist = History(values_sliced, iters)
         hist._single_value = self._single_value
         hist._value_name = self._value_name
 
@@ -202,18 +202,18 @@ class MVHistory:
 
     def __repr__(self):
         return (
-            "MVHistory("
+            "History("
             + f"\n   keys  = {self.keys()}, "
             + f"\n   iters = {self.iters},"
             + f"\n)"
         )
 
     def __str__(self):
-        return f"MVHistory(keys={self.keys()}, n_iters={len(self.iters)})"
+        return f"History(keys={self.keys()}, n_iters={len(self.iters)})"
 
 
 @dispatch.annotations()
-def append(self: MVHistory, val: MVHistory, it: object = None):
+def append(self: History, val: History, it: object = None):
     if not set(self.keys()) == set(val.keys()):
         raise ValueError("cannot concatenate MVHistories with different keys")
 
@@ -226,7 +226,7 @@ def append(self: MVHistory, val: MVHistory, it: object = None):
 
 
 @dispatch.annotations()
-def append(self: MVHistory, values: dict, it: object = None):
+def append(self: History, values: dict, it: object = None):
     for key, val in values.items():
         _vals = self._value_dict[key]
 
@@ -234,6 +234,8 @@ def append(self: MVHistory, values: dict, it: object = None):
             _vals.append(val)
         elif isinstance(_vals, np.ndarray):
             new_shape = (len(_vals) + 1,) + _vals.shape[1:]
+            # try to resize in place the buffer so that we don't reallocate
+            # and if we fail, resize tby reallocating to a new buffer.
             try:
                 _vals.resize(new_shape)
             except:
@@ -254,7 +256,7 @@ def append(self: MVHistory, values: dict, it: object = None):
 
 
 @dispatch.annotations()
-def append(self: MVHistory, val: object, it: object = None):
+def append(self: History, val: object, it: object = None):
     if self._single_value and is_scalar(val) or hasattr(val, "__array__"):
         append(self, {"value": val}, it)
     elif hasattr(val, "to_compound"):
@@ -324,12 +326,12 @@ def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):
         return fun(tree_accum, tree, **kwargs)
 
 
-def accum_mvhistories(accum, data, *, step=0):
+def accum_histories(accum, data, *, step=0):
     if accum is None:
-        return MVHistory(data, step)
+        return History(data, step)
     else:
         accum.append(data, it=step)
         return accum
 
 
-accum_histories_in_tree = partial(accum_in_tree, accum_mvhistories)
+accum_histories_in_tree = partial(accum_in_tree, accum_histories)

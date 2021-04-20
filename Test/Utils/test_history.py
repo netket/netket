@@ -60,8 +60,8 @@ def test_accum_mvhistory():
 
 
 def test_append():
-    a1 = nk.utils.MVHistory(create_mock_data_iter(0))
-    a2 = nk.utils.MVHistory(create_mock_data_iter(1), iters=1)
+    a1 = nk.utils.History(create_mock_data_iter(0))
+    a2 = nk.utils.History(create_mock_data_iter(1), iters=1)
     a1.append(a2)
 
     assert set(a1.keys()) == set(a2.keys())
