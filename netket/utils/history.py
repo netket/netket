@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union, Any, List, Tuple, Dict, Optional
+
 import numpy as np
 from numbers import Number
 import jax.numpy as jnp
@@ -19,6 +21,7 @@ import jax.numpy as jnp
 from plum import dispatch
 
 from .numbers import dtype, is_scalar
+from .types import Array, DType
 
 
 def raise_if_len_not_match(length, expected_length, string):
@@ -33,18 +36,61 @@ def raise_if_len_not_match(length, expected_length, string):
 
 class History:
     """
-    A class to store a time-series of scalar data.
+    A class to store a time-series of arbitrary data.
 
-    It has two member variables, `iter` and `values`.
-    The first stores the `time` of the time series, while `values`
-    stores the values at each iteration.
+    An History object stores several time-series all sharing the same
+    time axis. History behaves like a dictionary, where the various key
+    index the values (y axis) of the time-series. The time-axis is accessed
+    through the attribute `History.iters`.
+
+    It's possible to label one time-serie (one key) as the main value, so that
+    when converting to numpy array (for example for plotting with pyplot) that
+    axis is automatically picked by default.
+
+    If only one time-series is provided, without a key, then its name will
+    be `value`.
     """
 
-    def __init__(self, values=[], iters=None, dtype=None, iter_dtype=None):
-        main_value_name = None
+    def __init__(
+        self,
+        values: Any = None,
+        iters: Optional[Union[list, Array]] = None,
+        dtype: Optional[DType] = None,
+        iter_dtype: Optional[DType] = None,
+        main_value_name: Optional[str] = None,
+    ):
+        """
+        Creates a new History object.
+
+        Values should be an arbitrary type or container to initialize the
+        History with.
+        By default assumes that values correspond to the first iteration `0`.
+        If `values` is a list or collection of lists, an array or range should
+        be passed to values with the correct length.
+
+        Optionally it's possible to specify the dtype of the data and of the
+        time-axis.
+
+        Args:
+            values: a type/container of types containing the value at the first
+                iteration, or an iterable/container of iterables
+                containing the values at all iterations (in the latter, values
+                must also be specified).
+            iters: an optional iterable of iterations at which values correspond.
+                If unspecified, assumes that values are logged at only one iteration.
+            dtype: If no values or iters are passed, uses this dtype to store data
+                if numerical
+            iter_dtype: If no values or iters are passed, uses this dtype to store
+                iteration numbers
+            main_value_name: If data is a dict or object with to_dict method, this
+                optional string labels an entry as being the main one.
+        """
         single_value = False
 
-        if iters is None:
+        if values is None and iters is None:
+            values = []
+            iters = []
+        elif iters is None:
             iters = 0
 
         if is_scalar(iters):
@@ -110,17 +156,17 @@ class History:
         self._keys = keys
 
     @property
-    def iters(self):
+    def iters(self) -> Array:
         return self._value_dict["iters"]
 
     @property
-    def values(self):
+    def values(self) -> Array:
         return self._value_dict[self._value_name]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._len
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Array:
         # if its an int corresponding to an element not inside the dict,
         # treat it as accessing a slice of a single element
         if isinstance(key, int) and not key in self:
@@ -148,13 +194,13 @@ class History:
 
         return hist
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
         return key in self._value_dict
 
-    def keys(self):
+    def keys(self) -> List:
         return self._keys
 
-    def append(self, val, it=None):
+    def append(self, val: Any, it: Optional[Number] = None):
         """
         Append another value to this history object.
 
@@ -165,13 +211,13 @@ class History:
         """
         append(self, val, it)
 
-    def get(self):
+    def get(self) -> Tuple[Array, Array]:
         """
         Returns a tuple containing times and values of this history object
         """
         return self.iters, self.values
 
-    def to_dict(self):
+    def to_dict(self) -> Dict:
         """
         Converts the history object to dict.
 
@@ -179,12 +225,12 @@ class History:
         """
         return self._value_dict
 
-    def __array__(self, *args, **kwargs):
+    def __array__(self, *args, **kwargs) -> Array:
         """
         Automatically transform this object to a numpy array when calling
         asarray, by only considering the values and neglecting the times.
         """
-        return np.array(self.values, *args, **kwargs)
+        return np.asarray(self.values, *args, **kwargs)
 
     def __iter__(self):
         """
