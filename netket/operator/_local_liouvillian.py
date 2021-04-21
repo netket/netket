@@ -103,6 +103,11 @@ class LocalLiouvillian(AbstractSuperOperator):
         """The list of local operators in this Liouvillian"""
         return self._jump_ops
 
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        return self._max_conn_size
+
     def _compute_hnh(self):
         # There is no i here because it's inserted in the kernel
         Hnh = 1.0 * self._H
@@ -113,7 +118,7 @@ class LocalLiouvillian(AbstractSuperOperator):
 
         self._Hnh = Hnh.collect()
 
-        max_conn_size = self._max_dissipator_conn_size + Hnh.max_conn_size
+        max_conn_size = self._max_dissipator_conn_size + 2 * Hnh.max_conn_size
         self._max_conn_size = max_conn_size
         self._xprime = np.empty((max_conn_size, self.hilbert.size))
         self._xr_prime = np.empty((max_conn_size, self.hilbert.physical.size))
