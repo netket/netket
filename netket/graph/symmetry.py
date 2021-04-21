@@ -84,7 +84,7 @@ class SymmGroup(SemiGroup):
     def inverse(self):
         """
         Returns reordered SymmGroup where the each element is the inverse of
-        the original symmetry element. If :code:`g = self[element]` and :code:`h = self.inverse()[element]`,
+        the original symmetry element. If :code:`g = self[element]` and :code:`h = self[self.inverse()[element]]`,
         then :code:`gh = product(g, h)` will act as the identity on the sites of the graph, i.e., :code:`np.all(gh(sites) == sites)`.
 
         """
@@ -99,21 +99,21 @@ class SymmGroup(SemiGroup):
                 if np.all(perm_sq == np.arange(len(perm_sq))):
                     inverse[i] = j
 
-        return SymmGroup([self.elems[i] for i in inverse], self.graph)
+        return inverse
 
-    def flattened_Cayley(self):
+    def product_table(self):
         """
-        Returns a flattened Cayley table where the columns use the involution
-        of the group. If :code:`g = self.inverse()[element]', :code:`h = self.inverse()[element2]`
-        and code:`u = self[flattened_Cayley()[element*n_symm + element2]], we are
+        Returns a product table over the group where the columns use the involution
+        of the group. If :code:`g = self[self.inverse()[element]]', :code:`h = self[element2]`
+        and code:`u = self[product_table()[element,element2]], we are
         solving the equation u = gh
 
         """
 
         automorphisms = self.to_array()
         n_symm = len(automorphisms)
-        inverse = self.inverse().to_array()
-        group_algebra = np.zeros([n_symm, n_symm], dtype=int)
+        inverse = self.to_array()[self.inverse()]
+        product_table = np.zeros([n_symm, n_symm], dtype=int)
 
         inv_t = inverse.transpose()
         auto_t = automorphisms.transpose()
@@ -132,9 +132,9 @@ class SymmGroup(SemiGroup):
 
         inds = np.asarray(inds)
 
-        group_algebra[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
+        product_table[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
 
-        return HashableArray(group_algebra.ravel())
+        return product_table
 
     @property
     def shape(self):
