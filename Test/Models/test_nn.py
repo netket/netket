@@ -65,11 +65,11 @@ def test_DenseSymm(symmetries, use_bias):
 def test_DenseEquivariant(symmetries, use_bias, lattice):
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
-    ga = perms.group_algebra()
+    fc = perms.flattened_Cayley()
     n_symm = np.asarray(perms).shape[0]
 
     ma = nk.nn.DenseEquivariant(
-        group_algebra=ga,
+        flattened_Cayley=fc,
         in_features=1,
         out_features=1,
         use_bias=use_bias,
@@ -78,10 +78,12 @@ def test_DenseEquivariant(symmetries, use_bias, lattice):
 
     pars = ma.init(nk.jax.PRNGKey(), np.random.normal(0, 1, [1, n_symm]))
 
-    # inverse ga computes chosen_op = gh^-1 instead of g^-1h from usual group algebra
+    # inverse cayley computes chosen_op = gh^-1 instead of g^-1h
     chosen_op = np.random.randint(n_symm)
-    inverse_ga = np.asarray(perms.inverse().group_algebra()).reshape(n_symm, n_symm)
-    sym_op = np.where(inverse_ga == chosen_op, 1.0, 0.0)
+    inverse_Cayley = np.asarray(perms.inverse().flattened_Cayley()).reshape(
+        n_symm, n_symm
+    )
+    sym_op = np.where(inverse_Cayley == chosen_op, 1.0, 0.0)
 
     v = random.normal(random.PRNGKey(0), [3, n_symm])
     v_trans = dot(v, sym_op)
