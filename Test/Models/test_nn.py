@@ -20,6 +20,7 @@ import jax.random as random
 import numpy as np
 import scipy.sparse
 from jax.lax import dot
+from netket.graph.symmetry import SymmGroup
 
 import pytest
 
@@ -65,11 +66,11 @@ def test_DenseSymm(symmetries, use_bias):
 def test_DenseEquivariant(symmetries, use_bias, lattice):
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
-    fc = perms.flattened_Cayley()
+    pt = perms.product_table()
     n_symm = np.asarray(perms).shape[0]
 
     ma = nk.nn.DenseEquivariant(
-        flattened_Cayley=fc,
+        symmetry_info=pt.ravel(),
         in_features=1,
         out_features=1,
         use_bias=use_bias,
@@ -78,12 +79,11 @@ def test_DenseEquivariant(symmetries, use_bias, lattice):
 
     pars = ma.init(nk.jax.PRNGKey(), np.random.normal(0, 1, [1, n_symm]))
 
-    # inverse cayley computes chosen_op = gh^-1 instead of g^-1h
+    # inv_pt computes chosen_op = gh^-1 instead of g^-1h
     chosen_op = np.random.randint(n_symm)
-    inverse_Cayley = np.asarray(perms.inverse().flattened_Cayley()).reshape(
-        n_symm, n_symm
-    )
-    sym_op = np.where(inverse_Cayley == chosen_op, 1.0, 0.0)
+    inverse = SymmGroup([perms.elems[i] for i in perms.inverse()], graph=lattice(3))
+    inv_pt = inverse.product_table()
+    sym_op = np.where(inv_pt == chosen_op, 1.0, 0.0)
 
     v = random.normal(random.PRNGKey(0), [3, n_symm])
     v_trans = dot(v, sym_op)
