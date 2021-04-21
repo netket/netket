@@ -101,13 +101,12 @@ class SymmGroup(SemiGroup):
 
         return SymmGroup([self.elems[i] for i in inverse], self.graph)
 
-    def group_algebra(self):
+    def flattened_Cayley(self):
         """
-        Computes an array of relative displacements between orientations in SymmGroup.
-        So for two symmetry elements, g = self[element] and h = self[element2],
-        self[group_algebra[element1,element2]] = g^{-1} h
-
-        This array is flattened before returning
+        Returns a flattened Cayley table where the columns use the involution
+        of the group. If :code:`g = self.inverse()[element]', :code:`h = self.inverse()[element2]`
+        and code:`u = self[flattened_Cayley()[element*n_symm + element2]], we are
+        solving the equation u = gh
 
         """
 
