@@ -84,8 +84,8 @@ class SymmGroup(SemiGroup):
     def inverse(self):
         """
         Returns reordered SymmGroup where the each element is the inverse of
-        the original symmetry element. If g = self[element] and h = self.inverse()[element]
-        gh = I for all elements.
+        the original symmetry element. If :code:`g = self[element]` and :code:`h = self.inverse()[element]`,
+        then :code:`gh = product(g, h)` will act as the identity on the sites of the graph, i.e., :code:`np.all(gh(sites) == sites)`.
 
         """
 
