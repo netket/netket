@@ -368,8 +368,13 @@ class MCState(VariationalState):
 
     def log_value(self, σ: jnp.ndarray) -> jnp.ndarray:
         """
-        Evaluate the variational state for a batch of states and return
-        the logarithm of the probability amplitude for those inputs.
+        Evaluate the variational state for a batch of states and returns
+        the logarithm of the amplitude of the quantum state. For pure states,
+        this is :math:`log(<σ|ψ>)`, whereas for mixed states this is
+        :math:`log(<σr|ρ|σc>)`, where ψ and ρ are respectively a pure state
+        (wavefunction) and a mixed state (density matrix).
+        For the density matrix, the left and right-acting states (row and column)
+        are obtained as :code:`σr=σ[::,0:N]` and :code:`σc=σ[::,N:]`.
 
         Given a batch of inputs (Nb, N), returns a batch of outputs (Nb,).
         """
