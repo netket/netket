@@ -439,7 +439,6 @@ class MCState(VariationalState):
             if squared_operator:
                 if isinstance(Ô, AbstractSuperOperator):
                     Ō, Ō_grad, new_model_state = grad_expect_operator_Lrho2(
-                        self.sampler,
                         self._apply_fun,
                         mutable,
                         self.parameters,
@@ -450,7 +449,7 @@ class MCState(VariationalState):
                     )
                 else:
                     Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
-                        self.sampler,
+                        self.sampler.machine_pow,
                         self._apply_fun,
                         local_value_squared_kernel,
                         mutable,
@@ -473,7 +472,7 @@ class MCState(VariationalState):
                 )
         else:
             Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
-                self.sampler,
+                self.sampler.machine_pow,
                 self._apply_fun,
                 local_value_kernel,
                 mutable,
@@ -534,7 +533,7 @@ class MCState(VariationalState):
 
 @partial(jax.jit, static_argnums=(1, 2))
 def _expect(
-    sampler: Sampler,
+    machine_pow: int,
     model_apply_fun: Callable,
     local_value_kernel: Callable,
     parameters: PyTree,
@@ -551,8 +550,7 @@ def _expect(
     logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
 
     log_pdf = (
-        lambda w, σ: sampler.machine_pow
-        * model_apply_fun({"params": w, **model_state}, σ).real
+        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
     )
 
     local_value_vmap = jax.vmap(
@@ -630,7 +628,7 @@ def grad_expect_hermitian(
 
 @partial(jax.jit, static_argnums=(1, 2, 3))
 def grad_expect_operator_kernel(
-    sampler: Sampler,
+    machine_pow: int,
     model_apply_fun: Callable,
     local_kernel: Callable,
     mutable: bool,
@@ -672,8 +670,7 @@ def grad_expect_operator_kernel(
         )[0]
 
     log_pdf = (
-        lambda w, σ: sampler.machine_pow
-        * model_apply_fun({"params": w, **model_state}, σ).real
+        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
     )
 
     def expect_closure(*args):
@@ -696,9 +693,8 @@ def grad_expect_operator_kernel(
     )
 
 
-@partial(jax.jit, static_argnums=(1, 2))
+@partial(jax.jit, static_argnums=(0, 1))
 def grad_expect_operator_Lrho2(
-    sampler: Sampler,
     model_apply_fun: Callable,
     mutable: bool,
     parameters: PyTree,
