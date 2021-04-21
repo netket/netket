@@ -127,7 +127,7 @@ def test_GCNN_creation():
     # Test different permutation argument types
     check_init(
         lambda: nk.models.GCNN(
-            symmetries=perms, layers=2, features=4, group_algebra=np.arange(4)
+            symmetries=perms, layers=2, features=4, flattened_Cayley=np.arange(4)
         )
     )
     check_init(
@@ -135,7 +135,7 @@ def test_GCNN_creation():
             symmetries=jnp.array(perms),
             layers=2,
             features=4,
-            group_algebra=np.arange(4),
+            flattened_Cayley=np.arange(4),
         )
     )
 
@@ -143,16 +143,16 @@ def test_GCNN_creation():
     with pytest.raises(ValueError):
         check_init(
             lambda: nk.models.GCNN(
-                symmetries=perms[0], layers=2, features=4, group_algebra=np.arange(4)
+                symmetries=perms[0], layers=2, features=4, flattened_Cayley=np.arange(4)
             )
         )
         check_init(
             lambda: nk.models.GCNN(
-                symmetries=perms, layers=2, features=4, group_algebra=np.arange(3)
+                symmetries=perms, layers=2, features=4, flattened_Cayley=np.arange(3)
             )
         )
 
-    # need to specify group algebra
+    # need to specify flattened_Cayley
     with pytest.raises(AttributeError):
         check_init(lambda: nk.models.GCNN(symmetries=perms, layers=2, features=4))
 
