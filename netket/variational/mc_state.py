@@ -402,7 +402,7 @@ class MCState(VariationalState):
         σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
 
         return _expect(
-            self.sampler,
+            self.sampler.machine_pow,
             self._apply_fun,
             kernel,
             self.parameters,
