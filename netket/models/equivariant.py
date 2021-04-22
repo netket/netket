@@ -97,14 +97,14 @@ class GCNN(nn.Module):
             raise ValueError("Flattened product table must have shape [n_symm*n_symm]")
 
         if isinstance(self.features, int):
-            feature_dim = [self.features for layer in range(self.layers)]
+            feature_dim = tuple([self.features for layer in range(self.layers)])
         else:
             if not len(self.features) == self.layers:
                 raise ValueError(
                     """Length of vector specifying feature dimensions must be the same as the number of layers"""
                 )
             else:
-                feature_dim = tuple(self.features)
+                feature_dim = self.features
 
         self.dense_symm = nknn.DenseSymm(
             symmetries=self.symmetries,
