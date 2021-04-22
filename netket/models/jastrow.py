@@ -23,8 +23,8 @@ from netket.utils.types import DType, Array, NNInitFunc
 class Jastrow(nn.Module):
     """
     Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`.
-        
-    The W matrix is stored as a non-symmetric matrix, and symmetrized 
+
+    The W matrix is stored as a non-symmetric matrix, and symmetrized
     during computation by doing :code:`W = W + W.T` in the computation.
     """
 
