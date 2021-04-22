@@ -117,6 +117,7 @@ def tonx(graph):
 
 def test_draw_lattices():
     # Just checking that lattices are drawn:
+    lattices = [graph for graph in graphs if isinstance(graph, Lattice)]
     for lattice in lattices:
         ndim = len(lattice._atoms[0]["r_coord"])
         if ndim not in [1, 2]:
