@@ -258,10 +258,18 @@ class History:
         return f"History(keys={self.keys()}, n_iters={len(self.iters)})"
 
 
-@dispatch.annotations()
-def append(self: History, val: History, it: object = None):
+@dispatch
+def append(self: History, val: Any):
+    return append(self, val, None)
+
+
+@dispatch
+def append(self: History, val: History, it: Any):
     if not set(self.keys()) == set(val.keys()):
         raise ValueError("cannot concatenate MVHistories with different keys")
+
+    if it is not None:
+        raise ValueError("When concatenating histories, cannot specify the iteration.")
 
     for key in self.keys():
         self._value_dict[key] = np.concatenate([self[key], val[key]])
@@ -271,8 +279,8 @@ def append(self: History, val: History, it: object = None):
     self._len = len(self) + len(val)
 
 
-@dispatch.annotations()
-def append(self: History, values: dict, it: object = None):
+@dispatch
+def append(self: History, values: dict, it: Any):
     for key, val in values.items():
         _vals = self._value_dict[key]
 
@@ -301,8 +309,8 @@ def append(self: History, values: dict, it: object = None):
     self._len += 1
 
 
-@dispatch.annotations()
-def append(self: History, val: object, it: object = None):
+@dispatch
+def append(self: History, val: Any, it: Any):
     if self._single_value and is_scalar(val) or hasattr(val, "__array__"):
         append(self, {"value": val}, it)
     elif hasattr(val, "to_compound"):
