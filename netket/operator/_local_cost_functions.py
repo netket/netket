@@ -20,8 +20,6 @@ import numpy as np
 import jax.numpy as jnp
 
 from netket import jax as nkjax
-from netket.legacy.machine._jax_utils import outdtype
-from netket.legacy.machine import Jax
 
 
 # The following dicts store some 'properties' of cost functions. The keys are jitted

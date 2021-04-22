@@ -14,7 +14,6 @@
 
 import json as _json
 from os import path as _path
-from netket.legacy.vmc_common import tree_map as _tree_map
 from netket.stats.mc_stats import Stats
 
 
