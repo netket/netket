@@ -47,6 +47,9 @@ def SR(
         diag_shift: Diagonal shift added to the S matrix
         method: (cg, gmres) The specific method.
         iterative: Whever to use an iterative method or not.
+        jacobian: Differentiation mode to precompute Jacobian
+                  can be "holomorphic", "R2R", "R2C", 
+                         None (if Jacobian shouldn't be precomputed)
 
     Returns:
         The SR parameter structure.
