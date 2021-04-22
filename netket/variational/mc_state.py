@@ -368,8 +368,13 @@ class MCState(VariationalState):
 
     def log_value(self, σ: jnp.ndarray) -> jnp.ndarray:
         """
-        Evaluate the variational state for a batch of states and return
-        the logarithm of the probability amplitude for those inputs.
+        Evaluate the variational state for a batch of states and returns
+        the logarithm of the amplitude of the quantum state. For pure states,
+        this is :math:`log(<σ|ψ>)`, whereas for mixed states this is
+        :math:`log(<σr|ρ|σc>)`, where ψ and ρ are respectively a pure state
+        (wavefunction) and a mixed state (density matrix).
+        For the density matrix, the left and right-acting states (row and column)
+        are obtained as :code:`σr=σ[::,0:N]` and :code:`σc=σ[::,N:]`.
 
         Given a batch of inputs (Nb, N), returns a batch of outputs (Nb,).
         """
@@ -397,7 +402,7 @@ class MCState(VariationalState):
         σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
 
         return _expect(
-            self.sampler,
+            self.sampler.machine_pow,
             self._apply_fun,
             kernel,
             self.parameters,
@@ -439,7 +444,6 @@ class MCState(VariationalState):
             if squared_operator:
                 if isinstance(Ô, AbstractSuperOperator):
                     Ō, Ō_grad, new_model_state = grad_expect_operator_Lrho2(
-                        self.sampler,
                         self._apply_fun,
                         mutable,
                         self.parameters,
@@ -450,7 +454,7 @@ class MCState(VariationalState):
                     )
                 else:
                     Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
-                        self.sampler,
+                        self.sampler.machine_pow,
                         self._apply_fun,
                         local_value_squared_kernel,
                         mutable,
@@ -473,7 +477,7 @@ class MCState(VariationalState):
                 )
         else:
             Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
-                self.sampler,
+                self.sampler.machine_pow,
                 self._apply_fun,
                 local_value_kernel,
                 mutable,
@@ -534,7 +538,7 @@ class MCState(VariationalState):
 
 @partial(jax.jit, static_argnums=(1, 2))
 def _expect(
-    sampler: Sampler,
+    machine_pow: int,
     model_apply_fun: Callable,
     local_value_kernel: Callable,
     parameters: PyTree,
@@ -551,8 +555,7 @@ def _expect(
     logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
 
     log_pdf = (
-        lambda w, σ: sampler.machine_pow
-        * model_apply_fun({"params": w, **model_state}, σ).real
+        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
     )
 
     local_value_vmap = jax.vmap(
@@ -630,7 +633,7 @@ def grad_expect_hermitian(
 
 @partial(jax.jit, static_argnums=(1, 2, 3))
 def grad_expect_operator_kernel(
-    sampler: Sampler,
+    machine_pow: int,
     model_apply_fun: Callable,
     local_kernel: Callable,
     mutable: bool,
@@ -672,8 +675,7 @@ def grad_expect_operator_kernel(
         )[0]
 
     log_pdf = (
-        lambda w, σ: sampler.machine_pow
-        * model_apply_fun({"params": w, **model_state}, σ).real
+        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
     )
 
     def expect_closure(*args):
@@ -696,9 +698,8 @@ def grad_expect_operator_kernel(
     )
 
 
-@partial(jax.jit, static_argnums=(1, 2))
+@partial(jax.jit, static_argnums=(0, 1))
 def grad_expect_operator_Lrho2(
-    sampler: Sampler,
     model_apply_fun: Callable,
     mutable: bool,
     parameters: PyTree,

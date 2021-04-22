@@ -157,6 +157,23 @@ def test_init_parameters(vstate):
         pytest.param(
             op,
             id=name,
+        )
+        for name, op in operators.items()
+    ],
+)
+def test_expect_numpysampler_works(vstate, operator):
+    sampl = nk.sampler.MetropolisLocalNumpy(vstate.hilbert)
+    vstate.sampler = sampl
+    out = vstate.expect(operator)
+    assert isinstance(out, nk.stats.Stats)
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
             marks=pytest.mark.xfail(
                 reason="MUSTFIX: Non hermitian gradient is known to be wrong"
             )

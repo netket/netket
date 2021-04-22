@@ -163,3 +163,20 @@ def test_serialization(vstate):
     assert vstate.n_discard == vstate_new.n_discard
     assert vstate.n_samples_diag == vstate_new.n_samples_diag
     assert vstate.n_discard_diag == vstate_new.n_discard_diag
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in operators.items()
+    ],
+)
+def test_expect_numpysampler_works(vstate, operator):
+    sampl = nk.sampler.MetropolisLocalNumpy(vstate.hilbert)
+    vstate.sampler = sampl
+    out = vstate.expect(operator)
+    assert isinstance(out, nk.stats.Stats)

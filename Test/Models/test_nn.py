@@ -16,16 +16,21 @@ import netket as nk
 import netket.nn.linear as linear
 
 import jax.numpy as jnp
+import jax.random as random
 import numpy as np
 import scipy.sparse
+from jax.lax import dot
+from netket.graph.symmetry import SymmGroup
 
 import pytest
 
 
-def _setup_symm(symmetries, N):
-    hi = nk.hilbert.Spin(1 / 2, N)
+def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
 
-    g = nk.graph.Chain(N)
+    g = lattice(N)
+
+    hi = nk.hilbert.Spin(1 / 2, g.n_nodes)
+
     if symmetries == "trans":
         # Only translations, N_symm = N_sites
         perms = g.translations()
@@ -53,6 +58,41 @@ def test_DenseSymm(symmetries, use_bias):
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
     for val in vals:
         assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
+
+
+@pytest.mark.parametrize("symmetries", ["trans", "autom"])
+@pytest.mark.parametrize("use_bias", [True, False])
+@pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
+def test_DenseEquivariant(symmetries, use_bias, lattice):
+    g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
+
+    pt = perms.product_table()
+    n_symm = np.asarray(perms).shape[0]
+
+    ma = nk.nn.DenseEquivariant(
+        symmetry_info=pt.ravel(),
+        in_features=1,
+        out_features=1,
+        use_bias=use_bias,
+        bias_init=nk.nn.initializers.uniform(),
+    )
+
+    pars = ma.init(nk.jax.PRNGKey(), np.random.normal(0, 1, [1, n_symm]))
+
+    # inv_pt computes chosen_op = gh^-1 instead of g^-1h
+    chosen_op = np.random.randint(n_symm)
+    inverse = SymmGroup([perms.elems[i] for i in perms.inverse()], graph=lattice(3))
+    inv_pt = inverse.product_table()
+    sym_op = np.where(inv_pt == chosen_op, 1.0, 0.0)
+
+    v = random.normal(random.PRNGKey(0), [3, n_symm])
+    v_trans = dot(v, sym_op)
+
+    out = ma.apply(pars, v)
+    out_trans = ma.apply(pars, v_trans)
+
+    # output should be involution
+    assert jnp.allclose(dot(out, sym_op.transpose(0, 1)), out_trans)
 
 
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])

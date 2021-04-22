@@ -30,6 +30,12 @@ hilberts["Spin 1/2"] = Spin(s=0.5, N=20)
 # Spin 1/2 with total Sz
 hilberts["Spin 1/2 with total Sz"] = Spin(s=0.5, total_sz=1.0, N=20)
 
+# Spin 1/2 with total Sz
+hilberts["Spin 1 with total Sz, even sites"] = Spin(s=1.0, total_sz=5.0, N=6)
+
+# Spin 1/2 with total Sz
+hilberts["Spin 1 with total Sz, odd sites"] = Spin(s=1.0, total_sz=2.0, N=7)
+
 # Spin 3
 hilberts["Spin 3"] = Spin(s=3, N=25)
 

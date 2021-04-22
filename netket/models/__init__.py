@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm
+from .equivariant import GCNN
 from .jastrow import Jastrow
 from .mps import MPSPeriodic
 

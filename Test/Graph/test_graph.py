@@ -10,15 +10,18 @@ import pytest
 
 nxg = nx.star_graph(10)
 graphs = [
+    # star graph
+    Graph(edges=list(nxg.edges())),
+    # Grid graphs
     Hypercube(length=10, n_dim=1, pbc=True),
     Hypercube(length=4, n_dim=2, pbc=True),
     Hypercube(length=5, n_dim=1, pbc=False),
     Grid(length=[2, 2], pbc=False),
     Grid(length=[4, 2], pbc=[True, False]),
-    Graph(edges=list(nxg.edges())),
+    # lattice graphs
     Lattice(
         basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
-        extent=[10, 10],
+        extent=[3, 3],
         pbc=[False, False],
         atoms_coord=[[0, 0]],
     ),
@@ -28,47 +31,21 @@ graphs = [
         atoms_coord=[[0, 0], [1, 1]],
     ),
     Lattice(
-        basis_vectors=[[2.0, 0.0], [1.0, math.sqrt(3)]],
-        extent=[4, 4],
-        atoms_coord=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [1.0, 0.0]],
-    ),
-    Lattice(
         basis_vectors=[
             [1.0, 0.0, 0.0],
             [1.0 / 2.0, math.sqrt(3) / 2.0, 0.0],
             [0.0, 0.0, 1.0],
         ],
-        extent=[6, 7, 4],
+        extent=[2, 3, 4],
         atoms_coord=[[0, 0, 0]],
     ),
+    Lattice(
+        basis_vectors=[[2.0, 0.0], [1.0, math.sqrt(3)]],
+        extent=[4, 4],
+        atoms_coord=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [1.0, 0.0]],
+    ),
+    # edgeless graph
     Edgeless(10),
-]
-lattices = [
-    Lattice(
-        basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
-        extent=[10, 10],
-        pbc=[False, False],
-        atoms_coord=[[0, 0]],
-    ),
-    Lattice(
-        basis_vectors=[[1.5, math.sqrt(3) / 2.0], [0, math.sqrt(3)]],
-        extent=[3, 5],
-        atoms_coord=[[0, 0], [1, 1]],
-    ),
-    Lattice(
-        basis_vectors=[[2.0, 0.0], [1.0, math.sqrt(3)]],
-        extent=[4, 4],
-        atoms_coord=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [1.0, 0.0]],
-    ),
-    Lattice(
-        basis_vectors=[
-            [1.0, 0.0, 0.0],
-            [1.0 / 2.0, math.sqrt(3) / 2.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ],
-        extent=[6, 7, 4],
-        atoms_coord=[[0, 0, 0]],
-    ),
 ]
 
 
@@ -200,7 +177,7 @@ def test_computes_distances():
 
 
 def test_lattice_is_bipartite():
-    for graph in lattices:
+    for graph in graphs:
         g = nx.Graph()
         for edge in graph.edges():
             g.add_edge(edge[0], edge[1])
@@ -208,7 +185,9 @@ def test_lattice_is_bipartite():
 
 
 def test_lattice_is_connected():
-    for graph in lattices:
+    for graph in graphs:
+        if graph.n_edges == 0:  # skip edgeless
+            continue
         g = nx.Graph()
         for edge in graph.edges():
             g.add_edge(edge[0], edge[1])
@@ -263,15 +242,18 @@ def test_grid_color_pbc():
     assert sorted(g1.edges()) == sorted(g2.edges())
 
 
-def test_automorphisms():
-    for graph in lattices:
-        if graph.is_connected():  # to avoid troubles with ig automorphisms
-            g = ig.Graph(edges=graph.edges())
-            autom = g.get_isomorphisms_vf2()
-            autom_g = graph.automorphisms()
-            dim = len(autom_g)
-            for i in range(dim):
-                assert np.asarray(autom_g[i]).tolist() in autom
+# skip star graph because it has 10! (≈ 3 million) isomorphisms
+@pytest.mark.parametrize("graph", graphs[1:])
+def test_automorphisms(graph):
+    if not graph.is_connected():
+        return
+
+    g = ig.Graph(edges=graph.edges())
+    autom = g.get_isomorphisms_vf2()
+    autom_g = graph.automorphisms()
+    dim = len(autom_g)
+    for i in range(dim):
+        assert np.asarray(autom_g[i]).tolist() in autom
 
 
 def _check_symmgroup(graph, symmgroup):
@@ -423,9 +405,9 @@ def test_duplicate_atoms():
 
 
 def test_union():
-    graph1 = lattices[0]
+    graph1 = graphs[0]
 
-    for graph in lattices:
+    for graph in graphs:
         ug = nk.graph.disjoint_union(graph, graph1)
 
         assert ug.n_nodes == graph1.n_nodes + graph.n_nodes

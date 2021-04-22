@@ -21,6 +21,12 @@ import networkx as _nx
 import warnings
 from typing import Tuple, Union, Optional
 
+cutoff_tol = 1e-5
+"""Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
+This is necessary because of floating-point errors when computing the distance in non-trivial 
+lattices.
+"""
+
 
 def get_edges(atoms_positions, cutoff, distance_atol):
     cutoff = cutoff + distance_atol
