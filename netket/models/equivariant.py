@@ -64,7 +64,7 @@ class GCNN(nn.Module):
     that specifies the product of the group with its inverse"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.relu
+    activation: Any = jax.nn.selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = None
     """The nonlinear activation before the output."""
