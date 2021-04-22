@@ -258,7 +258,7 @@ class History:
         return f"History(keys={self.keys()}, n_iters={len(self.iters)})"
 
 
-@dispatch.annotations()
+@dispatch
 def append(self: History, val: History, it: object = None):
     if not set(self.keys()) == set(val.keys()):
         raise ValueError("cannot concatenate MVHistories with different keys")
@@ -271,7 +271,7 @@ def append(self: History, val: History, it: object = None):
     self._len = len(self) + len(val)
 
 
-@dispatch.annotations()
+@dispatch
 def append(self: History, values: dict, it: object = None):
     for key, val in values.items():
         _vals = self._value_dict[key]
@@ -301,7 +301,7 @@ def append(self: History, values: dict, it: object = None):
     self._len += 1
 
 
-@dispatch.annotations()
+@dispatch
 def append(self: History, val: object, it: object = None):
     if self._single_value and is_scalar(val) or hasattr(val, "__array__"):
         append(self, {"value": val}, it)
