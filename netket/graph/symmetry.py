@@ -19,6 +19,7 @@ import numpy as np
 from . import AbstractGraph
 from netket.utils.semigroup import SemiGroup
 from netket.utils.types import Array
+from netket.utils import HashableArray
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,61 @@ class SymmGroup(SemiGroup):
             return group, result[2]
         else:
             return group
+
+    def inverse(self):
+        """
+        Returns reordered SymmGroup where the each element is the inverse of
+        the original symmetry element. If :code:`g = self[element]` and :code:`h = self[self.inverse()[element]]`,
+        then :code:`gh = product(g, h)` will act as the identity on the sites of the graph, i.e., :code:`np.all(gh(sites) == sites)`.
+
+        """
+
+        automorphisms = self.to_array()
+        n_symm = len(automorphisms)
+        inverse = np.zeros([n_symm], dtype=int)
+        automorphisms = np.array(automorphisms)
+        for i, perm1 in enumerate(automorphisms):
+            for j, perm2 in enumerate(automorphisms):
+                perm_sq = perm1[perm2]
+                if np.all(perm_sq == np.arange(len(perm_sq))):
+                    inverse[i] = j
+
+        return inverse
+
+    def product_table(self):
+        """
+        Returns a product table over the group where the columns use the involution
+        of the group. If :code:`g = self[self.inverse()[element]]', :code:`h = self[element2]`
+        and code:`u = self[product_table()[element,element2]], we are
+        solving the equation u = gh
+
+        """
+
+        automorphisms = self.to_array()
+        n_symm = len(automorphisms)
+        inverse = self.to_array()[self.inverse()]
+        product_table = np.zeros([n_symm, n_symm], dtype=int)
+
+        inv_t = inverse.transpose()
+        auto_t = automorphisms.transpose()
+        inv_auto = auto_t[inv_t].reshape(-1, n_symm * n_symm).transpose()
+
+        hash_auto = {
+            hash(element.tobytes()): index
+            for index, element in enumerate(automorphisms)
+        }
+
+        inds = [
+            (index, hash_auto[hash(element.tobytes())])
+            for index, element in enumerate(inv_auto)
+            if hash(element.tobytes()) in hash_auto
+        ]
+
+        inds = np.asarray(inds)
+
+        product_table[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
+
+        return product_table
 
     @property
     def shape(self):
