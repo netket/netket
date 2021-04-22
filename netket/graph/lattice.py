@@ -21,15 +21,9 @@ import networkx as _nx
 import warnings
 from typing import Tuple, Union, Optional
 
-cutoff_tol = 1e-5
-"""Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
-This is necessary because of floating-point errors when computing the distance in non-trivial 
-lattices.
-"""
 
-
-def get_edges(atoms_positions, cutoff):
-    cutoff = cutoff + cutoff_tol
+def get_edges(atoms_positions, cutoff, distance_atol):
+    cutoff = cutoff + distance_atol
     kdtree = cKDTree(atoms_positions)
     dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
     id1, id2, values = find(triu(dist_matrix))
@@ -84,10 +78,10 @@ def create_points(basis_vectors, extent, atom_coords, pbc):
     return atoms, cellANDlabel_to_site
 
 
-def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent):
+def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent, distance_atol):
     atoms_positions = dicts_to_array(atoms, "r_coord")
     naive_edges = get_edges(
-        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max()
+        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max(), distance_atol
     )
     true_edges = []
     for node1, node2 in naive_edges:
@@ -124,7 +118,15 @@ class Lattice(NetworkX):
     by a simple integer number (the site index) or by its coordinates (actual position in space).
     """
 
-    def __init__(self, basis_vectors, extent, *, pbc: bool = True, atoms_coord=[]):
+    def __init__(
+        self,
+        basis_vectors,
+        extent,
+        *,
+        pbc: bool = True,
+        atoms_coord=[],
+        distance_atol: float = 1e-5,
+    ):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit cell.
 
@@ -135,6 +137,9 @@ class Lattice(NetworkX):
                 will have periodic boundary conditions, otherwise
                 open boundary conditions are imposed (default=``True``).
             atoms_coord: The coordinates of different atoms in the unit cell (default=one atom at the origin).
+            distance_atol: A KDTree algorithm finds first neighbours of the lattice, which define the edges of
+                the graph. The algorithm needs to be specified some absolute tolerance for those distances,
+                as sometimes floating point errors might cause some edges not to be detected.
 
         Examples:
             Constructs a rectangular 3X4 lattice with periodic boundary conditions.
@@ -198,7 +203,9 @@ class Lattice(NetworkX):
         atoms, cellANDlabel_to_site = create_points(
             self._basis_vectors, extent, atoms_coord_fractional, pbc
         )
-        edges = get_true_edges(self._basis_vectors, atoms, cellANDlabel_to_site, extent)
+        edges = get_true_edges(
+            self._basis_vectors, atoms, cellANDlabel_to_site, extent, distance_atol
+        )
         graph = _nx.MultiGraph(edges)
 
         # Rename atoms
