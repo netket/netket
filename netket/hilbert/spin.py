@@ -26,20 +26,31 @@ from .custom_hilbert import CustomHilbert
 from ._deprecations import graph_to_N_depwarn
 
 
-def _check_total_sz(total_sz, size):
+def _check_total_sz(total_sz, S, size):
     if total_sz is None:
         return
 
+    local_size = 2 * S + 1
+
     m = round(2 * total_sz)
-    if np.abs(m) > size:
-        raise Exception(
+    if np.abs(m) > size * (2 * S):
+        raise ValueError(
             "Cannot fix the total magnetization: 2|M| cannot " "exceed Nspins."
         )
 
-    if (size + m) % 2 != 0:
-        raise Exception(
-            "Cannot fix the total magnetization: Nspins + " "totalSz must be even."
-        )
+    # If half-integer spins (1/2, 3/2)
+    if local_size % 2 == 0:
+        # Check that the total magnetization is odd if odd spins or even if even # of spins
+        if (size + m) % 2 != 0:
+            raise ValueError(
+                "Cannot fix the total magnetization: Nspins + 2*totalSz must be even."
+            )
+    # else if full-integer (S=1,2)
+    else:
+        if m % 2 != 0:
+            raise ValueError(
+                "Cannot fix the total magnetization to a half-integer number"
+            )
 
 
 @jit(nopython=True)
@@ -85,7 +96,7 @@ class Spin(CustomHilbert):
             local_states[i] = -round(2 * s) + 2 * i
         local_states = local_states.tolist()
 
-        _check_total_sz(total_sz, N)
+        _check_total_sz(total_sz, s, N)
         if total_sz is not None:
 
             def constraints(x):
