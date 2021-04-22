@@ -103,7 +103,7 @@ class SRLazyGMRES(SROnTheFlyIterative):
     for more informations.
     """
 
-    restart: int = 20
+    restart: int = struct.field(pytree_node=False, default=20)
     """Size of the Krylov subspace (“number of iterations”) built between restarts. 
     GMRES works by approximating the true solution x as its projection into a Krylov 
     space of this dimension - this parameter therefore bounds the maximum accuracy 
