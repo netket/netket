@@ -78,7 +78,7 @@ class Reflection(Element):
         return f"Ref(axis={self.axis})"
 
 
-@dispatch(Translation, Translation)
+@dispatch
 def product(a: Translation, b: Translation):
     if not a.dims == b.dims:
         raise ValueError("Incompatible translations")
