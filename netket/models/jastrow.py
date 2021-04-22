@@ -21,7 +21,11 @@ from netket.utils.types import DType, Array, NNInitFunc
 
 
 class Jastrow(nn.Module):
-    """Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`."""
+    """Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`.
+        
+       The W matrix is stored as a non-symmetric matrix, and symmetrized 
+       during computation by doing :code:`W = W + W.T` in the computation.
+    """
 
     dtype: DType = jnp.complex128
     """The dtype of the weights."""
@@ -36,6 +40,7 @@ class Jastrow(nn.Module):
         x_in = jnp.asarray(x_in, dtype=dtype)
 
         kernel = self.param("kernel", self.kernel_init, (nv, nv), self.dtype)
+        kernel = kernel + kernel.T
         y = jnp.einsum("...i,ij,...j", x_in, kernel, x_in)
 
         return y
