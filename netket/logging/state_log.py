@@ -41,18 +41,12 @@ def save_binary_to_tar(tar_file, byte_data, name):
 
 class StateLog:
     """
-        Tar Logger, serializing the variables of the variational state during a run.
+    A logger which serializes the variables of the variational state during a run.
 
-    : bool flag indicating whever to store variables in a tar file. The tar archive will
-                    contain a file with numbers going from 0 to N, and every file corresponds to the variables of
-                    the variational state at that step.
-
-
-        Data is serialized to a tar archive as many files named `[0.mpack, 1.mpack, ...]`, where
-        the number increases by 1 every time it's called.
-
-        The tar file inside is not flushed to disk (closed) until this object is deleted or python
-        is shut down.
+    The data is saved either to a directory or tar archive in a sequence of files named
+    `[0.mpack, 1.mpack, ...]` where the filename is incremented every time the logger is called.
+    The tar file inside is not flushed to disk (closed) until this object is deleted or python
+    is shut down.
     """
 
     def __init__(
@@ -63,7 +57,7 @@ class StateLog:
         tar: bool = False,
     ):
         """
-        Construct a Tar Logger.
+        Initialize the :code:`StateLogger`.
 
         Args:
             output_prefix: the name of the output file before the extension (if tar=True) or of the
