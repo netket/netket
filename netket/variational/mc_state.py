@@ -27,8 +27,6 @@ import flax
 from flax import linen as nn
 from flax import serialization
 
-from plum import dispatch
-
 import netket
 from netket import jax as nkjax
 from netket import utils
