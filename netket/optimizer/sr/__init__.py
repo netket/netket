@@ -14,7 +14,12 @@
 
 from .api import SR
 
-from .sr_onthefly import LazySMatrix, SRLazyCG, SRLazyGMRES
+from .base import SMatrix
+
+from .sr_onthefly import SRLazyCG, SRLazyGMRES
+from .s_onthefly_mat import SRLazy, LazySMatrix
+
+from .sr_snr import SRSNR
 
 from netket.utils import _hide_submodules
 
