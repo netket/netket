@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>netket.sampler.rules.HamiltonianRuleNumpy &#8212; netket v3.0 documentation</title>
+    <title>netket.logging.TarStateLog &#8212; netket v3.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
@@ -18,14 +18,12 @@
     <script src="../../../_static/underscore.js"></script>
     <script src="../../../_static/doctools.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
     <script src="../../../_static/js/rtd_theme.js"></script>
     <link rel="author" title="About these documents" href="../../../about.html" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="netket.sampler.rules.CustomRuleNumpy" href="netket.sampler.rules.CustomRuleNumpy.html" />
-    <link rel="prev" title="netket.sampler.rules.HamiltonianRule" href="netket.sampler.rules.HamiltonianRule.html" />
+    <link rel="next" title="netket.logging.TBLog" href="netket.logging.TBLog.html" />
+    <link rel="prev" title="netket.logging.JsonLog" href="netket.logging.JsonLog.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -221,40 +219,40 @@
 <li class="toctree-l3"><a class="reference internal" href="../exact/netket.exact.steady_state.html">netket.exact.steady_state</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="reference internal" href="../../api.html#sampler">Sampler</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../api.html#sampler">Sampler</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api.html#generic-api">Generic API</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.sampler_state.html">netket.sampler.sampler_state</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.reset.html">netket.sampler.reset</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.sample_next.html">netket.sampler.sample_next</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.sample.html">netket.sampler.sample</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.samples.html">netket.sampler.samples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.sampler_state.html">netket.sampler.sampler_state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.reset.html">netket.sampler.reset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.sample_next.html">netket.sampler.sample_next</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.sample.html">netket.sampler.sample</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.samples.html">netket.sampler.samples</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api.html#list-of-samplers">List of Samplers</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.Sampler.html">netket.sampler.Sampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.ExactSampler.html">netket.sampler.ExactSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisSampler.html">netket.sampler.MetropolisSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisSamplerNumpy.html">netket.sampler.MetropolisSamplerNumpy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisPtSampler.html">netket.sampler.MetropolisPtSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisLocal.html">netket.sampler.MetropolisLocal</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisExchange.html">netket.sampler.MetropolisExchange</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisHamiltonian.html">netket.sampler.MetropolisHamiltonian</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisLocalPt.html">netket.sampler.MetropolisLocalPt</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisExchangePt.html">netket.sampler.MetropolisExchangePt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.Sampler.html">netket.sampler.Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.ExactSampler.html">netket.sampler.ExactSampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisSampler.html">netket.sampler.MetropolisSampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisSamplerNumpy.html">netket.sampler.MetropolisSamplerNumpy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisPtSampler.html">netket.sampler.MetropolisPtSampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisLocal.html">netket.sampler.MetropolisLocal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisExchange.html">netket.sampler.MetropolisExchange</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisHamiltonian.html">netket.sampler.MetropolisHamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisLocalPt.html">netket.sampler.MetropolisLocalPt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisExchangePt.html">netket.sampler.MetropolisExchangePt</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="reference internal" href="../../api.html#transition-rules">Transition Rules</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisRule.html">netket.sampler.MetropolisRule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.rules.LocalRule.html">netket.sampler.rules.LocalRule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.rules.ExchangeRule.html">netket.sampler.rules.ExchangeRule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.rules.HamiltonianRule.html">netket.sampler.rules.HamiltonianRule</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">netket.sampler.rules.HamiltonianRuleNumpy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.rules.CustomRuleNumpy.html">netket.sampler.rules.CustomRuleNumpy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api.html#transition-rules">Transition Rules</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisRule.html">netket.sampler.MetropolisRule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.rules.LocalRule.html">netket.sampler.rules.LocalRule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.rules.ExchangeRule.html">netket.sampler.rules.ExchangeRule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.rules.HamiltonianRule.html">netket.sampler.rules.HamiltonianRule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.rules.HamiltonianRuleNumpy.html">netket.sampler.rules.HamiltonianRuleNumpy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.rules.CustomRuleNumpy.html">netket.sampler.rules.CustomRuleNumpy</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api.html#internal-state">Internal State</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.SamplerState.html">netket.sampler.SamplerState</a></li>
-<li class="toctree-l4"><a class="reference internal" href="netket.sampler.MetropolisSamplerState.html">netket.sampler.MetropolisSamplerState</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.SamplerState.html">netket.sampler.SamplerState</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../samplers/netket.sampler.MetropolisSamplerState.html">netket.sampler.MetropolisSamplerState</a></li>
 </ul>
 </li>
 </ul>
@@ -318,16 +316,16 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api.html#optimization-drivers">Optimization drivers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../driver/netket.driver.AbstractVariationalDriver.html">netket.driver.AbstractVariationalDriver</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../driver/netket.driver.VMC.html">netket.driver.VMC</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../driver/netket.driver.SteadyState.html">netket.driver.SteadyState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.driver.AbstractVariationalDriver.html">netket.driver.AbstractVariationalDriver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.driver.VMC.html">netket.driver.VMC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.driver.SteadyState.html">netket.driver.SteadyState</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../api.html#logging-output">Logging output</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../driver/netket.logging.RuntimeLog.html">netket.logging.RuntimeLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../driver/netket.logging.JsonLog.html">netket.logging.JsonLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../driver/netket.logging.TarStateLog.html">netket.logging.TarStateLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../driver/netket.logging.TBLog.html">netket.logging.TBLog</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../api.html#logging-output">Logging output</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="netket.logging.RuntimeLog.html">netket.logging.RuntimeLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.logging.JsonLog.html">netket.logging.JsonLog</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">netket.logging.TarStateLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.logging.TBLog.html">netket.logging.TBLog</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api.html#utils">Utils</a><ul>
@@ -349,102 +347,59 @@
       </div>
     <div class="body col-md-9 content" role="main">
       
-  <div class="section" id="netket-sampler-rules-hamiltonianrulenumpy">
-<h1>netket.sampler.rules.HamiltonianRuleNumpy<a class="headerlink" href="#netket-sampler-rules-hamiltonianrulenumpy" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="netket-logging-tarstatelog">
+<h1>netket.logging.TarStateLog<a class="headerlink" href="#netket-logging-tarstatelog" title="Permalink to this headline">¶</a></h1>
 <dl class="py class">
-<dt id="netket.sampler.rules.HamiltonianRuleNumpy">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">netket.sampler.rules.</span></code><code class="sig-name descname"><span class="pre">HamiltonianRuleNumpy</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/sampler/rules/hamiltonian_numpy.html#HamiltonianRuleNumpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.sampler.rules.HamiltonianRuleNumpy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">netket.sampler.metropolis.MetropolisRule</span></code></p>
-<p>Rule for Numpy sampler backend proposing moves according to the terms in an operator.</p>
-<p>In this case, the transition matrix is taken to be:</p>
-<div class="math notranslate nohighlight">
-\[T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),\]</div>
+<dt id="netket.logging.TarStateLog">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">netket.logging.</span></code><code class="sig-name descname"><span class="pre">TarStateLog</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'write'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/tar_log.html#TarStateLog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.TarStateLog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<blockquote>
+<div><p>Tar Logger, serializing the variables of the variational state during a run.</p>
+</div></blockquote>
+<dl>
+<dt>: bool flag indicating whever to store variables in a tar file. The tar archive will</dt><dd><blockquote>
+<div><p>contain a file with numbers going from 0 to N, and every file corresponds to the variables of
+the variational state at that step.</p>
+</div></blockquote>
+<p>Data is serialized to a tar archive as many files named <cite>[0.mpack, 1.mpack, …]</cite>, where
+the number increases by 1 every time it’s called.</p>
+<p>The tar file inside is not flushed to disk (closed) until this object is deleted or python
+is shut down.</p>
+</dd>
+</dl>
 <dl class="py method">
-<dt id="netket.sampler.rules.HamiltonianRuleNumpy.__init__">
-<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#netket.sampler.rules.HamiltonianRuleNumpy.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+<dt id="netket.logging.TarStateLog.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'write'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/tar_log.html#TarStateLog.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.TarStateLog.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a Tar Logger.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>operator</strong> (<em>netket.operator._abstract_operator.AbstractOperator</em>) – </p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)">None</a></p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_prefix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – the name of the output files before the extension</p></li>
+<li><p><strong>save_every</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>) – every how many iterations the variables should be saved. (default 1)</p></li>
+<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Specify the behaviour in case the file already exists at this output_prefix. Options are
+- <cite>[w]rite</cite>: (default) overwrites file if it already exists;
+- <cite>[a]ppend</cite>: appends to the file if it exists, overwise creates a new file;
+- <cite>[x]</cite> or <cite>fail</cite>: fails if file already exists;</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="class-dl-groups">
 <dt>Methods</dt><dd><dl class="py method">
-<dt id="netket.sampler.rules.HamiltonianRuleNumpy.init_state">
-<code class="sig-name descname"><span class="pre">init_state</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sampler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">machine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/sampler/rules/hamiltonian_numpy.html#HamiltonianRuleNumpy.init_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.sampler.rules.HamiltonianRuleNumpy.init_state" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initialises the optional internal state of the Metropolis Sampler Transition
-Rule.</p>
-<p>The provided key is unique and does not need to be splitted.
-It should return an immutable datastructure.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>sampler</strong> – The Metropolis sampler</p></li>
-<li><p><strong>machine</strong> – The forward evaluation function of the model, accepting PyTrees of parameters and inputs.</p></li>
-<li><p><strong>params</strong> – The dict of variables needed to evaluate the model.</p></li>
-<li><p><strong>key</strong> – A Jax PRNGKey rng state.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>An Optional State.</p>
-</dd>
-</dl>
+<dt id="netket.logging.TarStateLog.__call__">
+<code class="sig-name descname"><span class="pre">__call__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variational_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/tar_log.html#TarStateLog.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.TarStateLog.__call__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call self as a function.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="netket.sampler.rules.HamiltonianRuleNumpy.random_state">
-<code class="sig-name descname"><span class="pre">random_state</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sampler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">machine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#netket.sampler.rules.HamiltonianRuleNumpy.random_state" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generates a random state compatible with this rule.</p>
-<p>By default this calls <code class="xref py py-func docutils literal notranslate"><span class="pre">netket.hilbert.random.random_state()</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>sampler</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Sampler</span></code>) – the sampler</p></li>
-<li><p><strong>machine</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.9)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>) – the function to evaluate the model</p></li>
-<li><p><strong>parameters</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.9)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>) – the parameters of the model</p></li>
-<li><p><strong>state</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">SamplerState</span></code>) – the current sampler state</p></li>
-<li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.9)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>) – the PRNGKey to use to generate the random state</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
+<dt id="netket.logging.TarStateLog.close">
+<code class="sig-name descname"><span class="pre">close</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/tar_log.html#TarStateLog.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.TarStateLog.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
-<dt id="netket.sampler.rules.HamiltonianRuleNumpy.replace">
-<code class="sig-name descname"><span class="pre">replace</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">updates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#netket.sampler.rules.HamiltonianRuleNumpy.replace" title="Permalink to this definition">¶</a></dt>
-<dd><p>“Returns a new object replacing the specified fields with new values.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="netket.sampler.rules.HamiltonianRuleNumpy.reset">
-<code class="sig-name descname"><span class="pre">reset</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sampler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">machine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampler_state</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#netket.sampler.rules.HamiltonianRuleNumpy.reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Resets the internal state of the Metropolis Sampler Transition Rule.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>sampler</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Sampler</span></code>) – The Metropolis sampler</p></li>
-<li><p><strong>machine</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.9)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>) – The forward evaluation function of the model, accepting PyTrees of parameters and inputs.</p></li>
-<li><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.9)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>) – The dict of variables needed to evaluate the model.</p></li>
-<li><p><strong>sampler_state</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">SamplerState</span></code>) – The current state of the sampler. Should not modify it.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.9)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.9)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</p>
-</dd>
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A new, resetted, state of the rule. This returns the same type of <code class="xref py py-meth docutils literal notranslate"><span class="pre">sampler_state.rule_state()</span></code> and might be None.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="netket.sampler.rules.HamiltonianRuleNumpy.transition">
-<code class="sig-name descname"><span class="pre">transition</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sampler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">machine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">σ</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/sampler/rules/hamiltonian_numpy.html#HamiltonianRuleNumpy.transition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.sampler.rules.HamiltonianRuleNumpy.transition" title="Permalink to this definition">¶</a></dt>
+<dt id="netket.logging.TarStateLog.flush">
+<code class="sig-name descname"><span class="pre">flush</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variational_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/tar_log.html#TarStateLog.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.TarStateLog.flush" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd>
