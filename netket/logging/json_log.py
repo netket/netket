@@ -155,9 +155,6 @@ class JsonLog(RuntimeLog):
         self._flush_log_time = 0.0
         self._flush_pars_time = 0.0
 
-    def __del__(self):
-        self.flush()
-
     def __call__(self, step, item, variational_state):
         old_step = self._old_step
         super().__call__(step, item, variational_state)
@@ -207,7 +204,7 @@ class JsonLog(RuntimeLog):
         self._steps_notflushed_pars = 0
         self._flush_pars_time += time.time() - _time
 
-    def flush(self, variational_state):
+    def flush(self, variational_state=None):
         """
         Writes to file the content of this logger.
 
