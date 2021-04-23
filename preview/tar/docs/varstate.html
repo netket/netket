@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Variational State Interface &#8212; netket v3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/panels-variables.06eb56fa6e07937060861dad626602ad.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/jumbo-style.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/all.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/rtd_theme.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+    <script src="../_static/js/rtd_theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="The Drivers API" href="drivers.html" />
+    <link rel="prev" title="The Lindblad Master Equation" href="superop.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html"><span><img src="../_static/logonav.png"></span>
+          NetKet</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../getting_started.html">Get Started</a></li>
+                <li><a href="getting_started.html">Documentation</a></li>
+                <li><a href="../tutorials.html">Tutorials</a></li>
+                <li><a href="../citing.html">Citing NetKet</a></li>
+                <li><a href="../about.html">About</a></li>
+                <li><a href="https://github.com/netket/netket"><i class="fab fa-github" aria-hidden="true"></i></a></li>
+                <li><a href="https://twitter.com/NetKetOrg"><i class="fab fa-twitter" aria-hidden="true"></i></a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary"><div class="sidenav-header">
+  <div class="h4"> 
+    Netket 3.0 Documentation
+  </div>
+
+  <!---
+  	<div role="search">
+  <form id="rtd-search-form" class="wy-form"  action="../search.html" method="get">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+  ---->
+</div>
+
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#installation-and-requirements">Installation and requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="getting_started.html#mpi">MPI</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#jax-flax-extensions">Jax/Flax extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#legacy-api-support-api-before-2021">Legacy API support (API before 2021)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#commented-example">Commented Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="whats_new.html">What’s New in v3.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="whats_new.html#api-changes">API Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="superop.html">The Lindblad Master Equation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="superop.html#the-density-matrix-and-the-liouvillian">The Density Matrix and the Liouvillian</a></li>
+<li class="toctree-l2"><a class="reference internal" href="superop.html#computing-observables">Computing Observables</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The Variational State Interface</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#constructing-a-variational-state">Constructing a Variational State</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#defining-models-flax">Defining models: Flax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mcstate">MCState</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#using-a-monte-carlo-variational-state">Using a Monte Carlo Variational State</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#expectation-values">Expectation values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sampling">Sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#collecting-the-state-vector">Collecting the state-vector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#manipulating-the-parameters">Manipulating the parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#saving-and-loading-a-variational-state">Saving and Loading a Variational State</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="drivers.html">The Drivers API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="drivers.html#constructing-a-driver">Constructing a driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drivers.html#running-the-optimisation">Running the optimisation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="custom_models.html">Defining Custom Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="custom_models.html#commonalities">Commonalities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="custom_models.html#defining-models-init-and-apply-functions">Defining models: init and apply functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="custom_models.html#using-flax-linen">Using Flax Linen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom_models.html#using-jax-stax">Using Jax/Stax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom_models.html#using-haiku">Using Haiku</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sharp-bits.html">🔪 The Sharp Bits 🔪</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sharp-bits.html#parallelization">Parallelization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sharp-bits.html#running-on-cpu-when-gpus-are-present">Running on CPU when GPUs are present</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sharp-bits.html#using-gpus">Using GPUs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sharp-bits.html#nans-in-training-and-loss-of-precision">NaNs in training and loss of precision</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Public API: netket package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#graph">Graph</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/graph/netket.graph.AbstractGraph.html">netket.graph.AbstractGraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/graph/netket.graph.NetworkX.html">netket.graph.NetworkX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/graph/netket.graph.Edgeless.html">netket.graph.Edgeless</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/graph/netket.graph.Hypercube.html">netket.graph.Hypercube</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/graph/netket.graph.Lattice.html">netket.graph.Lattice</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/graph/netket.graph.Chain.html">netket.graph.Chain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/graph/netket.graph.Grid.html">netket.graph.Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/graph/netket.graph.SymmGroup.html">netket.graph.SymmGroup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#hilbert">Hilbert</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/hilbert/netket.hilbert.AbstractHilbert.html">netket.hilbert.AbstractHilbert</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/hilbert/netket.hilbert.Qubit.html">netket.hilbert.Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/hilbert/netket.hilbert.Spin.html">netket.hilbert.Spin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/hilbert/netket.hilbert.CustomHilbert.html">netket.hilbert.CustomHilbert</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/hilbert/netket.hilbert.DoubledHilbert.html">netket.hilbert.DoubledHilbert</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#operators">Operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.AbstractOperator.html">netket.operator.AbstractOperator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.BoseHubbard.html">netket.operator.BoseHubbard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.GraphOperator.html">netket.operator.GraphOperator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.LocalOperator.html">netket.operator.LocalOperator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.Ising.html">netket.operator.Ising</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.Heisenberg.html">netket.operator.Heisenberg</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.PauliStrings.html">netket.operator.PauliStrings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.LocalLiouvillian.html">netket.operator.LocalLiouvillian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#pre-defined-operators">Pre-defined operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.boson.create.html">netket.operator.boson.create</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.boson.destroy.html">netket.operator.boson.destroy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.boson.number.html">netket.operator.boson.number</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.boson.proj.html">netket.operator.boson.proj</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.spin.sigmax.html">netket.operator.spin.sigmax</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.spin.sigmay.html">netket.operator.spin.sigmay</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.spin.sigmaz.html">netket.operator.spin.sigmaz</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.spin.sigmap.html">netket.operator.spin.sigmap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.spin.sigmam.html">netket.operator.spin.sigmam</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#exact-solvers">Exact solvers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/exact/netket.exact.full_ed.html">netket.exact.full_ed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/exact/netket.exact.lanczos_ed.html">netket.exact.lanczos_ed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/exact/netket.exact.steady_state.html">netket.exact.steady_state</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#sampler">Sampler</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#generic-api">Generic API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.sampler_state.html">netket.sampler.sampler_state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.reset.html">netket.sampler.reset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.sample_next.html">netket.sampler.sample_next</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.sample.html">netket.sampler.sample</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.samples.html">netket.sampler.samples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#list-of-samplers">List of Samplers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.Sampler.html">netket.sampler.Sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.ExactSampler.html">netket.sampler.ExactSampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSampler.html">netket.sampler.MetropolisSampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSamplerNumpy.html">netket.sampler.MetropolisSamplerNumpy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisPtSampler.html">netket.sampler.MetropolisPtSampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisLocal.html">netket.sampler.MetropolisLocal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisExchange.html">netket.sampler.MetropolisExchange</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisHamiltonian.html">netket.sampler.MetropolisHamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisLocalPt.html">netket.sampler.MetropolisLocalPt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisExchangePt.html">netket.sampler.MetropolisExchangePt</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#transition-rules">Transition Rules</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisRule.html">netket.sampler.MetropolisRule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.LocalRule.html">netket.sampler.rules.LocalRule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.ExchangeRule.html">netket.sampler.rules.ExchangeRule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.HamiltonianRule.html">netket.sampler.rules.HamiltonianRule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.HamiltonianRuleNumpy.html">netket.sampler.rules.HamiltonianRuleNumpy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.CustomRuleNumpy.html">netket.sampler.rules.CustomRuleNumpy</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#internal-state">Internal State</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.SamplerState.html">netket.sampler.SamplerState</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSamplerState.html">netket.sampler.MetropolisSamplerState</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#pre-built-models">Pre-built models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.RBM.html">netket.models.RBM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.RBMModPhase.html">netket.models.RBMModPhase</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.RBMMultiVal.html">netket.models.RBMMultiVal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.RBMSymm.html">netket.models.RBMSymm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.Jastrow.html">netket.models.Jastrow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.MPSPeriodic.html">netket.models.MPSPeriodic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.NDM.html">netket.models.NDM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.GCNN.html">netket.models.GCNN</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#model-tools">Model tools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/nn/netket.nn.Module.html">netket.nn.Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#linear-modules">Linear Modules</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.Dense.html">netket.nn.Dense</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.DenseGeneral.html">netket.nn.DenseGeneral</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.DenseSymm.html">netket.nn.DenseSymm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.DenseEquivariant.html">netket.nn.DenseEquivariant</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.Conv.html">netket.nn.Conv</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.Embed.html">netket.nn.Embed</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#activation-functions">Activation functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.celu.html">netket.nn.celu</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.elu.html">netket.nn.elu</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.gelu.html">netket.nn.gelu</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.glu.html">netket.nn.glu</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.log_sigmoid.html">netket.nn.log_sigmoid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.log_softmax.html">netket.nn.log_softmax</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.relu.html">netket.nn.relu</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.sigmoid.html">netket.nn.sigmoid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.soft_sign.html">netket.nn.soft_sign</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.softmax.html">netket.nn.softmax</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.softplus.html">netket.nn.softplus</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.swish.html">netket.nn.swish</a></li>
+<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.logcosh.html">netket.nn.logcosh</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#variational-state-interface">Variational State Interface</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html">netket.variational.VariationalState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/variational/netket.variational.MCState.html">netket.variational.MCState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/variational/netket.variational.MCMixedState.html">netket.variational.MCMixedState</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#optimizer">Optimizer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.SR.html">netket.optimizer.SR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.SRLazyCG.html">netket.optimizer.SRLazyCG</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.SRLazyGMRES.html">netket.optimizer.SRLazyGMRES</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.sr.LazySMatrix.html">netket.optimizer.sr.LazySMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.Adam.html">netket.optimizer.Adam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.AdaGrad.html">netket.optimizer.AdaGrad</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.Sgd.html">netket.optimizer.Sgd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.Momentum.html">netket.optimizer.Momentum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.RmsProp.html">netket.optimizer.RmsProp</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#optimization-drivers">Optimization drivers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.driver.AbstractVariationalDriver.html">netket.driver.AbstractVariationalDriver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.driver.VMC.html">netket.driver.VMC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.driver.SteadyState.html">netket.driver.SteadyState</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#logging-output">Logging output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.JsonLog.html">netket.logging.JsonLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.RuntimeLog.html">netket.logging.RuntimeLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.TBLog.html">netket.logging.TBLog</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#utils">Utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/utils/netket.utils.HashableArray.html">netket.utils.HashableArray</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#callbacks">Callbacks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_generated/callbacks/netket.callbacks.EarlyStopping.html">netket.callbacks.EarlyStopping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/callbacks/netket.callbacks.Timeout.html">netket.callbacks.Timeout</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+<!--- |replace("", "<span class=\"toctree-expand\Z"></span>")  --->
+        </div>
+      </div>
+    <div class="body col-md-9 content" role="main">
+      
+  <div class="section" id="the-variational-state-interface">
+<h1>The Variational State Interface<a class="headerlink" href="#the-variational-state-interface" title="Permalink to this headline">¶</a></h1>
+<p>A central element of NetKet is the <a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState" title="netket.variational.VariationalState"><code class="xref py py-class docutils literal notranslate"><span class="pre">VariationalState</span></code></a> interface.
+A Variational State represents an approximate, variational description of a system, and can be used to
+probe it.</p>
+<p>As of now, NetKet has two types of Variational state implementations:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState" title="netket.variational.MCState"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCState</span></code></a>, which is a classical variational approximation of a pure state.</p></li>
+<li><p><a class="reference internal" href="_generated/variational/netket.variational.MCMixedState.html#netket.variational.MCMixedState" title="netket.variational.MCMixedState"><code class="xref py py-class docutils literal notranslate"><span class="pre">MCMixedState</span></code></a>, which is a classical variational approximation of a mixed state.</p></li>
+</ul>
+<p>It is our plan to build upon this interface for new kind of variational states in the future. For example, we
+are interested in implementing a new kind of variational state that encodes a state into a Qiskit circuit.</p>
+<div class="section" id="constructing-a-variational-state">
+<h2>Constructing a Variational State<a class="headerlink" href="#constructing-a-variational-state" title="Permalink to this headline">¶</a></h2>
+<p>To construct the two variational states above you need to provide at least a Monte Carlo sampler (you can see
+the list of available ones <a class="reference internal" href="api.html#sampler-api"><span class="std std-ref">here</span></a>) and a model.
+The hilbert space of the variational state will be inferred from the sampler, as they all reference the
+hilbert space they are sampling.</p>
+<p>The model can be specified in several ways. The most standard way is to pass a <a class="reference external" href="https://flax.readthedocs.io/en/latest/flax.linen.html#module">Flax Linen Module</a>, but you can also pass a Jax-style pair
+of functions <code class="code docutils literal notranslate"><span class="pre">(init,</span> <span class="pre">apply)</span></code> or an haiku module obtained by calling <code class="code docutils literal notranslate"><span class="pre">haiku.transform()</span></code>.
+It’s also easy to use another jax-based framework with NetKet (though it’s not yet documented). If you
+want to do that, you can have a look at the automatic conversion <a class="reference external" href="https://github.com/netket/netket/tree/master/netket/utils/model_frameworks">code</a> and get in touch with us.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Initializing a Variational State with non-Flax modules is still experimental. Complex modules,
+especially if mutable, might not work. If you have problems don’t hesitate opening issues on
+GitHub so that we can address them. They are mostly easy fixes.</p>
+</div>
+<div class="section" id="defining-models-flax">
+<h3>Defining models: Flax<a class="headerlink" href="#defining-models-flax" title="Permalink to this headline">¶</a></h3>
+<p>In general, the most-well supported way to define Models for NetKet is through Flax.</p>
+<p>If you are not familiar with Flax, it’s a package that allows to define Neural Networks or other
+parametrized functions. While we suggest to read carefully the <a class="reference external" href="https://flax.readthedocs.io/en/latest/notebooks/flax_basics.html">introduction to Flax</a>, if you are impatient and just want to define some simple, easy
+models you can find some examples in the <a class="reference external" href="https://flax.readthedocs.io/en/latest/howtos/model_surgery.html">Model Surgery</a> section of Flax documentation.</p>
+<p>Over examples can be found in the source of the <span class="xref std std-ref">Pre-built models</span> distributed with NetKet, such as
+<a class="reference internal" href="_generated/models/netket.models.RBM.html#netket.models.RBM" title="netket.models.RBM"><code class="xref py py-class docutils literal notranslate"><span class="pre">RBM</span></code></a> (the simplest one), <a class="reference internal" href="_generated/models/netket.models.MPSPeriodic.html#netket.models.MPSPeriodic" title="netket.models.MPSPeriodic"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPSPeriodic</span></code></a> and <a class="reference internal" href="_generated/models/netket.models.NDM.html#netket.models.NDM" title="netket.models.NDM"><code class="xref py py-class docutils literal notranslate"><span class="pre">NDM</span></code></a> for
+more complicated examples.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Flax modules do not always work well with complex numbers. For that reason, if your model has complex
+parameters we invite you to use <code class="code docutils literal notranslate"><span class="pre">netket.nn</span></code> in place of <code class="code docutils literal notranslate"><span class="pre">flax.linen</span></code> and <code class="code docutils literal notranslate"><span class="pre">flax.nn</span></code>.</p>
+<p><code class="code docutils literal notranslate"><span class="pre">netket.nn</span></code> re-exports some Flax functionality ensuring that it works nicely with complex numbers.
+If you don’t find something from Flax in <code class="code docutils literal notranslate"><span class="pre">netket.nn</span></code>, please <a class="reference external" href="https://github.com/netket/netket/issues">open an issue</a> in GitHub.</p>
+</div>
+</div>
+<div class="section" id="mcstate">
+<h3>MCState<a class="headerlink" href="#mcstate" title="Permalink to this headline">¶</a></h3>
+<p>Let’s now assume we have a Flax module, <a class="reference internal" href="_generated/models/netket.models.RBM.html#netket.models.RBM" title="netket.models.RBM"><code class="xref py py-class docutils literal notranslate"><span class="pre">RBM</span></code></a> and we want to construct a variational state
+on sampled with a simple <a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisLocal.html#netket.sampler.MetropolisLocal" title="netket.sampler.MetropolisLocal"><code class="xref py py-func docutils literal notranslate"><span class="pre">MetropolisLocal()</span></code></a> sampler.</p>
+<p>To do this, first you need to construct the model and the sampler, and then you can pass them, together with several
+parameters, to the constructor.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hilbert</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span><span class="o">**</span><span class="mi">10</span>
+
+<span class="n">sampler</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">MetropolisLocal</span><span class="p">(</span><span class="n">hilbert</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">RBM</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">kernel_init</span><span class="o">=</span><span class="n">nk</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">stddev</span><span class="o">=</span><span class="mf">0.01</span><span class="p">))</span>
+
+<span class="n">vstate</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">variational</span><span class="o">.</span><span class="n">MCState</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When constructed, the variational state will call the model’s init method to generate the state and the
+parameters, and will also initialize the sampler.</p>
+<p>When constructing a variational state you can also pass a seed, that will be used to initialize both the
+weights and the sampler. You can also pass two different seeds for the sampler and the weights.</p>
+</div>
+</div>
+<div class="section" id="using-a-monte-carlo-variational-state">
+<h2>Using a Monte Carlo Variational State<a class="headerlink" href="#using-a-monte-carlo-variational-state" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="expectation-values">
+<h3>Expectation values<a class="headerlink" href="#expectation-values" title="Permalink to this headline">¶</a></h3>
+<p>One you have a variational state, you can do many things with it.
+First of all, you can probe expectation values:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>Ĥ = nk.operator.Ising(hilbert, nk.graph.Chain(hilbert.size), h=0.5)
+
+vstate.expect(Ĥ)
+
+&gt;&gt;&gt; -4.98 ± 0.14 [σ²=9.51, R̂=1.0006]
+</pre></div>
+</div>
+<p>Notice that if you call multiple times <code class="code docutils literal notranslate"><span class="pre">expect</span></code>, the same set of
+samples will be used, and you will get the same result. To force sampling
+to happen again, you can call <a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState.sample" title="netket.variational.MCState.sample"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sample()</span></code></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>vstate.expect(Ĥ)
+
+&gt;&gt;&gt; -4.98 ± 0.14 [σ²=9.51, R̂=1.0006]
+
+vstate.sample();
+
+vstate.expect(Ĥ)
+
+&gt;&gt;&gt; -4.90 ± 0.14 [σ²=9.54, R̂=1.0062]
+</pre></div>
+</div>
+<p>The set of the last sampled samples can be accessed from the attribute
+<a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState.samples" title="netket.variational.MCState.samples"><code class="xref py py-attr docutils literal notranslate"><span class="pre">samples</span></code></a>. If you access the samples
+from this attribute, but you haven’t sampled already, <code class="code docutils literal notranslate"><span class="pre">sample()</span></code> will
+be called automatically.</p>
+<p>Note that when you update the parameters, the samples are automatically
+discarded.</p>
+<p>Parameters can be accessed through the attribute <a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.parameters" title="netket.variational.VariationalState.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parameters</span></code></a>,
+and you can modify them by assigning a new set of parameters to this attribute.</p>
+<p>Note that parameters cannot in general be modified in place, as they are
+of type <cite>FrozenDict</cite> (they are frozen, aka can’t be modified). A typical way
+to modify them, for example to add 0.1 to all parameters is to do the following:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">jax</span>
+
+<span class="c1"># See the value of some parameters</span>
+<span class="n">vstate</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;visible_bias&#39;</span><span class="p">]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">DeviceArray</span><span class="p">([</span><span class="o">-</span><span class="mf">0.10806808</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.14987472</span><span class="p">,</span>  <span class="mf">0.13069461</span><span class="p">,</span>  <span class="mf">0.0125838</span> <span class="p">,</span>
+              <span class="mf">0.06278384</span><span class="p">,</span>  <span class="mf">0.00275547</span><span class="p">,</span>  <span class="mf">0.05843748</span><span class="p">,</span>  <span class="mf">0.07516951</span><span class="p">,</span>
+              <span class="mf">0.21897993</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.01632223</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="p">)</span>
+
+<span class="n">vstate</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">+</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">vstate</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+
+<span class="c1"># Look at the new values</span>
+<span class="n">vstate</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;visible_bias&#39;</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">DeviceArray</span><span class="p">([</span><span class="o">-</span><span class="mf">0.00806808</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.04987472</span><span class="p">,</span>  <span class="mf">0.23069461</span><span class="p">,</span>  <span class="mf">0.1125838</span> <span class="p">,</span>
+              <span class="mf">0.16278384</span><span class="p">,</span>  <span class="mf">0.10275547</span><span class="p">,</span>  <span class="mf">0.15843748</span><span class="p">,</span>  <span class="mf">0.17516951</span><span class="p">,</span>
+              <span class="mf">0.31897993</span><span class="p">,</span>  <span class="mf">0.08367777</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="sampling">
+<h3>Sampling<a class="headerlink" href="#sampling" title="Permalink to this headline">¶</a></h3>
+<p>You can also change the number of samples to extract (note: this will
+trigger recompilation of the sample function, so you should not this
+in a hot loop) by changing <a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState.n_samples" title="netket.variational.MCState.n_samples"><code class="xref py py-attr docutils literal notranslate"><span class="pre">n_samples</span></code></a>, and
+the number of discarded samples at the beginning of every markov chain by
+changing <a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState.n_discard" title="netket.variational.MCState.n_discard"><code class="xref py py-attr docutils literal notranslate"><span class="pre">n_discard</span></code></a>.</p>
+<p>By default, <a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState.n_discard" title="netket.variational.MCState.n_discard"><code class="xref py py-attr docutils literal notranslate"><span class="pre">n_discard</span></code></a> is 10% of
+<a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState.n_samples" title="netket.variational.MCState.n_samples"><code class="xref py py-attr docutils literal notranslate"><span class="pre">n_samples</span></code></a>.</p>
+<p>The number of samples is then split among the number of chains/batches of the sampler.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hilbert</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span><span class="o">**</span><span class="mi">6</span>
+
+<span class="n">sampler</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">MetropolisLocal</span><span class="p">(</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">n_chains</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+
+<span class="n">vstate</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">variational</span><span class="o">.</span><span class="n">MCState</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">nk</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">RBM</span><span class="p">(),</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">vstate</span><span class="o">.</span><span class="n">n_samples</span><span class="p">)</span>
+<span class="mi">504</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">vstate</span><span class="o">.</span><span class="n">chain_length</span><span class="p">)</span>
+<span class="mi">63</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">vstate</span><span class="o">.</span><span class="n">n_discard</span><span class="p">)</span>
+<span class="mi">50</span>
+</pre></div>
+</div>
+<p>You can see that 500 samples are split among 8 chains, giving <span class="math notranslate nohighlight">\(500/8=62.5\)</span> (rounded to
+the next largest integer, 63). Therefore 8 chains of length 63 will be run.
+n_discard gives the number of discarded steps taken in the markov chain before actually storing
+them, so the Markov Chains are actually <code class="code docutils literal notranslate"><span class="pre">chain_length</span> <span class="pre">+</span> <span class="pre">n_discard</span></code> long. The default
+n_discard is 10% of the total samples, but you can change that to any number.</p>
+<div class="admonition warning" id="warn-mpi-sampling">
+<p class="admonition-title">Warning</p>
+<p>When running your code under MPI, the length of the chain is computed not only by dividing the
+total number of samples by <code class="code docutils literal notranslate"><span class="pre">n_chains</span></code>, but also by diving it by the number of MPI processes.</p>
+<p>Therefore, considering the number from the example above, if we had 4 MPI processes, we would have
+found a chain length of <span class="math notranslate nohighlight">\(500/(8*4) = 15.625 \rightarrow 16\)</span>.</p>
+</div>
+</div>
+<div class="section" id="collecting-the-state-vector">
+<h3>Collecting the state-vector<a class="headerlink" href="#collecting-the-state-vector" title="Permalink to this headline">¶</a></h3>
+<p>A variational state can be evaluated on the whole Hilbert space in order to obtain
+the ket it represents.</p>
+<p>This is achieved by using the <a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.to_array" title="netket.variational.VariationalState.to_array"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_array()</span></code></a> method,
+which by defaults normalises the <span class="math notranslate nohighlight">\(L_2\)</span> norm of the vector to 1 (but can be turned off).</p>
+<p>Mixed state ansatzes can be converted to their matrix representation with
+<a class="reference internal" href="_generated/variational/netket.variational.MCMixedState.html#netket.variational.MCMixedState.to_matrix" title="netket.variational.MCMixedState.to_matrix"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_matrix()</span></code></a>. In this case, the default
+normalisation sets the trace to 1.</p>
+</div>
+<div class="section" id="manipulating-the-parameters">
+<h3>Manipulating the parameters<a class="headerlink" href="#manipulating-the-parameters" title="Permalink to this headline">¶</a></h3>
+<p>You can access the parameters of a variational state through the <a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.parameters" title="netket.variational.VariationalState.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parameters</span></code></a> attribute.
+Similarly, if your model has also a mutable state, you can access it through
+the <a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.model_state" title="netket.variational.VariationalState.model_state"><code class="xref py py-attr docutils literal notranslate"><span class="pre">model_state</span></code></a> attribute.</p>
+<p>Parameters are stored as a Flax <code class="code docutils literal notranslate"><span class="pre">FrozenDict</span></code>, which behaves like a standard python dictionary but cannot be modified.
+In Jax jargon, Parameters are a PyTree (see <a class="reference external" href="https://jax.readthedocs.io/en/latest/pytrees.html">PyTree documentation</a>) and they
+can be operated upon with functions like <a class="reference external" href="https://jax.readthedocs.io/en/latest/jax.tree_util.html?highlight=tree_map#jax.tree_util.tree_map">jax.tree_map</a>.</p>
+<p>You can also modify the parameters by _unfreezing_ them, using the command <cite>flax.core.unfreeze</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">flax</span>
+
+<span class="n">pars</span> <span class="o">=</span> <span class="n">flax</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">unfreeze</span><span class="p">(</span><span class="n">varstate</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+
+<span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Dense&#39;</span><span class="p">][</span><span class="s1">&#39;kernel&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pars</span><span class="p">[</span><span class="s1">&#39;Dense&#39;</span><span class="p">][</span><span class="s1">&#39;kernel&#39;</span><span class="p">]</span> <span class="o">+</span><span class="mi">1</span>
+
+<span class="n">varstate</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">pars</span>
+</pre></div>
+</div>
+<p>The parameter dict will be automatically frozen upon assignment.</p>
+</div>
+</div>
+<div class="section" id="saving-and-loading-a-variational-state">
+<h2>Saving and Loading a Variational State<a class="headerlink" href="#saving-and-loading-a-variational-state" title="Permalink to this headline">¶</a></h2>
+<p>Variational States conform to the <a class="reference external" href="https://flax.readthedocs.io/en/latest/flax.serialization.html">Flax serialization interface</a> and can be serialized and deserialized with it.</p>
+<p>Moreover, the Json Logger <a class="reference internal" href="_generated/driver/netket.logging.JsonLog.html#netket.logging.JsonLog" title="netket.logging.JsonLog"><code class="xref py py-class docutils literal notranslate"><span class="pre">JsonLog</span></code></a> serializes the variational state
+through that interface.</p>
+<p>A simple example to serialize data is provided below:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># construct an RBM model on 10 spins</span>
+<span class="n">vstate</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">variational</span><span class="o">.</span><span class="n">MCState</span><span class="p">(</span><span class="n">nk</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">MetropolisLocal</span><span class="p">(</span><span class="n">nk</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span><span class="o">**</span><span class="mi">10</span><span class="p">),</span>
+                                <span class="n">nk</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">RBM</span><span class="p">())</span>
+
+<span class="kn">import</span> <span class="nn">flax</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;test.mpack&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+  <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">flax</span><span class="o">.</span><span class="n">serialization</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="n">vstate</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>And here we de-serialize it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># construct a new RBM model on 10 spins</span>
+<span class="n">vstate</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">variational</span><span class="o">.</span><span class="n">MCState</span><span class="p">(</span><span class="n">nk</span><span class="o">.</span><span class="n">sampler</span><span class="o">.</span><span class="n">MetropolisLocal</span><span class="p">(</span><span class="n">nk</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span><span class="o">**</span><span class="mi">10</span><span class="p">),</span>
+                                <span class="n">nk</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">RBM</span><span class="p">())</span>
+
+<span class="c1"># load</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;test.mpack&quot;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+  <span class="n">vstate</span> <span class="o">=</span> <span class="n">flax</span><span class="o">.</span><span class="n">serialization</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">vstate</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Note that this also serializes the state of the sampler.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The JSonLog serializer only serializes the parameters of the model, and not the whole variational state.
+Therefore, if you wish to reload the parameters of a variational state, saved by the json logger, you should
+use the same procedure outlined above, only that the list line should be:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;parameters.mpack&quot;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+  <span class="n">vstate</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="n">flax</span><span class="o">.</span><span class="n">serialization</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">vstate</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019-2021, The Netket authors - All rights reserved.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.4.<br/>
+    </p>
+  </div>
+</footer>
+
+<script type="text/javascript">
+    jQuery(function () {
+        SphinxRtdTheme.Navigation.enable(true);
+      })
+</script>
+
+<!-- Temporary footer
+<div class="footer-wip">
+  <div class="footer-wip-content">
+    This documentation refers to an unreleased version of Netket.
+  </div>
+</div>
+-->
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-118013987-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-118013987-1');
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "url": "https://www.netket.org",
+  "name": "NetKet",
+  "founder": "Giuseppe Carleo",
+  "foundingDate": "2018-04-24",
+  "foundingLocation" : "New York",
+  "logo": "https://www.netket.org/img/logo_small.jpg",
+  "sameAs": [
+    "https://twitter.com/NetKetOrg",
+    "https://github.com/NetKet/netket"
+  ],
+  "description" : "Netket is an open-source project delivering cutting-edge
+  methods for the study of many-body quantum systems with artificial neural
+  networks and machine learning techniques."
+}
+</script>
+
+  </body>
+</html>
