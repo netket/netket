@@ -38,8 +38,7 @@ from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
 from netket.utils import flax as flax_utils, n_nodes, maybe_wrap_module, deprecated
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
-from netket.optimizer import SR
-from netket.optimizer.sr import SMatrix, SRLazy
+from netket.optimizer.sr import SR, AbstractSMatrix
 from netket.operator import (
     AbstractOperator,
     AbstractSuperOperator,
@@ -496,7 +495,7 @@ class MCState(VariationalState):
 
         return Ō, Ō_grad
 
-    def quantum_geometric_tensor(self, sr: SR) -> SMatrix:
+    def quantum_geometric_tensor(self, sr: SR) -> AbstractSMatrix:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector
         or can be converted to a full matrix.
@@ -504,7 +503,7 @@ class MCState(VariationalState):
         Returns:
             scipy.sparse.linalg.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
-        return SMatrix(sr, self)
+        return sr.create(self)
 
     def to_array(self, normalize: bool = True) -> jnp.ndarray:
         return netket.nn.to_array(
@@ -814,28 +813,3 @@ serialization.register_serialization_state(
     serialize_MCState,
     deserialize_MCState,
 )
-
-from netket.optimizer.sr.sr_onthefly import LazySMatrixIterative
-from netket.optimizer.sr.sr_snr import LazySSNRMatrix, SRSNR
-
-
-@dispatch.annotations()
-def SMatrix(sr: SRLazy, vstate: MCState):
-    return LazySMatrixIterative(
-        apply_fun=vstate._apply_fun,
-        params=vstate.parameters,
-        samples=vstate.samples,
-        model_state=vstate.model_state,
-        sr=sr,
-    )
-
-
-@dispatch.annotations()
-def SMatrix(sr: SRSNR, vstate: MCState):
-    return LazySSNRMatrix(
-        apply_fun=vstate._apply_fun,
-        params=vstate.parameters,
-        samples=vstate.samples,
-        model_state=vstate.model_state,
-        sr=sr,
-    )

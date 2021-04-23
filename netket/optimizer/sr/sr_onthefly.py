@@ -26,14 +26,14 @@ from netket.utils.types import PyTree, Array
 from netket.utils import rename_class
 import netket.jax as nkjax
 
-from .sr_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
-from .s_onthefly_mat import SRLazy, LazySMatrix
-
 from .base import SR, SMatrix
+
+from .sr_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
+from .s_onthefly_mat import SROnTheFly, SMatrixOnTheFly
 
 
 @struct.dataclass
-class SRLazyIterative(SRLazy):
+class SROnTheFlyIterative(SROnTheFly):
     """
     Base class holding the parameters for the iterative solution of the
     SR system x = ⟨S⟩⁻¹⟨F⟩, where S is a lazy linear operator
@@ -59,9 +59,24 @@ class SRLazyIterative(SRLazy):
     that fewer iterations are needed to reach a given error tolerance.
     """
 
+    def create(self, vstate, **kwargs) -> "AbstractSMatrix":
+        """
+        Construct the Lazy representation of the S corresponding to this SR type.
+
+        Args:
+            vstate: The Variational State
+        """
+        return LazySMatrixIterative(
+            apply_fun=vstate._apply_fun,
+            params=vstate.parameters,
+            samples=vstate.samples,
+            model_state=vstate.model_state,
+            sr=self,
+        )
+
 
 @struct.dataclass
-class SRLazyCG(SRLazyIterative):
+class SRLazyCG(SROnTheFlyIterative):
     """
     Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative conjugate gradient method.
 
@@ -82,7 +97,7 @@ class SRLazyCG(SRLazyIterative):
 
 
 @struct.dataclass
-class SRLazyGMRES(SRLazyIterative):
+class SRLazyGMRES(SROnTheFlyIterative):
     """
     Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative GMRES method.
 
@@ -123,7 +138,7 @@ class SRLazyGMRES(SRLazyIterative):
 
 
 @struct.dataclass
-class LazySMatrixIterative(LazySMatrix):
+class LazySMatrixIterative(SMatrixOnTheFly):
     """
     Lazy representation of an S Matrix behving like a linear operator.
 
@@ -162,7 +177,9 @@ class LazySMatrixIterative(LazySMatrix):
 
 
 @jax.jit
-def apply_onthefly(S: LazySMatrix, grad: PyTree, x0: Optional[PyTree]) -> PyTree:
+def apply_onthefly(
+    S: LazySMatrixIterative, grad: PyTree, x0: Optional[PyTree]
+) -> PyTree:
     # Preapply the model state so that when computing gradient we only
     # get gradient of parameeters
     def fun(W, σ):

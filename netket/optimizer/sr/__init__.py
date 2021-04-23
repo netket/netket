@@ -14,12 +14,15 @@
 
 from .api import SR
 
-from .base import SMatrix
+# Abstract base types for SR and S Matrices
+from .base import SMatrix, AbstractSMatrix
 
+# Abstract type for a lazy S matrix
+from .s_lazy import AbstractLazySMatrix
+
+# Lazy OnTheFly implementation of S matrix
 from .sr_onthefly import SRLazyCG, SRLazyGMRES
-from .s_onthefly_mat import SRLazy, LazySMatrix
 
-from .sr_snr import SRSNR
 
 from netket.utils import _hide_submodules
 

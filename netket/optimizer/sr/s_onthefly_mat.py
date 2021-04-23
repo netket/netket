@@ -15,10 +15,11 @@ from plum import dispatch
 from .sr_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
 
 from .base import SR, AbstractSMatrix
+from .s_lazy import AbstractLazySMatrix
 
 
 @struct.dataclass
-class SRLazy(SR):
+class SROnTheFly(SR):
     """
     Base class holding the parameters for the iterative solution of the
     SR system x = ⟨S⟩⁻¹⟨F⟩, where S is a lazy linear operator
@@ -33,11 +34,28 @@ class SRLazy(SR):
     precision. The non-centered variaant should bee approximately 33% faster.
     """
 
+    def create(self, vstate, **kwargs) -> "AbstractSMatrix":
+        """
+        Construct the Lazy representation of the S corresponding to this SR type.
+
+        Args:
+            vstate: The Variational State
+        """
+        return SMatrixOnTheFly(
+            apply_fun=vstate._apply_fun,
+            params=vstate.parameters,
+            samples=vstate.samples,
+            model_state=vstate.model_state,
+            sr=self,
+        )
+
 
 @struct.dataclass
-class LazySMatrix(AbstractSMatrix):
+class SMatrixOnTheFly(AbstractLazySMatrix):
     """
-    Lazy representation of an S Matrix behving like a linear operator.
+    Lazy representation of an S Matrix computed by performing 2 jvp
+    and 1 vjp products, using the variational state's model, the
+    samples that have already been computed, and the vector.
 
     The S matrix is not computed yet, but can be computed by calling
     :code:`to_dense`.
@@ -45,48 +63,13 @@ class LazySMatrix(AbstractSMatrix):
     the field `sr`.
     """
 
-    apply_fun: Callable[[PyTree, jnp.ndarray], jnp.ndarray] = struct.field(
-        pytree_node=False
-    )
-    """The forward pass of the Ansatz."""
-
-    params: PyTree
-    """The first input to apply_fun (parameters of the ansatz)."""
-
-    samples: jnp.ndarray
-    """The second input to apply_fun (points where the ansatz is evaluated)."""
-
-    sr: SR
-    """Parameters for the solution of the system."""
-
-    model_state: Optional[PyTree] = None
-    """Optional state of the ansataz."""
-
-    def __matmul__(self, vec):
-        return lazysmatrix_mat_treevec(self, vec)
-
-    def __rtruediv__(self, y):
-        return self.solve(y)
-
-    @jax.jit
-    def to_dense(self) -> jnp.ndarray:
-        """
-        Convert the lazy matrix representation to a dense matrix representation.s
-
-        Returns:
-            A dense matrix representation of this S matrix.
-        """
-        Npars = nkjax.tree_size(self.params)
-        I = jax.numpy.eye(Npars)
-        return jax.vmap(lambda S, x: self @ x, in_axes=(None, 0))(self, I)
-
-    def __array__(self) -> jnp.ndarray:
-        return self.to_dense()
+    def __matmul__(self, y):
+        return lazysmatrix_mat_treevec(S, vec)
 
 
 @jax.jit
 def lazysmatrix_mat_treevec(
-    S: LazySMatrix, vec: Union[PyTree, jnp.ndarray]
+    S: SMatrixOnTheFly, vec: Union[PyTree, jnp.ndarray]
 ) -> Union[PyTree, jnp.ndarray]:
     """
     Perform the lazy mat-vec product, where vec is either a tree with the same structure as
