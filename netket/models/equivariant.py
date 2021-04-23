@@ -30,8 +30,6 @@ from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 from netket import nn as nknn
 from netket.nn.initializers import lecun_complex, zeros, variance_scaling
 
-init_fun = variance_scaling(scale=1.0, mode="fan_in", distribution="normal")
-
 
 class GCNN(nn.Module):
     """Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
@@ -74,7 +72,7 @@ class GCNN(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = init_fun
+    kernel_init: NNInitFunc = variance_scaling(1.0, "fan_in", "normal")
     """Initializer for the Dense layer matrix."""
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias."""
@@ -141,6 +139,6 @@ class GCNN(nn.Module):
 
         if not self.output_activation == None:
             x = self.output_activation(x)
-        x = jnp.sum(x, axis=-1)
+        x = jnp.sum(x, axis=-1) / np.sqrt(x.shape[-1])
 
         return x
