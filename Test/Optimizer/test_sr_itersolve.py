@@ -55,3 +55,5 @@ def vstate(request):
 def test_sr_solve(sr, vstate):
     S = vstate.quantum_geometric_tensor(sr)
     x, _ = S.solve(vstate.parameters)
+
+    x = S @ vstate.parameters
