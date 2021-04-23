@@ -411,7 +411,7 @@ class DenseEquivariant(Module):
         kernel = self.param(
             "kernel",
             self.kernel_init,
-            (inputs.shape[-1], self.in_features, self.out_features),
+            (inputs.shape[-1] // self.in_features, self.in_features, self.out_features),
             self.dtype,
         )
         kernel = self.full_kernel(kernel)
