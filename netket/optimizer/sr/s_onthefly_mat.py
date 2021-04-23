@@ -7,14 +7,11 @@ from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import PyTree, Array
-from netket.utils import rename_class
 import netket.jax as nkjax
-
-from plum import dispatch
 
 from .sr_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
 
-from .base import SR, AbstractSMatrix
+from .base import SR
 from .s_lazy import AbstractLazySMatrix
 
 
@@ -34,7 +31,7 @@ class SROnTheFly(SR):
     precision. The non-centered variaant should bee approximately 33% faster.
     """
 
-    def create(self, vstate, **kwargs) -> "AbstractSMatrix":
+    def create(self, vstate, **kwargs) -> "SMatrixOnTheFly":
         """
         Construct the Lazy representation of the S corresponding to this SR type.
 
@@ -63,8 +60,15 @@ class SMatrixOnTheFly(AbstractLazySMatrix):
     the field `sr`.
     """
 
+    def __post_init__(self):
+        super().__post_init__()
+
+        if jnp.ndim(self.samples) != 2:
+            samples_r = self.samples.reshape((-1, self.samples.shape[-1]))
+            object.__setattr__(self, "samples", samples_r)
+
     def __matmul__(self, y):
-        return lazysmatrix_mat_treevec(S, vec)
+        return lazysmatrix_mat_treevec(self, y)
 
 
 @jax.jit
@@ -75,9 +79,6 @@ def lazysmatrix_mat_treevec(
     Perform the lazy mat-vec product, where vec is either a tree with the same structure as
     params or a ravelled vector
     """
-
-    def fun(W, σ):
-        return S.apply_fun({"params": W, **S.model_state}, σ)
 
     # if hasa ndim it's an array and not a pytree
     if hasattr(vec, "ndim"):
@@ -97,17 +98,16 @@ def lazysmatrix_mat_treevec(
     else:
         ravel_result = False
 
-    samples = S.samples
-    if jnp.ndim(samples) != 2:
-        samples = samples.reshape((-1, samples.shape[-1]))
-
     vec = tree_cast(vec, S.params)
+
+    def fun(W, σ):
+        return S.apply_fun({"params": W, **S.model_state}, σ)
 
     mat_vec = partial(
         mat_vec_onthefly,
         forward_fn=fun,
         params=S.params,
-        samples=samples,
+        samples=S.samples,
         diag_shift=S.sr.diag_shift,
         centered=S.sr.centered,
     )

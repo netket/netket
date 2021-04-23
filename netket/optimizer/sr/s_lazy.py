@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from typing import Callable, Optional, Union, Tuple, Any
-from functools import partial
 
 import jax
 import flax

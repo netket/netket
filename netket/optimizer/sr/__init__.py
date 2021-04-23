@@ -15,7 +15,7 @@
 from .api import SR
 
 # Abstract base types for SR and S Matrices
-from .base import SMatrix, AbstractSMatrix
+from .base import AbstractSMatrix
 
 # Abstract type for a lazy S matrix
 from .s_lazy import AbstractLazySMatrix

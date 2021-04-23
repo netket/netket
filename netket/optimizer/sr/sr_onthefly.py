@@ -23,10 +23,8 @@ from flax import struct
 from plum import dispatch
 
 from netket.utils.types import PyTree, Array
-from netket.utils import rename_class
-import netket.jax as nkjax
 
-from .base import SR, SMatrix
+from .base import SR
 
 from .sr_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
 from .s_onthefly_mat import SROnTheFly, SMatrixOnTheFly
@@ -59,7 +57,7 @@ class SROnTheFlyIterative(SROnTheFly):
     that fewer iterations are needed to reach a given error tolerance.
     """
 
-    def create(self, vstate, **kwargs) -> "AbstractSMatrix":
+    def create(self, vstate, **kwargs) -> "LazySMatrixIterative":
         """
         Construct the Lazy representation of the S corresponding to this SR type.
 
@@ -190,15 +188,11 @@ def apply_onthefly(
     if x0 is None:
         x0 = jax.tree_map(jnp.zeros_like, grad)
 
-    samples = S.samples
-    if jnp.ndim(samples) != 2:
-        samples = samples.reshape((-1, samples.shape[-1]))
-
     _mat_vec = partial(
         mat_vec_onthefly,
         forward_fn=fun,
         params=S.params,
-        samples=samples,
+        samples=S.samples,
         diag_shift=S.sr.diag_shift,
         centered=S.sr.centered,
     )

@@ -13,14 +13,9 @@
 # limitations under the License.
 
 from typing import Callable, Optional, Union, Tuple, Any
-from functools import partial
 
-import jax
-import flax
 from jax import numpy as jnp
 from flax import struct
-
-from plum import dispatch
 
 from netket.utils.types import PyTree, Array
 
@@ -66,7 +61,6 @@ class AbstractSMatrix:
     - :code:`__call__(y)`, meaning you must be able to do S(vec) = S@vec.
         This is defined by the base class so you don't need to define it.
         This guarantees that you can pass this matrix to sparse solvers.
-    - :code:`__rtruediv__(y)`, that allows you to solve Sx=y by doing y\\S.
     - :code:`to_dense(self)`, that will concretize the dense representation.
         You get a slow default fallback by default, you might specify a faster
         override.
@@ -112,18 +106,8 @@ class AbstractSMatrix:
         return self @ vec
 
     # PUBLIC API: Only override if you want to, but there should be no need.
-    def __rtruediv__(self, y):
-        x, _ = self.solve(y)
-        return x
-
-    # PUBLIC API: Only override if you want to, but there should be no need.
     def __array__(self) -> jnp.ndarray:
         return self.to_dense()
 
-
-@dispatch
-def SMatrix(sr: SR, vstate: object) -> AbstractSMatrix:
-    """
-    Construct the S matrix given a
-    """
-    raise NotImplementedError
+    def __post_init__(self):
+        pass
