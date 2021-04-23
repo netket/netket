@@ -66,12 +66,14 @@ class StateLog:
         Construct a Tar Logger.
 
         Args:
-            output_prefix: the name of the output files before the extension
+            output_prefix: the name of the output file before the extension (if tar=True) or of the
+                output folder.
             save_every: every how many iterations the variables should be saved. (default 1)
             mode: Specify the behaviour in case the file already exists at this output_prefix. Options are
-                - `[w]rite`: (default) overwrites file if it already exists;
-                - `[a]ppend`: appends to the file if it exists, overwise creates a new file;
-                - `[x]` or `fail`: fails if file already exists;
+                - `[w]rite`: (default) overwrites file/delete the folder if it already exists;
+                - `[a]ppend`: appends to the file/folder if it exists, overwise creates a new file;
+                - `[x]` or `fail`: fails if file/folder already exists;
+            tar: if True creates a tar archive instead of a folder.
         """
         super().__init__()
 
@@ -139,7 +141,8 @@ class StateLog:
     def _check_output_folder(self):
         self._file_step = 0
         if self._file_mode == "write":
-            shutil.rmtree(self._prefix)
+            for file in glob.glob(self._prefix + "*.mpack"):
+                os.remove(file)
             os.makedirs(self._prefix, exist_ok=True)
         elif self._file_mode == "append":
             files = glob.glob(self._prefix + "*.mpack")
