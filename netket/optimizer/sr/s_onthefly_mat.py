@@ -28,7 +28,7 @@ class SROnTheFly(SR):
     centered: bool = struct.field(pytree_node=False, default=True)
     """Uses S=⟨ΔÔᶜΔÔ⟩ if True (default), S=⟨ÔᶜΔÔ⟩ otherwise. The two forms are 
     mathematically equivalent, but might lead to different results due to numerical
-    precision. The non-centered variaant should bee approximately 33% faster.
+    precision. The non-centered variant should be approximately 33% faster.
     """
 
     def create(self, vstate, **kwargs) -> "SMatrixOnTheFly":
