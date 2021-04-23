@@ -324,8 +324,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#logging-output">Logging output</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.JsonLog.html">netket.logging.JsonLog</a></li>
 <li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.RuntimeLog.html">netket.logging.RuntimeLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.JsonLog.html">netket.logging.JsonLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.StateLog.html">netket.logging.StateLog</a></li>
 <li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.TBLog.html">netket.logging.TBLog</a></li>
 </ul>
 </li>
@@ -873,13 +874,16 @@ optimisers, and it’s extremely easy to use step-dependent schedulers.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/driver/netket.logging.JsonLog.html#netket.logging.JsonLog" title="netket.logging.JsonLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.JsonLog</span></code></a></p></td>
-<td><p>Json Logger, that can be passed with keyword argument <cite>logger</cite> to Monte Carlo drivers in order to serialize the outpit data of the simulation.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/driver/netket.logging.RuntimeLog.html#netket.logging.RuntimeLog" title="netket.logging.RuntimeLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.RuntimeLog</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generated/driver/netket.logging.RuntimeLog.html#netket.logging.RuntimeLog" title="netket.logging.RuntimeLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.RuntimeLog</span></code></a></p></td>
 <td><p>Runtim Logger, that can be passed with keyword argument <cite>logger</cite> to Monte Carlo drivers in order to serialize the outpit data of the simulation.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/driver/netket.logging.TBLog.html#netket.logging.TBLog" title="netket.logging.TBLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.TBLog</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_generated/driver/netket.logging.JsonLog.html#netket.logging.JsonLog" title="netket.logging.JsonLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.JsonLog</span></code></a></p></td>
+<td><p>Json Logger, that can be passed with keyword argument <cite>logger</cite> to Monte Carlo drivers in order to serialize the outpit data of the simulation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generated/driver/netket.logging.StateLog.html#netket.logging.StateLog" title="netket.logging.StateLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.StateLog</span></code></a></p></td>
+<td><p>A logger which serializes the variables of the variational state during a run.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_generated/driver/netket.logging.TBLog.html#netket.logging.TBLog" title="netket.logging.TBLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.TBLog</span></code></a></p></td>
 <td><p>Creates a tensorboard logger using tensorboardX’s summarywriter.</p></td>
 </tr>
 </tbody>

@@ -22,8 +22,8 @@
     <link rel="author" title="About these documents" href="../../../about.html" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="netket.logging.RuntimeLog" href="netket.logging.RuntimeLog.html" />
-    <link rel="prev" title="netket.driver.SteadyState" href="netket.driver.SteadyState.html" />
+    <link rel="next" title="netket.logging.StateLog" href="netket.logging.StateLog.html" />
+    <link rel="prev" title="netket.logging.RuntimeLog" href="netket.logging.RuntimeLog.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -322,8 +322,9 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="../../api.html#logging-output">Logging output</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">netket.logging.JsonLog</a></li>
 <li class="toctree-l3"><a class="reference internal" href="netket.logging.RuntimeLog.html">netket.logging.RuntimeLog</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">netket.logging.JsonLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.logging.StateLog.html">netket.logging.StateLog</a></li>
 <li class="toctree-l3"><a class="reference internal" href="netket.logging.TBLog.html">netket.logging.TBLog</a></li>
 </ul>
 </li>
@@ -378,7 +379,8 @@ Complex numbers are logged as dictionaries <code class="code docutils literal no
 - <cite>[w]rite</cite>: (default) overwrites file if it already exists;
 - <cite>[a]ppend</cite>: appends to the file if it exists, overwise creates a new file;
 - <cite>[x]</cite> or <cite>fail</cite>: fails if file already exists;</p></li>
-<li><p><strong>save_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>) – bool flag indicating whever parameters should be serialized</p></li>
+<li><p><strong>save_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>) – bool flag indicating whever variables of the variational state should be serialized
+at some interval. The output file is overwritten every time variables are saved again.</p></li>
 <li><p><strong>autoflush_cost</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>) – Maximum fraction of runtime that can be dedicated to serializing data. Defaults to
 0.005 (0.5 per cent)</p></li>
 </ul>
@@ -404,7 +406,7 @@ Complex numbers are logged as dictionaries <code class="code docutils literal no
 
 <dl class="py method">
 <dt id="netket.logging.JsonLog.flush">
-<code class="sig-name descname"><span class="pre">flush</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variational_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/json_log.html#JsonLog.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.JsonLog.flush" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">flush</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variational_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/json_log.html#JsonLog.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.JsonLog.flush" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes to file the content of this logger.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

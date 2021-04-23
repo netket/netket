@@ -193,7 +193,8 @@
 <span class="sd">                - `[w]rite`: (default) overwrites file if it already exists;</span>
 <span class="sd">                - `[a]ppend`: appends to the file if it exists, overwise creates a new file;</span>
 <span class="sd">                - `[x]` or `fail`: fails if file already exists;</span>
-<span class="sd">            save_params: bool flag indicating whever parameters should be serialized</span>
+<span class="sd">            save_params: bool flag indicating whever variables of the variational state should be serialized</span>
+<span class="sd">                at some interval. The output file is overwritten every time variables are saved again.</span>
 <span class="sd">            autoflush_cost: Maximum fraction of runtime that can be dedicated to serializing data. Defaults to</span>
 <span class="sd">                0.005 (0.5 per cent)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -235,16 +236,22 @@
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dir_name</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">=</span> <span class="n">output_prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_file_mode</span> <span class="o">=</span> <span class="n">mode</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">=</span> <span class="n">write_every</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_save_params_every</span> <span class="o">=</span> <span class="n">save_params_every</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_old_step</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_steps_notflushed_write</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_steps_notflushed_pars</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_save_params</span> <span class="o">=</span> <span class="n">save_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_files_open</span> <span class="o">=</span> <span class="p">[</span><span class="n">output_prefix</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span><span class="p">,</span> <span class="n">output_prefix</span> <span class="o">+</span> <span class="s2">&quot;.mpack&quot;</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_autoflush_cost</span> <span class="o">=</span> <span class="n">autoflush_cost</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_flush_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_last_flush_runtime</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_flush_runtime</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_log_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_pars_time</span> <span class="o">=</span> <span class="mf">0.0</span></div>
 
 <div class="viewcode-block" id="JsonLog.__call__"><a class="viewcode-back" href="../../../docs/_generated/driver/netket.logging.JsonLog.html#netket.logging.JsonLog.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">variational_state</span><span class="p">):</span>
         <span class="n">old_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_old_step</span>
@@ -280,18 +287,22 @@
 
         <span class="c1"># Time how long flushing data takes.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_flush_runtime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_flush_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_log_time</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_flush_runtime</span>
 
     <span class="k">def</span> <span class="nf">_flush_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variational_state</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_params</span><span class="p">:</span>
             <span class="k">return</span>
+
+        <span class="n">_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
         <span class="n">binary_data</span> <span class="o">=</span> <span class="n">serialization</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="n">variational_state</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="o">+</span> <span class="s2">&quot;.mpack&quot;</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
             <span class="n">outfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">binary_data</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_steps_notflushed_pars</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_pars_time</span> <span class="o">+=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">_time</span>
 
-<div class="viewcode-block" id="JsonLog.flush"><a class="viewcode-back" href="../../../docs/_generated/driver/netket.logging.JsonLog.html#netket.logging.JsonLog.flush">[docs]</a>    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variational_state</span><span class="p">):</span>
+<div class="viewcode-block" id="JsonLog.flush"><a class="viewcode-back" href="../../../docs/_generated/driver/netket.logging.JsonLog.html#netket.logging.JsonLog.flush">[docs]</a>    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variational_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Writes to file the content of this logger.</span>
 
@@ -301,7 +312,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_flush_log</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">variational_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_flush_params</span><span class="p">(</span><span class="n">variational_state</span><span class="p">)</span></div></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_flush_params</span><span class="p">(</span><span class="n">variational_state</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;JsonLog(&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="si">}</span><span class="s2">&#39;, mode=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_file_mode</span><span class="si">}</span><span class="s2">, autoflush_cost=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_autoflush_cost</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="n">_str</span> <span class="o">=</span> <span class="n">_str</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  Runtime cost:&quot;</span>
+        <span class="n">_str</span> <span class="o">=</span> <span class="n">_str</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  </span><span class="se">\t</span><span class="s2">Log:    </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_flush_log_time</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">_str</span> <span class="o">=</span> <span class="n">_str</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  </span><span class="se">\t</span><span class="s2">Params: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_flush_pars_time</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">_str</span></div>
 </pre></div>
 
     </div>
