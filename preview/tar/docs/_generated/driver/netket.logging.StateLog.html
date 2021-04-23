@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>netket.logging.TBLog &#8212; netket v3.0 documentation</title>
+    <title>netket.logging.StateLog &#8212; netket v3.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
@@ -18,14 +18,12 @@
     <script src="../../../_static/underscore.js"></script>
     <script src="../../../_static/doctools.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
     <script src="../../../_static/js/rtd_theme.js"></script>
     <link rel="author" title="About these documents" href="../../../about.html" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="netket.utils.HashableArray" href="../utils/netket.utils.HashableArray.html" />
-    <link rel="prev" title="netket.logging.StateLog" href="netket.logging.StateLog.html" />
+    <link rel="next" title="netket.logging.TBLog" href="netket.logging.TBLog.html" />
+    <link rel="prev" title="netket.logging.JsonLog" href="netket.logging.JsonLog.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -326,8 +324,8 @@
 <li class="toctree-l2 current"><a class="reference internal" href="../../api.html#logging-output">Logging output</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="netket.logging.RuntimeLog.html">netket.logging.RuntimeLog</a></li>
 <li class="toctree-l3"><a class="reference internal" href="netket.logging.JsonLog.html">netket.logging.JsonLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="netket.logging.StateLog.html">netket.logging.StateLog</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">netket.logging.TBLog</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">netket.logging.StateLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.logging.TBLog.html">netket.logging.TBLog</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api.html#utils">Utils</a><ul>
@@ -349,79 +347,62 @@
       </div>
     <div class="body col-md-9 content" role="main">
       
-  <div class="section" id="netket-logging-tblog">
-<h1>netket.logging.TBLog<a class="headerlink" href="#netket-logging-tblog" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="netket-logging-statelog">
+<h1>netket.logging.StateLog<a class="headerlink" href="#netket-logging-statelog" title="Permalink to this headline">¶</a></h1>
 <dl class="py class">
-<dt id="netket.logging.TBLog">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">netket.logging.</span></code><code class="sig-name descname"><span class="pre">TBLog</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/tensorboard.html#TBLog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.TBLog" title="Permalink to this definition">¶</a></dt>
+<dt id="netket.logging.StateLog">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">netket.logging.</span></code><code class="sig-name descname"><span class="pre">StateLog</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'write'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/state_log.html#StateLog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.StateLog" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Creates a tensorboard logger using tensorboardX’s summarywriter.
-Refer to its documentation for further details</p>
-<p><a class="reference external" href="https://tensorboardx.readthedocs.io/en/latest/tensorboard.html">https://tensorboardx.readthedocs.io/en/latest/tensorboard.html</a></p>
-<p>TensorBoardX must be installed.</p>
+<blockquote>
+<div><p>Tar Logger, serializing the variables of the variational state during a run.</p>
+</div></blockquote>
+<dl>
+<dt>: bool flag indicating whever to store variables in a tar file. The tar archive will</dt><dd><blockquote>
+<div><p>contain a file with numbers going from 0 to N, and every file corresponds to the variables of
+the variational state at that step.</p>
+</div></blockquote>
+<p>Data is serialized to a tar archive as many files named <cite>[0.mpack, 1.mpack, …]</cite>, where
+the number increases by 1 every time it’s called.</p>
+<p>The tar file inside is not flushed to disk (closed) until this object is deleted or python
+is shut down.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="netket.logging.StateLog.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_prefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'write'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_every</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/state_log.html#StateLog.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.StateLog.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a Tar Logger.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>logdir</strong> (<em>string</em>) – Save directory location. Default is
-runs/<strong>CURRENT_DATETIME_HOSTNAME</strong>, which changes after each run.
-Use hierarchical folder structure to compare
-between runs easily. e.g. pass in ‘runs/exp1’, ‘runs/exp2’, etc.
-for each new experiment to compare across them.</p></li>
-<li><p><strong>comment</strong> (<em>string</em>) – Comment logdir suffix appended to the default
-<code class="docutils literal notranslate"><span class="pre">logdir</span></code>. If <code class="docutils literal notranslate"><span class="pre">logdir</span></code> is assigned, this argument has no effect.</p></li>
-<li><p><strong>purge_step</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – When logging crashes at step <span class="math notranslate nohighlight">\(T+X\)</span> and restarts at step <span class="math notranslate nohighlight">\(T\)</span>,
-any events whose global_step larger or equal to <span class="math notranslate nohighlight">\(T\)</span> will be
-purged and hidden from TensorBoard.
-Note that crashed and resumed experiments should have the same <code class="docutils literal notranslate"><span class="pre">logdir</span></code>.</p></li>
-<li><p><strong>max_queue</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Size of the queue for pending events and
-summaries before one of the ‘add’ calls forces a flush to disk.
-Default is ten items.</p></li>
-<li><p><strong>flush_secs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – How often, in seconds, to flush the
-pending events and summaries to disk. Default is every two minutes.</p></li>
-<li><p><strong>filename_suffix</strong> (<em>string</em>) – Suffix added to all event filenames in
-the logdir directory. More details on filename construction in
-tensorboard.summary.writer.event_file_writer.EventFileWriter.</p></li>
-<li><p><strong>write_to_disk</strong> (<em>boolean</em>) – If pass <cite>False</cite>, TBLog will not write to disk.</p></li>
+<li><p><strong>output_prefix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – the name of the output file before the extension (if tar=True) or of the
+output folder.</p></li>
+<li><p><strong>save_every</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>) – every how many iterations the variables should be saved. (default 1)</p></li>
+<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Specify the behaviour in case the file already exists at this output_prefix. Options are
+- <cite>[w]rite</cite>: (default) overwrites file/delete the folder if it already exists;
+- <cite>[a]ppend</cite>: appends to the file/folder if it exists, overwise creates a new file;
+- <cite>[x]</cite> or <cite>fail</cite>: fails if file/folder already exists;</p></li>
+<li><p><strong>tar</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>) – if True creates a tar archive instead of a folder.</p></li>
 </ul>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
-<p>Logging optimisation to tensorboard.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">netket</span> <span class="k">as</span> <span class="nn">nk</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># create a summary writer with automatically generated folder name.</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">TBLog</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># folder location: runs/May04_22-14-54_s-MacBook-Pro.local/</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># create a summary writer using the specified folder name.</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">TBLog</span><span class="p">(</span><span class="s2">&quot;my_experiment&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># folder location: my_experiment</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># create a summary writer with comment appended.</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span> <span class="o">=</span> <span class="n">nk</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">TBLog</span><span class="p">(</span><span class="n">comment</span><span class="o">=</span><span class="s2">&quot;LR_0.1_BATCH_16&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># folder location: runs/May04_22-14-54_s-MacBook-Pro.localLR_0.1_BATCH_16/</span>
-</pre></div>
-</div>
-<dl class="py method">
-<dt id="netket.logging.TBLog.__init__">
-<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/tensorboard.html#TBLog.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.TBLog.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
 </dd></dl>
 
 <dl class="class-dl-groups">
 <dt>Methods</dt><dd><dl class="py method">
-<dt id="netket.logging.TBLog.__call__">
-<code class="sig-name descname"><span class="pre">__call__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">machine</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/tensorboard.html#TBLog.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.TBLog.__call__" title="Permalink to this definition">¶</a></dt>
+<dt id="netket.logging.StateLog.__call__">
+<code class="sig-name descname"><span class="pre">__call__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variational_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/state_log.html#StateLog.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.StateLog.__call__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call self as a function.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="netket.logging.TBLog.flush">
-<code class="sig-name descname"><span class="pre">flush</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">machine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/tensorboard.html#TBLog.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.TBLog.flush" title="Permalink to this definition">¶</a></dt>
-<dd><p>Writes to file the content of this logger.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>machine</strong> – optionally also writes the parameters of the machine.</p>
-</dd>
-</dl>
-</dd></dl>
+<dt id="netket.logging.StateLog.close">
+<code class="sig-name descname"><span class="pre">close</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/state_log.html#StateLog.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.StateLog.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="netket.logging.StateLog.flush">
+<code class="sig-name descname"><span class="pre">flush</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variational_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/state_log.html#StateLog.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.StateLog.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd>
 </dl>

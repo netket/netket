@@ -329,7 +329,7 @@ Those are the loggers that can be used with the optimization drivers.
 
    netket.logging.RuntimeLog
    netket.logging.JsonLog
-   netket.logging.TarStateLog
+   netket.logging.StateLog
    netket.logging.TBLog
 
 
