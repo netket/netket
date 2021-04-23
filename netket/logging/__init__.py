@@ -14,7 +14,7 @@
 
 from .runtime_log import RuntimeLog
 from .json_log import JsonLog
-from .tar_log import TarLog
+from .tar_log import TarStateLog
 from .tensorboard import TBLog
 
 from .json_log_old import JsonLog as JsonLogOld

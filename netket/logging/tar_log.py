@@ -37,7 +37,7 @@ def save_binary_to_tar(tar_file, byte_data, name):
     tar_file.addfile(tarinfo=info, fileobj=abuf)
 
 
-class TarLog:
+class TarStateLog:
     """
         Tar Logger, serializing the variables of the variational state during a run.
 

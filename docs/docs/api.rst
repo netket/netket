@@ -327,8 +327,9 @@ Those are the loggers that can be used with the optimization drivers.
    :toctree: _generated/driver
    :nosignatures:
 
-   netket.logging.JsonLog
    netket.logging.RuntimeLog
+   netket.logging.JsonLog
+   netket.logging.TarStateLog
    netket.logging.TBLog
 
 
