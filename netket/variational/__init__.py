@@ -16,6 +16,8 @@ from .base import VariationalState, VariationalMixedState
 from .mc_state import MCState
 from .mc_mixed_state import MCMixedState
 
+from . import experimental
+
 from netket.utils import _hide_submodules
 
-_hide_submodules(__name__)
+_hide_submodules(__name__, ignore=["experimental"])

@@ -73,6 +73,7 @@ class VariationalState(abc.ABC):
                 pars = flax.core.freeze(pars)
 
         self._parameters = pars
+        self.reset()
 
     @property
     def model_state(self) -> Optional[PyTree]:
@@ -86,6 +87,7 @@ class VariationalState(abc.ABC):
                 state = flax.core.freeze(state)
 
         self._model_state = state
+        self.reset()
 
     @property
     def variables(self) -> PyTree:

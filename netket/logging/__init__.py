@@ -14,6 +14,7 @@
 
 from .runtime_log import RuntimeLog
 from .json_log import JsonLog
+from .state_log import StateLog
 from .tensorboard import TBLog
 
 from .json_log_old import JsonLog as JsonLogOld

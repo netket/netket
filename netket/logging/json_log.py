@@ -95,7 +95,8 @@ class JsonLog(RuntimeLog):
                 - `[w]rite`: (default) overwrites file if it already exists;
                 - `[a]ppend`: appends to the file if it exists, overwise creates a new file;
                 - `[x]` or `fail`: fails if file already exists;
-            save_params: bool flag indicating whever parameters should be serialized
+            save_params: bool flag indicating whever variables of the variational state should be serialized
+                at some interval. The output file is overwritten every time variables are saved again.
             autoflush_cost: Maximum fraction of runtime that can be dedicated to serializing data. Defaults to
                 0.005 (0.5 per cent)
         """
@@ -137,16 +138,22 @@ class JsonLog(RuntimeLog):
             os.makedirs(dir_name, exist_ok=True)
 
         self._prefix = output_prefix
+        self._file_mode = mode
+
         self._write_every = write_every
         self._save_params_every = save_params_every
         self._old_step = 0
         self._steps_notflushed_write = 0
         self._steps_notflushed_pars = 0
         self._save_params = save_params
+        self._files_open = [output_prefix + ".log", output_prefix + ".mpack"]
 
         self._autoflush_cost = autoflush_cost
         self._last_flush_time = time.time()
         self._last_flush_runtime = 0.0
+
+        self._flush_log_time = 0.0
+        self._flush_pars_time = 0.0
 
     def __call__(self, step, item, variational_state):
         old_step = self._old_step
@@ -182,18 +189,22 @@ class JsonLog(RuntimeLog):
 
         # Time how long flushing data takes.
         self._last_flush_runtime = time.time() - self._last_flush_time
+        self._flush_log_time += self._last_flush_runtime
 
     def _flush_params(self, variational_state):
         if not self._save_params:
             return
+
+        _time = time.time()
 
         binary_data = serialization.to_bytes(variational_state.variables)
         with open(self._prefix + ".mpack", "wb") as outfile:
             outfile.write(binary_data)
 
         self._steps_notflushed_pars = 0
+        self._flush_pars_time += time.time() - _time
 
-    def flush(self, variational_state):
+    def flush(self, variational_state=None):
         """
         Writes to file the content of this logger.
 
@@ -204,3 +215,10 @@ class JsonLog(RuntimeLog):
 
         if variational_state is not None:
             self._flush_params(variational_state)
+
+    def __repr__(self):
+        _str = f"JsonLog('{self._prefix}', mode={self._file_mode}, autoflush_cost={self._autoflush_cost})"
+        _str = _str + f"\n  Runtime cost:"
+        _str = _str + f"\n  \tLog:    {self._flush_log_time}"
+        _str = _str + f"\n  \tParams: {self._flush_pars_time}"
+        return _str
