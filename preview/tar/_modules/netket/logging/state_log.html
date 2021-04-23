@@ -139,18 +139,12 @@
 
 <div class="viewcode-block" id="StateLog"><a class="viewcode-back" href="../../../docs/_generated/driver/netket.logging.StateLog.html#netket.logging.StateLog">[docs]</a><span class="k">class</span> <span class="nc">StateLog</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Tar Logger, serializing the variables of the variational state during a run.</span>
+<span class="sd">    A logger which serializes the variables of the variational state during a run.</span>
 
-<span class="sd">    : bool flag indicating whever to store variables in a tar file. The tar archive will</span>
-<span class="sd">                    contain a file with numbers going from 0 to N, and every file corresponds to the variables of</span>
-<span class="sd">                    the variational state at that step.</span>
-
-
-<span class="sd">        Data is serialized to a tar archive as many files named `[0.mpack, 1.mpack, ...]`, where</span>
-<span class="sd">        the number increases by 1 every time it&#39;s called.</span>
-
-<span class="sd">        The tar file inside is not flushed to disk (closed) until this object is deleted or python</span>
-<span class="sd">        is shut down.</span>
+<span class="sd">    The data is saved either to a directory or tar archive in a sequence of files named</span>
+<span class="sd">    `[0.mpack, 1.mpack, ...]` where the filename is incremented every time the logger is called.</span>
+<span class="sd">    The tar file inside is not flushed to disk (closed) until this object is deleted or python</span>
+<span class="sd">    is shut down.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="StateLog.__init__"><a class="viewcode-back" href="../../../docs/_generated/driver/netket.logging.StateLog.html#netket.logging.StateLog.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -161,7 +155,7 @@
         <span class="n">tar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Construct a Tar Logger.</span>
+<span class="sd">        Initialize the :code:`StateLogger`.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            output_prefix: the name of the output file before the extension (if tar=True) or of the</span>
