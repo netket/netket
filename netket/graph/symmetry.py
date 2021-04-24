@@ -115,7 +115,8 @@ class SymmGroup(SemiGroup):
         """
 
         automorphisms = self.to_array()
-        inverse = automorphisms[inverse]
+        inverse = automorphisms[inverse].squeeze()
+
         n_symm = len(automorphisms)
         product_table = np.zeros([n_symm, n_symm], dtype=int)
 
@@ -142,14 +143,14 @@ class SymmGroup(SemiGroup):
 
     def inverse(self):
         if self._inverse == None:
-            self._inverse = object.__setattr__(self, "_inverse", self.__inverse())
+            object.__setattr__(self, "_inverse", self.__inverse())
 
         return self._inverse
 
     def product_table(self):
         if self._product_table == None:
-            self._product_table = object.__setattr__(
-                self, "_product_table", self.__product_table(self._inverse)
+            object.__setattr__(
+                self, "_product_table", self.__product_table(self.inverse())
             )
 
         return self._product_table
