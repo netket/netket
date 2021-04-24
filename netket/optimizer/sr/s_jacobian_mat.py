@@ -36,15 +36,13 @@ class JacobianSMatrix(AbstractSMatrix):
     the field `sr`.
     """
 
-    sr: SRJacobian
-    """Parameters for the solution of the system."""
-
     O: jnp.ndarray
     """Gradients O_ij = ∂log ψ(σ_i)/∂p_j of the neural network 
     for all samples σ_i at given values of the parameters p_j
     Average <O_j> subtracted for each parameter
     Divided through by sqrt(#samples) to normalise S matrix
-    If scale is not None, normalised to unit magnitude"""
+    If scale is not None, columns normalised to unit norm
+    """
 
     scale: Optional[jnp.ndarray] = None
     """If not None, gives scale factors with which O is normalised"""
@@ -56,13 +54,12 @@ class JacobianSMatrix(AbstractSMatrix):
     def __matmul__(self, vec: Union[PyTree, jnp.ndarray]) -> Union[PyTree, jnp.ndarray]:
         if not hasattr(vec, "ndim"):
             vec, unravel = nkjax.tree_ravel(vec)
+            return unravel(
+                jnp.transpose(jnp.conj(jnp.transpose(jnp.conj(S.O @ vec)) @ S.O))
+                + S.sr.diag_shift * vec
+            )
         else:
-            unravel = lambda x: x
-
-        return unravel(
-            jnp.transpose(jnp.conj(jnp.transpose(jnp.conj(S.O @ vec)) @ S.O))
-            + S.sr.diag_shift * vec
-        )
+            return jnp.transpose(jnp.conj(jnp.transpose(jnp.conj(S.O @ vec)) @ S.O)) + S.sr.diag_shift * vec
 
     @jax.jit
     def solve(self, y: PyTree, x0: Optional[PyTree] = None) -> PyTree:
@@ -126,9 +123,10 @@ def gradients(
 ):
     """Calculates the gradients O_ij by backpropagating every sample separately,
     vectorising the loop using vmap
-    If rescale_shift is True, columns of O are rescaled to unit magnitude, and
+    If rescale_shift is True, columns of O are rescaled to unit norm, and
     scale factor [1/sqrt(S_kk)] returned as a separate vector for
-    scale-invariant regularisation as per Becca & Sorella p. 143."""
+    scale-invariant regularisation as per Becca & Sorella p. 143.
+    """
     # Ravel the parameter PyTree and obtain the unravelling function
     params, unravel = nkjax.tree_ravel(params)
 
@@ -190,15 +188,13 @@ def gradients(
     else:
         return grads
 
-
-@partial(jax.jit, static_argnums=(0, 3))
 def _grad_vmap_minus_mean(
     fun: Callable, params: jnp.ndarray, samples: jnp.ndarray, holomorphic: bool
 ):
     """Calculates the gradient of a neural network for a number of samples
-    efficiently using vmap(grad),
-    subtracts their mean for each parameter, i.e., each column,
-    and divides through with sqrt(#samples) to normalise the S matrix"""
+    efficiently using vmap(grad), 
+    and subtracts their mean for each parameter, i.e., each column
+    """
     grads = jax.vmap(
         jax.grad(fun, holomorphic=holomorphic), in_axes=(None, 0), out_axes=0
     )(params, samples)

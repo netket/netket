@@ -56,18 +56,16 @@ class SRJacobian(SR):
     that fewer iterations are needed to reach a given error tolerance.
     """
 
-    centered: bool = struct.field(pytree_node=False, default=True)
-    """Uses S=⟨ΔÔᶜΔÔ⟩ if True (default), S=⟨ÔᶜΔÔ⟩ otherwise. The two forms are 
-    mathematically equivalent, but might lead to different results due to numerical
-    precision. The non-centered variaant should bee approximately 33% faster.
-    """
-
-    diffmode: Optional[str] = struct.field(pytree_node=False, default=None)
+    mode: str = struct.field(pytree_node=False)
     """Differentiation mode to precompute Jacobian
     * "holomorphic": C->C holomorphic function
+        `grad` is called on the full network output with `holomorphic=True`
     * "R2R": real-valued wave function with real parameters
+        `grad` is called on the real part of the network output with `holomorphic=False`
     * "R2C": complex-valued wave function with real parameters
-    * None: do not precompute Jacobian (default)"""
+        the real and imaginary parts of the network output are treated as independent 
+        R->R functions and `grad` is called separately on them with `holomorphic=False`
+    """
 
     rescale_shift: bool = struct.field(pytree_node=False, default=False)
     """Whether scale-invariant regularisation should be used"""
