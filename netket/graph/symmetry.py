@@ -30,12 +30,16 @@ class SymmGroup(SemiGroup):
     """
 
     graph: AbstractGraph
+
     """Underlying graph"""
 
     def __post_init__(self):
         super().__post_init__()
         myhash = hash((super().__hash__(), hash(self.graph)))
         object.__setattr__(self, "_SymmGroup__hash", myhash)
+
+        object.__setattr__(self, "_inverse", None)
+        object.__setattr__(self, "_product_table", None)
 
     def __matmul__(self, other):
         if isinstance(other, SymmGroup) and self.graph != other.graph:
@@ -81,7 +85,7 @@ class SymmGroup(SemiGroup):
         else:
             return group
 
-    def inverse(self):
+    def __inverse(self):
         """
         Returns reordered SymmGroup where the each element is the inverse of
         the original symmetry element. If :code:`g = self[element]` and :code:`h = self[self.inverse()[element]]`,
@@ -101,7 +105,7 @@ class SymmGroup(SemiGroup):
 
         return inverse
 
-    def product_table(self):
+    def __product_table(self, inverse):
         """
         Returns a product table over the group where the columns use the involution
         of the group. If :code:`g = self[self.inverse()[element]]', :code:`h = self[element2]`
@@ -111,8 +115,8 @@ class SymmGroup(SemiGroup):
         """
 
         automorphisms = self.to_array()
+        inverse = automorphisms[inverse]
         n_symm = len(automorphisms)
-        inverse = self.to_array()[self.inverse()]
         product_table = np.zeros([n_symm, n_symm], dtype=int)
 
         inv_t = inverse.transpose()
@@ -135,6 +139,20 @@ class SymmGroup(SemiGroup):
         product_table[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
 
         return product_table
+
+    def inverse(self):
+        if self._inverse == None:
+            self._inverse = object.__setattr__(self, "_inverse", self.__inverse())
+
+        return self._inverse
+
+    def product_table(self):
+        if self._product_table == None:
+            self._product_table = object.__setattr__(
+                self, "_product_table", self.__product_table(self._inverse)
+            )
+
+        return self._product_table
 
     @property
     def shape(self):
