@@ -28,8 +28,6 @@ from .s_jacobian_mat import JacobianSMatrix, gradients
 
 from .base import SR
 
-import numpy as np
-
 
 @struct.dataclass
 class SRJacobian(SR):

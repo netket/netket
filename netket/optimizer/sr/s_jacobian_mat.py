@@ -15,10 +15,12 @@
 from typing import Callable, Optional, Union, Tuple, Any
 from functools import partial
 
+import jax
 from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import PyTree
+import netket.jax as nkjax
 
 from .base import AbstractSMatrix
 
