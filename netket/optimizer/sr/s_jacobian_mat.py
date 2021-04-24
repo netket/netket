@@ -40,12 +40,14 @@ class JacobianSMatrix(AbstractSMatrix):
     """Gradients O_ij = ∂log ψ(σ_i)/∂p_j of the neural network 
     for all samples σ_i at given values of the parameters p_j
     Average <O_j> subtracted for each parameter
-    Divided through by sqrt(#samples) to normalise S matrix
+    Divided through with sqrt(#samples) to normalise S matrix
     If scale is not None, columns normalised to unit norm
     """
 
     scale: Optional[jnp.ndarray] = None
-    """If not None, gives scale factors with which O is normalised"""
+    """If not None, contains 2-norm of each column of the gradient matrix,
+    i.e., the sqrt of the diagonal elements of the S matrix
+    """
 
     x0: Optional[PyTree] = None
     """Optional initial guess for the iterative solution."""
@@ -54,12 +56,25 @@ class JacobianSMatrix(AbstractSMatrix):
     def __matmul__(self, vec: Union[PyTree, jnp.ndarray]) -> Union[PyTree, jnp.ndarray]:
         if not hasattr(vec, "ndim"):
             vec, unravel = nkjax.tree_ravel(vec)
-            return unravel(
-                jnp.transpose(jnp.conj(jnp.transpose(jnp.conj(S.O @ vec)) @ S.O))
-                + S.sr.diag_shift * vec
-            )
         else:
-            return jnp.transpose(jnp.conj(jnp.transpose(jnp.conj(S.O @ vec)) @ S.O)) + S.sr.diag_shift * vec
+            unravel = None
+
+        if self.scale is not None:
+            vec = vec * self.scale
+
+        result = jnp.transpose(jnp.conj(jnp.transpose(jnp.conj(self.O @ vec)) @ self.O)) + self.sr.diag_shift * vec
+
+        if self.scale is not None:
+            result = result * self.scale
+
+        if unravel is None:
+            return result
+        else:
+            return unravel(result)
+
+    @jax.jit
+    def _unscaled_matmul(self, vec: jnp.ndarray) -> jnp.ndarray:
+        return jnp.transpose(jnp.conj(jnp.transpose(jnp.conj(S.O @ vec)) @ S.O)) + S.sr.diag_shift * vec
 
     @jax.jit
     def solve(self, y: PyTree, x0: Optional[PyTree] = None) -> PyTree:
@@ -84,17 +99,16 @@ class JacobianSMatrix(AbstractSMatrix):
         if x0 is not None:
             x0, _ = nkjax.tree_ravel(x0)
             if self.scale is not None:
-                x0 = x0 / self.scale
+                x0 = x0 * self.scale
 
         if self.scale is not None:
-            grad = grad * self.scale
+            grad = grad / self.scale
 
         solve_fun = self.sr.solve_fun()
-        _mat_vec = lambda x: self @ x
-        out, info = solve_fun(_mat_vec, grad, x0=x0)
+        out, info = solve_fun(self._unscaled_matmul, grad, x0=x0)
 
         if self.scale is not None:
-            out = out * self.scale
+            out = out / self.scale
 
         return unravel(out), info
 
@@ -106,11 +120,14 @@ class JacobianSMatrix(AbstractSMatrix):
         Returns:
             A dense matrix representation of this S matrix.
         """
-        return jnp.transpose(jnp.conj(self.O)) @ self.O + self.sr.diag_shift * jnp.eye(
-            self.O.shape[1]
-        )
-
-
+        if scale is None:
+            O = self.O
+            diag = jnp.eye(self.O.shape[1])
+        else:
+            O = self.O * self.scale[jnp.newaxis,:]
+            diag = jnp.diag(jnp.square(self.scale))
+            
+        return jnp.transpose(jnp.conj(O)) @ O + self.sr.diag_shift * diag
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
 def gradients(
@@ -184,7 +201,7 @@ def gradients(
 
     if rescale_shift:
         sqrt_Skk = jnp.linalg.norm(grads, axis=0, keepdims=True)
-        return grads / sqrt_Skk, 1 / jnp.ravel(sqrt_Skk)
+        return grads / sqrt_Skk, jnp.ravel(sqrt_Skk)
     else:
         return grads
 

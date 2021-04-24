@@ -72,10 +72,10 @@ class SRJacobian(SR):
 
     def create(self, *args, **kwargs):
         if rescale_shift:
-            O, scale = gradients(apply_fun, params, samples, model_state, mode, True)
+            O, scale = gradients(apply_fun, params, samples, model_state, self.mode, True)
             return JacobianSMatrix(sr=sr, x0=x0, O=O, scale=scale)
         else:
-            O = gradients(apply_fun, params, samples, model_state, mode, False)
+            O = gradients(apply_fun, params, samples, model_state, self.mode, False)
             return JacobianSMatrix(sr=sr, x0=x0, O=O)
 
 
