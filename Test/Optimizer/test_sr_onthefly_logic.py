@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import jax.flatten_util
 import numpy as np
 from jax.scipy.sparse.linalg import cg
-from netket.optimizer.sr import sr_onthefly_logic
+from netket.optimizer.sr import sr_onthefly_logic, sr_treemv_logic
 from functools import partial
 import itertools
 
@@ -311,6 +311,31 @@ def test_matvec_linear_transpose(e, centered, jit):
         )
     )
     # (expected,) = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_), target=e.target), v)(v)
+    assert tree_allclose(actual, expected)
+
+
+# TODO put this test in its own file or rename this one to test_sr_logic.py
+# TODO separate test for prepare_doks
+# TODO test non-holomorphic and inhomogeneous parameters once implemented
+@pytest.mark.parametrize("holomorphic", [True])
+@pytest.mark.parametrize("n_samp", [25, 1024])
+@pytest.mark.parametrize("jit", [True, False])
+@pytest.mark.parametrize(
+    "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
+)
+def test_matvec_treemv(e, jit, holomorphic):
+    diag_shift = 0.01
+    mv = sr_treemv_logic.mat_vec
+    pdoks = sr_treemv_logic.prepare_doks
+    if jit:
+        mv = jax.jit(mv)
+        pdoks = jax.jit(pdoks, static_argnums=0)
+
+    doks = pdoks(e.f, e.params, e.samples)
+    actual = mv(e.v, doks, diag_shift)
+    expected = reassemble_complex(
+        e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
+    )
     assert tree_allclose(actual, expected)
 
 
