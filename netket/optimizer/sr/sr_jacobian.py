@@ -24,200 +24,123 @@ from netket.utils.types import PyTree, Array
 from netket.utils import rename_class
 import netket.jax as nkjax
 
+from .s_jacobian_mat import JacobianSMatrix, gradients
+
 from .base import SR
 
 import numpy as np
 
+
 @struct.dataclass
-class JacobianSMatrix:
+class SRJacobian(SR):
     """
-    Semi-lazy representation of an S Matrix behaving like a linear operator.
+    Base class holding the parameters for the iterative solution of the
+    SR system x = ⟨S⟩⁻¹⟨F⟩, where S is a lazy linear operator
 
-    The Jacobian O is computed on initialisation, but not S, which can be
-    computed by calling :code:`to_dense`.
-    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
-    the field `sr`.
+    Tolerances are applied according to the formula
+    :code:`norm(residual) <= max(tol*norm(b), atol)`
     """
 
-    sr: SRLazy
-    """Parameters for the solution of the system."""
+    tol: float = 1.0e-5
+    """Relative tolerance for convergences."""
 
-    O: jnp.ndarray
-    """Gradients O_ij = ∂log ψ(σ_i)/∂p_j of the neural network 
-    for all samples σ_i at given values of the parameters p_j
-    Average <O_j> subtracted for each parameter
-    Divided through by sqrt(#samples) to normalise S matrix
-    If scale is not None, normalised to unit magnitude"""
+    atol: float = 0.0
+    """Absolutes tolerance for convergences."""
 
-    scale: Optional[jnp.ndarray] = None
-    """If not None, gives scale factors with which O is normalised"""
+    maxiter: int = None
+    """Maximum number of iterations. Iteration will stop after maxiter steps even 
+    if the specified tolerance has not been achieved.
+    """
 
-    x0: Optional[PyTree] = None
-    """Optional initial guess for the iterative solution."""
-    
-    def __matmul__(self, vec: Union[PyTree, jnp.ndarray]
-    ) -> Union[PyTree, jnp.ndarray]:
-        return jacsmatrix_mat_treevec(self, vec)
+    M: Optional[Union[Callable, Array]] = None
+    """Preconditioner for A. The preconditioner should approximate the inverse of A. 
+    Effective preconditioning dramatically improves the rate of convergence, which implies 
+    that fewer iterations are needed to reach a given error tolerance.
+    """
 
-    def __rtruediv__(self, y):
-        return self.solve(y)
+    centered: bool = struct.field(pytree_node=False, default=True)
+    """Uses S=⟨ΔÔᶜΔÔ⟩ if True (default), S=⟨ÔᶜΔÔ⟩ otherwise. The two forms are 
+    mathematically equivalent, but might lead to different results due to numerical
+    precision. The non-centered variaant should bee approximately 33% faster.
+    """
 
-    def solve(self, y: PyTree, x0: Optional[PyTree] = None) -> PyTree:
-        """
-        Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterataive solver.
+    diffmode: Optional[str] = struct.field(pytree_node=False, default=None)
+    """Differentiation mode to precompute Jacobian
+    * "holomorphic": C->C holomorphic function
+    * "R2R": real-valued wave function with real parameters
+    * "R2C": complex-valued wave function with real parameters
+    * None: do not precompute Jacobian (default)"""
 
-        Args:
-            y: the vector y in the system above.
-            x0: optional initial guess for the solution.
+    rescale_shift: bool = struct.field(pytree_node=False, default=False)
+    """Whether scale-invariant regularisation should be used"""
 
-        Returns:
-            x: the PyTree solving the system.
-            info: optional additional informations provided by the solver. Might be
-                None if there are no additional informations provided.
-        """
-        if x0 is None:
-            x0 = self.x0
-        return jacsmatrix_solve(self,y,x0)
-
-    @jax.jit
-    def to_dense(self) -> jnp.ndarray:
-        """
-        Convert the lazy matrix representation to a dense matrix representation.
-
-        Returns:
-            A dense matrix representation of this S matrix.
-        """
-        return jnp.transpose(jnp.conj(self.O)) @ self.O \
-            + self.sr.diag_shift * jnp.eye(self.O.shape[1])
-
-def makeJacobianSMatrix(
-        apply_fun: Callable[[PyTree, jnp.ndarray], jnp.ndarray],
-        params: PyTree,
-        samples: jnp.ndarray,
-        sr: SRLazy,
-        model_state: Optional[PyTree] = None,
-        x0: Optional[PyTree] = None,
-        mode: str = "holomorphic",
-        rescale_shift: bool = False
-):
-    if rescale_shift:
-        O, scale = gradients(apply_fun, params, samples, model_state,
-                             mode, True)
-        return JacobianSMatrix(sr = sr, x0 = x0, O = O, scale = scale)
-    else:
-        return JacobianSMatrix(
-            sr = sr, x0 = x0,
+    def create(self, *args, **kwargs):
+        if rescale_shift:
+            O, scale = gradients(apply_fun, params, samples, model_state, mode, True)
+            return JacobianSMatrix(sr=sr, x0=x0, O=O, scale=scale)
+        else:
             O = gradients(apply_fun, params, samples, model_state, mode, False)
+            return JacobianSMatrix(sr=sr, x0=x0, O=O)
+
+
+@struct.dataclass
+class SRJacobianCG(SRJacobian):
+    """
+    Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative conjugate gradient method.
+
+    See `Jax docs <https://jax.readthedocs.io/en/latest/_autosummary/jax.scipy.sparse.linalg.cg.html#jax.scipy.sparse.linalg.cg>`_
+    for more informations.
+    """
+
+    ...
+
+    def solve_fun(self):
+        return partial(
+            jax.scipy.sparse.linalg.cg,
+            tol=self.tol,
+            atol=self.atol,
+            maxiter=self.maxiter,
+            M=self.M,
         )
 
-@partial(jax.jit, static_argnums=(0,4,5))
-def gradients(
-        apply_fun: Callable[[PyTree, jnp.ndarray], jnp.ndarray],
-        params: PyTree,
-        samples: jnp.ndarray,
-        model_state: Optional[PyTree],
-        mode: str,
-        rescale_shift: bool
-        ):
-    """Calculates the gradients O_ij by backpropagating every sample separately,
-    vectorising the loop using vmap
-    If rescale_shift is True, columns of O are rescaled to unit magnitude, and
-    scale factor [1/sqrt(S_kk)] returned as a separate vector for 
-    scale-invariant regularisation as per Becca & Sorella p. 143."""
-    # Ravel the parameter PyTree and obtain the unravelling function
-    params, unravel = nkjax.tree_ravel(params)
 
-    if jnp.ndim(samples) != 2:
-        samples = jnp.reshape(samples, (-1, samples.shape[-1]))
-    n_samples = samples.shape[0]
-
-    if mode == "holomorphic":
-        # Preapply the model state so that when computing gradient
-        # we only get gradient of parameters
-        # Also divide through sqrt(n_samples) to normalise S matrix in the end
-        def fun(W, σ):
-            return apply_fun({"params": unravel(W), **model_state},
-                             σ[jnp.newaxis,:])[0] / n_samples**0.5
-        grads = _grad_vmap_minus_mean(fun, params, samples, True)
-    elif mode == "R2R":
-        def fun(W, σ):
-            return apply_fun({"params": unravel(W), **model_state},
-                             σ[jnp.newaxis,:])[0].real / n_samples**0.5
-        grads = _grad_vmap_minus_mean(fun, params, samples, False)
-    elif mode == "R2C":
-        def fun1(W, σ):
-            return apply_fun({"params": unravel(W), **model_state},
-                             σ[jnp.newaxis,:])[0].real / n_samples**0.5
-        def fun2(W, σ):
-            return apply_fun({"params": unravel(W), **model_state},
-                             σ[jnp.newaxis,:])[0].imag / n_samples**0.5
-        # Stack real and imaginary parts as real matrixes along the "sample"
-        # axis to get Re(O†O) directly
-        grads = jnp.concatenate(
-            (_grad_vmap_minus_mean(fun1, params, samples, False),
-             _grad_vmap_minus_mean(fun2, params, samples, False)),
-            axis = 0)
-    else:
-        raise Exception("Differentation mode must be holomorphic, R2R or R2C, got {}".format(mode))
-
-    if rescale_shift:
-        sqrt_Skk = jnp.linalg.norm(grads, axis=0, keepdims=True)
-        return grads/sqrt_Skk, 1/jnp.ravel(sqrt_Skk)
-    else:
-        return grads
-        
-@partial(jax.jit, static_argnums=(0,3))
-def _grad_vmap_minus_mean(
-        fun: Callable,
-        params: jnp.ndarray,
-        samples: jnp.ndarray,
-        holomorphic: bool
-        ):
-    """Calculates the gradient of a neural network for a number of samples 
-    efficiently using vmap(grad),
-    subtracts their mean for each parameter, i.e., each column,
-    and divides through with sqrt(#samples) to normalise the S matrix"""
-    grads = jax.vmap(jax.grad(fun, holomorphic=holomorphic), in_axes=(None,0),
-                     out_axes=0)(params, samples)
-    return grads - jnp.sum(grads, axis=0, keepdims=True) / grads.shape[0]
-
-@jax.jit
-def jacsmatrix_mat_treevec(
-    S: JacobianSMatrix, vec: Union[PyTree, jnp.ndarray]
-) -> Union[PyTree, jnp.ndarray]:
+@struct.dataclass
+class SRJacobianGMRES(SRJacobian):
     """
-    Perform the semi-lazy mat-vec product, where vec is either a tree with 
-    the same structure as params or a ravelled vector
+    Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative GMRES method.
+
+    See `Jax docs <https://jax.readthedocs.io/en/latest/_autosummary/jax.scipy.sparse.linalg.gmres.html#jax.scipy.sparse.linalg.gmres>`_
+    for more informations.
     """
-    if not hasattr(vec, "ndim"):
-        vec, unravel = nkjax.tree_ravel(vec)
-    else:
-        unravel = lambda x: x
-        
-    return unravel(
-        jnp.transpose(jnp.conj( jnp.transpose(jnp.conj(S.O @ vec)) @ S.O)) +
-        S.sr.diag_shift * vec)
 
-@jax.jit
-def jacsmatrix_solve(
-    S: JacobianSMatrix, grad: PyTree, x0: Optional[PyTree]
-) -> PyTree:
-    # Ravel input PyTrees, record unravelling function too
-    grad, unravel = nkjax.tree_ravel(grad)
-    if x0 is not None:
-        x0, _ = nkjax.tree_ravel(x0)
-        if S.scale is not None:
-            x0 = x0 / S.scale
+    restart: int = struct.field(pytree_node=False, default=20)
+    """Size of the Krylov subspace (“number of iterations”) built between restarts. 
+    GMRES works by approximating the true solution x as its projection into a Krylov 
+    space of this dimension - this parameter therefore bounds the maximum accuracy 
+    achievable from any guess solution. Larger values increase both number of iterations 
+    and iteration cost, but may be necessary for convergence. The algorithm terminates early 
+    if convergence is achieved before the full subspace is built. 
+    Default is 20
+    """
 
-    if S.scale is not None:
-        grad = grad * S.scale
-        
-    solve_fun = S.sr.solve_fun()
-    _mat_vec = lambda x: S @ x
-    out, info = solve_fun(_mat_vec, grad, x0=x0)
+    solve_method: str = struct.field(pytree_node=False, default="batched")
+    """(‘incremental’ or ‘batched’) – The ‘incremental’ solve method builds a QR 
+    decomposition for the Krylov subspace incrementally during the GMRES process 
+    using Givens rotations. This improves numerical stability and gives a free estimate 
+    of the residual norm that allows for early termination within a single “restart”. In 
+    contrast, the ‘batched’ solve method solves the least squares problem from scratch at 
+    the end of each GMRES iteration. It does not allow for early termination, but has much 
+    less overhead on GPUs.
+    """
 
-    if S.scale is not None:
-        out = out * S.scale
-        
-    return unravel(out), info
-    
+    def solve_fun(self):
+        return partial(
+            jax.scipy.sparse.linalg.gmres,
+            tol=self.tol,
+            atol=self.atol,
+            maxiter=self.maxiter,
+            M=self.M,
+            restart=self.restart,
+            solve_method=self.solve_method,
+        )
+
