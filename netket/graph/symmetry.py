@@ -142,13 +142,13 @@ class SymmGroup(SemiGroup):
         return product_table
 
     def inverse(self):
-        if self._inverse == None:
+        if np.all(self._inverse) == None:
             object.__setattr__(self, "_inverse", self.__inverse())
 
         return self._inverse
 
     def product_table(self):
-        if self._product_table == None:
+        if np.all(self._product_table) == None:
             object.__setattr__(
                 self, "_product_table", self.__product_table(self.inverse())
             )
