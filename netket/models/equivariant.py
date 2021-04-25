@@ -138,6 +138,7 @@ class GCNN(nn.Module):
 
         if not self.output_activation == None:
             x = self.output_activation(x)
+        # variance scaling for output layer
         x = jnp.sum(x, axis=-1) / np.sqrt(x.shape[-1])
 
         return x
