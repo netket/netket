@@ -87,8 +87,8 @@ class SymmGroup(SemiGroup):
 
     def __inverse(self):
         """
-        Returns reordered SymmGroup where the each element is the inverse of
-        the original symmetry element. If :code:`g = self[element]` and :code:`h = self[self.inverse()[element]]`,
+        Returns indices of the involution of the SymmGroup where the each element is the inverse of
+        the original symmetry element. If :code:`g = self[element]` and :code:`h = self[self.inverse()][element]`,
         then :code:`gh = product(g, h)` will act as the identity on the sites of the graph, i.e., :code:`np.all(gh(sites) == sites)`.
 
         """
@@ -112,6 +112,8 @@ class SymmGroup(SemiGroup):
         and code:`u = self[product_table()[element,element2]], we are
         solving the equation u = gh
 
+        Arguments:
+            inverse: The indices of the group involution as returned by self.__inverse()
         """
 
         automorphisms = self.to_array()
@@ -142,13 +144,13 @@ class SymmGroup(SemiGroup):
         return product_table
 
     def inverse(self):
-        if np.all(self._inverse) == None:
+        if self._inverse is None:
             object.__setattr__(self, "_inverse", self.__inverse())
 
         return self._inverse
 
     def product_table(self):
-        if np.all(self._product_table) == None:
+        if self._product_table is None:
             object.__setattr__(
                 self, "_product_table", self.__product_table(self.inverse())
             )
