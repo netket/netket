@@ -1,7 +1,7 @@
 from ..abstract_sampler import AbstractSampler
 from netket.legacy import random as _random
 
-from netket.stats import sum_inplace as _sum_inplace
+from netket.legacy.stats import sum_inplace as _sum_inplace
 
 import math
 import numpy as _np

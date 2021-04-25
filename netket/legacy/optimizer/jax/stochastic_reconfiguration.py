@@ -1,5 +1,5 @@
 from functools import partial
-from netket.stats import sum_inplace as _sum_inplace
+from netket.legacy.stats import sum_inplace as _sum_inplace
 
 import jax
 import jax.numpy as jnp

@@ -1,7 +1,7 @@
 import numpy as _np
 from ..abstract_sampler import AbstractSampler
 
-from netket.stats import mean as _mean
+from netket.legacy.stats import mean as _mean
 
 from numba import jit
 from numba import int64, float64
