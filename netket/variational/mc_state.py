@@ -55,6 +55,8 @@ ATrainFunType = Callable[
 
 from netket.utils import node_number
 
+from mpi4jax._src import flush
+
 
 def compute_chain_length(n_chains, n_samples):
     if n_samples <= 0:
@@ -469,6 +471,11 @@ class MCState(VariationalState):
 
             else:
                 print(
+                    f" r{node_number}| FLUSH4    gradient for {σ.shape}->{σp.shape}",
+                    flush=True,
+                )
+                flush.flush("cpu")
+                print(
                     f" r{node_number}| computing gradient for {σ.shape}->{σp.shape}",
                     flush=True,
                 )
@@ -480,6 +487,15 @@ class MCState(VariationalState):
                     σ,
                     σp,
                     mels,
+                )
+                print(
+                    f" r{node_number}| DONE               for {σ.shape}->{σp.shape}",
+                    flush=True,
+                )
+                flush.flush("cpu")
+                print(
+                    f" r{node_number}| DONE FLUSH           for {σ.shape}->{σp.shape}",
+                    flush=True,
                 )
         else:
             Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
@@ -587,6 +603,10 @@ def grad_expect_hermitian(
     σp: jnp.ndarray,
     mels: jnp.ndarray,
 ) -> Tuple[PyTree, PyTree]:
+    print(
+        f" r{node_number}| compiling grad_expect_hermitian for {σ.shape}->{σp.shape}",
+        flush=True,
+    )
 
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
@@ -594,6 +614,7 @@ def grad_expect_hermitian(
 
     n_samples = σ.shape[0] * utils.n_nodes
 
+    print(f" r{node_number}| compiling 1", flush=True)
     O_loc = local_cost_function(
         local_value_cost,
         model_apply_fun,
@@ -602,8 +623,10 @@ def grad_expect_hermitian(
         mels,
         σ,
     )
+    print(f" r{node_number}| compiling 2", flush=True)
 
     Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
+    print(f" r{node_number}| compiling 3", flush=True)
 
     O_loc -= Ō.mean
 
@@ -633,8 +656,16 @@ def grad_expect_hermitian(
         Ō_grad,
         parameters,
     )
-
-    return Ō, tree_map(sum_inplace, Ō_grad), new_model_state
+    print(
+        f" r{node_number}| DONE compiling grad_expect_hermitian: sum_inplace for {σ.shape}->{σp.shape}",
+        flush=True,
+    )
+    res = Ō, tree_map(sum_inplace, Ō_grad), new_model_state
+    print(
+        f" r{node_number}| DONE compiling grad_expect_hermitian for {σ.shape}->{σp.shape}",
+        flush=True,
+    )
+    return res
 
 
 @partial(jax.jit, static_argnums=(1, 2, 3))
