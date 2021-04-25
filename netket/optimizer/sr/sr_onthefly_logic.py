@@ -17,6 +17,7 @@ import jax.numpy as jnp
 from functools import partial
 from netket.stats import sum_inplace, subtract_mean
 from netket.utils import n_nodes
+import netket.jax as nkjax
 
 # Stochastic Reconfiguration with jvp and vjp
 
@@ -42,7 +43,8 @@ def tree_dot(a, b):
     a, b: pytrees with the same treedef
     """
     res = jax.tree_util.tree_reduce(
-        jax.numpy.add, jax.tree_map(jax.numpy.sum, jax.tree_multimap(jax.lax.mul, a, b))
+        jax.numpy.add,
+        jax.tree_map(jax.numpy.sum, jax.tree_multimap(jax.numpy.multiply, a, b)),
     )
     # convert shape from () to (1,)
     # this is needed for automatic broadcasting to work also when transposed with linear_transpose
@@ -99,8 +101,15 @@ def O_mean(samples, params, forward_fn):
 
     # determine the output type of the forward pass
     dtype = jax.eval_shape(forward_fn, params, samples).dtype
-    v = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
-    return O_vjp(samples, params, v, forward_fn)
+    w = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
+
+    if not nkjax.tree_leaf_iscomplex(params) and nkjax.is_complex_dtype(dtype):
+        # R->C
+        return nkjax.vjp(forward_fn, params, samples)[1](w)[0]
+    else:
+        # R->R and C->C
+        return O_vjp(samples, params, w, forward_fn)
+    # TODO inhomogeneous
 
 
 def OH_w(samples, params, w, forward_fn):
