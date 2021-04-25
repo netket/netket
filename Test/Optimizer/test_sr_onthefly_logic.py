@@ -93,7 +93,7 @@ class Example:
         self.dtype = outdtype
 
         self.target = {
-            "a": jnp.array([0j, 0j], dtype=jnp.complex128),
+            "a": jnp.array([[[0j], [0j]]], dtype=jnp.complex128),
             "b": jnp.array(0, dtype=jnp.float64),
             "c": jnp.array(0j, dtype=jnp.complex64),
         }
@@ -117,10 +117,12 @@ class Example:
         @partial(jax.vmap, in_axes=(None, 0))
         def f(params, x):
             return (
-                params["a"][0] * x[0]
+                params["a"][0][0][0] * x[0]
                 + params["b"] * x[1]
                 + params["c"] * (x[0] * x[1])
-                + jnp.sin(x[1] * params["a"][1])
+                + jnp.sin(x[1] * params["a"][0][1][0])
+                * jnp.cos(x[0] * params["b"] + 1j)
+                * params["c"]
             ).astype(self.dtype)
 
         self.f = f
