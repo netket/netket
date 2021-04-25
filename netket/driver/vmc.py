@@ -25,6 +25,9 @@ from netket.variational import MCState
 from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
 
+from mpi4jax._src import flush
+from netket.utils import node_number
+
 
 class VMC(AbstractVariationalDriver):
     """
@@ -95,18 +98,32 @@ class VMC(AbstractVariationalDriver):
         Args:
             n_steps (int): Number of steps to perform.
         """
+        t = self.step_count
 
         self.state.reset()
+        print(f" r{node_number} - {t} - reset", flush=True)
+        flush.flush("cpu")
+        print(f" r{node_number} - {t} - reset FLUSHED", flush=True)
 
         # Compute the local energy estimator and average Energy
         self._loss_stats, self._loss_grad = self.state.expect_and_grad(self._ham)
+        print(f" r{node_number} - {t} - loss done", flush=True)
+        flush.flush("cpu")
+        print(f" r{node_number} - {t} - loss done FLUSHED", flush=True)
 
         if self.sr is not None:
             self._S = self.state.quantum_geometric_tensor(self.sr)
+            print(f" r{node_number} - {t} - S done", flush=True)
+            flush.flush("cpu")
+            print(f" r{node_number} - {t} - S done FLUSHED", flush=True)
 
             # use the previous solution as an initial guess to speed up the solution of the linear system
             x0 = self._dp if self.sr_restart is False else None
             self._dp, self._sr_info = self._S.solve(self._loss_grad, x0=x0)
+            print(f" r{node_number} - {t} - solved", flush=True)
+            flush.flush("cpu")
+            print(f" r{node_number} - {t} - solved FLUSHED", flush=True)
+
         else:
             # tree_map(lambda x, y: x if is_ccomplex(y) else x.real, self._grads, self.state.parameters)
             self._dp = self._loss_grad
