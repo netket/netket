@@ -53,6 +53,8 @@ ATrainFunType = Callable[
     [nn.Module, PyTree, jnp.ndarray, Union[bool, PyTree]], jnp.ndarray
 ]
 
+from netket.utils import node_number
+
 
 def compute_chain_length(n_chains, n_samples):
     if n_samples <= 0:
@@ -466,6 +468,10 @@ class MCState(VariationalState):
                     )
 
             else:
+                print(
+                    f" r{node_number}| computing gradient for {σ.shape}->{σp.shape}",
+                    flush=True,
+                )
                 Ō, Ō_grad, new_model_state = grad_expect_hermitian(
                     self._apply_fun,
                     mutable,
