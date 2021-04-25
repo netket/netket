@@ -21,6 +21,7 @@ from functools import partial
 
 from netket.stats import sum_inplace, subtract_mean
 from netket.utils import n_nodes
+import netket.jax as nkjax
 
 from .sr_onthefly_logic import tree_cast, tree_conj, tree_axpy
 
@@ -29,13 +30,33 @@ from .sr_onthefly_logic import tree_cast, tree_conj, tree_axpy
 
 
 @partial(jax.vmap, in_axes=(None, None, 0))
-def perex_grads(forward_fn, params, samples):
+def perex_grads_rr_cc(forward_fn, params, samples):
     def f(p, x):
         return forward_fn(p, jnp.expand_dims(x, 0))[0]
 
     y, vjp_fun = jax.vjp(f, params, samples)
     res, _ = vjp_fun(np.ones((), dtype=jnp.result_type(y)))
     return res
+
+
+@partial(jax.vmap, in_axes=(None, None, 0))
+def perex_grads_rc(forward_fn, params, samples):
+    fr = lambda p, x: forward_fn(p, jnp.expand_dims(x, 0))[0].real
+    fi = lambda p, x: forward_fn(p, jnp.expand_dims(x, 0))[0].imag
+    yr, vjp_funr = jax.vjp(fr, params, samples)
+    yi, vjp_funi = jax.vjp(fi, params, samples)
+    gr, _ = vjp_funr(np.ones((), dtype=jnp.result_type(yr)))
+    gi, _ = vjp_funi(np.ones((), dtype=jnp.result_type(yi)))
+    return jax.tree_multimap(jax.lax.complex, gr, gi)
+
+
+def perex_grads(forward_fn, params, samples):
+    o = jax.eval_shape(forward_fn, params, samples)
+    if not nkjax.tree_leaf_iscomplex(params) and nkjax.is_complex(o):
+        return perex_grads_rc(forward_fn, params, samples)
+    else:
+        return perex_grads_rr_cc(forward_fn, params, samples)
+    # TODO inhomogeneous R&C -> C
 
 
 def sub_mean(oks):
@@ -62,18 +83,13 @@ def _cast(x, target):
 
 
 def vjp(oks, w):
-    # TODO check that w is casted only once for each leaf dtype and reused
-    # otherwise cache them manually
-    def td(x):
-        return jnp.tensordot(_cast(w, x), x, axes=1)
-
-    res = jax.tree_map(td, oks)
+    res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
     return jax.tree_map(sum_inplace, res)  # MPI
 
 
 def _mat_vec(v, oks):
     res = tree_conj(vjp(oks, jvp(oks, v).conjugate()))
-    return res
+    return tree_cast(res, v)
 
 
 def mat_vec(v, oks, diag_shift):
