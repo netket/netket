@@ -146,9 +146,12 @@ def e(n_samp, outdtype, pardtype, seed=123):
 rt = [jnp.float32, jnp.float64]
 ct = [jnp.complex64, jnp.complex128]
 nct = [None] + ct  # None means inhomogeneous
-test_types = [
-    x for x in itertools.product(rt + ct, rt + nct) if not (x[0] in rt and x[1] in nct)
-]  # exclude C->R
+r_r_test_types = list(itertools.product(rt, rt))
+c_c_test_types = list(itertools.product(ct, ct))
+r_c_test_types = list(itertools.product(ct, rt))
+rc_c_test_types = list(itertools.product(ct, [None]))
+# c_r_test_types = list(itertools.product(rt, ct))
+test_types = r_r_test_types + c_c_test_types + r_c_test_types + rc_c_test_types
 
 # tests
 
@@ -174,7 +177,9 @@ def test_vjp(e):
 
 
 @pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize("outdtype, pardtype", test_types)
+@pytest.mark.parametrize(
+    "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
+)
 def test_mean(e):
     actual = _sr_onthefly_logic.O_mean(e.samples, e.params, e.f)
     expected = _sr_onthefly_logic.tree_conj(
