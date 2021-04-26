@@ -4,7 +4,7 @@ from scipy.linalg import lstsq as _lstsq
 from scipy.linalg import cho_factor as _cho_factor
 from scipy.linalg import cho_solve as _cho_solve
 from scipy.sparse.linalg import LinearOperator
-from netket.stats import sum_inplace as _sum_inplace, mean as _mean
+from netket.legacy.stats import sum_inplace as _sum_inplace, mean as _mean
 from scipy.sparse.linalg import cg, gmres, minres
 from netket.utils import (
     MPI_py_comm as _MPI_comm,
