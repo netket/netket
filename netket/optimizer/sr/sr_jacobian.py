@@ -71,12 +71,8 @@ class SRJacobian(SR):
     """Whether scale-invariant regularisation should be used"""
 
     def create(self, *args, **kwargs):
-        if rescale_shift:
-            O, scale = gradients(apply_fun, params, samples, model_state, self.mode, True)
-            return JacobianSMatrix(sr=sr, x0=x0, O=O, scale=scale)
-        else:
-            O = gradients(apply_fun, params, samples, model_state, self.mode, False)
-            return JacobianSMatrix(sr=sr, x0=x0, O=O)
+        O, scale = gradients(apply_fun, params, samples, model_state, self.mode, rescale_shift)
+        return JacobianSMatrix(sr=sr, x0=x0, O=O, scale=scale)
 
 
 @struct.dataclass

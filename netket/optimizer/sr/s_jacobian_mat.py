@@ -62,7 +62,7 @@ class JacobianSMatrix(AbstractSMatrix):
         if self.scale is not None:
             vec = vec * self.scale
 
-        result = jnp.transpose(jnp.conj(jnp.transpose(jnp.conj(self.O @ vec)) @ self.O)) + self.sr.diag_shift * vec
+        result = ((self.O @ vec).T.conj() @ self.O).T.conj() + self.sr.diag_shift * vec
 
         if self.scale is not None:
             result = result * self.scale
@@ -74,7 +74,7 @@ class JacobianSMatrix(AbstractSMatrix):
 
     @jax.jit
     def _unscaled_matmul(self, vec: jnp.ndarray) -> jnp.ndarray:
-        return jnp.transpose(jnp.conj(jnp.transpose(jnp.conj(S.O @ vec)) @ S.O)) + S.sr.diag_shift * vec
+        return ((self.O @ vec).T.conj() @ self.O).T.conj() + self.sr.diag_shift * vec
 
     @jax.jit
     def solve(self, y: PyTree, x0: Optional[PyTree] = None) -> PyTree:
@@ -125,9 +125,9 @@ class JacobianSMatrix(AbstractSMatrix):
             diag = jnp.eye(self.O.shape[1])
         else:
             O = self.O * self.scale[jnp.newaxis,:]
-            diag = jnp.diag(jnp.square(self.scale))
+            diag = jnp.diag(self.scale**2)
             
-        return jnp.transpose(jnp.conj(O)) @ O + self.sr.diag_shift * diag
+        return O.T.conj() @ O + self.sr.diag_shift * diag
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
 def gradients(
@@ -201,9 +201,9 @@ def gradients(
 
     if rescale_shift:
         sqrt_Skk = jnp.linalg.norm(grads, axis=0, keepdims=True)
-        return grads / sqrt_Skk, jnp.ravel(sqrt_Skk)
+        return grads / sqrt_Skk, sqrt_Skk.flatten()
     else:
-        return grads
+        return grads, None
 
 def _grad_vmap_minus_mean(
     fun: Callable, params: jnp.ndarray, samples: jnp.ndarray, holomorphic: bool
@@ -215,4 +215,4 @@ def _grad_vmap_minus_mean(
     grads = jax.vmap(
         jax.grad(fun, holomorphic=holomorphic), in_axes=(None, 0), out_axes=0
     )(params, samples)
-    return grads - jnp.sum(grads, axis=0, keepdims=True) / grads.shape[0]
+    return grads - grads.sum(axis=0, keepdims=True) / grads.shape[0]
