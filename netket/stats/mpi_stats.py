@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional, Any
+
 import jax.numpy as jnp
-from ._sum_inplace import sum_inplace as mpi_sum
 
-from netket.utils.mpi import (
-    n_nodes as _n_nodes,
-)
+from netket.utils.mpi import mpi_sum_jax, mpi_mean_jax, mpi_sum, n_nodes
 
 
-def subtract_mean(x, axis=None):
+def subtract_mean(x, token=None, *, axis=None):
     """
     Subtracts the mean of the input array over all but the last dimension
     and over all MPI processes from each entry.
@@ -37,11 +36,11 @@ def subtract_mean(x, axis=None):
 
     # here we keep the dims, since automatic broadcasting of a scalar (shape () ) to an array produces errors
     # when used inside of a function which is transposed with jax.linear_transpose
-    x_mean = mean(x, axis=axis, keepdims=True)
-    return x - x_mean  # automatic broadcasting of x_mean
+    x_mean, token = mean(x, token=token, axis=axis, keepdims=True)
+    return x - x_mean, token  # automatic broadcasting of x_mean
 
 
-def mean(a, axis=None, keepdims: bool = False):
+def mean(a, token=None, *, axis=None, keepdims: bool = False):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
 
@@ -61,10 +60,10 @@ def mean(a, axis=None, keepdims: bool = False):
     """
     out = a.mean(axis=axis, keepdims=keepdims)
 
-    return mpi_sum(out) / _n_nodes
+    return mpi_mean_jax(out, token=token)
 
 
-def sum(a, axis=None, keepdims: bool = False):
+def sum(a, token=None, *, axis=None, keepdims: bool = False):
     """
     Compute the sum along the specified axis and over MPI processes.
 
@@ -88,10 +87,18 @@ def sum(a, axis=None, keepdims: bool = False):
         # assume it's a scalar
         a_sum = jnp.asarray(a)
 
-    return mpi_sum(a_sum)
+    return mpi_sum_jax(a_sum, token=token)
 
 
-def var(a, axis=None, ddof: int = 0):
+def var(
+    a,
+    token=None,
+    *,
+    axis: Optional[int] = None,
+    ddof: int = 0,
+    n_dof: Optional[int] = None,
+    rank_constant_shape: bool = True,
+):
     """
     Compute the variance mean along the specified axis and over MPI processes.
     Assumes same shape on all MPI processes.
@@ -103,27 +110,36 @@ def var(a, axis=None, ddof: int = 0):
         out: An optional pre-allocated array to fill with the result.
         ddof: “Delta Degrees of Freedom”: the divisor used in the calculation is N - ddof,
               where N represents the number of elements. By default ddof is zero.
+        n_dof: Optional number of degrees of freedom. If not specified, a call to
+            :code:`total_size` is made.
+        rank_constant_shape: If True (default) assumes that all ranks have the same
+            shape and returns :code:`local_size * n_nodes`. If False, uses a mpi_sum
+            among ranks to compute the total size. However, if this code is all ranks
+            do not recompile at the same time because they have different shapes,
+            MPI deadlocks might arise.
 
     Returns:
         The array with reduced dimensions defined by axis. If out is not none, returns out.
 
     """
-    m = mean(a, axis=axis)
+    m, token = mean(a, token=token, axis=axis)
 
     if axis is None:
         ssq = jnp.abs(a - m) ** 2.0
     else:
         ssq = jnp.abs(a - jnp.expand_dims(m, axis)) ** 2.0
 
-    out = sum(ssq, axis=axis)
+    out, token = sum(ssq, token=token, axis=axis)
 
-    n_all = total_size(a, axis=axis)
-    out /= n_all - ddof
+    if n_dof is None:
+        n_dof = total_size(a, axis=axis, rank_constant_shape=rank_constant_shape)
 
-    return out
+    out /= n_dof - ddof
+
+    return out, token
 
 
-def total_size(a, axis=None):
+def total_size(a, *, axis: Optional[int] = None, rank_constant_shape: bool = True):
     """
     Compute the total number of elements stored in the input array among all MPI processes.
 
@@ -132,6 +148,11 @@ def total_size(a, axis=None):
     Args:
         a: The input array.
         axis: If specified, only considers the total size of that axis.
+        rank_constant_shape: If True (default) assumes that all ranks have the same
+            shape and returns :code:`local_size * n_nodes`. If False, uses a mpi_sum
+            among ranks to compute the total size. However, if this code is all ranks
+            do not recompile at the same time because they have different shapes,
+            MPI deadlocks might arise.
 
     Returns:
         a.size or a.shape[axis], reduced among all MPI processes.
@@ -141,9 +162,7 @@ def total_size(a, axis=None):
     else:
         l_size = a.shape[axis]
 
-    # TODO: This function cannot call Python MPI because if it gets called on shape
-    # inference when compiling. Therefore if only one mpi rank is compiling this
-    # leads to deadlocks.
-    # We should refactor all this logic.
-    # return mpi_sum(l_size)
-    return l_size * _n_nodes
+    if rank_constant_shape:
+        return l_size * n_nodes
+    else:
+        return mpi_sum(l_size)
