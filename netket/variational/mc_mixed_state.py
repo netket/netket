@@ -32,8 +32,9 @@ from netket import jax as nkjax
 from netket import utils
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
-from netket.stats import Stats, statistics, mean, sum_inplace
+from netket.stats import Stats, statistics, mean
 from netket.utils import flax as flax_utils, maybe_wrap_module
+from netket.utils.mpi import mpi_sum
 from netket.utils.types import DType, Array, PyTree, PRNGKeyT, Shape, NNInitFunc
 from netket.optimizer import SR
 from netket.operator import (

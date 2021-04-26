@@ -33,8 +33,9 @@ from netket import utils
 from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
-from netket.stats import Stats, statistics, mean, sum_inplace
+from netket.stats import Stats, statistics, mean
 from netket.utils import flax as flax_utils, maybe_wrap_module, deprecated, mpi
+from netket.utils.mpi import mpi_sum, mpi_sum_jax, mpi_mean_jax, n_nodes, mpi_tree_map
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
 from netket.optimizer import SR
 from netket.operator import (
@@ -597,7 +598,7 @@ def grad_expect_hermitian(
         σ,
     )
 
-    Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
+    Ō, token = statistics(O_loc.reshape(σ_shape[:-1]).T, rank_constant_shape=True)
 
     O_loc -= Ō.mean
 
@@ -628,7 +629,9 @@ def grad_expect_hermitian(
         parameters,
     )
 
-    return Ō, tree_map(sum_inplace, Ō_grad), new_model_state
+    Ō_grad, token = mpi_tree_map(mpi_sum_jax, Ō_grad, token=token)
+
+    return Ō, Ō_grad, new_model_state
 
 
 @partial(jax.jit, static_argnums=(1, 2, 3))
@@ -691,9 +694,11 @@ def grad_expect_operator_kernel(
     Ō, Ō_pb, Ō_stats = nkjax.vjp(expect_closure_pars, parameters, has_aux=True)
     Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))
 
+    Ō_pars_grad, token = mpi_tree_map(mpi_mean_jax, Ō_pars_grad, token=token)
+
     return (
         Ō_stats,
-        tree_map(lambda x: sum_inplace(x) / mpi.n_nodes, Ō_pars_grad),
+        Ō_pars_grad,
         model_state,
     )
 
@@ -742,7 +747,7 @@ def grad_expect_operator_Lrho2(
     # netket.operator._der_local_values_jax._local_values_and_grads_notcentered_kernel returns a loc_val that is conjugated
     Lρ = jnp.conjugate(Lρ)
 
-    LdagL_stats = statistics((jnp.abs(Lρ) ** 2).T)
+    LdagL_stats, _ = statistics((jnp.abs(Lρ) ** 2).T, rank_constant_shape=True)
     LdagL_mean = LdagL_stats.mean
 
     # old implementation
@@ -762,7 +767,7 @@ def grad_expect_operator_Lrho2(
     # der_logs_ave = d_logpsi(
     #    jnp.ones_like(_logpsi_ave).real / (n_samples_node * utils.n_nodes)
     # )[0]
-    der_logs_ave = tree_map(sum_inplace, der_logs_ave)
+    der_logs_ave = tree_map(mpi_sum, der_logs_ave)
 
     def gradfun(der_loc_vals, der_logs_ave):
         par_dims = der_loc_vals.ndim - 1
