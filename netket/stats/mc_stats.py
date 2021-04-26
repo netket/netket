@@ -137,6 +137,7 @@ def statistics(data, batch_size=32):
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
     also for other type of time series.
+    Assumes same shape on all MPI processes.
 
     Args:
         data (vector or matrix): The input data. It can be real or complex valued.
