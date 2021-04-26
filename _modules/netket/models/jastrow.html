@@ -119,7 +119,12 @@
 
 
 <div class="viewcode-block" id="Jastrow"><a class="viewcode-back" href="../../../docs/_generated/models/netket.models.Jastrow.html#netket.models.Jastrow">[docs]</a><span class="k">class</span> <span class="nc">Jastrow</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`.</span>
+
+<span class="sd">    The W matrix is stored as a non-symmetric matrix, and symmetrized</span>
+<span class="sd">    during computation by doing :code:`W = W + W.T` in the computation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">dtype</span><span class="p">:</span> <span class="n">DType</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">complex128</span>
     <span class="sd">&quot;&quot;&quot;The dtype of the weights.&quot;&quot;&quot;</span>
@@ -134,6 +139,7 @@
         <span class="n">x_in</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
         <span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">(</span><span class="s2">&quot;kernel&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_init</span><span class="p">,</span> <span class="p">(</span><span class="n">nv</span><span class="p">,</span> <span class="n">nv</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span> <span class="o">+</span> <span class="n">kernel</span><span class="o">.</span><span class="n">T</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...i,ij,...j&quot;</span><span class="p">,</span> <span class="n">x_in</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">x_in</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">y</span></div></div>
