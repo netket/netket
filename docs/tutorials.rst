@@ -36,8 +36,8 @@
     Learning the ground-state of a spin model with different Neural Networks available in NetKet.
 
     ---
-    
-    :doc:`Using a group convolutional neural network to learn the ground-state of a symmetric spin model`
+
+    :doc:`Using a group convolutional neural network to learn the ground-state of a symmetric spin model <tutorials/G-CNN\ Honeycomb.ipynb>`
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    Tutorial explaing how group CNNs work and how to use them in NetKet. 
+    Learn how group CNNs work and how to implement them in NetKet. 
