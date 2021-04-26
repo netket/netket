@@ -28,7 +28,7 @@ lattices.
 """
 
 
-def get_edges(atoms_positions, cutoff, distance_atol = cutoff_tol):
+def get_edges(atoms_positions, cutoff, distance_atol=cutoff_tol):
     cutoff = cutoff + distance_atol
     kdtree = cKDTree(atoms_positions)
     dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
@@ -84,7 +84,9 @@ def create_points(basis_vectors, extent, atom_coords, pbc):
     return atoms, cellANDlabel_to_site
 
 
-def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent, distance_atol = cutoff_tol):
+def get_true_edges(
+    basis_vectors, atoms, cellANDlabel_to_site, extent, distance_atol=cutoff_tol
+):
     atoms_positions = dicts_to_array(atoms, "r_coord")
     naive_edges = get_edges(
         atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max(), distance_atol
