@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>netket.variational.base &#8212; netket v3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/panels-variables.06eb56fa6e07937060861dad626602ad.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/jumbo-style.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/all.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/rtd_theme.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/rtd_theme.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html"><span><img src="../../../_static/logonav.png"></span>
+          NetKet</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../getting_started.html">Get Started</a></li>
+                <li><a href="../../../docs/getting_started.html">Documentation</a></li>
+                <li><a href="../../../tutorials.html">Tutorials</a></li>
+                <li><a href="../../../citing.html">Citing NetKet</a></li>
+                <li><a href="../../../about.html">About</a></li>
+                <li><a href="https://github.com/netket/netket"><i class="fab fa-github" aria-hidden="true"></i></a></li>
+                <li><a href="https://twitter.com/NetKetOrg"><i class="fab fa-twitter" aria-hidden="true"></i></a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for netket.variational.base</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2021 The NetKet Authors - All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#    http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Callable</span>
+
+<span class="kn">import</span> <span class="nn">jax</span>
+<span class="kn">import</span> <span class="nn">flax</span>
+<span class="kn">from</span> <span class="nn">flax.core.frozen_dict</span> <span class="kn">import</span> <span class="n">FrozenDict</span>
+
+<span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
+
+<span class="kn">import</span> <span class="nn">netket.jax</span> <span class="k">as</span> <span class="nn">nkjax</span>
+<span class="kn">import</span> <span class="nn">netket.nn</span> <span class="k">as</span> <span class="nn">nknn</span>
+<span class="kn">from</span> <span class="nn">netket.operator</span> <span class="kn">import</span> <span class="n">AbstractOperator</span><span class="p">,</span> <span class="n">LocalLiouvillian</span>
+<span class="kn">from</span> <span class="nn">netket.hilbert</span> <span class="kn">import</span> <span class="n">AbstractHilbert</span><span class="p">,</span> <span class="n">DoubledHilbert</span>
+<span class="kn">from</span> <span class="nn">netket.utils.types</span> <span class="kn">import</span> <span class="n">DType</span><span class="p">,</span> <span class="n">Array</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">,</span> <span class="n">PRNGKeyT</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">NNInitFunc</span>
+<span class="kn">from</span> <span class="nn">netket.stats</span> <span class="kn">import</span> <span class="n">Stats</span>
+
+
+<div class="viewcode-block" id="VariationalState"><a class="viewcode-back" href="../../../docs/_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState">[docs]</a><span class="k">class</span> <span class="nc">VariationalState</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract class for variational states representing either pure states</span>
+<span class="sd">    or mixed quantum states.</span>
+
+<span class="sd">    A variational state is a quantum state depending on a set of</span>
+<span class="sd">    parameters, and that supports operations such</span>
+<span class="sd">    as computing quantum expectation values and their gradients.</span>
+
+<span class="sd">    A Variational stat can be serialized using flax&#39;s msgpack machinery.</span>
+<span class="sd">    See `their docs &lt;https://flax.readthedocs.io/en/latest/flax.serialization.html&gt;`_.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="VariationalState.__init__"><a class="viewcode-back" href="../../../docs/_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hilbert</span><span class="p">:</span> <span class="n">AbstractHilbert</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hilbert</span> <span class="o">=</span> <span class="n">hilbert</span>  <span class="c1"># type: AbstractHilbert</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_state</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: PyTree</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: PyTree</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hilbert</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractHilbert</span><span class="p">:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The descriptor of the Hilbert space</span>
+<span class="sd">        on which this variational state is defined.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hilbert</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyTree</span><span class="p">:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The pytree of the parameters of the model.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The total number of parameters in the model.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">nkjax</span><span class="o">.</span><span class="n">tree_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+
+    <span class="nd">@parameters</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pars</span><span class="p">:</span> <span class="n">PyTree</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pars</span><span class="p">,</span> <span class="n">FrozenDict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pars</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pars</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">pars</span> <span class="o">=</span> <span class="n">flax</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">freeze</span><span class="p">(</span><span class="n">pars</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="n">pars</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">model_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PyTree</span><span class="p">]:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The optional pytree with the mutable state of the model.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_state</span>
+
+    <span class="nd">@model_state</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">model_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">PyTree</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">FrozenDict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">flax</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">freeze</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_state</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">variables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyTree</span><span class="p">:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The PyTreee containing the paramters and state of the model,</span>
+<span class="sd">        used when evaluating it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">flax</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">freeze</span><span class="p">({</span><span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">model_state</span><span class="p">})</span>
+
+    <span class="nd">@variables</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">vars</span><span class="p">:</span> <span class="n">PyTree</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">vars</span><span class="p">,</span> <span class="n">FrozenDict</span><span class="p">):</span>
+            <span class="nb">vars</span> <span class="o">=</span> <span class="n">flax</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">freeze</span><span class="p">(</span><span class="nb">vars</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="nb">vars</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;params&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="VariationalState.init_parameters"><a class="viewcode-back" href="../../../docs/_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.init_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">init_parameters</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">init_fun</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NNInitFunc</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PRNGKeyT</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Re-initializes all the parameters with the provided initialization function, defaulting to</span>
+<span class="sd">        the normal distribution of standard deviation 0.01.</span>
+
+<span class="sd">        .. warning::</span>
+
+<span class="sd">            The init function will not change the dtype of the parameters, which is determined by the</span>
+<span class="sd">            model. DO NOT SPECIFY IT INSIDE THE INIT FUNCTION</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            init_fun: a jax initializer such as :ref:`netket.nn.initializers.normal`. Must be a Callable</span>
+<span class="sd">                taking 3 inputs, the jax PRNG key, the shape and the dtype, and outputting an array with</span>
+<span class="sd">                the valid dtype and shape. If left unspecified, defaults to :code:`netket.nn.initializers.normal(stddev=0.01)`</span>
+<span class="sd">            seed: Optional seed to be used. The seed is synced across all MPI processes. If unspecified, uses</span>
+<span class="sd">                a random seed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">init_fun</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">init_fun</span> <span class="o">=</span> <span class="n">nknn</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">stddev</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">nkjax</span><span class="o">.</span><span class="n">PRNGSeq</span><span class="p">(</span><span class="n">nkjax</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">seed</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">new_pars</span><span class="p">(</span><span class="n">par</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                <span class="n">init_fun</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">shape</span><span class="o">=</span><span class="n">par</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">par</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">par</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="n">new_pars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="VariationalState.reset"><a class="viewcode-back" href="../../../docs/_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Resets the internal cache of th variational state.</span>
+<span class="sd">        Called automatically when the parameters/state is updated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="VariationalState.expect"><a class="viewcode-back" href="../../../docs/_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.expect">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">expect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ô</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Stats</span><span class="p">:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Estimates the quantum expectation value for a given operator O.</span>
+<span class="sd">            In the case of a pure state $\psi$, this is $&lt;O&gt;= &lt;Psi|O|Psi&gt;/&lt;Psi|Psi&gt;$</span>
+<span class="sd">            otherwise for a mixed state $\rho$, this is $&lt;O&gt; = \Tr[\rho \hat{O}/\Tr[\rho]$.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            Ô: the operator O.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An estimation of the quantum expectation value &lt;O&gt;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="VariationalState.grad"><a class="viewcode-back" href="../../../docs/_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.grad">[docs]</a>    <span class="k">def</span> <span class="nf">grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">Ô</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">is_hermitian</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">mutable</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyTree</span><span class="p">:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Estimates the gradient of the quantum expectation value of a given operator O.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            op (netket.operator.AbstractOperator): the operator O.</span>
+<span class="sd">            is_hermitian: optional override for whever to use or not the hermitian logic. By default</span>
+<span class="sd">                it&#39;s automatically detected.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            array: An estimation of the average gradient of the quantum expectation value &lt;O&gt;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expect_and_grad</span><span class="p">(</span><span class="n">Ô</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="n">mutable</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="VariationalState.expect_and_grad"><a class="viewcode-back" href="../../../docs/_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.expect_and_grad">[docs]</a>    <span class="k">def</span> <span class="nf">expect_and_grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">Ô</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">mutable</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_hermitian</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Stats</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">]:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Estimates both the gradient of the quantum expectation value of a given operator O.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            Ô: the operator Ô for which we compute the expectation value and it&#39;s gradient</span>
+<span class="sd">            mutable: Can be bool, str, or list. Specifies which collections in the model_state should</span>
+<span class="sd">                     be treated as  mutable: bool: all/no collections are mutable. str: The name of a</span>
+<span class="sd">                     single mutable  collection. list: A list of names of mutable collections.</span>
+<span class="sd">                     This is used to mutate the state of the model while you train it (for example</span>
+<span class="sd">                     to implement BatchNorm. Consult</span>
+<span class="sd">                     `Flax&#39;s Module.apply documentation &lt;https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply&gt;`_</span>
+<span class="sd">                     for a more in-depth exaplanation).</span>
+<span class="sd">            is_hermitian: optional override for whever to use or not the hermitian logic. By default</span>
+<span class="sd">                          it&#39;s automatically detected.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An estimation of the quantum expectation value &lt;O&gt;.</span>
+<span class="sd">            An estimation of the average gradient of the quantum expectation value &lt;O&gt;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="c1"># @abc.abstractmethod</span>
+<div class="viewcode-block" id="VariationalState.quantum_geometric_tensor"><a class="viewcode-back" href="../../../docs/_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.quantum_geometric_tensor">[docs]</a>    <span class="k">def</span> <span class="nf">quantum_geometric_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sr</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes an estimate of the quantum geometric tensor G_ij.</span>
+
+<span class="sd">        This function returns a linear operator that can be used to apply G_ij to a given vector</span>
+<span class="sd">        or can be converted to a full matrix.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sr: The object containing the settings off the SR format to be used.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">           A linear operator representing the quantum geometric tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="VariationalState.to_array"><a class="viewcode-back" href="../../../docs/_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.to_array">[docs]</a>    <span class="k">def</span> <span class="nf">to_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the dense-vector representation of this state.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            normalize: If True, the vector is normalized to have L2-norm 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An exponentially large vector representing the state in the computational</span>
+<span class="sd">            basis.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">VariationalMixedState</span><span class="p">(</span><span class="n">VariationalState</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hilbert</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hilbert_physical</span> <span class="o">=</span> <span class="n">hilbert</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hilbert_physical</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractHilbert</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hilbert_physical</span>
+
+    <span class="k">def</span> <span class="nf">expect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ô</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Stats</span><span class="p">:</span>
+        <span class="c1"># If it is super-operator treat, they act on the same space so</span>
+        <span class="c1"># the expectation value is standard.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span> <span class="o">==</span> <span class="n">Ô</span><span class="o">.</span><span class="n">hilbert</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">Ô</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert_physical</span> <span class="o">==</span> <span class="n">Ô</span><span class="o">.</span><span class="n">hilbert</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expect_operator</span><span class="p">(</span><span class="n">Ô</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="nf">expect_and_grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">Ô</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">,</span>
+        <span class="n">mutable</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_hermitian</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Stats</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">]:</span>
+        <span class="c1"># do the computation in super-operator space</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span> <span class="o">==</span> <span class="n">Ô</span><span class="o">.</span><span class="n">hilbert</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">expect_and_grad</span><span class="p">(</span>
+                <span class="n">Ô</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="n">mutable</span><span class="p">,</span> <span class="n">is_hermitian</span><span class="o">=</span><span class="n">is_hermitian</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert_physical</span> <span class="o">==</span> <span class="n">Ô</span><span class="o">.</span><span class="n">hilbert</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">expect_and_grad</span><span class="p">(</span>
+                <span class="n">Ô</span><span class="p">,</span> <span class="n">mutable</span><span class="o">=</span><span class="n">mutable</span><span class="p">,</span> <span class="n">is_hermitian</span><span class="o">=</span><span class="n">is_hermitian</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">expect_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ô</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Stats</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">grad_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ô</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Stats</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expect_and_grad_operator</span><span class="p">(</span><span class="n">Ô</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># @abc.abstractmethod</span>
+    <span class="k">def</span> <span class="nf">expect_and_grad_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Ô</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Stats</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">to_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the dense-matrix representation of this operator.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            normalize: If True, the matrix is normalized to have trace 1.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An exponentially large matrix representing the state in the computational</span>
+<span class="sd">            basis.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019-2021, The Netket authors - All rights reserved.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.4.<br/>
+    </p>
+  </div>
+</footer>
+
+<script type="text/javascript">
+    jQuery(function () {
+        SphinxRtdTheme.Navigation.enable(true);
+      })
+</script>
+
+<!-- Temporary footer
+<div class="footer-wip">
+  <div class="footer-wip-content">
+    This documentation refers to an unreleased version of Netket.
+  </div>
+</div>
+-->
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-118013987-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-118013987-1');
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "url": "https://www.netket.org",
+  "name": "NetKet",
+  "founder": "Giuseppe Carleo",
+  "foundingDate": "2018-04-24",
+  "foundingLocation" : "New York",
+  "logo": "https://www.netket.org/img/logo_small.jpg",
+  "sameAs": [
+    "https://twitter.com/NetKetOrg",
+    "https://github.com/NetKet/netket"
+  ],
+  "description" : "Netket is an open-source project delivering cutting-edge
+  methods for the study of many-body quantum systems with artificial neural
+  networks and machine learning techniques."
+}
+</script>
+
+  </body>
+</html>
