@@ -629,7 +629,7 @@ def grad_expect_hermitian(
         parameters,
     )
 
-    Ō_grad, token = mpi_tree_map(mpi_sum_jax, Ō_grad, token=token)
+    Ō_grad, token = mpi.tree_map(mpi.mpi_sum_jax, Ō_grad, token=token)
 
     return Ō, Ō_grad, new_model_state
 
@@ -694,7 +694,7 @@ def grad_expect_operator_kernel(
     Ō, Ō_pb, Ō_stats = nkjax.vjp(expect_closure_pars, parameters, has_aux=True)
     Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))
 
-    Ō_pars_grad, token = mpi_tree_map(mpi_mean_jax, Ō_pars_grad, token=token)
+    Ō_pars_grad, token = mpi.tree_map(mpi.mpi_mean_jax, Ō_pars_grad, token=token)
 
     return (
         Ō_stats,
@@ -765,9 +765,9 @@ def grad_expect_operator_Lrho2(
     # TODO: this ones_like might produce a complexXX type but we only need floatXX
     # and we cut in 1/2 the # of operations to do.
     # der_logs_ave = d_logpsi(
-    #    jnp.ones_like(_logpsi_ave).real / (n_samples_node * utils.n_nodes)
+    #    jnp.ones_like(_logpsi_ave).real / (n_samples_node * mpi.n_nodes)
     # )[0]
-    der_logs_ave = tree_map(mpi_sum, der_logs_ave)
+    der_logs_ave = tree_map(mpi.mpi_sum, der_logs_ave)
 
     def gradfun(der_loc_vals, der_logs_ave):
         par_dims = der_loc_vals.ndim - 1
