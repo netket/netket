@@ -20,6 +20,8 @@ from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import PyTree
+from netket.utils import n_nodes
+from netket.stats import sum_inplace
 import netket.jax as nkjax
 
 from .base import AbstractSMatrix
@@ -62,7 +64,8 @@ class JacobianSMatrix(AbstractSMatrix):
         if self.scale is not None:
             vec = vec * self.scale
 
-        result = ((self.O @ vec).T.conj() @ self.O).T.conj() + self.sr.diag_shift * vec
+        result = sum_inplace(((self.O @ vec).T.conj() @ self.O).T.conj()) +\
+                 self.sr.diag_shift * vec
 
         if self.scale is not None:
             result = result * self.scale
@@ -74,7 +77,8 @@ class JacobianSMatrix(AbstractSMatrix):
 
     @jax.jit
     def _unscaled_matmul(self, vec: jnp.ndarray) -> jnp.ndarray:
-        return ((self.O @ vec).T.conj() @ self.O).T.conj() + self.sr.diag_shift * vec
+        return sum_inplace(((self.O @ vec).T.conj() @ self.O).T.conj()) +\
+            self.sr.diag_shift * vec
 
     @jax.jit
     def solve(self, y: PyTree, x0: Optional[PyTree] = None) -> PyTree:
@@ -127,7 +131,7 @@ class JacobianSMatrix(AbstractSMatrix):
             O = self.O * self.scale[jnp.newaxis,:]
             diag = jnp.diag(self.scale**2)
             
-        return O.T.conj() @ O + self.sr.diag_shift * diag
+        return sum_inplace(O.T.conj() @ O) + self.sr.diag_shift * diag
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
 def gradients(
@@ -149,7 +153,7 @@ def gradients(
 
     if jnp.ndim(samples) != 2:
         samples = jnp.reshape(samples, (-1, samples.shape[-1]))
-    n_samples = samples.shape[0]
+    n_samples = samples.shape[0] * n_nodes
 
     if mode == "holomorphic":
         # Preapply the model state so that when computing gradient
@@ -200,7 +204,7 @@ def gradients(
         )
 
     if rescale_shift:
-        sqrt_Skk = jnp.linalg.norm(grads, axis=0, keepdims=True)
+        sqrt_Skk = sum_inplace(jnp.sum((grads * grads.conj()).real, axis=0, keepdims=True))**0.5
         return grads / sqrt_Skk, sqrt_Skk.flatten()
     else:
         return grads, None
@@ -215,4 +219,4 @@ def _grad_vmap_minus_mean(
     grads = jax.vmap(
         jax.grad(fun, holomorphic=holomorphic), in_axes=(None, 0), out_axes=0
     )(params, samples)
-    return grads - grads.sum(axis=0, keepdims=True) / grads.shape[0]
+    return grads - sum_inplace(grads.sum(axis=0, keepdims=True)) / (grads.shape[0] * n_nodes)
