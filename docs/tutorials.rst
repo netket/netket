@@ -33,8 +33,6 @@
     :doc:`Heisenberg model with different variational states <tutorials/Heisenberg1d>`
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    ---
-
     Learning the ground-state of a spin model with different Neural Networks available in NetKet.
 
     :doc:`Using a group convolutional neural network to learn the ground-state of a symmetric spin model`
