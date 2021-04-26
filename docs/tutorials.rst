@@ -37,7 +37,7 @@
 
     ---
 
-    :doc:`Using a group convolutional neural network to learn the ground-state of a symmetric spin model <tutorials/G-CNN\ Honeycomb.ipynb>`
+    :doc:`Using a group convolutional neural network to learn the ground-state of a symmetric spin model <tutorials/G-CNN\ Honeycomb>`
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     Learn how group CNNs work and how to implement them in NetKet. 
