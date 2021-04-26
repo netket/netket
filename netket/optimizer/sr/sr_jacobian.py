@@ -39,6 +39,17 @@ class SRJacobian(SR):
     :code:`norm(residual) <= max(tol*norm(b), atol)`
     """
 
+    mode: str = struct.field(pytree_node=False)
+    """Differentiation mode to precompute Jacobian
+    * "holomorphic": C->C holomorphic function
+        `grad` is called on the full network output with `holomorphic=True`
+    * "R2R": real-valued wave function with real parameters
+        `grad` is called on the real part of the network output with `holomorphic=False`
+    * "R2C": complex-valued wave function with real parameters
+        the real and imaginary parts of the network output are treated as independent 
+        R->R functions and `grad` is called separately on them with `holomorphic=False`
+    """
+
     tol: float = 1.0e-5
     """Relative tolerance for convergences."""
 
@@ -54,17 +65,6 @@ class SRJacobian(SR):
     """Preconditioner for A. The preconditioner should approximate the inverse of A. 
     Effective preconditioning dramatically improves the rate of convergence, which implies 
     that fewer iterations are needed to reach a given error tolerance.
-    """
-
-    mode: str = struct.field(pytree_node=False)
-    """Differentiation mode to precompute Jacobian
-    * "holomorphic": C->C holomorphic function
-        `grad` is called on the full network output with `holomorphic=True`
-    * "R2R": real-valued wave function with real parameters
-        `grad` is called on the real part of the network output with `holomorphic=False`
-    * "R2C": complex-valued wave function with real parameters
-        the real and imaginary parts of the network output are treated as independent 
-        R->R functions and `grad` is called separately on them with `holomorphic=False`
     """
 
     rescale_shift: bool = struct.field(pytree_node=False, default=False)
