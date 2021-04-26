@@ -319,9 +319,10 @@ class DenseSymm(Module):
 
 
 class DenseEquivariant(Module):
-    """Implements a G-convolution that acts on a feature map of symmetry
-    poses of shape [batch_size,n_symm*in_features] and returns a feature
-    map of poses of shape [batch_size,n_symm*out_features]
+    """A group convolution operation that is equivariant over a symmetry group
+
+    Acts on a feature map of symmetry poses of shape [batch_size,n_symm*in_features]
+    and returns a feature  map of poses of shape [batch_size,n_symm*out_features]
 
     G-convolutions are described in ` Cohen et. {\it al} <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
     and applied to quantum many-body problems in ` Roth et. {\it al} <https://arxiv.org/pdf/2104.05085.pdf>`_
