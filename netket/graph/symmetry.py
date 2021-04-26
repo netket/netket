@@ -105,20 +105,16 @@ class SymmGroup(SemiGroup):
 
         return inverse
 
-    def __product_table(self, inverse):
+    def __product_table(self):
         """
         Returns a product table over the group where the columns use the involution
         of the group. If :code:`g = self[self.inverse()[element]]', :code:`h = self[element2]`
         and code:`u = self[product_table()[element,element2]], we are
         solving the equation u = gh
-
-        Arguments:
-            inverse: The indices of the group involution as returned by self.__inverse()
         """
 
         automorphisms = self.to_array()
-        inverse = automorphisms[inverse].squeeze()
-
+        inverse = automorphisms[self.__inverse()].squeeze()
         n_symm = len(automorphisms)
         product_table = np.zeros([n_symm, n_symm], dtype=int)
 
@@ -151,9 +147,7 @@ class SymmGroup(SemiGroup):
 
     def product_table(self):
         if self._product_table is None:
-            object.__setattr__(
-                self, "_product_table", self.__product_table(self.inverse())
-            )
+            object.__setattr__(self, "_product_table", self.__product_table())
 
         return self._product_table
 
