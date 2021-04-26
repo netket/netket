@@ -40,4 +40,6 @@
     :doc:`Using a G-CNN to simulate symmetric spin models <tutorials/G-CNN_Honeycomb>`
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    Learn about group convolutional neural network and how to implement them in NetKet. 
+    Learn about group convolutional neural network and how to implement them in NetKet.
+
+    ---
