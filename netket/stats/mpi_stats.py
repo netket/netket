@@ -94,6 +94,7 @@ def sum(a, axis=None, keepdims: bool = False):
 def var(a, axis=None, ddof: int = 0):
     """
     Compute the variance mean along the specified axis and over MPI processes.
+    Assumes same shape on all MPI processes.
 
     Args:
         a: The input array
@@ -140,4 +141,9 @@ def total_size(a, axis=None):
     else:
         l_size = a.shape[axis]
 
-    return mpi_sum(l_size)
+    # TODO: This function cannot call Python MPI because if it gets called on shape
+    # inference when compiling. Therefore if only one mpi rank is compiling this
+    # leads to deadlocks.
+    # We should refactor all this logic.
+    # return mpi_sum(l_size)
+    return l_size * _n_nodes
