@@ -80,6 +80,11 @@ def is_complex(x):
     return jnp.issubdtype(x.dtype, jnp.complexfloating)
 
 
+def is_real(x):
+    #  Returns true if x is real
+    return jnp.issubdtype(x.dtype, jnp.floating)
+
+
 def tree_leaf_iscomplex(pars):
     """
     Returns true if at least one leaf in the tree has complex dtype.
@@ -87,8 +92,26 @@ def tree_leaf_iscomplex(pars):
     return any(jax.tree_leaves(jax.tree_map(is_complex, pars)))
 
 
+def tree_leaf_isreal(pars):
+    """
+    Returns true if at least one leaf in the tree has real dtype.
+    """
+    return any(jax.tree_leaves(jax.tree_map(is_real, pars)))
+
+
 def is_complex_dtype(typ):
     return jnp.issubdtype(typ, jnp.complexfloating)
+
+
+def is_real_dtype(typ):
+    return jnp.issubdtype(typ, jnp.floating)
+
+
+def tree_ishomogeneous(pars):
+    """
+    Returns true if all leaves have real dtype or all leaves have complex dtype.
+    """
+    return not (tree_leaf_isreal(pars) and tree_leaf_iscomplex(pars))
 
 
 def dtype_complex(typ):

@@ -19,6 +19,7 @@ from .utils import (
     tree_size,
     eval_shape,
     tree_leaf_iscomplex,
+    tree_ishomogeneous,
     dtype_complex,
     dtype_real,
     maybe_promote_to_complex,
