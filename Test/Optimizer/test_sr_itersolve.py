@@ -67,8 +67,6 @@ def test_sr_solve(sr, vstate):
     S = vstate.quantum_geometric_tensor(sr)
     x, _ = S.solve(vstate.parameters)
 
-    x = S @ vstate.parameters
-
 
 @skipif_mpi
 @pytest.mark.parametrize(
@@ -78,3 +76,49 @@ def test_sr_solve(sr, vstate):
 def test_sr_matmul(sr, vstate):
     S = vstate.quantum_geometric_tensor(sr)
     x = S @ vstate.parameters
+
+
+@onlyif_mpi
+@pytest.mark.parametrize(
+    "sr",
+    [pytest.param(sr, id=name) for name, sr in SR_objects.items()],
+)
+def test_sr_solve_mpi(sr, vstate, _mpi_size, _mpi_rank):
+    S = vstate.quantum_geometric_tensor(sr)
+    x, _ = S.solve(vstate.parameters)
+
+    # other check
+    with one_rank() as o:
+        import mpi4jax
+
+        samples, _ = mpi4jax.allgather(vstate.samples, comm=nk.utils.MPI_jax_comm)
+        assert samples.shape == (_mpi_size, *vstate.samples.shape)
+        vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
+
+        S = vstate.quantum_geometric_tensor(sr)
+        x_all, _ = S.solve(vstate.parameters)
+
+        jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
+
+
+@onlyif_mpi
+@pytest.mark.parametrize(
+    "sr",
+    [pytest.param(sr, id=name) for name, sr in SR_objects.items()],
+)
+def test_sr_matmul_mpi(sr, vstate, _mpi_size, _mpi_rank):
+    S = vstate.quantum_geometric_tensor(sr)
+    x = S @ vstate.parameters
+
+    # other check
+    with one_rank() as o:
+        import mpi4jax
+
+        samples, _ = mpi4jax.allgather(vstate.samples, comm=nk.utils.MPI_jax_comm)
+        assert samples.shape == (_mpi_size, *vstate.samples.shape)
+        vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
+
+        S = vstate.quantum_geometric_tensor(sr)
+        x_all = S @ vstate.parameters
+
+        jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
