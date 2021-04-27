@@ -5,6 +5,8 @@ import numpy as np
 
 import pytest
 
+pytestmark = pytest.mark.legacy
+
 
 def test_sr_no_segfault():
     """

@@ -5,6 +5,10 @@ comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
+import pytest
+
+pytestmark = pytest.mark.legacy
+
 
 @pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
 def test_is_running_with_multiple_procs():

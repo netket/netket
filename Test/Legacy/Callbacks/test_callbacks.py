@@ -1,6 +1,10 @@
 import netket.legacy as nk
 import time
 
+import pytest
+
+pytestmark = pytest.mark.legacy
+
 SEED = 3141592
 L = 8
 

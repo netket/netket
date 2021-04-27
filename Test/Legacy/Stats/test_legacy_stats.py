@@ -8,6 +8,8 @@ from netket.stats import statistics
 from scipy.optimize import curve_fit
 from numba import jit
 
+pytestmark = pytest.mark.legacy
+
 
 def _setup():
     g = nk.graph.Hypercube(3, 2)

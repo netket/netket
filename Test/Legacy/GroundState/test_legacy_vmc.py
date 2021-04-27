@@ -9,6 +9,10 @@ from contextlib import redirect_stderr
 import tempfile
 import re
 
+import pytest
+
+pytestmark = pytest.mark.legacy
+
 SEED = 214748364
 nk.random.seed(SEED)
 

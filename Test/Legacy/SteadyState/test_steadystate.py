@@ -1,9 +1,13 @@
+import pytest
+
 import json
 from pytest import approx
 import netket.legacy as nk
 import numpy as np
 import shutil
 import tempfile
+
+pytestmark = pytest.mark.legacy
 
 SEED = 3141592
 L = 4

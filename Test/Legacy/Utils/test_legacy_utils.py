@@ -13,6 +13,9 @@
 # limitations under the License.
 
 from netket.legacy.vmc_common import tree_map
+import pytest
+
+pytestmark = pytest.mark.legacy
 
 
 def test_tree_map():

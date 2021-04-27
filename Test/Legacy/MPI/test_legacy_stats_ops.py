@@ -4,6 +4,10 @@ import numpy as np
 from mpi4py import MPI
 import pytest
 
+import pytest
+
+pytestmark = pytest.mark.legacy
+
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()

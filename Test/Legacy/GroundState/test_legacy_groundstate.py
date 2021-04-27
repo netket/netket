@@ -5,6 +5,10 @@ import numpy as np
 import shutil
 import tempfile
 
+import pytest
+
+pytestmark = pytest.mark.legacy
+
 
 SEED = 3141592
 

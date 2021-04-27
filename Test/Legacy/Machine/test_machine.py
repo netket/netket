@@ -6,6 +6,10 @@ from pytest import approx
 import os
 from netket.hilbert import Spin
 
+import pytest
+
+pytestmark = pytest.mark.legacy
+
 test_jax = nk.utils.jax_available
 try:
     import torch
