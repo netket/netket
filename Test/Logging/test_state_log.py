@@ -12,6 +12,10 @@ import glob
 
 import netket as nk
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 
 @pytest.fixture()
 def vstate(request):

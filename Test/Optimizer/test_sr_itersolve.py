@@ -8,9 +8,14 @@ from jax.scipy.sparse.linalg import cg
 from netket.optimizer.sr import _sr_onthefly_logic
 from functools import partial
 import itertools
+from numpy import testing
+
+import jax
 
 from netket.optimizer import sr
 import netket as nk
+
+from ..common import skipif_mpi, onlyif_mpi, one_rank
 
 SR_objects = {}
 
@@ -27,6 +32,7 @@ SR_objects["GMRES(solve_method=incremental)"] = sr.SRLazyGMRES(
 dtypes = {"float": float, "complex": complex}
 
 
+@skipif_mpi
 @pytest.fixture(params=[pytest.param(dtype, id=name) for name, dtype in dtypes.items()])
 def vstate(request):
     N = 8
@@ -42,12 +48,17 @@ def vstate(request):
         visible_bias_init=nk.nn.initializers.normal(),
     )
 
-    return nk.variational.MCState(
+    vstate = nk.variational.MCState(
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
 
+    vstate.sample()
 
+    return vstate
+
+
+@skipif_mpi
 @pytest.mark.parametrize(
     "sr",
     [pytest.param(sr, id=name) for name, sr in SR_objects.items()],
@@ -55,3 +66,15 @@ def vstate(request):
 def test_sr_solve(sr, vstate):
     S = vstate.quantum_geometric_tensor(sr)
     x, _ = S.solve(vstate.parameters)
+
+    x = S @ vstate.parameters
+
+
+@skipif_mpi
+@pytest.mark.parametrize(
+    "sr",
+    [pytest.param(sr, id=name) for name, sr in SR_objects.items()],
+)
+def test_sr_matmul(sr, vstate):
+    S = vstate.quantum_geometric_tensor(sr)
+    x = S @ vstate.parameters

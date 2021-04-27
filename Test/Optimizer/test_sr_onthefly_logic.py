@@ -11,6 +11,11 @@ from netket.optimizer.sr import _sr_onthefly_logic
 from functools import partial
 import itertools
 
+import pytest
+
+from .. import common
+
+pytestmark = common.skipif_mpi
 
 # TODO move the transformation and tree utils out of the test
 

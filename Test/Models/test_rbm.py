@@ -16,7 +16,7 @@ import netket as nk
 import numpy as np
 import jax.numpy as jnp
 
-from test_nn import _setup_symm
+from .test_nn import _setup_symm
 
 import pytest
 

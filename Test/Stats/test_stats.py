@@ -12,6 +12,11 @@ from netket.stats import statistics
 from scipy.optimize import curve_fit
 from numba import jit
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
+
 WEIGHT_SEED = 3
 
 

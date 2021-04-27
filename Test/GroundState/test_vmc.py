@@ -13,6 +13,10 @@ from contextlib import redirect_stderr
 import tempfile
 import re
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 SEED = 214748364
 
 

@@ -12,14 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.jax import PRNGKey, PRNGSeq
-from netket.utils import HashableArray
-
 import pytest
 import numpy as np
 import jax.numpy as jnp
 
 from numpy.testing import assert_equal
+
+import netket as nk
+from netket.jax import PRNGKey, PRNGSeq
+from netket.utils import HashableArray
+
+from .. import common
+
+pytestmark = common.skipif_mpi
 
 
 def test_PRNGSeq():
