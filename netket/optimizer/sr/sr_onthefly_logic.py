@@ -18,66 +18,13 @@ from functools import partial
 from netket.stats import sum_inplace, subtract_mean
 from netket.utils import n_nodes
 import netket.jax as nkjax
+from netket.jax import tree_conj, tree_dot, tree_cast, tree_axpy
 
 # Stochastic Reconfiguration with jvp and vjp
 
 # Here O (Oks) is the jacobian (derivatives w.r.t. params) of the vectorised (in x) log wavefunction (forward_fn) evaluated at all samples.
 # instead of computing (and storing) the full jacobian matrix jvp and vjp are used to implement the matrix vector multiplications with it.
 # Expectation values are then just the mean over the leading dimension.
-
-
-def tree_conj(t):
-    r"""
-    conjugate all complex leaves
-    The real leaves are left untouched.
-
-    t: pytree
-    """
-    return jax.tree_map(lambda x: jax.lax.conj(x) if jnp.iscomplexobj(x) else x, t)
-
-
-def tree_dot(a, b):
-    r"""
-    compute the dot product of of the flattened arrays of a and b (without actually flattening)
-
-    a, b: pytrees with the same treedef
-    """
-    res = jax.tree_util.tree_reduce(
-        jax.numpy.add,
-        jax.tree_map(jax.numpy.sum, jax.tree_multimap(jax.numpy.multiply, a, b)),
-    )
-    # convert shape from () to (1,)
-    # this is needed for automatic broadcasting to work also when transposed with linear_transpose
-    return jnp.expand_dims(res, 0)
-
-
-def tree_cast(x, target):
-    r"""
-    Cast each leaf of x to the dtype of the corresponding leaf in target.
-    The imaginary part of complex leaves which are cast to real is discarded
-
-    x: a pytree with arrays as leaves
-    target: a pytree with the same treedef as x where only the dtypes of the leaves are accessed
-    """
-    # astype alone would also work, however that raises ComplexWarning when casting complex to real
-    # therefore the real is taken first where needed
-    return jax.tree_multimap(
-        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
-            target.dtype
-        ),
-        x,
-        target,
-    )
-
-
-def tree_axpy(a, x, y):
-    r"""
-    compute a * x + y
-
-    a: scalar
-    x, y: pytrees with the same treedef
-    """
-    return jax.tree_multimap(lambda x_, y_: a * x_ + y_, x, y)
 
 
 def O_jvp(x, params, v, forward_fn):
