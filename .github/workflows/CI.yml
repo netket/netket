@@ -1,4 +1,4 @@
-name: Coverage
+name: CI
 
 on:
   pull_request:
@@ -16,7 +16,17 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: 3.8
+            mpi: ""
+            legacy: true
+
+          - os: ubuntu-latest
+            python-version: 3.8
             mpi: "mpich"
+
+          - os: macos-latest
+            python-version: 3.8
+            mpi: "mpich"
+
           - os: macos-latest
             python-version: 3.8
             mpi: ""
@@ -37,8 +47,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install MPI
+        if: matrix.mpi != ''
         run: |
-          sh ./conf/travis-install-mpi.sh mpich
+          sh ./conf/travis-install-mpi.sh ${{ matrix.mpi }}
 
       - name: Get pip cache dir
         id: pip-cache
@@ -46,27 +57,31 @@ jobs:
           python -m pip install --upgrade pip
           echo "::set-output name=dir::$(pip cache dir)"
 
-      #- name: pip cache
-      #  uses: actions/cache@v2
-      #  with:
-      #    path: ${{ steps.pip-cache.outputs.dir }}
-      #    key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py', '**/pyproject.toml') }}
-      #    restore-keys: |
-      #      ${{ runner.os }}-pip-
-
-      - name: Pip install python dependencies
+      - name: Pip install packages
         run: |
           pip install jaxlib
-          pip install -e ".[dev,mpi]"
+          if [ -z "${{ matrix.mpi }}" ]; then
+            pip install -e ".[dev]"
+          else
+            pip install -e ".[dev, mpi]"
+          fi
 
       - name: MPI tests
+        if: matrix.mpi != '' 
         run: |
-          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 Test/MPI
+          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 Test
 
       - name: Netket tests
+        if: ${{ !matrix.legacy }}
         run : |
           export NETKET_EXPERIMENTAL=1
-          pytest --cov=netket --cov-append
+          pytest --cov=netket --cov-append Test
+
+      - name: Netket Legacy tests
+        if: ${{ matrix.legacy }}
+        run : |
+          export NETKET_EXPERIMENTAL=1
+          pytest --cov=netket --cov-append --legacy-only Test
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1
