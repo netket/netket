@@ -88,7 +88,7 @@ class Example:
     def n_samp(self):
         return len(self.samples)
 
-    def __init__(self, n_samp, seed, outdtype, pardtype):
+    def __init__(self, n_samp, seed, outdtype, pardtype, holomorphic):
 
         self.dtype = outdtype
 
@@ -114,16 +114,31 @@ class Example:
         self.v = tree_random_normal_like(k4, self.target)
         self.grad = tree_random_normal_like(k5, self.target)
 
-        @partial(jax.vmap, in_axes=(None, 0))
-        def f(params, x):
-            return (
-                params["a"][0][0][0] * x[0]
-                + params["b"] * x[1]
-                + params["c"] * (x[0] * x[1])
-                + jnp.sin(x[1] * params["a"][0][1][0])
-                * jnp.cos(x[0] * params["b"] + 1j)
-                * params["c"]
-            ).astype(self.dtype)
+        if holomorphic:
+
+            @partial(jax.vmap, in_axes=(None, 0))
+            def f(params, x):
+                return (
+                    params["a"][0][0][0] * x[0]
+                    + params["b"] * x[1]
+                    + params["c"] * (x[0] * x[1])
+                    + jnp.sin(x[1] * params["a"][0][1][0])
+                    * jnp.cos(x[0] * params["b"] + 1j)
+                    * params["c"]
+                ).astype(self.dtype)
+
+        else:
+
+            @partial(jax.vmap, in_axes=(None, 0))
+            def f(params, x):
+                return (
+                    params["a"][0][0][0].conjugate() * x[0]
+                    + params["b"] * x[1]
+                    + params["c"] * (x[0] * x[1])
+                    + jnp.sin(x[1] * params["a"][0][1][0])
+                    * jnp.cos(x[0] * params["b"].conjugate() + 1j)
+                    * params["c"].conjugate()
+                ).astype(self.dtype)
 
         self.f = f
 
@@ -139,8 +154,8 @@ class Example:
 
 
 @pytest.fixture
-def e(n_samp, outdtype, pardtype, seed=123):
-    return Example(n_samp, seed, outdtype, pardtype)
+def e(n_samp, outdtype, pardtype, holomorphic, seed=123):
+    return Example(n_samp, seed, outdtype, pardtype, holomorphic)
 
 
 rt = [jnp.float32, jnp.float64]
@@ -156,6 +171,7 @@ test_types = r_r_test_types + c_c_test_types + r_c_test_types + rc_c_test_types
 # tests
 
 
+@pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [0])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_reassemble_complex(e):
@@ -164,6 +180,7 @@ def test_reassemble_complex(e):
     )
 
 
+@pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_vjp(e):
@@ -176,6 +193,7 @@ def test_vjp(e):
     assert tree_allclose(actual, expected)
 
 
+@pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize(
     "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
@@ -188,6 +206,7 @@ def test_mean(e):
     assert tree_allclose(actual, expected)
 
 
+@pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_OH_w(e):
@@ -199,6 +218,7 @@ def test_OH_w(e):
     assert tree_allclose(actual, expected)
 
 
+@pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_jvp(e):
@@ -207,6 +227,7 @@ def test_jvp(e):
     assert tree_allclose(actual, expected)
 
 
+@pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_Odagger_O_v(e):
@@ -218,6 +239,7 @@ def test_Odagger_O_v(e):
     assert tree_allclose(actual, expected)
 
 
+@pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_Odagger_DeltaO_v(e):
@@ -226,6 +248,7 @@ def test_Odagger_DeltaO_v(e):
     assert tree_allclose(actual, expected)
 
 
+@pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_DeltaOdagger_DeltaO_v(e):
@@ -234,6 +257,7 @@ def test_DeltaOdagger_DeltaO_v(e):
     assert tree_allclose(actual, expected)
 
 
+@pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("centered", [True, False])
 @pytest.mark.parametrize("jit", [True, False])
@@ -250,6 +274,7 @@ def test_matvec(e, centered, jit):
     assert tree_allclose(actual, expected)
 
 
+@pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("centered", [True, False])
 @pytest.mark.parametrize("jit", [True, False])
