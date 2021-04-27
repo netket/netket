@@ -1,0 +1,46 @@
+﻿netket.models.RBMModPhase
+=========================
+
+.. currentmodule:: netket.models
+
+.. autoclass:: RBMModPhase
+   :show-inheritance:
+
+   .. automethod:: RBMModPhase.__init__
+
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Attributes
+      .. autoattribute:: RBMModPhase.alpha
+      .. autoattribute:: RBMModPhase.name
+      .. autoattribute:: RBMModPhase.parent
+      .. autoattribute:: RBMModPhase.precision
+      .. autoattribute:: RBMModPhase.scope
+      .. autoattribute:: RBMModPhase.use_hidden_bias
+      .. autoattribute:: RBMModPhase.variables
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: RBMModPhase.__call__
+      .. automethod:: RBMModPhase.activation
+      .. automethod:: RBMModPhase.apply
+      .. automethod:: RBMModPhase.bind
+      .. automethod:: RBMModPhase.clone
+      .. automethod:: RBMModPhase.get_variable
+      .. automethod:: RBMModPhase.has_variable
+      .. automethod:: RBMModPhase.hidden_bias_init
+      .. automethod:: RBMModPhase.init
+      .. automethod:: RBMModPhase.init_with_output
+      .. automethod:: RBMModPhase.is_mutable_collection
+      .. automethod:: RBMModPhase.kernel_init
+      .. automethod:: RBMModPhase.make_rng
+      .. automethod:: RBMModPhase.param
+      .. automethod:: RBMModPhase.setup
+      .. automethod:: RBMModPhase.sow
+      .. automethod:: RBMModPhase.variable
+
+   
