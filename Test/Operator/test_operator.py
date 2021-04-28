@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 
 import pytest
+import jax
 
 operators = {}
 
@@ -72,6 +73,12 @@ operators["Pauli Hamiltonian"] = nk.operator.PauliStrings(
 )
 
 
+op_special = {}
+for name, op in operators.items():
+    if hasattr(op, "to_local_operator"):
+        op_special[name] = op
+
+
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
@@ -128,6 +135,31 @@ def test_is_hermitean(op):
 )
 def test_repr(op):
     assert type(op).__name__ in repr(op)
+
+
+@pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in operators.items()]
+)
+def test_get_conn_numpy_closure(op):
+    hi = op.hilbert
+    closure = op._get_conn_flattened_closure()
+    v = hi.random_state(jax.random.PRNGKey(0), 120)
+    conn = np.empty(v.shape[0], dtype=np.intp)
+    conn2 = np.empty(v.shape[0], dtype=np.intp)
+
+    vp, mels = closure(v, conn)
+    vp2, mels2 = op.get_conn_flattened(v, conn, pad=False)
+
+    np.testing.assert_approx_equal(vp, vp2)
+    np.testing.assert_approx_equal(mels, mels2)
+
+
+@pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in op_special.items()]
+)
+def test_to_local_operator(op):
+    op_local = op.to_local_operator()
+    # TODO check dense representaiton.
 
 
 def test_no_segfault():
