@@ -145,7 +145,7 @@ def DeltaOdagger_DeltaO_v(forward_fn, params, samples, v, holomorphic=True):
 
 # TODO block the computations (in the same way as done with MPI) if memory consumtion becomes an issue
 def mat_vec(
-    forward_fn, params, samples, v, diag_shift, centered=True, holomorphic=True
+    v, forward_fn, params, samples, diag_shift, centered=True, holomorphic=True
 ):
     r"""
     compute (S + diag_shift) v
