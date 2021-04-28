@@ -194,9 +194,7 @@ def test_vjp(e):
 
 @pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize(
-    "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
-)
+@pytest.mark.parametrize("outdtype, pardtype", r_r_test_types + c_c_test_types)
 def test_mean(e):
     actual = sr_onthefly_logic.O_mean(e.samples, e.params, e.f)
     expected = sr_onthefly_logic.tree_conj(
