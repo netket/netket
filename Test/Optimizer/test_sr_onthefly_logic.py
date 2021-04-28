@@ -251,8 +251,10 @@ def test_Odagger_DeltaO_v(e):
 @pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
-def test_DeltaOdagger_DeltaO_v(e):
-    actual = _sr_onthefly_logic.DeltaOdagger_DeltaO_v(e.samples, e.params, e.v, e.f)
+def test_DeltaOdagger_DeltaO_v(e, holomorphic):
+    actual = _sr_onthefly_logic.DeltaOdagger_DeltaO_v(
+        e.samples, e.params, e.v, e.f, holomorphic
+    )
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
     assert tree_allclose(actual, expected)
 
@@ -262,12 +264,12 @@ def test_DeltaOdagger_DeltaO_v(e):
 @pytest.mark.parametrize("centered", [True, False])
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
-def test_matvec(e, centered, jit):
+def test_matvec(e, centered, jit, holomorphic):
     diag_shift = 0.01
     mv = _sr_onthefly_logic.mat_vec
     if jit:
-        mv = jax.jit(mv, static_argnums=(1, 5))
-    actual = mv(e.v, e.f, e.params, e.samples, diag_shift, centered)
+        mv = jax.jit(mv, static_argnums=(1, 5, 6))
+    actual = mv(e.v, e.f, e.params, e.samples, diag_shift, centered, holomorphic)
     expected = reassemble_complex(
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
     )
