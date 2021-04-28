@@ -56,7 +56,7 @@ def O_mean(forward_fn, params, samples, holomorphic=True):
 
     # determine the output type of the forward pass
     dtype = jax.eval_shape(forward_fn, params, samples).dtype
-    w = jnp.array([1.0 / (samples.shape[0] * n_nodes)], dtype=dtype)
+    w = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
 
     homogeneous = nkjax.tree_ishomogeneous(params)
     real_params = not nkjax.tree_leaf_iscomplex(params)
