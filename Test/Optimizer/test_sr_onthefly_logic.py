@@ -183,7 +183,7 @@ def test_reassemble_complex(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_vjp(e):
-    actual = sr_onthefly_logic.O_vjp(e.samples, e.params, e.w, e.f)
+    actual = sr_onthefly_logic.O_vjp(e.f, e.params, e.samples, e.w)
     expected = sr_onthefly_logic.tree_conj(
         reassemble_complex(
             (e.w @ e.ok_real).real.astype(e.params_real_flat.dtype), target=e.target
@@ -196,7 +196,7 @@ def test_vjp(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", r_r_test_types + c_c_test_types)
 def test_mean(e):
-    actual = sr_onthefly_logic.O_mean(e.samples, e.params, e.f)
+    actual = sr_onthefly_logic.O_mean(e.f, e.params, e.samples)
     expected = sr_onthefly_logic.tree_conj(
         reassemble_complex(e.okmean_real.real, target=e.target)
     )
@@ -207,7 +207,12 @@ def test_mean(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_OH_w(e):
-    actual = sr_onthefly_logic.OH_w(e.samples, e.params, e.w, e.f)
+    actual = sr_onthefly_logic.OH_w(
+        e.f,
+        e.params,
+        e.samples,
+        e.w,
+    )
     expected = reassemble_complex(
         (e.ok_real.conjugate().transpose() @ e.w).real.astype(e.params_real_flat.dtype),
         target=e.target,
@@ -219,7 +224,7 @@ def test_OH_w(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_jvp(e):
-    actual = sr_onthefly_logic.O_jvp(e.samples, e.params, e.v, e.f)
+    actual = sr_onthefly_logic.O_jvp(e.f, e.params, e.samples, e.v)
     expected = e.ok_real @ e.v_real_flat
     assert tree_allclose(actual, expected)
 
@@ -228,7 +233,7 @@ def test_jvp(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_Odagger_O_v(e):
-    actual = sr_onthefly_logic.Odagger_O_v(e.samples, e.params, e.v, e.f)
+    actual = sr_onthefly_logic.Odagger_O_v(e.f, e.params, e.samples, e.v)
     expected = reassemble_complex(
         (e.ok_real.conjugate().transpose() @ e.ok_real @ e.v_real_flat).real / e.n_samp,
         target=e.target,
@@ -240,7 +245,7 @@ def test_Odagger_O_v(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_Odagger_DeltaO_v(e):
-    actual = sr_onthefly_logic.Odagger_DeltaO_v(e.samples, e.params, e.v, e.f)
+    actual = sr_onthefly_logic.Odagger_DeltaO_v(e.f, e.params, e.samples, e.v)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
     assert tree_allclose(actual, expected)
 
@@ -250,7 +255,7 @@ def test_Odagger_DeltaO_v(e):
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_DeltaOdagger_DeltaO_v(e, holomorphic):
     actual = sr_onthefly_logic.DeltaOdagger_DeltaO_v(
-        e.samples, e.params, e.v, e.f, holomorphic
+        e.f, e.params, e.samples, e.v, holomorphic
     )
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
     assert tree_allclose(actual, expected)
@@ -265,8 +270,8 @@ def test_matvec(e, centered, jit, holomorphic):
     diag_shift = 0.01
     mv = sr_onthefly_logic.mat_vec
     if jit:
-        mv = jax.jit(mv, static_argnums=(1, 5, 6))
-    actual = mv(e.v, e.f, e.params, e.samples, diag_shift, centered, holomorphic)
+        mv = jax.jit(mv, static_argnums=(0, 5, 6))
+    actual = mv(e.f, e.params, e.samples, e.v, diag_shift, centered, holomorphic)
     expected = reassemble_complex(
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
     )
@@ -279,25 +284,25 @@ def test_matvec(e, centered, jit, holomorphic):
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_matvec_linear_transpose(e, centered, jit):
-    def mvt(v, f, params, samples, centered, w):
+    def mvt(f, params, samples, v, centered, w):
         (res,) = jax.linear_transpose(
-            lambda v_: sr_onthefly_logic.mat_vec(v_, f, params, samples, 0.0, centered),
+            lambda v_: sr_onthefly_logic.mat_vec(f, params, samples, v_, 0.0, centered),
             v,
         )(w)
         return res
 
     if jit:
-        mvt = jax.jit(mvt, static_argnums=(1, 4))
+        mvt = jax.jit(mvt, static_argnums=(0, 4))
 
     w = e.v
-    actual = mvt(e.v, e.f, e.params, e.samples, centered, w)
+    actual = mvt(e.f, e.params, e.samples, e.v, centered, w)
 
     # use that S is hermitian:
     # S^T = (O^H O)^T = O^T O* = (O^H O)* = S*
     # S^T w = S* w = (S w*)*
     expected = sr_onthefly_logic.tree_conj(
         sr_onthefly_logic.mat_vec(
-            sr_onthefly_logic.tree_conj(w), e.f, e.params, e.samples, 0.0, centered
+            e.f, e.params, e.samples, sr_onthefly_logic.tree_conj(w), 0.0, centered
         )
     )
     # (expected,) = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_), target=e.target), v)(v)
