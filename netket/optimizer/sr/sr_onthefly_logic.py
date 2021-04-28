@@ -27,20 +27,20 @@ from netket.jax import tree_conj, tree_dot, tree_cast, tree_axpy
 # Expectation values are then just the mean over the leading dimension.
 
 
-def O_jvp(x, params, v, forward_fn):
+def O_jvp(forward_fn, params, samples, v):
     # TODO apply the transpose of sum_inplace (allreduce) to v here
     # in order to get correct transposition with MPI
-    _, res = jax.jvp(lambda p: forward_fn(p, x), (params,), (v,))
+    _, res = jax.jvp(lambda p: forward_fn(p, samples), (params,), (v,))
     return res
 
 
-def O_vjp(x, params, v, forward_fn):
-    _, vjp_fun = jax.vjp(forward_fn, params, x)
-    res, _ = vjp_fun(v)
+def O_vjp(forward_fn, params, samples, w):
+    _, vjp_fun = jax.vjp(forward_fn, params, samples)
+    res, _ = vjp_fun(w)
     return jax.tree_map(sum_inplace, res)  # allreduce w/ MPI.SUM
 
 
-def O_mean(samples, params, forward_fn, holomorphic=True):
+def O_mean(forward_fn, params, samples, holomorphic=True):
     r"""
     compute \langle O \rangle
     i.e. the mean of the rows of the jacobian of forward_fn
@@ -61,7 +61,7 @@ def O_mean(samples, params, forward_fn, holomorphic=True):
             return jax.tree_map(sum_inplace, res)
         else:
             # R->R and holomorphic C->C
-            return O_vjp(samples, params, w, forward_fn)
+            return O_vjp(forward_fn, params, samples, w)
     else:
         # R&C -> C
         # non-holomorphic
@@ -69,7 +69,7 @@ def O_mean(samples, params, forward_fn, holomorphic=True):
         assert False
 
 
-def OH_w(samples, params, w, forward_fn):
+def OH_w(forward_fn, params, samples, w):
     r"""
     compute  O^H w
     (where ^H is the hermitian transpose)
@@ -81,12 +81,12 @@ def OH_w(samples, params, w, forward_fn):
 
     # TODO The allreduce in O_vjp could be deferred until after the tree_cast
     # where the amount of data to be transferred would potentially be smaller
-    res = tree_conj(O_vjp(samples, params, w.conjugate(), forward_fn))
+    res = tree_conj(O_vjp(forward_fn, params, samples, w.conjugate()))
 
     return tree_cast(res, params)
 
 
-def Odagger_O_v(samples, params, v, forward_fn, *, center=False):
+def Odagger_O_v(forward_fn, params, samples, v, *, center=False):
     r"""
     if center=False (default):
         compute \langle O^\dagger O \rangle v
@@ -97,20 +97,20 @@ def Odagger_O_v(samples, params, v, forward_fn, *, center=False):
     """
 
     # w is an array of size n_samples; each MPI rank has its own slice
-    w = O_jvp(samples, params, v, forward_fn)
+    w = O_jvp(forward_fn, params, samples, v)
     # w /= n_samples (elementwise):
     w = w * (1.0 / (samples.shape[0] * n_nodes))
 
     if center:
         w = subtract_mean(w)  # w/ MPI
 
-    return OH_w(samples, params, w, forward_fn)
+    return OH_w(forward_fn, params, samples, w)
 
 
 Odagger_DeltaO_v = partial(Odagger_O_v, center=True)
 
 
-def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, holomorphic=True):
+def DeltaOdagger_DeltaO_v(forward_fn, params, samples, v, holomorphic=True):
 
     r"""
     compute \langle \Delta O^\dagger \Delta O \rangle v
@@ -131,12 +131,12 @@ def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, holomorphic=True):
         def forward_fn(p, x):
             return _forward_fn(reassemble(p), x)
 
-    omean = O_mean(samples, params, forward_fn, holomorphic=holomorphic)
+    omean = O_mean(forward_fn, params, samples, holomorphic=holomorphic)
 
     def forward_fn_centered(p, x):
         return forward_fn(p, x) - tree_dot(p, omean)
 
-    res = Odagger_O_v(samples, params, v, forward_fn_centered)
+    res = Odagger_O_v(forward_fn_centered, params, samples, v)
 
     if not (homogeneous and (real_params or holomorphic)):
         res = reassemble(res)
@@ -145,7 +145,7 @@ def DeltaOdagger_DeltaO_v(samples, params, v, forward_fn, holomorphic=True):
 
 # TODO block the computations (in the same way as done with MPI) if memory consumtion becomes an issue
 def mat_vec(
-    v, forward_fn, params, samples, diag_shift, centered=True, holomorphic=True
+    forward_fn, params, samples, v, diag_shift, centered=True, holomorphic=True
 ):
     r"""
     compute (S + diag_shift) v
@@ -171,7 +171,7 @@ def mat_vec(
         f = partial(DeltaOdagger_DeltaO_v, holomorphic=holomorphic)
     else:
         f = Odagger_DeltaO_v
-    res = f(samples, params, v, forward_fn)
+    res = f(forward_fn, params, samples, v)
     # add diagonal shift:
     res = tree_axpy(diag_shift, v, res)  # res += diag_shift * v
     return res
