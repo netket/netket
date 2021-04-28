@@ -270,8 +270,8 @@ def test_matvec(e, centered, jit, holomorphic):
     diag_shift = 0.01
     mv = sr_onthefly_logic.mat_vec
     if jit:
-        mv = jax.jit(mv, static_argnums=(0, 5, 6))
-    actual = mv(e.f, e.params, e.samples, e.v, diag_shift, centered, holomorphic)
+        mv = jax.jit(mv, static_argnums=(1, 5, 6))
+    actual = mv(e.v, e.f, e.params, e.samples, diag_shift, centered, holomorphic)
     expected = reassemble_complex(
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
     )
@@ -284,25 +284,25 @@ def test_matvec(e, centered, jit, holomorphic):
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_matvec_linear_transpose(e, centered, jit):
-    def mvt(f, params, samples, v, centered, w):
+    def mvt(v, f, params, samples, centered, w):
         (res,) = jax.linear_transpose(
-            lambda v_: sr_onthefly_logic.mat_vec(f, params, samples, v_, 0.0, centered),
+            lambda v_: sr_onthefly_logic.mat_vec(v_, f, params, samples, 0.0, centered),
             v,
         )(w)
         return res
 
     if jit:
-        mvt = jax.jit(mvt, static_argnums=(0, 4))
+        mvt = jax.jit(mvt, static_argnums=(1, 4))
 
     w = e.v
-    actual = mvt(e.f, e.params, e.samples, e.v, centered, w)
+    actual = mvt(e.v, e.f, e.params, e.samples, centered, w)
 
     # use that S is hermitian:
     # S^T = (O^H O)^T = O^T O* = (O^H O)* = S*
     # S^T w = S* w = (S w*)*
     expected = sr_onthefly_logic.tree_conj(
         sr_onthefly_logic.mat_vec(
-            e.f, e.params, e.samples, sr_onthefly_logic.tree_conj(w), 0.0, centered
+            sr_onthefly_logic.tree_conj(w), e.f, e.params, e.samples, 0.0, centered
         )
     )
     # (expected,) = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_), target=e.target), v)(v)
