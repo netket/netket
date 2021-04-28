@@ -1,19 +1,14 @@
-from mpi4py import MPI
 import pytest
 
-comm = MPI.COMM_WORLD
-size = comm.Get_size()
-rank = comm.Get_rank()
+from .. import common
 
 
-@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
-def test_is_running_with_multiple_procs():
-    msg = "The Test_MPI tests should be run with more than one MPI process"
-    assert size > 1, msg
+@common.onlyif_mpi
+def test_mpi_setup(_mpi_rank, _mpi_size, _mpi_comm):
+    rank = _mpi_rank
+    size = _mpi_size
+    comm = _mpi_comm
 
-
-@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
-def test_mpi_setup():
     recv = comm.bcast(rank)
     assert recv == 0, "rank={}".format(rank)
 

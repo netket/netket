@@ -12,6 +12,20 @@ def _mpi_rank(request):
     return nk.utils.rank
 
 
+@pytest.fixture
+def _mpi_comm(request):
+    from netket.utils import MPI_py_comm
+
+    return MPI_py_comm
+
+
+@pytest.fixture
+def MPI(request):
+    from mpi4py import MPI
+
+    return MPI
+
+
 def pytest_addoption(parser):
     parser.addoption(
         "--legacy",

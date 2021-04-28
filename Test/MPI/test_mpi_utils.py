@@ -13,21 +13,22 @@
 # limitations under the License.
 
 import jax.numpy as jnp
-from mpi4py import MPI
-import pytest
 
 import netket as nk
 
-size = MPI.COMM_WORLD.size
+from .. import common
 
 
-@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
-def test_key_split():
+@common.onlyif_mpi
+def test_key_split(_mpi_size, _mpi_comm):
+    size = _mpi_size
+    comm = _mpi_comm
+
     key = nk.jax.PRNGKey(1256)
 
-    keys = MPI.COMM_WORLD.allgather(key)
+    keys = comm.allgather(key)
     assert all([jnp.all(k == key) for k in keys])
 
     key = nk.jax.mpi_split(key)
-    keys = MPI.COMM_WORLD.allgather(key)
+    keys = comm.allgather(key)
     assert all([not jnp.all(k == keys) for k in keys])
