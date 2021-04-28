@@ -552,7 +552,7 @@ class BoseHubbard(SpecialHamiltonian):
         # The hamiltonian
         ha = LocalOperator(self.hilbert, dtype=self.dtype)
 
-        if self.h != 0:
+        if self.U != 0 or self.mu != 0:
             for i in range(self.hilbert.size):
                 n_i = boson.number(self.hilbert, i)
                 ha += self.U * n_i * (n_i - 1) - self.mu * n_i
@@ -563,8 +563,8 @@ class BoseHubbard(SpecialHamiltonian):
                     boson.number(self.hilbert, i) * boson.number(self.hilbert, j)
                 )
                 ha -= self.J * (
-                    self.destroy(self.hilbert, i) * self.create(self.hilbert, j)
-                    + self.create(self.hilbert, i) * self.destroy(self.hilbert, j)
+                    boson.destroy(self.hilbert, i) * boson.create(self.hilbert, j)
+                    + boson.create(self.hilbert, i) * boson.destroy(self.hilbert, j)
                 )
 
         return ha
