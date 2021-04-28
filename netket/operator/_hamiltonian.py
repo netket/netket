@@ -661,14 +661,28 @@ class BoseHubbard(SpecialHamiltonian):
     @staticmethod
     @jit(nopython=True)
     def _flattened_kernel(
-        x, sections, edges, mels, x_prime, U, V, J, mu, n_max, max_conn, pad
+        x,
+        sections,
+        edges,
+        U,
+        V,
+        J,
+        mu,
+        n_max,
+        max_conn,
+        mels=None,
+        x_prime=None,
+        pad=False,
     ):
 
         batch_size = x.shape[0]
         n_sites = x.shape[1]
 
-        if mels.size < batch_size * max_conn:
+        # When executed as a closure those must be allocated inside the numba jitted function
+        if mels is None:
             mels = np.empty(batch_size * max_conn, dtype=type(U))
+
+        if x_prime is None:
             x_prime = np.empty((batch_size * max_conn, n_sites), dtype=x.dtype)
 
         if pad:
@@ -742,40 +756,45 @@ class BoseHubbard(SpecialHamiltonian):
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
+
+        # try to cache those temporary buffers with their max size
+        total_size = x.shape[0] * self._n_max
+        if self._max_mels.size < total_size:
+            self._max_mels = np.empty(total_size, dtype=self._max_mels.dtype)
+            self._max_xprime = np.empty((total_size, n_sites), dtype=x.dtype)
+
         return self._flattened_kernel(
             x,
             sections,
             self._edges,
-            self._max_mels,
-            self._max_xprime,
             self._U,
             self._V,
             self._J,
             self._mu,
             self._n_max,
             self._max_conn,
+            self._max_mels,
+            self._max_xprime,
             pad,
         )
 
     def _get_conn_flattened_closure(self):
-        _edges = (self._edges,)
-        _max_mels = (self._max_mels,)
-        _max_xprime = (self._max_xprime,)
-        _U = (self._U,)
-        _V = (self._V,)
-        _J = (self._J,)
-        _mu = (self._mu,)
-        _n_max = (self._n_max,)
-        _max_conn = (self._max_conn,)
+        _edges = self._edges
+        _U = self._U
+        _V = self._V
+        _J = self._J
+        _mu = self._mu
+        _n_max = self._n_max
+        _max_conn = self._max_conn
         fun = self._flattened_kernel
 
+        # do not pass the preallocated self._max_mels andself._max_xprime because they are frozen in a closure
+        # and become read only
         def gccf_fun(x, sections):
             return fun(
                 x,
                 sections,
                 _edges,
-                _max_mels,
-                _max_xprime,
                 _U,
                 _V,
                 _J,
