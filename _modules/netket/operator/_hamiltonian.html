@@ -650,7 +650,7 @@
         <span class="c1"># The hamiltonian</span>
         <span class="n">ha</span> <span class="o">=</span> <span class="n">LocalOperator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">U</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
                 <span class="n">n_i</span> <span class="o">=</span> <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
                 <span class="n">ha</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">U</span> <span class="o">*</span> <span class="n">n_i</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span> <span class="o">*</span> <span class="n">n_i</span>
@@ -661,8 +661,8 @@
                     <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
                 <span class="p">)</span>
                 <span class="n">ha</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J</span> <span class="o">*</span> <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
-                    <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                    <span class="n">boson</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
                 <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">ha</span></div>
@@ -759,14 +759,33 @@
     <span class="nd">@staticmethod</span>
     <span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">_flattened_kernel</span><span class="p">(</span>
-        <span class="n">x</span><span class="p">,</span> <span class="n">sections</span><span class="p">,</span> <span class="n">edges</span><span class="p">,</span> <span class="n">mels</span><span class="p">,</span> <span class="n">x_prime</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">n_max</span><span class="p">,</span> <span class="n">max_conn</span><span class="p">,</span> <span class="n">pad</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">sections</span><span class="p">,</span>
+        <span class="n">edges</span><span class="p">,</span>
+        <span class="n">U</span><span class="p">,</span>
+        <span class="n">V</span><span class="p">,</span>
+        <span class="n">J</span><span class="p">,</span>
+        <span class="n">mu</span><span class="p">,</span>
+        <span class="n">n_max</span><span class="p">,</span>
+        <span class="n">max_conn</span><span class="p">,</span>
+        <span class="n">mels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">x_prime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">n_sites</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">mels</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">max_conn</span><span class="p">:</span>
+        <span class="n">mels_allocated</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">x_prime_allocated</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># When executed as a closure those must be allocated inside the numba jitted function</span>
+        <span class="k">if</span> <span class="n">mels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mels_allocated</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">mels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">max_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">U</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">x_prime</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x_prime_allocated</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="n">x_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">max_conn</span><span class="p">,</span> <span class="n">n_sites</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">pad</span><span class="p">:</span>
@@ -817,7 +836,16 @@
 
             <span class="n">sections</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">odiag_ind</span>
 
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x_prime</span><span class="p">[:</span><span class="n">odiag_ind</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mels</span><span class="p">[:</span><span class="n">odiag_ind</span><span class="p">])</span>
+        <span class="n">x_prime</span> <span class="o">=</span> <span class="n">x_prime</span><span class="p">[:</span><span class="n">odiag_ind</span><span class="p">]</span>
+        <span class="n">mels</span> <span class="o">=</span> <span class="n">mels</span><span class="p">[:</span><span class="n">odiag_ind</span><span class="p">]</span>
+
+        <span class="c1"># if not allocated return copies</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">x_prime_allocated</span><span class="p">:</span>
+            <span class="n">x_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x_prime</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mels_allocated</span><span class="p">:</span>
+            <span class="n">mels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mels</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x_prime</span><span class="p">,</span> <span class="n">mels</span>
 
 <div class="viewcode-block" id="BoseHubbard.get_conn_flattened"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard.get_conn_flattened">[docs]</a>    <span class="k">def</span> <span class="nf">get_conn_flattened</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sections</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Finds the connected elements of the Operator. Starting</span>
@@ -840,40 +868,45 @@
 <span class="sd">            array: An array containing the matrix elements :math:`O(x,x&#39;)` associated to each x&#39;.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># try to cache those temporary buffers with their max size</span>
+        <span class="n">total_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="n">total_size</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">total_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_xprime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">total_size</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flattened_kernel</span><span class="p">(</span>
             <span class="n">x</span><span class="p">,</span>
             <span class="n">sections</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_max_xprime</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_U</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_V</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_J</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_mu</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_n_max</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_xprime</span><span class="p">,</span>
             <span class="n">pad</span><span class="p">,</span>
         <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_get_conn_flattened_closure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">_edges</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_edges</span><span class="p">,)</span>
-        <span class="n">_max_mels</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span><span class="p">,)</span>
-        <span class="n">_max_xprime</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_xprime</span><span class="p">,)</span>
-        <span class="n">_U</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_U</span><span class="p">,)</span>
-        <span class="n">_V</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_V</span><span class="p">,)</span>
-        <span class="n">_J</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_J</span><span class="p">,)</span>
-        <span class="n">_mu</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mu</span><span class="p">,)</span>
-        <span class="n">_n_max</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_max</span><span class="p">,)</span>
-        <span class="n">_max_conn</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span><span class="p">,)</span>
+        <span class="n">_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span>
+        <span class="n">_U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U</span>
+        <span class="n">_V</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_V</span>
+        <span class="n">_J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_J</span>
+        <span class="n">_mu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mu</span>
+        <span class="n">_n_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_max</span>
+        <span class="n">_max_conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span>
         <span class="n">fun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flattened_kernel</span>
 
+        <span class="c1"># do not pass the preallocated self._max_mels andself._max_xprime because they are frozen in a closure</span>
+        <span class="c1"># and become read only</span>
         <span class="k">def</span> <span class="nf">gccf_fun</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sections</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">fun</span><span class="p">(</span>
                 <span class="n">x</span><span class="p">,</span>
                 <span class="n">sections</span><span class="p">,</span>
                 <span class="n">_edges</span><span class="p">,</span>
-                <span class="n">_max_mels</span><span class="p">,</span>
-                <span class="n">_max_xprime</span><span class="p">,</span>
                 <span class="n">_U</span><span class="p">,</span>
                 <span class="n">_V</span><span class="p">,</span>
                 <span class="n">_J</span><span class="p">,</span>
