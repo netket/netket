@@ -57,7 +57,8 @@ def O_mean(samples, params, forward_fn, holomorphic=True):
     if homogeneous and (real_params or holomorphic):
         if real_params and not real_out:
             # R->C
-            return nkjax.vjp(forward_fn, params, samples)[1](w)[0]
+            res = nkjax.vjp(forward_fn, params, samples)[1](w)[0]
+            return jax.tree_map(sum_inplace, res)
         else:
             # R->R and holomorphic C->C
             return O_vjp(samples, params, w, forward_fn)
