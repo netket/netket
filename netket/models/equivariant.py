@@ -103,8 +103,7 @@ class GCNN(nn.Module):
                 raise ValueError(
                     """Length of vector specifying feature dimensions must be the same as the number of layers"""
                 )
-            else:
-                feature_dim = tuple(self.features)
+            feature_dim = self.features
 
         self.dense_symm = nknn.DenseSymm(
             symmetries=self.symmetries,
@@ -139,6 +138,7 @@ class GCNN(nn.Module):
 
         if not self.output_activation == None:
             x = self.output_activation(x)
-        x = jnp.sum(x, axis=-1)
+        # variance scaling for output layer
+        x = jnp.sum(x, axis=-1) / np.sqrt(x.shape[-1])
 
         return x
