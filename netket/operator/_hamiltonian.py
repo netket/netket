@@ -678,11 +678,16 @@ class BoseHubbard(SpecialHamiltonian):
         batch_size = x.shape[0]
         n_sites = x.shape[1]
 
+        mels_allocated = False
+        x_prime_allocated = False
+
         # When executed as a closure those must be allocated inside the numba jitted function
         if mels is None:
+            mels_allocated = True
             mels = np.empty(batch_size * max_conn, dtype=type(U))
 
         if x_prime is None:
+            x_prime_allocated = True
             x_prime = np.empty((batch_size * max_conn, n_sites), dtype=x.dtype)
 
         if pad:
@@ -733,7 +738,16 @@ class BoseHubbard(SpecialHamiltonian):
 
             sections[b] = odiag_ind
 
-        return np.copy(x_prime[:odiag_ind]), np.copy(mels[:odiag_ind])
+        x_prime = x_prime[:odiag_ind]
+        mels = mels[:odiag_ind]
+
+        # if not allocated return copies
+        if not x_prime_allocated:
+            x_prime = np.copy(x_prime)
+        if not mels_allocated:
+            mels = np.copy(mels)
+
+        return x_prime, mels
 
     def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
