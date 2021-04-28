@@ -1,0 +1,41 @@
+﻿netket.models.Jastrow
+=====================
+
+.. currentmodule:: netket.models
+
+.. autoclass:: Jastrow
+   :show-inheritance:
+
+   .. automethod:: Jastrow.__init__
+
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Attributes
+      .. autoattribute:: Jastrow.name
+      .. autoattribute:: Jastrow.parent
+      .. autoattribute:: Jastrow.scope
+      .. autoattribute:: Jastrow.variables
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: Jastrow.__call__
+      .. automethod:: Jastrow.apply
+      .. automethod:: Jastrow.bind
+      .. automethod:: Jastrow.clone
+      .. automethod:: Jastrow.get_variable
+      .. automethod:: Jastrow.has_variable
+      .. automethod:: Jastrow.init
+      .. automethod:: Jastrow.init_with_output
+      .. automethod:: Jastrow.is_mutable_collection
+      .. automethod:: Jastrow.kernel_init
+      .. automethod:: Jastrow.make_rng
+      .. automethod:: Jastrow.param
+      .. automethod:: Jastrow.setup
+      .. automethod:: Jastrow.sow
+      .. automethod:: Jastrow.variable
+
+   
