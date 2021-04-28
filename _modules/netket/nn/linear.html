@@ -417,9 +417,10 @@
 
 
 <div class="viewcode-block" id="DenseEquivariant"><a class="viewcode-back" href="../../../docs/_generated/nn/netket.nn.DenseEquivariant.html#netket.nn.DenseEquivariant">[docs]</a><span class="k">class</span> <span class="nc">DenseEquivariant</span><span class="p">(</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Implements a G-convolution that acts on a feature map of symmetry</span>
-<span class="sd">    poses of shape [batch_size,n_symm*in_features] and returns a feature</span>
-<span class="sd">    map of poses of shape [batch_size,n_symm*out_features]</span>
+    <span class="sd">&quot;&quot;&quot;A group convolution operation that is equivariant over a symmetry group</span>
+
+<span class="sd">    Acts on a feature map of symmetry poses of shape [batch_size,n_symm*in_features]</span>
+<span class="sd">    and returns a feature  map of poses of shape [batch_size,n_symm*out_features]</span>
 
 <span class="sd">    G-convolutions are described in ` Cohen et. {\it al} &lt;http://proceedings.mlr.press/v48/cohenc16.pdf&gt;`_</span>
 <span class="sd">    and applied to quantum many-body problems in ` Roth et. {\it al} &lt;https://arxiv.org/pdf/2104.05085.pdf&gt;`_</span>
@@ -509,7 +510,7 @@
         <span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">(</span>
             <span class="s2">&quot;kernel&quot;</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">kernel_init</span><span class="p">,</span>
-            <span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_features</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_features</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_kernel</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>

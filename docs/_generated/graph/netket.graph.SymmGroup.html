@@ -392,19 +392,12 @@ same as <code class="code docutils literal notranslate"><span class="pre">self.t
 <dl class="py method">
 <dt id="netket.graph.SymmGroup.inverse">
 <code class="sig-name descname"><span class="pre">inverse</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/graph/symmetry.html#SymmGroup.inverse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.graph.SymmGroup.inverse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns reordered SymmGroup where the each element is the inverse of
-the original symmetry element. If <code class="code docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">self[element]</span></code> and <code class="code docutils literal notranslate"><span class="pre">h</span> <span class="pre">=</span> <span class="pre">self[self.inverse()[element]]</span></code>,
-then <code class="code docutils literal notranslate"><span class="pre">gh</span> <span class="pre">=</span> <span class="pre">product(g,</span> <span class="pre">h)</span></code> will act as the identity on the sites of the graph, i.e., <code class="code docutils literal notranslate"><span class="pre">np.all(gh(sites)</span> <span class="pre">==</span> <span class="pre">sites)</span></code>.</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="netket.graph.SymmGroup.product_table">
 <code class="sig-name descname"><span class="pre">product_table</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/graph/symmetry.html#SymmGroup.product_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.graph.SymmGroup.product_table" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a product table over the group where the columns use the involution
-of the group. If <code class="code docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">self[self.inverse()[element]]',</span> <span class="pre">:code:`h</span> <span class="pre">=</span> <span class="pre">self[element2]</span></code>
-and code:<a href="#id1"><span class="problematic" id="id2">`</span></a>u = self[product_table()[element,element2]], we are
-solving the equation u = gh</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="netket.graph.SymmGroup.remove_duplicates">

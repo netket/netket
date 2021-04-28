@@ -355,9 +355,9 @@
 <dt id="netket.nn.DenseEquivariant">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">netket.nn.</span></code><code class="sig-name descname"><span class="pre">DenseEquivariant</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">symmetry_info</span></em>, <em class="sig-param"><span class="pre">in_features</span></em>, <em class="sig-param"><span class="pre">out_features</span></em>, <em class="sig-param"><span class="pre">use_bias=True</span></em>, <em class="sig-param"><span class="pre">dtype=&lt;class</span> <span class="pre">'jax._src.numpy.lax_numpy.float64'&gt;</span></em>, <em class="sig-param"><span class="pre">precision=None</span></em>, <em class="sig-param"><span class="pre">kernel_init=&lt;function</span> <span class="pre">normal.&lt;locals&gt;.init&gt;</span></em>, <em class="sig-param"><span class="pre">bias_init=&lt;function</span> <span class="pre">zeros&gt;</span></em>, <em class="sig-param"><span class="pre">parent=&lt;flax.linen.module._Sentinel</span> <span class="pre">object&gt;</span></em>, <em class="sig-param"><span class="pre">name=None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/nn/linear.html#DenseEquivariant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.nn.DenseEquivariant" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">flax.linen.module.Module</span></code></p>
-<p>Implements a G-convolution that acts on a feature map of symmetry
-poses of shape [batch_size,n_symm*in_features] and returns a feature
-map of poses of shape [batch_size,n_symm*out_features]</p>
+<p>A group convolution operation that is equivariant over a symmetry group</p>
+<p>Acts on a feature map of symmetry poses of shape [batch_size,n_symm*in_features]
+and returns a feature  map of poses of shape [batch_size,n_symm*out_features]</p>
 <p>G-convolutions are described in ` Cohen et. {it al} &lt;<a class="reference external" href="http://proceedings.mlr.press/v48/cohenc16.pdf">http://proceedings.mlr.press/v48/cohenc16.pdf</a>&gt;`_
 and applied to quantum many-body problems in ` Roth et. {it al} &lt;<a class="reference external" href="https://arxiv.org/pdf/2104.05085.pdf">https://arxiv.org/pdf/2104.05085.pdf</a>&gt;`_</p>
 <p>The G-convolution generalizes the convolution to non-commuting groups:</p>
