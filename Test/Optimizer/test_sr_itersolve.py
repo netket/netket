@@ -24,6 +24,16 @@ SR_objects["GMRES(solve_method=incremental)"] = sr.SRLazyGMRES(
     solve_method="incremental"
 )
 
+SR_objects["JCG()"] = sr.SRJacobianCG()
+SR_objects["JCG(centered=True)"] = sr.SRJacobianCG(centered=True)
+SR_objects["JCG(maxiter=3)"] = sr.SRJacobianCG(maxiter=3)
+
+SR_objects["JGMRES()"] = sr.SRJacobianGMRES()
+SR_objects["JGMRES(restart=5)"] = sr.SRJacobianGMRES(restart=5)
+SR_objects["JGMRES(solve_method=incremental)"] = sr.SRJacobianGMRES(
+    solve_method="incremental"
+)
+
 dtypes = {"float": float, "complex": complex}
 
 
