@@ -48,7 +48,7 @@ def SR(
         method: (cg, gmres) The specific method.
         iterative: Whever to use an iterative method or not.
         jacobian: Differentiation mode to precompute gradients
-                  can be "holomorphic", "R2R", "R2C", 
+                  can be "holomorphic", "R2R", "R2C",
                          None (if they shouldn't be precomputed)
         rescale_shift: Whether to rescale the diagonal offsets in SR according
                        to diagonal entries (only with precomputed gradients)

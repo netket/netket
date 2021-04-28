@@ -72,11 +72,17 @@ class SRJacobian(SR):
     """Whether scale-invariant regularisation should be used"""
 
     def __post_init__(self):
-        if self.mode not in {'R2R','R2C','holomorphic'}:
-            raise NotImplementedError('Differentiation mode must be one of "R2R", "R2C", "holomorphic", got "{}"'.format(self.mode))
+        if self.mode not in {"R2R", "R2C", "holomorphic"}:
+            raise NotImplementedError(
+                'Differentiation mode must be one of "R2R", "R2C", "holomorphic", got "{}"'.format(
+                    self.mode
+                )
+            )
 
     def create(self, *args, **kwargs):
-        O, scale = gradients(apply_fun, params, samples, model_state, self.mode, self.rescale_shift)
+        O, scale = gradients(
+            apply_fun, params, samples, model_state, self.mode, self.rescale_shift
+        )
         return JacobianSMatrix(sr=sr, x0=x0, O=O, scale=scale)
 
 
@@ -140,4 +146,3 @@ class SRJacobianGMRES(SRJacobian):
             restart=self.restart,
             solve_method=self.solve_method,
         )
-

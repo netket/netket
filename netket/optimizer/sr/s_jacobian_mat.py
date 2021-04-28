@@ -32,7 +32,7 @@ class JacobianSMatrix(AbstractSMatrix):
     """
     Semi-lazy representation of an S Matrix behaving like a linear operator.
 
-    The matrix of gradients O is computed on initialisation, but not S, 
+    The matrix of gradients O is computed on initialisation, but not S,
     which can be computed by calling :code:`to_dense`.
     The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
     the field `sr`.
@@ -64,8 +64,10 @@ class JacobianSMatrix(AbstractSMatrix):
         if self.scale is not None:
             vec = vec * self.scale
 
-        result = sum_inplace(((self.O @ vec).T.conj() @ self.O).T.conj()) +\
-                 self.sr.diag_shift * vec
+        result = (
+            sum_inplace(((self.O @ vec).T.conj() @ self.O).T.conj())
+            + self.sr.diag_shift * vec
+        )
 
         if self.scale is not None:
             result = result * self.scale
@@ -77,8 +79,10 @@ class JacobianSMatrix(AbstractSMatrix):
 
     @jax.jit
     def _unscaled_matmul(self, vec: jnp.ndarray) -> jnp.ndarray:
-        return sum_inplace(((self.O @ vec).T.conj() @ self.O).T.conj()) +\
-            self.sr.diag_shift * vec
+        return (
+            sum_inplace(((self.O @ vec).T.conj() @ self.O).T.conj())
+            + self.sr.diag_shift * vec
+        )
 
     @jax.jit
     def solve(self, y: PyTree, x0: Optional[PyTree] = None) -> PyTree:
@@ -97,7 +101,7 @@ class JacobianSMatrix(AbstractSMatrix):
 
         # Ravel input PyTrees, record unravelling function too
         grad, unravel = nkjax.tree_ravel(grad)
-        
+
         if x0 is None:
             x0 = self.x0
         if x0 is not None:
@@ -128,10 +132,11 @@ class JacobianSMatrix(AbstractSMatrix):
             O = self.O
             diag = jnp.eye(self.O.shape[1])
         else:
-            O = self.O * self.scale[jnp.newaxis,:]
-            diag = jnp.diag(self.scale**2)
-            
+            O = self.O * self.scale[jnp.newaxis, :]
+            diag = jnp.diag(self.scale ** 2)
+
         return sum_inplace(O.T.conj() @ O) + self.sr.diag_shift * diag
+
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
 def gradients(
@@ -170,7 +175,9 @@ def gradients(
 
         def fun(W, σ):
             return (
-                apply_fun({"params": unravel(W), **model_state}, σ[jnp.newaxis, :])[0].real
+                apply_fun({"params": unravel(W), **model_state}, σ[jnp.newaxis, :])[
+                    0
+                ].real
                 / n_samples ** 0.5
             )
 
@@ -179,13 +186,17 @@ def gradients(
 
         def fun1(W, σ):
             return (
-                apply_fun({"params": unravel(W), **model_state}, σ[jnp.newaxis, :])[0].real
+                apply_fun({"params": unravel(W), **model_state}, σ[jnp.newaxis, :])[
+                    0
+                ].real
                 / n_samples ** 0.5
             )
 
         def fun2(W, σ):
             return (
-                apply_fun({"params": unravel(W), **model_state}, σ[jnp.newaxis, :])[0].imag
+                apply_fun({"params": unravel(W), **model_state}, σ[jnp.newaxis, :])[
+                    0
+                ].imag
                 / n_samples ** 0.5
             )
 
@@ -199,24 +210,32 @@ def gradients(
             axis=0,
         )
     else:
-        raise Exception(
-            "Differentation mode must be holomorphic, R2R or R2C, got {}".format(mode)
+        raise NotImplementedError(
+            'Differentation mode must be one of "R2R", "R2C", "holomorphic", got "{}"'.format(
+                mode
+            )
         )
 
     if rescale_shift:
-        sqrt_Skk = sum_inplace(jnp.sum((grads * grads.conj()).real, axis=0, keepdims=True))**0.5
+        sqrt_Skk = (
+            sum_inplace(jnp.sum((grads * grads.conj()).real, axis=0, keepdims=True))
+            ** 0.5
+        )
         return grads / sqrt_Skk, sqrt_Skk.flatten()
     else:
         return grads, None
+
 
 def _grad_vmap_minus_mean(
     fun: Callable, params: jnp.ndarray, samples: jnp.ndarray, holomorphic: bool
 ):
     """Calculates the gradient of a neural network for a number of samples
-    efficiently using vmap(grad), 
+    efficiently using vmap(grad),
     and subtracts their mean for each parameter, i.e., each column
     """
     grads = jax.vmap(
         jax.grad(fun, holomorphic=holomorphic), in_axes=(None, 0), out_axes=0
     )(params, samples)
-    return grads - sum_inplace(grads.sum(axis=0, keepdims=True)) / (grads.shape[0] * n_nodes)
+    return grads - sum_inplace(grads.sum(axis=0, keepdims=True)) / (
+        grads.shape[0] * n_nodes
+    )
