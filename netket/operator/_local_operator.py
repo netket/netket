@@ -884,7 +884,8 @@ class LocalOperator(AbstractOperator):
         _x_prime = self._x_prime
         _acting_on = self._acting_on
         _acting_size = self._acting_size
-        _nonzero_diagonal = self._nonzero_diagonal
+        # workaround my painfully discovered Numba#6979 (cannot use numpy bools in closures)
+        _nonzero_diagonal = bool(self._nonzero_diagonal)
 
         fun = self._get_conn_flattened_kernel
 

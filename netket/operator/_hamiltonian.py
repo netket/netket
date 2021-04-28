@@ -758,10 +758,10 @@ class BoseHubbard(SpecialHamiltonian):
         """
 
         # try to cache those temporary buffers with their max size
-        total_size = x.shape[0] * self._n_max
+        total_size = x.shape[0] * self._max_conn
         if self._max_mels.size < total_size:
             self._max_mels = np.empty(total_size, dtype=self._max_mels.dtype)
-            self._max_xprime = np.empty((total_size, n_sites), dtype=x.dtype)
+            self._max_xprime = np.empty((total_size, x.shape[1]), dtype=x.dtype)
 
         return self._flattened_kernel(
             x,
