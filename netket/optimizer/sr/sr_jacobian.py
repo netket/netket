@@ -39,17 +39,6 @@ class SRJacobian(SR):
     :code:`norm(residual) <= max(tol*norm(b), atol)`
     """
 
-    mode: str = struct.field(pytree_node=False)
-    """Differentiation mode to precompute Jacobian
-    * "holomorphic": C->C holomorphic function
-        `grad` is called on the full network output with `holomorphic=True`
-    * "R2R": real-valued wave function with real parameters
-        `grad` is called on the real part of the network output with `holomorphic=False`
-    * "R2C": complex-valued wave function with real parameters
-        the real and imaginary parts of the network output are treated as independent 
-        R->R functions and `grad` is called separately on them with `holomorphic=False`
-    """
-
     tol: float = 1.0e-5
     """Relative tolerance for convergences."""
 
@@ -67,11 +56,27 @@ class SRJacobian(SR):
     that fewer iterations are needed to reach a given error tolerance.
     """
 
+    mode: str = struct.field(pytree_node=False, default="invalid")
+    """Differentiation mode to precompute Jacobian
+    * "holomorphic": C->C holomorphic function
+        `grad` is called on the full network output with `holomorphic=True`
+    * "R2R": real-valued wave function with real parameters
+        `grad` is called on the real part of the network output with `holomorphic=False`
+    * "R2C": complex-valued wave function with real parameters
+        the real and imaginary parts of the network output are treated as independent 
+        R->R functions and `grad` is called separately on them with `holomorphic=False`
+    * the default value "invalid" will trigger an error
+    """
+
     rescale_shift: bool = struct.field(pytree_node=False, default=False)
     """Whether scale-invariant regularisation should be used"""
 
+    def __post_init__():
+        if mode not in {'R2R','R2C','holomorphic'}:
+            raise NotImplementedError('Differentiation mode must be one of "R2R", "R2C", "holomorphic", got "{}"'.format(mode))
+
     def create(self, *args, **kwargs):
-        O, scale = gradients(apply_fun, params, samples, model_state, self.mode, rescale_shift)
+        O, scale = gradients(apply_fun, params, samples, model_state, self.mode, self.rescale_shift)
         return JacobianSMatrix(sr=sr, x0=x0, O=O, scale=scale)
 
 
