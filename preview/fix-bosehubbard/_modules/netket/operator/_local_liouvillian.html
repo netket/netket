@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>netket.operator._local_liouvillian &#8212; netket v3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/panels-variables.06eb56fa6e07937060861dad626602ad.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/jumbo-style.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/all.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/rtd_theme.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/rtd_theme.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html"><span><img src="../../../_static/logonav.png"></span>
+          NetKet</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../getting_started.html">Get Started</a></li>
+                <li><a href="../../../docs/getting_started.html">Documentation</a></li>
+                <li><a href="../../../tutorials.html">Tutorials</a></li>
+                <li><a href="../../../citing.html">Citing NetKet</a></li>
+                <li><a href="../../../about.html">About</a></li>
+                <li><a href="https://github.com/netket/netket"><i class="fab fa-github" aria-hidden="true"></i></a></li>
+                <li><a href="https://twitter.com/NetKetOrg"><i class="fab fa-twitter" aria-hidden="true"></i></a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for netket.operator._local_liouvillian</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2021 The NetKet Authors - All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#    http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span> <span class="k">as</span> <span class="n">PyList</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numba</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">jit</span>
+<span class="kn">from</span> <span class="nn">numba.typed</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">LinearOperator</span>
+
+<span class="kn">from</span> <span class="nn">._abstract_operator</span> <span class="kn">import</span> <span class="n">AbstractOperator</span>
+<span class="kn">from</span> <span class="nn">._local_operator</span> <span class="kn">import</span> <span class="n">LocalOperator</span>
+<span class="kn">from</span> <span class="nn">._abstract_super_operator</span> <span class="kn">import</span> <span class="n">AbstractSuperOperator</span>
+
+
+<div class="viewcode-block" id="LocalLiouvillian"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.LocalLiouvillian.html#netket.operator.LocalLiouvillian">[docs]</a><span class="k">class</span> <span class="nc">LocalLiouvillian</span><span class="p">(</span><span class="n">AbstractSuperOperator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    LocalLiouvillian super-operator, acting on the DoubledHilbert (tensor product) space</span>
+<span class="sd">    ℋ⊗ℋ.</span>
+
+<span class="sd">    Internally it uses :ref:`netket.operator.LocalOperator` everywhere.</span>
+
+
+<span class="sd">    The Liouvillian is defined according to the definition:</span>
+
+<span class="sd">    .. math ::</span>
+
+<span class="sd">        \\mathcal{L} = -i \\left[ \\hat{H}, \\hat{\\rho}\\right] + \\sum_i \\left[ \\hat{L}_i\\hat{\\rho}\\hat{L}_i^\\dagger -</span>
+<span class="sd">            \\left\\{ \\hat{L}_i^\\dagger\\hat{L}_i, \\hat{\\rho} \\right\\} \\right]</span>
+
+<span class="sd">    which generates the dynamics according to the equation</span>
+
+<span class="sd">    .. math ::</span>
+
+<span class="sd">        \\frac{d\\hat{\\rho}}{dt} = \\mathcal{L}\\hat{\\rho}</span>
+
+<span class="sd">    Internally, it stores the non-hermitian hamiltonian</span>
+
+<span class="sd">    .. math ::</span>
+
+<span class="sd">        \\hat{H}_{nh} = \\hat{H} - \\sum_i \\frac{i}{2}\\hat{L}_i^\\dagger\\hat{L}_i</span>
+
+<span class="sd">    That is then composed with the jump operators in the inner kernel with the formula:</span>
+
+<span class="sd">    .. math ::</span>
+
+<span class="sd">        \\mathcal{L} = -i \\hat{H}_{nh}\\hat{\\rho} +i\\hat{\\rho}\\hat{H}_{nh}^\\dagger + \\sum_i \\hat{L}_i\\hat{\\rho}\\hat{L}_i^\\dagger</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LocalLiouvillian.__init__"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.LocalLiouvillian.html#netket.operator.LocalLiouvillian.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ham</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">,</span>
+        <span class="n">jump_ops</span><span class="p">:</span> <span class="n">PyList</span><span class="p">[</span><span class="n">AbstractOperator</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">ham</span><span class="o">.</span><span class="n">hilbert</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_H</span> <span class="o">=</span> <span class="n">ham</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_jump_ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">jump_ops</span><span class="p">]</span>  <span class="c1"># to accept dicts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Hnh</span> <span class="o">=</span> <span class="n">ham</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_dissipator_conn_size</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn_size</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_hnh</span><span class="p">()</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_hermitian</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LocalOperator</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The hamiltonian of this Liouvillian&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_H</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hamiltonian_nh</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LocalOperator</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The non hermitian Local Operator part of the Liouvillian&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Hnh</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">jump_operators</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyList</span><span class="p">[</span><span class="n">LocalOperator</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;The list of local operators in this Liouvillian&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_jump_ops</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">max_conn_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The maximum number of non zero ⟨x|O|x&#39;⟩ for every x.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn_size</span>
+
+    <span class="k">def</span> <span class="nf">_compute_hnh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># There is no i here because it&#39;s inserted in the kernel</span>
+        <span class="n">Hnh</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_H</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_dissipator_conn_size</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_jump_ops</span><span class="p">:</span>
+            <span class="n">Hnh</span> <span class="o">=</span> <span class="n">Hnh</span> <span class="o">-</span> <span class="mf">0.5</span><span class="n">j</span> <span class="o">*</span> <span class="n">L</span><span class="o">.</span><span class="n">conjugate</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span> <span class="o">@</span> <span class="n">L</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_dissipator_conn_size</span> <span class="o">+=</span> <span class="n">L</span><span class="o">.</span><span class="n">max_conn_size</span> <span class="o">**</span> <span class="mi">2</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Hnh</span> <span class="o">=</span> <span class="n">Hnh</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+        <span class="n">max_conn_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_dissipator_conn_size</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">Hnh</span><span class="o">.</span><span class="n">max_conn_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn_size</span> <span class="o">=</span> <span class="n">max_conn_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xprime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">max_conn_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xr_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">max_conn_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xc_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">max_conn_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xrv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xprime</span><span class="p">[:,</span> <span class="mi">0</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">size</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xcv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xprime</span><span class="p">[</span>
+            <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">size</span> <span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">size</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">max_conn_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xprime_f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">max_conn_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mels_f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">max_conn_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LocalLiouvillian.add_jump_operator"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.LocalLiouvillian.html#netket.operator.LocalLiouvillian.add_jump_operator">[docs]</a>    <span class="k">def</span> <span class="nf">add_jump_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_jump_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_hnh</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LocalLiouvillian.add_jump_operators"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.LocalLiouvillian.html#netket.operator.LocalLiouvillian.add_jump_operators">[docs]</a>    <span class="k">def</span> <span class="nf">add_jump_operators</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ops</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_jump_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_hnh</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LocalLiouvillian.get_conn"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.LocalLiouvillian.html#netket.operator.LocalLiouvillian.get_conn">[docs]</a>    <span class="k">def</span> <span class="nf">get_conn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">n_sites</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="n">xr</span><span class="p">,</span> <span class="n">xc</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">n_sites</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="n">n_sites</span> <span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n_sites</span><span class="p">]</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">xrp</span><span class="p">,</span> <span class="n">mel_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Hnh</span><span class="o">.</span><span class="n">get_conn</span><span class="p">(</span><span class="n">xr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xrv</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">mel_r</span><span class="p">),</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">xrp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xcv</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">mel_r</span><span class="p">),</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">xc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mels</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">mel_r</span><span class="p">)]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">mel_r</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">mel_r</span><span class="p">)</span>
+
+        <span class="n">xcp</span><span class="p">,</span> <span class="n">mel_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Hnh</span><span class="o">.</span><span class="n">get_conn</span><span class="p">(</span><span class="n">xc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xrv</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">mel_c</span><span class="p">),</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">xr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xcv</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">mel_c</span><span class="p">),</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">xcp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mels</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">mel_r</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">mel_c</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">mel_c</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_jump_ops</span><span class="p">:</span>
+            <span class="n">L_xrp</span><span class="p">,</span> <span class="n">L_mel_r</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">get_conn</span><span class="p">(</span><span class="n">xr</span><span class="p">)</span>
+            <span class="n">L_xcp</span><span class="p">,</span> <span class="n">L_mel_c</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">get_conn</span><span class="p">(</span><span class="n">xc</span><span class="p">)</span>
+
+            <span class="n">nr</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">L_mel_r</span><span class="p">)</span>
+            <span class="n">nc</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">L_mel_c</span><span class="p">)</span>
+            <span class="c1"># start filling batches</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nr</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_xrv</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">nc</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">L_xrp</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_xcv</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">nc</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">L_xcp</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_mels</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">nc</span><span class="p">]</span> <span class="o">=</span> <span class="n">L_mel_r</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">L_mel_c</span><span class="p">)</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">nc</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_xprime</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">i</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mels</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">i</span><span class="p">])</span></div>
+
+    <span class="c1"># pad option pads all sections to have the same (biggest) size.</span>
+    <span class="c1"># to avoid using the biggest possible size, we dynamically check what is</span>
+    <span class="c1"># the biggest size for the current size...</span>
+    <span class="c1"># TODO: investigate if this is worthless</span>
+<div class="viewcode-block" id="LocalLiouvillian.get_conn_flattened"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.LocalLiouvillian.html#netket.operator.LocalLiouvillian.get_conn_flattened">[docs]</a>    <span class="k">def</span> <span class="nf">get_conn_flattened</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sections</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">n_jops</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">jump_operators</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">sections</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">batch_size</span>
+
+        <span class="c1"># Separate row and column inputs</span>
+        <span class="n">xr</span><span class="p">,</span> <span class="n">xc</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="p">],</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">N</span> <span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">N</span><span class="p">]</span>
+
+        <span class="c1"># Compute all flattened connections of each term</span>
+        <span class="n">sections_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">sections_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">xr_prime</span><span class="p">,</span> <span class="n">mels_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Hnh</span><span class="o">.</span><span class="n">get_conn_flattened</span><span class="p">(</span><span class="n">xr</span><span class="p">,</span> <span class="n">sections_r</span><span class="p">)</span>
+        <span class="n">xc_prime</span><span class="p">,</span> <span class="n">mels_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Hnh</span><span class="o">.</span><span class="n">get_conn_flattened</span><span class="p">(</span><span class="n">xc</span><span class="p">,</span> <span class="n">sections_c</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pad</span><span class="p">:</span>
+            <span class="c1"># if else to accomodate for batches of 1 element, because</span>
+            <span class="c1"># sections don&#39;t start from 0-index...</span>
+            <span class="c1"># TODO: if we ever switch to 0-indexing, remove this.</span>
+            <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">max_conns_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">sections_r</span><span class="p">))</span>
+                <span class="n">max_conns_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">sections_c</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">max_conns_r</span> <span class="o">=</span> <span class="n">sections_r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">max_conns_c</span> <span class="o">=</span> <span class="n">sections_c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">max_conns_Lrc</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1">#  Must type those lists otherwise, if they are empty, numba</span>
+        <span class="c1"># cannot infer their type</span>
+        <span class="n">L_xrps</span> <span class="o">=</span> <span class="n">List</span><span class="o">.</span><span class="n">empty_list</span><span class="p">(</span><span class="n">numba</span><span class="o">.</span><span class="n">typeof</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)[:,</span> <span class="p">:])</span>
+        <span class="n">L_xcps</span> <span class="o">=</span> <span class="n">List</span><span class="o">.</span><span class="n">empty_list</span><span class="p">(</span><span class="n">numba</span><span class="o">.</span><span class="n">typeof</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)[:,</span> <span class="p">:])</span>
+        <span class="n">L_mel_rs</span> <span class="o">=</span> <span class="n">List</span><span class="o">.</span><span class="n">empty_list</span><span class="p">(</span><span class="n">numba</span><span class="o">.</span><span class="n">typeof</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">())[:])</span>
+        <span class="n">L_mel_cs</span> <span class="o">=</span> <span class="n">List</span><span class="o">.</span><span class="n">empty_list</span><span class="p">(</span><span class="n">numba</span><span class="o">.</span><span class="n">typeof</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">())[:])</span>
+
+        <span class="n">sections_Lr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_jops</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">sections_Lc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_jops</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_jump_ops</span><span class="p">):</span>
+            <span class="n">L_xrp</span><span class="p">,</span> <span class="n">L_mel_r</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">get_conn_flattened</span><span class="p">(</span>
+                <span class="n">xr</span><span class="p">,</span> <span class="n">sections_Lr</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">L_xcp</span><span class="p">,</span> <span class="n">L_mel_c</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">get_conn_flattened</span><span class="p">(</span>
+                <span class="n">xc</span><span class="p">,</span> <span class="n">sections_Lc</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="n">L_xrps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">L_xrp</span><span class="p">)</span>
+            <span class="n">L_xcps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">L_xcp</span><span class="p">)</span>
+            <span class="n">L_mel_rs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">L_mel_r</span><span class="p">)</span>
+            <span class="n">L_mel_cs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">L_mel_c</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">pad</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">max_lr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">sections_Lr</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">])</span>
+                    <span class="p">)</span>
+                    <span class="n">max_lc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">sections_Lc</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="p">:</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">])</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">max_lr</span> <span class="o">=</span> <span class="n">sections_Lr</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">]</span>
+                    <span class="n">max_lc</span> <span class="o">=</span> <span class="n">sections_Lc</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">]</span>
+
+                <span class="n">max_conns_Lrc</span> <span class="o">+=</span> <span class="n">max_lr</span> <span class="o">*</span> <span class="n">max_lc</span>
+
+        <span class="c1"># compose everything again</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xprime_f</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn_size</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">:</span>
+            <span class="c1"># refcheck=False because otherwise this errors when testing</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_xprime_f</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn_size</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">refcheck</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mels_f</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_conn_size</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">refcheck</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pad</span><span class="p">:</span>
+            <span class="n">pad</span> <span class="o">=</span> <span class="n">max_conns_Lrc</span> <span class="o">+</span> <span class="n">max_conns_r</span> <span class="o">+</span> <span class="n">max_conns_c</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pad</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_xprime_f</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mels_f</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_conn_flattened_kernel</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_xprime_f</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mels_f</span><span class="p">,</span>
+            <span class="n">sections</span><span class="p">,</span>
+            <span class="n">xr</span><span class="p">,</span>
+            <span class="n">xc</span><span class="p">,</span>
+            <span class="n">sections_r</span><span class="p">,</span>
+            <span class="n">sections_c</span><span class="p">,</span>
+            <span class="n">xr_prime</span><span class="p">,</span>
+            <span class="n">mels_r</span><span class="p">,</span>
+            <span class="n">xc_prime</span><span class="p">,</span>
+            <span class="n">mels_c</span><span class="p">,</span>
+            <span class="n">L_xrps</span><span class="p">,</span>
+            <span class="n">L_xcps</span><span class="p">,</span>
+            <span class="n">L_mel_rs</span><span class="p">,</span>
+            <span class="n">L_mel_cs</span><span class="p">,</span>
+            <span class="n">sections_Lr</span><span class="p">,</span>
+            <span class="n">sections_Lc</span><span class="p">,</span>
+            <span class="n">n_jops</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">N</span><span class="p">,</span>
+            <span class="n">pad</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_get_conn_flattened_kernel</span><span class="p">(</span>
+        <span class="n">xs</span><span class="p">,</span>
+        <span class="n">mels</span><span class="p">,</span>
+        <span class="n">sections</span><span class="p">,</span>
+        <span class="n">xr</span><span class="p">,</span>
+        <span class="n">xc</span><span class="p">,</span>
+        <span class="n">sections_r</span><span class="p">,</span>
+        <span class="n">sections_c</span><span class="p">,</span>
+        <span class="n">xr_prime</span><span class="p">,</span>
+        <span class="n">mels_r</span><span class="p">,</span>
+        <span class="n">xc_prime</span><span class="p">,</span>
+        <span class="n">mels_c</span><span class="p">,</span>
+        <span class="n">L_xrps</span><span class="p">,</span>
+        <span class="n">L_xcps</span><span class="p">,</span>
+        <span class="n">L_mel_rs</span><span class="p">,</span>
+        <span class="n">L_mel_cs</span><span class="p">,</span>
+        <span class="n">sections_Lr</span><span class="p">,</span>
+        <span class="n">sections_Lc</span><span class="p">,</span>
+        <span class="n">n_jops</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">N</span><span class="p">,</span>
+        <span class="n">pad</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">sec</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">off</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">n_hr_i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">n_hc_i</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">n_Lr_is</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_jops</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">n_Lc_is</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_jops</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+            <span class="n">off_i</span> <span class="o">=</span> <span class="n">off</span>
+            <span class="n">n_hr_f</span> <span class="o">=</span> <span class="n">sections_r</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">n_hr</span> <span class="o">=</span> <span class="n">n_hr_f</span> <span class="o">-</span> <span class="n">n_hr_i</span>
+            <span class="n">xs</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_hr</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr_prime</span><span class="p">[</span><span class="n">n_hr_i</span><span class="p">:</span><span class="n">n_hr_f</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">xs</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_hr</span><span class="p">,</span> <span class="n">N</span> <span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">N</span><span class="p">]</span> <span class="o">=</span> <span class="n">xc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">mels</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_hr</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">mels_r</span><span class="p">[</span><span class="n">n_hr_i</span><span class="p">:</span><span class="n">n_hr_f</span><span class="p">]</span>
+            <span class="n">off</span> <span class="o">+=</span> <span class="n">n_hr</span>
+            <span class="n">n_hr_i</span> <span class="o">=</span> <span class="n">n_hr_f</span>
+
+            <span class="n">n_hc_f</span> <span class="o">=</span> <span class="n">sections_c</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">n_hc</span> <span class="o">=</span> <span class="n">n_hc_f</span> <span class="o">-</span> <span class="n">n_hc_i</span>
+            <span class="n">xs</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_hc</span><span class="p">,</span> <span class="n">N</span> <span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">N</span><span class="p">]</span> <span class="o">=</span> <span class="n">xc_prime</span><span class="p">[</span><span class="n">n_hc_i</span><span class="p">:</span><span class="n">n_hc_f</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">xs</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_hc</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">mels</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_hc</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">mels_c</span><span class="p">[</span><span class="n">n_hc_i</span><span class="p">:</span><span class="n">n_hc_f</span><span class="p">])</span>
+            <span class="n">off</span> <span class="o">+=</span> <span class="n">n_hc</span>
+            <span class="n">n_hc_i</span> <span class="o">=</span> <span class="n">n_hc_f</span>
+
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_jops</span><span class="p">):</span>
+                <span class="n">L_xrp</span><span class="p">,</span> <span class="n">L_mel_r</span> <span class="o">=</span> <span class="n">L_xrps</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">L_mel_rs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">L_xcp</span><span class="p">,</span> <span class="n">L_mel_c</span> <span class="o">=</span> <span class="n">L_xcps</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">L_mel_cs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">n_Lr_f</span> <span class="o">=</span> <span class="n">sections_Lr</span><span class="p">[</span><span class="n">j</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span>
+                <span class="n">n_Lc_f</span> <span class="o">=</span> <span class="n">sections_Lc</span><span class="p">[</span><span class="n">j</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span>
+                <span class="n">n_Lr_i</span> <span class="o">=</span> <span class="n">n_Lr_is</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">n_Lc_i</span> <span class="o">=</span> <span class="n">n_Lc_is</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+                <span class="n">n_Lr</span> <span class="o">=</span> <span class="n">n_Lr_f</span> <span class="o">-</span> <span class="n">n_Lr_is</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">n_Lc</span> <span class="o">=</span> <span class="n">n_Lc_f</span> <span class="o">-</span> <span class="n">n_Lc_is</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="c1"># start filling batches</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_Lr</span><span class="p">):</span>
+                    <span class="n">xs</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_Lc</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">N</span><span class="p">]</span> <span class="o">=</span> <span class="n">L_xrp</span><span class="p">[</span><span class="n">n_Lr_i</span> <span class="o">+</span> <span class="n">r</span><span class="p">,</span> <span class="p">:]</span>
+                    <span class="n">xs</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_Lc</span><span class="p">,</span> <span class="n">N</span> <span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">N</span><span class="p">]</span> <span class="o">=</span> <span class="n">L_xcp</span><span class="p">[</span><span class="n">n_Lc_i</span><span class="p">:</span><span class="n">n_Lc_f</span><span class="p">,</span> <span class="p">:]</span>
+                    <span class="n">mels</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_Lc</span><span class="p">]</span> <span class="o">=</span> <span class="n">L_mel_r</span><span class="p">[</span><span class="n">n_Lr_i</span> <span class="o">+</span> <span class="n">r</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span>
+                        <span class="n">L_mel_c</span><span class="p">[</span><span class="n">n_Lc_i</span><span class="p">:</span><span class="n">n_Lc_f</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">off</span> <span class="o">=</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_Lc</span>
+
+                <span class="n">n_Lr_is</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_Lr_f</span>
+                <span class="n">n_Lc_is</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_Lc_f</span>
+
+            <span class="k">if</span> <span class="n">pad</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">n_entries</span> <span class="o">=</span> <span class="n">off</span> <span class="o">-</span> <span class="n">off_i</span>
+                <span class="n">mels</span><span class="p">[</span><span class="n">off</span> <span class="p">:</span> <span class="n">off</span> <span class="o">+</span> <span class="n">n_entries</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">off</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">pad</span>
+
+            <span class="n">sections</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">off</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">off</span><span class="p">,</span> <span class="p">:]),</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mels</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">off</span><span class="p">])</span>
+
+<div class="viewcode-block" id="LocalLiouvillian.to_linear_operator"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.LocalLiouvillian.html#netket.operator.LocalLiouvillian.to_linear_operator">[docs]</a>    <span class="k">def</span> <span class="nf">to_linear_operator</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">sparse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">append_trace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LinearOperator</span><span class="p">:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Returns a lazy scipy linear_operator representation of the Lindblad Super-Operator.</span>
+
+<span class="sd">        The returned operator behaves like the M**2 x M**2 matrix obtained with to_dense/sparse, and accepts</span>
+<span class="sd">        vectorised density matrices as input.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sparse: If True internally uses sparse matrices for the hamiltonian and jump operators,</span>
+<span class="sd">                dense otherwise (default=True)</span>
+<span class="sd">            append_trace: If True (default=False) the resulting operator has size M**2 + 1, and the last</span>
+<span class="sd">                element of the input vector is the trace of the input density matrix. This is useful when</span>
+<span class="sd">                implementing iterative methods.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A linear operator taking as input vectorised density matrices and returning the product L*rho</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">n_states</span>
+
+        <span class="n">iHnh</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian_nh</span>
+        <span class="k">if</span> <span class="n">sparse</span><span class="p">:</span>
+            <span class="n">iHnh</span> <span class="o">=</span> <span class="n">iHnh</span><span class="o">.</span><span class="n">to_sparse</span><span class="p">()</span>
+            <span class="n">J_ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">to_sparse</span><span class="p">()</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jump_operators</span><span class="p">]</span>
+            <span class="n">J_ops_c</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">j</span><span class="o">.</span><span class="n">conjugate</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">.</span><span class="n">to_sparse</span><span class="p">()</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jump_operators</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iHnh</span> <span class="o">=</span> <span class="n">iHnh</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+            <span class="n">J_ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jump_operators</span><span class="p">]</span>
+            <span class="n">J_ops_c</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">j</span><span class="o">.</span><span class="n">conjugate</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jump_operators</span>
+            <span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">append_trace</span><span class="p">:</span>
+            <span class="n">op_size</span> <span class="o">=</span> <span class="n">M</span> <span class="o">**</span> <span class="mi">2</span>
+
+            <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="n">rho_vec</span><span class="p">):</span>
+                <span class="n">rho</span> <span class="o">=</span> <span class="n">rho_vec</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">M</span><span class="p">))</span>
+
+                <span class="n">drho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">M</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">rho</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+                <span class="n">drho</span> <span class="o">+=</span> <span class="n">iHnh</span> <span class="o">@</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">rho</span> <span class="o">@</span> <span class="n">iHnh</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+                <span class="k">for</span> <span class="n">J</span><span class="p">,</span> <span class="n">J_c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">J_ops</span><span class="p">,</span> <span class="n">J_ops_c</span><span class="p">):</span>
+                    <span class="n">drho</span> <span class="o">+=</span> <span class="p">(</span><span class="n">J</span> <span class="o">@</span> <span class="n">rho</span><span class="p">)</span> <span class="o">@</span> <span class="n">J_c</span>
+
+                <span class="k">return</span> <span class="n">drho</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># This function defines the product Liouvillian x densitymatrix, without</span>
+            <span class="c1"># constructing the full density matrix (passed as a vector M^2).</span>
+
+            <span class="c1"># An extra row is added at the bottom of the therefore M^2+1 long array,</span>
+            <span class="c1"># with the trace of the density matrix. This is needed to enforce the</span>
+            <span class="c1"># trace-1 condition.</span>
+
+            <span class="c1"># The logic behind the use of Hnh_dag_ and Hnh_ is derived from the</span>
+            <span class="c1"># convention adopted in local_liouvillian.cc, and inspired from reference</span>
+            <span class="c1"># arXiv:1504.05266</span>
+            <span class="n">op_size</span> <span class="o">=</span> <span class="n">M</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+
+            <span class="k">def</span> <span class="nf">matvec</span><span class="p">(</span><span class="n">rho_vec</span><span class="p">):</span>
+                <span class="n">rho</span> <span class="o">=</span> <span class="n">rho_vec</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">M</span><span class="p">))</span>
+
+                <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">M</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">rho</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="n">drho</span> <span class="o">=</span> <span class="n">out</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">M</span><span class="p">))</span>
+
+                <span class="n">drho</span> <span class="o">+=</span> <span class="n">iHnh</span> <span class="o">@</span> <span class="n">rho</span> <span class="o">+</span> <span class="n">rho</span> <span class="o">@</span> <span class="n">iHnh</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+                <span class="k">for</span> <span class="n">J</span><span class="p">,</span> <span class="n">J_c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">J_ops</span><span class="p">,</span> <span class="n">J_ops_c</span><span class="p">):</span>
+                    <span class="n">drho</span> <span class="o">+=</span> <span class="p">(</span><span class="n">J</span> <span class="o">@</span> <span class="n">rho</span><span class="p">)</span> <span class="o">@</span> <span class="n">J_c</span>
+
+                <span class="n">out</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">trace</span><span class="p">()</span>
+                <span class="k">return</span> <span class="n">out</span>
+
+        <span class="n">L</span> <span class="o">=</span> <span class="n">LinearOperator</span><span class="p">((</span><span class="n">op_size</span><span class="p">,</span> <span class="n">op_size</span><span class="p">),</span> <span class="n">matvec</span><span class="o">=</span><span class="n">matvec</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">iHnh</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">L</span></div></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019-2021, The Netket authors - All rights reserved.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.4.<br/>
+    </p>
+  </div>
+</footer>
+
+<script type="text/javascript">
+    jQuery(function () {
+        SphinxRtdTheme.Navigation.enable(true);
+      })
+</script>
+
+<!-- Temporary footer
+<div class="footer-wip">
+  <div class="footer-wip-content">
+    This documentation refers to an unreleased version of Netket.
+  </div>
+</div>
+-->
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-118013987-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-118013987-1');
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "url": "https://www.netket.org",
+  "name": "NetKet",
+  "founder": "Giuseppe Carleo",
+  "foundingDate": "2018-04-24",
+  "foundingLocation" : "New York",
+  "logo": "https://www.netket.org/img/logo_small.jpg",
+  "sameAs": [
+    "https://twitter.com/NetKetOrg",
+    "https://github.com/NetKet/netket"
+  ],
+  "description" : "Netket is an open-source project delivering cutting-edge
+  methods for the study of many-body quantum systems with artificial neural
+  networks and machine learning techniques."
+}
+</script>
+
+  </body>
+</html>
