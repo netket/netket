@@ -982,7 +982,8 @@
         <span class="n">_x_prime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x_prime</span>
         <span class="n">_acting_on</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_acting_on</span>
         <span class="n">_acting_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_acting_size</span>
-        <span class="n">_nonzero_diagonal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nonzero_diagonal</span>
+        <span class="c1"># workaround my painfully discovered Numba#6979 (cannot use numpy bools in closures)</span>
+        <span class="n">_nonzero_diagonal</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nonzero_diagonal</span><span class="p">)</span>
 
         <span class="n">fun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_conn_flattened_kernel</span>
 
