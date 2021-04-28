@@ -19,6 +19,7 @@ import numpy as _np
 import itertools
 import networkx as _nx
 import warnings
+from typing import Tuple, Union, Optional
 
 cutoff_tol = 1e-5
 """Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
@@ -27,8 +28,8 @@ lattices.
 """
 
 
-def get_edges(atoms_positions, cutoff):
-    cutoff = cutoff + cutoff_tol
+def get_edges(atoms_positions, cutoff, distance_atol=cutoff_tol):
+    cutoff = cutoff + distance_atol
     kdtree = cKDTree(atoms_positions)
     dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
     id1, id2, values = find(triu(dist_matrix))
@@ -83,10 +84,12 @@ def create_points(basis_vectors, extent, atom_coords, pbc):
     return atoms, cellANDlabel_to_site
 
 
-def get_true_edges(basis_vectors, atoms, cellANDlabel_to_site, extent):
+def get_true_edges(
+    basis_vectors, atoms, cellANDlabel_to_site, extent, distance_atol=cutoff_tol
+):
     atoms_positions = dicts_to_array(atoms, "r_coord")
     naive_edges = get_edges(
-        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max()
+        atoms_positions, _np.linalg.norm(basis_vectors, axis=1).max(), distance_atol
     )
     true_edges = []
     for node1, node2 in naive_edges:
@@ -123,7 +126,15 @@ class Lattice(NetworkX):
     by a simple integer number (the site index) or by its coordinates (actual position in space).
     """
 
-    def __init__(self, basis_vectors, extent, *, pbc: bool = True, atoms_coord=[]):
+    def __init__(
+        self,
+        basis_vectors,
+        extent,
+        *,
+        pbc: bool = True,
+        atoms_coord=[],
+        distance_atol: float = 1e-5,
+    ):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit cell.
 
@@ -134,6 +145,9 @@ class Lattice(NetworkX):
                 will have periodic boundary conditions, otherwise
                 open boundary conditions are imposed (default=``True``).
             atoms_coord: The coordinates of different atoms in the unit cell (default=one atom at the origin).
+            distance_atol: A KDTree algorithm finds first neighbours of the lattice, which define the edges of
+                the graph. The algorithm needs to be specified some absolute tolerance for those distances,
+                as sometimes floating point errors might cause some edges not to be detected.
 
         Examples:
             Constructs a rectangular 3X4 lattice with periodic boundary conditions.
@@ -197,7 +211,9 @@ class Lattice(NetworkX):
         atoms, cellANDlabel_to_site = create_points(
             self._basis_vectors, extent, atoms_coord_fractional, pbc
         )
-        edges = get_true_edges(self._basis_vectors, atoms, cellANDlabel_to_site, extent)
+        edges = get_true_edges(
+            self._basis_vectors, atoms, cellANDlabel_to_site, extent, distance_atol
+        )
         graph = _nx.MultiGraph(edges)
 
         # Rename atoms
@@ -229,6 +245,73 @@ class Lattice(NetworkX):
         Coordinates of atoms in the unit cell.
         """
         return self._atoms_coord
+
+    def draw(
+        self,
+        ax=None,
+        figsize: Optional[Tuple[Union[int, float]]] = None,
+        node_color: str = "#1f78b4",
+        node_size: int = 300,
+        edge_color: str = "k",
+        curvature: float = 0.2,
+        font_size: int = 12,
+        font_color: str = "k",
+    ):
+        """
+        Draws the ``Lattice`` graph
+
+        Args:
+            ax: Matplotlib axis object.
+            figsize: (width, height) tuple of the generated figure.
+            node_color: String with the colour of the nodes.
+            node_size: Area of the nodes (as in matplotlib.pyplot.scatter).
+            edge_color: String with the colour of the edges.
+            curvature: A Bezier curve is fit, where the "height" of the curve is `curvature`
+                times the "length" of the curvature.
+            font_size: fontsize of the labels for each node.
+            font_color: Colour of the font used to label nodes.
+
+        Returns:
+            Matplotlib axis object containing the graph's drawing.
+        """
+        import matplotlib.pyplot as plt
+
+        # Check if lattice is 1D or 2D... or not
+        ndim = len(self._atoms[0]["r_coord"])
+        if ndim == 1:
+            positions = {
+                n: _np.pad(self.site_to_coord(n), (0, 1), "constant")
+                for n in self.nodes()
+            }
+        elif ndim == 2:
+            positions = {n: self.site_to_coord(n) for n in self.nodes()}
+        else:
+            raise ValueError(
+                f"Make sure that the graph is 1D or 2D in order to be drawn. Now it is {ndim}D"
+            )
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+
+        # FIXME (future) as of 11Apr2021, networkx can draw curved
+        # edges only for directed graphs.
+        _nx.draw_networkx_edges(
+            self.graph.to_directed(),
+            pos=positions,
+            edgelist=self.edges(),
+            connectionstyle=f"arc3,rad={curvature}",
+            ax=ax,
+            arrowsize=0.1,
+            edge_color=edge_color,
+            node_size=node_size,
+        )
+        _nx.draw_networkx_nodes(
+            self.graph, pos=positions, ax=ax, node_color=node_color, node_size=node_size
+        )
+        _nx.draw_networkx_labels(
+            self.graph, pos=positions, ax=ax, font_size=font_size, font_color=font_color
+        )
+        ax.axis("equal")
+        return ax
 
     def atom_label(self, site):
         return self._atoms[site]["Label"]

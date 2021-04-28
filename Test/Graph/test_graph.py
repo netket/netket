@@ -115,6 +115,26 @@ def tonx(graph):
     return gx
 
 
+def test_draw_lattices():
+    # Just checking that lattices are drawn:
+    lattices = [graph for graph in graphs if isinstance(graph, Lattice)]
+    for lattice in lattices:
+        ndim = len(lattice._atoms[0]["r_coord"])
+        if ndim not in [1, 2]:
+            with pytest.raises(ValueError):
+                lattice.draw()
+        else:
+            ax = lattice.draw(
+                figsize=(1.2, 3),
+                node_color="blue",
+                node_size=600,
+                edge_color="green",
+                curvature=0.5,
+                font_size=20,
+                font_color="yellow",
+            )
+
+
 def test_size_is_positive():
     for graph in graphs:
         assert graph.n_nodes > 0
