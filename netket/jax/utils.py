@@ -197,6 +197,30 @@ def tree_axpy(a, x, y):
     return jax.tree_multimap(lambda x_, y_: a * x_ + y_, x, y)
 
 
+def to_real(x):
+    if jnp.iscomplexobj(x):
+        return x.real, x.imag
+        # TODO find a way to make it a nop?
+        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
+    else:
+        return x
+
+
+def _tree_to_real(x):
+    return jax.tree_map(to_real, x)
+
+
+# invert the transformation using linear_transpose (AD)
+def _tree_reassemble_complex(x, target, fun=_tree_to_real):
+    # target: a tree with the expected shape and types of the result
+    (res,) = jax.linear_transpose(fun, target)(x)
+    return tree_conj(res)
+
+
+def tree_to_real(x):
+    return _tree_to_real(x), partial(_tree_reassemble_complex, target=x)
+
+
 class HashablePartial(partial):
     """
     A class behaving like functools.partial, but that retains it's hash

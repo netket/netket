@@ -27,6 +27,7 @@ from .utils import (
     tree_dot,
     tree_cast,
     tree_axpy,
+    tree_to_real,
     HashablePartial,
     mpi_split,
     PRNGKey,
