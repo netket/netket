@@ -71,9 +71,9 @@ class SRJacobian(SR):
     rescale_shift: bool = struct.field(pytree_node=False, default=False)
     """Whether scale-invariant regularisation should be used"""
 
-    def __post_init__():
-        if mode not in {'R2R','R2C','holomorphic'}:
-            raise NotImplementedError('Differentiation mode must be one of "R2R", "R2C", "holomorphic", got "{}"'.format(mode))
+    def __post_init__(self):
+        if self.mode not in {'R2R','R2C','holomorphic'}:
+            raise NotImplementedError('Differentiation mode must be one of "R2R", "R2C", "holomorphic", got "{}"'.format(self.mode))
 
     def create(self, *args, **kwargs):
         O, scale = gradients(apply_fun, params, samples, model_state, self.mode, self.rescale_shift)
