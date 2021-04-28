@@ -27,6 +27,7 @@
       .. automethod:: Lattice.automorphisms
       .. automethod:: Lattice.coord_to_site
       .. automethod:: Lattice.distances
+      .. automethod:: Lattice.draw
       .. automethod:: Lattice.edges
       .. automethod:: Lattice.is_bipartite
       .. automethod:: Lattice.is_connected

@@ -117,6 +117,7 @@
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">_nx</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="n">cutoff_tol</span> <span class="o">=</span> <span class="mf">1e-5</span>
 <span class="sd">&quot;&quot;&quot;Tolerance for the maximum distance cutoff when computing the sparse distance matrix.</span>
@@ -125,8 +126,8 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 
-<span class="k">def</span> <span class="nf">get_edges</span><span class="p">(</span><span class="n">atoms_positions</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">):</span>
-    <span class="n">cutoff</span> <span class="o">=</span> <span class="n">cutoff</span> <span class="o">+</span> <span class="n">cutoff_tol</span>
+<span class="k">def</span> <span class="nf">get_edges</span><span class="p">(</span><span class="n">atoms_positions</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">,</span> <span class="n">distance_atol</span><span class="o">=</span><span class="n">cutoff_tol</span><span class="p">):</span>
+    <span class="n">cutoff</span> <span class="o">=</span> <span class="n">cutoff</span> <span class="o">+</span> <span class="n">distance_atol</span>
     <span class="n">kdtree</span> <span class="o">=</span> <span class="n">cKDTree</span><span class="p">(</span><span class="n">atoms_positions</span><span class="p">)</span>
     <span class="n">dist_matrix</span> <span class="o">=</span> <span class="n">kdtree</span><span class="o">.</span><span class="n">sparse_distance_matrix</span><span class="p">(</span><span class="n">kdtree</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">)</span>
     <span class="n">id1</span><span class="p">,</span> <span class="n">id2</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="n">find</span><span class="p">(</span><span class="n">triu</span><span class="p">(</span><span class="n">dist_matrix</span><span class="p">))</span>
@@ -181,10 +182,12 @@
     <span class="k">return</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">cellANDlabel_to_site</span>
 
 
-<span class="k">def</span> <span class="nf">get_true_edges</span><span class="p">(</span><span class="n">basis_vectors</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">cellANDlabel_to_site</span><span class="p">,</span> <span class="n">extent</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_true_edges</span><span class="p">(</span>
+    <span class="n">basis_vectors</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">cellANDlabel_to_site</span><span class="p">,</span> <span class="n">extent</span><span class="p">,</span> <span class="n">distance_atol</span><span class="o">=</span><span class="n">cutoff_tol</span>
+<span class="p">):</span>
     <span class="n">atoms_positions</span> <span class="o">=</span> <span class="n">dicts_to_array</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="s2">&quot;r_coord&quot;</span><span class="p">)</span>
     <span class="n">naive_edges</span> <span class="o">=</span> <span class="n">get_edges</span><span class="p">(</span>
-        <span class="n">atoms_positions</span><span class="p">,</span> <span class="n">_np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">basis_vectors</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">atoms_positions</span><span class="p">,</span> <span class="n">_np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">basis_vectors</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">distance_atol</span>
     <span class="p">)</span>
     <span class="n">true_edges</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">node1</span><span class="p">,</span> <span class="n">node2</span> <span class="ow">in</span> <span class="n">naive_edges</span><span class="p">:</span>
@@ -221,7 +224,15 @@
 <span class="sd">    by a simple integer number (the site index) or by its coordinates (actual position in space).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Lattice.__init__"><a class="viewcode-back" href="../../../docs/_generated/graph/netket.graph.Lattice.html#netket.graph.Lattice.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis_vectors</span><span class="p">,</span> <span class="n">extent</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">pbc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">atoms_coord</span><span class="o">=</span><span class="p">[]):</span>
+<div class="viewcode-block" id="Lattice.__init__"><a class="viewcode-back" href="../../../docs/_generated/graph/netket.graph.Lattice.html#netket.graph.Lattice.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">basis_vectors</span><span class="p">,</span>
+        <span class="n">extent</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">pbc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">atoms_coord</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">distance_atol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Constructs a new ``Lattice`` given its side length and the features of the unit cell.</span>
 
@@ -232,6 +243,9 @@
 <span class="sd">                will have periodic boundary conditions, otherwise</span>
 <span class="sd">                open boundary conditions are imposed (default=``True``).</span>
 <span class="sd">            atoms_coord: The coordinates of different atoms in the unit cell (default=one atom at the origin).</span>
+<span class="sd">            distance_atol: A KDTree algorithm finds first neighbours of the lattice, which define the edges of</span>
+<span class="sd">                the graph. The algorithm needs to be specified some absolute tolerance for those distances,</span>
+<span class="sd">                as sometimes floating point errors might cause some edges not to be detected.</span>
 
 <span class="sd">        Examples:</span>
 <span class="sd">            Constructs a rectangular 3X4 lattice with periodic boundary conditions.</span>
@@ -295,7 +309,9 @@
         <span class="n">atoms</span><span class="p">,</span> <span class="n">cellANDlabel_to_site</span> <span class="o">=</span> <span class="n">create_points</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_basis_vectors</span><span class="p">,</span> <span class="n">extent</span><span class="p">,</span> <span class="n">atoms_coord_fractional</span><span class="p">,</span> <span class="n">pbc</span>
         <span class="p">)</span>
-        <span class="n">edges</span> <span class="o">=</span> <span class="n">get_true_edges</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_basis_vectors</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">cellANDlabel_to_site</span><span class="p">,</span> <span class="n">extent</span><span class="p">)</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">get_true_edges</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_basis_vectors</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">cellANDlabel_to_site</span><span class="p">,</span> <span class="n">extent</span><span class="p">,</span> <span class="n">distance_atol</span>
+        <span class="p">)</span>
         <span class="n">graph</span> <span class="o">=</span> <span class="n">_nx</span><span class="o">.</span><span class="n">MultiGraph</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
 
         <span class="c1"># Rename atoms</span>
@@ -327,6 +343,73 @@
 <span class="sd">        Coordinates of atoms in the unit cell.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atoms_coord</span>
+
+<div class="viewcode-block" id="Lattice.draw"><a class="viewcode-back" href="../../../docs/_generated/graph/netket.graph.Lattice.html#netket.graph.Lattice.draw">[docs]</a>    <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">figsize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">node_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;#1f78b4&quot;</span><span class="p">,</span>
+        <span class="n">node_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
+        <span class="n">edge_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;k&quot;</span><span class="p">,</span>
+        <span class="n">curvature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">font_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="n">font_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;k&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Draws the ``Lattice`` graph</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ax: Matplotlib axis object.</span>
+<span class="sd">            figsize: (width, height) tuple of the generated figure.</span>
+<span class="sd">            node_color: String with the colour of the nodes.</span>
+<span class="sd">            node_size: Area of the nodes (as in matplotlib.pyplot.scatter).</span>
+<span class="sd">            edge_color: String with the colour of the edges.</span>
+<span class="sd">            curvature: A Bezier curve is fit, where the &quot;height&quot; of the curve is `curvature`</span>
+<span class="sd">                times the &quot;length&quot; of the curvature.</span>
+<span class="sd">            font_size: fontsize of the labels for each node.</span>
+<span class="sd">            font_color: Colour of the font used to label nodes.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Matplotlib axis object containing the graph&#39;s drawing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+        <span class="c1"># Check if lattice is 1D or 2D... or not</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_atoms</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;r_coord&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">n</span><span class="p">:</span> <span class="n">_np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">site_to_coord</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;constant&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="k">elif</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">site_to_coord</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">()}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Make sure that the graph is 1D or 2D in order to be drawn. Now it is </span><span class="si">{</span><span class="n">ndim</span><span class="si">}</span><span class="s2">D&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">)</span>
+
+        <span class="c1"># FIXME (future) as of 11Apr2021, networkx can draw curved</span>
+        <span class="c1"># edges only for directed graphs.</span>
+        <span class="n">_nx</span><span class="o">.</span><span class="n">draw_networkx_edges</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">to_directed</span><span class="p">(),</span>
+            <span class="n">pos</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span>
+            <span class="n">edgelist</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">(),</span>
+            <span class="n">connectionstyle</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;arc3,rad=</span><span class="si">{</span><span class="n">curvature</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+            <span class="n">arrowsize</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+            <span class="n">edge_color</span><span class="o">=</span><span class="n">edge_color</span><span class="p">,</span>
+            <span class="n">node_size</span><span class="o">=</span><span class="n">node_size</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">_nx</span><span class="o">.</span><span class="n">draw_networkx_nodes</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">node_color</span><span class="o">=</span><span class="n">node_color</span><span class="p">,</span> <span class="n">node_size</span><span class="o">=</span><span class="n">node_size</span>
+        <span class="p">)</span>
+        <span class="n">_nx</span><span class="o">.</span><span class="n">draw_networkx_labels</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">font_size</span><span class="o">=</span><span class="n">font_size</span><span class="p">,</span> <span class="n">font_color</span><span class="o">=</span><span class="n">font_color</span>
+        <span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ax</span></div>
 
 <div class="viewcode-block" id="Lattice.atom_label"><a class="viewcode-back" href="../../../docs/_generated/graph/netket.graph.Lattice.html#netket.graph.Lattice.atom_label">[docs]</a>    <span class="k">def</span> <span class="nf">atom_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">site</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atoms</span><span class="p">[</span><span class="n">site</span><span class="p">][</span><span class="s2">&quot;Label&quot;</span><span class="p">]</span></div>
