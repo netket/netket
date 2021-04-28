@@ -40,6 +40,14 @@ def O_vjp(forward_fn, params, samples, w):
     return jax.tree_map(sum_inplace, res)  # allreduce w/ MPI.SUM
 
 
+def O_vjp_rc(forward_fn, params, samples, w):
+    _, vjp_fun = jax.vjp(forward_fn, params, samples)
+    res_r, _ = vjp_fun(w)
+    res_i, _ = vjp_fun(-1.0j * w)
+    res = jax.tree_multimap(jax.lax.complex, res_r, res_i)
+    return jax.tree_map(sum_inplace, res)  # allreduce w/ MPI.SUM
+
+
 def O_mean(forward_fn, params, samples, holomorphic=True):
     r"""
     compute \langle O \rangle
@@ -48,7 +56,7 @@ def O_mean(forward_fn, params, samples, holomorphic=True):
 
     # determine the output type of the forward pass
     dtype = jax.eval_shape(forward_fn, params, samples).dtype
-    w = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
+    w = jnp.array([1.0 / (samples.shape[0] * n_nodes)], dtype=dtype)
 
     homogeneous = nkjax.tree_ishomogeneous(params)
     real_params = not nkjax.tree_leaf_iscomplex(params)
@@ -57,8 +65,7 @@ def O_mean(forward_fn, params, samples, holomorphic=True):
     if homogeneous and (real_params or holomorphic):
         if real_params and not real_out:
             # R->C
-            res = nkjax.vjp(forward_fn, params, samples)[1](w)[0]
-            return jax.tree_map(sum_inplace, res)
+            return O_vjp_rc(forward_fn, params, samples, w)
         else:
             # R->R and holomorphic C->C
             return O_vjp(forward_fn, params, samples, w)
