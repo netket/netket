@@ -1,0 +1,22 @@
+﻿netket.logging.StateLog
+=======================
+
+.. currentmodule:: netket.logging
+
+.. autoclass:: StateLog
+   :show-inheritance:
+
+   .. automethod:: StateLog.__init__
+
+   
+      
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: StateLog.__call__
+      .. automethod:: StateLog.close
+      .. automethod:: StateLog.flush
+
+   

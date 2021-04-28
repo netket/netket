@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>netket.exact &#8212; netket v3.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/panels-variables.06eb56fa6e07937060861dad626602ad.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/jumbo-style.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/all.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/rtd_theme.css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/rtd_theme.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../index.html"><span><img src="../../_static/logonav.png"></span>
+          NetKet</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../getting_started.html">Get Started</a></li>
+                <li><a href="../../docs/getting_started.html">Documentation</a></li>
+                <li><a href="../../tutorials.html">Tutorials</a></li>
+                <li><a href="../../citing.html">Citing NetKet</a></li>
+                <li><a href="../../about.html">About</a></li>
+                <li><a href="https://github.com/netket/netket"><i class="fab fa-github" aria-hidden="true"></i></a></li>
+                <li><a href="https://twitter.com/NetKetOrg"><i class="fab fa-twitter" aria-hidden="true"></i></a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for netket.exact</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2020, 2021 The NetKet Authors - All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#    http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">itertools</span> <span class="k">as</span> <span class="nn">_itertools</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">LinearOperator</span><span class="p">,</span> <span class="n">bicgstab</span>
+
+<span class="kn">from</span> <span class="nn">.operator</span> <span class="kn">import</span> <span class="n">AbstractOperator</span>
+
+<span class="kn">from</span> <span class="nn">._exact_dynamics</span> <span class="kn">import</span> <span class="n">PyExactTimePropagation</span>
+
+
+<div class="viewcode-block" id="lanczos_ed"><a class="viewcode-back" href="../../docs/_generated/exact/netket.exact.lanczos_ed.html#netket.exact.lanczos_ed">[docs]</a><span class="k">def</span> <span class="nf">lanczos_ed</span><span class="p">(</span>
+    <span class="n">operator</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">compute_eigenvectors</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">matrix_free</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">scipy_args</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes `first_n` smallest eigenvalues and, optionally, eigenvectors</span>
+<span class="sd">    of a Hermitian operator using `scipy.sparse.linalg.eigsh`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        operator: NetKet operator to diagonalize.</span>
+<span class="sd">        k: The number of eigenvalues to compute.</span>
+<span class="sd">        compute_eigenvectors: Whether or not to return the</span>
+<span class="sd">            eigenvectors of the operator. With ARPACK, not requiring the</span>
+<span class="sd">            eigenvectors has almost no performance benefits.</span>
+<span class="sd">        matrix_free: If true, matrix elements are computed on the fly.</span>
+<span class="sd">            Otherwise, the operator is first converted to a sparse matrix.</span>
+<span class="sd">        scipy_args: Additional keyword arguments passed to `scipy.sparse.linalg.eigvalsh`.</span>
+<span class="sd">            See the Scipy documentation for further information.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors` is True.</span>
+
+<span class="sd">        w: Array containing the lowest `first_n` eigenvalues.</span>
+
+<span class="sd">        v: Array containing the eigenvectors as columns, such that`v[:, i]` corresponds to `w[i]`.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        Test for 1D Ising chain with 8 sites.</span>
+<span class="sd">        s</span>
+<span class="sd">        &gt;&gt;&gt; import netket as nk</span>
+<span class="sd">        &gt;&gt;&gt; hi = nk.hilbert.Spin(s=1/2)**8</span>
+<span class="sd">        &gt;&gt;&gt; hamiltonian = nk.operator.Ising(hi, h=1.0)</span>
+<span class="sd">        &gt;&gt;&gt; w = nk.exact.lanczos_ed(hamiltonian, k=3)</span>
+<span class="sd">        &gt;&gt;&gt; w</span>
+<span class="sd">        array([-10.25166179, -10.05467898,  -8.69093921])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">eigsh</span>
+
+    <span class="n">actual_scipy_args</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">scipy_args</span><span class="p">:</span>
+        <span class="n">actual_scipy_args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">scipy_args</span><span class="p">)</span>
+    <span class="n">actual_scipy_args</span><span class="p">[</span><span class="s2">&quot;which&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;SA&quot;</span>
+    <span class="n">actual_scipy_args</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">k</span>
+    <span class="n">actual_scipy_args</span><span class="p">[</span><span class="s2">&quot;return_eigenvectors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">compute_eigenvectors</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">eigsh</span><span class="p">(</span>
+        <span class="n">operator</span><span class="o">.</span><span class="n">to_linear_operator</span><span class="p">()</span> <span class="k">if</span> <span class="n">matrix_free</span> <span class="k">else</span> <span class="n">operator</span><span class="o">.</span><span class="n">to_sparse</span><span class="p">(),</span>
+        <span class="o">**</span><span class="n">actual_scipy_args</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">compute_eigenvectors</span><span class="p">:</span>
+        <span class="c1"># The sort order of eigenvalues returned by scipy changes based on</span>
+        <span class="c1"># `return_eigenvalues`. Therefore we invert the order here so that the</span>
+        <span class="c1"># smallest eigenvalue is still the first one.</span>
+        <span class="k">return</span> <span class="n">result</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="full_ed"><a class="viewcode-back" href="../../docs/_generated/exact/netket.exact.full_ed.html#netket.exact.full_ed">[docs]</a><span class="k">def</span> <span class="nf">full_ed</span><span class="p">(</span><span class="n">operator</span><span class="p">:</span> <span class="n">AbstractOperator</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">compute_eigenvectors</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes all eigenvalues and, optionally, eigenvectors</span>
+<span class="sd">    of a Hermitian operator by full diagonalization.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        operator: NetKet operator to diagonalize.</span>
+<span class="sd">        compute_eigenvectors: Whether or not to return the eigenvectors</span>
+<span class="sd">            of the operator.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors` is True.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">        Test for 1D Ising chain with 8 sites.</span>
+
+<span class="sd">        &gt;&gt;&gt; import netket as nk</span>
+<span class="sd">        &gt;&gt;&gt; hi = nk.hilbert.Spin(nk.graph.Chain(8), s=1/2)</span>
+<span class="sd">        &gt;&gt;&gt; hamiltonian = nk.operator.Ising(hi, h=1.0)</span>
+<span class="sd">        &gt;&gt;&gt; w = nk.exact.full_ed(hamiltonian)</span>
+<span class="sd">        &gt;&gt;&gt; w.shape</span>
+<span class="sd">        (256,)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="kn">import</span> <span class="n">eigh</span><span class="p">,</span> <span class="n">eigvalsh</span>
+
+    <span class="n">dense_op</span> <span class="o">=</span> <span class="n">operator</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">compute_eigenvectors</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">eigh</span><span class="p">(</span><span class="n">dense_op</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">eigvalsh</span><span class="p">(</span><span class="n">dense_op</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="steady_state"><a class="viewcode-back" href="../../docs/_generated/exact/netket.exact.steady_state.html#netket.exact.steady_state">[docs]</a><span class="k">def</span> <span class="nf">steady_state</span><span class="p">(</span><span class="n">lindblad</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;ed&quot;</span><span class="p">,</span> <span class="n">rho0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computes the numerically exact steady-state of a lindblad master equation.</span>
+<span class="sd">    The computation is performed either through the exact diagonalization of the</span>
+<span class="sd">    hermitian :math:`L^\dagger L` matrix, or by means of an iterative solver (bicgstabl)</span>
+<span class="sd">    targeting the solution of the non-hermitian system :math:`L\rho = 0`</span>
+<span class="sd">    and :math:`\mathrm{Tr}[\rho] = 1`.</span>
+
+<span class="sd">    Note that for systems with 7 or more sites it is usually computationally impossible</span>
+<span class="sd">    to build the full lindblad operator and therefore only `iterative` will work.</span>
+
+<span class="sd">    Note that for systems with hilbert spaces with dimensions above 40k, tol</span>
+<span class="sd">    should be set to a lower value if the steady state has non-trivial correlations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        lindblad: The lindbladian encoding the master equation.</span>
+<span class="sd">        sparse: Whever to use sparse matrices (default: False for ed, True for iterative)</span>
+<span class="sd">        method: &#39;ed&#39; (exact diagonalization) or &#39;iterative&#39; (iterative bicgstabl)</span>
+<span class="sd">        rho0: starting density matrix for the iterative diagonalization (default: None)</span>
+<span class="sd">        kwargs...: additional kwargs passed to bicgstabl</span>
+
+<span class="sd">    For full docs please consult SciPy documentation at</span>
+<span class="sd">    https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.bicgstab.html</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        maxiter: maximum number of iterations for the iterative solver (default: None)</span>
+<span class="sd">        tol: The precision for the calculation (default: 1e-05)</span>
+<span class="sd">        callback: User-supplied function to call after each iteration. It is called as callback(xk),</span>
+<span class="sd">                  where xk is the current solution vector</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The steady-state density matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">array</span>
+
+    <span class="k">if</span> <span class="n">sparse</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sparse</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">M</span> <span class="o">=</span> <span class="n">lindblad</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">n_states</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;ed&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">sparse</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="kn">import</span> <span class="n">eigh</span>
+            <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+
+            <span class="n">warn</span><span class="p">(</span>
+                <span class="sd">&quot;&quot;&quot;For reasons unknown to me, using dense diagonalisation on this</span>
+<span class="sd">                matrix results in very low precision of the resulting steady-state</span>
+<span class="sd">                since the update to numpy 1.9.</span>
+<span class="sd">                We suggest using sparse=True, however, if you wish not to, you have</span>
+<span class="sd">                been warned.</span>
+<span class="sd">                Your digits are your reponsability now.&quot;&quot;&quot;</span>
+            <span class="p">)</span>
+
+            <span class="n">lind_mat</span> <span class="o">=</span> <span class="n">lindblad</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+
+            <span class="n">ldagl</span> <span class="o">=</span> <span class="n">lind_mat</span><span class="o">.</span><span class="n">H</span> <span class="o">*</span> <span class="n">lind_mat</span>
+            <span class="n">w</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">eigh</span><span class="p">(</span><span class="n">ldagl</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">scipy.sparse.linalg</span> <span class="kn">import</span> <span class="n">eigsh</span>
+
+            <span class="n">lind_mat</span> <span class="o">=</span> <span class="n">lindblad</span><span class="o">.</span><span class="n">to_sparse</span><span class="p">()</span>
+            <span class="n">ldagl</span> <span class="o">=</span> <span class="n">lind_mat</span><span class="o">.</span><span class="n">H</span> <span class="o">*</span> <span class="n">lind_mat</span>
+
+            <span class="n">w</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">eigsh</span><span class="p">(</span><span class="n">ldagl</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s2">&quot;SM&quot;</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Minimum eigenvalue is: &quot;</span><span class="p">,</span> <span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">v</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">M</span><span class="p">))</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">/</span> <span class="n">rho</span><span class="o">.</span><span class="n">trace</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;iterative&quot;</span><span class="p">:</span>
+        <span class="c1"># An extra row is added at the bottom of the therefore M^2+1 long array,</span>
+        <span class="c1"># with the trace of the density matrix. This is needed to enforce the</span>
+        <span class="c1"># trace-1 condition.</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">lindblad</span><span class="o">.</span><span class="n">to_linear_operator</span><span class="p">(</span><span class="n">sparse</span><span class="o">=</span><span class="n">sparse</span><span class="p">,</span> <span class="n">append_trace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Initial density matrix ( + trace condition)</span>
+        <span class="n">Lrho_start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">M</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rho0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Lrho_start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">Lrho_start</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Lrho_start</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">rho0</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">Lrho_start</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">rho0</span><span class="o">.</span><span class="n">trace</span><span class="p">()</span>
+
+        <span class="c1"># Target residual (everything 0 and trace 1)</span>
+        <span class="n">Lrho_target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">M</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">L</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">Lrho_target</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="c1"># Iterative solver</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Starting iterative solver...&quot;</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">bicgstab</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">Lrho_target</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="n">Lrho_start</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">res</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">M</span><span class="p">,</span> <span class="n">M</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">info</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Converged trace is &quot;</span><span class="p">,</span> <span class="n">rho</span><span class="o">.</span><span class="n">trace</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="n">info</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Failed to converge after &quot;</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="s2">&quot; ( trace is &quot;</span><span class="p">,</span> <span class="n">rho</span><span class="o">.</span><span class="n">trace</span><span class="p">(),</span> <span class="s2">&quot; )&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">info</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;An error occured: &quot;</span><span class="p">,</span> <span class="n">info</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;method must be &#39;ed&#39; or &#39;iterative&#39;&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rho</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019-2021, The Netket authors - All rights reserved.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.4.<br/>
+    </p>
+  </div>
+</footer>
+
+<script type="text/javascript">
+    jQuery(function () {
+        SphinxRtdTheme.Navigation.enable(true);
+      })
+</script>
+
+<!-- Temporary footer
+<div class="footer-wip">
+  <div class="footer-wip-content">
+    This documentation refers to an unreleased version of Netket.
+  </div>
+</div>
+-->
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-118013987-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-118013987-1');
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "url": "https://www.netket.org",
+  "name": "NetKet",
+  "founder": "Giuseppe Carleo",
+  "foundingDate": "2018-04-24",
+  "foundingLocation" : "New York",
+  "logo": "https://www.netket.org/img/logo_small.jpg",
+  "sameAs": [
+    "https://twitter.com/NetKetOrg",
+    "https://github.com/NetKet/netket"
+  ],
+  "description" : "Netket is an open-source project delivering cutting-edge
+  methods for the study of many-body quantum systems with artificial neural
+  networks and machine learning techniques."
+}
+</script>
+
+  </body>
+</html>

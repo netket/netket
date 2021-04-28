@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>netket.operator._hamiltonian &#8212; netket v3.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/panels-variables.06eb56fa6e07937060861dad626602ad.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/jumbo-style.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/all.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/rtd_theme.css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/rtd_theme.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../index.html"><span><img src="../../../_static/logonav.png"></span>
+          NetKet</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../getting_started.html">Get Started</a></li>
+                <li><a href="../../../docs/getting_started.html">Documentation</a></li>
+                <li><a href="../../../tutorials.html">Tutorials</a></li>
+                <li><a href="../../../citing.html">Citing NetKet</a></li>
+                <li><a href="../../../about.html">About</a></li>
+                <li><a href="https://github.com/netket/netket"><i class="fab fa-github" aria-hidden="true"></i></a></li>
+                <li><a href="https://twitter.com/NetKetOrg"><i class="fab fa-twitter" aria-hidden="true"></i></a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for netket.operator._hamiltonian</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2021 The NetKet Authors - All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#    http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">jit</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">netket.graph</span> <span class="kn">import</span> <span class="n">AbstractGraph</span><span class="p">,</span> <span class="n">Graph</span>
+<span class="kn">from</span> <span class="nn">netket.hilbert</span> <span class="kn">import</span> <span class="n">AbstractHilbert</span><span class="p">,</span> <span class="n">Fock</span>
+<span class="kn">from</span> <span class="nn">netket.utils.types</span> <span class="kn">import</span> <span class="n">DType</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">spin</span><span class="p">,</span> <span class="n">boson</span>
+<span class="kn">from</span> <span class="nn">._local_operator</span> <span class="kn">import</span> <span class="n">LocalOperator</span>
+<span class="kn">from</span> <span class="nn">._graph_operator</span> <span class="kn">import</span> <span class="n">GraphOperator</span>
+<span class="kn">from</span> <span class="nn">._abstract_operator</span> <span class="kn">import</span> <span class="n">AbstractOperator</span>
+<span class="kn">from</span> <span class="nn">._lazy</span> <span class="kn">import</span> <span class="n">Transpose</span><span class="p">,</span> <span class="n">Adjoint</span><span class="p">,</span> <span class="n">Squared</span>
+
+
+<span class="k">class</span> <span class="nc">SpecialHamiltonian</span><span class="p">(</span><span class="n">AbstractOperator</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">to_local_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;Must implemented to_local_operator for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">conjugate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">concrete</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span><span class="o">.</span><span class="n">conjugate</span><span class="p">(</span><span class="n">concrete</span><span class="o">=</span><span class="n">concrete</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">res</span> <span class="o">+=</span> <span class="n">other</span>
+            <span class="k">return</span> <span class="n">res</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span><span class="o">.</span><span class="fm">__add__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">res</span> <span class="o">-=</span> <span class="n">other</span>
+            <span class="k">return</span> <span class="n">res</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span><span class="o">.</span><span class="fm">__sub__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">res</span> <span class="o">+=</span> <span class="n">other</span>
+            <span class="k">return</span> <span class="n">res</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span><span class="o">.</span><span class="fm">__radd__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__rsub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">res</span> <span class="o">-=</span> <span class="n">other</span>
+            <span class="k">return</span> <span class="n">res</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span><span class="o">.</span><span class="fm">__rsub__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_iadd_same_hamiltonian</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__isub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_isub_same_hamiltonian</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span><span class="o">.</span><span class="fm">__rmul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_op__matmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span><span class="o">.</span><span class="fm">__matmul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_op__rmatmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_hermitian</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Squared</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span><span class="o">.</span><span class="fm">__matmul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_concrete_matmul_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_local_operator</span><span class="p">()</span> <span class="o">@</span> <span class="n">other</span>
+
+
+<div class="viewcode-block" id="Ising"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.Ising.html#netket.operator.Ising">[docs]</a><span class="k">class</span> <span class="nc">Ising</span><span class="p">(</span><span class="n">SpecialHamiltonian</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The Transverse-Field Ising Hamiltonian :math:`-h\sum_i \sigma_i^{(x)} +J\sum_{\langle i,j\rangle} \sigma_i^{(z)}\sigma_j^{(z)}`.</span>
+
+<span class="sd">    This implementation is considerably faster than the Ising hamiltonian constructed by summing :class:`~netket.operator.LocalOperator` s.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Ising.__init__"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.Ising.html#netket.operator.Ising.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hilbert</span><span class="p">:</span> <span class="n">AbstractHilbert</span><span class="p">,</span>
+        <span class="n">graph</span><span class="p">:</span> <span class="n">AbstractGraph</span><span class="p">,</span>
+        <span class="n">h</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">J</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">DType</span> <span class="o">=</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructs the Ising Operator from an hilbert space and a</span>
+<span class="sd">        graph specifying the connectivity.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hilbert: Hilbert space the operator acts on.</span>
+<span class="sd">            h: The strength of the transverse field.</span>
+<span class="sd">            J: The strength of the coupling. Default is 1.0.</span>
+<span class="sd">            dtype: The dtype of the matrix elements.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            Constructs an ``Ising`` operator for a 1D system.</span>
+
+<span class="sd">            &gt;&gt;&gt; import netket as nk</span>
+<span class="sd">            &gt;&gt;&gt; g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)</span>
+<span class="sd">            &gt;&gt;&gt; hi = nk.hilbert.Spin(s=0.5, graph=g)</span>
+<span class="sd">            &gt;&gt;&gt; op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5)</span>
+<span class="sd">            &gt;&gt;&gt; print(op.hilbert.size)</span>
+<span class="sd">            20</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">n_nodes</span> <span class="o">==</span> <span class="n">hilbert</span><span class="o">.</span><span class="n">size</span>
+        <span class="p">),</span> <span class="s2">&quot;The size of the graph must match the hilbert space&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">hilbert</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_J</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">(</span><span class="n">J</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">intp</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">dtype</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">h</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The magnitude of the transverse field&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">J</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The magnitude of the hopping&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_J</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">edges</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_hermitian</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DType</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span>
+
+<div class="viewcode-block" id="Ising.conjugate"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.Ising.html#netket.operator.Ising.conjugate">[docs]</a>    <span class="k">def</span> <span class="nf">conjugate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">concrete</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="c1"># if real</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">J</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="Ising.n_conn"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.Ising.html#netket.operator.Ising.n_conn">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">n_conn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the number of states connected to x.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (matrix): A matrix of shape (batch_size,hilbert.size) containing</span>
+<span class="sd">                        the batch of quantum numbers x.</span>
+<span class="sd">            out (array): If None an output array is allocated.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            array: The number of connected states x&#39; for each x[i].</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">max_conn_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The maximum number of non zero ⟨x|O|x&#39;⟩ for every x.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="Ising.copy"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.Ising.html#netket.operator.Ising.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="n">Graph</span><span class="p">(</span><span class="n">edges</span><span class="o">=</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span> <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">Ising</span><span class="p">(</span><span class="n">hilbert</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">J</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Ising.to_local_operator"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.Ising.html#netket.operator.Ising.to_local_operator">[docs]</a>    <span class="k">def</span> <span class="nf">to_local_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># The hamiltonian</span>
+        <span class="n">ha</span> <span class="o">=</span> <span class="n">LocalOperator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+                <span class="n">ha</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">sigmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">J</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">:</span>
+                <span class="n">ha</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J</span> <span class="o">*</span> <span class="p">(</span>
+                    <span class="n">spin</span><span class="o">.</span><span class="n">sigmaz</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">sigmaz</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ha</span></div>
+
+    <span class="k">def</span> <span class="nf">_iadd_same_hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">hilbert</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot add hamiltonians on different hilbert spaces&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h</span> <span class="o">+=</span> <span class="n">other</span><span class="o">.</span><span class="n">h</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_J</span> <span class="o">+=</span> <span class="n">other</span><span class="o">.</span><span class="n">J</span>
+
+    <span class="k">def</span> <span class="nf">_isub_same_hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">hilbert</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot add hamiltonians on different hilbert spaces&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h</span> <span class="o">-=</span> <span class="n">other</span><span class="o">.</span><span class="n">h</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_J</span> <span class="o">-=</span> <span class="n">other</span><span class="o">.</span><span class="n">J</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_flattened_kernel</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">sections</span><span class="p">,</span>
+        <span class="n">edges</span><span class="p">,</span>
+        <span class="n">h</span><span class="p">,</span>
+        <span class="n">J</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">n_sites</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">n_conn</span> <span class="o">=</span> <span class="n">n_sites</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">x_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_conn</span><span class="p">,</span>
+                <span class="n">n_sites</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">mels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">h</span><span class="p">))</span>
+
+        <span class="n">diag_ind</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">mels</span><span class="p">[</span><span class="n">diag_ind</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">edges</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">mels</span><span class="p">[</span><span class="n">diag_ind</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
+                    <span class="n">J</span>
+                    <span class="o">*</span> <span class="n">x</span><span class="p">[</span>
+                        <span class="n">i</span><span class="p">,</span>
+                        <span class="n">edges</span><span class="p">[</span>
+                            <span class="n">k</span><span class="p">,</span>
+                            <span class="mi">0</span><span class="p">,</span>
+                        <span class="p">],</span>
+                    <span class="p">]</span>
+                    <span class="o">*</span> <span class="n">x</span><span class="p">[</span>
+                        <span class="n">i</span><span class="p">,</span>
+                        <span class="n">edges</span><span class="p">[</span>
+                            <span class="n">k</span><span class="p">,</span>
+                            <span class="mi">1</span><span class="p">,</span>
+                        <span class="p">],</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+
+            <span class="n">odiag_ind</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">diag_ind</span>
+
+            <span class="n">mels</span><span class="p">[</span><span class="n">odiag_ind</span> <span class="p">:</span> <span class="p">(</span><span class="n">odiag_ind</span> <span class="o">+</span> <span class="n">n_sites</span><span class="p">)]</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="o">-</span><span class="n">h</span><span class="p">)</span>
+
+            <span class="n">x_prime</span><span class="p">[</span><span class="n">diag_ind</span> <span class="p">:</span> <span class="p">(</span><span class="n">diag_ind</span> <span class="o">+</span> <span class="n">n_conn</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sites</span><span class="p">):</span>
+                <span class="n">x_prime</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="n">odiag_ind</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mf">1.0</span>
+
+            <span class="n">diag_ind</span> <span class="o">+=</span> <span class="n">n_conn</span>
+
+            <span class="n">sections</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">diag_ind</span>
+
+        <span class="k">return</span> <span class="n">x_prime</span><span class="p">,</span> <span class="n">mels</span>
+
+<div class="viewcode-block" id="Ising.get_conn_flattened"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.Ising.html#netket.operator.Ising.get_conn_flattened">[docs]</a>    <span class="k">def</span> <span class="nf">get_conn_flattened</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">sections</span><span class="p">,</span>
+        <span class="n">pad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Finds the connected elements of the Operator. Starting</span>
+<span class="sd">        from a given quantum number x, it finds all other quantum numbers x&#39; such</span>
+<span class="sd">        that the matrix element :math:`O(x,x&#39;)` is different from zero. In general there</span>
+<span class="sd">        will be several different connected states x&#39; satisfying this</span>
+<span class="sd">        condition, and they are denoted here :math:`x&#39;(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.</span>
+
+<span class="sd">        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (matrix): A matrix of shape (batch_size,hilbert.size) containing</span>
+<span class="sd">                        the batch of quantum numbers x.</span>
+<span class="sd">            sections (array): An array of size (batch_size) useful to unflatten</span>
+<span class="sd">                        the output of this function.</span>
+<span class="sd">                        See numpy.split for the meaning of sections.</span>
+<span class="sd">            pad (bool): no effect here</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            matrix: The connected states x&#39;, flattened together in a single matrix.</span>
+<span class="sd">            array: An array containing the matrix elements :math:`O(x,x&#39;)` associated to each x&#39;.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flattened_kernel</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="n">sections</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_h</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_J</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_conn_flattened_closure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span>
+        <span class="n">_h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h</span>
+        <span class="n">_J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_J</span>
+        <span class="n">fun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flattened_kernel</span>
+
+        <span class="k">def</span> <span class="nf">gccf_fun</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sections</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">fun</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sections</span><span class="p">,</span> <span class="n">_edges</span><span class="p">,</span> <span class="n">_h</span><span class="p">,</span> <span class="n">_J</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)(</span><span class="n">gccf_fun</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Ising(J=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_J</span><span class="si">}</span><span class="s2">, h=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_h</span><span class="si">}</span><span class="s2">; dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+
+<div class="viewcode-block" id="Heisenberg"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.Heisenberg.html#netket.operator.Heisenberg">[docs]</a><span class="k">class</span> <span class="nc">Heisenberg</span><span class="p">(</span><span class="n">GraphOperator</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The Heisenberg hamiltonian on a lattice.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Heisenberg.__init__"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.Heisenberg.html#netket.operator.Heisenberg.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hilbert</span><span class="p">:</span> <span class="n">AbstractHilbert</span><span class="p">,</span>
+        <span class="n">graph</span><span class="p">:</span> <span class="n">AbstractGraph</span><span class="p">,</span>
+        <span class="n">J</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">sign_rule</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructs an Heisenberg operator given a hilbert space and a graph providing the</span>
+<span class="sd">        connectivity of the lattice.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hilbert: Hilbert space the operator acts on.</span>
+<span class="sd">            graph: The graph upon which this hamiltonian is defined.</span>
+<span class="sd">            J: The strength of the coupling. Default is 1.</span>
+<span class="sd">            sign_rule: If enabled, Marshal&#39;s sign rule will be used. On a bipartite</span>
+<span class="sd">                       lattice, this corresponds to a basis change flipping the Sz direction</span>
+<span class="sd">                       at every odd site of the lattice. For non-bipartite lattices, the</span>
+<span class="sd">                       sign rule cannot be applied. Defaults to True if the lattice is</span>
+<span class="sd">                       bipartite, False otherwise.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">         Constructs a ``Heisenberg`` operator for a 1D system.</span>
+
+<span class="sd">            &gt;&gt;&gt; import netket as nk</span>
+<span class="sd">            &gt;&gt;&gt; g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)</span>
+<span class="sd">            &gt;&gt;&gt; hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)</span>
+<span class="sd">            &gt;&gt;&gt; op = nk.operator.Heisenberg(hilbert=hi)</span>
+<span class="sd">            &gt;&gt;&gt; print(op.hilbert.size)</span>
+<span class="sd">            20</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">sign_rule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sign_rule</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">is_bipartite</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_J</span> <span class="o">=</span> <span class="n">J</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sign_rule</span> <span class="o">=</span> <span class="n">sign_rule</span>
+
+        <span class="n">sz_sz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">exchange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">sign_rule</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">graph</span><span class="o">.</span><span class="n">is_bipartite</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;sign_rule=True specified for a non-bipartite lattice&quot;</span><span class="p">)</span>
+            <span class="n">heis_term</span> <span class="o">=</span> <span class="n">sz_sz</span> <span class="o">-</span> <span class="n">exchange</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">heis_term</span> <span class="o">=</span> <span class="n">sz_sz</span> <span class="o">+</span> <span class="n">exchange</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">hilbert</span><span class="p">,</span>
+            <span class="n">graph</span><span class="p">,</span>
+            <span class="n">bond_ops</span><span class="o">=</span><span class="p">[</span><span class="n">J</span> <span class="o">*</span> <span class="n">heis_term</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">J</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The coupling strength.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_J</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">uses_sign_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sign_rule</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Heisenberg(J=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_J</span><span class="si">}</span><span class="s2">, sign_rule=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_sign_rule</span><span class="si">}</span><span class="s2">; dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+
+<div class="viewcode-block" id="BoseHubbard"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard">[docs]</a><span class="k">class</span> <span class="nc">BoseHubbard</span><span class="p">(</span><span class="n">SpecialHamiltonian</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An extended Bose Hubbard model Hamiltonian operator, containing both</span>
+<span class="sd">    on-site interactions and nearest-neighboring density-density interactions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BoseHubbard.__init__"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hilbert</span><span class="p">:</span> <span class="n">AbstractHilbert</span><span class="p">,</span>
+        <span class="n">graph</span><span class="p">:</span> <span class="n">AbstractGraph</span><span class="p">,</span>
+        <span class="n">U</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">V</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">J</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">DType</span> <span class="o">=</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructs a new BoseHubbard operator given a hilbert space, a graph</span>
+<span class="sd">        specifying the connectivity and the interaction strength.</span>
+<span class="sd">        The chemical potential and the density-density interaction strenght</span>
+<span class="sd">        can be specified as well.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">           hilbert: Hilbert space the operator acts on.</span>
+<span class="sd">           U: The on-site interaction term.</span>
+<span class="sd">           V: The strength of density-density interaction term.</span>
+<span class="sd">           J: The hopping amplitude.</span>
+<span class="sd">           mu: The chemical potential.</span>
+<span class="sd">           dtype: The dtype of the matrix eleements.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">           Constructs a BoseHubbard operator for a 2D system.</span>
+
+<span class="sd">           &gt;&gt;&gt; import netket as nk</span>
+<span class="sd">           &gt;&gt;&gt; g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)</span>
+<span class="sd">           &gt;&gt;&gt; hi = nk.hilbert.Boson(n_max=3, n_bosons=6, N=g.n_nodes)</span>
+<span class="sd">           &gt;&gt;&gt; op = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)</span>
+<span class="sd">           &gt;&gt;&gt; print(op.hilbert.size)</span>
+<span class="sd">           9</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">n_nodes</span> <span class="o">==</span> <span class="n">hilbert</span><span class="o">.</span><span class="n">size</span>
+        <span class="p">),</span> <span class="s2">&quot;The size of the graph must match the hilbert space.&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">Fock</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">hilbert</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_U</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_V</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_J</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">(</span><span class="n">J</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mu</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_max</span> <span class="o">=</span> <span class="n">hilbert</span><span class="o">.</span><span class="n">n_max</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_sites</span> <span class="o">=</span> <span class="n">hilbert</span><span class="o">.</span><span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_xprime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_sites</span><span class="p">))</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_hermitian</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">edges</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">U</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The strength of on-site interaction term.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">V</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The strength of density-density interaction term.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_V</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">J</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The hopping amplitude.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_J</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The chemical potential.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mu</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_hermitian</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="BoseHubbard.copy"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="n">Graph</span><span class="p">(</span><span class="n">edges</span><span class="o">=</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span> <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">BoseHubbard</span><span class="p">(</span>
+            <span class="n">hilbert</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span>
+            <span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span>
+            <span class="n">J</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">J</span><span class="p">,</span>
+            <span class="n">U</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="p">,</span>
+            <span class="n">V</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">,</span>
+            <span class="n">mu</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BoseHubbard.to_local_operator"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard.to_local_operator">[docs]</a>    <span class="k">def</span> <span class="nf">to_local_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># The hamiltonian</span>
+        <span class="n">ha</span> <span class="o">=</span> <span class="n">LocalOperator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">U</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+                <span class="n">n_i</span> <span class="o">=</span> <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">ha</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">U</span> <span class="o">*</span> <span class="n">n_i</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span> <span class="o">*</span> <span class="n">n_i</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">J</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">:</span>
+                <span class="n">ha</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="o">*</span> <span class="p">(</span>
+                    <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">number</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">ha</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J</span> <span class="o">*</span> <span class="p">(</span>
+                    <span class="n">boson</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">boson</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">boson</span><span class="o">.</span><span class="n">destroy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ha</span></div>
+
+    <span class="k">def</span> <span class="nf">_iadd_same_hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">hilbert</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot add hamiltonians on different hilbert spaces&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mu</span> <span class="o">+=</span> <span class="n">other</span><span class="o">.</span><span class="n">mu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_U</span> <span class="o">+=</span> <span class="n">other</span><span class="o">.</span><span class="n">U</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_J</span> <span class="o">+=</span> <span class="n">other</span><span class="o">.</span><span class="n">J</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_V</span> <span class="o">+=</span> <span class="n">other</span><span class="o">.</span><span class="n">V</span>
+
+    <span class="k">def</span> <span class="nf">_isub_same_hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hilbert</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">hilbert</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot add hamiltonians on different hilbert spaces&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mu</span> <span class="o">-=</span> <span class="n">other</span><span class="o">.</span><span class="n">mu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_U</span> <span class="o">-=</span> <span class="n">other</span><span class="o">.</span><span class="n">U</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_J</span> <span class="o">-=</span> <span class="n">other</span><span class="o">.</span><span class="n">J</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_V</span> <span class="o">-=</span> <span class="n">other</span><span class="o">.</span><span class="n">V</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">max_conn_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The maximum number of non zero ⟨x|O|x&#39;⟩ for every x.&quot;&quot;&quot;</span>
+        <span class="c1"># 1 diagonal element + 2 for every coupling</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_edges</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BoseHubbard.get_conn"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard.get_conn">[docs]</a>    <span class="k">def</span> <span class="nf">get_conn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Finds the connected elements of the Operator. Starting</span>
+<span class="sd">        from a given quantum number x, it finds all other quantum numbers x&#39; such</span>
+<span class="sd">        that the matrix element :math:`O(x,x&#39;)` is different from zero. In general there</span>
+<span class="sd">        will be several different connected states x&#39; satisfying this</span>
+<span class="sd">        condition, and they are denoted here :math:`x&#39;(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.</span>
+
+<span class="sd">        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (array): An array of shape (hilbert.size) containing the quantum numbers x.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            matrix: The connected states x&#39; of shape (N_connected,hilbert.size)</span>
+<span class="sd">            array: An array containing the matrix elements :math:`O(x,x&#39;)` associated to each x&#39;.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span>
+        <span class="n">x_prime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_xprime</span>
+
+        <span class="n">mels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">x_prime</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_J</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_V</span>
+        <span class="n">sqrt</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span>
+        <span class="n">n_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_max</span>
+
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span><span class="p">:</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">e</span>
+            <span class="n">n_i</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">n_j</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">mels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">V</span> <span class="o">*</span> <span class="n">n_i</span> <span class="o">*</span> <span class="n">n_j</span>
+
+            <span class="c1"># destroy on i create on j</span>
+            <span class="k">if</span> <span class="n">n_i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">n_j</span> <span class="o">&lt;</span> <span class="n">n_max</span><span class="p">:</span>
+                <span class="n">mels</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">J</span> <span class="o">*</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">n_i</span><span class="p">)</span> <span class="o">*</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">n_j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">x_prime</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">x_prime</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mf">1.0</span>
+                <span class="n">x_prime</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span>
+                <span class="n">c</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># destroy on j create on i</span>
+            <span class="k">if</span> <span class="n">n_j</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">n_i</span> <span class="o">&lt;</span> <span class="n">n_max</span><span class="p">:</span>
+                <span class="n">mels</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">J</span> <span class="o">*</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">n_j</span><span class="p">)</span> <span class="o">*</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">n_i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">x_prime</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">x_prime</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-=</span> <span class="mf">1.0</span>
+                <span class="n">x_prime</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span>
+                <span class="n">c</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">mu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mu</span>
+        <span class="n">Uh</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_sites</span><span class="p">):</span>
+            <span class="c1"># chemical potential</span>
+            <span class="n">mels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="c1"># on-site interaction</span>
+            <span class="n">mels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">Uh</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x_prime</span><span class="p">[:</span><span class="n">c</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mels</span><span class="p">[:</span><span class="n">c</span><span class="p">])</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_flattened_kernel</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">sections</span><span class="p">,</span>
+        <span class="n">edges</span><span class="p">,</span>
+        <span class="n">U</span><span class="p">,</span>
+        <span class="n">V</span><span class="p">,</span>
+        <span class="n">J</span><span class="p">,</span>
+        <span class="n">mu</span><span class="p">,</span>
+        <span class="n">n_max</span><span class="p">,</span>
+        <span class="n">max_conn</span><span class="p">,</span>
+        <span class="n">mels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">x_prime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">n_sites</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">mels_allocated</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">x_prime_allocated</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># When executed as a closure those must be allocated inside the numba jitted function</span>
+        <span class="k">if</span> <span class="n">mels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mels_allocated</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">mels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">max_conn</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">U</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">x_prime</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x_prime_allocated</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">x_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">max_conn</span><span class="p">,</span> <span class="n">n_sites</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pad</span><span class="p">:</span>
+            <span class="n">x_prime</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">mels</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">sqrt</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span>
+        <span class="n">Uh</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">U</span>
+
+        <span class="n">diag_ind</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+            <span class="n">mels</span><span class="p">[</span><span class="n">diag_ind</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">x_prime</span><span class="p">[</span><span class="n">diag_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sites</span><span class="p">):</span>
+                <span class="c1"># chemical potential</span>
+                <span class="n">mels</span><span class="p">[</span><span class="n">diag_ind</span><span class="p">]</span> <span class="o">-=</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
+                <span class="c1"># on-site interaction</span>
+                <span class="n">mels</span><span class="p">[</span><span class="n">diag_ind</span><span class="p">]</span> <span class="o">+=</span> <span class="n">Uh</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
+
+            <span class="n">odiag_ind</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">diag_ind</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">edges</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="n">e</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">edges</span><span class="p">[</span><span class="n">e</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">n_i</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
+                <span class="n">n_j</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                <span class="n">mels</span><span class="p">[</span><span class="n">diag_ind</span><span class="p">]</span> <span class="o">+=</span> <span class="n">V</span> <span class="o">*</span> <span class="n">n_i</span> <span class="o">*</span> <span class="n">n_j</span>
+
+                <span class="c1"># destroy on i create on j</span>
+                <span class="k">if</span> <span class="n">n_i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">n_j</span> <span class="o">&lt;</span> <span class="n">n_max</span><span class="p">:</span>
+                    <span class="n">mels</span><span class="p">[</span><span class="n">odiag_ind</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">J</span> <span class="o">*</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">n_i</span><span class="p">)</span> <span class="o">*</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">n_j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">x_prime</span><span class="p">[</span><span class="n">odiag_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+                    <span class="n">x_prime</span><span class="p">[</span><span class="n">odiag_ind</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mf">1.0</span>
+                    <span class="n">x_prime</span><span class="p">[</span><span class="n">odiag_ind</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span>
+                    <span class="n">odiag_ind</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="c1"># destroy on j create on i</span>
+                <span class="k">if</span> <span class="n">n_j</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">n_i</span> <span class="o">&lt;</span> <span class="n">n_max</span><span class="p">:</span>
+                    <span class="n">mels</span><span class="p">[</span><span class="n">odiag_ind</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">J</span> <span class="o">*</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">n_j</span><span class="p">)</span> <span class="o">*</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">n_i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">x_prime</span><span class="p">[</span><span class="n">odiag_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+                    <span class="n">x_prime</span><span class="p">[</span><span class="n">odiag_ind</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-=</span> <span class="mf">1.0</span>
+                    <span class="n">x_prime</span><span class="p">[</span><span class="n">odiag_ind</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span>
+                    <span class="n">odiag_ind</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">pad</span><span class="p">:</span>
+                <span class="n">odiag_ind</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_conn</span>
+
+            <span class="n">diag_ind</span> <span class="o">=</span> <span class="n">odiag_ind</span>
+
+            <span class="n">sections</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">odiag_ind</span>
+
+        <span class="n">x_prime</span> <span class="o">=</span> <span class="n">x_prime</span><span class="p">[:</span><span class="n">odiag_ind</span><span class="p">]</span>
+        <span class="n">mels</span> <span class="o">=</span> <span class="n">mels</span><span class="p">[:</span><span class="n">odiag_ind</span><span class="p">]</span>
+
+        <span class="c1"># if not allocated return copies</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">x_prime_allocated</span><span class="p">:</span>
+            <span class="n">x_prime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x_prime</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mels_allocated</span><span class="p">:</span>
+            <span class="n">mels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mels</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x_prime</span><span class="p">,</span> <span class="n">mels</span>
+
+<div class="viewcode-block" id="BoseHubbard.get_conn_flattened"><a class="viewcode-back" href="../../../docs/_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard.get_conn_flattened">[docs]</a>    <span class="k">def</span> <span class="nf">get_conn_flattened</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">sections</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Finds the connected elements of the Operator. Starting</span>
+<span class="sd">        from a given quantum number x, it finds all other quantum numbers x&#39; such</span>
+<span class="sd">        that the matrix element :math:`O(x,x&#39;)` is different from zero. In general there</span>
+<span class="sd">        will be several different connected states x&#39; satisfying this</span>
+<span class="sd">        condition, and they are denoted here :math:`x&#39;(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.</span>
+
+<span class="sd">        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (matrix): A matrix of shape (batch_size,hilbert.size) containing</span>
+<span class="sd">                        the batch of quantum numbers x.</span>
+<span class="sd">            sections (array): An array of size (batch_size) useful to unflatten</span>
+<span class="sd">                        the output of this function.</span>
+<span class="sd">                        See numpy.split for the meaning of sections.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            matrix: The connected states x&#39;, flattened together in a single matrix.</span>
+<span class="sd">            array: An array containing the matrix elements :math:`O(x,x&#39;)` associated to each x&#39;.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># try to cache those temporary buffers with their max size</span>
+        <span class="n">total_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="n">total_size</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">total_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_xprime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">total_size</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flattened_kernel</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="n">sections</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_U</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_V</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_J</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mu</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_max</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_mels</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_xprime</span><span class="p">,</span>
+            <span class="n">pad</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_conn_flattened_closure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_edges</span>
+        <span class="n">_U</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_U</span>
+        <span class="n">_V</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_V</span>
+        <span class="n">_J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_J</span>
+        <span class="n">_mu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mu</span>
+        <span class="n">_n_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_max</span>
+        <span class="n">_max_conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_conn</span>
+        <span class="n">fun</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_flattened_kernel</span>
+
+        <span class="c1"># do not pass the preallocated self._max_mels andself._max_xprime because they are frozen in a closure</span>
+        <span class="c1"># and become read only</span>
+        <span class="k">def</span> <span class="nf">gccf_fun</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">sections</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">fun</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span>
+                <span class="n">sections</span><span class="p">,</span>
+                <span class="n">_edges</span><span class="p">,</span>
+                <span class="n">_U</span><span class="p">,</span>
+                <span class="n">_V</span><span class="p">,</span>
+                <span class="n">_J</span><span class="p">,</span>
+                <span class="n">_mu</span><span class="p">,</span>
+                <span class="n">_n_max</span><span class="p">,</span>
+                <span class="n">_max_conn</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)(</span><span class="n">gccf_fun</span><span class="p">)</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019-2021, The Netket authors - All rights reserved.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.4.<br/>
+    </p>
+  </div>
+</footer>
+
+<script type="text/javascript">
+    jQuery(function () {
+        SphinxRtdTheme.Navigation.enable(true);
+      })
+</script>
+
+<!-- Temporary footer
+<div class="footer-wip">
+  <div class="footer-wip-content">
+    This documentation refers to an unreleased version of Netket.
+  </div>
+</div>
+-->
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-118013987-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-118013987-1');
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "url": "https://www.netket.org",
+  "name": "NetKet",
+  "founder": "Giuseppe Carleo",
+  "foundingDate": "2018-04-24",
+  "foundingLocation" : "New York",
+  "logo": "https://www.netket.org/img/logo_small.jpg",
+  "sameAs": [
+    "https://twitter.com/NetKetOrg",
+    "https://github.com/NetKet/netket"
+  ],
+  "description" : "Netket is an open-source project delivering cutting-edge
+  methods for the study of many-body quantum systems with artificial neural
+  networks and machine learning techniques."
+}
+</script>
+
+  </body>
+</html>
