@@ -41,12 +41,12 @@ def perex_grads_rr_cc(forward_fn, params, samples):
 
 @partial(jax.vmap, in_axes=(None, None, 0))
 def perex_grads_rc(forward_fn, params, samples):
-    fr = lambda p, x: forward_fn(p, jnp.expand_dims(x, 0))[0].real
-    fi = lambda p, x: forward_fn(p, jnp.expand_dims(x, 0))[0].imag
-    yr, vjp_funr = jax.vjp(fr, params, samples)
-    yi, vjp_funi = jax.vjp(fi, params, samples)
-    gr, _ = vjp_funr(np.ones((), dtype=jnp.result_type(yr)))
-    gi, _ = vjp_funi(np.ones((), dtype=jnp.result_type(yi)))
+    def f(p, x):
+        return forward_fn(p, jnp.expand_dims(x, 0))[0]
+
+    y, vjp_fun = jax.vjp(f, params, samples)
+    gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+    gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
     return jax.tree_multimap(jax.lax.complex, gr, gi)
 
 
