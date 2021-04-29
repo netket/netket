@@ -79,11 +79,22 @@ class SRJacobian(SR):
                 )
             )
 
-    def create(self, *args, **kwargs):
+    def create(self, vstate, **kwargs) -> "LazySMatrixIterative":
+        """
+        Construct the Lazy representation of the S corresponding to this SR type.
+
+        Args:
+            vstate: The Variational State
+        """
         O, scale = gradients(
-            apply_fun, params, samples, model_state, self.mode, self.rescale_shift
+            vstate._apply_fun,
+            vstate.parameters,
+            vstate.samples,
+            vstate.model_state,
+            self.mode,
+            self.rescale_shift,
         )
-        return JacobianSMatrix(sr=sr, x0=x0, O=O, scale=scale)
+        return JacobianSMatrix(sr=self, O=O, scale=scale)
 
 
 @struct.dataclass

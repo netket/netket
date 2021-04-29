@@ -100,7 +100,7 @@ class JacobianSMatrix(AbstractSMatrix):
         """
 
         # Ravel input PyTrees, record unravelling function too
-        grad, unravel = nkjax.tree_ravel(grad)
+        grad, unravel = nkjax.tree_ravel(y)
 
         if x0 is None:
             x0 = self.x0
