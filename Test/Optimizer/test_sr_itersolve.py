@@ -15,7 +15,7 @@ import jax
 from netket.optimizer import sr
 import netket as nk
 
-from ..common import skipif_mpi, onlyif_mpi, one_rank
+from .. import common
 
 SR_objects = {}
 
@@ -32,7 +32,6 @@ SR_objects["GMRES(solve_method=incremental)"] = sr.SRLazyGMRES(
 dtypes = {"float": float, "complex": complex}
 
 
-@skipif_mpi
 @pytest.fixture(params=[pytest.param(dtype, id=name) for name, dtype in dtypes.items()])
 def vstate(request):
     N = 8
@@ -68,7 +67,7 @@ def test_sr_solve(sr, vstate, _mpi_size, _mpi_rank):
 
     if _mpi_size > 1:
         # other check
-        with one_rank() as o:
+        with common.netket_disable_mpi():
             import mpi4jax
 
             samples, _ = mpi4jax.allgather(vstate.samples, comm=nk.utils.MPI_jax_comm)
@@ -91,7 +90,7 @@ def test_sr_matmul(sr, vstate, _mpi_size, _mpi_rank):
 
     if _mpi_size > 1:
         # other check
-        with one_rank() as o:
+        with common.netket_disable_mpi():
             import mpi4jax
 
             samples, _ = mpi4jax.allgather(vstate.samples, comm=nk.utils.MPI_jax_comm)

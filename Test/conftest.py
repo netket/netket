@@ -4,26 +4,29 @@ import netket as nk
 
 @pytest.fixture
 def _mpi_size(request):
+    """
+    Fixture returning the number of MPI nodes detected by NetKet
+    """
     return nk.utils.n_nodes
 
 
 @pytest.fixture
 def _mpi_rank(request):
+    """
+    Fixture returning the MPI rank detected by NetKet
+    """
     return nk.utils.rank
 
 
 @pytest.fixture
 def _mpi_comm(request):
+    """
+    Fixture returning the MPI communicator used by NetKet
+    """
+
     from netket.utils import MPI_py_comm
 
     return MPI_py_comm
-
-
-@pytest.fixture
-def MPI(request):
-    from mpi4py import MPI
-
-    return MPI
 
 
 def pytest_addoption(parser):
