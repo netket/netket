@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>What’s New in v3.0 &#8212; netket v3.0 documentation</title>
+    <title>Writing Tests &#8212; netket v3.0 documentation</title>
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
@@ -22,8 +22,8 @@
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="The Lindblad Master Equation" href="superop.html" />
-    <link rel="prev" title="Getting Started" href="getting_started.html" />
+    <link rel="next" title="Public API: netket package" href="api.html" />
+    <link rel="prev" title="Contributing to NetKet" href="contributing.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -112,7 +112,7 @@
 </div>
 
 <p class="caption"><span class="caption-text">Reference Documentation</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#installation-and-requirements">Installation and requirements</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="getting_started.html#mpi">MPI</a></li>
@@ -124,8 +124,8 @@
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#commented-example">Commented Example</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">What’s New in v3.0</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#api-changes">API Changes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whats_new.html">What’s New in v3.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="whats_new.html#api-changes">API Changes</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="superop.html">The Lindblad Master Equation</a><ul>
@@ -176,7 +176,7 @@
 </li>
 </ul>
 <p class="caption"><span class="caption-text">Developer Documentation</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to NetKet</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="contributing.html#ways-to-contribute">Ways to contribute</a></li>
 <li class="toctree-l2"><a class="reference internal" href="contributing.html#contributing-code-using-pull-requests">Contributing code using pull requests</a></li>
@@ -190,9 +190,9 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="writing-tests.html">Writing Tests</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="writing-tests.html#test-structure-and-common-files">Test structure and common files.</a></li>
-<li class="toctree-l2"><a class="reference internal" href="writing-tests.html#tests-and-mpi">Tests and MPI</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Writing Tests</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#test-structure-and-common-files">Test structure and common files.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tests-and-mpi">Tests and MPI</a></li>
 </ul>
 </li>
 </ul>
@@ -375,43 +375,82 @@
       </div>
     <div class="body col-md-9 content" role="main">
       
-  <div class="section" id="what-s-new-in-v3-0">
-<h1>What’s New in v3.0<a class="headerlink" href="#what-s-new-in-v3-0" title="Permalink to this headline">¶</a></h1>
-<p>In this page we discuss the main differences between old versions of netket and version 3.0.</p>
-<div class="section" id="api-changes">
-<h2>API Changes<a class="headerlink" href="#api-changes" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li><p>Hilbert space constructors do not store the lattice graph anymore. As a consequence, the constructor does not accept the graph anymore.</p></li>
-<li><p>Special Hamiltonians defined on a lattice, such as <a class="reference internal" href="_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard" title="netket.operator.BoseHubbard"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.BoseHubbard</span></code></a>, <a class="reference internal" href="_generated/operator/netket.operator.Ising.html#netket.operator.Ising" title="netket.operator.Ising"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.Ising</span></code></a> and <a class="reference internal" href="_generated/operator/netket.operator.Heisenberg.html#netket.operator.Heisenberg" title="netket.operator.Heisenberg"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.Heisenberg</span></code></a>, now require the graph to be passed explicitly through a <cite>graph</cite> keyword argument.</p></li>
-<li><p><a class="reference internal" href="_generated/operator/netket.operator.LocalOperator.html#netket.operator.LocalOperator" title="netket.operator.LocalOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.LocalOperator</span></code></a> now default to real-valued matrix elements, except if you construct them with a complex-valued matrix. This is also valid for operators such as <a class="reference internal" href="_generated/hilbert/netket.operator.spin.sigmax.html#netket.operator.spin.sigmax" title="netket.operator.spin.sigmax"><code class="xref py py-func docutils literal notranslate"><span class="pre">operator.spin.sigmax()</span></code></a> and similars.</p></li>
-<li><p>When performing algebric operations <code class="code docutils literal notranslate"><span class="pre">*,</span> <span class="pre">-,</span> <span class="pre">+</span></code> on pairs of <a class="reference internal" href="_generated/operator/netket.operator.LocalOperator.html#netket.operator.LocalOperator" title="netket.operator.LocalOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.LocalOperator</span></code></a>, the dtype of the result iscomputed using standard numpy promotion logic.</p>
-<ul>
-<li><p>Doing an operation in-place <code class="code docutils literal notranslate"><span class="pre">+=,</span> <span class="pre">-=,</span> <span class="pre">*=</span></code> on a real-valued operator will now fail if the other is complex. While this might seem annoying, it’s usefull to ensure that smaller types such as <cite>float32</cite> or <cite>complex64</cite> are preserved if the user desires to do so.</p></li>
-</ul>
-</li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractMachine</span></code> has been removed. It’s functionality is now split among the model itself, which is defined by the user and <a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState" title="netket.variational.MCState"><code class="xref py py-class docutils literal notranslate"><span class="pre">variational.MCState</span></code></a> for pure states or <a class="reference internal" href="_generated/variational/netket.variational.MCMixedState.html#netket.variational.MCMixedState" title="netket.variational.MCMixedState"><code class="xref py py-class docutils literal notranslate"><span class="pre">variational.MCMixedState</span></code></a> for mixed states.</p>
-<ul>
-<li><p>The model, in general is composed by two functions, or an object with two functions: an <cite>init(rng, sample_val)</cite> function, accepting a <span class="xref std std-ref">jax.random.PRNGKey</span> object and an input, returning the parameters and the state of the model for that particular sample shape, and a <code class="code docutils literal notranslate"><span class="pre">apply(params,</span> <span class="pre">samples,</span> <span class="pre">**kwargs)</span></code> function, evaluating the model for the given parameters and inputs.</p></li>
-<li><p>Some models (previously machines) such as the RBM (Restricted Bolzmann Machine) Machine, NDM (Neural Density Matrix) or MPS (Matrix Product State ansatz) are available in <a class="reference internal" href="api.html#pre-built-models"><span class="std std-ref">Pre-built models</span></a>.</p></li>
-<li><p>Machines, now called models, should be written using <a class="reference external" href="https://flax.readthedocs.io/en/latest">flax</a> or another jax framework.</p></li>
-<li><p>Serialization and deserialization functionality has now been moved to <span class="xref std std-ref">variational.MCState</span>, which support the standard Flax interface through MsgPack. See <a class="reference external" href="https://flax.readthedocs.io/en/latest/flax.serialization.html">Flax docs</a> for more information</p></li>
-<li><p><code class="code docutils literal notranslate"><span class="pre">AbstractMachine.init_random_parameters</span></code> functionality has now been absorbed into <a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.init_parameters" title="netket.variational.VariationalState.init_parameters"><code class="xref py py-meth docutils literal notranslate"><span class="pre">netket.variational.VariationalState.init_parameters()</span></code></a>, which however has a different syntax.</p></li>
-</ul>
-</li>
-<li><p><a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> now require the hilbert space upon which they sample to be passed in to the constructor.</p></li>
-</ul>
-<p>Also note that several keyword arguments of the samplers have changed, and new one are available.</p>
-<ul class="simple">
-<li><p>It’s now possible to change <a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> dtype, which controls the type of the output. By default they use double-precision samples (<cite>np.float64</cite>). Be wary of type promotion issues with your models.</p></li>
-<li><p><a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> no longer take a machine as an argument.</p></li>
-<li><p><a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> are now immutable (frozen) <cite>dataclasses</cite> (defined through <cite>flax.struct.dataclass</cite>) that only hold the sampling parameters. As a consequence it is no longer possible to change their settings such as <cite>n_chains</cite> or <cite>n_sweeps</cite> without creating a new sampler. If you wish to update only one parameter, it is possible to construct the new sampler with the updated value by using the <cite>sampler.replace(parameter=new_value)</cite> function.</p></li>
-<li><p><a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> are no longer stateful objects. Instead, they can construct an immutable state object <span class="xref std std-ref">sampler.init_state</span>, which can be passed to sampling functions such as <span class="xref std std-ref">sampler.sample</span>, which now return also the updated state. However, unless you have particoular use-cases we advise you use the variational state <a class="reference internal" href="varstate.html#mcstate"><span class="std std-ref">MCState</span></a> instead.</p></li>
-<li><p>The <a class="reference internal" href="api.html#optimizer"><span class="std std-ref">Optimizer</span></a> module has been overhauled, and now only re-exports flax optim module. We advise not to use netket’s optimizer but instead to use <a class="reference external" href="https://github.com/deepmind/optax">optax</a> .</p></li>
-<li><p>The <span class="xref std std-ref">SR</span> object now is only a set of options used to compute the SR matrix. The SR matrix, now called <cite>quantum_geometric_tensor</cite> can be optained by calling <span class="xref std std-ref">MCState.quantum_geometric_tensor(sr)</span>. Depending on the settings, this can be a lazy object.</p></li>
-<li><p><span class="xref std std-ref">netket.Vmc</span> has been renamed to <span class="xref std std-ref">netkt.VMC</span></p></li>
-<li><p><a class="reference internal" href="_generated/models/netket.models.RBM.html#netket-models-rbm"><span class="std std-ref">netket.models.RBM</span></a> replaces the old <code class="code docutils literal notranslate"><span class="pre">RBM</span></code> machine, but has real parameters by default.</p></li>
-<li><p>As we rely on Jax, using <code class="code docutils literal notranslate"><span class="pre">dtype=float</span></code> or <code class="code docutils literal notranslate"><span class="pre">dtype=complex</span></code>, which are weak types, will sometimes lead to loss of precision because they might be converted to <cite>float32</cite>. Use <code class="code docutils literal notranslate"><span class="pre">np.float64</span></code> or <code class="code docutils literal notranslate"><span class="pre">np.complex128</span></code> instead if you want double precision when defining your models.</p></li>
-</ul>
+  <div class="section" id="writing-tests">
+<h1>Writing Tests<a class="headerlink" href="#writing-tests" title="Permalink to this headline">¶</a></h1>
+<p>NetKet’s tests are written using the <a class="reference external" href="https://docs.pytest.org/en/stable/contents.html">PyTest</a>
+framework.
+In particular, we make extensive use of <a class="reference external" href="https://docs.pytest.org/en/stable/parametrize.html#pytest-mark-parametrize-parametrizing-test-functions"><code class="docutils literal notranslate"><span class="pre">pytest.parametrize</span></code></a> in order to run the same
+test functions on different input types.
+We also use often <a class="reference external" href="https://docs.pytest.org/en/stable/fixture.html#what-fixtures-are"><code class="docutils literal notranslate"><span class="pre">pytest.fixture</span></code></a>
+to initialize expensive objects only once among different tests.</p>
+<div class="section" id="test-structure-and-common-files">
+<h2>Test structure and common files.<a class="headerlink" href="#test-structure-and-common-files" title="Permalink to this headline">¶</a></h2>
+<p>NetKet’s <code class="docutils literal notranslate"><span class="pre">Test</span></code> folder is a python module because every folder (aka, submodule) has an
+<code class="docutils literal notranslate"><span class="pre">__init__.py</span></code> file.
+Tests are grouped in submodules according to the NetKet’s submodule they tests.
+If you add a new submodule, you should add a new submodule to the tests too.</p>
+<p>If you add a new file to netket, if might be a good idea to split it’s tests into a new file in
+the relevant submodule, too.</p>
+<p>Common functions and methods used throughout our testing infrastructure are defined in the file
+<code class="docutils literal notranslate"><span class="pre">Test/common.py</span></code> and every test is expected to use them if necessary.
+Some common fixtures are also defined inside <code class="docutils literal notranslate"><span class="pre">Test/conftest.py</span></code> and are available to all tests.
+Those do not need to be imported explicitly, as pytest will take care of it.</p>
+</div>
+<div class="section" id="tests-and-mpi">
+<h2>Tests and MPI<a class="headerlink" href="#tests-and-mpi" title="Permalink to this headline">¶</a></h2>
+<p>Tests are expected to run with or without mpi4py installed, under MPI and not under MPI.
+Therefore you should never import <code class="docutils literal notranslate"><span class="pre">mpi4py</span></code> or <code class="docutils literal notranslate"><span class="pre">mpi4jax</span></code> in the global test module, but only
+inside individual tests.</p>
+<p>Tests not testing MPI-related fucntionality should be skipped when executed under MPI.
+To mark a whole module to be skipped under mpi, you can define the following variable</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test/Hilbert/test_tensor.py</span>
+
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">common</span>
+
+<span class="n">pytestmark</span> <span class="o">=</span> <span class="n">common</span><span class="o">.</span><span class="n">skipif_mpi</span>
+
+
+<span class="k">def</span> <span class="nf">test_tensors</span><span class="p">():</span>
+	<span class="o">...</span>
+</pre></div>
+</div>
+<p>Alternatively, you can skip individual testts by decorating them with <code class="docutils literal notranslate"><span class="pre">common.skipif_mpi</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<span class="nd">@common</span><span class="o">.</span><span class="n">skipif_mpi</span>
+<span class="k">def</span> <span class="nf">my_serial_test</span><span class="p">():</span>
+	<span class="o">...</span>
+</pre></div>
+</div>
+<p>To execute a test only when run with MPI, you can use the decorator <code class="docutils literal notranslate"><span class="pre">common.onlyif_mpi</span></code> in the
+same way as shown in the two examples above.</p>
+<p>If, inside your tests, you need to run some NetKet functions with MPI disabled, for example to
+check that the MPI code gives the same result as the non-MPI code, you can use the
+<code class="docutils literal notranslate"><span class="pre">netket_disable_mpi</span></code> object as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">common</span>
+
+<span class="nd">@onlyif_mpi</span>
+<span class="k">def</span> <span class="nf">test_matmul</span><span class="p">():</span>
+	<span class="o">...</span>
+	<span class="n">x_mpi</span> <span class="o">=</span> <span class="n">A</span><span class="nd">@v</span>
+
+	<span class="k">with</span> <span class="n">common</span><span class="o">.</span><span class="n">netket_disable_mpi</span><span class="p">():</span>
+		<span class="n">x_serial</span> <span class="o">=</span> <span class="n">A</span><span class="nd">@v</span>
+
+		<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assertr_allclose</span><span class="p">(</span><span class="n">x_mpi</span><span class="p">,</span> <span class="n">x_serial</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For simplicity, you can also use the fixtures <code class="docutils literal notranslate"><span class="pre">_mpi_size</span></code>, <code class="docutils literal notranslate"><span class="pre">_mpi_rank</span></code> and <code class="docutils literal notranslate"><span class="pre">_mpi_comm</span></code> as inputs to your test
+functions to get easily those informations. See the example below:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<span class="c1"># run this with mpi and not</span>
+<span class="k">def</span> <span class="nf">test_mpi_things</span><span class="p">(</span><span class="n">_mpi_rank</span><span class="p">,</span> <span class="n">_mpi_size</span><span class="p">):</span>
+	<span class="k">if</span> <span class="n">_mpi_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+		<span class="c1"># mpi disabled</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="c1"># mpi enabled</span>
+
+</pre></div>
+</div>
 </div>
 </div>
 

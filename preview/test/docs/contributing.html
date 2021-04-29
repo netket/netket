@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>What’s New in v3.0 &#8212; netket v3.0 documentation</title>
+    <title>Contributing to NetKet &#8212; netket v3.0 documentation</title>
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
@@ -22,8 +22,8 @@
     <link rel="author" title="About these documents" href="../about.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="The Lindblad Master Equation" href="superop.html" />
-    <link rel="prev" title="Getting Started" href="getting_started.html" />
+    <link rel="next" title="Writing Tests" href="writing-tests.html" />
+    <link rel="prev" title="Defining Custom Models" href="custom_models.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -112,7 +112,7 @@
 </div>
 
 <p class="caption"><span class="caption-text">Reference Documentation</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#installation-and-requirements">Installation and requirements</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="getting_started.html#mpi">MPI</a></li>
@@ -124,8 +124,8 @@
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#commented-example">Commented Example</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">What’s New in v3.0</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#api-changes">API Changes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whats_new.html">What’s New in v3.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="whats_new.html#api-changes">API Changes</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="superop.html">The Lindblad Master Equation</a><ul>
@@ -176,16 +176,16 @@
 </li>
 </ul>
 <p class="caption"><span class="caption-text">Developer Documentation</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to NetKet</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#ways-to-contribute">Ways to contribute</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#contributing-code-using-pull-requests">Contributing code using pull requests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#netket-pull-request-checklist">NetKet pull request checklist</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#single-change-commits-and-pull-requests">Single-change commits and pull requests</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#python-coding-style">Python coding style</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#docstrings-and-type-hints">Docstrings and Type Hints</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#visibility-of-public-api">Visibility of public API</a></li>
-<li class="toctree-l3"><a class="reference internal" href="contributing.html#full-github-test-suite">Full GitHub test suite</a></li>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing to NetKet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#ways-to-contribute">Ways to contribute</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#contributing-code-using-pull-requests">Contributing code using pull requests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#netket-pull-request-checklist">NetKet pull request checklist</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#single-change-commits-and-pull-requests">Single-change commits and pull requests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python-coding-style">Python coding style</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#docstrings-and-type-hints">Docstrings and Type Hints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#visibility-of-public-api">Visibility of public API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#full-github-test-suite">Full GitHub test suite</a></li>
 </ul>
 </li>
 </ul>
@@ -375,43 +375,165 @@
       </div>
     <div class="body col-md-9 content" role="main">
       
-  <div class="section" id="what-s-new-in-v3-0">
-<h1>What’s New in v3.0<a class="headerlink" href="#what-s-new-in-v3-0" title="Permalink to this headline">¶</a></h1>
-<p>In this page we discuss the main differences between old versions of netket and version 3.0.</p>
-<div class="section" id="api-changes">
-<h2>API Changes<a class="headerlink" href="#api-changes" title="Permalink to this headline">¶</a></h2>
+  <div class="section" id="contributing-to-netket">
+<h1>Contributing to NetKet<a class="headerlink" href="#contributing-to-netket" title="Permalink to this headline">¶</a></h1>
+<p>Everyone can contribute to NetKet: it is only thanks to the involvement of a large community of developers that open-source
+software like NetKet can thrive.
+There are severalways to contribute, including:</p>
 <ul class="simple">
-<li><p>Hilbert space constructors do not store the lattice graph anymore. As a consequence, the constructor does not accept the graph anymore.</p></li>
-<li><p>Special Hamiltonians defined on a lattice, such as <a class="reference internal" href="_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard" title="netket.operator.BoseHubbard"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.BoseHubbard</span></code></a>, <a class="reference internal" href="_generated/operator/netket.operator.Ising.html#netket.operator.Ising" title="netket.operator.Ising"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.Ising</span></code></a> and <a class="reference internal" href="_generated/operator/netket.operator.Heisenberg.html#netket.operator.Heisenberg" title="netket.operator.Heisenberg"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.Heisenberg</span></code></a>, now require the graph to be passed explicitly through a <cite>graph</cite> keyword argument.</p></li>
-<li><p><a class="reference internal" href="_generated/operator/netket.operator.LocalOperator.html#netket.operator.LocalOperator" title="netket.operator.LocalOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.LocalOperator</span></code></a> now default to real-valued matrix elements, except if you construct them with a complex-valued matrix. This is also valid for operators such as <a class="reference internal" href="_generated/hilbert/netket.operator.spin.sigmax.html#netket.operator.spin.sigmax" title="netket.operator.spin.sigmax"><code class="xref py py-func docutils literal notranslate"><span class="pre">operator.spin.sigmax()</span></code></a> and similars.</p></li>
-<li><p>When performing algebric operations <code class="code docutils literal notranslate"><span class="pre">*,</span> <span class="pre">-,</span> <span class="pre">+</span></code> on pairs of <a class="reference internal" href="_generated/operator/netket.operator.LocalOperator.html#netket.operator.LocalOperator" title="netket.operator.LocalOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">operator.LocalOperator</span></code></a>, the dtype of the result iscomputed using standard numpy promotion logic.</p>
-<ul>
-<li><p>Doing an operation in-place <code class="code docutils literal notranslate"><span class="pre">+=,</span> <span class="pre">-=,</span> <span class="pre">*=</span></code> on a real-valued operator will now fail if the other is complex. While this might seem annoying, it’s usefull to ensure that smaller types such as <cite>float32</cite> or <cite>complex64</cite> are preserved if the user desires to do so.</p></li>
+<li><p>Answering questions on NetKet’s <a class="reference external" href="https://github.com/netket/netket/discussions">discussions page</a></p></li>
+<li><p>Improving or expanding NetKet’s <a class="reference external" href="https://www.netket.org/docs/getting_started.html">documentation</a></p></li>
+<li><p>Improving or expanding NetKet’s <a class="reference external" href="https://www.netket.org/tutorials.html">tutorial notebooks</a></p></li>
+<li><p>Contributing to NetKet’s <a class="reference external" href="https://github.com/netket/netket/">code-base</a></p></li>
 </ul>
+<div class="section" id="ways-to-contribute">
+<h2>Ways to contribute<a class="headerlink" href="#ways-to-contribute" title="Permalink to this headline">¶</a></h2>
+<p>We welcome pull requests, in particular for those issues marked with
+<a class="reference external" href="https://github.com/netket/netket/labels/contributor%20welcome">contributions welcome</a> or
+<a class="reference external" href="https://github.com/netket/netket/labels/good%20first%20issue">good first issue</a>.
+You can also have a look at our <a class="reference external" href="https://github.com/netket/netket/issues/559">RoadMap</a> for ideas
+on things that we would like to implement but haven’t done so yet.
+It is generally regarded good behaviour to let other know of your plan to contribute a feature.</p>
+<p>For other proposals, we ask that you first open a GitHub
+<a class="reference external" href="https://github.com/netket/netket/issues/new/choose">Issue</a> or
+<a class="reference external" href="https://github.com/netket/netket/discussions">Discussion</a>
+to seek feedback on your planned contribution.</p>
+<p>The NetKet project follows the <a class="reference external" href="http://contributor-covenant.org/version/1/4/">Contributor Covenant Code of Conduct</a>.</p>
+</div>
+<div class="section" id="contributing-code-using-pull-requests">
+<h2>Contributing code using pull requests<a class="headerlink" href="#contributing-code-using-pull-requests" title="Permalink to this headline">¶</a></h2>
+<p>We do all of our development using git, so basic knowledge is assumed.</p>
+<p>Follow these steps to contribute code:</p>
+<ol>
+<li><p>Fork the NetKet repository by clicking the <strong>Fork</strong> button on the
+<a class="reference external" href="http://www.github.com/netket/netket">repository page</a>. This creates
+a copy of the NetKet repository in your own account.</p></li>
+<li><p>Install Python &gt;=3.7 locally in order to run tests.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pip</span></code> installing your fork from source with the development dependencies.
+This allows you to modify the code and immediately test it out:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/YOUR_USERNAME/netket
+<span class="nb">cd</span> netket
+pip install -e <span class="s1">&#39;.[dev]&#39;</span>  <span class="c1"># Installs NetKet from the current directory in editable mode.</span>
+pre-commit install <span class="c1"># Install the pre-commit hook that checks your commit for good formatting</span>
+</pre></div>
+</div>
 </li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractMachine</span></code> has been removed. It’s functionality is now split among the model itself, which is defined by the user and <a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState" title="netket.variational.MCState"><code class="xref py py-class docutils literal notranslate"><span class="pre">variational.MCState</span></code></a> for pure states or <a class="reference internal" href="_generated/variational/netket.variational.MCMixedState.html#netket.variational.MCMixedState" title="netket.variational.MCMixedState"><code class="xref py py-class docutils literal notranslate"><span class="pre">variational.MCMixedState</span></code></a> for mixed states.</p>
-<ul>
-<li><p>The model, in general is composed by two functions, or an object with two functions: an <cite>init(rng, sample_val)</cite> function, accepting a <span class="xref std std-ref">jax.random.PRNGKey</span> object and an input, returning the parameters and the state of the model for that particular sample shape, and a <code class="code docutils literal notranslate"><span class="pre">apply(params,</span> <span class="pre">samples,</span> <span class="pre">**kwargs)</span></code> function, evaluating the model for the given parameters and inputs.</p></li>
-<li><p>Some models (previously machines) such as the RBM (Restricted Bolzmann Machine) Machine, NDM (Neural Density Matrix) or MPS (Matrix Product State ansatz) are available in <a class="reference internal" href="api.html#pre-built-models"><span class="std std-ref">Pre-built models</span></a>.</p></li>
-<li><p>Machines, now called models, should be written using <a class="reference external" href="https://flax.readthedocs.io/en/latest">flax</a> or another jax framework.</p></li>
-<li><p>Serialization and deserialization functionality has now been moved to <span class="xref std std-ref">variational.MCState</span>, which support the standard Flax interface through MsgPack. See <a class="reference external" href="https://flax.readthedocs.io/en/latest/flax.serialization.html">Flax docs</a> for more information</p></li>
-<li><p><code class="code docutils literal notranslate"><span class="pre">AbstractMachine.init_random_parameters</span></code> functionality has now been absorbed into <a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState.init_parameters" title="netket.variational.VariationalState.init_parameters"><code class="xref py py-meth docutils literal notranslate"><span class="pre">netket.variational.VariationalState.init_parameters()</span></code></a>, which however has a different syntax.</p></li>
-</ul>
+<li><p>Add the NetKet repo as an upstream remote, so you can use it to sync your
+changes.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git remote add upstream http://www.github.com/netket/netket
+</pre></div>
+</div>
 </li>
-<li><p><a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> now require the hilbert space upon which they sample to be passed in to the constructor.</p></li>
-</ul>
-<p>Also note that several keyword arguments of the samplers have changed, and new one are available.</p>
-<ul class="simple">
-<li><p>It’s now possible to change <a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> dtype, which controls the type of the output. By default they use double-precision samples (<cite>np.float64</cite>). Be wary of type promotion issues with your models.</p></li>
-<li><p><a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> no longer take a machine as an argument.</p></li>
-<li><p><a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> are now immutable (frozen) <cite>dataclasses</cite> (defined through <cite>flax.struct.dataclass</cite>) that only hold the sampling parameters. As a consequence it is no longer possible to change their settings such as <cite>n_chains</cite> or <cite>n_sweeps</cite> without creating a new sampler. If you wish to update only one parameter, it is possible to construct the new sampler with the updated value by using the <cite>sampler.replace(parameter=new_value)</cite> function.</p></li>
-<li><p><a class="reference internal" href="api.html#sampler"><span class="std std-ref">Samplers</span></a> are no longer stateful objects. Instead, they can construct an immutable state object <span class="xref std std-ref">sampler.init_state</span>, which can be passed to sampling functions such as <span class="xref std std-ref">sampler.sample</span>, which now return also the updated state. However, unless you have particoular use-cases we advise you use the variational state <a class="reference internal" href="varstate.html#mcstate"><span class="std std-ref">MCState</span></a> instead.</p></li>
-<li><p>The <a class="reference internal" href="api.html#optimizer"><span class="std std-ref">Optimizer</span></a> module has been overhauled, and now only re-exports flax optim module. We advise not to use netket’s optimizer but instead to use <a class="reference external" href="https://github.com/deepmind/optax">optax</a> .</p></li>
-<li><p>The <span class="xref std std-ref">SR</span> object now is only a set of options used to compute the SR matrix. The SR matrix, now called <cite>quantum_geometric_tensor</cite> can be optained by calling <span class="xref std std-ref">MCState.quantum_geometric_tensor(sr)</span>. Depending on the settings, this can be a lazy object.</p></li>
-<li><p><span class="xref std std-ref">netket.Vmc</span> has been renamed to <span class="xref std std-ref">netkt.VMC</span></p></li>
-<li><p><a class="reference internal" href="_generated/models/netket.models.RBM.html#netket-models-rbm"><span class="std std-ref">netket.models.RBM</span></a> replaces the old <code class="code docutils literal notranslate"><span class="pre">RBM</span></code> machine, but has real parameters by default.</p></li>
-<li><p>As we rely on Jax, using <code class="code docutils literal notranslate"><span class="pre">dtype=float</span></code> or <code class="code docutils literal notranslate"><span class="pre">dtype=complex</span></code>, which are weak types, will sometimes lead to loss of precision because they might be converted to <cite>float32</cite>. Use <code class="code docutils literal notranslate"><span class="pre">np.float64</span></code> or <code class="code docutils literal notranslate"><span class="pre">np.complex128</span></code> instead if you want double precision when defining your models.</p></li>
-</ul>
+<li><p>Create a branch where you will develop from:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git checkout -b name-of-change
+</pre></div>
+</div>
+<p>And implement your changes.</p>
+</li>
+<li><p>Make sure the tests pass by running the following command from the top of
+the repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pytest -n auto Test/
+</pre></div>
+</div>
+<p>If your code contribution touches parts of NetKet that are expected to work under MPI, such
+the computation of expectation values, initialization of parameters or lazy matrix-vector products
+you should also check that tests pass under MPI by running pytest under MPI. When doing so, you
+should also disable pytest parallelization.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpirun -np <span class="m">2</span> pytest -n0 Test/
+</pre></div>
+</div>
+<p>NetKet’s test suite is quite large, so if you know the specific test file that covers your
+changes, you can limit the tests to that; for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pytest -n auto Test/Hilbert
+</pre></div>
+</div>
+</li>
+<li><p>Once you are satisfied with your change, create a commit as follows (
+<a class="reference external" href="https://chris.beams.io/posts/git-commit/">how to write a commit message</a>):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git add file1.py file2.py ...
+git commit -m <span class="s2">&quot;Your commit message&quot;</span>
+</pre></div>
+</div>
+<p>You can also use a graphical git client that simplifies a lot using Git.
+We suggest <a class="reference external" href="https://www.gitkraken.com/">GitKraken</a> or <a class="reference external" href="https://www.sourcetreeapp.com/">SourceTree</a>.</p>
+<p>Then sync your code with the main repo:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git fetch upstream
+git rebase upstream/master
+</pre></div>
+</div>
+<p>Finally, push your commit on your development branch and create a remote
+branch in your fork that you can use to create a pull request from:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git push --set-upstream origin name-of-change
+</pre></div>
+</div>
+</li>
+<li><p>Create a pull request from the NetKet repository and send it for review.
+Check the <a class="reference internal" href="#pr-checklist"><span class="std std-ref">NetKet pull request checklist</span></a> for considerations when preparing your PR, and
+consult <a class="reference external" href="https://help.github.com/articles/about-pull-requests/">GitHub Help</a>
+if you need more information on using pull requests.</p></li>
+</ol>
+</div>
+<div class="section" id="netket-pull-request-checklist">
+<span id="pr-checklist"></span><h2>NetKet pull request checklist<a class="headerlink" href="#netket-pull-request-checklist" title="Permalink to this headline">¶</a></h2>
+<p>As you prepare a NetKet pull request, here are a few things to keep in mind:</p>
+<div class="section" id="single-change-commits-and-pull-requests">
+<h3>Single-change commits and pull requests<a class="headerlink" href="#single-change-commits-and-pull-requests" title="Permalink to this headline">¶</a></h3>
+<p>It is considered good practice that every git commit sent for review is a self
+-contained, single change with a descriptive message.
+This helps with review and with identifying or reverting changes if
+issues are uncovered later on.</p>
+<p><strong>Pull requests ideally comprise a single git commit.</strong> (In some cases, for
+instance for large refactors or internal rewrites, they may contain several.)
+In preparing a pull request for review, you may want to squash together
+multiple commits.</p>
+<p>We don’t really enforce or require those rules, but they are welcome additions.</p>
+</div>
+<div class="section" id="python-coding-style">
+<h3>Python coding style<a class="headerlink" href="#python-coding-style" title="Permalink to this headline">¶</a></h3>
+<p>Code should follow <a class="reference external" href="https://www.python.org/dev/peps/pep-0008/">PEP 8</a>.
+For consistency, we use the <a class="reference external" href="https://github.com/python/black">Black</a> code formatter.
+The precise version we use to check formatting will be installed when you install NetKet’s development
+dependencies as outlined above.</p>
+<p>If you edit Python code, you should run Black on the affected files.
+On the command line, this can be done via</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># to reformat a specific file</span>
+black Path/To/The/file.py
+<span class="c1"># to reformat all files below the specified directories</span>
+black Test/ Examples/
+</pre></div>
+</div>
+<p>before creating a pull request.
+There are other options of running Black: For example, an <a class="reference external" href="https://atom.io/packages/python-black">Atom package</a> is available and Black is integrated into the <a class="reference external" href="https://code.visualstudio.com/docs/python/editing#_formatting">VS Code Python extension</a>.</p>
+<p>If you have installed <a class="reference external" href="https://pre-commit.com/">pre-commit</a>, black will be run automatically before you commit or
+if you run the command below.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install pre-commit
+pre-commit run --all
+</pre></div>
+</div>
+</div>
+<div class="section" id="docstrings-and-type-hints">
+<h3>Docstrings and Type Hints<a class="headerlink" href="#docstrings-and-type-hints" title="Permalink to this headline">¶</a></h3>
+<p>If you have written new methods, we expect those to be documented with Type Hints for
+their inputs and output using standard Python types from the <code class="docutils literal notranslate"><span class="pre">typing</span></code> standard library
+and NetKet’s custom types from <code class="code docutils literal notranslate"><span class="pre">netket.utils.types</span></code> for more advanced objects such
+as PyTrees, Arrays and data types.</p>
+<p>Your new methods and functions should always be documented with a docstring in the
+<a class="reference external" href="https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html">Napoleon Google’s format</a>.</p>
+</div>
+<div class="section" id="visibility-of-public-api">
+<h3>Visibility of public API<a class="headerlink" href="#visibility-of-public-api" title="Permalink to this headline">¶</a></h3>
+<p>If you have added an object that is supposed to be used by end-users and will be part
+of the public API, we expect you to add this object to the documentation by adding
+the relevant classes/functions to the auto-generated API in <code class="docutils literal notranslate"><span class="pre">docs/api.rst</span></code> and eventually
+by writing a new documentation page.</p>
+</div>
+<div class="section" id="full-github-test-suite">
+<h3>Full GitHub test suite<a class="headerlink" href="#full-github-test-suite" title="Permalink to this headline">¶</a></h3>
+<p>Your PR will automatically be run through a full test suite on GitHub CI, which
+covers a range of Python versions, dependency versions, and configuration options.
+It’s normal for these tests to turn up failures that you didn’t catch locally; to
+fix the issues you can push new commits to your branch.</p>
+</div>
 </div>
 </div>
 
