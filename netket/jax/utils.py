@@ -162,13 +162,10 @@ def tree_dot(a: PyTree, b: PyTree) -> Scalar:
     Returns:
         A scalar equal the dot product of of the flattened arrays of a and b.
     """
-    res = jax.tree_util.tree_reduce(
+    return jax.tree_util.tree_reduce(
         jax.numpy.add,
         jax.tree_map(jax.numpy.sum, jax.tree_multimap(jax.numpy.multiply, a, b)),
     )
-    # convert shape from () to (1,)
-    # this is needed for automatic broadcasting to work also when transposed with linear_transpose
-    return jnp.expand_dims(res, 0)
 
 
 def tree_cast(x: PyTree, target: PyTree) -> PyTree:
