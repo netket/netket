@@ -28,7 +28,7 @@ extensions = [
     "sphinx_reredirects",
     "sphinx_panels",
     "nbsphinx",
-    "recommonmark",
+    "myst_parser",
 ]
 
 # Napoleon settings
@@ -51,6 +51,12 @@ templates_path = ["_templates", "_templates/autosummary"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 
+# The suffix(es) of source filenames.
+# Note: important to list ipynb before md here: we have both md and ipynb
+# copies of each notebook, and myst will choose which to convert based on
+# the order in the source_suffix list. Notebooks which are not executed have
+# outputs stored in ipynb but not in md, so we must convert the ipynb.
+source_suffix = [".rst", ".ipynb", ".md"]
 
 # -- Options for HTML output -------------------------------------------------
 
