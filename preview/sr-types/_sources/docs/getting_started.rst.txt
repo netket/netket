@@ -112,13 +112,13 @@ probably be of poor quality.
 
 For more information on new features and API changes, please consult :ref:`Whats New`.
 
-.. warn:: 
+.. warning:: 
     If you were using the previous version of NetKet, we strongly advise you to read
     :ref:`Whats New` as it lists several changes that might otherwise pass unnoticed.
 
 
 Commented Example
-----------------
+-----------------
 
 .. code-block:: python
 
