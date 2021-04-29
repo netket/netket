@@ -31,7 +31,7 @@ from jax.util import as_hashable_function
 from jax.dtypes import dtype_real
 
 from netket.utils import MPI, n_nodes, rank, random_seed
-from netket.utils.types import PyTree, PRNGKeyT, SeedT
+from netket.utils.types import PyTree, PRNGKeyT, SeedT, Scalar
 
 
 def tree_ravel(pytree: PyTree) -> Tuple[jnp.ndarray, Callable]:
@@ -80,15 +80,38 @@ def is_complex(x):
     return jnp.issubdtype(x.dtype, jnp.complexfloating)
 
 
-def tree_leaf_iscomplex(pars):
+def is_real(x):
+    #  Returns true if x is real
+    return jnp.issubdtype(x.dtype, jnp.floating)
+
+
+def tree_leaf_iscomplex(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has complex dtype.
     """
     return any(jax.tree_leaves(jax.tree_map(is_complex, pars)))
 
 
+def tree_leaf_isreal(pars: PyTree) -> bool:
+    """
+    Returns true if at least one leaf in the tree has real dtype.
+    """
+    return any(jax.tree_leaves(jax.tree_map(is_real, pars)))
+
+
 def is_complex_dtype(typ):
     return jnp.issubdtype(typ, jnp.complexfloating)
+
+
+def is_real_dtype(typ):
+    return jnp.issubdtype(typ, jnp.floating)
+
+
+def tree_ishomogeneous(pars: PyTree) -> bool:
+    """
+    Returns true if all leaves have real dtype or all leaves have complex dtype.
+    """
+    return not (tree_leaf_isreal(pars) and tree_leaf_iscomplex(pars))
 
 
 def dtype_complex(typ):
@@ -118,6 +141,103 @@ def maybe_promote_to_complex(*types):
             return dtype_complex(main_typ)
     else:
         return main_typ
+
+
+def tree_conj(t: PyTree) -> PyTree:
+    r"""
+    Conjugate all complex leaves. The real leaves are left untouched.
+    Args:
+        t: pytree
+    """
+    return jax.tree_map(lambda x: jax.lax.conj(x) if jnp.iscomplexobj(x) else x, t)
+
+
+def tree_dot(a: PyTree, b: PyTree) -> Scalar:
+    r"""
+    compute the dot product of two pytrees
+
+    Args:
+        a, b: pytrees with the same treedef
+
+    Returns:
+        A scalar equal the dot product of of the flattened arrays of a and b.
+    """
+    return jax.tree_util.tree_reduce(
+        jax.numpy.add,
+        jax.tree_map(jax.numpy.sum, jax.tree_multimap(jax.numpy.multiply, a, b)),
+    )
+
+
+def tree_cast(x: PyTree, target: PyTree) -> PyTree:
+    r"""
+    cast x the types of target
+
+    Args:
+        x: a pytree with arrays as leaves
+        target: a pytree with the same treedef as x
+                where only the dtypes of the leaves are accessed
+    Returns:
+        A pytree where each leaf of x is cast to the dtype of the corresponding leaf in target.
+        The imaginary part of complex leaves which are cast to real is discarded.
+    """
+    # astype alone would also work, however that raises ComplexWarning when casting complex to real
+    # therefore the real is taken first where needed
+    return jax.tree_multimap(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
+            target.dtype
+        ),
+        x,
+        target,
+    )
+
+
+def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
+    r"""
+    compute a * x + y
+
+    Args:
+      a: scalar
+      x, y: pytrees with the same treedef
+    Returns:
+        The sum of the respective leaves of the two pytrees x and y
+        where the leaves of x are first scaled with a.
+    """
+    return jax.tree_multimap(lambda x_, y_: a * x_ + y_, x, y)
+
+
+def _to_real(x):
+    if jnp.iscomplexobj(x):
+        return x.real, x.imag
+        # TODO find a way to make it a nop?
+        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
+    else:
+        return x
+
+
+def _tree_to_real(x):
+    return jax.tree_map(_to_real, x)
+
+
+# invert the transformation using linear_transpose (AD)
+def _tree_reassemble_complex(x, target, fun=_tree_to_real):
+    (res,) = jax.linear_transpose(fun, target)(x)
+    return tree_conj(res)
+
+
+def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
+    """Replace all complex leaves of a pytree with a tuple of 2 real leaves.
+
+    Args:
+      pytree: a pytree to convert to real
+
+    Returns:
+      A pair where the first element is the converted real pytree,
+      and the second element is a callable for converting back a real pytree
+      to a complex pytree of of the same structure as the input pytree.
+    """
+    return _tree_to_real(pytree), partial(
+        _tree_reassemble_complex, target=pytree, fun=_tree_to_real
+    )
 
 
 class HashablePartial(partial):

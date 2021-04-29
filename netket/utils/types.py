@@ -24,3 +24,5 @@ Array = Any
 NNInitFunc = Callable[[PRNGKeyT, Shape, DType], Array]
 
 PyTree = Any
+
+Scalar = Any
