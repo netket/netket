@@ -1,0 +1,32 @@
+﻿netket.optimizer.sr.SRJacobianCG
+================================
+
+.. currentmodule:: netket.optimizer.sr
+
+.. autoclass:: SRJacobianCG
+   :show-inheritance:
+
+   .. automethod:: SRJacobianCG.__init__
+
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Attributes
+      .. autoattribute:: SRJacobianCG.M
+      .. autoattribute:: SRJacobianCG.atol
+      .. autoattribute:: SRJacobianCG.diag_shift
+      .. autoattribute:: SRJacobianCG.maxiter
+      .. autoattribute:: SRJacobianCG.mode
+      .. autoattribute:: SRJacobianCG.rescale_shift
+      .. autoattribute:: SRJacobianCG.tol
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: SRJacobianCG.create
+      .. automethod:: SRJacobianCG.replace
+      .. automethod:: SRJacobianCG.solve_fun
+
+   

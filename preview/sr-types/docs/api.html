@@ -335,8 +335,10 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#optimizer">Optimizer</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.SR.html">netket.optimizer.SR</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.SRLazyCG.html">netket.optimizer.SRLazyCG</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.SRLazyGMRES.html">netket.optimizer.SRLazyGMRES</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.sr.SRLazyCG.html">netket.optimizer.sr.SRLazyCG</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.sr.SRLazyGMRES.html">netket.optimizer.sr.SRLazyGMRES</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.sr.SRJacobianCG.html">netket.optimizer.sr.SRJacobianCG</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.sr.SRLazyGMRES.html">netket.optimizer.sr.SRLazyGMRES</a></li>
 <li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.Adam.html">netket.optimizer.Adam</a></li>
 <li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.AdaGrad.html">netket.optimizer.AdaGrad</a></li>
 <li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.Sgd.html">netket.optimizer.Sgd</a></li>
@@ -826,10 +828,16 @@ Read more about the design goal of this module in their <a class="reference exte
 <tr class="row-odd"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.SR.html#netket.optimizer.SR" title="netket.optimizer.SR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.SR</span></code></a></p></td>
 <td><p>Construct the structure holding the parameters for using the Stochastic Reconfiguration/Natural gradient method.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.SRLazyCG.html#netket.optimizer.SRLazyCG" title="netket.optimizer.SRLazyCG"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.SRLazyCG</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.sr.SRLazyCG.html#netket.optimizer.sr.SRLazyCG" title="netket.optimizer.sr.SRLazyCG"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.sr.SRLazyCG</span></code></a></p></td>
 <td><p>Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative conjugate gradient method.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.SRLazyGMRES.html#netket.optimizer.SRLazyGMRES" title="netket.optimizer.SRLazyGMRES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.SRLazyGMRES</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.sr.SRLazyGMRES.html#netket.optimizer.sr.SRLazyGMRES" title="netket.optimizer.sr.SRLazyGMRES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.sr.SRLazyGMRES</span></code></a></p></td>
+<td><p>Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative GMRES method.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.sr.SRJacobianCG.html#netket.optimizer.sr.SRJacobianCG" title="netket.optimizer.sr.SRJacobianCG"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.sr.SRJacobianCG</span></code></a></p></td>
+<td><p>Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative conjugate gradient method.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.sr.SRLazyGMRES.html#netket.optimizer.sr.SRLazyGMRES" title="netket.optimizer.sr.SRLazyGMRES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.sr.SRLazyGMRES</span></code></a></p></td>
 <td><p>Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative GMRES method.</p></td>
 </tr>
 </tbody>

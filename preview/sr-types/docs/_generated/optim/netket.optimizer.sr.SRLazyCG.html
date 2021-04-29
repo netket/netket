@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>netket.logging.RuntimeLog &#8212; netket v3.0 documentation</title>
+    <title>netket.optimizer.sr.SRLazyCG &#8212; netket v3.0 documentation</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
@@ -22,8 +22,8 @@
     <link rel="author" title="About these documents" href="../../../about.html" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="netket.logging.JsonLog" href="netket.logging.JsonLog.html" />
-    <link rel="prev" title="netket.driver.SteadyState" href="netket.driver.SteadyState.html" />
+    <link rel="next" title="netket.optimizer.sr.SRLazyGMRES" href="netket.optimizer.sr.SRLazyGMRES.html" />
+    <link rel="prev" title="netket.optimizer.SR" href="netket.optimizer.SR.html" />
 <meta charset='utf-8'>
 <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
@@ -331,30 +331,30 @@
 <li class="toctree-l3"><a class="reference internal" href="../variational/netket.variational.MCMixedState.html">netket.variational.MCMixedState</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../api.html#optimizer">Optimizer</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.SR.html">netket.optimizer.SR</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.sr.SRLazyCG.html">netket.optimizer.sr.SRLazyCG</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.sr.SRLazyGMRES.html">netket.optimizer.sr.SRLazyGMRES</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.sr.SRJacobianCG.html">netket.optimizer.sr.SRJacobianCG</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.sr.SRLazyGMRES.html">netket.optimizer.sr.SRLazyGMRES</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.Adam.html">netket.optimizer.Adam</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.AdaGrad.html">netket.optimizer.AdaGrad</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.Sgd.html">netket.optimizer.Sgd</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.Momentum.html">netket.optimizer.Momentum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../optim/netket.optimizer.RmsProp.html">netket.optimizer.RmsProp</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../api.html#optimizer">Optimizer</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="netket.optimizer.SR.html">netket.optimizer.SR</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">netket.optimizer.sr.SRLazyCG</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.optimizer.sr.SRLazyGMRES.html">netket.optimizer.sr.SRLazyGMRES</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.optimizer.sr.SRJacobianCG.html">netket.optimizer.sr.SRJacobianCG</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.optimizer.sr.SRLazyGMRES.html">netket.optimizer.sr.SRLazyGMRES</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.optimizer.Adam.html">netket.optimizer.Adam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.optimizer.AdaGrad.html">netket.optimizer.AdaGrad</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.optimizer.Sgd.html">netket.optimizer.Sgd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.optimizer.Momentum.html">netket.optimizer.Momentum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="netket.optimizer.RmsProp.html">netket.optimizer.RmsProp</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api.html#optimization-drivers">Optimization drivers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="netket.driver.AbstractVariationalDriver.html">netket.driver.AbstractVariationalDriver</a></li>
-<li class="toctree-l3"><a class="reference internal" href="netket.driver.VMC.html">netket.driver.VMC</a></li>
-<li class="toctree-l3"><a class="reference internal" href="netket.driver.SteadyState.html">netket.driver.SteadyState</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../driver/netket.driver.AbstractVariationalDriver.html">netket.driver.AbstractVariationalDriver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../driver/netket.driver.VMC.html">netket.driver.VMC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../driver/netket.driver.SteadyState.html">netket.driver.SteadyState</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="reference internal" href="../../api.html#logging-output">Logging output</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">netket.logging.RuntimeLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="netket.logging.JsonLog.html">netket.logging.JsonLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="netket.logging.StateLog.html">netket.logging.StateLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="netket.logging.TBLog.html">netket.logging.TBLog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api.html#logging-output">Logging output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../driver/netket.logging.RuntimeLog.html">netket.logging.RuntimeLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../driver/netket.logging.JsonLog.html">netket.logging.JsonLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../driver/netket.logging.StateLog.html">netket.logging.StateLog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../driver/netket.logging.TBLog.html">netket.logging.TBLog</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api.html#utils">Utils</a><ul>
@@ -376,40 +376,104 @@
       </div>
     <div class="body col-md-9 content" role="main">
       
-  <div class="section" id="netket-logging-runtimelog">
-<h1>netket.logging.RuntimeLog<a class="headerlink" href="#netket-logging-runtimelog" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="netket-optimizer-sr-srlazycg">
+<h1>netket.optimizer.sr.SRLazyCG<a class="headerlink" href="#netket-optimizer-sr-srlazycg" title="Permalink to this headline">¶</a></h1>
 <dl class="py class">
-<dt id="netket.logging.RuntimeLog">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">netket.logging.</span></code><code class="sig-name descname"><span class="pre">RuntimeLog</span></code><a class="reference internal" href="../../../_modules/netket/logging/runtime_log.html#RuntimeLog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.RuntimeLog" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Runtim Logger, that can be passed with keyword argument <cite>logger</cite> to Monte
-Carlo drivers in order to serialize the outpit data of the simulation.</p>
-<p>This logger keeps the data in memory, and does not save it to disk.</p>
+<dt id="netket.optimizer.sr.SRLazyCG">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">netket.optimizer.sr.</span></code><code class="sig-name descname"><span class="pre">SRLazyCG</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">diag_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/optimizer/sr/sr_onthefly.html#SRLazyCG"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">netket.optimizer.sr.sr_onthefly.SROnTheFlyIterative</span></code></p>
+<p>Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative conjugate gradient method.</p>
+<p>See <a class="reference external" href="https://jax.readthedocs.io/en/latest/_autosummary/jax.scipy.sparse.linalg.cg.html#jax.scipy.sparse.linalg.cg">Jax docs</a>
+for more informations.</p>
 <dl class="py method">
-<dt id="netket.logging.RuntimeLog.__init__">
-<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/runtime_log.html#RuntimeLog.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.RuntimeLog.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Crates a Runtime Logger.</p>
+<dt id="netket.optimizer.sr.SRLazyCG.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">diag_shift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>diag_shift</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – </p></li>
+<li><p><strong>centered</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – </p></li>
+<li><p><strong>tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – </p></li>
+<li><p><strong>atol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – </p></li>
+<li><p><strong>maxiter</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em>) – </p></li>
+<li><p><strong>M</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>Callable</em><em>, </em><em>Any</em><em>]</em><em>]</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)">None</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="class-dl-groups">
 <dt>Attributes</dt><dd><dl class="py attribute">
-<dt id="netket.logging.RuntimeLog.data">
-<code class="sig-name descname"><span class="pre">data</span></code><a class="headerlink" href="#netket.logging.RuntimeLog.data" title="Permalink to this definition">¶</a></dt>
-<dd><p>The dictionary of logged data.</p>
+<dt id="netket.optimizer.sr.SRLazyCG.M">
+<code class="sig-name descname"><span class="pre">M</span></code><em class="property"><span class="pre">:</span> <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.M" title="Permalink to this definition">¶</a></dt>
+<dd><p>Preconditioner for A. The preconditioner should approximate the inverse of A.
+Effective preconditioning dramatically improves the rate of convergence, which implies
+that fewer iterations are needed to reach a given error tolerance.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="netket.optimizer.sr.SRLazyCG.atol">
+<code class="sig-name descname"><span class="pre">atol</span></code><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">0.0</span></em><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.atol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Absolutes tolerance for convergences.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="netket.optimizer.sr.SRLazyCG.centered">
+<code class="sig-name descname"><span class="pre">centered</span></code><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.centered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses S=⟨ΔÔᶜΔÔ⟩ if True (default), S=⟨ÔᶜΔÔ⟩ otherwise. The two forms are
+mathematically equivalent, but might lead to different results due to numerical
+precision. The non-centered variant should be approximately 33% faster.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="netket.optimizer.sr.SRLazyCG.diag_shift">
+<code class="sig-name descname"><span class="pre">diag_shift</span></code><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">0.01</span></em><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.diag_shift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Diagonal shift added to the S matrix.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="netket.optimizer.sr.SRLazyCG.maxiter">
+<code class="sig-name descname"><span class="pre">maxiter</span></code><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.maxiter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum number of iterations. Iteration will stop after maxiter steps even
+if the specified tolerance has not been achieved.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="netket.optimizer.sr.SRLazyCG.tol">
+<code class="sig-name descname"><span class="pre">tol</span></code><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></em><em class="property"> <span class="pre">=</span> <span class="pre">1e-05</span></em><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.tol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Relative tolerance for convergences.</p>
 </dd></dl>
 
 </dd>
 </dl>
 <dl class="class-dl-groups">
 <dt>Methods</dt><dd><dl class="py method">
-<dt id="netket.logging.RuntimeLog.__call__">
-<code class="sig-name descname"><span class="pre">__call__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variational_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/runtime_log.html#RuntimeLog.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.RuntimeLog.__call__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call self as a function.</p>
+<dt id="netket.optimizer.sr.SRLazyCG.create">
+<code class="sig-name descname"><span class="pre">create</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vstate</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the Lazy representation of the S corresponding to this SR type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>vstate</strong> – The Variational State</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">LazySMatrixIterative</span></code></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
-<dt id="netket.logging.RuntimeLog.flush">
-<code class="sig-name descname"><span class="pre">flush</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variational_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/logging/runtime_log.html#RuntimeLog.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.logging.RuntimeLog.flush" title="Permalink to this definition">¶</a></dt>
+<dt id="netket.optimizer.sr.SRLazyCG.replace">
+<code class="sig-name descname"><span class="pre">replace</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">updates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.replace" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Returns a new object replacing the specified fields with new values.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="netket.optimizer.sr.SRLazyCG.solve_fun">
+<code class="sig-name descname"><span class="pre">solve_fun</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/netket/optimizer/sr/sr_onthefly.html#SRLazyCG.solve_fun"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#netket.optimizer.sr.SRLazyCG.solve_fun" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd>

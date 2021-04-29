@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>netket.optimizer.sr.sr_onthefly &#8212; netket v3.0 documentation</title>
+    <title>netket.optimizer.sr.sr_jacobian &#8212; netket v3.0 documentation</title>
     <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
@@ -95,7 +95,7 @@
   <div class="row">
     <div class="body col-md-12 content" role="main">
       
-  <h1>Source code for netket.optimizer.sr.sr_onthefly</h1><div class="highlight"><pre>
+  <h1>Source code for netket.optimizer.sr.sr_jacobian</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright 2021 The NetKet Authors - All rights reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -118,18 +118,17 @@
 <span class="kn">from</span> <span class="nn">jax</span> <span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">jnp</span>
 <span class="kn">from</span> <span class="nn">flax</span> <span class="kn">import</span> <span class="n">struct</span>
 
-<span class="kn">from</span> <span class="nn">plum</span> <span class="kn">import</span> <span class="n">dispatch</span>
-
 <span class="kn">from</span> <span class="nn">netket.utils.types</span> <span class="kn">import</span> <span class="n">PyTree</span><span class="p">,</span> <span class="n">Array</span>
+<span class="kn">from</span> <span class="nn">netket.utils</span> <span class="kn">import</span> <span class="n">rename_class</span>
+<span class="kn">import</span> <span class="nn">netket.jax</span> <span class="k">as</span> <span class="nn">nkjax</span>
+
+<span class="kn">from</span> <span class="nn">.s_jacobian_mat</span> <span class="kn">import</span> <span class="n">JacobianSMatrix</span><span class="p">,</span> <span class="n">gradients</span>
 
 <span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">SR</span>
 
-<span class="kn">from</span> <span class="nn">.sr_onthefly_logic</span> <span class="kn">import</span> <span class="n">mat_vec</span> <span class="k">as</span> <span class="n">mat_vec_onthefly</span><span class="p">,</span> <span class="n">tree_cast</span>
-<span class="kn">from</span> <span class="nn">.s_onthefly_mat</span> <span class="kn">import</span> <span class="n">SROnTheFly</span><span class="p">,</span> <span class="n">SMatrixOnTheFly</span>
-
 
 <span class="nd">@struct</span><span class="o">.</span><span class="n">dataclass</span>
-<span class="k">class</span> <span class="nc">SROnTheFlyIterative</span><span class="p">(</span><span class="n">SROnTheFly</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">SRJacobian</span><span class="p">(</span><span class="n">SR</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Base class holding the parameters for the iterative solution of the</span>
 <span class="sd">    SR system x = ⟨S⟩⁻¹⟨F⟩, where S is a lazy linear operator</span>
@@ -155,6 +154,29 @@
 <span class="sd">    that fewer iterations are needed to reach a given error tolerance.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">pytree_node</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;invalid&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Differentiation mode to precompute Jacobian</span>
+<span class="sd">    * &quot;holomorphic&quot;: C-&gt;C holomorphic function</span>
+<span class="sd">        `grad` is called on the full network output with `holomorphic=True`</span>
+<span class="sd">    * &quot;R2R&quot;: real-valued wave function with real parameters</span>
+<span class="sd">        `grad` is called on the real part of the network output with `holomorphic=False`</span>
+<span class="sd">    * &quot;R2C&quot;: complex-valued wave function with real parameters</span>
+<span class="sd">        the real and imaginary parts of the network output are treated as independent </span>
+<span class="sd">        R-&gt;R functions and `grad` is called separately on them with `holomorphic=False`</span>
+<span class="sd">    * the default value &quot;invalid&quot; will trigger an error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rescale_shift</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">pytree_node</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Whether scale-invariant regularisation should be used&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;R2R&quot;</span><span class="p">,</span> <span class="s2">&quot;R2C&quot;</span><span class="p">,</span> <span class="s2">&quot;holomorphic&quot;</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s1">&#39;Differentiation mode must be one of &quot;R2R&quot;, &quot;R2C&quot;, &quot;holomorphic&quot;, got &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mode</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vstate</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LazySMatrixIterative&quot;</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct the Lazy representation of the S corresponding to this SR type.</span>
@@ -162,17 +184,19 @@
 <span class="sd">        Args:</span>
 <span class="sd">            vstate: The Variational State</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">LazySMatrixIterative</span><span class="p">(</span>
-            <span class="n">apply_fun</span><span class="o">=</span><span class="n">vstate</span><span class="o">.</span><span class="n">_apply_fun</span><span class="p">,</span>
-            <span class="n">params</span><span class="o">=</span><span class="n">vstate</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
-            <span class="n">samples</span><span class="o">=</span><span class="n">vstate</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span>
-            <span class="n">model_state</span><span class="o">=</span><span class="n">vstate</span><span class="o">.</span><span class="n">model_state</span><span class="p">,</span>
-            <span class="n">sr</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+        <span class="n">O</span><span class="p">,</span> <span class="n">scale</span> <span class="o">=</span> <span class="n">gradients</span><span class="p">(</span>
+            <span class="n">vstate</span><span class="o">.</span><span class="n">_apply_fun</span><span class="p">,</span>
+            <span class="n">vstate</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">vstate</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span>
+            <span class="n">vstate</span><span class="o">.</span><span class="n">model_state</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rescale_shift</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">return</span> <span class="n">JacobianSMatrix</span><span class="p">(</span><span class="n">sr</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">O</span><span class="o">=</span><span class="n">O</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="SRLazyCG"><a class="viewcode-back" href="../../../../docs/_generated/optim/netket.optimizer.sr.SRLazyCG.html#netket.optimizer.sr.SRLazyCG">[docs]</a><span class="nd">@struct</span><span class="o">.</span><span class="n">dataclass</span>
-<span class="k">class</span> <span class="nc">SRLazyCG</span><span class="p">(</span><span class="n">SROnTheFlyIterative</span><span class="p">):</span>
+<div class="viewcode-block" id="SRJacobianCG"><a class="viewcode-back" href="../../../../docs/_generated/optim/netket.optimizer.sr.SRJacobianCG.html#netket.optimizer.sr.SRJacobianCG">[docs]</a><span class="nd">@struct</span><span class="o">.</span><span class="n">dataclass</span>
+<span class="k">class</span> <span class="nc">SRJacobianCG</span><span class="p">(</span><span class="n">SRJacobian</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative conjugate gradient method.</span>
 
@@ -182,7 +206,7 @@
 
     <span class="o">...</span>
 
-<div class="viewcode-block" id="SRLazyCG.solve_fun"><a class="viewcode-back" href="../../../../docs/_generated/optim/netket.optimizer.sr.SRLazyCG.html#netket.optimizer.sr.SRLazyCG.solve_fun">[docs]</a>    <span class="k">def</span> <span class="nf">solve_fun</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SRJacobianCG.solve_fun"><a class="viewcode-back" href="../../../../docs/_generated/optim/netket.optimizer.sr.SRJacobianCG.html#netket.optimizer.sr.SRJacobianCG.solve_fun">[docs]</a>    <span class="k">def</span> <span class="nf">solve_fun</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">partial</span><span class="p">(</span>
             <span class="n">jax</span><span class="o">.</span><span class="n">scipy</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cg</span><span class="p">,</span>
             <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span>
@@ -192,8 +216,8 @@
         <span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="SRLazyGMRES"><a class="viewcode-back" href="../../../../docs/_generated/optim/netket.optimizer.sr.SRLazyGMRES.html#netket.optimizer.sr.SRLazyGMRES">[docs]</a><span class="nd">@struct</span><span class="o">.</span><span class="n">dataclass</span>
-<span class="k">class</span> <span class="nc">SRLazyGMRES</span><span class="p">(</span><span class="n">SROnTheFlyIterative</span><span class="p">):</span>
+<span class="nd">@struct</span><span class="o">.</span><span class="n">dataclass</span>
+<span class="k">class</span> <span class="nc">SRJacobianGMRES</span><span class="p">(</span><span class="n">SRJacobian</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative GMRES method.</span>
 
@@ -221,7 +245,7 @@
 <span class="sd">    less overhead on GPUs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="SRLazyGMRES.solve_fun"><a class="viewcode-back" href="../../../../docs/_generated/optim/netket.optimizer.sr.SRLazyGMRES.html#netket.optimizer.sr.SRLazyGMRES.solve_fun">[docs]</a>    <span class="k">def</span> <span class="nf">solve_fun</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">solve_fun</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">partial</span><span class="p">(</span>
             <span class="n">jax</span><span class="o">.</span><span class="n">scipy</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">gmres</span><span class="p">,</span>
             <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span>
@@ -230,73 +254,7 @@
             <span class="n">M</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">M</span><span class="p">,</span>
             <span class="n">restart</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">restart</span><span class="p">,</span>
             <span class="n">solve_method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">solve_method</span><span class="p">,</span>
-        <span class="p">)</span></div></div>
-
-
-<span class="nd">@struct</span><span class="o">.</span><span class="n">dataclass</span>
-<span class="k">class</span> <span class="nc">LazySMatrixIterative</span><span class="p">(</span><span class="n">SMatrixOnTheFly</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Lazy representation of an S Matrix behving like a linear operator.</span>
-
-<span class="sd">    The S matrix is not computed yet, but can be computed by calling</span>
-<span class="sd">    :code:`to_dense`.</span>
-<span class="sd">    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in</span>
-<span class="sd">    the field `sr`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">x0</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PyTree</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="sd">&quot;&quot;&quot;Optional initial guess for the iterative solution.&quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">PyTree</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PyTree</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyTree</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterataive solver.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            y: the vector y in the system above.</span>
-<span class="sd">            x0: optional initial guess for the solution.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            x: the PyTree solving the system.</span>
-<span class="sd">            info: optional additional informations provided by the solver. Might be</span>
-<span class="sd">                None if there are no additional informations provided.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">x0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">x0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x0</span>
-
-        <span class="n">out</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">apply_onthefly</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">y</span><span class="p">,</span>
-            <span class="n">x0</span><span class="p">,</span>
         <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">info</span>
-
-
-<span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
-<span class="k">def</span> <span class="nf">apply_onthefly</span><span class="p">(</span>
-    <span class="n">S</span><span class="p">:</span> <span class="n">LazySMatrixIterative</span><span class="p">,</span> <span class="n">grad</span><span class="p">:</span> <span class="n">PyTree</span><span class="p">,</span> <span class="n">x0</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PyTree</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyTree</span><span class="p">:</span>
-    <span class="c1"># Preapply the model state so that when computing gradient we only</span>
-    <span class="c1"># get gradient of parameeters</span>
-    <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">σ</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">S</span><span class="o">.</span><span class="n">apply_fun</span><span class="p">({</span><span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="n">W</span><span class="p">,</span> <span class="o">**</span><span class="n">S</span><span class="o">.</span><span class="n">model_state</span><span class="p">},</span> <span class="n">σ</span><span class="p">)</span>
-
-    <span class="n">grad</span> <span class="o">=</span> <span class="n">tree_cast</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">S</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
-    <span class="c1"># we could cache this...</span>
-    <span class="k">if</span> <span class="n">x0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">x0</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
-
-    <span class="n">_mat_vec</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
-        <span class="n">mat_vec_onthefly</span><span class="p">,</span>
-        <span class="n">forward_fn</span><span class="o">=</span><span class="n">fun</span><span class="p">,</span>
-        <span class="n">params</span><span class="o">=</span><span class="n">S</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
-        <span class="n">samples</span><span class="o">=</span><span class="n">S</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span>
-        <span class="n">diag_shift</span><span class="o">=</span><span class="n">S</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">diag_shift</span><span class="p">,</span>
-        <span class="n">centered</span><span class="o">=</span><span class="n">S</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">centered</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">solve_fun</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">sr</span><span class="o">.</span><span class="n">solve_fun</span><span class="p">()</span>
-    <span class="n">out</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">solve_fun</span><span class="p">(</span><span class="n">_mat_vec</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">info</span>
 </pre></div>
 
     </div>

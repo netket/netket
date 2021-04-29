@@ -1,7 +1,7 @@
-﻿netket.optimizer.SRLazyCG
-=========================
+﻿netket.optimizer.sr.SRLazyCG
+============================
 
-.. currentmodule:: netket.optimizer
+.. currentmodule:: netket.optimizer.sr
 
 .. autoclass:: SRLazyCG
    :show-inheritance:
