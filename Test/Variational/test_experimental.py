@@ -15,6 +15,10 @@ from flax import serialization
 
 import netket as nk
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 SEED = 111
 
 

@@ -14,6 +14,8 @@ from netket.legacy.optimizer.jax.stochastic_reconfiguration import (
     _jax_cg_solve_onthefly,
 )
 
+pytestmark = pytest.mark.legacy
+
 
 @partial(jax.vmap, in_axes=(None, 0))
 def f(params, x):

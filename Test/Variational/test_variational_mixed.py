@@ -16,6 +16,10 @@ from contextlib import redirect_stderr
 import tempfile
 import re
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 nk.config.update("NETKET_EXPERIMENTAL", True)
 
 SEED = 2148364

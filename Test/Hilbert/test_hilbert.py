@@ -22,6 +22,10 @@ from netket.hilbert import *
 import jax
 from jax import numpy as jnp
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 hilberts = {}
 
 # Spin 1/2
@@ -82,7 +86,6 @@ hilberts["Doubled Hilbert"] = nk.hilbert.DoubledHilbert(
 )
 
 # hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
-
 
 #
 # Tests

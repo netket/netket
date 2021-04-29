@@ -6,6 +6,8 @@ from pytest import approx
 from scipy.stats import power_divergence, combine_pvalues, chisquare
 from netket.legacy.random import randint
 
+pytestmark = pytest.mark.legacy
+
 samplers = {}
 
 nk.random.seed(1234567)

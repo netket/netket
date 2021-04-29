@@ -8,6 +8,10 @@ from netket.stats import statistics
 from scipy.optimize import curve_fit
 from numba import jit
 
+from ... import common
+
+pytestmark = pytest.mark.legacy
+
 
 def _setup():
     g = nk.graph.Hypercube(3, 2)
@@ -39,9 +43,6 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
 
     stats = statistics(eloc.T)
 
-    # These tests only work for one MPI process
-    assert nk.stats.MPI.COMM_WORLD.size == 1
-
     assert stats.mean == pytest.approx(np.mean(eloc))
     if n_chains > 1:
 
@@ -53,6 +54,7 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
         assert stats.R_hat == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
 
 
+@common.skipif_mpi
 def test_stats_mean_std():
     hi, ham, ma = _setup()
     for bs in (1, 2, 16, 32):

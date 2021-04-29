@@ -1,3 +1,5 @@
+import pytest
+
 import netket as nk
 import networkx as nx
 import math
@@ -6,7 +8,9 @@ import igraph as ig
 
 from netket.graph import *
 
-import pytest
+from .. import common
+
+pytestmark = common.skipif_mpi
 
 nxg = nx.star_graph(10)
 graphs = [

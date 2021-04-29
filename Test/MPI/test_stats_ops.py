@@ -1,13 +1,9 @@
 import itertools
 import netket as nk
 import numpy as np
-from mpi4py import MPI
 import pytest
 
-
-comm = MPI.COMM_WORLD
-size = comm.Get_size()
-rank = comm.Get_rank()
+from .. import common
 
 
 def approx(data):
@@ -37,15 +33,15 @@ def reference_stats(data):
     return mean_full, var_full, R_hat
 
 
-@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
-def test_mc_stats():
-    # Test data of shape [MPI_size, n_chains, n_samples], same on all ranks
-    data = np.random.rand(size, 10, 1000)
-    data = comm.bcast(data)
+@common.onlyif_mpi
+def test_mc_stats(_mpi_comm, _mpi_rank, _mpi_size):
+    # Test data of shape [MPI__mpi_size, n_chains, n_samples], same on all _mpi_ranks
+    data = np.random.rand(_mpi_size, 10, 1000)
+    data = _mpi_comm.bcast(data)
 
     ref_mean, ref_var, ref_R = reference_stats(data)
 
-    mydata = np.copy(data[rank])
+    mydata = np.copy(data[_mpi_rank])
 
     stats = nk.stats.statistics(mydata)
 
@@ -55,11 +51,11 @@ def test_mc_stats():
     assert stats.R_hat == approx(ref_R)
 
 
-@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
-def test_mean():
-    data = np.random.rand(size, 10, 11, 12)
-    data = comm.bcast(data)
-    mydata = np.copy(data[rank])
+@common.onlyif_mpi
+def test_mean(_mpi_comm, _mpi_rank, _mpi_size):
+    data = np.random.rand(_mpi_size, 10, 11, 12)
+    data = _mpi_comm.bcast(data)
+    mydata = np.copy(data[_mpi_rank])
 
     for axis in None, 0, 1, 2:
         ref_mean = np.mean(data.mean(0), axis=axis)
@@ -85,11 +81,11 @@ def test_mean():
     assert out == approx(np.mean(data.mean(0), keepdims=True))
 
 
-@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
-def test_sum():
-    data = np.ones((size, 10, 11, 12))
-    data = comm.bcast(data)
-    mydata = np.copy(data[rank])
+@common.onlyif_mpi
+def test_sum(_mpi_comm, _mpi_rank, _mpi_size):
+    data = np.ones((_mpi_size, 10, 11, 12))
+    data = _mpi_comm.bcast(data)
+    mydata = np.copy(data[_mpi_rank])
 
     for axis in None, 0, 1, 2:
         ref_sum = np.sum(data.sum(axis=0), axis=axis)
@@ -117,11 +113,11 @@ def test_sum():
     np.testing.assert_almost_equal(out, np.sum(1j * data.sum(axis=0), axis=0))
 
 
-@pytest.mark.skipif(size < 2, reason="need at least 2 processes to test MPI")
-def test_var():
-    data = np.random.rand(size, 10, 11, 12, 13)
-    data = comm.bcast(data)
-    mydata = np.copy(data[rank])
+@common.onlyif_mpi
+def test_var(_mpi_comm, _mpi_rank, _mpi_size):
+    data = np.random.rand(_mpi_size, 10, 11, 12, 13)
+    data = _mpi_comm.bcast(data)
+    mydata = np.copy(data[_mpi_rank])
 
     for axis, ddof in itertools.product((None, 0, 1, 2, 3), (0, 1)):
         if axis is not None:
@@ -143,10 +139,11 @@ def test_var():
     assert out == approx(np.var(data))
 
 
-def test_sum_inplace():
-    data = np.arange(size * 10 * 11).reshape(size, 10, 11)
-    data = comm.bcast(data)
-    mydata = np.copy(data[rank])
+@common.onlyif_mpi
+def test_sum_inplace(_mpi_rank, _mpi_size, _mpi_comm):
+    data = np.arange(_mpi_size * 10 * 11).reshape(_mpi_size, 10, 11)
+    data = _mpi_comm.bcast(data)
+    mydata = np.copy(data[_mpi_rank])
 
     ref_sum = np.sum(data, axis=0)
     ret = nk.stats.sum_inplace(mydata)
@@ -155,10 +152,11 @@ def test_sum_inplace():
     np.testing.assert_almost_equal(ret, mydata)
 
 
-def test_subtract_mean():
-    data = np.random.rand(size, 10, 11, 12)
-    data = comm.bcast(data)
-    mydata = np.copy(data[rank])
+@common.onlyif_mpi
+def test_subtract_mean(_mpi_rank, _mpi_size, _mpi_comm):
+    data = np.random.rand(_mpi_size, 10, 11, 12)
+    data = _mpi_comm.bcast(data)
+    mydata = np.copy(data[_mpi_rank])
 
     ref_mean = nk.stats.mean(mydata, axis=0)
     ref_data = mydata - ref_mean[np.newaxis, :, :]

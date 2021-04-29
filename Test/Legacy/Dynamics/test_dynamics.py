@@ -6,6 +6,9 @@ from scipy.linalg import norm
 import netket.legacy as nk
 from netket.exact import PyExactTimePropagation
 
+import pytest
+
+pytestmark = pytest.mark.legacy
 
 ATOL = 1e-9
 RTOL = 1e-9

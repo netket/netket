@@ -5,6 +5,10 @@ import jax
 import jax.numpy as jnp
 from dataclasses import dataclass
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 
 @dataclass
 class MockCompoundType:

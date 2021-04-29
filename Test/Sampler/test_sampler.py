@@ -9,6 +9,10 @@ import jax
 import flax
 from jax import numpy as jnp
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 nk.config.update("NETKET_EXPERIMENTAL", True)
 np.random.seed(1234)
 
