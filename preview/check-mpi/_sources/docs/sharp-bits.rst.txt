@@ -27,8 +27,8 @@ If you encounter issues, you can check whether your MPI environment is set up pr
    mpi_available                : True
    mpi4jax_available            : True
    n_nodes                      : 2
-   "mpi4py | MPI_version         : (3, 1)
-   "mpi4py | MPI_library_version : Open MPI v4.1.0 <...>
+   "mpi4py | MPI version         : (3, 1)
+   "mpi4py | MPI library_version : Open MPI v4.1.0 <...>
 
 This should print some basic information about the MPI installation and, in particular, pick up the correct `n_nodes`.
 If you get the same output multiple times, each with :code:`n_nodes : 1`, this is a clear sign that your MPI setup is broken.
