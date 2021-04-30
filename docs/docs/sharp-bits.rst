@@ -20,7 +20,18 @@ To disable this behaviour, refer to `Jax#743 <https://github.com/google/jax/issu
 
 Usually we have noticed that the best performance is achieved by combining both BLAS parallelism and MPI, for example by guaranteeing between 2-4 (depending on your problem size) cpus to every MPI thread.
 
+Note that when using :code:`netket` it is crucial to run Python with the same implementation and version of MPI that the :code:`mpi4py` module is compiled against.
+If you encounter issues, you can check whether your MPI environment is set up properly by running::
 
+   $ mpirun -np 2 python3 -m netket.tools.check_mpi
+   mpi_available                : True
+   mpi4jax_available            : True
+   n_nodes                      : 2
+   mpi4py | MPI version         : (3, 1)
+   mpi4py | MPI library_version : Open MPI v4.1.0 <...>
+
+This should print some basic information about the MPI installation and, in particular, pick up the correct `n_nodes`.
+If you get the same output multiple times, each with :code:`n_nodes : 1`, this is a clear sign that your MPI setup is broken.
 
 .. _running_on_cpu:
 
@@ -79,6 +90,5 @@ If you find NaNs while training, especially if you are using your own model, the
   if you use general flax layers they might use different initializers.
   different initialisation distributions have particoularly strong effects when working with complex-valued models. 
   A good way to enforce the same distribution across all your weights, similar to NetKet 2 behaviour, is to use :py:meth:`~netket.variational.VariationalState.init_parameters`.
-
 
 
