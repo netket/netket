@@ -1,0 +1,28 @@
+﻿netket.graph.SymmGroup
+======================
+
+.. currentmodule:: netket.graph
+
+.. autoclass:: SymmGroup
+   :show-inheritance:
+
+   .. automethod:: SymmGroup.__init__
+
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Attributes
+      .. autoattribute:: SymmGroup.shape
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: SymmGroup.__call__
+      .. automethod:: SymmGroup.inverse
+      .. automethod:: SymmGroup.product_table
+      .. automethod:: SymmGroup.remove_duplicates
+      .. automethod:: SymmGroup.to_array
+
+   

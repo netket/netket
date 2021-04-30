@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>netket.sampler.rules.exchange &#8212; netket v3.0 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/panels-variables.06eb56fa6e07937060861dad626602ad.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/jumbo-style.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/css/all.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/css/rtd_theme.css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/rtd_theme.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../../../../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../../../../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../../../../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../../../../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../../../../index.html"><span><img src="../../../../_static/logonav.png"></span>
+          NetKet</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../../../../getting_started.html">Get Started</a></li>
+                <li><a href="../../../../docs/getting_started.html">Documentation</a></li>
+                <li><a href="../../../../tutorials.html">Tutorials</a></li>
+                <li><a href="../../../../citing.html">Citing NetKet</a></li>
+                <li><a href="../../../../about.html">About</a></li>
+                <li><a href="https://github.com/netket/netket"><i class="fab fa-github" aria-hidden="true"></i></a></li>
+                <li><a href="https://twitter.com/NetKetOrg"><i class="fab fa-twitter" aria-hidden="true"></i></a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../../../../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../../../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  <h1>Source code for netket.sampler.rules.exchange</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2021 The NetKet Authors - All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#    http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">import</span> <span class="nn">jax</span>
+<span class="kn">import</span> <span class="nn">flax</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">jax</span> <span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">jnp</span>
+<span class="kn">from</span> <span class="nn">flax</span> <span class="kn">import</span> <span class="n">struct</span>
+
+<span class="kn">from</span> <span class="nn">netket.graph</span> <span class="kn">import</span> <span class="n">AbstractGraph</span>
+<span class="kn">from</span> <span class="nn">..metropolis</span> <span class="kn">import</span> <span class="n">MetropolisRule</span>
+
+
+<span class="nd">@struct</span><span class="o">.</span><span class="n">dataclass</span>
+<span class="k">class</span> <span class="nc">ExchangeRule_</span><span class="p">(</span><span class="n">MetropolisRule</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Rule exchanging the state on a random couple of sites, chosen from a list of</span>
+<span class="sd">    possible couples (clusters).</span>
+
+<span class="sd">    This rule acts on two local degree of freedom :math:`s_i` and :math:`s_j`,</span>
+<span class="sd">    and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,</span>
+<span class="sd">    where in general :math:`s^\prime_i \neq s_i` and :math:`s^\prime_j \neq s_j`.</span>
+<span class="sd">    The sites :math:`i` and :math:`j` are also chosen to be within a maximum graph</span>
+<span class="sd">    distance of :math:`d_{\mathrm{max}}`.</span>
+
+<span class="sd">    The transition probability associated to this sampler can</span>
+<span class="sd">    be decomposed into two steps:</span>
+
+<span class="sd">    1. A pair of indices :math:`i,j = 1\dots N`, and such</span>
+<span class="sd">       that :math:`\mathrm{dist}(i,j) \leq d_{\mathrm{max}}`,</span>
+<span class="sd">       is chosen with uniform probability.</span>
+<span class="sd">    2. The sites are exchanged, i.e. :math:`s^\prime_i = s_j` and :math:`s^\prime_j = s_i`.</span>
+
+<span class="sd">    Notice that this sampling method generates random permutations of the quantum</span>
+<span class="sd">    numbers, thus global quantities such as the sum of the local quantum numbers</span>
+<span class="sd">    are conserved during the sampling.</span>
+<span class="sd">    This scheme should be used then only when sampling in a</span>
+<span class="sd">    region where :math:`\sum_i s_i = \mathrm{constant}` is needed,</span>
+<span class="sd">    otherwise the sampling would be strongly not ergodic.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">clusters</span><span class="p">:</span> <span class="n">Any</span>
+
+    <span class="k">def</span> <span class="nf">transition</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">sampler</span><span class="p">,</span> <span class="n">machine</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">σ</span><span class="p">):</span>
+        <span class="n">n_chains</span> <span class="o">=</span> <span class="n">σ</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">hilb</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">hilbert</span>
+
+        <span class="c1"># pick a random cluster</span>
+        <span class="n">cluster_id</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+            <span class="n">key</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n_chains</span><span class="p">,),</span> <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">rule</span><span class="o">.</span><span class="n">clusters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">scalar_update_fun</span><span class="p">(</span><span class="n">σ</span><span class="p">,</span> <span class="n">cluster</span><span class="p">):</span>
+            <span class="c1"># sites to be exchanged,</span>
+            <span class="n">si</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="n">cluster</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">sj</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="n">cluster</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">σp</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">index_update</span><span class="p">(</span><span class="n">σ</span><span class="p">,</span> <span class="n">si</span><span class="p">,</span> <span class="n">σ</span><span class="p">[</span><span class="n">sj</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">index_update</span><span class="p">(</span><span class="n">σp</span><span class="p">,</span> <span class="n">sj</span><span class="p">,</span> <span class="n">σ</span><span class="p">[</span><span class="n">si</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">scalar_update_fun</span><span class="p">,</span> <span class="n">in_axes</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">out_axes</span><span class="o">=</span><span class="mi">0</span><span class="p">)(</span><span class="n">σ</span><span class="p">,</span> <span class="n">cluster_id</span><span class="p">),</span>
+            <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ExchangeRule(# of clusters: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">compute_clusters</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">d_max</span><span class="p">):</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">distances</span><span class="p">())</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">distances</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">distances</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">d_max</span><span class="p">:</span>
+                <span class="n">clusters</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span>
+
+    <span class="n">res_clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">clusters</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">clusters</span><span class="p">):</span>
+        <span class="n">res_clusters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res_clusters</span>
+
+
+<div class="viewcode-block" id="ExchangeRule"><a class="viewcode-back" href="../../../../docs/_generated/samplers/netket.sampler.rules.ExchangeRule.html#netket.sampler.rules.ExchangeRule">[docs]</a><span class="k">def</span> <span class="nf">ExchangeRule</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">clusters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">graph</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbstractGraph</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">d_max</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Rule exchanging the state on a random couple of sites, chosen from a list of</span>
+<span class="sd">    possible couples (clusters).</span>
+
+<span class="sd">    This rule acts on two local degree of freedom :math:`s_i` and :math:`s_j`,</span>
+<span class="sd">    and proposes a new state: :math:`s_1 \\dots s^\\prime_i \\dots s^\\prime_j \\dots s_N`,</span>
+<span class="sd">    where in general :math:`s^\\prime_i \\neq s_i` and :math:`s^\\prime_j \\neq s_j`.</span>
+<span class="sd">    The sites :math:`i` and :math:`j` are also chosen to be within a maximum graph</span>
+<span class="sd">    distance of :math:`d_{\\mathrm{max}}`.</span>
+
+<span class="sd">    The transition probability associated to this sampler can</span>
+<span class="sd">    be decomposed into two steps:</span>
+
+<span class="sd">    1. A pair of indices :math:`i,j = 1\\dots N`, and such</span>
+<span class="sd">       that :math:`\\mathrm{dist}(i,j) \\leq d_{\\mathrm{max}}`,</span>
+<span class="sd">       is chosen with uniform probability.</span>
+<span class="sd">    2. The sites are exchanged, i.e. :math:`s^\\prime_i = s_j` and :math:`s^\\prime_j = s_i`.</span>
+
+<span class="sd">    Notice that this sampling method generates random permutations of the quantum</span>
+<span class="sd">    numbers, thus global quantities such as the sum of the local quantum numbers</span>
+<span class="sd">    are conserved during the sampling.</span>
+<span class="sd">    This scheme should be used then only when sampling in a</span>
+<span class="sd">    region where :math:`\\sum_i s_i = \\mathrm{constant}` is needed,</span>
+<span class="sd">    otherwise the sampling would be strongly not ergodic.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        clusters: The list of clusters that can be exchanged.</span>
+<span class="sd">        graph: A graph, from which the edges determine the clusters that can be exchanged.</span>
+<span class="sd">        d_max: Only valid if a graph is passed in. The maximum distance between two sites</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">clusters</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">graph</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="n">compute_clusters</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">d_max</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="n">clusters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">graph</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sd">&quot;&quot;&quot;You must either provide the list of exchange-clusters or a netket graph, from</span>
+<span class="sd">                          which clusters will be computed using the maximum distance d_max. &quot;&quot;&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ExchangeRule_</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">clusters</span><span class="p">))</span></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019-2021, The Netket authors - All rights reserved.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.4.<br/>
+    </p>
+  </div>
+</footer>
+
+<script type="text/javascript">
+    jQuery(function () {
+        SphinxRtdTheme.Navigation.enable(true);
+      })
+</script>
+
+<!-- Temporary footer
+<div class="footer-wip">
+  <div class="footer-wip-content">
+    This documentation refers to an unreleased version of Netket.
+  </div>
+</div>
+-->
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-118013987-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-118013987-1');
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "url": "https://www.netket.org",
+  "name": "NetKet",
+  "founder": "Giuseppe Carleo",
+  "foundingDate": "2018-04-24",
+  "foundingLocation" : "New York",
+  "logo": "https://www.netket.org/img/logo_small.jpg",
+  "sameAs": [
+    "https://twitter.com/NetKetOrg",
+    "https://github.com/NetKet/netket"
+  ],
+  "description" : "Netket is an open-source project delivering cutting-edge
+  methods for the study of many-body quantum systems with artificial neural
+  networks and machine learning techniques."
+}
+</script>
+
+  </body>
+</html>
