@@ -7,17 +7,7 @@ import numpy as np
 import jax
 import jaxlib
 
-# compatibility with jaxlib<=0.1.61
-# we don't really support this old jaxlib, because previous
-# versions had bugs and dont work with mpi4jax, but some people
-# do use that because of old computer without AVX so...
-# eventually delete this.
-try:
-    _DeviceArray = jaxlib.xla_extension.DeviceArray
-except:
-    _DeviceArray = jax.interpreters.xla._DeviceArray
-
-ArrayT = Union[np.ndarray, _DeviceArray, jax.core.Tracer]
+from .types import Array
 
 
 @dispatch
@@ -26,7 +16,7 @@ def dtype(x: Number):
 
 
 @dispatch
-def dtype(x: ArrayT):
+def dtype(x: Array):
     return x.dtype
 
 
@@ -41,5 +31,5 @@ def is_scalar(x: Number):
 
 
 @dispatch
-def is_scalar(x: ArrayT):
+def is_scalar(x: Array):
     return x.ndim == 0
