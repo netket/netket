@@ -7,7 +7,7 @@ import numpy as np
 import jax
 import jaxlib
 
-ArrayT = Union[np.ndarray, jaxlib.xla_extension.DeviceArray, jax.core.Tracer]
+from .types import Array
 
 
 @dispatch
@@ -16,7 +16,7 @@ def dtype(x: Number):
 
 
 @dispatch
-def dtype(x: ArrayT):
+def dtype(x: Array):
     return x.dtype
 
 
@@ -31,5 +31,5 @@ def is_scalar(x: Number):
 
 
 @dispatch
-def is_scalar(x: ArrayT):
+def is_scalar(x: Array):
     return x.ndim == 0
