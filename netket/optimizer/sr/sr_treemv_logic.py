@@ -30,7 +30,7 @@ from .sr_onthefly_logic import tree_cast, tree_conj, tree_axpy
 
 
 @partial(jax.vmap, in_axes=(None, None, 0))
-def perex_grads_rr_cc(forward_fn, params, samples):
+def vmap_grad_rr_cc(forward_fn, params, samples):
     def f(p, x):
         return forward_fn(p, jnp.expand_dims(x, 0))[0]
 
@@ -40,7 +40,7 @@ def perex_grads_rr_cc(forward_fn, params, samples):
 
 
 @partial(jax.vmap, in_axes=(None, None, 0))
-def perex_grads_rc(forward_fn, params, samples):
+def vmap_grad_rc(forward_fn, params, samples):
     def f(p, x):
         return forward_fn(p, jnp.expand_dims(x, 0))[0]
 
@@ -50,13 +50,13 @@ def perex_grads_rc(forward_fn, params, samples):
     return jax.tree_multimap(jax.lax.complex, gr, gi)
 
 
-def perex_grads(forward_fn, params, samples):
+def vmap_grad(forward_fn, params, samples):
     complex_output = nkjax.is_complex(jax.eval_shape(forward_fn, params, samples))
     real_params = not nkjax.tree_leaf_iscomplex(params)
     if real_params and complex_output:
-        return perex_grads_rc(forward_fn, params, samples)
+        return vmap_grad_rc(forward_fn, params, samples)
     else:
-        return perex_grads_rr_cc(forward_fn, params, samples)
+        return vmap_grad_rr_cc(forward_fn, params, samples)
 
 
 def sub_mean(oks):
@@ -64,7 +64,7 @@ def sub_mean(oks):
 
 
 def prepare_doks(forward_fn, params, samples):
-    oks = perex_grads(forward_fn, params, samples)
+    oks = vmap_grad(forward_fn, params, samples)
     n_samp = samples.shape[0] * n_nodes  # MPI
     oks = jax.tree_map(lambda x: x / np.sqrt(n_samp), oks)
     doks = sub_mean(oks)  # MPI
