@@ -117,7 +117,7 @@ def vjp(oks: PyTree, w: Array) -> PyTree:
 
 def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
     """
-    compute S v = 1/n ⟨O†O⟩v = 1/n ∑ₗ ⟨OₖᴴOₗ⟩ vₗ
+    compute S v = 1/n ⟨ΔO† ΔO⟩v = 1/n ∑ₗ ⟨ΔOₖᴴ ΔOₗ⟩ vₗ
     """
     res = tree_conj(vjp(oks, jvp(oks, v).conjugate()))
     return tree_cast(res, v)
@@ -125,11 +125,11 @@ def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
 
 def mat_vec(v: PyTree, oks: PyTree, diag_shift: Scalar) -> PyTree:
     """
-    compute (S + δ) v = 1/n ⟨O†O⟩v + δ v = ∑ₗ 1/n ⟨OₖᴴOₗ⟩ vₗ + δ vₗ
+    compute (S + δ) v = 1/n ⟨ΔO† ΔO⟩v + δ v = ∑ₗ 1/n ⟨ΔOₖᴴΔOₗ⟩ vₗ + δ vₗ
 
     Args:
         v: pytree representing the vector v
-        oks: pytree of gradients 1/√n Oⱼₖ or 1/√n ΔOⱼₖ
+        oks: pytree of gradients 1/√n ΔOⱼₖ
         diag_shift: a scalar diagonal shift δ
     Returns:
         a pytree corresponding to the sr matrix-vector product (S + δ) v
