@@ -51,12 +51,12 @@ def perex_grads_rc(forward_fn, params, samples):
 
 
 def perex_grads(forward_fn, params, samples):
-    o = jax.eval_shape(forward_fn, params, samples)
-    if not nkjax.tree_leaf_iscomplex(params) and nkjax.is_complex(o):
+    complex_output = nkjax.is_complex(jax.eval_shape(forward_fn, params, samples))
+    real_params = not nkjax.tree_leaf_iscomplex(params)
+    if real_params and complex_output:
         return perex_grads_rc(forward_fn, params, samples)
     else:
         return perex_grads_rr_cc(forward_fn, params, samples)
-    # TODO inhomogeneous R&C -> C
 
 
 def sub_mean(oks):
@@ -66,9 +66,18 @@ def sub_mean(oks):
 def prepare_doks(forward_fn, params, samples):
     oks = perex_grads(forward_fn, params, samples)
     n_samp = samples.shape[0] * n_nodes  # MPI
-    # TODO where to divide by n_samp?
     oks = jax.tree_map(lambda x: x / np.sqrt(n_samp), oks)
-    return sub_mean(oks)
+    doks = sub_mean(oks)  # MPI
+
+    real_params = not nkjax.tree_leaf_iscomplex(params)
+    complex_oks = nkjax.tree_leaf_iscomplex(oks)
+    if real_params and complex_oks:
+        # R->C
+        # convert the complex oks to real ones with twice the number of rows
+        # Re[S] = Re[(Or + i Oi)^H (Or + i Oi)] = Or^T Or + Oi^T Oi = [Or Oi] [Or Oi]^T
+        doks = jax.tree_map(lambda x: jnp.concatenate([x.real, x.imag], axis=0), doks)
+
+    return doks
 
 
 def jvp(oks, v):
