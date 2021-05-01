@@ -314,9 +314,7 @@ def test_matvec_linear_transpose(e, centered, jit):
     assert tree_allclose(actual, expected)
 
 
-# TODO put this test in its own file or rename this one to test_sr_logic.py
 # TODO separate test for prepare_doks
-# TODO test non-holomorphic and inhomogeneous parameters once implemented
 @pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("jit", [True, False])
