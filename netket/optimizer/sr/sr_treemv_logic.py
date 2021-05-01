@@ -76,12 +76,6 @@ def jvp(oks, v):
     return jax.tree_util.tree_reduce(jnp.add, jax.tree_multimap(td, oks, v))
 
 
-def _cast(x, target):
-    res = x if jnp.iscomplexobj(target) else x.real
-    res = res.astype(target.dtype)
-    return res
-
-
 def vjp(oks, w):
     res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
     return jax.tree_map(sum_inplace, res)  # MPI
