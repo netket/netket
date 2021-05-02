@@ -14,6 +14,8 @@
 
 from netket.utils import mpi_available, mpi4jax_available, rank, n_nodes
 
+from ._cpu_info import available_cpus
+
 
 def check_mpi():
     """
@@ -33,6 +35,7 @@ def check_mpi():
     info = {
         "mpi_available": mpi_available,
         "mpi4jax_available": mpi4jax_available,
+        "avalable_cpus (rank 0)": available_cpus(),
     }
     if mpi_available:
         from mpi4py import MPI
