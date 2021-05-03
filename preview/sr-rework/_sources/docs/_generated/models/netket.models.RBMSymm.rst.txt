@@ -1,0 +1,48 @@
+﻿netket.models.RBMSymm
+=====================
+
+.. currentmodule:: netket.models
+
+.. autoclass:: RBMSymm
+   :show-inheritance:
+
+   .. automethod:: RBMSymm.__init__
+
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Attributes
+      .. autoattribute:: RBMSymm.alpha
+      .. autoattribute:: RBMSymm.name
+      .. autoattribute:: RBMSymm.parent
+      .. autoattribute:: RBMSymm.precision
+      .. autoattribute:: RBMSymm.scope
+      .. autoattribute:: RBMSymm.use_hidden_bias
+      .. autoattribute:: RBMSymm.use_visible_bias
+      .. autoattribute:: RBMSymm.variables
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: RBMSymm.__call__
+      .. automethod:: RBMSymm.activation
+      .. automethod:: RBMSymm.apply
+      .. automethod:: RBMSymm.bind
+      .. automethod:: RBMSymm.clone
+      .. automethod:: RBMSymm.get_variable
+      .. automethod:: RBMSymm.has_variable
+      .. automethod:: RBMSymm.hidden_bias_init
+      .. automethod:: RBMSymm.init
+      .. automethod:: RBMSymm.init_with_output
+      .. automethod:: RBMSymm.is_mutable_collection
+      .. automethod:: RBMSymm.kernel_init
+      .. automethod:: RBMSymm.make_rng
+      .. automethod:: RBMSymm.param
+      .. automethod:: RBMSymm.setup
+      .. automethod:: RBMSymm.sow
+      .. automethod:: RBMSymm.variable
+      .. automethod:: RBMSymm.visible_bias_init
+
+   
