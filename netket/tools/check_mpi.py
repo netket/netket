@@ -14,17 +14,22 @@
 
 from netket.utils import mpi_available, mpi4jax_available, rank, n_nodes
 
+from ._cpu_info import available_cpus
+
 
 def check_mpi():
     """
     When called via::
 
         # python3 -m netket.tools.check_mpi
-        mpi_available     : True
-        mpi4jax_available : True
-        n_nodes           : 1
+        mpi_available                : True
+        mpi4jax_available            : True
+        avalable_cpus (rank 0)       : 12
+        n_nodes                      : 1
+        mpi4py | MPI version         : (3, 1)
+        mpi4py | MPI library_version : Open MPI v4.1.0, ...
 
-    this will print out basic MPI information to make allow users to check whether
+    this will print out basic MPI information to allow users to check whether
     the environment has been set up correctly.
     """
     if rank > 0:
@@ -33,6 +38,7 @@ def check_mpi():
     info = {
         "mpi_available": mpi_available,
         "mpi4jax_available": mpi4jax_available,
+        "avalable_cpus (rank 0)": available_cpus(),
     }
     if mpi_available:
         from mpi4py import MPI

@@ -26,12 +26,18 @@ If you encounter issues, you can check whether your MPI environment is set up pr
    $ mpirun -np 2 python3 -m netket.tools.check_mpi
    mpi_available                : True
    mpi4jax_available            : True
-   n_nodes                      : 2
+   avalable_cpus (rank 0)       : 12
+   n_nodes                      : 1
    mpi4py | MPI version         : (3, 1)
-   mpi4py | MPI library_version : Open MPI v4.1.0 <...>
+   mpi4py | MPI library_version : Open MPI v4.1.0, package: Open MPI brew@BigSur Distribution, ident: 4.1.0,  repo rev: v4.1.0, Dec 18, 2020
 
 This should print some basic information about the MPI installation and, in particular, pick up the correct `n_nodes`.
 If you get the same output multiple times, each with :code:`n_nodes : 1`, this is a clear sign that your MPI setup is broken.
+The tool above also reports the number of (logical) CPUs that might be subscribed by Jax on every independent MPI rank during linear algebra operations. 
+Be mindfull that Jax, in general, is like an invasive plant and tends to use all resources that he can access, and 
+the environment variables above might not prevent it from making use of the `available_cpus`. 
+On Mac it is not possible to control this number. 
+On Linux it can be controlled using `taskset` or `--bind-to core` when using `mpirun`. 
 
 .. _running_on_cpu:
 
