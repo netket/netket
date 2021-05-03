@@ -389,6 +389,24 @@ To disable this behaviour, refer to <a class="reference external" href="https://
 </pre></div>
 </div>
 <p>Usually we have noticed that the best performance is achieved by combining both BLAS parallelism and MPI, for example by guaranteeing between 2-4 (depending on your problem size) cpus to every MPI thread.</p>
+<p>Note that when using <code class="code docutils literal notranslate"><span class="pre">netket</span></code> it is crucial to run Python with the same implementation and version of MPI that the <code class="code docutils literal notranslate"><span class="pre">mpi4py</span></code> module is compiled against.
+If you encounter issues, you can check whether your MPI environment is set up properly by running:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ mpirun -np 2 python3 -m netket.tools.check_mpi
+mpi_available                : True
+mpi4jax_available            : True
+avalable_cpus (rank 0)       : 12
+n_nodes                      : 1
+mpi4py | MPI version         : (3, 1)
+mpi4py | MPI library_version : Open MPI v4.1.0, package: Open MPI brew@BigSur Distribution, ident: 4.1.0,  repo rev: v4.1.0, Dec 18, 2020
+</pre></div>
+</div>
+<p>This should print some basic information about the MPI installation and, in particular, pick up the correct <cite>n_nodes</cite>.
+If you get the same output multiple times, each with <code class="code docutils literal notranslate"><span class="pre">n_nodes</span> <span class="pre">:</span> <span class="pre">1</span></code>, this is a clear sign that your MPI setup is broken.
+The tool above also reports the number of (logical) CPUs that might be subscribed by Jax on every independent MPI rank during linear algebra operations.
+Be mindfull that Jax, in general, is like an invasive plant and tends to use all resources that he can access, and
+the environment variables above might not prevent it from making use of the <cite>available_cpus</cite>.
+On Mac it is not possible to control this number.
+On Linux it can be controlled using <cite>taskset</cite> or <cite>–bind-to core</cite> when using <cite>mpirun</cite>.</p>
 </div>
 <div class="section" id="running-on-cpu-when-gpus-are-present">
 <span id="running-on-cpu"></span><h2>Running on CPU when GPUs are present<a class="headerlink" href="#running-on-cpu-when-gpus-are-present" title="Permalink to this headline">¶</a></h2>
