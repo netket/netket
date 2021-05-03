@@ -1,0 +1,46 @@
+﻿netket.nn.DenseSymm
+===================
+
+.. currentmodule:: netket.nn
+
+.. autoclass:: DenseSymm
+   :show-inheritance:
+
+   .. automethod:: DenseSymm.__init__
+
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Attributes
+      .. autoattribute:: DenseSymm.name
+      .. autoattribute:: DenseSymm.parent
+      .. autoattribute:: DenseSymm.precision
+      .. autoattribute:: DenseSymm.scope
+      .. autoattribute:: DenseSymm.use_bias
+      .. autoattribute:: DenseSymm.variables
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: DenseSymm.__call__
+      .. automethod:: DenseSymm.apply
+      .. automethod:: DenseSymm.bias_init
+      .. automethod:: DenseSymm.bind
+      .. automethod:: DenseSymm.clone
+      .. automethod:: DenseSymm.full_bias
+      .. automethod:: DenseSymm.full_kernel
+      .. automethod:: DenseSymm.get_variable
+      .. automethod:: DenseSymm.has_variable
+      .. automethod:: DenseSymm.init
+      .. automethod:: DenseSymm.init_with_output
+      .. automethod:: DenseSymm.is_mutable_collection
+      .. automethod:: DenseSymm.kernel_init
+      .. automethod:: DenseSymm.make_rng
+      .. automethod:: DenseSymm.param
+      .. automethod:: DenseSymm.setup
+      .. automethod:: DenseSymm.sow
+      .. automethod:: DenseSymm.variable
+
+   
