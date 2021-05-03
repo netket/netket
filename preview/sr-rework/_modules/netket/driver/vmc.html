@@ -129,14 +129,17 @@
 <span class="sd">    Energy minimization using Variational Monte Carlo (VMC).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="c1"># TODO docstring</span>
 <div class="viewcode-block" id="VMC.__init__"><a class="viewcode-back" href="../../../docs/_generated/driver/netket.driver.VMC.html#netket.driver.VMC.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">hamiltonian</span><span class="p">,</span>
         <span class="n">optimizer</span><span class="p">,</span>
         <span class="o">*</span><span class="n">args</span><span class="p">,</span>
         <span class="n">variational_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">preconditioner</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">preconditioner_restart</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">sr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">sr_restart</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">sr_restart</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -146,7 +149,7 @@
 <span class="sd">            hamiltonian: The Hamiltonian of the system.</span>
 <span class="sd">            optimizer: Determines how optimization steps are performed given the</span>
 <span class="sd">                bare energy gradient.</span>
-<span class="sd">            sr: Determines whether and how stochastic reconfiguration</span>
+<span class="sd">            preconditioner: Determines whether and how stochastic reconfiguration</span>
 <span class="sd">                is applied to the bare energy gradient before performing applying</span>
 <span class="sd">                the optimizer. If this parameter is not passed or None, SR is not used.</span>
 <span class="sd">            sr_restart: whever to restart the SR solver at every iteration, or use the</span>
@@ -175,12 +178,27 @@
 <span class="s2">                                The two should match.&quot;&quot;&quot;</span>
             <span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">sr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">preconditioner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;sr is deprecated in favour of preconditioner kwarg. You should not pass both&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">preconditioner</span> <span class="o">=</span> <span class="n">sr</span>
+        <span class="k">if</span> <span class="n">preconditioner_restart</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sr_restart</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;sr_restart is deprecated in favour of preconditioner_restart kwarg. You should not pass both&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">preconditioner_restart</span> <span class="o">=</span> <span class="n">sr_restart</span>
+
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">variational_state</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">minimized_quantity_name</span><span class="o">=</span><span class="s2">&quot;Energy&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_ham</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>  <span class="c1"># type: AbstractOperator</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">=</span> <span class="n">sr</span>  <span class="c1"># type: SR</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sr_restart</span> <span class="o">=</span> <span class="n">sr_restart</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preconditioner</span> <span class="o">=</span> <span class="n">preconditioner</span>  <span class="c1"># type: SR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preconditioner_restart</span> <span class="o">=</span> <span class="n">preconditioner_restart</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_dp</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: PyTree</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_S</span> <span class="o">=</span> <span class="kc">None</span>
@@ -199,12 +217,14 @@
         <span class="c1"># Compute the local energy estimator and average Energy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_loss_stats</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">expect_and_grad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ham</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">quantum_geometric_tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preconditioner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_S</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preconditioner</span><span class="o">.</span><span class="n">object</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
 
             <span class="c1"># use the previous solution as an initial guess to speed up the solution of the linear system</span>
-            <span class="n">x0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dp</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr_restart</span> <span class="ow">is</span> <span class="kc">False</span> <span class="k">else</span> <span class="kc">None</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_dp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sr_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss_grad</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">)</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dp</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preconditioner_restart</span> <span class="ow">is</span> <span class="kc">False</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sr_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_S</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">preconditioner</span><span class="o">.</span><span class="n">solver</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_grad</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="n">x0</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># tree_map(lambda x, y: x if is_ccomplex(y) else x.real, self._grads, self.state.parameters)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_dp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_grad</span>

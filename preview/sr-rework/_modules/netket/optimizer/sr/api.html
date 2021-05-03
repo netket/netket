@@ -112,6 +112,7 @@
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
 
 <span class="kn">from</span> <span class="nn">netket.utils</span> <span class="kn">import</span> <span class="n">wraps_legacy</span>
 <span class="kn">from</span> <span class="nn">netket.legacy.optimizer</span> <span class="kn">import</span> <span class="n">SR</span> <span class="k">as</span> <span class="n">SR_legacy</span>
@@ -125,6 +126,8 @@
 <span class="c1"># default_direct = &quot;eigen&quot;</span>
 
 <span class="kn">from</span> <span class="nn">..qgt</span> <span class="kn">import</span> <span class="n">QGTAuto</span>
+
+<span class="n">Preconditioner</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;Preconditioner&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;solver&quot;</span><span class="p">,</span> <span class="s2">&quot;object&quot;</span><span class="p">])</span>
 
 
 <div class="viewcode-block" id="SR"><a class="viewcode-back" href="../../../../docs/_generated/optim/netket.optimizer.SR.html#netket.optimizer.SR">[docs]</a><span class="nd">@wraps_legacy</span><span class="p">(</span><span class="n">SR_legacy</span><span class="p">,</span> <span class="s2">&quot;machine&quot;</span><span class="p">,</span> <span class="n">AbstractMachine</span><span class="p">)</span>
@@ -264,7 +267,9 @@
     <span class="k">if</span> <span class="n">matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">matrix</span> <span class="o">=</span> <span class="n">QGTAuto</span><span class="p">(</span><span class="n">solver</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">diag_shift</span><span class="o">=</span><span class="n">diag_shift</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">solver</span>
+    <span class="k">return</span> <span class="n">Preconditioner</span><span class="p">(</span>
+        <span class="nb">object</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">diag_shift</span><span class="o">=</span><span class="n">diag_shift</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">solver</span><span class="o">=</span><span class="n">solver</span>
+    <span class="p">)</span>
 </pre></div>
 
     </div>
