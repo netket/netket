@@ -133,4 +133,4 @@ def sigmap(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalO
 
 
 # clean up the module
-del AbstractHilbert
+del AbstractHilbert, DType

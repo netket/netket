@@ -125,4 +125,4 @@ def proj(
 
 
 # clean up the module
-del AbstractHilbert
+del AbstractHilbert, DType
