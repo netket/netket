@@ -27,7 +27,7 @@ import netket.jax as nkjax
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-def QGTJacobian(vstate, *, mode, rescale_shift=False) -> "QGTJacobianT":
+def QGTJacobianDense(vstate, *, mode, rescale_shift=False) -> "QGTJacobianDenseT":
     O, scale = gradients(
         vstate._apply_fun,
         vstate.parameters,
@@ -41,7 +41,7 @@ def QGTJacobian(vstate, *, mode, rescale_shift=False) -> "QGTJacobianT":
 
 
 @struct.dataclass
-class QGTJacobianT(LinearOperator):
+class QGTJacobianDenseT(LinearOperator):
     """
     Semi-lazy representation of an S Matrix behaving like a linear operator.
 
