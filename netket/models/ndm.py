@@ -24,6 +24,7 @@ from netket.hilbert import AbstractHilbert
 from netket.graph import AbstractGraph
 from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 
+from netket import jax as nkjax
 from netket import nn as nknn
 from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal
 
@@ -138,7 +139,7 @@ class MixedRBM(nn.Module):
                 "bias",
                 self.bias_init,
                 (int(self.alpha * σr.shape[-1]),),
-                jax.dtypes.dtype_real(self.dtype),
+                nkjax.dtype_real(self.dtype),
             )
             y = y + bias
 
