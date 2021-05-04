@@ -24,6 +24,9 @@ from jax import numpy as jnp
 
 from numba import jit
 import numpy as np
+
+from netket import jax as nkjax
+
 from . import mean as _mean
 from . import var as _var
 from . import total_size as _total_size
@@ -185,7 +188,7 @@ def _statistics(data, batch_size):
     batch_good = (tau_batch < 6 * data.shape[1]) * (n_batches >= batch_size)
     block_good = (tau_block < 6 * l_block) * (n_blocks >= batch_size)
 
-    stat_dtype = jax.dtypes.dtype_real(data.dtype)
+    stat_dtype = nkjax.dtype_real(data.dtype)
     # if batch_good:
     #    error_of_mean = jnp.sqrt(batch_var / n_batches)
     #    tau_corr = jnp.max(0, tau_batch)

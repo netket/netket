@@ -28,6 +28,8 @@ from netket.utils import n_nodes
 from netket.stats import sum_inplace
 from netket.utils.types import PyTree, PRNGKeyT
 
+import netket.jax as nkjax
+
 from .metropolis import MetropolisSampler
 
 SeedType = Union[int, PRNGKeyT]
@@ -127,7 +129,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             log_values=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
             log_values_1=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
             log_prob_corr=np.zeros(
-                sampler.n_batches, dtype=jax.dtypes.dtype_real(ma_out.dtype)
+                sampler.n_batches, dtype=nkjax.dtype_real(ma_out.dtype)
             ),
             rng=rgen,
             rule_state=sampler.rule.init_state(sampler, machine, parameters, rgen),
