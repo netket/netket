@@ -27,7 +27,7 @@ import netket.jax as nkjax
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-def QGTJacobianDense(vstate, *, mode, rescale_shift=False) -> "QGTJacobianDenseT":
+def QGTJacobianDense(vstate, *, mode, rescale_shift=False, **kwargs) -> "QGTJacobianDenseT":
     O, scale = gradients(
         vstate._apply_fun,
         vstate.parameters,
@@ -37,7 +37,7 @@ def QGTJacobianDense(vstate, *, mode, rescale_shift=False) -> "QGTJacobianDenseT
         rescale_shift,
     )
 
-    return QGTJacobianT(O=O, scale=rescale_shift)
+    return QGTJacobianDenseT(O=O, scale=scale, **kwargs)
 
 
 @struct.dataclass
@@ -94,7 +94,7 @@ class QGTJacobianDenseT(LinearOperator):
             + self.diag_shift * vec
         )
 
-    @jax.jit
+    @partial(jax.jit, static_argnums=1)
     def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None) -> PyTree:
         """
         Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterataive solver.
