@@ -15,7 +15,7 @@
 from .abstract_graph import AbstractGraph
 from .symmetry import SymmGroup
 
-from .graph import NetworkX, Graph, Edgeless, DoubledGraph
+from .graph import NetworkX, Graph, Edgeless, DoubledGraph, disjoint_union
 from .grid import Grid, Chain, Square, Hypercube
 from .lattice import Lattice
 
