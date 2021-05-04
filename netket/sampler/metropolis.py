@@ -25,6 +25,8 @@ from netket.utils import n_nodes
 from netket.stats import sum_inplace
 from netket.utils.types import PyTree, PRNGKeyT
 
+from netket.utils.deprecation import deprecated, warn_deprecation
+
 from .base import Sampler, SamplerState
 
 
@@ -139,8 +141,8 @@ class MetropolisSamplerState(SamplerState):
     """Number of accepted transitions among the chains in this process since the last reset."""
 
     @property
-    def acceptance_ratio(self) -> float:
-        """The percentage of accepted moves across all chains and MPI processes.
+    def acceptance(self) -> float:
+        """The fraction of accepted moves across all chains and MPI processes.
 
         The rate is computed since the last reset of the sampler.
         Will return None if no sampling has been performed since then.
@@ -148,7 +150,27 @@ class MetropolisSamplerState(SamplerState):
         if self.n_steps == 0:
             return None
 
-        return self.n_accepted / self.n_steps * 100
+        return self.n_accepted / self.n_steps
+
+    @property
+    @deprecated(
+        """Please use the attribute `.acceptance` instead of 
+        `.acceptance_ratio`. The new attribute `.acceptance` returns the 
+        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
+        returning a percentage, which is a bug."""
+    )
+    def acceptance_ratio(self):
+        """DEPRECATED: Please use the attribute `.acceptance` instead of
+        `.acceptance_ratio`. The new attribute `.acceptance` returns the
+        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
+        returning a percentage, which is a bug.
+
+        The percentage of accepted moves across all chains and MPI processes.
+
+        The rate is computed since the last reset of the sampler.
+        Will return None if no sampling has been performed since then.
+        """
+        return self.acceptance * 100
 
     @property
     def n_steps(self) -> int:
@@ -163,7 +185,7 @@ class MetropolisSamplerState(SamplerState):
     def __repr__(self):
         if self.n_steps > 0:
             acc_string = "# accepted = {}/{} ({}%), ".format(
-                self.n_accepted, self.n_steps, self.acceptance_ratio
+                self.n_accepted, self.n_steps, self.acceptance * 100
             )
         else:
             acc_string = ""
@@ -194,7 +216,7 @@ class MetropolisSampler(Sampler):
     """The metropolis transition rule."""
     n_sweeps: int = struct.field(pytree_node=False, default=0)
     """Number of sweeps for each step along the chain. Defaults to number of sites in hilbert space."""
-    reset_chain: bool = False
+    reset_chains: bool = False
     """If True resets the chain state when reset is called (every new sampling)."""
 
     def __init__(
@@ -203,7 +225,8 @@ class MetropolisSampler(Sampler):
         rule: MetropolisRule,
         *,
         n_sweeps: Optional[int] = None,
-        reset_chain: bool = False,
+        reset_chains: bool = False,
+        reset_chain=None,
         **kwargs,
     ):
         """
@@ -216,18 +239,24 @@ class MetropolisSampler(Sampler):
             n_sweeps: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
                     (the size of the input vector s to the machine).
-            reset_chain: If False the state configuration is not resetted when reset() is called.
+            reset_chains: If False the state configuration is not resetted when reset() is called.
             n_chains: The number of Markov Chain to be run in parallel on a single process.
-            n_chains: The number of batches of the states to sample (default = 8)
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the statees sampled (default = np.float32).
         """
         if n_sweeps is None:
             n_sweeps = hilbert.size
 
+        # TODO remove deprecation at end of beta
+        if reset_chain is not None:
+            warn_deprecation(
+                "The keyword argument `reset_chain` is deprecated in favour of `reset_chains`"
+            )
+            reset_chains = reset_chain
+
         object.__setattr__(self, "rule", rule)
         object.__setattr__(self, "n_sweeps", n_sweeps)
-        object.__setattr__(self, "reset_chain", reset_chain)
+        object.__setattr__(self, "reset_chains", reset_chains)
 
         super().__init__(hilbert, **kwargs)
 
@@ -250,7 +279,7 @@ class MetropolisSampler(Sampler):
 
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
-        if not sampler.reset_chain:
+        if not sampler.reset_chains:
             key_state, rng = jax.random.split(key_state)
             σ = sampler.rule.random_state(sampler, machine, params, state, rng)
             state = state.replace(σ=σ, rng=key_state)
@@ -260,7 +289,7 @@ class MetropolisSampler(Sampler):
     def _reset(sampler, machine, parameters, state):
         new_rng, rng = jax.random.split(state.rng)
 
-        if sampler.reset_chain:
+        if sampler.reset_chains:
             σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
         else:
             σ = state.σ
@@ -323,7 +352,7 @@ class MetropolisSampler(Sampler):
             + "\n  rule = {},".format(sampler.rule)
             + "\n  n_chains = {},".format(sampler.n_chains)
             + "\n  machine_power = {},".format(sampler.machine_pow)
-            + "\n  reset_chain = {},".format(sampler.reset_chain)
+            + "\n  reset_chains = {},".format(sampler.reset_chains)
             + "\n  n_sweeps = {},".format(sampler.n_sweeps)
             + "\n  dtype = {}".format(sampler.dtype)
             + ")"
