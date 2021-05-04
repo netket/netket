@@ -38,9 +38,7 @@ def QGTJacobianPyTree(vstate, *, mode, rescale_shift=True, **kwargs) -> "QGTJaco
         rescale_shift,
     )
 
-    _, unravel = nkjax.tree_ravel(vstate.parameters)
-
-    return QGTJacobianPyTreeT(O=O, scale=scale, unravel=unravel, **kwargs)
+    return QGTJacobianPyTreeT(O=O, scale=scale, params=vstate.parameters, **kwargs)
 
 
 @struct.dataclass
@@ -66,15 +64,14 @@ class QGTJacobianPyTreeT(LinearOperator):
     i.e., the sqrt of the diagonal elements of the S matrix
     """
 
-    unravel: Callable = struct.field(
-        pytree_node=False, default=Uninitialized
-    )
-    """Function to unravel input vectors in __matmul__"""
+    params: PyTree = Uninitialized
+    """Parameters of the network. Its only purpose is to represent its own shape when scale is None"""
 
     @jax.jit
     def __matmul__(self, vec: Union[PyTree, jnp.ndarray]) -> Union[PyTree, jnp.ndarray]:
         if hasattr(vec, "ndim"):
-            vec = self.unravel(vec)
+            _, unravel = nkjax.tree_ravel(self.params)
+            vec = unravel(vec)
             ravel = True
         else:
             ravel = False
@@ -131,4 +128,6 @@ class QGTJacobianPyTreeT(LinearOperator):
         Returns:
             A dense matrix representation of this S matrix.
         """
-        raise NotImplementedError
+        Npars = nkjax.tree_size(self.params)
+        I = jax.numpy.eye(Npars)
+        return jax.vmap(lambda x: self @ x, in_axes=0)(I)
