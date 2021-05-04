@@ -221,14 +221,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#operators">Operators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.AbstractOperator.html">netket.operator.AbstractOperator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.BoseHubbard.html">netket.operator.BoseHubbard</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.GraphOperator.html">netket.operator.GraphOperator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.LocalOperator.html">netket.operator.LocalOperator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.Ising.html">netket.operator.Ising</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.Heisenberg.html">netket.operator.Heisenberg</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.PauliStrings.html">netket.operator.PauliStrings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/operator/netket.operator.LocalLiouvillian.html">netket.operator.LocalLiouvillian</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pre-defined-operators">Pre-defined operators</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.boson.create.html">netket.operator.boson.create</a></li>
 <li class="toctree-l4"><a class="reference internal" href="_generated/hilbert/netket.operator.boson.destroy.html">netket.operator.boson.destroy</a></li>
@@ -243,127 +235,29 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#exact-solvers">Exact solvers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/exact/netket.exact.full_ed.html">netket.exact.full_ed</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/exact/netket.exact.lanczos_ed.html">netket.exact.lanczos_ed</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/exact/netket.exact.steady_state.html">netket.exact.steady_state</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#exact-solvers">Exact solvers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sampler">Sampler</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#generic-api">Generic API</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.sampler_state.html">netket.sampler.sampler_state</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.reset.html">netket.sampler.reset</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.sample_next.html">netket.sampler.sample_next</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.sample.html">netket.sampler.sample</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.samples.html">netket.sampler.samples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#generic-api">Generic API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#list-of-samplers">List of Samplers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#transition-rules">Transition Rules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#internal-state">Internal State</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#list-of-samplers">List of Samplers</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.Sampler.html">netket.sampler.Sampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.ExactSampler.html">netket.sampler.ExactSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSampler.html">netket.sampler.MetropolisSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSamplerNumpy.html">netket.sampler.MetropolisSamplerNumpy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisPtSampler.html">netket.sampler.MetropolisPtSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisLocal.html">netket.sampler.MetropolisLocal</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisExchange.html">netket.sampler.MetropolisExchange</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisHamiltonian.html">netket.sampler.MetropolisHamiltonian</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisLocalPt.html">netket.sampler.MetropolisLocalPt</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisExchangePt.html">netket.sampler.MetropolisExchangePt</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#transition-rules">Transition Rules</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisRule.html">netket.sampler.MetropolisRule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.LocalRule.html">netket.sampler.rules.LocalRule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.ExchangeRule.html">netket.sampler.rules.ExchangeRule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.HamiltonianRule.html">netket.sampler.rules.HamiltonianRule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.HamiltonianRuleNumpy.html">netket.sampler.rules.HamiltonianRuleNumpy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.rules.CustomRuleNumpy.html">netket.sampler.rules.CustomRuleNumpy</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#internal-state">Internal State</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.SamplerState.html">netket.sampler.SamplerState</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSamplerState.html">netket.sampler.MetropolisSamplerState</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#pre-built-models">Pre-built models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.RBM.html">netket.models.RBM</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.RBMModPhase.html">netket.models.RBMModPhase</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.RBMMultiVal.html">netket.models.RBMMultiVal</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.RBMSymm.html">netket.models.RBMSymm</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.Jastrow.html">netket.models.Jastrow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.MPSPeriodic.html">netket.models.MPSPeriodic</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.NDM.html">netket.models.NDM</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/models/netket.models.GCNN.html">netket.models.GCNN</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#pre-built-models">Pre-built models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#model-tools">Model tools</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/nn/netket.nn.Module.html">netket.nn.Module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#linear-modules">Linear Modules</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.Dense.html">netket.nn.Dense</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.DenseGeneral.html">netket.nn.DenseGeneral</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.DenseSymm.html">netket.nn.DenseSymm</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.DenseEquivariant.html">netket.nn.DenseEquivariant</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.Conv.html">netket.nn.Conv</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.Embed.html">netket.nn.Embed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linear-modules">Linear Modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#activation-functions">Activation functions</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#activation-functions">Activation functions</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.celu.html">netket.nn.celu</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.elu.html">netket.nn.elu</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.gelu.html">netket.nn.gelu</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.glu.html">netket.nn.glu</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.log_sigmoid.html">netket.nn.log_sigmoid</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.log_softmax.html">netket.nn.log_softmax</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.relu.html">netket.nn.relu</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.sigmoid.html">netket.nn.sigmoid</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.soft_sign.html">netket.nn.soft_sign</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.softmax.html">netket.nn.softmax</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.softplus.html">netket.nn.softplus</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.swish.html">netket.nn.swish</a></li>
-<li class="toctree-l4"><a class="reference internal" href="_generated/nn/netket.nn.logcosh.html">netket.nn.logcosh</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#variational-state-interface">Variational State Interface</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html">netket.variational.VariationalState</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/variational/netket.variational.MCState.html">netket.variational.MCState</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/variational/netket.variational.MCMixedState.html">netket.variational.MCMixedState</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#optimizer">Optimizer</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.SR.html">netket.optimizer.SR</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.Adam.html">netket.optimizer.Adam</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.AdaGrad.html">netket.optimizer.AdaGrad</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.Sgd.html">netket.optimizer.Sgd</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.Momentum.html">netket.optimizer.Momentum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/optim/netket.optimizer.RmsProp.html">netket.optimizer.RmsProp</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#optimization-drivers">Optimization drivers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.driver.AbstractVariationalDriver.html">netket.driver.AbstractVariationalDriver</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.driver.VMC.html">netket.driver.VMC</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.driver.SteadyState.html">netket.driver.SteadyState</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#logging-output">Logging output</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.RuntimeLog.html">netket.logging.RuntimeLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.JsonLog.html">netket.logging.JsonLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.StateLog.html">netket.logging.StateLog</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/driver/netket.logging.TBLog.html">netket.logging.TBLog</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#variational-state-interface">Variational State Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optimizer">Optimizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optimization-drivers">Optimization drivers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logging-output">Logging output</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#utils">Utils</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="_generated/utils/netket.utils.HashableArray.html">netket.utils.HashableArray</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#callbacks">Callbacks</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="_generated/callbacks/netket.callbacks.EarlyStopping.html">netket.callbacks.EarlyStopping</a></li>
-<li class="toctree-l3"><a class="reference internal" href="_generated/callbacks/netket.callbacks.Timeout.html">netket.callbacks.Timeout</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#callbacks">Callbacks</a></li>
 </ul>
 </li>
 </ul>
@@ -445,30 +339,6 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/operator/netket.operator.AbstractOperator.html#netket.operator.AbstractOperator" title="netket.operator.AbstractOperator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.operator.AbstractOperator</span></code></a></p></td>
-<td><p>Abstract class for quantum Operators.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/operator/netket.operator.BoseHubbard.html#netket.operator.BoseHubbard" title="netket.operator.BoseHubbard"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.operator.BoseHubbard</span></code></a></p></td>
-<td><p>An extended Bose Hubbard model Hamiltonian operator, containing both on-site interactions and nearest-neighboring density-density interactions.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/operator/netket.operator.GraphOperator.html#netket.operator.GraphOperator" title="netket.operator.GraphOperator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.operator.GraphOperator</span></code></a></p></td>
-<td><p>A graph-based quantum operator.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/operator/netket.operator.LocalOperator.html#netket.operator.LocalOperator" title="netket.operator.LocalOperator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.operator.LocalOperator</span></code></a></p></td>
-<td><p>A custom local operator.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/operator/netket.operator.Ising.html#netket.operator.Ising" title="netket.operator.Ising"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.operator.Ising</span></code></a></p></td>
-<td><p>The Transverse-Field Ising Hamiltonian <span class="math notranslate nohighlight">\(-h\sum_i \sigma_i^{(x)} +J\sum_{\langle i,j\rangle} \sigma_i^{(z)}\sigma_j^{(z)}\)</span>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/operator/netket.operator.Heisenberg.html#netket.operator.Heisenberg" title="netket.operator.Heisenberg"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.operator.Heisenberg</span></code></a></p></td>
-<td><p>The Heisenberg hamiltonian on a lattice.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/operator/netket.operator.PauliStrings.html#netket.operator.PauliStrings" title="netket.operator.PauliStrings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.operator.PauliStrings</span></code></a></p></td>
-<td><p>A Hamiltonian consisiting of the sum of products of Pauli operators.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/operator/netket.operator.LocalLiouvillian.html#netket.operator.LocalLiouvillian" title="netket.operator.LocalLiouvillian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.operator.LocalLiouvillian</span></code></a></p></td>
-<td><p>LocalLiouvillian super-operator, acting on the DoubledHilbert (tensor product) space ℋ⊗ℋ.</p></td>
-</tr>
 </tbody>
 </table>
 <div class="section" id="pre-defined-operators">
@@ -518,15 +388,6 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/exact/netket.exact.full_ed.html#netket.exact.full_ed" title="netket.exact.full_ed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.exact.full_ed</span></code></a></p></td>
-<td><p>Computes all eigenvalues and, optionally, eigenvectors of a Hermitian operator by full diagonalization.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/exact/netket.exact.lanczos_ed.html#netket.exact.lanczos_ed" title="netket.exact.lanczos_ed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.exact.lanczos_ed</span></code></a></p></td>
-<td><p>Computes <cite>first_n</cite> smallest eigenvalues and, optionally, eigenvectors of a Hermitian operator using <cite>scipy.sparse.linalg.eigsh</cite>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/exact/netket.exact.steady_state.html#netket.exact.steady_state" title="netket.exact.steady_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.exact.steady_state</span></code></a></p></td>
-<td><p>Computes the numerically exact steady-state of a lindblad master equation.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -541,21 +402,6 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.sampler_state.html#netket.sampler.sampler_state" title="netket.sampler.sampler_state"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.sampler_state</span></code></a>(sampler, …)</p></td>
-<td><p>Creates the structure holding the state of the sampler.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.reset.html#netket.sampler.reset" title="netket.sampler.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.reset</span></code></a>(sampler, machine, …)</p></td>
-<td><p>Resets the state of the sampler.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.sample_next.html#netket.sampler.sample_next" title="netket.sampler.sample_next"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.sample_next</span></code></a>(sampler, machine, …)</p></td>
-<td><p>Samples the next state in the markov chain.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.sample.html#netket.sampler.sample" title="netket.sampler.sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.sample</span></code></a>(sampler, machine, …)</p></td>
-<td><p>Samples chain_length elements along the chains.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.samples.html#netket.sampler.samples" title="netket.sampler.samples"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.samples</span></code></a>(sampler, machine, …)</p></td>
-<td><p>Returns a generator sampling chain_length elements along the chains.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -576,36 +422,6 @@ have a much higher overhead for small to moderate (for GPUs) system sizes.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.Sampler.html#netket.sampler.Sampler" title="netket.sampler.Sampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.Sampler</span></code></a></p></td>
-<td><p>Abstract base class for all samplers.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.ExactSampler.html#netket.sampler.ExactSampler" title="netket.sampler.ExactSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.ExactSampler</span></code></a></p></td>
-<td><p>This sampler generates i.i.d.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSampler.html#netket.sampler.MetropolisSampler" title="netket.sampler.MetropolisSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisSampler</span></code></a></p></td>
-<td><p>Metropolis-Hastings sampler for an Hilbert space according to a specific transition rule.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSamplerNumpy.html#netket.sampler.MetropolisSamplerNumpy" title="netket.sampler.MetropolisSamplerNumpy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisSamplerNumpy</span></code></a></p></td>
-<td><p>Metropolis-Hastings sampler for an Hilbert space according to a specific transition rule executed on CPU through Numpy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisPtSampler.html#netket.sampler.MetropolisPtSampler" title="netket.sampler.MetropolisPtSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisPtSampler</span></code></a></p></td>
-<td><p>Metropolis-Hastings with Parallel Tempering sampler.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisLocal.html#netket.sampler.MetropolisLocal" title="netket.sampler.MetropolisLocal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisLocal</span></code></a></p></td>
-<td><p>Sampler acting on one local degree of freedom.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisExchange.html#netket.sampler.MetropolisExchange" title="netket.sampler.MetropolisExchange"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisExchange</span></code></a></p></td>
-<td><p>This sampler acts locally only on two local degree of freedom <span class="math notranslate nohighlight">\(s_i\)</span> and <span class="math notranslate nohighlight">\(s_j\)</span>, and proposes a new state: <span class="math notranslate nohighlight">\(s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N\)</span>, where in general <span class="math notranslate nohighlight">\(s^\prime_i \neq s_i\)</span> and <span class="math notranslate nohighlight">\(s^\prime_j \neq s_j\)</span>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisHamiltonian.html#netket.sampler.MetropolisHamiltonian" title="netket.sampler.MetropolisHamiltonian"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisHamiltonian</span></code></a></p></td>
-<td><p>Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisLocalPt.html#netket.sampler.MetropolisLocalPt" title="netket.sampler.MetropolisLocalPt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisLocalPt</span></code></a></p></td>
-<td><p>Sampler acting on one local degree of freedom.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisExchangePt.html#netket.sampler.MetropolisExchangePt" title="netket.sampler.MetropolisExchangePt"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisExchangePt</span></code></a></p></td>
-<td><p>This sampler acts locally only on two local degree of freedom <span class="math notranslate nohighlight">\(s_i\)</span> and <span class="math notranslate nohighlight">\(s_j\)</span>, and proposes a new state: <span class="math notranslate nohighlight">\(s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N\)</span>, where in general <span class="math notranslate nohighlight">\(s^\prime_i \neq s_i\)</span> and <span class="math notranslate nohighlight">\(s^\prime_j \neq s_j\)</span>.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -613,31 +429,13 @@ have a much higher overhead for small to moderate (for GPUs) system sizes.</p>
 <h3>Transition Rules<a class="headerlink" href="#transition-rules" title="Permalink to this headline">¶</a></h3>
 <p>Those are the transition rules that can be used with the Metropolis
 Sampler. Rules with <cite>Numpy</cite> in their name can only be used with
-<a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSamplerNumpy.html#netket.sampler.MetropolisSamplerNumpy" title="netket.sampler.MetropolisSamplerNumpy"><code class="xref py py-class docutils literal notranslate"><span class="pre">netket.sampler.MetropolisSamplerNumpy</span></code></a>.</p>
+<code class="xref py py-class docutils literal notranslate"><span class="pre">netket.sampler.MetropolisSamplerNumpy</span></code>.</p>
 <table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisRule.html#netket.sampler.MetropolisRule" title="netket.sampler.MetropolisRule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisRule</span></code></a>()</p></td>
-<td><p>Base class for Transition rules of Metropolis, such as Local, Exchange, Hamiltonian and several others.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.rules.LocalRule.html#netket.sampler.rules.LocalRule" title="netket.sampler.rules.LocalRule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.rules.LocalRule</span></code></a>()</p></td>
-<td><p>A transition rule acting on the local degree of freedom.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.rules.ExchangeRule.html#netket.sampler.rules.ExchangeRule" title="netket.sampler.rules.ExchangeRule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.rules.ExchangeRule</span></code></a>(*[, …])</p></td>
-<td><p>A Rule exchanging the state on a random couple of sites, chosen from a list of possible couples (clusters).</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.rules.HamiltonianRule.html#netket.sampler.rules.HamiltonianRule" title="netket.sampler.rules.HamiltonianRule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.rules.HamiltonianRule</span></code></a>(operator)</p></td>
-<td><p>Rule proposing moves according to the terms in an operator.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.rules.HamiltonianRuleNumpy.html#netket.sampler.rules.HamiltonianRuleNumpy" title="netket.sampler.rules.HamiltonianRuleNumpy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.rules.HamiltonianRuleNumpy</span></code></a>(…)</p></td>
-<td><p>Rule for Numpy sampler backend proposing moves according to the terms in an operator.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.rules.CustomRuleNumpy.html#netket.sampler.rules.CustomRuleNumpy" title="netket.sampler.rules.CustomRuleNumpy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.rules.CustomRuleNumpy</span></code></a>(operator)</p></td>
-<td><p></p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -650,12 +448,6 @@ Sampler. Rules with <cite>Numpy</cite> in their name can only be used with
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.SamplerState.html#netket.sampler.SamplerState" title="netket.sampler.SamplerState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.SamplerState</span></code></a>()</p></td>
-<td><p>Base class holding the state of a sampler.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/samplers/netket.sampler.MetropolisSamplerState.html#netket.sampler.MetropolisSamplerState" title="netket.sampler.MetropolisSamplerState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.sampler.MetropolisSamplerState</span></code></a>(σ, …)</p></td>
-<td><p>State for a metropolis sampler.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -670,30 +462,6 @@ neural quantum states.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/models/netket.models.RBM.html#netket.models.RBM" title="netket.models.RBM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.models.RBM</span></code></a></p></td>
-<td><p>A restricted boltzman Machine, equivalent to a 2-layer FFNN with a nonlinear activation function in between.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/models/netket.models.RBMModPhase.html#netket.models.RBMModPhase" title="netket.models.RBMModPhase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.models.RBMModPhase</span></code></a></p></td>
-<td><p>A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/models/netket.models.RBMMultiVal.html#netket.models.RBMMultiVal" title="netket.models.RBMMultiVal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.models.RBMMultiVal</span></code></a></p></td>
-<td><p>A fully connected Restricted Boltzmann Machine (see <a class="reference internal" href="_generated/models/netket.models.RBM.html#netket-models-rbm"><span class="std std-ref">netket.models.RBM</span></a>) suitable for large local hilbert spaces.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/models/netket.models.RBMSymm.html#netket.models.RBMSymm" title="netket.models.RBMSymm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.models.RBMSymm</span></code></a></p></td>
-<td><p>A symmetrized RBM using the <a class="reference internal" href="_generated/nn/netket.nn.DenseSymm.html#netket-nn-densesymm"><span class="std std-ref">netket.nn.DenseSymm</span></a> layer internally.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/models/netket.models.Jastrow.html#netket.models.Jastrow" title="netket.models.Jastrow"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.models.Jastrow</span></code></a></p></td>
-<td><p>Jastrow wave function <span class="math notranslate nohighlight">\(\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)\)</span>.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/models/netket.models.MPSPeriodic.html#netket.models.MPSPeriodic" title="netket.models.MPSPeriodic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.models.MPSPeriodic</span></code></a></p></td>
-<td><p>A periodic Matrix Product State (MPS) for a quantum state of discrete degrees of freedom, wrapped as Jax machine.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/models/netket.models.NDM.html#netket.models.NDM" title="netket.models.NDM"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.models.NDM</span></code></a></p></td>
-<td><p>Encodes a Positive-Definite Neural Density Matrix using the ansatz from Torlai and Melko, PRL 120, 240503 (2018).</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/models/netket.models.GCNN.html#netket.models.GCNN" title="netket.models.GCNN"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.models.GCNN</span></code></a></p></td>
-<td><p>Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction that is invariant over a specified symmetry group.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -707,9 +475,6 @@ Read more about the design goal of this module in their <a class="reference exte
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.Module.html#netket.nn.Module" title="netket.nn.Module"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.nn.Module</span></code></a></p></td>
-<td><p>Base class for all neural network modules.</p></td>
-</tr>
 </tbody>
 </table>
 <div class="section" id="linear-modules">
@@ -720,24 +485,6 @@ Read more about the design goal of this module in their <a class="reference exte
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.Dense.html#netket.nn.Dense" title="netket.nn.Dense"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.nn.Dense</span></code></a></p></td>
-<td><p>A linear transformation applied over the last dimension of the input.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/nn/netket.nn.DenseGeneral.html#netket.nn.DenseGeneral" title="netket.nn.DenseGeneral"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.nn.DenseGeneral</span></code></a></p></td>
-<td><p>A linear transformation with flexible axes.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.DenseSymm.html#netket.nn.DenseSymm" title="netket.nn.DenseSymm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.nn.DenseSymm</span></code></a></p></td>
-<td><p>A symmetrized linear transformation applied over the last dimension of the input.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/nn/netket.nn.DenseEquivariant.html#netket.nn.DenseEquivariant" title="netket.nn.DenseEquivariant"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.nn.DenseEquivariant</span></code></a></p></td>
-<td><p>A group convolution operation that is equivariant over a symmetry group</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.Conv.html#netket.nn.Conv" title="netket.nn.Conv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.nn.Conv</span></code></a></p></td>
-<td><p>Convolution Module wrapping lax.conv_general_dilated.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/nn/netket.nn.Embed.html#netket.nn.Embed" title="netket.nn.Embed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.nn.Embed</span></code></a></p></td>
-<td><p>Embedding Module.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -749,45 +496,6 @@ Read more about the design goal of this module in their <a class="reference exte
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.celu.html#netket.nn.celu" title="netket.nn.celu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">celu</span></code></a>(x[, alpha])</p></td>
-<td><p>Continuously-differentiable exponential linear unit activation.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/nn/netket.nn.elu.html#netket.nn.elu" title="netket.nn.elu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">elu</span></code></a>(x[, alpha])</p></td>
-<td><p>Exponential linear unit activation function.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.gelu.html#netket.nn.gelu" title="netket.nn.gelu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gelu</span></code></a>(x[, approximate])</p></td>
-<td><p>Gaussian error linear unit activation function.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/nn/netket.nn.glu.html#netket.nn.glu" title="netket.nn.glu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">glu</span></code></a>(x[, axis])</p></td>
-<td><p>Gated linear unit activation function.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.log_sigmoid.html#netket.nn.log_sigmoid" title="netket.nn.log_sigmoid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_sigmoid</span></code></a>(x)</p></td>
-<td><p>Log-sigmoid activation function.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/nn/netket.nn.log_softmax.html#netket.nn.log_softmax" title="netket.nn.log_softmax"><code class="xref py py-obj docutils literal notranslate"><span class="pre">log_softmax</span></code></a>(x[, axis])</p></td>
-<td><p>Log-Softmax function.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.relu.html#netket.nn.relu" title="netket.nn.relu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">relu</span></code></a>(x)</p></td>
-<td><p>Rectified linear unit activation function.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/nn/netket.nn.sigmoid.html#netket.nn.sigmoid" title="netket.nn.sigmoid"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sigmoid</span></code></a>(x)</p></td>
-<td><p>Sigmoid activation function.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.soft_sign.html#netket.nn.soft_sign" title="netket.nn.soft_sign"><code class="xref py py-obj docutils literal notranslate"><span class="pre">soft_sign</span></code></a>(x)</p></td>
-<td><p>Soft-sign activation function.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/nn/netket.nn.softmax.html#netket.nn.softmax" title="netket.nn.softmax"><code class="xref py py-obj docutils literal notranslate"><span class="pre">softmax</span></code></a>(x[, axis])</p></td>
-<td><p>Softmax function.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.softplus.html#netket.nn.softplus" title="netket.nn.softplus"><code class="xref py py-obj docutils literal notranslate"><span class="pre">softplus</span></code></a>(x)</p></td>
-<td><p>Softplus activation function.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/nn/netket.nn.swish.html#netket.nn.swish" title="netket.nn.swish"><code class="xref py py-obj docutils literal notranslate"><span class="pre">swish</span></code></a>(x)</p></td>
-<td><p>SiLU activation function.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/nn/netket.nn.logcosh.html#netket.nn.logcosh" title="netket.nn.logcosh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logcosh</span></code></a>(x)</p></td>
-<td><p></p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -800,15 +508,6 @@ Read more about the design goal of this module in their <a class="reference exte
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/variational/netket.variational.VariationalState.html#netket.variational.VariationalState" title="netket.variational.VariationalState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.variational.VariationalState</span></code></a></p></td>
-<td><p>Abstract class for variational states representing either pure states or mixed quantum states.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/variational/netket.variational.MCState.html#netket.variational.MCState" title="netket.variational.MCState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.variational.MCState</span></code></a></p></td>
-<td><p>Variational State for a Variational Neural Quantum State.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/variational/netket.variational.MCMixedState.html#netket.variational.MCMixedState" title="netket.variational.MCMixedState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.variational.MCMixedState</span></code></a></p></td>
-<td><p>Variational State for a Mixed Variational Neural Quantum State.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -821,9 +520,6 @@ Read more about the design goal of this module in their <a class="reference exte
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.SR.html#netket.optimizer.SR" title="netket.optimizer.SR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.SR</span></code></a></p></td>
-<td><p>Construct the structure holding the parameters for using the Stochastic Reconfiguration/Natural gradient method.</p></td>
-</tr>
 </tbody>
 </table>
 <p>This module also provides some optimisers from <a class="reference external" href="https://github.com/deepmind/optax">optax</a>.
@@ -842,21 +538,6 @@ optimisers, and it’s extremely easy to use step-dependent schedulers.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.Adam.html#netket.optimizer.Adam" title="netket.optimizer.Adam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.Adam</span></code></a></p></td>
-<td><p>Adam Optimizer.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.AdaGrad.html#netket.optimizer.AdaGrad" title="netket.optimizer.AdaGrad"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.AdaGrad</span></code></a></p></td>
-<td><p>AdaGrad Optimizer.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.Sgd.html#netket.optimizer.Sgd" title="netket.optimizer.Sgd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.Sgd</span></code></a></p></td>
-<td><p>Stochastic Gradient Descent Optimizer.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.Momentum.html#netket.optimizer.Momentum" title="netket.optimizer.Momentum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.Momentum</span></code></a></p></td>
-<td><p>Momentum-based Optimizer.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/optim/netket.optimizer.RmsProp.html#netket.optimizer.RmsProp" title="netket.optimizer.RmsProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.optimizer.RmsProp</span></code></a></p></td>
-<td><p>RMSProp optimizer.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -869,15 +550,6 @@ optimisers, and it’s extremely easy to use step-dependent schedulers.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/driver/netket.driver.AbstractVariationalDriver.html#netket.driver.AbstractVariationalDriver" title="netket.driver.AbstractVariationalDriver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.driver.AbstractVariationalDriver</span></code></a></p></td>
-<td><p>Abstract base class for NetKet Variational Monte Carlo drivers</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/driver/netket.driver.VMC.html#netket.driver.VMC" title="netket.driver.VMC"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.driver.VMC</span></code></a></p></td>
-<td><p>Energy minimization using Variational Monte Carlo (VMC).</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/driver/netket.driver.SteadyState.html#netket.driver.SteadyState" title="netket.driver.SteadyState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.driver.SteadyState</span></code></a></p></td>
-<td><p>Steady-state driver minimizing L^†L.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -890,18 +562,6 @@ optimisers, and it’s extremely easy to use step-dependent schedulers.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/driver/netket.logging.RuntimeLog.html#netket.logging.RuntimeLog" title="netket.logging.RuntimeLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.RuntimeLog</span></code></a></p></td>
-<td><p>Runtim Logger, that can be passed with keyword argument <cite>logger</cite> to Monte Carlo drivers in order to serialize the outpit data of the simulation.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/driver/netket.logging.JsonLog.html#netket.logging.JsonLog" title="netket.logging.JsonLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.JsonLog</span></code></a></p></td>
-<td><p>Json Logger, that can be passed with keyword argument <cite>logger</cite> to Monte Carlo drivers in order to serialize the outpit data of the simulation.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/driver/netket.logging.StateLog.html#netket.logging.StateLog" title="netket.logging.StateLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.StateLog</span></code></a></p></td>
-<td><p>A logger which serializes the variables of the variational state during a run.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/driver/netket.logging.TBLog.html#netket.logging.TBLog" title="netket.logging.TBLog"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.logging.TBLog</span></code></a></p></td>
-<td><p>Creates a tensorboard logger using tensorboardX’s summarywriter.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -929,12 +589,6 @@ optimisers, and it’s extremely easy to use step-dependent schedulers.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_generated/callbacks/netket.callbacks.EarlyStopping.html#netket.callbacks.EarlyStopping" title="netket.callbacks.EarlyStopping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.callbacks.EarlyStopping</span></code></a></p></td>
-<td><p>A simple callback to stop NetKet if there are no more improvements in the training.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_generated/callbacks/netket.callbacks.Timeout.html#netket.callbacks.Timeout" title="netket.callbacks.Timeout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">netket.callbacks.Timeout</span></code></a></p></td>
-<td><p>A simple callback to stop NetKet after some time has passed.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
