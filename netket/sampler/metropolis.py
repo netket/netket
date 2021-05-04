@@ -25,6 +25,8 @@ from netket.utils import n_nodes
 from netket.stats import sum_inplace
 from netket.utils.types import PyTree, PRNGKeyT
 
+from netket.utils import deprecated
+
 from .base import Sampler, SamplerState
 
 
@@ -139,8 +141,8 @@ class MetropolisSamplerState(SamplerState):
     """Number of accepted transitions among the chains in this process since the last reset."""
 
     @property
-    def acceptance_ratio(self) -> float:
-        """The percentage of accepted moves across all chains and MPI processes.
+    def acceptance(self) -> float:
+        """The fraction of accepted moves across all chains and MPI processes.
 
         The rate is computed since the last reset of the sampler.
         Will return None if no sampling has been performed since then.
@@ -148,7 +150,27 @@ class MetropolisSamplerState(SamplerState):
         if self.n_steps == 0:
             return None
 
-        return self.n_accepted / self.n_steps * 100
+        return self.n_accepted / self.n_steps
+
+    @property
+    @deprecated(
+        """Please use the attribute `.acceptance` instead of 
+        `.acceptance_ratio`. The new attribute `.acceptance` returns the 
+        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
+        returning a percentage, which is a bug."""
+    )
+    def acceptance_ratio(self):
+        """DEPRECATED: Please use the attribute `.acceptance` instead of
+        `.acceptance_ratio`. The new attribute `.acceptance` returns the
+        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
+        returning a percentage, which is a bug.
+
+        The percentage of accepted moves across all chains and MPI processes.
+
+        The rate is computed since the last reset of the sampler.
+        Will return None if no sampling has been performed since then.
+        """
+        return self.acceptance * 100
 
     @property
     def n_steps(self) -> int:
@@ -163,7 +185,7 @@ class MetropolisSamplerState(SamplerState):
     def __repr__(self):
         if self.n_steps > 0:
             acc_string = "# accepted = {}/{} ({}%), ".format(
-                self.n_accepted, self.n_steps, self.acceptance_ratio
+                self.n_accepted, self.n_steps, self.acceptance * 100
             )
         else:
             acc_string = ""
