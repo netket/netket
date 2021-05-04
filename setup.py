@@ -18,7 +18,7 @@ BASE_DEPENDENCIES = [
     "plum-dispatch~=1.0.0",
     "numba==0.52, ==0.53",
     "networkx~=2.4",
-    "jax>=0.2.9, <=0.2.13",
+    "jax>=0.2.9, <=0.2.12",
     "jaxlib>=0.1.57, ",
     "flax>=0.3.0",
     "orjson~=3.4",
