@@ -28,7 +28,14 @@ from jax.tree_util import (
     tree_leaves,
 )
 from jax.util import as_hashable_function
-from jax.dtypes import dtype_real
+
+# Workaround https://github.com/google/jax/issues/6641
+# To be removed if we drop support for old jax versions
+# pre 0.2.14
+if hasattr(jax.dtypes, "dtype_real"):
+    from jax.dtypes import dtype_real
+else:
+    from jax._src.dtypes import dtype_real
 
 from netket.utils import MPI, n_nodes, rank, random_seed
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Scalar
