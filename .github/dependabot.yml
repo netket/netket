@@ -9,3 +9,6 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+    ignore:
+      # Ignore updates to "black" because we'd need to reformat everything
+      - dependency-name: "black"
