@@ -26,17 +26,17 @@ import netket.jax as nkjax
 
 from ..linear_operator import LinearOperator, Uninitialized
 
-from .treemv_logic import mat_vec
+from .qgt_jacobian_pytree_logic import mat_vec
 
 
-def QGTJacobianPyTree(vstate, *, mode, rescale_shift=False) -> "QGTJacobianT":
+def QGTJacobianPyTree(vstate, *, mode, rescale_shift=False) -> "QGTJacobianPyTreeT":
     O, scale = 0, 0  # compute gradient
 
     return QGTJacobianT(O=O, scale=rescale_shift)
 
 
 @struct.dataclass
-class QGTJacobianPyTree(LinearOperator):
+class QGTJacobianPyTreeT(LinearOperator):
     """
     Semi-lazy representation of an S Matrix behaving like a linear operator.
 
