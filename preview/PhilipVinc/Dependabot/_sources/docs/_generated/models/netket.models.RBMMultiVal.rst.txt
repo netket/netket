@@ -1,0 +1,48 @@
+﻿netket.models.RBMMultiVal
+=========================
+
+.. currentmodule:: netket.models
+
+.. autoclass:: RBMMultiVal
+   :show-inheritance:
+
+   .. automethod:: RBMMultiVal.__init__
+
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Attributes
+      .. autoattribute:: RBMMultiVal.alpha
+      .. autoattribute:: RBMMultiVal.name
+      .. autoattribute:: RBMMultiVal.parent
+      .. autoattribute:: RBMMultiVal.precision
+      .. autoattribute:: RBMMultiVal.scope
+      .. autoattribute:: RBMMultiVal.use_hidden_bias
+      .. autoattribute:: RBMMultiVal.use_visible_bias
+      .. autoattribute:: RBMMultiVal.variables
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: RBMMultiVal.__call__
+      .. automethod:: RBMMultiVal.activation
+      .. automethod:: RBMMultiVal.apply
+      .. automethod:: RBMMultiVal.bind
+      .. automethod:: RBMMultiVal.clone
+      .. automethod:: RBMMultiVal.get_variable
+      .. automethod:: RBMMultiVal.has_variable
+      .. automethod:: RBMMultiVal.hidden_bias_init
+      .. automethod:: RBMMultiVal.init
+      .. automethod:: RBMMultiVal.init_with_output
+      .. automethod:: RBMMultiVal.is_mutable_collection
+      .. automethod:: RBMMultiVal.kernel_init
+      .. automethod:: RBMMultiVal.make_rng
+      .. automethod:: RBMMultiVal.param
+      .. automethod:: RBMMultiVal.setup
+      .. automethod:: RBMMultiVal.sow
+      .. automethod:: RBMMultiVal.variable
+      .. automethod:: RBMMultiVal.visible_bias_init
+
+   

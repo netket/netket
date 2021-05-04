@@ -1,0 +1,42 @@
+﻿netket.nn.Embed
+===============
+
+.. currentmodule:: netket.nn
+
+.. autoclass:: Embed
+   :show-inheritance:
+
+   .. automethod:: Embed.__init__
+
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Attributes
+      .. autoattribute:: Embed.name
+      .. autoattribute:: Embed.parent
+      .. autoattribute:: Embed.scope
+      .. autoattribute:: Embed.variables
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: Embed.__call__
+      .. automethod:: Embed.apply
+      .. automethod:: Embed.attend
+      .. automethod:: Embed.bind
+      .. automethod:: Embed.clone
+      .. automethod:: Embed.embedding_init
+      .. automethod:: Embed.get_variable
+      .. automethod:: Embed.has_variable
+      .. automethod:: Embed.init
+      .. automethod:: Embed.init_with_output
+      .. automethod:: Embed.is_mutable_collection
+      .. automethod:: Embed.make_rng
+      .. automethod:: Embed.param
+      .. automethod:: Embed.setup
+      .. automethod:: Embed.sow
+      .. automethod:: Embed.variable
+
+   

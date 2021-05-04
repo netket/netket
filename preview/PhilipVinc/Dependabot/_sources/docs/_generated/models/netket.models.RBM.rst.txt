@@ -1,0 +1,48 @@
+﻿netket.models.RBM
+=================
+
+.. currentmodule:: netket.models
+
+.. autoclass:: RBM
+   :show-inheritance:
+
+   .. automethod:: RBM.__init__
+
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Attributes
+      .. autoattribute:: RBM.alpha
+      .. autoattribute:: RBM.name
+      .. autoattribute:: RBM.parent
+      .. autoattribute:: RBM.precision
+      .. autoattribute:: RBM.scope
+      .. autoattribute:: RBM.use_hidden_bias
+      .. autoattribute:: RBM.use_visible_bias
+      .. autoattribute:: RBM.variables
+   
+      
+   .. rst-class:: class-dl-groups
+
+   Methods
+      .. automethod:: RBM.__call__
+      .. automethod:: RBM.activation
+      .. automethod:: RBM.apply
+      .. automethod:: RBM.bind
+      .. automethod:: RBM.clone
+      .. automethod:: RBM.get_variable
+      .. automethod:: RBM.has_variable
+      .. automethod:: RBM.hidden_bias_init
+      .. automethod:: RBM.init
+      .. automethod:: RBM.init_with_output
+      .. automethod:: RBM.is_mutable_collection
+      .. automethod:: RBM.kernel_init
+      .. automethod:: RBM.make_rng
+      .. automethod:: RBM.param
+      .. automethod:: RBM.setup
+      .. automethod:: RBM.sow
+      .. automethod:: RBM.variable
+      .. automethod:: RBM.visible_bias_init
+
+   
