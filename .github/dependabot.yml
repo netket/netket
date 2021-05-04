@@ -12,3 +12,13 @@ updates:
     ignore:
       # Ignore updates to "black" because we'd need to reformat everything
       - dependency-name: "black"
+      - dependency-name: "scipy"
+        versions: ["1.x"]
+      - dependency-name: "numpy"
+        versions: ["1.x"]
+      - dependency-name: "tqdm"
+        versions: ["4.x"]
+      - dependency-name: "orjson"
+        versions: ["3.x"]
+      - dependency-name: "networkx"
+        versions: ["2.x"]
