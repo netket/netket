@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Using a group convolutional neural network to learn the ground-state of a symmetric spin model &#8212; netket v3.0 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/panels-variables.06eb56fa6e07937060861dad626602ad.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/jumbo-style.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/all.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/rtd_theme.css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["\\(", "\\)"]], "displayMath": [["\\[", "\\]"]], "processRefs": false, "processEnvironments": false}})</script>
+    <script src="../_static/js/rtd_theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js "></script>
+<script type="text/javascript" src="../_static/js/jquery-fix.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-3.3.7/js/bootstrap.min.js "></script>
+<script type="text/javascript" src="../_static/bootstrap-sphinx.js "></script>
+
+  </head><body>
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html"><span><img src="../_static/logonav.png"></span>
+          NetKet</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+                <li><a href="../getting_started.html">Get Started</a></li>
+                <li><a href="../docs/getting_started.html">Documentation</a></li>
+                <li><a href="../tutorials.html">Tutorials</a></li>
+                <li><a href="../citing.html">Citing NetKet</a></li>
+                <li><a href="../about.html">About</a></li>
+                <li><a href="https://github.com/netket/netket"><i class="fab fa-github" aria-hidden="true"></i></a></li>
+                <li><a href="https://twitter.com/NetKetOrg"><i class="fab fa-twitter" aria-hidden="true"></i></a></li>
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"></ul>
+</li>
+              
+            
+            
+            
+            
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="body col-md-12 content" role="main">
+      
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt a.copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+</style>
+<div class="section" id="Using-a-group-convolutional-neural-network-to-learn-the-ground-state-of-a-symmetric-spin-model">
+<h1>Using a group convolutional neural network to learn the ground-state of a symmetric spin model<a class="headerlink" href="#Using-a-group-convolutional-neural-network-to-learn-the-ground-state-of-a-symmetric-spin-model" title="Permalink to this headline">¶</a></h1>
+<p>The goal of this tutorial is to learn about group convolutional neural networks (G-CNNs), a useful tool for simulating lattices with high symmetry. The G-CNN is a generalization to the convolutional neural network (CNN) to non-abelian symmetry groups (groups that contain at least one pair of non-commuting elements). G-CNNs are a natural fit for lattices that have both point group and translational symmetries, as rotations, reflections and translations don’t commute with one-another.</p>
+<p>In this tutorial we will learn the ground state of the antiferromagnetic Heisenberg model on the honeycomb lattice. The Heisenberg Hamiltonian is defined as follows:</p>
+<div class="math notranslate nohighlight">
+\[H = \sum_{i,j \in \langle \rangle} \vec{\sigma}_{i} \cdot \vec{\sigma}_{j},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\vec{\sigma}_{i}\)</span> are Pauli matrices and <span class="math notranslate nohighlight">\(&lt;&gt;\)</span> denotes nearest neighbor interactons.</p>
+<p>For this tutorial, many of the calculations will be much faster on a GPU. If you don’t have access to a GPU, you can open a <a class="reference external" href="https://colab.research.google.com/">Google Colab</a> notebook, and set runtime type to GPU.</p>
+<p>This tutorial wil be split into two parts. First I’ll provide a brief introduction to G-CNNs and describe what advantages they bring. Second, we’ll use NetKet to find the ground state of the antiferromagnetic Heisenberg model on the honeycomb lattice. First we will simulate a lattice with <span class="math notranslate nohighlight">\(N=18\)</span> sites in order to compare with exact diagonalization. Then we will simulate a lattice with <span class="math notranslate nohighlight">\(N=72\)</span> sites.</p>
+</div>
+<div class="section" id="G-CNNs-are-generalizations-of-CNNs-to-non-abelian-groups">
+<h1>G-CNNs are generalizations of CNNs to non-abelian groups<a class="headerlink" href="#G-CNNs-are-generalizations-of-CNNs-to-non-abelian-groups" title="Permalink to this headline">¶</a></h1>
+<p>The convolutional neural network (CNN) has revolutionized the field of computer vision. The CNN enforces translational invariance, which means that feeding a CNN translated copies of an image will produce the exact same output. This is important for recognizing objects, which may located differently in different images.</p>
+<p>The hidden layers of a CNN contain a group of <span class="math notranslate nohighlight">\({\bf features}\)</span>, corresponding to translations of the image, where each feature is represented by a vector. At each layer, the CNN integrates over these features to produce a different set of features over the translation group:</p>
+<div class="math notranslate nohighlight">
+\[C^i_{x,y} = \sum_h {\bf W}_{x'-x, y'-y} \cdot {\bf f}_{x,y}\]</div>
+<p>As you can see, the index of the filter W is based on the displacement between the input feature {x’,y’} and the output feature {x, y}. This is known as an equivariant operation, as displacements in the input are propagated as displacements in the output (equivariance is actually bit more general, we’ll get to that in a moment). In the last layer, the CNN averages over these different features, forcing the output to be invariant to the input.</p>
+<p>To generalize the CNN to the G-CNN, lets abstract away from the specifics of the convolution. Instead of indexing the features with translations, we will use elements from a general symmetry group which may contain non-commmuting operations. In this case we must define a particular order of operations. For example, we could define an operation in the <span class="math notranslate nohighlight">\(p6m\)</span> space group, as a translation, followed by a rotation and a reflection about the origin. Non-abelian groups still maintain
+associativity and a closed algebra. This is easy to see with lattice symmetry groups. If two successive symmetry operations leave the lattice unchanged, applying both must also leave the lattice unchanged and therefore be symmetry operation in the group.</p>
+<p>For G-convolutions, the building blocks of the G-CNN, this algebra is all we need. The G-convolution also indexes the filters by looking at the “difference” between group elements, however this time there is an orientation to it. The G-convolution is defined as follows:</p>
+<div class="math notranslate nohighlight">
+\[C^i_g = \sum_h {\bf W}_{g^{-1} h} \cdot {\bf f}_h\]</div>
+<p>The filters are indexed by <span class="math notranslate nohighlight">\(g^{-1} h\)</span>, which describes the mapping from <span class="math notranslate nohighlight">\(g \rightarrow h\)</span> but not vice-versa. This causes the output to be an <span class="math notranslate nohighlight">\({\bf involution}\)</span> of the input, meaning that the group elements are mapped to their respective inverses.</p>
+<p>G-convolutions are the most expressive linear transformation over a particular symmetry group. Therefore, if you want to define a linear-based model with a particular symmetry, G-CNNs maximize the number of parameters you can fit into a given memory profile. G-CNNs can be mapped down to other symmetry-averaged multi-layer linear models by masking filters (setting them to zero). On the Honeycomb lattice, the G-CNN (approximately) has a factor of 12 more parameters than a CNN averaged over
+<span class="math notranslate nohighlight">\(d_6\)</span> and a factor of <span class="math notranslate nohighlight">\(12 N\)</span> more parameters than a feedforward neural network averaged over <span class="math notranslate nohighlight">\(p6m\)</span> (where N is the number of sites) under an identical memory constraint.</p>
+<p>If you’d like to learn more about G-CNNs, check out the <a class="reference external" href="http://proceedings.mlr.press/v48/cohenc16.pdf">original paper</a> by Cohen <span class="math notranslate nohighlight">\({\it et \ al.}\)</span> or <a class="reference external" href="https://arxiv.org/pdf/2104.05085.pdf">this paper</a> by Roth <span class="math notranslate nohighlight">\({\it et \ al.}\)</span> that applies G-CNNs to quantum many-body systems.</p>
+<p>Now that the boring stuff is over with, lets start our simulations. First let’s import NetKet and other neccesities</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span># Run if you&#39;re on Colab or you don&#39;t have NetKet installed
+# pip install &quot;git+https://github.com/netket/netket#egg=netket[all]&quot;
+import netket as nk
+
+# Import Json, this will be needed to examine log files
+import json
+
+# Helper libraries
+import numpy as np
+import matplotlib.pyplot as plt
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Defining-the-Hamiltonian">
+<h1>Defining the Hamiltonian<a class="headerlink" href="#Defining-the-Hamiltonian" title="Permalink to this headline">¶</a></h1>
+<p>We begin by defining the Hamiltonian as a list of lattice points. NetKet will automatically convert these points into a graph with nearest neighbor connections. The honeycomb lattice is a triangular lattice with two sites per unit cell.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Basis Vectors that define the positioning of the unit cell
+basis_vectors = [[0,1],[np.sqrt(3)/2,-1/2]]
+
+#Locations of atoms within the unit cell
+atom_positions = [[0,0],[np.sqrt(3)/6,1/2]]
+
+#Number of unit cells in each direction
+dimensions = [3,3]
+
+#Define the graph
+graph = nk.graph.Lattice(basis_vectors=basis_vectors,
+                         atoms_coord = atom_positions,
+                         extent = dimensions
+                        )
+</pre></div>
+</div>
+</div>
+<p>Lets check to see if our graph looks as expected. Since we have two sites per unit cell, we should have <span class="math notranslate nohighlight">\(3 \times 3 \times 2 = 18\)</span> sites. The coordination number of a hexagonal lattice is 3, so we should have <span class="math notranslate nohighlight">\(\frac{18 \times 3}{2} = 27\)</span> edges. Finally we have p6m symmetry, which should give ue <span class="math notranslate nohighlight">\(3 \times 3 \times 12 = 108\)</span> symmetry operations.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Use Netket to find symmetries of the graph
+symmetries = graph.automorphisms()
+
+#Check that graph info is correct
+print(graph.n_nodes)
+print(graph.n_edges)
+print(len(symmetries))
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+18
+27
+216
+</pre></div></div>
+</div>
+<p>Oops! It looks like we have twice as many symmetries elements as we thought. Luckily for us, the ground state is still symmetric with respect to this extra symmetry that is unique to the <span class="math notranslate nohighlight">\(3 \times 3\)</span> lattice. We use this graph to define our Hilbert space and Hamiltonian:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span># Define the Hilbert space
+hi = nk.hilbert.Spin(s=1 / 2, N=graph.n_nodes, total_sz = 0)
+
+#Define the Hamiltonian
+ha = nk.operator.Heisenberg(hilbert=hi, graph=graph, sign_rule=True)
+</pre></div>
+</div>
+</div>
+<p>Since the Hexagonal lattice is bipartite, we know the phases obey a Marshall-Peierls sign rule. Therefore, we can use a real valued NN and just learn the amplitudes of the wavefunction.</p>
+<p>For models with a more complicated phase structure, its often better to learn the phases in an equal-amplitude configuration before training the amplitudes as detailed in <a class="reference external" href="https://journals.aps.org/prresearch/pdf/10.1103/PhysRevResearch.2.033075">this paper</a>. This can be implemented by first optimizing the weights on a modified model that sets <span class="math notranslate nohighlight">\(Re[log(\psi)] = 0\)</span></p>
+<p>We also optimize over states with total <span class="math notranslate nohighlight">\(S_z\)</span> of zero since we know the ground state has spin 0.</p>
+</div>
+<div class="section" id="Defining-the-GCNN">
+<h1>Defining the GCNN<a class="headerlink" href="#Defining-the-GCNN" title="Permalink to this headline">¶</a></h1>
+<p>We can define a GCNN with an arbitrary number of layers and specify the feature dimension of each layer accordingly:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Feature dimensions of hidden layers, from first to last
+feature_dims = (8,8,8,8)
+
+#Number of layers
+num_layers = 4
+
+#Define the GCNN
+ma = nk.models.GCNN(symmetries = symmetries, layers = num_layers, features = feature_dims)
+</pre></div>
+</div>
+</div>
+<p>This a G-CNN with four layers, where each hidden layer contains a feature vector of length 8 for each element in p6m. This means that each hidden state has <span class="math notranslate nohighlight">\(8 \times 192 = 768\)</span> nodes. This is a huge model! But since we’re not symmetry-averaging, we only need to compute one wavefunction for each <span class="math notranslate nohighlight">\({\bf \sigma}\)</span>.</p>
+<p>Feel free to try different shaped models. By default, the GCNN weights are initialized with variance scaling, which ensures that the activations will be unit-normal throughout the model at the start of training. Additionally, GCNN defaults to a SELU non-linearity, which moves the activations in the direction of unit-normal, even when they start to deviate. These features ensure that our model will behave well, even when we stack a large number of layers.</p>
+</div>
+<div class="section" id="Variational-Monte-Carlo">
+<h1>Variational Monte Carlo<a class="headerlink" href="#Variational-Monte-Carlo" title="Permalink to this headline">¶</a></h1>
+<p>In order to perform VMC we need to define a sampler and an optimizer. We sample using Metropolis-Hastings, which uses the exchange rule to propose new states. The exchange rule swaps the spin of two neighbouring sites, keeping the magnetization fixed (in this case, 0). We optimize uzing stochaistic reconfiguration, which uses curvature information to find the best direction of descent.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Metropois-Hastings with two spins flipped that are at most second nearest neighbors
+sa = nk.sampler.MetropolisExchange(hilbert = hi, graph=graph, d_max=2)
+
+#Stochaistic reconfiguration
+op = nk.optimizer.Sgd(learning_rate=1e-2)
+sr = nk.optimizer.SR(diag_shift=0.01)
+
+#Define a variational state so we can keep the parameters if we like
+vstate = nk.variational.MCState(sampler=sa, model=ma, n_samples=100)
+
+#Define a driver that performs VMC
+gs = nk.driver.VMC(ha, op, sr=sr, variational_state=vstate)
+</pre></div>
+</div>
+</div>
+<p>Lets start by running for 100 iterations. This took about 15 seconds per iteration on my CPU and about 1 second per iteration on the Tesla P100 GPU (If you’re using the free version of Colab you may get a Tesla K80 which is slightly slower). GPUs are fast! As you’ll see later, the speedup is even more pronounced on larger lattices.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Run the optimization
+gs.run(n_iter=100, out=&#39;out&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 100/100 [01:06&lt;00:00,  1.51it/s, Energy=-40.471 ± 0.046 [σ²=0.238, R̂=0.9744]]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&lt;netket.logging.json_log.JsonLog at 0x7fea898371d0&gt;,)
+</pre></div></div>
+</div>
+<p>This should get us under 0.1% error. Lets see how the energy evolves as we train.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Get data from log and
+energy = []
+data=json.load(open(&quot;out.log&quot;))
+for en in data[&quot;Energy&quot;][&quot;Mean&quot;]:
+    energy.append(en)
+
+#plot the energy during the optimization
+plt.xlabel(&quot;Number of Iterations&quot;)
+plt.ylabel(&quot;Energy&quot;)
+
+plt.plot(energy)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&lt;matplotlib.lines.Line2D at 0x7fe6a2426510&gt;]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_G-CNN_Honeycomb_17_1.png" src="../_images/tutorials_G-CNN_Honeycomb_17_1.png" />
+</div>
+</div>
+<p>Looks like the first 40 iterations did most of the work! In order to get a more precise estimate, we can run 100 more iterations with a larger batch size. This will take about 15 minutes on the GPU (If you’re using a CPU, I suggest you skip this section). We access the batch size via the variational state.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Change batch size
+vstate.n_samples = 1000
+
+#Driver uses new batch size
+gs = nk.driver.VMC(ha, op, sr=sr, variational_state=vstate)
+
+#Run for 100 more iterations
+gs.run(n_iter = 100,out = &#39;out&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 100/100 [10:43&lt;00:00,  6.43s/it, Energy=-40.3884 ± 0.0045 [σ²=0.0207, R̂=1.0033]]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&lt;netket.logging.json_log.JsonLog at 0x7fe6a31f2d90&gt;,)
+</pre></div></div>
+</div>
+<p>You will notice that the variance continues to get even smaller, giving evidence that we are nearing an eigenstate.</p>
+</div>
+<div class="section" id="Checking-with-ED">
+<h1>Checking with ED<a class="headerlink" href="#Checking-with-ED" title="Permalink to this headline">¶</a></h1>
+<p>It seems likely that our ground state is correct, as we approached an eigenstate with low energy, but lets be safe and check our work. We can do Lanczos diagonalization for small lattices in NetKet.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Exact Diagonalization
+E_gs = nk.exact.lanczos_ed(ha, compute_eigenvectors=False)
+</pre></div>
+</div>
+</div>
+<p>Lets compare the VMC energy with the ED energy, by taking average energy over the last <span class="math notranslate nohighlight">\(20\)</span> iterations</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Get data from larger batch size
+energy = []
+data=json.load(open(&quot;out.log&quot;))
+for en in data[&quot;Energy&quot;][&quot;Mean&quot;]:
+    energy.append(en)
+
+vmc_energy_18sites = np.mean(np.asarray(energy)[-20:])/18
+
+ED_energy_18sites = E_gs[0]/18
+
+print(vmc_energy_18sites)
+print(ED_energy_18sites)
+print((ED_energy_18sites- vmc_energy_18sites)/ED_energy_18sites)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+-2.2437762156893766
+-2.243814630334411
+1.7120240021148795e-05
+</pre></div></div>
+</div>
+<p>Looks like our model did a good job! If you just trained for the first 100 iterations the error should be less than <span class="math notranslate nohighlight">\(10^{-4}\)</span> and if you trained with the larger batch size, the error should be close to <span class="math notranslate nohighlight">\(10^{-5}\)</span></p>
+</div>
+<div class="section" id="Simulating-A-Larger-Lattice">
+<h1>Simulating A Larger Lattice<a class="headerlink" href="#Simulating-A-Larger-Lattice" title="Permalink to this headline">¶</a></h1>
+<p>Lets see how the GCNN does on a larger lattice that cannot be simulated with exact diagonalization. We’ll do a <span class="math notranslate nohighlight">\(6 \times 6\)</span> lattice which has <span class="math notranslate nohighlight">\(72\)</span> sites. We need to redefine a few things:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>#Redefine bigger graph
+dimensions = [6,6]
+
+#Define the graph
+graph = nk.graph.Lattice(basis_vectors=basis_vectors,
+                         atoms_coord = atom_positions,
+                         extent = dimensions
+                        )
+# Redefine the Hilbert/Hamiltonian for larger lattice space
+hi = nk.hilbert.Spin(s=1 / 2, N=graph.n_nodes, total_sz = 0)
+ha = nk.operator.Heisenberg(hilbert=hi, graph=graph, sign_rule=True)
+
+# Compute the symmetries for the bigger graph
+symmetries = graph.automorphisms()
+print(len(symmetries))
+
+#Redefine everything on bigger graph
+ma = nk.models.GCNN(symmetries = symmetries, layers = num_layers, features = feature_dims)
+sa = nk.sampler.MetropolisExchange(hilbert = hi, graph=graph, d_max=2)
+vstate = nk.variational.MCState(sampler=sa, model=ma, n_samples=100, n_discard=100)
+gs = nk.driver.VMC(ha, op, sr=sr, variational_state=vstate)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+432
+</pre></div></div>
+</div>
+<p>Looks like we have no extra symmetries this time, since <span class="math notranslate nohighlight">\(6 \times 6 \times 12 = 432\)</span>. Let’s run this model for 100 iterations. You will see that we quickly get close to the ground state. This takes 15 minutes on a P100 GPU</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>energy = []
+variance = []
+
+gs.run(n_iter=100,out=&quot;out&quot;)
+
+data = json.load(open(&quot;out.log&quot;))
+
+for en in data[&quot;Energy&quot;][&quot;Mean&quot;]:
+    energy.append(en)
+for var in data[&quot;Energy&quot;][&quot;Variance&quot;]:
+    variance.append(var)
+
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 100/100 [14:53&lt;00:00,  8.93s/it, Energy=-155.43 ± 0.53 [σ²=31.79, R̂=0.9946]]
+</pre></div></div>
+</div>
+<p>We can plot the energy and variance to see if we’re approaching an eigenstate</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>plt.xlabel(&quot;Number of Iterations&quot;)
+plt.ylabel(&quot;Energy&quot;)
+plt.plot(energy)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&lt;matplotlib.lines.Line2D at 0x7f20e9c2b190&gt;]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_G-CNN_Honeycomb_31_1.png" src="../_images/tutorials_G-CNN_Honeycomb_31_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>plt.xlabel(&quot;Number of Iterations&quot;)
+plt.ylabel(&quot;Variance&quot;)
+plt.plot(variance)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&lt;matplotlib.lines.Line2D at 0x7f20e9702e90&gt;]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_G-CNN_Honeycomb_32_1.png" src="../_images/tutorials_G-CNN_Honeycomb_32_1.png" />
+</div>
+</div>
+<p>It seems we are near an eigenstate. We can do a back-of-the-envelope calculation to see if this is a realistic ground state energy</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>print(ED_energy_18sites)
+print(energy[-1]/graph.n_nodes)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+-2.243814630334411
+-2.158805247393738
+</pre></div></div>
+</div>
+<p>The energy for the bigger lattice is slightly less negative (as is typical for Heisenberg models with PBC) but they are pretty similar. It’s clear we are approaching the ground state</p>
+<p>We will benchmark how well our model is perfoming by tracking the relationship between the mean and variance of the energy over 400 more iterations. Then we will extrapolate this relationship to estimate the true ground state energy. This can tell us how our error evolves over time.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>intervals = 20
+
+en_estimates = []
+var_estimates = []
+
+for interval in range(intervals):
+    #run for 100 iterations
+    gs.run(n_iter=20,out=&#39;out&#39;)
+
+    #load data from iterations
+    data = json.load(open(&quot;out.log&quot;))
+
+    #append energies and variances to data
+    for en in data[&quot;Energy&quot;][&quot;Mean&quot;]:
+        energy.append(en)
+    for var in data[&quot;Energy&quot;][&quot;Variance&quot;]:
+        variance.append(var)
+
+    en_est = np.mean(energy[-20:])
+    var_est = np.mean(variance[-20:])
+    en_estimates.append(en_est)
+    var_estimates.append(var_est)
+
+    print(&#39;\n&#39;)
+    print(en_est)
+    print(var_est)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 20/20 [02:56&lt;00:00,  8.81s/it, Energy=-157.22 ± 0.32 [σ²=11.34, R̂=0.9780]]
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+
+-156.9362404126101
+10.740704288189896
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+</pre></div></div>
+</div>
+<p>Lets plot the energy vs. variance and draw a line of best fit</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>plt.xlabel(&quot;Variance&quot;)
+plt.ylabel(&quot;Energy&quot;)
+plt.scatter(var_estimates,en_estimates)
+fit = np.polyfit(var_estimates,en_estimates,2)
+x = np.arange(100)*np.max(var_estimates)/100
+plt.plot(x,fit[2] + fit[1]*x + fit[0]*np.square(x))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&lt;matplotlib.lines.Line2D at 0x7f20e4704410&gt;]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorials_G-CNN_Honeycomb_39_1.png" src="../_images/tutorials_G-CNN_Honeycomb_39_1.png" />
+</div>
+</div>
+<p>You can see that that the relationship between energy and variance is fairly well captured by a quadratic function. We can use this extrapolation to estimate the true ground state energy and the error in our wavefunction. Lets estimate the final energy of our Ansatz using our last 10,000 samples</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span>final_en = np.mean(en_estimates[-5:])
+extrapolated_est = fit[2]
+
+print((extrapolated_est-final_en)/extrapolated_est)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0.0012942848437390558
+</pre></div></div>
+</div>
+<p>If everything went well your error should be around .1%!</p>
+<p>This concludes the tutorial. Only an hour ago we knew nothing about the Heisenberg model on a Hexagonal lattice. Now we have an accurate approximation of the ground state wavefunction!</p>
+</div>
+
+
+    </div>
+      
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2019-2021, The Netket authors - All rights reserved.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 3.5.4.<br/>
+    </p>
+  </div>
+</footer>
+
+<script type="text/javascript">
+    jQuery(function () {
+        SphinxRtdTheme.Navigation.enable(true);
+      })
+</script>
+
+<!-- Temporary footer
+<div class="footer-wip">
+  <div class="footer-wip-content">
+    This documentation refers to an unreleased version of Netket.
+  </div>
+</div>
+-->
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-118013987-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-118013987-1');
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "url": "https://www.netket.org",
+  "name": "NetKet",
+  "founder": "Giuseppe Carleo",
+  "foundingDate": "2018-04-24",
+  "foundingLocation" : "New York",
+  "logo": "https://www.netket.org/img/logo_small.jpg",
+  "sameAs": [
+    "https://twitter.com/NetKetOrg",
+    "https://github.com/NetKet/netket"
+  ],
+  "description" : "Netket is an open-source project delivering cutting-edge
+  methods for the study of many-body quantum systems with artificial neural
+  networks and machine learning techniques."
+}
+</script>
+
+  </body>
+</html>
