@@ -145,7 +145,7 @@
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">acc_string</span> <span class="o">=</span> <span class="s2">&quot;# accepted = </span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">%), &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">n_accepted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_ratio</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_accepted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptance</span> <span class="o">*</span> <span class="mi">100</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">acc_string</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>

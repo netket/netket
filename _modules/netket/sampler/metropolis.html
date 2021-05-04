@@ -123,6 +123,8 @@
 <span class="kn">from</span> <span class="nn">netket.stats</span> <span class="kn">import</span> <span class="n">sum_inplace</span>
 <span class="kn">from</span> <span class="nn">netket.utils.types</span> <span class="kn">import</span> <span class="n">PyTree</span><span class="p">,</span> <span class="n">PRNGKeyT</span>
 
+<span class="kn">from</span> <span class="nn">netket.utils.deprecation</span> <span class="kn">import</span> <span class="n">deprecated</span><span class="p">,</span> <span class="n">warn_deprecation</span>
+
 <span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">Sampler</span><span class="p">,</span> <span class="n">SamplerState</span>
 
 
@@ -237,8 +239,8 @@
     <span class="sd">&quot;&quot;&quot;Number of accepted transitions among the chains in this process since the last reset.&quot;&quot;&quot;</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">acceptance_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;The percentage of accepted moves across all chains and MPI processes.</span>
+    <span class="k">def</span> <span class="nf">acceptance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The fraction of accepted moves across all chains and MPI processes.</span>
 
 <span class="sd">        The rate is computed since the last reset of the sampler.</span>
 <span class="sd">        Will return None if no sampling has been performed since then.</span>
@@ -246,7 +248,27 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_accepted</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_accepted</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@deprecated</span><span class="p">(</span>
+        <span class="sd">&quot;&quot;&quot;Please use the attribute `.acceptance` instead of </span>
+<span class="sd">        `.acceptance_ratio`. The new attribute `.acceptance` returns the </span>
+<span class="sd">        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`</span>
+<span class="sd">        returning a percentage, which is a bug.&quot;&quot;&quot;</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">acceptance_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;DEPRECATED: Please use the attribute `.acceptance` instead of</span>
+<span class="sd">        `.acceptance_ratio`. The new attribute `.acceptance` returns the</span>
+<span class="sd">        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`</span>
+<span class="sd">        returning a percentage, which is a bug.</span>
+
+<span class="sd">        The percentage of accepted moves across all chains and MPI processes.</span>
+
+<span class="sd">        The rate is computed since the last reset of the sampler.</span>
+<span class="sd">        Will return None if no sampling has been performed since then.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptance</span> <span class="o">*</span> <span class="mi">100</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -261,7 +283,7 @@
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">acc_string</span> <span class="o">=</span> <span class="s2">&quot;# accepted = </span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2"> (</span><span class="si">{}</span><span class="s2">%), &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">n_accepted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_ratio</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_accepted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptance</span> <span class="o">*</span> <span class="mi">100</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">acc_string</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
@@ -292,7 +314,7 @@
     <span class="sd">&quot;&quot;&quot;The metropolis transition rule.&quot;&quot;&quot;</span>
     <span class="n">n_sweeps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">pytree_node</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="sd">&quot;&quot;&quot;Number of sweeps for each step along the chain. Defaults to number of sites in hilbert space.&quot;&quot;&quot;</span>
-    <span class="n">reset_chain</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">reset_chains</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="sd">&quot;&quot;&quot;If True resets the chain state when reset is called (every new sampling).&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="MetropolisSampler.__init__"><a class="viewcode-back" href="../../../docs/_generated/samplers/netket.sampler.MetropolisSampler.html#netket.sampler.MetropolisSampler.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -301,7 +323,8 @@
         <span class="n">rule</span><span class="p">:</span> <span class="n">MetropolisRule</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">n_sweeps</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">reset_chain</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">reset_chains</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">reset_chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -314,18 +337,24 @@
 <span class="sd">            n_sweeps: The number of exchanges that compose a single sweep.</span>
 <span class="sd">                    If None, sweep_size is equal to the number of degrees of freedom being sampled</span>
 <span class="sd">                    (the size of the input vector s to the machine).</span>
-<span class="sd">            reset_chain: If False the state configuration is not resetted when reset() is called.</span>
+<span class="sd">            reset_chains: If False the state configuration is not resetted when reset() is called.</span>
 <span class="sd">            n_chains: The number of Markov Chain to be run in parallel on a single process.</span>
-<span class="sd">            n_chains: The number of batches of the states to sample (default = 8)</span>
 <span class="sd">            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).</span>
 <span class="sd">            dtype: The dtype of the statees sampled (default = np.float32).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">n_sweeps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">n_sweeps</span> <span class="o">=</span> <span class="n">hilbert</span><span class="o">.</span><span class="n">size</span>
 
+        <span class="c1"># TODO remove deprecation at end of beta</span>
+        <span class="k">if</span> <span class="n">reset_chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warn_deprecation</span><span class="p">(</span>
+                <span class="s2">&quot;The keyword argument `reset_chain` is deprecated in favour of `reset_chains`&quot;</span>
+            <span class="p">)</span>
+            <span class="n">reset_chains</span> <span class="o">=</span> <span class="n">reset_chain</span>
+
         <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;rule&quot;</span><span class="p">,</span> <span class="n">rule</span><span class="p">)</span>
         <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;n_sweeps&quot;</span><span class="p">,</span> <span class="n">n_sweeps</span><span class="p">)</span>
-        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;reset_chain&quot;</span><span class="p">,</span> <span class="n">reset_chain</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;reset_chains&quot;</span><span class="p">,</span> <span class="n">reset_chains</span><span class="p">)</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">hilbert</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
@@ -348,7 +377,7 @@
 
         <span class="c1"># If we don&#39;t reset the chain at every sampling iteration, then reset it</span>
         <span class="c1"># now.</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">sampler</span><span class="o">.</span><span class="n">reset_chain</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">sampler</span><span class="o">.</span><span class="n">reset_chains</span><span class="p">:</span>
             <span class="n">key_state</span><span class="p">,</span> <span class="n">rng</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">key_state</span><span class="p">)</span>
             <span class="n">σ</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">random_state</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">machine</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
             <span class="n">state</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">σ</span><span class="o">=</span><span class="n">σ</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">key_state</span><span class="p">)</span>
@@ -358,7 +387,7 @@
     <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">machine</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
         <span class="n">new_rng</span><span class="p">,</span> <span class="n">rng</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">sampler</span><span class="o">.</span><span class="n">reset_chain</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sampler</span><span class="o">.</span><span class="n">reset_chains</span><span class="p">:</span>
             <span class="n">σ</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">random_state</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">machine</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">σ</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">σ</span>
@@ -421,7 +450,7 @@
             <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  rule = </span><span class="si">{}</span><span class="s2">,&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">rule</span><span class="p">)</span>
             <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  n_chains = </span><span class="si">{}</span><span class="s2">,&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">n_chains</span><span class="p">)</span>
             <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  machine_power = </span><span class="si">{}</span><span class="s2">,&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">machine_pow</span><span class="p">)</span>
-            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  reset_chain = </span><span class="si">{}</span><span class="s2">,&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">reset_chain</span><span class="p">)</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  reset_chains = </span><span class="si">{}</span><span class="s2">,&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">reset_chains</span><span class="p">)</span>
             <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  n_sweeps = </span><span class="si">{}</span><span class="s2">,&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">n_sweeps</span><span class="p">)</span>
             <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  dtype = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
             <span class="o">+</span> <span class="s2">&quot;)&quot;</span>

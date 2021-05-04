@@ -17,7 +17,7 @@
       .. autoattribute:: MetropolisSamplerNumpy.n_batches
       .. autoattribute:: MetropolisSamplerNumpy.n_chains
       .. autoattribute:: MetropolisSamplerNumpy.n_sweeps
-      .. autoattribute:: MetropolisSamplerNumpy.reset_chain
+      .. autoattribute:: MetropolisSamplerNumpy.reset_chains
       .. autoattribute:: MetropolisSamplerNumpy.rule
    
       

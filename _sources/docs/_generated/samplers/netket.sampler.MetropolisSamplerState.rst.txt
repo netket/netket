@@ -13,6 +13,7 @@
    .. rst-class:: class-dl-groups
 
    Attributes
+      .. autoattribute:: MetropolisSamplerState.acceptance
       .. autoattribute:: MetropolisSamplerState.acceptance_ratio
       .. autoattribute:: MetropolisSamplerState.n_accepted
       .. autoattribute:: MetropolisSamplerState.n_accepted_proc

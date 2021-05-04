@@ -406,14 +406,31 @@ state of the transition rule.</p>
 
 <dl class="class-dl-groups">
 <dt>Attributes</dt><dd><dl class="py attribute">
-<dt id="netket.sampler.MetropolisSamplerState.acceptance_ratio">
-<code class="sig-name descname"><span class="pre">acceptance_ratio</span></code><a class="headerlink" href="#netket.sampler.MetropolisSamplerState.acceptance_ratio" title="Permalink to this definition">¶</a></dt>
-<dd><p>The percentage of accepted moves across all chains and MPI processes.</p>
+<dt id="netket.sampler.MetropolisSamplerState.acceptance">
+<code class="sig-name descname"><span class="pre">acceptance</span></code><a class="headerlink" href="#netket.sampler.MetropolisSamplerState.acceptance" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fraction of accepted moves across all chains and MPI processes.</p>
 <p>The rate is computed since the last reset of the sampler.
 Will return None if no sampling has been performed since then.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="netket.sampler.MetropolisSamplerState.acceptance_ratio">
+<code class="sig-name descname"><span class="pre">acceptance_ratio</span></code><a class="headerlink" href="#netket.sampler.MetropolisSamplerState.acceptance_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Please use the attribute <cite>.acceptance</cite> instead of
+<cite>.acceptance_ratio</cite>. The new attribute <cite>.acceptance</cite> returns the
+acceptance ratio ∈ [0,1], instead of the current <cite>acceptance_ratio</cite>
+returning a percentage, which is a bug.</p>
+<p>The percentage of accepted moves across all chains and MPI processes.</p>
+<p>The rate is computed since the last reset of the sampler.
+Will return None if no sampling has been performed since then.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>DEPRECATED</p>
 </dd>
 </dl>
 </dd></dl>
