@@ -27,6 +27,7 @@ from netket.hilbert import AbstractHilbert
 from netket.utils import n_nodes
 from netket.stats import sum_inplace
 from netket.utils.types import PyTree, PRNGKeyT
+from netket.utils.deprecation import deprecated, warn_deprecation
 
 import netket.jax as nkjax
 
@@ -155,7 +156,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             rule_state=sampler.rule.init_state(sampler, machine, parameters, rgen),
         )
 
-        if not sampler.reset_chain:
+        if not sampler.reset_chains:
             key = jnp.asarray(
                 state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
             )
@@ -167,7 +168,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         return state
 
     def _reset(sampler, machine, parameters, state):
-        if sampler.reset_chain:
+        if sampler.reset_chains:
             # directly generate a PRNGKey which is a [2xuint32] array
             key = jnp.asarray(
                 state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
@@ -246,7 +247,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             + "\n  rule = {},".format(sampler.rule)
             + "\n  n_chains = {},".format(sampler.n_chains)
             + "\n  machine_power = {},".format(sampler.machine_pow)
-            + "\n  reset_chain = {},".format(sampler.reset_chain)
+            + "\n  reset_chains = {},".format(sampler.reset_chains)
             + "\n  n_sweeps = {},".format(sampler.n_sweeps)
             + "\n  dtype = {},".format(sampler.dtype)
             + ")"

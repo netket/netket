@@ -65,13 +65,13 @@ samplers["Metropolis(Exchange): Fock-1particle)"] = nk.sampler.MetropolisExchang
 samplers["Metropolis(Hamiltonian,Jax): Spin"] = nk.sampler.MetropolisHamiltonian(
     hi,
     hamiltonian=ha,
-    reset_chain=True,
+    reset_chains=True,
 )
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
     hi,
     hamiltonian=ha,
-    reset_chain=True,
+    reset_chains=True,
 )
 
 samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
@@ -258,14 +258,14 @@ def test_throwing(rbm_and_weights):
         nk.sampler.MetropolisHamiltonian(
             hi,
             hamiltonian=10,
-            reset_chain=True,
+            reset_chains=True,
         )
 
     with pytest.raises(ValueError):
         sampler = nk.sampler.MetropolisHamiltonian(
             nk.hilbert.DoubledHilbert(hi),
             hamiltonian=ha,
-            reset_chain=True,
+            reset_chains=True,
         )
 
         ma, w = rbm_and_weights(hi)
@@ -276,7 +276,7 @@ def test_throwing(rbm_and_weights):
         sampler = nk.sampler.MetropolisHamiltonianNumpy(
             nk.hilbert.Fock(3) ** hi.size,
             hamiltonian=ha,
-            reset_chain=True,
+            reset_chains=True,
         )
 
         ma, w = rbm_and_weights(hi)
@@ -287,7 +287,7 @@ def test_throwing(rbm_and_weights):
         sampler = nk.sampler.MetropolisHamiltonianNumpy(
             nk.hilbert.DoubledHilbert(hi),
             hamiltonian=ha,
-            reset_chain=True,
+            reset_chains=True,
         )
 
         ma, w = rbm_and_weights(hi)
