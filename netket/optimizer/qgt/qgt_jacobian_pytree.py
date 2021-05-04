@@ -29,7 +29,7 @@ from ..linear_operator import LinearOperator, Uninitialized
 from .qgt_jacobian_pytree_logic import mat_vec
 
 
-def QGTJacobianPyTree(vstate, *, mode, rescale_shift=False) -> "QGTJacobianPyTreeT":
+def QGTJacobianPyTree(vstate, *, mode, rescale_shift=True) -> "QGTJacobianPyTreeT":
     O, scale = 0, 0  # compute gradient
 
     return QGTJacobianT(O=O, scale=rescale_shift)

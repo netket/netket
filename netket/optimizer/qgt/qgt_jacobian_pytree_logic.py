@@ -30,30 +30,39 @@ from .qgt_onthefly_logic import tree_cast, tree_conj, tree_axpy
 def sub_mean(oks: PyTree) -> PyTree:
     return jax.tree_map(partial(subtract_mean, axis=0), oks)  # MPI
 
-@partial(jax.vmap, in_axes=(None, None, 0))
-def vmap_grad_centered_rr_cc(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
-    def f(p, x):
-        return forward_fn(p, jnp.expand_dims(x, 0))[0]
+@partial(jax.vmap, in_axes=(None, None, 0, None))
+def vmap_grad_rr_cc(forward_fn: Callable, params: PyTree, samples: Array, model_state: Optional[PyTree]) -> PyTree:
+    # Preapply model state, limit evaluation to a single sample
+    def f(W, σ):
+        return forward_fn({"params": W, **model_state}, σ[jnp.newaxis, :])[0]
 
     y, vjp_fun = jax.vjp(f, params, samples)
     res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     return sub_mean(res)
 
+def vmap_grad_centered_rr_cc(forward_fn: Callable, params: PyTree, samples: Array, model_state: Optional[PyTree]) -> PyTree:
+    return sub_mean(vmap_grad_rr_cc(forward_fn, params, samples, model_state))
 
-@partial(jax.vmap, in_axes=(None, None, 0))
-def vmap_grad_centered_rc(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
-    def f(p, x):
-        return forward_fn(p, jnp.expand_dims(x, 0))[0]
+
+@partial(jax.vmap, in_axes=(None, None, 0, None))
+def vmap_grad_rc(forward_fn: Callable, params: PyTree, samples: Array, model_state: Optional[PyTree]) -> PyTree:
+    # Preapply model state, limit evaluation to a single sample
+    def f(W, σ):
+        return forward_fn({"params": W, **model_state}, σ[jnp.newaxis, :])[0]
 
     y, vjp_fun = jax.vjp(f, params, samples)
     gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
-    # Return the real and imaginary parts of ΔOⱼₖ separately
+    return gr, gi
+
+def vmap_grad_centered_rc(forward_fn: Callable, params: PyTree, samples: Array, model_state: Optional[PyTree]) -> PyTree:
+    gr, gi = vmap_grad_rc(forward_fn, params, samples, model_state)
+    # Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
     # Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
     return jax.tree_multimap(lambda re, im: jnp.concatenate([re, im], axis=0), sub_mean(gr), sub_mean(gi))
 
 
-def vmap_grad_centered(forward_fn: Callable, params: PyTree, samples: Array, mode: str) -> PyTree:
+def vmap_grad_centered(forward_fn: Callable, params: PyTree, samples: Array, model_state: Optional[PyTree], mode: str) -> PyTree:
     """
     compute the jacobian of forward_fn(params, samples) w.r.t params
     as a pytree using vmapped gradients for efficiency
@@ -61,17 +70,15 @@ def vmap_grad_centered(forward_fn: Callable, params: PyTree, samples: Array, mod
     mode can be 'R2R', 'R2C', 'holomorphic'
     TODO: add support for splitting complex pytree leaves into real and imag parts so there be a good default mode
     """
-    complex_output = nkjax.is_complex(jax.eval_shape(forward_fn, params, samples))
-    real_params = not nkjax.tree_leaf_iscomplex(params)
     if mode == "R2C":
-        return vmap_grad_centered_rc(forward_fn, params, samples)
+        return vmap_grad_centered_rc(forward_fn, params, samples, model_state)
     elif mode == "R2R" or mode == "holomorphic":
-        return vmap_grad_centered_rr_cc(forward_fn, params, samples)
+        return vmap_grad_centered_rr_cc(forward_fn, params, samples, model_state)
     else:
         raise NotImplementedError('mode must be one of "R2R", "R2C", "holomorphic", got {}'.format(mode))
 
-
-def prepare_doks(forward_fn: Callable, params: PyTree, samples: Array, mode: str, rescale_shift: bool = True) -> PyTree:
+@partial(jax.jit, static_argnums=(0,4,5))
+def prepare_doks(forward_fn: Callable, params: PyTree, samples: Array, model_state: Optional[PyTree], mode: str, rescale_shift: bool) -> PyTree:
     """
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
     divided by √n
@@ -80,6 +87,7 @@ def prepare_doks(forward_fn: Callable, params: PyTree, samples: Array, mode: str
         forward_fn: the vectorised log wavefunction  ln Ψ(p; σ)
         params : a pytree of parameters p
         samples : an array of n samples σ
+        model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'R2R', 'R2C', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
 
@@ -92,7 +100,7 @@ def prepare_doks(forward_fn: Callable, params: PyTree, samples: Array, mode: str
             pytree containing the norms that were divided out (same shape as params)
 
     """
-    doks = vmap_grad_centered(forward_fn, params, samples, mode)
+    doks = vmap_grad_centered(forward_fn, params, samples, model_state, mode)
     n_samp = samples.shape[0] * n_nodes  # MPI
     doks = jax.tree_map(lambda x: x / np.sqrt(n_samp), doks)
 
