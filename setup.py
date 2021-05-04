@@ -7,7 +7,7 @@ DEV_DEPENDENCIES = [
     "pytest-cov>= 2.10.1",
     "python-igraph",
     "pre-commit",
-    "black==20.8b1",
+    "black==21.4b2",
 ]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.11"]
 TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]
