@@ -27,7 +27,7 @@ import netket.jax as nkjax
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-def QGTJacobianDense(vstate, *, mode, rescale_shift=False, **kwargs) -> "QGTJacobianDenseT":
+def QGTJacobianDense(vstate, *, mode, rescale_shift=True, **kwargs) -> "QGTJacobianDenseT":
     O, scale = gradients(
         vstate._apply_fun,
         vstate.parameters,
@@ -157,7 +157,7 @@ def gradients(
     """Calculates the gradients O_ij by backpropagating every sample separately,
     vectorising the loop using vmap
     If rescale_shift is True, columns of O are rescaled to unit norm, and
-    scale factor [1/sqrt(S_kk)] returned as a separate vector for
+    scale factor sqrt(S_kk) returned as a separate vector for
     scale-invariant regularisation as per Becca & Sorella p. 143.
     """
     # Ravel the parameter PyTree and obtain the unravelling function
