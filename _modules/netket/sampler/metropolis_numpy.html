@@ -126,6 +126,8 @@
 <span class="kn">from</span> <span class="nn">netket.stats</span> <span class="kn">import</span> <span class="n">sum_inplace</span>
 <span class="kn">from</span> <span class="nn">netket.utils.types</span> <span class="kn">import</span> <span class="n">PyTree</span><span class="p">,</span> <span class="n">PRNGKeyT</span>
 
+<span class="kn">import</span> <span class="nn">netket.jax</span> <span class="k">as</span> <span class="nn">nkjax</span>
+
 <span class="kn">from</span> <span class="nn">.metropolis</span> <span class="kn">import</span> <span class="n">MetropolisSampler</span>
 
 <span class="n">SeedType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">PRNGKeyT</span><span class="p">]</span>
@@ -225,7 +227,7 @@
             <span class="n">log_values</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">n_batches</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">ma_out</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
             <span class="n">log_values_1</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">n_batches</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">ma_out</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
             <span class="n">log_prob_corr</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-                <span class="n">sampler</span><span class="o">.</span><span class="n">n_batches</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">dtype_real</span><span class="p">(</span><span class="n">ma_out</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="n">sampler</span><span class="o">.</span><span class="n">n_batches</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">nkjax</span><span class="o">.</span><span class="n">dtype_real</span><span class="p">(</span><span class="n">ma_out</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
             <span class="p">),</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rgen</span><span class="p">,</span>
             <span class="n">rule_state</span><span class="o">=</span><span class="n">sampler</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">init_state</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">machine</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">rgen</span><span class="p">),</span>

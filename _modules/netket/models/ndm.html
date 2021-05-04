@@ -122,6 +122,7 @@
 <span class="kn">from</span> <span class="nn">netket.graph</span> <span class="kn">import</span> <span class="n">AbstractGraph</span>
 <span class="kn">from</span> <span class="nn">netket.utils.types</span> <span class="kn">import</span> <span class="n">PRNGKeyT</span><span class="p">,</span> <span class="n">Shape</span><span class="p">,</span> <span class="n">DType</span><span class="p">,</span> <span class="n">Array</span><span class="p">,</span> <span class="n">NNInitFunc</span>
 
+<span class="kn">from</span> <span class="nn">netket</span> <span class="kn">import</span> <span class="n">jax</span> <span class="k">as</span> <span class="n">nkjax</span>
 <span class="kn">from</span> <span class="nn">netket</span> <span class="kn">import</span> <span class="n">nn</span> <span class="k">as</span> <span class="n">nknn</span>
 <span class="kn">from</span> <span class="nn">netket.nn.initializers</span> <span class="kn">import</span> <span class="n">lecun_normal</span><span class="p">,</span> <span class="n">variance_scaling</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">normal</span>
 
@@ -236,7 +237,7 @@
                 <span class="s2">&quot;bias&quot;</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">bias_init</span><span class="p">,</span>
                 <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">σr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),),</span>
-                <span class="n">jax</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">dtype_real</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                <span class="n">nkjax</span><span class="o">.</span><span class="n">dtype_real</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
             <span class="p">)</span>
             <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">bias</span>
 
