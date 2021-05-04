@@ -12,16 +12,16 @@ DEV_DEPENDENCIES = [
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.11"]
 TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]
 BASE_DEPENDENCIES = [
-    "numpy~=1.18",
-    "scipy~=1.5.2",
-    "tqdm~=4.56.2",
+    "numpy^=1.18",
+    "scipy^=1.5.2",
+    "tqdm^=4.56.2",
     "plum-dispatch~=1.0.0",
     "numba>=0.52, <0.54",
-    "networkx~=2.4",
+    "networkx^=2.4",
     "jax>=0.2.9, <=0.2.12",
     "jaxlib>=0.1.57",
     "flax>=0.3.0, <0.4",
-    "orjson~=3.4",
+    "orjson^=3.4",
     "optax>=0.0.2, <=0.0.7",
 ]
 
