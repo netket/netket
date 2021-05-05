@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .qgt_jacobian import QGTJacobian
+from .qgt_jacobian_dense import QGTJacobianDense
 from .qgt_jacobian_pytree import QGTJacobianPyTree
 from .qgt_onthefly import QGTOnTheFly
 
