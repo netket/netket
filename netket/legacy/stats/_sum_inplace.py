@@ -12,7 +12,7 @@ if _mpi_available:
 @singledispatch
 def sum_inplace(x):
     """
-    Computes the elementwie sum of an array or a scalar across all MPI processes.
+    Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 

@@ -20,7 +20,7 @@ from .mpi import n_nodes, MPI, MPI_py_comm, MPI_jax_comm
 
 def mpi_sum(x, *, comm=MPI_py_comm):
     """
-    Computes the elementwie sum of an array or a scalar across all MPI processes.
+    Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
@@ -39,7 +39,7 @@ def mpi_sum(x, *, comm=MPI_py_comm):
 
 def mpi_sum_jax(x, *, token=None, comm=MPI_jax_comm):
     """
-    Computes the elementwie sum of an array or a scalar across all MPI processes.
+    Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
@@ -61,7 +61,7 @@ def mpi_sum_jax(x, *, token=None, comm=MPI_jax_comm):
 
 def mpi_prod(x, *, comm=MPI_py_comm):
     """
-    Computes the elementwie sum of an array or a scalar across all MPI processes.
+    Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
@@ -80,7 +80,7 @@ def mpi_prod(x, *, comm=MPI_py_comm):
 
 def mpi_prod_jax(x, *, token=None, comm=MPI_jax_comm):
     """
-    Computes the elementwie sum of an array or a scalar across all MPI processes.
+    Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
@@ -102,7 +102,7 @@ def mpi_prod_jax(x, *, token=None, comm=MPI_jax_comm):
 
 def mpi_mean(x, *, comm=MPI_py_comm):
     """
-    Computes the elementwie mean of an array or a scalar across all MPI processes.
+    Computes the elementwise mean of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 
@@ -133,7 +133,7 @@ def mpi_mean_jax(x, *, token=None, comm=MPI_jax_comm):
 
 def mpi_any(x, *, comm=MPI_py_comm):
     """
-    Computes the elementwie logical OR of an array or a scalar across all MPI
+    Computes the elementwise logical OR of an array or a scalar across all MPI
     processes, effectively equivalent to an elementwise any
 
     Args:
@@ -151,7 +151,7 @@ def mpi_any(x, *, comm=MPI_py_comm):
 
 def mpi_any_jax(x, *, token=None, comm=MPI_jax_comm):
     """
-    Computes the elementwie logical OR of an array or a scalar across all MPI
+    Computes the elementwise logical OR of an array or a scalar across all MPI
     processes, effectively equivalent to an elementwise any
 
     Args:
@@ -172,7 +172,7 @@ def mpi_any_jax(x, *, token=None, comm=MPI_jax_comm):
 
 def mpi_max(x, *, comm=MPI_py_comm):
     """
-    Computes the elementwie logical OR of an array or a scalar across all MPI
+    Computes the elementwise logical OR of an array or a scalar across all MPI
     processes, effectively equivalent to an elementwise any
 
     Args:
@@ -190,7 +190,7 @@ def mpi_max(x, *, comm=MPI_py_comm):
 
 def mpi_max_jax(x, *, token=None, comm=MPI_jax_comm):
     """
-    Computes the elementwie logical OR of an array or a scalar across all MPI
+    Computes the elementwise logical OR of an array or a scalar across all MPI
     processes, effectively equivalent to an elementwise any
 
     Args:
