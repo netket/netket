@@ -32,5 +32,3 @@ from .primitives import (
     mpi_allgather_jax,
     mpi_max_jax,
 )
-
-from .util import mpi_tree_map
