@@ -27,7 +27,9 @@ import netket.jax as nkjax
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-def QGTJacobianDense(vstate, *, mode, rescale_shift=True, **kwargs) -> "QGTJacobianDenseT":
+def QGTJacobianDense(
+    vstate, *, mode, rescale_shift=True, **kwargs
+) -> "QGTJacobianDenseT":
     O, scale = gradients(
         vstate._apply_fun,
         vstate.parameters,
