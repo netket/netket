@@ -2,6 +2,7 @@ import sys
 import os
 import platform
 import importlib
+import re
 
 from ._common import exec_in_terminal
 

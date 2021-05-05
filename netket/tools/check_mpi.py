@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.utils import mpi_available, mpi4jax_available, rank, n_nodes
+from netket.utils.mpi import mpi_available, mpi4jax_available, rank, n_nodes
 
 from ._cpu_info import available_cpus
 
