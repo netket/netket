@@ -122,8 +122,7 @@
 <span class="kn">import</span> <span class="nn">jax</span>
 
 <span class="kn">from</span> <span class="nn">netket.hilbert</span> <span class="kn">import</span> <span class="n">AbstractHilbert</span>
-<span class="kn">from</span> <span class="nn">netket.utils</span> <span class="kn">import</span> <span class="n">n_nodes</span>
-<span class="kn">from</span> <span class="nn">netket.stats</span> <span class="kn">import</span> <span class="n">sum_inplace</span>
+<span class="kn">from</span> <span class="nn">netket.utils.mpi</span> <span class="kn">import</span> <span class="n">mpi_sum</span><span class="p">,</span> <span class="n">n_nodes</span>
 <span class="kn">from</span> <span class="nn">netket.utils.types</span> <span class="kn">import</span> <span class="n">PyTree</span><span class="p">,</span> <span class="n">PRNGKeyT</span>
 <span class="kn">from</span> <span class="nn">netket.utils.deprecation</span> <span class="kn">import</span> <span class="n">deprecated</span><span class="p">,</span> <span class="n">warn_deprecation</span>
 
@@ -198,7 +197,7 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_accepted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Total number of moves accepted across all processes since the last reset.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">sum_inplace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_accepted_proc</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mpi_sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_accepted_proc</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>

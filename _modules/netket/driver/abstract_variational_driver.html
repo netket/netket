@@ -123,7 +123,7 @@
 <span class="kn">from</span> <span class="nn">jax.tree_util</span> <span class="kn">import</span> <span class="n">tree_map</span>
 
 <span class="kn">from</span> <span class="nn">netket.logging</span> <span class="kn">import</span> <span class="n">JsonLog</span>
-<span class="kn">from</span> <span class="nn">netket.utils</span> <span class="kn">import</span> <span class="n">node_number</span><span class="p">,</span> <span class="n">n_nodes</span>
+<span class="kn">from</span> <span class="nn">netket.utils</span> <span class="kn">import</span> <span class="n">mpi</span>
 
 
 <span class="k">def</span> <span class="nf">_to_iterable</span><span class="p">(</span><span class="n">maybe_iterable</span><span class="p">):</span>
@@ -158,8 +158,8 @@
     <span class="sd">&quot;&quot;&quot;Abstract base class for NetKet Variational Monte Carlo drivers&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="AbstractVariationalDriver.__init__"><a class="viewcode-back" href="../../../docs/_generated/driver/netket.driver.AbstractVariationalDriver.html#netket.driver.AbstractVariationalDriver.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variational_state</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">minimized_quantity_name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_mynode</span> <span class="o">=</span> <span class="n">node_number</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_mpi_nodes</span> <span class="o">=</span> <span class="n">n_nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mynode</span> <span class="o">=</span> <span class="n">mpi</span><span class="o">.</span><span class="n">node_number</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mpi_nodes</span> <span class="o">=</span> <span class="n">mpi</span><span class="o">.</span><span class="n">n_nodes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_loss_stats</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_loss_name</span> <span class="o">=</span> <span class="n">minimized_quantity_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_step_count</span> <span class="o">=</span> <span class="mi">0</span>
@@ -363,8 +363,9 @@
                 <span class="k">for</span> <span class="n">logger</span> <span class="ow">in</span> <span class="n">loggers</span><span class="p">:</span>
                     <span class="n">logger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">step_count</span><span class="p">,</span> <span class="n">log_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
 
-                <span class="k">if</span> <span class="n">callback_stop</span><span class="p">:</span>
-                    <span class="k">break</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">callbacks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">mpi</span><span class="o">.</span><span class="n">mpi_any</span><span class="p">(</span><span class="n">callback_stop</span><span class="p">):</span>
+                        <span class="k">break</span>
 
                 <span class="c1"># Reset the timing of tqdm after the first step, to ignore compilation time</span>
                 <span class="k">if</span> <span class="n">first_step</span><span class="p">:</span>
