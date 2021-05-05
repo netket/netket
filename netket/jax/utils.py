@@ -37,7 +37,8 @@ if hasattr(jax.dtypes, "dtype_real"):
 else:
     from jax._src.dtypes import dtype_real
 
-from netket.utils import MPI, n_nodes, rank, random_seed
+from netket.utils import random_seed, mpi
+from netket.utils.mpi import MPI, MPI_jax_comm
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Scalar
 
 
@@ -286,9 +287,7 @@ class HashablePartial(partial):
 # )
 
 
-def PRNGKey(
-    seed: Optional[SeedT] = None, root: int = 0, comm=MPI.COMM_WORLD
-) -> PRNGKeyT:
+def PRNGKey(seed: Optional[SeedT] = None, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
     The same seed will be distributed to all processes.
@@ -300,15 +299,12 @@ def PRNGKey(
     else:
         key = seed
 
-    if n_nodes > 1:
-        import mpi4jax
-
-        key, _ = mpi4jax.bcast(key, root=root, comm=comm)
+    key, _ = mpi.mpi_bcast_jax(key, root=root, comm=comm)
 
     return key
 
 
-def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> PRNGKeyT:
+def mpi_split(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
     Split a key across MPI nodes in the communicator.
     Only the input key on the root process matters.
@@ -324,14 +320,11 @@ def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> PRNGKeyT:
 
     # Maybe add error/warning if in_key is not the same
     # on all MPI nodes?
-    keys = jax.random.split(key, n_nodes)
+    keys = jax.random.split(key, mpi.n_nodes)
 
-    if n_nodes > 1:
-        import mpi4jax
+    keys, _ = mpi.mpi_bcast_jax(keys, root=root)
 
-        keys, _ = mpi4jax.bcast(keys, root=root, comm=comm)
-
-    return keys[rank]
+    return keys[mpi.rank]
 
 
 class PRNGSeq:

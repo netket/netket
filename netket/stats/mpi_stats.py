@@ -15,7 +15,7 @@
 import jax.numpy as jnp
 from ._sum_inplace import sum_inplace as mpi_sum
 
-from netket.utils import (
+from netket.utils.mpi import (
     n_nodes as _n_nodes,
 )
 

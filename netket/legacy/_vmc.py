@@ -72,7 +72,7 @@ class Vmc(AbstractVariationalDriver):
         self._batch_size = sampler.sample_shape[0]
 
         # Check how many parallel nodes we are running on
-        self.n_nodes = _nk.utils.n_nodes
+        self.n_nodes = _nk.utils.mpi.n_nodes
 
         self.n_samples = n_samples
         self.n_discard = n_discard

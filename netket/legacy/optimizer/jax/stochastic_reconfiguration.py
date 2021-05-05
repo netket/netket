@@ -8,7 +8,7 @@ from jax import jit
 from jax.scipy.sparse.linalg import cg
 from jax.tree_util import tree_flatten
 from netket.legacy.vmc_common import jax_shape_for_update
-from netket.utils import n_nodes, mpi4jax_available
+from netket.utils.mpi import n_nodes, mpi4jax_available
 
 from ._sr_onthefly import mat_vec as _mat_vec_onthefly, tree_cast as _tree_cast
 

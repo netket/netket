@@ -78,9 +78,7 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
         assert stats.R_hat == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
 
 
-@pytest.mark.skipif(
-    nk.utils.n_nodes > 1, reason="This test works only on one MPI process"
-)
+@common.skipif_mpi
 def test_stats_mean_std():
     hi, ham, ma = _setup()
     for bs in (1, 2, 16, 32):

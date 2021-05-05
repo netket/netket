@@ -73,7 +73,7 @@ class MCMixedState(VariationalMixedState, MCState):
         sampler_diag: Sampler = None,
         n_samples_diag: int = 1000,
         n_discard_diag: Optional[int] = None,
-        seed=nkjax.PRNGKey(),
+        seed=None,
         sampler_seed: Optional[int] = None,
         variables=None,
         **kwargs,

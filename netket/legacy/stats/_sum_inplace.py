@@ -1,18 +1,18 @@
 from functools import singledispatch
 import numpy as _np
 
-from netket.utils import mpi_available as _mpi_available, n_nodes as _n_nodes
+from netket.utils.mpi import mpi_available as _mpi_available, n_nodes as _n_nodes
 
 if _mpi_available:
-    from netket.utils import MPI_py_comm as _MPI_py_comm
-    from netket.utils import MPI_jax_comm as _MPI_jax_comm
-    from netket.utils import MPI as _MPI
+    from netket.utils.mpi import MPI_py_comm as _MPI_py_comm
+    from netket.utils.mpi import MPI_jax_comm as _MPI_jax_comm
+    from netket.utils.mpi import MPI as _MPI
 
 
 @singledispatch
 def sum_inplace(x):
     """
-    Computes the elementwie sum of an array or a scalar across all MPI processes.
+    Computes the elementwise sum of an array or a scalar across all MPI processes.
     Attempts to perform this sum inplace if possible, but for some types a copy
     might be returned.
 

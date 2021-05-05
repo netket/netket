@@ -25,7 +25,7 @@ import jax
 from jax.tree_util import tree_map
 
 from netket.logging import JsonLog
-from netket.utils import node_number, n_nodes
+from netket.utils import mpi
 
 
 def _to_iterable(maybe_iterable):
@@ -60,8 +60,8 @@ class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, variational_state, optimizer, minimized_quantity_name=""):
-        self._mynode = node_number
-        self._mpi_nodes = n_nodes
+        self._mynode = mpi.node_number
+        self._mpi_nodes = mpi.n_nodes
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
         self._step_count = 0
@@ -265,8 +265,9 @@ class AbstractVariationalDriver(abc.ABC):
                 for logger in loggers:
                     logger(self.step_count, log_data, self.state)
 
-                if callback_stop:
-                    break
+                if len(callbacks) > 0:
+                    if mpi.mpi_any(callback_stop):
+                        break
 
                 # Reset the timing of tqdm after the first step, to ignore compilation time
                 if first_step:

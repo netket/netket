@@ -15,8 +15,8 @@
 import jax
 import jax.numpy as jnp
 from functools import partial
-from netket.stats import sum_inplace, subtract_mean
-from netket.utils import n_nodes
+from netket.stats import subtract_mean
+from netket.utils.mpi import n_nodes, mpi_sum_jax
 import netket.jax as nkjax
 from netket.jax import tree_conj, tree_dot, tree_cast, tree_axpy
 
@@ -28,7 +28,7 @@ from netket.jax import tree_conj, tree_dot, tree_cast, tree_axpy
 
 
 def O_jvp(forward_fn, params, samples, v):
-    # TODO apply the transpose of sum_inplace (allreduce) to v here
+    # TODO apply the transpose of mpi_sum_jax(x)[0] (allreduce) to v here
     # in order to get correct transposition with MPI
     _, res = jax.jvp(lambda p: forward_fn(p, samples), (params,), (v,))
     return res
@@ -37,7 +37,7 @@ def O_jvp(forward_fn, params, samples, v):
 def O_vjp(forward_fn, params, samples, w):
     _, vjp_fun = jax.vjp(forward_fn, params, samples)
     res, _ = vjp_fun(w)
-    return jax.tree_map(sum_inplace, res)  # allreduce w/ MPI.SUM
+    return jax.tree_map(lambda x: mpi_sum_jax(x)[0], res)  # allreduce w/ MPI.SUM
 
 
 def O_vjp_rc(forward_fn, params, samples, w):
@@ -45,7 +45,7 @@ def O_vjp_rc(forward_fn, params, samples, w):
     res_r, _ = vjp_fun(w)
     res_i, _ = vjp_fun(-1.0j * w)
     res = jax.tree_multimap(jax.lax.complex, res_r, res_i)
-    return jax.tree_map(sum_inplace, res)  # allreduce w/ MPI.SUM
+    return jax.tree_map(lambda x: mpi_sum_jax(x)[0], res)  # allreduce w/ MPI.SUM
 
 
 def O_mean(forward_fn, params, samples, holomorphic=True):

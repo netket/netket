@@ -20,7 +20,7 @@ import numpy as np
 from functools import partial
 
 from netket.stats import sum_inplace, subtract_mean
-from netket.utils import n_nodes
+from netket.utils.mpi import n_nodes
 import netket.jax as nkjax
 
 from netket.utils.types import Array, Callable, PyTree, Scalar

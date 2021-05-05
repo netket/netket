@@ -6,7 +6,7 @@ from scipy.linalg import cho_solve as _cho_solve
 from scipy.sparse.linalg import LinearOperator
 from netket.legacy.stats import sum_inplace as _sum_inplace, mean as _mean
 from scipy.sparse.linalg import cg, gmres, minres
-from netket.utils import (
+from netket.utils.mpi import (
     MPI_py_comm as _MPI_comm,
     n_nodes as _n_nodes,
 )
