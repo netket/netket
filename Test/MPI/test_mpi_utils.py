@@ -21,6 +21,8 @@ from .. import common
 
 @common.onlyif_mpi
 def test_key_split(_mpi_size, _mpi_comm):
+    from mpi4py import MPI
+
     size = _mpi_size
     comm = _mpi_comm
 
