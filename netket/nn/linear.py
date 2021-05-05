@@ -62,7 +62,7 @@ class DenseGeneral(Module):
         (-2, -1) will apply the transformation to the last two axes.
       batch_dims: tuple with batch axes.
       use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float32).
+      dtype: the dtype of the computation (default: float64).
       kernel_init: initializer function for the weight matrix.
       bias_init: initializer function for the bias.
       precision: numerical precision of the computation see `jax.lax.Precision`
@@ -107,7 +107,7 @@ class DenseGeneral(Module):
         batch_dims = _normalize_axes(batch_dims, ndim)
         n_axis, n_features = len(axis), len(features)
 
-        def kernel_init_wrap(rng, shape, dtype=jnp.float32):
+        def kernel_init_wrap(rng, shape, dtype=jnp.float64):
             size_batch_dims = np.prod(shape[:n_batch_dims], dtype=np.int32)
             flat_shape = (
                 np.prod(shape[n_batch_dims : n_axis + n_batch_dims]),
@@ -138,7 +138,7 @@ class DenseGeneral(Module):
 
         if self.use_bias:
 
-            def bias_init_wrap(rng, shape, dtype=jnp.float32):
+            def bias_init_wrap(rng, shape, dtype=jnp.float64):
                 size_batch_dims = np.prod(shape[:n_batch_dims], dtype=np.int32)
                 flat_shape = (np.prod(shape[-n_features:]),)
                 bias = jnp.concatenate(
@@ -167,7 +167,7 @@ class Dense(Module):
     Attributes:
       features: the number of output features.
       use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float32).
+      dtype: the dtype of the computation (default: float64).
       precision: numerical precision of the computation see `jax.lax.Precision`
         for details.
       kernel_init: initializer function for the weight matrix.
@@ -457,7 +457,7 @@ class Conv(Module):
       feature_group_count: integer, default 1. If specified divides the input
         features into groups.
       use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float32).
+      dtype: the dtype of the computation (default: float64).
       precision: numerical precision of the computation see `jax.lax.Precision`
         for details.
       kernel_init: initializer for the convolutional kernel.
@@ -551,7 +551,7 @@ class ConvTranspose(Module):
         kernel. Convolution with kernel dilation is also known as 'atrous
         convolution'.
       use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float32).
+      dtype: the dtype of the computation (default: float64).
       precision: numerical precision of the computation see `jax.lax.Precision`
         for details.
       kernel_init: initializer for the convolutional kernel.
@@ -612,7 +612,6 @@ class ConvTranspose(Module):
             y = jnp.squeeze(y, axis=0)
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(bias, dtype)
             bias = jnp.asarray(bias, dtype)
             y = y + bias
         return y
