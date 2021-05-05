@@ -3,7 +3,7 @@
 import pytest
 import netket as nk
 
-skipif_mpi = pytest.mark.skipif(nk.utils.n_nodes > 1, reason="Only run without MPI")
+skipif_mpi = pytest.mark.skipif(nk.utils.mpi.n_nodes > 1, reason="Only run without MPI")
 """Use as a decorator to mark a test to be skipped when running under MPI.
 For example:
 
@@ -14,7 +14,7 @@ Example:
 
 """
 
-onlyif_mpi = pytest.mark.skipif(nk.utils.n_nodes < 2, reason="Only run with MPI")
+onlyif_mpi = pytest.mark.skipif(nk.utils.mpi.n_nodes < 2, reason="Only run with MPI")
 """Use as a decorator to mark a test to be executed only when running with at least 2 MPI
 nodes.
 
@@ -49,8 +49,8 @@ class netket_disable_mpi:
     """
 
     def __enter__(self):
-        self._orig_nodes = nk.utils.n_nodes
-        nk.utils.n_nodes = 1
+        self._orig_nodes = nk.utils.mpi.n_nodes
+        nk.utils.mpi.n_nodes = 1
 
     def __exit__(self, exc_type, exc_value, traceback):
-        nk.utils.n_nodes = self._orig_nodes
+        nk.utils.mpi.n_nodes = self._orig_nodes

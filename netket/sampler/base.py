@@ -143,10 +143,9 @@ class Sampler(abc.ABC):
             it to be in a valid state, and should reset it before use.
         """
         key = nkjax.PRNGKey(seed)
+        key = nkjax.mpi_split(key)
 
-        return sampler._init_state(
-            get_afun_if_module(machine), parameters, nkjax.mpi_split(key)
-        )
+        return sampler._init_state(get_afun_if_module(machine), parameters, key)
 
     def reset(
         sampler,

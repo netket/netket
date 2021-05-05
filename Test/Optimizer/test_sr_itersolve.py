@@ -70,7 +70,9 @@ def test_sr_solve(sr, vstate, _mpi_size, _mpi_rank):
         with common.netket_disable_mpi():
             import mpi4jax
 
-            samples, _ = mpi4jax.allgather(vstate.samples, comm=nk.utils.MPI_jax_comm)
+            samples, _ = mpi4jax.allgather(
+                vstate.samples, comm=nk.utils.mpi.MPI_jax_comm
+            )
             assert samples.shape == (_mpi_size, *vstate.samples.shape)
             vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
 
@@ -93,7 +95,9 @@ def test_sr_matmul(sr, vstate, _mpi_size, _mpi_rank):
         with common.netket_disable_mpi():
             import mpi4jax
 
-            samples, _ = mpi4jax.allgather(vstate.samples, comm=nk.utils.MPI_jax_comm)
+            samples, _ = mpi4jax.allgather(
+                vstate.samples, comm=nk.utils.mpi.MPI_jax_comm
+            )
             assert samples.shape == (_mpi_size, *vstate.samples.shape)
             vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
 

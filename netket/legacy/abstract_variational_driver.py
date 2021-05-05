@@ -8,7 +8,7 @@ from netket.legacy.logging import JsonLog as _JsonLog
 
 from netket.legacy.vmc_common import tree_map
 
-from netket.utils import node_number as _rank, n_nodes as _n_nodes
+from netket.utils.mpi import node_number as _rank, n_nodes as _n_nodes
 
 from tqdm import tqdm
 

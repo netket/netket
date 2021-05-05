@@ -15,13 +15,13 @@
 from functools import singledispatch
 import numpy as _np
 
-from netket.utils import mpi_available as _mpi_available, n_nodes as _n_nodes
+from netket.utils.mpi import mpi_available as _mpi_available, n_nodes as _n_nodes
 
 if _mpi_available:
-    from netket.utils import MPI_py_comm
-    from netket.utils import MPI_jax_comm
-    from netket.utils import MPI as _MPI
-    from netket.utils import MPI_py_comm as _MPI_py_comm
+    from netket.utils.mpi import MPI_py_comm
+    from netket.utils.mpi import MPI_jax_comm
+    from netket.utils.mpi import MPI as _MPI
+    from netket.utils.mpi import MPI_py_comm as _MPI_py_comm
 
 
 @singledispatch

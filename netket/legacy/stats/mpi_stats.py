@@ -1,14 +1,14 @@
 import numpy as _np
 from ._sum_inplace import sum_inplace as _sum_inplace
 
-from netket.utils import (
+from netket.utils.mpi import (
     mpi_available as _mpi_available,
     n_nodes as _n_nodes,
     MPI_py_comm as MPI_comm,
 )
 
 if _mpi_available:
-    from netket.utils import MPI
+    from netket.utils.mpi import MPI
 
 
 def subtract_mean(x, axis=None):

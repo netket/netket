@@ -23,7 +23,7 @@ import netket.legacy as _nk
 from netket.logging import JsonLog as _JsonLog
 from jax.tree_util import tree_map as _tree_map
 
-from netket.utils import (
+from netket.utils.mpi import (
     n_nodes as _n_nodes,
     node_number as _rank,
 )

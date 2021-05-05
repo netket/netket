@@ -34,7 +34,7 @@ from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
-from netket.utils import flax as flax_utils, n_nodes, maybe_wrap_module, deprecated
+from netket.utils import flax as flax_utils, maybe_wrap_module, deprecated, mpi
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
 from netket.optimizer import SR
 from netket.operator import (
@@ -58,7 +58,7 @@ def compute_chain_length(n_chains, n_samples):
     if n_samples <= 0:
         raise ValueError("Invalid number of samples: n_samples={}".format(n_samples))
 
-    n_chains = n_chains * utils.n_nodes
+    n_chains = n_chains * mpi.n_nodes
     chain_length = int(np.ceil(n_samples / n_chains))
     return chain_length
 
@@ -251,7 +251,7 @@ class MCState(VariationalState):
         chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
         n_samples_per_node = chain_length * self.sampler.n_chains
-        n_samples = n_samples_per_node * utils.n_nodes
+        n_samples = n_samples_per_node * mpi.n_nodes
 
         self._n_samples = n_samples
         self._chain_length = chain_length
@@ -269,7 +269,7 @@ class MCState(VariationalState):
 
     @chain_length.setter
     def chain_length(self, length: int):
-        self.n_samples = length * self.sampler.n_chains * utils.n_nodes
+        self.n_samples = length * self.sampler.n_chains * mpi.n_nodes
         self.reset()
 
     @property
@@ -586,7 +586,7 @@ def grad_expect_hermitian(
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    n_samples = σ.shape[0] * utils.n_nodes
+    n_samples = σ.shape[0] * mpi.n_nodes
 
     O_loc = local_cost_function(
         local_value_cost,
@@ -693,7 +693,7 @@ def grad_expect_operator_kernel(
 
     return (
         Ō_stats,
-        tree_map(lambda x: sum_inplace(x) / utils.n_nodes, Ō_pars_grad),
+        tree_map(lambda x: sum_inplace(x) / mpi.n_nodes, Ō_pars_grad),
         model_state,
     )
 

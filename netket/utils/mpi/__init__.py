@@ -12,23 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax.numpy as jnp
+from .mpi import (
+    mpi_available,
+    mpi4jax_available,
+    MPI,
+    MPI_py_comm,
+    MPI_jax_comm,
+    n_nodes,
+    node_number,
+    rank,
+)
 
-import netket as nk
+from .primitives import mpi_sum, mpi_mean, mpi_any, mpi_bcast, mpi_allgather, mpi_max
+from .primitives import (
+    mpi_sum_jax,
+    mpi_mean_jax,
+    mpi_any_jax,
+    mpi_bcast_jax,
+    mpi_allgather_jax,
+    mpi_max_jax,
+)
 
-from .. import common
-
-
-@common.onlyif_mpi
-def test_key_split(_mpi_size, _mpi_comm):
-    size = _mpi_size
-    comm = _mpi_comm
-
-    key = nk.jax.PRNGKey(1256)
-
-    keys = comm.allgather(key)
-    assert all([jnp.all(k == key) for k in keys])
-
-    key, _ = nk.jax.mpi_split(key)
-    keys = MPI.COMM_WORLD.allgather(key)
-    assert all([not jnp.all(k == keys) for k in keys])
+from .util import mpi_tree_map

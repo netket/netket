@@ -1,6 +1,6 @@
 import numpy as _np
 from numba import jit, objmode
-from netket.utils import (
+from netket.utils.mpi import (
     n_nodes as _n_nodes,
     node_number as _rank,
 )

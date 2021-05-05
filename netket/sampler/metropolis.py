@@ -21,8 +21,7 @@ from jax.experimental import loops
 from flax import struct
 
 from netket.hilbert import AbstractHilbert
-from netket.utils import n_nodes
-from netket.stats import sum_inplace
+from netket.utils.mpi import n_nodes, mpi_sum_jax
 from netket.utils.types import PyTree, PRNGKeyT
 
 from netket.utils.deprecation import deprecated, warn_deprecation
@@ -180,7 +179,8 @@ class MetropolisSamplerState(SamplerState):
     @property
     def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        return sum_inplace(self.n_accepted_proc)
+        res, _ = mpi_sum_jax(self.n_accepted_proc)
+        return res
 
     def __repr__(self):
         if self.n_steps > 0:

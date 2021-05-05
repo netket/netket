@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 from netket.legacy.stats import sum_inplace as _sum_inplace
-from netket.utils import n_nodes
+from netket.utils.mpi import n_nodes
 
 # Stochastic Reconfiguration with jvp and vjp
 

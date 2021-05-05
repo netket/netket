@@ -18,10 +18,11 @@ from textwrap import dedent
 
 from distutils.version import LooseVersion as _LooseVersion
 
-from .config_flags import config
+from netket.utils.config_flags import config
 
 _mpi4py_loaded = False
 _mpi4jax_loaded = False
+mpi4jax_available = False
 
 try:
     from mpi4py import MPI
@@ -50,10 +51,11 @@ try:
     import mpi4jax
 
     _mpi4jax_loaded = True
-
+    mpi4jax_available = True
 
 except ImportError:
     mpi_available = False
+    mpi4jax_available = False
     MPI_py_comm = None
     MPI_jax_comm = None
     n_nodes = 1
