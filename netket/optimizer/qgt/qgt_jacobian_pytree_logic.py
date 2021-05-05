@@ -105,7 +105,7 @@ def vmap_grad_centered(forward_fn: Callable, params: PyTree, samples: Array, mod
             return forward_fn({"params": W, **model_state}, σ[jnp.newaxis, :])[0]
         return vmap_grad_centered_real_holo(f, params, samples)
     else:
-        raise RuntimeError # invalid modes should be caught earlier
+        raise NotImplementedError('Differentiation mode should be one of "real", "complex", "auto", or "holomorphic", got {}'.format(mode))
     
 
 @partial(jax.jit, static_argnums=(0,4,5))
@@ -119,7 +119,7 @@ def prepare_doks(forward_fn: Callable, params: PyTree, samples: Array, model_sta
         params : a pytree of parameters p
         samples : an array of n samples σ
         model_state: untrained state parameters of the model
-        mode: differentiation mode, must be one of 'R2R', 'R2C', 'holomorphic'
+        mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
 
     Returns:
