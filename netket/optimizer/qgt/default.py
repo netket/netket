@@ -20,7 +20,7 @@ from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import PyTree
-from netket.utils import n_nodes
+from netket.utils.mpi import n_nodes
 from netket.stats import sum_inplace
 import netket.jax as nkjax
 

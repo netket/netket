@@ -20,14 +20,16 @@ from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import PyTree
-from netket.utils import n_nodes
+from netket.utils.mpi import n_nodes
 from netket.stats import sum_inplace
 import netket.jax as nkjax
 
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-def QGTJacobian(vstate, *, mode, rescale_shift=False, **kwargs) -> "QGTJacobianT":
+def QGTJacobianDense(
+    vstate, *, mode, rescale_shift=True, **kwargs
+) -> "QGTJacobianDenseT":
     O, scale = gradients(
         vstate._apply_fun,
         vstate.parameters,
@@ -37,11 +39,11 @@ def QGTJacobian(vstate, *, mode, rescale_shift=False, **kwargs) -> "QGTJacobianT
         rescale_shift,
     )
 
-    return QGTJacobianT(O=O, scale=scale, **kwargs)
+    return QGTJacobianDenseT(O=O, scale=scale, **kwargs)
 
 
 @struct.dataclass
-class QGTJacobianT(LinearOperator):
+class QGTJacobianDenseT(LinearOperator):
     """
     Semi-lazy representation of an S Matrix behaving like a linear operator.
 
@@ -94,7 +96,7 @@ class QGTJacobianT(LinearOperator):
             + self.diag_shift * vec
         )
 
-    @jax.jit
+    @partial(jax.jit, static_argnums=1)
     def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None) -> PyTree:
         """
         Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterataive solver.
@@ -135,7 +137,7 @@ class QGTJacobianT(LinearOperator):
         Returns:
             A dense matrix representation of this S matrix.
         """
-        if self.scale is None:
+        if scale is None:
             O = self.O
             diag = jnp.eye(self.O.shape[1])
         else:
@@ -157,7 +159,7 @@ def gradients(
     """Calculates the gradients O_ij by backpropagating every sample separately,
     vectorising the loop using vmap
     If rescale_shift is True, columns of O are rescaled to unit norm, and
-    scale factor [1/sqrt(S_kk)] returned as a separate vector for
+    scale factor sqrt(S_kk) returned as a separate vector for
     scale-invariant regularisation as per Becca & Sorella p. 143.
     """
     # Ravel the parameter PyTree and obtain the unravelling function
