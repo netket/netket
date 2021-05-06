@@ -30,6 +30,18 @@ import netket.jax as nkjax
 from netket.jax import tree_cast, tree_conj, tree_axpy, tree_to_real
 
 
+# TODO better name and move it somewhere useful
+def single_sample(f):
+    """
+    A decorator to make the forward_fn accept a single sample
+    """
+
+    def _f(W, σ):
+        return f(W, σ[jnp.newaxis, :])[0]
+
+    return _f
+
+
 def sub_mean(oks: PyTree) -> PyTree:
     return jax.tree_map(partial(subtract_mean, axis=0), oks)  # MPI
 
@@ -40,14 +52,14 @@ def vmap_grad_real_holo(forward_fn: Callable, params: PyTree, samples: Array) ->
     Assumes the function is R→R or holomorphic C→C, so single grad is enough
 
     Args:
-        forward_fn: the log wavefunction, partialed with any model state, limited to single sample, taking a split real-imaginary PyTree in R→R mode
+        forward_fn: the log wavefunction
         params : a pytree of parameters p, real-imaginary split in R→R mode
         samples : an array of n samples σ
 
     Returns:
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
-    y, vjp_fun = jax.vjp(forward_fn, params, samples)
+    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
     res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     return res
 
@@ -65,13 +77,13 @@ def vmap_grad_cplx(forward_fn: Callable, params: PyTree, samples: Array) -> PyTr
     Assumes the function is R→C, backpropagates 1 and -1j
 
     Args:
-        forward_fn: the log wavefunction, partialed with any model state, limited to single sample, taking a split real-imaginary PyTree
-        params : a pytree of parameters p, real-imaginary split
+        forward_fn: the log wavefunction
+        params : a pytree of parameters p
         samples : an array of n samples σ
 
     Returns:
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree"""
-    y, vjp_fun = jax.vjp(forward_fn, params, samples)
+    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
     gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
     return gr, gi
@@ -100,33 +112,31 @@ def vmap_grad_centered(
     as a pytree using vmapped gradients for efficiency
 
     mode can be 'real', 'complex', 'holomorphic'
-    TODO: add support for splitting complex pytree leaves into real and imag parts so there be a good default mode
     """
     if mode == "real":
         # Apply real-imaginary split
         params, reassemble = tree_to_real(params)
 
         def f(W, σ):
-            return forward_fn(reassemble(W), σ[jnp.newaxis, :])[0]
+            return forward_fn(reassemble(W), σ)
 
         return vmap_grad_centered_real_holo(f, params, samples)
+
     elif mode == "complex":
         # Apply real-imaginary split
         params, reassemble = tree_to_real(params)
 
         def f(W, σ):
-            return forward_fn(reassemble(W), σ[jnp.newaxis, :])[0]
+            return forward_fn(reassemble(W), σ)
 
         return vmap_grad_centered_cplx(f, params, samples)
+
     elif mode == "holomorphic":
 
-        def f(W, σ):
-            return forward_fn(W, σ[jnp.newaxis, :])[0]
-
-        return vmap_grad_centered_real_holo(f, params, samples)
+        return vmap_grad_centered_real_holo(forward_fn, params, samples)
     else:
         raise NotImplementedError(
-            'Differentiation mode should be one of "real", "complex", "auto", or "holomorphic", got {}'.format(
+            'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
                 mode
             )
         )
