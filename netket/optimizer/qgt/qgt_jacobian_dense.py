@@ -122,7 +122,12 @@ class QGTJacobianDenseT(LinearOperator):
         if self.scale is not None:
             grad = grad / self.scale
 
-        out, info = solve_fun(self._unscaled_matmul, grad, x0=x0)
+        # to pass the object LinearOperator itself down
+        # but avoid rescaling, we pass down an object with
+        # scale = None
+        unsacaled_self = self.replace(scale=None)
+
+        out, info = solve_fun(unsacaled_self, grad, x0=x0)
 
         if self.scale is not None:
             out = out / self.scale

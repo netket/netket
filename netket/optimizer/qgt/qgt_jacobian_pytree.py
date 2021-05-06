@@ -161,7 +161,12 @@ class QGTJacobianPyTreeT(LinearOperator):
             if x0 is not None:
                 x0 = jax.tree_multimap(jnp.multiply, x0, self.scale)
 
-        out, info = solve_fun(self._unscaled_matmul, y, x0=x0)
+        # to pass the object LinearOperator itself down
+        # but avoid rescaling, we pass down an object with
+        # scale = None
+        unsacaled_self = self.replace(scale=None)
+
+        out, info = solve_fun(unsacaled_self, y, x0=x0)
 
         if self.scale is not None:
             out = jax.tree_multimap(jnp.divide, out, self.scale)

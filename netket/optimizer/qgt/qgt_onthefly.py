@@ -90,18 +90,7 @@ class QGTOnTheFlyT(LinearOperator):
         if x0 is None:
             x0 = jax.tree_map(jnp.zeros_like, y)
 
-        _mat_vec = partial(
-            mat_vec_onthefly,
-            forward_fn=lambda W, σ: self.apply_fun(
-                {"params": W, **self.model_state}, σ
-            ),
-            params=self.params,
-            samples=self.samples,
-            diag_shift=self.diag_shift,
-            centered=self.centered,
-        )
-        # TODO: sr?
-        out, info = solve_fun(_mat_vec, y, x0=x0)
+        out, info = solve_fun(self, y, x0=x0)
         return out, info
 
     @jax.jit
