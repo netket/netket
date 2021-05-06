@@ -148,7 +148,7 @@ def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
 
 
 # ==============================================================================
-# the logic above only works for R->R, R->C and holomorphic C->C
+# the logic above only works for R→R, R→C and holomorphic C→C
 # here the other modes are converted
 
 
@@ -164,6 +164,10 @@ def prepare_doks(
     """
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
     divided by √n
+
+    In a somewhat intransparent way this also internally splits all parameters to real
+    in the 'real' and 'complex' modes (for C→R, R&C→R, R&C→C and general C→C) resulting in the respective ΔOⱼₖ
+    which is only compatible with split-to-real pytree vectors
 
     Args:
         apply_fun: The forward pass of the Ansatz
@@ -183,15 +187,16 @@ def prepare_doks(
 
     """
 
+
     # pre-apply the model state
     def forward_fn(W, σ):
         return apply_fun({"params": W, **model_state}, σ)
 
     if mode == "real":
-        split_complex_params = True  # convert C->R to R->R
+        split_complex_params = True  # convert C→R and R&C→R to R→R
         vmap_grad_fun = vmap_grad_centered_real_holo
     elif mode == "complex":
-        split_complex_params = True  # convert C->C to R->C
+        split_complex_params = True  # convert C→C and R&C→C to R→C
         vmap_grad_fun = vmap_grad_centered_cplx
     elif mode == "holomorphic":
         split_complex_params = False
@@ -216,15 +221,19 @@ def prepare_doks(
     return _prepare_doks(f, params, samples, vmap_grad_fun, rescale_shift)
 
 
-def mat_vec(v: PyTree, oks: PyTree, diag_shift: Scalar) -> PyTree:
+def mat_vec(v: PyTree, centered_oks: PyTree, diag_shift: Scalar) -> PyTree:
     """
     Compute (S + δ) v = 1/n ⟨ΔO† ΔO⟩v + δ v = ∑ₗ 1/n ⟨ΔOₖᴴΔOₗ⟩ vₗ + δ vₗ
 
+    Only compatible with R→R, R→C, and holomorphic C→C
+    for C→R, R&C→R, R&C→C and general C→C the parameters for generating ΔOⱼₖ should be converted to R,
+    and thus also the v passed to this function as well as the output are expected to be of this form
+
     Args:
-        v: pytree representing the vector v
-        oks: pytree of gradients 1/√n ΔOⱼₖ
+        v: pytree representing the vector v compatible with centered_oks
+        centered_oks: pytree of gradients 1/√n ΔOⱼₖ
         diag_shift: a scalar diagonal shift δ
     Returns:
         a pytree corresponding to the sr matrix-vector product (S + δ) v
     """
-    return tree_axpy(diag_shift, v, _mat_vec(v, oks))
+    return tree_axpy(diag_shift, v, _mat_vec(v, centered_oks))
