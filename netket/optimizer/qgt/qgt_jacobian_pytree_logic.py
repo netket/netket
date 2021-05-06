@@ -53,7 +53,7 @@ def vmap_grad_real_holo(forward_fn: Callable, params: PyTree, samples: Array) ->
 
     Args:
         forward_fn: the log wavefunction
-        params : a pytree of parameters p, real-imaginary split in R→R mode
+        params : a pytree of parameters p
         samples : an array of n samples σ
 
     Returns:
@@ -90,15 +90,19 @@ def vmap_grad_cplx(forward_fn: Callable, params: PyTree, samples: Array) -> PyTr
 
 
 def vmap_grad_centered_cplx(
-    forward_fn: Callable, params: PyTree, samples: Array
+    forward_fn: Callable, params: PyTree, samples: Array, stack: bool = True
 ) -> PyTree:
     """Calculates centred Jacobian (i.e., subtracts MPI mean from vmap_grad)"""
     gr, gi = vmap_grad_cplx(forward_fn, params, samples)
-    # Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
-    # Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
-    return jax.tree_multimap(
-        lambda re, im: jnp.concatenate([re, im], axis=0), sub_mean(gr), sub_mean(gi)
-    )
+
+    if stack:
+        # Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
+        # Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
+        return jax.tree_multimap(
+            lambda re, im: jnp.concatenate([re, im], axis=0), sub_mean(gr), sub_mean(gi)
+        )
+    else:
+        return sub_mean(jax.tree_multimap(jax.lax.complex, gr, gi))
 
 
 def vmap_grad_centered(
@@ -206,7 +210,6 @@ def prepare_doks(
 def jvp(oks: PyTree, v: PyTree) -> Array:
     """
     Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
-    In R→R and R→C modes, v must be real-imaginary split
     """
     td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
     return jax.tree_util.tree_reduce(jnp.add, jax.tree_multimap(td, oks, v))
@@ -215,7 +218,6 @@ def jvp(oks: PyTree, v: PyTree) -> Array:
 def vjp(oks: PyTree, w: Array) -> PyTree:
     """
     Compute the vector-matrix product between the vector w and the pytree jacobian oks
-    In R→R and R→C modes, the output is real-imaginary split
     """
     res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
     return jax.tree_map(sum_inplace, res)  # MPI
@@ -224,7 +226,6 @@ def vjp(oks: PyTree, w: Array) -> PyTree:
 def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
     """
     Compute S v = 1/n ⟨ΔO† ΔO⟩v = 1/n ∑ₗ ⟨ΔOₖᴴ ΔOₗ⟩ vₗ
-    In R→R and R→C modes, the v and the output are real-imaginary split
     """
     res = tree_conj(vjp(oks, jvp(oks, v).conjugate()))
     return tree_cast(res, v)
@@ -233,7 +234,6 @@ def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
 def mat_vec(v: PyTree, oks: PyTree, diag_shift: Scalar) -> PyTree:
     """
     Compute (S + δ) v = 1/n ⟨ΔO† ΔO⟩v + δ v = ∑ₗ 1/n ⟨ΔOₖᴴΔOₗ⟩ vₗ + δ vₗ
-    In R→R and R→C modes, the v and the output are real-imaginary split
 
     Args:
         v: pytree representing the vector v
