@@ -56,7 +56,7 @@ def vmap_grad_centered_real_holo(
     forward_fn: Callable, params: PyTree, samples: Array
 ) -> PyTree:
     """Calculates centred Jacobian (i.e., subtracts MPI mean from vmap_grad)"""
-    return sub_mean(vmap_grad_rr_cc(forward_fn, params, samples))
+    return sub_mean(vmap_grad_real_holo(forward_fn, params, samples))
 
 
 @partial(jax.vmap, in_axes=(None, None, 0))
@@ -81,7 +81,7 @@ def vmap_grad_centered_cplx(
     forward_fn: Callable, params: PyTree, samples: Array
 ) -> PyTree:
     """Calculates centred Jacobian (i.e., subtracts MPI mean from vmap_grad)"""
-    gr, gi = vmap_grad_rc(forward_fn, params, samples)
+    gr, gi = vmap_grad_cplx(forward_fn, params, samples)
     # Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
     # Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
     return jax.tree_multimap(
