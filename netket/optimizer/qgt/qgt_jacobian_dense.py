@@ -28,7 +28,7 @@ from ..linear_operator import LinearOperator, Uninitialized
 
 
 def QGTJacobianDense(
-    vstate, *, mode, rescale_shift=True, **kwargs
+    vstate, *, mode, rescale_shift=False, **kwargs
 ) -> "QGTJacobianDenseT":
     O, scale = gradients(
         vstate._apply_fun,
@@ -137,7 +137,7 @@ class QGTJacobianDenseT(LinearOperator):
         Returns:
             A dense matrix representation of this S matrix.
         """
-        if scale is None:
+        if self.scale is None:
             O = self.O
             diag = jnp.eye(self.O.shape[1])
         else:

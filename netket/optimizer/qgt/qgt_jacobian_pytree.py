@@ -37,10 +37,7 @@ def QGTJacobianPyTree(
         complex_output = nkjax.is_complex(
             jax.eval_shape(vstate._apply_fun, vstate.parameters, vstate.samples)
         )
-        if complex_output:
-            mode = "complex"
-        else:
-            mode = "real"
+        mode = "complex" if complex_output else "real"
 
     O, scale = prepare_doks(
         vstate._apply_fun,
@@ -123,9 +120,8 @@ class QGTJacobianPyTreeT(LinearOperator):
 
     @jax.jit
     def _split_matmul(self, vec: Array) -> Array:
-        if self.mode == "holomorphic":
-            pars = self.params
-        else:
+        pars = self.params
+        if self.mode != "holomorphic":
             pars = nkjax.tree_to_real(self.params)
 
         _, unravel = nkjax.tree_ravel(pars)
@@ -185,9 +181,9 @@ class QGTJacobianPyTreeT(LinearOperator):
             A dense matrix representation of this S matrix.
             In R→R and R→C modes, real and imaginary parts of parameters get own rows/columns
         """
-        if self.mode == "holomorphic":
-            pars = self.params
-        else:
+        pars = self.params
+
+        if self.mode != "holomorphic":
             pars = nkjax.tree_to_real(self.params)
 
         Npars = nkjax.tree_size(pars)

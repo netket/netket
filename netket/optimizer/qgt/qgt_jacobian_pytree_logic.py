@@ -12,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, Optional, Tuple
+from functools import partial
+
 import jax
 import jax.flatten_util
 import jax.numpy as jnp
 
 import numpy as np
-from functools import partial
 
 from netket.stats import sum_inplace, subtract_mean
 from netket.utils import n_nodes
-import netket.jax as nkjax
 
 from netket.utils.types import Array, Callable, PyTree, Scalar
 
+import netket.jax as nkjax
 from netket.jax import tree_cast, tree_conj, tree_axpy, tree_to_real
 
 

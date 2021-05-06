@@ -24,7 +24,8 @@ from netket.utils import n_nodes
 from netket.stats import sum_inplace
 import netket.jax as nkjax
 
-from .qgt_jacobian import QGTJacobian
+from .qgt_jacobian_dense import QGTJacobianDense
+from .qgt_jacobian_pytree import QGTJacobianPyTree
 from .qgt_onthefly import QGTOnTheFly
 
 
