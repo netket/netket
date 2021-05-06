@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .sr import SR, SRLazyCG, SRLazyGMRES, SRJacobianCG, SRJacobianGMRES
+from . import qgt
+
+from .sr import SR
+
+from .linear_operator import LinearOperator
 
 ## Optimisers
 

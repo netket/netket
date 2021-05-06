@@ -14,34 +14,22 @@
 
 from typing import Callable, Optional, Union, Tuple, Any
 
+import jax
 from jax import numpy as jnp
 from flax import struct
 
 from netket.utils.types import PyTree, Array
 
 
-@struct.dataclass
-class SR:
-    """
-    Base class holding the parameters for the way to find the solution to
-    (S + I*diag_shift) / F.
-    """
+class _Uninitialized:
+    pass
 
-    diag_shift: float = 0.01
-    """Diagonal shift added to the S matrix."""
 
-    def create(self, vstate, **kwargs) -> "AbstractSMatrix":
-        """
-        Construct the Lazy representation of the S corresponding to this SR type.
-
-        Args:
-            vstate: The Variational State
-        """
-        raise NotImplementedError
+Uninitialized = _Uninitialized()
 
 
 @struct.dataclass
-class AbstractSMatrix:
+class LinearOperator:
     """
     S matrix base class.
     This can either be a jnp matrix, a lazy wrapper, or anything, as long as
@@ -67,15 +55,32 @@ class AbstractSMatrix:
 
     """
 
-    sr: SR
-    """Parameters for the solution of the system."""
+    diag_shift: float = 0.00
+    """Diagonal shift added to the S matrix."""
 
     # PUBLIC API: METHOD TO EXTEND IF YOU WANT TO DEFINE A NEW S object
     def __matmul__(self, vec):
         raise NotImplementedError()
 
-    # PUBLIC API: METHOD TO EXTEND IF YOU WANT TO DEFINE A NEW S object
-    def solve(self, y: PyTree, **kwargs) -> PyTree:
+    def __add__(self, eps):
+        return self.replace(diag_shift=self.diag_shift + eps)
+
+    # PUBLIC API: METHOD TO EXTEND Optionally IF YOU WANT TO DEFINE A NEW S object with
+    # custom logic
+    def _solve(
+        self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None, **kwargs
+    ) -> PyTree:
+        # dont pass x0 if it's unset.
+        # some solvers might not need/require it.
+        if x0 is not None:
+            kwargs["x0"] = x0
+
+        return solve_fun(self, y, **kwargs)
+
+    # PUBLIC API: Extend _solve
+    def solve(
+        self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None, **kwargs
+    ) -> PyTree:
         """
         Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterataive solver.
 
@@ -89,7 +94,7 @@ class AbstractSMatrix:
             info: optional additional informations provided by the solver. Might be
                 None if there are no additional informations provided.
         """
-        raise NotImplementedError()
+        return self._solve(jax.tree_util.Partial(solve_fun), y, x0=x0, **kwargs)
 
     # PUBLIC API: METHOD TO EXTEND IF YOU WANT TO DEFINE A NEW S object
     def to_dense(self) -> jnp.ndarray:

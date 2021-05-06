@@ -272,9 +272,10 @@ This module provides the following functionalities
    :nosignatures:
    
    netket.optimizer.SR
-   netket.optimizer.SRLazyCG
-   netket.optimizer.SRLazyGMRES
-   netket.optimizer.sr.LazySMatrix
+   netket.optimizer.sr.SRLazyCG
+   netket.optimizer.sr.SRLazyGMRES
+   netket.optimizer.sr.SRJacobianCG
+   netket.optimizer.sr.SRLazyGMRES
 
 This module also provides some optimisers from `optax <https://github.com/deepmind/optax>`_. 
 Check it out for up-to-date informations on available optimisers.

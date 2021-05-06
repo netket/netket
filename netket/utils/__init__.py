@@ -14,8 +14,9 @@
 
 from .config_flags import config
 
-from . import types
+from . import numbers
 from . import struct
+from . import types
 
 from .array import HashableArray
 from .jax import get_afun_if_module
