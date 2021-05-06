@@ -25,7 +25,7 @@ import netket.jax as nkjax
 
 from netket.utils.types import Array, Callable, PyTree, Scalar
 
-from .sr_onthefly_logic import tree_cast, tree_conj, tree_axpy
+from .qgt_onthefly_logic import tree_cast, tree_conj, tree_axpy
 
 
 # TODO cheapest way to calculate the gradients?
