@@ -36,7 +36,7 @@ from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
 from netket.utils import flax as flax_utils, n_nodes, maybe_wrap_module, deprecated
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
-from netket.optimizer.sr import SR, AbstractSMatrix
+from netket.optimizer import LinearOperator
 from netket.operator import (
     AbstractOperator,
     AbstractSuperOperator,
@@ -493,7 +493,7 @@ class MCState(VariationalState):
 
         return Ō, Ō_grad
 
-    def quantum_geometric_tensor(self, sr: SR) -> AbstractSMatrix:
+    def quantum_geometric_tensor(self, sr: LinearOperator) -> LinearOperator:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector
         or can be converted to a full matrix.

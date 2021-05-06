@@ -15,6 +15,7 @@
 from .config_flags import config
 
 from . import types
+from . import numbers
 
 from .array import HashableArray
 from .jax import jit_if_singleproc, get_afun_if_module

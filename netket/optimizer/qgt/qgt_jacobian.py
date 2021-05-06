@@ -24,11 +24,24 @@ from netket.utils import n_nodes
 from netket.stats import sum_inplace
 import netket.jax as nkjax
 
-from .base import AbstractSMatrix
+from ..linear_operator import LinearOperator, Uninitialized
+
+
+def QGTJacobian(vstate, *, mode, rescale_shift=False, **kwargs) -> "QGTJacobianT":
+    O, scale = gradients(
+        vstate._apply_fun,
+        vstate.parameters,
+        vstate.samples,
+        vstate.model_state,
+        mode,
+        rescale_shift,
+    )
+
+    return QGTJacobianT(O=O, scale=scale, **kwargs)
 
 
 @struct.dataclass
-class JacobianSMatrix(AbstractSMatrix):
+class QGTJacobianT(LinearOperator):
     """
     Semi-lazy representation of an S Matrix behaving like a linear operator.
 
@@ -38,7 +51,7 @@ class JacobianSMatrix(AbstractSMatrix):
     the field `sr`.
     """
 
-    O: jnp.ndarray
+    O: jnp.ndarray = Uninitialized
     """Gradients O_ij = ∂log ψ(σ_i)/∂p_j of the neural network 
     for all samples σ_i at given values of the parameters p_j
     Average <O_j> subtracted for each parameter
@@ -50,9 +63,6 @@ class JacobianSMatrix(AbstractSMatrix):
     """If not None, contains 2-norm of each column of the gradient matrix,
     i.e., the sqrt of the diagonal elements of the S matrix
     """
-
-    x0: Optional[PyTree] = None
-    """Optional initial guess for the iterative solution."""
 
     @jax.jit
     def __matmul__(self, vec: Union[PyTree, jnp.ndarray]) -> Union[PyTree, jnp.ndarray]:
@@ -66,7 +76,7 @@ class JacobianSMatrix(AbstractSMatrix):
 
         result = (
             sum_inplace(((self.O @ vec).T.conj() @ self.O).T.conj())
-            + self.sr.diag_shift * vec
+            + self.diag_shift * vec
         )
 
         if self.scale is not None:
@@ -81,11 +91,11 @@ class JacobianSMatrix(AbstractSMatrix):
     def _unscaled_matmul(self, vec: jnp.ndarray) -> jnp.ndarray:
         return (
             sum_inplace(((self.O @ vec).T.conj() @ self.O).T.conj())
-            + self.sr.diag_shift * vec
+            + self.diag_shift * vec
         )
 
     @jax.jit
-    def solve(self, y: PyTree, x0: Optional[PyTree] = None) -> PyTree:
+    def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None) -> PyTree:
         """
         Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterataive solver.
 
@@ -102,8 +112,6 @@ class JacobianSMatrix(AbstractSMatrix):
         # Ravel input PyTrees, record unravelling function too
         grad, unravel = nkjax.tree_ravel(y)
 
-        if x0 is None:
-            x0 = self.x0
         if x0 is not None:
             x0, _ = nkjax.tree_ravel(x0)
             if self.scale is not None:
@@ -112,7 +120,6 @@ class JacobianSMatrix(AbstractSMatrix):
         if self.scale is not None:
             grad = grad / self.scale
 
-        solve_fun = self.sr.solve_fun()
         out, info = solve_fun(self._unscaled_matmul, grad, x0=x0)
 
         if self.scale is not None:
@@ -128,14 +135,14 @@ class JacobianSMatrix(AbstractSMatrix):
         Returns:
             A dense matrix representation of this S matrix.
         """
-        if scale is None:
+        if self.scale is None:
             O = self.O
             diag = jnp.eye(self.O.shape[1])
         else:
             O = self.O * self.scale[jnp.newaxis, :]
             diag = jnp.diag(self.scale ** 2)
 
-        return sum_inplace(O.T.conj() @ O) + self.sr.diag_shift * diag
+        return sum_inplace(O.T.conj() @ O) + self.diag_shift * diag
 
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
