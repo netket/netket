@@ -146,7 +146,7 @@ def mpi_any(x, *, comm=MPI_py_comm):
     if n_nodes > 1:
         comm.Allreduce(MPI.IN_PLACE, ar.reshape(-1), op=MPI.LOR)
 
-    return ar
+    return xr
 
 
 def mpi_any_jax(x, *, token=None, comm=MPI_jax_comm):

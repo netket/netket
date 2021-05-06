@@ -119,23 +119,25 @@ def _get_blocks(data, block_size):
     return data[:, 0 : n_blocks * block_size].reshape((-1, block_size)).mean(axis=1)
 
 
-def _block_variance(data, l):
+def _block_variance(data, l, *, token=None, rank_constant_shape=True):
     blocks = _get_blocks(data, l)
-    ts = _total_size(blocks)
+    ts = _total_size(blocks, rank_constant_shape=rank_constant_shape)
     if ts > 0:
-        return _var(blocks), ts
+        res, token = _var(blocks, token=token, rank_constant_shape=rank_constant_shape)
+        return res, ts, token
     else:
-        return jnp.nan, 0
+        return jnp.nan, 0, token
 
 
-def _batch_variance(data):
+def _batch_variance(data, *, token=None, rank_constant_shape=True):
     b_means = data.mean(axis=1)
-    ts = _total_size(b_means)
-    return _var(b_means), ts
+    ts = _total_size(b_means, rank_constant_shape=rank_constant_shape)
+    res, token = _var(b_means, token=token, rank_constant_shape=rank_constant_shape)
+    return res, ts, token
 
 
 # this is not batch_size maybe?
-def statistics(data, batch_size=32):
+def statistics(data, *, batch_size=32, token=None, rank_constant_shape: bool = True):
     r"""
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
@@ -148,6 +150,11 @@ def statistics(data, batch_size=32):
                                   series of data (not necessarily independent).
                                 * if a matrix, it is assumed that that rows data[i]
                                   contain independent time series.
+        rank_constant_shape: If True (default) assumes that all ranks have the same
+            shape and returns :code:`local_size * n_nodes`. If False, uses a mpi_sum
+            among ranks to compute the total size. However, if this code is all ranks
+            do not recompile at the same time because they have different shapes,
+            MPI deadlocks might arise.
 
     Returns:
        Stats: A dictionary-compatible class containing the average (mean),
@@ -157,11 +164,11 @@ def statistics(data, batch_size=32):
              dict sintax (e.g. res['mean']), one can also access them directly with the dot operator
              (e.g. res.mean).
     """
-    return _statistics(data, batch_size)
+    return _statistics(data, batch_size, token, rank_constant_shape)
 
 
-@partial(jax.jit, static_argnums=1)
-def _statistics(data, batch_size):
+@partial(jax.jit, static_argnums=(1, 3))
+def _statistics(data, batch_size, token=None, rank_constant_shape: bool = True):
     data = jnp.atleast_1d(data)
     if data.ndim == 1:
         data = data.reshape((1, -1))
@@ -169,18 +176,22 @@ def _statistics(data, batch_size):
     if data.ndim > 2:
         raise NotImplementedError("Statistics are implemented only for ndim<=2")
 
-    mean = _mean(data)
-    variance = _var(data)
+    mean, token = _mean(data, token=token)
+    variance, token = _var(data, token=token, rank_constant_shape=rank_constant_shape)
 
-    ts = _total_size(data)
+    ts = _total_size(data, rank_constant_shape=rank_constant_shape)
 
     bare_var = variance
 
-    batch_var, n_batches = _batch_variance(data)
+    batch_var, n_batches, token = _batch_variance(
+        data, token=token, rank_constant_shape=rank_constant_shape
+    )
 
     l_block = max(1, data.shape[1] // batch_size)
 
-    block_var, n_blocks = _block_variance(data, l_block)
+    block_var, n_blocks, token = _block_variance(
+        data, l_block, token=token, rank_constant_shape=rank_constant_shape
+    )
 
     tau_batch = ((ts / n_batches) * batch_var / bare_var - 1) * 0.5
     tau_block = ((ts / n_blocks) * block_var / bare_var - 1) * 0.5
@@ -251,5 +262,5 @@ def _statistics(data, batch_size):
 
     res = Stats(mean, error_of_mean, variance, tau_corr, R_hat)
 
-    return res
+    return res, token
     ##
