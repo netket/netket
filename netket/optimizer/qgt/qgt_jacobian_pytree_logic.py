@@ -30,7 +30,7 @@ import netket.jax as nkjax
 from netket.jax import tree_cast, tree_conj, tree_axpy, tree_to_real
 
 
-# TODO better name and move it somewhere useful
+# TODO better name and move it somewhere sensible
 def single_sample(f):
     """
     A decorator to make the forward_fn accept a single sample
@@ -105,56 +105,8 @@ def vmap_grad_centered_cplx(
         return sub_mean(jax.tree_multimap(jax.lax.complex, gr, gi))
 
 
-def vmap_grad_centered(
-    forward_fn: Callable,
-    params: PyTree,
-    samples: Array,
-    mode: str,
-) -> PyTree:
-    """
-    compute the jacobian of forward_fn(params, samples) w.r.t params
-    as a pytree using vmapped gradients for efficiency
-
-    mode can be 'real', 'complex', 'holomorphic'
-    """
-
-    if mode == "real":
-        split_complex_params = True  # convert C->R to R->R
-        vmap_grad_fun = vmap_grad_centered_real_holo
-    elif mode == "complex":
-        split_complex_params = True  # convert C->C to R->C
-        vmap_grad_fun = vmap_grad_centered_cplx
-    elif mode == "holomorphic":
-        split_complex_params = False
-        vmap_grad_fun = vmap_grad_centered_real_holo
-    else:
-        raise NotImplementedError(
-            'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
-                mode
-            )
-        )
-
-    if split_complex_params:
-        # doesn't do anything if the params are already real
-        params, reassemble = tree_to_real(params)
-
-        def f(W, σ):
-            return forward_fn(reassemble(W), σ)
-
-    else:
-        f = forward_fn
-
-    return vmap_grad_fun(f, params, samples)
-
-
-def _prepare_doks(
-    forward_fn: Callable,
-    params: PyTree,
-    samples: Array,
-    mode: str,
-    rescale_shift: bool,
-) -> PyTree:
-    doks = vmap_grad_centered(forward_fn, params, samples, mode)
+def _prepare_doks(forward_fn, params, samples, vmap_grad_centered_fun, rescale_shift):
+    doks = vmap_grad_centered_fun(forward_fn, params, samples)
     n_samp = samples.shape[0] * n_nodes  # MPI
     doks = jax.tree_map(lambda x: x / np.sqrt(n_samp), doks)
 
@@ -169,6 +121,35 @@ def _prepare_doks(
         return doks, scale
     else:
         return doks, None
+
+
+def _jvp(oks: PyTree, v: PyTree) -> Array:
+    """
+    Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
+    """
+    td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
+    return jax.tree_util.tree_reduce(jnp.add, jax.tree_multimap(td, oks, v))
+
+
+def _vjp(oks: PyTree, w: Array) -> PyTree:
+    """
+    Compute the vector-matrix product between the vector w and the pytree jacobian oks
+    """
+    res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
+    return jax.tree_map(sum_inplace, res)  # MPI
+
+
+def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
+    """
+    Compute ⟨O† O⟩v = ∑ₗ ⟨Oₖᴴ Oₗ⟩ vₗ
+    """
+    res = tree_conj(_vjp(oks, _jvp(oks, v).conjugate()))
+    return tree_cast(res, v)
+
+
+# ==============================================================================
+# the logic above only works for R->R, R->C and holomorphic C->C
+# here the other modes are converted
 
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
@@ -202,34 +183,37 @@ def prepare_doks(
 
     """
 
-    def fun(W, σ):
+    # pre-apply the model state
+    def forward_fn(W, σ):
         return apply_fun({"params": W, **model_state}, σ)
 
-    return _prepare_doks(fun, params, samples, mode, rescale_shift)
+    if mode == "real":
+        split_complex_params = True  # convert C->R to R->R
+        vmap_grad_fun = vmap_grad_centered_real_holo
+    elif mode == "complex":
+        split_complex_params = True  # convert C->C to R->C
+        vmap_grad_fun = vmap_grad_centered_cplx
+    elif mode == "holomorphic":
+        split_complex_params = False
+        vmap_grad_fun = vmap_grad_centered_real_holo
+    else:
+        raise NotImplementedError(
+            'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
+                mode
+            )
+        )
 
+    if split_complex_params:
+        # doesn't do anything if the params are already real
+        params, reassemble = tree_to_real(params)
 
-def jvp(oks: PyTree, v: PyTree) -> Array:
-    """
-    Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
-    """
-    td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
-    return jax.tree_util.tree_reduce(jnp.add, jax.tree_multimap(td, oks, v))
+        def f(W, σ):
+            return forward_fn(reassemble(W), σ)
 
+    else:
+        f = forward_fn
 
-def vjp(oks: PyTree, w: Array) -> PyTree:
-    """
-    Compute the vector-matrix product between the vector w and the pytree jacobian oks
-    """
-    res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
-    return jax.tree_map(sum_inplace, res)  # MPI
-
-
-def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
-    """
-    Compute S v = 1/n ⟨ΔO† ΔO⟩v = 1/n ∑ₗ ⟨ΔOₖᴴ ΔOₗ⟩ vₗ
-    """
-    res = tree_conj(vjp(oks, jvp(oks, v).conjugate()))
-    return tree_cast(res, v)
+    return _prepare_doks(f, params, samples, vmap_grad_fun, rescale_shift)
 
 
 def mat_vec(v: PyTree, oks: PyTree, diag_shift: Scalar) -> PyTree:
