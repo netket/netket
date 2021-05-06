@@ -1,4 +1,4 @@
-# test sr_onthefly_logic with inhomogeneous parameters
+# test qgt_onthefly_logic with inhomogeneous parameters
 
 import pytest
 
@@ -7,12 +7,12 @@ import jax.numpy as jnp
 import jax.flatten_util
 import numpy as np
 from jax.scipy.sparse.linalg import cg
-from netket.optimizer.qgt import (
-    qgt_onthefly_logic as sr_onthefly_logic,
-    treemv_logic as sr_treemv_logic,
-)
+from netket.optimizer.qgt import qgt_onthefly_logic, qgt_jacobian_pytree_logic
+
 from functools import partial
 import itertools
+
+from netket import jax as nkjax
 
 import pytest
 
@@ -51,9 +51,9 @@ def tree_toreal_flat(x):
 def reassemble_complex(x, target, fun=tree_toreal_flat):
     # target: a tree with the expected shape and types of the result
     (res,) = jax.linear_transpose(fun, target)(x)
-    res = sr_onthefly_logic.tree_conj(res)
+    res = qgt_onthefly_logic.tree_conj(res)
     # fix the dtypes:
-    return sr_onthefly_logic.tree_cast(res, target)
+    return qgt_onthefly_logic.tree_cast(res, target)
 
 
 def tree_allclose(t1, t2):
@@ -191,8 +191,8 @@ def test_reassemble_complex(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_vjp(e):
-    actual = sr_onthefly_logic.O_vjp(e.f, e.params, e.samples, e.w)
-    expected = sr_onthefly_logic.tree_conj(
+    actual = qgt_onthefly_logic.O_vjp(e.f, e.params, e.samples, e.w)
+    expected = qgt_onthefly_logic.tree_conj(
         reassemble_complex(
             (e.w @ e.ok_real).real.astype(e.params_real_flat.dtype), target=e.target
         )
@@ -204,8 +204,8 @@ def test_vjp(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", r_r_test_types + c_c_test_types)
 def test_mean(e):
-    actual = sr_onthefly_logic.O_mean(e.f, e.params, e.samples)
-    expected = sr_onthefly_logic.tree_conj(
+    actual = qgt_onthefly_logic.O_mean(e.f, e.params, e.samples)
+    expected = qgt_onthefly_logic.tree_conj(
         reassemble_complex(e.okmean_real.real, target=e.target)
     )
     assert tree_allclose(actual, expected)
@@ -215,7 +215,7 @@ def test_mean(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_OH_w(e):
-    actual = sr_onthefly_logic.OH_w(
+    actual = qgt_onthefly_logic.OH_w(
         e.f,
         e.params,
         e.samples,
@@ -232,7 +232,7 @@ def test_OH_w(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_jvp(e):
-    actual = sr_onthefly_logic.O_jvp(e.f, e.params, e.samples, e.v)
+    actual = qgt_onthefly_logic.O_jvp(e.f, e.params, e.samples, e.v)
     expected = e.ok_real @ e.v_real_flat
     assert tree_allclose(actual, expected)
 
@@ -241,7 +241,7 @@ def test_jvp(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_Odagger_O_v(e):
-    actual = sr_onthefly_logic.Odagger_O_v(e.f, e.params, e.samples, e.v)
+    actual = qgt_onthefly_logic.Odagger_O_v(e.f, e.params, e.samples, e.v)
     expected = reassemble_complex(
         (e.ok_real.conjugate().transpose() @ e.ok_real @ e.v_real_flat).real / e.n_samp,
         target=e.target,
@@ -253,7 +253,7 @@ def test_Odagger_O_v(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_Odagger_DeltaO_v(e):
-    actual = sr_onthefly_logic.Odagger_DeltaO_v(e.f, e.params, e.samples, e.v)
+    actual = qgt_onthefly_logic.Odagger_DeltaO_v(e.f, e.params, e.samples, e.v)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
     assert tree_allclose(actual, expected)
 
@@ -262,7 +262,7 @@ def test_Odagger_DeltaO_v(e):
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_DeltaOdagger_DeltaO_v(e, holomorphic):
-    actual = sr_onthefly_logic.DeltaOdagger_DeltaO_v(
+    actual = qgt_onthefly_logic.DeltaOdagger_DeltaO_v(
         e.f, e.params, e.samples, e.v, holomorphic
     )
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
@@ -276,7 +276,7 @@ def test_DeltaOdagger_DeltaO_v(e, holomorphic):
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_matvec(e, centered, jit, holomorphic):
     diag_shift = 0.01
-    mv = sr_onthefly_logic.mat_vec
+    mv = qgt_onthefly_logic.mat_vec
     if jit:
         mv = jax.jit(mv, static_argnums=(1, 5, 6))
     actual = mv(e.v, e.f, e.params, e.samples, diag_shift, centered, holomorphic)
@@ -294,7 +294,7 @@ def test_matvec(e, centered, jit, holomorphic):
 def test_matvec_linear_transpose(e, centered, jit):
     def mvt(v, f, params, samples, centered, w):
         (res,) = jax.linear_transpose(
-            lambda v_: sr_onthefly_logic.mat_vec(v_, f, params, samples, 0.0, centered),
+            lambda v_: qgt_onthefly_logic.mat_vec(v_, f, params, samples, 0.0, centered),
             v,
         )(w)
         return res
@@ -308,9 +308,9 @@ def test_matvec_linear_transpose(e, centered, jit):
     # use that S is hermitian:
     # S^T = (O^H O)^T = O^T O* = (O^H O)* = S*
     # S^T w = S* w = (S w*)*
-    expected = sr_onthefly_logic.tree_conj(
-        sr_onthefly_logic.mat_vec(
-            sr_onthefly_logic.tree_conj(w), e.f, e.params, e.samples, 0.0, centered
+    expected = qgt_onthefly_logic.tree_conj(
+        qgt_onthefly_logic.mat_vec(
+            qgt_onthefly_logic.tree_conj(w), e.f, e.params, e.samples, 0.0, centered
         )
     )
     # (expected,) = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_), target=e.target), v)(v)
@@ -318,26 +318,37 @@ def test_matvec_linear_transpose(e, centered, jit):
 
 
 # TODO separate test for prepare_doks
+# TODO test holomorphic=False
 @pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize(
     "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
 )
-def test_matvec_treemv(e, jit, holomorphic):
+def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype):
     diag_shift = 0.01
-    mv = sr_treemv_logic.mat_vec
-    pdoks = sr_treemv_logic.prepare_doks
+    mv = qgt_jacobian_pytree_logic.mat_vec
+
+    if not nkjax.is_complex_dtype(outdtype):
+        mode = "real"
+    elif nkjax.is_complex_dtype(pardtype) and holomorphic:
+        mode = "holomorphic"
+    else:
+        mode = "complex"
+
+    pdoks = partial(qgt_jacobian_pytree_logic._prepare_doks, mode=mode, rescale_shift=False)
     if jit:
         mv = jax.jit(mv)
         pdoks = jax.jit(pdoks, static_argnums=0)
 
-    doks = pdoks(e.f, e.params, e.samples)
+    doks, _ = pdoks(e.f, e.params, e.samples)
     actual = mv(e.v, doks, diag_shift)
     expected = reassemble_complex(
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
     )
     assert tree_allclose(actual, expected)
 
+
+# TODO test rescale_shift
 
 # TODO test with MPI
