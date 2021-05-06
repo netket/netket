@@ -117,33 +117,34 @@ def vmap_grad_centered(
 
     mode can be 'real', 'complex', 'holomorphic'
     """
+
     if mode == "real":
-        # Apply real-imaginary split
-        params, reassemble = tree_to_real(params)
-
-        def f(W, σ):
-            return forward_fn(reassemble(W), σ)
-
-        return vmap_grad_centered_real_holo(f, params, samples)
-
+        split_complex_params = True  # convert C->R to R->R
+        vmap_grad_fun = vmap_grad_centered_real_holo
     elif mode == "complex":
-        # Apply real-imaginary split
-        params, reassemble = tree_to_real(params)
-
-        def f(W, σ):
-            return forward_fn(reassemble(W), σ)
-
-        return vmap_grad_centered_cplx(f, params, samples)
-
+        split_complex_params = True  # convert C->C to R->C
+        vmap_grad_fun = vmap_grad_centered_cplx
     elif mode == "holomorphic":
-
-        return vmap_grad_centered_real_holo(forward_fn, params, samples)
+        split_complex_params = False
+        vmap_grad_fun = vmap_grad_centered_real_holo
     else:
         raise NotImplementedError(
             'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
                 mode
             )
         )
+
+    if split_complex_params:
+        # doesn't do anything if the params are already real
+        params, reassemble = tree_to_real(params)
+
+        def f(W, σ):
+            return forward_fn(reassemble(W), σ)
+
+    else:
+        f = forward_fn
+
+    return vmap_grad_fun(f, params, samples)
 
 
 def _prepare_doks(
