@@ -158,6 +158,8 @@ class Example:
         self.S_real = (
             self.dok_real.conjugate().transpose() @ self.dok_real / n_samp
         ).real
+        self.scale = jnp.sqrt(self.S_real.diagonal())
+        self.S_real_scaled = self.S_real / (jnp.outer(self.scale, self.scale))
 
 
 @pytest.fixture
@@ -392,6 +394,28 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     assert tree_allclose(actual, expected)
 
 
-# TODO test rescale_shift
+@pytest.mark.parametrize("holomorphic", [True])
+@pytest.mark.parametrize("n_samp", [25, 1024])
+@pytest.mark.parametrize(
+    "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
+)
+def test_scale_invariant_regularization(e, outdtype, pardtype):
+
+    if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
+        centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_cplx
+    else:
+        centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_real_holo
+
+    mv = qgt_jacobian_pytree_logic._mat_vec
+    centered_oks = centered_jacobian_fun(e.f, e.params, e.samples)
+    centered_oks = qgt_jacobian_pytree_logic._divide_by_sqrt_n_samp(
+        centered_oks, e.samples
+    )
+
+    centered_oks_scaled, scale = qgt_jacobian_pytree_logic._rescale(centered_oks)
+    actual = mv(e.v, centered_oks_scaled)
+    expected = reassemble_complex(e.S_real_scaled @ e.v_real_flat, target=e.target)
+    assert tree_allclose(actual, expected)
+
 
 # TODO test with MPI

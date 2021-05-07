@@ -112,7 +112,9 @@ def stack_jacobian(centered_oks: PyTree) -> PyTree:
 
 def _rescale(centered_oks):
     """
-    scale-invariant regularisation
+    compute ΔOₖ/√Sₖₖ and √Sₖₖ
+    to do scale-invariant regularization (Becca & Sorella 2017, pp. 143)
+    Sₖₗ/(√Sₖₖ√Sₗₗ) = ΔOₖᴴΔOₗ/(√Sₖₖ√Sₗₗ) = (ΔOₖ/√Sₖₖ)ᴴ(ΔOₗ/√Sₗₗ)
     """
     scale = jax.tree_map(
         lambda x: sum_inplace(jnp.sum((x * x.conj()).real, axis=0, keepdims=True))
