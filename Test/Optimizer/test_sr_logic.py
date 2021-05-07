@@ -320,7 +320,6 @@ def test_matvec_linear_transpose(e, centered, jit):
 
 
 # TODO separate test for prepare_centered_oks
-# TODO test holomorphic=False
 @pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("jit", [True, False])
@@ -348,6 +347,50 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype):
     centered_oks, _ = pcentered_oks(e.f, e.params, e.samples)
     actual = mv(e.v, centered_oks)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
+    assert tree_allclose(actual, expected)
+
+
+# TODO separate test for prepare_centered_oks
+# TODO test C->R ?
+@pytest.mark.parametrize("holomorphic", [True, False])
+@pytest.mark.parametrize("n_samp", [25, 1024])
+@pytest.mark.parametrize("jit", [True, False])
+@pytest.mark.parametrize(
+    "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
+)
+def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
+    diag_shift = 0.01
+    model_state = {}
+    rescale_shift = False
+
+    def apply_fun(params, samples):
+        return e.f(params["params"], samples)
+
+    mv = qgt_jacobian_pytree_logic.mat_vec
+
+    if not nkjax.is_complex_dtype(outdtype):
+        mode = "real"
+    elif nkjax.is_complex_dtype(pardtype) and holomorphic:
+        mode = "holomorphic"
+    else:
+        mode = "complex"
+
+    if mode == "holomorphic":
+        v = e.v
+        reassemble = lambda x: x
+    else:
+        v, reassemble = nkjax.tree_to_real(e.v)
+
+    if jit:
+        mv = jax.jit(mv)
+
+    centered_oks, _ = qgt_jacobian_pytree_logic.prepare_centered_oks(
+        apply_fun, e.params, e.samples, model_state, mode, rescale_shift
+    )
+    actual = reassemble(mv(v, centered_oks, diag_shift))
+    expected = reassemble_complex(
+        e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
+    )
     assert tree_allclose(actual, expected)
 
 

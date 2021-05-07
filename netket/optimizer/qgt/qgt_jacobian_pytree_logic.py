@@ -32,15 +32,15 @@ from netket.jax import tree_cast, tree_conj, tree_axpy, tree_to_real
 
 
 # TODO better name and move it somewhere sensible
-def single_sample(f):
+def single_sample(forward_fn):
     """
     A decorator to make the forward_fn accept a single sample
     """
 
-    def _f(W, σ):
-        return f(W, σ[jnp.newaxis, :])[0]
+    def f(W, σ):
+        return forward_fn(W, σ[jnp.newaxis, :])[0]
 
-    return _f
+    return f
 
 
 # TODO move it somewhere reasonable
