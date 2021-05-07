@@ -7,7 +7,10 @@ import jax.numpy as jnp
 import jax.flatten_util
 import numpy as np
 from jax.scipy.sparse.linalg import cg
-from netket.optimizer.sr import sr_onthefly_logic, sr_treemv_logic
+from netket.optimizer.qgt import (
+    qgt_onthefly_logic as sr_onthefly_logic,
+    treemv_logic as sr_treemv_logic,
+)
 from functools import partial
 import itertools
 
