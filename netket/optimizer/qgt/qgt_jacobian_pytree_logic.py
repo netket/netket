@@ -172,7 +172,7 @@ def prepare_doks(
     Args:
         apply_fun: The forward pass of the Ansatz
         params : a pytree of parameters p
-        samples : an array of n samples σ
+        samples : an array of (n in total) batched samples σ
         model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
@@ -187,6 +187,8 @@ def prepare_doks(
 
     """
 
+    # un-batch the samples
+    samples = samples.reshape((-1, samples.shape[-1]))
 
     # pre-apply the model state
     def forward_fn(W, σ):
