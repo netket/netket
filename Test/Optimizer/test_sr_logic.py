@@ -331,20 +331,18 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype):
     mv = qgt_jacobian_pytree_logic._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
-        cjf = qgt_jacobian_pytree_logic.centered_jacobian_cplx
+        centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_cplx
     else:
-        cjf = qgt_jacobian_pytree_logic.centered_jacobian_real_holo
+        centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_real_holo
 
-    pcentered_oks = partial(
-        qgt_jacobian_pytree_logic._prepare_centered_oks,
-        centered_jacobian_fun=cjf,
-        rescale_shift=False,
-    )
     if jit:
         mv = jax.jit(mv)
-        pcentered_oks = jax.jit(pcentered_oks, static_argnums=0)
+        centered_jacobian_fun = jax.jit(centered_jacobian_fun, static_argnums=0)
 
-    centered_oks, _ = pcentered_oks(e.f, e.params, e.samples)
+    centered_oks = centered_jacobian_fun(e.f, e.params, e.samples)
+    centered_oks = qgt_jacobian_pytree_logic._divide_by_sqrt_n_samp(
+        centered_oks, e.samples
+    )
     actual = mv(e.v, centered_oks)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
     assert tree_allclose(actual, expected)
