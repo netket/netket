@@ -189,7 +189,6 @@ def prepare_centered_oks(
             pytree containing the norms that were divided out (same shape as params)
 
     """
-
     # un-batch the samples
     samples = samples.reshape((-1, samples.shape[-1]))
 
