@@ -355,9 +355,7 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype):
 @pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("jit", [True, False])
-@pytest.mark.parametrize(
-    "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
-)
+@pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     diag_shift = 0.01
     model_state = {}
@@ -368,9 +366,11 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
 
     mv = qgt_jacobian_pytree_logic.mat_vec
 
+    homogeneous = pardtype is not None
+
     if not nkjax.is_complex_dtype(outdtype):
         mode = "real"
-    elif nkjax.is_complex_dtype(pardtype) and holomorphic:
+    elif homogeneous and nkjax.is_complex_dtype(pardtype) and holomorphic:
         mode = "holomorphic"
     else:
         mode = "complex"
