@@ -20,18 +20,17 @@ import flax
 from jax import numpy as jnp
 from flax import struct
 
-from plum import dispatch
-
 from netket.utils.types import PyTree, Array
+from netket.utils import rename_class
+import netket.jax as nkjax
+
+from .s_jacobian_mat import JacobianSMatrix, gradients
 
 from .base import SR
 
-from .sr_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
-from .s_onthefly_mat import SROnTheFly, SMatrixOnTheFly
-
 
 @struct.dataclass
-class SROnTheFlyIterative(SROnTheFly):
+class SRJacobian(SR):
     """
     Base class holding the parameters for the iterative solution of the
     SR system x = ⟨S⟩⁻¹⟨F⟩, where S is a lazy linear operator
@@ -57,6 +56,29 @@ class SROnTheFlyIterative(SROnTheFly):
     that fewer iterations are needed to reach a given error tolerance.
     """
 
+    mode: str = struct.field(pytree_node=False, default="invalid")
+    """Differentiation mode to precompute Jacobian
+    * "holomorphic": C->C holomorphic function
+        `grad` is called on the full network output with `holomorphic=True`
+    * "R2R": real-valued wave function with real parameters
+        `grad` is called on the real part of the network output with `holomorphic=False`
+    * "R2C": complex-valued wave function with real parameters
+        the real and imaginary parts of the network output are treated as independent 
+        R->R functions and `grad` is called separately on them with `holomorphic=False`
+    * the default value "invalid" will trigger an error
+    """
+
+    rescale_shift: bool = struct.field(pytree_node=False, default=False)
+    """Whether scale-invariant regularisation should be used"""
+
+    def __post_init__(self):
+        if self.mode not in {"R2R", "R2C", "holomorphic"}:
+            raise NotImplementedError(
+                'Differentiation mode must be one of "R2R", "R2C", "holomorphic", got "{}"'.format(
+                    self.mode
+                )
+            )
+
     def create(self, vstate, **kwargs) -> "LazySMatrixIterative":
         """
         Construct the Lazy representation of the S corresponding to this SR type.
@@ -64,17 +86,19 @@ class SROnTheFlyIterative(SROnTheFly):
         Args:
             vstate: The Variational State
         """
-        return LazySMatrixIterative(
-            apply_fun=vstate._apply_fun,
-            params=vstate.parameters,
-            samples=vstate.samples,
-            model_state=vstate.model_state,
-            sr=self,
+        O, scale = gradients(
+            vstate._apply_fun,
+            vstate.parameters,
+            vstate.samples,
+            vstate.model_state,
+            self.mode,
+            self.rescale_shift,
         )
+        return JacobianSMatrix(sr=self, O=O, scale=scale)
 
 
 @struct.dataclass
-class SRLazyCG(SROnTheFlyIterative):
+class SRJacobianCG(SRJacobian):
     """
     Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative conjugate gradient method.
 
@@ -95,7 +119,7 @@ class SRLazyCG(SROnTheFlyIterative):
 
 
 @struct.dataclass
-class SRLazyGMRES(SROnTheFlyIterative):
+class SRJacobianGMRES(SRJacobian):
     """
     Computes x = ⟨S⟩⁻¹⟨F⟩ by using an iterative GMRES method.
 
@@ -133,69 +157,3 @@ class SRLazyGMRES(SROnTheFlyIterative):
             restart=self.restart,
             solve_method=self.solve_method,
         )
-
-
-@struct.dataclass
-class LazySMatrixIterative(SMatrixOnTheFly):
-    """
-    Lazy representation of an S Matrix behving like a linear operator.
-
-    The S matrix is not computed yet, but can be computed by calling
-    :code:`to_dense`.
-    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
-    the field `sr`.
-    """
-
-    x0: Optional[PyTree] = None
-    """Optional initial guess for the iterative solution."""
-
-    def solve(self, y: PyTree, x0: Optional[PyTree] = None, **kwargs) -> PyTree:
-        """
-        Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterataive solver.
-
-        Args:
-            y: the vector y in the system above.
-            x0: optional initial guess for the solution.
-
-        Returns:
-            x: the PyTree solving the system.
-            info: optional additional informations provided by the solver. Might be
-                None if there are no additional informations provided.
-        """
-        if x0 is None:
-            x0 = self.x0
-
-        out, info = apply_onthefly(
-            self,
-            y,
-            x0,
-        )
-
-        return out, info
-
-
-@jax.jit
-def apply_onthefly(
-    S: LazySMatrixIterative, grad: PyTree, x0: Optional[PyTree]
-) -> PyTree:
-    # Preapply the model state so that when computing gradient we only
-    # get gradient of parameeters
-    def fun(W, σ):
-        return S.apply_fun({"params": W, **S.model_state}, σ)
-
-    grad = tree_cast(grad, S.params)
-    # we could cache this...
-    if x0 is None:
-        x0 = jax.tree_map(jnp.zeros_like, grad)
-
-    _mat_vec = partial(
-        mat_vec_onthefly,
-        forward_fn=fun,
-        params=S.params,
-        samples=S.samples,
-        diag_shift=S.sr.diag_shift,
-        centered=S.sr.centered,
-    )
-    solve_fun = S.sr.solve_fun()
-    out, info = solve_fun(_mat_vec, grad, x0=x0)
-    return out, info

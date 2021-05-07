@@ -14,7 +14,18 @@
 
 from .api import SR
 
-from .sr_onthefly import LazySMatrix, SRLazyCG, SRLazyGMRES
+# Abstract base types for SR and S Matrices
+from .base import AbstractSMatrix
+
+# Abstract type for a lazy S matrix
+from .s_lazy import AbstractLazySMatrix
+
+# Lazy OnTheFly implementation of S matrix
+from .sr_onthefly import SRLazyCG, SRLazyGMRES
+
+# Semi-lazy implementation of S matrix with precomputed gradients
+from .sr_jacobian import SRJacobianCG, SRJacobianGMRES
+
 
 from netket.utils import _hide_submodules
 
