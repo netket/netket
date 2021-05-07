@@ -125,9 +125,9 @@ class QGTJacobianDenseT(LinearOperator):
         # to pass the object LinearOperator itself down
         # but avoid rescaling, we pass down an object with
         # scale = None
-        unsacaled_self = self.replace(scale=None)
+        unscaled_self = self.replace(scale=None)
 
-        out, info = solve_fun(unsacaled_self, grad, x0=x0)
+        out, info = solve_fun(unscaled_self, grad, x0=x0)
 
         if self.scale is not None:
             out = out / self.scale

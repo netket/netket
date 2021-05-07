@@ -30,7 +30,7 @@ from .qgt_jacobian_pytree_logic import mat_vec, prepare_doks
 
 
 def QGTJacobianPyTree(
-    vstate, *, mode="auto", rescale_shift=True, **kwargs
+    vstate, *, mode="auto", rescale_shift=False, **kwargs
 ) -> "QGTJacobianPyTreeT":
     # Choose sensible default mode
     if mode == "auto":
@@ -164,9 +164,10 @@ class QGTJacobianPyTreeT(LinearOperator):
         # to pass the object LinearOperator itself down
         # but avoid rescaling, we pass down an object with
         # scale = None
-        unsacaled_self = self.replace(scale=None)
+        # mode=holomoprhic to disable splitting the complex part
+        unscaled_self = self.replace(scale=None, mode="holomorphic")
 
-        out, info = solve_fun(unsacaled_self, y, x0=x0)
+        out, info = solve_fun(unscaled_self, y, x0=x0)
 
         if self.scale is not None:
             out = jax.tree_multimap(jnp.divide, out, self.scale)
