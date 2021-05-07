@@ -14,6 +14,7 @@
 
 from typing import Any, Optional, Tuple
 from functools import partial
+from compose import compose
 
 import jax
 import jax.flatten_util
@@ -42,12 +43,12 @@ def single_sample(f):
     return _f
 
 
-def sub_mean(oks: PyTree) -> PyTree:
+def tree_subtract_mean(oks: PyTree) -> PyTree:
     return jax.tree_map(partial(subtract_mean, axis=0), oks)  # MPI
 
 
 @partial(jax.vmap, in_axes=(None, None, 0))
-def vmap_grad_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
+def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→R or holomorphic C→C, so single grad is enough
 
@@ -64,15 +65,8 @@ def vmap_grad_real_holo(forward_fn: Callable, params: PyTree, samples: Array) ->
     return res
 
 
-def vmap_grad_centered_real_holo(
-    forward_fn: Callable, params: PyTree, samples: Array
-) -> PyTree:
-    """Calculates centred Jacobian (i.e., subtracts MPI mean from vmap_grad)"""
-    return sub_mean(vmap_grad_real_holo(forward_fn, params, samples))
-
-
 @partial(jax.vmap, in_axes=(None, None, 0))
-def vmap_grad_cplx(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
+def jacobian_cplx(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→C, backpropagates 1 and -1j
 
@@ -82,45 +76,44 @@ def vmap_grad_cplx(forward_fn: Callable, params: PyTree, samples: Array) -> PyTr
         samples : an array of n samples σ
 
     Returns:
-        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree"""
+        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
+    """
     y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
     gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
-    return gr, gi
+    return jax.tree_multimap(jax.lax.complex, gr, gi)
 
 
-def vmap_grad_centered_cplx(
-    forward_fn: Callable, params: PyTree, samples: Array, stack: bool = True
-) -> PyTree:
-    """Calculates centred Jacobian (i.e., subtracts MPI mean from vmap_grad)"""
-    gr, gi = vmap_grad_cplx(forward_fn, params, samples)
-
-    if stack:
-        # Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
-        # Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
-        return jax.tree_multimap(
-            lambda re, im: jnp.concatenate([re, im], axis=0), sub_mean(gr), sub_mean(gi)
-        )
-    else:
-        return sub_mean(jax.tree_multimap(jax.lax.complex, gr, gi))
+centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
+centered_jacobian_cplx = compose(tree_subtract_mean, jacobian_cplx)
 
 
-def _prepare_doks(forward_fn, params, samples, vmap_grad_centered_fun, rescale_shift):
-    doks = vmap_grad_centered_fun(forward_fn, params, samples)
+def stack_jacobian(centered_oks):
+    # Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
+    # Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
+    return jax.tree_map(
+        lambda x: jnp.concatenate([x.real, x.imag], axis=0), centered_oks
+    )
+
+
+def _prepare_centered_oks(
+    forward_fn, params, samples, centered_jacobian_fun, rescale_shift
+):
+    centered_oks = centered_jacobian_fun(forward_fn, params, samples)
     n_samp = samples.shape[0] * n_nodes  # MPI
-    doks = jax.tree_map(lambda x: x / np.sqrt(n_samp), doks)
+    centered_oks = jax.tree_map(lambda x: x / np.sqrt(n_samp), centered_oks)
 
     if rescale_shift:
         scale = jax.tree_map(
             lambda x: sum_inplace(jnp.sum((x * x.conj()).real, axis=0, keepdims=True))
             ** 0.5,
-            doks,
+            centered_oks,
         )
-        doks = jax.tree_multimap(jnp.divide, doks, scale)
+        centered_oks = jax.tree_multimap(jnp.divide, centered_oks, scale)
         scale = jax.tree_map(partial(jnp.squeeze, axis=0), scale)
-        return doks, scale
+        return centered_oks, scale
     else:
-        return doks, None
+        return centered_oks, None
 
 
 def _jvp(oks: PyTree, v: PyTree) -> Array:
@@ -153,7 +146,7 @@ def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
 
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
-def prepare_doks(
+def prepare_centered_oks(
     apply_fun: Callable,
     params: PyTree,
     samples: Array,
@@ -196,13 +189,13 @@ def prepare_doks(
 
     if mode == "real":
         split_complex_params = True  # convert C→R and R&C→R to R→R
-        vmap_grad_fun = vmap_grad_centered_real_holo
+        centered_jacobian_fun = centered_jacobian_real_holo
     elif mode == "complex":
         split_complex_params = True  # convert C→C and R&C→C to R→C
-        vmap_grad_fun = vmap_grad_centered_cplx
+        centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
     elif mode == "holomorphic":
         split_complex_params = False
-        vmap_grad_fun = vmap_grad_centered_real_holo
+        centered_jacobian_fun = centered_jacobian_real_holo
     else:
         raise NotImplementedError(
             'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
@@ -220,7 +213,9 @@ def prepare_doks(
     else:
         f = forward_fn
 
-    return _prepare_doks(f, params, samples, vmap_grad_fun, rescale_shift)
+    return _prepare_centered_oks(
+        f, params, samples, centered_jacobian_fun, rescale_shift
+    )
 
 
 def mat_vec(v: PyTree, centered_oks: PyTree, diag_shift: Scalar) -> PyTree:

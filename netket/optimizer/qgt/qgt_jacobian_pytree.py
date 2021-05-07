@@ -26,7 +26,7 @@ import netket.jax as nkjax
 
 from ..linear_operator import LinearOperator, Uninitialized
 
-from .qgt_jacobian_pytree_logic import mat_vec, prepare_doks
+from .qgt_jacobian_pytree_logic import mat_vec, prepare_centered_oks
 
 
 def QGTJacobianPyTree(
@@ -39,7 +39,7 @@ def QGTJacobianPyTree(
         )
         mode = "complex" if complex_output else "real"
 
-    O, scale = prepare_doks(
+    O, scale = prepare_centered_oks(
         vstate._apply_fun,
         vstate.parameters,
         vstate.samples,

@@ -294,7 +294,9 @@ def test_matvec(e, centered, jit, holomorphic):
 def test_matvec_linear_transpose(e, centered, jit):
     def mvt(v, f, params, samples, centered, w):
         (res,) = jax.linear_transpose(
-            lambda v_: qgt_onthefly_logic.mat_vec(v_, f, params, samples, 0.0, centered),
+            lambda v_: qgt_onthefly_logic.mat_vec(
+                v_, f, params, samples, 0.0, centered
+            ),
             v,
         )(w)
         return res
@@ -317,7 +319,7 @@ def test_matvec_linear_transpose(e, centered, jit):
     assert tree_allclose(actual, expected)
 
 
-# TODO separate test for prepare_doks
+# TODO separate test for prepare_centered_oks
 # TODO test holomorphic=False
 @pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25, 1024])
@@ -327,25 +329,25 @@ def test_matvec_linear_transpose(e, centered, jit):
 )
 def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype):
     diag_shift = 0.01
-    mv = qgt_jacobian_pytree_logic.mat_vec
+    mv = qgt_jacobian_pytree_logic._mat_vec
 
-    if not nkjax.is_complex_dtype(outdtype):
-        mode = "real"
-    elif nkjax.is_complex_dtype(pardtype) and holomorphic:
-        mode = "holomorphic"
+    if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
+        cjf = qgt_jacobian_pytree_logic.centered_jacobian_cplx
     else:
-        mode = "complex"
+        cjf = qgt_jacobian_pytree_logic.centered_jacobian_real_holo
 
-    pdoks = partial(qgt_jacobian_pytree_logic._prepare_doks, mode=mode, rescale_shift=False)
+    pcentered_oks = partial(
+        qgt_jacobian_pytree_logic._prepare_centered_oks,
+        centered_jacobian_fun=cjf,
+        rescale_shift=False,
+    )
     if jit:
         mv = jax.jit(mv)
-        pdoks = jax.jit(pdoks, static_argnums=0)
+        pcentered_oks = jax.jit(pcentered_oks, static_argnums=0)
 
-    doks, _ = pdoks(e.f, e.params, e.samples)
-    actual = mv(e.v, doks, diag_shift)
-    expected = reassemble_complex(
-        e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
-    )
+    centered_oks, _ = pcentered_oks(e.f, e.params, e.samples)
+    actual = mv(e.v, centered_oks)
+    expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
     assert tree_allclose(actual, expected)
 
 
