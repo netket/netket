@@ -16,6 +16,8 @@ import warnings
 import functools
 import inspect
 
+from textwrap import dedent
+
 
 def deprecated(reason=None):
     r"""
@@ -27,7 +29,7 @@ def deprecated(reason=None):
         object_type = "class" if inspect.isclass(func) else "function"
         message = "Call to deprecated {} {!r}".format(object_type, func.__name__)
         if reason is not None:
-            message += " ({})".format(reason)
+            message += f" ({dedent(reason)})"
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -59,7 +61,7 @@ def deprecated_new_name(message):
                     "{} has been renamed to {}. The old name is "
                     "now deprecated and will be removed in the next minor version.\n"
                     "Please update your code."
-                ).format(func.__name__, message),
+                ).format(func.__name__, dedent(message)),
                 category=FutureWarning,
                 stacklevel=2,
             )

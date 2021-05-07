@@ -33,7 +33,7 @@ from netket import utils
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
-from netket.utils import flax as flax_utils, maybe_wrap_module
+from netket.utils import maybe_wrap_module
 from netket.utils.types import DType, Array, PyTree, PRNGKeyT, Shape, NNInitFunc
 from netket.optimizer import SR
 from netket.operator import (

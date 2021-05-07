@@ -34,7 +34,7 @@ from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
-from netket.utils import flax as flax_utils, maybe_wrap_module, deprecated, mpi
+from netket.utils import maybe_wrap_module, deprecated, mpi
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
 from netket.optimizer import SR
 from netket.operator import (

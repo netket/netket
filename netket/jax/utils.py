@@ -29,14 +29,6 @@ from jax.tree_util import (
 )
 from jax.util import as_hashable_function
 
-# Workaround https://github.com/google/jax/issues/6641
-# To be removed if we drop support for old jax versions
-# pre 0.2.14
-if hasattr(jax.dtypes, "dtype_real"):
-    from jax.dtypes import dtype_real
-else:
-    from jax._src.dtypes import dtype_real
-
 from netket.utils import random_seed, mpi
 from netket.utils.mpi import MPI, MPI_jax_comm
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Scalar
@@ -84,12 +76,16 @@ def tree_size(tree: PyTree) -> int:
 
 
 def is_complex(x):
-    #  Returns true if x is complex
+    """
+    Returns True if x has a complex dtype
+    """
     return jnp.issubdtype(x.dtype, jnp.complexfloating)
 
 
 def is_real(x):
-    #  Returns true if x is real
+    """
+    Returns True if x has a floating point real dtype
+    """
     return jnp.issubdtype(x.dtype, jnp.floating)
 
 
@@ -108,11 +104,35 @@ def tree_leaf_isreal(pars: PyTree) -> bool:
 
 
 def is_complex_dtype(typ):
+    """
+    Returns True if typ is a complex dtype
+    """
     return jnp.issubdtype(typ, jnp.complexfloating)
 
 
 def is_real_dtype(typ):
+    """
+    Returns True if typ is a floating real dtype
+    """
     return jnp.issubdtype(typ, jnp.floating)
+
+
+# Return the type holding the real part of the input type
+def dtype_real(typ):
+    """
+    If typ is a complex dtype returns the real counterpart of typ
+    (eg complex64 -> float32, complex128 ->float64).
+    Returns typ otherwise.
+    """
+    if np.issubdtype(typ, np.complexfloating):
+        if typ == np.dtype("complex64"):
+            return np.dtype("float32")
+        elif typ == np.dtype("complex128"):
+            return np.dtype("float64")
+        else:
+            raise TypeError("Unknown complex floating type {}".format(typ))
+    else:
+        return typ
 
 
 def tree_ishomogeneous(pars: PyTree) -> bool:

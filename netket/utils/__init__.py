@@ -17,7 +17,7 @@ from .config_flags import config
 from . import types
 
 from .array import HashableArray
-from .jax import jit_if_singleproc, get_afun_if_module
+from .jax import get_afun_if_module
 from . import mpi
 from .optional_deps import torch_available, tensorboard_available, backpack_available
 from .seed import random_seed
@@ -35,5 +35,3 @@ flax_available = True
 mpi4jax_available = mpi.mpi_available
 
 _hide_submodules(__name__, remove_self=False)
-
-from . import flax
