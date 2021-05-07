@@ -23,7 +23,6 @@ BASE_DEPENDENCIES = [
     "flax>=0.3.0, <0.4",
     "orjson~=3.4",
     "optax>=0.0.2, <=0.0.7",
-    "compose>=1.1.1",
 ]
 
 setup(
