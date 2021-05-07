@@ -92,6 +92,14 @@ centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
 centered_jacobian_cplx = compose(tree_subtract_mean, jacobian_cplx)
 
 
+def _divide_by_sqrt_n_samp(oks, samples):
+    """
+    divide Oⱼₖ by √n
+    """
+    n_samp = samples.shape[0] * n_nodes  # MPI
+    return jax.tree_map(lambda x: x / np.sqrt(n_samp), oks)
+
+
 def stack_jacobian(centered_oks: PyTree) -> PyTree:
     """
     Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
@@ -102,28 +110,18 @@ def stack_jacobian(centered_oks: PyTree) -> PyTree:
     )
 
 
-def _prepare_centered_oks(
-    forward_fn, params, samples, centered_jacobian_fun, rescale_shift
-):
+def _rescale(centered_oks):
     """
-    compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
-    divided by √n using the centered_jacobian_fun and optionally do the rescale_shift
+    scale-invariant regularisation
     """
-    centered_oks = centered_jacobian_fun(forward_fn, params, samples)
-    n_samp = samples.shape[0] * n_nodes  # MPI
-    centered_oks = jax.tree_map(lambda x: x / np.sqrt(n_samp), centered_oks)
-
-    if rescale_shift:
-        scale = jax.tree_map(
-            lambda x: sum_inplace(jnp.sum((x * x.conj()).real, axis=0, keepdims=True))
-            ** 0.5,
-            centered_oks,
-        )
-        centered_oks = jax.tree_multimap(jnp.divide, centered_oks, scale)
-        scale = jax.tree_map(partial(jnp.squeeze, axis=0), scale)
-        return centered_oks, scale
-    else:
-        return centered_oks, None
+    scale = jax.tree_map(
+        lambda x: sum_inplace(jnp.sum((x * x.conj()).real, axis=0, keepdims=True))
+        ** 0.5,
+        centered_oks,
+    )
+    centered_oks = jax.tree_multimap(jnp.divide, centered_oks, scale)
+    scale = jax.tree_map(partial(jnp.squeeze, axis=0), scale)
+    return centered_oks, scale
 
 
 def _jvp(oks: PyTree, v: PyTree) -> Array:
@@ -223,9 +221,18 @@ def prepare_centered_oks(
     else:
         f = forward_fn
 
-    return _prepare_centered_oks(
-        f, params, samples, centered_jacobian_fun, rescale_shift
+    centered_oks = _divide_by_sqrt_n_samp(
+        centered_jacobian_fun(
+            f,
+            params,
+            samples,
+        ),
+        samples,
     )
+    if rescale_shift:
+        return _rescale(centered_oks)
+    else:
+        return centered_oks, None
 
 
 def mat_vec(v: PyTree, centered_oks: PyTree, diag_shift: Scalar) -> PyTree:
