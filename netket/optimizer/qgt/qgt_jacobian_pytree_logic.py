@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from typing import Any, Optional, Tuple
-from functools import partial
+from functools import partial, wraps
 from netket.jax import compose
 
 import jax
@@ -69,8 +69,10 @@ def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> 
     return res
 
 
-@partial(jax.vmap, in_axes=(None, None, 0))
-def jacobian_cplx(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
+@partial(jax.vmap, in_axes=(None, None, 0, None))
+def _jacobian_cplx(
+    forward_fn: Callable, params: PyTree, samples: Array, _build_fn: Callable
+) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→C, backpropagates 1 and -1j
 
@@ -85,7 +87,14 @@ def jacobian_cplx(forward_fn: Callable, params: PyTree, samples: Array) -> PyTre
     y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
     gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
-    return jax.tree_multimap(jax.lax.complex, gr, gi)
+    return _build_fn(gr, gi)
+
+
+@partial(wraps(_jacobian_cplx))
+def jacobian_cplx(
+    forward_fn, params, samples, _build_fn=partial(jax.tree_multimap, jax.lax.complex)
+):
+    return _jacobian_cplx(forward_fn, params, samples, _build_fn)
 
 
 centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
@@ -107,6 +116,20 @@ def stack_jacobian(centered_oks: PyTree) -> PyTree:
     """
     return jax.tree_map(
         lambda x: jnp.concatenate([x.real, x.imag], axis=0), centered_oks
+    )
+
+
+def stack_jacobian_tuple(centered_oks_re_im):
+    """
+    stack the real and imaginary parts of ΔOⱼₖ along the sample axis
+
+    Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
+
+    Args:
+        centered_oks_re_im : a tuple (ΔOᵣ, ΔOᵢ) of two PyTrees representing the real and imag part of ΔOⱼₖ
+    """
+    return jax.tree_multimap(
+        lambda re, im: jnp.concatenate([re, im], axis=0), *centered_oks_re_im
     )
 
 
@@ -202,7 +225,14 @@ def prepare_centered_oks(
         centered_jacobian_fun = centered_jacobian_real_holo
     elif mode == "complex":
         split_complex_params = True  # convert C→C and R&C→C to R→C
-        centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
+        # centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
+
+        # avoid converting to complex and then back
+        # by passing around the oks as a tuple of two pytrees representing the real and imag parts
+        centered_jacobian_fun = compose(
+            stack_jacobian_tuple,
+            partial(centered_jacobian_cplx, _build_fn=lambda *x: x),
+        )
     elif mode == "holomorphic":
         split_complex_params = False
         centered_jacobian_fun = centered_jacobian_real_holo
