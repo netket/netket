@@ -167,6 +167,7 @@ def prepare_doks(
             pytree containing the norms that were divided out (same shape as params)
 
     """
+    samples = samples.reshape((-1, samples.shape[-1]))
     doks = vmap_grad_centered(forward_fn, params, samples, model_state, mode)
     n_samp = samples.shape[0] * n_nodes  # MPI
     doks = jax.tree_map(lambda x: x / np.sqrt(n_samp), doks)
