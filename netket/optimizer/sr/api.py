@@ -99,7 +99,6 @@ def SR(*args, **kwargs):
                     "SR takes at most 2 positional arguments but len(args) where provided"
                 )
 
-        print(kwargs)
         args = tuple()
 
         solver = None
