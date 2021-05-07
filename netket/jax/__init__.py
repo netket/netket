@@ -28,6 +28,7 @@ from .utils import (
     tree_cast,
     tree_axpy,
     tree_to_real,
+    compose,
     HashablePartial,
     mpi_split,
     PRNGKey,
