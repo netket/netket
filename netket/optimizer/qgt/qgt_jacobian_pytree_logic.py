@@ -43,7 +43,11 @@ def single_sample(f):
     return _f
 
 
+# TODO move it somewhere reasonable
 def tree_subtract_mean(oks: PyTree) -> PyTree:
+    """
+    subtract the mean with MPI along axis 0 of every leaf
+    """
     return jax.tree_map(partial(subtract_mean, axis=0), oks)  # MPI
 
 
@@ -53,7 +57,7 @@ def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> 
     Assumes the function is R→R or holomorphic C→C, so single grad is enough
 
     Args:
-        forward_fn: the log wavefunction
+        forward_fn: the log wavefunction ln Ψ
         params : a pytree of parameters p
         samples : an array of n samples σ
 
@@ -71,7 +75,7 @@ def jacobian_cplx(forward_fn: Callable, params: PyTree, samples: Array) -> PyTre
     Assumes the function is R→C, backpropagates 1 and -1j
 
     Args:
-        forward_fn: the log wavefunction
+        forward_fn: the log wavefunction ln Ψ
         params : a pytree of parameters p
         samples : an array of n samples σ
 
@@ -88,9 +92,11 @@ centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
 centered_jacobian_cplx = compose(tree_subtract_mean, jacobian_cplx)
 
 
-def stack_jacobian(centered_oks):
-    # Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
-    # Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
+def stack_jacobian(centered_oks: PyTree) -> PyTree:
+    """
+    Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
+    Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
+    """
     return jax.tree_map(
         lambda x: jnp.concatenate([x.real, x.imag], axis=0), centered_oks
     )
@@ -99,6 +105,10 @@ def stack_jacobian(centered_oks):
 def _prepare_centered_oks(
     forward_fn, params, samples, centered_jacobian_fun, rescale_shift
 ):
+    """
+    compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
+    divided by √n using the centered_jacobian_fun and optionally do the rescale_shift
+    """
     centered_oks = centered_jacobian_fun(forward_fn, params, samples)
     n_samp = samples.shape[0] * n_nodes  # MPI
     centered_oks = jax.tree_map(lambda x: x / np.sqrt(n_samp), centered_oks)
