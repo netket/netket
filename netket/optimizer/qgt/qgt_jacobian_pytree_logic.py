@@ -14,7 +14,7 @@
 
 from typing import Any, Optional, Tuple
 from functools import partial
-from compose import compose
+from netket.jax import compose
 
 import jax
 import jax.flatten_util
