@@ -19,7 +19,9 @@ In addition, GCNNs may contain element-wise nonlinearities, since these do not i
 Consider a conventional CNN on an infinite square lattice. The only linear maps that are equivariant with respect to an arbitrary translation of the input are convolutions of the form
 $$ C_\vec{r} = \sum_{\vec r'} W_{\vec r'-\vec r} f_\vec{r} $$
 [^cohen] motivates introducing GCNNs by reinterpreting the $\mathbb{Z}^2$ square lattice as the $\mathbb{Z}^2$ translation group of the same. In this language, we get
+
 $$ C_g = \sum_h W_{g^{-1}h} f_h = \sum_h W_{hg^{-1}} f_h; $$ (eq:both_equiv)
+
 the two forms are equivalent here because the group $\mathbb{Z}^2$ is Abelian. A general space group is, however, not, leading to equivariant layers that behave quite differently and play nice with different embedding layers.
 
 ### Covariant GCNNs, left-equivariant layers [introduced in [^cohen], implemented in NetKet]
@@ -29,15 +31,19 @@ $$ |\psi_g\rangle = g|\psi\rangle $$
 for some state $|\psi\rangle$. In terms of wave function components, this is equivalent to
 $$ \psi_g(\boldsymbol\sigma) = \langle \boldsymbol\sigma | g|\psi\rangle = \psi(g^{-1}\boldsymbol\sigma). $$
 We want to achieve this symmetry by constructing an embedding layer that maps $\boldsymbol\sigma$ onto a set of such features, and equivariant layers that preserve them. The first is a linear map of the input quantum numbers $\sigma_\vec{r}$:
+
 $$ \begin{aligned}
-\mathbf{f}_g(\boldsymbol\sigma) &= \mathbf{f}(g^{-1}\boldsymbol\sigma) = \sum_\vec{r} \mathbf{W}_\vec{r} (g^{-1}\boldsymbol\sigma)_\vec{r} = \sum_\vec{r} \mathbf{W}_\vec{r} \sigma_{g\vec r} \\
-&= \sum_{\vec r} \mathbf{W}_{g^{-1} \vec r} \sigma_\vec{r},
+    \mathbf{f}_g(\boldsymbol\sigma) &= \mathbf{f}(g^{-1}\boldsymbol\sigma) = \sum_\vec{r} \mathbf{W}_\vec{r} (g^{-1}\boldsymbol\sigma)_\vec{r} = \sum_\vec{r} \mathbf{W}_\vec{r} \sigma_{g\vec r} \\
+    &= \sum_{\vec r} \mathbf{W}_{g^{-1} \vec r} \sigma_\vec{r},
 \end{aligned} $$ (eq:cov_embed)
+
 where $\mathbf{W}_{\vec r}$ is an arbitrary set of weights that live on the original lattice.
 The third equality comes from the definition of space-group transforming a basis state: $(g\boldsymbol\sigma)_{g\vec r} \equiv \sigma_{\vec r}$.
 
 It then turns out [^cohen] that this covariant embedding of basis states into the group structure is preserved only by the first form of {eq}`eq:both_equiv`:
+
 $$ \boldsymbol\phi_g = \sum_{h} \mathbf{X}_{g^{-1}h} \mathbf{f}_h. $$ (eq:cov_equiv)
+
 Indeed,
 $$ \boldsymbol\phi_g = \sum_{h} \mathbf{X}_{g^{-1}h} \sum_{\vec r} \mathbf{W}_{h^{-1}\vec r} \sigma_\vec{r} = \sum_{\vec r}  \left( \sum_h \mathbf{X}_h \mathbf{W}_{h^{-1}(g^{-1}\vec r)}\right) \sigma_\vec{r}; $$
 the expression in brackets only depends on $g^{-1}\vec r$, so it is equivalent to {eq}`eq:cov_embed`.
@@ -55,9 +61,13 @@ As the conventional implementation of group equivariance in machine learning, Ne
 An equally sensible alternative embedding of the input states in the group structure would be requiring that the coefficients of basis states transform according to the group transformation:
 $$ \psi_g(\boldsymbol\sigma) = \psi(g\boldsymbol\sigma). $$
 In analogy with covariant and contravariant vectors, we call the resulting GCNN *contravariant.* Repeating the steps above leads to the embedding layer
+
 $$ \mathbf{f}_g(\boldsymbol\sigma) = \sum_{\vec r} \mathbf{W}_{g\vec r} \sigma_\vec{r}, $$ (eq:cont_embed)
+
 which can be used with the equivariant layer
+
 $$ \boldsymbol\phi_g = \sum_{h} \mathbf{X}_{hg^{-1}} \mathbf{f}_h. $$ (eq:cont_equiv)
+
 As opposed to the covariant case, this layer is equivariant with respect to *multiplying on the right:*
 $$ \boldsymbol\phi'_g = \sum_h \mathbf{W}_{hg^{-1}} \mathbf{f}_{hu} = \sum_h \mathbf{W}_{gu h^{-1}} \mathbf{f}_h = \boldsymbol\phi_{gu}. $$
 

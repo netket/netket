@@ -115,7 +115,7 @@ To summarise the discussion above, here follows an algorithm that generates the 
 2. For all $p$ in the point group:
     1. Let $\vec k' = p\vec k$.
     2. For all $g\in P(\vec k)$:
-        1. Let $g' = pgp^{-1}$ and $\chi'(g') = \chi^0(g).
+        1. Let $g' = pgp^{-1}$ and $\chi'(g') = \chi^0(g)$.
         2. For all lattice translations $t_\vec{r}$, add $\chi'(g') e^{-i\vec k' \vec r}$ to $\chi(g't_\vec{r})$
 3. Divide all $\chi(s)$ by $|P(\vec k)|$ and return them
 
