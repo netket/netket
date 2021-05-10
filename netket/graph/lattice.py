@@ -20,6 +20,8 @@ import itertools
 import networkx as _nx
 import warnings
 from typing import Tuple, Union, Optional
+from math import pi
+from itertools import product
 
 cutoff_tol = 1e-5
 """Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
@@ -226,6 +228,9 @@ class Lattice(NetworkX):
         new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
         graph = _nx.relabel_nodes(graph, new_nodes)
 
+        self._atoms_coord = dicts_to_array(self._atoms,"r_coord")
+        self._lattice_dims = _np.expand_dims(self.extent,1)*self.basis_vectors
+        
         # Order node names
         nodes = sorted(graph.nodes())
         edges = list(graph.edges())
@@ -245,6 +250,51 @@ class Lattice(NetworkX):
         Coordinates of atoms in the unit cell.
         """
         return self._atoms_coord
+
+    def translation_perm(self):
+      perms = []
+      for vec in self.basis_vectors:
+        perm = []
+        for coord in self._atoms_coord:
+          new_coord = coord.copy() + vec
+          searching = 1
+          while searching:
+            for i, old_coord in enumerate(self._atoms_coord):
+              shift_lattice = product(range(-1,2),repeat=len(self._lattice_dims))
+              for shift in shift_lattice:
+                move_coord = old_coord + _np.sum(_np.expand_dims(_np.asarray(shift),1)*self._lattice_dims,0)
+                if _np.all(_np.isclose(move_coord,new_coord)):
+                  perm.append(i)
+                  searching = 0 
+
+        perms.append(perm)
+      return perms 
+
+    def rotation_perm(self,period,axes=[0,1]):
+      perm = []
+      rot_mat = _np.zeros([2,2])
+      rot_mat[0,0] = _np.cos(2*pi/period)
+      rot_mat[1,0] = -_np.sin(2*pi/period)
+      rot_mat[0,1] = _np.sin(2*pi/period)
+      rot_mat[1,1] = _np.cos(2*pi/period)
+
+      for coord in self._atoms_coord:
+        new_coord = coord.copy()
+        new_coord[axes] = _np.matmul(rot_mat,new_coord[axes])
+
+        searching = 1
+        while searching:
+          for i,old_coord in enumerate(self._atoms_coord):
+            shift_lattice = product(range(-1,2), repeat = len(self._lattice_dims))
+            for shift in shift_lattice:
+              move_coord = old_coord + _np.sum(_np.expand_dims(_np.asarray(shift),1)*self._lattice_dims,0)
+              if _np.all(_np.isclose(new_coord,move_coord)):
+                perm.append(i)
+                searching = 0
+          if searching:
+            raise ValueError("Rotation with the specified period and axes does not map to itself")
+
+      return perm
 
     def draw(
         self,
