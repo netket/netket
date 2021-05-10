@@ -22,12 +22,62 @@ import warnings
 from typing import Tuple, Union, Optional
 from math import pi
 from itertools import product
+from dataclasses import dataclass
+
+from netket.utils.semigroup import Identity, Element
+from .symmetry import SymmGroup
 
 cutoff_tol = 1e-5
 """Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
 This is necessary because of floating-point errors when computing the distance in non-trivial 
 lattices.
 """
+
+
+@dataclass(frozen=True)
+class Translation(Element):
+    perms: Tuple[Tuple[int]]
+    shift: Tuple[int]
+
+    def __call__(self, sites):
+        for i, dim in enumerate(self.shift):
+            perm = self.perms[i]
+            for j in range(dim):
+                sites = _np.take(sites, perm)
+
+        return sites
+
+    def __repr__(self):
+        return f"T{self.shifts}"
+
+
+@dataclass(frozen=True)
+class PlanarRotation(Element):
+    perm: Tuple[int]
+    num_rots: int
+
+    def __call__(self, sites):
+        for i in range(self.num_rots):
+            sites = _np.take(sites, self.perm)
+
+        return sites
+
+    def __repr__(self):
+        return f"Rot{self.num_rots}"
+
+
+@dataclass(frozen=True)
+class Reflection(Element):
+
+    perm: Tuple[int]
+
+    def __call__(self, sites):
+        sites = _np.take(sites, self.perm)
+
+        return sites
+
+    def __repr__(self):
+        return f"Ref"
 
 
 def get_edges(atoms_positions, cutoff, distance_atol=cutoff_tol):
@@ -228,9 +278,9 @@ class Lattice(NetworkX):
         new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
         graph = _nx.relabel_nodes(graph, new_nodes)
 
-        self._atoms_coord = dicts_to_array(self._atoms,"r_coord")
-        self._lattice_dims = _np.expand_dims(self.extent,1)*self.basis_vectors
-        
+        self._atoms_coord = dicts_to_array(self._atoms, "r_coord")
+        self._lattice_dims = _np.expand_dims(self.extent, 1) * self.basis_vectors
+
         # Order node names
         nodes = sorted(graph.nodes())
         edges = list(graph.edges())
@@ -252,49 +302,127 @@ class Lattice(NetworkX):
         return self._atoms_coord
 
     def translation_perm(self):
-      perms = []
-      for vec in self.basis_vectors:
+        perms = []
+        for vec in self.basis_vectors:
+            perm = []
+            for coord in self._atoms_coord:
+                new_coord = coord.copy() + vec
+                searching = 1
+                while searching:
+                    for i, old_coord in enumerate(self._atoms_coord):
+                        shift_lattice = product(
+                            range(-1, 2), repeat=len(self._lattice_dims)
+                        )
+                        for shift in shift_lattice:
+                            move_coord = old_coord + _np.sum(
+                                _np.expand_dims(_np.asarray(shift), 1)
+                                * self._lattice_dims,
+                                0,
+                            )
+                            if _np.all(_np.isclose(move_coord, new_coord)):
+                                perm.append(i)
+                                searching = 0
+
+            perms.append(tuple(perm))
+        return tuple(perms)
+
+    def rotation_perm(self, period, axes=[0, 1]):
+        perm = []
+        axes = list(axes)
+        rot_mat = _np.zeros([2, 2])
+        rot_mat[0, 0] = _np.cos(2 * pi / period)
+        rot_mat[1, 0] = -_np.sin(2 * pi / period)
+        rot_mat[0, 1] = _np.sin(2 * pi / period)
+        rot_mat[1, 1] = _np.cos(2 * pi / period)
+
+        for coord in self._atoms_coord:
+            new_coord = coord.copy()
+            new_coord[axes] = _np.matmul(rot_mat, new_coord[axes])
+
+            searching = 1
+            while searching:
+                for i, old_coord in enumerate(self._atoms_coord):
+                    shift_lattice = product(
+                        range(-1, 2), repeat=len(self._lattice_dims)
+                    )
+                    for shift in shift_lattice:
+                        move_coord = old_coord + _np.sum(
+                            _np.expand_dims(_np.asarray(shift), 1) * self._lattice_dims,
+                            0,
+                        )
+                        if _np.all(_np.isclose(new_coord, move_coord)):
+                            perm.append(i)
+                            searching = 0
+                if searching:
+                    raise ValueError(
+                        "Rotation with the specified period and axes does not map lattice to itself"
+                    )
+
+        return tuple(perm)
+
+    def reflection_perm(self, axis=0):
         perm = []
         for coord in self._atoms_coord:
-          new_coord = coord.copy() + vec
-          searching = 1
-          while searching:
-            for i, old_coord in enumerate(self._atoms_coord):
-              shift_lattice = product(range(-1,2),repeat=len(self._lattice_dims))
-              for shift in shift_lattice:
-                move_coord = old_coord + _np.sum(_np.expand_dims(_np.asarray(shift),1)*self._lattice_dims,0)
-                if _np.all(_np.isclose(move_coord,new_coord)):
-                  perm.append(i)
-                  searching = 0 
+            new_coord = coord.copy()
+            new_coord[axis] = -1 * new_coord[axis]
 
-        perms.append(perm)
-      return perms 
+            searching = 1
+            while searching:
+                for i, old_coord in enumerate(self.atoms_coord):
+                    shift_lattice = product(
+                        range(-1, 2), repeat=len(self._lattice_dims)
+                    )
+                    for shift in shift_lattice:
+                        move_coord = old_coord + _np.sum(
+                            _np.expand_dims(_np.asarray(shift), 1) * self._lattice_dims,
+                            0,
+                        )
+                        if _np.all(_np.isclose(new_coord, move_coord)):
+                            perm.append(i)
+                            searching = 0
+                if searching:
+                    raise ValueError(
+                        "Reflection about specified axis does not map lattice to itself"
+                    )
 
-    def rotation_perm(self,period,axes=[0,1]):
-      perm = []
-      rot_mat = _np.zeros([2,2])
-      rot_mat[0,0] = _np.cos(2*pi/period)
-      rot_mat[1,0] = -_np.sin(2*pi/period)
-      rot_mat[0,1] = _np.sin(2*pi/period)
-      rot_mat[1,1] = _np.cos(2*pi/period)
+        return tuple(perm)
 
-      for coord in self._atoms_coord:
-        new_coord = coord.copy()
-        new_coord[axes] = _np.matmul(rot_mat,new_coord[axes])
+    def planar_rotations(self, period, axes=[0, 1]) -> SymmGroup:
+        """
+        Returns SymmGroup corresponding to rotations about specfied axes with specified period
 
-        searching = 1
-        while searching:
-          for i,old_coord in enumerate(self._atoms_coord):
-            shift_lattice = product(range(-1,2), repeat = len(self._lattice_dims))
-            for shift in shift_lattice:
-              move_coord = old_coord + _np.sum(_np.expand_dims(_np.asarray(shift),1)*self._lattice_dims,0)
-              if _np.all(_np.isclose(new_coord,move_coord)):
-                perm.append(i)
-                searching = 0
-          if searching:
-            raise ValueError("Rotation with the specified period and axes does not map to itself")
+        Arguments:
+            period: Period of the rotations
+            axes: Axes that define the plane of the rotation
+        """
 
-      return perm
+        perm = self.rotation_perm(period, axes)
+        rotations = [PlanarRotation(perm, n) for n in range(1, period)]
+
+        return SymmGroup([Identity()] + rotations, graph=self)
+
+    def basis_translations(self) -> SymmGroup:
+        """
+        Returns SymmGroup corresponding to translations by basis vectors
+        """
+
+        translations = product(*[range(i) for i in self.extent])
+        next(translations)
+
+        perms = self.translation_perm()
+        translations = [Translation(perms, i) for i in translations]
+
+        return SymmGroup([Identity()] + translations, graph=self)
+
+    def reflections(self, axis=0) -> SymmGroup:
+        """
+        Returns SymmGroup corresponding to reflection about axis
+        args:
+          axis: Generated reflections about specified axis
+        """
+        perm = self.reflection_perm(axis)
+
+        return SymmGroup([Identity()] + [Reflection(perm)], graph=self)
 
     def draw(
         self,
