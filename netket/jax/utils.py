@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
+from functools import partial, reduce
 from typing import Optional, Tuple, Any, Union, Tuple, Callable
 
 import numpy as np
@@ -305,6 +305,19 @@ class HashablePartial(partial):
 #    lambda partial_: ((), (partial_.func, partial_.args, partial_.keywords)),
 #    lambda args, _: StaticPartial(args[0], *args[1], **args[2]),
 # )
+
+
+def compose(*funcs):
+    """
+    function composition
+
+    compose(f,g,h)(x) is equivalent to f(g(h(x)))
+    """
+
+    def _compose(f, g):
+        return lambda *args, **kwargs: f(g(*args, **kwargs))
+
+    return reduce(_compose, funcs)
 
 
 def PRNGKey(seed: Optional[SeedT] = None, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
