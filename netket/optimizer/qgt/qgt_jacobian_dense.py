@@ -28,7 +28,7 @@ from ..linear_operator import LinearOperator, Uninitialized
 
 
 def QGTJacobianDense(
-    vstate, *, mode, rescale_shift=True, **kwargs
+    vstate, *, mode, rescale_shift=False, **kwargs
 ) -> "QGTJacobianDenseT":
     O, scale = gradients(
         vstate._apply_fun,
@@ -122,7 +122,12 @@ class QGTJacobianDenseT(LinearOperator):
         if self.scale is not None:
             grad = grad / self.scale
 
-        out, info = solve_fun(self._unscaled_matmul, grad, x0=x0)
+        # to pass the object LinearOperator itself down
+        # but avoid rescaling, we pass down an object with
+        # scale = None
+        unscaled_self = self.replace(scale=None)
+
+        out, info = solve_fun(unscaled_self, grad, x0=x0)
 
         if self.scale is not None:
             out = out / self.scale
@@ -137,7 +142,7 @@ class QGTJacobianDenseT(LinearOperator):
         Returns:
             A dense matrix representation of this S matrix.
         """
-        if scale is None:
+        if self.scale is None:
             O = self.O
             diag = jnp.eye(self.O.shape[1])
         else:

@@ -30,17 +30,19 @@ from .qgt_jacobian_pytree_logic import mat_vec, prepare_doks
 
 
 def QGTJacobianPyTree(
-    vstate, *, mode="auto", rescale_shift=True, **kwargs
+    vstate, *, mode="auto", rescale_shift=False, **kwargs
 ) -> "QGTJacobianPyTreeT":
     # Choose sensible default mode
     if mode == "auto":
         complex_output = nkjax.is_complex(
-            jax.eval_shape(vstate._apply_fun, vstate.parameters, vstate.samples)
+            jax.eval_shape(
+                vstate._apply_fun,
+                {"params": vstate.parameters, **vstate.model_state},
+                vstate.samples,
+            )
         )
-        if complex_output:
-            mode = "complex"
-        else:
-            mode = "real"
+
+        mode = "complex" if complex_output else "real"
 
     O, scale = prepare_doks(
         vstate._apply_fun,
@@ -123,9 +125,8 @@ class QGTJacobianPyTreeT(LinearOperator):
 
     @jax.jit
     def _split_matmul(self, vec: Array) -> Array:
-        if self.mode == "holomorphic":
-            pars = self.params
-        else:
+        pars = self.params
+        if self.mode != "holomorphic":
             pars = nkjax.tree_to_real(self.params)
 
         _, unravel = nkjax.tree_ravel(pars)
@@ -165,7 +166,13 @@ class QGTJacobianPyTreeT(LinearOperator):
             if x0 is not None:
                 x0 = jax.tree_multimap(jnp.multiply, x0, self.scale)
 
-        out, info = solve_fun(self._unscaled_matmul, y, x0=x0)
+        # to pass the object LinearOperator itself down
+        # but avoid rescaling, we pass down an object with
+        # scale = None
+        # mode=holomoprhic to disable splitting the complex part
+        unscaled_self = self.replace(scale=None, mode="holomorphic")
+
+        out, info = solve_fun(unscaled_self, y, x0=x0)
 
         if self.scale is not None:
             out = jax.tree_multimap(jnp.divide, out, self.scale)
@@ -185,9 +192,9 @@ class QGTJacobianPyTreeT(LinearOperator):
             A dense matrix representation of this S matrix.
             In R→R and R→C modes, real and imaginary parts of parameters get own rows/columns
         """
-        if self.mode == "holomorphic":
-            pars = self.params
-        else:
+        pars = self.params
+
+        if self.mode != "holomorphic":
             pars = nkjax.tree_to_real(self.params)
 
         Npars = nkjax.tree_size(pars)

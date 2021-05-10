@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import qgt
+from . import qgt, solver
 
 from .sr import SR
 
