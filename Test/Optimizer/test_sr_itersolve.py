@@ -114,9 +114,9 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
 )
 def test_srjacobian_solve(vstate, solver, _mpi_size, _mpi_rank):
     if vstate.model.dtype is float:
-        qgtT = partial(qgt.QGTJacobian, mode="R2R")
+        qgtT = partial(qgt.QGTJacobianDense, mode="R2R")
     else:
-        qgtT = partial(qgt.QGTJacobian, mode="holomorphic")
+        qgtT = partial(qgt.QGTJacobianDense, mode="holomorphic")
 
     S = qgtT(vstate)
     x, _ = S.solve(solver, vstate.parameters)
@@ -140,9 +140,9 @@ def test_srjacobian_solve(vstate, solver, _mpi_size, _mpi_rank):
 # to add in a future rewrite
 def test_srjacobian_matmul(vstate, _mpi_size, _mpi_rank):
     if vstate.model.dtype is float:
-        qgtT = partial(qgt.QGTJacobian, mode="R2R")
+        qgtT = partial(qgt.QGTJacobianDense, mode="R2R")
     else:
-        qgtT = partial(qgt.QGTJacobian, mode="holomorphic")
+        qgtT = partial(qgt.QGTJacobianDense, mode="holomorphic")
 
     S = qgtT(vstate)
     x = S @ vstate.parameters
@@ -161,5 +161,7 @@ def test_srjacobian_matmul(vstate, _mpi_size, _mpi_rank):
 
             jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
 
+
+# TODO test QGTJacobianPyTree
 
 # TODO add to_dense tests

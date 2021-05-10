@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from typing import Any, Optional, Tuple
-from functools import partial
+from functools import partial, wraps
+from netket.jax import compose
 
 import jax
 import jax.flatten_util
@@ -31,116 +32,156 @@ import netket.jax as nkjax
 from netket.jax import tree_cast, tree_conj, tree_axpy, tree_to_real
 
 
-def sub_mean(oks: PyTree) -> PyTree:
+# TODO better name and move it somewhere sensible
+def single_sample(forward_fn):
+    """
+    A decorator to make the forward_fn accept a single sample
+    """
+
+    def f(W, σ):
+        return forward_fn(W, σ[jnp.newaxis, :])[0]
+
+    return f
+
+
+# TODO move it somewhere reasonable
+def tree_subtract_mean(oks: PyTree) -> PyTree:
+    """
+    subtract the mean with MPI along axis 0 of every leaf
+    """
     return jax.tree_map(partial(subtract_mean, axis=0), oks)  # MPI
 
 
 @partial(jax.vmap, in_axes=(None, None, 0))
-def vmap_grad_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
+def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→R or holomorphic C→C, so single grad is enough
 
     Args:
-        forward_fn: the log wavefunction, partialed with any model state, limited to single sample, taking a split real-imaginary PyTree in R→R mode
-        params : a pytree of parameters p, real-imaginary split in R→R mode
+        forward_fn: the log wavefunction ln Ψ
+        params : a pytree of parameters p
         samples : an array of n samples σ
 
     Returns:
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
-    y, vjp_fun = jax.vjp(forward_fn, params, samples)
+    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
     res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     return res
 
 
-def vmap_grad_centered_real_holo(
-    forward_fn: Callable, params: PyTree, samples: Array
+@partial(jax.vmap, in_axes=(None, None, 0, None))
+def _jacobian_cplx(
+    forward_fn: Callable, params: PyTree, samples: Array, _build_fn: Callable
 ) -> PyTree:
-    """Calculates centred Jacobian (i.e., subtracts MPI mean from vmap_grad)"""
-    return sub_mean(vmap_grad_real_holo(forward_fn, params, samples))
-
-
-@partial(jax.vmap, in_axes=(None, None, 0))
-def vmap_grad_cplx(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→C, backpropagates 1 and -1j
 
     Args:
-        forward_fn: the log wavefunction, partialed with any model state, limited to single sample, taking a split real-imaginary PyTree
-        params : a pytree of parameters p, real-imaginary split
+        forward_fn: the log wavefunction ln Ψ
+        params : a pytree of parameters p
         samples : an array of n samples σ
 
     Returns:
-        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree"""
-    y, vjp_fun = jax.vjp(forward_fn, params, samples)
+        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
+    """
+    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
     gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
-    return gr, gi
+    return _build_fn(gr, gi)
 
 
-def vmap_grad_centered_cplx(
-    forward_fn: Callable, params: PyTree, samples: Array
-) -> PyTree:
-    """Calculates centred Jacobian (i.e., subtracts MPI mean from vmap_grad)"""
-    gr, gi = vmap_grad_cplx(forward_fn, params, samples)
-    # Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
-    # Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
-    return jax.tree_multimap(
-        lambda re, im: jnp.concatenate([re, im], axis=0), sub_mean(gr), sub_mean(gi)
+@partial(wraps(_jacobian_cplx))
+def jacobian_cplx(
+    forward_fn, params, samples, _build_fn=partial(jax.tree_multimap, jax.lax.complex)
+):
+    return _jacobian_cplx(forward_fn, params, samples, _build_fn)
+
+
+centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
+centered_jacobian_cplx = compose(tree_subtract_mean, jacobian_cplx)
+
+
+def _divide_by_sqrt_n_samp(oks, samples):
+    """
+    divide Oⱼₖ by √n
+    """
+    n_samp = samples.shape[0] * n_nodes  # MPI
+    return jax.tree_map(lambda x: x / np.sqrt(n_samp), oks)
+
+
+def stack_jacobian(centered_oks: PyTree) -> PyTree:
+    """
+    Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
+    Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
+    """
+    return jax.tree_map(
+        lambda x: jnp.concatenate([x.real, x.imag], axis=0), centered_oks
     )
 
 
-def vmap_grad_centered(
-    forward_fn: Callable,
-    params: PyTree,
-    samples: Array,
-    model_state: Optional[PyTree],
-    mode: str,
-) -> PyTree:
+def stack_jacobian_tuple(centered_oks_re_im):
     """
-    compute the jacobian of forward_fn(params, samples) w.r.t params
-    as a pytree using vmapped gradients for efficiency
+    stack the real and imaginary parts of ΔOⱼₖ along the sample axis
 
-    mode can be 'real', 'complex', 'holomorphic'
-    TODO: add support for splitting complex pytree leaves into real and imag parts so there be a good default mode
+    Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
+
+    Args:
+        centered_oks_re_im : a tuple (ΔOᵣ, ΔOᵢ) of two PyTrees representing the real and imag part of ΔOⱼₖ
     """
-    if mode == "real":
-        # Apply real-imaginary split
-        params, reassemble = tree_to_real(params)
-        # Preapply model state and reassemble to forward_fn, restrict to one sample
-        def f(W, σ):
-            return forward_fn(
-                {"params": reassemble(W), **model_state}, σ[jnp.newaxis, :]
-            )[0]
+    return jax.tree_multimap(
+        lambda re, im: jnp.concatenate([re, im], axis=0), *centered_oks_re_im
+    )
 
-        return vmap_grad_centered_real_holo(f, params, samples)
-    elif mode == "complex":
-        # Apply real-imaginary split
-        params, reassemble = tree_to_real(params)
-        # Preapply model state and reassemble to forward_fn, restrict to one sample
-        def f(W, σ):
-            return forward_fn(
-                {"params": reassemble(W), **model_state}, σ[jnp.newaxis, :]
-            )[0]
 
-        return vmap_grad_centered_cplx(f, params, samples)
-    elif mode == "holomorphic":
-        # Preapply model state and reassemble to forward_fn, restrict to one sample
-        def f(W, σ):
-            return forward_fn({"params": W, **model_state}, σ[jnp.newaxis, :])[0]
+def _rescale(centered_oks):
+    """
+    compute ΔOₖ/√Sₖₖ and √Sₖₖ
+    to do scale-invariant regularization (Becca & Sorella 2017, pp. 143)
+    Sₖₗ/(√Sₖₖ√Sₗₗ) = ΔOₖᴴΔOₗ/(√Sₖₖ√Sₗₗ) = (ΔOₖ/√Sₖₖ)ᴴ(ΔOₗ/√Sₗₗ)
+    """
+    scale = jax.tree_map(
+        lambda x: sum_inplace(jnp.sum((x * x.conj()).real, axis=0, keepdims=True))
+        ** 0.5,
+        centered_oks,
+    )
+    centered_oks = jax.tree_multimap(jnp.divide, centered_oks, scale)
+    scale = jax.tree_map(partial(jnp.squeeze, axis=0), scale)
+    return centered_oks, scale
 
-        return vmap_grad_centered_real_holo(f, params, samples)
-    else:
-        raise NotImplementedError(
-            'Differentiation mode should be one of "real", "complex", "auto", or "holomorphic", got {}'.format(
-                mode
-            )
-        )
+
+def _jvp(oks: PyTree, v: PyTree) -> Array:
+    """
+    Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
+    """
+    td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
+    return jax.tree_util.tree_reduce(jnp.add, jax.tree_multimap(td, oks, v))
+
+
+def _vjp(oks: PyTree, w: Array) -> PyTree:
+    """
+    Compute the vector-matrix product between the vector w and the pytree jacobian oks
+    """
+    res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
+    return jax.tree_map(sum_inplace, res)  # MPI
+
+
+def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
+    """
+    Compute ⟨O† O⟩v = ∑ₗ ⟨Oₖᴴ Oₗ⟩ vₗ
+    """
+    res = tree_conj(_vjp(oks, _jvp(oks, v).conjugate()))
+    return tree_cast(res, v)
+
+
+# ==============================================================================
+# the logic above only works for R→R, R→C and holomorphic C→C
+# here the other modes are converted
 
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
-def prepare_doks(
-    forward_fn: Callable,
+def prepare_centered_oks(
+    apply_fun: Callable,
     params: PyTree,
     samples: Array,
     model_state: Optional[PyTree],
@@ -151,10 +192,14 @@ def prepare_doks(
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
     divided by √n
 
+    In a somewhat intransparent way this also internally splits all parameters to real
+    in the 'real' and 'complex' modes (for C→R, R&C→R, R&C→C and general C→C) resulting in the respective ΔOⱼₖ
+    which is only compatible with split-to-real pytree vectors
+
     Args:
-        forward_fn: the vectorised log wavefunction  ln Ψ(p; σ)
+        apply_fun: The forward pass of the Ansatz
         params : a pytree of parameters p
-        samples : an array of n samples σ
+        samples : an array of (n in total) batched samples σ
         model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
@@ -168,61 +213,73 @@ def prepare_doks(
             pytree containing the norms that were divided out (same shape as params)
 
     """
+    # un-batch the samples
     samples = samples.reshape((-1, samples.shape[-1]))
-    doks = vmap_grad_centered(forward_fn, params, samples, model_state, mode)
-    n_samp = samples.shape[0] * n_nodes  # MPI
-    doks = jax.tree_map(lambda x: x / np.sqrt(n_samp), doks)
 
-    if rescale_shift:
-        scale = jax.tree_map(
-            lambda x: sum_inplace(jnp.sum((x * x.conj()).real, axis=0, keepdims=True))
-            ** 0.5,
-            doks,
+    # pre-apply the model state
+    def forward_fn(W, σ):
+        return apply_fun({"params": W, **model_state}, σ)
+
+    if mode == "real":
+        split_complex_params = True  # convert C→R and R&C→R to R→R
+        centered_jacobian_fun = centered_jacobian_real_holo
+    elif mode == "complex":
+        split_complex_params = True  # convert C→C and R&C→C to R→C
+        # centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
+
+        # avoid converting to complex and then back
+        # by passing around the oks as a tuple of two pytrees representing the real and imag parts
+        centered_jacobian_fun = compose(
+            stack_jacobian_tuple,
+            partial(centered_jacobian_cplx, _build_fn=lambda *x: x),
         )
-        doks = jax.tree_multimap(jnp.divide, doks, scale)
-        scale = jax.tree_map(partial(jnp.squeeze, axis=0), scale)
-        return doks, scale
+    elif mode == "holomorphic":
+        split_complex_params = False
+        centered_jacobian_fun = centered_jacobian_real_holo
     else:
-        return doks, None
+        raise NotImplementedError(
+            'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
+                mode
+            )
+        )
+
+    if split_complex_params:
+        # doesn't do anything if the params are already real
+        params, reassemble = tree_to_real(params)
+
+        def f(W, σ):
+            return forward_fn(reassemble(W), σ)
+
+    else:
+        f = forward_fn
+
+    centered_oks = _divide_by_sqrt_n_samp(
+        centered_jacobian_fun(
+            f,
+            params,
+            samples,
+        ),
+        samples,
+    )
+    if rescale_shift:
+        return _rescale(centered_oks)
+    else:
+        return centered_oks, None
 
 
-def jvp(oks: PyTree, v: PyTree) -> Array:
-    """
-    Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
-    In R→R and R→C modes, v must be real-imaginary split
-    """
-    td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
-    return jax.tree_util.tree_reduce(jnp.add, jax.tree_multimap(td, oks, v))
-
-
-def vjp(oks: PyTree, w: Array) -> PyTree:
-    """
-    Compute the vector-matrix product between the vector w and the pytree jacobian oks
-    In R→R and R→C modes, the output is real-imaginary split
-    """
-    res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
-    return jax.tree_map(sum_inplace, res)  # MPI
-
-
-def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
-    """
-    Compute S v = 1/n ⟨ΔO† ΔO⟩v = 1/n ∑ₗ ⟨ΔOₖᴴ ΔOₗ⟩ vₗ
-    In R→R and R→C modes, the v and the output are real-imaginary split
-    """
-    res = tree_conj(vjp(oks, jvp(oks, v).conjugate()))
-    return tree_cast(res, v)
-
-
-def mat_vec(v: PyTree, oks: PyTree, diag_shift: Scalar) -> PyTree:
+def mat_vec(v: PyTree, centered_oks: PyTree, diag_shift: Scalar) -> PyTree:
     """
     Compute (S + δ) v = 1/n ⟨ΔO† ΔO⟩v + δ v = ∑ₗ 1/n ⟨ΔOₖᴴΔOₗ⟩ vₗ + δ vₗ
-    In R→R and R→C modes, the v and the output are real-imaginary split
+
+    Only compatible with R→R, R→C, and holomorphic C→C
+    for C→R, R&C→R, R&C→C and general C→C the parameters for generating ΔOⱼₖ should be converted to R,
+    and thus also the v passed to this function as well as the output are expected to be of this form
 
     Args:
-        v: pytree representing the vector v
-        oks: pytree of gradients 1/√n ΔOⱼₖ
+        v: pytree representing the vector v compatible with centered_oks
+        centered_oks: pytree of gradients 1/√n ΔOⱼₖ
         diag_shift: a scalar diagonal shift δ
     Returns:
         a pytree corresponding to the sr matrix-vector product (S + δ) v
     """
-    return tree_axpy(diag_shift, v, _mat_vec(v, oks))
+    return tree_axpy(diag_shift, v, _mat_vec(v, centered_oks))
