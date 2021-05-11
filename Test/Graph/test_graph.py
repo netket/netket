@@ -52,6 +52,78 @@ graphs = [
     Edgeless(10),
 ]
 
+symmetric_graphs = [
+    # Square
+    nk.graph.Lattice(basis_vectors=[[0, 1], [1, 0]], extent=[3, 3]),
+    # Triangular
+    nk.graph.Lattice(basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]], extent=[3, 3]),
+    # Honeycomb
+    nk.graph.Lattice(
+        basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
+        atoms_coord=[[1 / (2 * np.sqrt(3)), 1 / 2], [1 / np.sqrt(3), 1]],
+        extent=[3, 3],
+    ),
+    # Kagome
+    nk.graph.Lattice(
+        basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
+        atoms_coord=[[0, 1 / 2], [np.sqrt(3) / 4, 1 / 4], [np.sqrt(3) / 4, 3 / 4]],
+        extent=[3, 3],
+    ),
+    # Cube
+    nk.graph.Lattice(basis_vectors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], extent=[2, 2, 2]),
+    # Body Centered Cubic
+    nk.graph.Lattice(
+        basis_vectors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        atoms_coord=[[0, 0, 0], [1 / 2, 1 / 2, 1 / 2]],
+        extent=[2, 2, 2],
+    ),
+]
+
+unit_cells = [9, 9, 9, 9, 8, 8]
+
+atoms_per_unit_cell = [1, 1, 2, 3, 1, 2]
+
+coordination_number = [4, 6, 3, 4, 6, 8]
+
+rot_symmetry = [4, 6, 6, 6, 4, 4]
+
+
+def test_lattice_graphs():
+    # Check to see if graphs have the correct number of nodes and edges
+    for i, graph in enumerate(symmetric_graphs):
+        assert graph.n_nodes == unit_cells[i] * atoms_per_unit_cell[i]
+        assert graph.n_edges == graph.n_nodes * coordination_number[i] // 2
+
+
+def test_lattice_symmetry():
+    # Check if the symmetry groups make sense
+    for i, graph in enumerate(symmetric_graphs):
+        rots = np.asarray(graph.planar_rotations(rot_symmetry[i]))
+        # R(2pi/period)*R(2pi(1-1/period) = I)
+        assert np.all(rots[-1][rots[1]] == np.arange(graph.n_nodes))
+        # Try a bad rotation and fail
+        with pytest.raises(ValueError):
+            graph.planar_rotations(5)
+
+        # Two reflections returns graph to itself
+        ref = np.asarray(graph.reflections())
+        assert np.all(ref[1][ref[1]] == np.arange(graph.n_nodes))
+
+        # T(0,1)T(0,-1) = I
+        translations = np.asarray(graph.basis_translations())
+        if unit_cells[i] == 8:
+            # [1,0,0] maps to itself
+            assert np.all(translations[1][translations[1]] == np.arange(graph.n_nodes))
+            # [1,1,1] maps to itself
+            assert np.all(
+                translations[-1][translations[-1]] == np.arange(graph.n_nodes)
+            )
+        if unit_cells[i] == 9:
+            # T(2,0)T(1,0) maps to itself
+            assert np.all(translations[2][translations[1]] == np.arange(graph.n_nodes))
+            # T(2,1)T(1,2) maps to itself
+            assert np.all(translations[7][translations[5]] == np.arange(graph.n_nodes))
+
 
 def coord2index(xs, length):
     if isinstance(xs, int):
