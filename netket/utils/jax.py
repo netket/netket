@@ -20,3 +20,15 @@ def get_afun_if_module(mod_or_fun, *args, **kwargs):
         return mod_or_fun.apply
     else:
         return mod_or_fun
+
+
+class WrappedApplyFun:
+    def __init__(self, module):
+        self.apply = module
+
+
+def wrap_afun(mod_or_fun, *args, **kwargs):
+    if hasattr(mod_or_fun, "apply"):
+        return mod_or_fun
+    else:
+        return WrappedApplyFun(mod_or_fun)

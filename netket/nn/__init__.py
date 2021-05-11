@@ -54,7 +54,7 @@ from .symmetric_linear import (
     DenseSymm,
     DenseEquivariant,
 )
-from .masked_linear import MaskedConv2d
+from .masked_linear import MaskedConv2D
 from .module import Module
 from flax.linen.module import compact, enable_named_call, disable_named_call, Variable
 

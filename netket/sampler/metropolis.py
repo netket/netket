@@ -297,7 +297,7 @@ class MetropolisSampler(Sampler):
         with loops.Scope() as s:
             s.key = rng
             s.σ = state.σ
-            s.log_prob = sampler.machine_pow * machine(parameters, state.σ).real
+            s.log_prob = sampler.machine_pow * machine.apply(parameters, state.σ).real
 
             # for logging
             s.accepted = state.n_accepted_proc
@@ -309,7 +309,7 @@ class MetropolisSampler(Sampler):
                 σp, log_prob_correction = sampler.rule.transition(
                     sampler, machine, parameters, state, key1, s.σ
                 )
-                proposal_log_prob = sampler.machine_pow * machine(parameters, σp).real
+                proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
 
                 uniform = jax.random.uniform(key2, shape=(sampler.n_chains,))
                 if log_prob_correction is not None:

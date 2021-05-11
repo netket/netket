@@ -19,7 +19,7 @@ from . import struct
 from . import types
 
 from .array import HashableArray
-from .jax import get_afun_if_module
+from .jax import get_afun_if_module, wrap_afun
 from . import mpi
 from .optional_deps import torch_available, tensorboard_available, backpack_available
 from .seed import random_seed

@@ -111,7 +111,7 @@ class MetropolisPtSampler(MetropolisSampler):
                 """
                                Parallel Tempering samplers are under development and
                                are known not to work.
-                               
+
                                If you want to debug it, set the environment variable
                                NETKET_EXPERIMENTAL=1
                                """
@@ -199,7 +199,7 @@ class MetropolisPtSampler(MetropolisSampler):
         with loops.Scope() as s:
             s.key = rng
             s.σ = state.σ
-            s.log_prob = sampler.machine_pow * machine(parameters, state.σ).real
+            s.log_prob = sampler.machine_pow * machine.apply(parameters, state.σ).real
             s.beta = state.beta
 
             # for logging
@@ -226,7 +226,7 @@ class MetropolisPtSampler(MetropolisSampler):
                 σp, log_prob_correction = sampler.rule.transition(
                     sampler, machine, parameters, state, key1, s.σ
                 )
-                proposal_log_prob = sampler.machine_pow * machine(parameters, σp).real
+                proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
 
                 uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
                 if log_prob_correction is not None:

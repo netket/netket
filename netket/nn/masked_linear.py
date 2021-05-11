@@ -24,7 +24,7 @@ from netket.utils.types import Array, DType, NNInitFunc
 
 
 # Modified from netket.nn.linear.Conv
-class MaskedConv2d(nn.Module):
+class MaskedConv2D(nn.Module):
     """
     2D convolution module with mask for autoregressive NN.
 
