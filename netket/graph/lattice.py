@@ -290,8 +290,8 @@ class Lattice(NetworkX):
         graph.add_edges_from(edges)
 
         self._inv_dims = _np.linalg.inv(self._lattice_dims)
-        frac_positions = _np.matmul(self._coords,self._inv_dims)
-        int_positions = (1e5 * _np.around(frac_positions,5)).astype(int)
+        frac_positions = _np.matmul(self._coords, self._inv_dims)
+        int_positions = (1e5 * _np.around(frac_positions, 5)).astype(int)
         self._hash_positions = {
             hash(element.tobytes()): index
             for index, element in enumerate(int_positions)
@@ -324,7 +324,7 @@ class Lattice(NetworkX):
             perm = []
             for coord in self._coords:
                 hash_coord = coord.copy() + vec
-                hash_coord = _np.matmul(hash_coord,self._inv_dims) % 1
+                hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
                 hash_coord = (1e5 * _np.around(hash_coord, 5)).astype(int)
                 hash_coord = hash(hash_coord.tobytes())
                 perm.append(self._hash_positions[hash_coord])
@@ -345,8 +345,8 @@ class Lattice(NetworkX):
         rot_coords[:, axes] = _np.matmul(rot_coords[:, axes], rot_mat)
 
         for hash_coord in rot_coords:
-            hash_coord = _np.matmul(hash_coord,self._inv_dims) % 1 
-            hash_coord = (1e5*_np.around(hash_coord,5)).astype(int)
+            hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
+            hash_coord = (1e5 * _np.around(hash_coord, 5)).astype(int)
             hash_coord = hash(hash_coord.tobytes())
             if hash_coord in self._hash_positions:
                 perm.append(self._hash_positions[hash_coord])
@@ -363,10 +363,8 @@ class Lattice(NetworkX):
         ref_coords[:, axis] = -1 * ref_coords[:, axis]
 
         for hash_coord in ref_coords:
-            hash_coord = _np.matmul(hash_coord,self._inv_dims)%1
-            hash_coord = hash(
-                        (1e5 * _np.around(hash_coord, 5)).astype(int).tobytes()
-                    )
+            hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
+            hash_coord = hash((1e5 * _np.around(hash_coord, 5)).astype(int).tobytes())
             if hash_coord in self._hash_positions:
                 perm.append(self._hash_positions[hash_coord])
             else:
