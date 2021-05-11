@@ -280,6 +280,7 @@ class Lattice(NetworkX):
 
         self._coords = dicts_to_array(self._atoms, "r_coord")
         self._lattice_dims = _np.expand_dims(self.extent, 1) * self.basis_vectors
+        self._hash_positions = None
 
         # Order node names
         nodes = sorted(graph.nodes())
@@ -287,6 +288,12 @@ class Lattice(NetworkX):
         graph = _nx.MultiGraph()
         graph.add_nodes_from(nodes)
         graph.add_edges_from(edges)
+
+        int_positions = (1e5 * _np.around(self._coords, 5)).astype(int)
+        self._hash_positions = {
+            hash(element.tobytes()): index
+            for index, element in enumerate(int_positions)
+        }
 
         super().__init__(graph)
 
@@ -303,33 +310,33 @@ class Lattice(NetworkX):
 
     @property
     def coords(self):
-      """
-      Returns list of coordinates of lattice points 
-      """
+        """
+        Returns list of coordinates of lattice points
+        """
 
-      return self._coords
+        return self._coords
 
     def translation_perm(self):
         perms = []
         for vec in self.basis_vectors:
             perm = []
-            for coord in self._coords:
-                new_coord = coord.copy() + vec
-                searching = 1
-                while searching:
-                    for i, old_coord in enumerate(self._coords):
-                        shift_lattice = product(
-                            range(-1, 2), repeat=len(self._lattice_dims)
+            searching = 1
+            while searching:
+                for i, coord in enumerate(self._coords):
+                    new_coord = coord.copy() + vec
+                    shift_lattice = product(
+                        range(-1, 2), repeat=len(self._lattice_dims)
+                    )
+                    for shift in shift_lattice:
+                        move_coord = new_coord + _np.sum(
+                            _np.expand_dims(_np.asarray(shift), 1) * self._lattice_dims,
+                            0,
                         )
-                        for shift in shift_lattice:
-                            move_coord = old_coord + _np.sum(
-                                _np.expand_dims(_np.asarray(shift), 1)
-                                * self._lattice_dims,
-                                0,
-                            )
-                            if _np.all(_np.isclose(move_coord, new_coord)):
-                                perm.append(i)
-                                searching = 0
+                        move_coord = (1e5 * _np.around(move_coord, 5)).astype(int)
+                        move_coord = hash(move_coord.tobytes())
+                        if move_coord in self._hash_positions:
+                            perm.append(self._hash_positions[move_coord])
+                            searching = 0
 
             perms.append(tuple(perm))
         return tuple(perms)
@@ -343,27 +350,23 @@ class Lattice(NetworkX):
         rot_mat[0, 1] = _np.sin(2 * pi / period)
         rot_mat[1, 1] = _np.cos(2 * pi / period)
 
-        rot_coords= _np.ndarray.astype(1e5*_np.around(_np.matmul(_np.asarray(self.coords)[:,axes],rot_mat),5),int)
+        rot_coords = self._coords.copy()
+        rot_coords[:, axes] = _np.matmul(rot_coords[:, axes], rot_mat)
 
-        rot_hash = {
-            hash(element.tobytes()): index
-            for index, element in enumerate(rot_coords)
-        }
-
-        for i, old_coord in enumerate(self._coords):
+        for new_coord in rot_coords:
             searching = 1
             while searching:
-                shift_lattice = product(
-                    range(-1, 2), repeat=len(self._lattice_dims)
-                )
+                shift_lattice = product(range(-1, 2), repeat=len(self._lattice_dims))
                 for shift in shift_lattice:
-                    move_coord = old_coord + _np.sum(
+                    move_coord = new_coord + _np.sum(
                         _np.expand_dims(_np.asarray(shift), 1) * self._lattice_dims,
                         0,
                     )
-                    move_coord = hash(_np.ndarray.astype(1e5*_np.around(move_coord,5),int).tobytes())
-                    if move_coord in rot_hash:
-                        perm.append(rot_hash[move_coord])
+                    move_coord = hash(
+                        (1e5 * _np.around(move_coord, 5)).astype(int).tobytes()
+                    )
+                    if move_coord in self._hash_positions:
+                        perm.append(self._hash_positions[move_coord])
                         searching = 0
                 if searching:
                     raise ValueError(
@@ -375,28 +378,22 @@ class Lattice(NetworkX):
     def reflection_perm(self, axis=0):
         perm = []
         ref_coords = self._coords.copy()
-        ref_coords[:,axis] = -1 * ref_coords[:,axis]
-        ref_coords = _np.ndarray.astype(1e5*_np.around(ref_coords,5),int)
+        ref_coords[:, axis] = -1 * ref_coords[:, axis]
 
-        ref_hash = {
-            hash(element.tobytes()): index
-            for index, element in enumerate(ref_coords)
-        }
-
-        for i, old_coord in enumerate(self._coords):
+        for new_coord in ref_coords:
             searching = 1
             while searching:
-                shift_lattice = product(
-                    range(-1, 2), repeat=len(self._lattice_dims)
-                )
+                shift_lattice = product(range(-1, 2), repeat=len(self._lattice_dims))
                 for shift in shift_lattice:
-                    move_coord = old_coord + _np.sum(
+                    move_coord = new_coord + _np.sum(
                         _np.expand_dims(_np.asarray(shift), 1) * self._lattice_dims,
                         0,
                     )
-                    move_coord = hash(_np.ndarray.astype(1e5*_np.around(move_coord,5),int).tobytes())
-                    if move_coord in ref_hash:
-                        perm.append(ref_hash[move_coord])
+                    move_coord = hash(
+                        (1e5 * _np.around(move_coord, 5)).astype(int).tobytes()
+                    )
+                    if move_coord in self._hash_positions:
+                        perm.append(self._hash_positions[move_coord])
                         searching = 0
                 if searching:
                     raise ValueError(
