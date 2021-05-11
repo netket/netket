@@ -25,6 +25,7 @@ from .base import (
 )
 
 from .exact import ExactSampler
+
 from .metropolis import (
     MetropolisSampler,
     MetropolisLocal,
@@ -46,6 +47,8 @@ from .metropolis_pt import (
     MetropolisLocalPt,
     MetropolisExchangePt,
 )
+
+from .autoreg import ARSampler
 
 from . import rules
 
