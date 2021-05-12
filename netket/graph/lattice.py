@@ -28,7 +28,7 @@ from netket.utils.semigroup import Identity, Element
 from .symmetry import SymmGroup
 
 tol_digits = 5
-cutoff_tol = _np.power(10,-tol_digits)
+cutoff_tol = _np.power(10.0, -tol_digits)
 """Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
 This is necessary because of floating-point errors when computing the distance in non-trivial 
 lattices.
@@ -295,7 +295,9 @@ class Lattice(NetworkX):
         self._inv_dims = _np.linalg.inv(self._lattice_dims)
         frac_positions = _np.matmul(self._coords, self._inv_dims) % 1
         frac_positions = frac_positions - frac_positions // 1
-        int_positions = (_np.power(10,tol_digits) * _np.around(frac_positions, 5)).astype(int)
+        int_positions = (
+            _np.power(10, tol_digits) * _np.around(frac_positions, 5)
+        ).astype(int)
         self._hash_positions = {
             hash(element.tobytes()): index
             for index, element in enumerate(int_positions)
@@ -331,7 +333,9 @@ class Lattice(NetworkX):
                 hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
                 # make sure 1 and 0 are treated the same
                 hash_coord = hash_coord - hash_coord // (1 - cutoff_tol)
-                hash_coord = (_np.power(10,tol_digits) * _np.around(hash_coord, tol_digits)).astype(int)
+                hash_coord = (
+                    _np.power(10, tol_digits) * _np.around(hash_coord, tol_digits)
+                ).astype(int)
                 hash_coord = hash(hash_coord.tobytes())
                 perm.append(self._hash_positions[hash_coord])
 
@@ -353,7 +357,9 @@ class Lattice(NetworkX):
         for hash_coord in rot_coords:
             hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
             hash_coord = hash_coord - hash_coord // (1 - cutoff_tol)
-            hash_coord = (_np.power(10,tol_digits) * _np.around(hash_coord, tol_digits)).astype(int)
+            hash_coord = (
+                _np.power(10, tol_digits) * _np.around(hash_coord, tol_digits)
+            ).astype(int)
             hash_coord = hash(hash_coord.tobytes())
             if hash_coord in self._hash_positions:
                 perm.append(self._hash_positions[hash_coord])
@@ -372,7 +378,11 @@ class Lattice(NetworkX):
         for hash_coord in ref_coords:
             hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
             hash_coord = hash_coord - hash_coord // (1 - cutoff_tol)
-            hash_coord = hash((_np.power(10,tol_digits) * _np.around(hash_coord, tol_digits)).astype(int).tobytes())
+            hash_coord = hash(
+                (_np.power(10, tol_digits) * _np.around(hash_coord, tol_digits))
+                .astype(int)
+                .tobytes()
+            )
             if hash_coord in self._hash_positions:
                 perm.append(self._hash_positions[hash_coord])
             else:
