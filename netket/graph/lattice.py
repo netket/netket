@@ -331,7 +331,7 @@ class Lattice(NetworkX):
                 hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
                 # make sure 1 and 0 are treated the same
                 hash_coord = hash_coord - hash_coord // (1 - cutoff_tol)
-                hash_coord = (1e5 * _np.around(hash_coord, 5)).astype(int)
+                hash_coord = (_np.power(10,tol_digits) * _np.around(hash_coord, tol_digits)).astype(int)
                 hash_coord = hash(hash_coord.tobytes())
                 perm.append(self._hash_positions[hash_coord])
 
