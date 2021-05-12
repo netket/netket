@@ -27,7 +27,8 @@ from dataclasses import dataclass
 from netket.utils.semigroup import Identity, Element
 from .symmetry import SymmGroup
 
-cutoff_tol = 1e-5
+tol_digits = 5
+cutoff_tol = _np.power(10,-tol_digits)
 """Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
 This is necessary because of floating-point errors when computing the distance in non-trivial 
 lattices.
