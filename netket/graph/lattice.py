@@ -345,11 +345,8 @@ class Lattice(NetworkX):
     def rotation_perm(self, period, axes=[0, 1]):
         perm = []
         axes = list(axes)
-        rot_mat = _np.zeros([2, 2])
-        rot_mat[0, 0] = _np.cos(2 * pi / period)
-        rot_mat[1, 0] = -_np.sin(2 * pi / period)
-        rot_mat[0, 1] = _np.sin(2 * pi / period)
-        rot_mat[1, 1] = _np.cos(2 * pi / period)
+        angle = 2*pi/period
+        rot_mat = _np.array([[_np.cos(angle), -_np.sin(angle)], [_np.sin(angle), _np.cos(angle)]])
 
         rot_coords = self._coords.copy()
         rot_coords[:, axes] = _np.matmul(rot_coords[:, axes], rot_mat)
