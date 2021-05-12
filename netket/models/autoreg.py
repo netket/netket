@@ -13,11 +13,13 @@
 # limitations under the License.
 
 import abc
-from typing import Iterable, Tuple
+from typing import Any, Callable, Iterable, Tuple, Union
 
 from flax import linen as nn
 from jax import numpy as jnp
-from netket.utils.types import Array, DType, PyTree
+from netket.nn import MaskedDense1D
+from netket.nn.initializers import lecun_normal, zeros
+from netket.utils.types import Array, DType, NNInitFunc, PyTree
 
 
 class ARNN(nn.Module):
@@ -33,25 +35,89 @@ class ARNN(nn.Module):
 
         Returns:
           spins: the initial state that all spins are not sampled yet, by default an array of zeros.
-          state: some auxiliary states, e.g., used to implement fast autoregressive sampling.
+          state: auxiliary model state, e.g., used to implement fast autoregressive sampling.
         """
         spins = jnp.zeros(size, dtype=dtype)
         state = None
         return spins, state
 
     @abc.abstractmethod
-    def conditional(self, inputs: Array, index: int,
-                    state: PyTree) -> Tuple[Array, PyTree]:
+    def conditionals(self, inputs: Array,
+                     state: PyTree) -> Tuple[Array, PyTree]:
         """
-        Computes the probabilities for a spin to take each value.
+        Computes the probabilities for each spin to take each value.
 
         Args:
           inputs: input data with dimensions (batch, Hilbert.size).
-          index: index of the spin to sample.
-          state: some auxiliary states, e.g., used to implement fast autoregressive sampling.
+          state: auxiliary model state, e.g., used to implement fast autoregressive sampling.
 
         Returns:
-          p: the probabilities with dimensions (batch, Hilbert.local_size).
+          p: the probabilities with dimensions (batch, Hilbert.size, Hilbert.local_size).
           state: the updated model state.
         """
         raise NotImplementedError
+
+
+class ARNNDense(ARNN):
+    """Autoregressive neural network with dense layers, assuming spin 1/2."""
+
+    layers: int
+    """number of layers."""
+    features: Union[Iterable[int], int]
+    """number of features in each layer. If a single number is given,
+    all layers except the last one will have the same number of features."""
+    activation: Callable[[Array], Array] = nn.silu
+    """the nonlinear activation function between hidden layers (default: silu)."""
+    use_bias: bool = True
+    """whether to add a bias to the output (default: True)."""
+    dtype: DType = jnp.float64
+    """the dtype of the weights (default: float64)."""
+    precision: Any = None
+    """numerical precision of the computation, see `jax.lax.Precision`for details."""
+    kernel_init: NNInitFunc = lecun_normal()
+    """initializer for the weights."""
+    bias_init: NNInitFunc = zeros
+    """initializer for the biases."""
+    eps: float = 1e-7
+    """a small number to avoid numerical instability."""
+    def setup(self):
+        if isinstance(self.features, int):
+            features = [self.features] * (self.layers - 1) + [1]
+        else:
+            features = self.features
+        assert len(features) == self.layers
+        assert features[-1] == 1
+
+        self.dense_layers = [
+            MaskedDense1D(
+                features=features[i],
+                exclusive=(i == 0),
+                use_bias=self.use_bias,
+                dtype=self.dtype,
+                precision=self.precision,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            ) for i in range(self.layers)
+        ]
+
+    def conditionals(self, inputs: Array,
+                     state: PyTree) -> Tuple[Array, PyTree]:
+        x = jnp.expand_dims(inputs, axis=2)
+        for i in range(self.layers):
+            if i > 0:
+                x = self.activation(x)
+            x = self.dense_layers[i](x)
+        x = x.squeeze(axis=2)
+
+        p = nn.sigmoid(x)
+        p = jnp.stack([1 - p, p], axis=2)
+
+        return p, state
+
+    def __call__(self, inputs: Array) -> Array:
+        """Returns log_psi, where psi is real."""
+        p, _ = self.conditionals(inputs, None)
+        mask = (inputs + 1) / 2
+        p = (1 - mask) * p[:, :, 0] + mask * p[:, :, 1]
+        log_psi = 1 / 2 * jnp.log(p + self.eps).sum(axis=1)
+        return log_psi

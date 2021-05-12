@@ -18,12 +18,98 @@ import flax
 from flax import linen as nn
 from jax import lax
 from jax import numpy as jnp
-from netket.nn.initializers import zeros
-from netket.nn.linear import default_kernel_init
+from netket.nn.initializers import lecun_normal, zeros
 from netket.utils.types import Array, DType, NNInitFunc
 
 
-# Modified from netket.nn.linear.Conv
+def wrap_kernel_init(kernel_init, mask):
+    """Correction to LeCun normal init."""
+
+    corr = jnp.sqrt(mask.size / mask.sum())
+
+    def wrapped_kernel_init(*args):
+        return corr * mask * kernel_init(*args)
+
+    return wrapped_kernel_init
+
+
+class MaskedDense1D(nn.Module):
+    """
+    1D linear transformation module with mask for autoregressive NN.
+
+    Attributes:
+      features: number of output features, should be the last dimension.
+      exclusive: True if an output element does not depend on the input element
+        at the same index.
+      use_bias: whether to add a bias to the output (default: True).
+      dtype: the dtype of the computation (default: float64).
+      precision: numerical precision of the computation, see `jax.lax.Precision`
+        for details.
+      kernel_init: initializer for the weight matrix.
+      bias_init: initializer for the bias.
+    """
+
+    features: int
+    exclusive: bool
+    use_bias: bool = True
+    dtype: DType = jnp.float64
+    precision: Any = None
+    kernel_init: NNInitFunc = lecun_normal()
+    bias_init: NNInitFunc = zeros
+
+    @nn.compact
+    def __call__(self, inputs: Array) -> Array:
+        """
+        Applies a masked linear transformation to the inputs.
+
+        Args:
+          inputs: input data with dimensions (batch, Hilbert.size, features).
+
+        Returns:
+          The transformed data.
+        """
+        dtype = jnp.promote_types(inputs.dtype, self.dtype)
+
+        inputs = jnp.asarray(inputs, dtype)
+
+        is_single_input = False
+        if inputs.ndim == 2:
+            is_single_input = True
+            inputs = jnp.expand_dims(inputs, axis=0)
+
+        batch, size, in_features = inputs.shape
+        inputs = inputs.reshape((batch, size * in_features))
+
+        mask = jnp.ones((size, size), dtype=self.dtype)
+        mask = jnp.triu(mask, 1 if self.exclusive else 0)
+        mask = jnp.kron(
+            jnp.ones((in_features, self.features), dtype=self.dtype), mask)
+
+        kernel = self.param(
+            'kernel',
+            wrap_kernel_init(self.kernel_init, mask),
+            (size * in_features, size * self.features),
+            self.dtype,
+        )
+        mask = jnp.asarray(mask, dtype)
+        kernel = jnp.asarray(kernel, dtype)
+
+        y = lax.dot(inputs, mask * kernel, precision=self.precision)
+
+        y = y.reshape((batch, size, self.features))
+
+        if is_single_input:
+            y = y.squeeze(axis=0)
+
+        if self.use_bias:
+            bias = self.param('bias', self.bias_init, (size, self.features),
+                              self.dtype)
+            bias = jnp.asarray(bias, dtype)
+            y = y + bias
+
+        return y
+
+
 class MaskedConv2D(nn.Module):
     """
     2D convolution module with mask for autoregressive NN.
@@ -54,7 +140,7 @@ class MaskedConv2D(nn.Module):
     use_bias: bool = True
     dtype: DType = jnp.float64
     precision: Any = None
-    kernel_init: NNInitFunc = default_kernel_init
+    kernel_init: NNInitFunc = lecun_normal()
     bias_init: NNInitFunc = zeros
 
     def setup(self):
@@ -69,7 +155,7 @@ class MaskedConv2D(nn.Module):
         Applies a masked convolution to the inputs.
 
         Args:
-          inputs: input data with dimensions (batch, spatial_dims..., features).
+          inputs: input data with dimensions (batch, width, height, features).
 
         Returns:
           The convolved data.
@@ -94,12 +180,13 @@ class MaskedConv2D(nn.Module):
             self.features,
         )
 
-        # Correction to LeCun normal init
-        mask = self.mask
-        corr = jnp.sqrt(mask.size / mask.sum())
-        kernel_init = lambda *args: (corr * mask * self.kernel_init(*args))
-
-        kernel = self.param('kernel', kernel_init, kernel_shape, self.dtype)
+        kernel = self.param(
+            'kernel',
+            wrap_kernel_init(self.kernel_init, self.mask),
+            kernel_shape,
+            self.dtype,
+        )
+        mask = jnp.asarray(self.mask, dtype)
         kernel = jnp.asarray(kernel, dtype)
 
         # Zero padding
@@ -114,7 +201,7 @@ class MaskedConv2D(nn.Module):
             inputs.shape)
         y = lax.conv_general_dilated(
             y,
-            self.mask * kernel,
+            mask * kernel,
             window_strides=ones,
             padding='VALID',
             lhs_dilation=ones,
@@ -125,7 +212,7 @@ class MaskedConv2D(nn.Module):
         )
 
         if is_single_input:
-            y = jnp.squeeze(y, axis=0)
+            y = y.squeeze(axis=0)
 
         if self.use_bias:
             bias = self.param('bias', self.bias_init, (self.features, ),

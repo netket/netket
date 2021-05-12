@@ -14,7 +14,7 @@
 
 from flax import struct
 from netket.sampler import Sampler, SamplerState
-from netket.utils.types import PRNGKeyT
+from netket.utils.types import PRNGKeyT, PyTree
 
 import jax
 from jax import numpy as jnp
@@ -36,6 +36,7 @@ def vmap_choice(key, a, p, replace=True):
 
 @struct.dataclass
 class ARSamplerState(SamplerState):
+    model_state: PyTree
     key: PRNGKeyT
 
     def __repr__(self):
@@ -45,12 +46,11 @@ class ARSamplerState(SamplerState):
 @struct.dataclass
 class ARSampler(Sampler):
     """Sampler for autoregressive neural networks."""
-
     def _init_state(sampler, model, params, key):
-        return ARSamplerState(key=key)
+        return ARSamplerState(model_state=None, key=key)
 
     def _reset(sampler, model, params, state):
-        return state
+        return state.replace(model_state=None)
 
     def _sample_next(sampler, model, params, state):
         new_key, key = jax.random.split(state.key)
@@ -59,19 +59,19 @@ class ARSampler(Sampler):
             spins, model_state, key = carry
             new_key, key = jax.random.split(key)
 
-            p, new_model_state = model.apply(
+            p, model_state = model.apply(
                 params,
                 spins,
-                index,
                 model_state,
-                method=model.conditional,
+                method=model.conditionals,
             )
             local_states = jnp.asarray(sampler.hilbert.local_states,
                                        dtype=sampler.dtype)
+            p = p[:, index, :]
             new_spins = vmap_choice(key, local_states, p)
             spins = spins.at[:, index].set(new_spins)
 
-            return (spins, new_model_state, new_key), None
+            return (spins, model_state, new_key), None
 
         spins, model_state = model.apply(
             params,
@@ -80,8 +80,11 @@ class ARSampler(Sampler):
             method=model.init_sample,
         )
         indices = jnp.arange(sampler.hilbert.size)
-        (spins, _, _), _ = jax.lax.scan(scan_fun, (spins, model_state, key),
-                                        indices)
+        (spins, model_state, _), _ = jax.lax.scan(
+            scan_fun,
+            (spins, model_state, key),
+            indices,
+        )
 
-        new_state = state.replace(key=new_key)
+        new_state = state.replace(model_state=model_state, key=new_key)
         return new_state, spins
