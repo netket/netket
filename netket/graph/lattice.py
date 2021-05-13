@@ -351,10 +351,7 @@ class Lattice(NetworkX):
 
         for hash_coord in rot_coords:
             hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
-            hash_coord = hash_coord - hash_coord // (1 - cutoff_tol)
-            hash_coord = (
-                _np.power(10, tol_digits) * _np.around(hash_coord, tol_digits)
-            ).astype(int)
+            hash_coord = (_np.around(frac_positions * 10**tol_digits)).astype(int) % (10**tol_digits)
             hash_coord = hash(hash_coord.tobytes())
             if hash_coord in self._hash_positions:
                 perm.append(self._hash_positions[hash_coord])
