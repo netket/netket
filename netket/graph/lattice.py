@@ -294,8 +294,7 @@ class Lattice(NetworkX):
 
         self._inv_dims = _np.linalg.inv(self._lattice_dims)
         frac_positions = _np.matmul(self._coords, self._inv_dims) % 1
-        frac_positions = frac_positions - frac_positions // 1
-        int_positions = _np.around(frac_positions * 10**tol_digits).astype(int)
+        int_positions = _np.around(frac_positions * 10**tol_digits).astype(int)  %  (10**tol_digits)
         self._hash_positions = {
             hash(element.tobytes()): index
             for index, element in enumerate(int_positions)
