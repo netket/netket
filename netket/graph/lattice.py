@@ -20,12 +20,66 @@ import itertools
 import networkx as _nx
 import warnings
 from typing import Tuple, Union, Optional
+from math import pi
+from itertools import product
+from dataclasses import dataclass
 
-cutoff_tol = 1e-5
+from netket.utils.semigroup import Identity, Element
+from .symmetry import SymmGroup
+from netket.utils import HashableArray
+
+tol_digits = 5
+cutoff_tol = _np.power(10.0, -tol_digits)
 """Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
 This is necessary because of floating-point errors when computing the distance in non-trivial 
 lattices.
 """
+
+
+@dataclass(frozen=True)
+class Translation(Element):
+    perms: Tuple[Tuple[int]]
+    shift: Tuple[int]
+
+    def __call__(self, sites):
+        for i, dim in enumerate(self.shift):
+            perm = self.perms[i]
+            for j in range(dim):
+                sites = _np.take(sites, perm)
+
+        return sites
+
+    def __repr__(self):
+        return f"T{self.shift}"
+
+
+@dataclass(frozen=True)
+class PlanarRotation(Element):
+    perm: Tuple[int]
+    num_rots: int
+
+    def __call__(self, sites):
+        for i in range(self.num_rots):
+            sites = _np.take(sites, self.perm)
+
+        return sites
+
+    def __repr__(self):
+        return f"Rot{self.num_rots}"
+
+
+@dataclass(frozen=True)
+class Reflection(Element):
+
+    perm: Tuple[int]
+
+    def __call__(self, sites):
+        sites = _np.take(sites, self.perm)
+
+        return sites
+
+    def __repr__(self):
+        return f"Ref"
 
 
 def get_edges(atoms_positions, cutoff, distance_atol=cutoff_tol):
@@ -176,7 +230,10 @@ class Lattice(NetworkX):
                 for atom_coord in atoms_coord
             ]
         )
-        if atoms_coord_fractional.min() < 0 or atoms_coord_fractional.max() >= 1:
+        if (
+            atoms_coord_fractional.min() < -cutoff_tol
+            or atoms_coord_fractional.max() > 1 + cutoff_tol
+        ):
             # Maybe there is another way to state this. I want to avoid that there exists the possibility that two atoms from different cells are at the same position:
             raise ValueError(
                 "atoms must reside inside their corresponding unit cell, which includes only the 0-faces in fractional coordinates."
@@ -226,12 +283,24 @@ class Lattice(NetworkX):
         new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
         graph = _nx.relabel_nodes(graph, new_nodes)
 
+        self._coords = dicts_to_array(self._atoms, "r_coord")
+        self._lattice_dims = _np.expand_dims(self.extent, 1) * self.basis_vectors
+
         # Order node names
         nodes = sorted(graph.nodes())
         edges = list(graph.edges())
         graph = _nx.MultiGraph()
         graph.add_nodes_from(nodes)
         graph.add_edges_from(edges)
+
+        self._inv_dims = _np.linalg.inv(self._lattice_dims)
+        frac_positions = _np.matmul(self._coords, self._inv_dims) % 1
+        int_positions = _np.around(frac_positions * 10 ** tol_digits).astype(int) % (
+            10 ** tol_digits
+        )
+        self._hash_positions = {
+            HashableArray(element): index for index, element in enumerate(int_positions)
+        }
 
         super().__init__(graph)
 
@@ -245,6 +314,114 @@ class Lattice(NetworkX):
         Coordinates of atoms in the unit cell.
         """
         return self._atoms_coord
+
+    @property
+    def coords(self):
+        """
+        Returns list of coordinates of lattice points
+        """
+
+        return self._coords
+
+    def translation_perm(self):
+        perms = []
+        for vec in self.basis_vectors:
+            perm = []
+            for coord in self._coords:
+                hash_coord = coord.copy() + vec
+                hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
+                # make sure 1 and 0 are treated the same
+                hash_coord = _np.around(hash_coord * 10 ** tol_digits).astype(int) % (
+                    10 ** tol_digits
+                )
+                hash_coord = HashableArray(hash_coord)
+                perm.append(self._hash_positions[hash_coord])
+
+            perms.append(tuple(perm))
+        return tuple(perms)
+
+    def rotation_perm(self, period, axes=[0, 1]):
+        perm = []
+        axes = list(axes)
+        angle = 2 * pi / period
+        rot_mat = _np.array(
+            [[_np.cos(angle), -_np.sin(angle)], [_np.sin(angle), _np.cos(angle)]]
+        )
+
+        rot_coords = self._coords.copy()
+        rot_coords[:, axes] = _np.matmul(rot_coords[:, axes], rot_mat)
+
+        for hash_coord in rot_coords:
+            hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
+            hash_coord = _np.around(hash_coord * 10 ** tol_digits).astype(int) % (
+                10 ** tol_digits
+            )
+            hash_coord = HashableArray(hash_coord)
+            if hash_coord in self._hash_positions:
+                perm.append(self._hash_positions[hash_coord])
+            else:
+                raise ValueError(
+                    "Rotation with the specified period and axes does not map lattice to itself"
+                )
+
+        return tuple(perm)
+
+    def reflection_perm(self, axis=0):
+        perm = []
+        ref_coords = self._coords.copy()
+        ref_coords[:, axis] = -1 * ref_coords[:, axis]
+
+        for hash_coord in ref_coords:
+            hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
+            hash_coord = _np.around(hash_coord * 10 ** tol_digits).astype(int) % (
+                10 ** tol_digits
+            )
+            hash_coord = HashableArray(hash_coord)
+            if hash_coord in self._hash_positions:
+                perm.append(self._hash_positions[hash_coord])
+            else:
+                raise ValueError(
+                    "Reflection about specified axis does not map lattice to itself"
+                )
+
+        return tuple(perm)
+
+    def planar_rotations(self, period, axes=[0, 1]) -> SymmGroup:
+        """
+        Returns SymmGroup corresponding to rotations about specfied axes with specified period
+
+        Arguments:
+            period: Period of the rotations
+            axes: Axes that define the plane of the rotation
+        """
+
+        perm = self.rotation_perm(period, axes)
+        rotations = [PlanarRotation(perm, n) for n in range(1, period)]
+
+        return SymmGroup([Identity()] + rotations, graph=self)
+
+    def basis_translations(self) -> SymmGroup:
+        """
+        Returns SymmGroup corresponding to translations by basis vectors
+        """
+
+        translations = product(*[range(i) for i in self.extent])
+        next(translations)
+
+        perms = self.translation_perm()
+        translations = [Translation(perms, i) for i in translations]
+
+        return SymmGroup([Identity()] + translations, graph=self)
+
+    def reflections(self, axis=0) -> SymmGroup:
+        """
+        Returns SymmGroup corresponding to reflection about axis
+        args:
+          axis: Generated reflections about specified axis
+        """
+        perm = self.reflection_perm(axis)
+
+        return SymmGroup([Identity()] + [Reflection(perm)], graph=self)
 
     def draw(
         self,
