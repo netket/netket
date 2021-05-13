@@ -26,6 +26,7 @@ from dataclasses import dataclass
 
 from netket.utils.semigroup import Identity, Element
 from .symmetry import SymmGroup
+from netket.utils import HashableArray
 
 tol_digits = 5
 cutoff_tol = _np.power(10.0, -tol_digits)
@@ -294,10 +295,11 @@ class Lattice(NetworkX):
 
         self._inv_dims = _np.linalg.inv(self._lattice_dims)
         frac_positions = _np.matmul(self._coords, self._inv_dims) % 1
-        int_positions = _np.around(frac_positions * 10**tol_digits).astype(int)  %  (10**tol_digits)
+        int_positions = _np.around(frac_positions * 10 ** tol_digits).astype(int) % (
+            10 ** tol_digits
+        )
         self._hash_positions = {
-            hash(element.tobytes()): index
-            for index, element in enumerate(int_positions)
+            HashableArray(element): index for index, element in enumerate(int_positions)
         }
 
         super().__init__(graph)
@@ -329,8 +331,10 @@ class Lattice(NetworkX):
                 hash_coord = coord.copy() + vec
                 hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
                 # make sure 1 and 0 are treated the same
-                hash_coord = _np.around(hash_coord * 10**tol_digits).astype(int)  %  (10**tol_digits)
-                hash_coord = hash(hash_coord.tobytes())
+                hash_coord = _np.around(hash_coord * 10 ** tol_digits).astype(int) % (
+                    10 ** tol_digits
+                )
+                hash_coord = HashableArray(hash_coord)
                 perm.append(self._hash_positions[hash_coord])
 
             perms.append(tuple(perm))
@@ -339,16 +343,20 @@ class Lattice(NetworkX):
     def rotation_perm(self, period, axes=[0, 1]):
         perm = []
         axes = list(axes)
-        angle = 2*pi/period
-        rot_mat = _np.array([[_np.cos(angle), -_np.sin(angle)], [_np.sin(angle), _np.cos(angle)]])
+        angle = 2 * pi / period
+        rot_mat = _np.array(
+            [[_np.cos(angle), -_np.sin(angle)], [_np.sin(angle), _np.cos(angle)]]
+        )
 
         rot_coords = self._coords.copy()
         rot_coords[:, axes] = _np.matmul(rot_coords[:, axes], rot_mat)
 
         for hash_coord in rot_coords:
             hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
-            hash_coord = _np.around(hash_coord * 10**tol_digits).astype(int) % (10**tol_digits)
-            hash_coord = hash(hash_coord.tobytes())
+            hash_coord = _np.around(hash_coord * 10 ** tol_digits).astype(int) % (
+                10 ** tol_digits
+            )
+            hash_coord = HashableArray(hash_coord)
             if hash_coord in self._hash_positions:
                 perm.append(self._hash_positions[hash_coord])
             else:
@@ -365,8 +373,10 @@ class Lattice(NetworkX):
 
         for hash_coord in ref_coords:
             hash_coord = _np.matmul(hash_coord, self._inv_dims) % 1
-            hash_coord = _np.around(hash_coord * 10**tol_digits).astype(int)  %  (10**tol_digits)
-            hash_coord = hash(hash_coord.tobytes())
+            hash_coord = _np.around(hash_coord * 10 ** tol_digits).astype(int) % (
+                10 ** tol_digits
+            )
+            hash_coord = HashableArray(hash_coord)
             if hash_coord in self._hash_positions:
                 perm.append(self._hash_positions[hash_coord])
             else:
