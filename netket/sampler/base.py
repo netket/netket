@@ -222,7 +222,6 @@ class Sampler(abc.ABC):
             sampler, machine, parameters, state=state, chain_length=chain_length
         )
 
-    @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(
         sampler,
         machine: Union[Callable, nn.Module],
@@ -230,16 +229,26 @@ class Sampler(abc.ABC):
         state: SamplerState,
         chain_length: int,
     ) -> Tuple[jnp.ndarray, SamplerState]:
-        _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
+        """
+        Samples chain_length elements along the chains.
 
-        state, samples = jax.lax.scan(
-            _sample_next,
-            state,
-            xs=None,
-            length=chain_length,
-        )
+        In general this should not be overridden unless you want to modify the logic by which
+        the whole sampling is performed.
+        If using Jax, this function should be jitted
 
-        return samples, state
+        Arguments:
+            sampler: The Monte Carlo sampler.
+            machine: The model or callable to sample from (if it's a function it should have
+                the signature :code:`f(parameters, σ) -> jnp.ndarray`).
+            parameters: The PyTree of parameters of the model.
+            state: current state of the sampler. If None, then initialises it.
+            chain_length: (default=1), the length of the chains.
+
+        Returns:
+            state: The new state of the sampler
+            σ: The next batch of samples.
+        """
+        return _sample_chain(sampler, machine, parameters, state, chain_length)
 
     @abc.abstractmethod
     def _init_state(sampler, machine, params, seed) -> SamplerState:
@@ -373,6 +382,43 @@ def sample(
         state = sampler.reset(machine, parameters, state)
 
     return sampler._sample_chain(machine, parameters, state, chain_length)
+
+
+@partial(jax.jit, static_argnums=(1, 4))
+def _sample_chain(
+    sampler,
+    machine: Union[Callable, nn.Module],
+    parameters: PyTree,
+    state: SamplerState,
+    chain_length: int,
+) -> Tuple[jnp.ndarray, SamplerState]:
+    """
+    Samples chain_length elements along the chains.
+
+    Internal method used for jitting calls
+
+    Arguments:
+        sampler: The Monte Carlo sampler.
+        machine: The model or Callable to sample from (if it's a function it should have
+            the signature :code:`f(parameters, σ) -> jnp.ndarray`).
+        parameters: The PyTree of parameters of the model.
+        state: current state of the sampler. If None, then initialises it.
+        chain_length: (default=1), the length of the chains.
+
+    Returns:
+        state: The new state of the sampler
+        σ: The next batch of samples.
+    """
+    _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
+
+    state, samples = jax.lax.scan(
+        _sample_next,
+        state,
+        xs=None,
+        length=chain_length,
+    )
+
+    return samples, state
 
 
 def samples(
