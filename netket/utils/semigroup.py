@@ -260,9 +260,10 @@ class PermutationGroup(SemiGroup):
 
     def __inverse(self):
         """
-        Returns indices of the involution of the PermutationGroup where the each element is the inverse of
-        the original symmetry element. If :code:`g = self[element]` and :code:`h = self[self.inverse()][element]`,
-        then :code:`gh = product(g, h)` will act as the identity on the sites of the graph, i.e., :code:`np.all(gh(sites) == sites)`.
+        Returns indices of the involution of the PermutationGroup where the each element
+        is the inverse of the original element at the same position. If :code:`g = self[element]`
+        and :code:`h = self[self.inverse()][element]`, then :code:`gh = product(g, h)` will act
+        as the identity on the sites of the graph, i.e., :code:`np.all(gh(sites) == sites)`.
         """
         perm_array = self.to_array()
         n_symm = len(perm_array)
@@ -276,12 +277,6 @@ class PermutationGroup(SemiGroup):
         return inverse
 
     def __product_table(self):
-        """
-        Returns a product table over the group where the columns use the involution
-        of the group. If :code:`g = self[self.inverse()[element]]', :code:`h = self[element2]`
-        and code:`u = self[product_table()[element,element2]], we are
-        solving the equation u = gh
-        """
         perms = self.to_array()
         inverse = perms[self.inverse()].squeeze()
         n_symm = len(perms)
@@ -315,6 +310,12 @@ class PermutationGroup(SemiGroup):
         return self._inverse
 
     def product_table(self):
+        """
+        Returns a product table over the group where the columns use the involution
+        of the group. If :code:`g = self[self.inverse()[element]]', :code:`h = self[element2]`
+        and code:`u = self[product_table()[element,element2]], we are
+        solving the equation u = gh
+        """
         if self._product_table is None:
             object.__setattr__(self, "_product_table", self.__product_table())
 
