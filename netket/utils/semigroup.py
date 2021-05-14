@@ -21,7 +21,7 @@ from plum import dispatch
 import numpy as np
 
 from netket.utils import HashableArray
-from netket.utils.types import Array, DType
+from netket.utils.types import Array, DType, Shape
 
 
 class ElementBase(Callable):
@@ -191,16 +191,17 @@ class SemiGroup:
 @dataclass(frozen=True)
 class PermutationGroup(SemiGroup):
     """
-    Collection of permutation operations acting on sequences of :code:`degree` elements.
-    Note that the elements do not need to have type :ref:`netket.utils.semigroup.Permutation`,
+    Collection of permutation operations acting on sequences of length :code:`degree`.
+    Note that the group elements do not need to be of type :ref:`netket.utils.semigroup.Permutation`,
     only act as such on a sequence when called.
 
-    Note that this class can contain elements that are distinct as objects (e.g., :code:`Identity()` and
-    :code:`Translation((0,))`) but identical action. Those can be removed by calling :code:`remove_duplicates`.
+    Note that this class can contain elements that are distinct as objects (e.g.,
+    :code:`Identity()` and :code:`Translation((0,))`) but have identical action.
+    Those can be removed by calling :code:`remove_duplicates`.
     """
 
     degree: int
-    """Number of elements the permutations act on"""
+    """Number of elements the permutations act on."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -210,7 +211,11 @@ class PermutationGroup(SemiGroup):
         object.__setattr__(self, "_inverse", None)
         object.__setattr__(self, "_product_table", None)
 
-    def __matmul__(self, other):
+    def __matmul__(self, other) -> "PermutationGroup":
+        if not isinstance(other, PermutationGroup):
+            raise ValueError(
+                "Incompatible groups (`PermutationGroup` and something else)"
+            )
         if isinstance(other, PermutationGroup) and self.degree != other.degree:
             raise ValueError(
                 "Incompatible groups (`PermutationGroup`s of different degree)"
@@ -218,19 +223,21 @@ class PermutationGroup(SemiGroup):
 
         return PermutationGroup(super().__matmul__(other).elems, self.degree)
 
-    def to_array(self):
+    def to_array(self) -> Array:
         """
-        Convert the abstract group operations to an array of permutation indicie s,
-        such that (for :code:`G = self`)::
-            V = np.array(G.graph.nodes())
+        Convert the abstract group operations to an array of permutation indices,
+        such that the `i`-th row contains the indices corresponding to the `i`-th group
+        element (i.e., `self.to_array()[i, j]` is :math:`g_i(j)`) and
+        (for :code:`G = self`)::
+            V = np.arange(G.degree)
             assert np.all(G(V) == V[..., G.to_array()])
         """
         return self.__call__(np.arange(self.degree))
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None) -> Array:
         return np.asarray(self.to_array(), dtype=dtype)
 
-    def remove_duplicates(self, *, return_inverse=False):
+    def remove_duplicates(self, *, return_inverse=False) -> "PermutationGroup":
         """
         Returns a new :code:`PermutationGroup` with duplicate elements (that is, elements which
         represent identical permutations) removed.
@@ -240,7 +247,7 @@ class PermutationGroup(SemiGroup):
                 group from the result.
 
         Returns:
-            symm_group: the symmetry group with duplicates removed.
+            group: the permutation group with duplicate elements removed.
             return_inverse: Indices to reconstruct the original group from the result.
                 Only returned if `return_inverse` is True.
         """
@@ -258,13 +265,7 @@ class PermutationGroup(SemiGroup):
         else:
             return group
 
-    def __inverse(self):
-        """
-        Returns indices of the involution of the PermutationGroup where the each element
-        is the inverse of the original element at the same position. If :code:`g = self[element]`
-        and :code:`h = self[self.inverse()][element]`, then :code:`gh = product(g, h)` will act
-        as the identity on the sites of the graph, i.e., :code:`np.all(gh(sites) == sites)`.
-        """
+    def __inverse(self) -> Array:
         perm_array = self.to_array()
         n_symm = len(perm_array)
         inverse = np.zeros([n_symm], dtype=int)
@@ -276,7 +277,7 @@ class PermutationGroup(SemiGroup):
 
         return inverse
 
-    def __product_table(self):
+    def __product_table(self) -> Array:
         perms = self.to_array()
         inverse = perms[self.inverse()].squeeze()
         n_symm = len(perms)
@@ -303,18 +304,26 @@ class PermutationGroup(SemiGroup):
 
         return product_table
 
-    def inverse(self):
+    def inverse(self) -> Array:
+        """
+        Returns the indices of the inverse of each element.
+
+        If :code:`g = self[idx_g]` and :code:`h = self[self.inverse()[idx_g]]`, then
+        :code:`gh = product(g, h)` will act as the identity on any sequence,
+        i.e., :code:`np.all(gh(seq) == seq)`.
+        """
         if self._inverse is None:
             object.__setattr__(self, "_inverse", self.__inverse())
 
         return self._inverse
 
-    def product_table(self):
+    def product_table(self) -> Array:
         """
-        Returns a product table over the group where the columns use the involution
-        of the group. If :code:`g = self[self.inverse()[element]]', :code:`h = self[element2]`
-        and code:`u = self[product_table()[element,element2]], we are
-        solving the equation u = gh
+        Returns a table of indices corresponding to :math:`g^{-1} h` over the group.
+
+        That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
+        :code:`idx_u = self.product_table()[idx_g, idx_h]`, then :code:`self[idx_u]`
+        corresponds to :math:`u = g^{-1} h`.
         """
         if self._product_table is None:
             object.__setattr__(self, "_product_table", self.__product_table())
@@ -322,7 +331,7 @@ class PermutationGroup(SemiGroup):
         return self._product_table
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         """Tuple `(<# of group elements>, <degree>)`, same as :code:`self.to_array().shape`."""
         return (len(self), self.degree)
 
