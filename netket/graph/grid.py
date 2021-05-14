@@ -14,8 +14,7 @@
 
 import itertools
 from dataclasses import dataclass
-from functools import partial
-from typing import Callable, List, Sequence, Tuple, Union
+from typing import List, Sequence, Tuple, Union
 
 from plum import dispatch
 
@@ -24,7 +23,6 @@ import networkx as _nx
 
 from netket.utils.semigroup import Element, Identity, PermutationGroup
 
-from .symmetry import PermutationGroup
 from .graph import NetworkX
 
 

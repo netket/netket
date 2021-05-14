@@ -14,7 +14,7 @@
 
 from dataclasses import dataclass
 import itertools
-from typing import Any, Callable, List
+from typing import Callable, List
 
 from plum import dispatch
 
@@ -289,7 +289,7 @@ class PermutationGroup(SemiGroup):
         perms = [HashableArray(element) for element in perms]
         inv_perms = [HashableArray(element) for element in inv_elements]
 
-        inverse_index_mapping = {element: index for index, element in perms}
+        inverse_index_mapping = {element: index for index, element in enumerate(perms)}
 
         inds = [
             (index, inverse_index_mapping[element])
