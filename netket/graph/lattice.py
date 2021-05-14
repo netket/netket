@@ -24,8 +24,7 @@ from math import pi
 from itertools import product
 from dataclasses import dataclass
 
-from netket.utils.semigroup import Identity, Element
-from .symmetry import SymmGroup
+from netket.utils.semigroup import Identity, Element, PermutationGroup
 from netket.utils import HashableArray
 
 tol_digits = 5
@@ -386,9 +385,9 @@ class Lattice(NetworkX):
 
         return tuple(perm)
 
-    def planar_rotations(self, period, axes=[0, 1]) -> SymmGroup:
+    def planar_rotations(self, period, axes=[0, 1]) -> PermutationGroup:
         """
-        Returns SymmGroup corresponding to rotations about specfied axes with specified period
+        Returns PermutationGroup corresponding to rotations about specfied axes with specified period
 
         Arguments:
             period: Period of the rotations
@@ -398,11 +397,11 @@ class Lattice(NetworkX):
         perm = self.rotation_perm(period, axes)
         rotations = [PlanarRotation(perm, n) for n in range(1, period)]
 
-        return SymmGroup([Identity()] + rotations, graph=self)
+        return PermutationGroup([Identity()] + rotations, degree=self.n_nodes)
 
-    def basis_translations(self) -> SymmGroup:
+    def basis_translations(self) -> PermutationGroup:
         """
-        Returns SymmGroup corresponding to translations by basis vectors
+        Returns PermutationGroup corresponding to translations by basis vectors
         """
 
         translations = product(*[range(i) for i in self.extent])
@@ -411,17 +410,17 @@ class Lattice(NetworkX):
         perms = self.translation_perm()
         translations = [Translation(perms, i) for i in translations]
 
-        return SymmGroup([Identity()] + translations, graph=self)
+        return PermutationGroup([Identity()] + translations, degree=self.n_nodes)
 
-    def reflections(self, axis=0) -> SymmGroup:
+    def reflections(self, axis=0) -> PermutationGroup:
         """
-        Returns SymmGroup corresponding to reflection about axis
+        Returns PermutationGroup corresponding to reflection about axis
         args:
           axis: Generated reflections about specified axis
         """
         perm = self.reflection_perm(axis)
 
-        return SymmGroup([Identity()] + [Reflection(perm)], graph=self)
+        return PermutationGroup([Identity()] + [Reflection(perm)], degree=self.n_nodes)
 
     def draw(
         self,
