@@ -101,7 +101,7 @@ def test_RBMSymm_creation():
     with pytest.raises(ValueError):
         check_init(lambda: nk.models.RBMSymm(symmetries=perms[0]))
 
-    # init with SymmGroup
+    # init with PermutationGroup
     check_init(
         lambda: nk.models.RBMSymm(symmetries=nk.graph.Chain(8).translations(), alpha=2)
     )
@@ -162,7 +162,7 @@ def test_GCNN_creation():
     with pytest.raises(AttributeError):
         check_init(lambda: nk.models.GCNN(symmetries=perms, layers=2, features=4))
 
-    # init with SymmGroup
+    # init with PermutationGroup
     check_init(
         lambda: nk.models.GCNN(
             symmetries=nk.graph.Chain(8).translations(), layers=2, features=4

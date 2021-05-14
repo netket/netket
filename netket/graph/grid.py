@@ -22,9 +22,9 @@ from plum import dispatch
 import numpy as _np
 import networkx as _nx
 
-from netket.utils.semigroup import Element, Identity
+from netket.utils.semigroup import Element, Identity, PermutationGroup
 
-from .symmetry import SymmGroup
+from .symmetry import PermutationGroup
 from .graph import NetworkX
 
 
@@ -189,7 +189,7 @@ class Grid(NetworkX):
 
     def translations(
         self, dim: Union[int, Sequence[int]] = None, step: int = 1
-    ) -> SymmGroup:
+    ) -> PermutationGroup:
         """
         Returns all permutations of lattice sites that correspond to translations
         along the grid directions with periodic boundary conditions.
@@ -224,11 +224,11 @@ class Grid(NetworkX):
         next(translations)  # skip identity element here
         translations = [Translation(el, dims) for el in translations]
 
-        return SymmGroup([Identity()] + translations, graph=self)
+        return PermutationGroup([Identity()] + translations, degree=self.n_nodes)
 
-    def planar_rotation(self, axes: tuple = (0, 1)) -> SymmGroup:
+    def planar_rotation(self, axes: tuple = (0, 1)) -> PermutationGroup:
         """
-        Returns SymmGroup consisting of rotations about the origin in the plane defined by axes
+        Returns PermutationGroup consisting of rotations about the origin in the plane defined by axes
 
         Arguments:
             axes: Axes that define the plane of rotation specified by dims.
@@ -253,11 +253,11 @@ class Grid(NetworkX):
 
         rotations = [PlanarRotation(num, ax, dims) for (num, ax) in rotations]
 
-        return SymmGroup([Identity()] + rotations, graph=self)
+        return PermutationGroup([Identity()] + rotations, degree=self.n_nodes)
 
-    def axis_reflection(self, axis: int = 0) -> SymmGroup:
+    def axis_reflection(self, axis: int = 0) -> PermutationGroup:
         """
-        Returns SymmGroup consisting of identity and the lattice
+        Returns PermutationGroup consisting of identity and the lattice
         reflected about the hyperplane axis = 0
 
         Arguments:
@@ -267,9 +267,11 @@ class Grid(NetworkX):
             raise ValueError(f"Axis specified not in dims")
 
         dims = tuple(self.length)
-        return SymmGroup([Identity(), Reflection(axis, dims)], graph=self)
+        return PermutationGroup(
+            [Identity(), Reflection(axis, dims)], degree=self.n_nodes
+        )
 
-    def rotations(self, *, remove_duplicates: bool = True) -> SymmGroup:
+    def rotations(self, *, remove_duplicates: bool = True) -> PermutationGroup:
         """
         Returns all possible rotation symmetries of the lattice.
 
@@ -281,7 +283,7 @@ class Grid(NetworkX):
             remove_duplicates: Only include unique rotations.
         """
         axes = itertools.combinations(range(len(self.length)), 2)
-        group = SymmGroup([Identity()], graph=self)
+        group = PermutationGroup([Identity()], degree=self.n_nodes)
 
         for axs in axes:
             group = group @ self.planar_rotation(axs)
@@ -291,7 +293,7 @@ class Grid(NetworkX):
         else:
             return group
 
-    def space_group(self) -> SymmGroup:
+    def space_group(self) -> PermutationGroup:
         """
         Returns the full space group of the lattice.
 
@@ -303,7 +305,7 @@ class Grid(NetworkX):
         """
         return self.rotations() @ self.axis_reflection()
 
-    def lattice_group(self) -> SymmGroup:
+    def lattice_group(self) -> PermutationGroup:
         """
         Returns the full lattice symmetry group consisting of rotations, reflections, and periodic translation.
 
