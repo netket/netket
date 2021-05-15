@@ -21,7 +21,7 @@ from jax.experimental import loops
 from flax import struct
 
 from netket.hilbert import AbstractHilbert
-from netket.utils.mpi import n_nodes, mpi_sum_jax
+from netket.utils import mpi
 from netket.utils.types import PyTree, PRNGKeyT
 
 from netket.utils.deprecation import deprecated, warn_deprecation
@@ -174,12 +174,12 @@ class MetropolisSamplerState(SamplerState):
     @property
     def n_steps(self) -> int:
         """Total number of moves performed across all processes since the last reset."""
-        return self.n_steps_proc * n_nodes
+        return self.n_steps_proc * mpi.n_nodes
 
     @property
     def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        res, _ = mpi_sum_jax(self.n_accepted_proc)
+        res, _ = mpi.mpi_sum_jax(self.n_accepted_proc)
         return res
 
     def __repr__(self):
@@ -190,7 +190,7 @@ class MetropolisSamplerState(SamplerState):
         else:
             acc_string = ""
 
-        return f"MetropolisSamplerState({acc_string}rng state={self.rng})"
+        return f"{type(self).__name__}({acc_string}rng state={self.rng})"
 
 
 @struct.dataclass
@@ -216,7 +216,7 @@ class MetropolisSampler(Sampler):
     """The metropolis transition rule."""
     n_sweeps: int = struct.field(pytree_node=False, default=0)
     """Number of sweeps for each step along the chain. Defaults to number of sites in hilbert space."""
-    reset_chains: bool = False
+    reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True resets the chain state when reset is called (every new sampling)."""
 
     def __init__(
@@ -347,7 +347,7 @@ class MetropolisSampler(Sampler):
 
     def __repr__(sampler):
         return (
-            "MetropolisSampler("
+            f"{type(sampler).__name__}("
             + "\n  hilbert = {},".format(sampler.hilbert)
             + "\n  rule = {},".format(sampler.rule)
             + "\n  n_chains = {},".format(sampler.n_chains)
@@ -360,7 +360,7 @@ class MetropolisSampler(Sampler):
 
     def __str__(sampler):
         return (
-            "MetropolisSampler("
+            f"{type(sampler).__name__}("
             + "rule = {}, ".format(sampler.rule)
             + "n_chains = {}, ".format(sampler.n_chains)
             + "machine_power = {}, ".format(sampler.machine_pow)
