@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Ignore false-positives for redefined `product` functions:
+# pylint: disable=function-redefined
+
+
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import itertools
 from typing import Callable, List
@@ -24,7 +29,11 @@ from netket.utils import HashableArray
 from netket.utils.types import Array, DType, Shape
 
 
-class ElementBase(Callable):
+class ElementBase(ABC):
+    @abstractmethod
+    def __call__(self, arg):
+        pass
+
     def __matmul__(self, other):
         return product(self, other)
 
@@ -171,7 +180,7 @@ class SemiGroup:
         return self.elems[i]
 
     def __hash__(self):
-        return self.__hash
+        return self.__hash  # pylint: disable=no-member
 
     def __iter__(self):
         return iter(self.elems)
@@ -312,6 +321,7 @@ class PermutationGroup(SemiGroup):
         :code:`gh = product(g, h)` will act as the identity on any sequence,
         i.e., :code:`np.all(gh(seq) == seq)`.
         """
+        # pylint: disable=no-member
         if self._inverse is None:
             object.__setattr__(self, "_inverse", self.__inverse())
 
@@ -325,6 +335,7 @@ class PermutationGroup(SemiGroup):
         :code:`idx_u = self.product_table()[idx_g, idx_h]`, then :code:`self[idx_u]`
         corresponds to :math:`u = g^{-1} h`.
         """
+        # pylint: disable=no-member
         if self._product_table is None:
             object.__setattr__(self, "_product_table", self.__product_table())
 
@@ -336,4 +347,5 @@ class PermutationGroup(SemiGroup):
         return (len(self), self.degree)
 
     def __hash__(self):
+        # pylint: disable=no-member
         return self.__hash
