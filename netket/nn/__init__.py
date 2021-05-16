@@ -49,6 +49,8 @@ from .linear import (
     ConvTranspose,
     Dense,
     DenseGeneral,
+)
+from .symmetric_linear import (
     DenseSymm,
     DenseEquivariant,
 )
