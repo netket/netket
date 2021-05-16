@@ -12,16 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, Union, Tuple, Callable
+from functools import partial
+
 import jax
 from jax import numpy as jnp
 from jax.experimental import host_callback as hcb
 
 from flax import struct
 
-from typing import Any
-
 from netket.nn import to_array
 from netket.hilbert import AbstractHilbert
+from netket.utils import mpi
+from netket.utils.types import DType, PyTree
 
 from .base import Sampler, SamplerState
 
@@ -72,10 +75,10 @@ class ExactSampler(Sampler):
         # We use a host-callback to convert integers labelling states to
         # valid state-arrays because that code is written with numba and
         # we have not yet converted it to jax.
-        cb = lambda numbers: host_numbers_to_states(sampler.hilbert, numbers)
+        numbers_to_states = lambda numbers: sampler.hilbert.numbers_to_states(numbers)
 
         sample = hcb.call(
-            cb,
+            numbers_to_states,
             numbers,
             result_shape=jax.ShapeDtypeStruct(
                 (sampler.n_chains, sampler.hilbert.size), jnp.float64
@@ -84,6 +87,18 @@ class ExactSampler(Sampler):
 
         new_state = state.replace(rng=new_rng)
         return new_state, jnp.asarray(sample, dtype=sampler.dtype)
+
+    def _sample_chain(
+        sampler,
+        machine: Callable,
+        parameters: PyTree,
+        state: SamplerState,
+        chain_length: int,
+    ) -> Tuple[jnp.ndarray, SamplerState]:
+        # Reimplement sample_chain because we can sample the whole 'chain' in one
+        # go, since it's not really a chain anyway. This will be much faster because
+        # we call into python only once.
+        return _sample_chain(sampler, machine, parameters, state, chain_length)
 
     def __repr__(sampler):
         return (
@@ -103,10 +118,37 @@ class ExactSampler(Sampler):
         )
 
 
-from netket.legacy.sampler import ExactSampler as LegacyExactSampler
-from netket.legacy.machine import AbstractMachine
-from netket.utils import wraps_legacy
+@partial(jax.jit, static_argnums=(1, 4))
+def _sample_chain(
+    sampler,
+    machine: Callable,
+    parameters: PyTree,
+    state: SamplerState,
+    chain_length: int,
+) -> Tuple[jnp.ndarray, SamplerState]:
+    new_rng, rng = jax.random.split(state.rng)
+    numbers = jax.random.choice(
+        rng,
+        sampler.hilbert.n_states,
+        shape=(chain_length * sampler.n_chains,),
+        replace=True,
+        p=state.pdf,
+    )
 
+    # For future investigators:
+    # this will lead to a crash if numbers_to_state throws.
+    # it throws if we feed it nans!
+    numbers_to_states = lambda numbers: sampler.hilbert.numbers_to_states(numbers)
 
-def host_numbers_to_states(hilbert, numbers):
-    return hilbert.numbers_to_states(numbers)
+    samples = hcb.call(
+        numbers_to_states,
+        numbers,
+        result_shape=jax.ShapeDtypeStruct(
+            (chain_length * sampler.n_chains, sampler.hilbert.size), jnp.float64
+        ),
+    )
+    samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
+        chain_length, sampler.n_chains, sampler.hilbert.size
+    )
+
+    return samples, state.replace(rng=new_rng)
