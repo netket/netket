@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-import netket.nn.linear as linear
 
 import jax.numpy as jnp
 import jax.random as random
@@ -100,6 +99,8 @@ def test_DenseEquivariant(symmetries, use_bias, lattice):
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("features", [1, 2, 5])
 def test_symmetrizer(symmetries, features):
+    from netket.nn.symmetric_linear import _symmetrizer_col
+
     _, _, perms = _setup_symm(symmetries, N=8)
 
     n_symm, n_sites = perms.shape
@@ -125,6 +126,4 @@ def test_symmetrizer(symmetries, features):
     # and data is [1., ..., 1.]. Only cols is non-trivial.
     assert np.all(symmetrizer.row == np.arange(symmetrizer.shape[0]))
     assert np.all(symmetrizer.data == 1.0)
-    assert np.all(
-        symmetrizer.col == linear._symmetrizer_col(np.asarray(perms), features)
-    )
+    assert np.all(symmetrizer.col == _symmetrizer_col(np.asarray(perms), features))
