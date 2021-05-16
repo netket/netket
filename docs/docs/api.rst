@@ -24,7 +24,6 @@ Graph
    netket.graph.Lattice
    netket.graph.Chain
    netket.graph.Grid
-   netket.graph.SymmGroup
 
 .. _hilbert-api:
 
@@ -345,6 +344,8 @@ Utility functions and classes.
    :nosignatures:
 
    netket.utils.HashableArray
+   netket.utils.semigroup.SemiGroup
+   netket.utils.semigroup.PermutationGroup
 
 .. _callbacks-api:
 

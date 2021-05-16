@@ -20,7 +20,7 @@ import jax.random as random
 import numpy as np
 import scipy.sparse
 from jax.lax import dot
-from netket.graph.symmetry import SymmGroup
+from netket.utils.semigroup import PermutationGroup
 
 import pytest
 
@@ -81,7 +81,9 @@ def test_DenseEquivariant(symmetries, use_bias, lattice):
 
     # inv_pt computes chosen_op = gh^-1 instead of g^-1h
     chosen_op = np.random.randint(n_symm)
-    inverse = SymmGroup([perms.elems[i] for i in perms.inverse()], graph=lattice(3))
+    inverse = PermutationGroup(
+        [perms.elems[i] for i in perms.inverse()], degree=g.n_nodes
+    )
     inv_pt = inverse.product_table()
     sym_op = np.where(inv_pt == chosen_op, 1.0, 0.0)
 

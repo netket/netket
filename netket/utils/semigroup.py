@@ -12,20 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Ignore false-positives for redefined `product` functions:
+# pylint: disable=function-redefined
+
+
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import inspect
 import itertools
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Callable, List
 
 from plum import dispatch
 
 import numpy as np
 
 from netket.utils import HashableArray
-from netket.utils.types import Array, DType
+from netket.utils.types import Array, DType, Shape
 
 
-class ElementBase(Callable):
+class ElementBase(ABC):
+    @abstractmethod
+    def __call__(self, arg):
+        pass
+
     def __matmul__(self, other):
         return product(self, other)
 
@@ -172,7 +180,7 @@ class SemiGroup:
         return self.elems[i]
 
     def __hash__(self):
-        return self.__hash
+        return self.__hash  # pylint: disable=no-member
 
     def __iter__(self):
         return iter(self.elems)
@@ -187,3 +195,157 @@ class SemiGroup:
         else:
             elems = map(repr, self.elems)
         return type(self).__name__ + "(\n  {}\n)".format(",\n  ".join(elems))
+
+
+@dataclass(frozen=True)
+class PermutationGroup(SemiGroup):
+    """
+    Collection of permutation operations acting on sequences of length :code:`degree`.
+    Note that the group elements do not need to be of type :ref:`netket.utils.semigroup.Permutation`,
+    only act as such on a sequence when called.
+
+    Note that this class can contain elements that are distinct as objects (e.g.,
+    :code:`Identity()` and :code:`Translation((0,))`) but have identical action.
+    Those can be removed by calling :code:`remove_duplicates`.
+    """
+
+    degree: int
+    """Number of elements the permutations act on."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        myhash = hash((super().__hash__(), hash(self.degree)))
+        object.__setattr__(self, "_PermutationGroup__hash", myhash)
+
+        object.__setattr__(self, "_inverse", None)
+        object.__setattr__(self, "_product_table", None)
+
+    def __matmul__(self, other) -> "PermutationGroup":
+        if not isinstance(other, PermutationGroup):
+            raise ValueError(
+                "Incompatible groups (`PermutationGroup` and something else)"
+            )
+        if isinstance(other, PermutationGroup) and self.degree != other.degree:
+            raise ValueError(
+                "Incompatible groups (`PermutationGroup`s of different degree)"
+            )
+
+        return PermutationGroup(super().__matmul__(other).elems, self.degree)
+
+    def to_array(self) -> Array:
+        """
+        Convert the abstract group operations to an array of permutation indices,
+        such that the `i`-th row contains the indices corresponding to the `i`-th group
+        element (i.e., `self.to_array()[i, j]` is :math:`g_i(j)`) and
+        (for :code:`G = self`)::
+            V = np.arange(G.degree)
+            assert np.all(G(V) == V[..., G.to_array()])
+        """
+        return self.__call__(np.arange(self.degree))
+
+    def __array__(self, dtype=None) -> Array:
+        return np.asarray(self.to_array(), dtype=dtype)
+
+    def remove_duplicates(self, *, return_inverse=False) -> "PermutationGroup":
+        """
+        Returns a new :code:`PermutationGroup` with duplicate elements (that is, elements which
+        represent identical permutations) removed.
+
+        Arguments:
+            return_inverse: If True, also return indices to reconstruct the original
+                group from the result.
+
+        Returns:
+            group: the permutation group with duplicate elements removed.
+            return_inverse: Indices to reconstruct the original group from the result.
+                Only returned if `return_inverse` is True.
+        """
+        result = np.unique(
+            self.to_array(),
+            axis=0,
+            return_index=True,
+            return_inverse=return_inverse,
+        )
+        group = PermutationGroup(
+            [self.elems[i] for i in sorted(result[1])], self.degree
+        )
+        if return_inverse:
+            return group, result[2]
+        else:
+            return group
+
+    def __inverse(self) -> Array:
+        perm_array = self.to_array()
+        n_symm = len(perm_array)
+        inverse = np.zeros([n_symm], dtype=int)
+        for i, perm1 in enumerate(perm_array):
+            for j, perm2 in enumerate(perm_array):
+                perm_sq = perm1[perm2]
+                if np.all(perm_sq == np.arange(len(perm_sq))):
+                    inverse[i] = j
+
+        return inverse
+
+    def __product_table(self) -> Array:
+        perms = self.to_array()
+        inverse = perms[self.inverse()].squeeze()
+        n_symm = len(perms)
+        product_table = np.zeros([n_symm, n_symm], dtype=int)
+
+        inv_t = inverse.transpose()
+        perms_t = perms.transpose()
+        inv_elements = perms_t[inv_t].reshape(-1, n_symm * n_symm).transpose()
+
+        perms = [HashableArray(element) for element in perms]
+        inv_perms = [HashableArray(element) for element in inv_elements]
+
+        inverse_index_mapping = {element: index for index, element in enumerate(perms)}
+
+        inds = [
+            (index, inverse_index_mapping[element])
+            for index, element in enumerate(inv_perms)
+            if element in inverse_index_mapping
+        ]
+
+        inds = np.asarray(inds)
+
+        product_table[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
+
+        return product_table
+
+    def inverse(self) -> Array:
+        """
+        Returns the indices of the inverse of each element.
+
+        If :code:`g = self[idx_g]` and :code:`h = self[self.inverse()[idx_g]]`, then
+        :code:`gh = product(g, h)` will act as the identity on any sequence,
+        i.e., :code:`np.all(gh(seq) == seq)`.
+        """
+        # pylint: disable=no-member
+        if self._inverse is None:
+            object.__setattr__(self, "_inverse", self.__inverse())
+
+        return self._inverse
+
+    def product_table(self) -> Array:
+        """
+        Returns a table of indices corresponding to :math:`g^{-1} h` over the group.
+
+        That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
+        :code:`idx_u = self.product_table()[idx_g, idx_h]`, then :code:`self[idx_u]`
+        corresponds to :math:`u = g^{-1} h`.
+        """
+        # pylint: disable=no-member
+        if self._product_table is None:
+            object.__setattr__(self, "_product_table", self.__product_table())
+
+        return self._product_table
+
+    @property
+    def shape(self) -> Shape:
+        """Tuple `(<# of group elements>, <degree>)`, same as :code:`self.to_array().shape`."""
+        return (len(self), self.degree)
+
+    def __hash__(self):
+        # pylint: disable=no-member
+        return self.__hash

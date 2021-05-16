@@ -17,10 +17,9 @@ from typing import List, Generator, Union
 import numpy as np
 import networkx as _nx
 
-from netket.utils.semigroup import Permutation
+from netket.utils.semigroup import Permutation, PermutationGroup
 
 from .abstract_graph import AbstractGraph
-from .symmetry import SymmGroup
 
 
 class NetworkX(AbstractGraph):
@@ -93,7 +92,7 @@ class NetworkX(AbstractGraph):
         r"""The number of edges in the graph."""
         return self.graph.size()
 
-    def automorphisms(self) -> SymmGroup:
+    def automorphisms(self) -> PermutationGroup:
         # TODO: check how to compute these when we have a coloured graph where there could
         #       be a duplicated edge with two different colors.
 
@@ -115,7 +114,7 @@ class NetworkX(AbstractGraph):
                 Permutation([iso[i] for i in aux_graph.nodes()])
                 for iso in ismags.isomorphisms_iter()
             ]
-            self._automorphisms = SymmGroup(_automorphisms, self)
+            self._automorphisms = PermutationGroup(_automorphisms, self.n_nodes)
             return self._automorphisms
 
     def __repr__(self):

@@ -442,7 +442,7 @@ def test_grid_space_group():
     assert len(g.lattice_group()) < len(g.automorphisms())
 
 
-def test_SymmGroup():
+def test_symmgroup():
     from netket.utils.semigroup import Identity
 
     def assert_eq_hash(a, b):

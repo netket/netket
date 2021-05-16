@@ -19,10 +19,8 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
-
-from netket.hilbert import AbstractHilbert
-from netket.graph import AbstractGraph, SymmGroup
 from netket.utils import HashableArray
+from netket.utils.semigroup import PermutationGroup
 from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
 
 from netket import nn as nknn
@@ -196,7 +194,7 @@ class RBMMultiVal(nn.Module):
 class RBMSymm(nn.Module):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
 
-    symmetries: Union[HashableArray, SymmGroup]
+    symmetries: Union[HashableArray, PermutationGroup]
     """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
