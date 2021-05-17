@@ -17,7 +17,7 @@
   MPI-enabled acceptance ratio. [#592](https://github.com/netket/netket/pull/592). 
 * Add `StateLog`, a new logger that stores the parameters of the model during the 
   optimization in a folder or in a tar file. [#645](https://github.com/netket/netket/pull/645)
-* A warning is now issued if netket detects to be running under `mpirun` but MPI dependencies
+* A warning is now issued if NetKet detects to be running under `mpirun` but MPI dependencies
   are not installed [#631](https://github.com/netket/netket/pull/631)
 * `operator.LocalOperator`s now do not return a zero matrix element on the diagonal if the whole
   diagonal is zero. [#623](https://github.com/netket/netket/pull/623).
@@ -39,11 +39,12 @@
 * Briefly during development releases `MetropolisSamplerState.acceptance_ratio` returned
   the percentage (not ratio) of acceptance. `acceptance_ratio` is now deprecated in 
   favour of the correct `acceptance`.
-* `models.Jastrow` now internally simmetrizes the matrix before computing its value [#644](https://github.com/netket/netket/pull/644)
+* `models.Jastrow` now internally symmetrizes the matrix before computing its value [#644](https://github.com/netket/netket/pull/644)
 * `MCState.evaluate` has been renamed to `MCState.log_value` [#632](https://github.com/netket/netket/pull/632)
 * `nk.optimizer.SR` no longer accepts keyword argument relative to the sparse solver. Those should be passed
   inside the closure or `functools.partial` passed as `solver` argument.
 * `nk.optimizer.sr.SRLazyCG` and `nk.optimizer.sr.SRLazyGMRES` have been deprecated and will soon be removed.
+* Parts of the `Lattice` API have been overhauled, with deprecations of several methods in favor of a consistent usage of `Lattice.position` for real-space location of sites and `Lattice.basis_coords` for location of sites in terms of basis vectors. `Lattice.sites` has been added, which provides a sequence of `LaticeSite` objects combining all site properties. Furthermore, `Lattice` now provides lookup of sites from their coordinates via `id_from_position` using a hashing scheme that works across periodic boundaries. [#703](https://github.com/netket/netket/pull/703) [#715](https://github.com/netket/netket/pull/715)
 
 ### Bug Fixes
 

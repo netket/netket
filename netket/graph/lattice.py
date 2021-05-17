@@ -113,6 +113,10 @@ def get_edges(atoms_positions, cutoff, distance_atol=cutoff_tol):
 
 @dataclass
 class LatticeSite:
+    """
+    Contains information about a single :class:`~netket.graph.Lattice` site.
+    """
+
     id: int
     """Integer ID of this site"""
     position: PositionT
@@ -228,7 +232,7 @@ class Lattice(NetworkX):
 
         R_{rq} = \sum_{d=1}^D r_d a_d + b_q \in \mathbb R^D
 
-    where :math:`r_d \in \{1, \ldots, \mathtt{extent}[d]\}` and :math:`b_q = \mathtt{site_position}[q]`.
+    where :math:`r_d \in \{1, \ldots, \mathtt{extent}[d]\}` and :math:`b_q = \mathtt{site\_offsets}[q]`.
     We also refer to :math:`q` as the `label` of the site within the unit cell.
 
     The lattice class supports three ways of addressing a specific lattice site:
@@ -400,8 +404,8 @@ class Lattice(NetworkX):
         if len(site_offsets) != uniques.shape[0]:
             site_offsets = _np.asarray(uniques)
             warnings.warn(
-                f"Some atom positions are not unique. Duplicates were dropped, and "
-                "now atom positions are {site_offsets}",
+                "Some atom positions are not unique. Duplicates were dropped, and "
+                f"now atom positions are {site_offsets}",
                 UserWarning,
             )
         return site_offsets, site_pos_fractional
