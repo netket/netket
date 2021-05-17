@@ -21,7 +21,7 @@ import numpy as np
 
 from netket.nn.initializers import normal, zeros
 from netket.utils import HashableArray
-from netket.utils.semigroup import PermutationGroup
+from netket.utils.symmetry import PermutationGroup
 from netket.utils.types import Array, DType, PRNGKeyT, Shape
 
 default_kernel_init = normal(stddev=0.01)

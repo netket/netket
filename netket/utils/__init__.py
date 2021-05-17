@@ -31,6 +31,8 @@ from .model_frameworks import maybe_wrap_module
 
 from .history import History, accum_in_tree, accum_histories_in_tree
 
+from .safe_compare import comparable, comparable_periodic
+
 # TODO: legacy -> to be removed
 jax_available = True
 flax_available = True

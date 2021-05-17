@@ -17,7 +17,7 @@ from typing import List, Generator, Union
 import numpy as np
 import networkx as _nx
 
-from netket.utils.semigroup import Permutation, PermutationGroup
+from netket.utils.symmetry import Permutation, PermutationGroup
 
 from .abstract_graph import AbstractGraph
 

@@ -21,7 +21,7 @@ from plum import dispatch
 import numpy as _np
 import networkx as _nx
 
-from netket.utils.semigroup import Element, Identity, PermutationGroup
+from netket.utils.symmetry import Element, Identity, PermutationGroup
 
 from .graph import NetworkX
 

@@ -12,5 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .semigroup import ELement, SemiGroup
+from .semigroup import Identity, Element, SemiGroup
+from .group import Group
 from .permutation_group import Permutation, PermutationGroup
+from .point_group import PGSymmetry, PointGroup
+from . import planar

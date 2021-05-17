@@ -16,11 +16,27 @@
 # pylint: disable=function-redefined
 
 from plum import dispatch
+import numpy as np
+from dataclasses import dataclass
 
-from .semigroup import Element, SemiGroup
+from .semigroup import Identity, Element
+from .group import Group
+
+from netket.utils import HashableArray
+from netket.utils.types import Array, DType, Shape
+
 
 class Permutation(Element):
     def __init__(self, permutation: Array):
+        """
+        Creates a `Permutation` from an array of preimages of :code:`range(N)`
+
+        Arguments:
+            permutation: a 1D array listing :math:`g^{-1}(x)` for all :math:`0\le x < N` (i.e., `V[permutation]` permutes the elements of `V` as desired)
+
+        Returns:
+            a `Permutation` object encoding the same permutation
+        """
         self.permutation = HashableArray(np.asarray(permutation))
 
     def __call__(self, x):
@@ -36,6 +52,7 @@ class Permutation(Element):
             return False
 
     def __repr__(self):
+        # TODO support arbitrary name
         return f"Permutation({self.permutation})"
 
     def __array__(self, dtype: DType = None):
@@ -48,13 +65,15 @@ def product(p: Permutation, q: Permutation):
 
 
 @dataclass(frozen=True)
-class PermutationGroup(SemiGroup):
+class PermutationGroup(Group):
     """
     Collection of permutation operations acting on sequences of length :code:`degree`.
-    Note that the group elements do not need to be of type :ref:`netket.utils.semigroup.Permutation`,
-    only act as such on a sequence when called.
 
-    Note that this class can contain elements that are distinct as objects (e.g.,
+    Group elements need not all be of type :ref:`netket.utils.symmetry.Permutation`,
+    only act as such on a sequence when called. Currently, however, only `Identity` 
+    and `Permutation` have canonical forms implemented.
+
+    The class can contain elements that are distinct as objects (e.g.,
     :code:`Identity()` and :code:`Translation((0,))`) but have identical action.
     Those can be removed by calling :code:`remove_duplicates`.
     """
@@ -72,23 +91,33 @@ class PermutationGroup(SemiGroup):
             raise ValueError(
                 "Incompatible groups (`PermutationGroup` and something else)"
             )
-        if isinstance(other, PermutationGroup) and self.degree != other.degree:
+        elif self.degree != other.degree:
             raise ValueError(
                 "Incompatible groups (`PermutationGroup`s of different degree)"
             )
 
         return PermutationGroup(super().__matmul__(other).elems, self.degree)
 
+    def _canonical(self, x: Element) -> Array:
+        if isinstance(x, Identity):
+            return np.arange(self.degree, dtype=int)
+        elif isinstance(x, Permutation):
+            return x.permutation
+        else:
+            raise ValueError(
+                "`PermutationGroup` only supports `Identity` and `Permutation` elements"
+            )
+
     def to_array(self) -> Array:
         """
         Convert the abstract group operations to an array of permutation indices,
         such that the `i`-th row contains the indices corresponding to the `i`-th group
-        element (i.e., `self.to_array()[i, j]` is :math:`g_i(j)`) and
+        element. That is, `self.to_array()[i, j]` is :math:`g_i^{-1}(j)`) and
         (for :code:`G = self`)::
             V = np.arange(G.degree)
             assert np.all(G(V) == V[..., G.to_array()])
         """
-        return self.__call__(np.arange(self.degree))
+        return self._canonical_array()
 
     def __array__(self, dtype=None) -> Array:
         return np.asarray(self.to_array(), dtype=dtype)
@@ -107,29 +136,19 @@ class PermutationGroup(SemiGroup):
             return_inverse: Indices to reconstruct the original group from the result.
                 Only returned if `return_inverse` is True.
         """
-        result = np.unique(
-            self.to_array(),
-            axis=0,
-            return_index=True,
-            return_inverse=return_inverse,
-        )
-        group = PermutationGroup(
-            [self.elems[i] for i in sorted(result[1])], self.degree
-        )
         if return_inverse:
-            return group, result[2]
+            group, inverse = super().remove_duplicates(return_inverse=True)
         else:
-            return group
+            group = super().remove_duplicates(return_inverse=False)
 
-    @struct.property_cached
-    def inverse(self) -> Array:
-        """
-        Returns the indices of the inverse of each element.
+        pgroup = PermutationGroup(group.elems, self.degree)
 
-        If :code:`g = self[idx_g]` and :code:`h = self[self.inverse[idx_g]]`, then
-        :code:`gh = product(g, h)` will act as the identity on any sequence,
-        i.e., :code:`np.all(gh(seq) == seq)`.
-        """
+        if return_inverse:
+            return pgroup, inverse
+        else:
+            return pgroup
+
+    def _inverse(self) -> Array:
         perm_array = self.to_array()
         n_symm = len(perm_array)
         inverse = np.zeros([n_symm], dtype=int)
@@ -141,15 +160,7 @@ class PermutationGroup(SemiGroup):
 
         return inverse
 
-    @struct.property_cached
-    def product_table(self) -> Array:
-        """
-        Returns a table of indices corresponding to :math:`g^{-1} h` over the group.
-
-        That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
-        :code:`idx_u = self.product_table[idx_g, idx_h]`, then :code:`self[idx_u]`
-        corresponds to :math:`u = g^{-1} h`.
-        """
+    def _product_table(self) -> Array:
         perms = self.to_array()
         inverse = perms[self.inverse].squeeze()
         n_symm = len(perms)

@@ -26,7 +26,7 @@ from scipy.spatial import cKDTree
 from scipy.sparse import find, triu
 
 from netket.utils.deprecation import deprecated as _deprecated, warn_deprecation
-from netket.utils.semigroup import Identity, Element, PermutationGroup
+from netket.utils.symmetry import Identity, Element, PermutationGroup
 from netket.utils import HashableArray
 
 from .graph import NetworkX
