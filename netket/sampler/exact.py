@@ -70,7 +70,7 @@ class ExactSampler(Sampler):
         numbers = jax.random.choice(
             rng,
             sampler.hilbert.n_states,
-            shape=(sampler.n_chains,),
+            shape=(sampler.n_chains_per_rank,),
             replace=True,
             p=state.pdf,
         )
@@ -84,7 +84,7 @@ class ExactSampler(Sampler):
             numbers_to_states,
             numbers,
             result_shape=jax.ShapeDtypeStruct(
-                (sampler.n_chains, sampler.hilbert.size), jnp.float64
+                (sampler.n_chains_per_rank, sampler.hilbert.size), jnp.float64
             ),
         )
 
@@ -107,7 +107,7 @@ class ExactSampler(Sampler):
         return (
             "ExactSampler("
             + "\n  hilbert = {},".format(sampler.hilbert)
-            + "\n  n_chains = {},".format(sampler.n_chains)
+            + "\n  n_chains_per_rank = {},".format(sampler.n_chains_per_rank)
             + "\n  machine_power = {},".format(sampler.machine_pow)
             + "\n  dtype = {})".format(sampler.dtype)
         )
@@ -115,7 +115,7 @@ class ExactSampler(Sampler):
     def __str__(sampler):
         return (
             "ExactSampler("
-            + "n_chains = {}, ".format(sampler.n_chains)
+            + "n_chains_per_rank = {}, ".format(sampler.n_chains_per_rank)
             + "machine_power = {}, ".format(sampler.machine_pow)
             + "dtype = {})".format(sampler.dtype)
         )
@@ -133,7 +133,7 @@ def _sample_chain(
     numbers = jax.random.choice(
         rng,
         sampler.hilbert.n_states,
-        shape=(chain_length * sampler.n_chains,),
+        shape=(chain_length * sampler.n_chains_per_rank,),
         replace=True,
         p=state.pdf,
     )
@@ -147,11 +147,12 @@ def _sample_chain(
         numbers_to_states,
         numbers,
         result_shape=jax.ShapeDtypeStruct(
-            (chain_length * sampler.n_chains, sampler.hilbert.size), jnp.float64
+            (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
+            jnp.float64,
         ),
     )
     samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
-        chain_length, sampler.n_chains, sampler.hilbert.size
+        chain_length, sampler.n_chains_per_rank, sampler.hilbert.size
     )
 
     return samples, state.replace(rng=new_rng)

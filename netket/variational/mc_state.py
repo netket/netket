@@ -60,7 +60,6 @@ def compute_chain_length(n_chains, n_samples):
     if n_samples <= 0:
         raise ValueError("Invalid number of samples: n_samples={}".format(n_samples))
 
-    n_chains = n_chains * mpi.n_nodes
     chain_length = int(np.ceil(n_samples / n_chains))
     return chain_length
 
@@ -251,8 +250,8 @@ class MCState(VariationalState):
     def n_samples(self, n_samples: int):
         chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
-        n_samples_per_node = chain_length * self.sampler.n_chains
-        n_samples = n_samples_per_node * mpi.n_nodes
+        n_samples_per_node = chain_length * self.sampler.n_chains_per_rank
+        n_samples = chain_length * self.sampler.n_chains
 
         self._n_samples = n_samples
         self._chain_length = chain_length
