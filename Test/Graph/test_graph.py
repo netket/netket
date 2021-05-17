@@ -24,29 +24,29 @@ graphs = [
     Grid(length=[4, 2], pbc=[True, False]),
     # lattice graphs
     Lattice(
-        primitives=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
+        basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
         extent=[3, 3],
         pbc=[False, False],
-        basis=[[0, 0]],
+        site_offsets=[[0, 0]],
     ),
     Lattice(
-        primitives=[[1.5, math.sqrt(3) / 2.0], [0, math.sqrt(3)]],
+        basis_vectors=[[1.5, math.sqrt(3) / 2.0], [0, math.sqrt(3)]],
         extent=[3, 5],
-        basis=[[0, 0], [1, 1]],
+        site_offsets=[[0, 0], [1, 1]],
     ),
     Lattice(
-        primitives=[
+        basis_vectors=[
             [1.0, 0.0, 0.0],
             [1.0 / 2.0, math.sqrt(3) / 2.0, 0.0],
             [0.0, 0.0, 1.0],
         ],
         extent=[2, 3, 4],
-        basis=[[0, 0, 0]],
+        site_offsets=[[0, 0, 0]],
     ),
     Lattice(
-        primitives=[[2.0, 0.0], [1.0, math.sqrt(3)]],
+        basis_vectors=[[2.0, 0.0], [1.0, math.sqrt(3)]],
         extent=[4, 4],
-        basis=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [1.0, 0.0]],
+        site_offsets=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [1.0, 0.0]],
     ),
     # edgeless graph
     Edgeless(10),
@@ -54,27 +54,27 @@ graphs = [
 
 symmetric_graphs = [
     # Square
-    nk.graph.Lattice(primitives=[[0, 1], [1, 0]], extent=[3, 3]),
+    nk.graph.Lattice(basis_vectors=[[0, 1], [1, 0]], extent=[3, 3]),
     # Triangular
-    nk.graph.Lattice(primitives=[[0, 1], [np.sqrt(3) / 2, 1 / 2]], extent=[3, 3]),
+    nk.graph.Lattice(basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]], extent=[3, 3]),
     # Honeycomb
     nk.graph.Lattice(
-        primitives=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
-        basis=[[1 / (2 * np.sqrt(3)), 1 / 2], [1 / np.sqrt(3), 1]],
+        basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
+        site_offsets=[[1 / (2 * np.sqrt(3)), 1 / 2], [1 / np.sqrt(3), 1]],
         extent=[3, 3],
     ),
     # Kagome
     nk.graph.Lattice(
-        primitives=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
-        basis=[[0, 1 / 2], [np.sqrt(3) / 4, 1 / 4], [np.sqrt(3) / 4, 3 / 4]],
+        basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
+        site_offsets=[[0, 1 / 2], [np.sqrt(3) / 4, 1 / 4], [np.sqrt(3) / 4, 3 / 4]],
         extent=[3, 3],
     ),
     # Cube
-    nk.graph.Lattice(primitives=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], extent=[2, 2, 2]),
+    nk.graph.Lattice(basis_vectors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], extent=[2, 2, 2]),
     # Body Centered Cubic
     nk.graph.Lattice(
-        primitives=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-        basis=[[0, 0, 0], [1 / 2, 1 / 2, 1 / 2]],
+        basis_vectors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        site_offsets=[[0, 0, 0], [1 / 2, 1 / 2, 1 / 2]],
         extent=[2, 2, 2],
     ),
 ]
@@ -95,25 +95,49 @@ def test_lattice_graphs():
         assert graph.n_edges == graph.n_nodes * coordination_number[i] // 2
 
 
-def test_lattice_coords():
+def test_lattice():
     for g in graphs + symmetric_graphs:
         if not isinstance(g, Lattice):
             continue
 
-        # sites should be sorted in lexicographic order by cell coordinate
-        sort = np.lexsort(g.cell_coords.T[::-1])
-        print(g.cell_coords[sort])
+        # sites should be sorted in lexicographic order by basis coordinate
+        sort = np.lexsort(g.basis_coords.T[::-1])
+        print(g.basis_coords[sort])
         assert np.all(sort == np.arange(g.n_nodes))
 
         for i, site_id in enumerate(g.nodes()):
             assert i == site_id
-            cc = g.cell_coords[i]
+            cc = g.basis_coords[i]
             pos = g.positions[i]
-            manual_pos = g.primitives.T @ cc[:-1] + g.basis[cc[-1]]
+            manual_pos = g.basis_vectors.T @ cc[:-1] + g.site_offsets[cc[-1]]
             assert np.allclose(manual_pos, pos)
 
             assert g.id_from_position(pos) == i
-            assert g.id_from_cell_coord(cc) == i
+            assert g.id_from_basis_coords(cc) == i
+
+
+def test_lattice_old_interface():
+    with pytest.warns(FutureWarning):
+        _ = Lattice(basis_vectors=[[1.]], atom_coords=[[0.], [.5]], extent=[4])
+
+    def check_alternative(method, alternative):
+        with pytest.warns(FutureWarning):
+            result = method()
+        assert np.all(alternative() == result)
+
+    for g in graphs + symmetric_graphs:
+        if not isinstance(g, Lattice):
+            continue
+        check_alternative(lambda: g.atom_label(0), lambda: g.basis_coords[0, -1])
+        check_alternative(lambda: g.site_to_vector(0), lambda: g.basis_coords[0, :-1])
+        check_alternative(lambda: g.site_to_coord(0), lambda: g.positions[0])
+
+        *cell1, label1 = g.basis_coords[1]
+        check_alternative(lambda: g.vector_to_site(cell1, label1), lambda: g.id_from_basis_coords([*cell1, label1]))
+        check_alternative(lambda: g.vector_to_coord(cell1), lambda: g.basis_vectors.T @ cell1)
+
+        check_alternative(lambda: g.coordinates, lambda: g.positions)
+        check_alternative(lambda: g.atoms_coord, lambda: g.site_offsets)
 
 
 def test_lattice_symmetry():
@@ -483,12 +507,12 @@ def test_symmgroup():
 
 def test_duplicate_atoms():
     lattice = Lattice(
-        primitives=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
+        basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
         extent=[10, 10],
         pbc=[False, False],
-        basis=[[0, 0], [0, 0]],
+        site_offsets=[[0, 0], [0, 0]],
     )
-    assert np.all(lattice.basis == np.array([[0, 0]]))
+    assert np.all(lattice.site_offsets == np.array([[0, 0]]))
 
 
 # def test_edge_color_accessor():
