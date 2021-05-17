@@ -291,9 +291,9 @@ class Lattice(NetworkX):
             ... ])
             >>> # Kagome unit cell
             >>> cell = np.array([
-            ...     [0.0, 0.0],
             ...     basis[0] / 2.0,
             ...     basis[1] / 2.0,
+            ...     (basis[0]+basis[1])/2.0
             ... ])
             >>> g = Lattice(basis_vectors=basis, site_offsets=cell, extent=[3, 3])
             >>> print(g.n_nodes)
