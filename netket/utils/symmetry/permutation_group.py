@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from .semigroup import Identity, Element
 from .group import Group
 
-from netket.utils import HashableArray
+from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
 
 
@@ -64,13 +64,13 @@ def product(p: Permutation, q: Permutation):
     return Permutation(p(q.permutation))
 
 
-@dataclass(frozen=True)
+@struct.dataclass()
 class PermutationGroup(Group):
     """
     Collection of permutation operations acting on sequences of length :code:`degree`.
 
     Group elements need not all be of type :ref:`netket.utils.symmetry.Permutation`,
-    only act as such on a sequence when called. Currently, however, only `Identity` 
+    only act as such on a sequence when called. Currently, however, only `Identity`
     and `Permutation` have canonical forms implemented.
 
     The class can contain elements that are distinct as objects (e.g.,
@@ -102,7 +102,7 @@ class PermutationGroup(Group):
         if isinstance(x, Identity):
             return np.arange(self.degree, dtype=int)
         elif isinstance(x, Permutation):
-            return x.permutation
+            return np.asarray(x.permutation)
         else:
             raise ValueError(
                 "`PermutationGroup` only supports `Identity` and `Permutation` elements"
@@ -148,7 +148,8 @@ class PermutationGroup(Group):
         else:
             return pgroup
 
-    def _inverse(self) -> Array:
+    @struct.property_cached
+    def inverse(self) -> Array:
         perm_array = self.to_array()
         n_symm = len(perm_array)
         inverse = np.zeros([n_symm], dtype=int)
@@ -160,7 +161,8 @@ class PermutationGroup(Group):
 
         return inverse
 
-    def _product_table(self) -> Array:
+    @struct.property_cached
+    def product_table(self) -> Array:
         perms = self.to_array()
         inverse = perms[self.inverse].squeeze()
         n_symm = len(perms)

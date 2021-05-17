@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from .semigroup import Identity, Element
 from .group import Group
 
-from netket.utils import HashableArray, comparable
+from netket.utils import HashableArray, comparable, struct
 from netket.utils.types import Array, DType, Shape
 
 
@@ -45,10 +45,12 @@ class PGSymmetry(Element):
 
     def __hash__(self):
         return hash(HashableArray(comparable(self.M)))
-    
+
     def __eq__(self, other):
         if isinstance(other, Permutation):
-            return HashableArray(comparable(self.M)) == HashableArray(comparable(other.M))
+            return HashableArray(comparable(self.M)) == HashableArray(
+                comparable(other.M)
+            )
         else:
             return False
 
@@ -65,7 +67,7 @@ def product(p: PGSymmetry, q: PGSymmetry):
     return PGSymmetry(p.M @ q.M)
 
 
-@dataclass(frozen=True)
+@struct.dataclass()
 class PointGroup(Group):
     """
     Collection of point group symmetries acting on n-dimensional vectors.
@@ -84,22 +86,21 @@ class PointGroup(Group):
 
     def __post_init__(self):
         super().__post_init__()
-        
-        # Check if all dimensionalities are correct 
+
+        # Check if all dimensionalities are correct
         for x in self.elems:
-            if isinstance(x, PGSymmetry) and (x.M.shape != (self.dim,self.dim)):
-                raise ValueError("`PointGroup` contains operation of unexpected dimensionality")
-            
+            if isinstance(x, PGSymmetry) and (x.M.shape != (self.dim, self.dim)):
+                raise ValueError(
+                    "`PointGroup` contains operation of unexpected dimensionality"
+                )
+
         # Define custom hash
         myhash = hash((super().__hash__(), hash(self.dim)))
         object.__setattr__(self, "_PointGroup__hash", myhash)
 
-    
     def __matmul__(self, other) -> "PointGroup":
         if not isinstance(other, PointGroup):
-            raise ValueError(
-                "Incompatible groups (`PointGroup` and something else)"
-            )
+            raise ValueError("Incompatible groups (`PointGroup` and something else)")
 
         # Should check if dimensions match, but mismatched dimensions would lead to
         # multiplying different-sized matrices, resulting in an error
@@ -115,7 +116,7 @@ class PointGroup(Group):
                 "`PointGroup` only supports `Identity` and `PGSymmetry` elements"
             )
         return M
-    
+
     def _canonical(self, x: Element) -> Array:
         return comparable(self._transformation_matrix(x))
 
@@ -156,24 +157,28 @@ class PointGroup(Group):
         else:
             return pgroup
 
-    def _inverse(self) -> Array:
+    @struct.property_cached
+    def inverse(self) -> Array:
         lookup = self._canonical_lookup()
-        
+
         inverse = np.zeros(len(self.elems), dtype=int)
-        
+
         for index, element in enumerate(self.elems):
             # we exploit that the inverse of an orthogonal matrix is its transpose
             inverse_matrix = self._transformation_matrix(element).T
             inverse[index] = lookup[HashableArray(comparable(inverse_matrix))]
-            
+
         return inverse
 
-    def _product_table(self) -> Array:
+    @struct.property_cached
+    def product_table(self) -> Array:
         # again, we calculate the product table of transformation matrices directly
         trans_matrices = self.to_array()
-        product_matrices = np.einsum('iab, jac -> ijbc', trans_matrices, trans_matrices) # this is a table of M_g^{-1} M_h = M_g.T M_h
+        product_matrices = np.einsum(
+            "iab, jac -> ijbc", trans_matrices, trans_matrices
+        )  # this is a table of M_g^{-1} M_h = M_g.T M_h
         product_matrices = comparable(product_matrices)
-        
+
         lookup = self._canonical_lookup()
 
         n_symm = len(self)
@@ -181,7 +186,7 @@ class PointGroup(Group):
 
         for i in range(n_symm):
             for j in range(n_symm):
-                product_table[i,j] = lookup[HashableArray(product_matrices[i,j])]
+                product_table[i, j] = lookup[HashableArray(product_matrices[i, j])]
 
         return product_table
 

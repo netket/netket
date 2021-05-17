@@ -19,11 +19,13 @@ import numpy as np
 from dataclasses import dataclass
 
 from .semigroup import SemiGroup, Element, Identity
-from netket.utils import HashableArray
+from netket.utils import struct, HashableArray
 from netket.utils.types import Array, DType, Shape
+from typing import Tuple
 
 
 @dataclass(frozen=True)
+# @struct.dataclass
 class Group(SemiGroup):
     """
     Collection of Elements expected to satisfy group axioms.
@@ -56,7 +58,7 @@ class Group(SemiGroup):
         Returns:
             the canonical form as a numpy.ndarray of integers
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     def _canonical_array(self) -> Array:
         """
@@ -64,11 +66,14 @@ class Group(SemiGroup):
         """
         return np.array([self._canonical(x).flatten() for x in self.elems])
 
-    def _canonical_lookup(self) -> Array:
+    def _canonical_lookup(self) -> dict:
         """
         Creates a lookup table from canonical forms to index in `self.elems`
         """
-        return {HashableArray(self._canonical(element)): index for index, element in enumerate(self.elems)}
+        return {
+            HashableArray(self._canonical(element)): index
+            for index, element in enumerate(self.elems)
+        }
 
     def remove_duplicates(self, *, return_inverse=False) -> "Group":
         """
@@ -96,7 +101,14 @@ class Group(SemiGroup):
         else:
             return group
 
-    def __inverse(self) -> Array:
+    # @struct.property_cached
+    @property
+    def inverse(self) -> Array:
+        """
+        Returns the indices of the inverse of each element.
+        If :code:`g = self[idx_g]` and :code:`h = self[self.inverse[idx_g]]`, then
+        :code:`gh = product(g, h)` is equivalent to :code:`Identity()`
+        """
         canonical_identity = self._canonical(Identity())
         inverse = np.zeros(len(self.elems), dtype=int)
 
@@ -108,45 +120,67 @@ class Group(SemiGroup):
 
         return inverse
 
-    def inverse(self) -> Array:
+    # @struct.property_cached
+    @property
+    def product_table(self) -> Array:
         """
-        Returns the indices of the inverse of each element.
-
-        If :code:`g = self[idx_g]` and :code:`h = self[self.inverse()[idx_g]]`, then
-        :code:`gh = product(g, h)` is equivalent to :code:`Identity()`
+        Returns a table of indices corresponding to :math:`g^{-1} h` over the group.
+        That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
+        :code:`idx_u = self.product_table[idx_g, idx_h]`, then :code:`self[idx_u]`
+        corresponds to :math:`u = g^{-1} h`.
         """
-        # pylint: disable=no-member
-        if self._inverse is None:
-            object.__setattr__(self, "_inverse", self.__inverse())
-
-        return self._inverse()
-
-    def __product_table(self) -> Array:
-        n_symm = len(self.elems)
+        n_symm = len(self)
         product_table = np.zeros([n_symm, n_symm], dtype=int)
 
         lookup = self._canonical_lookup()
 
-        for i, e1 in enumerate(self.elems[self.inverse()]):
+        for i, e1 in enumerate(self.elems[self.inverse]):
             for j, e2 in enumerate(self.elems):
                 prod = e1 @ e2
                 product_table[i, j] = lookup[HashableArray(self._canonical(prod))]
 
         return product_table
 
-    def product_table(self) -> Array:
+    # @struct.property_cached
+    @property
+    def conjugacy_table(self) -> Array:
         """
-        Returns a table of indices corresponding to :math:`g^{-1} h` over the group.
-
-        That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
-        :code:`idx_u = self.product_table()[idx_g, idx_h]`, then :code:`self[idx_u]`
-        corresponds to :math:`u = g^{-1} h`.
+        Returns a table of conjugates: if `g = self[idx_g]` and `h = self[idx_h]`,
+        then `self[self.conjugacy_table[idx_g,idx_h]]` is :math:`h^{-1}gh`.
         """
-        # pylint: disable=no-member
-        if self._product_table is None:
-            object.__setattr__(self, "_product_table", self.__product_table())
+        col_index = np.arange(len(self))[np.newaxis, :]
+        # exploits that h^{-1}gh = (g^{-1} h)^{-1} h
+        return self.product_table[self.product_table, col_index]
 
-        return self._product_table()
+    # @struct.property_cached
+    @property
+    def conjugacy_classes(self) -> Tuple:
+        """
+        Finds the conjugacy classes of the group.
+
+        Returns:
+            classes: a boolean array, each row indicating the elements that belong to one conjugacy class
+            representatives: the lowest-indexed member of each conjugacy class
+            inverse: the conjugacy class index of every group element
+        """
+        row_index = np.arange(len(self))[:, np.newaxis]
+
+        # if is_conjugate[i,j] is True, self[i] and self[j] are in the same class
+        is_conjugate = np.full((len(self), len(self)), False)
+        is_conjugate[row_index, self.conjugacy_table] = True
+
+        classes, representatives, inverse = np.unique(
+            is_conjugate, axis=0, return_index=True, return_inverse=True
+        )
+
+        # Usually self[0] == Identity(), which is its own class
+        # This class is listed last by the lexicographic order used by np.unique
+        # so we reverse it to get a more conventional layout
+        classes = classes[::-1]
+        representatives = representatives[::-1]
+        inverse = (representatives.size - 1) - inverse
+
+        return classes, representatives, inverse
 
     def __hash__(self):
         return super().__hash__()

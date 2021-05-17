@@ -23,7 +23,7 @@ from .abstract_graph import AbstractGraph
 
 
 class NetworkX(AbstractGraph):
-    """ Wrapper for a networkx graph"""
+    """Wrapper for a networkx graph"""
 
     def __init__(self, graph: _nx.Graph):
         """
