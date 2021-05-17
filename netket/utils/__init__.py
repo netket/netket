@@ -15,6 +15,7 @@
 from .config_flags import config
 
 from . import types
+from . import struct
 
 from .array import HashableArray
 from .jax import get_afun_if_module
