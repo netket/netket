@@ -95,6 +95,27 @@ def test_lattice_graphs():
         assert graph.n_edges == graph.n_nodes * coordination_number[i] // 2
 
 
+def test_lattice_coords():
+    for g in graphs + symmetric_graphs:
+        if not isinstance(g, Lattice):
+            continue
+
+        # sites should be sorted in lexicographic order by cell coordinate
+        sort = np.lexsort(g.cell_coords.T[::-1])
+        print(g.cell_coords[sort])
+        assert np.all(sort == np.arange(g.n_nodes))
+
+        for i, site_id in enumerate(g.nodes()):
+            assert i == site_id
+            cc = g.cell_coords[i]
+            pos = g.positions[i]
+            manual_pos = g.primitives.T @ cc[:-1] + g.basis[cc[-1]]
+            assert np.allclose(manual_pos, pos)
+
+            assert g.id_from_position(pos) == i
+            assert g.id_from_cell_coord(cc) == i
+
+
 def test_lattice_symmetry():
     # Check if the symmetry groups make sense
     for i, graph in enumerate(symmetric_graphs):
