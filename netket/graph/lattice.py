@@ -233,7 +233,7 @@ class Lattice(NetworkX):
 
     The lattice class supports three ways of addressing a specific lattice site:
 
-    index
+    id
         An integer index that is used to identify the site in :code:`self.edges()` and
         also corresponds to the index of the corresponding site in sequences like
         :code:`self.nodes()`, :code:`self.positions` or :code:`self.basis_coords`.
@@ -303,7 +303,7 @@ class Lattice(NetworkX):
         self._basis_vectors = self._clean_basis(basis_vectors)
         self._ndim = self._basis_vectors.shape[1]
 
-        self._site_positions, site_pos_fractional = self._clean_site_positions(
+        self._site_offsets, site_pos_fractional = self._clean_site_offsets(
             site_offsets,
             atoms_coord,
             self._basis_vectors,
@@ -312,13 +312,13 @@ class Lattice(NetworkX):
 
         self.extent = _np.asarray(extent, dtype=int)
 
-        sites, self._cell_coord_to_site = create_sites(
+        sites, self._basis_coord_to_site = create_sites(
             self._basis_vectors, self.extent, site_pos_fractional, pbc
         )
         edges = get_true_edges(
             self._basis_vectors,
             sites,
-            self._cell_coord_to_site,
+            self._basis_coord_to_site,
             self.extent,
             distance_atol,
         )
@@ -332,7 +332,7 @@ class Lattice(NetworkX):
             self._sites.append(site)
         new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
         graph = _nx.relabel_nodes(graph, new_nodes)
-        self._cell_coord_to_site = {
+        self._basis_coord_to_site = {
             HashableArray(p.cell_coord): p.id for p in self._sites
         }
         self._positions = _np.array([p.position for p in self._sites])
@@ -365,7 +365,7 @@ class Lattice(NetworkX):
         return basis_vectors
 
     @staticmethod
-    def _clean_site_positions(site_offsets, atoms_coord, basis_vectors):
+    def _clean_site_offsets(site_offsets, atoms_coord, basis_vectors):
         if atoms_coord is not None and site_offsets is not None:
             raise ValueError(
                 "atoms_coord is deprecated and replaced by site_offsets, "
@@ -436,7 +436,7 @@ class Lattice(NetworkX):
         """
         Position offsets of sites in the unit cell
         """
-        return self._site_positions
+        return self._site_offsets
 
     @property
     def ndim(self):
@@ -448,14 +448,14 @@ class Lattice(NetworkX):
         return self._sites
 
     @property
-    def positions(self) -> _np.ndarray:
+    def positions(self) -> PositionT:
         """
         Real-space positions of all lattice sites
         """
         return self._positions
 
     @property
-    def basis_coords(self) -> _np.ndarray:
+    def basis_coords(self) -> CoordT:
         """
         basis coordinates of all lattice sites
         """
@@ -487,7 +487,7 @@ class Lattice(NetworkX):
         """
         key = HashableArray(_np.asarray(cell_coord))
         try:
-            return self._cell_coord_to_site[key]
+            return self._basis_coord_to_site[key]
         except KeyError as e:
             raise KeyError(f"No site found for cell_coord={cell_coord}") from e
 
@@ -595,7 +595,7 @@ class Lattice(NetworkX):
 
     @deprecated("basis_vectors.T @ vector")
     def vector_to_coord(self, vector: CoordT) -> int:
-        """`Deprecated`, please use :code:`position_from_basis_coords([*vector, 0])` instead."""
+        """`Deprecated`, please use :code:`basis_vectors.T @ vector` instead."""
         return self._basis_vectors.T @ vector
 
     @property
@@ -608,7 +608,7 @@ class Lattice(NetworkX):
     @deprecated("site_offsets")
     def atoms_coord(self) -> PositionT:
         """`Deprecated`, please use :code:`site_offsets` instead."""
-        return self._site_positions
+        return self._site_offsets
 
     # Symmetries
     # ------------------------------------------------------------------------
