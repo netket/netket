@@ -257,7 +257,7 @@ class Lattice(NetworkX):
                 open boundary conditions are imposed (default=`True`).
             basis: The coordinates of sites in the unit cell (one site at the origin by default).
             distance_atol: Distance below which spatial points are considered equal for the purpose
-                of site lookup, identifying nearest neighbors, etc.
+                of identifying nearest neighbors.
 
         Examples:
             Constructs a rectangular 3 × 4 lattice with periodic boundary conditions:
@@ -325,7 +325,7 @@ class Lattice(NetworkX):
                 "'primitives' must have ndim==2 (as array of primtive vectors)"
             )
         if primitives.shape[0] != primitives.shape[1]:
-            raise ValueError("All primitive vectors must have the same length")
+            raise ValueError("The number of primitive vectors must match their length")
         return primitives
 
     @staticmethod
