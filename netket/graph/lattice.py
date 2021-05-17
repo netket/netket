@@ -260,7 +260,7 @@ class Lattice(NetworkX):
         *,
         pbc: Union[bool, Sequence[bool]] = True,
         site_offsets: Optional[_np.ndarray] = None,
-        atom_coords: Optional[_np.ndarray] = None,
+        atoms_coord: Optional[_np.ndarray] = None,
         distance_atol: float = 1e-5,
     ):
         """
@@ -305,7 +305,7 @@ class Lattice(NetworkX):
 
         self._site_positions, site_pos_fractional = self._clean_site_positions(
             site_offsets,
-            atom_coords,
+            atoms_coord,
             self._basis_vectors,
         )
         self._pbc = self._clean_pbc(pbc, self._ndim)
@@ -365,19 +365,19 @@ class Lattice(NetworkX):
         return basis_vectors
 
     @staticmethod
-    def _clean_site_positions(site_offsets, atom_coords, basis_vectors):
-        if atom_coords is not None and site_offsets is not None:
+    def _clean_site_positions(site_offsets, atoms_coord, basis_vectors):
+        if atoms_coord is not None and site_offsets is not None:
             raise ValueError(
-                "atom_coords is deprecated and replaced by site_offsets, "
+                "atoms_coord is deprecated and replaced by site_offsets, "
                 "so both cannot be specified at the same time."
             )
-        if atom_coords is not None:
+        if atoms_coord is not None:
             warnings.warn(
-                "atom_coords is deprecated and may be removed in future versions, "
+                "atoms_coord is deprecated and may be removed in future versions, "
                 "please use site_offsets instead",
                 FutureWarning,
             )
-            site_offsets = atom_coords
+            site_offsets = atoms_coord
 
         if site_offsets is None:
             site_offsets = _np.zeros(basis_vectors.shape[0])[None, :]

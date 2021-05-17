@@ -118,7 +118,7 @@ def test_lattice():
 
 def test_lattice_old_interface():
     with pytest.warns(FutureWarning):
-        _ = Lattice(basis_vectors=[[1.0]], atom_coords=[[0.0], [0.5]], extent=[4])
+        _ = Lattice(basis_vectors=[[1.0]], atoms_coord=[[0.0], [0.5]], extent=[4])
 
     def check_alternative(method, alternative):
         with pytest.warns(FutureWarning):
