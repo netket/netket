@@ -118,7 +118,7 @@ def test_lattice():
 
 def test_lattice_old_interface():
     with pytest.warns(FutureWarning):
-        _ = Lattice(basis_vectors=[[1.]], atom_coords=[[0.], [.5]], extent=[4])
+        _ = Lattice(basis_vectors=[[1.0]], atom_coords=[[0.0], [0.5]], extent=[4])
 
     def check_alternative(method, alternative):
         with pytest.warns(FutureWarning):
@@ -133,8 +133,13 @@ def test_lattice_old_interface():
         check_alternative(lambda: g.site_to_coord(0), lambda: g.positions[0])
 
         *cell1, label1 = g.basis_coords[1]
-        check_alternative(lambda: g.vector_to_site(cell1, label1), lambda: g.id_from_basis_coords([*cell1, label1]))
-        check_alternative(lambda: g.vector_to_coord(cell1), lambda: g.basis_vectors.T @ cell1)
+        check_alternative(
+            lambda: g.vector_to_site(cell1, label1),
+            lambda: g.id_from_basis_coords([*cell1, label1]),
+        )
+        check_alternative(
+            lambda: g.vector_to_coord(cell1), lambda: g.basis_vectors.T @ cell1
+        )
 
         check_alternative(lambda: g.coordinates, lambda: g.positions)
         check_alternative(lambda: g.atoms_coord, lambda: g.site_offsets)
