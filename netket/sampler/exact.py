@@ -19,10 +19,13 @@ import jax
 from jax import numpy as jnp
 from jax.experimental import host_callback as hcb
 
+from typing import Any
+
 from flax import struct
 
 from netket.nn import to_array
 from netket.hilbert import AbstractHilbert
+from netket.utils import struct
 from netket.utils import mpi
 from netket.utils.types import DType, PyTree
 

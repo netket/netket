@@ -19,7 +19,6 @@ from functools import singledispatch, partial
 import jax
 import numpy as np
 
-from flax import struct
 from flax import linen as nn
 from jax import numpy as jnp
 from jax.experimental import loops
@@ -29,6 +28,7 @@ from netket.hilbert import AbstractHilbert
 from netket.utils import get_afun_if_module
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.jax import HashablePartial
+from netket.utils import struct
 
 SeedType = Union[int, PRNGKeyT]
 
