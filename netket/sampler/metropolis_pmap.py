@@ -21,11 +21,10 @@ from jax.experimental import loops
 
 import numpy as np
 
-from flax import struct
 from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
-from netket.utils import mpi, config
+from netket.utils import mpi, config, struct
 from netket.utils.types import PyTree, PRNGKeyT
 
 from netket.utils.deprecation import deprecated, warn_deprecation
@@ -38,8 +37,9 @@ from .metropolis import MetropolisRule, MetropolisSamplerState, MetropolisSample
 class MetropolisSamplerPmapState(MetropolisSamplerState):
     """
     Sampler State for the `MetropolisSamplerPmap` sampler.
+
     Wraps `MetropolisSamplerState` and overrides a few properties to work
-    with the ShardedDeviceArrays
+    with the ShardedDeviceArrays.
     """
 
     @property
@@ -81,6 +81,50 @@ class MetropolisSamplerPmap(MetropolisSampler):
     The dtype of the sampled states can be chosen.
     """
 
+    def __pre_init__(self, *args, n_chains=None, n_chains_per_device=None, **kwargs):
+        """
+        Constructs a Metropolis Sampler.
+
+        Args:
+            hilbert: The hilbert space to sample
+            rule: A `MetropolisRule` to generate random transitions from a given state as
+                    well as uniform random states.
+            n_sweeps: The number of exchanges that compose a single sweep.
+                    If None, sweep_size is equal to the number of degrees of freedom being sampled
+                    (the size of the input vector s to the machine).
+            reset_chains: If False the state configuration is not resetted when reset() is called.
+            n_chains: The total number of Markov Chain to be run in parallel on a the available devices.
+                This will be rounded to the nearest multiple of `len(jax.devices())`
+            n_chains_per_device: The number of chains to be run in parallel on one device.
+                Cannot be specified if n_chains is also specified.
+            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+            dtype: The dtype of the statees sampled (default = np.float32).
+        """
+
+        if n_chains is not None and n_chains_per_device is not None:
+            raise ValueError("Cannot specify both n_chains and n_chains_per_device")
+        elif n_chains is None and n_chains_per_device is None:
+            n_chains = 16
+
+        n_devices = len(jax.devices())
+
+        # If chains is specified, round it
+        if n_chains is not None:
+            n_chains_per_device = int(max(np.ceil(n_chains / n_devices), 1))
+
+        if n_chains != n_chains_per_device * n_devices:
+            import warnings
+
+            warnings.warn(
+                f"Using {n_chains_per_device*n_devices} chains "
+                f"({n_chains_per_device} chains on each of {n_devices} devices).",
+                category=UserWarning,
+            )
+
+        kwargs["n_chains"] = n_chains_per_device * n_devices
+        print("he")
+        return super().__pre_init__(*args, **kwargs)
+
     def __post_init__(self):
         if not config.FLAGS["NETKET_EXPERIMENTAL"]:
             raise RuntimeError(
@@ -99,9 +143,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
 
         super().__post_init__()
 
-        n_devices = len(jax.devices())
-
-        n_chains_per_device = int(max(np.ceil(self.n_chains / n_devices), 1))
+        n_chains_per_device = self.n_chains // len(jax.devices())
 
         _sampler = MetropolisSampler(
             self.hilbert,
@@ -111,8 +153,11 @@ class MetropolisSamplerPmap(MetropolisSampler):
             reset_chains=self.reset_chains,
         )
 
-        object.__setattr__(self, "n_chains", n_chains_per_device * n_devices)
         object.__setattr__(self, "_sampler_device", _sampler)
+
+    @property
+    def n_chains_per_device(self):
+        return self._sampler_device.n_chains
 
     def _init_state(self, machine, parameters, key):
         key = jax.random.split(key, len(jax.devices()))
