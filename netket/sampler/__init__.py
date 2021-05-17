@@ -49,6 +49,8 @@ from .metropolis_pt import (
 
 from . import rules
 
+from .metropolis_pmap import MetropolisSamplerPmap
+
 # Shorthand
 Metropolis = MetropolisSampler
 MetropolisPt = MetropolisPtSampler
