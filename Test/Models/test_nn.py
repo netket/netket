@@ -65,7 +65,7 @@ def test_DenseSymm(symmetries, use_bias):
 def test_DenseEquivariant(symmetries, use_bias, lattice):
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
-    pt = perms.product_table()
+    pt = perms.product_table
     n_symm = np.asarray(perms).shape[0]
 
     ma = nk.nn.DenseEquivariant(
@@ -81,9 +81,9 @@ def test_DenseEquivariant(symmetries, use_bias, lattice):
     # inv_pt computes chosen_op = gh^-1 instead of g^-1h
     chosen_op = np.random.randint(n_symm)
     inverse = PermutationGroup(
-        [perms.elems[i] for i in perms.inverse()], degree=g.n_nodes
+        [perms.elems[i] for i in perms.inverse], degree=g.n_nodes
     )
-    inv_pt = inverse.product_table()
+    inv_pt = inverse.product_table
     sym_op = np.where(inv_pt == chosen_op, 1.0, 0.0)
 
     v = random.normal(random.PRNGKey(0), [3, n_symm])

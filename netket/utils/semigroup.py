@@ -25,6 +25,7 @@ from plum import dispatch
 
 import numpy as np
 
+from netket.utils import struct
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, Shape
 
@@ -197,7 +198,7 @@ class SemiGroup:
         return type(self).__name__ + "(\n  {}\n)".format(",\n  ".join(elems))
 
 
-@dataclass(frozen=True)
+@struct.dataclass()
 class PermutationGroup(SemiGroup):
     """
     Collection of permutation operations acting on sequences of length :code:`degree`.
@@ -216,9 +217,6 @@ class PermutationGroup(SemiGroup):
         super().__post_init__()
         myhash = hash((super().__hash__(), hash(self.degree)))
         object.__setattr__(self, "_PermutationGroup__hash", myhash)
-
-        object.__setattr__(self, "_inverse", None)
-        object.__setattr__(self, "_product_table", None)
 
     def __matmul__(self, other) -> "PermutationGroup":
         if not isinstance(other, PermutationGroup):
@@ -274,7 +272,15 @@ class PermutationGroup(SemiGroup):
         else:
             return group
 
-    def __inverse(self) -> Array:
+    @struct.property_cached
+    def inverse(self) -> Array:
+        """
+        Returns the indices of the inverse of each element.
+
+        If :code:`g = self[idx_g]` and :code:`h = self[self.inverse[idx_g]]`, then
+        :code:`gh = product(g, h)` will act as the identity on any sequence,
+        i.e., :code:`np.all(gh(seq) == seq)`.
+        """
         perm_array = self.to_array()
         n_symm = len(perm_array)
         inverse = np.zeros([n_symm], dtype=int)
@@ -286,9 +292,17 @@ class PermutationGroup(SemiGroup):
 
         return inverse
 
-    def __product_table(self) -> Array:
+    @struct.property_cached
+    def product_table(self) -> Array:
+        """
+        Returns a table of indices corresponding to :math:`g^{-1} h` over the group.
+
+        That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
+        :code:`idx_u = self.product_table[idx_g, idx_h]`, then :code:`self[idx_u]`
+        corresponds to :math:`u = g^{-1} h`.
+        """
         perms = self.to_array()
-        inverse = perms[self.inverse()].squeeze()
+        inverse = perms[self.inverse].squeeze()
         n_symm = len(perms)
         product_table = np.zeros([n_symm, n_symm], dtype=int)
 
@@ -312,34 +326,6 @@ class PermutationGroup(SemiGroup):
         product_table[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
 
         return product_table
-
-    def inverse(self) -> Array:
-        """
-        Returns the indices of the inverse of each element.
-
-        If :code:`g = self[idx_g]` and :code:`h = self[self.inverse()[idx_g]]`, then
-        :code:`gh = product(g, h)` will act as the identity on any sequence,
-        i.e., :code:`np.all(gh(seq) == seq)`.
-        """
-        # pylint: disable=no-member
-        if self._inverse is None:
-            object.__setattr__(self, "_inverse", self.__inverse())
-
-        return self._inverse
-
-    def product_table(self) -> Array:
-        """
-        Returns a table of indices corresponding to :math:`g^{-1} h` over the group.
-
-        That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
-        :code:`idx_u = self.product_table()[idx_g, idx_h]`, then :code:`self[idx_u]`
-        corresponds to :math:`u = g^{-1} h`.
-        """
-        # pylint: disable=no-member
-        if self._product_table is None:
-            object.__setattr__(self, "_product_table", self.__product_table())
-
-        return self._product_table
 
     @property
     def shape(self) -> Shape:
