@@ -24,29 +24,29 @@ graphs = [
     Grid(length=[4, 2], pbc=[True, False]),
     # lattice graphs
     Lattice(
-        basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
+        primitives=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
         extent=[3, 3],
         pbc=[False, False],
-        atoms_coord=[[0, 0]],
+        basis=[[0, 0]],
     ),
     Lattice(
-        basis_vectors=[[1.5, math.sqrt(3) / 2.0], [0, math.sqrt(3)]],
+        primitives=[[1.5, math.sqrt(3) / 2.0], [0, math.sqrt(3)]],
         extent=[3, 5],
-        atoms_coord=[[0, 0], [1, 1]],
+        basis=[[0, 0], [1, 1]],
     ),
     Lattice(
-        basis_vectors=[
+        primitives=[
             [1.0, 0.0, 0.0],
             [1.0 / 2.0, math.sqrt(3) / 2.0, 0.0],
             [0.0, 0.0, 1.0],
         ],
         extent=[2, 3, 4],
-        atoms_coord=[[0, 0, 0]],
+        basis=[[0, 0, 0]],
     ),
     Lattice(
-        basis_vectors=[[2.0, 0.0], [1.0, math.sqrt(3)]],
+        primitives=[[2.0, 0.0], [1.0, math.sqrt(3)]],
         extent=[4, 4],
-        atoms_coord=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [1.0, 0.0]],
+        basis=[[0, 0], [1.0 / 2.0, math.sqrt(3) / 2.0], [1.0, 0.0]],
     ),
     # edgeless graph
     Edgeless(10),
@@ -54,27 +54,27 @@ graphs = [
 
 symmetric_graphs = [
     # Square
-    nk.graph.Lattice(basis_vectors=[[0, 1], [1, 0]], extent=[3, 3]),
+    nk.graph.Lattice(primitives=[[0, 1], [1, 0]], extent=[3, 3]),
     # Triangular
-    nk.graph.Lattice(basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]], extent=[3, 3]),
+    nk.graph.Lattice(primitives=[[0, 1], [np.sqrt(3) / 2, 1 / 2]], extent=[3, 3]),
     # Honeycomb
     nk.graph.Lattice(
-        basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
-        atoms_coord=[[1 / (2 * np.sqrt(3)), 1 / 2], [1 / np.sqrt(3), 1]],
+        primitives=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
+        basis=[[1 / (2 * np.sqrt(3)), 1 / 2], [1 / np.sqrt(3), 1]],
         extent=[3, 3],
     ),
     # Kagome
     nk.graph.Lattice(
-        basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
-        atoms_coord=[[0, 1 / 2], [np.sqrt(3) / 4, 1 / 4], [np.sqrt(3) / 4, 3 / 4]],
+        primitives=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
+        basis=[[0, 1 / 2], [np.sqrt(3) / 4, 1 / 4], [np.sqrt(3) / 4, 3 / 4]],
         extent=[3, 3],
     ),
     # Cube
-    nk.graph.Lattice(basis_vectors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], extent=[2, 2, 2]),
+    nk.graph.Lattice(primitives=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], extent=[2, 2, 2]),
     # Body Centered Cubic
     nk.graph.Lattice(
-        basis_vectors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-        atoms_coord=[[0, 0, 0], [1 / 2, 1 / 2, 1 / 2]],
+        primitives=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        basis=[[0, 0, 0], [1 / 2, 1 / 2, 1 / 2]],
         extent=[2, 2, 2],
     ),
 ]
@@ -195,7 +195,7 @@ def test_draw_lattices():
     # Just checking that lattices are drawn:
     lattices = [graph for graph in graphs if isinstance(graph, Lattice)]
     for lattice in lattices:
-        ndim = len(lattice._atoms[0]["r_coord"])
+        ndim = lattice.ndim
         if ndim not in [1, 2]:
             with pytest.raises(ValueError):
                 lattice.draw()
@@ -462,12 +462,12 @@ def test_symmgroup():
 
 def test_duplicate_atoms():
     lattice = Lattice(
-        basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
+        primitives=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
         extent=[10, 10],
         pbc=[False, False],
-        atoms_coord=[[0, 0], [0, 0]],
+        basis=[[0, 0], [0, 0]],
     )
-    assert np.all(lattice.atoms_coord == np.array([[0, 0]]))
+    assert np.all(lattice.basis == np.array([[0, 0]]))
 
 
 # def test_edge_color_accessor():
