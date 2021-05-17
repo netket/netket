@@ -279,12 +279,25 @@ class Lattice(NetworkX):
                 of identifying nearest neighbors.
 
         Examples:
-            Constructs a rectangular 3 × 4 lattice with periodic boundary conditions:
+            Constructs a Kagome lattice with 3 × 3 unit cells:
 
+            >>> import numpy as np
             >>> from netket.graph import Lattice
-            >>> g = Lattice(basis_vectors=[[1,0], [0,1]], extent=[3,4])
+            >>> # Hexagonal lattice basis
+            >>> sqrt3 = np.sqrt(3.0)
+            >>> basis = np.array([
+            ...     [1.0, 0.0],
+            ...     [0.5, sqrt3 / 2.0],
+            ... ])
+            >>> # Kagome unit cell
+            >>> cell = np.array([
+            ...     [0.0, 0.0],
+            ...     basis[0] / 2.0,
+            ...     basis[1] / 2.0,
+            ... ])
+            >>> g = Lattice(basis_vectors=basis, site_offsets=cell, extent=[3, 3])
             >>> print(g.n_nodes)
-            12
+            192
         """
 
         self._basis_vectors = self._clean_basis(basis_vectors)
