@@ -187,9 +187,7 @@ class DenseEquivariant(Module):
     def setup(self):
         # pylint: disable=attribute-defined-outside-init
         if isinstance(self.symmetry_info, PermutationGroup):
-            self.symmetry_info = HashableArray(
-                self.symmetry_info.product_table().ravel()
-            )
+            self.symmetry_info = HashableArray(self.symmetry_info.product_table.ravel())
         if not np.asarray(self.symmetry_info).ndim == 1:
             raise ValueError("Product table should be flattened")
 

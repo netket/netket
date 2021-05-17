@@ -18,13 +18,12 @@ import jax
 from jax import numpy as jnp
 from jax.experimental import loops
 
-from flax import struct
-
 from netket.hilbert import AbstractHilbert
 from netket.utils import mpi
 from netket.utils.types import PyTree, PRNGKeyT
 
 from netket.utils.deprecation import deprecated, warn_deprecation
+from netket.utils import struct
 
 from .base import Sampler, SamplerState
 
@@ -214,21 +213,12 @@ class MetropolisSampler(Sampler):
 
     rule: MetropolisRule = None
     """The metropolis transition rule."""
-    n_sweeps: int = struct.field(pytree_node=False, default=0)
+    n_sweeps: int = struct.field(pytree_node=False, default=None)
     """Number of sweeps for each step along the chain. Defaults to number of sites in hilbert space."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True resets the chain state when reset is called (every new sampling)."""
 
-    def __init__(
-        self,
-        hilbert: AbstractHilbert,
-        rule: MetropolisRule,
-        *,
-        n_sweeps: Optional[int] = None,
-        reset_chains: bool = False,
-        reset_chain=None,
-        **kwargs,
-    ):
+    def __pre_init__(self, hilbert, rule, **kwargs):
         """
         Constructs a Metropolis Sampler.
 
@@ -244,21 +234,19 @@ class MetropolisSampler(Sampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the statees sampled (default = np.float32).
         """
-        if n_sweeps is None:
-            n_sweeps = hilbert.size
+        # process arguments in the base
+        args, kwargs = super().__pre_init__(hilbert=hilbert, **kwargs)
 
-        # TODO remove deprecation at end of beta
-        if reset_chain is not None:
+        kwargs["rule"] = rule
+
+        # deprecation warnings
+        if "reset_chain" in kwargs:
             warn_deprecation(
                 "The keyword argument `reset_chain` is deprecated in favour of `reset_chains`"
             )
-            reset_chains = reset_chain
+            kwargs["reset_chains"] = kwargs.pop("reset_chain")
 
-        object.__setattr__(self, "rule", rule)
-        object.__setattr__(self, "n_sweeps", n_sweeps)
-        object.__setattr__(self, "reset_chains", reset_chains)
-
-        super().__init__(hilbert, **kwargs)
+        return args, kwargs
 
     def __post_init__(self):
         super().__post_init__()
@@ -266,8 +254,11 @@ class MetropolisSampler(Sampler):
         if not isinstance(self.rule, MetropolisRule):
             raise TypeError("rule must be a MetropolisRule.")
 
+        if not isinstance(self.reset_chains, bool):
+            raise TypeError("reset_chains must be a boolean.")
+
         #  Default value of n_sweeps
-        if self.n_sweeps == 0:
+        if self.n_sweeps is None:
             object.__setattr__(self, "n_sweeps", self.hilbert.size)
 
     def _init_state(sampler, machine, params, key):

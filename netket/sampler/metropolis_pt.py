@@ -23,11 +23,10 @@ from jax import numpy as jnp
 from jax.experimental import loops
 from jax.experimental import host_callback as hcb
 
-from flax import struct
-
 from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import PyTree, PRNGKeyT
+from netket.utils import struct
 
 from .base import Sampler, SamplerState
 from .metropolis import MetropolisSamplerState, MetropolisSampler, MetropolisRule
@@ -64,7 +63,36 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         return text
 
 
-@struct.dataclass
+_init_doc = """
+``MetropolisSampler`` is a generic Metropolis-Hastings sampler using
+a transition rule to perform moves in the Markov Chain.
+The transition kernel is used to generate
+a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
+The move is accepted with probability
+
+.. math::
+    A(s\\rightarrow s^\\prime) = \\mathrm{min}\\left (1,\\frac{P(s^\\prime)}{P(s)} F(e^{L(s,s^\\prime)})\\right),
+
+where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
+user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
+and :math:`L(s,s^\\prime)` is a suitable correcting factor computed by the transition kernel.
+
+
+Args:
+    hilbert: The hilbert space to sample
+    rule: A `MetropolisRule` to generate random transitions from a given state as
+            well as uniform random states.
+    n_chains: The number of Markov Chain to be run in parallel on a single process.
+    n_sweeps: The number of exchanges that compose a single sweep.
+            If None, sweep_size is equal to the number of degrees of freedom being sampled
+            (the size of the input vector s to the machine).
+    n_chains: The number of batches of the states to sample (default = 8)
+    machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+    dtype: The dtype of the statees sampled (default = np.float32).
+"""
+
+
+@struct.dataclass(init_doc=_init_doc)
 class MetropolisPtSampler(MetropolisSampler):
     """
     Metropolis-Hastings with Parallel Tempering sampler.
@@ -77,42 +105,7 @@ class MetropolisPtSampler(MetropolisSampler):
     n_replicas: int = struct.field(pytree_node=False, default=32)
     """The number of replicas"""
 
-    def __init__(
-        self,
-        hilbert: AbstractHilbert,
-        rule: MetropolisRule,
-        *,
-        n_replicas: int = 32,
-        **kwargs,
-    ):
-        """
-        ``MetropolisSampler`` is a generic Metropolis-Hastings sampler using
-        a transition rule to perform moves in the Markov Chain.
-        The transition kernel is used to generate
-        a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
-        The move is accepted with probability
-
-        .. math::
-            A(s\\rightarrow s^\\prime) = \\mathrm{min}\\left (1,\\frac{P(s^\\prime)}{P(s)} F(e^{L(s,s^\\prime)})\\right),
-
-        where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
-        user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
-        and :math:`L(s,s^\\prime)` is a suitable correcting factor computed by the transition kernel.
-
-
-        Args:
-            hilbert: The hilbert space to sample
-            rule: A `MetropolisRule` to generate random transitions from a given state as
-                    well as uniform random states.
-            n_chains: The number of Markov Chain to be run in parallel on a single process.
-            n_sweeps: The number of exchanges that compose a single sweep.
-                    If None, sweep_size is equal to the number of degrees of freedom being sampled
-                    (the size of the input vector s to the machine).
-            n_chains: The number of batches of the states to sample (default = 8)
-            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-            dtype: The dtype of the statees sampled (default = np.float32).
-        """
-
+    def __post_init__(self):
         if not config.FLAGS["NETKET_EXPERIMENTAL"]:
             raise RuntimeError(
                 """
@@ -124,11 +117,6 @@ class MetropolisPtSampler(MetropolisSampler):
                                """
             )
 
-        object.__setattr__(self, "n_replicas", n_replicas)
-
-        super().__init__(hilbert, rule, **kwargs)
-
-    def __post_init__(self):
         super().__post_init__()
         if (
             not isinstance(self.n_replicas, int)
