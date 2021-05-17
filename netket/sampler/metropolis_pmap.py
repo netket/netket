@@ -25,7 +25,7 @@ from flax import struct
 from flax import linen as nn
 
 from netket.hilbert import AbstractHilbert
-from netket.utils import mpi
+from netket.utils import mpi, config
 from netket.utils.types import PyTree, PRNGKeyT
 
 from netket.utils.deprecation import deprecated, warn_deprecation
@@ -62,9 +62,10 @@ class MetropolisSamplerPmap(MetropolisSampler):
     Metropolis-Hastings sampler for an Hilbert space according to a specific transition rule where chains are split
     among the available devices (`jax.devices()`).
 
+    This sampler is experimental. It's API might change without warnings in future NetKet releases.
+
     To parallelize on CPU, you should set the following environment variable before loading jax/NetKet,
     XLA_FLAGS="--xla_force_host_platform_device_count=XX", where XX is the number of desired cpu devices.
-    .
 
     The transition rule is used to generate a proposed state :math:`s^\prime`, starting from the
     current state :math:`s`. The move is accepted with probability
@@ -81,6 +82,21 @@ class MetropolisSamplerPmap(MetropolisSampler):
     """
 
     def __post_init__(self):
+        if not config.FLAGS["NETKET_EXPERIMENTAL"]:
+            raise RuntimeError(
+                """
+                               The Pmapped Metropolis sampler is an experimental 
+                               feature. We have not yet extensively investigated how it affects 
+                               performance, and when it is appropriate to use it.
+
+                               The API is experimental, and might change without warnings in
+                               future NetKet releases. 
+
+                               Use it at your own risk by setting the environment variable
+                               NETKET_EXPERIMENTAL=1
+                               """
+            )
+
         super().__post_init__()
 
         n_devices = len(jax.devices())
