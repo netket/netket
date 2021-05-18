@@ -19,7 +19,7 @@ import numpy as np
 from dataclasses import dataclass
 
 from .semigroup import SemiGroup, Element, Identity
-from netket.utils import struct, HashableArray
+from netket.utils import struct, HashableArray, comparable
 from netket.utils.types import Array, DType, Shape
 from typing import Tuple
 
@@ -40,6 +40,9 @@ class Group(SemiGroup):
 
     def __post_init__(self):
         super().__post_init__()
+
+    def __hash__(self):
+        return super().__hash__()
 
     def __matmul__(self, other) -> "Group":
         if not isinstance(other, Group):
@@ -105,7 +108,7 @@ class Group(SemiGroup):
     @property
     def inverse(self) -> Array:
         """
-        Returns the indices of the inverse of each element.
+        Indices of the inverse of each element.
         If :code:`g = self[idx_g]` and :code:`h = self[self.inverse[idx_g]]`, then
         :code:`gh = product(g, h)` is equivalent to :code:`Identity()`
         """
@@ -124,7 +127,7 @@ class Group(SemiGroup):
     @property
     def product_table(self) -> Array:
         """
-        Returns a table of indices corresponding to :math:`g^{-1} h` over the group.
+        A table of indices corresponding to :math:`g^{-1} h` over the group.
         That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
         :code:`idx_u = self.product_table[idx_g, idx_h]`, then :code:`self[idx_u]`
         corresponds to :math:`u = g^{-1} h`.
@@ -145,7 +148,7 @@ class Group(SemiGroup):
     @property
     def conjugacy_table(self) -> Array:
         """
-        Returns a table of conjugates: if `g = self[idx_g]` and `h = self[idx_h]`,
+        A table of conjugates: if `g = self[idx_g]` and `h = self[idx_h]`,
         then `self[self.conjugacy_table[idx_g,idx_h]]` is :math:`h^{-1}gh`.
         """
         col_index = np.arange(len(self))[np.newaxis, :]
@@ -156,7 +159,7 @@ class Group(SemiGroup):
     @property
     def conjugacy_classes(self) -> Tuple:
         """
-        Finds the conjugacy classes of the group.
+        The conjugacy classes of the group.
 
         Returns:
             classes: a boolean array, each row indicating the elements that belong to one conjugacy class
@@ -182,5 +185,84 @@ class Group(SemiGroup):
 
         return classes, representatives, inverse
 
-    def __hash__(self):
-        return super().__hash__()
+    # @struct.property_cached
+    @property
+    def character_table_by_class(self):
+        """
+        Calculates the character table using Burnside's algorithm.
+
+        Each row of the output lists the characters of one irrep in the order the
+        conjugacy classes are listed in `self.conjugacy_classes`.
+
+        Assumes that `Identity() == self[0]`, if not, the sign of some characters
+        may be flipped. The irreps are sorted by dimension.
+        """
+        classes, _, _ = self.conjugacy_classes
+        class_sizes = classes.sum(axis=1)
+        # Construct a random linear combination of the class matrices c_S
+        #    (c_S)_{RT} = #{r,s: r \in R, s \in S: rs = t}
+        # for conjugacy classes R,S,T, and a fixed t \in T.
+        #
+        # From our oblique times table it is easier to calculate
+        #    (d_S)_{RT} = #{r,t: r \in R, t \in T: rs = t}
+        # for a fixed s \in S. This is just `product_table == s`, aggregrated
+        # over conjugacy classes. c_S and d_S are related by
+        #    c_{RST} = |S| d_{RST} / |T|;
+        # since we only want a random linear combination, we forget about the
+        # constant |S| and only divide each column through with the appropriate |T|
+        class_matrix = (
+            classes @ np.random.uniform(size=len(self))[self.product_table] @ classes.T
+        )
+        class_matrix /= class_sizes
+
+        # The vectors |R|\chi(r) are (column) eigenvectors of all class matrices
+        # the random linear combination ensures (with probability 1) that
+        # none of them are degenerate
+        _, table = np.linalg.eig(class_matrix)
+        table = table.T / class_sizes
+
+        # Normalise the eigenvectors by orthogonality: \sum_g |\chi(g)|^2 = |G|
+        norm = np.sum(np.abs(table) ** 2 * class_sizes, axis=1, keepdims=True) ** 0.5
+        table /= norm
+        table *= np.sign(table[:, 0])[:, np.newaxis]  # ensure correct sign
+        table *= len(self) ** 0.5
+
+        # Sort lexicographically, ascending by first column, descending by others
+        sorting_table = np.column_stack((table.real, table.imag))
+        sorting_table[:, 1:] *= -1
+        sorting_table = comparable(sorting_table)
+        _, indices = np.unique(sorting_table, axis=0, return_index=True)
+        table = table[indices]
+
+        return table
+
+    # @struct.property_cached
+    @property
+    def character_table(self):
+        """
+        Calculates the character table using Burnside's algorithm.
+
+        Each row of the output lists the characters of all group elements for one irrep,
+        i.e. self.character_table()[i,g] gives :math:`\chi_i(g)`.
+
+        Assumes that `Identity() == self[0]`, if not, the sign of some characters
+        may be flipped. The irreps are sorted by dimension.
+        """
+        _, _, inverse = self.conjugacy_classes
+        CT = self.character_table_by_class
+        return CT[:, inverse]
+
+    # @struct.property_cached
+    @property
+    def character_table_readable(self):
+        """
+        Returns a conventional rendering of the character table.
+
+        Returns:
+            classes: a text description of a representative of each conjugacy class as a list
+            characters: a matrix, each row of which lists the characters of one irrep
+        """
+        # TODO put more effort into nice rendering?
+        _, idx_repr, _ = self.conjugacy_classes
+        representatives = [str(self[i]) for i in idx_repr]
+        return representatives, self.character_table_by_class
