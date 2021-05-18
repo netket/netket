@@ -112,9 +112,10 @@
    :hidden:
 
    docs/getting_started
-   docs/whats_new
+   docs/changelog
    docs/superop
    docs/varstate
+   docs/sr
    docs/drivers
    docs/sharp-bits
 
@@ -125,6 +126,7 @@
    :hidden:
 
    docs/custom_models
+   docs/custom_preconditioners
 
 .. toctree::
    :maxdepth: 2

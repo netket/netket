@@ -1,5 +1,6 @@
 #
 docs/tutorials/*.ipynb
+docs/docs/changelog.md
 netket/_version.py
 
 # Compiled source #
