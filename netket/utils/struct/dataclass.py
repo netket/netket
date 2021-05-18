@@ -48,7 +48,18 @@ import jax
 
 from .utils import _set_new_attribute, _create_fn, get_class_globals
 
-## END
+try:
+    from dataclasses import _FIELDS
+except:
+    _FIELDS = "__dataclass_fields__"
+
+_CACHES = "__dataclass_caches__"
+
+PRECOMPUTE_CACHED_PROPERTY_NAME = "_precompute_cached_properties"
+
+# The name of the function, that if it exists, is called before
+# __init__ to preprocess the input arguments.
+_PRE_INIT_NAME = "__pre_init__"
 
 ## Our stuff
 class _Uninitialized:
@@ -87,8 +98,20 @@ class CachedProperty:
     """
 
     def __init__(self, method, pytree_node=False):
+        self.name = method.__name__
+        self.cache_name = _cache_name(self.name)
         self.method = method
         self.pytree_node = pytree_node
+        self.type = method.__annotations__.get("return", MISSING)
+        self.doc = method.__doc__
+
+        if self.type is MISSING:
+            raise TypeError(
+                "Cached property {method} requires a return type annotation."
+            )
+
+    def __repr__(self):
+        return f"CachedProperty(name={self.name}, type={self.type}, pytree_node={self.pytree_node})"
 
 
 def property_cached(fun):
@@ -99,6 +122,24 @@ def property_cached(fun):
     #    return partial(property_cached, pytree_node=pytree_node)
 
     return CachedProperty(fun, pytree_node=False)
+
+
+def _set_annotation(clz, attr, typ):
+    if "__annotations__" not in clz.__dict__:
+        setattr(clz, "__annotations__", {})
+
+    if not hasattr(clz, attr):
+        raise ValueError(f"Setting annotation for inexistant attribute {attr}")
+
+    clz.__annotations__[attr] = typ
+
+
+def _cache_name(property_name):
+    return "__" + property_name + "_cache"
+
+
+def _compute_cache_name(property_name):
+    return "__" + property_name
 
 
 def process_cached_properties(clz, globals={}):
@@ -114,27 +155,29 @@ def process_cached_properties(clz, globals={}):
         if isinstance(field_info, CachedProperty):
             cached_props[name] = field_info
 
-    _precompute_body_method = []
+    # Convert a property to something like this
+    # @cached_property
+    # def myproperty(self) -> T
+    #   return val
+    #
+    # becomes
+    #
+    # __myproperty_cache : T = UNINITIALIZED
+    # @property
+    # def myproperty(self) -> T
+    #    if self.__myproperty_cache is Uninitialized:
+    #        setattr(self, '__myproperty_cache', self.__myproperty())
+    #    return self.__myproperty_cache
+
+    # create the compute method
     for name, cp in cached_props.items():
-        method = cp.method
-        pytree_node = cp.pytree_node
+        _set_new_attribute(clz, _compute_cache_name(name), cp.method)
 
-        cache_name = "__" + name + "_cache"
-        compute_name = "__" + name
-        return_type = method.__annotations__.get("return", MISSING)
+    # Create the actual property accessor method
+    for name, cp in cached_props.items():
+        cache_name = _cache_name(name)
+        compute_name = _compute_cache_name(name)
 
-        _cache = field(
-            pytree_node=pytree_node,
-            serialize=False,
-            default=Uninitialized,
-            repr=False,
-            hash=False,
-            init=True,
-            compare=False,
-        )
-        _set_new_attribute(clz, cache_name, _cache)
-        _set_new_attribute(clz, compute_name, method)
-        clz.__annotations__[cache_name] = return_type
         # create accessor method
         body_lines = [
             f"if {self_name}.{cache_name} is Uninitialized:",
@@ -144,21 +187,74 @@ def process_cached_properties(clz, globals={}):
         ]
 
         fun = _create_fn(
-            name, [self_name], body_lines, return_type=return_type, globals=globals
+            name,
+            [self_name],
+            body_lines,
+            return_type=cp.type,
+            globals=globals,
+            doc=cp.doc,
         )
-        fun.__doc__ = method.__doc__
         prop_fun = property(fun)
         setattr(clz, name, prop_fun)
 
+    # merge caches among levels:
+    for b in clz.__mro__[1:]:
+        # Only process classes that have been processed by our
+        # decorator.  That is, they have a _FIELDS attribute.
+        for (name, cp) in getattr(b, _CACHES, {}).items():
+            if name not in cached_props:
+                cached_props[name] = cp
+
+    # Create the cache member
+    for name, cp in cached_props.items():
+        cache_name = _cache_name(name)
+
+        # Create the dataclass attribute
+        _cache = field(
+            pytree_node=cp.pytree_node,
+            serialize=False,
+            cache=True,
+            default=Uninitialized,
+            repr=False,
+            hash=False,
+            init=True,
+            compare=False,
+        )
+        _set_new_attribute(clz, cache_name, _cache)
+        _set_annotation(clz, cache_name, cp.type)
+
+    # create precompute method
+    _precompute_body_method = []
+    for name, cp in cached_props.items():
         _precompute_body_method.append(f"{self_name}.{name}")
 
+    # Create the precompute method
     if len(_precompute_body_method) == 0:
         _precompute_body_method.append("pass")
 
-    fun = _create_fn(name, [self_name], _precompute_body_method, globals=globals)
-    fun.__doc__ = "Precompute the value of all cached properties"
-    setattr(clz, "_precompute_cached_properties", fun)
+    fun = _create_fn(
+        name,
+        [self_name],
+        _precompute_body_method,
+        globals=globals,
+        doc="Precompute the value of all cached properties",
+    )
+    setattr(clz, PRECOMPUTE_CACHED_PROPERTY_NAME, fun)
 
+    setattr(clz, _CACHES, cached_props)
+
+def purge_cache_fields(clz):
+    """Removes the cache fields generated by netket dataclass
+    from the dataclass mechanism.
+    """
+    flds = getattr(clz, _FIELDS, None)
+    if flds is not None:
+        caches = getattr(clz, _CACHES)
+        for name, cp in caches.items():
+            cname = _cache_name(name)
+            if cname in flds:
+                flds.pop(cname)
+        
 
 def attach_preprocess_init(data_clz, init_doc=MISSING):
     preprocess_method_name = "__pre_init__"
@@ -233,37 +329,37 @@ def dataclass(clz=None, *, init_doc=MISSING):
     process_cached_properties(clz, globals=_globals)
     # create the dataclass
     data_clz = dataclasses.dataclass(frozen=True)(clz)
+    purge_cache_fields(data_clz)
     # attach the custom preprocessing of init arguments
     attach_preprocess_init(data_clz, init_doc=init_doc)
 
-    # when replacing reset the cache fields
-    cache_fields = []
-    non_cache_fields = []
-    for name, field_info in data_clz.__dataclass_fields__.items():
-        is_cache = field_info.metadata.get("cache", False)
-        if is_cache:
-            cache_fields.append(name)
+    # flax stuff: identify states
+    meta_fields = []
+    data_fields = []
+    for name, field_info in getattr(data_clz, _FIELDS, {}).items():
+        is_pytree_node = field_info.metadata.get("pytree_node", True)
+        if is_pytree_node:
+            data_fields.append(name)
         else:
-            non_cache_fields.append(name)
+            meta_fields.append(name)
+
+    # List the cache fields
+    cache_fields = []
+    for name, cp in getattr(data_clz, _CACHES, {}).items():
+        cache_fields.append(cp.cache_name)
+        # they count as meta fields
+        meta_fields.append(cp.cache_name)
+
 
     def replace(self, **updates):
         """"Returns a new object replacing the specified fields with new values."""
         # reset cached fields
         for name in cache_fields:
             updates[name] = Uninitialized
+
         return dataclasses.replace(self, **updates)
 
     data_clz.replace = replace
-
-    # flax stuff: identify states
-    meta_fields = []
-    data_fields = []
-    for name, field_info in data_clz.__dataclass_fields__.items():
-        is_pytree_node = field_info.metadata.get("pytree_node", True)
-        if is_pytree_node:
-            data_fields.append(name)
-        else:
-            meta_fields.append(name)
 
     # support for jax pytree flattening unflattening
     def iterate_clz(x):

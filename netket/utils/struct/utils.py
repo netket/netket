@@ -17,7 +17,9 @@ def _set_new_attribute(cls, name, value):
     return False
 
 
-def _create_fn(name, args, body, *, globals=None, locals=None, return_type=MISSING):
+def _create_fn(
+    name, args, body, *, globals=None, locals=None, return_type=MISSING, doc=None
+):
     # Note that we mutate locals when exec() is called.  Caller
     # beware!  The only callers are internal to this module, so no
     # worries about external callers.
@@ -40,7 +42,12 @@ def _create_fn(name, args, body, *, globals=None, locals=None, return_type=MISSI
 
     ns = {}
     exec(txt, globals, ns)
-    return ns["__create_fn__"](**locals)
+    fn = ns["__create_fn__"](**locals)
+
+    if doc is not None:
+        fn.__doc__ = doc
+
+    return fn
 
 
 def get_class_globals(clz):
