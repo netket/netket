@@ -42,10 +42,10 @@ sa = nk.sampler.MetropolisExchange(hi, graph=g, n_chains=16)
 
 # Optimizer
 op = nk.optim.Sgd(learning_rate=0.01)
-sr = nk.optim.SR(0.1)
+sr = nk.optim.SR(diag_shift=0.1)
 
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=100, sr=sr)
+gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=100, preconditioner=sr)
 
 # Print parameter structure
 print(f"# variational parameters: {gs.state.n_parameters}")

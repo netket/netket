@@ -18,7 +18,15 @@ copy-tutorials:
 	mkdir -p tutorials
 	cp ../Tutorials/*.ipynb tutorials/
 
+copy-changelog:
+	cp ../CHANGELOG.md docs/changelog.md
+
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: copy-tutorials Makefile
+%: copy-tutorials copy-changelog Makefile
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+clean:
+	rm -r tutorials/
+	rm -r docs/changelog.md
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

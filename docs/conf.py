@@ -58,6 +58,12 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 # outputs stored in ipynb but not in md, so we must convert the ipynb.
 source_suffix = [".rst", ".ipynb", ".md"]
 
+# Markdown parser latex support
+myst_enable_extensions = ["dollarmath", "amsmath"]
+
+mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+
+
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "bootstrap"

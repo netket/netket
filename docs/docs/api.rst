@@ -260,24 +260,23 @@ Variational State Interface
 
 .. _optimizer-api:
 
-Optimizer
----------
+Optimizer Module
+----------------
 
 .. currentmodule:: netket
 
-This module provides the following functionalities
+This module provides some optimisers,
+implementations of the {ref}`Quantum Geometric Tensor <QGT_and_SR>` and preconditioners such
+as SR.
 
-.. autosummary::
-   :toctree: _generated/optim
-   :nosignatures:
-   
-   netket.optimizer.SR
-   netket.optimizer.sr.SRLazyCG
-   netket.optimizer.sr.SRLazyGMRES
-   netket.optimizer.sr.SRJacobianCG
-   netket.optimizer.sr.SRLazyGMRES
 
-This module also provides some optimisers from `optax <https://github.com/deepmind/optax>`_. 
+Optimizers
+~~~~~~~~~~
+
+Optimizers in NetKet are simple wrappers of `optax <https://github.com/deepmind/optax>`_ 
+optimizers. If you want to write a custom optimizer or use more advanced ones, we suggest 
+you have a look at optax documentation.
+
 Check it out for up-to-date informations on available optimisers.
 
 .. warning::
@@ -299,6 +298,46 @@ Check it out for up-to-date informations on available optimisers.
    netket.optimizer.Momentum
    netket.optimizer.RmsProp
 
+
+Preconditioners
+~~~~~~~~~~~~~~~
+
+This module also provides an implemnetation of the Stochastic Reconfiguration/Natural
+gradient preconditioner.
+
+.. autosummary::
+   :toctree: _generated/optim
+   :nosignatures:
+   
+   netket.optimizer.SR
+
+Quantum Geometric Tensor
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+It also provides the following implementation of the quantum geometric tensor:
+
+.. autosummary::
+   :toctree: _generated/optim
+   :nosignatures:
+   
+   netket.optimizer.qgt.QGTAuto
+   netket.optimizer.qgt.QGTOnTheFly
+   netket.optimizer.qgt.QGTJacobianPyTree
+   netket.optimizer.qgt.QGTJacobianDense
+
+Dense solvers
+~~~~~~~~~~~~~
+
+And the following dense solvers for Stochastic Reconfiguration:
+
+.. autosummary::
+   :toctree: _generated/optim
+   :nosignatures:
+   
+   netket.optimizer.solver.svd
+   netket.optimizer.solver.cholesky
+   netket.optimizer.solver.LU
+   netket.optimizer.solver.solve
 
 .. _drivers-api:
 
