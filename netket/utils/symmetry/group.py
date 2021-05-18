@@ -21,11 +21,10 @@ from dataclasses import dataclass
 from .semigroup import SemiGroup, Element, Identity
 from netket.utils import struct, HashableArray, comparable
 from netket.utils.types import Array, DType, Shape
-from typing import Tuple
+from typing import Tuple, List
 
 
-@dataclass(frozen=True)
-# @struct.dataclass
+@struct.dataclass
 class Group(SemiGroup):
     """
     Collection of Elements expected to satisfy group axioms.
@@ -104,8 +103,7 @@ class Group(SemiGroup):
         else:
             return group
 
-    # @struct.property_cached
-    @property
+    @struct.property_cached
     def inverse(self) -> Array:
         """
         Indices of the inverse of each element.
@@ -123,8 +121,7 @@ class Group(SemiGroup):
 
         return inverse
 
-    # @struct.property_cached
-    @property
+    @struct.property_cached
     def product_table(self) -> Array:
         """
         A table of indices corresponding to :math:`g^{-1} h` over the group.
@@ -144,8 +141,7 @@ class Group(SemiGroup):
 
         return product_table
 
-    # @struct.property_cached
-    @property
+    @struct.property_cached
     def conjugacy_table(self) -> Array:
         """
         A table of conjugates: if `g = self[idx_g]` and `h = self[idx_h]`,
@@ -155,9 +151,8 @@ class Group(SemiGroup):
         # exploits that h^{-1}gh = (g^{-1} h)^{-1} h
         return self.product_table[self.product_table, col_index]
 
-    # @struct.property_cached
-    @property
-    def conjugacy_classes(self) -> Tuple:
+    @struct.property_cached
+    def conjugacy_classes(self) -> Tuple[Array, Array, Array]:
         """
         The conjugacy classes of the group.
 
@@ -185,9 +180,8 @@ class Group(SemiGroup):
 
         return classes, representatives, inverse
 
-    # @struct.property_cached
-    @property
-    def character_table_by_class(self):
+    @struct.property_cached
+    def character_table_by_class(self) -> Array:
         """
         Calculates the character table using Burnside's algorithm.
 
@@ -236,9 +230,7 @@ class Group(SemiGroup):
 
         return table
 
-    # @struct.property_cached
-    @property
-    def character_table(self):
+    def character_table(self) -> Array:
         """
         Calculates the character table using Burnside's algorithm.
 
@@ -252,9 +244,7 @@ class Group(SemiGroup):
         CT = self.character_table_by_class
         return CT[:, inverse]
 
-    # @struct.property_cached
-    @property
-    def character_table_readable(self):
+    def character_table_readable(self) -> Tuple[List[str], Array]:
         """
         Returns a conventional rendering of the character table.
 
