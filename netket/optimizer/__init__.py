@@ -17,6 +17,11 @@ from . import qgt, solver
 from .sr import SR
 
 from .linear_operator import LinearOperator
+from .preconditioner import (
+    LinearPreconditioner,
+    PreconditionerT,
+    identity_preconditioner,
+)
 
 ## Optimisers
 

@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .api import SR
+from .api import build_SR as SR
 
 from .deprecations import SRLazyCG, SRLazyGMRES

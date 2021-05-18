@@ -44,6 +44,13 @@ class VariationalState(abc.ABC):
     """
 
     def __init__(self, hilbert: AbstractHilbert):
+        """Initialize the Abstract base class of a Variational State defined
+        on an hilbert space.
+
+        Args:
+            hilbert: The hilbert space upon which this state is defined.
+
+        """
         self._hilbert = hilbert  # type: AbstractHilbert
 
         self._model_state = {}  # type: PyTree
@@ -198,17 +205,17 @@ class VariationalState(abc.ABC):
         raise NotImplementedError
 
     # @abc.abstractmethod
-    def quantum_geometric_tensor(self, sr):
+    def quantum_geometric_tensor(self, qgt_T):
         r"""Computes an estimate of the quantum geometric tensor G_ij.
 
         This function returns a linear operator that can be used to apply G_ij to a given vector
         or can be converted to a full matrix.
 
         Args:
-            sr: The object containing the settings off the SR format to be used.
+            qgt_T: the optional type of the quantum geometric tensor. By default it's automatically selected.
 
         Returns:
-           A linear operator representing the quantum geometric tensor.
+            nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
         raise NotImplementedError
 

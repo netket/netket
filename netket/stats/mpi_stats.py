@@ -15,9 +15,7 @@
 import jax.numpy as jnp
 from ._sum_inplace import sum_inplace as mpi_sum
 
-from netket.utils.mpi import (
-    n_nodes as _n_nodes,
-)
+from netket.utils import mpi
 
 
 def subtract_mean(x, axis=None):
@@ -34,7 +32,6 @@ def subtract_mean(x, axis=None):
         The resulting array.
 
     """
-
     # here we keep the dims, since automatic broadcasting of a scalar (shape () ) to an array produces errors
     # when used inside of a function which is transposed with jax.linear_transpose
     x_mean = mean(x, axis=axis, keepdims=True)
@@ -61,7 +58,7 @@ def mean(a, axis=None, keepdims: bool = False):
     """
     out = a.mean(axis=axis, keepdims=keepdims)
 
-    return mpi_sum(out) / _n_nodes
+    return mpi_sum(out) / mpi.n_nodes
 
 
 def sum(a, axis=None, keepdims: bool = False):
@@ -146,4 +143,4 @@ def total_size(a, axis=None):
     # leads to deadlocks.
     # We should refactor all this logic.
     # return mpi_sum(l_size)
-    return l_size * _n_nodes
+    return l_size * mpi.n_nodes

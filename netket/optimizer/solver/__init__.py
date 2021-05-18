@@ -1,4 +1,4 @@
-from .solvers import cholesky, LU, solve
+from .solvers import cholesky, LU, solve, svd
 
 from netket.utils import _hide_submodules
 

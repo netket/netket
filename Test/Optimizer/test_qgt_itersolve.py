@@ -1,28 +1,53 @@
 import pytest
 
-import jax
-import jax.numpy as jnp
-import jax.flatten_util
-import numpy as np
-from jax.scipy.sparse.linalg import cg
-from netket.optimizer.qgt import qgt_onthefly_logic as _sr_onthefly_logic
-from functools import partial
 import itertools
+from functools import partial
+
+
+import flax
+import jax
+
+import numpy as np
 from numpy import testing
 
-import jax
+import jax.numpy as jnp
+import jax.flatten_util
+from jax.scipy.sparse.linalg import cg
 
-from netket.optimizer import qgt
 import netket as nk
+from netket.optimizer import qgt
+from netket.optimizer.qgt import qgt_onthefly_logic as _sr_onthefly_logic
 
 from .. import common
 
 QGT_objects = {}
 
-QGT_objects["OnTheFly"] = qgt.QGTOnTheFly
+QGT_objects["OnTheFly"] = partial(qgt.QGTOnTheFly, diag_shift=0.01)
+
+QGT_objects["JacobianPyTree"] = partial(qgt.QGTJacobianPyTree, diag_shift=0.01)
+QGT_objects["JacobianPyTree(mode=holomorphic)"] = partial(
+    qgt.QGTJacobianPyTree, holomorphic=True, diag_shift=0.01
+)
+QGT_objects["JacobianPyTree(rescale_shift=True)"] = partial(
+    qgt.QGTJacobianPyTree, rescale_shift=True, diag_shift=0.01
+)
+
+QGT_objects["JacobianDense"] = partial(qgt.QGTJacobianDense, diag_shift=0.01)
+QGT_objects["JacobianDense(mode=holomorphic)"] = partial(
+    qgt.QGTJacobianDense, holomorphic=True, diag_shift=0.01
+)
+QGT_objects["JacobianDense(rescale_shift=True)"] = partial(
+    qgt.QGTJacobianDense, rescale_shift=True, diag_shift=0.01
+)
 
 solvers = {}
+solvers_tol = {}
+
 solvers["gmres"] = jax.scipy.sparse.linalg.gmres
+solvers_tol[solvers["gmres"]] = 1e-5
+solvers["cholesky"] = nk.optimizer.solver.cholesky
+solvers_tol[solvers["cholesky"]] = 1e-8
+
 
 dtypes = {"float": float, "complex": complex}
 
@@ -46,6 +71,9 @@ def vstate(request):
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
+    vstate.init_parameters(
+        nk.nn.initializers.normal(stddev=0.001), seed=jax.random.PRNGKey(3)
+    )
 
     vstate.sample()
 
@@ -63,6 +91,12 @@ def vstate(request):
 def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     S = qgt(vstate)
     x, _ = S.solve(solver, vstate.parameters)
+
+    jax.tree_multimap(
+        partial(testing.assert_allclose, rtol=solvers_tol[solver]),
+        S @ x,
+        vstate.parameters,
+    )
 
     if _mpi_size > 1:
         # other check
@@ -87,7 +121,17 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
 )
 def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     S = qgt(vstate)
-    x = S @ vstate.parameters
+    y = vstate.parameters
+    x = S @ y
+
+    # test multiplication by dense gives same result...
+    y_dense, unravel = nk.jax.tree_ravel(y)
+    x_dense = S @ y_dense
+    x_dense_unravelled = unravel(x_dense)
+
+    jax.tree_multimap(
+        lambda a, b: np.testing.assert_allclose(a, b), x, x_dense_unravelled
+    )
 
     if _mpi_size > 1:
         # other check
@@ -101,67 +145,41 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
             vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
 
             S = qgt(vstate)
-            x_all = S @ vstate.parameters
+            x_all = S @ y
 
             jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
 
 
-# TODO: this test only tests r2r and holo, but should also do r2c.
-# to add in a future rewrite
 @pytest.mark.parametrize(
-    "solver",
-    [pytest.param(solver, id=name) for name, solver in solvers.items()],
+    "qgt",
+    [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
 )
-def test_srjacobian_solve(vstate, solver, _mpi_size, _mpi_rank):
-    if vstate.model.dtype is float:
-        qgtT = partial(qgt.QGTJacobianDense, mode="R2R")
-    else:
-        qgtT = partial(qgt.QGTJacobianDense, mode="holomorphic")
+def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
+    S = qgt(vstate)
 
-    S = qgtT(vstate)
-    x, _ = S.solve(solver, vstate.parameters)
+    Sd = S.to_dense()
+
+    assert Sd.ndim == 2
+    if hasattr(S, "mode"):
+        if S.mode == "complex":
+            assert Sd.shape == (2 * vstate.n_parameters, 2 * vstate.n_parameters)
+        else:
+            assert Sd.shape == (vstate.n_parameters, vstate.n_parameters)
+    else:
+        assert Sd.shape == (vstate.n_parameters, vstate.n_parameters)
 
     if _mpi_size > 1:
         # other check
         with common.netket_disable_mpi():
             import mpi4jax
 
-            samples, _ = mpi4jax.allgather(vstate.samples, comm=nk.utils.MPI_jax_comm)
+            samples, _ = mpi4jax.allgather(
+                vstate.samples, comm=nk.utils.mpi.MPI_jax_comm
+            )
             assert samples.shape == (_mpi_size, *vstate.samples.shape)
             vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
 
-            S = qgtT(vstate)
-            x_all, _ = S.solve(solver, vstate.parameters)
+            S = qgt(vstate)
+            Sd_all = S.to_dense()
 
-            jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
-
-
-# TODO: this test only tests r2r and holo, but should also do r2c.
-# to add in a future rewrite
-def test_srjacobian_matmul(vstate, _mpi_size, _mpi_rank):
-    if vstate.model.dtype is float:
-        qgtT = partial(qgt.QGTJacobianDense, mode="R2R")
-    else:
-        qgtT = partial(qgt.QGTJacobianDense, mode="holomorphic")
-
-    S = qgtT(vstate)
-    x = S @ vstate.parameters
-
-    if _mpi_size > 1:
-        # other check
-        with common.netket_disable_mpi():
-            import mpi4jax
-
-            samples, _ = mpi4jax.allgather(vstate.samples, comm=nk.utils.MPI_jax_comm)
-            assert samples.shape == (_mpi_size, *vstate.samples.shape)
-            vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
-
-            S = qgtT(vstate)
-            x_all = S @ vstate.parameters
-
-            jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
-
-
-# TODO test QGTJacobianPyTree
-
-# TODO add to_dense tests
+            np.testing.assert_allclose(Sd_all, Sd, rtol=1e-5, atol=1e-17)

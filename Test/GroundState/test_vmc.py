@@ -41,7 +41,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
         sr_config = nk.optimizer.SR()
     else:
         sr_config = None
-    driver = nk.VMC(ha, op, variational_state=vs, sr=sr_config)
+    driver = nk.VMC(ha, op, variational_state=vs, preconditioner=sr_config)
 
     return ha, sx, vs, sa, driver
 
@@ -246,3 +246,32 @@ def test_vmc_gradient(dtype):
 
     err = 6 / np.sqrt(driver.state.n_samples)  # improve error bound
     same_derivatives(grad_approx, grad_exact, abs_eps=err, rel_eps=1.0e-3)
+
+
+def test_vmc_sr_legacy_api():
+    ha, sx, ma, sampler, driver = _setup_vmc(sr=True)
+    op = driver.optimizer
+    vs = driver.state
+    sr_config = driver.preconditioner
+
+    with pytest.warns(FutureWarning):
+        driver = nk.VMC(
+            ha,
+            op,
+            variational_state=vs,
+            sr=sr_config,
+        )
+
+    with pytest.warns(FutureWarning):
+        driver = nk.VMC(
+            ha,
+            op,
+            variational_state=vs,
+            preconditioner=sr_config,
+            sr_restart=True,
+        )
+
+    with pytest.raises(ValueError):
+        driver = nk.VMC(
+            ha, op, variational_state=vs, sr=sr_config, preconditioner=sr_config
+        )

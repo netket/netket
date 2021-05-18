@@ -28,25 +28,53 @@ from .qgt_jacobian_dense import QGTJacobianDense
 from .qgt_jacobian_pytree import QGTJacobianPyTree
 from .qgt_onthefly import QGTOnTheFly
 
+from ..solver import cholesky, svd, LU, solve
 
-def default_qgt_matrix(variational_state, solver=False):
-    # arbitrary heuristic: for more than 2
+solvers = [cholesky, svd, LU, solve]
 
-    # an rbm has 3
-    n_param_blocks = len(jax.tree_leaves(variational_state.parameters))
+
+def _is_dense_solver(solver: Any) -> bool:
+    """
+    Returns true if the solver is one of our known dense solvers
+    """
+    if isinstance(solver, partial):
+        solver = solver.func
+
+    if solver in solvers:
+        return True
+
+    return False
+
+
+def default_qgt_matrix(variational_state, solver=False, **kwargs):
+
+    n_param_leaves = len(jax.tree_leaves(variational_state.parameters))
     n_params = variational_state.n_parameters
 
-    # Completely arbitrary
-    if n_param_blocks > 6 and n_params > 800:
-        return QGTJacobianPyTree
+    # those require dense matrix that is known to be faster for this qgt
+    if _is_dense_solver(solver):
+        return partial(QGTJacobianDense, **kwargs)
+
+    # arbitrary heuristic: if the network's parameters has many leaves
+    # (an rbm has 3) then JacobianDense might be faster
+    # the numbers chosen below are rather arbitrary and should be tuned.
+    if n_param_leaves > 6 and n_params > 800:
+        if nkjax.tree_ishomogeneous(variational_state.variables):
+            return partial(QGTJacobianDense, **kwargs)
+        else:
+            return partial(QGTJacobianPyTree, **kwargs)
     else:
-        return QGTOnTheFly
+        return partial(QGTOnTheFly, **kwargs)
 
 
 class QGTAuto:
     """
     Automatically select the 'best' Quantum Geometric Tensor
     computing format acoording to some rather untested heuristic.
+
+    Args:
+        variational_state: The variational State
+        kwargs: are passed on to the QGT constructor.
     """
 
     _last_vstate = None
@@ -60,7 +88,10 @@ class QGTAuto:
             self._last_vstate = variational_state
 
             self._last_matrix = default_qgt_matrix(
-                variational_state, solver=self._solver
+                variational_state, solver=self._solver, **kwargs
             )
 
         return self._last_matrix(variational_state, *args, **kwargs)
+
+    def __repr__(self):
+        return "QGTAuto()"

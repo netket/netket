@@ -22,8 +22,8 @@ import jax.numpy as jnp
 
 import numpy as np
 
-from netket.stats import sum_inplace, subtract_mean
-from netket.utils.mpi import n_nodes
+from netket.stats import subtract_mean
+from netket.utils import mpi
 import netket.jax as nkjax
 
 from netket.utils.types import Array, Callable, PyTree, Scalar
@@ -106,7 +106,7 @@ def _divide_by_sqrt_n_samp(oks, samples):
     """
     divide Oⱼₖ by √n
     """
-    n_samp = samples.shape[0] * n_nodes  # MPI
+    n_samp = samples.shape[0] * mpi.n_nodes  # MPI
     return jax.tree_map(lambda x: x / np.sqrt(n_samp), oks)
 
 
@@ -141,7 +141,9 @@ def _rescale(centered_oks):
     Sₖₗ/(√Sₖₖ√Sₗₗ) = ΔOₖᴴΔOₗ/(√Sₖₖ√Sₗₗ) = (ΔOₖ/√Sₖₖ)ᴴ(ΔOₗ/√Sₗₗ)
     """
     scale = jax.tree_map(
-        lambda x: sum_inplace(jnp.sum((x * x.conj()).real, axis=0, keepdims=True))
+        lambda x: mpi.mpi_sum_jax(jnp.sum((x * x.conj()).real, axis=0, keepdims=True))[
+            0
+        ]
         ** 0.5,
         centered_oks,
     )
@@ -163,7 +165,7 @@ def _vjp(oks: PyTree, w: Array) -> PyTree:
     Compute the vector-matrix product between the vector w and the pytree jacobian oks
     """
     res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
-    return jax.tree_map(sum_inplace, res)  # MPI
+    return jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
 
 
 def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:

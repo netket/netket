@@ -66,11 +66,6 @@ jobs:
             pip install -e ".[dev, mpi]"
           fi
 
-      - name: MPI tests
-        if: matrix.mpi != '' 
-        run: |
-          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 Test
-
       - name: Netket tests
         if: ${{ !matrix.legacy }}
         run : |
@@ -82,6 +77,12 @@ jobs:
         run : |
           export NETKET_EXPERIMENTAL=1
           pytest --cov=netket --cov-append --legacy-only Test
+
+      - name: MPI tests
+        if: matrix.mpi != '' 
+        run: |
+          mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 Test
+          coverage combine --append
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1

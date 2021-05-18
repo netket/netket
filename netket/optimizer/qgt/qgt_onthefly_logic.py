@@ -16,7 +16,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 from netket.stats import subtract_mean
-from netket.utils.mpi import n_nodes, mpi_sum_jax
+from netket.utils import mpi
 import netket.jax as nkjax
 from netket.jax import tree_conj, tree_dot, tree_cast, tree_axpy
 
@@ -37,7 +37,7 @@ def O_jvp(forward_fn, params, samples, v):
 def O_vjp(forward_fn, params, samples, w):
     _, vjp_fun = jax.vjp(forward_fn, params, samples)
     res, _ = vjp_fun(w)
-    return jax.tree_map(lambda x: mpi_sum_jax(x)[0], res)  # allreduce w/ MPI.SUM
+    return jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # allreduce w/ MPI.SUM
 
 
 def O_vjp_rc(forward_fn, params, samples, w):
@@ -45,7 +45,7 @@ def O_vjp_rc(forward_fn, params, samples, w):
     res_r, _ = vjp_fun(w)
     res_i, _ = vjp_fun(-1.0j * w)
     res = jax.tree_multimap(jax.lax.complex, res_r, res_i)
-    return jax.tree_map(lambda x: mpi_sum_jax(x)[0], res)  # allreduce w/ MPI.SUM
+    return jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # allreduce w/ MPI.SUM
 
 
 def O_mean(forward_fn, params, samples, holomorphic=True):
@@ -56,7 +56,9 @@ def O_mean(forward_fn, params, samples, holomorphic=True):
 
     # determine the output type of the forward pass
     dtype = jax.eval_shape(forward_fn, params, samples).dtype
-    w = jnp.ones(samples.shape[0], dtype=dtype) * (1.0 / (samples.shape[0] * n_nodes))
+    w = jnp.ones(samples.shape[0], dtype=dtype) * (
+        1.0 / (samples.shape[0] * mpi.n_nodes)
+    )
 
     homogeneous = nkjax.tree_ishomogeneous(params)
     real_params = not nkjax.tree_leaf_iscomplex(params)
@@ -106,7 +108,7 @@ def Odagger_O_v(forward_fn, params, samples, v, *, center=False):
     # w is an array of size n_samples; each MPI rank has its own slice
     w = O_jvp(forward_fn, params, samples, v)
     # w /= n_samples (elementwise):
-    w = w * (1.0 / (samples.shape[0] * n_nodes))
+    w = w * (1.0 / (samples.shape[0] * mpi.n_nodes))
 
     if center:
         w = subtract_mean(w)  # w/ MPI

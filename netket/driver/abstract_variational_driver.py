@@ -134,6 +134,9 @@ class AbstractVariationalDriver(abc.ABC):
 
     @property
     def optimizer(self):
+        """
+        The optimizer used to update the parameters at every iteration.
+        """
         return self._optimizer
 
     @optimizer.setter
