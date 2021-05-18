@@ -120,7 +120,7 @@ def _3D_name(M: Array) -> str:
             if _naming_isclose(np.trace(M), -1.0):  # π-rotations
                 angle = pi
                 # rotation axis is eigenvector with eigenvalue +1
-                axis = v[:, _naming_isclose(e, 1.0)].flatten()
+                axis = v[:, _naming_isclose(e, 1.0)].real.flatten()
 
             else:  # pick axis s.t. rotation angle be positive
                 pos = e.imag > _naming_tol
@@ -139,7 +139,7 @@ def _3D_name(M: Array) -> str:
         elif _naming_isclose(np.trace(M), 1.0):  # reflections across a plane
             e, v = np.linalg.eig(M)
             # reflection plane normal is eigenvector with eigenvalue -1
-            axis = v[:, _naming_isclose(e, -1.0)].flatten()
+            axis = v[:, _naming_isclose(e, -1.0)].real.flatten()
             return f"Refl{_to_int_vector(axis)}"
 
         else:  # rotoreflections, choose axis s.t. rotation angle be positive
@@ -149,7 +149,7 @@ def _3D_name(M: Array) -> str:
             angle = int(np.rint(np.degrees(angle)))
             v = v[:, pos].flatten()
             axis = np.cross(v.imag, v.real)
-            return f"RotRefl({angle}°){_to_int_vector(axis)}"
+            return f"RotoRefl({angle}°){_to_int_vector(axis)}"
 
     else:
         raise ValueError("M must be an orthogonal matrix")

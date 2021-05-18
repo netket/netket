@@ -16,4 +16,4 @@ from .semigroup import Identity, Element, SemiGroup
 from .group import Group
 from .permutation_group import Permutation, PermutationGroup
 from .point_group import PGSymmetry, PointGroup
-from . import planar
+from . import planar, axial, cubic

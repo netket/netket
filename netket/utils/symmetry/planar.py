@@ -14,7 +14,6 @@
 
 from .semigroup import Identity
 from .point_group import PGSymmetry, PointGroup
-from math import pi
 import numpy as np
 
 
@@ -22,7 +21,7 @@ def _planar_rotation(angle: float) -> PGSymmetry:
     """
     Returns a 2D rotation by `angle` degrees
     """
-    angle *= pi / 180
+    angle = np.radians(angle)
     return PGSymmetry(
         np.asarray([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
     )
@@ -50,7 +49,7 @@ def _reflection(axis: float) -> PGSymmetry:
     """
     Returns a 2D reflection across an axis at angle `axis` to the +x direction
     """
-    axis *= pi / 180 * 2  # the mirror matrix is written in terms of 2φ
+    axis = np.radians(axis) * 2  # the mirror matrix is written in terms of 2φ
     return PGSymmetry(
         np.asarray([[np.cos(axis), np.sin(axis)], [np.sin(axis), -np.cos(axis)]])
     )

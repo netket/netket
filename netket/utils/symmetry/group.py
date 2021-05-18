@@ -218,7 +218,7 @@ class Group(SemiGroup):
         # Normalise the eigenvectors by orthogonality: \sum_g |\chi(g)|^2 = |G|
         norm = np.sum(np.abs(table) ** 2 * class_sizes, axis=1, keepdims=True) ** 0.5
         table /= norm
-        table *= np.sign(table[:, 0])[:, np.newaxis]  # ensure correct sign
+        table /= _cplx_sign(table[:, 0])[:, np.newaxis]  # ensure correct sign
         table *= len(self) ** 0.5
 
         # Sort lexicographically, ascending by first column, descending by others
@@ -227,6 +227,9 @@ class Group(SemiGroup):
         sorting_table = comparable(sorting_table)
         _, indices = np.unique(sorting_table, axis=0, return_index=True)
         table = table[indices]
+
+        # Get rid of annoying nearly-zero entries
+        table = _prune_zeros(table)
 
         return table
 
@@ -253,6 +256,27 @@ class Group(SemiGroup):
             characters: a matrix, each row of which lists the characters of one irrep
         """
         # TODO put more effort into nice rendering?
-        _, idx_repr, _ = self.conjugacy_classes
-        representatives = [str(self[i]) for i in idx_repr]
+        classes, idx_repr, _ = self.conjugacy_classes
+        class_sizes = classes.sum(axis=1)
+        representatives = [
+            f"{class_sizes[cls]}x{self[rep]}" for cls, rep in enumerate(idx_repr)
+        ]
         return representatives, self.character_table_by_class
+
+
+def _cplx_sign(x):
+    return x / np.abs(x)
+
+
+def __prune_zeros(x: Array) -> Array:
+    """Prune nearly zero entries"""
+    x[np.isclose(x, 0.0)] = 0.0
+    return x
+
+
+def _prune_zeros(x: Array) -> Array:
+    """Prune nearly zero real and imaginary parts"""
+    if np.iscomplexobj(x):
+        return __prune_zeros(x.real) + 1j * __prune_zeros(x.imag)
+    else:
+        return __prune_zeros(x)
