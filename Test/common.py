@@ -51,6 +51,10 @@ class netket_disable_mpi:
     def __enter__(self):
         self._orig_nodes = nk.utils.mpi.n_nodes
         nk.utils.mpi.n_nodes = 1
+        nk.utils.mpi.mpi.n_nodes = 1
+        nk.utils.mpi.primitives.n_nodes = 1
 
     def __exit__(self, exc_type, exc_value, traceback):
         nk.utils.mpi.n_nodes = self._orig_nodes
+        nk.utils.mpi.mpi.n_nodes = self._orig_nodes
+        nk.utils.mpi.primitives.n_nodes = self._orig_nodes

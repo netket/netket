@@ -86,7 +86,6 @@ class MCMixedState(VariationalMixedState, MCState):
             sampler: The sampler
             model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
 
-        Keyword Arguments:
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_discard: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
             parameters: Optional PyTree of weights from which to start.
@@ -102,6 +101,7 @@ class MCMixedState(VariationalMixedState, MCState):
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
             training_kwargs: a dict containing the optionaal keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
+
         """
 
         seed, seed_diag = jax.random.split(nkjax.PRNGKey(seed))

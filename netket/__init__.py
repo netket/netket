@@ -47,13 +47,13 @@ from . import (
     graph,
     logging,
     operator,
-    optimizer,
     models,
     sampler,
     jax,
     nn,
     stats,
     variational,
+    optimizer,
 )
 
 # Main applications

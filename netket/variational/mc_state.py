@@ -37,6 +37,8 @@ from netket.stats import Stats, statistics, mean, sum_inplace
 from netket.utils import maybe_wrap_module, deprecated, mpi
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
 from netket.optimizer import LinearOperator
+from netket.optimizer.qgt import QGTAuto
+
 from netket.operator import (
     AbstractOperator,
     AbstractSuperOperator,
@@ -123,11 +125,9 @@ class MCState(VariationalState):
         """
         Constructs the MCState.
 
-        Arguments:
+        Args:
             sampler: The sampler
             model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
-
-        Keyword Arguments:
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_discard: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
             parameters: Optional PyTree of weights from which to start.
@@ -143,6 +143,7 @@ class MCState(VariationalState):
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
             training_kwargs: a dict containing the optionaal keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
+
         """
         super().__init__(sampler.hilbert)
 
@@ -493,15 +494,21 @@ class MCState(VariationalState):
 
         return Ō, Ō_grad
 
-    def quantum_geometric_tensor(self, sr: LinearOperator) -> LinearOperator:
+    def quantum_geometric_tensor(
+        self, qgt_T: LinearOperator = QGTAuto()
+    ) -> LinearOperator:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector
         or can be converted to a full matrix.
 
+        Args:
+            qgt_T: the optional type of the quantum geometric tensor. By default it's automatically selected.
+
+
         Returns:
-            scipy.sparse.linalg.LinearOperator: A linear operator representing the quantum geometric tensor.
+            nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
-        return sr.create(self)
+        return qgt_T(self)
 
     def to_array(self, normalize: bool = True) -> jnp.ndarray:
         return netket.nn.to_array(

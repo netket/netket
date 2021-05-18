@@ -49,7 +49,7 @@ def warn_deprecation(message):
 
     :param message: A mandatory message documenting the deprecation.
     """
-    warnings.warn(message, category=FutureWarning, stacklevel=2)
+    warnings.warn(dedent(message), category=FutureWarning, stacklevel=2)
 
 
 def deprecated_new_name(message):

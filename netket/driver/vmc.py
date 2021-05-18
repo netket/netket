@@ -19,8 +19,13 @@ import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from netket.stats import Stats
-
 from netket.variational import MCState
+from netket.optimizer import (
+    identity_preconditioner,
+    LinearPreconditioner,
+    PreconditionerT,
+)
+from netket.utils import warn_deprecation
 
 from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
@@ -38,8 +43,7 @@ class VMC(AbstractVariationalDriver):
         optimizer,
         *args,
         variational_state=None,
-        preconditioner=None,
-        preconditioner_restart: bool = False,
+        preconditioner: PreconditionerT = None,
         sr=None,
         sr_restart: bool = None,
         **kwargs,
@@ -51,23 +55,11 @@ class VMC(AbstractVariationalDriver):
             hamiltonian: The Hamiltonian of the system.
             optimizer: Determines how optimization steps are performed given the
                 bare energy gradient.
-            preconditioner: Determines whether and how stochastic reconfiguration
-                is applied to the bare energy gradient before performing applying
-                the optimizer. If this parameter is not passed or None, SR is not used.
-            sr_restart: whever to restart the SR solver at every iteration, or use the
-                previous result to speed it up
-
-        Example:
-            Optimizing a 1D wavefunction with Variational Monte Carlo.
-
-            >>> import netket as nk
-            >>> hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
-            >>> ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
-            >>> ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
-            >>> sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
-            >>> op = nk.optimizer.Sgd(learning_rate=0.1)
-            >>> gs = nk.driver.VMC(ha, op, sa, ma, n_samples=1000, n_discard=50)
-            >>> gs.run(n_iter=300, out="test")
+            preconditioner: Determines which preconditioner to use for the loss gradient.
+                This must be a tuple of `(object, solver)` as documented in the section
+                `preconditioners` in the documentation. The standard preconditioner
+                included with NetKet is Stochastic Reconfiguration. By default, no
+                preconditioner is used and the bare gradient is passed to the optimizer.
         """
         if variational_state is None:
             variational_state = MCState(*args, **kwargs)
@@ -87,20 +79,36 @@ class VMC(AbstractVariationalDriver):
                 )
             else:
                 preconditioner = sr
-        if preconditioner_restart is not None:
-            if sr_restart is not None:
+                warn_deprecation(
+                    (
+                        "The `sr` keyword argument is deprecated in favour of `preconditioner`."
+                        "Please update your code to `VMC(.., precondioner=your_sr)`"
+                    )
+                )
+        if sr_restart is not None:
+            if preconditioner is None:
                 raise ValueError(
-                    "sr_restart is deprecated in favour of preconditioner_restart kwarg. You should not pass both"
+                    "sr_restart only makes sense if you have a preconditioner/SR."
                 )
             else:
-                preconditioner_restart = sr_restart
+                preconditioner.solver_restart = sr_restart
+                warn_deprecation(
+                    (
+                        "The `sr_restart` keyword argument is deprecated in favour of specifiying "
+                        "`solver_restart` in the constructor of the SR object."
+                        "Please update your code to `VMC(.., preconditioner=nk.optimizer.SR(..., solver_restart=True/False))`"
+                    )
+                )
+
+        # move as kwarg once deprecations are removed
+        if preconditioner is None:
+            preconditioner = identity_preconditioner
 
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 
         self._ham = hamiltonian.collect()  # type: AbstractOperator
 
-        self.preconditioner = preconditioner  # type: SR
-        self.preconditioner_restart = preconditioner_restart
+        self.preconditioner = preconditioner
 
         self._dp = None  # type: PyTree
         self._S = None
@@ -119,17 +127,9 @@ class VMC(AbstractVariationalDriver):
         # Compute the local energy estimator and average Energy
         self._loss_stats, self._loss_grad = self.state.expect_and_grad(self._ham)
 
-        if self.preconditioner is not None:
-            self._S = self.preconditioner.object(self.state)
-
-            # use the previous solution as an initial guess to speed up the solution of the linear system
-            x0 = self._dp if self.preconditioner_restart is False else None
-            self._dp, self._sr_info = self._S.solve(
-                self.preconditioner.solver, self._loss_grad, x0=x0
-            )
-        else:
-            # tree_map(lambda x, y: x if is_ccomplex(y) else x.real, self._grads, self.state.parameters)
-            self._dp = self._loss_grad
+        # if it's the identity it does
+        # self._dp = self._loss_grad
+        self._dp = self.preconditioner(self.state, self._loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = jax.tree_multimap(

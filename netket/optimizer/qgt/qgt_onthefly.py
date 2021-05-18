@@ -28,7 +28,26 @@ from .qgt_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-def QGTOnTheFly(vstate, **kwargs) -> "QGTOnTheFlyT":
+def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
+    """
+    Lazy representation of an S Matrix computed by performing 2 jvp
+    and 1 vjp products, using the variational state's model, the
+    samples that have already been computed, and the vector.
+
+    The S matrix is not computed yet, but can be computed by calling
+    :code:`to_dense`.
+    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
+    the field `sr`.
+
+    Args:
+        vstate: The variational State.
+        centered: Uses S=⟨ΔÔᶜΔÔ⟩ if True (default), S=⟨ÔᶜΔÔ⟩ otherwise. The two forms are
+            mathematically equivalent, but might lead to different results due to numerical
+            precision. The non-centered variant should be approximately 33% faster.
+    """
+    if vstate is None:
+        return partial(QGTOnTheFly, **kwargs)
+
     return QGTOnTheFlyT(
         apply_fun=vstate._apply_fun,
         params=vstate.parameters,
@@ -81,19 +100,9 @@ class QGTOnTheFlyT(LinearOperator):
     def __matmul__(self, y):
         return onthefly_mat_treevec(self, y)
 
-    @partial(jax.jit)
     def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs) -> PyTree:
+        return _solve(self, solve_fun, y, x0=x0)
 
-        y = tree_cast(y, self.params)
-
-        # we could cache this...
-        if x0 is None:
-            x0 = jax.tree_map(jnp.zeros_like, y)
-
-        out, info = solve_fun(self, y, x0=x0)
-        return out, info
-
-    @jax.jit
     def to_dense(self) -> jnp.ndarray:
         """
         Convert the lazy matrix representation to a dense matrix representation.s
@@ -101,9 +110,12 @@ class QGTOnTheFlyT(LinearOperator):
         Returns:
             A dense matrix representation of this S matrix.
         """
-        Npars = nkjax.tree_size(self.params)
-        I = jax.numpy.eye(Npars)
-        return jax.vmap(lambda x: self @ x, in_axes=0)(I)
+        return _to_dense(self)
+
+
+########################################################################################
+#####                                  QGT Logic                                   #####
+########################################################################################
 
 
 @jax.jit
@@ -153,3 +165,36 @@ def onthefly_mat_treevec(
         res, _ = nkjax.tree_ravel(res)
 
     return res
+
+
+@jax.jit
+def _solve(
+    self: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs
+) -> PyTree:
+
+    y = tree_cast(y, self.params)
+
+    # we could cache this...
+    if x0 is None:
+        x0 = jax.tree_map(jnp.zeros_like, y)
+
+    out, info = solve_fun(self, y, x0=x0)
+    return out, info
+
+
+@jax.jit
+def _to_dense(self: QGTOnTheFlyT) -> jnp.ndarray:
+    """
+    Convert the lazy matrix representation to a dense matrix representation.s
+
+    Returns:
+        A dense matrix representation of this S matrix.
+    """
+    Npars = nkjax.tree_size(self.params)
+    I = jax.numpy.eye(Npars)
+    out = jax.vmap(lambda x: self @ x, in_axes=0)(I)
+
+    if nkjax.is_complex(out):
+        out = out.T
+
+    return out
