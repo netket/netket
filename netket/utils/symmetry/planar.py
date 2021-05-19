@@ -38,7 +38,7 @@ def C(n: int) -> PointGroup:
         a `PointGroup` implementing Cₙ
     """
     return PointGroup(
-        [Identity()] + [_planar_rotation(360 / n * i) for i in range(1, n)], dim=2
+        [Identity()] + [_planar_rotation(360 / n * i) for i in range(1, n)], ndim=2
     )
 
 
@@ -60,7 +60,7 @@ def reflections(axis: float) -> PointGroup:
     Returns the Z₂ `PointGroup` containing the identity and a reflection across an
     axis at angle `axis` to the +x direction
     """
-    return PointGroup([Identity(), _reflection(axis)], dim=2)
+    return PointGroup([Identity(), _reflection(axis)], ndim=2)
 
 
 def D(n: int, axis: float = 0) -> PointGroup:

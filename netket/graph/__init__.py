@@ -18,6 +18,9 @@ from .graph import NetworkX, Graph, Edgeless, DoubledGraph, disjoint_union
 from .grid import Grid, Chain, Square, Hypercube
 from .lattice import Lattice
 
+
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)
+
+from . import space_group

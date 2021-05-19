@@ -37,23 +37,26 @@ class PGSymmetry(Element):
     that leave the origin in place geometrically.
     """
 
-    M: Array
+    _W: Array
     """
     A 2D array specifying the transformation: a vector :math:`vec x` is mapped
-    to :math:`M\vec x`. It has to be orthogonal (i.e. it must be real and 
-    satisfy :math:`M^T M = 1`)
+    to :math:`W\vec x`. It has to be orthogonal (i.e. it must be real and 
+    satisfy :math:`W^T W = 1`)
     """
 
     def __call__(self, x):
-        return x @ M.T
+        return x @ self._W.T
+
+    def preimage(self, x):
+        return x @ self._W
 
     def __hash__(self):
-        return hash(HashableArray(comparable(self.M)))
+        return hash(HashableArray(comparable(self._W)))
 
     def __eq__(self, other):
         if isinstance(other, Permutation):
-            return HashableArray(comparable(self.M)) == HashableArray(
-                comparable(other.M)
+            return HashableArray(comparable(self._W)) == HashableArray(
+                comparable(other._W)
             )
         else:
             return False
@@ -61,9 +64,9 @@ class PGSymmetry(Element):
     @struct.property_cached
     def _name(self) -> str:
         if self.M.shape == (2, 2):
-            return _2D_name(self.M)
+            return _2D_name(self._W)
         elif self.M.shape == (3, 3):
-            return _3D_name(self.M)
+            return _3D_name(self._W)
         else:
             return f"PGSymmetry({self.M})"
 
@@ -71,12 +74,16 @@ class PGSymmetry(Element):
         return self._name
 
     def __array__(self, dtype: DType = None):
-        return np.asarray(self.M, dtype)
+        return np.asarray(self._W, dtype)
+
+    @property
+    def matrix(self):
+        return self._W
 
 
 @dispatch
 def product(p: PGSymmetry, q: PGSymmetry):
-    return PGSymmetry(p.M @ q.M)
+    return PGSymmetry(p.matrix @ q.matrix)
 
 
 ############ NAMING 2D AND 3D POINT GROUP SYMMETRIES ###########################
@@ -202,22 +209,9 @@ class PointGroup(Group):
     Those can be removed by calling :code:`remove_duplicates`.
     """
 
-    dim: int
+    ndim: int
     """Dimensionality of point group operations."""
 
-    def __post_init__(self):
-        super().__post_init__()
-
-        # Check if all dimensionalities are correct
-        for x in self.elems:
-            if isinstance(x, PGSymmetry) and (x.M.shape != (self.dim, self.dim)):
-                raise ValueError(
-                    "`PointGroup` contains operation of unexpected dimensionality"
-                )
-
-        # Define custom hash
-        myhash = hash((super().__hash__(), hash(self.dim)))
-        object.__setattr__(self, "_PointGroup__hash", myhash)
 
     def __matmul__(self, other) -> "PointGroup":
         if not isinstance(other, PointGroup):
@@ -225,13 +219,13 @@ class PointGroup(Group):
 
         # Should check if dimensions match, but mismatched dimensions would lead to
         # multiplying different-sized matrices, resulting in an error
-        return PointGroup(super().__matmul__(other).elems, self.dim)
+        return PointGroup(super().__matmul__(other).elems, self.ndim)
 
     def _transformation_matrix(self, x: Element) -> Array:
         if isinstance(x, Identity):
-            M = np.eye(self.dim, dtype=float)
+            M = np.eye(self.ndim, dtype=float)
         elif isinstance(x, PGSymmetry):
-            M = x.M
+            M = x.matrix
         else:
             raise ValueError(
                 "`PointGroup` only supports `Identity` and `PGSymmetry` elements"
@@ -271,7 +265,7 @@ class PointGroup(Group):
         else:
             group = super().remove_duplicates(return_inverse=False)
 
-        pgroup = PointGroup(group.elems, self.dim)
+        pgroup = PointGroup(group.elems, self.ndim)
 
         if return_inverse:
             return pgroup, inverse
@@ -313,9 +307,5 @@ class PointGroup(Group):
 
     @property
     def shape(self) -> Shape:
-        """Tuple `(<# of group elements>, <dim>, <dim>)`, same as :code:`self.to_array().shape`."""
-        return (len(self), self.dim, self.dim)
-
-    def __hash__(self):
-        # pylint: disable=no-member
-        return self.__hash
+        """Tuple `(<# of group elements>, <ndim>, <ndim>)`, same as :code:`self.to_array().shape`."""
+        return (len(self), self.ndim, self.ndim)

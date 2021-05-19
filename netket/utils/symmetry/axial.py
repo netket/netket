@@ -41,7 +41,7 @@ def C(n: int, axis: Array = np.array([0, 0, 1])) -> PointGroup:
         a `PointGroup` implementing :math:`C_n`
     """
     return PointGroup(
-        [Identity()] + [_rotation(360 / n * i, axis) for i in range(1, n)], dim=3
+        [Identity()] + [_rotation(360 / n * i, axis) for i in range(1, n)], ndim=3
     )
 
 
@@ -49,7 +49,7 @@ rotations = C
 
 _inversion = PGSymmetry(-np.eye(3))
 
-inversions = PointGroup([Identity(), _inversion], dim=3)
+inversions = PointGroup([Identity(), _inversion], ndim=3)
 """
 :math:`\mathbb{Z}_2` `PointGroup` containing the identity and inversion across the origin.
 """
@@ -66,7 +66,7 @@ def reflections(axis: Array) -> PointGroup:
     Returns the :math:`\mathbb{Z}_2` `PointGroup` containing the identity and a
     reflection across a plane with normal `axis`
     """
-    return PointGroup([Identity(), _reflection(axis)], dim=3)
+    return PointGroup([Identity(), _reflection(axis)], ndim=3)
 
 
 def Ch(n: int, axis: Array = np.array([0, 0, 1])) -> PointGroup:
@@ -146,7 +146,7 @@ def S(n: int, axis: Array = np.array([0, 0, 1])) -> PointGroup:
                 )
                 for i in range(1, n)
             ],
-            dim=3,
+            ndim=3,
         )
 
 

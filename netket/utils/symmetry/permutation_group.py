@@ -34,12 +34,13 @@ class Permutation(Element):
 
         Arguments:
             permutation: a 1D array listing :math:`g^{-1}(x)` for all :math:`0\le x < N` (i.e., `V[permutation]` permutes the elements of `V` as desired)
+            name: optional, custom name for the permutation
 
         Returns:
             a `Permutation` object encoding the same permutation
         """
         self.permutation = HashableArray(np.asarray(permutation))
-        self.name = name
+        self.__name = name
 
     def __call__(self, x):
         return x[..., self.permutation]
@@ -53,11 +54,15 @@ class Permutation(Element):
         else:
             return False
 
+    @property
+    def _name(self):
+        return self.__name
+
     def __repr__(self):
-        if self.name is not None:
-            return self.name
+        if self._name is not None:
+            return self._name
         else:
-            return f"Permutation({self.__array__().tolist()})"
+            return f"Permutation({np.asarray(self).tolist()})"
 
     def __array__(self, dtype: DType = None):
         return np.asarray(self.permutation, dtype)
@@ -65,11 +70,11 @@ class Permutation(Element):
 
 @dispatch
 def product(p: Permutation, q: Permutation):
-    name = None if p.name is None and q.name is None else f"{p} @ {q}"
+    name = None if p._name is None and q._name is None else f"{p} @ {q}"
     return Permutation(p(np.asarray(q)), name)
 
 
-@struct.dataclass()
+@struct.dataclass
 class PermutationGroup(Group):
     """
     Collection of permutation operations acting on sequences of length :code:`degree`.
@@ -88,8 +93,6 @@ class PermutationGroup(Group):
 
     def __post_init__(self):
         super().__post_init__()
-        myhash = hash((super().__hash__(), hash(self.degree)))
-        object.__setattr__(self, "_PermutationGroup__hash", myhash)
 
     def __matmul__(self, other) -> "PermutationGroup":
         if not isinstance(other, PermutationGroup):
@@ -198,7 +201,3 @@ class PermutationGroup(Group):
     def shape(self) -> Shape:
         """Tuple `(<# of group elements>, <degree>)`, same as :code:`self.to_array().shape`."""
         return (len(self), self.degree)
-
-    def __hash__(self):
-        # pylint: disable=no-member
-        return self.__hash
