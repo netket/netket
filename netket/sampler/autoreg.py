@@ -14,8 +14,8 @@
 
 from functools import partial
 
-from flax import struct
 from netket.sampler import Sampler, SamplerState
+from netket.utils import struct
 from netket.utils.types import PRNGKeyT, PyTree
 
 import jax
