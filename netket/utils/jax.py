@@ -25,6 +25,15 @@ def get_afun_if_module(mod_or_fun, *args, **kwargs):
 class WrappedApplyFun:
     def __init__(self, module):
         self.apply = module
+        self._hash = None
+
+    def __eq__(self, other):
+        return type(other) is WrappedApplyFun and self.apply == other.apply
+
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash(self.apply)
+        return self._hash
 
 
 def wrap_afun(mod_or_fun, *args, **kwargs):

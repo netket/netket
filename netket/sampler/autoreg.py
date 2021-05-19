@@ -37,11 +37,15 @@ def vmap_choice(key, a, p, replace=True):
 
 @struct.dataclass
 class ARSamplerState(SamplerState):
+    σ: jnp.ndarray
+    """current batch of (maybe partially sampled) configurations."""
     model_state: PyTree
+    """auxiliary model state, e.g., used to implement fast autoregressive sampling."""
     key: PRNGKeyT
+    """state of the random number generator."""
 
     def __repr__(self):
-        return f"ARSamplerState(rng state={self.key})"
+        return f"{type(self).__name__}(rng state={self.key})"
 
 
 @struct.dataclass
@@ -49,21 +53,40 @@ class ARSampler(Sampler):
     """Sampler for autoregressive neural networks."""
 
     def _init_state(sampler, model, params, key):
-        return ARSamplerState(model_state=None, key=key)
+        σ = sampler.hilbert.random_state(
+            key, size=sampler.n_batches, dtype=sampler.dtype
+        )
+        model_state = model.apply(
+            params,
+            σ,
+            method=model.init_state,
+        )
+        return ARSamplerState(σ=σ, model_state=model_state, key=key)
 
     def _reset(sampler, model, params, state):
-        return state.replace(model_state=None)
+        new_key, key = jax.random.split(state.key)
+        σ = sampler.hilbert.random_state(
+            key, size=sampler.n_batches, dtype=sampler.dtype
+        )
+        model_state = model.apply(
+            params,
+            σ,
+            method=model.init_state,
+        )
+        return state.replace(σ=σ, model_state=model_state, key=new_key)
 
     def _sample_next(sampler, model, params, state):
+        σ = state.σ
+        model_state = state.model_state
         new_key, key = jax.random.split(state.key)
 
         def scan_fun(carry, index):
-            spins, model_state, key = carry
+            σ, model_state, key = carry
             new_key, key = jax.random.split(key)
 
             p, model_state = model.apply(
                 params,
-                spins,
+                σ,
                 model_state,
                 method=model.conditionals,
             )
@@ -71,23 +94,17 @@ class ARSampler(Sampler):
                 sampler.hilbert.local_states, dtype=sampler.dtype
             )
             p = p[:, index, :]
-            new_spins = vmap_choice(key, local_states, p)
-            spins = spins.at[:, index].set(new_spins)
+            new_σ = vmap_choice(key, local_states, p)
+            σ = σ.at[:, index].set(new_σ)
 
-            return (spins, model_state, new_key), None
+            return (σ, model_state, new_key), None
 
-        spins, model_state = model.apply(
-            params,
-            (sampler.n_chains, sampler.hilbert.size),
-            sampler.dtype,
-            method=model.init_sample,
-        )
         indices = jnp.arange(sampler.hilbert.size)
-        (spins, model_state, _), _ = jax.lax.scan(
+        (σ, model_state, _), _ = jax.lax.scan(
             scan_fun,
-            (spins, model_state, key),
+            (σ, model_state, key),
             indices,
         )
 
-        new_state = state.replace(model_state=model_state, key=new_key)
-        return new_state, spins
+        new_state = state.replace(σ=σ, model_state=model_state, key=new_key)
+        return new_state, σ

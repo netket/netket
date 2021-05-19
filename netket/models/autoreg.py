@@ -25,21 +25,18 @@ from netket.utils.types import Array, DType, NNInitFunc, PyTree
 class ARNN(nn.Module):
     """Base class for autoregressive neural networks."""
 
-    def init_sample(self, size: Iterable[int], dtype: DType) -> Tuple[Array, PyTree]:
+    @abc.abstractmethod
+    def init_state(self, inputs: Array) -> PyTree:
         """
-        Initializes the model for sampling.
+        Initializes the model state.
 
         Args:
-          size: (batch, Hilbert.size).
-          dtype: dtype of the spins.
+          inputs: configurations with dimensions (batch, Hilbert.size).
 
         Returns:
-          spins: the initial state that all spins are not sampled yet, by default an array of zeros.
           state: auxiliary model state, e.g., used to implement fast autoregressive sampling.
         """
-        spins = jnp.zeros(size, dtype=dtype)
-        state = None
-        return spins, state
+        raise NotImplementedError
 
     @abc.abstractmethod
     def conditionals(self, inputs: Array, state: PyTree) -> Tuple[Array, PyTree]:
@@ -47,7 +44,7 @@ class ARNN(nn.Module):
         Computes the probabilities for each spin to take each value.
 
         Args:
-          inputs: input data with dimensions (batch, Hilbert.size).
+          inputs: configurations with dimensions (batch, Hilbert.size).
           state: auxiliary model state, e.g., used to implement fast autoregressive sampling.
 
         Returns:
@@ -100,6 +97,9 @@ class ARNNDense(ARNN):
             )
             for i in range(self.layers)
         ]
+
+    def init_state(self, inputs: Array) -> PyTree:
+        return None
 
     def conditionals(self, inputs: Array, state: PyTree) -> Tuple[Array, PyTree]:
         x = jnp.expand_dims(inputs, axis=2)
