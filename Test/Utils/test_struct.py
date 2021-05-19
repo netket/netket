@@ -152,3 +152,20 @@ def test_inheritance():
 
     assert p.x == 1
     assert p.z == 1
+
+
+@struct.dataclass(cache_hash=True)
+class Point0cache:
+    x: float
+
+    def __hash__(self):
+        return 123
+
+
+def test_cache_hash():
+    a = Point0cache(1)
+    assert a.__Point0cache_hash_cache is struct.Uninitialized
+    hash(a) == 123
+    assert a.__Point0cache_hash_cache is 123
+    object.__setattr__(a, "__Point0cache_hash_cache", 1234)
+    hash(a) == 1234
