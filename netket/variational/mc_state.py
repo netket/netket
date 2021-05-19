@@ -34,7 +34,7 @@ from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
-from netket.utils import maybe_wrap_module, deprecated, mpi
+from netket.utils import maybe_wrap_module, deprecated, mpi, wrap_afun
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -149,7 +149,7 @@ class MCState(VariationalState):
 
         # Init type 1: pass in a model
         if model is not None:
-            # exetract init and apply functions
+            # extract init and apply functions
             # Wrap it in an HashablePartial because if two instances of the same model are provided,
             # model.apply and model2.apply will be different methods forcing recompilation, but
             # model and model2 will have the same hash.
@@ -173,6 +173,9 @@ class MCState(VariationalState):
                 raise ValueError(
                     "If you don't provide variables, you must pass a valid init_fun."
                 )
+
+            self.model = wrap_afun(apply_fun)
+
         else:
             raise ValueError(
                 "Must either pass the model or apply_fun, otherwise how do you think we"
@@ -238,7 +241,7 @@ class MCState(VariationalState):
 
         self._sampler = sampler
         self.sampler_state = self.sampler.init_state(
-            self._apply_fun, self.variables, seed=self._sampler_seed
+            self.model, self.variables, seed=self._sampler_seed
         )
         self.reset()
 
@@ -333,19 +336,19 @@ class MCState(VariationalState):
             n_discard = self.n_discard
 
         self.sampler_state = self.sampler.reset(
-            self._apply_fun, self.variables, self.sampler_state
+            self.model, self.variables, self.sampler_state
         )
 
         if self.n_discard > 0:
             _, self.sampler_state = self.sampler.sample(
-                self._apply_fun,
+                self.model,
                 self.variables,
                 state=self.sampler_state,
                 chain_length=n_discard,
             )
 
         self._samples, self.sampler_state = self.sampler.sample(
-            self._apply_fun,
+            self.model,
             self.variables,
             state=self.sampler_state,
             chain_length=chain_length,
@@ -646,8 +649,8 @@ def grad_expect_operator_kernel(
     if not config.FLAGS["NETKET_EXPERIMENTAL"]:
         raise RuntimeError(
             """
-                           Computing the gradient of a squared or non hermitian 
-                           operator is an experimental feature under development 
+                           Computing the gradient of a squared or non hermitian
+                           operator is an experimental feature under development
                            and is known not to return wrong values sometimes.
 
                            If you want to debug it, set the environment variable

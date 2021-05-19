@@ -59,7 +59,7 @@ class ExactSampler(Sampler):
 
     def _reset(sampler, machine, parameters, state):
         pdf = jnp.absolute(
-            to_array(sampler.hilbert, machine, parameters) ** sampler.machine_pow
+            to_array(sampler.hilbert, machine.apply, parameters) ** sampler.machine_pow
         )
         pdf = pdf / pdf.sum()
 

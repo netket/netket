@@ -12,26 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
+
 import netket as nk
-from jax import numpy as jnp
+import optax
 
 
-def test_ARDirectSampler():
+def test_AR_VMC():
     L = 4
-    n_chains = 3
 
     graph = nk.graph.Hypercube(length=L, n_dim=1)
     hilbert = nk.hilbert.Spin(s=1 / 2, N=L)
 
     model = nk.models.ARNNDense(layers=3, features=5)
-    params = model.init(jax.random.PRNGKey(0), jnp.zeros((n_chains, L)))
+    sampler = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
 
-    sampler = nk.sampler.ARDirectSampler(hilbert, n_chains=n_chains)
-    samples, _ = sampler.sample(model, params, chain_length=3)
+    vstate = nk.variational.MCState(sampler, model, n_samples=6, n_discard=0)
+    vstate.sample()
 
-    all_states = hilbert.all_states()
-    for sample in samples:
-        assert sample.shape == (sampler.n_chains, L)
-        for v in sample:
-            assert v in all_states
+    H = nk.operator.Ising(hilbert=hilbert, graph=graph, h=1)
+    optimizer = optax.adam(learning_rate=1e-3)
+    vmc = nk.VMC(H, optimizer, variational_state=vstate)
+    vmc.run(n_iter=3)

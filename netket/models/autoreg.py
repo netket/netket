@@ -95,13 +95,17 @@ class ARNNDense(ARNN):
 
         p = nn.sigmoid(x)
         p = jnp.stack([1 - p, p], axis=-1)
-
         return p, cache
 
     def __call__(self, inputs: Array) -> Array:
         """Returns log_psi, where psi is real."""
+
+        if inputs.ndim == 1:
+            inputs = jnp.expand_dims(inputs, axis=0)
+
         p, _ = self.conditionals(inputs, None)
         mask = (inputs + 1) / 2
         p = (1 - mask) * p[:, :, 0] + mask * p[:, :, 1]
+
         log_psi = 1 / 2 * jnp.log(p + self.eps).sum(axis=1)
         return log_psi

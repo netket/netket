@@ -71,51 +71,53 @@ class ARDirectSampler(Sampler):
     def _reset(sampler, model, params, state):
         return state
 
-    @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(sampler, model, params, state, chain_length):
-        def scan_fun(carry, index):
-            σ, cache, key = carry
-            new_key, key = jax.random.split(key)
-
-            p, cache = model.apply(
-                params,
-                σ,
-                cache,
-                method=model.conditionals,
-            )
-            local_states = jnp.asarray(
-                sampler.hilbert.local_states, dtype=sampler.dtype
-            )
-            p = p[:, index, :]
-            new_σ = vmap_choice(key, local_states, p)
-            σ = σ.at[:, index].set(new_σ)
-
-            return (σ, cache, new_key), None
-
-        new_key, key_init, key_scan = jax.random.split(state.key, 3)
-
-        # We just need a buffer for `σ` before generating each sample
-        # The result does not depend on the initial contents in it
-        σ = jnp.zeros(
-            (chain_length * sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype
-        )
-
-        # Init `cache` before generating each sample,
-        # even if `params` is not changed and `reset` is not called
-        cache = sampler._init_cache(model, σ, key_init)
-
-        indices = jnp.arange(sampler.hilbert.size)
-        (σ, cache, _), _ = jax.lax.scan(
-            scan_fun,
-            (σ, cache, key_scan),
-            indices,
-        )
-        σ = σ.reshape((chain_length, sampler.n_chains, sampler.hilbert.size))
-
-        new_state = state.replace(σ=σ, cache=cache, key=new_key)
-        return σ, new_state
+        return _sample_chain(sampler, model, params, state, chain_length)
 
     def _sample_next(sampler, model, params, state):
         σ, new_state = sampler._sample_chain(model, params, state, 1)
         σ = σ.squeeze(axis=0)
         return new_state, σ
+
+
+@partial(jax.jit, static_argnums=(1, 4))
+def _sample_chain(sampler, model, params, state, chain_length):
+    def scan_fun(carry, index):
+        σ, cache, key = carry
+        new_key, key = jax.random.split(key)
+
+        p, cache = model.apply(
+            params,
+            σ,
+            cache,
+            method=model.conditionals,
+        )
+        local_states = jnp.asarray(sampler.hilbert.local_states, dtype=sampler.dtype)
+        p = p[:, index, :]
+        new_σ = vmap_choice(key, local_states, p)
+        σ = σ.at[:, index].set(new_σ)
+
+        return (σ, cache, new_key), None
+
+    new_key, key_init, key_scan = jax.random.split(state.key, 3)
+
+    # We just need a buffer for `σ` before generating each sample
+    # The result does not depend on the initial contents in it
+    σ = jnp.zeros(
+        (chain_length * sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype
+    )
+
+    # Init `cache` before generating each sample,
+    # even if `params` is not changed and `reset` is not called
+    cache = sampler._init_cache(model, σ, key_init)
+
+    indices = jnp.arange(sampler.hilbert.size)
+    (σ, cache, _), _ = jax.lax.scan(
+        scan_fun,
+        (σ, cache, key_scan),
+        indices,
+    )
+    σ = σ.reshape((chain_length, sampler.n_chains, sampler.hilbert.size))
+
+    new_state = state.replace(σ=σ, cache=cache, key=new_key)
+    return σ, new_state
