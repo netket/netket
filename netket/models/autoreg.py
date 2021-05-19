@@ -32,6 +32,7 @@ class ARNN(nn.Module):
 
         Args:
           inputs: configurations with dimensions (batch, Hilbert.size).
+            Only its size and dtype are relevant, not its contents.
 
         Returns:
           cache: auxiliary states, e.g., used to implement fast autoregressive sampling.
