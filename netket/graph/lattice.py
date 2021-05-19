@@ -591,15 +591,18 @@ class Lattice(NetworkX):
         """`Deprecated`, please use :code:`positions[site_id]` instead."""
         return self.positions[site_id]
 
-    @deprecated("id_from_basis_coords([*vector, label])")
-    def vector_to_site(self, vector: CoordT, label: int) -> int:
-        """`Deprecated`, please use :code:`id_from_basis_coords([*vector, label])` instead."""
-        return self.id_from_basis_coords([*vector, label])
+    @deprecated("id_from_basis_coords([*vector, 0])")
+    def vector_to_site(self, vector: CoordT) -> int:
+        """`Deprecated`, please use :code:`id_from_basis_coords([*vector, 0])` instead."""
+        # Note: This only gives one site within the unit cell, so that
+        # `vector_to_site(site_to_vector(i)) == i` is _not_ true in general,
+        # which is consistent with the behavior of the v2 lattice.
+        return self.id_from_basis_coords([*vector, 0])
 
-    @deprecated("basis_vectors.T @ vector")
-    def vector_to_coord(self, vector: CoordT) -> int:
-        """`Deprecated`, please use :code:`basis_vectors.T @ vector` instead."""
-        return self._basis_vectors.T @ vector
+    @deprecated("position_from_basis_coords([*vector, label])")
+    def vector_to_coord(self, vector: CoordT, label: int) -> PositionT:
+        """`Deprecated`, please use :code:`position_from_basis_coords([*vector, label])` instead."""
+        return self.position_from_basis_coords([*vector, label])
 
     @property
     @deprecated("positions")

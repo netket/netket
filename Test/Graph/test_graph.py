@@ -134,11 +134,12 @@ def test_lattice_old_interface():
 
         *cell1, label1 = g.basis_coords[1]
         check_alternative(
-            lambda: g.vector_to_site(cell1, label1),
-            lambda: g.id_from_basis_coords([*cell1, label1]),
+            lambda: g.vector_to_site(cell1),
+            lambda: g.id_from_basis_coords([*cell1, 0]),
         )
         check_alternative(
-            lambda: g.vector_to_coord(cell1), lambda: g.basis_vectors.T @ cell1
+            lambda: g.vector_to_coord(cell1, label1),
+            lambda: g.position_from_basis_coords([*cell1, label1]),
         )
 
         check_alternative(lambda: g.coordinates, lambda: g.positions)
