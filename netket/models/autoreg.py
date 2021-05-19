@@ -26,20 +26,6 @@ class ARNN(nn.Module):
     """Base class for autoregressive neural networks."""
 
     @abc.abstractmethod
-    def init_cache(self, inputs: Array) -> PyTree:
-        """
-        Initializes the cache. Called before generating each sample.
-
-        Args:
-          inputs: configurations with dimensions (batch, Hilbert.size).
-            Only its size and dtype are relevant, not its contents.
-
-        Returns:
-          cache: auxiliary states, e.g., used to implement fast autoregressive sampling.
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
     def conditionals(self, inputs: Array, cache: PyTree) -> Tuple[Array, PyTree]:
         """
         Computes the probabilities for each spin to take each value.
@@ -98,9 +84,6 @@ class ARNNDense(ARNN):
             )
             for i in range(self.layers)
         ]
-
-    def init_cache(self, inputs: Array) -> PyTree:
-        return None
 
     def conditionals(self, inputs: Array, cache: PyTree) -> Tuple[Array, PyTree]:
         x = jnp.expand_dims(inputs, axis=2)
