@@ -82,7 +82,7 @@ class MaskedDense1D(nn.Module):
 
         mask = jnp.ones((size, size), dtype=self.dtype)
         mask = jnp.triu(mask, 1 if self.exclusive else 0)
-        mask = jnp.kron(jnp.ones((in_features, self.features), dtype=self.dtype), mask)
+        mask = jnp.kron(mask, jnp.ones((in_features, self.features), dtype=self.dtype))
 
         kernel = self.param(
             "kernel",

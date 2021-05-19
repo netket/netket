@@ -15,24 +15,29 @@
 import jax
 import netket as nk
 import numpy as np
+import pytest
 
 
-def test_ARNNDense():
+@pytest.mark.parametrize("s", [1 / 2, 1])
+def test_ARNNDense(s):
     """Test if the model is autoregressive."""
 
-    batch = 3
-    size = 4
+    L = 4
+    batch_size = 3
 
-    model = nk.models.ARNNDense(layers=3, features=5)
-    in_shape = (batch, size)
+    hilbert = nk.hilbert.Spin(s=s, N=L)
+    model = nk.models.ARNNDense(
+        hilbert_local_size=hilbert.local_size, layers=3, features=5
+    )
+
     key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
-    spins = jax.random.bernoulli(key_spins, shape=in_shape).astype(model.dtype) * 2 - 1
+    spins = hilbert.random_state(key_spins, size=batch_size)
     (p, _), params = model.init_with_output(
         key_model, spins, None, method=model.conditionals
     )
 
-    for i in range(batch):
-        for j in range(size):
+    for i in range(batch_size):
+        for j in range(L):
             # Change one input element at a time
             spins_new = spins.at[i, j].set(-spins[i, j])
             p_new, _ = model.apply(params, spins_new, None, method=model.conditionals)

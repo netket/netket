@@ -42,8 +42,10 @@ class ARNN(nn.Module):
 
 
 class ARNNDense(ARNN):
-    """Autoregressive neural network with dense layers, assuming spin 1/2."""
+    """Autoregressive neural network with dense layers."""
 
+    hilbert_local_size: int
+    """local size of the Hilbert space."""
     layers: int
     """number of layers."""
     features: Union[Iterable[int], int]
@@ -66,11 +68,11 @@ class ARNNDense(ARNN):
 
     def setup(self):
         if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [1]
+            features = [self.features] * (self.layers - 1) + [self.hilbert_local_size]
         else:
             features = self.features
         assert len(features) == self.layers
-        assert features[-1] == 1
+        assert features[-1] == self.hilbert_local_size
 
         self.dense_layers = [
             MaskedDense1D(
@@ -86,15 +88,12 @@ class ARNNDense(ARNN):
         ]
 
     def conditionals(self, inputs: Array, cache: PyTree) -> Tuple[Array, PyTree]:
-        x = jnp.expand_dims(inputs, axis=-1)
+        x = jnp.expand_dims(inputs, axis=2)
         for i in range(self.layers):
             if i > 0:
                 x = self.activation(x)
             x = self.dense_layers[i](x)
-        x = x.squeeze(axis=-1)
-
-        p = nn.sigmoid(x)
-        p = jnp.stack([1 - p, p], axis=-1)
+        p = nn.softmax(x, axis=2)
         return p, cache
 
     def __call__(self, inputs: Array) -> Array:
@@ -103,9 +102,12 @@ class ARNNDense(ARNN):
         if inputs.ndim == 1:
             inputs = jnp.expand_dims(inputs, axis=0)
 
-        p, _ = self.conditionals(inputs, None)
-        mask = (inputs + 1) / 2
-        p = (1 - mask) * p[:, :, 0] + mask * p[:, :, 1]
+        idx = (inputs + self.hilbert_local_size - 1) / 2
+        idx = jnp.asarray(idx, jnp.int64)
+        idx = jnp.expand_dims(idx, axis=2)
 
-        log_psi = 1 / 2 * jnp.log(p + self.eps).sum(axis=1)
+        p, _ = self.conditionals(inputs, None)
+        p = jnp.take_along_axis(p, idx, axis=1)
+
+        log_psi = 1 / 2 * jnp.log(p + self.eps).sum(axis=(1, 2))
         return log_psi

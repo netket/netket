@@ -14,17 +14,19 @@
 
 import jax
 import netket as nk
+import pytest
 from jax import numpy as jnp
 
 
-def test_ARDirectSampler():
+@pytest.mark.parametrize("s", [1 / 2, 1])
+def test_ARDirectSampler(s):
     L = 4
     n_chains = 3
 
-    graph = nk.graph.Hypercube(length=L, n_dim=1)
-    hilbert = nk.hilbert.Spin(s=1 / 2, N=L)
-
-    model = nk.models.ARNNDense(layers=3, features=5)
+    hilbert = nk.hilbert.Spin(s=s, N=L)
+    model = nk.models.ARNNDense(
+        hilbert_local_size=hilbert.local_size, layers=3, features=5
+    )
     params = model.init(jax.random.PRNGKey(0), jnp.zeros((n_chains, L)))
 
     sampler = nk.sampler.ARDirectSampler(hilbert, n_chains=n_chains)
