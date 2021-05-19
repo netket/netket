@@ -18,6 +18,7 @@
 from plum import dispatch
 import numpy as np
 from dataclasses import dataclass
+from typing import Optional
 
 from .semigroup import Identity, Element
 from .group import Group
@@ -27,7 +28,7 @@ from netket.utils.types import Array, DType, Shape
 
 
 class Permutation(Element):
-    def __init__(self, permutation: Array):
+    def __init__(self, permutation: Array, name: Optional[str] = None):
         """
         Creates a `Permutation` from an array of preimages of :code:`range(N)`
 
@@ -38,6 +39,7 @@ class Permutation(Element):
             a `Permutation` object encoding the same permutation
         """
         self.permutation = HashableArray(np.asarray(permutation))
+        self.name = name
 
     def __call__(self, x):
         return x[..., self.permutation]
@@ -52,8 +54,10 @@ class Permutation(Element):
             return False
 
     def __repr__(self):
-        # TODO support arbitrary name
-        return f"Permutation({self.permutation})"
+        if self.name is not None:
+            return self.name
+        else:
+            return f"Permutation({self.__array__().tolist()})"
 
     def __array__(self, dtype: DType = None):
         return np.asarray(self.permutation, dtype)
@@ -61,7 +65,8 @@ class Permutation(Element):
 
 @dispatch
 def product(p: Permutation, q: Permutation):
-    return Permutation(p(q.permutation))
+    name = None if p.name is None and q.name is None else f"{p} @ {q}"
+    return Permutation(p(np.asarray(q)), name)
 
 
 @struct.dataclass()
