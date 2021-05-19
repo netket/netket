@@ -17,7 +17,7 @@ from functools import wraps
 import itertools
 from itertools import product
 from math import pi
-from typing import Sequence, Tuple, Union, Optional
+from typing import Dict, Sequence, Tuple, Union, Optional
 import warnings
 
 import networkx as _nx
@@ -123,15 +123,15 @@ class LatticeSite:
     """Real-space position of this site"""
     cell_coord: CoordT
     """basis coordinates of this site"""
-    inside: bool
-    """TODO: When exactly is this needed?"""
 
     def __repr__(self):
         s = ", ".join(map(str, (self.id, self.cell_coord)))
         return f"LatticeSite({s})"
 
 
-def create_sites(basis_vectors, extent, apositions, pbc):
+def create_sites(
+    basis_vectors, extent, apositions, pbc
+) -> Tuple[Tuple[LatticeSite, bool], Dict[HashableArray, int]]:
     shell_vec = _np.zeros(extent.size, dtype=int)
     shift_vec = _np.zeros(extent.size, dtype=int)
     # note: by modifying these, the number of shells can be tuned.
@@ -142,21 +142,20 @@ def create_sites(basis_vectors, extent, apositions, pbc):
     cell_coord_to_site = {}
     for s_cell in itertools.product(*ranges):
         s_coord_cell = _np.asarray(s_cell) - shift_vec
-        if _np.any(s_coord_cell < 0) or _np.any(s_coord_cell > (extent - 1)):
-            inside = False
-        else:
-            inside = True
+        inside = not (_np.any(s_coord_cell < 0) or _np.any(s_coord_cell > (extent - 1)))
         atom_count = len(sites)
         for i, atom_coord in enumerate(apositions):
             s_coord_site = s_coord_cell + atom_coord
             r_coord_site = _np.matmul(basis_vectors.T, s_coord_site)
             cell_coord_site = _np.array((*s_coord_cell, i), dtype=int)
             sites.append(
-                LatticeSite(
-                    id=None,  # to be set later, after sorting all sites
-                    position=r_coord_site,
-                    cell_coord=cell_coord_site,
-                    inside=inside,
+                (
+                    LatticeSite(
+                        id=None,  # to be set later, after sorting all sites
+                        position=r_coord_site,
+                        cell_coord=cell_coord_site,
+                    ),
+                    inside,
                 ),
             )
             cell_coord_to_site[HashableArray(cell_coord_site)] = atom_count + i
@@ -170,17 +169,17 @@ def get_true_edges(
     extent,
     distance_atol=cutoff_tol,
 ):
-    positions = _np.array([p.position for p in sites])
+    positions = _np.array([p.position for p, _ in sites])
     naive_edges = get_edges(
         positions, _np.linalg.norm(basis_vectors, axis=1).max(), distance_atol
     )
     true_edges = []
     for node1, node2 in naive_edges:
-        site1 = sites[node1]
-        site2 = sites[node2]
-        if site1.inside and site2.inside:
+        site1, inside1 = sites[node1]
+        site2, inside2 = sites[node2]
+        if inside1 and inside2:
             true_edges.append((node1, node2))
-        elif site1.inside or site2.inside:
+        elif inside1 or inside2:
             cell1 = site1.cell_coord
             cell2 = site2.cell_coord
             cell1[:-1] = cell1[:-1] % extent
@@ -331,7 +330,7 @@ class Lattice(NetworkX):
         # Rename sites
         old_nodes = sorted(set(node for edge in edges for node in edge))
         self._sites = []
-        for i, site in enumerate(sites[old_node] for old_node in old_nodes):
+        for i, (site, _) in enumerate(sites[old_node] for old_node in old_nodes):
             site.id = i
             self._sites.append(site)
         new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
