@@ -24,8 +24,8 @@ from netket.utils.types import Array, DType, NNInitFunc, PyTree
 
 class ARNN(nn.Module):
     """Base class for autoregressive neural networks."""
-    def init_sample(self, size: Iterable[int],
-                    dtype: DType) -> Tuple[Array, PyTree]:
+
+    def init_sample(self, size: Iterable[int], dtype: DType) -> Tuple[Array, PyTree]:
         """
         Initializes the model for sampling.
 
@@ -42,8 +42,7 @@ class ARNN(nn.Module):
         return spins, state
 
     @abc.abstractmethod
-    def conditionals(self, inputs: Array,
-                     state: PyTree) -> Tuple[Array, PyTree]:
+    def conditionals(self, inputs: Array, state: PyTree) -> Tuple[Array, PyTree]:
         """
         Computes the probabilities for each spin to take each value.
 
@@ -80,6 +79,7 @@ class ARNNDense(ARNN):
     """initializer for the biases."""
     eps: float = 1e-7
     """a small number to avoid numerical instability."""
+
     def setup(self):
         if isinstance(self.features, int):
             features = [self.features] * (self.layers - 1) + [1]
@@ -97,11 +97,11 @@ class ARNNDense(ARNN):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
-            ) for i in range(self.layers)
+            )
+            for i in range(self.layers)
         ]
 
-    def conditionals(self, inputs: Array,
-                     state: PyTree) -> Tuple[Array, PyTree]:
+    def conditionals(self, inputs: Array, state: PyTree) -> Tuple[Array, PyTree]:
         x = jnp.expand_dims(inputs, axis=2)
         for i in range(self.layers):
             if i > 0:

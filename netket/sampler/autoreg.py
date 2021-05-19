@@ -25,6 +25,7 @@ def vmap_choice(key, a, p, replace=True):
     p.shape: (batch, a.shape)
     Return shape: (batch, )
     """
+
     def scan_fun(key, p_i):
         new_key, key = jax.random.split(key)
         out_i = jax.random.choice(key, a, replace=replace, p=p_i)
@@ -40,12 +41,13 @@ class ARSamplerState(SamplerState):
     key: PRNGKeyT
 
     def __repr__(self):
-        return f'ARSamplerState(rng state={self.key})'
+        return f"ARSamplerState(rng state={self.key})"
 
 
 @struct.dataclass
 class ARSampler(Sampler):
     """Sampler for autoregressive neural networks."""
+
     def _init_state(sampler, model, params, key):
         return ARSamplerState(model_state=None, key=key)
 
@@ -65,8 +67,9 @@ class ARSampler(Sampler):
                 model_state,
                 method=model.conditionals,
             )
-            local_states = jnp.asarray(sampler.hilbert.local_states,
-                                       dtype=sampler.dtype)
+            local_states = jnp.asarray(
+                sampler.hilbert.local_states, dtype=sampler.dtype
+            )
             p = p[:, index, :]
             new_spins = vmap_choice(key, local_states, p)
             spins = spins.at[:, index].set(new_spins)

@@ -309,7 +309,9 @@ class MetropolisSampler(Sampler):
                 σp, log_prob_correction = sampler.rule.transition(
                     sampler, machine, parameters, state, key1, s.σ
                 )
-                proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
+                proposal_log_prob = (
+                    sampler.machine_pow * machine.apply(parameters, σp).real
+                )
 
                 uniform = jax.random.uniform(key2, shape=(sampler.n_chains,))
                 if log_prob_correction is not None:

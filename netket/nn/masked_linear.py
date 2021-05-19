@@ -82,11 +82,10 @@ class MaskedDense1D(nn.Module):
 
         mask = jnp.ones((size, size), dtype=self.dtype)
         mask = jnp.triu(mask, 1 if self.exclusive else 0)
-        mask = jnp.kron(
-            jnp.ones((in_features, self.features), dtype=self.dtype), mask)
+        mask = jnp.kron(jnp.ones((in_features, self.features), dtype=self.dtype), mask)
 
         kernel = self.param(
-            'kernel',
+            "kernel",
             wrap_kernel_init(self.kernel_init, mask),
             (size * in_features, size * self.features),
             self.dtype,
@@ -102,8 +101,7 @@ class MaskedDense1D(nn.Module):
             y = y.squeeze(axis=0)
 
         if self.use_bias:
-            bias = self.param('bias', self.bias_init, (size, self.features),
-                              self.dtype)
+            bias = self.param("bias", self.bias_init, (size, self.features), self.dtype)
             bias = jnp.asarray(bias, dtype)
             y = y + bias
 
@@ -146,7 +144,7 @@ class MaskedConv2D(nn.Module):
     def setup(self):
         kernel_h, kernel_w = self.kernel_size
         mask = jnp.ones((kernel_h, kernel_w, 1, 1), dtype=self.dtype)
-        mask = mask.at[-1, kernel_w // 2 + (not self.exclusive):].set(0)
+        mask = mask.at[-1, kernel_w // 2 + (not self.exclusive) :].set(0)
         self.mask = mask
 
     @nn.compact
@@ -181,7 +179,7 @@ class MaskedConv2D(nn.Module):
         )
 
         kernel = self.param(
-            'kernel',
+            "kernel",
             wrap_kernel_init(self.kernel_init, self.mask),
             kernel_shape,
             self.dtype,
@@ -190,20 +188,22 @@ class MaskedConv2D(nn.Module):
         kernel = jnp.asarray(kernel, dtype)
 
         # Zero padding
-        y = jnp.pad(inputs, (
-            (0, 0),
-            ((kernel_h - 1) * dilation_h, 0),
-            (kernel_w // 2 * dilation_w, (kernel_w - 1) // 2 * dilation_w),
-            (0, 0),
-        ))
+        y = jnp.pad(
+            inputs,
+            (
+                (0, 0),
+                ((kernel_h - 1) * dilation_h, 0),
+                (kernel_w // 2 * dilation_w, (kernel_w - 1) // 2 * dilation_w),
+                (0, 0),
+            ),
+        )
 
-        dimension_numbers = flax.linen.linear._conv_dimension_numbers(
-            inputs.shape)
+        dimension_numbers = flax.linen.linear._conv_dimension_numbers(inputs.shape)
         y = lax.conv_general_dilated(
             y,
             mask * kernel,
             window_strides=ones,
-            padding='VALID',
+            padding="VALID",
             lhs_dilation=ones,
             rhs_dilation=self.kernel_dilation,
             dimension_numbers=dimension_numbers,
@@ -215,8 +215,7 @@ class MaskedConv2D(nn.Module):
             y = y.squeeze(axis=0)
 
         if self.use_bias:
-            bias = self.param('bias', self.bias_init, (self.features, ),
-                              self.dtype)
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
             y = y + bias
 
