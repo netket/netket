@@ -48,7 +48,7 @@ from .metropolis_pt import (
     MetropolisExchangePt,
 )
 
-from .autoreg import ARSampler
+from .autoreg import ARDirectSampler
 
 from . import rules
 

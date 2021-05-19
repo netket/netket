@@ -86,15 +86,15 @@ class ARNNDense(ARNN):
         ]
 
     def conditionals(self, inputs: Array, cache: PyTree) -> Tuple[Array, PyTree]:
-        x = jnp.expand_dims(inputs, axis=2)
+        x = jnp.expand_dims(inputs, axis=-1)
         for i in range(self.layers):
             if i > 0:
                 x = self.activation(x)
             x = self.dense_layers[i](x)
-        x = x.squeeze(axis=2)
+        x = x.squeeze(axis=-1)
 
         p = nn.sigmoid(x)
-        p = jnp.stack([1 - p, p], axis=2)
+        p = jnp.stack([1 - p, p], axis=-1)
 
         return p, cache
 

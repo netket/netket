@@ -142,7 +142,7 @@ This is because it is not possible to implement all transition rules in Jax.
    netket.sampler.MetropolisLocalPt
    netket.sampler.MetropolisExchangePt
 
-   netket.sampler.ARSampler
+   netket.sampler.ARDirectSampler
 
 Transition Rules
 ~~~~~~~~~~~~~~~~
@@ -172,7 +172,7 @@ Those structure hold the state of the sampler.
 
   netket.sampler.SamplerState
   netket.sampler.MetropolisSamplerState
-  netket.sampler.ARSamplerState
+  netket.sampler.ARDirectSamplerState
 
 .. _Models:
 

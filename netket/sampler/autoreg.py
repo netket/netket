@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
+
 from flax import struct
 from netket.sampler import Sampler, SamplerState
 from netket.utils.types import PRNGKeyT, PyTree
@@ -36,7 +38,7 @@ def vmap_choice(key, a, p, replace=True):
 
 
 @struct.dataclass
-class ARSamplerState(SamplerState):
+class ARDirectSamplerState(SamplerState):
     σ: jnp.ndarray
     """current batch of (maybe partially sampled) configurations."""
     cache: PyTree
@@ -49,8 +51,8 @@ class ARSamplerState(SamplerState):
 
 
 @struct.dataclass
-class ARSampler(Sampler):
-    """Sampler for autoregressive neural networks."""
+class ARDirectSampler(Sampler):
+    """Direct sampler for autoregressive neural networks."""
 
     def _init_cache(sampler, model, σ, key):
         variables = model.init(key, σ)
@@ -62,14 +64,15 @@ class ARSampler(Sampler):
 
     def _init_state(sampler, model, params, key):
         new_key, key = jax.random.split(key)
-        σ = jnp.empty((sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype)
+        σ = jnp.zeros((sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype)
         cache = sampler._init_cache(model, σ, key)
-        return ARSamplerState(σ=σ, cache=cache, key=new_key)
+        return ARDirectSamplerState(σ=σ, cache=cache, key=new_key)
 
     def _reset(sampler, model, params, state):
         return state
 
-    def _sample_next(sampler, model, params, state):
+    @partial(jax.jit, static_argnums=(1, 4))
+    def _sample_chain(sampler, model, params, state, chain_length):
         def scan_fun(carry, index):
             σ, cache, key = carry
             new_key, key = jax.random.split(key)
@@ -93,7 +96,9 @@ class ARSampler(Sampler):
 
         # We just need a buffer for `σ` before generating each sample
         # The result does not depend on the initial contents in it
-        σ = state.σ
+        σ = jnp.zeros(
+            (chain_length * sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype
+        )
 
         # Init `cache` before generating each sample,
         # even if `params` is not changed and `reset` is not called
@@ -105,6 +110,12 @@ class ARSampler(Sampler):
             (σ, cache, key_scan),
             indices,
         )
+        σ = σ.reshape((chain_length, sampler.n_chains, sampler.hilbert.size))
 
         new_state = state.replace(σ=σ, cache=cache, key=new_key)
+        return σ, new_state
+
+    def _sample_next(sampler, model, params, state):
+        σ, new_state = sampler._sample_chain(model, params, state, 1)
+        σ = σ.squeeze(axis=0)
         return new_state, σ

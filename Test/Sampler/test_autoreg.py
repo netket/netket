@@ -27,7 +27,7 @@ def test_ARSampler():
     model = nk.models.ARNNDense(layers=3, features=5)
     params = model.init(jax.random.PRNGKey(0), jnp.zeros((batch, size)))
 
-    sampler = nk.sampler.ARSampler(hilbert, n_chains=batch)
+    sampler = nk.sampler.ARDirectSampler(hilbert, n_chains=batch)
 
     sampler_state = sampler.init_state(model, params)
     samples, sampler_state = sampler.sample(model, params, chain_length=3)
