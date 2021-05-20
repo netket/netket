@@ -17,7 +17,7 @@
   MPI-enabled acceptance ratio. [#592](https://github.com/netket/netket/pull/592). 
 * Add `StateLog`, a new logger that stores the parameters of the model during the 
   optimization in a folder or in a tar file. [#645](https://github.com/netket/netket/pull/645)
-* A warning is now issued if netket detects to be running under `mpirun` but MPI dependencies
+* A warning is now issued if NetKet detects to be running under `mpirun` but MPI dependencies
   are not installed [#631](https://github.com/netket/netket/pull/631)
 * `operator.LocalOperator`s now do not return a zero matrix element on the diagonal if the whole
   diagonal is zero. [#623](https://github.com/netket/netket/pull/623).
@@ -39,21 +39,22 @@
 * Briefly during development releases `MetropolisSamplerState.acceptance_ratio` returned
   the percentage (not ratio) of acceptance. `acceptance_ratio` is now deprecated in 
   favour of the correct `acceptance`.
-* `models.Jastrow` now internally simmetrizes the matrix before computing its value [#644](https://github.com/netket/netket/pull/644)
+* `models.Jastrow` now internally symmetrizes the matrix before computing its value [#644](https://github.com/netket/netket/pull/644)
 * `MCState.evaluate` has been renamed to `MCState.log_value` [#632](https://github.com/netket/netket/pull/632)
 * `nk.optimizer.SR` no longer accepts keyword argument relative to the sparse solver. Those should be passed
   inside the closure or `functools.partial` passed as `solver` argument.
 * `nk.optimizer.sr.SRLazyCG` and `nk.optimizer.sr.SRLazyGMRES` have been deprecated and will soon be removed.
+* Parts of the `Lattice` API have been overhauled, with deprecations of several methods in favor of a consistent usage of `Lattice.position` for real-space location of sites and `Lattice.basis_coords` for location of sites in terms of basis vectors. `Lattice.sites` has been added, which provides a sequence of `LatticeSite` objects combining all site properties. Furthermore, `Lattice` now provides lookup of sites from their position via `id_from_position` using a hashing scheme that works across periodic boundaries. [#703](https://github.com/netket/netket/pull/703) [#715](https://github.com/netket/netket/pull/715)
 
 ### Bug Fixes
 
 * Fix `operator.BoseHubbard` usage under jax Hamiltonian Sampling [#662](https://github.com/netket/netket/pull/662)
 * Fix `SROnTheFly` for `R->C` models with non homogeneous parameters [#661](https://github.com/netket/netket/pull/661)
 * Fix MPI Compilation deadlock when computing expectation values [#655](https://github.com/netket/netket/pull/655)
-* Fix bug preventing the creation of a `hilbert.Spin` hilbert space with odd sites and even `S`. [#641](https://github.com/netket/netket/pull/641)
+* Fix bug preventing the creation of a `hilbert.Spin` Hilbert space with odd sites and even `S`. [#641](https://github.com/netket/netket/pull/641)
 * Fix bug [#635](https://github.com/netket/netket/pull/635) preventing the usage of `NumpyMetropolisSampler` with `MCState.expect` [#635](https://github.com/netket/netket/pull/635)
 * Fix bug [#635](https://github.com/netket/netket/pull/635) where the `graph.Lattice` was not correctly computing neighbours because of floating point issues. [#633](https://github.com/netket/netket/pull/633)
-* Fix bug the Y pauli matrix, which was stored as its conjugate. [#618](https://github.com/netket/netket/pull/618) [#617](https://github.com/netket/netket/pull/617) [#615](https://github.com/netket/netket/pull/615)
+* Fix bug the Y Pauli matrix, which was stored as its conjugate. [#618](https://github.com/netket/netket/pull/618) [#617](https://github.com/netket/netket/pull/617) [#615](https://github.com/netket/netket/pull/615)
 
 
 ## NetKet 3.0b1 (published beta release)
@@ -68,15 +69,15 @@
 
 * {class}`operator.LocalOperator` now default to real-valued matrix elements, except if you construct them with a complex-valued matrix. This is also valid for operators such as :func:`operator.spin.sigmax` and similars.
 
-* When performing algebric operations {code}`*, -, +` on pairs of {class}`operator.LocalOperator`, the dtype of the result iscomputed using standard numpy promotion logic. 
+* When performing algebraic operations {code}`*, -, +` on pairs of {class}`operator.LocalOperator`, the dtype of the result iscomputed using standard numpy promotion logic. 
 
-  * Doing an operation in-place {code}`+=, -=, *=` on a real-valued operator will now fail if the other is complex. While this might seem annoying, it's usefull to ensure that smaller types such as `float32` or `complex64` are preserved if the user desires to do so.
+  * Doing an operation in-place {code}`+=, -=, *=` on a real-valued operator will now fail if the other is complex. While this might seem annoying, it's useful to ensure that smaller types such as `float32` or `complex64` are preserved if the user desires to do so.
 
 * {class}`AbstractMachine` has been removed. It's functionality is now split among the model itself, which is defined by the user and {class}`variational.MCState` for pure states or {class}`variational.MCMixedState` for mixed states.
 	
   * The model, in general is composed by two functions, or an object with two functions: an `init(rng, sample_val)` function, accepting a {ref}`jax.random.PRNGKey` object and an input, returning the parameters and the state of the model for that particular sample shape, and a {code}`apply(params, samples, **kwargs)` function, evaluating the model for the given parameters and inputs.
 
-  * Some models (previously machines) such as the RBM (Restricted Bolzmann Machine) Machine, NDM (Neural Density Matrix) or MPS (Matrix Product State ansatz) are available in {ref}`Pre-built models`. 
+  * Some models (previously machines) such as the RBM (Restricted Boltzmann Machine) Machine, NDM (Neural Density Matrix) or MPS (Matrix Product State ansatz) are available in {ref}`Pre-built models`.
 
   * Machines, now called models, should be written using [Flax](https://flax.readthedocs.io/en/latest) or another jax framework.
 
@@ -84,7 +85,7 @@
 
   * {code}`AbstractMachine.init_random_parameters` functionality has now been absorbed into {meth}`netket.variational.VariationalState.init_parameters`, which however has a different syntax.
 
-* {ref}`Samplers <Sampler>` now require the hilbert space upon which they sample to be passed in to the constructor.
+* {ref}`Samplers <Sampler>` now require the Hilbert space upon which they sample to be passed in to the constructor.
 Also note that several keyword arguments of the samplers have changed, and new one are available.
 
 * It's now possible to change {ref}`Samplers <Sampler>` dtype, which controls the type of the output. By default they use double-precision samples (`np.float64`). Be wary of type promotion issues with your models.
@@ -93,11 +94,11 @@ Also note that several keyword arguments of the samplers have changed, and new o
 
 * {ref}`Samplers <Sampler>` are now immutable (frozen) `dataclasses` (defined through `flax.struct.dataclass`) that only hold the sampling parameters. As a consequence it is no longer possible to change their settings such as `n_chains` or `n_sweeps` without creating a new sampler. If you wish to update only one parameter, it is possible to construct the new sampler with the updated value by using the `sampler.replace(parameter=new_value)` function. 
 
-* {ref}`Samplers <Sampler>` are no longer stateful objects. Instead, they can construct an immutable state object {ref}`sampler.init_state`, which can be passed to sampling functions such as {ref}`sampler.sample`, which now return also the updated state. However, unless you have particoular use-cases we advise you use the variational state {ref}`MCState` instead.
+* {ref}`Samplers <Sampler>` are no longer stateful objects. Instead, they can construct an immutable state object {ref}`sampler.init_state`, which can be passed to sampling functions such as {ref}`sampler.sample`, which now return also the updated state. However, unless you have particular use-cases we advise you use the variational state {ref}`MCState` instead.
 
 * The {ref}`Optimizer` module has been overhauled, and now only re-exports flax optim module. We advise not to use netket's optimizer but instead to use [optax](https://github.com/deepmind/optax>) .
 
-* The {ref}`SR` object now is only a set of options used to compute the SR matrix. The SR matrix, now called `quantum_geometric_tensor` can be optained by calling {meth}`variational.MCState.quantum_geometric_tensor`. Depending on the settings, this can be a lazy object.
+* The {ref}`SR` object now is only a set of options used to compute the SR matrix. The SR matrix, now called `quantum_geometric_tensor` can be obtained by calling {meth}`variational.MCState.quantum_geometric_tensor`. Depending on the settings, this can be a lazy object.
 
 * {ref}`netket.Vmc` has been renamed to {ref}`netkt.VMC`
 

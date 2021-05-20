@@ -22,6 +22,7 @@ Graph
    netket.graph.Edgeless
    netket.graph.Hypercube
    netket.graph.Lattice
+   netket.graph.lattice.LatticeSite
    netket.graph.Chain
    netket.graph.Grid
 
