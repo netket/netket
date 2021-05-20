@@ -13,14 +13,10 @@
 # limitations under the License.
 
 from .abstract_graph import AbstractGraph
-
 from .graph import NetworkX, Graph, Edgeless, DoubledGraph, disjoint_union
-from .grid import Grid, Chain, Square, Hypercube
 from .lattice import Lattice
-
+from .special import Grid, Hypercube, Square, Chain
 
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)
-
-from . import space_group

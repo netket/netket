@@ -63,12 +63,12 @@ class PGSymmetry(Element):
 
     @struct.property_cached
     def _name(self) -> str:
-        if self.M.shape == (2, 2):
+        if self._W.shape == (2, 2):
             return _2D_name(self._W)
-        elif self.M.shape == (3, 3):
+        elif self._W.shape == (3, 3):
             return _3D_name(self._W)
         else:
-            return f"PGSymmetry({self.M})"
+            return f"PGSymmetry({self._W})"
 
     def __repr__(self):
         return self._name
@@ -211,7 +211,6 @@ class PointGroup(Group):
 
     ndim: int
     """Dimensionality of point group operations."""
-
 
     def __matmul__(self, other) -> "PointGroup":
         if not isinstance(other, PointGroup):

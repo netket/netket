@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .semigroup import Identity, Element, SemiGroup
-from .group import Group
+import numpy as np
 from .permutation_group import Permutation, PermutationGroup
-from .point_group import PGSymmetry, PointGroup
-from .space_group import SpaceGroupBuilder, space_group
-from .networkx import automorphism_group
+from netket.graph import AbstractGraph
 
-from netket.utils import _hide_submodules
 
-_hide_submodules(__name__)
-
-# These are better packaged as submodules
-from . import planar, axial, cubic
+def automorphism_group(graph: AbstractGraph) -> PermutationGroup:
+    """Returns the automorphism group of `graph` as a `PermutationGroup`."""
+    auts = np.unique(graph._automorphisms(), axis=0)  # sort s.t. identity is first
+    return PermutationGroup([Permutation(iso) for iso in auts], degree=graph.n_nodes)

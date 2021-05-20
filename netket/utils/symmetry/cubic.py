@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
+from itertools import permutations
+
 from .semigroup import Identity
 from .point_group import PGSymmetry, PointGroup
 from .axial import (
@@ -21,8 +24,9 @@ from .axial import (
     reflections as _refl_group,
     inversions as _inv_group,
 )
+
 from netket.utils.types import Array
-import numpy as np
+from typing import Tuple
 
 T = PointGroup(
     [
@@ -66,3 +70,29 @@ Oh = _inv_group @ O
 """Symmetry group of a cube/octahedron aligned with the Cartesian axes."""
 
 octahedral = cubic = Oh
+
+
+def _perm_symm(perm: Tuple) -> PGSymmetry:
+    n = len(perm)
+    M = np.zeros((n, n))
+    M[range(n), perm] = 1
+    return PGSymmetry(M)
+
+
+def _axis_reflection(axis: int, ndim: int) -> PGSymmetry:
+    M = np.eye(ndim)
+    M[axis, axis] = -1
+    return PGSymmetry(M)
+
+
+def hypercubic(ndim: int) -> PointGroup:
+    """
+    Returns the symmetry group of an `ndim` dimensional hypercube as a `PointGroup`.
+    Isomorphic to, but listed in a different order from,
+    * `planar.square` if `ndim==2`
+    * `cubic.cubic` if `ndim==3`
+    """
+    result = PointGroup([_perm_symm(i) for i in permutations(range(ndim))], ndim=ndim)
+    for i in range(ndim):
+        result = result @ PointGroup([Identity(), _axis_reflection(i, ndim)], ndim=ndim)
+    return result

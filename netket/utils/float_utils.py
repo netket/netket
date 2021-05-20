@@ -73,3 +73,26 @@ def comparable_periodic(
         bin_x = np.asarray(np.rint(x * bin_density + offset), dtype=int)
         bin_frac = np.where(where, bin_frac, bin_x)
     return bin_frac
+
+
+def _prune_zeros(x: Array, atol: float = 1e-08) -> Array:
+    # prunes nearly zero entries
+    x[np.isclose(x, 0.0, rtol=0.0, atol=atol)] = 0.0
+    return x
+
+
+def prune_zeros(x: Array, atol: float = 1e-08) -> Array:
+    """Prunes nearly zero real and imaginary parts"""
+    if np.iscomplexobj(x):
+        # Check if complex part is nonzero at all
+        if np.allclose(x.imag, 0.0, rtol=0.0, atol=atol):
+            return _prune_zeros(x.real)
+        else:
+            return _prune_zeros(x.real) + 1j * _prune_zeros(x.imag)
+    else:
+        return _prune_zeros(x)
+
+
+def is_approx_int(x: Array, atol: float = 1e-08) -> Array:
+    """Returns `True` for all elements of the array that are within `atol` to an integer."""
+    return np.isclose(x, np.rint(x), rtol=0.0, atol=atol)

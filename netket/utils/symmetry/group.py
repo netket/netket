@@ -19,7 +19,7 @@ import numpy as np
 from dataclasses import dataclass
 
 from .semigroup import SemiGroup, Element, Identity
-from netket.utils import struct, HashableArray, comparable
+from netket.utils import struct, HashableArray, comparable, prune_zeros
 from netket.utils.types import Array, DType, Shape
 from typing import Tuple, List
 
@@ -36,9 +36,6 @@ class Group(SemiGroup):
     two Elements are considered equal iff the corresponding matrices are equal.
 
     """
-
-    def __post_init__(self):
-        super().__post_init__()
 
     def __hash__(self):
         return super().__hash__()
@@ -229,7 +226,7 @@ class Group(SemiGroup):
         table = table[indices]
 
         # Get rid of annoying nearly-zero entries
-        table = _prune_zeros(table)
+        table = prune_zeros(table)
 
         return table
 
@@ -266,17 +263,3 @@ class Group(SemiGroup):
 
 def _cplx_sign(x):
     return x / np.abs(x)
-
-
-def __prune_zeros(x: Array) -> Array:
-    """Prune nearly zero entries"""
-    x[np.isclose(x, 0.0)] = 0.0
-    return x
-
-
-def _prune_zeros(x: Array) -> Array:
-    """Prune nearly zero real and imaginary parts"""
-    if np.iscomplexobj(x):
-        return __prune_zeros(x.real) + 1j * __prune_zeros(x.imag)
-    else:
-        return __prune_zeros(x)
