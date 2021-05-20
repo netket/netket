@@ -44,6 +44,7 @@ write_to = "netket/_version.py"
 
 [tool.pytest.ini_options]
 addopts = "--color=yes --verbose --durations=0 -n auto"
+doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER"
 filterwarnings = [
     "ignore::UserWarning",
     "ignore:No GPU/TPU found, falling back to CPU.:UserWarning",

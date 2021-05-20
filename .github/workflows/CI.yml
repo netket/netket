@@ -21,15 +21,23 @@ jobs:
 
           - os: ubuntu-latest
             python-version: 3.8
-            mpi: "mpich"
-
-          - os: macos-latest
-            python-version: 3.8
-            mpi: "mpich"
-
-          - os: macos-latest
-            python-version: 3.8
             mpi: ""
+            doctest: true
+
+          - os: ubuntu-latest
+            python-version: 3.8
+            mpi: "mpich"
+            main_tests: true
+
+          - os: macos-latest
+            python-version: 3.8
+            mpi: "mpich"
+            main_tests: true
+
+          - os: ubuntu-latest
+            python-version: 3.7
+            mpi: ""
+            main_tests: true
 
         #python-version: [3.6, 3.7, 3.8]
         #os: [ubuntu-latest, macos-latest]
@@ -67,15 +75,15 @@ jobs:
           fi
 
       - name: Netket tests
-        if: ${{ !matrix.legacy }}
+        if: ${{ matrix.main_tests }}
         run : |
           export NETKET_EXPERIMENTAL=1
           pytest --cov=netket --cov-append Test
 
       - name: NetKet docstring tests
-        if: ${{ !matrix.legacy }}
+        if: ${{ matrix.doctest }}
         run: |
-          pytest --doctest-modules netket/ --ignore-glob="netket/legacy/**"
+          pytest --doctest-continue-on-failure --doctest-modules netket/ --ignore-glob="netket/legacy/**"
 
       - name: Netket Legacy tests
         if: ${{ matrix.legacy }}

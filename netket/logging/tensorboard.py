@@ -85,6 +85,8 @@ class TBLog:
     Examples:
         Logging optimisation to tensorboard.
 
+        >>> import pytest; pytest.skip("skip automated test of this docstring")
+        >>>
         >>> import netket as nk
         >>> # create a summary writer with automatically generated folder name.
         >>> writer = nk.logging.TBLog()
