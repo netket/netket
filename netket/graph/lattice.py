@@ -13,10 +13,10 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from functools import wraps
 import itertools
 from itertools import product
 from math import pi
+from netket.utils.types import Array
 from typing import Dict, Sequence, Tuple, Union, Optional
 import warnings
 
@@ -313,16 +313,16 @@ class Lattice(NetworkX):
         )
         self._pbc = self._clean_pbc(pbc, self._ndim)
 
-        self.extent = _np.asarray(extent, dtype=int)
+        self._extent = _np.asarray(extent, dtype=int)
 
         sites, self._basis_coord_to_site = create_sites(
-            self._basis_vectors, self.extent, site_pos_fractional, pbc
+            self._basis_vectors, self._extent, site_pos_fractional, pbc
         )
         edges = get_true_edges(
             self._basis_vectors,
             sites,
             self._basis_coord_to_site,
-            self.extent,
+            self._extent,
             distance_atol,
         )
         graph = _nx.MultiGraph(edges)
@@ -347,7 +347,7 @@ class Lattice(NetworkX):
         graph.add_nodes_from([p.id for p in self._sites])
         graph.add_edges_from(edges)
 
-        lattice_dims = _np.expand_dims(self.extent, 1) * self.basis_vectors
+        lattice_dims = _np.expand_dims(self._extent, 1) * self.basis_vectors
         self._inv_dims = _np.linalg.inv(lattice_dims)
         int_positions = self._to_integer_position(self._positions)
         self._int_position_to_site = {
@@ -447,6 +447,14 @@ class Lattice(NetworkX):
         return self._ndim
 
     @property
+    def pbc(self):
+        return self._pbc
+
+    @property
+    def extent(self):
+        return self._extent
+
+    @property
     def sites(self) -> Sequence[LatticeSite]:
         return self._sites
 
@@ -466,47 +474,59 @@ class Lattice(NetworkX):
 
     # Site lookup
     # ------------------------------------------------------------------------
-    def _to_integer_position(self, positions: PositionT) -> int:
+    def _to_integer_position(self, positions: PositionT) -> Array:
         frac_positions = _np.matmul(positions, self._inv_dims) % 1
         return _np.around(frac_positions * 10 ** tol_digits).astype(int) % (
             10 ** tol_digits
         )
 
-    def id_from_position(self, position: PositionT) -> int:
-        """
-        Return the id for a site with given position.
-        Throws a KeyError if no corresponding site is found.
-        """
-        int_pos = HashableArray(self._to_integer_position(position))
-        try:
-            return self._int_position_to_site[int_pos]
-        except KeyError as e:
-            raise KeyError(f"No site found for position={position}") from e
+    @staticmethod
+    def _get_id_from_dict(
+        dict: Dict[HashableArray, int], key: Array
+    ) -> Union[int, Array]:
+        if key.ndim == 1:
+            return dict.get(HashableArray(key), None)
+        elif key.ndim == 2:
+            return _np.array([dict.get(HashableArray(k), None) for k in key])
+        else:
+            raise ValueError("Input needs to be rank 1 or rank 2 array")
 
-    def id_from_basis_coords(self, cell_coord: CoordT) -> int:
+    def id_from_position(self, position: PositionT) -> Union[int, Array]:
         """
-        Return the id for a site with given basis coordinates.
-        Throws a KeyError if no corresponding site is found.
+        Return the id for a site at the given position. When passed a rank-2 array
+        where each row is a position, this method returns an array of the corresponding ids.
+        In both cases, None is returned for positions that do not correspond to a site.
         """
-        key = HashableArray(_np.asarray(cell_coord))
-        try:
-            return self._basis_coord_to_site[key]
-        except KeyError as e:
-            raise KeyError(f"No site found for cell_coord={cell_coord}") from e
+        int_pos = self._to_integer_position(position)
+        return self._get_id_from_dict(self._int_position_to_site, int_pos)
 
-    def position_from_basis_coords(self, cell_coord: CoordT) -> PositionT:
+    def id_from_basis_coords(self, basis_coords: CoordT) -> Union[int, Array]:
+        """
+        Return the id for a site at the given basis coordinates. When passed a rank-2 array
+        where each row is a coordinate vector, this method returns an array of the corresponding
+        ids. In both cases, None is returned for coords that do not correspond to a site.
+        """
+        key = _np.asarray(basis_coords)
+        return self._get_id_from_dict(self._basis_coord_to_site, key)
+
+    def position_from_basis_coords(self, basis_coords: CoordT) -> PositionT:
         """
         Return the position of the site with given basis coordinates.
-        Throws a KeyError if no corresponding site is found.
+        When passed a rank-2 array where each row is a coordinate vector,
+        this method returns an array of the corresponding positions.
+        Throws a KeyError if no site is found for any of the coordinates.
         """
-        return self.positions[self.id_from_basis_coords(cell_coord)]
+        ids = self.id_from_basis_coords(basis_coords)
+        if _np.any(ids == None):  # pylint: disable=singleton-comparison
+            raise KeyError(f"No site found at at least one of {basis_coords}")
+        return self.positions[ids]
 
     # Output and drawing
     # ------------------------------------------------------------------------
     def __repr__(self) -> str:
         return REPR_TEMPLATE.format(
             self.n_nodes,
-            self.extent,
+            self._extent,
             str(self.basis_vectors).replace("\n", "\n" + " " * 8),
             str(self.site_offsets).replace("\n", "\n" + " " * 8),
         )
@@ -539,7 +559,7 @@ class Lattice(NetworkX):
         Returns:
             Matplotlib axis object containing the graph's drawing.
         """
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # pylint: disable=import-outside-toplevel
 
         # Check if lattice is 1D or 2D... or notnetketwarnings.py
         if self._ndim == 1:
@@ -618,13 +638,19 @@ class Lattice(NetworkX):
 
     # Symmetries
     # ------------------------------------------------------------------------
+    def _get_id_or_raise(self, pos: PositionT) -> Union[int, Array]:
+        ids = self.id_from_position(pos)
+        if _np.any(ids == None):  # pylint: disable=singleton-comparison
+            raise KeyError(f"No site found at at least one of {pos}")
+        return ids
+
     def translation_perm(self):
         perms = []
         for vec in self.basis_vectors:
             perm = []
-            for coord in self._positions:
-                position = coord.copy() + vec
-                perm.append(self.id_from_position(position))
+            for position in self._positions:
+                position = position.copy() + vec
+                perm.append(self._get_id_or_raise(position))
 
             perms.append(tuple(perm))
         return tuple(perms)
@@ -642,7 +668,7 @@ class Lattice(NetworkX):
 
         for position in rpositions:
             try:
-                perm.append(self.id_from_position(position))
+                perm.append(self._get_id_or_raise(position))
             except KeyError as e:
                 raise ValueError(
                     "Rotation with the specified period and axes does not map lattice to itself"
@@ -657,7 +683,7 @@ class Lattice(NetworkX):
 
         for position in rpositions:
             try:
-                perm.append(self.id_from_position(position))
+                perm.append(self._get_id_or_raise(position))
             except KeyError as e:
                 raise ValueError(
                     "Reflection about specified axis does not map lattice to itself"
@@ -684,7 +710,7 @@ class Lattice(NetworkX):
         Returns PermutationGroup corresponding to translations by site_offsets vectors
         """
 
-        translations = product(*[range(i) for i in self.extent])
+        translations = product(*[range(i) for i in self._extent])
         next(translations)
 
         perms = self.translation_perm()

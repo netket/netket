@@ -105,6 +105,7 @@ def test_lattice():
         print(g.basis_coords[sort])
         assert np.all(sort == np.arange(g.n_nodes))
 
+        # check lookup with id
         for i, site_id in enumerate(g.nodes()):
             assert i == site_id
             cc = g.basis_coords[i]
@@ -114,6 +115,32 @@ def test_lattice():
 
             assert g.id_from_position(pos) == i
             assert g.id_from_basis_coords(cc) == i
+
+        # check lookup with arrays
+        if g.n_nodes > 1:
+            pos = g.positions[[0, 1]]
+            ids = g.id_from_position(pos)
+            # assert ids.ndim == 1 and ids.size == 2
+            assert np.all(ids == [0, 1])
+
+            ccs = g.basis_coords[[0, 1]]
+            ids = g.id_from_basis_coords(ccs)
+            # assert ids.ndim == 1 and ids.size == 2
+            assert np.all(ids == [0, 1])
+
+            pos2 = g.position_from_basis_coords(ccs)
+            assert np.all(pos2 == pos)
+
+    g = Lattice([[1]], [2])
+    pos = [[0.0], [1.0], [0.5]]
+    ids = g.id_from_position(pos)
+    assert np.all(ids[:2] == [0, 1])
+    assert ids[2] is None
+
+    with pytest.raises(KeyError):
+        pos = g.position_from_basis_coords([2])
+    with pytest.raises(KeyError):
+        pos = g.position_from_basis_coords([[2]])
 
 
 def test_lattice_old_interface():
