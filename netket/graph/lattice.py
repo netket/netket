@@ -300,7 +300,21 @@ class Lattice(NetworkX):
             ... ])
             >>> g = Lattice(basis_vectors=basis, site_offsets=cell, extent=[3, 3])
             >>> print(g.n_nodes)
-            192
+            27
+            >>> print(g.basis_coords[:6])
+            [[0 0 0]
+             [0 0 1]
+             [0 0 2]
+             [0 1 0]
+             [0 1 1]
+             [0 1 2]]
+             >>> print(g.positions[:6])
+             [[0.5        0.        ]
+              [0.25       0.4330127 ]
+              [0.75       0.4330127 ]
+              [1.         0.8660254 ]
+              [0.75       1.29903811]
+              [1.25       1.29903811]]
         """
 
         self._basis_vectors = self._clean_basis(basis_vectors)
@@ -432,16 +446,12 @@ class Lattice(NetworkX):
     # ------------------------------------------------------------------------
     @property
     def basis_vectors(self):
-        """
-        Basis vectors of the lattice
-        """
+        """Basis vectors of the lattice"""
         return self._basis_vectors
 
     @property
     def site_offsets(self):
-        """
-        Position offsets of sites in the unit cell
-        """
+        """Position offsets of sites in the unit cell"""
         return self._site_offsets
 
     @property
@@ -451,28 +461,32 @@ class Lattice(NetworkX):
 
     @property
     def pbc(self):
+        """
+        Array of bools such that `pbc[d]` indicates whether dimension d has
+        periodic boundaries.
+        """
         return self._pbc
 
     @property
     def extent(self):
+        """
+        Extent of the lattice
+        """
         return self._extent
 
     @property
     def sites(self) -> Sequence[LatticeSite]:
+        """Sequence of lattice site objects"""
         return self._sites
 
     @property
     def positions(self) -> PositionT:
-        """
-        Real-space positions of all lattice sites
-        """
+        """Real-space positions of all lattice sites"""
         return self._positions
 
     @property
     def basis_coords(self) -> CoordT:
-        """
-        basis coordinates of all lattice sites
-        """
+        """basis coordinates of all lattice sites"""
         return self._basis_coords
 
     # Site lookup

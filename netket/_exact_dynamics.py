@@ -112,21 +112,21 @@ class PyExactTimePropagation:
            Examples:
                Solving 1D Ising model with imaginary time propagation:
 
-               ```python
                >>> import netket as nk
                >>> import numpy as np
                >>> L = 8
                >>> graph = nk.graph.Hypercube(L, n_dim=1, pbc=True)
-               >>> hilbert = nk.hilbert.Spin(graph, 1/2)
-               >>> n_states = hilbert.n_states
-               >>> hamiltonian = nk.operator.Ising(hilbert, h=1.0)
-               >>> psi0 = np.random.rand(n_states)
-               >>> driver = nk.exact.PyExactTimePropagation(hamiltonian, stepper, t0=0,
+               >>> hi = nk.hilbert.Spin(1/2, N=graph.n_nodes)
+               >>> hamiltonian = nk.operator.Ising(hi, h=1.0, graph=graph)
+               >>> psi0 = np.ones(hi.n_states)
+               >>> driver = nk.exact.PyExactTimePropagation(hamiltonian, t0=0, dt=0.1,
                ...                                          initial_state=psi0,
                ...                                          propagation_type="imaginary")
-               >>> for step in driver.iter(dt=0.05, n_iter=20):
+               >>> for step in driver.iter(n_iter=3):
                ...     print(driver.estimate(hamiltonian))
-               ```
+               -2.048e+03 ± 0.000e+00 [σ²=-4.176e+06]
+               -1.107e+01 ± 0.000e+00 [σ²=-1.756e+01]
+               -9.860e+00 ± 0.000e+00 [σ²=-9.977e-01]
         """
         if isinstance(hamiltonian, _nk.operator.AbstractOperator):
             self._h_op = _make_op(hamiltonian, matrix_type)

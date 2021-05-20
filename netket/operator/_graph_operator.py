@@ -60,7 +60,7 @@ class GraphOperator(LocalOperator):
              The default is None. Note that if no bond_ops are
              specified, the user must give a list of site operators.
          bond_ops_colors: A list of edge colors, specifying the color each
-             bond operator acts on. The defualt is an empty list.
+             bond operator acts on. The default is an empty list.
 
         Examples:
          Constructs a ``GraphOperator`` operator for a 2D system.
@@ -71,12 +71,12 @@ class GraphOperator(LocalOperator):
          >>> edges = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8],
          ... [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15],
          ... [15, 16], [16, 17], [17, 18], [18, 19], [19, 0]]
-         >>> g = nk.graph.CustomGraph(edges=edges)
-         >>> hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], graph=g)
+         >>> g = nk.graph.Graph(edges=edges)
+         >>> hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
          >>> op = nk.operator.GraphOperator(
-         ... hi, site_ops=[sigmax], bond_ops=[mszsz])
-         >>> print(op.hilbert.size)
-         20
+         ... hi, site_ops=[sigmax], bond_ops=[mszsz], graph=g)
+         >>> print(op)
+         GraphOperator(dim=20, #acting_on=40 locations, constant=0, dtype=float64, graph=NetworkX(n_nodes=20))
         """
 
         if graph.n_nodes != hilbert.size:
@@ -87,7 +87,7 @@ class GraphOperator(LocalOperator):
 
         # Ensure that at least one of SiteOps and BondOps was initialized
         if len(bond_ops) == 0 and len(site_ops) == 0:
-            raise InvalidInputError("Must input at least site_ops or bond_ops.")
+            raise ValueError("Must input at least site_ops or bond_ops.")
 
         # Create the local operator as the sum of all site and bond operators
         operators = []
@@ -103,7 +103,7 @@ class GraphOperator(LocalOperator):
         # Bond operators
         if len(bond_ops_colors) > 0:
             if len(bond_ops) != len(bond_ops_colors):
-                raise InvalidInputError(
+                raise ValueError(
                     """The GraphHamiltonian definition is inconsistent.
                     The sizes of bond_ops and bond_ops_colors do not match."""
                 )

@@ -79,9 +79,8 @@ class Spin(CustomHilbert):
         Examples:
            Simple spin hilbert space.
 
-           >>> from netket.hilbert import Spin
-           >>> g = Hypercube(length=10,n_dim=2,pbc=True)
-           >>> hi = Spin(s=0.5, N=4)
+           >>> import netket as nk
+           >>> hi = nk.hilbert.Spin(s=1/2, N=4)
            >>> print(hi.size)
            4
         """

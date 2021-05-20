@@ -31,11 +31,14 @@ def random_state(hilb, key, size=None, dtype=np.float32):
             number generator is used.
 
     Example:
+
+        >>> import netket, jax
         >>> hi = netket.hilbert.Qubit(N=2)
-        >>> hi.random_state()
-        array([0., 1.])
-        >>> hi.random_state(size=2)
-        array([[0., 0.], [1., 0.]])
+        >>> print(hi.random_state(key=jax.random.PRNGKey(0)))
+        [1. 0.]
+        >>> print(hi.random_state(size=2, key=jax.random.PRNGKey(1)))
+        [[0. 1.]
+         [0. 0.]]
     """
     if size is None:
         return random_state_scalar(hilb, key, dtype)

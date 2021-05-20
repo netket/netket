@@ -55,10 +55,12 @@ class Fock(CustomHilbert):
         Examples:
            Simple boson hilbert space.
 
-           >>> from netket.hilbert import Boson
-           >>> hi = Boson(n_max=5, n_particles=11, N=3)
+           >>> from netket.hilbert import Fock
+           >>> hi = Fock(n_max=5, n_particles=11, N=3)
            >>> print(hi.size)
            3
+           >>> print(hi.n_states)
+           15
         """
         N = graph_to_N_depwarn(N=N, graph=graph)
 

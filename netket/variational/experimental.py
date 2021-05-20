@@ -25,25 +25,25 @@ def variables_from_file(filename: str, variables: _PyTree):
        >>> import flax
        >>> # construct an RBM model on 10 spins
        >>> vstate = nk.variational.MCState(
-                nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
-                nk.models.RBM())
-       >>> with open("test.mpack", 'w') as file:
-       >>>     file.write(flax.serialization.to_bytes(vstate))
-
-       Deserializing the data:
-
-       >>> import netket as nk
-       >>> import flax
+       ...      nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
+       ...      nk.models.RBM())
+       >>> with open("test.mpack", 'wb') as file:
+       ...     bytes_written = file.write(flax.serialization.to_bytes(vstate.variables))
+       >>> print(bytes_written)
+       1052
+       >>>
+       >>> # Deserialize the data
+       >>>
+       >>> del vstate
        >>> # construct an RBM model on 10 spins
-       >>> vstate = nk.variational.MCState(
-                nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
-                nk.models.RBM())
+       >>> vstate2 = nk.variational.MCState(
+       ...      nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
+       ...      nk.models.RBM())
        >>> # Load the data by passing the model
        >>> vars = nk.variational.experimental.variables_from_file("test.mpack",
-                                                                  vstate.variables)
+       ...                                                        vstate2.variables)
        >>> # update the variables of vstate with the loaded data.
-       >>> vstate.variables = vars
-
+       >>> vstate2.variables = vars
     """
     if not _path.isfile(filename):
         if filename[-6:] != ".mpack":
@@ -64,7 +64,6 @@ def variables_from_tar(filename: str, variables: _PyTree, i: int):
         variables: An object variables with the same structure and shape
             of the object to be deserialized.
         i: the index of the variables to load
-
     """
     if not _path.isfile(filename):
         if filename[-4:] != ".tar":

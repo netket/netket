@@ -72,9 +72,9 @@ class CustomHilbert(AbstractHilbert):
         Examples:
            Simple custom hilbert space.
 
-           >>> from netket.hilbert import CustomHilbert
-           >>> g = Hypercube(length=10,n_dim=2,pbc=True)
-           >>> hi = CustomHilbert(local_states=[-1232, 132, 0], N=100)
+           >>> import netket
+           >>> g = netket.graph.Hypercube(length=10,n_dim=2,pbc=True)
+           >>> hi = netket.hilbert.CustomHilbert(local_states=[-1232, 132, 0], N=100)
            >>> print(hi.size)
            100
         """
