@@ -358,6 +358,7 @@ class Lattice(NetworkX):
 
     @staticmethod
     def _clean_basis(basis_vectors):
+        """Check and convert `basis_vectors` init argument."""
         basis_vectors = _np.asarray(basis_vectors)
         if basis_vectors.ndim != 2:
             raise ValueError(
@@ -369,6 +370,7 @@ class Lattice(NetworkX):
 
     @staticmethod
     def _clean_site_offsets(site_offsets, atoms_coord, basis_vectors):
+        """Check and convert `site_offsets` init argument."""
         if atoms_coord is not None and site_offsets is not None:
             raise ValueError(
                 "atoms_coord is deprecated and replaced by site_offsets, "
@@ -411,6 +413,7 @@ class Lattice(NetworkX):
 
     @staticmethod
     def _clean_pbc(pbc, ndim):
+        """Check and convert `pbc` init argument."""
         if isinstance(pbc, bool):
             return _np.array([pbc] * ndim, dtype=bool)
         elif (
