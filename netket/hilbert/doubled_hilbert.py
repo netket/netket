@@ -35,12 +35,12 @@ class DoubledHilbert(AbstractHilbert):
         Examples:
             Simple superoperatorial hilbert space for few spins.
 
-           >>> from netket.hilbert import Spin, DoubledHilbert
-           >>> g = Hypercube(length=5,n_dim=2,pbc=True)
-           >>> hi = Spin(N=3, s=0.5)
-           >>> hi2 = DoubledHilbert(hi)
+           >>> import netket as nk
+           >>> g = nk.graph.Hypercube(length=5,n_dim=2,pbc=True)
+           >>> hi = nk.hilbert.Spin(N=3, s=0.5)
+           >>> hi2 = nk.hilbert.DoubledHilbert(hi)
            >>> print(hi2.size)
-           50
+           6
         """
         self.physical = hilb
         self._size = 2 * hilb.size

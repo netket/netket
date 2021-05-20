@@ -132,10 +132,10 @@ class Ising(SpecialHamiltonian):
 
             >>> import netket as nk
             >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-            >>> hi = nk.hilbert.Spin(s=0.5, graph=g)
-            >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5)
-            >>> print(op.hilbert.size)
-            20
+            >>> hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
+            >>> op = nk.operator.Ising(h=1.321, hilbert=hi, J=0.5, graph=g)
+            >>> print(op)
+            Ising(J=0.5, h=1.321; dim=20)
         """
         assert (
             graph.n_nodes == hilbert.size
@@ -385,10 +385,10 @@ class Heisenberg(GraphOperator):
 
             >>> import netket as nk
             >>> g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
-            >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, graph=g)
-            >>> op = nk.operator.Heisenberg(hilbert=hi)
-            >>> print(op.hilbert.size)
-            20
+            >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, N=g.n_nodes)
+            >>> op = nk.operator.Heisenberg(hilbert=hi, graph=g)
+            >>> print(op)
+            Heisenberg(J=1, sign_rule=True; dim=20)
         """
         if sign_rule is None:
             sign_rule = graph.is_bipartite()
