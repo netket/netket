@@ -22,8 +22,8 @@ from jax import numpy as jnp
 from flax import linen as nn
 
 from netket.utils import HashableArray
-from netket.utils.symmetry import PermutationGroup
 from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
+from netket.symmetry import PermutationGroup
 
 
 from netket import nn as nknn

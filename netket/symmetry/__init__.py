@@ -21,7 +21,4 @@ from .networkx import automorphism_group
 
 from netket.utils import _hide_submodules
 
-_hide_submodules(__name__)
-
-# These are better packaged as submodules
-from . import planar, axial, cubic
+_hide_submodules(__name__, ignore=["planar", "axial", "cubic"])
