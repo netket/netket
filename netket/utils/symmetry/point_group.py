@@ -24,7 +24,8 @@ from functools import partial
 from .semigroup import Identity, Element
 from .group import Group
 
-from netket.utils import HashableArray, comparable, struct
+from netket.utils import HashableArray, struct
+from netket.utils.float import comparable
 from netket.utils.types import Array, DType, Shape
 
 ############ POINT GROUP SYMMETRY CLASS ########################################

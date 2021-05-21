@@ -244,6 +244,7 @@ class DenseEquivariant(Module):
 
         return y
 
+
 def irrep_project_sum(inputs: Array, character: Array, squeeze: bool = True) -> Array:
     """
     Projects the output of a GCNN onto an irrep of the symmetry group.
@@ -254,16 +255,21 @@ def irrep_project_sum(inputs: Array, character: Array, squeeze: bool = True) -> 
         squeeze: if True, the feature axis is summed over
 
     Returns:
-        if `squeeze == False`: the projection :math:`\Psi_i = \sum_{g} \psi_{ig} \chi^*(g)` 
+        if `squeeze == False`: the projection :math:`\Psi_i = \sum_{g} \psi_{ig} \chi^*(g)`
         as an array of shape [batch_size, features];
         if `squeeze == True`: :math:`\sum_i \Psi_i` as an array of shape [batch_size]
     """
     n_symm = character.size
-    proj = jnp.tensordot(inputs.reshape(inputs.shape[0], -1, n_symm), character.conj(), axes=1)
+    proj = jnp.tensordot(
+        inputs.reshape(inputs.shape[0], -1, n_symm), character.conj(), axes=1
+    )
     return proj.sum(axis=1) if squeeze else proj
 
-def irrep_project_logsumexp(inputs: Array, character: Array, squeeze: bool=True) -> Array:
-    
+
+def irrep_project_logsumexp(
+    inputs: Array, character: Array, squeeze: bool = True
+) -> Array:
+
     """
     Projects the output of a GCNN onto an irrep of the symmetry group.
 
@@ -273,15 +279,21 @@ def irrep_project_logsumexp(inputs: Array, character: Array, squeeze: bool=True)
         squeeze: if True, the feature axis is summed over
 
     Returns:
-        if `squeeze == False`: the projection :math:`\Psi_i = \log[\sum_{g} e^{\psi_{ig}} \chi^*(g)]` 
+        if `squeeze == False`: the projection :math:`\Psi_i = \log[\sum_{g} e^{\psi_{ig}} \chi^*(g)]`
         as an array of shape [batch_size, features]
         if `squeeze == True`: :math:`\log(\sum_i \Psi_i)` as an array of shape [batch_size]
     """
     n_symm = character.size
     inputs = inputs.reshape(inputs.shape[0], -1, n_symm)
     if squeeze:
-        inputs_max = jnp.max(inputs.real, axis=(1,2), keepdims=True)
-        return jnp.log(jnp.tensordot(jnp.exp(inputs-inputs_max), character.conj(), axes=1).sum(axis=1)) + jnp.squeeze(inputs_max, axis=(1,2))
+        inputs_max = jnp.max(inputs.real, axis=(1, 2), keepdims=True)
+        return jnp.log(
+            jnp.tensordot(jnp.exp(inputs - inputs_max), character.conj(), axes=1).sum(
+                axis=1
+            )
+        ) + jnp.squeeze(inputs_max, axis=(1, 2))
     else:
         inputs_max = jnp.max(inputs.real, axis=2, keepdims=True)
-        return jnp.log(jnp.tensordot(jnp.exp(inputs-inputs_max), character.conj(), axes=1)) + jnp.squeeze(inputs_max, axis=2)
+        return jnp.log(
+            jnp.tensordot(jnp.exp(inputs - inputs_max), character.conj(), axes=1)
+        ) + jnp.squeeze(inputs_max, axis=2)

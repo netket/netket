@@ -15,7 +15,7 @@
 from .abstract_graph import AbstractGraph
 from .graph import NetworkX, Graph, Edgeless, DoubledGraph, disjoint_union
 from .lattice import Lattice
-from .special import Grid, Hypercube, Square, Chain
+from .common_lattices import Grid, Hypercube, Square, Chain
 
 from netket.utils import _hide_submodules
 

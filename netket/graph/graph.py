@@ -18,6 +18,7 @@ import numpy as np
 import networkx as _nx
 
 from .abstract_graph import AbstractGraph
+from netket.utils import deprecated
 from netket.utils.types import Array
 
 
@@ -54,7 +55,7 @@ class NetworkX(AbstractGraph):
         else:
             self.graph = graph
 
-        self.__automorphisms = None
+        self._automorphisms = None
 
         super().__init__()
 
@@ -92,7 +93,8 @@ class NetworkX(AbstractGraph):
         return self.graph.size()
 
     # TODO turn into a struct.property_cached?
-    def _automorphisms(self) -> Array:
+    @deprecated("please use `netket.symmetry.automorphism_group(self)` instead")
+    def automorphisms(self) -> List[List]:
         # TODO: check how to compute these when we have a coloured graph where there could
         #       be a duplicated edge with two different colors.
 
@@ -103,18 +105,18 @@ class NetworkX(AbstractGraph):
                 "automorphisms is not yet implemented for colored edges"
             )
 
-        if self.__automorphisms is not None:
-            return self.__automorphisms
+        if self._automorphisms is not None:
+            return self._automorphisms
         else:
             aux_graph = _nx.Graph()
             aux_graph.add_nodes_from(self.graph.nodes())
             aux_graph.add_edges_from(self.edges())
             ismags = _nx.isomorphism.GraphMatcher(aux_graph, aux_graph)
-            self.__automorphisms = [
+            self._automorphisms = [
                 [iso[i] for i in aux_graph.nodes()]
                 for iso in ismags.isomorphisms_iter()
             ]
-            return self.__automorphisms
+            return self._automorphisms
 
     def __repr__(self):
         return "{}(n_nodes={})".format(

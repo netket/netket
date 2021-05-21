@@ -19,7 +19,8 @@ import numpy as np
 from dataclasses import dataclass
 
 from .semigroup import SemiGroup, Element, Identity
-from netket.utils import struct, HashableArray, comparable, prune_zeros
+from netket.utils import struct, HashableArray
+from netket.utils.float import comparable, prune_zeros
 from netket.utils.types import Array, DType, Shape
 from typing import Tuple, List
 

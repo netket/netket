@@ -25,7 +25,8 @@ from .point_group import PointGroup, PGSymmetry
 from .permutation_group import Permutation, PermutationGroup
 
 from netket.utils.types import Array, Union
-from netket.utils import struct, prune_zeros
+from netket.utils import struct
+from netket.utils.float import prune_zeros
 from netket.graph import Lattice
 
 

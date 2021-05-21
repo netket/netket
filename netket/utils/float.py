@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Tools to compare and hash floating point numbers safely.
+"""
 
 import numpy as np
 from netket.utils.types import Array, Union
@@ -34,8 +37,15 @@ def comparable(
 
     Returns:
         `x * bin_density + offset` rounded to an integer
+
+    Example:
+        ```
+        >>> comparable([0.0, 0.3, 0.30000001, 1.3])
+
+        array([0, 997920, 997920, 4324320])
+        ```
     """
-    return np.asarray(np.rint(x * bin_density + offset), dtype=int)
+    return np.asarray(np.rint(np.asarray(x) * bin_density + offset), dtype=int)
 
 
 def comparable_periodic(
@@ -52,7 +62,8 @@ def comparable_periodic(
     Arguments:
         x: the float array to be converted
         where: specifies whether the fractional part (True) or the full value (False)
-            of the input is to be used. Must be broadcastable to `x.shape`
+            of the input is to be used. Must be broadcastable to `x.shape`.
+            If False, the output is the same as that of `comparable`.
         bin_density: the inverse width of each bin. When binning rational numbers,
             it's best to use a multiple of all expected denominators `bin_density`.
             The default is :math:`3326400 = 2^6\times 3^3\times 5^2\times 7\times 11`.
@@ -63,16 +74,17 @@ def comparable_periodic(
 
     Returns:
         [`x` or frac(`x`)]` * bin_density + offset` rounded to an integer
+
+    Example:
+        ```
+        >>> comparable_periodic([0.0, 0.3, 0.30000001, 1.3], where = [[True], [False]])
+
+        array([[0, 997920, 997920, 997920], [0, 997920, 997920, 4324320]])
+        ```
+
     """
-    frac = (
-        np.asarray(x) % 1.0
-    )  # not strictly needed, but may be good for numerical stability
-    bin_frac = np.asarray(np.rint(frac * bin_density + offset), dtype=int)
-    bin_frac %= bin_density
-    if where is not True:  # i.e. we might keep some full values
-        bin_x = np.asarray(np.rint(x * bin_density + offset), dtype=int)
-        bin_frac = np.where(where, bin_frac, bin_x)
-    return bin_frac
+    bins = np.asarray(np.rint(np.asarray(x) * bin_density + offset), dtype=int)
+    return np.where(where, bins % bin_density, bins)
 
 
 def _prune_zeros(x: Array, atol: float = 1e-08) -> Array:

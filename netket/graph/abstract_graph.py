@@ -46,7 +46,7 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _automorphisms(self):
+    def automorphisms(self):
         r"""Lists the automorphisms of the graph"""
         raise NotImplementedError
 

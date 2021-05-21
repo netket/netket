@@ -26,9 +26,12 @@ from scipy.spatial import cKDTree
 from scipy.sparse import find, triu
 
 from netket.utils.deprecation import deprecated as _deprecated, warn_deprecation
-from netket.utils import HashableArray, comparable, comparable_periodic, is_approx_int
+from netket.utils import HashableArray
+from netket.utils.float import comparable, comparable_periodic, is_approx_int
 
 from .graph import NetworkX
+
+# from netket.utils.symmetry import PermutationGroup
 
 PositionT = _np.ndarray
 CoordT = _np.ndarray
@@ -448,32 +451,27 @@ class Lattice(NetworkX):
         dict: Dict[HashableArray, int], key: Array
     ) -> Union[int, Array]:
         if key.ndim == 1:
-            return dict.get(HashableArray(key), None)
+            return dict[HashableArray(key)]
         elif key.ndim == 2:
-            return _np.array([dict.get(HashableArray(k), None) for k in key])
+            return _np.array([dict[HashableArray(k)] for k in key])
         else:
             raise ValueError("Input needs to be rank 1 or rank 2 array")
 
-    def id_from_position(
-        self, position: PositionT, strict: bool = False
-    ) -> Union[int, Array]:
+    def id_from_position(self, position: PositionT) -> Union[int, Array]:
         """
-        Return the id for a site at the given position. When passed a rank-2 array
-        where each row is a position, this method returns an array of the corresponding ids.
-        If `strict == True`, an invalid position raises a `ValueError`, otherwise
-        `None` is returned for all invalid positions.
+        Returns the id for a site at the given position. When passed a rank-2 array
+        where each row is a position, returns an array of the corresponding ids.
+        Raises a `KeyError` if any of the positions do not correspond to a site.
         """
         int_pos = self._to_integer_position(position)
         ids = self._get_id_from_dict(self._int_position_to_site, int_pos)
-        if strict and _np.any(ids == None):
-            raise ValueError("Invalid position(s) supplied")
         return ids
 
     def id_from_basis_coords(self, basis_coords: CoordT) -> Union[int, Array]:
         """
         Return the id for a site at the given basis coordinates. When passed a rank-2 array
-        where each row is a coordinate vector, this method returns an array of the corresponding
-        ids. In both cases, None is returned for coords that do not correspond to a site.
+        where each row is a coordinate vector, returns an array of the corresponding ids.
+        Raises a `KeyError` if any of the coords do not correspond to a site.
         """
         key = _np.asarray(basis_coords)
         return self._get_id_from_dict(self._basis_coord_to_site, key)
@@ -486,40 +484,39 @@ class Lattice(NetworkX):
         Throws a KeyError if no site is found for any of the coordinates.
         """
         ids = self.id_from_basis_coords(basis_coords)
-        if _np.any(ids == None):  # pylint: disable=singleton-comparison
-            raise KeyError(f"No site found at at least one of {basis_coords}")
         return self.positions[ids]
 
-    def to_reciprocal_lattice(self, ks: Array, strict: bool = False) -> Array:
+    def to_reciprocal_lattice(self, ks: Array) -> Array:
         """
-        Returns input wave vectors in units of reciprocal basis vectors **of the
-        simulation box.**
-        Also checks whether the coordinates be integers (if the axis has periodic
-        boundary conditions) or zero (if not):
-        * if `strict` is `True`, throws a `ValueError`
-        * if `strict` is `False`, returns None for invalid coordinates.
+        Takes wave vectors in Cartesian axes and converts them into the reciprocal
+        basis **of the simulation box.**
+        Valid wave vector components in this basis are integers in (periodic BCs)
+        or zero (in open BCs).
+        Throws a `ValueError` if any of the supplied wave vectors are not
+        reciprocal lattice vectors of the simulation box.
         """
         # Ensure that ks has at least 2 dimensions
         ks = _np.asarray(ks)
         if ks.ndim == 1:
             ks = ks[_np.newaxis, :]
-        # Reciprocal lattice coordinates
+
         result = ks @ self._lattice_dims.T / (2 * pi)
         # Check that these are integers
         is_valid = is_approx_int(result)
+        if not _np.all(is_valid):
+            raise ValueError(
+                "Some wave vectors are not reciprocal lattice vectors of the simulation box"
+            )
+
         result = _np.asarray(_np.rint(result), dtype=int)
         # For axes with non-periodic BCs, the k-component must be 0
-        is_valid = _np.logical_and(is_valid, _np.logical_or(self.pbc, result == 0))
-        is_valid = _np.all(is_valid, axis=1)
-        if strict:
-            if _np.all(is_valid):
-                return result
-            else:
-                raise ValueError("Invalid wave vector supplied")
-        else:
-            return _np.asarray(
-                [(row if is_valid[i] else None) for i, row in enumerate(result)]
+        is_valid = _np.logical_or(self.pbc, result == 0)
+        if not _np.all(is_valid):
+            raise ValueError(
+                "Some wave vectors are inconisistent with open boundary conditions"
             )
+
+        return result
 
     # Output and drawing
     # ------------------------------------------------------------------------

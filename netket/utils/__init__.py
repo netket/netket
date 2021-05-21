@@ -15,8 +15,8 @@
 from .config_flags import config
 
 from . import numbers
-from . import struct
 from . import types
+from . import float
 
 from .array import HashableArray
 from .jax import get_afun_if_module
@@ -31,11 +31,9 @@ from .model_frameworks import maybe_wrap_module
 
 from .history import History, accum_in_tree, accum_histories_in_tree
 
-from .float_utils import comparable, comparable_periodic, prune_zeros, is_approx_int
-
 # TODO: legacy -> to be removed
 jax_available = True
 flax_available = True
 mpi4jax_available = mpi.mpi_available
 
-_hide_submodules(__name__, remove_self=False)
+_hide_submodules(__name__, remove_self=False, ignore=["numbers", "types", "float"])

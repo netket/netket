@@ -45,6 +45,8 @@
   inside the closure or `functools.partial` passed as `solver` argument.
 * `nk.optimizer.sr.SRLazyCG` and `nk.optimizer.sr.SRLazyGMRES` have been deprecated and will soon be removed.
 * Parts of the `Lattice` API have been overhauled, with deprecations of several methods in favor of a consistent usage of `Lattice.position` for real-space location of sites and `Lattice.basis_coords` for location of sites in terms of basis vectors. `Lattice.sites` has been added, which provides a sequence of `LatticeSite` objects combining all site properties. Furthermore, `Lattice` now provides lookup of sites from their position via `id_from_position` using a hashing scheme that works across periodic boundaries. [#703](https://github.com/netket/netket/pull/703) [#715](https://github.com/netket/netket/pull/715)
+* The `Grid` API has been retired in favour of specialised `Lattice` constructors. This removes the `color_edges` switch from `Grid` for the time being. [#724](https://github.com/netket/netket/pull/724)
+* `AbstractGraph.automorphisms()` returns a list of lists (each list being a permutation) rather than a `PermutationGroup`. The latter behaviour is available from `netket.symmetry.automorphism_group(lattice)`. [#724](https://github.com/netket/netket/pull/724)
 
 ### Bug Fixes
 
