@@ -152,14 +152,8 @@ class DenseEquivariant(Module):
 
         C^i_g = \sum_h {\bf W}_{g^{-1} h} \cdot {\bf f}_h
 
-    Symmetry poses that are linked by the same symmetry element are connected
-    by the same filter. The output symmetry group is an involution over the
-    input symmetry group, i.e. the symmetry group is inverted by G-convolution
-
-    .. math ::
-
-        {\bf C}*(g) = C(g^{-1})
-
+    Group elements that are linked by the same group element (i.e. :math:`g = xh`
+    and :math:`g' = xh'` are connected by the same filter.
     """
 
     symmetry_info: Union[HashableArray, PermutationGroup]
@@ -249,3 +243,45 @@ class DenseEquivariant(Module):
             y += bias
 
         return y
+
+def irrep_project_sum(inputs: Array, character: Array, squeeze: bool = True) -> Array:
+    """
+    Projects the output of a GCNN onto an irrep of the symmetry group.
+
+    Arguments:
+        inputs: a feature map of shape [batch_size, n_symm*features], as output by `DenseSymm` or `DenseEquivariant`
+        character: the characters of the irrep for every group element (a single row of character tables returned by `Group` or `SpaceGroupBuilder`)
+        squeeze: if True, the feature axis is summed over
+
+    Returns:
+        if `squeeze == False`: the projection :math:`\Psi_i = \sum_{g} \psi_{ig} \chi^*(g)` 
+        as an array of shape [batch_size, features];
+        if `squeeze == True`: :math:`\sum_i \Psi_i` as an array of shape [batch_size]
+    """
+    n_symm = character.size
+    proj = jnp.tensordot(inputs.reshape(inputs.shape[0], -1, n_symm), character.conj(), axes=1)
+    return proj.sum(axis=1) if squeeze else proj
+
+def irrep_project_logsumexp(inputs: Array, character: Array, squeeze: bool=True) -> Array:
+    
+    """
+    Projects the output of a GCNN onto an irrep of the symmetry group.
+
+    Arguments:
+        inputs: a feature map of shape [batch_size, n_symm*features], as output by `DenseSymm` or `DenseEquivariant`
+        character: the characters of the irrep for every group element (a single row of character tables returned by `Group` or `SpaceGroupBuilder`)
+        squeeze: if True, the feature axis is summed over
+
+    Returns:
+        if `squeeze == False`: the projection :math:`\Psi_i = \log[\sum_{g} e^{\psi_{ig}} \chi^*(g)]` 
+        as an array of shape [batch_size, features]
+        if `squeeze == True`: :math:`\log(\sum_i \Psi_i)` as an array of shape [batch_size]
+    """
+    n_symm = character.size
+    inputs = inputs.reshape(inputs.shape[0], -1, n_symm)
+    if squeeze:
+        inputs_max = jnp.max(inputs.real, axis=(1,2), keepdims=True)
+        return jnp.log(jnp.tensordot(jnp.exp(inputs-inputs_max), character.conj(), axes=1).sum(axis=1)) + jnp.squeeze(inputs_max, axis=(1,2))
+    else:
+        inputs_max = jnp.max(inputs.real, axis=2, keepdims=True)
+        return jnp.log(jnp.tensordot(jnp.exp(inputs-inputs_max), character.conj(), axes=1)) + jnp.squeeze(inputs_max, axis=2)
