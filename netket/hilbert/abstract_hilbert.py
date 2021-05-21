@@ -257,7 +257,7 @@ class AbstractHilbert(abc.ABC):
 
     @property
     def is_indexable(self) -> bool:
-        """ "Whever the space can be indexed with an integer"""
+        """Whether the space can be indexed with an integer"""
         if not self.is_discrete:
             return False
 
