@@ -41,8 +41,7 @@ def comparable(
     Example:
         ```
         >>> comparable([0.0, 0.3, 0.30000001, 1.3])
-
-        array([0, 997920, 997920, 4324320])
+        array([      0,  997920,  997920, 4324320])
         ```
     """
     return np.asarray(np.rint(np.asarray(x) * bin_density + offset), dtype=int)
@@ -78,8 +77,8 @@ def comparable_periodic(
     Example:
         ```
         >>> comparable_periodic([0.0, 0.3, 0.30000001, 1.3], where = [[True], [False]])
-
-        array([[0, 997920, 997920, 997920], [0, 997920, 997920, 4324320]])
+        array([[      0,  997920,  997920,  997920],
+               [      0,  997920,  997920, 4324320]])
         ```
 
     """
