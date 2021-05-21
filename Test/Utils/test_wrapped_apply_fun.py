@@ -12,30 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable
-
-import jax
-
-from . import struct
+from netket.utils.jax import WrappedApplyFun
 
 
-def get_afun_if_module(mod_or_fun, *args, **kwargs):
-    if hasattr(mod_or_fun, "apply"):
-        return mod_or_fun.apply
-    else:
-        return mod_or_fun
+def test_WrappedApplyFun():
+    def fun():
+        return 42
 
+    wrapped = WrappedApplyFun(fun)
+    assert wrapped.apply() == 42
 
-@struct.dataclass
-class WrappedApplyFun:
-    """Wraps a callable to be a module-like object with the method `apply`."""
-
-    apply: Callable
-    """The wrapped callable."""
-
-
-def wrap_afun(mod_or_fun, *args, **kwargs):
-    if hasattr(mod_or_fun, "apply"):
-        return mod_or_fun
-    else:
-        return WrappedApplyFun(mod_or_fun)
+    wrapped2 = WrappedApplyFun(fun)
+    assert wrapped is not wrapped2
+    assert wrapped == wrapped2
+    assert hash(wrapped) == hash(wrapped2)
