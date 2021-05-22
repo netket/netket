@@ -47,7 +47,7 @@ class AbstractGraph(abc.ABC):
 
     @abc.abstractmethod
     def automorphisms(self):
-        r"""Lists the automorphisms of the graph"""
+        r"""Symmetry group containing the automorphisms of the graph"""
         raise NotImplementedError
 
     @property

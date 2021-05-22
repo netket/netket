@@ -16,9 +16,9 @@ from .semigroup import Identity, Element, SemiGroup
 from .group import Group
 from .permutation_group import Permutation, PermutationGroup
 from .point_group import PGSymmetry, PointGroup
-from .space_group import SpaceGroupBuilder, space_group
-from .networkx import automorphism_group
 
 from netket.utils import _hide_submodules
+
+from . import planar, axial, cubic
 
 _hide_submodules(__name__, ignore=["planar", "axial", "cubic"])
