@@ -12,13 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Sequence, Union
+from typing import Sequence, Union, Optional
 import numpy as np
 
 from .lattice import Lattice
 
+from netket.utils.group import PointGroup, cubic
 
-def Grid(length: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+
+def Grid(
+    length: Sequence[int],
+    *,
+    pbc: Union[bool, Sequence[bool]] = True,
+    point_group: Optional[PointGroup] = None,
+) -> Lattice:
     """
     Constructs a hypercubic lattice given its extent in all dimensions.
 
@@ -47,7 +54,9 @@ def Grid(length: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> L
     """
     length = np.asarray(length, dtype=int)
     ndim = len(length)
-    return Lattice(basis_vectors=np.eye(ndim), extent=length, pbc=pbc)
+    return Lattice(
+        basis_vectors=np.eye(ndim), extent=length, pbc=pbc, point_group=point_group
+    )
 
 
 def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
@@ -73,7 +82,7 @@ def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
          1000
     """
     length_vector = [length] * n_dim
-    return Grid(length_vector, pbc=pbc)
+    return Grid(length_vector, pbc=pbc, point_group=cubic.hypercubic(n_dim))
 
 
 def Square(length: int, *, pbc: bool = True) -> Lattice:

@@ -19,7 +19,7 @@ import jax.random as random
 import numpy as np
 import scipy.sparse
 from jax.lax import dot
-from netket.utils.semigroup import PermutationGroup
+from netket.utils.group import PermutationGroup
 
 import pytest
 

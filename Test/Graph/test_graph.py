@@ -3,10 +3,12 @@ import pytest
 import netket as nk
 import networkx as nx
 import math
+from math import pi
 import numpy as np
 import igraph as ig
 
 from netket.graph import *
+from netket.utils import group
 
 from .. import common
 
@@ -56,36 +58,43 @@ symmetric_graphs = [
     # Square
     nk.graph.Lattice(basis_vectors=[[0, 1], [1, 0]], extent=[3, 3]),
     # Triangular
-    nk.graph.Lattice(basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]], extent=[3, 3]),
+    nk.graph.Lattice(basis_vectors=[[1, 0], [0.5, 0.75 ** 0.5]], extent=[3, 3]),
     # Honeycomb
     nk.graph.Lattice(
-        basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
-        site_offsets=[[1 / (2 * np.sqrt(3)), 1 / 2], [1 / np.sqrt(3), 1]],
+        basis_vectors=[[1, 0], [0.5, 0.75 ** 0.5]],
+        site_offsets=[[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]],
         extent=[3, 3],
     ),
     # Kagome
     nk.graph.Lattice(
-        basis_vectors=[[0, 1], [np.sqrt(3) / 2, 1 / 2]],
-        site_offsets=[[0, 1 / 2], [np.sqrt(3) / 4, 1 / 4], [np.sqrt(3) / 4, 3 / 4]],
+        basis_vectors=[[1, 0], [0.5, 0.75 ** 0.5]],
+        site_offsets=[[0.5, 0], [0.25, 0.75 ** 0.5 / 2], [0.75, 0.75 ** 0.5 / 2]],
         extent=[3, 3],
     ),
     # Cube
-    nk.graph.Lattice(basis_vectors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], extent=[2, 2, 2]),
+    nk.graph.Lattice(basis_vectors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], extent=[3, 3, 3]),
     # Body Centered Cubic
     nk.graph.Lattice(
-        basis_vectors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-        site_offsets=[[0, 0, 0], [1 / 2, 1 / 2, 1 / 2]],
-        extent=[2, 2, 2],
+        basis_vectors=[[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]],
+        extent=[3, 3, 3],
     ),
 ]
 
-unit_cells = [9, 9, 9, 9, 8, 8]
+unit_cells = [9, 9, 9, 9, 27, 27]
 
-atoms_per_unit_cell = [1, 1, 2, 3, 1, 2]
+atoms_per_unit_cell = [1, 1, 2, 3, 1, 1]
 
 coordination_number = [4, 6, 3, 4, 6, 8]
 
-rot_symmetry = [4, 6, 6, 6, 4, 4]
+dimension = [2, 2, 2, 2, 3, 3]
+
+symmetry = [group.planar.D(4)] + [group.planar.D(6)] * 3 + [group.cubic.Oh] * 2
+
+kvec = [[2 * pi / 3, 0]] + [[4 * pi / 3, 0]] * 3 + [[4 * pi / 3, 0, 0]] * 2
+
+little_group_size = [2, 6, 6, 6, 8, 8]
+
+little_group_irreps = [2, 3, 3, 3, 5, 5]
 
 
 def test_lattice_graphs():
@@ -132,10 +141,14 @@ def test_lattice():
             assert np.all(pos2 == pos)
 
     g = Lattice([[1]], [2])
-    pos = [[0.0], [1.0], [0.5]]
+    pos = [[0.0], [1.0]]
     ids = g.id_from_position(pos)
-    assert np.all(ids[:2] == [0, 1])
-    assert ids[2] is None
+    assert np.all(ids == [0, 1])
+
+    with pytest.raises(KeyError):
+        idx = g.id_from_position([[0.5]])
+    with pytest.raises(KeyError):
+        idx = g.id_from_position([0.5])
 
     with pytest.raises(KeyError):
         pos = g.position_from_basis_coords([2])
@@ -173,34 +186,35 @@ def test_lattice_old_interface():
         check_alternative(lambda: g.atoms_coord, lambda: g.site_offsets)
 
 
-def test_lattice_symmetry():
-    # Check if the symmetry groups make sense
-    for i, graph in enumerate(symmetric_graphs):
-        rots = np.asarray(graph.planar_rotations(rot_symmetry[i]))
-        # R(2pi/period)*R(2pi(1-1/period) = I)
-        assert np.all(rots[-1][rots[1]] == np.arange(graph.n_nodes))
-        # Try a bad rotation and fail
-        with pytest.raises(ValueError):
-            graph.planar_rotations(5)
+@pytest.mark.parametrize("i", range(len(symmetric_graphs)))
+def test_lattice_symmetry(i):
+    graph = symmetric_graphs[i]
+    # Try an invalid symmetry group and fail
+    with pytest.raises(KeyError):
+        if dimension[i] == 2:
+            sg = graph.space_group(group.planar.C(5))
+        else:
+            sg = graph.space_group(group.axial.C(5))
+    sgb = graph.space_group_builder(symmetry[i])
+    # Check if the point permutation group is isomorphic to geometric one
+    assert np.all(sgb.point_group.product_table == symmetry[i].product_table)
+    # Build translation group product table explicitly and compare
+    pt_1d = [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
+    ones = np.ones((3, 3), dtype=int)
+    pt = np.kron(pt_1d, ones) * 3 + np.kron(ones, pt_1d)
+    if dimension[i] == 3:
+        pt = np.kron(pt, ones) * 3 + np.kron(np.ones((9, 9), dtype=int), pt_1d)
+    assert np.all(pt == sgb.translation_group().product_table)
 
-        # Two reflections returns graph to itself
-        ref = np.asarray(graph.reflections())
-        assert np.all(ref[1][ref[1]] == np.arange(graph.n_nodes))
+    # ensure that all space group symmetries are unique and automorphisms
+    _check_symmgroup(graph, sgb.space_group)
 
-        # T(0,1)T(0,-1) = I
-        translations = np.asarray(graph.basis_translations())
-        if unit_cells[i] == 8:
-            # [1,0,0] maps to itself
-            assert np.all(translations[1][translations[1]] == np.arange(graph.n_nodes))
-            # [1,1,1] maps to itself
-            assert np.all(
-                translations[-1][translations[-1]] == np.arange(graph.n_nodes)
-            )
-        if unit_cells[i] == 9:
-            # T(2,0)T(1,0) maps to itself
-            assert np.all(translations[2][translations[1]] == np.arange(graph.n_nodes))
-            # T(2,1)T(1,2) maps to itself
-            assert np.all(translations[7][translations[5]] == np.arange(graph.n_nodes))
+    # Generate little groups and their irreps
+    assert len(sgb.little_group(kvec[i])) == little_group_size[i]
+    irrep_from_lg = sgb.space_group_irreps(kvec[i])
+    irrep_from_sg = sgb.space_group.character_table()
+    for irrep in irrep_from_lg:
+        assert np.any(np.all(np.isclose(irrep, irrep_from_sg), axis=1))
 
 
 def coord2index(xs, length):
@@ -235,8 +249,8 @@ def test_graph_wrong():
 
 
 def test_edges_are_correct():
-    check_edges(1, 1, False)
-    check_edges(1, 2, False)
+    # check_edges(1, 1, False)
+    # check_edges(1, 2, False) # KDTree removes the single site
     for length in [3, 4, 5]:
         for dim in [1, 2, 3]:
             for pbc in [True, False]:
@@ -368,33 +382,33 @@ def test_adjacency_list():
             assert set(adl[i]) in neigh
 
 
-def test_grid_color_pbc():
-    # compute length from iterator
-    count = lambda it: sum(1 for _ in it)
-
-    g = Grid([4, 4], pbc=True, color_edges=True)
-    assert count(g.edges(color=0)) == 16
-    assert count(g.edges(color=1)) == 16
-    assert g.n_edges == 32
-
-    g = Grid([4, 2], pbc=True, color_edges=True)
-    assert count(g.edges(color=0)) == 8
-    assert count(g.edges(color=1)) == 4
-
-    g = Grid([4, 2], pbc=False, color_edges=True)
-    assert count(g.edges(color=0)) == 6
-    assert count(g.edges(color=1)) == 4
-
-    with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
-        g = Grid([2, 4], pbc=[True, True])
-
-    g1 = Grid([7, 5], pbc=False)
-    g2 = Grid([7, 5], pbc=[False, False])
-    assert sorted(g1.edges()) == sorted(g2.edges())
-
-    g1 = Grid([7, 5], pbc=True)
-    g2 = Grid([7, 5], pbc=[True, True])
-    assert sorted(g1.edges()) == sorted(g2.edges())
+# def test_grid_color_pbc():
+#    # compute length from iterator
+#    count = lambda it: sum(1 for _ in it)
+#
+#    g = Grid([4, 4], pbc=True, color_edges=True)
+#    assert count(g.edges(color=0)) == 16
+#    assert count(g.edges(color=1)) == 16
+#    assert g.n_edges == 32
+#
+#    g = Grid([4, 2], pbc=True, color_edges=True)
+#    assert count(g.edges(color=0)) == 8
+#    assert count(g.edges(color=1)) == 4
+#
+#    g = Grid([4, 2], pbc=False, color_edges=True)
+#    assert count(g.edges(color=0)) == 6
+#    assert count(g.edges(color=1)) == 4
+#
+#    with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
+#        g = Grid([2, 4], pbc=[True, True])
+#
+#    g1 = Grid([7, 5], pbc=False)
+#    g2 = Grid([7, 5], pbc=[False, False])
+#    assert sorted(g1.edges()) == sorted(g2.edges())
+#
+#    g1 = Grid([7, 5], pbc=True)
+#    g2 = Grid([7, 5], pbc=[True, True])
+#    assert sorted(g1.edges()) == sorted(g2.edges())
 
 
 # skip star graph because it has 10! (≈ 3 million) isomorphisms
@@ -413,7 +427,7 @@ def test_automorphisms(graph):
 
 def _check_symmgroup(graph, symmgroup):
     """Asserts that symmgroup consists of automorphisms and has no duplicate elements."""
-    from netket.utils.semigroup import Permutation
+    from netket.utils.group import Permutation
 
     autom = graph.automorphisms()
     for el in symmgroup.to_array():
@@ -423,8 +437,7 @@ def _check_symmgroup(graph, symmgroup):
 
 
 def test_grid_translations():
-    from netket.utils.semigroup import Identity
-    from netket.graph.grid import Translation
+    from netket.utils.group import Identity
 
     for ndim in 1, 2:
         g = Grid([4] * ndim, pbc=True)
@@ -443,16 +456,13 @@ def test_grid_translations():
 
     g = Grid([8, 4, 3], pbc=[True, True, False])
     assert len(g.translations()) == 8 * 4
-    with pytest.raises(ValueError):
-        g.translations(dim=2)  # no translation symmetry along non-periodic dim
+    assert g.translations(2).elems == [Identity()]  # only identity
 
     g = Grid([8, 4, 3], pbc=[True, True, True])
     assert len(g.translations()) == 8 * 4 * 3
     assert len(g.translations(dim=0)) == 8
     assert len(g.translations(dim=1)) == 4
     assert len(g.translations(dim=2)) == 3
-    assert len(g.translations(dim=0, step=2)) == 4
-    assert len(g.translations(dim=0, step=4) @ g.translations(dim=2)) == 6
 
     t1 = g.translations()
     t2 = g.translations(dim=0) @ g.translations(dim=1) @ g.translations(dim=2)
@@ -462,66 +472,62 @@ def test_grid_translations():
 
     assert g.translations(dim=(0, 1)) == g.translations(0) @ g.translations(1)
 
-    assert Translation((1,), (2,)) @ Translation((1,), (2,)) == Translation((2,), (2,))
-
-    with pytest.raises(ValueError, match="Incompatible translations"):
-        Translation((1,), (2,)) @ Translation((1,), (8,))
-
 
 @pytest.mark.parametrize("n_dim", [1, 2, 3, 4])
-def test_grid_space_group_dim(n_dim):
-    # space group of n-dimensional Hypercube should be the
+def test_grid_point_group_dim(n_dim):
+    # point group of n-dimensional Hypercube should be the
     # hyperoctaherdal group of order 2^n n!, see
     # https://en.wikipedia.org/wiki/Hyperoctahedral_group
-    space_group = Hypercube(length=3, n_dim=n_dim).space_group()
+    point_group = Hypercube(length=3, n_dim=n_dim).point_group()
     order = 2 ** n_dim * math.factorial(n_dim)
-    assert len(space_group) == order
+    assert len(point_group) == order
 
 
-def test_grid_space_group():
-    def _check_symmgroups(g):
-        _check_symmgroup(g, g.rotations())
-        _check_symmgroup(g, g.space_group())
-        _check_symmgroup(g, g.lattice_group())
-
-    from netket.utils.semigroup import Identity
-
-    g = nk.graph.Chain(8)
-    _check_symmgroups(g)
-    assert g.rotations().elems == [Identity()]
-    assert len(g.space_group()) == 2  # one reflection
-    assert g.space_group() == g.axis_reflection() == g.axis_reflection(0)
-    with pytest.raises(ValueError):  # invalid axis
-        g.axis_reflection(1)
-    assert len(g.lattice_group()) == 8 * 2  # translations * reflection
-
-    g = nk.graph.Grid([8, 2], pbc=False)
-    _check_symmgroups(g)
-    assert len(g.rotations()) == 2  # one 180 deg rotation
-    assert len(g.space_group()) == 4
-    assert g.lattice_group() == g.space_group()  # no PBC, no translations
-
-    g = nk.graph.Grid([5, 4, 3], pbc=[True, False, False])
-    _check_symmgroups(g)
-    rot1 = g.rotations(remove_duplicates=False)
-    rot2 = g.rotations(remove_duplicates=True)
-    assert len(rot1) > len(rot2)
-    rot3, inverse = rot1.remove_duplicates(return_inverse=True)
-    assert rot2 == rot3
-    assert np.all(rot3.to_array()[inverse] == rot1.to_array())
-
-    g = nk.graph.Hypercube(3, 2)
-    _check_symmgroups(g)
-    assert len(g.lattice_group()) == len(g.automorphisms())
-
-    g = nk.graph.Hypercube(4, 2)
-    _check_symmgroups(g)
-    # 4x4 cube has even higher symmetry
-    assert len(g.lattice_group()) < len(g.automorphisms())
+# NB fix weird terminology if this test makes it back into production
+# def test_grid_space_group():
+#    def _check_symmgroups(g):
+#        _check_symmgroup(g, g.rotations())
+#        _check_symmgroup(g, g.space_group())
+#        _check_symmgroup(g, g.lattice_group())
+#
+#    from netket.utils.semigroup import Identity
+#
+#    g = nk.graph.Chain(8)
+#    _check_symmgroups(g)
+#    assert g.rotations().elems == [Identity()]
+#    assert len(g.space_group()) == 2  # one reflection
+#    assert g.space_group() == g.axis_reflection() == g.axis_reflection(0)
+#    with pytest.raises(ValueError):  # invalid axis
+#        g.axis_reflection(1)
+#    assert len(g.lattice_group()) == 8 * 2  # translations * reflection
+#
+#    g = nk.graph.Grid([8, 2], pbc=False)
+#    _check_symmgroups(g)
+#    assert len(g.rotations()) == 2  # one 180 deg rotation
+#    assert len(g.space_group()) == 4
+#    assert g.lattice_group() == g.space_group()  # no PBC, no translations
+#
+#    g = nk.graph.Grid([5, 4, 3], pbc=[True, False, False])
+#    _check_symmgroups(g)
+#    rot1 = g.rotations(remove_duplicates=False)
+#    rot2 = g.rotations(remove_duplicates=True)
+#    assert len(rot1) > len(rot2)
+#    rot3, inverse = rot1.remove_duplicates(return_inverse=True)
+#    assert rot2 == rot3
+#    assert np.all(rot3.to_array()[inverse] == rot1.to_array())
+#
+#    g = nk.graph.Hypercube(3, 2)
+#    _check_symmgroups(g)
+#    assert len(g.lattice_group()) == len(g.automorphisms())
+#
+#    g = nk.graph.Hypercube(4, 2)
+#    _check_symmgroups(g)
+#    # 4x4 cube has even higher symmetry
+#    assert len(g.lattice_group()) < len(g.automorphisms())
 
 
 def test_symmgroup():
-    from netket.utils.semigroup import Identity
+    from netket.utils.group import Identity
 
     def assert_eq_hash(a, b):
         assert hash(a) == hash(b)

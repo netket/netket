@@ -91,8 +91,8 @@ class PermutationGroup(Group):
     degree: int
     """Number of elements the permutations act on."""
 
-    def __post_init__(self):
-        super().__post_init__()
+    def __hash__(self):
+        return super().__hash__()
 
     def __matmul__(self, other) -> "PermutationGroup":
         if not isinstance(other, PermutationGroup):

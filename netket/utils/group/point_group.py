@@ -148,6 +148,8 @@ def _3D_name(M: Array) -> str:
             e, v = np.linalg.eig(M)
             # reflection plane normal is eigenvector with eigenvalue -1
             axis = v[:, _naming_isclose(e, -1.0)].real.flatten()
+            # convention: first nonzero entry is positive
+            axis *= np.sign(axis[np.logical_not(_naming_isclose(axis, 0.0))][0])
             return f"Refl{_to_int_vector(axis)}"
 
         else:  # rotoreflections, choose axis s.t. rotation angle be positive
@@ -212,6 +214,9 @@ class PointGroup(Group):
 
     ndim: int
     """Dimensionality of point group operations."""
+
+    def __hash__(self):
+        return super().__hash__()
 
     def __matmul__(self, other) -> "PointGroup":
         if not isinstance(other, PointGroup):
