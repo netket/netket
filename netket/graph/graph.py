@@ -111,10 +111,14 @@ class NetworkX(AbstractGraph):
             aux_graph.add_edges_from(self.edges())
             ismags = _nx.isomorphism.GraphMatcher(aux_graph, aux_graph)
             _automorphisms = [
-                Permutation([iso[i] for i in aux_graph.nodes()])
+                [iso[i] for i in aux_graph.nodes()]
                 for iso in ismags.isomorphisms_iter()
             ]
-            self._automorphisms = PermutationGroup(_automorphisms, self.n_nodes)
+            # sort them s.t. the identity comes first
+            _automorphisms = np.unique(_automorphisms, axis=0).tolist()
+            self._automorphisms = PermutationGroup(
+                [Permutation(i) for i in _automorphisms], self.n_nodes
+            )
             return self._automorphisms
 
     def __repr__(self):

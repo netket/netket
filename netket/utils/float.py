@@ -39,10 +39,9 @@ def comparable(
         `x * bin_density + offset` rounded to an integer
 
     Example:
-        ```
+
         >>> comparable([0.0, 0.3, 0.30000001, 1.3])
         array([      0,  997920,  997920, 4324320])
-        ```
     """
     return np.asarray(np.rint(np.asarray(x) * bin_density + offset), dtype=int)
 
@@ -75,12 +74,10 @@ def comparable_periodic(
         [`x` or frac(`x`)]` * bin_density + offset` rounded to an integer
 
     Example:
-        ```
+
         >>> comparable_periodic([0.0, 0.3, 0.30000001, 1.3], where = [[True], [False]])
         array([[      0,  997920,  997920,  997920],
                [      0,  997920,  997920, 4324320]])
-        ```
-
     """
     bins = np.asarray(np.rint(np.asarray(x) * bin_density + offset), dtype=int)
     return np.where(where, bins % bin_density, bins)

@@ -314,3 +314,7 @@ class PointGroup(Group):
     def shape(self) -> Shape:
         """Tuple `(<# of group elements>, <ndim>, <ndim>)`, same as :code:`self.to_array().shape`."""
         return (len(self), self.ndim, self.ndim)
+
+
+def trivial_point_group(ndim: int) -> PointGroup:
+    return PointGroup([Identity()], ndim=ndim)

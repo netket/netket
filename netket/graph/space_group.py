@@ -83,12 +83,26 @@ class SpaceGroupBuilder:
     # TODO describe ordering of group elements here and later in docstring
     @struct.property_cached
     def point_group(self) -> PermutationGroup:
-        """The point group as a `PermutationGroup` acting on the sites of `self.lattice.`"""
+        """The point group as a `PermutationGroup` acting on the sites of `self.lattice`."""
         perms = []
         for i, p in enumerate(self.point_group_):
             if isinstance(p, Identity):
                 perms.append(Identity())
             else:
+                # note that we need the preimages in the permutation
+                perm = self.lattice.id_from_position(p.preimage(self.lattice.positions))
+                perms.append(Permutation(perm, name=str(p)))
+        return PermutationGroup(perms, degree=self.lattice.n_nodes)
+
+    @struct.property_cached
+    def rotation_group(self) -> PermutationGroup:
+        """The group of rotations (i.e. point group symmetries with determinant +1)
+        as a `PermutationGroup` acting on the sites of `self.lattice`."""
+        perms = []
+        for i, p in enumerate(self.point_group_):
+            if isinstance(p, Identity):
+                perms.append(Identity())
+            elif np.isclose(np.linalg.det(p.matrix), 1.0):
                 # note that we need the preimages in the permutation
                 perm = self.lattice.id_from_position(p.preimage(self.lattice.positions))
                 perms.append(Permutation(perm, name=str(p)))
