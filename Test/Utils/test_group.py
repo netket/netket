@@ -29,16 +29,19 @@ pytestmark = common.skipif_mpi
 
 planar_families = [group.planar.C, group.planar.D]
 planars = [fn(n) for fn in planar_families for n in range(1, 9)]
+planars_proper = [True] * 8 + [False] * 8
 uniaxial_families = [group.axial.C, group.axial.Ch, group.axial.S]
 uniaxials = [
     fn(n, axis=np.random.standard_normal(3))
     for fn in uniaxial_families
     for n in range(1, 9)
 ]
+uniaxials_proper = [True] * 8 + [False] * 16
 impropers = [
     group.axial.inversions,
     group.axial.reflections(axis=np.random.standard_normal(3)),
 ]
+impropers_proper = [False, False]
 biaxial_families = [group.axial.Cv, group.axial.D, group.axial.Dh, group.axial.Dd]
 axes1 = np.random.standard_normal((32, 3))
 axes2 = np.cross(axes1, np.random.standard_normal((32, 3)))
@@ -46,12 +49,22 @@ biaxials = [
     fn(n, axis=axes1[i], axis2=axes2[i])
     for i, (fn, n) in enumerate(product(biaxial_families, range(1, 9)))
 ]
+biaxials_proper = [False] * 8 + [True] * 8 + [False] * 16
 cubics = [group.cubic.T, group.cubic.Td, group.cubic.Th, group.cubic.O, group.cubic.Oh]
+cubics_proper = [True, False, False, True, False]
+point_groups = planars + uniaxials + biaxials + impropers + cubics
+proper = (
+    planars_proper
+    + uniaxials_proper
+    + biaxials_proper
+    + impropers_proper
+    + cubics_proper
+)
 perms = [
     nk.graph.Hypercube(2, n_dim=3).automorphisms(),
     nk.graph.Square(4).automorphisms(),
 ]
-groups = planars + uniaxials + biaxials + impropers + cubics + perms
+groups = point_groups + perms
 
 
 def equal(a, b):
@@ -184,3 +197,12 @@ names = [
 def test_naming(symm, W, name):
     assert np.allclose(symm.matrix, W)
     assert str(symm) == name
+
+
+@pytest.mark.parametrize("i,grp", list(enumerate(point_groups)))
+def test_rotation_group(i, grp):
+    rot = grp.rotation_group()
+    assert len(rot) == (len(grp) if proper[i] else len(grp) // 2)
+    for i in rot:
+        assert isinstance(i, group.Identity) or i.is_proper()
+        assert str(i)[:3] in {"Id(", "Rot"}

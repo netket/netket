@@ -99,10 +99,10 @@ class SpaceGroupBuilder:
         """The group of rotations (i.e. point group symmetries with determinant +1)
         as a `PermutationGroup` acting on the sites of `self.lattice`."""
         perms = []
-        for i, p in enumerate(self.point_group_):
+        for i, p in enumerate(self.point_group_.rotation_group()):
             if isinstance(p, Identity):
                 perms.append(Identity())
-            elif np.isclose(np.linalg.det(p.matrix), 1.0):
+            else:
                 # note that we need the preimages in the permutation
                 perm = self.lattice.id_from_position(p.preimage(self.lattice.positions))
                 perms.append(Permutation(perm, name=str(p)))

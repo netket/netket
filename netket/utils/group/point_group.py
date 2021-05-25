@@ -81,6 +81,9 @@ class PGSymmetry(Element):
     def matrix(self):
         return self._W
 
+    def is_proper(self):
+        return np.isclose(np.linalg.det(self._W), 1.0)
+
 
 @dispatch
 def product(p: PGSymmetry, q: PGSymmetry):
@@ -276,6 +279,20 @@ class PointGroup(Group):
             return pgroup, inverse
         else:
             return pgroup
+
+    def rotation_group(self) -> "PointGroup":
+        """
+        Returns a new `PointGroup` that represents the subgroup of rotations
+        (i.e. symmetries where the determinant of the transformation matrix is +1)
+        in `self`
+        """
+        subgroup = []
+        for i in self.elems:
+            if isinstance(i, Identity):
+                subgroup.append(i)
+            elif i.is_proper():
+                subgroup.append(i)
+        return PointGroup(subgroup, self.ndim)
 
     @struct.property_cached
     def inverse(self) -> Array:
