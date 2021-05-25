@@ -153,7 +153,7 @@ def test_character_table(grp, cls, dims):
 
 names = [
     (
-        group.planar._planar_rotation(47),
+        group.planar._rotation(47),
         np.asarray([[0.6819983601, -0.7313537016], [0.7313537016, 0.6819983601]]),
         "Rot(47°)",
     ),

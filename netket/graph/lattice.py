@@ -445,6 +445,13 @@ class Lattice(NetworkX):
 
     # Site lookup
     # ------------------------------------------------------------------------
+
+    class InvalidSiteError(Exception):
+        pass
+
+    class InvalidWaveVectorError(Exception):
+        pass
+
     def _to_integer_position(self, positions: PositionT) -> Array:
         frac_positions = _np.matmul(positions, self._inv_dims)
         return comparable_periodic(frac_positions, self.pbc)
@@ -453,12 +460,17 @@ class Lattice(NetworkX):
     def _get_id_from_dict(
         dict: Dict[HashableArray, int], key: Array
     ) -> Union[int, Array]:
-        if key.ndim == 1:
-            return dict[HashableArray(key)]
-        elif key.ndim == 2:
-            return _np.array([dict[HashableArray(k)] for k in key])
-        else:
-            raise ValueError("Input needs to be rank 1 or rank 2 array")
+        try:
+            if key.ndim == 1:
+                return dict[HashableArray(key)]
+            elif key.ndim == 2:
+                return _np.array([dict[HashableArray(k)] for k in key])
+            else:
+                raise ValueError("Input needs to be rank 1 or rank 2 array")
+        except KeyError:
+            raise Lattice.InvalidSiteError(
+                "Some coordinates do not correspond to a valid lattice site"
+            )
 
     def id_from_position(self, position: PositionT) -> Union[int, Array]:
         """
@@ -507,7 +519,7 @@ class Lattice(NetworkX):
         # Check that these are integers
         is_valid = is_approx_int(result)
         if not _np.all(is_valid):
-            raise ValueError(
+            raise self.InvalidWaveVectorError(
                 "Some wave vectors are not reciprocal lattice vectors of the simulation box"
             )
 
@@ -515,7 +527,7 @@ class Lattice(NetworkX):
         # For axes with non-periodic BCs, the k-component must be 0
         is_valid = _np.logical_or(self.pbc, result == 0)
         if not _np.all(is_valid):
-            raise ValueError(
+            raise self.InvalidWaveVectorError(
                 "Some wave vectors are inconisistent with open boundary conditions"
             )
 
@@ -537,8 +549,11 @@ class Lattice(NetworkX):
         """
         from .space_group import SpaceGroupBuilder
 
-        if point_group == None:
-            point_group = self._point_group
+        point_group = point_group or self._point_group
+        if point_group is None:
+            raise TypeError(
+                "space_group_builder() missing required argument 'point_group'\n(lattice has no default point group)"
+            )
 
         return SpaceGroupBuilder(self, point_group)
 

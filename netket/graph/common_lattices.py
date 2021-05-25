@@ -157,116 +157,92 @@ Examples:
 """
 
 
-def TriangleLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
-    r"""Constructs a triangular lattice of a given spatial extent.
-    Periodic boundary conditions can also be imposed
-    Sites are returned at the Bravais lattice points.
-
-    Args:
-        extent: Number of unit cells along each direction, needs to be an array of length 2
-        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
-             if `False`, the lattice will have open boundary conditions (OBC).
-             This parameter can also be a list of booleans with same length as
-             the parameter `length`, in which case each dimension will have
-             PBC/OBC depending on the corresponding entry of `pbc`.
-
-    Example:
-        Construct a triangular lattice with 3 × 3 unit cells:
-
-        >>> from netket.graph import TriangleLattice
-        >>> g = TriangleLattice(extent=[3, 3])
-        >>> print(g.n_nodes)
-        9
-    """
+def _hexagonal_general(
+    extent, *, site_offsets=None, pbc: Union[bool, Sequence[bool]] = True
+) -> Lattice:
     basis = [[1, 0], [0.5, 0.75 ** 0.5]]
     # determine if full point group is realised by the simulation box
     if isinstance(pbc, Sequence):
         all_pbc = pbc[0] and pbc[1]
     else:
         all_pbc = pbc
-    if all_pbc and extent[0] == extent[1]:
-        return Lattice(
-            basis_vectors=basis, extent=extent, pbc=pbc, point_group=planar.D(6)
-        )
-    else:
-        return Lattice(basis_vectors=basis, extent=extent, pbc=pbc)
+    point_group = planar.D(6) if all_pbc and extent[0] == extent[1] else None
+    return Lattice(
+        basis_vectors=basis,
+        extent=extent,
+        site_offsets=site_offsets,
+        pbc=pbc,
+        point_group=point_group,
+    )
 
 
-def HoneycombLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
-    r"""Constructs a honeycomb lattice of a given spatial extent.
-    Periodic boundary conditions can also be imposed.
-    Sites are returned at the 2b Wyckoff positions.
+TriangularLattice = partial(_hexagonal_general, site_offsets=None)
+r"""Constructs a triangular lattice of a given spatial extent.
+Periodic boundary conditions can also be imposed
+Sites are returned at the Bravais lattice points.
 
-    Args:
-        extent: Number of unit cells along each direction, needs to be an array of length 2
-        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
-             if `False`, the lattice will have open boundary conditions (OBC).
-             This parameter can also be a list of booleans with same length as
-             the parameter `length`, in which case each dimension will have
-             PBC/OBC depending on the corresponding entry of `pbc`.
+Args:
+    extent: Number of unit cells along each direction, needs to be an array of length 2
+    pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+         if `False`, the lattice will have open boundary conditions (OBC).
+         This parameter can also be a list of booleans with same length as
+         the parameter `length`, in which case each dimension will have
+         PBC/OBC depending on the corresponding entry of `pbc`.
 
-    Example:
-        Construct a honeycomb lattice with 3 × 3 unit cells:
+Example:
+    Construct a triangular lattice with 3 × 3 unit cells:
 
-        >>> from netket.graph import HoneycombLattice
-        >>> g = HoneycombLattice(extent=[3, 3])
-        >>> print(g.n_nodes)
-        18
-    """
-    basis = [[1, 0], [0.5, 0.75 ** 0.5]]
-    sites = [[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]]
-    # determine if full point group is realised by the simulation box
-    if isinstance(pbc, Sequence):
-        all_pbc = pbc[0] and pbc[1]
-    else:
-        all_pbc = pbc
-    if all_pbc and extent[0] == extent[1]:
-        return Lattice(
-            basis_vectors=basis,
-            extent=extent,
-            site_offsets=sites,
-            pbc=pbc,
-            point_group=planar.D(6),
-        )
-    else:
-        return Lattice(basis_vectors=basis, extent=extent, site_offsets=sites, pbc=pbc)
+    >>> from netket.graph import TriangularLattice
+    >>> g = TriangularLattice(extent=[3, 3])
+    >>> print(g.n_nodes)
+    9
+"""
 
+HoneycombLattice = partial(
+    _hexagonal_general, site_offsets=[[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]]
+)
+r"""Constructs a honeycomb lattice of a given spatial extent.
+Periodic boundary conditions can also be imposed.
+Sites are returned at the 2b Wyckoff positions.
 
-def KagomeLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
-    r"""Constructs a kagome lattice of a given spatial extent.
-    Periodic boundary conditions can also be imposed.
-    Sites are returned at the 3c Wyckoff positions.
+Args:
+    extent: Number of unit cells along each direction, needs to be an array of length 2
+    pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+         if `False`, the lattice will have open boundary conditions (OBC).
+         This parameter can also be a list of booleans with same length as
+         the parameter `length`, in which case each dimension will have
+         PBC/OBC depending on the corresponding entry of `pbc`.
 
-    Args:
-        extent: Number of unit cells along each direction, needs to be an array of length 2
-        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
-             if `False`, the lattice will have open boundary conditions (OBC).
-             This parameter can also be a list of booleans with same length as
-             the parameter `length`, in which case each dimension will have
-             PBC/OBC depending on the corresponding entry of `pbc`.
+Example:
+    Construct a honeycomb lattice with 3 × 3 unit cells:
 
-    Example:
-        Construct a kagome lattice with 3 × 3 unit cells:
+    >>> from netket.graph import HoneycombLattice
+    >>> g = HoneycombLattice(extent=[3, 3])
+    >>> print(g.n_nodes)
+    18
+"""
 
-        >>> from netket.graph import KagomeLattice
-        >>> g = KagomeLattice(extent=[3, 3])
-        >>> print(g.n_nodes)
-        27
-    """
-    basis = [[1, 0], [0.5, 0.75 ** 0.5]]
-    sites = [[0.5, 0], [0.25, 0.75 ** 0.5 / 2], [0.75, 0.75 ** 0.5 / 2]]
-    # determine if full point group is realised by the simulation box
-    if isinstance(pbc, Sequence):
-        all_pbc = pbc[0] and pbc[1]
-    else:
-        all_pbc = pbc
-    if all_pbc and extent[0] == extent[1]:
-        return Lattice(
-            basis_vectors=basis,
-            extent=extent,
-            site_offsets=sites,
-            pbc=pbc,
-            point_group=planar.D(6),
-        )
-    else:
-        return Lattice(basis_vectors=basis, extent=extent, site_offsets=sites, pbc=pbc)
+KagomeLattice = partial(
+    _hexagonal_general,
+    site_offsets=[[0.5, 0], [0.25, 0.75 ** 0.5 / 2], [0.75, 0.75 ** 0.5 / 2]],
+)
+r"""Constructs a kagome lattice of a given spatial extent.
+Periodic boundary conditions can also be imposed.
+Sites are returned at the 3c Wyckoff positions.
+
+Args:
+    extent: Number of unit cells along each direction, needs to be an array of length 2
+    pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+         if `False`, the lattice will have open boundary conditions (OBC).
+         This parameter can also be a list of booleans with same length as
+         the parameter `length`, in which case each dimension will have
+         PBC/OBC depending on the corresponding entry of `pbc`.
+
+Example:
+    Construct a kagome lattice with 3 × 3 unit cells:
+
+    >>> from netket.graph import KagomeLattice
+    >>> g = KagomeLattice(extent=[3, 3])
+    >>> print(g.n_nodes)
+    27
+"""

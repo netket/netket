@@ -152,8 +152,8 @@ class DenseEquivariant(Module):
 
         C^i_g = \sum_h {\bf W}_{g^{-1} h} \cdot {\bf f}_h
 
-    Group elements that are linked by the same group element (i.e. :math:`g = xh`
-    and :math:`g' = xh'` are connected by the same filter.
+    Group elements that differ by the same symmetry operation (i.e. :math:`g = xh`
+    and :math:`g' = xh'`) are connected by the same filter.
     """
 
     symmetry_info: Union[HashableArray, PermutationGroup]

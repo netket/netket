@@ -58,7 +58,7 @@ symmetric_graphs = [
     # Square
     nk.graph.Square(3),
     # Triangular
-    nk.graph.TriangleLattice([3, 3]),
+    nk.graph.TriangularLattice([3, 3]),
     # Honeycomb
     nk.graph.HoneycombLattice([3, 3]),
     # Kagome
@@ -136,14 +136,14 @@ def test_lattice():
     ids = g.id_from_position(pos)
     assert np.all(ids == [0, 1])
 
-    with pytest.raises(KeyError):
+    with pytest.raises(Lattice.InvalidSiteError):
         idx = g.id_from_position([[0.5]])
-    with pytest.raises(KeyError):
+    with pytest.raises(Lattice.InvalidSiteError):
         idx = g.id_from_position([0.5])
 
-    with pytest.raises(KeyError):
+    with pytest.raises(Lattice.InvalidSiteError):
         pos = g.position_from_basis_coords([2])
-    with pytest.raises(KeyError):
+    with pytest.raises(Lattice.InvalidSiteError):
         pos = g.position_from_basis_coords([[2]])
 
 
@@ -181,7 +181,7 @@ def test_lattice_old_interface():
 def test_lattice_symmetry(i):
     graph = symmetric_graphs[i]
     # Try an invalid symmetry group and fail
-    with pytest.raises(KeyError):
+    with pytest.raises(Lattice.InvalidSiteError):
         if dimension[i] == 2:
             sg = graph.space_group(group.planar.C(5))
         else:
@@ -200,6 +200,10 @@ def test_lattice_symmetry(i):
 
     # ensure that all space group symmetries are unique and automorphisms
     _check_symmgroup(graph, sgb.space_group)
+
+    # Try an invalid wave vector and fail
+    with pytest.raises(Lattice.InvalidWaveVectorError):
+        lg = sgb.little_group([1] * dimension[i])
 
     # Generate little groups and their irreps
     assert len(sgb.little_group(kvec[i])) == little_group_size[i]
@@ -419,17 +423,22 @@ def test_automorphisms(graph):
 
 def _check_symmgroup(graph, symmgroup):
     """Asserts that symmgroup consists of automorphisms and has no duplicate elements."""
-    from netket.utils.group import Permutation
 
     autom = graph.automorphisms()
     for el in symmgroup.to_array():
-        assert Permutation(el) in autom.elems
+        assert group.Permutation(el) in autom.elems
 
     assert symmgroup == symmgroup.remove_duplicates()
+    assert isinstance(symmgroup[0], group.Identity)
+
+
+def _check_symmgroups(graph):
+    _check_symmgroup(graph, graph.rotations())
+    _check_symmgroup(graph, graph.point_group())
+    _check_symmgroup(graph, graph.space_group())
 
 
 def test_grid_translations():
-    from netket.utils.group import Identity
 
     for ndim in 1, 2:
         g = Grid([4] * ndim, pbc=True)
@@ -441,14 +450,14 @@ def test_grid_translations():
 
         g = Grid([4] * ndim, pbc=False)
         translations = g.translations()
-        assert translations.elems == [Identity()]  # only identity
+        assert translations.elems == [group.Identity()]  # only identity
 
     g = Grid([8, 4, 3], pbc=[True, False, False])
     assert len(g.translations()) == 8
 
     g = Grid([8, 4, 3], pbc=[True, True, False])
     assert len(g.translations()) == 8 * 4
-    assert g.translations(2).elems == [Identity()]  # only identity
+    assert g.translations(2).elems == [group.Identity()]  # only identity
 
     g = Grid([8, 4, 3], pbc=[True, True, True])
     assert len(g.translations()) == 8 * 4 * 3
@@ -476,16 +485,10 @@ def test_grid_point_group_dim(n_dim):
 
 
 def test_grid_space_group():
-    def _check_symmgroups(g):
-        _check_symmgroup(g, g.rotations())
-        _check_symmgroup(g, g.point_group())
-        _check_symmgroup(g, g.space_group())
-
-    from netket.utils.group import Identity
 
     g = nk.graph.Chain(8)
     _check_symmgroups(g)
-    assert g.rotations().elems == [Identity()]
+    assert g.rotations().elems == [group.Identity()]
     assert len(g.point_group()) == 2  # one reflection
     assert len(g.space_group()) == 8 * 2  # translations * reflection
 
@@ -511,14 +514,41 @@ def test_grid_space_group():
     assert len(g.space_group()) < len(g.automorphisms())
 
 
-def test_symmgroup():
-    from netket.utils.group import Identity
+@pytest.mark.parametrize(
+    "lattice", [TriangularLattice, HoneycombLattice, KagomeLattice]
+)
+def test_triangular_space_group(lattice):
+    g = lattice([3, 3])
+    _check_symmgroups(g)
+    assert len(g.rotations()) == 6
+    assert len(g.point_group()) == 12
+    assert len(g.space_group()) == 3 * 3 * 12
 
+    g = lattice([3, 3], pbc=False)
+    with pytest.raises(TypeError):
+        grp = g.rotations()
+    with pytest.raises(TypeError):
+        grp = g.point_group()
+    with pytest.raises(TypeError):
+        grp = g.space_group()
+
+    g = lattice([2, 4])
+    with pytest.raises(TypeError):
+        grp = g.rotations()
+    with pytest.raises(TypeError):
+        grp = g.point_group()
+    with pytest.raises(TypeError):
+        grp = g.space_group()
+    # 2x4 unit cells of the triangle lattice make a rectangular grid
+    assert len(g.point_group(group.planar.rectangle)) == 4
+
+
+def test_symmgroup():
     def assert_eq_hash(a, b):
         assert hash(a) == hash(b)
         assert a == b
 
-    assert_eq_hash(Identity(), Identity())
+    assert_eq_hash(group.Identity(), group.Identity())
 
     tr = Grid([8, 4, 3]).translations
     assert_eq_hash(tr(), tr(0) @ tr(1) @ tr(2))

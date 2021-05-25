@@ -17,7 +17,7 @@ from .point_group import PGSymmetry, PointGroup
 import numpy as np
 
 
-def _planar_rotation(angle: float) -> PGSymmetry:
+def _rotation(angle: float) -> PGSymmetry:
     """
     Returns a 2D rotation by `angle` degrees
     """
@@ -38,11 +38,11 @@ def C(n: int) -> PointGroup:
         a `PointGroup` implementing Cₙ
     """
     return PointGroup(
-        [Identity()] + [_planar_rotation(360 / n * i) for i in range(1, n)], ndim=2
+        [Identity()] + [_rotation(360 / n * i) for i in range(1, n)], ndim=2
     )
 
 
-planar_rotations = C
+rotations = C
 
 
 def _reflection(axis: float) -> PGSymmetry:

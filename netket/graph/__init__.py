@@ -20,7 +20,7 @@ from .common_lattices import (
     Hypercube,
     Square,
     Chain,
-    TriangleLattice,
+    TriangularLattice,
     HoneycombLattice,
     KagomeLattice,
 )
