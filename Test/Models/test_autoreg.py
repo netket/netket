@@ -46,4 +46,4 @@ def test_ARNNDense(s):
             # The former output elements should not change
             p_diff = p_diff.at[i, j + 1 :].set(0)
 
-            np.testing.assert_allclose(p_diff, 0, err_msg=f"{i=} {j=}")
+            np.testing.assert_allclose(p_diff, 0, err_msg=f"i={i} j={j}")
