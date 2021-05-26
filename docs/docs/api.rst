@@ -224,6 +224,10 @@ Linear Modules
    netket.nn.Conv
    netket.nn.Embed
 
+   netket.nn.MaskedDense1D
+   netket.nn.MaskedConv1D
+   netket.nn.MaskedConv2D
+
 
 Activation functions
 ~~~~~~~~~~~~~~~~~~~~

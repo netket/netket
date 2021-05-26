@@ -19,16 +19,46 @@ import pytest
 
 
 @pytest.mark.parametrize("s", [1 / 2, 1])
-def test_ARNNDense(s):
+@pytest.mark.parametrize(
+    "_model",
+    [
+        pytest.param(
+            lambda hilbert: nk.models.ARNNDense(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+            ),
+            id="dense",
+        ),
+        pytest.param(
+            lambda hilbert: nk.models.ARNNConv1D(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                kernel_size=2,
+            ),
+            id="conv1d",
+        ),
+        pytest.param(
+            lambda hilbert: nk.models.ARNNConv1D(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                kernel_size=2,
+                kernel_dilation=2,
+            ),
+            id="conv1d_dilation",
+        ),
+    ],
+)
+def test_ARNN(s, _model):
     """Test if the model is autoregressive."""
 
     L = 4
     batch_size = 3
 
     hilbert = nk.hilbert.Spin(s=s, N=L)
-    model = nk.models.ARNNDense(
-        hilbert_local_size=hilbert.local_size, layers=3, features=5
-    )
+    model = _model(hilbert)
 
     key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
     spins = hilbert.random_state(key_spins, size=batch_size)

@@ -24,9 +24,7 @@ def test_ARDirectSampler(s):
     n_chains = 3
 
     hilbert = nk.hilbert.Spin(s=s, N=L)
-    model = nk.models.ARNNDense(
-        hilbert_local_size=hilbert.local_size, layers=3, features=5
-    )
+    model = nk.models.ARNNDense(hilbert=hilbert, layers=3, features=5)
     params = model.init(jax.random.PRNGKey(0), jnp.zeros((n_chains, L)))
 
     sampler = nk.sampler.ARDirectSampler(hilbert, n_chains=n_chains)

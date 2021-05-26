@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import netket as nk
 import optax
 import pytest
@@ -24,9 +23,7 @@ def test_AR_VMC(s):
 
     graph = nk.graph.Hypercube(length=L, n_dim=1)
     hilbert = nk.hilbert.Spin(s=s, N=L)
-    model = nk.models.ARNNDense(
-        hilbert_local_size=hilbert.local_size, layers=3, features=5
-    )
+    model = nk.models.ARNNDense(hilbert=hilbert, layers=3, features=5)
     sampler = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
 
     vstate = nk.variational.MCState(sampler, model, n_samples=6, n_discard=0)

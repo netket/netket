@@ -17,7 +17,8 @@ from typing import Any, Callable, Iterable, Tuple, Union
 
 from flax import linen as nn
 from jax import numpy as jnp
-from netket.nn import MaskedDense1D
+from netket.hilbert import CustomHilbert
+from netket.nn import MaskedConv1D, MaskedDense1D
 from netket.nn.initializers import lecun_normal, zeros
 from netket.utils.types import Array, DType, NNInitFunc, PyTree
 
@@ -44,8 +45,8 @@ class ARNN(nn.Module):
 class ARNNDense(ARNN):
     """Autoregressive neural network with dense layers."""
 
-    hilbert_local_size: int
-    """local size of the Hilbert space."""
+    hilbert: CustomHilbert
+    """the discrete Hilbert space."""
     layers: int
     """number of layers."""
     features: Union[Iterable[int], int]
@@ -68,13 +69,13 @@ class ARNNDense(ARNN):
 
     def setup(self):
         if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert_local_size]
+            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
         else:
             features = self.features
         assert len(features) == self.layers
-        assert features[-1] == self.hilbert_local_size
+        assert features[-1] == self.hilbert.local_size
 
-        self.dense_layers = [
+        self._layers = [
             MaskedDense1D(
                 features=features[i],
                 exclusive=(i == 0),
@@ -88,12 +89,12 @@ class ARNNDense(ARNN):
         ]
 
     def conditionals(self, inputs: Array, cache: PyTree) -> Tuple[Array, PyTree]:
-        x = jnp.expand_dims(inputs, axis=2)
+        x = jnp.expand_dims(inputs, axis=-1)
         for i in range(self.layers):
             if i > 0:
                 x = self.activation(x)
-            x = self.dense_layers[i](x)
-        p = nn.softmax(x, axis=2)
+            x = self._layers[i](x)
+        p = nn.softmax(x, axis=-1)
         return p, cache
 
     def __call__(self, inputs: Array) -> Array:
@@ -102,12 +103,73 @@ class ARNNDense(ARNN):
         if inputs.ndim == 1:
             inputs = jnp.expand_dims(inputs, axis=0)
 
-        idx = (inputs + self.hilbert_local_size - 1) / 2
+        idx = (inputs + self.hilbert.local_size - 1) / 2
         idx = jnp.asarray(idx, jnp.int64)
-        idx = jnp.expand_dims(idx, axis=2)
+        idx = jnp.expand_dims(idx, axis=-1)
 
         p, _ = self.conditionals(inputs, None)
         p = jnp.take_along_axis(p, idx, axis=1)
 
-        log_psi = 1 / 2 * jnp.log(p + self.eps).sum(axis=(1, 2))
+        log_psi = 1 / 2 * jnp.log(p + self.eps)
+        log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
         return log_psi
+
+
+class ARNNConv1D(ARNN):
+    """Autoregressive neural network with 1D convolution layers."""
+
+    hilbert: CustomHilbert
+    """the discrete Hilbert space."""
+    layers: int
+    """number of layers."""
+    features: Union[Iterable[int], int]
+    """number of features in each layer. If a single number is given,
+    all layers except the last one will have the same number of features."""
+    kernel_size: int
+    """length of the convolutional kernel."""
+    kernel_dilation: int = 1
+    """dilation factor of the convolution kernel (default: 1)."""
+    activation: Callable[[Array], Array] = nn.silu
+    """the nonlinear activation function between hidden layers (default: silu)."""
+    use_bias: bool = True
+    """whether to add a bias to the output (default: True)."""
+    dtype: DType = jnp.float64
+    """the dtype of the weights (default: float64)."""
+    precision: Any = None
+    """numerical precision of the computation, see `jax.lax.Precision`for details."""
+    kernel_init: NNInitFunc = lecun_normal()
+    """initializer for the weights."""
+    bias_init: NNInitFunc = zeros
+    """initializer for the biases."""
+    eps: float = 1e-7
+    """a small number to avoid numerical instability."""
+
+    def setup(self):
+        if isinstance(self.features, int):
+            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
+        else:
+            features = self.features
+        assert len(features) == self.layers
+        assert features[-1] == self.hilbert.local_size
+
+        self._layers = [
+            MaskedConv1D(
+                features=features[i],
+                kernel_size=self.kernel_size,
+                kernel_dilation=self.kernel_dilation,
+                exclusive=(i == 0),
+                use_bias=self.use_bias,
+                dtype=self.dtype,
+                precision=self.precision,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )
+            for i in range(self.layers)
+        ]
+
+    def conditionals(self, inputs: Array, cache: PyTree) -> Tuple[Array, PyTree]:
+        return ARNNDense.conditionals(self, inputs, cache)
+
+    def __call__(self, inputs: Array) -> Array:
+        """Returns log_psi, where psi is real."""
+        return ARNNDense.__call__(self, inputs)
