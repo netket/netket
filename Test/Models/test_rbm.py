@@ -103,7 +103,9 @@ def test_RBMSymm_creation():
 
     # init with PermutationGroup
     check_init(
-        lambda: nk.models.RBMSymm(symmetries=nk.graph.Chain(8).translations(), alpha=2)
+        lambda: nk.models.RBMSymm(
+            symmetries=nk.graph.Chain(8).translation_group(), alpha=2
+        )
     )
 
     # alpha too small
@@ -165,7 +167,7 @@ def test_GCNN_creation():
     # init with PermutationGroup
     check_init(
         lambda: nk.models.GCNN(
-            symmetries=nk.graph.Chain(8).translations(), layers=2, features=4
+            symmetries=nk.graph.Chain(8).translation_group(), layers=2, features=4
         )
     )
 

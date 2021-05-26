@@ -32,7 +32,7 @@ def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
 
     if symmetries == "trans":
         # Only translations, N_symm = N_sites
-        perms = g.translations()
+        perms = g.translation_group()
     else:
         # All chain automorphisms, N_symm = 2 N_sites
         perms = g.automorphisms()

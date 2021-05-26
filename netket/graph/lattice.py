@@ -575,7 +575,9 @@ class Lattice(NetworkX):
         """
         return self.space_group_builder(point_group).point_group
 
-    def rotations(self, point_group: Optional[PointGroup] = None) -> PermutationGroup:
+    def rotation_group(
+        self, point_group: Optional[PointGroup] = None
+    ) -> PermutationGroup:
         """
         Returns the action of rotations (i.e. symmetries with determinant +1) in
         `point_group` on the sites of `self` as a `PermutationGroup`.
@@ -584,7 +586,7 @@ class Lattice(NetworkX):
         """
         return self.space_group_builder(point_group).rotation_group
 
-    def translations(
+    def translation_group(
         self, dim: Optional[Union[int, Sequence[int]]] = None
     ) -> PermutationGroup:
         """

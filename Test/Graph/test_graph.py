@@ -433,7 +433,7 @@ def _check_symmgroup(graph, symmgroup):
 
 
 def _check_symmgroups(graph):
-    _check_symmgroup(graph, graph.rotations())
+    _check_symmgroup(graph, graph.rotation_group())
     _check_symmgroup(graph, graph.point_group())
     _check_symmgroup(graph, graph.space_group())
 
@@ -442,36 +442,46 @@ def test_grid_translations():
 
     for ndim in 1, 2:
         g = Grid([4] * ndim, pbc=True)
-        translations = g.translations()
+        translations = g.translation_group()
 
         assert len(translations) == g.n_nodes
 
         _check_symmgroup(g, translations)
 
         g = Grid([4] * ndim, pbc=False)
-        translations = g.translations()
+        translations = g.translation_group()
         assert translations.elems == [group.Identity()]  # only identity
 
     g = Grid([8, 4, 3], pbc=[True, False, False])
-    assert len(g.translations()) == 8
+    assert len(g.translation_group()) == 8
 
     g = Grid([8, 4, 3], pbc=[True, True, False])
-    assert len(g.translations()) == 8 * 4
-    assert g.translations(2).elems == [group.Identity()]  # only identity
+    assert len(g.translation_group()) == 8 * 4
+    assert g.translation_group(2).elems == [group.Identity()]  # only identity
 
     g = Grid([8, 4, 3], pbc=[True, True, True])
-    assert len(g.translations()) == 8 * 4 * 3
-    assert len(g.translations(dim=0)) == 8
-    assert len(g.translations(dim=1)) == 4
-    assert len(g.translations(dim=2)) == 3
+    assert len(g.translation_group()) == 8 * 4 * 3
+    assert len(g.translation_group(dim=0)) == 8
+    assert len(g.translation_group(dim=1)) == 4
+    assert len(g.translation_group(dim=2)) == 3
 
-    t1 = g.translations()
-    t2 = g.translations(dim=0) @ g.translations(dim=1) @ g.translations(dim=2)
+    t1 = g.translation_group()
+    t2 = (
+        g.translation_group(dim=0)
+        @ g.translation_group(dim=1)
+        @ g.translation_group(dim=2)
+    )
     assert t1 == t2
-    t2 = g.translations(dim=2) @ g.translations(dim=1) @ g.translations(dim=0)
+    t2 = (
+        g.translation_group(dim=2)
+        @ g.translation_group(dim=1)
+        @ g.translation_group(dim=0)
+    )
     assert t1 != t2
 
-    assert g.translations(dim=(0, 1)) == g.translations(0) @ g.translations(1)
+    assert g.translation_group(dim=(0, 1)) == g.translation_group(
+        0
+    ) @ g.translation_group(1)
 
 
 @pytest.mark.parametrize("n_dim", [1, 2, 3, 4])
@@ -488,19 +498,19 @@ def test_grid_space_group():
 
     g = nk.graph.Chain(8)
     _check_symmgroups(g)
-    assert g.rotations().elems == [group.Identity()]
+    assert g.rotation_group().elems == [group.Identity()]
     assert len(g.point_group()) == 2  # one reflection
     assert len(g.space_group()) == 8 * 2  # translations * reflection
 
     g = nk.graph.Grid([8, 2], pbc=False)
     _check_symmgroups(g)
-    assert len(g.rotations()) == 1  # no point group symmetries around origin
+    assert len(g.rotation_group()) == 1  # no point group symmetries around origin
     assert len(g.point_group()) == 1
     assert g.point_group() == g.space_group()  # no PBC, no translations
 
     g = nk.graph.Grid([5, 5, 3], pbc=[True, True, False])
     _check_symmgroups(g)
-    assert len(g.rotations()) == 4
+    assert len(g.rotation_group()) == 4
     assert len(g.point_group()) == 8
     assert len(g.space_group()) == 5 * 5 * 8
 
@@ -520,13 +530,13 @@ def test_grid_space_group():
 def test_triangular_space_group(lattice):
     g = lattice([3, 3])
     _check_symmgroups(g)
-    assert len(g.rotations()) == 6
+    assert len(g.rotation_group()) == 6
     assert len(g.point_group()) == 12
     assert len(g.space_group()) == 3 * 3 * 12
 
     g = lattice([3, 3], pbc=False)
     with pytest.raises(TypeError):
-        grp = g.rotations()
+        grp = g.rotation_group()
     with pytest.raises(TypeError):
         grp = g.point_group()
     with pytest.raises(TypeError):
@@ -534,7 +544,7 @@ def test_triangular_space_group(lattice):
 
     g = lattice([2, 4])
     with pytest.raises(TypeError):
-        grp = g.rotations()
+        grp = g.rotation_group()
     with pytest.raises(TypeError):
         grp = g.point_group()
     with pytest.raises(TypeError):
@@ -550,7 +560,7 @@ def test_symmgroup():
 
     assert_eq_hash(group.Identity(), group.Identity())
 
-    tr = Grid([8, 4, 3]).translations
+    tr = Grid([8, 4, 3]).translation_group
     assert_eq_hash(tr(), tr(0) @ tr(1) @ tr(2))
 
     assert_eq_hash(tr().remove_duplicates(), tr())

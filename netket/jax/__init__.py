@@ -29,6 +29,7 @@ from .utils import (
     tree_axpy,
     tree_to_real,
     compose,
+    logsumexp,
     HashablePartial,
     mpi_split,
     PRNGKey,

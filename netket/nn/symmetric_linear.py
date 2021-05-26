@@ -23,6 +23,7 @@ from netket.nn.initializers import normal, zeros
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape
 from netket.utils.group import PermutationGroup
+from netket.jax import logsumexp
 
 default_kernel_init = normal(stddev=0.01)
 
@@ -260,16 +261,13 @@ def irrep_project_sum(inputs: Array, character: Array, squeeze: bool = True) -> 
         if `squeeze == True`: :math:`\sum_i \Psi_i` as an array of shape [batch_size]
     """
     n_symm = character.size
-    proj = jnp.tensordot(
-        inputs.reshape(inputs.shape[0], -1, n_symm), character.conj(), axes=1
-    )
-    return proj.sum(axis=1) if squeeze else proj
+    inputs = inputs.reshape(inputs.shape[0], -1, n_symm)
+    character = character.conj().reshape(1, 1, -1)
+    axis = (1, 2) if squeeze else 2
+    return jnp.sum(inputs * character, axis=axis)
 
 
-def irrep_project_logsumexp(
-    inputs: Array, character: Array, squeeze: bool = True
-) -> Array:
-
+def irrep_project(inputs: Array, character: Array, squeeze: bool = True) -> Array:
     """
     Projects the output of a GCNN onto an irrep of the symmetry group.
 
@@ -285,15 +283,6 @@ def irrep_project_logsumexp(
     """
     n_symm = character.size
     inputs = inputs.reshape(inputs.shape[0], -1, n_symm)
-    if squeeze:
-        inputs_max = jnp.max(inputs.real, axis=(1, 2), keepdims=True)
-        return jnp.log(
-            jnp.tensordot(jnp.exp(inputs - inputs_max), character.conj(), axes=1).sum(
-                axis=1
-            )
-        ) + jnp.squeeze(inputs_max, axis=(1, 2))
-    else:
-        inputs_max = jnp.max(inputs.real, axis=2, keepdims=True)
-        return jnp.log(
-            jnp.tensordot(jnp.exp(inputs - inputs_max), character.conj(), axes=1)
-        ) + jnp.squeeze(inputs_max, axis=2)
+    character = character.conj().reshape(1, 1, -1)
+    axis = (1, 2) if squeeze else 2
+    return logsumexp(inputs, b=character, axis=axis)
