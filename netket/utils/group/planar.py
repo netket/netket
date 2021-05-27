@@ -14,6 +14,7 @@
 
 from .semigroup import Identity
 from .point_group import PGSymmetry, PointGroup
+from netket.utils.types import Array
 import numpy as np
 
 
@@ -63,7 +64,7 @@ def reflections(axis: float) -> PointGroup:
     return PointGroup([Identity(), reflection(axis)], ndim=2)
 
 
-def glide(trans: Array, origin: Optional[Array] = [0, 0]) -> PGSymmetry:
+def glide(trans: Array, origin: Array = [0, 0]) -> PGSymmetry:
     """
     Returns a 2D glide composed of translation by `trans` and reflection across
     its direction.
@@ -78,7 +79,7 @@ def glide(trans: Array, origin: Optional[Array] = [0, 0]) -> PGSymmetry:
     return PGSymmetry(W, w)
 
 
-def glides(trans: Array, origin: Optional[Array] = [0, 0]) -> PGSymmetry:
+def glides(trans: Array, origin: Array = [0, 0]) -> PGSymmetry:
     """
     Returns the Z_2 `PointGroup`containing the identity and a  2D glide composed
     of translation by `trans` and reflection across its direction.
