@@ -22,7 +22,7 @@ from flax import struct
 from netket.utils.types import PyTree
 import netket.jax as nkjax
 
-from .qgt_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
+from .qgt_onthefly_logic import mat_vec as mat_vec_onthefly
 
 from ..linear_operator import LinearOperator, Uninitialized
 
@@ -40,9 +40,6 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
 
     Args:
         vstate: The variational State.
-        centered: Uses S=⟨ΔÔᶜΔÔ⟩ if True (default), S=⟨ÔᶜΔÔ⟩ otherwise. The two forms are
-            mathematically equivalent, but might lead to different results due to numerical
-            precision. The non-centered variant should be approximately 33% faster.
     """
     if vstate is None:
         return partial(QGTOnTheFly, **kwargs)
@@ -83,12 +80,6 @@ class QGTOnTheFlyT(LinearOperator):
     model_state: Optional[PyTree] = None
     """Optional state of the ansataz."""
 
-    centered: bool = struct.field(pytree_node=False, default=True)
-    """Uses S=⟨ΔÔᶜΔÔ⟩ if True (default), S=⟨ÔᶜΔÔ⟩ otherwise. The two forms are
-    mathematically equivalent, but might lead to different results due to numerical
-    precision. The non-centered variant should be approximately 33% faster.
-    """
-
     def __post_init__(self):
         super().__post_init__()
 
@@ -104,7 +95,7 @@ class QGTOnTheFlyT(LinearOperator):
 
     def to_dense(self) -> jnp.ndarray:
         """
-        Convert the lazy matrix representation to a dense matrix representation.s
+        Convert the lazy matrix representation to a dense matrix representation.
 
         Returns:
             A dense matrix representation of this S matrix.
@@ -139,7 +130,7 @@ def onthefly_mat_treevec(
     else:
         ravel_result = False
 
-    vec = tree_cast(vec, S.params)
+    vec = nkjax.tree_cast(vec, S.params)
 
     def fun(W, σ):
         return S.apply_fun({"params": W, **S.model_state}, σ)
@@ -150,7 +141,6 @@ def onthefly_mat_treevec(
         params=S.params,
         samples=S.samples,
         diag_shift=S.diag_shift,
-        centered=S.centered,
     )
 
     res = mat_vec(vec)
@@ -166,7 +156,7 @@ def _solve(
     self: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs
 ) -> PyTree:
 
-    y = tree_cast(y, self.params)
+    y = nkjax.tree_cast(y, self.params)
 
     # we could cache this...
     if x0 is None:
@@ -179,7 +169,7 @@ def _solve(
 @jax.jit
 def _to_dense(self: QGTOnTheFlyT) -> jnp.ndarray:
     """
-    Convert the lazy matrix representation to a dense matrix representation.s
+    Convert the lazy matrix representation to a dense matrix representation
 
     Returns:
         A dense matrix representation of this S matrix.
