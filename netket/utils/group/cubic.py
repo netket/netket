@@ -61,7 +61,7 @@ pyritohedral = Th
 
 # NB the first factor isn't an actual point group but this is fine
 # we only use it to generate a coset of T in O
-O = PointGroup([Identity(), rotation(90, [0, 0, 1])], ndim=3) @ T
+O = PointGroup([Identity(), _rotation(90, [0, 0, 1])], ndim=3) @ T
 """Rotational symmetries of a cube/octahedron aligned with the Cartesian axes."""
 
 octahedral_rotations = cubic_rotations = O

@@ -187,7 +187,7 @@ def test_lattice_old_interface():
 def test_lattice_symmetry(i, name):
     graph = symmetric_graphs[i]
     # Try an invalid symmetry group and fail
-    with pytest.raises(Lattice.InvalidSiteError):
+    with pytest.raises(_lattice.InvalidSiteError):
         if dimension[i] == 2:
             sg = graph.space_group(group.planar.C(5))
         else:
