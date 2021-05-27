@@ -264,7 +264,9 @@ class MetropolisSampler(Sampler):
     def _init_state(sampler, machine, params, key):
         key_state, key_rule = jax.random.split(key, 2)
         rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
-        σ = jnp.zeros((sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype)
+        σ = jnp.zeros(
+            (sampler.n_chains_per_rank, sampler.hilbert.size), dtype=sampler.dtype
+        )
 
         state = MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
 
@@ -313,7 +315,7 @@ class MetropolisSampler(Sampler):
                     sampler.machine_pow * machine.apply(parameters, σp).real
                 )
 
-                uniform = jax.random.uniform(key2, shape=(sampler.n_chains,))
+                uniform = jax.random.uniform(key2, shape=(sampler.n_chains_per_rank,))
                 if log_prob_correction is not None:
                     do_accept = uniform < jnp.exp(
                         proposal_log_prob - s.log_prob + log_prob_correction
@@ -333,7 +335,8 @@ class MetropolisSampler(Sampler):
                 rng=new_rng,
                 σ=s.σ,
                 n_accepted_proc=s.accepted,
-                n_steps_proc=state.n_steps_proc + sampler.n_sweeps * sampler.n_chains,
+                n_steps_proc=state.n_steps_proc
+                + sampler.n_sweeps * sampler.n_chains_per_rank,
             )
 
         return new_state, new_state.σ

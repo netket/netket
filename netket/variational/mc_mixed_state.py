@@ -71,7 +71,8 @@ class MCMixedState(VariationalMixedState, MCState):
         model=None,
         *,
         sampler_diag: Sampler = None,
-        n_samples_diag: int = 1000,
+        n_samples_diag: int = None,
+        n_samples_per_rank_diag: Optional[int] = None,
         n_discard_diag: Optional[int] = None,
         seed=None,
         sampler_seed: Optional[int] = None,
@@ -85,9 +86,16 @@ class MCMixedState(VariationalMixedState, MCState):
         Arguments:
             sampler: The sampler
             model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
-
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
+            n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
+                specified together with n_samples (default=None).
             n_discard: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
+            n_samples_diag: the total number of samples across chains and processes when sampling the diagonal
+                of the density matrix (default=1000).
+            n_samples_per_rank_diag: the total number of samples across chains on one process when sampling the diagonal.
+                Cannot be specified together with `n_samples_diag` (default=None).
+            n_discard_diag: number of discarded samples at the beginning of each monte-carlo chain used when sampling
+                the diagonal of the density matrix for observables (default=n_samples_diag/10).
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
@@ -141,6 +149,7 @@ class MCMixedState(VariationalMixedState, MCState):
             sampler_diag,
             apply_fun=diagonal_apply_fun,
             n_samples=n_samples_diag,
+            n_samples_per_rank=n_samples_per_rank_diag,
             n_discard=n_discard_diag,
             variables=self.variables,
             seed=seed_diag,
