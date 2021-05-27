@@ -121,7 +121,7 @@ def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
 
 
 Square = partial(Hypercube, n_dim=2)
-r"""Constructs a square lattice of side `length`
+Square.__doc__ = r"""Constructs a square lattice of side `length`
 Periodic boundary conditions can also be imposed
 
 Args:
@@ -139,7 +139,7 @@ Examples:
 """
 
 Chain = partial(Hypercube, n_dim=1)
-r"""Constructs a chain of `length` sites.
+Chain.__doc__ = r"""Constructs a chain of `length` sites.
 Periodic boundary conditions can also be imposed
 
 Args:
@@ -177,7 +177,7 @@ def _hexagonal_general(
 
 
 TriangularLattice = partial(_hexagonal_general, site_offsets=None)
-r"""Constructs a triangular lattice of a given spatial extent.
+TriangularLattice.__doc__ = r"""Constructs a triangular lattice of a given spatial extent.
 Periodic boundary conditions can also be imposed
 Sites are returned at the Bravais lattice points.
 
@@ -201,7 +201,7 @@ Example:
 HoneycombLattice = partial(
     _hexagonal_general, site_offsets=[[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]]
 )
-r"""Constructs a honeycomb lattice of a given spatial extent.
+HoneycombLattice.__doc__ = r"""Constructs a honeycomb lattice of a given spatial extent.
 Periodic boundary conditions can also be imposed.
 Sites are returned at the 2b Wyckoff positions.
 
@@ -226,7 +226,7 @@ KagomeLattice = partial(
     _hexagonal_general,
     site_offsets=[[0.5, 0], [0.25, 0.75 ** 0.5 / 2], [0.75, 0.75 ** 0.5 / 2]],
 )
-r"""Constructs a kagome lattice of a given spatial extent.
+KagomeLattice.__doc__ = r"""Constructs a kagome lattice of a given spatial extent.
 Periodic boundary conditions can also be imposed.
 Sites are returned at the 3c Wyckoff positions.
 
