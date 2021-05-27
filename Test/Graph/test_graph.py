@@ -55,6 +55,8 @@ graphs = [
     Edgeless(10),
 ]
 
+symmetric_graph_names = ["square", "triangular", "honeycomb", "kagome", "cubic", "bcc"]
+
 symmetric_graphs = [
     # Square
     nk.graph.Square(3),
@@ -89,8 +91,9 @@ little_group_size = [2, 6, 6, 6, 8, 8]
 little_group_irreps = [2, 3, 3, 3, 5, 5]
 
 
-@pytest.mark.parametrize("i,graph", list(enumerate(symmetric_graphs)))
-def test_lattice_graphs():
+@pytest.mark.parametrize("i,name", list(enumerate(symmetric_graph_names)))
+def test_lattice_graphs(i, name):
+    graph = symmetric_graphs[i]
     # Check to see if graphs have the correct number of nodes and edges
     assert graph.n_nodes == unit_cells[i] * atoms_per_unit_cell[i]
     assert graph.n_edges == graph.n_nodes * coordination_number[i] // 2
@@ -180,8 +183,9 @@ def test_lattice_old_interface():
         check_alternative(lambda: g.atoms_coord, lambda: g.site_offsets)
 
 
-@pytest.mark.parametrize("i,graph", list(enumerate(symmetric_graphs)))
-def test_lattice_symmetry(i, graph):
+@pytest.mark.parametrize("i,name", list(enumerate(symmetric_graph_names)))
+def test_lattice_symmetry(i, name):
+    graph = symmetric_graphs[i]
     # Try an invalid symmetry group and fail
     with pytest.raises(Lattice.InvalidSiteError):
         if dimension[i] == 2:
