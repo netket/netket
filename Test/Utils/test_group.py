@@ -250,7 +250,9 @@ def test_change_origin(grp):
 
 
 def test_pyrochlore():
-    Fd3m = group.axial.inversions().change_origin(1 / 8, 1 / 8, 1 / 8) @ group.cubic.Td
+    Fd3m = (
+        group.axial.inversions().change_origin([1 / 8, 1 / 8, 1 / 8]) @ group.cubic.Td
+    )
     # closure fails without specifying a unit cell
     with pytest.raises(KeyError):
         pt = Fd3m.product_table
