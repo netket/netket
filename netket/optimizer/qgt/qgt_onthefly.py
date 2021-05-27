@@ -22,7 +22,7 @@ from flax import struct
 from netket.utils.types import PyTree
 import netket.jax as nkjax
 
-from .qgt_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
+from .qgt_onthefly_logic import mat_vec as mat_vec_onthefly
 
 from ..linear_operator import LinearOperator, Uninitialized
 
@@ -139,7 +139,7 @@ def onthefly_mat_treevec(
     else:
         ravel_result = False
 
-    vec = tree_cast(vec, S.params)
+    vec = nkjax.tree_cast(vec, S.params)
 
     def fun(W, σ):
         return S.apply_fun({"params": W, **S.model_state}, σ)
@@ -166,7 +166,7 @@ def _solve(
     self: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs
 ) -> PyTree:
 
-    y = tree_cast(y, self.params)
+    y = nkjax.tree_cast(y, self.params)
 
     # we could cache this...
     if x0 is None:

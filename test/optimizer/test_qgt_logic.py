@@ -63,7 +63,7 @@ def reassemble_complex(x, target, fun=tree_toreal_flat):
     (res,) = jax.linear_transpose(fun, target)(x)
     res = qgt_onthefly_logic.tree_conj(res)
     # fix the dtypes:
-    return qgt_onthefly_logic.tree_cast(res, target)
+    return nkjax.tree_cast(res, target)
 
 
 def tree_allclose(t1, t2):
@@ -184,8 +184,11 @@ r_r_test_types = list(itertools.product(rt, rt))
 c_c_test_types = list(itertools.product(ct, ct))
 r_c_test_types = list(itertools.product(ct, rt))
 rc_c_test_types = list(itertools.product(ct, [None]))
-# c_r_test_types = list(itertools.product(rt, ct))
+c_r_test_types = list(itertools.product(rt, ct))
+rc_r_test_types = list(itertools.product(rt, [None]))
+
 test_types = r_r_test_types + c_c_test_types + r_c_test_types + rc_c_test_types
+all_test_types = test_types + c_r_test_types + rc_r_test_types
 
 # tests
 
@@ -263,7 +266,7 @@ def test_Odagger_O_v(e):
 
 @pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize("outdtype, pardtype", test_types)
+@pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 def test_Odagger_DeltaO_v(e):
     actual = qgt_onthefly_logic.Odagger_DeltaO_v(e.f, e.params, e.samples, e.v)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
@@ -272,7 +275,7 @@ def test_Odagger_DeltaO_v(e):
 
 @pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize("outdtype, pardtype", test_types)
+@pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 def test_DeltaOdagger_DeltaO_v(e, holomorphic):
     actual = qgt_onthefly_logic.DeltaOdagger_DeltaO_v(
         e.f, e.params, e.samples, e.v, holomorphic
@@ -285,7 +288,7 @@ def test_DeltaOdagger_DeltaO_v(e, holomorphic):
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("centered", [True, False])
 @pytest.mark.parametrize("jit", [True, False])
-@pytest.mark.parametrize("outdtype, pardtype", test_types)
+@pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 def test_matvec(e, centered, jit, holomorphic):
     diag_shift = 0.01
     mv = qgt_onthefly_logic.mat_vec
@@ -302,7 +305,7 @@ def test_matvec(e, centered, jit, holomorphic):
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("centered", [True, False])
 @pytest.mark.parametrize("jit", [True, False])
-@pytest.mark.parametrize("outdtype, pardtype", test_types)
+@pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 def test_matvec_linear_transpose(e, centered, jit):
     def mvt(v, f, params, samples, centered, w):
         (res,) = jax.linear_transpose(
