@@ -69,10 +69,14 @@ def product(p: Translation, q: Translation):
 @struct.dataclass
 class SpaceGroupBuilder:
     """
+    Class to handle the space group symmetries of `Lattice`.
+
     Constructs `PermutationGroup`s that represent the action on a `Lattice` of
-    * a given geometrical point group,
+    * a geometrical point group given as a constructor argument,
+    * its rotational subgroup (i.e. point group symmetries with determinant +1)
     * the translation group of the same lattice
-    * and the space group that is generated as their semidirect product.
+    * and the space group that is generated as the semidirect product of
+      the supplied point group and the translation group.
 
     Also generates space group irreps for symmetrising wave functions.
     """
