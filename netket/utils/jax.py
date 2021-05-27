@@ -19,7 +19,8 @@ import jax
 from . import struct
 
 
-def get_afun_if_module(mod_or_fun, *args, **kwargs):
+def get_afun_if_module(mod_or_fun, *args, **kwargs) -> Callable:
+    """Returns the apply function if it's a module. Does nothing otherwise."""
     if hasattr(mod_or_fun, "apply"):
         return mod_or_fun.apply
     else:
@@ -38,6 +39,9 @@ class WrappedApplyFun:
 
 
 def wrap_afun(mod_or_fun, *args, **kwargs):
+    """Wraps a callable to be a module-like object with the method `apply`.
+    Does nothing if it already has an apply method.
+    """
     if hasattr(mod_or_fun, "apply"):
         return mod_or_fun
     else:

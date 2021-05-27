@@ -248,6 +248,9 @@ class Sampler(abc.ABC):
             state: The new state of the sampler
             σ: The next batch of samples.
         """
+        # Note: the return order is inverted wrt `.sample` because when called inside of
+        # a scan function the first returned argument should be the state.
+
         if state is None:
             state = sampler_state(sampler, machine, parameters)
 
@@ -273,8 +276,8 @@ class Sampler(abc.ABC):
             chain_length: (default=1), the length of the chains.
 
         Returns:
-            state: The new state of the sampler
             σ: The next batch of samples.
+            state: The new state of the sampler
         """
 
         return sample(
@@ -304,8 +307,8 @@ class Sampler(abc.ABC):
             chain_length: (default=1), the length of the chains.
 
         Returns:
-            state: The new state of the sampler
             σ: The next batch of samples.
+            state: The new state of the sampler
         """
         return _sample_chain(sampler, machine, parameters, state, chain_length)
 
@@ -434,8 +437,8 @@ def sample(
         chain_length: (default=1), the length of the chains.
 
     Returns:
-        state: The new state of the sampler
         σ: The next batch of samples.
+        state: The new state of the sampler
     """
     if state is None:
         state = sampler.reset(machine, parameters, state)
@@ -465,8 +468,8 @@ def _sample_chain(
         chain_length: (default=1), the length of the chains.
 
     Returns:
-        state: The new state of the sampler
         σ: The next batch of samples.
+        state: The new state of the sampler
     """
     _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
 
