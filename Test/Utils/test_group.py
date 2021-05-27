@@ -149,6 +149,16 @@ def test_character_table(grp, cls, dims):
     assert np.allclose(column_prod, np.diag(np.diag(column_prod)))
 
 
+# Check that rotation subgroups only contain rotations
+@pytest.mark.parametrize("i,grp", list(enumerate(point_groups)))
+def test_rotation_group(i, grp):
+    rot = grp.rotation_group()
+    assert len(rot) == (len(grp) if proper[i] else len(grp) // 2)
+    for i in rot:
+        assert isinstance(i, group.Identity) or i.is_proper()
+        assert str(i)[:3] in {"Id(", "Rot"}
+
+
 # Test for naming and generating 2D and 3D PGSymmetries
 
 names = [
@@ -199,10 +209,54 @@ def test_naming(symm, W, name):
     assert str(symm) == name
 
 
-@pytest.mark.parametrize("i,grp", list(enumerate(point_groups)))
-def test_rotation_group(i, grp):
-    rot = grp.rotation_group()
-    assert len(rot) == (len(grp) if proper[i] else len(grp) // 2)
-    for i in rot:
-        assert isinstance(i, group.Identity) or i.is_proper()
-        assert str(i)[:3] in {"Id(", "Rot"}
+names_nonsymm = [
+    (
+        group.planar.rotation(30).change_origin([1, 0]),
+        np.asarray([[0.75 ** 0.5, -0.5], [0.5, 0.75 ** 0.5]]),
+        np.asarray([1 - 0.75 ** 0.5, -0.5]),
+        "Rot(30°)O[1,0]",
+    ),
+    (
+        group.planar.reflection(0).replace(_w=[0.5, 0]),
+        np.diag([1.0, -1.0]),
+        np.asarray([0.5, 0.0]),
+        "Glide[1/2,0]",
+    ),
+    (
+        group.planar.reflection(0).change_origin([0, 0.5]),
+        np.diag([1.0, -1.0]),
+        np.asarray([0.0, 1.0]),
+        "Refl(0°)O[0,1/2]",
+    ),
+]
+# TODO add 3D examples
+
+
+@pytest.mark.parametrize("symm,W,w,name", names_nonsymm)
+def test_naming_nonsymm(symm, W, w, name):
+    assert np.allclose(symm.matrix, W)
+    assert np.allclose(symm.translation, w)
+    assert str(symm) == name
+
+
+# Nonsymmorphic symmetries
+@pytest.mark.parametrize("grp", point_groups)
+def test_change_origin(grp):
+    origin = np.random.standard_normal(grp.ndim)
+    grp_new = grp.change_origin(origin)
+    assert np.all(grp_new.product_table == grp.product_table)
+    for elem in grp_new:
+        assert np.allclose(elem(origin), origin)
+
+
+def test_pyrochlore():
+    Fd3m = group.axial.inversions().change_origin(1 / 8, 1 / 8, 1 / 8) @ group.cubic.Td
+    # closure fails without specifying a unit cell
+    with pytest.raises(KeyError):
+        pt = Fd3m.product_table
+    Fd3m = Fd3m.replace(
+        unit_cell=np.asarray([[0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
+    )
+    Oh = group.axial.inversions() @ group.cubic.Td
+    # after specifying the unit cell, Fd3m is isomorphic to Oh
+    assert np.all(Fd3m.product_table == Oh.product_table)
