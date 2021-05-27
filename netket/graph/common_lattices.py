@@ -120,41 +120,44 @@ def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
     return Grid(length_vector, pbc=pbc)
 
 
-Square = partial(Hypercube, n_dim=2)
-Square.__doc__ = r"""Constructs a square lattice of side `length`
-Periodic boundary conditions can also be imposed
+def Square(length: int, *, pbc: bool = True) -> Lattice:
+    """Constructs a square lattice of side `length`
+    Periodic boundary conditions can also be imposed
 
-Args:
-    length: Side length of the square; must always be >=1
-    pbc: Whether the square should have periodic boundary conditions (in both directions)
+    Args:
+        length: Side length of the square; must always be >=1
+        pbc: Whether the square should have periodic boundary conditions (in both directions)
 
-Examples:
-    A 10x10 square lattice with periodic boundary conditions can be
-    constructed as follows:
+    Examples:
+        A 10x10 square lattice with periodic boundary conditions can be
+        constructed as follows:
 
-    >>> import netket
-    >>> g=netket.graph.Square(10, pbc=True)
-    >>> print(g.n_nodes)
-    100
-"""
+        >>> import netket
+        >>> g=netket.graph.Square(10, pbc=True)
+        >>> print(g.n_nodes)
+        100
+    """
+    return Hypercube(length, pbc=pbc, n_dim=2)
 
-Chain = partial(Hypercube, n_dim=1)
-Chain.__doc__ = r"""Constructs a chain of `length` sites.
-Periodic boundary conditions can also be imposed
 
-Args:
-    length: Length of the chain. It must always be >=1
-    pbc: Whether the chain should have periodic boundary conditions
+def Chain(length: int, *, pbc: bool = True) -> Lattice:
+    r"""Constructs a chain of `length` sites.
+    Periodic boundary conditions can also be imposed
 
-Examples:
-    A 10 site chain with periodic boundary conditions can be
-    constructed as follows:
+    Args:
+        length: Length of the chain. It must always be >=1
+        pbc: Whether the chain should have periodic boundary conditions
 
-    >>> import netket
-    >>> g = netket.graph.Chain(10, pbc=True)
-    >>> print(g.n_nodes)
-    10
-"""
+    Examples:
+        A 10 site chain with periodic boundary conditions can be
+        constructed as follows:
+
+        >>> import netket
+        >>> g = netket.graph.Chain(10, pbc=True)
+        >>> print(g.n_nodes)
+        10
+    """
+    return Hypercube(length, pbc=pbc, n_dim=1)
 
 
 def _hexagonal_general(
@@ -176,73 +179,79 @@ def _hexagonal_general(
     )
 
 
-TriangularLattice = partial(_hexagonal_general, site_offsets=None)
-TriangularLattice.__doc__ = r"""Constructs a triangular lattice of a given spatial extent.
-Periodic boundary conditions can also be imposed
-Sites are returned at the Bravais lattice points.
+def TriangularLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+    r"""Constructs a triangular lattice of a given spatial extent.
+    Periodic boundary conditions can also be imposed
+    Sites are returned at the Bravais lattice points.
 
-Args:
-    extent: Number of unit cells along each direction, needs to be an array of length 2
-    pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
-         if `False`, the lattice will have open boundary conditions (OBC).
-         This parameter can also be a list of booleans with same length as
-         the parameter `length`, in which case each dimension will have
-         PBC/OBC depending on the corresponding entry of `pbc`.
+    Args:
+        extent: Number of unit cells along each direction, needs to be an array of length 2
+        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+             if `False`, the lattice will have open boundary conditions (OBC).
+             This parameter can also be a list of booleans with same length as
+             the parameter `length`, in which case each dimension will have
+             PBC/OBC depending on the corresponding entry of `pbc`.
 
-Example:
-    Construct a triangular lattice with 3 × 3 unit cells:
+    Example:
+        Construct a triangular lattice with 3 × 3 unit cells:
 
-    >>> from netket.graph import TriangularLattice
-    >>> g = TriangularLattice(extent=[3, 3])
-    >>> print(g.n_nodes)
-    9
-"""
+        >>> from netket.graph import TriangularLattice
+        >>> g = TriangularLattice(extent=[3, 3])
+        >>> print(g.n_nodes)
+        9
+    """
+    return _hexagonal_general(extent, site_offsets=None, pbc=pbc)
 
-HoneycombLattice = partial(
-    _hexagonal_general, site_offsets=[[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]]
-)
-HoneycombLattice.__doc__ = r"""Constructs a honeycomb lattice of a given spatial extent.
-Periodic boundary conditions can also be imposed.
-Sites are returned at the 2b Wyckoff positions.
 
-Args:
-    extent: Number of unit cells along each direction, needs to be an array of length 2
-    pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
-         if `False`, the lattice will have open boundary conditions (OBC).
-         This parameter can also be a list of booleans with same length as
-         the parameter `length`, in which case each dimension will have
-         PBC/OBC depending on the corresponding entry of `pbc`.
+def HoneycombLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+    r"""Constructs a honeycomb lattice of a given spatial extent.
+    Periodic boundary conditions can also be imposed.
+    Sites are returned at the 2b Wyckoff positions.
 
-Example:
-    Construct a honeycomb lattice with 3 × 3 unit cells:
+    Args:
+        extent: Number of unit cells along each direction, needs to be an array of length 2
+        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+             if `False`, the lattice will have open boundary conditions (OBC).
+             This parameter can also be a list of booleans with same length as
+             the parameter `length`, in which case each dimension will have
+             PBC/OBC depending on the corresponding entry of `pbc`.
 
-    >>> from netket.graph import HoneycombLattice
-    >>> g = HoneycombLattice(extent=[3, 3])
-    >>> print(g.n_nodes)
-    18
-"""
+    Example:
+        Construct a honeycomb lattice with 3 × 3 unit cells:
 
-KagomeLattice = partial(
-    _hexagonal_general,
-    site_offsets=[[0.5, 0], [0.25, 0.75 ** 0.5 / 2], [0.75, 0.75 ** 0.5 / 2]],
-)
-KagomeLattice.__doc__ = r"""Constructs a kagome lattice of a given spatial extent.
-Periodic boundary conditions can also be imposed.
-Sites are returned at the 3c Wyckoff positions.
+        >>> from netket.graph import HoneycombLattice
+        >>> g = HoneycombLattice(extent=[3, 3])
+        >>> print(g.n_nodes)
+        18
+    """
+    return _hexagonal_general(
+        extent, site_offsets=[[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]], pbc=pbc
+    )
 
-Args:
-    extent: Number of unit cells along each direction, needs to be an array of length 2
-    pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
-         if `False`, the lattice will have open boundary conditions (OBC).
-         This parameter can also be a list of booleans with same length as
-         the parameter `length`, in which case each dimension will have
-         PBC/OBC depending on the corresponding entry of `pbc`.
 
-Example:
-    Construct a kagome lattice with 3 × 3 unit cells:
+def KagomeLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+    r"""Constructs a kagome lattice of a given spatial extent.
+    Periodic boundary conditions can also be imposed.
+    Sites are returned at the 3c Wyckoff positions.
 
-    >>> from netket.graph import KagomeLattice
-    >>> g = KagomeLattice(extent=[3, 3])
-    >>> print(g.n_nodes)
-    27
-"""
+    Args:
+        extent: Number of unit cells along each direction, needs to be an array of length 2
+        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+             if `False`, the lattice will have open boundary conditions (OBC).
+             This parameter can also be a list of booleans with same length as
+             the parameter `length`, in which case each dimension will have
+             PBC/OBC depending on the corresponding entry of `pbc`.
+
+    Example:
+        Construct a kagome lattice with 3 × 3 unit cells:
+
+        >>> from netket.graph import KagomeLattice
+        >>> g = KagomeLattice(extent=[3, 3])
+        >>> print(g.n_nodes)
+        27
+    """
+    return _hexagonal_general(
+        extent,
+        site_offsets=[[0.5, 0], [0.25, 0.75 ** 0.5 / 2], [0.75, 0.75 ** 0.5 / 2]],
+        pbc=pbc,
+    )
