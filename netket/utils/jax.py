@@ -33,6 +33,9 @@ class WrappedApplyFun:
     apply: Callable
     """The wrapped callable."""
 
+    def __repr__(self):
+        return f"{type(self).__name__}(apply={self.apply}, hash={hash(self)})"
+
 
 def wrap_afun(mod_or_fun, *args, **kwargs):
     if hasattr(mod_or_fun, "apply"):
