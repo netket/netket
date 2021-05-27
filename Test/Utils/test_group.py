@@ -250,15 +250,13 @@ def test_change_origin(grp):
 
 
 def test_pyrochlore():
-    Fd3m = (
-        group.axial.inversions().change_origin([1 / 8, 1 / 8, 1 / 8]) @ group.cubic.Td
-    )
+    Fd3m = group.axial.inversions.change_origin([1 / 8, 1 / 8, 1 / 8]) @ group.cubic.Td
     # closure fails without specifying a unit cell
     with pytest.raises(KeyError):
         pt = Fd3m.product_table
     Fd3m = Fd3m.replace(
         unit_cell=np.asarray([[0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
     )
-    Oh = group.axial.inversions() @ group.cubic.Td
+    Oh = group.axial.inversions @ group.cubic.Td
     # after specifying the unit cell, Fd3m is isomorphic to Oh
     assert np.all(Fd3m.product_table == Oh.product_table)

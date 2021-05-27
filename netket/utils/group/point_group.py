@@ -465,7 +465,7 @@ class PointGroup(Group):
         else:
             group = super().remove_duplicates(return_inverse=False)
 
-        pgroup = PointGroup(group.elems, self.ndim)
+        pgroup = PointGroup(group.elems, self.ndim, unit_cell=self.unit_cell)
 
         if return_inverse:
             return pgroup, inverse
@@ -484,7 +484,7 @@ class PointGroup(Group):
                 subgroup.append(i)
             elif i.is_proper():
                 subgroup.append(i)
-        return PointGroup(subgroup, self.ndim)
+        return PointGroup(subgroup, self.ndim, unit_cell=self.unit_cell)
 
     def change_origin(self, origin: Array) -> "PointGroup":
         """
@@ -498,7 +498,7 @@ class PointGroup(Group):
                 out.append(Identity())
             else:
                 out.append(elem.change_origin(origin))
-        return PointGroup(out, self.ndim)
+        return PointGroup(out, self.ndim, unit_cell=self.unit_cell)
 
     @struct.property_cached
     def inverse(self) -> Array:
