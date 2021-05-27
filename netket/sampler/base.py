@@ -25,7 +25,7 @@ from jax.experimental import loops
 
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
-from netket.utils import get_afun_if_module, wrap_afun
+from netket.utils import mpi, get_afun_if_module, wrap_afun
 from netket.utils.types import PyTree, PRNGKeyT, DType
 from netket.jax import HashablePartial
 from netket.utils import struct, numbers
