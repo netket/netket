@@ -73,8 +73,8 @@ class MetropolisNumpySamplerState:
 
     @property
     @deprecated(
-        """Please use the attribute `.acceptance` instead of 
-        `.acceptance_ratio`. The new attribute `.acceptance` returns the 
+        """Please use the attribute `.acceptance` instead of
+        `.acceptance_ratio`. The new attribute `.acceptance` returns the
         acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
         returning a percentage, which is a bug."""
     )
@@ -114,7 +114,7 @@ class MetropolisNumpySamplerState:
 
 @partial(jax.jit, static_argnums=0)
 def apply_model(machine, pars, weights):
-    return machine(pars, weights)
+    return machine.apply(pars, weights)
 
 
 class MetropolisSamplerNumpy(MetropolisSampler):
@@ -141,7 +141,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
         σ = np.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
 
-        ma_out = jax.eval_shape(machine, parameters, σ)
+        ma_out = jax.eval_shape(machine.apply, parameters, σ)
 
         state = MetropolisNumpySamplerState(
             σ=σ,
