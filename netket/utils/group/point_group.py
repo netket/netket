@@ -63,9 +63,9 @@ class PGSymmetry(Element):
 
     def preimage(self, x):
         if self._w is not None:
-            return np.tensordot(x - self._w, self._W)
+            return np.tensordot(x - self._w, self._W, axes=1)
         else:
-            return np.tensordot(x, self._W)
+            return np.tensordot(x, self._W, axes=1)
 
     def __hash__(self):
         if self._w is not None:
@@ -97,7 +97,6 @@ class PGSymmetry(Element):
         around `origin` with transformation matrix `self._W`."""
         return PGSymmetry(self._W, (np.eye(self.ndim) - self._W) @ np.asarray(origin))
 
-    # TODO update for nonsymmorpic symemtries
     @struct.property_cached
     def _name(self) -> str:
         if self._W.shape == (2, 2):
