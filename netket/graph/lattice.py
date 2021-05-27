@@ -36,6 +36,14 @@ PositionT = _np.ndarray
 CoordT = _np.ndarray
 
 
+class InvalidSiteError(Exception):
+    pass
+
+
+class InvalidWaveVectorError(Exception):
+    pass
+
+
 def get_edges(atoms_positions, cutoff, distance_atol):
     cutoff = cutoff + distance_atol
     kdtree = cKDTree(atoms_positions)
@@ -446,12 +454,6 @@ class Lattice(NetworkX):
     # Site lookup
     # ------------------------------------------------------------------------
 
-    class InvalidSiteError(Exception):
-        pass
-
-    class InvalidWaveVectorError(Exception):
-        pass
-
     def _to_integer_position(self, positions: PositionT) -> Array:
         frac_positions = _np.matmul(positions, self._inv_dims)
         return comparable_periodic(frac_positions, self.pbc)
@@ -468,7 +470,7 @@ class Lattice(NetworkX):
             else:
                 raise ValueError("Input needs to be rank 1 or rank 2 array")
         except KeyError:
-            raise Lattice.InvalidSiteError(
+            raise InvalidSiteError(
                 "Some coordinates do not correspond to a valid lattice site"
             )
 
@@ -528,7 +530,7 @@ class Lattice(NetworkX):
         # Check that these are integers
         is_valid = is_approx_int(result)
         if not _np.all(is_valid):
-            raise self.InvalidWaveVectorError(
+            raise InvalidWaveVectorError(
                 "Some wave vectors are not reciprocal lattice vectors of the simulation box"
             )
 
@@ -536,7 +538,7 @@ class Lattice(NetworkX):
         # For axes with non-periodic BCs, the k-component must be 0
         is_valid = _np.logical_or(self.pbc, result == 0)
         if not _np.all(is_valid):
-            raise self.InvalidWaveVectorError(
+            raise InvalidWaveVectorError(
                 "Some wave vectors are inconisistent with open boundary conditions"
             )
 

@@ -8,6 +8,7 @@ import numpy as np
 import igraph as ig
 
 from netket.graph import *
+from netket.graph._lattice import InvalidSiteError, InvalidWaveVectorError
 from netket.utils import group
 
 from .. import common
@@ -88,62 +89,64 @@ little_group_size = [2, 6, 6, 6, 8, 8]
 little_group_irreps = [2, 3, 3, 3, 5, 5]
 
 
+@pytest.mark.parametrize("i,graph", list(enumerate(symmetric_graphs)))
 def test_lattice_graphs():
     # Check to see if graphs have the correct number of nodes and edges
-    for i, graph in enumerate(symmetric_graphs):
-        assert graph.n_nodes == unit_cells[i] * atoms_per_unit_cell[i]
-        assert graph.n_edges == graph.n_nodes * coordination_number[i] // 2
+    assert graph.n_nodes == unit_cells[i] * atoms_per_unit_cell[i]
+    assert graph.n_edges == graph.n_nodes * coordination_number[i] // 2
 
 
-def test_lattice():
-    for g in graphs + symmetric_graphs:
-        if not isinstance(g, Lattice):
-            continue
+@pytest.mark.parametrize("g", graphs + symmetric_graphs)
+def test_lattice(g):
+    if not isinstance(g, Lattice):
+        return
 
-        # sites should be sorted in lexicographic order by basis coordinate
-        sort = np.lexsort(g.basis_coords.T[::-1])
-        print(g.basis_coords[sort])
-        assert np.all(sort == np.arange(g.n_nodes))
+    # sites should be sorted in lexicographic order by basis coordinate
+    sort = np.lexsort(g.basis_coords.T[::-1])
+    print(g.basis_coords[sort])
+    assert np.all(sort == np.arange(g.n_nodes))
 
-        # check lookup with id
-        for i, site_id in enumerate(g.nodes()):
-            assert i == site_id
-            cc = g.basis_coords[i]
-            pos = g.positions[i]
-            manual_pos = g.basis_vectors.T @ cc[:-1] + g.site_offsets[cc[-1]]
-            assert np.allclose(manual_pos, pos)
+    # check lookup with id
+    for i, site_id in enumerate(g.nodes()):
+        assert i == site_id
+        cc = g.basis_coords[i]
+        pos = g.positions[i]
+        manual_pos = g.basis_vectors.T @ cc[:-1] + g.site_offsets[cc[-1]]
+        assert np.allclose(manual_pos, pos)
 
-            assert g.id_from_position(pos) == i
-            assert g.id_from_basis_coords(cc) == i
+        assert g.id_from_position(pos) == i
+        assert g.id_from_basis_coords(cc) == i
 
-        # check lookup with arrays
-        if g.n_nodes > 1:
-            pos = g.positions[[0, 1]]
-            ids = g.id_from_position(pos)
-            # assert ids.ndim == 1 and ids.size == 2
-            assert np.all(ids == [0, 1])
+    # check lookup with arrays
+    if g.n_nodes > 1:
+        pos = g.positions[[0, 1]]
+        ids = g.id_from_position(pos)
+        # assert ids.ndim == 1 and ids.size == 2
+        assert np.all(ids == [0, 1])
 
-            ccs = g.basis_coords[[0, 1]]
-            ids = g.id_from_basis_coords(ccs)
-            # assert ids.ndim == 1 and ids.size == 2
-            assert np.all(ids == [0, 1])
+        ccs = g.basis_coords[[0, 1]]
+        ids = g.id_from_basis_coords(ccs)
+        # assert ids.ndim == 1 and ids.size == 2
+        assert np.all(ids == [0, 1])
 
-            pos2 = g.position_from_basis_coords(ccs)
-            assert np.all(pos2 == pos)
+        pos2 = g.position_from_basis_coords(ccs)
+        assert np.all(pos2 == pos)
 
+
+def test_lattice_site_lookup():
     g = Lattice([[1]], [2])
     pos = [[0.0], [1.0]]
     ids = g.id_from_position(pos)
     assert np.all(ids == [0, 1])
 
-    with pytest.raises(Lattice.InvalidSiteError):
+    with pytest.raises(InvalidSiteError):
         idx = g.id_from_position([[0.5]])
-    with pytest.raises(Lattice.InvalidSiteError):
+    with pytest.raises(InvalidSiteError):
         idx = g.id_from_position([0.5])
 
-    with pytest.raises(Lattice.InvalidSiteError):
+    with pytest.raises(InvalidSiteError):
         pos = g.position_from_basis_coords([2])
-    with pytest.raises(Lattice.InvalidSiteError):
+    with pytest.raises(InvalidSiteError):
         pos = g.position_from_basis_coords([[2]])
 
 
@@ -177,9 +180,8 @@ def test_lattice_old_interface():
         check_alternative(lambda: g.atoms_coord, lambda: g.site_offsets)
 
 
-@pytest.mark.parametrize("i", range(len(symmetric_graphs)))
-def test_lattice_symmetry(i):
-    graph = symmetric_graphs[i]
+@pytest.mark.parametrize("i,graph", list(enumerate(symmetric_graphs)))
+def test_lattice_symmetry(i, graph):
     # Try an invalid symmetry group and fail
     with pytest.raises(Lattice.InvalidSiteError):
         if dimension[i] == 2:
@@ -202,7 +204,7 @@ def test_lattice_symmetry(i):
     _check_symmgroup(graph, sgb.space_group)
 
     # Try an invalid wave vector and fail
-    with pytest.raises(Lattice.InvalidWaveVectorError):
+    with pytest.raises(InvalidWaveVectorError):
         lg = sgb.little_group([1] * dimension[i])
 
     # Generate little groups and their irreps
