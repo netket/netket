@@ -33,6 +33,9 @@ from netket.utils import struct, numbers
 SeedType = Union[int, PRNGKeyT]
 
 
+fancy = []
+
+
 @struct.dataclass
 class SamplerState:
     """
@@ -101,7 +104,12 @@ class Sampler(abc.ABC):
                     import warnings
 
                     warnings.warn(
-                        f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks",
+                        f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks (total="
+                        f"{n_chains_per_rank*mpi.n_nodes} instead of n_chains={n_chains})."
+                        f"To directly control the number of chains on every rank, specify "
+                        f"`n_chains_per_rank` when constructing the sampler. "
+                        f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
+                        f"that is a multiple of the number of mpi ranks.",
                         category=UserWarning,
                     )
 
@@ -117,10 +125,13 @@ class Sampler(abc.ABC):
                 + "instead, type {} is not.".format(type(self.hilbert))
             )
 
-        if not np.issubdtype(numbers.dtype(self.machine_pow), np.integer):
-            raise ValueError(
-                f"machine_pow ({self.machine_pow}) must be a positive integer"
-            )
+        # workaround Jax bug under pmap
+        # might be removed in the future
+        if not type(self.machine_pow) == object:
+            if not np.issubdtype(numbers.dtype(self.machine_pow), np.integer):
+                raise ValueError(
+                    f"machine_pow ({self.machine_pow}) must be a positive integer"
+                )
 
     @property
     def n_chains(self) -> int:
