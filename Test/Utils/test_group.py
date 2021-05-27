@@ -153,17 +153,17 @@ def test_character_table(grp, cls, dims):
 
 names = [
     (
-        group.planar._rotation(47),
+        group.planar.rotation(47),
         np.asarray([[0.6819983601, -0.7313537016], [0.7313537016, 0.6819983601]]),
         "Rot(47°)",
     ),
     (
-        group.planar._reflection(78),
+        group.planar.reflection(78),
         np.asarray([[-0.9135454576, 0.4067366431], [0.4067366431, 0.9135454576]]),
         "Refl(78°)",
     ),
     (
-        group.axial._rotation(34, [1, 1, 2]),
+        group.axial.rotation(34, [1, 1, 2]),
         np.asarray(
             [
                 [0.8575313105, -0.4280853559, 0.2852770227],
@@ -174,12 +174,12 @@ names = [
         "Rot(34°)[1,1,2]",
     ),
     (
-        group.axial._reflection([1, 4, 2]),
+        group.axial.reflection([1, 4, 2]),
         np.asarray([[19, -8, -4], [-8, -11, -16], [-4, -16, 13]]) / 21,
         "Refl[1,4,2]",
     ),
     (
-        group.axial._rotoreflection(8, [2, 3, 1]),
+        group.axial.rotoreflection(8, [2, 3, 1]),
         np.asarray(
             [
                 [0.4216200491, -0.8901676053, -0.1727372824],
@@ -189,7 +189,7 @@ names = [
         ),
         "RotoRefl(8°)[2,3,1]",
     ),
-    (group.axial._inversion, -np.eye(3), "Inv()"),
+    (group.axial.inversion, -np.eye(3), "Inv()"),
 ]
 
 

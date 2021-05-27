@@ -18,7 +18,7 @@ from netket.utils.types import Array
 import numpy as np
 
 
-def _rotation(angle: float, axis: Array) -> PGSymmetry:
+def rotation(angle: float, axis: Array) -> PGSymmetry:
     """Returns a rotation by `angle` degrees around `axis`."""
     angle = np.radians(angle)
     axis = np.asarray(axis) / np.linalg.norm(axis)
@@ -41,21 +41,21 @@ def C(n: int, axis: Array = [0, 0, 1]) -> PointGroup:
         a `PointGroup` implementing :math:`C_n`
     """
     return PointGroup(
-        [Identity()] + [_rotation(360 / n * i, axis) for i in range(1, n)], ndim=3
+        [Identity()] + [rotation(360 / n * i, axis) for i in range(1, n)], ndim=3
     )
 
 
 rotations = C
 
-_inversion = PGSymmetry(-np.eye(3))
+inversion = PGSymmetry(-np.eye(3))
 
-inversions = PointGroup([Identity(), _inversion], ndim=3)
+inversions = PointGroup([Identity(), inversion], ndim=3)
 """
 :math:`\mathbb{Z}_2` `PointGroup` containing the identity and inversion across the origin.
 """
 
 
-def _reflection(axis: Array) -> PGSymmetry:
+def reflection(axis: Array) -> PGSymmetry:
     """Returns a reflection across a plane whose normal is `axis`"""
     axis = np.asarray(axis) / np.linalg.norm(axis)
     return PGSymmetry(np.eye(3) - 2 * np.outer(axis, axis))
@@ -66,7 +66,7 @@ def reflections(axis: Array) -> PointGroup:
     Returns the :math:`\mathbb{Z}_2` `PointGroup` containing the identity and a
     reflection across a plane with normal `axis`
     """
-    return PointGroup([Identity(), _reflection(axis)], ndim=3)
+    return PointGroup([Identity(), reflection(axis)], ndim=3)
 
 
 def Ch(n: int, axis: Array = [0, 0, 1]) -> PointGroup:
@@ -107,7 +107,7 @@ def Cv(n: int, axis: Array = [0, 0, 1], axis2=[1, 0, 0]) -> PointGroup:
 pyramidal = Cv
 
 
-def _rotoreflection(angle: float, axis: Array) -> PGSymmetry:
+def rotoreflection(angle: float, axis: Array) -> PGSymmetry:
     """Returns a rotoreflection by `angle` degrees around `axis`."""
     angle = np.radians(angle)
     axis = np.asarray(axis) / np.linalg.norm(axis)
@@ -138,9 +138,9 @@ def S(n: int, axis: Array = [0, 0, 1]) -> PointGroup:
             [Identity()]
             + [
                 (
-                    _rotoreflection(360 / n * i, axis)
+                    rotoreflection(360 / n * i, axis)
                     if i % 2 == 1
-                    else _rotation(360 / n * i, axis)
+                    else rotation(360 / n * i, axis)
                 )
                 for i in range(1, n)
             ],

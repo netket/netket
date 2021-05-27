@@ -20,7 +20,7 @@ from .point_group import PGSymmetry, PointGroup
 from .axial import (
     cuboid,
     cuboid_rotations,
-    _rotation,
+    rotation as _rotation,
     reflections as _refl_group,
     inversions as _inv_group,
 )
@@ -61,7 +61,7 @@ pyritohedral = Th
 
 # NB the first factor isn't an actual point group but this is fine
 # we only use it to generate a coset of T in O
-O = PointGroup([Identity(), _rotation(90, [0, 0, 1])], ndim=3) @ T
+O = PointGroup([Identity(), rotation(90, [0, 0, 1])], ndim=3) @ T
 """Rotational symmetries of a cube/octahedron aligned with the Cartesian axes."""
 
 octahedral_rotations = cubic_rotations = O
@@ -70,29 +70,3 @@ Oh = _inv_group @ O
 """Symmetry group of a cube/octahedron aligned with the Cartesian axes."""
 
 octahedral = cubic = Oh
-
-
-def _perm_symm(perm: Tuple) -> PGSymmetry:
-    n = len(perm)
-    M = np.zeros((n, n))
-    M[range(n), perm] = 1
-    return PGSymmetry(M)
-
-
-def _axis_reflection(axis: int, ndim: int) -> PGSymmetry:
-    M = np.eye(ndim)
-    M[axis, axis] = -1
-    return PGSymmetry(M)
-
-
-def hypercubic(ndim: int) -> PointGroup:
-    """
-    Returns the symmetry group of an `ndim` dimensional hypercube as a `PointGroup`.
-    Isomorphic to, but listed in a different order from,
-    * `planar.square` if `ndim==2`
-    * `cubic.cubic` if `ndim==3`
-    """
-    result = PointGroup([_perm_symm(i) for i in permutations(range(ndim))], ndim=ndim)
-    for i in range(ndim):
-        result = result @ PointGroup([Identity(), _axis_reflection(i, ndim)], ndim=ndim)
-    return result

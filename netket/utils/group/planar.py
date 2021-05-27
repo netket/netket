@@ -17,7 +17,7 @@ from .point_group import PGSymmetry, PointGroup
 import numpy as np
 
 
-def _rotation(angle: float) -> PGSymmetry:
+def rotation(angle: float) -> PGSymmetry:
     """
     Returns a 2D rotation by `angle` degrees
     """
@@ -38,14 +38,14 @@ def C(n: int) -> PointGroup:
         a `PointGroup` implementing Cₙ
     """
     return PointGroup(
-        [Identity()] + [_rotation(360 / n * i) for i in range(1, n)], ndim=2
+        [Identity()] + [rotation(360 / n * i) for i in range(1, n)], ndim=2
     )
 
 
 rotations = C
 
 
-def _reflection(axis: float) -> PGSymmetry:
+def reflection(axis: float) -> PGSymmetry:
     """
     Returns a 2D reflection across an axis at angle `axis` to the +x direction
     """
@@ -60,7 +60,7 @@ def reflections(axis: float) -> PointGroup:
     Returns the Z₂ `PointGroup` containing the identity and a reflection across an
     axis at angle `axis` to the +x direction
     """
-    return PointGroup([Identity(), _reflection(axis)], ndim=2)
+    return PointGroup([Identity(), reflection(axis)], ndim=2)
 
 
 def D(n: int, axis: float = 0) -> PointGroup:
