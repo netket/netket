@@ -81,7 +81,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
     The dtype of the sampled states can be chosen.
     """
 
-    def __pre_init__(self, *args, n_chains=None, n_chains_per_device=None, **kwargs):
+    def __pre_init__(self, *args, n_chains_per_device=None, **kwargs):
         """
         Constructs a Metropolis Sampler.
 
@@ -101,18 +101,25 @@ class MetropolisSamplerPmap(MetropolisSampler):
             dtype: The dtype of the statees sampled (default = np.float32).
         """
 
-        if n_chains is not None and n_chains_per_device is not None:
-            raise ValueError("Cannot specify both n_chains and n_chains_per_device")
-        elif n_chains is None and n_chains_per_device is None:
-            n_chains = 16
-
         n_devices = len(jax.devices())
 
-        # If chains is specified, round it
-        if n_chains is not None:
-            n_chains_per_device = int(max(np.ceil(n_chains / n_devices), 1))
+        n_chains_undef = "n_chains" not in kwargs and "n_chains_per_rank" not in kwargs
 
-        if n_chains != n_chains_per_device * n_devices:
+        if not n_chains_undef and n_chains_per_device is not None:
+            raise ValueError(
+                "Cannot specify both n_chains/n_chains_per_rank and n_chains_per_device"
+            )
+
+        args, kwargs = super().__pre_init__(*args, **kwargs)
+
+        if n_chains_per_device is None:
+            n_chains_per_device = int(
+                max(np.ceil(kwargs["n_chains_per_rank"] / n_devices), 1)
+            )
+
+        kwargs["n_chains_per_rank"] = n_chains_per_device * n_devices
+
+        if kwargs["n_chains_per_rank"] != n_chains_per_device * n_devices:
             import warnings
 
             warnings.warn(
@@ -121,9 +128,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
                 category=UserWarning,
             )
 
-        kwargs["n_chains"] = n_chains_per_device * n_devices
-        print("he")
-        return super().__pre_init__(*args, **kwargs)
+        return args, kwargs
 
     def __post_init__(self):
         if not config.FLAGS["NETKET_EXPERIMENTAL"]:
@@ -143,21 +148,22 @@ class MetropolisSamplerPmap(MetropolisSampler):
 
         super().__post_init__()
 
-        n_chains_per_device = self.n_chains // len(jax.devices())
+        n_chains_per_device = self.n_chains_per_rank // len(jax.devices())
 
         _sampler = MetropolisSampler(
             self.hilbert,
-            n_chains=n_chains_per_device,
+            n_chains_per_rank=n_chains_per_device,
             rule=self.rule,
             n_sweeps=self.n_sweeps,
             reset_chains=self.reset_chains,
+            machine_pow=self.machine_pow,
         )
 
         object.__setattr__(self, "_sampler_device", _sampler)
 
     @property
     def n_chains_per_device(self):
-        return self._sampler_device.n_chains
+        return self._sampler_device.n_chains_per_rank
 
     def _init_state(self, machine, parameters, key):
         key = jax.random.split(key, len(jax.devices()))

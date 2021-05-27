@@ -35,6 +35,11 @@
 
 ### Breaking Changes
 
+* For all samplers, `n_chains` now sets the _total_ number of chains across all MPI ranks. This is a breaking change 
+  compared to the old API, where `n_chains` would set the number of chains on a single MPI rank. It is still possible to
+  set the number of chains per MPI rank by specifying `n_chains_per_rank` instead of `n_chains`. This change, while breaking
+  allows us to be consistent with the interface of {ref}`variational.MCState`, where `n_samples` is the total number of samples
+  across MPI nodes.  
 * `MetropolisSampler.reset_chain` has been renamed to `MetropolisSampler.reset_chains`. 
   Likewise in the constructor of all samplers.
 * Briefly during development releases `MetropolisSamplerState.acceptance_ratio` returned
