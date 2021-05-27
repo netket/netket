@@ -8,7 +8,7 @@ import numpy as np
 import igraph as ig
 
 from netket.graph import *
-from netket.graph._lattice import InvalidSiteError, InvalidWaveVectorError
+from netket.graph import _lattice
 from netket.utils import group
 
 from .. import common
@@ -139,14 +139,14 @@ def test_lattice_site_lookup():
     ids = g.id_from_position(pos)
     assert np.all(ids == [0, 1])
 
-    with pytest.raises(InvalidSiteError):
+    with pytest.raises(_lattice.InvalidSiteError):
         idx = g.id_from_position([[0.5]])
-    with pytest.raises(InvalidSiteError):
+    with pytest.raises(_lattice.InvalidSiteError):
         idx = g.id_from_position([0.5])
 
-    with pytest.raises(InvalidSiteError):
+    with pytest.raises(_lattice.InvalidSiteError):
         pos = g.position_from_basis_coords([2])
-    with pytest.raises(InvalidSiteError):
+    with pytest.raises(_lattice.InvalidSiteError):
         pos = g.position_from_basis_coords([[2]])
 
 
@@ -204,7 +204,7 @@ def test_lattice_symmetry(i, graph):
     _check_symmgroup(graph, sgb.space_group)
 
     # Try an invalid wave vector and fail
-    with pytest.raises(InvalidWaveVectorError):
+    with pytest.raises(_lattice.InvalidWaveVectorError):
         lg = sgb.little_group([1] * dimension[i])
 
     # Generate little groups and their irreps
