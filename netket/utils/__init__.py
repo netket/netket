@@ -17,6 +17,7 @@ from .config_flags import config
 from . import numbers
 from . import struct
 from . import types
+from . import numbers
 
 from .array import HashableArray
 from .jax import get_afun_if_module
@@ -36,4 +37,4 @@ jax_available = True
 flax_available = True
 mpi4jax_available = mpi.mpi_available
 
-_hide_submodules(__name__, remove_self=False)
+_hide_submodules(__name__, remove_self=False, ignore=["numbers"])

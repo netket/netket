@@ -60,7 +60,6 @@ def compute_chain_length(n_chains, n_samples):
     if n_samples <= 0:
         raise ValueError("Invalid number of samples: n_samples={}".format(n_samples))
 
-    n_chains = n_chains * mpi.n_nodes
     chain_length = int(np.ceil(n_samples / n_chains))
     return chain_length
 
@@ -111,7 +110,8 @@ class MCState(VariationalState):
         sampler: Sampler,
         model=None,
         *,
-        n_samples: int = 1000,
+        n_samples: int = None,
+        n_samples_per_rank: Optional[int] = None,
         n_discard: Optional[int] = None,
         variables: Optional[PyTree] = None,
         init_fun: NNInitFunc = None,
@@ -129,6 +129,8 @@ class MCState(VariationalState):
             sampler: The sampler
             model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
+            n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
+                specified together with n_samples (default=None).
             n_discard: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
@@ -179,6 +181,15 @@ class MCState(VariationalState):
                 "gonna evaluate the model?"
             )
 
+        # default argument for n_samples/n_samples_per_rank
+        if n_samples is None and n_samples_per_rank is None:
+            n_samples = 1000
+        elif n_samples is not None and n_samples_per_rank is not None:
+            raise InvalidInputError(
+                "Only one argument between `n_samples` and `n_samples_per_rank`"
+                "can be specified at the same time."
+            )
+
         if sample_fun is not None:
             self._sample_fun = sample_fun
         else:
@@ -199,7 +210,11 @@ class MCState(VariationalState):
         self._sampler_seed = sampler_seed
         self.sampler = sampler
 
-        self.n_samples = n_samples
+        if n_samples is not None:
+            self.n_samples = n_samples
+        else:
+            self.n_samples_per_rank = n_samples_per_rank
+
         self.n_discard = n_discard
 
     def init(self, seed=None, dtype=None):
@@ -251,13 +266,22 @@ class MCState(VariationalState):
     def n_samples(self, n_samples: int):
         chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
-        n_samples_per_node = chain_length * self.sampler.n_chains
-        n_samples = n_samples_per_node * mpi.n_nodes
+        n_samples_per_node = chain_length * self.sampler.n_chains_per_rank
+        n_samples = chain_length * self.sampler.n_chains
 
         self._n_samples = n_samples
         self._chain_length = chain_length
         self._n_samples_per_node = n_samples_per_node
         self.reset()
+
+    @property
+    def n_samples_per_rank(self) -> int:
+        """The number of samples generated on one MPI rank at every sampling step."""
+        return self._chain_length * mpi.n_nodes
+
+    @n_samples_per_rank.setter
+    def n_samples_per_rank(self, n_samples_per_rank: int) -> int:
+        self.n_samples = n_samples_per_rank * mpi.n_nodes
 
     @property
     def chain_length(self) -> int:

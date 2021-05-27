@@ -25,12 +25,15 @@ from jax.experimental import loops
 
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
-from netket.utils import get_afun_if_module
-from netket.utils.types import PyTree, PRNGKeyT
+from netket.utils import get_afun_if_module, mpi
+from netket.utils.types import PyTree, PRNGKeyT, DType
 from netket.jax import HashablePartial
-from netket.utils import struct
+from netket.utils import struct, numbers
 
 SeedType = Union[int, PRNGKeyT]
+
+
+fancy = []
 
 
 @struct.dataclass
@@ -60,14 +63,59 @@ class Sampler(abc.ABC):
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
     """Hilbert space to be sampled."""
 
-    n_chains: int = struct.field(pytree_node=False, default=16)
-    """Number of batches along the chain"""
+    n_chains_per_rank: int = struct.field(pytree_node=False, default=None)
+    """Number of independent chains on every MPI rank."""
 
     machine_pow: int = struct.field(default=2)
-    """Exponent of the pdf sampled"""
+    """Exponent of the pdf sampled."""
 
-    dtype: type = struct.field(pytree_node=False, default=np.float64)
-    """DType of the states returned."""
+    dtype: DType = struct.field(pytree_node=False, default=np.float64)
+    """DType of the computed samples."""
+
+    def __pre_init__(
+        self, hilbert: AbstractHilbert, n_chains: Optional[int] = None, **kwargs
+    ):
+        """
+        Construct a Monte Carlo sampler.
+
+        Args:
+            hilbert: Hilbert space to be sampled
+            n_chains: The total number of independent chains across all MPI ranks
+            n_chains_per_rank: Number of independent chains on every MPI rank
+            machine_pow: Exponent of the pdf sampled
+            dtype: DType of the computed samples
+        """
+
+        # Default number of total chains
+        if "n_chains_per_rank" in kwargs:
+            if n_chains is not None:
+                raise ValueError(
+                    "Cannot specify both `n_chains` and `n_chains_per_rank`"
+                )
+        else:
+
+            # DEFAULT VALUE
+            if n_chains is None:
+                n_chains = 16
+
+            n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
+            if mpi.n_nodes > 1 and mpi.rank == 0:
+                if n_chains_per_rank * mpi.n_nodes != n_chains:
+                    import warnings
+
+                    warnings.warn(
+                        f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks (total="
+                        f"{n_chains_per_rank*mpi.n_nodes} instead of n_chains={n_chains})."
+                        f"To directly control the number of chains on every rank, specify "
+                        f"`n_chains_per_rank` when constructing the sampler. "
+                        f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
+                        f"that is a multiple of the number of mpi ranks.",
+                        category=UserWarning,
+                    )
+
+            kwargs["n_chains_per_rank"] = n_chains_per_rank
+
+        return (hilbert,), kwargs
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
@@ -77,11 +125,22 @@ class Sampler(abc.ABC):
                 + "instead, type {} is not.".format(type(self.hilbert))
             )
 
-        if not isinstance(self.n_chains, int) and self.n_chains >= 0:
-            raise ValueError("n_chains must be a positivee integer")
+        # workaround Jax bug under pmap
+        # might be removed in the future
+        if not type(self.machine_pow) == object:
+            if not np.issubdtype(numbers.dtype(self.machine_pow), np.integer):
+                raise ValueError(
+                    f"machine_pow ({self.machine_pow}) must be a positive integer"
+                )
 
-        # if not isinstance(self.machine_pow, int) and self.machine_pow>= 0:
-        #    raise ValueError("machine_pow must be a positivee integer")
+    @property
+    def n_chains(self) -> int:
+        """
+        The total number of chains across all MPI ranks.
+
+        If you are not using MPI, this is equal to `n_chains_per_rank`
+        """
+        return self.n_chains_per_rank * mpi.n_nodes
 
     @property
     def n_batches(self) -> int:
@@ -90,7 +149,7 @@ class Sampler(abc.ABC):
 
         In general, it is equivalent to :attr:`~Sampler.n_chains`.
         """
-        return self.n_chains
+        return self.n_chains_per_rank
 
     def log_pdf(self, model: Union[Callable, nn.Module]) -> Callable:
         """
