@@ -371,6 +371,19 @@ class PointGroup(Group):
             ]
         )
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, PointGroup):
+            return False
+        if (self.unit_cell is None) != (other.unit_cell is None):
+            return False
+        if not np.allclose(self.unit_cell, other.unit_cell):
+            return False
+        # for simplicity we also require that they be ordered the same way
+        for i, elem in enumerate(self.elems):
+            if elem != other.elems[i]:
+                return False
+        return True
+
     def __matmul__(self, other) -> "PointGroup":
         if not isinstance(other, PointGroup):
             raise ValueError("Incompatible groups (`PointGroup` and something else)")

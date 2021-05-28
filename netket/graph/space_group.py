@@ -200,6 +200,7 @@ class SpaceGroupBuilder:
         return PointGroup(
             [self.point_group_[i] for i in self._little_group_index(k)],
             ndim=self.point_group_.ndim,
+            unit_cell=self.lattice.basis_vectors,
         )
 
     def _little_group_irreps(self, k: Array, divide: bool = False) -> Array:

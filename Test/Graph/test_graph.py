@@ -213,6 +213,9 @@ def test_lattice_symmetry(i, name):
     with pytest.raises(_lattice.InvalidWaveVectorError):
         lg = sgb.little_group([1] * dimension[i])
 
+    # The little group of Γ is the full point group
+    assert sgb.little_group(np.zeros(dimension[i])) == graph._point_group
+
     # Generate little groups and their irreps
     assert len(sgb.little_group(kvec[i])) == little_group_size[i]
     irrep_from_lg = sgb.space_group_irreps(kvec[i])
