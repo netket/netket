@@ -261,8 +261,27 @@ names_nonsymm = [
         np.asarray([(1 - 0.75 ** 0.5) / 3, 1 / 6, 1]),
         "Screw(-30°)[0,0,1]O[1/3,0,0]",
     ),
+    (
+        group.PGSymmetry([[-1, 0, 0], [0, 0, 1], [0, 1, 0]], [0.25, 0.25, 0.25]),
+        np.asarray([[-1, 0, 0], [0, 0, 1], [0, 1, 0]]),
+        np.asarray([0.25, 0.25, 0.25]),
+        "Screw(180°)[0,1/4,1/4]O[1/8,0,0]",
+    ),
+    (
+        group.axial.reflection([1, 1, 0]).change_origin([1, 0, 1]),
+        np.asarray([[0, -1, 0], [-1, 0, 0], [0, 0, 1]]),
+        np.asarray([1, 1, 0]),
+        "Refl[1,1,0]O[1/2,1/2,0]",
+    ),
+    (
+        group.axial.glide(
+            axis=[0, 0, 1], trans=[1, 3 ** 0.5 / 12, 0], origin=[0.5, 0.5, 1]
+        ),
+        np.diag([1, 1, -1]),
+        np.asarray([1, 3 ** 0.5 / 12, 2]),
+        "Glide[1,√3/12,0]ax[0,0,1]O[0,0,1]",
+    ),
 ]
-# TODO add 3D examples
 
 
 @pytest.mark.parametrize("symm,W,w,name", names_nonsymm)

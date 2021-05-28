@@ -68,27 +68,29 @@ symmetric_graphs = [
     nk.graph.KagomeLattice([3, 3]),
     # Cube
     nk.graph.Hypercube(length=3, n_dim=3),
-    # Body Centered Cubic
-    nk.graph.Lattice(
-        basis_vectors=[[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]],
-        extent=[3, 3, 3],
-        point_group=group.cubic.Oh(),
-    ),
+    # Body-centred Cubic
+    nk.graph.BCC([3, 3, 3]),
+    # Face-centred cubic
+    nk.graph.FCC([3, 3, 3]),
+    # Diamond
+    nk.graph.Diamond([3, 3, 3]),
+    # Pyrochlore
+    nk.graph.Pyrochlore([3, 3, 3]),
 ]
 
-unit_cells = [9, 9, 9, 9, 27, 27]
+unit_cells = [9, 9, 9, 9, 27, 27, 27, 54, 108]
 
-atoms_per_unit_cell = [1, 1, 2, 3, 1, 1]
+atoms_per_unit_cell = [1, 1, 2, 3, 1, 1, 1, 2, 4]
 
-coordination_number = [4, 6, 3, 4, 6, 8]
+coordination_number = [4, 6, 3, 4, 6, 8, 12, 4, 6]
 
-dimension = [2, 2, 2, 2, 3, 3]
+dimension = [2, 2, 2, 2, 3, 3, 3, 3, 3]
 
-kvec = [[2 * pi / 3, 0]] + [[4 * pi / 3, 0]] * 3 + [[4 * pi / 3, 0, 0]] * 2
+kvec = [[2 * pi / 3, 0]] + [[4 * pi / 3, 0]] * 3 + [[4 * pi / 3, 0, 0]] * 5
 
-little_group_size = [2, 6, 6, 6, 8, 8]
+little_group_size = [2] + [6] * 3 + [8] * 5
 
-little_group_irreps = [2, 3, 3, 3, 5, 5]
+little_group_irreps = [2] + [3] * 3 + [5] * 5
 
 
 @pytest.mark.parametrize("i,name", list(enumerate(symmetric_graph_names)))
