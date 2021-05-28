@@ -19,7 +19,7 @@ import numpy as np
 
 from .lattice import Lattice
 
-from netket.utils.group import PointGroup, PGSymmetry, planar, Identity
+from netket.utils.group import PointGroup, PGSymmetry, planar, cubic, Identity
 
 
 def _perm_symm(perm: Tuple) -> PGSymmetry:

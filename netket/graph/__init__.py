@@ -18,8 +18,13 @@ from .lattice import Lattice
 from .common_lattices import (
     Grid,
     Hypercube,
+    Cube,
     Square,
     Chain,
+    BCC,
+    FCC,
+    Diamond,
+    Pyrochlore,
     TriangularLattice,
     HoneycombLattice,
     KagomeLattice,
