@@ -159,16 +159,13 @@ class PermutationGroup(Group):
     @struct.property_cached
     def inverse(self) -> Array:
         try:
-            perm_array = self.to_array()
-            n_symm = len(perm_array)
-            inverse = np.zeros([n_symm], dtype=int)
-            for i, perm1 in enumerate(perm_array):
-                for j, perm2 in enumerate(perm_array):
-                    perm_sq = perm1[perm2]
-                    if np.all(perm_sq == np.arange(len(perm_sq))):
-                        inverse[i] = j
+            lookup = self._canonical_lookup()
+            inverses = []
+            for perm in self.to_array():
+                invperm = np.argsort(perm)
+                inverses.append(lookup[invperm])
 
-            return inverse
+            return np.asarray(inverses, dtype=int)
         except KeyError:
             raise KeyError(
                 "PermutationGroup does not contain the inverse of all elements"
@@ -186,18 +183,11 @@ class PermutationGroup(Group):
             perms_t = perms.transpose()
             inv_elements = perms_t[inv_t].reshape(-1, n_symm * n_symm).transpose()
 
-            perms = [HashableArray(element) for element in perms]
             inv_perms = [HashableArray(element) for element in inv_elements]
 
-            inverse_index_mapping = {
-                element: index for index, element in enumerate(perms)
-            }
+            lookup = self._canonical_lookup()
 
-            inds = [
-                (index, inverse_index_mapping[element])
-                for index, element in enumerate(inv_perms)
-                if element in inverse_index_mapping
-            ]
+            inds = [(index, lookup[element]) for index, element in enumerate(inv_perms)]
 
             inds = np.asarray(inds)
 

@@ -88,7 +88,7 @@ symmetric_graphs = [
     nk.graph.Pyrochlore([3, 3, 3]),
 ]
 
-unit_cells = [9, 9, 9, 9, 27, 27, 27, 54, 108]
+unit_cells = [9, 9, 9, 9, 27, 27, 27, 27, 27]
 
 atoms_per_unit_cell = [1, 1, 2, 3, 1, 1, 1, 2, 4]
 
