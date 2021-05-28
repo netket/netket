@@ -37,26 +37,26 @@ def _axis_reflection(axis: int, ndim: int) -> PGSymmetry:
 
 def _grid_point_group(extent: Sequence[int], pbc: Sequence[bool]) -> PointGroup:
     # axis permutations
-    # * cannot exchange axes with open BC
-    # * can exchange two PBC axes iff their lengths are the same
+    # can exchange two axes iff they have the same kind of BC and length
+    # represent open BC by setting kind[i] = -extent[i], so just have to match these
     axis_perm = []
     axes = np.arange(len(extent), dtype=int)
-    obc = np.logical_not(pbc)
+    extent = np.asarray(extent, dtype=int)
+    kind = np.where(pbc, extent, -extent)
     ndim = len(extent)
     for perm in permutations(axes):
-        if np.all(extent == extent[list(perm)]) and np.all(
-            axes[obc] == axes[list(perm)][obc]
-        ):
+        if np.all(kind == kind[list(perm)]):
             axis_perm.append(_perm_symm(perm))
     result = PointGroup(axis_perm, ndim=ndim)
-    # reflections across axes
-    # can only do it across periodic axes
-    for i in axes[pbc]:
+    # reflections across axes and setting the origin
+    # OBC axes are only symmetric w.r.t. their midpoint, (extent[i]-1)/2
+    origin = []
+    for i in axes:
         result = result @ PointGroup([Identity(), _axis_reflection(i, ndim)], ndim=ndim)
+        origin.append(0 if pbc[i] else (extent[i] - 1) / 2)
     result = result.elems
     result[0] = Identity()  # it would otherwise be an equivalent PGSymmetry
-    return PointGroup(result, ndim=ndim)
-    return result
+    return PointGroup(result, ndim=ndim).change_origin(origin)
 
 
 def Grid(length: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:

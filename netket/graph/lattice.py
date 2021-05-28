@@ -531,7 +531,14 @@ class Lattice(NetworkX):
         is_valid = is_approx_int(result)
         if not _np.all(is_valid):
             raise InvalidWaveVectorError(
-                "Some wave vectors are not reciprocal lattice vectors of the simulation box"
+                "Some wave vectors are not reciprocal lattice vectors of the simulation box spanned by\n"
+                + "\n".join(
+                    [
+                        str(self._lattice_dims[i])
+                        + (" (PBC)" if self.pbc[i] else " (OBC)")
+                        for i in range(self.ndim)
+                    ]
+                )
             )
 
         result = _np.asarray(_np.rint(result), dtype=int)

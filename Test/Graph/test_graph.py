@@ -525,13 +525,19 @@ def test_grid_space_group():
     assert len(g.point_group()) == 8
     assert len(g.space_group()) == 5 * 5 * 8
 
+    g = nk.graph.Grid([5, 5, 4, 4], pbc=[True, True, False, False])
+    _check_symmgroups(g)
+    assert len(g.rotation_group()) == 32
+    assert len(g.point_group()) == 64
+    assert len(g.space_group()) == 5 * 5 * 64
+
     g = nk.graph.Hypercube(3, 2)
     _check_symmgroups(g)
     assert len(g.space_group()) == len(g.automorphisms())
 
     g = nk.graph.Hypercube(4, 2)
     _check_symmgroups(g)
-    # 4x4 cube has even higher symmetry
+    # 4x4 square has even higher symmetry
     assert len(g.space_group()) < len(g.automorphisms())
 
 
