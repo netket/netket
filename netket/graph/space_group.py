@@ -84,6 +84,13 @@ class SpaceGroupBuilder:
     lattice: Lattice
     point_group_: PointGroup
 
+    def __post_init__(self):
+        object.__setattr__(
+            self,
+            "point_group_",
+            self.point_group_.replace(unit_cell=lattice.basis_vectors),
+        )
+
     # TODO describe ordering of group elements here and later in docstring
     @struct.property_cached
     def point_group(self) -> PermutationGroup:
@@ -170,7 +177,7 @@ class SpaceGroupBuilder:
     def _little_group_index(self, k: Array) -> Array:
         """Returns the indices of the elements of the little group corresponding to wave vector `k`."""
         # calculate k' = p(k) for all p in the point group
-        big_star = np.tensordot(self.point_group_.to_array(), k, axes=1)
+        big_star = np.tensordot(self.point_group_.matrices(), k, axes=1)
         big_star = self.lattice.to_reciprocal_lattice(big_star) % self.lattice.extent
         # should test for pbc before taking the modulus, but the only valid wave
         # vector for non-pbc axes is 0 and 0 % anything == 0
@@ -222,17 +229,24 @@ class SpaceGroupBuilder:
             `self.little_group(k).character_table[i].
             `CT[i,j]` gives the character of `self.space_group[j]` in the same.
         """
-        # Little-group-irrep factors
-        # conjugacy_table[g,p] lists p^{-1}gp, so point_group_factors[i,:,p]
-        # of irrep #i for the little group of p(k) is the equivalent
-        point_group_factors = self._little_group_irreps(k, divide=True)[
-            :, self.point_group_.conjugacy_table
-        ]
-        # Wave vector factors
-        big_star = np.tensordot(self.point_group_.to_array(), k, axes=1)
-        big_star = self.lattice.to_reciprocal_lattice(big_star) * (
+        # Wave vectors
+        big_star_Cart = np.tensordot(self.point_group_.matrices(), k, axes=1)
+        big_star = self.lattice.to_reciprocal_lattice(big_star_Cart) * (
             2 * pi / self.lattice.extent
         )
+        # Little-group-irrep factors
+        # Conjugacy_table[g,p] lists p^{-1}gp, so point_group_factors[i,:,p]
+        #     of irrep #i for the little group of p(k) is the equivalent
+        # Phase factor for non-symmorphic symmetries is exp(-i w_g . p(k))
+        point_group_factors = self._little_group_irreps(k, divide=True)[
+            :, self.point_group_.conjugacy_table
+        ] * np.exp(
+            -1j
+            * np.tensordot(
+                self.point_group_.translations(), big_star_Cart, axes=(-1, -1)
+            )
+        )
+        # Translational factors
         trans_factors = []
         for axis in range(self.lattice.ndim):
             n_trans = self.lattice.extent[axis] if self.lattice.pbc[axis] else 1

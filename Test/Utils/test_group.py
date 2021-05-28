@@ -205,7 +205,7 @@ names = [
         ),
         "RotoRefl(8°)[2,3,1]",
     ),
-    (group.axial.inversion, -np.eye(3), "Inv()"),
+    (group.axial.inversion(), -np.eye(3), "Inv()"),
 ]
 
 

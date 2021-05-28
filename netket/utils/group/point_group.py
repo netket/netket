@@ -130,6 +130,7 @@ class PGSymmetry(Element):
         """Returns False if _w is defined."""
         return self._w is None
 
+    @property
     def is_proper(self):
         return np.isclose(np.linalg.det(self._W), 1.0)
 
@@ -370,9 +371,25 @@ class PointGroup(Group):
         if not isinstance(other, PointGroup):
             raise ValueError("Incompatible groups (`PointGroup` and something else)")
 
-        # Should check if dimensions match, but mismatched dimensions would lead to
-        # multiplying different-sized matrices, resulting in an error
-        return PointGroup(super().__matmul__(other).elems, self.ndim)
+        # Check if dimensions match
+        if self.ndim != other.ndim:
+            raise ValueError("PointGroups of different dimensions cannot be multiplied")
+
+        elems = super().__matmul__(other).elems
+
+        # Cases for presence or absence of unit cells
+        if (self.unit_cell is None) and (other.unit_cell is None):
+            return PointGroup(elems, self.ndim)
+        elif (self.unit_cell is None) != (other.unit_cell is None):
+            uc = self.unit_cell if self.unit_cell is not None else other.unit_cell
+            return PointGroup(elems, self.ndim, uc)
+        else:
+            if np.allclose(self.unit_cell, other.unit_cell):
+                return PointGroup(elems, self.ndim, self.unit_cell)
+            else:
+                raise ValueError(
+                    "PointGroups for different unit cells cannot be multiplied"
+                )
 
     def _matrix(self, x: Element) -> Array:
         if isinstance(x, Identity):
@@ -442,6 +459,12 @@ class PointGroup(Group):
                     for x in self.elems
                 ]
             )
+
+    def matrices(self) -> Array:
+        return np.asarray([self._matrix(x) for x in self.elems])
+
+    def translations(self) -> Array:
+        return np.asarray([self._translation(x) for x in self.elems])
 
     def __array__(self, dtype=None) -> Array:
         return np.asarray(self.to_array(), dtype=dtype)

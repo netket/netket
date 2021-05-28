@@ -556,7 +556,7 @@ def test_triangular_space_group(lattice):
     with pytest.raises(TypeError):
         grp = g.space_group()
     # 2x4 unit cells of the triangle lattice make a rectangular grid
-    assert len(g.point_group(group.planar.rectangle)) == 4
+    assert len(g.point_group(group.planar.rectangle())) == 4
 
 
 def test_symmgroup():
