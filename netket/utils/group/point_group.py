@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from math import pi
 from functools import partial
 from typing import Optional, Tuple, Dict
+from scipy.linalg import schur
 
 from .semigroup import Identity, Element
 from .group import Group
@@ -146,12 +147,18 @@ _naming_tol = 1e-6
 _naming_allclose = partial(np.allclose, atol=_naming_tol, rtol=0.0)
 _naming_isclose = partial(np.isclose, atol=_naming_tol, rtol=0.0)
 
+# use Schur decomposition for eigenvalues of orthogonal W matrices to ensure
+# that eigenvectors are always orthogonal
+def _eig(W):
+    e, v = schur(W, "complex")
+    return np.diag(e), v
+
 
 def _origin_trans(W: Array, w: Array) -> Tuple[Array, Array]:
     """Decomposes a point group symmetry into a pure (improper) rotation around
     an origin and a translation along the axis/plane of the transformation.
     Returns the tuple (origin, translation)."""
-    e, v = np.linalg.eig(np.eye(W.shape[0]) - W)
+    e, v = _eig(np.eye(W.shape[0]) - W)
     # eigenvectors with eigenvalue 1 correspond to translations
     trans_v = v[:, _naming_isclose(e, 0.0)]
     trans = trans_v @ trans_v.T.conj() @ w
@@ -217,7 +224,7 @@ def _3D_name(W: Array, w: Optional[Array]) -> str:
                 return f"Translation{_to_rational_vector(trans)}"
 
         else:  # actual rotations / screws
-            e, v = np.linalg.eig(W)
+            e, v = _eig(W)
 
             if _naming_isclose(np.trace(W), -1.0):  # π-rotations
                 angle = pi
@@ -245,7 +252,7 @@ def _3D_name(W: Array, w: Optional[Array]) -> str:
             return f"Inv(){origin}"
 
         elif _naming_isclose(np.trace(W), 1.0):  # reflections / glides
-            e, v = np.linalg.eig(W)
+            e, v = _eig(W)
             # reflection plane normal is eigenvector with eigenvalue -1
             axis = v[:, _naming_isclose(e, -1.0)].real.flatten()
             # convention: first nonzero entry is positive
@@ -258,7 +265,7 @@ def _3D_name(W: Array, w: Optional[Array]) -> str:
                 )
 
         else:  # rotoreflections, choose axis s.t. rotation angle be positive
-            e, v = np.linalg.eig(W)
+            e, v = _eig(W)
             pos = e.imag > _naming_tol
             angle = np.angle(e[pos])[0]
             angle = int(np.rint(np.degrees(angle)))
