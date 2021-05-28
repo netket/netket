@@ -212,6 +212,7 @@ names = [
 @pytest.mark.parametrize("symm,W,name", names)
 def test_naming(symm, W, name):
     assert np.allclose(symm.matrix, W)
+    assert np.allclose(symm.translation, 0.0)
     assert str(symm) == name
 
 

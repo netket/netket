@@ -20,7 +20,7 @@ import numpy as np
 from dataclasses import dataclass
 from math import pi
 from functools import partial
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 from .semigroup import Identity, Element
 from .group import Group
@@ -37,110 +37,103 @@ class PGSymmetry(Element):
     """
     An abstract group element object to geometrically describe point group symmetries.
 
-    Contains two data fields: an orthogonal matrix `_W` and an optional translation
-    vector `_w`. Vectors :math:`vec x` are mapped to :math:`W\vec x + \vec w`.
+    Construction: `PGSymmetry(W,w)` with an orthogonal matrix `W` and an optional
+    translation vector `w` returns an object that maps vectors :math:`\vec x` to
+    :math:`W\vec x + \vec w`.
+
+    Internally, the transformation is stored as the affine matrix [[W,w],[0,1]],
+    such that matrix inverses and multiplication correspond to inverting and
+    multiplying the transformation itself.
     """
 
-    _W: Array
+    _affine: Array
     """
-    A 2D array specifying the transformation. It has to be orthogonal (i.e. it 
-    must be real and satisfy :math:`W^T W = 1`)
+    A 2D array specifying the affine transformation. It has to be of the block
+    structure [[W,w],[0,1]].
     """
 
-    _w: Optional[Array] = None
-    """
-    An optional vector specifying the translation associated with the point group
-    transformation. 
+    def __pre_init__(self, W: Array, w: Optional[Array] = None) -> Tuple[Tuple, Dict]:
+        W = np.asarray(W)
+        if W.ndim != 2:
+            raise ValueError("W must be a 2D matrix")
+        if W.shape[0] != W.shape[1]:
+            raise ValueError("W must be a square matrix")
+        ndim = W.shape[0]
+        if not np.allclose(W.T @ W, np.eye(ndim)):
+            raise ValueError("W must be an orthogonal matrix")
+        if w is None:
+            w = np.zeros((ndim, 1))
+        else:
+            w = np.asarray(w).reshape(ndim, 1)
+        return ((np.block([[W, w], [np.zeros(ndim), 1]]),), dict())
 
-    Defaults to the null vector, i.e., transformations that leave the origin in place.
-    """
+    @property
+    def affine_matrix(self) -> Array:
+        return self._affine
+
+    @property
+    def matrix(self) -> Array:
+        return self._affine[:-1, :-1]
+
+    @property
+    def translation(self) -> Array:
+        return self._affine[:-1, -1]
+
+    @property
+    def ndim(self) -> int:
+        return self._affine.shape[0] - 1
+
+    @property
+    def is_proper(self) -> bool:
+        return np.isclose(np.linalg.det(self.matrix), 1.0)
+
+    @property
+    def is_symmorphic(self) -> bool:
+        return np.allclose(self.translation, 0.0)
 
     def __call__(self, x):
-        if self._w is not None:
-            return np.tensordot(x, self._W.T, axes=1) + self._w
-        else:
-            return np.tensordot(x, self._W.T, axes=1)
+        return np.tensordot(x, self.matrix.T, axes=1) + self.translation
 
     def preimage(self, x):
-        if self._w is not None:
-            return np.tensordot(x - self._w, self._W, axes=1)
-        else:
-            return np.tensordot(x, self._W, axes=1)
+        return np.tensordot(x - self.translation, self.matrix, axes=1)
 
     def __hash__(self):
-        if self._w is not None:
-            return hash(
-                (HashableArray(comparable(self._W)), HashableArray(comparable(self._w)))
-            )
-        else:
-            return hash(HashableArray(comparable(self._W)))
+        return hash(HashableArray(comparable(self._affine)))
 
     def __eq__(self, other):
-        if isinstance(other, Permutation):
-            if self._w is None and self._w is None:
-                return HashableArray(comparable(self._W)) == HashableArray(
-                    comparable(other._W)
-                )
-            elif self._w is not None and self._w is not None:
-                return HashableArray(comparable(self._W)) == HashableArray(
-                    comparable(other._W)
-                ) and HashableArray(comparable(self._w)) == HashableArray(
-                    comparable(other._w)
-                )
-            else:
-                return False
+        if isinstance(other, PGSymmetry):
+            return HashableArray(comparable(self._affine)) == HashableArray(
+                comparable(other._affine)
+            )
         else:
             return False
 
     def change_origin(self, origin: Array) -> "PGSymmetry":
         """Returns a `PGSymmetry` representing a pure point-group transformation
         around `origin` with transformation matrix `self._W`."""
-        return PGSymmetry(self._W, (np.eye(self.ndim) - self._W) @ np.asarray(origin))
+        return PGSymmetry(
+            self.matrix, (np.eye(self.ndim) - self.matrix) @ np.asarray(origin)
+        )
 
     @struct.property_cached
     def _name(self) -> str:
-        if self._W.shape == (2, 2):
-            return _2D_name(self._W, self._w)
-        elif self._W.shape == (3, 3):
-            return _3D_name(self._W, self._w)
+        if self.ndim == 2:
+            return _2D_name(self.matrix, self.translation)
+        elif self.ndim == 3:
+            return _3D_name(self.matrix, self.translation)
         else:
-            return f"PGSymmetry({self._W}, {self._w or ''})"
+            return f"PGSymmetry({self.matrix}, {self.translation})"
 
     def __repr__(self):
         return self._name
 
-    # TODO how to represent _w?
     def __array__(self, dtype: DType = None):
-        return np.asarray(self._W, dtype)
-
-    @property
-    def ndim(self):
-        return self._W.shape[0]
-
-    @property
-    def matrix(self):
-        return self._W
-
-    @property
-    def translation(self):
-        return self._w if self._w is not None else np.zeros(self._W.shape[0])
-
-    @property
-    def is_symmorphic(self):
-        """Returns False if _w is defined."""
-        return self._w is None
-
-    @property
-    def is_proper(self):
-        return np.isclose(np.linalg.det(self._W), 1.0)
+        return np.asarray(self._affine, dtype)
 
 
 @dispatch
 def product(p: PGSymmetry, q: PGSymmetry):
-    if p.is_symmorphic and q.is_symmorphic:
-        return PGSymmetry(p.matrix @ q.matrix)
-    else:
-        return PGSymmetry(p.matrix @ q.matrix, p.matrix @ q.translation + p.translation)
+    return PGSymmetry(p.matrix @ q.matrix, p.matrix @ q.translation + p.translation)
 
 
 ############ NAMING 2D AND 3D POINT GROUP SYMMETRIES ###########################
@@ -238,9 +231,9 @@ def _3D_name(W: Array, w: Optional[Array]) -> str:
 
             angle = int(np.rint(np.degrees(angle)))
             if _naming_allclose(trans, 0.0):
-                return f"Rot({angle}°){_to_int_vector(axis)}"
+                return f"Rot({angle}°){_to_int_vector(axis)}{origin}"
             else:
-                return f"Screw({angle}°){_to_rational_vector(trans)}"
+                return f"Screw({angle}°){_to_rational_vector(trans)}{origin}"
 
     elif _naming_isclose(np.linalg.det(W), -1.0):  # improper rotations
 
@@ -388,10 +381,10 @@ class PointGroup(Group):
                 return PointGroup(elems, self.ndim, self.unit_cell)
             else:
                 raise ValueError(
-                    "PointGroups for different unit cells cannot be multiplied"
+                    "PointGroups with different unit cells cannot be multiplied"
                 )
 
-    def _matrix(self, x: Element) -> Array:
+    def matrix(self, x: Element) -> Array:
         if isinstance(x, Identity):
             return np.eye(self.ndim, dtype=float)
         elif isinstance(x, PGSymmetry):
@@ -401,7 +394,7 @@ class PointGroup(Group):
                 "`PointGroup` only supports `Identity` and `PGSymmetry` elements"
             )
 
-    def _translation(self, x: Element) -> Array:
+    def translation(self, x: Element) -> Array:
         if isinstance(x, Identity):
             return np.zeros(self.ndim, dtype=float)
         elif isinstance(x, PGSymmetry):
@@ -411,29 +404,29 @@ class PointGroup(Group):
                 "`PointGroup` only supports `Identity` and `PGSymmetry` elements"
             )
 
-    def _canonical_from_w(self, W: Array, w: Array) -> Array:
-        if self.is_symmorphic:
-            return comparable(W)
+    def affine_matrix(self, x: Element) -> Array:
+        if isinstance(x, Identity):
+            return np.eye(self.ndim + 1, dtype=float)
+        elif isinstance(x, PGSymmetry):
+            return x.affine_matrix
         else:
-            if self.unit_cell is None:
-                return np.vstack((comparable(W), comparable(w)))
-            else:
-                return np.vstack(
-                    (
-                        comparable(W),
-                        comparable_periodic(w @ np.linalg.inv(self.unit_cell)),
-                    )
-                )
+            raise ValueError(
+                "`PointGroup` only supports `Identity` and `PGSymmetry` elements"
+            )
 
-    def _canonical_from_big_matrix(self, Ww: Array) -> Array:
-        if self.is_symmorphic:
-            return self._canonical_from_w(Ww, None)
+    def _canonical_from_affine_matrix(self, affine: Array) -> Array:
+        if self.unit_cell is None:
+            return comparable(affine)
         else:
-            ndim = self.ndim
-            return self._canonical_from_w(Ww[0:ndim, 0:ndim], Ww[0:ndim, ndim])
+            return np.vstack(
+                comparable(affine[0:ndim, 0:ndim]),
+                comparable_periodic(
+                    affine[0:ndim, ndim] @ np.linalg.inv(self.unit_cell)
+                ),
+            )
 
     def _canonical(self, x: Element) -> Array:
-        return self._canonical_from_w(self._matrix(x), self._translation(x))
+        return self._canonical_from_affine_matrix(self.affine_matrix(x))
 
     def to_array(self) -> Array:
         """
@@ -445,20 +438,7 @@ class PointGroup(Group):
         matrix of the form [[W,w],[0,1]]: multiplying these matrices is
         equivalent to multiplying the symmetry operations.
         """
-        if self.is_symmorphic:
-            return np.asarray([self._matrix(x) for x in self.elems])
-        else:
-            return np.asarray(
-                [
-                    np.block(
-                        [
-                            [self._matrix(x), self._translation(x)[:, np.newaxis]],
-                            [np.zeros(self.ndim), 1],
-                        ]
-                    )
-                    for x in self.elems
-                ]
-            )
+        return np.asarray([self.affine_matrix(x) for x in self.elems])
 
     def matrices(self) -> Array:
         return np.asarray([self._matrix(x) for x in self.elems])
@@ -505,7 +485,7 @@ class PointGroup(Group):
         for i in self.elems:
             if isinstance(i, Identity):
                 subgroup.append(i)
-            elif i.is_proper():
+            elif i.is_proper:
                 subgroup.append(i)
         return PointGroup(subgroup, self.ndim, unit_cell=self.unit_cell)
 
@@ -526,14 +506,14 @@ class PointGroup(Group):
     @struct.property_cached
     def inverse(self) -> Array:
         lookup = self._canonical_lookup()
-        trans_matrices = self.to_array()
+        affine_matrices = self.to_array()
 
         inverse = np.zeros(len(self.elems), dtype=int)
 
         for index in range(len(self)):
-            inverse_matrix = np.linalg.inv(trans_matrices[index])
+            inverse_matrix = np.linalg.inv(affine_matrices[index])
             inverse[index] = lookup[
-                HashableArray(self._canonical_from_big_matrix(inverse_matrix))
+                HashableArray(self._canonical_from_affine_matrix(inverse_matrix))
             ]
 
         return inverse
@@ -541,9 +521,9 @@ class PointGroup(Group):
     @struct.property_cached
     def product_table(self) -> Array:
         # again, we calculate the product table of transformation matrices directly
-        trans_matrices = self.to_array()
+        affine_matrices = self.to_array()
         product_matrices = np.einsum(
-            "iab, jbc -> ijac", trans_matrices, trans_matrices
+            "iab, jbc -> ijac", affine_matrices, affine_matrices
         )  # this is a table of M_g M_h
 
         lookup = self._canonical_lookup()
@@ -555,7 +535,7 @@ class PointGroup(Group):
             for j in range(n_symm):
                 product_table[i, j] = lookup[
                     HashableArray(
-                        self._canonical_from_big_matrix(product_matrices[i, j])
+                        self._canonical_from_affine_matrix(product_matrices[i, j])
                     )
                 ]
 
@@ -564,10 +544,7 @@ class PointGroup(Group):
     @property
     def shape(self) -> Shape:
         """Tuple `(<# of group elements>, <ndim>, <ndim>)`, same as :code:`self.to_array().shape`."""
-        if self.is_symmorphic:
-            return (len(self), self.ndim, self.ndim)
-        else:
-            return (len(self), self.ndim + 1, self.ndim + 1)
+        return (len(self), self.ndim + 1, self.ndim + 1)
 
 
 def trivial_point_group(ndim: int) -> PointGroup:
