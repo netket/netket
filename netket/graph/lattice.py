@@ -609,7 +609,9 @@ class Lattice(NetworkX):
         """
         Returns the group of lattice translations of `self` as a `PermutationGroup` acting on the sites of `self`.
         """
-        return self.space_group_builder(trivial_point_group).translation_group(dim)
+        return self.space_group_builder(
+            trivial_point_group(self.ndim)
+        ).translation_group(dim)
 
     # Output and drawing
     # ------------------------------------------------------------------------

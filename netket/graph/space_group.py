@@ -88,7 +88,7 @@ class SpaceGroupBuilder:
         object.__setattr__(
             self,
             "point_group_",
-            self.point_group_.replace(unit_cell=lattice.basis_vectors),
+            self.point_group_.replace(unit_cell=self.lattice.basis_vectors),
         )
 
     # TODO describe ordering of group elements here and later in docstring
