@@ -531,41 +531,47 @@ class PointGroup(Group):
 
     @struct.property_cached
     def inverse(self) -> Array:
-        lookup = self._canonical_lookup()
-        affine_matrices = self.to_array()
+        try:
+            lookup = self._canonical_lookup()
+            affine_matrices = self.to_array()
 
-        inverse = np.zeros(len(self.elems), dtype=int)
+            inverse = np.zeros(len(self.elems), dtype=int)
 
-        for index in range(len(self)):
-            inverse_matrix = np.linalg.inv(affine_matrices[index])
-            inverse[index] = lookup[
-                HashableArray(self._canonical_from_affine_matrix(inverse_matrix))
-            ]
+            for index in range(len(self)):
+                inverse_matrix = np.linalg.inv(affine_matrices[index])
+                inverse[index] = lookup[
+                    HashableArray(self._canonical_from_affine_matrix(inverse_matrix))
+                ]
 
-        return inverse
+            return inverse
+        except KeyError:
+            raise KeyError("PointGroup does not contain the inverse of all elements")
 
     @struct.property_cached
     def product_table(self) -> Array:
-        # again, we calculate the product table of transformation matrices directly
-        affine_matrices = self.to_array()
-        product_matrices = np.einsum(
-            "iab, jbc -> ijac", affine_matrices, affine_matrices
-        )  # this is a table of M_g M_h
+        try:
+            # again, we calculate the product table of transformation matrices directly
+            affine_matrices = self.to_array()
+            product_matrices = np.einsum(
+                "iab, jbc -> ijac", affine_matrices, affine_matrices
+            )  # this is a table of M_g M_h
 
-        lookup = self._canonical_lookup()
+            lookup = self._canonical_lookup()
 
-        n_symm = len(self)
-        product_table = np.zeros((n_symm, n_symm), dtype=int)
+            n_symm = len(self)
+            product_table = np.zeros((n_symm, n_symm), dtype=int)
 
-        for i in range(n_symm):
-            for j in range(n_symm):
-                product_table[i, j] = lookup[
-                    HashableArray(
-                        self._canonical_from_affine_matrix(product_matrices[i, j])
-                    )
-                ]
+            for i in range(n_symm):
+                for j in range(n_symm):
+                    product_table[i, j] = lookup[
+                        HashableArray(
+                            self._canonical_from_affine_matrix(product_matrices[i, j])
+                        )
+                    ]
 
-        return product_table[self.inverse]  # reshuffle rows to match specs
+            return product_table[self.inverse]  # reshuffle rows to match specs
+        except KeyError:
+            raise KeyError("PointGroup is not closed under multiplication")
 
     @property
     def shape(self) -> Shape:

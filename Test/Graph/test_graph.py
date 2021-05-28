@@ -214,7 +214,7 @@ def test_lattice_symmetry(i, name):
         lg = sgb.little_group([1] * dimension[i])
 
     # The little group of Γ is the full point group
-    assert sgb.little_group(np.zeros(dimension[i])) == graph._point_group
+    assert sgb.little_group(np.zeros(dimension[i])) == sgb.point_group_
 
     # Generate little groups and their irreps
     assert len(sgb.little_group(kvec[i])) == little_group_size[i]

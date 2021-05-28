@@ -158,44 +158,54 @@ class PermutationGroup(Group):
 
     @struct.property_cached
     def inverse(self) -> Array:
-        perm_array = self.to_array()
-        n_symm = len(perm_array)
-        inverse = np.zeros([n_symm], dtype=int)
-        for i, perm1 in enumerate(perm_array):
-            for j, perm2 in enumerate(perm_array):
-                perm_sq = perm1[perm2]
-                if np.all(perm_sq == np.arange(len(perm_sq))):
-                    inverse[i] = j
+        try:
+            perm_array = self.to_array()
+            n_symm = len(perm_array)
+            inverse = np.zeros([n_symm], dtype=int)
+            for i, perm1 in enumerate(perm_array):
+                for j, perm2 in enumerate(perm_array):
+                    perm_sq = perm1[perm2]
+                    if np.all(perm_sq == np.arange(len(perm_sq))):
+                        inverse[i] = j
 
-        return inverse
+            return inverse
+        except KeyError:
+            raise KeyError(
+                "PermutationGroup does not contain the inverse of all elements"
+            )
 
     @struct.property_cached
     def product_table(self) -> Array:
-        perms = self.to_array()
-        inverse = perms[self.inverse].squeeze()
-        n_symm = len(perms)
-        product_table = np.zeros([n_symm, n_symm], dtype=int)
+        try:
+            perms = self.to_array()
+            inverse = perms[self.inverse].squeeze()
+            n_symm = len(perms)
+            product_table = np.zeros([n_symm, n_symm], dtype=int)
 
-        inv_t = inverse.transpose()
-        perms_t = perms.transpose()
-        inv_elements = perms_t[inv_t].reshape(-1, n_symm * n_symm).transpose()
+            inv_t = inverse.transpose()
+            perms_t = perms.transpose()
+            inv_elements = perms_t[inv_t].reshape(-1, n_symm * n_symm).transpose()
 
-        perms = [HashableArray(element) for element in perms]
-        inv_perms = [HashableArray(element) for element in inv_elements]
+            perms = [HashableArray(element) for element in perms]
+            inv_perms = [HashableArray(element) for element in inv_elements]
 
-        inverse_index_mapping = {element: index for index, element in enumerate(perms)}
+            inverse_index_mapping = {
+                element: index for index, element in enumerate(perms)
+            }
 
-        inds = [
-            (index, inverse_index_mapping[element])
-            for index, element in enumerate(inv_perms)
-            if element in inverse_index_mapping
-        ]
+            inds = [
+                (index, inverse_index_mapping[element])
+                for index, element in enumerate(inv_perms)
+                if element in inverse_index_mapping
+            ]
 
-        inds = np.asarray(inds)
+            inds = np.asarray(inds)
 
-        product_table[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
+            product_table[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
 
-        return product_table
+            return product_table
+        except KeyError:
+            raise KeyError("PermutationGroup is not closed under multiplication")
 
     @property
     def shape(self) -> Shape:
