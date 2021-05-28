@@ -97,6 +97,10 @@ class PGSymmetry(Element):
     def preimage(self, x):
         return np.tensordot(x - self.translation, self.matrix, axes=1)
 
+    def k_action(self, x):
+        # wave vectors are not translated
+        return np.tensordot(x, self.matrix.T, axes=1)
+
     def __hash__(self):
         return hash(HashableArray(comparable(self._affine)))
 
@@ -441,10 +445,10 @@ class PointGroup(Group):
         return np.asarray([self.affine_matrix(x) for x in self.elems])
 
     def matrices(self) -> Array:
-        return np.asarray([self._matrix(x) for x in self.elems])
+        return np.asarray([self.matrix(x) for x in self.elems])
 
     def translations(self) -> Array:
-        return np.asarray([self._translation(x) for x in self.elems])
+        return np.asarray([self.translation(x) for x in self.elems])
 
     def __array__(self, dtype=None) -> Array:
         return np.asarray(self.to_array(), dtype=dtype)

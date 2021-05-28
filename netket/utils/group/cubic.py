@@ -85,3 +85,14 @@ def Oh() -> PointGroup:
 
 
 octahedral = cubic = Oh
+
+
+def Fd3m() -> PointGroup:
+    """Nonsymmorphic "point group" of the diamond and pyrochlore lattices with a
+    cubic unit cell of side length 1."""
+    return (_inv_group().change_origin([1 / 8, 1 / 8, 1 / 8]) @ Td()).replace(
+        unit_cell=np.asarray([[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]])
+    )
+
+
+diamond = pyrochlore = Fd3m

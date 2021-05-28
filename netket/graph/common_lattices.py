@@ -120,6 +120,26 @@ def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
     return Grid(length_vector, pbc=pbc)
 
 
+def Cube(length: int, *, pbc: bool = True) -> Lattice:
+    """Constructs a cubic lattice of side `length`
+    Periodic boundary conditions can also be imposed
+
+    Args:
+        length: Side length of the cube; must always be >=1
+        pbc: Whether the cube should have periodic boundary conditions (in all directions)
+
+    Examples:
+        A 10×10×10 cubic lattice with periodic boundary conditions can be
+        constructed as follows:
+
+        >>> import netket
+        >>> g=netket.graph.Cube(10, pbc=True)
+        >>> print(g.n_nodes)
+        1000
+    """
+    return Hypercube(length, pbc=pbc, n_dim=3)
+
+
 def Square(length: int, *, pbc: bool = True) -> Lattice:
     """Constructs a square lattice of side `length`
     Periodic boundary conditions can also be imposed
@@ -160,16 +180,142 @@ def Chain(length: int, *, pbc: bool = True) -> Lattice:
     return Hypercube(length, pbc=pbc, n_dim=1)
 
 
+def BCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+    """Constructs a BCC lattice of a given spatial extent.
+    Periodic boundary conditions can also be imposed
+    Sites are returned at the Bravais lattice points.
+
+    Arguments:
+        extent: Number of primitive unit cells along each direction, needs to be an array of length 3
+        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+             if `False`, the lattice will have open boundary conditions (OBC).
+             This parameter can also be a list of booleans with same length as
+             the parameter `length`, in which case each dimension will have
+             PBC/OBC depending on the corresponding entry of `pbc`.
+
+    Example:
+        Construct a BCC lattice with 3×3×3 primitive unit cells:
+
+        >>> from netket.graph import BCC
+        >>> g = BCC(extent=[3,3,3])
+        >>> print(g.nodes)
+        27
+    """
+    basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
+    # determine if full point group is realised by the simulation box
+    point_group = cubic.Oh if np.all(pbc) else None
+    return Lattice(basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group)
+
+
+def FCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+    """Constructs an FCC lattice of a given spatial extent.
+    Periodic boundary conditions can also be imposed
+    Sites are returned at the Bravais lattice points.
+
+    Arguments:
+        extent: Number of primitive unit cells along each direction, needs to be an array of length 3
+        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+             if `False`, the lattice will have open boundary conditions (OBC).
+             This parameter can also be a list of booleans with same length as
+             the parameter `length`, in which case each dimension will have
+             PBC/OBC depending on the corresponding entry of `pbc`.
+
+    Example:
+        Construct an FCC lattice with 3×3×3 primitive unit cells:
+
+        >>> from netket.graph import FCC
+        >>> g = FCC(extent=[3,3,3])
+        >>> print(g.nodes)
+        27
+    """
+    basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
+    # determine if full point group is realised by the simulation box
+    point_group = cubic.Oh if np.all(pbc) else None
+    return Lattice(basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group)
+
+
+def Diamond(
+    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True
+) -> Lattice:
+    """Constructs a diamond lattice of a given spatial extent.
+    Periodic boundary conditions can also be imposed.
+
+    Sites are returned at the 8a Wyckoff positions of the FCC lattice
+    ([000], [1/4,1/4,1/4], and translations thereof).
+
+    Arguments:
+        extent: Number of primitive unit cells along each direction, needs to be an array of length 3
+        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+             if `False`, the lattice will have open boundary conditions (OBC).
+             This parameter can also be a list of booleans with same length as
+             the parameter `length`, in which case each dimension will have
+             PBC/OBC depending on the corresponding entry of `pbc`.
+
+    Example:
+        Construct a diamond lattice with 3×3×3 primitive unit cells:
+
+        >>> from netket.graph import Diamond
+        >>> g = Diamond(extent=[3,3,3])
+        >>> print(g.nodes)
+        54
+    """
+    basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
+    sites = [[0, 0, 0], [0.25, 0.25, 0.25]]
+    # determine if full point group is realised by the simulation box
+    point_group = cubic.Fd3m if np.all(pbc) else None
+    return Lattice(
+        basis_vectors=basis,
+        site_offsets=sites,
+        extent=extent,
+        pbc=pbc,
+        point_group=point_group,
+    )
+
+
+def Pyrochlore(
+    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True
+) -> Lattice:
+    """Constructs a pyrochlore lattice of a given spatial extent.
+    Periodic boundary conditions can also be imposed.
+
+    Sites are returned at the 16c Wyckoff positions of the FCC lattice
+    ([111]/8, [1 -1 -1]/8, [-1 1 -1]/8, [-1 -1 1]/8, and translations thereof).
+
+    Arguments:
+        extent: Number of primitive unit cells along each direction, needs to be an array of length 3
+        pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
+             if `False`, the lattice will have open boundary conditions (OBC).
+             This parameter can also be a list of booleans with same length as
+             the parameter `length`, in which case each dimension will have
+             PBC/OBC depending on the corresponding entry of `pbc`.
+
+    Example:
+        Construct a pyrochlore lattice with 3×3×3 primitive unit cells:
+
+        >>> from netket.graph import Pyrochlore
+        >>> g = Pyrochlore(extent=[3,3,3])
+        >>> print(g.nodes)
+        108
+    """
+    basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
+    sites = np.array([[1, 1, 1], [1, 3, 3], [3, 1, 3], [3, 3, 1]]) / 8
+    # determine if full point group is realised by the simulation box
+    point_group = cubic.Fd3m if np.all(pbc) else None
+    return Lattice(
+        basis_vectors=basis,
+        site_offsets=sites,
+        extent=extent,
+        pbc=pbc,
+        point_group=point_group,
+    )
+
+
 def _hexagonal_general(
     extent, *, site_offsets=None, pbc: Union[bool, Sequence[bool]] = True
 ) -> Lattice:
     basis = [[1, 0], [0.5, 0.75 ** 0.5]]
     # determine if full point group is realised by the simulation box
-    if isinstance(pbc, Sequence):
-        all_pbc = pbc[0] and pbc[1]
-    else:
-        all_pbc = pbc
-    point_group = planar.D(6) if all_pbc and extent[0] == extent[1] else None
+    point_group = planar.D(6) if np.all(pbc) and extent[0] == extent[1] else None
     return Lattice(
         basis_vectors=basis,
         extent=extent,
@@ -184,7 +330,7 @@ def TriangularLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lat
     Periodic boundary conditions can also be imposed
     Sites are returned at the Bravais lattice points.
 
-    Args:
+    Arguments:
         extent: Number of unit cells along each direction, needs to be an array of length 2
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
              if `False`, the lattice will have open boundary conditions (OBC).
@@ -208,7 +354,7 @@ def HoneycombLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Latt
     Periodic boundary conditions can also be imposed.
     Sites are returned at the 2b Wyckoff positions.
 
-    Args:
+    Arguments:
         extent: Number of unit cells along each direction, needs to be an array of length 2
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
              if `False`, the lattice will have open boundary conditions (OBC).
@@ -234,7 +380,7 @@ def KagomeLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice
     Periodic boundary conditions can also be imposed.
     Sites are returned at the 3c Wyckoff positions.
 
-    Args:
+    Arguments:
         extent: Number of unit cells along each direction, needs to be an array of length 2
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
              if `False`, the lattice will have open boundary conditions (OBC).
