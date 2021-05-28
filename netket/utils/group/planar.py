@@ -110,8 +110,12 @@ def D(n: int, axis: float = 0) -> PointGroup:
 
 dihedral = D
 
-rectangle = D(2)
-"""The symmetry group of a rectangle aligned with the Cartesian axes (Vierergruppe)."""
 
-square = D(4)
-"""The symmetry group of a square aligned with the Cartesian axes."""
+def rectangle() -> PointGroup:
+    """The symmetry group of a rectangle aligned with the Cartesian axes (Vierergruppe)."""
+    return D(2)
+
+
+def square() -> PointGroup:
+    """The symmetry group of a square aligned with the Cartesian axes."""
+    return D(4)

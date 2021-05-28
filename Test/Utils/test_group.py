@@ -38,8 +38,8 @@ uniaxials = [
 ]
 uniaxials_proper = [True] * 8 + [False] * 16
 impropers = [
-    group.axial.inversions,
-    group.axial.reflections(axis=np.random.standard_normal(3)),
+    group.axial.inversion_group(),
+    group.axial.reflection_group(axis=np.random.standard_normal(3)),
 ]
 impropers_proper = [False, False]
 biaxial_families = [group.axial.Cv, group.axial.D, group.axial.Dh, group.axial.Dd]
@@ -50,7 +50,13 @@ biaxials = [
     for i, (fn, n) in enumerate(product(biaxial_families, range(1, 9)))
 ]
 biaxials_proper = [False] * 8 + [True] * 8 + [False] * 16
-cubics = [group.cubic.T, group.cubic.Td, group.cubic.Th, group.cubic.O, group.cubic.Oh]
+cubics = [
+    group.cubic.T(),
+    group.cubic.Td(),
+    group.cubic.Th(),
+    group.cubic.O(),
+    group.cubic.Oh(),
+]
 cubics_proper = [True, False, False, True, False]
 point_groups = planars + uniaxials + biaxials + impropers + cubics
 proper = (
@@ -114,11 +120,11 @@ details = [
     (group.axial.D(4), [1, 2, 1, 2, 2], [1, 1, 1, 1, 2]),
     (group.axial.Dh(4), [1, 2, 1, 2, 2] * 2, [1, 1, 1, 1, 2] * 2),
     (group.axial.Dd(4), [1, 2, 2, 2, 1, 4, 4], [1, 1, 1, 1, 2, 2, 2]),
-    (group.cubic.T, [1, 4, 4, 3], [1, 1, 1, 3]),
-    (group.cubic.Td, [1, 8, 3, 6, 6], [1, 1, 2, 3, 3]),
-    (group.cubic.Th, [1, 4, 4, 3] * 2, [1, 1, 1, 3] * 2),
-    (group.cubic.O, [1, 6, 3, 8, 6], [1, 1, 2, 3, 3]),
-    (group.cubic.Oh, [1, 6, 3, 8, 6] * 2, [1, 1, 2, 3, 3] * 2),
+    (group.cubic.T(), [1, 4, 4, 3], [1, 1, 1, 3]),
+    (group.cubic.Td(), [1, 8, 3, 6, 6], [1, 1, 2, 3, 3]),
+    (group.cubic.Th(), [1, 4, 4, 3] * 2, [1, 1, 1, 3] * 2),
+    (group.cubic.O(), [1, 6, 3, 8, 6], [1, 1, 2, 3, 3]),
+    (group.cubic.Oh(), [1, 6, 3, 8, 6] * 2, [1, 1, 2, 3, 3] * 2),
 ]
 
 
@@ -250,13 +256,17 @@ def test_change_origin(grp):
 
 
 def test_pyrochlore():
-    Fd3m = group.axial.inversions.change_origin([1 / 8, 1 / 8, 1 / 8]) @ group.cubic.Td
+    Fd3m = (
+        group.axial.inversion_group().change_origin([1 / 8, 1 / 8, 1 / 8])
+        @ group.cubic.Td()
+    )
     # closure fails without specifying a unit cell
     with pytest.raises(KeyError):
         pt = Fd3m.product_table
     Fd3m = Fd3m.replace(
         unit_cell=np.asarray([[0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])
     )
-    Oh = group.axial.inversions @ group.cubic.Td
+    # canned Oh is listed in a different order
+    Oh = group.axial.inversion_group() @ group.cubic.Td()
     # after specifying the unit cell, Fd3m is isomorphic to Oh
     assert np.all(Fd3m.product_table == Oh.product_table)

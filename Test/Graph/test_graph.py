@@ -72,7 +72,7 @@ symmetric_graphs = [
     nk.graph.Lattice(
         basis_vectors=[[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]],
         extent=[3, 3, 3],
-        point_group=group.cubic.Oh,
+        point_group=group.cubic.Oh(),
     ),
 ]
 
