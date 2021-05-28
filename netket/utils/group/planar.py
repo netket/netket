@@ -105,7 +105,7 @@ def D(n: int, axis: float = 0) -> PointGroup:
     Returns:
         a `PointGroup` object implementing :math:`D_n`
     """
-    return reflections(axis) @ C(n)
+    return reflection_group(axis) @ C(n)
 
 
 dihedral = D
