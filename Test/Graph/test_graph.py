@@ -55,17 +55,27 @@ graphs = [
     Edgeless(10),
 ]
 
-symmetric_graph_names = ["square", "triangular", "honeycomb", "kagome", "cubic", "bcc"]
+symmetric_graph_names = [
+    "square",
+    "triangular",
+    "honeycomb",
+    "kagome",
+    "cubic",
+    "bcc",
+    "fcc",
+    "diamond",
+    "pyrochlore",
+]
 
 symmetric_graphs = [
     # Square
     nk.graph.Square(3),
     # Triangular
-    nk.graph.TriangularLattice([3, 3]),
+    nk.graph.Triangular([3, 3]),
     # Honeycomb
-    nk.graph.HoneycombLattice([3, 3]),
+    nk.graph.Honeycomb([3, 3]),
     # Kagome
-    nk.graph.KagomeLattice([3, 3]),
+    nk.graph.Kagome([3, 3]),
     # Cube
     nk.graph.Hypercube(length=3, n_dim=3),
     # Body-centred Cubic
@@ -541,9 +551,7 @@ def test_grid_space_group():
     assert len(g.space_group()) < len(g.automorphisms())
 
 
-@pytest.mark.parametrize(
-    "lattice", [TriangularLattice, HoneycombLattice, KagomeLattice]
-)
+@pytest.mark.parametrize("lattice", [Triangular, Honeycomb, Kagome])
 def test_triangular_space_group(lattice):
     g = lattice([3, 3])
     _check_symmgroups(g)

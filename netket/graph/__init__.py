@@ -25,9 +25,9 @@ from .common_lattices import (
     FCC,
     Diamond,
     Pyrochlore,
-    TriangularLattice,
-    HoneycombLattice,
-    KagomeLattice,
+    Triangular,
+    Honeycomb,
+    Kagome,
 )
 
 from netket.utils import _hide_submodules

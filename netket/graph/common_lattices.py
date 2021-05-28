@@ -325,7 +325,7 @@ def _hexagonal_general(
     )
 
 
-def TriangularLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+def Triangular(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
     r"""Constructs a triangular lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed
     Sites are returned at the Bravais lattice points.
@@ -341,15 +341,15 @@ def TriangularLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lat
     Example:
         Construct a triangular lattice with 3 × 3 unit cells:
 
-        >>> from netket.graph import TriangularLattice
-        >>> g = TriangularLattice(extent=[3, 3])
+        >>> from netket.graph import Triangular
+        >>> g = Triangular(extent=[3, 3])
         >>> print(g.n_nodes)
         9
     """
     return _hexagonal_general(extent, site_offsets=None, pbc=pbc)
 
 
-def HoneycombLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+def Honeycomb(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
     r"""Constructs a honeycomb lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
     Sites are returned at the 2b Wyckoff positions.
@@ -365,8 +365,8 @@ def HoneycombLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Latt
     Example:
         Construct a honeycomb lattice with 3 × 3 unit cells:
 
-        >>> from netket.graph import HoneycombLattice
-        >>> g = HoneycombLattice(extent=[3, 3])
+        >>> from netket.graph import Honeycomb
+        >>> g = Honeycomb(extent=[3, 3])
         >>> print(g.n_nodes)
         18
     """
@@ -375,7 +375,7 @@ def HoneycombLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Latt
     )
 
 
-def KagomeLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+def Kagome(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
     r"""Constructs a kagome lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
     Sites are returned at the 3c Wyckoff positions.
@@ -391,8 +391,8 @@ def KagomeLattice(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice
     Example:
         Construct a kagome lattice with 3 × 3 unit cells:
 
-        >>> from netket.graph import KagomeLattice
-        >>> g = KagomeLattice(extent=[3, 3])
+        >>> from netket.graph import Kagome
+        >>> g = Kagome(extent=[3, 3])
         >>> print(g.n_nodes)
         27
     """
