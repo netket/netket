@@ -198,7 +198,7 @@ def BCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> La
 
         >>> from netket.graph import BCC
         >>> g = BCC(extent=[3,3,3])
-        >>> print(g.nodes)
+        >>> print(g.n_nodes)
         27
     """
     basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
@@ -225,7 +225,7 @@ def FCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> La
 
         >>> from netket.graph import FCC
         >>> g = FCC(extent=[3,3,3])
-        >>> print(g.nodes)
+        >>> print(g.n_nodes)
         27
     """
     basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
@@ -256,7 +256,7 @@ def Diamond(
 
         >>> from netket.graph import Diamond
         >>> g = Diamond(extent=[3,3,3])
-        >>> print(g.nodes)
+        >>> print(g.n_nodes)
         54
     """
     basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
@@ -294,7 +294,7 @@ def Pyrochlore(
 
         >>> from netket.graph import Pyrochlore
         >>> g = Pyrochlore(extent=[3,3,3])
-        >>> print(g.nodes)
+        >>> print(g.n_nodes)
         108
     """
     basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]

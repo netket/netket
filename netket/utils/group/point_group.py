@@ -423,9 +423,9 @@ class PointGroup(Group):
             return comparable(affine)
         else:
             return np.vstack(
-                comparable(affine[0:ndim, 0:ndim]),
+                comparable(affine[0 : self.ndim, 0 : self.ndim]),
                 comparable_periodic(
-                    affine[0:ndim, ndim] @ np.linalg.inv(self.unit_cell)
+                    affine[0 : self.ndim, self.ndim] @ np.linalg.inv(self.unit_cell)
                 ),
             )
 

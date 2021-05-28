@@ -224,7 +224,7 @@ names_nonsymm = [
         "Rot(30°)O[1,0]",
     ),
     (
-        group.planar.reflection(0).replace(_w=[0.5, 0]),
+        group.planar.glide([0.5, 0]),
         np.diag([1.0, -1.0]),
         np.asarray([0.5, 0.0]),
         "Glide[1/2,0]",
