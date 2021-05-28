@@ -206,8 +206,15 @@ def test_lattice_symmetry(i, name):
             sg = graph.space_group(group.axial.C(5))
     # Generate space group using the preloaded point group
     sgb = graph.space_group_builder()
-    # Check if the point permutation group is isomorphic to geometric one
-    assert np.all(sgb.point_group.product_table == graph._point_group.product_table)
+
+    if graph._point_group.is_symmorphic:
+        # Check if the point permutation group is isomorphic to geometric one
+        assert np.all(sgb.point_group.product_table == graph._point_group.product_table)
+    else:
+        # If non-symmorphic, point permutation group shouldn't close
+        with pytest.raises(KeyError):
+            pt = sgb.point_group.product_table
+
     # Build translation group product table explicitly and compare
     pt_1d = [[0, 1, 2], [2, 0, 1], [1, 2, 0]]
     ones = np.ones((3, 3), dtype=int)
