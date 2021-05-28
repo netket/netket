@@ -423,10 +423,12 @@ class PointGroup(Group):
             return comparable(affine)
         else:
             return np.vstack(
-                comparable(affine[0 : self.ndim, 0 : self.ndim]),
-                comparable_periodic(
-                    affine[0 : self.ndim, self.ndim] @ np.linalg.inv(self.unit_cell)
-                ),
+                (
+                    comparable(affine[0 : self.ndim, 0 : self.ndim]),
+                    comparable_periodic(
+                        affine[0 : self.ndim, self.ndim] @ np.linalg.inv(self.unit_cell)
+                    ),
+                )
             )
 
     def _canonical(self, x: Element) -> Array:

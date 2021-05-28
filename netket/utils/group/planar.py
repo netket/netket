@@ -43,7 +43,7 @@ def C(n: int) -> PointGroup:
     )
 
 
-rotations = C
+rotation_group = C
 
 
 def reflection(axis: float) -> PGSymmetry:
@@ -56,7 +56,7 @@ def reflection(axis: float) -> PGSymmetry:
     )
 
 
-def reflections(axis: float) -> PointGroup:
+def reflection_group(axis: float) -> PointGroup:
     """
     Returns the Z₂ `PointGroup` containing the identity and a reflection across an
     axis at angle `axis` to the +x direction
@@ -79,7 +79,7 @@ def glide(trans: Array, origin: Array = [0, 0]) -> PGSymmetry:
     return PGSymmetry(W, w)
 
 
-def glides(trans: Array, origin: Array = [0, 0]) -> PGSymmetry:
+def glide_group(trans: Array, origin: Array = [0, 0]) -> PGSymmetry:
     """
     Returns the Z_2 `PointGroup`containing the identity and a  2D glide composed
     of translation by `trans` and reflection across its direction.

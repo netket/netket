@@ -75,10 +75,11 @@ def screw_group(angle: float, trans: Array, origin: Array = [0, 0, 0]) -> PointG
     consistent with the screw axis; otherwise, operations like `product_table`
     will fail."""
     out = [Identity()]
+    trans = np.asarray(trans)
     for i in count(start=1):
         if is_approx_int(i * angle / 360):
             break
-        out.append(screw(i * angle, trans, origin))
+        out.append(screw(i * angle, i * trans, origin))
     return PointGroup(out, ndim=3)
 
 

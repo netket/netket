@@ -28,8 +28,11 @@ pytestmark = common.skipif_mpi
 # Tests for group.py and overrides in subclasses
 
 planar_families = [group.planar.C, group.planar.D]
-planars = [fn(n) for fn in planar_families for n in range(1, 9)]
-planars_proper = [True] * 8 + [False] * 8
+planars = [fn(n) for fn in planar_families for n in range(1, 9)] + [
+    group.planar.reflection_group(23),
+    group.planar.glide_group([0.5, 0]).replace(unit_cell=np.eye(2)),
+]
+planars_proper = [True] * 8 + [False] * 10
 uniaxial_families = [group.axial.C, group.axial.Ch, group.axial.S]
 uniaxials = [
     fn(n, axis=np.random.standard_normal(3))
@@ -40,8 +43,16 @@ uniaxials_proper = [True] * 8 + [False] * 16
 impropers = [
     group.axial.inversion_group(),
     group.axial.reflection_group(axis=np.random.standard_normal(3)),
+    group.axial.glide_group(axis=[0, 0, 0.5], trans=[0.5, 0, 0]).replace(
+        unit_cell=np.eye(3)
+    ),
 ]
-impropers_proper = [False, False]
+impropers_proper = [False] * 3
+screws = [
+    group.axial.screw_group(360 / n, [1 / n, 0, 0]).replace(unit_cell=np.eye(3))
+    for n in range(1, 9)
+]
+screws_proper = [True] * 8
 biaxial_families = [group.axial.Cv, group.axial.D, group.axial.Dh, group.axial.Dd]
 axes1 = np.random.standard_normal((32, 3))
 axes2 = np.cross(axes1, np.random.standard_normal((32, 3)))
@@ -56,12 +67,14 @@ cubics = [
     group.cubic.Th(),
     group.cubic.O(),
     group.cubic.Oh(),
+    group.cubic.Fd3m(),
 ]
-cubics_proper = [True, False, False, True, False]
-point_groups = planars + uniaxials + biaxials + impropers + cubics
+cubics_proper = [True, False, False, True, False, False]
+point_groups = planars + uniaxials + screws + biaxials + impropers + cubics
 proper = (
     planars_proper
     + uniaxials_proper
+    + screws_proper
     + biaxials_proper
     + impropers_proper
     + cubics_proper
@@ -125,6 +138,7 @@ details = [
     (group.cubic.Th(), [1, 4, 4, 3] * 2, [1, 1, 1, 3] * 2),
     (group.cubic.O(), [1, 6, 3, 8, 6], [1, 1, 2, 3, 3]),
     (group.cubic.Oh(), [1, 6, 3, 8, 6] * 2, [1, 1, 2, 3, 3] * 2),
+    (group.cubic.Fd3m(), [1, 6, 3, 8, 6] * 2, [1, 1, 2, 3, 3] * 2),
 ]
 
 
@@ -161,8 +175,8 @@ def test_rotation_group(i, grp):
     rot = grp.rotation_group()
     assert len(rot) == (len(grp) if proper[i] else len(grp) // 2)
     for i in rot:
-        assert isinstance(i, group.Identity) or i.is_proper()
-        assert str(i)[:3] in {"Id(", "Rot"}
+        assert isinstance(i, group.Identity) or i.is_proper
+        assert str(i)[:3] in {"Id(", "Rot", "Scr"}
 
 
 # Test for naming and generating 2D and 3D PGSymmetries
@@ -234,6 +248,18 @@ names_nonsymm = [
         np.diag([1.0, -1.0]),
         np.asarray([0.0, 1.0]),
         "Refl(0°)O[0,1/2]",
+    ),
+    (
+        group.axial.rotation(-30, [0, 0, 1]).change_origin([0.5, 0, 0]),
+        np.asarray([[0.75 ** 0.5, 0.5, 0], [-0.5, 0.75 ** 0.5, 0], [0, 0, 1]]),
+        np.asarray([(1 - 0.75 ** 0.5) / 2, 0.25, 0]),
+        "Rot(30°)[0,0,-1]O[1/2,0,0]",
+    ),
+    (
+        group.axial.screw(-30, [0, 0, 1], origin=[1 / 3, 0, 0]),
+        np.asarray([[0.75 ** 0.5, 0.5, 0], [-0.5, 0.75 ** 0.5, 0], [0, 0, 1]]),
+        np.asarray([(1 - 0.75 ** 0.5) / 3, 1 / 6, 1]),
+        "Screw(-30°)[0,0,1]O[1/3,0,0]",
     ),
 ]
 # TODO add 3D examples
