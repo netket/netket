@@ -463,6 +463,7 @@ def _check_symmgroups(graph):
     autom = graph.automorphisms()
     _check_symmgroup(autom, graph.rotation_group())
     _check_symmgroup(autom, graph.point_group())
+    _check_symmgroup(autom, graph.translation_group())
     _check_symmgroup(autom, graph.space_group())
 
 
@@ -474,7 +475,7 @@ def test_grid_translations():
 
         assert len(translations) == g.n_nodes
 
-        _check_symmgroup(g, translations)
+        _check_symmgroup(g.automorphisms(), translations)
 
         g = Grid([4] * ndim, pbc=False)
         translations = g.translation_group()
