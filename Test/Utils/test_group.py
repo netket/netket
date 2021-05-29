@@ -80,8 +80,8 @@ proper = (
     + cubics_proper
 )
 perms = [
-    nk.graph.Hypercube(2, n_dim=3).automorphisms(),
-    nk.graph.Square(4).automorphisms(),
+    nk.graph.Hypercube(2, n_dim=3).point_group(),
+    nk.graph.Square(4).space_group(),
 ]
 groups = point_groups + perms
 
