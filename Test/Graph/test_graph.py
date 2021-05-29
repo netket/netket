@@ -7,7 +7,16 @@ from math import pi
 import numpy as np
 import igraph as ig
 
-from netket.graph import *
+from netket.graph import (
+    Graph,
+    Hypercube,
+    Grid,
+    Lattice,
+    Edgeless,
+    Triangular,
+    Honeycomb,
+    Kagome,
+)
 from netket.graph import _lattice
 from netket.utils import group
 
@@ -15,10 +24,10 @@ from .. import common
 
 pytestmark = common.skipif_mpi
 
-nxg = nx.star_graph(10)
 graphs = [
-    # star graph
-    Graph(edges=list(nxg.edges())),
+    # star and tree
+    Graph.from_igraph(ig.Graph.Star(5)),
+    Graph.from_igraph(ig.Graph.Tree(n=3, children=2)),
     # Grid graphs
     Hypercube(length=10, n_dim=1, pbc=True),
     Hypercube(length=4, n_dim=2, pbc=True),
@@ -254,20 +263,11 @@ def coord2index(xs, length):
     return i
 
 
-def check_edges(length, n_dim, pbc):
-    x = nx.grid_graph(dim=[length] * n_dim, periodic=pbc)
-    x_edges = [[coord2index(i, length) for i in edge] for edge in x.edges()]
-    x_edges = sorted([sorted(ed) for ed in x_edges])
-    y = nk.graph.Hypercube(length=length, n_dim=n_dim, pbc=pbc)
-    y_edges = sorted([sorted(ed) for ed in y.edges()])
-    assert x_edges == y_edges
-
-
 def test_graph_wrong():
     with pytest.raises(TypeError):
         nk.graph.Graph(5)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         nk.graph.Graph([1, 2, 3], True)
 
     with pytest.raises(ValueError):
@@ -275,14 +275,24 @@ def test_graph_wrong():
 
 
 def test_edges_are_correct():
-    # check_edges(1, 1, False)
-    # check_edges(1, 2, False) # KDTree removes the single site
-    for length in [3, 4, 5]:
-        for dim in [1, 2, 3]:
+    def check_edges(length, n_dim, pbc):
+        x = nx.grid_graph(dim=[length] * n_dim, periodic=pbc)
+        x_edges = [[coord2index(i, length) for i in edge] for edge in x.edges()]
+        x_edges = sorted([sorted(ed) for ed in x_edges])
+        y = nk.graph.Hypercube(length=length, n_dim=n_dim, pbc=pbc)
+        y_edges = sorted([sorted(ed) for ed in y.edges()])
+        assert x_edges == y_edges
+
+    with pytest.raises(ValueError):
+        check_edges(1, 1, False)
+        check_edges(1, 2, False)
+
+    for length in [3, 4]:
+        for dim in [1, 2]:
             for pbc in [True, False]:
                 check_edges(length, dim, pbc)
     for pbc in [True, False]:
-        check_edges(3, 7, pbc)
+        check_edges(3, 5, pbc)
 
 
 def test_nodes():
@@ -339,7 +349,7 @@ def test_is_connected():
     for i in range(5, 10):
         for j in range(i + 1, i * i):
             x = nx.dense_gnm_random_graph(i, j)
-            y = nk.graph.Graph(nodes=list(x.nodes()), edges=list(x.edges()))
+            y = Graph.from_networkx(x)
 
             if len(x) == len(
                 set((i for (i, j) in x.edges)) | set((j for (i, j) in x.edges))
@@ -353,7 +363,7 @@ def test_is_bipartite():
     for i in range(1, 10):
         for j in range(1, i * i):
             x = nx.dense_gnm_random_graph(i, j)
-            y = nk.graph.Graph(nodes=list(x.nodes()), edges=list(x.edges()))
+            y = Graph.from_networkx(x)
             if len(x) == len(
                 set((i for (i, j) in x.edges())) | set((j for (i, j) in x.edges()))
             ):
@@ -437,18 +447,23 @@ def test_adjacency_list():
 #    assert sorted(g1.edges()) == sorted(g2.edges())
 
 
-# skip star graph because it has 10! (≈ 3 million) isomorphisms
-@pytest.mark.parametrize("graph", graphs[1:])
+@pytest.mark.parametrize("graph", graphs)
 def test_automorphisms(graph):
     if not graph.is_connected():
         return
 
-    g = ig.Graph(edges=graph.edges())
-    autom = g.get_isomorphisms_vf2()
-    autom_g = graph.automorphisms()
-    dim = len(autom_g)
-    for i in range(dim):
-        assert np.asarray(autom_g[i]).tolist() in autom
+    def is_automorphism(f, graph):
+        edges = graph.edges()
+        for v, w in edges:
+            fv, fw = f[v], f[w]
+            if (fv, fw) not in edges and (fw, fv) not in edges:
+                print(f"E  ({(v, w)} -> {(fv, fw)})")
+                return False
+        return True
+
+    autom = np.asarray(graph.automorphisms())
+    for f in autom:
+        assert is_automorphism(f, graph)
 
 
 def _check_symmgroup(autom, symmgroup):
@@ -537,7 +552,7 @@ def test_grid_space_group():
     _check_symmgroups(g)
     assert len(g.rotation_group()) == 2
     assert len(g.point_group()) == 4
-    assert g.point_group() == g.space_group()  # no PBC, no translations
+    assert g.point_group() == g.space_group()  # no PBC, no translatio@s
 
     g = nk.graph.Grid([3, 3, 3], pbc=[True, True, False])
     _check_symmgroups(g)
@@ -622,7 +637,7 @@ def test_edge_color_accessor():
 
     g = Hypercube(4, 1)
 
-    assert [(i, j, None) for (i, j, _) in edges] == sorted(g.edges(color=True))
+    assert [(i, j, 0) for (i, j, _) in edges] == sorted(g.edges(color=True))
 
 
 def test_union():
@@ -633,3 +648,40 @@ def test_union():
 
         assert ug.n_nodes == graph1.n_nodes + graph.n_nodes
         assert ug.n_edges == graph1.n_edges + graph.n_edges
+
+
+def test_graph_conversions():
+    igraph = ig.Graph.Star(6)
+    g = Graph.from_igraph(igraph)
+    assert g.n_nodes == igraph.vcount()
+    assert g.edges() == igraph.get_edgelist()
+    assert all(c == 0 for c in g._edge_colors)
+
+    nxg = nx.star_graph(5)
+    g = Graph.from_networkx(nxg)
+    assert g.n_nodes == igraph.vcount()
+    assert g.edges() == igraph.get_edgelist()
+    assert all(c == 0 for c in g._edge_colors)
+
+    igraph = ig.Graph()
+    igraph.add_vertices(3)
+    igraph.add_edges(
+        [(0, 1), (1, 2)],
+        attributes={
+            "color": ["red", "blue"],
+        },
+    )
+    with pytest.raises(ValueError, match="not all colors are integers"):
+        _ = Graph.from_igraph(igraph)
+
+    igraph = ig.Graph()
+    igraph.add_vertices(3)
+    igraph.add_edges(
+        [(0, 1), (1, 2)],
+        attributes={
+            "color": [0, 1],
+        },
+    )
+    g = Graph.from_igraph(igraph)
+    assert g.edges(color=0) == [(0, 1)]
+    assert g.edges(color=1) == [(1, 2)]

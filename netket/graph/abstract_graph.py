@@ -13,7 +13,12 @@
 # limitations under the License.
 
 import abc
-from typing import List, Generator, Iterator, Tuple
+from typing import List, Iterator, Sequence, Tuple, Union
+
+
+Edge = Tuple[int, int]
+ColoredEdge = Tuple[int, int, int]
+EdgeSequence = Union[Sequence[Edge], Sequence[ColoredEdge]]
 
 
 class AbstractGraph(abc.ABC):
@@ -30,8 +35,8 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def edges(self) -> Iterator[Tuple[int, int]]:
-        r"""Iterator over the edges of the graph"""
+    def edges(self, color: Union[bool, int] = False) -> EdgeSequence:
+        r"""Iterator over the edges of the graph. Optionally filter by edge color."""
         raise NotImplementedError
 
     @abc.abstractmethod

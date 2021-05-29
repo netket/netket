@@ -29,7 +29,7 @@ from netket.utils import HashableArray
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
 
-from .graph import NetworkX
+from .graph import Graph
 
 PositionT = _np.ndarray
 CoordT = _np.ndarray
@@ -164,7 +164,7 @@ REPR_TEMPLATE = """Lattice(
 """
 
 
-class Lattice(NetworkX):
+class Lattice(Graph):
     r"""
     A lattice built by periodic arrangement of a given unit cell.
 
@@ -321,7 +321,7 @@ class Lattice(NetworkX):
             HashableArray(pos): index for index, pos in enumerate(int_positions)
         }
 
-        super().__init__(graph)
+        super().__init__(list(graph.edges()), graph.number_of_nodes())
 
     @staticmethod
     def _clean_basis(basis_vectors):
@@ -671,8 +671,9 @@ class Lattice(NetworkX):
 
         # FIXME (future) as of 11Apr2021, networkx can draw curved
         # edges only for directed graphs.
+        nxgraph = self.to_networkx().to_directed()
         _nx.draw_networkx_edges(
-            self.graph.to_directed(),
+            nxgraph,
             pos=positions,
             edgelist=self.edges(),
             connectionstyle=f"arc3,rad={curvature}",
@@ -682,10 +683,10 @@ class Lattice(NetworkX):
             node_size=node_size,
         )
         _nx.draw_networkx_nodes(
-            self.graph, pos=positions, ax=ax, node_color=node_color, node_size=node_size
+            nxgraph, pos=positions, ax=ax, node_color=node_color, node_size=node_size
         )
         _nx.draw_networkx_labels(
-            self.graph, pos=positions, ax=ax, font_size=font_size, font_color=font_color
+            nxgraph, pos=positions, ax=ax, font_size=font_size, font_color=font_color
         )
         ax.axis("equal")
         return ax
