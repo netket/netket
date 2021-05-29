@@ -76,7 +76,7 @@ class GraphOperator(LocalOperator):
          >>> op = nk.operator.GraphOperator(
          ... hi, site_ops=[sigmax], bond_ops=[mszsz], graph=g)
          >>> print(op)
-         GraphOperator(dim=20, #acting_on=40 locations, constant=0, dtype=float64, graph=NetworkX(n_nodes=20))
+         GraphOperator(dim=20, #acting_on=40 locations, constant=0, dtype=float64, graph=Graph(n_nodes=20, n_edges=20))
         """
 
         if graph.n_nodes != hilbert.size:
