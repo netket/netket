@@ -16,6 +16,7 @@ from functools import partial
 from itertools import permutations
 from typing import Sequence, Union, Optional, Tuple
 import numpy as np
+import warnings
 
 from .lattice import Lattice
 
@@ -59,12 +60,18 @@ def _grid_point_group(extent: Sequence[int], pbc: Sequence[bool]) -> PointGroup:
     return PointGroup(result, ndim=ndim).change_origin(origin)
 
 
-def Grid(length: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
+def Grid(
+    extent: Sequence[int] = None,
+    *,
+    length: Sequence[int] = None,
+    pbc: Union[bool, Sequence[bool]] = True,
+) -> Lattice:
     """
     Constructs a hypercubic lattice given its extent in all dimensions.
 
     Args:
-        length: Side length of the lattice. It must be a list with integer components >= 1.
+        extent: Size of the lattice along each dimension. It must be a list with
+                integer components >= 1.
         pbc: If `True`, the grid will have periodic boundary conditions (PBC);
              if `False`, the grid will have open boundary conditions (OBC).
              This parameter can also be a list of booleans with same length as
@@ -72,29 +79,44 @@ def Grid(length: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> L
              PBC/OBC depending on the corresponding entry of `pbc`.
 
     Examples:
-        A 5x10 lattice with periodic boundary conditions can be
-        constructed as follows:
+        Construct a 5x10 square lattice with periodic boundary conditions:
 
         >>> import netket
-        >>> g=netket.graph.Grid(length=[5, 10], pbc=True)
+        >>> g=netket.graph.Grid(extent=[5, 10], pbc=True)
         >>> print(g.n_nodes)
         50
 
-        Also, a 2x2x3 lattice with open boundary conditions can be constructed as follows:
+        Construct a 2x2x3 cubic lattice with open boundary conditions:
 
-        >>> g=netket.graph.Grid(length=[2,2,3], pbc=False)
+        >>> g=netket.graph.Grid(extent=[2,2,3], pbc=False)
         >>> print(g.n_nodes)
         12
     """
-    length = np.asarray(length, dtype=int)
-    ndim = len(length)
+    if extent is None:
+        if length is None:
+            raise TypeError("Required argument 'extent' missing")
+        else:
+            warnings.warn(
+                "'length' is deprecated and may be removed in future versions, use 'extent' instead",
+                FutureWarning,
+            )
+            extent = np.asarray(length, dtype=int)
+    else:
+        if length is not None:
+            raise TypeError(
+                "'length' is a deprecated alias of 'extent', do not supply both"
+            )
+        else:
+            extent = np.asarray(extent, dtype=int)
+
+    ndim = len(extent)
     if isinstance(pbc, bool):
         pbc = [pbc] * ndim
     return Lattice(
         basis_vectors=np.eye(ndim),
-        extent=length,
+        extent=extent,
         pbc=pbc,
-        point_group=_grid_point_group(length, pbc),
+        point_group=_grid_point_group(extent, pbc),
     )
 
 

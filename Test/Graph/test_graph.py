@@ -23,8 +23,8 @@ graphs = [
     Hypercube(length=10, n_dim=1, pbc=True),
     Hypercube(length=4, n_dim=2, pbc=True),
     Hypercube(length=5, n_dim=1, pbc=False),
-    Grid(length=[2, 2], pbc=False),
-    Grid(length=[4, 2], pbc=[True, False]),
+    Grid([2, 2], pbc=False),
+    Grid([4, 2], pbc=[True, False]),
     # lattice graphs
     Lattice(
         basis_vectors=[[1.0, 0.0], [1.0 / 2.0, math.sqrt(3) / 2.0]],
