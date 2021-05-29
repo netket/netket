@@ -225,7 +225,7 @@ def BCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> La
     """
     basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
     # determine if full point group is realised by the simulation box
-    point_group = cubic.Oh() if np.all(pbc) else None
+    point_group = cubic.Oh() if np.all(pbc) and len(set(extent)) == 1 else None
     return Lattice(basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group)
 
 
@@ -252,7 +252,7 @@ def FCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> La
     """
     basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
     # determine if full point group is realised by the simulation box
-    point_group = cubic.Oh() if np.all(pbc) else None
+    point_group = cubic.Oh() if np.all(pbc) and len(set(extent)) == 1 else None
     return Lattice(basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group)
 
 
@@ -284,7 +284,7 @@ def Diamond(
     basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
     sites = [[0, 0, 0], [0.25, 0.25, 0.25]]
     # determine if full point group is realised by the simulation box
-    point_group = cubic.Fd3m() if np.all(pbc) else None
+    point_group = cubic.Fd3m() if np.all(pbc) and len(set(extent)) == 1 else None
     return Lattice(
         basis_vectors=basis,
         site_offsets=sites,
@@ -322,7 +322,7 @@ def Pyrochlore(
     basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
     sites = np.array([[1, 1, 1], [1, 3, 3], [3, 1, 3], [3, 3, 1]]) / 8
     # determine if full point group is realised by the simulation box
-    point_group = cubic.Fd3m() if np.all(pbc) else None
+    point_group = cubic.Fd3m() if np.all(pbc) and len(set(extent)) == 1 else None
     return Lattice(
         basis_vectors=basis,
         site_offsets=sites,
