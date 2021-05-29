@@ -224,7 +224,7 @@ def test_lattice_symmetry(i, name):
     assert np.all(pt == sgb.translation_group().product_table)
 
     # ensure that all space group symmetries are unique and automorphisms
-    _check_symmgroup(graph, sgb.space_group)
+    _check_symmgroups(graph)
 
     # Try an invalid wave vector and fail
     with pytest.raises(_lattice.InvalidWaveVectorError):
@@ -449,10 +449,9 @@ def test_automorphisms(graph):
         assert np.asarray(autom_g[i]).tolist() in autom
 
 
-def _check_symmgroup(graph, symmgroup):
-    """Asserts that symmgroup consists of automorphisms and has no duplicate elements."""
+def _check_symmgroup(autom, symmgroup):
+    """Asserts that symmgroup consists of automorphisms listed in autom and has no duplicate elements."""
 
-    autom = graph.automorphisms()
     for el in symmgroup.to_array():
         assert group.Permutation(el) in autom.elems
 
@@ -461,9 +460,10 @@ def _check_symmgroup(graph, symmgroup):
 
 
 def _check_symmgroups(graph):
-    _check_symmgroup(graph, graph.rotation_group())
-    _check_symmgroup(graph, graph.point_group())
-    _check_symmgroup(graph, graph.space_group())
+    autom = graph.automorphisms()
+    _check_symmgroup(autom, graph.rotation_group())
+    _check_symmgroup(autom, graph.point_group())
+    _check_symmgroup(autom, graph.space_group())
 
 
 def test_grid_translations():
@@ -536,17 +536,17 @@ def test_grid_space_group():
     assert len(g.point_group()) == 4
     assert g.point_group() == g.space_group()  # no PBC, no translations
 
-    g = nk.graph.Grid([5, 5, 3], pbc=[True, True, False])
+    g = nk.graph.Grid([3, 3, 3], pbc=[True, True, False])
     _check_symmgroups(g)
     assert len(g.rotation_group()) == 8
     assert len(g.point_group()) == 16  # D_4 × Z_2
-    assert len(g.space_group()) == 5 * 5 * 16
+    assert len(g.space_group()) == 3 * 3 * 16
 
-    g = nk.graph.Grid([5, 5, 4, 4], pbc=[True, True, False, False])
+    g = nk.graph.Grid([3, 3, 3, 3], pbc=[True, True, False, False])
     _check_symmgroups(g)
     assert len(g.rotation_group()) == 32
     assert len(g.point_group()) == 64  # D_4 × D_4
-    assert len(g.space_group()) == 5 * 5 * 64
+    assert len(g.space_group()) == 3 * 3 * 64
 
     g = nk.graph.Hypercube(3, 2)
     _check_symmgroups(g)
