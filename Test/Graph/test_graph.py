@@ -532,20 +532,20 @@ def test_grid_space_group():
 
     g = nk.graph.Grid([8, 2], pbc=False)
     _check_symmgroups(g)
-    assert len(g.rotation_group()) == 1  # no point group symmetries around origin
-    assert len(g.point_group()) == 1
+    assert len(g.rotation_group()) == 2
+    assert len(g.point_group()) == 4
     assert g.point_group() == g.space_group()  # no PBC, no translations
 
     g = nk.graph.Grid([5, 5, 3], pbc=[True, True, False])
     _check_symmgroups(g)
-    assert len(g.rotation_group()) == 4
-    assert len(g.point_group()) == 8
-    assert len(g.space_group()) == 5 * 5 * 8
+    assert len(g.rotation_group()) == 8
+    assert len(g.point_group()) == 16  # D_4 × Z_2
+    assert len(g.space_group()) == 5 * 5 * 16
 
     g = nk.graph.Grid([5, 5, 4, 4], pbc=[True, True, False, False])
     _check_symmgroups(g)
     assert len(g.rotation_group()) == 32
-    assert len(g.point_group()) == 64
+    assert len(g.point_group()) == 64  # D_4 × D_4
     assert len(g.space_group()) == 5 * 5 * 64
 
     g = nk.graph.Hypercube(3, 2)

@@ -163,7 +163,7 @@ class PermutationGroup(Group):
             inverses = []
             for perm in self.to_array():
                 invperm = np.argsort(perm)
-                inverses.append(lookup[invperm])
+                inverses.append(lookup[HashableArray(invperm)])
 
             return np.asarray(inverses, dtype=int)
         except KeyError:
