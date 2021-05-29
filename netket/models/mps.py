@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional, Tuple, Any, Callable, Iterable
+from itertools import chain
+from typing import Any
+import warnings
 
-import numpy as np
-
+import igraph as ig
+from flax import linen as nn
 import jax
 from jax import numpy as jnp
-from flax import linen as nn
+import numpy as np
 
-from netket import nn as nknn
-from netket.nn.initializers import lecun_normal, variance_scaling, zeros
-
+from netket.graph import AbstractGraph, Chain
 from netket.hilbert import AbstractHilbert
-from netket.graph import AbstractGraph
-from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
+from netket.nn.initializers import lecun_normal
+from netket.utils.types import NNInitFunc
 
 default_kernel_init = lecun_normal()
 
@@ -85,18 +85,11 @@ class MPSPeriodic(nn.Module):
         self._loc_vals_bias = jnp.min(local_states)
 
         # check whether graph is periodic chain
-        import networkx as _nx
-
-        edges = self.graph.edges()
-        G = _nx.Graph()
-        G.add_edges_from(edges)
-
-        G_chain = _nx.Graph()
-        G_chain.add_edges_from([(i, (i + 1) % L) for i in range(L)])
-
-        if not _nx.algorithms.is_isomorphic(G, G_chain):
-            print(
-                "Warning: graph is not isomorphic to chain with periodic boundary conditions"
+        chain_graph = Chain(self.graph.n_edges).to_igraph()
+        if not ig.Graph(edges=self.graph.edges()).isomorphic(chain_graph):
+            warnings.warn(
+                "Warning: graph is not isomorphic to chain with periodic boundary conditions",
+                UserWarning,
             )
 
         # determine shape of unit cell
