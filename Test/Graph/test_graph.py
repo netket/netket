@@ -224,7 +224,9 @@ def test_lattice_symmetry(i, name):
     assert np.all(pt == sgb.translation_group().product_table)
 
     # ensure that all space group symmetries are unique and automorphisms
-    _check_symmgroups(graph)
+    # don't do this for pyrochlore that takes >10x longer than any other one
+    if name != "pyrochlore":
+        _check_symmgroups(graph)
 
     # Try an invalid wave vector and fail
     with pytest.raises(_lattice.InvalidWaveVectorError):
