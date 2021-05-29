@@ -91,35 +91,31 @@ class NetworkX(AbstractGraph):
         r"""The number of edges in the graph."""
         return self.graph.size()
 
+    def _compute_automorphisms(self):
+        """
+        Compute the graph autmorphisms of this graph using igraph.
+        """
+        import igraph
+
+        colored_edges = self.edges(color=True)
+        edges = [(v, w) for (v, w, _) in colored_edges]
+        colors = [(c if c is not None else -1) for (_, _, c) in colored_edges]
+
+        ig = igraph.Graph(edges=edges)
+        result = ig.get_isomorphisms_vf2(edge_color1=colors, edge_color2=colors)
+
+        # sort them s.t. the identity comes first
+        result = np.unique(result, axis=0).tolist()
+        result = PermutationGroup(
+            [Permutation(i) for i in result], self.n_nodes
+        )
+        return result
+
     # TODO turn into a struct.property_cached?
     def automorphisms(self) -> PermutationGroup:
-        # TODO: check how to compute these when we have a coloured graph where there could
-        #       be a duplicated edge with two different colors.
-
-        # For the moment, if there are colors, the method returns a NotImplementedError:
-        colors = set(c for _, _, c in self.edges(color=True))
-        if len(colors) >= 2:
-            raise NotImplementedError(
-                "automorphisms is not yet implemented for colored edges"
-            )
-
-        if self._automorphisms is not None:
-            return self._automorphisms
-        else:
-            aux_graph = _nx.Graph()
-            aux_graph.add_nodes_from(self.graph.nodes())
-            aux_graph.add_edges_from(self.edges())
-            ismags = _nx.isomorphism.GraphMatcher(aux_graph, aux_graph)
-            _automorphisms = [
-                [iso[i] for i in aux_graph.nodes()]
-                for iso in ismags.isomorphisms_iter()
-            ]
-            # sort them s.t. the identity comes first
-            _automorphisms = np.unique(_automorphisms, axis=0).tolist()
-            self._automorphisms = PermutationGroup(
-                [Permutation(i) for i in _automorphisms], self.n_nodes
-            )
-            return self._automorphisms
+        if self._automorphisms is  None:
+            self._automorphisms = self._compute_automorphisms()
+        return self._automorphisms
 
     def __repr__(self):
         return "{}(n_nodes={})".format(
