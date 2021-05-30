@@ -270,8 +270,9 @@ class Group(SemiGroup):
         # all of which return the same eigenvalues with eigenvectors that
         # correspond to one another in the bases of the several irrep copies
         e, vs = np.linalg.eig(random(len(self))[self.product_table])
+        e = np.stack((e.real, e.imag))
         # we only need one eigenvector per eigenvalue
-        _, idx = np.unique(comparable(e), return_index=True)
+        _, idx = np.unique(comparable(e), return_index=True, axis=1)
         vs = vs[:, idx]
         # We will nedd the true product table as well
         true_product_table = self.product_table[self.inverse]
@@ -293,7 +294,7 @@ class Group(SemiGroup):
             # A basis follows (with probability 1) as d random linear
             # combinations of these vectors; make them orthonormal using QR
             # NB v[product_table] generates a matrix whose columns are A_reg(h).v
-            dim = int(np.rint(chi[0]))
+            dim = int(np.rint(chi[0].real))
             w, _ = np.linalg.qr(v[true_product_table] @ random((len(self), dim)))
             # Project the regular representation on this basis
             irreps.append(
