@@ -25,6 +25,7 @@ from .base import (
 )
 
 from .exact import ExactSampler
+
 from .metropolis import (
     MetropolisSampler,
     MetropolisLocal,

@@ -25,7 +25,7 @@ from jax.experimental import loops
 
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
-from netket.utils import get_afun_if_module, mpi
+from netket.utils import mpi, get_afun_if_module, wrap_afun
 from netket.utils.types import PyTree, PRNGKeyT, DType
 from netket.jax import HashablePartial
 from netket.utils import struct, numbers
@@ -204,7 +204,7 @@ class Sampler(abc.ABC):
         key = nkjax.PRNGKey(seed)
         key = nkjax.mpi_split(key)
 
-        return sampler._init_state(get_afun_if_module(machine), parameters, key)
+        return sampler._init_state(wrap_afun(machine), parameters, key)
 
     def reset(
         sampler,
@@ -227,7 +227,7 @@ class Sampler(abc.ABC):
         if state is None:
             state = sampler_state(sampler, machine, parameters)
 
-        return sampler._reset(get_afun_if_module(machine), parameters, state)
+        return sampler._reset(wrap_afun(machine), parameters, state)
 
     def sample_next(
         sampler,
@@ -248,10 +248,13 @@ class Sampler(abc.ABC):
             state: The new state of the sampler
             σ: The next batch of samples.
         """
+        # Note: the return order is inverted wrt `.sample` because when called inside of
+        # a scan function the first returned argument should be the state.
+
         if state is None:
             state = sampler_state(sampler, machine, parameters)
 
-        return sampler._sample_next(get_afun_if_module(machine), parameters, state)
+        return sampler._sample_next(wrap_afun(machine), parameters, state)
 
     def sample(
         sampler,
@@ -273,8 +276,8 @@ class Sampler(abc.ABC):
             chain_length: (default=1), the length of the chains.
 
         Returns:
-            state: The new state of the sampler
             σ: The next batch of samples.
+            state: The new state of the sampler
         """
 
         return sample(
@@ -304,8 +307,8 @@ class Sampler(abc.ABC):
             chain_length: (default=1), the length of the chains.
 
         Returns:
-            state: The new state of the sampler
             σ: The next batch of samples.
+            state: The new state of the sampler
         """
         return _sample_chain(sampler, machine, parameters, state, chain_length)
 
@@ -434,8 +437,8 @@ def sample(
         chain_length: (default=1), the length of the chains.
 
     Returns:
-        state: The new state of the sampler
         σ: The next batch of samples.
+        state: The new state of the sampler
     """
     if state is None:
         state = sampler.reset(machine, parameters, state)
@@ -465,8 +468,8 @@ def _sample_chain(
         chain_length: (default=1), the length of the chains.
 
     Returns:
-        state: The new state of the sampler
         σ: The next batch of samples.
+        state: The new state of the sampler
     """
     _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
 

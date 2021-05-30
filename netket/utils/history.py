@@ -236,7 +236,7 @@ class History:
         """
         You can iterate the values in history object.
         """
-        """ Returns the Iterator object """
+        """Returns the Iterator object """
         return iter(zip(self.iters, self.values))
 
     def __getattr__(self, attr):
