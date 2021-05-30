@@ -23,17 +23,17 @@ from .. import qgt
 
 
 @deprecated(
-    """"
-            SRLazyCG(diag_shift, max_iters,...) has been deprecated and will be 
-            soon removed as soon as the beta is finished.
-            We have split the solver (CG) part from the matrix representation (SRLazy).
-            You should create an sr object passing the name of the Quantum Geometric
-            Tensor storage format (in this case OnTheFly) and the jax solver.
-            You can wrap arguments from the solver with `functools.partial`
+    """
+    SRLazyCG(diag_shift, max_iters,...) has been deprecated and will be 
+    soon removed as soon as the beta is finished.
+    We have split the solver (CG) part from the matrix representation (SRLazy).
+    You should create an sr object passing the name of the Quantum Geometric
+    Tensor storage format (in this case OnTheFly) and the jax solver.
+    You can wrap arguments from the solver with `functools.partial`
  
-            >>> solver = partial(jax.scipy.sparse.cg, max_iter=, ...)
-            >>> nk.optimizer.SR(nk.optimizer.qgt.QGTOnTheFly, solver=solver, diag_shift=0.01)
-            """
+    >>> solver = partial(jax.scipy.sparse.cg, max_iter=, ...)
+    >>> nk.optimizer.SR(nk.optimizer.qgt.QGTOnTheFly, solver=solver, diag_shift=0.01)
+    """
 )
 def SRLazyCG(diag_shift: float = 0.01, centered: bool = True, **kwargs):
     return SR(
@@ -46,17 +46,17 @@ def SRLazyCG(diag_shift: float = 0.01, centered: bool = True, **kwargs):
 
 
 @deprecated(
-    """"
-            SRLazyGMRES(diag_shift, max_iters,...) has been deprecated and will be 
-            soon removed as soon as the beta is finished.
-            We have split the solver (CG) part from the matrix representation (SRLazy).
-            You should create an sr object passing the name of the Quantum Geometric
-            Tensor storage format (in this case OnTheFly) and the jax solver.
-            You can wrap arguments from the solver with `functools.partial`
+    """
+    SRLazyGMRES(diag_shift, max_iters,...) has been deprecated and will be 
+    soon removed as soon as the beta is finished.
+    We have split the solver (CG) part from the matrix representation (SRLazy).
+    You should create an sr object passing the name of the Quantum Geometric
+    Tensor storage format (in this case OnTheFly) and the jax solver.
+    You can wrap arguments from the solver with `functools.partial`
  
-            >>> solver = partial(jax.scipy.sparse.cg, max_iter=, ...)
-            >>> nk.optimizer.SR(nk.optimizer.qgt.QGTOnTheFly, solver=solver, diag_shift=0.01)
-            """
+    >>> solver = partial(jax.scipy.sparse.cg, max_iter=, ...)
+    >>> nk.optimizer.SR(nk.optimizer.qgt.QGTOnTheFly, solver=solver, diag_shift=0.01)
+    """
 )
 def SRLazyGMRES(diag_shift: float = 0.01, centered: bool = True, **kwargs):
     return SR(

@@ -136,7 +136,6 @@ def test_random_states(hi):
     "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
 )
 def test_random_states_legacy(hi):
-    """"""
     nk.legacy.random.seed(12345)
 
     assert hi.size > 0
@@ -162,7 +161,6 @@ def test_random_states_legacy(hi):
     "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
 )
 def test_hilbert_index(hi):
-    """"""
     assert hi.size > 0
     assert hi.local_size > 0
 
