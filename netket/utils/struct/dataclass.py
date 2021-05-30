@@ -398,7 +398,7 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False):
         meta_fields.append(cp.cache_name)
 
     def replace(self, **updates):
-        """"Returns a new object replacing the specified fields with new values."""
+        """Returns a new object replacing the specified fields with new values."""
         # reset cached fields
         for name in cache_fields:
             updates[name] = Uninitialized
