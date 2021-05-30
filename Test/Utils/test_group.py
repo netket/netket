@@ -169,6 +169,20 @@ def test_character_table(grp, cls, dims):
     assert np.allclose(column_prod, np.diag(np.diag(column_prod)))
 
 
+@pytest.mark.parametrize("grp,cls,dims", details)
+def test_irrep_matrices(grp, cls, dims):
+    irreps = grp.irrep_matrices()
+    characters = grp.character_table()
+    true_product_table = grp.product_table[grp.inverse]
+    for i, irrep in enumerate(irreps):
+        # characters are the traces of the irrep matrices
+        assert np.allclose(characters[i], np.trace(irrep, axis1=1, axis2=2))
+        # irrep matrices respect the group multiplication rule
+        assert np.allclose(
+            irrep[true_product_table, :, :], np.einsum("iab,jbc->ijac", irrep, irrep)
+        )
+
+
 # Check that rotation subgroups only contain rotations
 @pytest.mark.parametrize("i,grp", list(enumerate(point_groups)))
 def test_rotation_group(i, grp):

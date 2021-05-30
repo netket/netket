@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from .semigroup import SemiGroup, Element, Identity
 from netket.utils import struct, HashableArray
 from netket.utils.float import comparable, prune_zeros
-from netket.utils.types import Array, DType, Shape
+from netket.utils.types import Array, DType, Shape, PyTree
 from typing import Tuple, List
 
 
@@ -260,6 +260,60 @@ class Group(SemiGroup):
             f"{class_sizes[cls]}x{self[rep]}" for cls, rep in enumerate(idx_repr)
         ]
         return representatives, self.character_table_by_class
+
+    @struct.property_cached
+    def _irrep_matrices(self) -> PyTree:
+        random = np.random.standard_normal
+        # Generate the eigensystem of a random linear combination of matrices
+        # in the group's regular representation (namely, product_table == g)
+        # The regular representation contains d copies of each d-dimensional irrep
+        # all of which return the same eigenvalues with eigenvectors that
+        # correspond to one another in the bases of the several irrep copies
+        e, vs = np.linalg.eig(random(len(self))[self.product_table])
+        # we only need one eigenvector per eigenvalue
+        _, idx = np.unique(comparable(e), return_index=True)
+        vs = vs[:, idx]
+        # We will nedd the true product table as well
+        true_product_table = self.product_table[self.inverse]
+
+        irreps = []
+
+        for chi in self.character_table():
+            # Check which eigenvectors belong to this irrep
+            # the last argument of einsum is the regular projector on this irrep
+            proj = np.einsum(
+                "gi,hi,gh->i", vs.conj(), vs, chi.conj()[self.product_table]
+            )
+            proj = np.logical_not(np.isclose(proj, 0.0))
+            # Pick the first eigenvector in this irrep
+            idx = np.arange(vs.shape[1], dtype=int)[proj][0]
+            v = vs[:, idx]
+            # Generate an orthonormal basis for the irrep spanned by A_reg(g).v
+            # for all matrices in the regular representation
+            # A basis follows (with probability 1) as d random linear
+            # combinations of these vectors; make them orthonormal using QR
+            # NB v[product_table] generates a matrix whose columns are A_reg(h).v
+            dim = int(np.rint(chi[0]))
+            w, _ = np.linalg.qr(v[true_product_table] @ random((len(self), dim)))
+            # Project the regular representation on this basis
+            irreps.append(
+                prune_zeros(
+                    np.einsum("gi,ghj ->hij", w.conj(), w[true_product_table, :])
+                )
+            )
+
+        return irreps
+
+    def irrep_matrices(self) -> PyTree:
+        """
+        Returns matrices that realise all irreps of the group.
+
+        Returns:
+            A list of 3D arrays such that `self.irrep_matrices()[i][g]` contains
+            the representation of `self[g]` consistent with the characters in
+            `self.character_table()[i]`.
+        """
+        return self._irrep_matrices
 
 
 def _cplx_sign(x):
