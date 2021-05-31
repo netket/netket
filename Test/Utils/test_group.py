@@ -321,7 +321,7 @@ def test_pyrochlore():
         @ group.cubic.Td()
     )
     # closure fails without specifying a unit cell
-    with pytest.raises(KeyError):
+    with pytest.raises(RuntimeError):
         pt = Fd3m.product_table
     Fd3m = Fd3m.replace(
         unit_cell=np.asarray([[0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]])

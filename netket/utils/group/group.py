@@ -18,7 +18,7 @@
 import numpy as np
 from dataclasses import dataclass
 
-from .semigroup import SemiGroup, Element, Identity
+from .semigroup import FiniteSemiGroup, Element, Identity
 from netket.utils import struct, HashableArray
 from netket.utils.float import comparable, prune_zeros
 from netket.utils.types import Array, DType, Shape, PyTree
@@ -26,10 +26,10 @@ from typing import Tuple, List
 
 
 @struct.dataclass
-class Group(SemiGroup):
+class FiniteGroup(FiniteSemiGroup):
     """
     Collection of Elements expected to satisfy group axioms.
-    Unlike SemiGroup, product tables, conjugacy classes, etc. can be calculated.
+    Unlike FiniteSemiGroup, product tables, conjugacy classes, etc. can be calculated.
 
     Group elements can be implemented in any way, as long as a subclass of Group
     is able to implement their action. Subclasses must implement a :code:`_canonical()`
@@ -40,11 +40,6 @@ class Group(SemiGroup):
 
     def __hash__(self):
         return super().__hash__()
-
-    def __matmul__(self, other) -> "Group":
-        if not isinstance(other, Group):
-            raise ValueError("`Group`s can only be multiplied with other `Group`s")
-        return Group(super().__matmul__(other).elems)
 
     def _canonical(self, x: Element) -> Array:
         """
@@ -319,3 +314,10 @@ class Group(SemiGroup):
 
 def _cplx_sign(x):
     return x / np.abs(x)
+
+
+@dispatch
+def product(A: FiniteGroup, B: FiniteGroup):
+    return FiniteGroup(
+        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
+    )

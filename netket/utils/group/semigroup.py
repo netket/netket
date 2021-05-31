@@ -29,7 +29,7 @@ from netket.utils import HashableArray
 from netket.utils.types import Array, DType, Shape
 
 
-class ElementBase(ABC):
+class Element(ABC):
     @abstractmethod
     def __call__(self, arg):
         pass
@@ -38,12 +38,8 @@ class ElementBase(ABC):
         return product(self, other)
 
 
-class Element(ElementBase):
-    pass
-
-
 @dataclass(frozen=True)
-class Identity(ElementBase):
+class Identity(Element):
     def __call__(self, arg):
         return arg
 
@@ -111,20 +107,7 @@ def product(ab: Composite, cd: Composite):
 
 
 @dataclass(frozen=True)
-class NamedElement(Element):
-    name: str
-    action: Callable
-    info: str = ""
-
-    def __call__(self, arg):
-        return self.action(arg)
-
-    def __repr__(self):
-        return f"{self.name}({self.info})"
-
-
-@dataclass(frozen=True)
-class SemiGroup:
+class FiniteSemiGroup:
     elems: List[Element]
 
     def __post_init__(self):
@@ -135,11 +118,9 @@ class SemiGroup:
 
     def __matmul__(self, other):
         """
-        Direct product of this group with `other`.
+        Cartesian product of this semigroup with `other`.
         """
-        return SemiGroup(
-            elems=[a @ b for a, b in itertools.product(self.elems, other.elems)],
-        )
+        return product(self, other)
 
     def __call__(self, initial):
         """
@@ -167,3 +148,10 @@ class SemiGroup:
         else:
             elems = map(repr, self.elems)
         return type(self).__name__ + "(\n  {}\n)".format(",\n  ".join(elems))
+
+
+@dispatch
+def product(A: FiniteSemiGroup, B: FiniteSemiGroup):
+    return FiniteSemiGroup(
+        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
+    )

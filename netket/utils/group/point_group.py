@@ -24,7 +24,7 @@ from typing import Optional, Tuple, Dict
 from scipy.linalg import schur
 
 from .semigroup import Identity, Element
-from .group import Group
+from .group import FiniteGroup
 
 from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
@@ -339,7 +339,7 @@ def _to_int_vector(v: Array) -> str:
 
 
 @struct.dataclass()
-class PointGroup(Group):
+class PointGroup(FiniteGroup):
     """
     Collection of point group symmetries acting on n-dimensional vectors.
 
@@ -545,7 +545,9 @@ class PointGroup(Group):
 
             return inverse
         except KeyError:
-            raise KeyError("PointGroup does not contain the inverse of all elements")
+            raise RuntimeError(
+                "PointGroup does not contain the inverse of all elements"
+            )
 
     @struct.property_cached
     def product_table(self) -> Array:
@@ -571,7 +573,7 @@ class PointGroup(Group):
 
             return product_table[self.inverse]  # reshuffle rows to match specs
         except KeyError:
-            raise KeyError("PointGroup is not closed under multiplication")
+            raise RuntimeError("PointGroup is not closed under multiplication")
 
     @property
     def shape(self) -> Shape:
@@ -581,3 +583,10 @@ class PointGroup(Group):
 
 def trivial_point_group(ndim: int) -> PointGroup:
     return PointGroup([Identity()], ndim=ndim)
+
+
+@dispatch
+def product(A: PointGroup, B: PointGroup):
+    return PointGroup(
+        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
+    )
