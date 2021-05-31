@@ -131,6 +131,7 @@ class PGSymmetry(Element):
     def __repr__(self):
         return self._name
 
+
 @dispatch
 def product(p: PGSymmetry, q: PGSymmetry):
     return PGSymmetry(p.matrix @ q.matrix, p.matrix @ q.translation + p.translation)

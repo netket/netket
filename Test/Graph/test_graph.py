@@ -570,19 +570,19 @@ def test_triangular_space_group(lattice):
     assert len(g.space_group()) == 3 * 3 * 12
 
     g = lattice([3, 3], pbc=False)
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.rotation_group()
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.point_group()
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.space_group()
 
     g = lattice([2, 4])
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.rotation_group()
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.point_group()
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.space_group()
     # 2x4 unit cells of the triangle lattice make a rectangular grid
     assert len(g.point_group(group.planar.rectangle())) == 4

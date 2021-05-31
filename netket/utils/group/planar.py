@@ -21,7 +21,7 @@ import numpy as np
 def rotation(angle: float) -> PGSymmetry:
     """
     Returns a 2D rotation by `angle` degrees.
-    
+
     Args:
        angle: the angle of rotation in degrees.
     """
@@ -52,7 +52,7 @@ rotation_group = C
 def reflection(angle: float) -> PGSymmetry:
     """
     Returns a 2D reflection across an axis at angle `angle` to the +x direction.
-    
+
     Args:
         angle: the angle between the +x axis and the reflection axis.
     """
@@ -66,8 +66,8 @@ def reflection_group(angle: float) -> PointGroup:
     """
     Returns the Z₂ `PointGroup` containing the identity and a reflection across an
     axis at angle `angle` to the +x.
-    
-    Args:        
+
+    Args:
         angle: the angle between the +x axis and the reflection axis.
     """
     return PointGroup([Identity(), reflection(angle)], ndim=2)
