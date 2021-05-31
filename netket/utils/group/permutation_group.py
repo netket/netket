@@ -94,18 +94,6 @@ class PermutationGroup(FiniteGroup):
     def __hash__(self):
         return super().__hash__()
 
-    def __matmul__(self, other) -> "PermutationGroup":
-        if not isinstance(other, PermutationGroup):
-            raise ValueError(
-                "Incompatible groups (`PermutationGroup` and something else)"
-            )
-        elif self.degree != other.degree:
-            raise ValueError(
-                "Incompatible groups (`PermutationGroup`s of different degree)"
-            )
-
-        return PermutationGroup(super().__matmul__(other).elems, self.degree)
-
     def _canonical(self, x: Element) -> Array:
         return x(np.arange(self.degree, dtype=int))
 
@@ -198,6 +186,10 @@ class PermutationGroup(FiniteGroup):
 
 @dispatch
 def product(A: PermutationGroup, B: PermutationGroup):
+    if A.degree != B.degree:
+        raise ValueError(
+            "Incompatible groups (`PermutationGroup`s of different degree)"
+        )
     return PermutationGroup(
-        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
+        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)], degree=A.degree
     )

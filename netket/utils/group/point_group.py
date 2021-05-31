@@ -385,30 +385,6 @@ class PointGroup(FiniteGroup):
                 return False
         return True
 
-    def __matmul__(self, other) -> "PointGroup":
-        if not isinstance(other, PointGroup):
-            raise ValueError("Incompatible groups (`PointGroup` and something else)")
-
-        # Check if dimensions match
-        if self.ndim != other.ndim:
-            raise ValueError("PointGroups of different dimensions cannot be multiplied")
-
-        elems = super().__matmul__(other).elems
-
-        # Cases for presence or absence of unit cells
-        if (self.unit_cell is None) and (other.unit_cell is None):
-            return PointGroup(elems, self.ndim)
-        elif (self.unit_cell is None) != (other.unit_cell is None):
-            uc = self.unit_cell if self.unit_cell is not None else other.unit_cell
-            return PointGroup(elems, self.ndim, uc)
-        else:
-            if np.allclose(self.unit_cell, other.unit_cell):
-                return PointGroup(elems, self.ndim, self.unit_cell)
-            else:
-                raise ValueError(
-                    "PointGroups with different unit cells cannot be multiplied"
-                )
-
     def matrix(self, x: Element) -> Array:
         if isinstance(x, Identity):
             return np.eye(self.ndim, dtype=float)
@@ -588,6 +564,18 @@ def trivial_point_group(ndim: int) -> PointGroup:
 
 @dispatch
 def product(A: PointGroup, B: PointGroup):
+    if A.ndim != B.ndim:
+        raise ValueError("Incompatible groups (`PointGroup`s of different dimension)")
+    if A.unit_cell is None:
+        unit_cell = B.unit_cell
+    else:
+        if B.unit_cell is not None and not np.allclose(A.unit_cell, B.unit_cell):
+            raise ValueError(
+                "Incompatible groups (`PointGroup`s with different unit cells)"
+            )
+        unit_cell = A.unit_cell
     return PointGroup(
         elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
+        ndim=A.ndim,
+        unit_cell=unit_cell,
     )
