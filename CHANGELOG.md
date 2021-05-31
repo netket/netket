@@ -4,9 +4,23 @@
 
 # Change Log
 
-## NetKet 3.0b2 (unreleased)
-[GitHub commits](https://github.com/netket/netket/compare/v3.0b1...master).
+## NetKet 3.0b3 (unreleased)
 
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.0b2...master).
+
+
+### New features
+
+### Breaking Changes
+
+### Bug Fixes
+
+
+
+## NetKet 3.0b2 (published on 31 May 2021)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.0b1...v3.0b2).
 
 ### New features
 
