@@ -22,15 +22,24 @@ import jax
 from jax import numpy as jnp
 
 
-def vmap_choice(key, a, p, replace=True):
+def batch_choice(key, a, p):
     """
-    p.shape: (batch, a.shape)
-    Return shape: (batch, )
+    Batched version of `jax.random.choice`.
+
+    Attributes:
+      key: a PRNGKey used as the random key.
+      a: 1D array. Random samples are generated from its elements.
+      p: 2D array of shape `(batch_size, a.size)`. Each slice `p[i, :]` is
+        the probabilities associated with entries in `a` to generate a sample
+        at the index `i` of the output. Can be unnormalized.
+
+    Returns:
+      The generated samples as an 1D array of shape `(batch_size,)`.
     """
 
     def scan_fun(key, p_i):
         new_key, key = jax.random.split(key)
-        out_i = jax.random.choice(key, a, replace=replace, p=p_i)
+        out_i = jax.random.choice(key, a, p=p_i)
         return new_key, out_i
 
     _, out = jax.lax.scan(scan_fun, key, p)
@@ -94,7 +103,7 @@ def _sample_chain(sampler, model, params, state, chain_length):
         )
         local_states = jnp.asarray(sampler.hilbert.local_states, dtype=sampler.dtype)
         p = p[:, index, :]
-        new_σ = vmap_choice(key, local_states, p)
+        new_σ = batch_choice(key, local_states, p)
         σ = σ.at[:, index].set(new_σ)
 
         return (σ, cache, new_key), None
