@@ -16,49 +16,54 @@ import jax
 import netket as nk
 import numpy as np
 import pytest
+from jax import numpy as jnp
 
 
+@pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize("s", [1 / 2, 1])
 @pytest.mark.parametrize(
-    "_model",
+    "partial_model",
     [
         pytest.param(
-            lambda hilbert: nk.models.ARNNDense(
+            lambda hilbert, dtype: nk.models.ARNNDense(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
+                dtype=dtype,
             ),
             id="dense",
         ),
         pytest.param(
-            lambda hilbert: nk.models.ARNNConv1D(
+            lambda hilbert, dtype: nk.models.ARNNConv1D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=2,
+                dtype=dtype,
             ),
             id="conv1d",
         ),
         pytest.param(
-            lambda hilbert: nk.models.ARNNConv1D(
+            lambda hilbert, dtype: nk.models.ARNNConv1D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=2,
                 kernel_dilation=2,
+                dtype=dtype,
             ),
             id="conv1d_dilation",
         ),
     ],
 )
-def test_ARNN(s, _model):
+def test_ARNN(partial_model, s, dtype):
     """Test if the model is autoregressive."""
 
     L = 4
     batch_size = 3
 
     hilbert = nk.hilbert.Spin(s=s, N=L)
-    model = _model(hilbert)
+    model = partial_model(hilbert, dtype)
 
     key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
     spins = hilbert.random_state(key_spins, size=batch_size)

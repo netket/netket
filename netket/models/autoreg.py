@@ -15,11 +15,13 @@
 import abc
 from typing import Any, Callable, Iterable, Tuple, Union
 
+import jax
 from flax import linen as nn
 from jax import numpy as jnp
 from netket.hilbert import CustomHilbert
 from netket.nn import MaskedConv1D, MaskedDense1D
-from netket.nn.initializers import lecun_normal, zeros
+from netket.nn.initializers import zeros
+from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc, PyTree
 
 
@@ -52,15 +54,15 @@ class ARNNDense(ARNN):
     features: Union[Iterable[int], int]
     """number of features in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
-    activation: Callable[[Array], Array] = nn.silu
-    """the nonlinear activation function between hidden layers (default: silu)."""
+    activation: Callable[[Array], Array] = jax.nn.selu
+    """the nonlinear activation function between hidden layers (default: selu)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
     """the dtype of the weights (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = lecun_normal()
+    kernel_init: NNInitFunc = default_kernel_init
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
@@ -109,15 +111,15 @@ class ARNNConv1D(ARNN):
     """length of the convolutional kernel."""
     kernel_dilation: int = 1
     """dilation factor of the convolution kernel (default: 1)."""
-    activation: Callable[[Array], Array] = nn.silu
-    """the nonlinear activation function between hidden layers (default: silu)."""
+    activation: Callable[[Array], Array] = jax.nn.selu
+    """the nonlinear activation function between hidden layers (default: selu)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
     """the dtype of the weights (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = lecun_normal()
+    kernel_init: NNInitFunc = default_kernel_init
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""

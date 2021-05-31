@@ -18,8 +18,10 @@ import flax
 from flax import linen as nn
 from jax import lax
 from jax import numpy as jnp
-from netket.nn.initializers import lecun_normal, zeros
+from netket.nn.initializers import lecun_complex, zeros
 from netket.utils.types import Array, DType, NNInitFunc
+
+default_kernel_init = lecun_complex()
 
 
 def wrap_kernel_init(kernel_init, mask):
@@ -54,7 +56,7 @@ class MaskedDense1D(nn.Module):
     use_bias: bool = True
     dtype: DType = jnp.float64
     precision: Any = None
-    kernel_init: NNInitFunc = lecun_normal()
+    kernel_init: NNInitFunc = default_kernel_init
     bias_init: NNInitFunc = zeros
 
     @nn.compact
@@ -136,7 +138,7 @@ class MaskedConv1D(nn.Module):
     use_bias: bool = True
     dtype: DType = jnp.float64
     precision: Any = None
-    kernel_init: NNInitFunc = lecun_normal()
+    kernel_init: NNInitFunc = default_kernel_init
     bias_init: NNInitFunc = zeros
 
     @nn.compact
@@ -246,7 +248,7 @@ class MaskedConv2D(nn.Module):
     use_bias: bool = True
     dtype: DType = jnp.float64
     precision: Any = None
-    kernel_init: NNInitFunc = lecun_normal()
+    kernel_init: NNInitFunc = default_kernel_init
     bias_init: NNInitFunc = zeros
 
     def setup(self):
