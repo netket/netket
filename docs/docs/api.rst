@@ -172,7 +172,6 @@ Those structure hold the state of the sampler.
 
   netket.sampler.SamplerState
   netket.sampler.MetropolisSamplerState
-  netket.sampler.ARDirectSamplerState
 
 .. _Models:
 
