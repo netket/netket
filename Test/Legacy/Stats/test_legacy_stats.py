@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import netket.legacy as nk
-import netket.variational as vmc
+import netket.vqs as vmc
 from netket.operator import local_values
 from netket.stats import statistics
 from scipy.optimize import curve_fit

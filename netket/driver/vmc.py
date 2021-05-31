@@ -19,7 +19,7 @@ import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from netket.stats import Stats
-from netket.variational import MCState
+from netket.vqs import MCState
 from netket.optimizer import (
     identity_preconditioner,
     LinearPreconditioner,

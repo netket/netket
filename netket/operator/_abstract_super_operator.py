@@ -27,8 +27,8 @@ class AbstractSuperOperator(AbstractOperator):
     Generic base class for super-operators acting on the tensor product (DoubledHilbert)
     space ℋ⊗ℋ, where ℋ is the physical space.
 
-    Behaves on :ref:`netket.variational.VariationalMixedState` as normal operators behave
-    on :ref:`netket.variational.VariationalState`.
+    Behaves on :ref:`netket.vqs.VariationalMixedState` as normal operators behave
+    on :ref:`netket.vqs.VariationalState`.
     Cannot be used to act upon pure states.
     """
 

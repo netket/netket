@@ -21,7 +21,7 @@ from flax import struct
 from dataclasses import dataclass
 
 from netket.utils.types import PyTree, Array
-from netket.variational import VariationalState
+from netket.vqs import VariationalState
 
 from .linear_operator import LinearOperator, SolverT
 

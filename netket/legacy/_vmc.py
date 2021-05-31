@@ -211,7 +211,7 @@ class Vmc(AbstractVariationalDriver):
             raise RuntimeError(
                 "Vmc driver needs to perform a step before .estimate() can be "
                 "called. To get VMC estimates outside of optimization, use "
-                "netket.variational.estimate_expectations instead."
+                "netket.vqs.estimate_expectations instead."
             )
         return self._get_mc_stats(obs)[1]
 
