@@ -111,8 +111,8 @@ class Group(SemiGroup):
         canonical_identity = self._canonical(Identity())
         inverse = np.zeros(len(self.elems), dtype=int)
 
-        for i, e1 in enumerate(elems):
-            for j, e2 in enumerate(elems):
+        for i, e1 in enumerate(self.elems):
+            for j, e2 in enumerate(self.elems):
                 prod = e1 @ e2
                 if np.all(self._canonical(prod) == canonical_identity):
                     inverse[i] = j
