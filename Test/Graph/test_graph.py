@@ -212,7 +212,7 @@ def test_lattice_symmetry(i, name):
         assert np.all(sgb.point_group.product_table == graph._point_group.product_table)
     else:
         # If non-symmorphic, point permutation group shouldn't close
-        with pytest.raises(KeyError):
+        with pytest.raises(RuntimeError):
             pt = sgb.point_group.product_table
 
     # Build translation group product table explicitly and compare
