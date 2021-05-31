@@ -89,30 +89,10 @@ class ARNNDense(ARNN):
         ]
 
     def conditionals(self, inputs: Array, cache: PyTree) -> Tuple[Array, PyTree]:
-        x = jnp.expand_dims(inputs, axis=-1)
-        for i in range(self.layers):
-            if i > 0:
-                x = self.activation(x)
-            x = self._layers[i](x)
-        p = nn.softmax(x, axis=-1)
-        return p, cache
+        return _sequential_conditionals(self, inputs, cache)
 
     def __call__(self, inputs: Array) -> Array:
-        """Returns log_psi, where psi is real."""
-
-        if inputs.ndim == 1:
-            inputs = jnp.expand_dims(inputs, axis=0)
-
-        idx = (inputs + self.hilbert.local_size - 1) / 2
-        idx = jnp.asarray(idx, jnp.int64)
-        idx = jnp.expand_dims(idx, axis=-1)
-
-        p, _ = self.conditionals(inputs, None)
-        p = jnp.take_along_axis(p, idx, axis=1)
-
-        log_psi = 1 / 2 * jnp.log(p + self.eps)
-        log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
-        return log_psi
+        return _call(self, inputs)
 
 
 class ARNNConv1D(ARNN):
@@ -168,8 +148,41 @@ class ARNNConv1D(ARNN):
         ]
 
     def conditionals(self, inputs: Array, cache: PyTree) -> Tuple[Array, PyTree]:
-        return ARNNDense.conditionals(self, inputs, cache)
+        return _sequential_conditionals(self, inputs, cache)
 
     def __call__(self, inputs: Array) -> Array:
-        """Returns log_psi, where psi is real."""
-        return ARNNDense.__call__(self, inputs)
+        return _call(self, inputs)
+
+
+def _sequential_conditionals(
+    model: ARNN, inputs: Array, cache: PyTree
+) -> Tuple[Array, PyTree]:
+    """
+    Computes the probabilities for each spin to take each value in an ARNN
+    with sequential layers. See `ARNN.conditionals`.
+    """
+    x = jnp.expand_dims(inputs, axis=-1)
+    for i in range(model.layers):
+        if i > 0:
+            x = model.activation(x)
+        x = model._layers[i](x)
+    p = nn.softmax(x, axis=-1)
+    return p, cache
+
+
+def _call(model: ARNN, inputs: Array) -> Array:
+    """Returns log_psi, where psi is real."""
+
+    if inputs.ndim == 1:
+        inputs = jnp.expand_dims(inputs, axis=0)
+
+    idx = (inputs + model.hilbert.local_size - 1) / 2
+    idx = jnp.asarray(idx, jnp.int64)
+    idx = jnp.expand_dims(idx, axis=-1)
+
+    p, _ = model.conditionals(inputs, None)
+    p = jnp.take_along_axis(p, idx, axis=1)
+
+    log_psi = 1 / 2 * jnp.log(p + model.eps)
+    log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
+    return log_psi
