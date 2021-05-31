@@ -72,10 +72,10 @@ class FiniteGroup(FiniteSemiGroup):
             for index, element in enumerate(self.elems)
         }
 
-    def remove_duplicates(self, *, return_inverse=False) -> "Group":
+    def remove_duplicates(self, *, return_inverse=False) -> "FiniteGroup":
         """
-        Returns a new :code:`Group` with duplicate elements (that is, elements with
-        identical canonical forms) removed.
+        Returns a new :code:`FiniteGroup` with duplicate elements (that is,
+        elements with identical canonical forms) removed.
 
         Arguments:
             return_inverse: If True, also return indices to reconstruct the original
@@ -92,7 +92,7 @@ class FiniteGroup(FiniteSemiGroup):
             return_index=True,
             return_inverse=return_inverse,
         )
-        group = Group([self.elems[i] for i in sorted(result[1])])
+        group = FiniteGroup([self.elems[i] for i in sorted(result[1])])
         if return_inverse:
             return group, result[2]
         else:
