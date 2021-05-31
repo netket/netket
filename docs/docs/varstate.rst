@@ -2,15 +2,15 @@
 The Variational State Interface
 *******************************
 
-A central element of NetKet is the :class:`~netket.variational.VariationalState` interface.
+A central element of NetKet is the :class:`~netket.vqs.VariationalState` interface.
 A Variational State represents an approximate, variational description of a system, and can be used to
 probe it.
 
 As of now, NetKet has two types of Variational state implementations:
 
-- :class:`~netket.variational.MCState`, which is a classical variational approximation of a pure state.
+- :class:`~netket.vqs.MCState`, which is a classical variational approximation of a pure state.
 
-- :class:`~netket.variational.MCMixedState`, which is a classical variational approximation of a mixed state.
+- :class:`~netket.vqs.MCMixedState`, which is a classical variational approximation of a mixed state.
 
 
 It is our plan to build upon this interface for new kind of variational states in the future. For example, we
@@ -103,7 +103,7 @@ First of all, you can probe expectation values:
 
 Notice that if you call multiple times :code:`expect`, the same set of
 samples will be used, and you will get the same result. To force sampling
-to happen again, you can call :py:meth:`~netket.variational.MCState.sample`.
+to happen again, you can call :py:meth:`~netket.vqs.MCState.sample`.
 
 .. code:: python
 
@@ -118,14 +118,14 @@ to happen again, you can call :py:meth:`~netket.variational.MCState.sample`.
     >>> -4.90 ± 0.14 [σ²=9.54, R̂=1.0062]
 
 The set of the last sampled samples can be accessed from the attribute
-:py:attr:`~netket.variational.MCState.samples`. If you access the samples
+:py:attr:`~netket.vqs.MCState.samples`. If you access the samples
 from this attribute, but you haven't sampled already, :code:`sample()` will
 be called automatically.
 
 Note that when you update the parameters, the samples are automatically
 discarded.
 
-Parameters can be accessed through the attribute :py:attr:`~netket.variational.VariationalState.parameters`,
+Parameters can be accessed through the attribute :py:attr:`~netket.vqs.VariationalState.parameters`,
 and you can modify them by assigning a new set of parameters to this attribute.
 
 Note that parameters cannot in general be modified in place, as they are
@@ -157,12 +157,12 @@ Sampling
 
 You can also change the number of samples to extract (note: this will
 trigger recompilation of the sample function, so you should not this
-in a hot loop) by changing :py:attr:`~netket.variational.MCState.n_samples`, and
+in a hot loop) by changing :py:attr:`~netket.vqs.MCState.n_samples`, and
 the number of discarded samples at the beginning of every markov chain by
-changing :py:attr:`~netket.variational.MCState.n_discard`.
+changing :py:attr:`~netket.vqs.MCState.n_discard`.
 
-By default, :py:attr:`~netket.variational.MCState.n_discard` is 10% of
-:py:attr:`~netket.variational.MCState.n_samples`.
+By default, :py:attr:`~netket.vqs.MCState.n_discard` is 10% of
+:py:attr:`~netket.vqs.MCState.n_samples`.
 
 The number of samples is then split among the number of chains/batches of the sampler.
 
@@ -205,20 +205,20 @@ Collecting the state-vector
 A variational state can be evaluated on the whole Hilbert space in order to obtain
 the ket it represents.
 
-This is achieved by using the :py:meth:`~netket.variational.VariationalState.to_array` method,
+This is achieved by using the :py:meth:`~netket.vqs.VariationalState.to_array` method,
 which by defaults normalises the :math:`L_2` norm of the vector to 1 (but can be turned off).
 
 Mixed state ansatzes can be converted to their matrix representation with
-:py:meth:`~netket.variational.MCMixedState.to_matrix`. In this case, the default
+:py:meth:`~netket.vqs.MCMixedState.to_matrix`. In this case, the default
 normalisation sets the trace to 1.
 
 
 Manipulating the parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can access the parameters of a variational state through the :py:attr:`~netket.variational.VariationalState.parameters` attribute.
+You can access the parameters of a variational state through the :py:attr:`~netket.vqs.VariationalState.parameters` attribute.
 Similarly, if your model has also a mutable state, you can access it through
-the :py:attr:`~netket.variational.VariationalState.model_state` attribute.
+the :py:attr:`~netket.vqs.VariationalState.model_state` attribute.
 
 Parameters are stored as a Flax :code:`FrozenDict`, which behaves like a standard python dictionary but cannot be modified.
 In Jax jargon, Parameters are a PyTree (see `PyTree documentation <https://jax.readthedocs.io/en/latest/pytrees.html>`_) and they

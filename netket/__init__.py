@@ -34,7 +34,7 @@ __all__ = [
     "sampler",
     "stats",
     "utils",
-    "variational",
+    "vqs",
     "nn",
 ]
 
@@ -52,7 +52,7 @@ from . import (
     jax,
     nn,
     stats,
-    variational,
+    vqs,
     optimizer,
 )
 
@@ -60,13 +60,11 @@ from . import (
 from .driver import VMC
 from .driver import SteadyState
 
-# from .drivers import Qsr
-
-
+# Deprecations
 @_deprecated("VMC")
 def Vmc(*args, **kwarags):
     return VMC(*args, **kwarags)
 
 
-# deprecations
-optim = optimizer
+from . import variational
+from . import optim
