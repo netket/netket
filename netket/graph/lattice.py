@@ -573,7 +573,7 @@ class Lattice(NetworkX):
                 self._point_group = self._point_group()
                 point_group = self._point_group
             else:
-                raise TypeError(
+                raise RuntimeError(
                     "space_group_builder() missing required argument 'point_group'\n(lattice has no default point group)"
                 )
         return SpaceGroupBuilder(self, point_group)
