@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-import itertools
-from itertools import product
 from math import pi
+
 from netket.utils.types import Array
 from typing import Dict, Sequence, Tuple, Union, Optional
 import warnings
@@ -25,7 +24,7 @@ import numpy as _np
 from scipy.spatial import cKDTree
 from scipy.sparse import find, triu
 
-from netket.utils.deprecation import deprecated as _deprecated, warn_deprecation
+from netket.utils.deprecation import deprecated as _deprecated
 from netket.utils import HashableArray
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
@@ -44,29 +43,6 @@ class InvalidWaveVectorError(Exception):
     pass
 
 
-def get_edges(atoms_positions, cutoff, distance_atol):
-    cutoff = cutoff + distance_atol
-    kdtree = cKDTree(atoms_positions)
-    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
-    id1, id2, values = find(triu(dist_matrix))
-    pairs = []
-    min_dists = {}  # keys are nodes, values are min dists
-    for node in _np.unique(_np.concatenate((id1, id2))):
-        min_dist = _np.min(values[(id1 == node) | (id2 == node)])
-        min_dists[node] = min_dist
-    for node in _np.unique(id1):
-        min_dist = _np.min(values[id1 == node])
-        mask = (id1 == node) & (_np.isclose(values, min_dist))
-        first = id1[mask]
-        second = id2[mask]
-        for pair in zip(first, second):
-            if _np.isclose(min_dist, min_dists[pair[0]]) and _np.isclose(
-                min_dist, min_dists[pair[1]]
-            ):
-                pairs.append(pair)
-    return pairs
-
-
 @dataclass
 class LatticeSite:
     """
@@ -77,75 +53,92 @@ class LatticeSite:
     """Integer ID of this site"""
     position: PositionT
     """Real-space position of this site"""
-    cell_coord: CoordT
+    basis_coord: CoordT
     """basis coordinates of this site"""
 
     def __repr__(self):
-        s = ", ".join(map(str, (self.id, self.cell_coord)))
+        s = ", ".join(map(str, (self.id, self.basis_coord)))
         return f"LatticeSite({s})"
 
 
 def create_sites(
     basis_vectors, extent, apositions, pbc
-) -> Tuple[Tuple[LatticeSite, bool], Dict[HashableArray, int]]:
-    shell_vec = _np.zeros(extent.size, dtype=int)
-    shift_vec = _np.zeros(extent.size, dtype=int)
+) -> Tuple[Sequence[LatticeSite], Sequence[bool], Dict[HashableArray, int]]:
     # note: by modifying these, the number of shells can be tuned.
-    shell_vec[pbc] = 2
-    shift_vec[pbc] = 1
-    ranges = tuple([list(range(ex)) for ex in extent + shell_vec])
+    shell_vec = _np.where(pbc, 2, 0)
+    shift_vec = _np.where(pbc, 1, 0)
+
+    shell_min = 0 - shift_vec
+    shell_max = _np.asarray(extent) + shell_vec - shift_vec
+    # cell coordinates
+    ranges = [slice(lo, hi) for lo, hi in zip(shell_min, shell_max)]
+    # site coordinate within unit cell
+    ranges += [slice(0, len(apositions))]
+
+    basis_coords = _np.vstack([_np.ravel(x) for x in _np.mgrid[ranges]]).T
+    site_coords = (
+        basis_coords[:, :-1]
+        + _np.tile(apositions.T, reps=len(basis_coords) // len(apositions)).T
+    )
+    positions = site_coords @ basis_vectors
+
     sites = []
-    cell_coord_to_site = {}
-    for s_cell in itertools.product(*ranges):
-        s_coord_cell = _np.asarray(s_cell) - shift_vec
-        inside = not (_np.any(s_coord_cell < 0) or _np.any(s_coord_cell > (extent - 1)))
-        atom_count = len(sites)
-        for i, atom_coord in enumerate(apositions):
-            s_coord_site = s_coord_cell + atom_coord
-            r_coord_site = _np.matmul(basis_vectors.T, s_coord_site)
-            cell_coord_site = _np.array((*s_coord_cell, i), dtype=int)
-            sites.append(
-                (
-                    LatticeSite(
-                        id=None,  # to be set later, after sorting all sites
-                        position=r_coord_site,
-                        cell_coord=cell_coord_site,
-                    ),
-                    inside,
-                ),
-            )
-            cell_coord_to_site[HashableArray(cell_coord_site)] = atom_count + i
-    return sites, cell_coord_to_site
+    coord_to_site = {}
+    for idx, (coord, pos) in enumerate(zip(basis_coords, positions)):
+        sites.append(
+            LatticeSite(
+                id=None,  # to be set later, after sorting all sites
+                basis_coord=coord,
+                position=pos,
+            ),
+        )
+        coord_to_site[HashableArray(coord)] = idx
+    is_inside = ~(
+        _np.any(basis_coords[:, :-1] < 0, axis=1)
+        | _np.any(basis_coords[:, :-1] > (extent - 1), axis=1)
+    )
+    return sites, is_inside, coord_to_site
+
+
+def get_edges(positions, cutoff):
+    kdtree = cKDTree(positions)
+    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
+    row, col, dst = find(triu(dist_matrix))
+    dst = comparable(dst)
+    _, ii = _np.unique(dst, return_inverse=True)
+
+    return sorted(list(zip(row[ii == 0], col[ii == 0])))
 
 
 def get_true_edges(
     basis_vectors: PositionT,
     sites: Sequence[LatticeSite],
-    cell_coord_to_site,
+    inside: Sequence[bool],
+    basis_coord_to_site,
     extent,
     distance_atol,
 ):
-    positions = _np.array([p.position for p, _ in sites])
+    positions = _np.array([p.position for p in sites])
     naive_edges = get_edges(
-        positions, _np.linalg.norm(basis_vectors, axis=1).max(), distance_atol
+        positions, _np.linalg.norm(basis_vectors, axis=1).max() + distance_atol
     )
-    true_edges = []
+    true_edges = set()
     for node1, node2 in naive_edges:
-        site1, inside1 = sites[node1]
-        site2, inside2 = sites[node2]
+        site1, inside1 = sites[node1], inside[node1]
+        site2, inside2 = sites[node2], inside[node2]
         if inside1 and inside2:
-            true_edges.append((node1, node2))
+            true_edges.add((node1, node2))
         elif inside1 or inside2:
-            cell1 = site1.cell_coord
-            cell2 = site2.cell_coord
+            cell1 = site1.basis_coord
+            cell2 = site2.basis_coord
             cell1[:-1] = cell1[:-1] % extent
             cell2[:-1] = cell2[:-1] % extent
-            node1 = cell_coord_to_site[HashableArray(cell1)]
-            node2 = cell_coord_to_site[HashableArray(cell2)]
+            node1 = basis_coord_to_site[HashableArray(cell1)]
+            node2 = basis_coord_to_site[HashableArray(cell2)]
             edge = (node1, node2)
             if edge not in true_edges and (node2, node1) not in true_edges:
-                true_edges.append(edge)
-    return true_edges
+                true_edges.add(edge)
+    return list(true_edges)
 
 
 def deprecated(alternative):
@@ -289,12 +282,13 @@ class Lattice(NetworkX):
 
         self._point_group = point_group
 
-        sites, self._basis_coord_to_site = create_sites(
-            self._basis_vectors, self._extent, site_pos_fractional, pbc
+        sites, inside, self._basis_coord_to_site = create_sites(
+            self._basis_vectors, self._extent, site_pos_fractional, self._pbc
         )
         edges = get_true_edges(
             self._basis_vectors,
             sites,
+            inside,
             self._basis_coord_to_site,
             self._extent,
             distance_atol,
@@ -304,23 +298,22 @@ class Lattice(NetworkX):
         # Rename sites
         old_nodes = sorted(set(node for edge in edges for node in edge))
         self._sites = []
-        for i, (site, _) in enumerate(sites[old_node] for old_node in old_nodes):
+        for i, site in enumerate(sites[old_node] for old_node in old_nodes):
             site.id = i
             self._sites.append(site)
         new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
         graph = _nx.relabel_nodes(graph, new_nodes)
         self._basis_coord_to_site = {
-            HashableArray(p.cell_coord): p.id for p in self._sites
+            HashableArray(p.basis_coord): p.id for p in self._sites
         }
         self._positions = _np.array([p.position for p in self._sites])
-        self._basis_coords = _np.array([p.cell_coord for p in self._sites])
+        self._basis_coords = _np.array([p.basis_coord for p in self._sites])
 
         # Order node names
         edges = list(graph.edges())
         graph = _nx.MultiGraph()
         graph.add_nodes_from([p.id for p in self._sites])
         graph.add_edges_from(edges)
-
         self._lattice_dims = _np.expand_dims(self._extent, 1) * self.basis_vectors
         self._inv_dims = _np.linalg.inv(self._lattice_dims)
         int_positions = self._to_integer_position(self._positions)
