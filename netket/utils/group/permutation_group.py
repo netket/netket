@@ -19,6 +19,7 @@ from plum import dispatch
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional
+import itertools
 
 from .semigroup import Identity, Element
 from .group import FiniteGroup

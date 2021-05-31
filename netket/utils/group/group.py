@@ -17,6 +17,8 @@
 
 import numpy as np
 from dataclasses import dataclass
+from plum import dispatch
+import itertools
 
 from .semigroup import FiniteSemiGroup, Element, Identity
 from netket.utils import struct, HashableArray

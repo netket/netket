@@ -22,6 +22,7 @@ from math import pi
 from functools import partial
 from typing import Optional, Tuple, Dict
 from scipy.linalg import schur
+import itertools
 
 from .semigroup import Identity, Element
 from .group import FiniteGroup
