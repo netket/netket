@@ -116,7 +116,7 @@ def Grid(
         basis_vectors=np.eye(ndim),
         extent=extent,
         pbc=pbc,
-        point_group=_grid_point_group(extent, pbc),
+        point_group=lambda: _grid_point_group(extent, pbc),
     )
 
 

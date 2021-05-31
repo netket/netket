@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from math import pi
 
 from netket.utils.types import Array
-from typing import Dict, Sequence, Tuple, Union, Optional
+from typing import Callable, Dict, Sequence, Tuple, Union, Optional
 import warnings
 
 import networkx as _nx
@@ -566,12 +566,16 @@ class Lattice(NetworkX):
         """
         from .space_group import SpaceGroupBuilder
 
-        point_group = point_group or self._point_group
         if point_group is None:
-            raise TypeError(
-                "space_group_builder() missing required argument 'point_group'\n(lattice has no default point group)"
-            )
-
+            if isinstance(self._point_group, PointGroup):
+                point_group = self._point_group
+            elif isinstance(self._point_group, Callable):
+                self._point_group = self._point_group()
+                point_group = self._point_group
+            else:
+                raise TypeError(
+                    "space_group_builder() missing required argument 'point_group'\n(lattice has no default point group)"
+                )
         return SpaceGroupBuilder(self, point_group)
 
     def space_group(self, point_group: Optional[PointGroup] = None) -> PermutationGroup:
