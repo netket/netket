@@ -254,9 +254,9 @@ Variational State Interface
   :toctree: _generated/variational
   :nosignatures:
 
-  netket.variational.VariationalState
-  netket.variational.MCState
-  netket.variational.MCMixedState
+  netket.vqs.VariationalState
+  netket.vqs.MCState
+  netket.vqs.MCMixedState
 
 
 .. _optimizer-api:

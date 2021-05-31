@@ -7,7 +7,7 @@ import jax.numpy as jnp
 from functools import partial
 
 import netket as nk
-import netket.variational as vmc
+import netket.vqs as vmc
 from netket.stats import statistics
 from scipy.optimize import curve_fit
 from numba import jit

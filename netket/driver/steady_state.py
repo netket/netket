@@ -20,7 +20,7 @@ from jax.tree_util import tree_map
 
 from netket.operator import Squared, AbstractSuperOperator
 from netket.stats import Stats
-from netket.variational import MCMixedState
+from netket.vqs import MCMixedState
 from netket.utils import warn_deprecation
 from netket.optimizer import (
     identity_preconditioner,

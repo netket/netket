@@ -95,6 +95,6 @@ If you find NaNs while training, especially if you are using your own model, the
   In Netket 3, `netket.nn` layers use the same default (normal distribution with standard deviation 0.01) but
   if you use general flax layers they might use different initializers.
   different initialisation distributions have particoularly strong effects when working with complex-valued models. 
-  A good way to enforce the same distribution across all your weights, similar to NetKet 2 behaviour, is to use :py:meth:`~netket.variational.VariationalState.init_parameters`.
+  A good way to enforce the same distribution across all your weights, similar to NetKet 2 behaviour, is to use :py:meth:`~netket.vqs.VariationalState.init_parameters`.
 
 
