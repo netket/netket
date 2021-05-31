@@ -183,7 +183,7 @@ def _call(model: ARNN, inputs: Array) -> Array:
     idx = jnp.expand_dims(idx, axis=-1)
 
     p, _ = model.conditionals(inputs, None)
-    p = jnp.take_along_axis(p, idx, axis=1)
+    p = jnp.take_along_axis(p, idx, axis=-1)
 
     log_psi = 1 / 2 * jnp.log(p + model.eps)
     log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
