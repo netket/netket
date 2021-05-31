@@ -114,7 +114,7 @@ class FiniteSemiGroup:
         # manually assign self.__hash == ... for frozen dataclass,
         # see https://docs.python.org/3/library/dataclasses.html#frozen-instances
         myhash = hash(tuple(hash(x) for x in self.elems))
-        object.__setattr__(self, "_SemiGroup__hash", myhash)
+        object.__setattr__(self, "_FiniteSemiGroup__hash", myhash)
 
     def __matmul__(self, other):
         """
