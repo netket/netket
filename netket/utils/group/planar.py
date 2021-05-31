@@ -20,7 +20,10 @@ import numpy as np
 
 def rotation(angle: float) -> PGSymmetry:
     """
-    Returns a 2D rotation by `angle` degrees
+    Returns a 2D rotation by `angle` degrees.
+    
+    Args:
+       angle: the angle of rotation in degrees.
     """
     angle = np.radians(angle)
     return PGSymmetry(
@@ -46,22 +49,28 @@ def C(n: int) -> PointGroup:
 rotation_group = C
 
 
-def reflection(axis: float) -> PGSymmetry:
+def reflection(angle: float) -> PGSymmetry:
     """
-    Returns a 2D reflection across an axis at angle `axis` to the +x direction
+    Returns a 2D reflection across an axis at angle `angle` to the +x direction.
+    
+    Args:
+        angle: the angle between the +x axis and the reflection axis.
     """
-    axis = np.radians(axis) * 2  # the mirror matrix is written in terms of 2φ
+    axis = np.radians(angle) * 2  # the mirror matrix is written in terms of 2φ
     return PGSymmetry(
         np.asarray([[np.cos(axis), np.sin(axis)], [np.sin(axis), -np.cos(axis)]])
     )
 
 
-def reflection_group(axis: float) -> PointGroup:
+def reflection_group(angle: float) -> PointGroup:
     """
     Returns the Z₂ `PointGroup` containing the identity and a reflection across an
-    axis at angle `axis` to the +x direction
+    axis at angle `angle` to the +x.
+    
+    Args:        
+        angle: the angle between the +x axis and the reflection axis.
     """
-    return PointGroup([Identity(), reflection(axis)], ndim=2)
+    return PointGroup([Identity(), reflection(angle)], ndim=2)
 
 
 def glide(trans: Array, origin: Array = [0, 0]) -> PGSymmetry:

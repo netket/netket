@@ -56,10 +56,8 @@ class PGSymmetry(Element):
 
     def __pre_init__(self, W: Array, w: Optional[Array] = None) -> Tuple[Tuple, Dict]:
         W = np.asarray(W)
-        if W.ndim != 2:
-            raise ValueError("W must be a 2D matrix")
-        if W.shape[0] != W.shape[1]:
-            raise ValueError("W must be a square matrix")
+        if W.ndim != 2 or W.shape[0] != W.shape[1]:
+            raise ValueError("W must be a 2D square matrix")
         ndim = W.shape[0]
         if not np.allclose(W.T @ W, np.eye(ndim)):
             raise ValueError("W must be an orthogonal matrix")
@@ -67,7 +65,7 @@ class PGSymmetry(Element):
             w = np.zeros((ndim, 1))
         else:
             w = np.asarray(w).reshape(ndim, 1)
-        return ((np.block([[W, w], [np.zeros(ndim), 1]]),), dict())
+        return (np.block([[W, w], [np.zeros(ndim), 1]]),), {}
 
     @property
     def affine_matrix(self) -> Array:
@@ -132,10 +130,6 @@ class PGSymmetry(Element):
 
     def __repr__(self):
         return self._name
-
-    def __array__(self, dtype: DType = None):
-        return np.asarray(self._affine, dtype)
-
 
 @dispatch
 def product(p: PGSymmetry, q: PGSymmetry):
