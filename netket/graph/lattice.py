@@ -381,7 +381,7 @@ class Lattice(NetworkX):
         ):
 
             warnings.warn(
-                "Some atom positions are outside the primitive unit cell. This may"
+                "Some sites were specified outside the primitive unit cell. This may"
                 "cause errors in automatic edge finding.",
                 UserWarning,
             )

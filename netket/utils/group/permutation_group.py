@@ -107,14 +107,7 @@ class PermutationGroup(Group):
         return PermutationGroup(super().__matmul__(other).elems, self.degree)
 
     def _canonical(self, x: Element) -> Array:
-        if isinstance(x, Identity):
-            return np.arange(self.degree, dtype=int)
-        elif isinstance(x, Permutation):
-            return np.asarray(x.permutation)
-        else:
-            raise ValueError(
-                "`PermutationGroup` only supports `Identity` and `Permutation` elements"
-            )
+        return x(np.arange(self.degree, dtype=int))
 
     def to_array(self) -> Array:
         """
