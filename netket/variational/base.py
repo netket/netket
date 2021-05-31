@@ -219,21 +219,16 @@ class VariationalState(abc.ABC):
         """
         raise NotImplementedError
 
-    def to_array(
-        self, normalize: bool = True, stable: bool = True, exp: bool = True
-    ) -> jnp.ndarray:
+    def to_array(self, normalize: bool = True) -> jnp.ndarray:
         """
         Returns the dense-vector representation of this state.
 
         Args:
             normalize: If True, the vector is normalized to have L2-norm 1.
-            stable: If True, internally subtract the maximal entry of the vector in log space
-              to enhance numerical stability. If also `normalize = False`, the results will be
-              different from those of `model.apply`.
-            exp: If True, the vector is in exponential space.
 
         Returns:
-            A vector representing the state in the computational basis.
+            An exponentially large vector representing the state in the computational
+            basis.
         """
         return NotImplemented
 

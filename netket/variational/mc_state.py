@@ -537,16 +537,9 @@ class MCState(VariationalState):
         """
         return qgt_T(self)
 
-    def to_array(
-        self, normalize: bool = True, stable: bool = True, exp: bool = True
-    ) -> jnp.ndarray:
+    def to_array(self, normalize: bool = True) -> jnp.ndarray:
         return netket.nn.to_array(
-            self.hilbert,
-            self._apply_fun,
-            self.variables,
-            normalize=normalize,
-            stable=stable,
-            exp=exp,
+            self.hilbert, self._apply_fun, self.variables, normalize=normalize
         )
 
     def __repr__(self):
