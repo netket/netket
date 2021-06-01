@@ -85,16 +85,19 @@ perms = [
 ]
 groups = point_groups + perms
 
-
-def equal(a, b):
-    return np.all(a == b)
+# if comparing wrt exact zeros, put the object with
+# exact zeros in a
+def assert_allclose(a, b, rtol=2e-14, **kwargs):
+    np.testing.assert_allclose(a, b, rtol=rtol, **kwargs)
 
 
 @pytest.mark.parametrize("grp", groups)
 def test_inverse(grp):
     inv = grp.inverse
     for i, j in enumerate(inv):
-        assert equal(grp._canonical(grp[i] @ grp[j]), grp._canonical(group.Identity()))
+        assert_allclose(
+            grp._canonical(grp[i] @ grp[j]), grp._canonical(group.Identity())
+        )
 
 
 @pytest.mark.parametrize("grp", groups)
@@ -103,7 +106,9 @@ def test_product_table(grp):
     # u = g^-1 h  ->  gu = h
     for i in range(len(grp)):
         for j in range(len(grp)):
-            assert equal(grp._canonical(grp[i] @ grp[pt[i, j]]), grp._canonical(grp[j]))
+            assert_allclose(
+                grp._canonical(grp[i] @ grp[pt[i, j]]), grp._canonical(grp[j])
+            )
 
 
 @pytest.mark.parametrize("grp", groups)
@@ -112,7 +117,7 @@ def test_conjugacy_table(grp):
     inv = grp.inverse
     for i in range(len(grp)):
         for j, jinv in enumerate(inv):
-            assert equal(
+            assert_allclose(
                 grp._canonical(grp[jinv] @ grp[i] @ grp[j]),
                 grp._canonical(grp[ct[i, j]]),
             )
@@ -147,7 +152,7 @@ def test_conjugacy_class(grp, cls, dims):
     classes, _, _ = grp.conjugacy_classes
     class_sizes = classes.sum(axis=1)
 
-    assert equal(np.sort(class_sizes), np.sort(cls))
+    assert_allclose(np.sort(class_sizes), np.sort(cls))
 
 
 @pytest.mark.parametrize("grp,cls,dims", details)
@@ -157,16 +162,21 @@ def test_character_table(grp, cls, dims):
     cht = grp.character_table_by_class
 
     # check that dimensions match and are sorted
-    assert np.allclose(cht[:, 0], np.sort(dims))
+    assert_allclose(
+        cht[:, 0], np.sort(dims).astype(cht.dtype), rtol=1.0e-12
+    )  # this should not require such low tolerance
 
     # check orthogonality of characters
-    assert np.allclose(
-        cht @ np.diag(class_sizes) @ cht.T.conj(), np.eye(len(class_sizes)) * len(grp)
+    # this also requires an high atol. it shouldn't.
+    assert_allclose(
+        cht @ np.diag(class_sizes) @ cht.T.conj(),
+        np.eye(len(class_sizes), dtype=cht.dtype) * len(grp),
+        atol=2e-12,
     )
 
     # check orthogonality of columns of the character table
     column_prod = cht.T.conj() @ cht
-    assert np.allclose(column_prod, np.diag(np.diag(column_prod)))
+    assert_allclose(np.diag(np.diag(column_prod)), column_prod, atol=1e-12)
 
 
 @pytest.mark.parametrize("grp,cls,dims", details)
@@ -176,10 +186,12 @@ def test_irrep_matrices(grp, cls, dims):
     true_product_table = grp.product_table[grp.inverse]
     for i, irrep in enumerate(irreps):
         # characters are the traces of the irrep matrices
-        assert np.allclose(characters[i], np.trace(irrep, axis1=1, axis2=2))
+        assert_allclose(np.trace(irrep, axis1=1, axis2=2), characters[i], atol=5.0e-14)
         # irrep matrices respect the group multiplication rule
-        assert np.allclose(
-            irrep[true_product_table, :, :], np.einsum("iab,jbc->ijac", irrep, irrep)
+        assert_allclose(
+            irrep[true_product_table, :, :],
+            np.einsum("iab,jbc->ijac", irrep, irrep),
+            atol=1e-14,
         )
 
 
@@ -239,8 +251,8 @@ names = [
 
 @pytest.mark.parametrize("symm,W,name", names)
 def test_naming(symm, W, name):
-    assert np.allclose(symm.matrix, W)
-    assert np.allclose(symm.translation, 0.0)
+    assert_allclose(symm.matrix, W, rtol=2.0e-10)
+    assert_allclose(0.0, symm.translation)
     assert str(symm) == name
 
 
@@ -300,8 +312,11 @@ names_nonsymm = [
 
 @pytest.mark.parametrize("symm,W,w,name", names_nonsymm)
 def test_naming_nonsymm(symm, W, w, name):
-    assert np.allclose(symm.matrix, W)
-    assert np.allclose(symm.translation, w)
+    assert_allclose(symm.matrix, W, atol=1e-14)
+    assert_allclose(
+        symm.translation,
+        w,
+    )
     assert str(symm) == name
 
 
@@ -310,9 +325,9 @@ def test_naming_nonsymm(symm, W, w, name):
 def test_change_origin(grp):
     origin = np.random.standard_normal(grp.ndim)
     grp_new = grp.change_origin(origin)
-    assert np.all(grp_new.product_table == grp.product_table)
+    assert_allclose(grp_new.product_table, grp.product_table)
     for elem in grp_new:
-        assert np.allclose(elem(origin), origin)
+        assert_allclose(elem(origin), origin)
 
 
 def test_pyrochlore():
@@ -329,4 +344,4 @@ def test_pyrochlore():
     # canned Oh is listed in a different order
     Oh = group.axial.inversion_group() @ group.cubic.Td()
     # after specifying the unit cell, Fd3m is isomorphic to Oh
-    assert np.all(Fd3m.product_table == Oh.product_table)
+    assert_allclose(Fd3m.product_table, Oh.product_table)
