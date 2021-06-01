@@ -4,16 +4,34 @@
 
 # Change Log
 
-## NetKet 3.0b2 (unreleased)
-[GitHub commits](https://github.com/netket/netket/compare/v3.0b1...master).
+## NetKet 3.0b3 (unreleased)
 
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.0b2...master).
+
+
+### New features
+
+* Autoregressive neural networks, sampler, and masked linear layers have been added to `models`, `sampler` and `nn` [#705](https://github.com/netket/netket/pull/705).
+
+
+### Breaking Changes
+
+
+### Bug Fixes
+
+* `nn.to_array` and `MCState.to_array`, if `normalize=False`, do not subtract the logarithm of the maximum value from the state  [#705](https://github.com/netket/netket/pull/705).
+
+
+## NetKet 3.0b2 (published on 31 May 2021)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.0b1...v3.0b2).
 
 ### New features
 
 * Group Equivariant Neural Networks have been added to `models` [#620](https://github.com/netket/netket/pull/620)
 * Permutation invariant RBM and Permutation invariant dense layer have been added to `models`
   and `nn.linear` [#573](https://github.com/netket/netket/pull/573)
-* Autoregressive neural networks, sampler, and masked linear layers have been added to `models`, `sampler` and `nn` [#705](https://github.com/netket/netket/pull/705)
 * Add the property `acceptance` to `MetropolisSampler`'s `SamplerState`, computing the
   MPI-enabled acceptance ratio. [#592](https://github.com/netket/netket/pull/592).
 * Add `StateLog`, a new logger that stores the parameters of the model during the
