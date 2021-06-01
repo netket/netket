@@ -73,7 +73,7 @@ def test_ARNN(partial_model, s, dtype):
 
     # Test if the model is normalized
     # The result may not be very accurate, because it is in exp space
-    psi = nk.nn.to_array(hilbert, model.apply, params, normalize=False, stable=False)
+    psi = nk.nn.to_array(hilbert, model.apply, params, normalize=False)
     assert (psi ** 2).sum() == pytest.approx(1, rel=1e-5, abs=1e-5)
 
     # Test if the model is autoregressive

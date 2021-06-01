@@ -7,8 +7,14 @@ from netket.utils import mpi
 import jax
 
 
-def to_array(hilbert, apply_fun, variables, normalize=True, stable=True, log=False):
+def to_array(hilbert, apply_fun, variables, normalize=True):
+    """
+    Computes `apply_fun(variables, states)` on all states of `hilbert` and returns
+      the results as a vector.
 
+    Args:
+        normalize: If True, the vector is normalized to have L2-norm 1.
+    """
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
 
@@ -27,11 +33,11 @@ def to_array(hilbert, apply_fun, variables, normalize=True, stable=True, log=Fal
 
     xs = hilbert.numbers_to_states(states_per_rank[mpi.rank])
 
-    return _to_array_rank(apply_fun, variables, xs, n_states, normalize, stable, log)
+    return _to_array_rank(apply_fun, variables, xs, n_states, normalize)
 
 
 @partial(jax.jit, static_argnums=(0, 3, 4, 5, 6))
-def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize, stable, log):
+def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize):
     """
     Computes apply_fun(variables, σ_rank) and gathers all results across all ranks.
     The input σ_rank should be a slice of all states in the hilbert space of equal
@@ -39,11 +45,6 @@ def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize, stable, l
 
     Args:
         n_states: total number of elements in the hilbert space.
-        normalize: If True, the vector is normalized to have L2-norm 1.
-        stable: If True, internally subtract the maximal entry of the vector in log space to enhance
-          the numerical stability. If also `normalize = False`, the results will be different
-          from those of `model.apply`.
-        log: If True, return the log of the vector instead of the actual vector.
     """
     # number of 'fake' states, in the last rank.
     n_fake_states = σ_rank.shape[0] * mpi.n_nodes - n_states
@@ -56,24 +57,18 @@ def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize, stable, l
             log_psi_local, jax.ops.index[-n_fake_states:], 0.0
         )
 
-    if stable:
+    if normalize:
+        # subtract logmax for better numerical stability
         logmax, _ = mpi.mpi_max_jax(log_psi_local.real.max())
         log_psi_local -= logmax
 
     psi_local = jnp.exp(log_psi_local)
 
-    # compute normalization
     if normalize:
+        # compute normalization
         norm2 = jnp.linalg.norm(psi_local) ** 2
         norm2, _ = mpi.mpi_sum_jax(norm2)
-
-        if log:
-            log_psi_local -= 1 / 2 * jnp.log(norm2)
-        else:
-            psi_local /= jnp.sqrt(norm2)
-
-    if log:
-        psi_local = log_psi_local
+        psi_local /= jnp.sqrt(norm2)
 
     psi, _ = mpi.mpi_allgather_jax(psi_local)
     psi = psi.reshape(-1)
