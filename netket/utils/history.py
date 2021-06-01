@@ -18,8 +18,8 @@ import numpy as np
 from numbers import Number
 import jax.numpy as jnp
 
-from plum import dispatch
 
+from .dispatch import dispatch
 from .numbers import dtype, is_scalar
 from .types import Array, DType
 
