@@ -15,7 +15,6 @@
 import pytest
 import numpy as np
 import jax.numpy as jnp
-import jax
 
 from numpy.testing import assert_equal
 
