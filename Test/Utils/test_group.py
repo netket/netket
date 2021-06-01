@@ -159,13 +159,13 @@ def test_character_table(grp, cls, dims):
 
     # check that dimensions match and are sorted
     assert_allclose(
-        cht[:, 0], np.sort(dims).astype(cht.dtype), atol=1e-10
+        cht[:, 0], np.sort(dims), atol=1e-10
     )  # this should not require such low tolerance
 
     # check orthogonality of characters
     # this also requires an high atol. it shouldn't.
     assert_allclose(
-        np.eye(len(class_sizes), dtype=cht.dtype) * len(grp),
+        np.eye(len(class_sizes)) * len(grp),
         cht @ np.diag(class_sizes) @ cht.T.conj(),
         atol=1e-10,
     )
@@ -247,7 +247,7 @@ names = [
 
 @pytest.mark.parametrize("symm,W,name", names)
 def test_naming(symm, W, name):
-    assert_allclose(symm.matrix, W, rtol=2.0e-10)
+    assert_allclose(symm.matrix, W, atol=2.0e-10)
     assert_allclose(0.0, symm.translation)
     assert str(symm) == name
 
@@ -308,7 +308,7 @@ names_nonsymm = [
 
 @pytest.mark.parametrize("symm,W,w,name", names_nonsymm)
 def test_naming_nonsymm(symm, W, w, name):
-    assert_allclose(symm.matrix, W, atol=1e-14)
+    assert_allclose(symm.matrix, W)
     assert_allclose(
         symm.translation,
         w,
@@ -321,9 +321,9 @@ def test_naming_nonsymm(symm, W, w, name):
 def test_change_origin(grp):
     origin = np.random.standard_normal(grp.ndim)
     grp_new = grp.change_origin(origin)
-    assert_allclose(grp_new.product_table, grp.product_table)
+    assert_equal(grp_new.product_table, grp.product_table)
     for elem in grp_new:
-        assert_allclose(elem(origin), origin)
+        assert_allclose(elem(origin), origin, rtol=1e-15)
 
 
 def test_pyrochlore():
@@ -340,4 +340,4 @@ def test_pyrochlore():
     # canned Oh is listed in a different order
     Oh = group.axial.inversion_group() @ group.cubic.Td()
     # after specifying the unit cell, Fd3m is isomorphic to Oh
-    assert_allclose(Fd3m.product_table, Oh.product_table)
+    assert_equal(Fd3m.product_table, Oh.product_table)
