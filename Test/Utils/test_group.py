@@ -16,6 +16,7 @@ import pytest
 
 import netket as nk
 import numpy as np
+from numpy.testing import assert_equal
 
 from netket.utils import group
 
@@ -85,19 +86,16 @@ perms = [
 ]
 groups = point_groups + perms
 
-# if comparing wrt exact zeros, put the object with
-# exact zeros in a
-def assert_allclose(a, b, rtol=2e-14, **kwargs):
-    np.testing.assert_allclose(a, b, rtol=rtol, **kwargs)
+
+def assert_allclose(a, b, rtol=0, atol=1e-15, **kwargs):
+    np.testing.assert_allclose(a, b, rtol=rtol, atol=atol, **kwargs)
 
 
 @pytest.mark.parametrize("grp", groups)
 def test_inverse(grp):
     inv = grp.inverse
     for i, j in enumerate(inv):
-        assert_allclose(
-            grp._canonical(grp[i] @ grp[j]), grp._canonical(group.Identity())
-        )
+        assert_equal(grp._canonical(grp[i] @ grp[j]), grp._canonical(group.Identity()))
 
 
 @pytest.mark.parametrize("grp", groups)
@@ -106,9 +104,7 @@ def test_product_table(grp):
     # u = g^-1 h  ->  gu = h
     for i in range(len(grp)):
         for j in range(len(grp)):
-            assert_allclose(
-                grp._canonical(grp[i] @ grp[pt[i, j]]), grp._canonical(grp[j])
-            )
+            assert_equal(grp._canonical(grp[i] @ grp[pt[i, j]]), grp._canonical(grp[j]))
 
 
 @pytest.mark.parametrize("grp", groups)
@@ -117,7 +113,7 @@ def test_conjugacy_table(grp):
     inv = grp.inverse
     for i in range(len(grp)):
         for j, jinv in enumerate(inv):
-            assert_allclose(
+            assert_equal(
                 grp._canonical(grp[jinv] @ grp[i] @ grp[j]),
                 grp._canonical(grp[ct[i, j]]),
             )
@@ -152,7 +148,7 @@ def test_conjugacy_class(grp, cls, dims):
     classes, _, _ = grp.conjugacy_classes
     class_sizes = classes.sum(axis=1)
 
-    assert_allclose(np.sort(class_sizes), np.sort(cls))
+    assert_equal(np.sort(class_sizes), np.sort(cls))
 
 
 @pytest.mark.parametrize("grp,cls,dims", details)
@@ -163,20 +159,20 @@ def test_character_table(grp, cls, dims):
 
     # check that dimensions match and are sorted
     assert_allclose(
-        cht[:, 0], np.sort(dims).astype(cht.dtype), rtol=1.0e-12
+        cht[:, 0], np.sort(dims).astype(cht.dtype), atol=1e-10
     )  # this should not require such low tolerance
 
     # check orthogonality of characters
     # this also requires an high atol. it shouldn't.
     assert_allclose(
-        cht @ np.diag(class_sizes) @ cht.T.conj(),
         np.eye(len(class_sizes), dtype=cht.dtype) * len(grp),
-        atol=2e-12,
+        cht @ np.diag(class_sizes) @ cht.T.conj(),
+        atol=1e-10,
     )
 
     # check orthogonality of columns of the character table
     column_prod = cht.T.conj() @ cht
-    assert_allclose(np.diag(np.diag(column_prod)), column_prod, atol=1e-12)
+    assert_allclose(np.diag(np.diag(column_prod)), column_prod, atol=1e-10)
 
 
 @pytest.mark.parametrize("grp,cls,dims", details)
@@ -186,7 +182,7 @@ def test_irrep_matrices(grp, cls, dims):
     true_product_table = grp.product_table[grp.inverse]
     for i, irrep in enumerate(irreps):
         # characters are the traces of the irrep matrices
-        assert_allclose(np.trace(irrep, axis1=1, axis2=2), characters[i], atol=5.0e-14)
+        assert_allclose(np.trace(irrep, axis1=1, axis2=2), characters[i], atol=1e-10)
         # irrep matrices respect the group multiplication rule
         assert_allclose(
             irrep[true_product_table, :, :],
