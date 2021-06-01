@@ -44,7 +44,7 @@ class MPSPeriodic(nn.Module):
     """
 
     hilbert: AbstractHilbert
-    """"Hilbert space on which the state is defined."""
+    """Hilbert space on which the state is defined."""
     graph: AbstractGraph
     """The graph on which the system is defined."""
     bond_dim: int

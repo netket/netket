@@ -10,7 +10,7 @@ The parameter space has a simple Euclidean metric, therefore the distance betwee
 However, what we really are interested in when optimizing variational ansätze is not the (Euclidean) distance between those two points in parameter space, but rather the distance in the Hilbert space between the corresponding quantum states (which also properly takes into account gauge degrees of freedom).
 The quantum mechanical distance function for quantum states is the Fubini-Study distance $ d(\psi, \phi) = \cos^{-1} \sqrt{\frac{\langle\psi|\phi\rangle \langle\phi|\psi\rangle}{\langle\psi|\psi\rangle \langle\phi|\phi\rangle}} $.
 This can be expanded to second order in an infinitesimal parameter change $\delta W$ as $ d(\psi_W, \psi_{W + \delta W}) = (\delta W)^\dagger S \delta W $ where $ S $ is the QGT.
-In NetKet you can obtain (an approximation of) the quantum geometric tensor of a variational state by calling {attr}`~netket.variational.VariationalState.quantum_geometric_tensor`.
+In NetKet you can obtain (an approximation of) the quantum geometric tensor of a variational state by calling {attr}`~netket.vqs.VariationalState.quantum_geometric_tensor`.
 
 ```python
 ma = nk.models.RBM(alpha=1, dtype=float)

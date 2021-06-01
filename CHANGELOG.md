@@ -6,9 +6,7 @@
 
 ## NetKet 3.0b3 (unreleased)
 
-
 [GitHub commits](https://github.com/netket/netket/compare/v3.0b2...master).
-
 
 ### New features
 
@@ -69,6 +67,7 @@
   inside the closure or `functools.partial` passed as `solver` argument.
 * `nk.optimizer.sr.SRLazyCG` and `nk.optimizer.sr.SRLazyGMRES` have been deprecated and will soon be removed.
 * Parts of the `Lattice` API have been overhauled, with deprecations of several methods in favor of a consistent usage of `Lattice.position` for real-space location of sites and `Lattice.basis_coords` for location of sites in terms of basis vectors. `Lattice.sites` has been added, which provides a sequence of `LatticeSite` objects combining all site properties. Furthermore, `Lattice` now provides lookup of sites from their position via `id_from_position` using a hashing scheme that works across periodic boundaries. [#703](https://github.com/netket/netket/pull/703) [#715](https://github.com/netket/netket/pull/715)
+* `nk.variational` has been renamed to `nk.vqs` and will be removed in a future release.
 
 ### Bug Fixes
 
@@ -107,7 +106,7 @@
 
   * Serialization and deserialization functionality has now been moved to {ref}`variational.MCState`, which support the standard Flax interface through MsgPack. See [Flax docs](https://flax.readthedocs.io/en/latest/flax.serialization.html) for more information
 
-  * {code}`AbstractMachine.init_random_parameters` functionality has now been absorbed into {meth}`netket.variational.VariationalState.init_parameters`, which however has a different syntax.
+  * {code}`AbstractMachine.init_random_parameters` functionality has now been absorbed into {meth}`netket.vqs.VariationalState.init_parameters`, which however has a different syntax.
 
 * {ref}`Samplers <Sampler>` now require the Hilbert space upon which they sample to be passed in to the constructor.
 Also note that several keyword arguments of the samplers have changed, and new one are available.
