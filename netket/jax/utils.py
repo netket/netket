@@ -320,55 +320,6 @@ def compose(*funcs):
     return reduce(_compose, funcs)
 
 
-def logsumexp(a, axis=None, b=None, keepdims=False):
-    """
-    Compute the log of the sum of exponentials of input elements.
-
-    Extended from JAX implementations to handle complex numbers.
-
-    Arguments:
-        a: (array_like) Input array.
-        axis: (None or int or tuple of ints, optional) Axis or axes over which the
-              sum is taken. By default axis is None, and all elements are summed.
-        keepdims: (bool, optional) If this is set to True, the axes which are reduced
-                  are left in the result as dimensions with size one. With this option,
-                  the result will broadcast correctly against the original array.
-        b: (array-like, optional) Scaling factor for exp(a). Must be of the same
-           shape as a or broadcastable to a.
-
-    Returns:
-        `np.log(np.sum(np.exp(a)))` calculated in a numerically more stable way.
-        If b is given then `np.log(np.sum(b*np.exp(a)))` is returned.
-    """
-    a = jnp.asarray(a)
-    result = jnp.max(a.real, axis=axis, keepdims=True)
-    if b is None:
-        result = (
-            jnp.log(
-                jnp.asarray(
-                    (jnp.exp(a - result)).sum(axis=axis, keepdims=True), dtype=complex
-                )
-            )
-            + result
-        )
-    else:
-        result = (
-            jnp.log(
-                jnp.asarray(
-                    (jnp.exp(a - result) * jnp.asarray(b)).sum(
-                        axis=axis, keepdims=True
-                    ),
-                    dtype=complex,
-                )
-            )
-            + result
-        )
-    if keepdims:
-        return result
-    else:
-        return result.squeeze(axis=axis)
-
-
 def PRNGKey(seed: Optional[SeedT] = None, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.

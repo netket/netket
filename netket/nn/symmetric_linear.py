@@ -23,7 +23,6 @@ from netket.nn.initializers import normal, zeros
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape
 from netket.utils.group import PermutationGroup
-from netket.jax import logsumexp
 
 default_kernel_init = normal(stddev=0.01)
 
@@ -244,45 +243,3 @@ class DenseEquivariant(Module):
             y += bias
 
         return y
-
-
-def irrep_project_sum(inputs: Array, character: Array, squeeze: bool = True) -> Array:
-    """
-    Projects the output of a GCNN onto an irrep of the symmetry group.
-
-    Arguments:
-        inputs: a feature map of shape [batch_size, n_symm*features], as output by `DenseSymm` or `DenseEquivariant`
-        character: the characters of the irrep for every group element (a single row of character tables returned by `Group` or `SpaceGroupBuilder`)
-        squeeze: if True, the feature axis is summed over
-
-    Returns:
-        if `squeeze == False`: the projection :math:`\Psi_i = \sum_{g} \psi_{ig} \chi^*(g)`
-        as an array of shape [batch_size, features];
-        if `squeeze == True`: :math:`\sum_i \Psi_i` as an array of shape [batch_size]
-    """
-    n_symm = character.size
-    inputs = inputs.reshape(inputs.shape[0], -1, n_symm)
-    character = character.conj().reshape(1, 1, -1)
-    axis = (1, 2) if squeeze else 2
-    return jnp.sum(inputs * character, axis=axis)
-
-
-def irrep_project(inputs: Array, character: Array, squeeze: bool = True) -> Array:
-    """
-    Projects the output of a GCNN onto an irrep of the symmetry group.
-
-    Arguments:
-        inputs: a feature map of shape [batch_size, n_symm*features], as output by `DenseSymm` or `DenseEquivariant`
-        character: the characters of the irrep for every group element (a single row of character tables returned by `Group` or `SpaceGroupBuilder`)
-        squeeze: if True, the feature axis is summed over
-
-    Returns:
-        if `squeeze == False`: the projection :math:`\Psi_i = \log[\sum_{g} e^{\psi_{ig}} \chi^*(g)]`
-        as an array of shape [batch_size, features]
-        if `squeeze == True`: :math:`\log(\sum_i \Psi_i)` as an array of shape [batch_size]
-    """
-    n_symm = character.size
-    inputs = inputs.reshape(inputs.shape[0], -1, n_symm)
-    character = character.conj().reshape(1, 1, -1)
-    axis = (1, 2) if squeeze else 2
-    return logsumexp(inputs, b=character, axis=axis)

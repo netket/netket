@@ -20,7 +20,7 @@ import jax
 from numpy.testing import assert_equal
 
 import netket as nk
-from netket.jax import PRNGKey, PRNGSeq, logsumexp
+from netket.jax import PRNGKey, PRNGSeq
 from netket.utils import HashableArray
 
 from .. import common
@@ -63,21 +63,3 @@ def test_HashableArray(numpy):
 
     assert_equal(wa.wrapped, np.asarray(wa))
     assert wa.wrapped is not wa
-
-
-def test_logsumexp():
-    key = jax.random.PRNGKey(0)
-    a = jax.random.normal(key, (5,))
-    assert jnp.allclose(logsumexp(a), jax.scipy.special.logsumexp(a))
-
-    assert np.isclose(logsumexp([np.log(3), np.log(4)], b=[1.0, 1j]), np.log(3 + 4j))
-    assert np.isclose(
-        logsumexp([np.log(3) + 5000, np.log(4) + 5000], b=[1.0, 1j]),
-        np.log(3 + 4j) + 5000,
-    )
-
-    a = jax.random.normal(key, (5, 2))
-    assert jnp.iscomplexobj(logsumexp(a))
-    assert logsumexp(a, axis=0).shape == (2,)
-    assert logsumexp(a, axis=1, keepdims=True).shape == (5, 1)
-    assert jnp.allclose(logsumexp(a), logsumexp(logsumexp(a, axis=0, keepdims=True)))
