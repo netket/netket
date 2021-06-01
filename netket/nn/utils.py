@@ -36,7 +36,7 @@ def to_array(hilbert, apply_fun, variables, normalize=True):
     return _to_array_rank(apply_fun, variables, xs, n_states, normalize)
 
 
-@partial(jax.jit, static_argnums=(0, 3, 4, 5, 6))
+@partial(jax.jit, static_argnums=(0, 3, 4))
 def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize):
     """
     Computes apply_fun(variables, σ_rank) and gathers all results across all ranks.
