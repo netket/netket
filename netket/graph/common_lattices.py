@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
 from itertools import permutations
-from typing import Sequence, Union, Optional, Tuple
+from typing import Sequence, Union, Tuple
 import numpy as np
 import warnings
 
@@ -39,7 +38,8 @@ def _axis_reflection(axis: int, ndim: int) -> PGSymmetry:
 def _grid_point_group(extent: Sequence[int], pbc: Sequence[bool]) -> PointGroup:
     # axis permutations
     # can exchange two axes iff they have the same kind of BC and length
-    # represent open BC by setting kind[i] = -extent[i], so just have to match these
+    # represent open BC by setting kind[i] = -extent[i], so just have to
+    # match these
     axis_perm = []
     axes = np.arange(len(extent), dtype=int)
     extent = np.asarray(extent, dtype=int)
@@ -97,7 +97,8 @@ def Grid(
             raise TypeError("Required argument 'extent' missing")
         else:
             warnings.warn(
-                "'length' is deprecated and may be removed in future versions, use 'extent' instead",
+                "'length' is deprecated and may be removed in future versions, "
+                "use 'extent' instead",
                 FutureWarning,
             )
             extent = np.asarray(length, dtype=int)
@@ -127,7 +128,8 @@ def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
     Args:
         length: Side length of the hypercube; must always be >=1
         n_dim: Dimension of the hypercube; must be at least 1.
-        pbc: Whether the hypercube should have periodic boundary conditions (in all directions)
+        pbc: Whether the hypercube should have periodic boundary conditions
+            (in all directions)
 
     Examples:
          A 10x10x10 cubic lattice with periodic boundary conditions can be
@@ -148,7 +150,8 @@ def Cube(length: int, *, pbc: bool = True) -> Lattice:
 
     Args:
         length: Side length of the cube; must always be >=1
-        pbc: Whether the cube should have periodic boundary conditions (in all directions)
+        pbc: Whether the cube should have periodic boundary conditions
+            (in all directions)
 
     Examples:
         A 10×10×10 cubic lattice with periodic boundary conditions can be
@@ -168,7 +171,8 @@ def Square(length: int, *, pbc: bool = True) -> Lattice:
 
     Args:
         length: Side length of the square; must always be >=1
-        pbc: Whether the square should have periodic boundary conditions (in both directions)
+        pbc: Whether the square should have periodic boundary
+            conditions (in both directions)
 
     Examples:
         A 10x10 square lattice with periodic boundary conditions can be
@@ -208,7 +212,8 @@ def BCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> La
     Sites are returned at the Bravais lattice points.
 
     Arguments:
-        extent: Number of primitive unit cells along each direction, needs to be an array of length 3
+        extent: Number of primitive unit cells along each direction, needs to be
+            an array of length 3
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
              if `False`, the lattice will have open boundary conditions (OBC).
              This parameter can also be a list of booleans with same length as
@@ -235,7 +240,8 @@ def FCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> La
     Sites are returned at the Bravais lattice points.
 
     Arguments:
-        extent: Number of primitive unit cells along each direction, needs to be an array of length 3
+        extent: Number of primitive unit cells along each direction, needs
+            to be an array of length 3
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
              if `False`, the lattice will have open boundary conditions (OBC).
              This parameter can also be a list of booleans with same length as
@@ -266,7 +272,8 @@ def Diamond(
     ([000], [1/4,1/4,1/4], and translations thereof).
 
     Arguments:
-        extent: Number of primitive unit cells along each direction, needs to be an array of length 3
+        extent: Number of primitive unit cells along each direction, needs to
+            be an array of length 3
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
              if `False`, the lattice will have open boundary conditions (OBC).
              This parameter can also be a list of booleans with same length as
@@ -304,12 +311,13 @@ def Pyrochlore(
     ([111]/8, [1 -1 -1]/8, [-1 1 -1]/8, [-1 -1 1]/8, and translations thereof).
 
     Arguments:
-        extent: Number of primitive unit cells along each direction, needs to be an array of length 3
+        extent: Number of primitive unit cells along each direction, needs to be
+            an array of length 3
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
-             if `False`, the lattice will have open boundary conditions (OBC).
-             This parameter can also be a list of booleans with same length as
-             the parameter `length`, in which case each dimension will have
-             PBC/OBC depending on the corresponding entry of `pbc`.
+            if `False`, the lattice will have open boundary conditions (OBC).
+            This parameter can also be a list of booleans with same length as
+            the parameter `length`, in which case each dimension will have
+            PBC/OBC depending on the corresponding entry of `pbc`.
 
     Example:
         Construct a pyrochlore lattice with 3×3×3 primitive unit cells:
@@ -353,7 +361,8 @@ def Triangular(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
     Sites are returned at the Bravais lattice points.
 
     Arguments:
-        extent: Number of unit cells along each direction, needs to be an array of length 2
+        extent: Number of unit cells along each direction, needs to be an array
+            of length 2
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
              if `False`, the lattice will have open boundary conditions (OBC).
              This parameter can also be a list of booleans with same length as
@@ -377,7 +386,8 @@ def Honeycomb(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
     Sites are returned at the 2b Wyckoff positions.
 
     Arguments:
-        extent: Number of unit cells along each direction, needs to be an array of length 2
+        extent: Number of unit cells along each direction, needs to be an array
+            of length 2
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
              if `False`, the lattice will have open boundary conditions (OBC).
              This parameter can also be a list of booleans with same length as
@@ -403,7 +413,8 @@ def Kagome(extent, *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:
     Sites are returned at the 3c Wyckoff positions.
 
     Arguments:
-        extent: Number of unit cells along each direction, needs to be an array of length 2
+        extent: Number of unit cells along each direction, needs to be an array
+            of length 2
         pbc: If `True`, the lattice will have periodic boundary conditions (PBC);
              if `False`, the lattice will have open boundary conditions (OBC).
              This parameter can also be a list of booleans with same length as
