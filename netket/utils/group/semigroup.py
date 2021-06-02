@@ -25,14 +25,27 @@ from plum import dispatch
 
 import numpy as np
 
+from netket.utils import struct
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, Shape
 
 
 class Element(ABC):
-    @abstractmethod
-    def __call__(self, arg):
-        pass
+    """Base element of a FiniteSemiGroup.
+
+    Every element must define at least a dispatch rule
+    to determine how it is applied to a ket as follows:
+
+    @nk.utils.dispatch.dispatch
+    def product(A: MyElement, b: nk.utils.types.Array):
+        return A*b
+
+    An element can also define dispatch rules to combine
+    itself with other elements
+    """
+
+    def __call__(self, ket):
+        return product(self, ket)
 
     def __matmul__(self, other):
         return product(self, other)
@@ -40,11 +53,15 @@ class Element(ABC):
 
 @dataclass(frozen=True)
 class Identity(Element):
-    def __call__(self, arg):
-        return arg
+    """The identity transformation."""
 
     def __repr__(self):
         return "Id()"
+
+
+@dispatch
+def product(a: Identity, ket: Array):
+    return ket
 
 
 @dispatch
@@ -64,14 +81,21 @@ def product(a: Element, _: Identity):
 
 @dataclass(frozen=True)
 class Composite(Element):
+    """
+    Composition of two elements of a finite group, representing
+    `left@right`
+    """
+
     left: Element
     right: Element
 
-    def __call__(self, arg):
-        return self.left(self.right(arg))
-
     def __repr__(self):
         return f"{self.left} @ {self.right}"
+
+
+@dispatch
+def product(a: Composite, ket: Array):
+    return a.left(a.right(key))
 
 
 @dispatch

@@ -91,9 +91,6 @@ class PGSymmetry(Element):
     def is_symmorphic(self) -> bool:
         return np.allclose(self.translation, 0.0)
 
-    def __call__(self, x):
-        return np.tensordot(x, self.matrix.T, axes=1) + self.translation
-
     def preimage(self, x):
         return np.tensordot(x - self.translation, self.matrix, axes=1)
 
@@ -130,6 +127,11 @@ class PGSymmetry(Element):
 
     def __repr__(self):
         return self._name
+
+
+@dispatch
+def product(p: PGSymmetry, x: Array):
+    return np.tensordot(x, p.matrix.T, axes=1) + p.translation
 
 
 @dispatch

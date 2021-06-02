@@ -43,9 +43,6 @@ class Permutation(Element):
         self.permutation = HashableArray(np.asarray(permutation))
         self.__name = name
 
-    def __call__(self, x):
-        return x[..., self.permutation]
-
     def __hash__(self):
         return hash(self.permutation)
 
@@ -67,6 +64,11 @@ class Permutation(Element):
 
     def __array__(self, dtype: DType = None):
         return np.asarray(self.permutation, dtype)
+
+
+@dispatch
+def product(p: Permutation, x: Array):
+    return x[..., p.permutation]
 
 
 @dispatch
