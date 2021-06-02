@@ -18,6 +18,7 @@ from .jastrow import Jastrow
 from .mps import MPSPeriodic
 
 from .ndm import NDM
+from .autoreg import ARNN, ARNNDense, ARNNConv1D
 
 from netket.utils import _hide_submodules
 

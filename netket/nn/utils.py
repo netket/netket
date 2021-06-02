@@ -8,7 +8,13 @@ import jax
 
 
 def to_array(hilbert, apply_fun, variables, normalize=True):
+    """
+    Computes `apply_fun(variables, states)` on all states of `hilbert` and returns
+      the results as a vector.
 
+    Args:
+        normalize: If True, the vector is normalized to have L2-norm 1.
+    """
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
 
@@ -26,6 +32,7 @@ def to_array(hilbert, apply_fun, variables, normalize=True):
     states_per_rank = np.split(np.concatenate([states_n, fake_states_n]), mpi.n_nodes)
 
     xs = hilbert.numbers_to_states(states_per_rank[mpi.rank])
+
     return _to_array_rank(apply_fun, variables, xs, n_states, normalize)
 
 
@@ -36,25 +43,31 @@ def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize):
     The input σ_rank should be a slice of all states in the hilbert space of equal
     length across all ranks because mpi4jax does not support allgatherv (yet).
 
-    n_states: total number of elements in the hilbert space
+    Args:
+        n_states: total number of elements in the hilbert space.
     """
     # number of 'fake' states, in the last rank.
     n_fake_states = σ_rank.shape[0] * mpi.n_nodes - n_states
 
-    psi_local = apply_fun(variables, σ_rank)
+    log_psi_local = apply_fun(variables, σ_rank)
 
     # last rank, get rid of fake elements
     if mpi.rank == mpi.n_nodes - 1 and n_fake_states > 0:
-        psi_local = jax.ops.index_update(psi_local, jax.ops.index[-n_fake_states:], 0.0)
+        log_psi_local = jax.ops.index_update(
+            log_psi_local, jax.ops.index[-n_fake_states:], 0.0
+        )
 
-    logmax, _ = mpi.mpi_max_jax(psi_local.real.max())
-    psi_local = jnp.exp(psi_local - logmax)
-
-    # compute normalization
     if normalize:
+        # subtract logmax for better numerical stability
+        logmax, _ = mpi.mpi_max_jax(log_psi_local.real.max())
+        log_psi_local -= logmax
+
+    psi_local = jnp.exp(log_psi_local)
+
+    if normalize:
+        # compute normalization
         norm2 = jnp.linalg.norm(psi_local) ** 2
         norm2, _ = mpi.mpi_sum_jax(norm2)
-
         psi_local /= jnp.sqrt(norm2)
 
     psi, _ = mpi.mpi_allgather_jax(psi_local)
