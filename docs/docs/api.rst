@@ -36,10 +36,11 @@ Hilbert
    :nosignatures:
 
    netket.hilbert.AbstractHilbert
-   netket.hilbert.Qubit
-   netket.hilbert.Spin
    netket.hilbert.CustomHilbert
    netket.hilbert.DoubledHilbert
+   netket.hilbert.Fock
+   netket.hilbert.Qubit
+   netket.hilbert.Spin
 
 .. _operators-api:
 
