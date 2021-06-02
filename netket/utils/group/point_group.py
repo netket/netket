@@ -69,33 +69,52 @@ class PGSymmetry(Element):
 
     @property
     def affine_matrix(self) -> Array:
+        """
+        Returns the (d+1) × (d+1) dimensional matrix representing the action of
+        `self` as an affine transformation.
+        """
         return self._affine
 
     @property
     def matrix(self) -> Array:
+        """
+        Returns the d×d dimensional matrix representing the rotational action
+        of `self`.
+        """
         return self._affine[:-1, :-1]
 
     @property
     def translation(self) -> Array:
+        """Returns the translation vector associated with `self`."""
         return self._affine[:-1, -1]
 
     @property
     def ndim(self) -> int:
+        """Returns the dimension of vectors `self` acts on."""
         return self._affine.shape[0] - 1
 
     @property
     def is_proper(self) -> bool:
+        """Returns True if `self` is a proper rotation (i.e. det(`self.matrix`) is +1)."""
         return np.isclose(np.linalg.det(self.matrix), 1.0)
 
     @property
     def is_symmorphic(self) -> bool:
+        """Returns True if `self` leaves the origin in place."""
         return np.allclose(self.translation, 0.0)
 
     def preimage(self, x):
+        """
+        Returns the preimage of `x` under the transformation
+        (i.e., `self @ self.preimage(x) == x` up to numerical accuracy.
+        """
         return np.tensordot(x - self.translation, self.matrix, axes=1)
 
     def k_action(self, x):
-        # wave vectors are not translated
+        """
+        Returns the action of `self` on the input without the associated translation.
+        This is how the symmetry acts on wave vectors.
+        """
         return np.tensordot(x, self.matrix.T, axes=1)
 
     def __hash__(self):
