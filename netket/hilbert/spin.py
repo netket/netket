@@ -21,8 +21,7 @@ import numpy as np
 from netket.graph import AbstractGraph
 from numba import jit
 
-
-from .custom_hilbert import CustomHilbert
+from .homogeneous import HomogeneousHilbert
 from ._deprecations import graph_to_N_depwarn
 
 
@@ -58,7 +57,7 @@ def _sum_constraint(x, total_sz):
     return np.sum(x, axis=1) == round(2 * total_sz)
 
 
-class Spin(CustomHilbert):
+class Spin(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local spin states."""
 
     def __init__(
@@ -106,7 +105,6 @@ class Spin(CustomHilbert):
 
         self._total_sz = total_sz if total_sz is None else int(total_sz)
         self._s = s
-        self._local_size = local_size
 
         super().__init__(local_states, N, constraints)
 

@@ -23,11 +23,8 @@ from numba import jit
 import jax
 from jax import numpy as jnp
 
-from netket.graph import AbstractGraph
-
 from .abstract_hilbert import AbstractHilbert
 from .hilbert_index import HilbertIndex
-from ._deprecations import graph_to_N_depwarn
 
 
 @jit(nopython=True)
@@ -49,18 +46,22 @@ def _to_constrained_numbers_kernel(has_constraint, bare_numbers, numbers):
 
 
 class HomogeneousHilbert(AbstractHilbert):
-    r"""A custom hilbert space with discrete local quantum numbers."""
+    r"""The Abstract base class for homogeneous hilbert spaces.
+
+    This class should only be subclassed and should not be instantiated directly.
+    """
 
     def __init__(
         self,
         local_states: Optional[List[Real]],
         N: int = 1,
         constraint_fn: Optional[Callable] = None,
-        graph: Optional[AbstractGraph] = None,
     ):
         r"""
-        Constructs a new ``CustomHilbert`` given a list of eigenvalues of the states and
+        Constructs a new ``HomogeneousHilbert`` given a list of eigenvalues of the states and
         a number of sites, or modes, within this hilbert space.
+
+        This method should only be called from the subclasses `__init__` method.
 
         Args:
             local_states (list or None): Eigenvalues of the states. If the allowed states are an
@@ -69,18 +70,7 @@ class HomogeneousHilbert(AbstractHilbert):
             constraint_fn: A function specifying constraints on the quantum numbers.
                         Given a batch of quantum numbers it should return a vector
                         of bools specifying whether those states are valid or not.
-
-        Examples:
-           Simple custom hilbert space.
-
-           >>> import netket as nk
-           >>> g = nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
-           >>> hi = nk.hilbert.homogeneous.HomogeneousHilbert(local_states=[-1232, 132, 0], N=100)
-           >>> print(hi.size)
-           100
         """
-        N = graph_to_N_depwarn(N=N, graph=graph)
-
         assert isinstance(N, int)
         super().__init__()
 
@@ -112,7 +102,7 @@ class HomogeneousHilbert(AbstractHilbert):
         return self._size
 
     @property
-    def shape(self) -> Tuple[int]:
+    def shape(self) -> Tuple[int, ...]:
         r"""The size of the hilbert space on every site."""
         return self._shape
 
@@ -135,12 +125,12 @@ class HomogeneousHilbert(AbstractHilbert):
         If the local states are infinitely many, None is returned."""
         return self._local_states
 
-    def states_at_index(self, i: int) -> Optional[List[float]]:
+    def states_at_index(self, i: int):
         return self.local_states
 
     @property
     def n_states(self) -> int:
-        r"""The total dimension of the many-body Hilbert space.
+        r"""int: The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
 
         hind = self._get_hilbert_index()
@@ -152,22 +142,14 @@ class HomogeneousHilbert(AbstractHilbert):
 
     @property
     def is_finite(self) -> bool:
-        r"""Whether the local hilbert space is finite."""
+        r"""bool: Whether the local hilbert space is finite."""
         return self._is_finite
 
-    def _numbers_to_states(self, numbers, out=None):
+    def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
         hind = self._get_hilbert_index()
         return hind.numbers_to_states(self._to_bare_numbers(numbers), out)
 
-    def _states_to_numbers(self, states, out=None):
-        r"""Returns the basis state number corresponding to given quantum states.
-        The states are given in a batch, such that states[k] has shape (hilbert.size).
-        Throws an exception iff the space is not indexable.
-        Args:
-            states: Batch of states to be converted into the corresponding integers.
-            out: Array of integers such that out[k]=Index(states[k]).
-                 If None, memory is allocated.
-        """
+    def _states_to_numbers(self, states, out):
         hind = self._get_hilbert_index()
 
         out = _to_constrained_numbers_kernel(
@@ -201,6 +183,16 @@ class HomogeneousHilbert(AbstractHilbert):
             return numbers
         else:
             return self._bare_numbers[numbers]
+
+    def __repr__(self):
+        constr = (
+            ", has_constraint={}".format(self._has_constraint)
+            if self._has_constraint
+            else ""
+        )
+
+        clsname = type(self).__name__
+        return f"{clsname}(local_size={self._local_size}, N={len(self.size)}{constr})"
 
     @property
     def _attrs(self):
