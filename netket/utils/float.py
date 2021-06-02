@@ -23,7 +23,8 @@ def comparable(
     x: Array, *, bin_density: int = 3326400, offset: float = 5413 / 15629
 ) -> Array:
     """
-    Casts a floating point input to integer-indexed bins that are safe to compare or hash.
+    Casts a floating point input to integer-indexed bins that are safe to compare
+    or hash.
 
     Arguments:
         x: the float array to be converted
@@ -102,5 +103,8 @@ def prune_zeros(x: Array, atol: float = 1e-08) -> Array:
 
 
 def is_approx_int(x: Array, atol: float = 1e-08) -> Array:
-    """Returns `True` for all elements of the array that are within `atol` to an integer."""
+    """
+    Returns `True` for all elements of the array that are within
+    `atol` to an integer.
+    """
     return np.isclose(x, np.rint(x), rtol=0.0, atol=atol)
