@@ -173,8 +173,8 @@ def _conditional_log_psi(
     log_psi = x
     # Subtract max_log_psi_sqr when computing the norm
     log_psi_sqr = 2 * log_psi.real
-    max_log_psi_sqr = log_psi_sqr.max(axis=2, keepdims=True)
-    sum_psi_sqr = jnp.exp(log_psi_sqr - max_log_psi_sqr).sum(axis=2, keepdims=True)
+    max_log_psi_sqr = log_psi_sqr.max(axis=-1, keepdims=True)
+    sum_psi_sqr = jnp.exp(log_psi_sqr - max_log_psi_sqr).sum(axis=-1, keepdims=True)
     log_psi -= 1 / 2 * (jnp.log(sum_psi_sqr + model.eps) + max_log_psi_sqr)
 
     return log_psi, cache
