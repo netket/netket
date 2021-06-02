@@ -19,9 +19,7 @@ import pytest
 from jax import numpy as jnp
 
 
-# TODO: The implementation of ARNN with complex parameters should be different
-# @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
-@pytest.mark.parametrize("dtype", [jnp.float64])
+@pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize("s", [1 / 2, 1])
 @pytest.mark.parametrize(
     "partial_model",
@@ -74,7 +72,7 @@ def test_ARNN(partial_model, s, dtype):
     # Test if the model is normalized
     # The result may not be very accurate, because it is in exp space
     psi = nk.nn.to_array(hilbert, model.apply, params, normalize=False)
-    assert (psi ** 2).sum() == pytest.approx(1, rel=1e-5, abs=1e-5)
+    assert psi.conj() @ psi == pytest.approx(1, rel=1e-5, abs=1e-5)
 
     # Test if the model is autoregressive
     for i in range(batch_size):
