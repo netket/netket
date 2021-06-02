@@ -17,11 +17,10 @@
 
 from plum import dispatch
 import numpy as np
-from dataclasses import dataclass
 from typing import Optional
 import itertools
 
-from .semigroup import Identity, Element
+from .semigroup import Element
 from .group import FiniteGroup
 
 from netket.utils import HashableArray, struct
@@ -30,11 +29,12 @@ from netket.utils.types import Array, DType, Shape
 
 class Permutation(Element):
     def __init__(self, permutation: Array, name: Optional[str] = None):
-        """
+        r"""
         Creates a `Permutation` from an array of preimages of :code:`range(N)`
 
         Arguments:
-            permutation: a 1D array listing :math:`g^{-1}(x)` for all :math:`0\le x < N` (i.e., `V[permutation]` permutes the elements of `V` as desired)
+            permutation: 1D array listing :math:`g^{-1}(x)` for all :math:`0\le x < N`
+                (i.e., `V[permutation]` permutes the elements of `V` as desired)
             name: optional, custom name for the permutation
 
         Returns:
@@ -72,14 +72,14 @@ def product(p: Permutation, x: Array):
 
 
 @dispatch
-def product(p: Permutation, q: Permutation):
+def product(p: Permutation, q: Permutation):  # noqa: F811
     name = None if p._name is None and q._name is None else f"{p} @ {q}"
     return Permutation(p(np.asarray(q)), name)
 
 
 @struct.dataclass
 class PermutationGroup(FiniteGroup):
-    """
+    r"""
     Collection of permutation operations acting on sequences of length :code:`degree`.
 
     Group elements need not all be of type :ref:`netket.utils.group.Permutation`,
@@ -100,7 +100,7 @@ class PermutationGroup(FiniteGroup):
         return x(np.arange(self.degree, dtype=int))
 
     def to_array(self) -> Array:
-        """
+        r"""
         Convert the abstract group operations to an array of permutation indices,
         such that the `i`-th row contains the indices corresponding to the `i`-th group
         element. That is, `self.to_array()[i, j]` is :math:`g_i^{-1}(j)`) and
@@ -114,9 +114,9 @@ class PermutationGroup(FiniteGroup):
         return np.asarray(self.to_array(), dtype=dtype)
 
     def remove_duplicates(self, *, return_inverse=False) -> "PermutationGroup":
-        """
-        Returns a new :code:`PermutationGroup` with duplicate elements (that is, elements which
-        represent identical permutations) removed.
+        r"""
+        Returns a new :code:`PermutationGroup` with duplicate elements (that is,
+        elements which represent identical permutations) removed.
 
         Arguments:
             return_inverse: If True, also return indices to reconstruct the original
@@ -182,12 +182,16 @@ class PermutationGroup(FiniteGroup):
 
     @property
     def shape(self) -> Shape:
-        """Tuple `(<# of group elements>, <degree>)`, same as :code:`self.to_array().shape`."""
+        r"""
+        Tuple `(<# of group elements>, <degree>)`.
+
+        Equivalent to :code:`self.to_array().shape`.
+        """
         return (len(self), self.degree)
 
 
 @dispatch
-def product(A: PermutationGroup, B: PermutationGroup):
+def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
     if A.degree != B.degree:
         raise ValueError(
             "Incompatible groups (`PermutationGroup`s of different degree)"

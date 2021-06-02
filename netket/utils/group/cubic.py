@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import numpy as np
-from itertools import permutations
 
 from .semigroup import Identity
 from .point_group import PGSymmetry, PointGroup
@@ -25,12 +24,12 @@ from .axial import (
     inversion_group as _inv_group,
 )
 
-from netket.utils.types import Array
-from typing import Tuple
-
 
 def T() -> PointGroup:
-    """Rotational symmetries of a tetrahedron with vertices (1,1,1), (1,-1,-1), (-1,1,-1), (-1,-1,1)."""
+    """
+    Rotational symmetries of a tetrahedron with vertices
+    (1,1,1), (1,-1,-1), (-1,1,-1), (-1,-1,1).
+    """
     return PointGroup(
         [
             Identity(),
@@ -54,7 +53,10 @@ tetrahedral_rotations = T
 
 
 def Td() -> PointGroup:
-    """Symmetry group of a tetrahedron with vertices (1,1,1), (1,-1,-1), (-1,1,-1), (-1,-1,1)."""
+    r"""
+    Symmetry group of a tetrahedron with vertices
+    (1,1,1), (1,-1,-1), (-1,1,-1), (-1,-1,1).
+    """
     return _refl_group([1, 1, 0]) @ T()
 
 
@@ -69,7 +71,7 @@ def Th() -> PointGroup:
 pyritohedral = Th
 
 
-def O() -> PointGroup:
+def O() -> PointGroup:  # noqa: E741, E743
     """Rotational symmetries of a cube/octahedron aligned with the Cartesian axes."""
     # NB the first factor isn't an actual point group but this is fine
     # we only use it to generate a coset of T in O

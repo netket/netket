@@ -15,21 +15,21 @@
 # Ignore false-positives for redefined `product` functions:
 # pylint: disable=function-redefined
 
-from plum import dispatch
-import numpy as np
-from dataclasses import dataclass
 from math import pi
 from functools import partial
 from typing import Optional, Tuple, Dict
-from scipy.linalg import schur
 import itertools
 
-from .semigroup import Identity, Element
-from .group import FiniteGroup
+import numpy as np
+from scipy.linalg import schur
+from plum import dispatch
 
 from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
-from netket.utils.types import Array, DType, Shape
+from netket.utils.types import Array, Shape
+
+from .semigroup import Identity, Element
+from .group import FiniteGroup
 
 ############ POINT GROUP SYMMETRY CLASS ########################################
 
@@ -95,7 +95,7 @@ class PGSymmetry(Element):
 
     @property
     def is_proper(self) -> bool:
-        """Returns True if `self` is a proper rotation (i.e. det(`self.matrix`) is +1)."""
+        """Returns True if `self` is a proper rotation (det(`self.matrix`) is +1)."""
         return np.isclose(np.linalg.det(self.matrix), 1.0)
 
     @property
@@ -149,12 +149,12 @@ class PGSymmetry(Element):
 
 
 @dispatch
-def product(p: PGSymmetry, x: Array):
+def product(p: PGSymmetry, x: Array):  # noqa: F811
     return np.tensordot(x, p.matrix.T, axes=1) + p.translation
 
 
 @dispatch
-def product(p: PGSymmetry, q: PGSymmetry):
+def product(p: PGSymmetry, q: PGSymmetry):  # noqa: F811
     return PGSymmetry(p.matrix @ q.matrix, p.matrix @ q.translation + p.translation)
 
 
@@ -163,6 +163,7 @@ def product(p: PGSymmetry, q: PGSymmetry):
 _naming_tol = 1e-6
 _naming_allclose = partial(np.allclose, atol=_naming_tol, rtol=0.0)
 _naming_isclose = partial(np.isclose, atol=_naming_tol, rtol=0.0)
+
 
 # use Schur decomposition for eigenvalues of orthogonal W matrices to ensure
 # that eigenvectors are always orthogonal
@@ -470,8 +471,8 @@ class PointGroup(FiniteGroup):
 
     def remove_duplicates(self, *, return_inverse=False) -> "PointGroup":
         """
-        Returns a new :code:`PointGroup` with duplicate elements (that is, elements which
-        represent identical transformations) removed.
+        Returns a new :code:`PointGroup` with duplicate elements (that is, elements
+        which represent identical transformations) removed.
 
         Arguments:
             return_inverse: If True, also return indices to reconstruct the original
@@ -570,7 +571,10 @@ class PointGroup(FiniteGroup):
 
     @property
     def shape(self) -> Shape:
-        """Tuple `(<# of group elements>, <ndim>, <ndim>)`, same as :code:`self.to_array().shape`."""
+        """
+        Tuple `(<# of group elements>, <ndim>, <ndim>)`.
+        Equivalent to :code:`self.to_array().shape`.
+        """
         return (len(self), self.ndim + 1, self.ndim + 1)
 
 
@@ -579,7 +583,7 @@ def trivial_point_group(ndim: int) -> PointGroup:
 
 
 @dispatch
-def product(A: PointGroup, B: PointGroup):
+def product(A: PointGroup, B: PointGroup):  # noqa: F811
     if A.ndim != B.ndim:
         raise ValueError("Incompatible groups (`PointGroup`s of different dimension)")
     if A.unit_cell is None:

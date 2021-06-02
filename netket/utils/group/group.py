@@ -15,16 +15,17 @@
 # Ignore false-positives for redefined `product` functions:
 # pylint: disable=function-redefined
 
-import numpy as np
-from dataclasses import dataclass
-from plum import dispatch
 import itertools
+from typing import Tuple, List
 
-from .semigroup import FiniteSemiGroup, Element, Identity
+import numpy as np
+from plum import dispatch
+
 from netket.utils import struct, HashableArray
 from netket.utils.float import comparable, prune_zeros
-from netket.utils.types import Array, DType, Shape, PyTree
-from typing import Tuple, List
+from netket.utils.types import Array, PyTree
+
+from .semigroup import FiniteSemiGroup, Element, Identity
 
 
 @struct.dataclass
@@ -44,9 +45,10 @@ class FiniteGroup(FiniteSemiGroup):
         return super().__hash__()
 
     def _canonical(self, x: Element) -> Array:
-        """
-        Canonical form of :code:`Element`s, used for equality testing (i.e., two :code:`Element`s
-        `x,y` are deemed equal iff :code:`_canonical(x) == _canonical(y)`.
+        r"""
+        Canonical form of :code:`Element`s, used for equality testing (i.e., two
+        :code:`Element`s `x,y` are deemed equal iff
+        :code:`_canonical(x) == _canonical(y)`.
         Must be overridden in subclasses
 
         Arguments:
@@ -58,13 +60,13 @@ class FiniteGroup(FiniteSemiGroup):
         raise NotImplementedError
 
     def _canonical_array(self) -> Array:
-        """
+        r"""
         Lists the canonical forms returned by `_canonical` as rows of a 2D array.
         """
         return np.array([self._canonical(x).flatten() for x in self.elems])
 
     def _canonical_lookup(self) -> dict:
-        """
+        r"""
         Creates a lookup table from canonical forms to index in `self.elems`
         """
         return {
@@ -73,7 +75,7 @@ class FiniteGroup(FiniteSemiGroup):
         }
 
     def remove_duplicates(self, *, return_inverse=False) -> "FiniteGroup":
-        """
+        r"""
         Returns a new :code:`FiniteGroup` with duplicate elements (that is,
         elements with identical canonical forms) removed.
 
@@ -100,7 +102,7 @@ class FiniteGroup(FiniteSemiGroup):
 
     @struct.property_cached
     def inverse(self) -> Array:
-        """
+        r"""
         Indices of the inverse of each element.
         If :code:`g = self[idx_g]` and :code:`h = self[self.inverse[idx_g]]`, then
         :code:`gh = product(g, h)` is equivalent to :code:`Identity()`
@@ -118,7 +120,7 @@ class FiniteGroup(FiniteSemiGroup):
 
     @struct.property_cached
     def product_table(self) -> Array:
-        """
+        r"""
         A table of indices corresponding to :math:`g^{-1} h` over the group.
         That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
         :code:`idx_u = self.product_table[idx_g, idx_h]`, then :code:`self[idx_u]`
@@ -138,7 +140,7 @@ class FiniteGroup(FiniteSemiGroup):
 
     @struct.property_cached
     def conjugacy_table(self) -> Array:
-        """
+        r"""
         A table of conjugates: if `g = self[idx_g]` and `h = self[idx_h]`,
         then `self[self.conjugacy_table[idx_g,idx_h]]` is :math:`h^{-1}gh`.
         """
@@ -148,11 +150,12 @@ class FiniteGroup(FiniteSemiGroup):
 
     @struct.property_cached
     def conjugacy_classes(self) -> Tuple[Array, Array, Array]:
-        """
+        r"""
         The conjugacy classes of the group.
 
         Returns:
-            classes: a boolean array, each row indicating the elements that belong to one conjugacy class
+            classes: a boolean array, each row indicating the elements that belong
+                to one conjugacy class
             representatives: the lowest-indexed member of each conjugacy class
             inverse: the conjugacy class index of every group element
         """
@@ -177,7 +180,7 @@ class FiniteGroup(FiniteSemiGroup):
 
     @struct.property_cached
     def character_table_by_class(self) -> Array:
-        """
+        r"""
         Calculates the character table using Burnside's algorithm.
 
         Each row of the output lists the characters of one irrep in the order the
@@ -229,7 +232,7 @@ class FiniteGroup(FiniteSemiGroup):
         return table
 
     def character_table(self) -> Array:
-        """
+        r"""
         Calculates the character table using Burnside's algorithm.
 
         Each row of the output lists the characters of all group elements for one irrep,
@@ -243,11 +246,12 @@ class FiniteGroup(FiniteSemiGroup):
         return CT[:, inverse]
 
     def character_table_readable(self) -> Tuple[List[str], Array]:
-        """
+        r"""
         Returns a conventional rendering of the character table.
 
         Returns:
-            classes: a text description of a representative of each conjugacy class as a list
+            classes: a text description of a representative of each conjugacy class
+                as a list
             characters: a matrix, each row of which lists the characters of one irrep
         """
         # TODO put more effort into nice rendering?

@@ -16,18 +16,16 @@
 # pylint: disable=function-redefined
 
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 import itertools
-from typing import Callable, List
+from typing import List
 
 from plum import dispatch
 
 import numpy as np
 
-from netket.utils import struct
-from netket.utils import HashableArray
-from netket.utils.types import Array, DType, Shape
+from netket.utils.types import Array
 
 
 class Element(ABC):
@@ -60,22 +58,22 @@ class Identity(Element):
 
 
 @dispatch
-def product(a: Identity, ket: Array):
+def product(_: Identity, ket: Array):
     return ket
 
 
 @dispatch
-def product(a: Identity, _: Identity):
+def product(a: Identity, _: Identity):  # noqa: F811
     return a
 
 
 @dispatch
-def product(_: Identity, b: Element):
+def product(_: Identity, b: Element):  # noqa: F811
     return b
 
 
 @dispatch
-def product(a: Element, _: Identity):
+def product(a: Element, _: Identity):  # noqa: F811
     return a
 
 
@@ -94,17 +92,17 @@ class Composite(Element):
 
 
 @dispatch
-def product(a: Composite, ket: Array):
-    return a.left(a.right(key))
+def product(a: Composite, ket: Array):  # noqa: F811
+    return a.left(a.right(ket))
 
 
 @dispatch
-def product(a: Element, b: Element):
+def product(a: Element, b: Element):  # noqa: F811
     return Composite(a, b)
 
 
 @dispatch
-def product(ab: Composite, c: Element):
+def product(ab: Composite, c: Element):  # noqa: F811
     bc = product(ab.right, c)
     if isinstance(bc, Composite):
         return Composite(ab, c)
@@ -113,7 +111,7 @@ def product(ab: Composite, c: Element):
 
 
 @dispatch
-def product(a: Element, bc: Composite):
+def product(a: Element, bc: Composite):  # noqa: F811
     ab = product(a, bc.left)
     if isinstance(ab, Composite):
         return Composite(a, bc)
@@ -122,7 +120,7 @@ def product(a: Element, bc: Composite):
 
 
 @dispatch
-def product(ab: Composite, cd: Composite):
+def product(ab: Composite, cd: Composite):  # noqa: F811
     bc = product(ab.right, cd.left)
     if isinstance(bc, Composite):
         return Composite(ab, cd)
@@ -175,7 +173,7 @@ class FiniteSemiGroup:
 
 
 @dispatch
-def product(A: FiniteSemiGroup, B: FiniteSemiGroup):
+def product(A: FiniteSemiGroup, B: FiniteSemiGroup):  # noqa: F811
     return FiniteSemiGroup(
         elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
     )
