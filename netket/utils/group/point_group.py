@@ -144,7 +144,7 @@ class PGSymmetry(Element):
         else:
             return f"PGSymmetry({self.matrix}, {self.translation})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self._name
 
 
