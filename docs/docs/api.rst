@@ -36,10 +36,11 @@ Hilbert
    :nosignatures:
 
    netket.hilbert.AbstractHilbert
-   netket.hilbert.Qubit
-   netket.hilbert.Spin
    netket.hilbert.CustomHilbert
    netket.hilbert.DoubledHilbert
+   netket.hilbert.Fock
+   netket.hilbert.Qubit
+   netket.hilbert.Spin
 
 .. _operators-api:
 
@@ -142,6 +143,8 @@ This is because it is not possible to implement all transition rules in Jax.
    netket.sampler.MetropolisLocalPt
    netket.sampler.MetropolisExchangePt
 
+   netket.sampler.ARDirectSampler
+
 Transition Rules
 ~~~~~~~~~~~~~~~~
 
@@ -191,6 +194,8 @@ neural quantum states.
    netket.models.MPSPeriodic
    netket.models.NDM
    netket.models.GCNN
+   netket.models.ARNN
+   netket.models.ARNNDense
 
 
 Model tools
@@ -218,6 +223,10 @@ Linear Modules
    netket.nn.DenseEquivariant
    netket.nn.Conv
    netket.nn.Embed
+
+   netket.nn.MaskedDense1D
+   netket.nn.MaskedConv1D
+   netket.nn.MaskedConv2D
 
 
 Activation functions

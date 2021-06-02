@@ -21,7 +21,7 @@ from numba import jit
 
 from netket.graph import AbstractGraph
 
-from .custom_hilbert import CustomHilbert
+from .homogeneous import HomogeneousHilbert
 from ._deprecations import graph_to_N_depwarn
 
 
@@ -30,7 +30,7 @@ def _sum_constraint(x, n_particles):
     return np.sum(x, axis=1) == n_particles
 
 
-class Fock(CustomHilbert):
+class Fock(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local fock basis."""
 
     def __init__(
@@ -94,8 +94,6 @@ class Fock(CustomHilbert):
             max_ind = np.iinfo(np.intp).max
             self._n_max = max_ind
             local_states = None
-
-        self._hilbert_index = None
 
         super().__init__(local_states, N, constraints)
 
