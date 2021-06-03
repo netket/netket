@@ -16,16 +16,16 @@
 # pylint: disable=function-redefined
 
 import itertools
-from typing import Tuple, List
+from typing import List, Tuple
 
 import numpy as np
 from plum import dispatch
 
-from netket.utils import struct, HashableArray
+from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, prune_zeros
 from netket.utils.types import Array, PyTree
 
-from .semigroup import FiniteSemiGroup, Element, Identity
+from .semigroup import Element, FiniteSemiGroup, Identity
 
 
 @struct.dataclass

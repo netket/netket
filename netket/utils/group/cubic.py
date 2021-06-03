@@ -14,15 +14,12 @@
 
 import numpy as np
 
-from .semigroup import Identity
+from .axial import cuboid, cuboid_rotations
+from .axial import inversion_group as _inv_group
+from .axial import reflection_group as _refl_group
+from .axial import rotation as _rotation
 from .point_group import PGSymmetry, PointGroup
-from .axial import (
-    cuboid,
-    cuboid_rotations,
-    rotation as _rotation,
-    reflection_group as _refl_group,
-    inversion_group as _inv_group,
-)
+from .semigroup import Identity
 
 
 def T() -> PointGroup:

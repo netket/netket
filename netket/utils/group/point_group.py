@@ -15,21 +15,21 @@
 # Ignore false-positives for redefined `product` functions:
 # pylint: disable=function-redefined
 
-from math import pi
-from functools import partial
-from typing import Optional, Tuple, Dict
 import itertools
+from functools import partial
+from math import pi
+from typing import Dict, Optional, Tuple
 
 import numpy as np
-from scipy.linalg import schur
 from plum import dispatch
+from scipy.linalg import schur
 
 from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.types import Array, Shape
 
-from .semigroup import Identity, Element
 from .group import FiniteGroup
+from .semigroup import Element, Identity
 
 ############ POINT GROUP SYMMETRY CLASS ########################################
 
@@ -223,7 +223,7 @@ def _2D_name(W: Array, w: Optional[Array]) -> str:
         raise ValueError("W must be an orthogonal matrix")
 
 
-def _3D_name(W: Array, w: Optional[Array]) -> str:
+def _3D_name(W: Array, w: Optional[Array] = None) -> str:
     if W.shape != (3, 3):
         raise ValueError("This function names 3D symmetries")
 
@@ -538,10 +538,10 @@ class PointGroup(FiniteGroup):
                 ]
 
             return inverse
-        except KeyError:
+        except KeyError as err:
             raise RuntimeError(
                 "PointGroup does not contain the inverse of all elements"
-            )
+            ) from err
 
     @struct.property_cached
     def product_table(self) -> Array:
@@ -566,8 +566,8 @@ class PointGroup(FiniteGroup):
                     ]
 
             return product_table[self.inverse]  # reshuffle rows to match specs
-        except KeyError:
-            raise RuntimeError("PointGroup is not closed under multiplication")
+        except KeyError as err:
+            raise RuntimeError("PointGroup is not closed under multiplication") from err
 
     @property
     def shape(self) -> Shape:

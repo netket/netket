@@ -16,14 +16,13 @@
 # pylint: disable=function-redefined
 
 
+import itertools
 from abc import ABC
 from dataclasses import dataclass
-import itertools
 from typing import List
 
-from plum import dispatch
-
 import numpy as np
+from plum import dispatch
 
 from netket.utils.types import Array
 

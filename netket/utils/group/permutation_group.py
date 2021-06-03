@@ -15,16 +15,17 @@
 # Ignore false-positives for redefined `product` functions:
 # pylint: disable=function-redefined
 
-from plum import dispatch
-import numpy as np
-from typing import Optional
 import itertools
+from typing import Optional
 
-from .semigroup import Element
-from .group import FiniteGroup
+import numpy as np
+from plum import dispatch
 
 from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
+
+from .group import FiniteGroup
+from .semigroup import Element
 
 
 class Permutation(Element):

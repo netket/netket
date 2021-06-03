@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .semigroup import Identity
-from .point_group import PGSymmetry, PointGroup
-from netket.utils.types import Array
 import numpy as np
+
+from netket.utils.types import Array
+
+from .point_group import PGSymmetry, PointGroup
+from .semigroup import Identity
 
 
 def rotation(angle: float) -> PGSymmetry:
