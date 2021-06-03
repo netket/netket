@@ -149,10 +149,10 @@ class PermutationGroup(FiniteGroup):
                 inverses.append(lookup[HashableArray(invperm)])
 
             return np.asarray(inverses, dtype=int)
-        except KeyError:
+        except KeyError as err:
             raise RuntimeError(
                 "PermutationGroup does not contain the inverse of all elements"
-            )
+            ) from err
 
     @struct.property_cached
     def product_table(self) -> Array:
@@ -177,8 +177,10 @@ class PermutationGroup(FiniteGroup):
             product_table[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
 
             return product_table
-        except KeyError:
-            raise RuntimeError("PermutationGroup is not closed under multiplication")
+        except KeyError as err:
+            raise RuntimeError(
+                "PermutationGroup is not closed under multiplication"
+            ) from err
 
     @property
     def shape(self) -> Shape:

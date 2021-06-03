@@ -123,7 +123,9 @@ dihedral = D
 
 
 def rectangle() -> PointGroup:
-    """The symmetry group of a rectangle aligned with the Cartesian axes (Vierergruppe)."""
+    """
+    The symmetry group of a rectangle aligned with the Cartesian axes (Vierergruppe).
+    """
     return D(2)
 
 
