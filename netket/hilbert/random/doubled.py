@@ -12,22 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Union, Any
-
 import jax
-import numpy as np
 from jax import numpy as jnp
 
-from netket.utils.dispatch import dispatch
 from netket.hilbert import DoubledHilbert
+from netket.utils.dispatch import dispatch
 
-from .base import random_state, flip_state_scalar
+from .base import flip_state_scalar, random_state
 
 
 @dispatch
-def random_state(hilb: DoubledHilbert, key, batches: int, *, dtype):
-    shape = (batches, hilb.size)
-
+def random_state(hilb: DoubledHilbert, key, batches: int, *, dtype):  # noqa: F811
     key1, key2 = jax.random.split(key)
 
     v1 = random_state(hilb.physical, key1, batches, dtype)
@@ -37,7 +32,7 @@ def random_state(hilb: DoubledHilbert, key, batches: int, *, dtype):
 
 
 @dispatch
-def flip_state_scalar(hilb: DoubledHilbert, key, state, index):
+def flip_state_scalar(hilb: DoubledHilbert, key, state, index):  # noqa: F811
     def flip_lower_state_scalar(args):
         key, state, index = args
         return flip_state_scalar(hilb.physical, key, state, index)

@@ -19,13 +19,13 @@ for sampling.
 If you define custom hilbert spaces, and want to sample from it, you
 should read carefully.
 
-This module *exports* two functions: 
+This module *exports* two functions:
  - `random_state(hilbert, key, batch_size, dtype)` which generates a batch of random
- states in the given hilbert space, in an array with the specified dtype. 
- - `flip_state(hilb, key, states, indices)` which, for every state σ in the batch of states,
- considers σᵢ and returns a new state where that entry is different from the previous.
- The new configuration is selected with uniform probability among the local possible
- configurations.
+ states in the given hilbert space, in an array with the specified dtype.
+ - `flip_state(hilb, key, states, indices)` which, for every state σ in the batch of
+ states, considers σᵢ and returns a new state where that entry is different from the
+ previous. The new configuration is selected with uniform probability among the local
+ possible configurations.
 
 Hilbert spaces must at least implement a `random_state` to support sampling.
 `flip_state` is only necessary in order to use LocalRule samplers.
@@ -35,22 +35,22 @@ How to implement the two functions above
 ----------------------------------------
 
 While the *exported* function acts on batches, sometimes it is hard to implement
-the function on batches. Therefore they can be implemented either as a scalar 
+the function on batches. Therefore they can be implemented either as a scalar
 function, that gets jax.vmap-ed automatically, or directly as a batched rule.
-Of course, if you implement the batched rule you will most likely see better 
+Of course, if you implement the batched rule you will most likely see better
 performance.
 
 In order to implement the scalar rule for your custom hilbert object `MyHilbert`
 you should define a function taking 4 inputs, the hilbert space, a jax PRNG key and
-the dtype of the derised result. For random operations you should use the key 
+the dtype of the derised result. For random operations you should use the key
 provided.
 
 @netket.utils.dispatch.dispatch
-def random_state(hilb: MyHilbert, key, dtype):    
+def random_state(hilb: MyHilbert, key, dtype):
     return mystate
 
 @netket.utils.dispatch.dispatch
-def random_state(hilb: MyHilbert, key, batches: int, dtype):    
+def random_state(hilb: MyHilbert, key, batches: int, dtype):
     return mystate
 
 flip_state is implemented in the same way, through
@@ -64,18 +64,12 @@ There is a vmapped default fallback for the batched version.
 @netket.utils.dispatch.dispatch
 def flip_state_batch(hilb: Fock, key, σ, idx):
     return new_states, oldvals
-    
+
 """
 
-from .base import random_state, flip_state
-
-from . import custom
-from . import qubit
-from . import spin
-from . import fock
-from . import doubled
-from . import tensor_hilbert
-
 from netket.utils import _hide_submodules
+
+from . import custom, doubled, fock, qubit, spin, tensor_hilbert
+from .base import flip_state, random_state
 
 _hide_submodules(__name__)

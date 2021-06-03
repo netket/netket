@@ -12,13 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List
-
 import jax
-import numpy as np
 from jax import numpy as jnp
-
-# from numba import jit
 
 from netket.hilbert import TensorHilbert
 from netket.utils.dispatch import dispatch
@@ -26,12 +21,7 @@ from netket.utils.dispatch import dispatch
 
 @dispatch
 def random_state(hilb: TensorHilbert, key, batches: int, *, dtype):
-    shape = (batches, hilb.size)
-
     keys = jax.random.split(key, hilb._n_hilbert_spaces)
-
-    print(keys)
-    print(type(keys))
 
     vs = [
         random_state(hilb._hilbert_spaces[i], keys[i], batches, dtype=dtype)
@@ -56,11 +46,6 @@ def _make_subfun(hilb, i, sub_hi):
         return new_state, old_val
 
     return subfun
-
-
-## flips
-from jax import experimental
-from jax.experimental import host_callback
 
 
 @dispatch

@@ -12,13 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Union, Tuple
-
 import jax
 import numpy as np
 from jax import numpy as jnp
-
-# from numba import jit
 
 from netket.hilbert import Spin
 from netket.utils.dispatch import dispatch
@@ -69,10 +65,8 @@ def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
         else:
             from jax.experimental import host_callback as hcb
 
-            cb = lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype)
-
             state = hcb.call(
-                cb,
+                lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype),
                 key,
                 result_shape=jax.ShapeDtypeStruct(shape, dtype),
             )

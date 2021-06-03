@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial, singledispatch
-
 from textwrap import dedent
-
-import numpy as np
-import jax
-
 from typing import Tuple, Union
+
+import jax
+import numpy as np
+
 from netket.utils.dispatch import dispatch
 
 NoneType = type(None)
@@ -31,9 +29,10 @@ def random_state(hilb, key, *, size=None, dtype=np.float32):
     r"""Generates either a single or a batch of uniformly distributed random states.
 
     Args:
-        size: If provided, returns a batch of configurations of the form (size, #) if size
-            is an integer or (*size, #) if it is a tuple and where # is the Hilbert space size.
-            By default, a single random configuration with shape (#,) is returned.
+        size: If provided, returns a batch of configurations of the form (size, #) if
+            size is an integer or (*size, #) if it is a tuple and where # is the Hilbert
+            space size. By default, a single random configuration with shape (#,) is
+            returned.
         out: If provided, the random quantum numbers will be inserted into this array,
              which should be of the appropriate shape (see `size`) and data type.
         rgen: The random number generator. If None, the global NetKet random
@@ -53,27 +52,27 @@ def random_state(hilb, key, *, size=None, dtype=np.float32):
 
 
 @dispatch
-def random_state(hilb, key, size, dtype):
+def random_state(hilb, key, size, dtype):  # noqa: F811
     return random_state(hilb, key, size, dtype=dtype)
 
 
 @dispatch
-def random_state(hilb, key, size: NoneType, *, dtype):
+def random_state(hilb, key, size: NoneType, *, dtype):  # noqa: F811
     return random_state(hilb, key, 1, dtype=dtype)[0]
 
 
 @dispatch
-def random_state(hilb, key, size: Dim, *, dtype):
+def random_state(hilb, key, size: Dim, *, dtype):  # noqa: F811
     n = int(np.prod(size))
     return random_state(hilb, key, n, dtype=dtype).reshape(*size, -1)
 
 
 @dispatch
-def random_state(hilb, key, size: int, *, dtype):
+def random_state(hilb, key, size: int, *, dtype):  # noqa: F811
     raise NotImplementedError(
         dedent(
             f"""
-            random_state(hilb, key, size : int, *, dtype) is not implemented for the 
+            random_state(hilb, key, size : int, *, dtype) is not implemented for the
             hilbert space {type(hilb)}.
 
             Define the above function as follows:
@@ -89,12 +88,12 @@ def random_state(hilb, key, size: int, *, dtype):
 
 
 @dispatch
-def random_state(hilb, key, size: NoneType, *, dtype):
+def random_state(hilb, key, size: NoneType, *, dtype):  # noqa: F811
     return random_state(hilb, key, 1, dtype=dtype)[0]
 
 
 @dispatch
-def random_state(hilb, key, size: Dim, *, dtype):
+def random_state(hilb, key, size: Dim, *, dtype):  # noqa: F811
     n = int(np.prod(size))
     return random_state(hilb, key, n, dtype=dtype).reshape(*size, -1)
 

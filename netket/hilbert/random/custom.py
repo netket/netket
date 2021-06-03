@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List
-
 import jax
 from jax import numpy as jnp
 
-from netket.utils.dispatch import dispatch
 from netket.hilbert.custom_hilbert import CustomHilbert
+from netket.utils.dispatch import dispatch
 
 
 @dispatch

@@ -15,8 +15,8 @@
 import jax
 from jax import numpy as jnp
 
-from netket.utils.dispatch import dispatch
 from netket.hilbert import Qubit
+from netket.utils.dispatch import dispatch
 
 
 @dispatch
