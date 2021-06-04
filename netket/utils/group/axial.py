@@ -19,8 +19,8 @@ import numpy as np
 from netket.utils.float import is_approx_int
 from netket.utils.types import Array
 
-from .point_group import PGSymmetry, PointGroup
-from .semigroup import Identity
+from ._point_group import PGSymmetry, PointGroup
+from ._semigroup import Identity
 
 
 def rotation(angle: float, axis: Array) -> PGSymmetry:
@@ -76,7 +76,8 @@ def screw_group(angle: float, trans: Array, origin: Array = (0, 0, 0)) -> PointG
     The order of the group is controlled by `angle`.
     The output is only a valid `PointGroup` after supplying a `unit_cell`
     consistent with the screw axis; otherwise, operations like `product_table`
-    will fail."""
+    will fail.
+    """
     out = [Identity()]
     trans = np.asarray(trans)
     for i in count(start=1):

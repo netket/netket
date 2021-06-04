@@ -25,7 +25,7 @@ from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, prune_zeros
 from netket.utils.types import Array, PyTree
 
-from .semigroup import Element, FiniteSemiGroup, Identity
+from ._semigroup import Element, FiniteSemiGroup, Identity
 
 
 @struct.dataclass

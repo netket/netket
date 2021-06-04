@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.utils import _hide_submodules
+from ._semigroup import Element, Identity
+from ._group import FiniteGroup
+from ._permutation_group import Permutation, PermutationGroup
+from ._point_group import PGSymmetry, PointGroup, trivial_point_group
 
 from . import axial, cubic, planar
-from .group import FiniteGroup
-from .permutation_group import Permutation, PermutationGroup
-from .point_group import PGSymmetry, PointGroup, trivial_point_group
-from .semigroup import Element, Identity
-
-_hide_submodules(__name__, ignore=["planar", "axial", "cubic"])

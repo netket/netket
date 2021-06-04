@@ -18,8 +18,8 @@ from .axial import cuboid, cuboid_rotations
 from .axial import inversion_group as _inv_group
 from .axial import reflection_group as _refl_group
 from .axial import rotation as _rotation
-from .point_group import PGSymmetry, PointGroup
-from .semigroup import Identity
+from ._point_group import PointGroup
+from ._semigroup import Identity
 
 
 def T() -> PointGroup:

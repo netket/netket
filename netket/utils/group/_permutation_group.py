@@ -24,8 +24,8 @@ from plum import dispatch
 from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
 
-from .group import FiniteGroup
-from .semigroup import Element
+from ._group import FiniteGroup
+from ._semigroup import Element
 
 
 class Permutation(Element):

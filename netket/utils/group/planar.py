@@ -16,8 +16,8 @@ import numpy as np
 
 from netket.utils.types import Array
 
-from .point_group import PGSymmetry, PointGroup
-from .semigroup import Identity
+from ._point_group import PGSymmetry, PointGroup
+from ._semigroup import Identity
 
 
 def rotation(angle: float) -> PGSymmetry:

@@ -28,8 +28,8 @@ from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.types import Array, Shape
 
-from .group import FiniteGroup
-from .semigroup import Element, Identity
+from ._group import FiniteGroup
+from ._semigroup import Element, Identity
 
 ############ POINT GROUP SYMMETRY CLASS ########################################
 
