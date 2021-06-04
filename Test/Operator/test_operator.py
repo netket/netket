@@ -68,7 +68,8 @@ szsz_hat += _loc(sz, [7]) @ _loc(sz, [0])
 operators["Custom Hamiltonian"] = sx_hat + sy_hat + szsz_hat
 operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
 
-operators["Pauli Hamiltonian"] = nk.operator.PauliStrings(
+operators["Pauli Hamiltonian (XX)"] = nk.operator.PauliStrings(["XX"], [0.1])
+operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
 
