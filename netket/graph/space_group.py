@@ -39,6 +39,7 @@ class Translation(Permutation):
     """
     Custom subclass of `Permutation` that represents a lattice permutation.
     Stores translation lattice vector and generates a sensible name from it.
+
     The product of two `Translation`s carries the appropriate displacement vector.
     """
 

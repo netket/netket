@@ -25,30 +25,43 @@ from plum import dispatch
 
 import numpy as np
 
+from netket.utils import struct
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, Shape
 
 
-class ElementBase(ABC):
-    @abstractmethod
-    def __call__(self, arg):
-        pass
+class Element(ABC):
+    """Base element of a FiniteSemiGroup.
+
+    Every element must define at least a dispatch rule
+    to determine how it is applied to a ket as follows:
+
+    @nk.utils.dispatch.dispatch
+    def product(A: MyElement, b: nk.utils.types.Array):
+        return A*b
+
+    An element can also define dispatch rules to combine
+    itself with other elements
+    """
+
+    def __call__(self, ket):
+        return product(self, ket)
 
     def __matmul__(self, other):
         return product(self, other)
 
 
-class Element(ElementBase):
-    pass
-
-
 @dataclass(frozen=True)
-class Identity(ElementBase):
-    def __call__(self, arg):
-        return arg
+class Identity(Element):
+    """The identity transformation."""
 
     def __repr__(self):
         return "Id()"
+
+
+@dispatch
+def product(a: Identity, ket: Array):
+    return ket
 
 
 @dispatch
@@ -68,14 +81,21 @@ def product(a: Element, _: Identity):
 
 @dataclass(frozen=True)
 class Composite(Element):
+    """
+    Composition of two elements of a finite group, representing
+    `left@right`
+    """
+
     left: Element
     right: Element
 
-    def __call__(self, arg):
-        return self.left(self.right(arg))
-
     def __repr__(self):
         return f"{self.left} @ {self.right}"
+
+
+@dispatch
+def product(a: Composite, ket: Array):
+    return a.left(a.right(key))
 
 
 @dispatch
@@ -111,35 +131,20 @@ def product(ab: Composite, cd: Composite):
 
 
 @dataclass(frozen=True)
-class NamedElement(Element):
-    name: str
-    action: Callable
-    info: str = ""
-
-    def __call__(self, arg):
-        return self.action(arg)
-
-    def __repr__(self):
-        return f"{self.name}({self.info})"
-
-
-@dataclass(frozen=True)
-class SemiGroup:
+class FiniteSemiGroup:
     elems: List[Element]
 
     def __post_init__(self):
         # manually assign self.__hash == ... for frozen dataclass,
         # see https://docs.python.org/3/library/dataclasses.html#frozen-instances
         myhash = hash(tuple(hash(x) for x in self.elems))
-        object.__setattr__(self, "_SemiGroup__hash", myhash)
+        object.__setattr__(self, "_FiniteSemiGroup__hash", myhash)
 
     def __matmul__(self, other):
         """
-        Direct product of this group with `other`.
+        Cartesian product of this semigroup with `other`.
         """
-        return SemiGroup(
-            elems=[a @ b for a, b in itertools.product(self.elems, other.elems)],
-        )
+        return product(self, other)
 
     def __call__(self, initial):
         """
@@ -167,3 +172,10 @@ class SemiGroup:
         else:
             elems = map(repr, self.elems)
         return type(self).__name__ + "(\n  {}\n)".format(",\n  ".join(elems))
+
+
+@dispatch
+def product(A: FiniteSemiGroup, B: FiniteSemiGroup):
+    return FiniteSemiGroup(
+        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
+    )

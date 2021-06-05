@@ -19,9 +19,10 @@ from plum import dispatch
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional
+import itertools
 
 from .semigroup import Identity, Element
-from .group import Group
+from .group import FiniteGroup
 
 from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
@@ -41,9 +42,6 @@ class Permutation(Element):
         """
         self.permutation = HashableArray(np.asarray(permutation))
         self.__name = name
-
-    def __call__(self, x):
-        return x[..., self.permutation]
 
     def __hash__(self):
         return hash(self.permutation)
@@ -69,19 +67,23 @@ class Permutation(Element):
 
 
 @dispatch
+def product(p: Permutation, x: Array):
+    return x[..., p.permutation]
+
+
+@dispatch
 def product(p: Permutation, q: Permutation):
     name = None if p._name is None and q._name is None else f"{p} @ {q}"
     return Permutation(p(np.asarray(q)), name)
 
 
 @struct.dataclass
-class PermutationGroup(Group):
+class PermutationGroup(FiniteGroup):
     """
     Collection of permutation operations acting on sequences of length :code:`degree`.
 
-    Group elements need not all be of type :ref:`netket.utils.symmetry.Permutation`,
-    only act as such on a sequence when called. Currently, however, only `Identity`
-    and `Permutation` have canonical forms implemented.
+    Group elements need not all be of type :ref:`netket.utils.group.Permutation`,
+    only act as such on a sequence when called.
 
     The class can contain elements that are distinct as objects (e.g.,
     :code:`Identity()` and :code:`Translation((0,))`) but have identical action.
@@ -93,18 +95,6 @@ class PermutationGroup(Group):
 
     def __hash__(self):
         return super().__hash__()
-
-    def __matmul__(self, other) -> "PermutationGroup":
-        if not isinstance(other, PermutationGroup):
-            raise ValueError(
-                "Incompatible groups (`PermutationGroup` and something else)"
-            )
-        elif self.degree != other.degree:
-            raise ValueError(
-                "Incompatible groups (`PermutationGroup`s of different degree)"
-            )
-
-        return PermutationGroup(super().__matmul__(other).elems, self.degree)
 
     def _canonical(self, x: Element) -> Array:
         return x(np.arange(self.degree, dtype=int))
@@ -160,7 +150,7 @@ class PermutationGroup(Group):
 
             return np.asarray(inverses, dtype=int)
         except KeyError:
-            raise KeyError(
+            raise RuntimeError(
                 "PermutationGroup does not contain the inverse of all elements"
             )
 
@@ -188,9 +178,20 @@ class PermutationGroup(Group):
 
             return product_table
         except KeyError:
-            raise KeyError("PermutationGroup is not closed under multiplication")
+            raise RuntimeError("PermutationGroup is not closed under multiplication")
 
     @property
     def shape(self) -> Shape:
         """Tuple `(<# of group elements>, <degree>)`, same as :code:`self.to_array().shape`."""
         return (len(self), self.degree)
+
+
+@dispatch
+def product(A: PermutationGroup, B: PermutationGroup):
+    if A.degree != B.degree:
+        raise ValueError(
+            "Incompatible groups (`PermutationGroup`s of different degree)"
+        )
+    return PermutationGroup(
+        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)], degree=A.degree
+    )

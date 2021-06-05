@@ -22,9 +22,10 @@ from math import pi
 from functools import partial
 from typing import Optional, Tuple, Dict
 from scipy.linalg import schur
+import itertools
 
 from .semigroup import Identity, Element
-from .group import Group
+from .group import FiniteGroup
 
 from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
@@ -55,10 +56,8 @@ class PGSymmetry(Element):
 
     def __pre_init__(self, W: Array, w: Optional[Array] = None) -> Tuple[Tuple, Dict]:
         W = np.asarray(W)
-        if W.ndim != 2:
-            raise ValueError("W must be a 2D matrix")
-        if W.shape[0] != W.shape[1]:
-            raise ValueError("W must be a square matrix")
+        if W.ndim != 2 or W.shape[0] != W.shape[1]:
+            raise ValueError("W must be a 2D square matrix")
         ndim = W.shape[0]
         if not np.allclose(W.T @ W, np.eye(ndim)):
             raise ValueError("W must be an orthogonal matrix")
@@ -66,7 +65,7 @@ class PGSymmetry(Element):
             w = np.zeros((ndim, 1))
         else:
             w = np.asarray(w).reshape(ndim, 1)
-        return ((np.block([[W, w], [np.zeros(ndim), 1]]),), dict())
+        return (np.block([[W, w], [np.zeros(ndim), 1]]),), {}
 
     @property
     def affine_matrix(self) -> Array:
@@ -91,9 +90,6 @@ class PGSymmetry(Element):
     @property
     def is_symmorphic(self) -> bool:
         return np.allclose(self.translation, 0.0)
-
-    def __call__(self, x):
-        return np.tensordot(x, self.matrix.T, axes=1) + self.translation
 
     def preimage(self, x):
         return np.tensordot(x - self.translation, self.matrix, axes=1)
@@ -132,8 +128,10 @@ class PGSymmetry(Element):
     def __repr__(self):
         return self._name
 
-    def __array__(self, dtype: DType = None):
-        return np.asarray(self._affine, dtype)
+
+@dispatch
+def product(p: PGSymmetry, x: Array):
+    return np.tensordot(x, p.matrix.T, axes=1) + p.translation
 
 
 @dispatch
@@ -339,7 +337,7 @@ def _to_int_vector(v: Array) -> str:
 
 
 @struct.dataclass()
-class PointGroup(Group):
+class PointGroup(FiniteGroup):
     """
     Collection of point group symmetries acting on n-dimensional vectors.
 
@@ -383,30 +381,6 @@ class PointGroup(Group):
             if elem != other.elems[i]:
                 return False
         return True
-
-    def __matmul__(self, other) -> "PointGroup":
-        if not isinstance(other, PointGroup):
-            raise ValueError("Incompatible groups (`PointGroup` and something else)")
-
-        # Check if dimensions match
-        if self.ndim != other.ndim:
-            raise ValueError("PointGroups of different dimensions cannot be multiplied")
-
-        elems = super().__matmul__(other).elems
-
-        # Cases for presence or absence of unit cells
-        if (self.unit_cell is None) and (other.unit_cell is None):
-            return PointGroup(elems, self.ndim)
-        elif (self.unit_cell is None) != (other.unit_cell is None):
-            uc = self.unit_cell if self.unit_cell is not None else other.unit_cell
-            return PointGroup(elems, self.ndim, uc)
-        else:
-            if np.allclose(self.unit_cell, other.unit_cell):
-                return PointGroup(elems, self.ndim, self.unit_cell)
-            else:
-                raise ValueError(
-                    "PointGroups with different unit cells cannot be multiplied"
-                )
 
     def matrix(self, x: Element) -> Array:
         if isinstance(x, Identity):
@@ -545,7 +519,9 @@ class PointGroup(Group):
 
             return inverse
         except KeyError:
-            raise KeyError("PointGroup does not contain the inverse of all elements")
+            raise RuntimeError(
+                "PointGroup does not contain the inverse of all elements"
+            )
 
     @struct.property_cached
     def product_table(self) -> Array:
@@ -571,7 +547,7 @@ class PointGroup(Group):
 
             return product_table[self.inverse]  # reshuffle rows to match specs
         except KeyError:
-            raise KeyError("PointGroup is not closed under multiplication")
+            raise RuntimeError("PointGroup is not closed under multiplication")
 
     @property
     def shape(self) -> Shape:
@@ -581,3 +557,22 @@ class PointGroup(Group):
 
 def trivial_point_group(ndim: int) -> PointGroup:
     return PointGroup([Identity()], ndim=ndim)
+
+
+@dispatch
+def product(A: PointGroup, B: PointGroup):
+    if A.ndim != B.ndim:
+        raise ValueError("Incompatible groups (`PointGroup`s of different dimension)")
+    if A.unit_cell is None:
+        unit_cell = B.unit_cell
+    else:
+        if B.unit_cell is not None and not np.allclose(A.unit_cell, B.unit_cell):
+            raise ValueError(
+                "Incompatible groups (`PointGroup`s with different unit cells)"
+            )
+        unit_cell = A.unit_cell
+    return PointGroup(
+        elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
+        ndim=A.ndim,
+        unit_cell=unit_cell,
+    )

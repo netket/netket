@@ -128,7 +128,7 @@ def test_lattice(g):
     # sites should be sorted in lexicographic order by basis coordinate
     sort = np.lexsort(g.basis_coords.T[::-1])
     print(g.basis_coords[sort])
-    assert np.all(sort == np.arange(g.n_nodes))
+    np.testing.assert_almost_equal(sort, np.arange(g.n_nodes))
 
     # check lookup with id
     for i, site_id in enumerate(g.nodes()):
@@ -136,7 +136,7 @@ def test_lattice(g):
         cc = g.basis_coords[i]
         pos = g.positions[i]
         manual_pos = g.basis_vectors.T @ cc[:-1] + g.site_offsets[cc[-1]]
-        assert np.allclose(manual_pos, pos)
+        np.testing.assert_almost_equal(manual_pos, pos)
 
         assert g.id_from_position(pos) == i
         assert g.id_from_basis_coords(cc) == i
@@ -146,22 +146,22 @@ def test_lattice(g):
         pos = g.positions[[0, 1]]
         ids = g.id_from_position(pos)
         # assert ids.ndim == 1 and ids.size == 2
-        assert np.all(ids == [0, 1])
+        np.testing.assert_almost_equal(ids, [0, 1])
 
         ccs = g.basis_coords[[0, 1]]
         ids = g.id_from_basis_coords(ccs)
         # assert ids.ndim == 1 and ids.size == 2
-        assert np.all(ids == [0, 1])
+        np.testing.assert_almost_equal(ids, [0, 1])
 
         pos2 = g.position_from_basis_coords(ccs)
-        assert np.all(pos2 == pos)
+        np.testing.assert_almost_equal(pos2, pos)
 
 
 def test_lattice_site_lookup():
     g = Lattice([[1]], [2])
     pos = [[0.0], [1.0]]
     ids = g.id_from_position(pos)
-    assert np.all(ids == [0, 1])
+    np.testing.assert_almost_equal(ids, [0, 1])
 
     with pytest.raises(_lattice.InvalidSiteError):
         idx = g.id_from_position([[0.5]])
@@ -181,7 +181,7 @@ def test_lattice_old_interface():
     def check_alternative(method, alternative):
         with pytest.warns(FutureWarning):
             result = method()
-        assert np.all(alternative() == result)
+        np.testing.assert_almost_equal(alternative(), result)
 
     for g in graphs + symmetric_graphs:
         if not isinstance(g, Lattice):
@@ -218,10 +218,12 @@ def test_lattice_symmetry(i, name):
 
     if graph._point_group.is_symmorphic:
         # Check if the point permutation group is isomorphic to geometric one
-        assert np.all(sgb.point_group.product_table == graph._point_group.product_table)
+        np.testing.assert_almost_equal(
+            sgb.point_group.product_table, graph._point_group.product_table
+        )
     else:
         # If non-symmorphic, point permutation group shouldn't close
-        with pytest.raises(KeyError):
+        with pytest.raises(RuntimeError):
             pt = sgb.point_group.product_table
 
     # Build translation group product table explicitly and compare
@@ -230,7 +232,7 @@ def test_lattice_symmetry(i, name):
     pt = np.kron(pt_1d, ones) * 3 + np.kron(ones, pt_1d)
     if dimension[i] == 3:
         pt = np.kron(pt, ones) * 3 + np.kron(np.ones((9, 9), dtype=int), pt_1d)
-    assert np.all(pt == sgb.translation_group().product_table)
+    np.testing.assert_almost_equal(pt, sgb.translation_group().product_table)
 
     # ensure that all space group symmetries are unique and automorphisms
     # don't do this for pyrochlore that takes >10x longer than any other one
@@ -585,19 +587,19 @@ def test_triangular_space_group(lattice):
     assert len(g.space_group()) == 3 * 3 * 12
 
     g = lattice([3, 3], pbc=False)
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.rotation_group()
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.point_group()
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.space_group()
 
     g = lattice([2, 4])
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.rotation_group()
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.point_group()
-    with pytest.raises(TypeError):
+    with pytest.raises(RuntimeError):
         grp = g.space_group()
     # 2x4 unit cells of the triangle lattice make a rectangular grid
     assert len(g.point_group(group.planar.rectangle())) == 4
@@ -626,7 +628,7 @@ def test_duplicate_atoms():
         pbc=[False, False],
         site_offsets=[[0, 0], [0, 0]],
     )
-    assert np.all(lattice.site_offsets == np.array([[0, 0]]))
+    np.testing.assert_almost_equal(lattice.site_offsets, np.array([[0, 0]]))
 
 
 def test_edge_color_accessor():
