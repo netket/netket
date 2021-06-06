@@ -159,9 +159,9 @@ You can also change the number of samples to extract (note: this will
 trigger recompilation of the sample function, so you should not this
 in a hot loop) by changing :py:attr:`~netket.vqs.MCState.n_samples`, and
 the number of discarded samples at the beginning of every markov chain by
-changing :py:attr:`~netket.vqs.MCState.n_discard`.
+changing :py:attr:`~netket.vqs.MCState.n_discard_per_chain`.
 
-By default, :py:attr:`~netket.vqs.MCState.n_discard` is 10% of
+By default, :py:attr:`~netket.vqs.MCState.n_discard_per_chain` is 10% of
 :py:attr:`~netket.vqs.MCState.n_samples`.
 
 The number of samples is then split among the number of chains/batches of the sampler.
@@ -180,14 +180,14 @@ The number of samples is then split among the number of chains/batches of the sa
     print(vstate.chain_length)
     63
 
-    print(vstate.n_discard)
+    print(vstate.n_discard_per_chain)
     50
 
 You can see that 500 samples are split among 8 chains, giving :math:`500/8=62.5` (rounded to
 the next largest integer, 63). Therefore 8 chains of length 63 will be run.
-n_discard gives the number of discarded steps taken in the markov chain before actually storing
-them, so the Markov Chains are actually :code:`chain_length + n_discard` long. The default
-n_discard is 10% of the total samples, but you can change that to any number.
+n_discard_per_chain gives the number of discarded steps taken in the markov chain before actually storing
+them, so the Markov Chains are actually :code:`chain_length + n_discard_per_chain` long. The default
+n_discard_per_chain is 10% of the total samples, but you can change that to any number.
 
 .. _warn-mpi-sampling:
 
