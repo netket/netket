@@ -40,7 +40,7 @@ sr = nk.optimizer.SR(diag_shift=0.01)
 # Variational state
 # With direct sampling, we don't need many samples in each step to form a
 # Markov chain, and we don't need to discard samples
-vs = nk.vqs.MCState(sa, ma, n_samples=64, n_discard=0)
+vs = nk.vqs.MCState(sa, ma, n_samples=64, n_discard_per_chain=0)
 
 # n_parameters also takes masked parameters into account
 # The number of non-masked parameters is about a half

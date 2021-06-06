@@ -56,7 +56,7 @@ sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=50)
+gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard_per_chain=50)
 
 # Run the optimization for 300 iterations
 gs.run(n_iter=300, out="test")
