@@ -12,16 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from numba import jit
+from textwrap import dedent
 
 import numpy as np
+
 from netket.utils.types import DType
 
 from netket.graph import AbstractGraph
-from netket.hilbert import Fock, AbstractHilbert
+from netket.hilbert import AbstractHilbert
 
-from ._abstract_operator import AbstractOperator
 from ._local_operator import LocalOperator
+
+
+def is_hermitian(a, rtol=1e-05, atol=1e-08):
+    return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
 
 
 class GraphOperator(LocalOperator):
@@ -81,13 +85,42 @@ class GraphOperator(LocalOperator):
 
         if graph.n_nodes != hilbert.size:
             raise ValueError(
-                """The number of vertices in the graph ({graph.n_nodes}) 
-                                must match the hilbert space size ({hilbert.size})"""
+                dedent(
+                    f"""The number of vertices in the graph ({graph.n_nodes})
+                    must match the hilbert space size ({hilbert.size})"""
+                )
             )
 
         # Ensure that at least one of SiteOps and BondOps was initialized
         if len(bond_ops) == 0 and len(site_ops) == 0:
             raise ValueError("Must input at least site_ops or bond_ops.")
+
+        # Ensure that the bond operators are hermitian
+        _non_hermitian = [i for (i, op) in enumerate(bond_ops) if not is_hermitian(op)]
+        if len(_non_hermitian) > 0:
+            raise ValueError(
+                dedent(
+                    f"""The bond operators at indices {_non_hermitian} are not
+                            hermitian. `GraphOperator` only works with hermitian bond
+                            operators because the ordering of edges in a graph is
+                            arbitrary.
+                            To build an hamiltonian with non-hermitian bonds please
+                            sum `LocalOperator`s explicitly.
+
+                            If you are using one of NetKet's built-in graphs, be care-
+                            full not to rely on the ordering of the edges returned by
+                            by `graph.edges()`, which is an undocumented, arbitrary
+                            implementation detail and might change in future releases
+                            of NetKet.
+                            If you defined the list of vertices and edges yourself,
+                            ignore this comment.
+
+                            For Lattice-based graphs, it might be a good idea to iterate
+                            lattice coordinates and use the relevant methods to convert
+                            those to graph indices.
+                            """
+                )
+            )
 
         # Create the local operator as the sum of all site and bond operators
         operators = []
@@ -104,8 +137,13 @@ class GraphOperator(LocalOperator):
         if len(bond_ops_colors) > 0:
             if len(bond_ops) != len(bond_ops_colors):
                 raise ValueError(
-                    """The GraphHamiltonian definition is inconsistent.
-                    The sizes of bond_ops and bond_ops_colors do not match."""
+                    dedent(
+                        f"""The GraphOperator definition is inconsistent.
+                    The sizes of bond_ops and bond_ops_color do not match:
+                    len(bond_ops) != len(bond_ops_color)
+                    ({len(bond_ops)} != {len(bond_ops_colors)}).
+                    """
+                    )
                 )
 
             if len(bond_ops) > 0:
@@ -137,4 +175,8 @@ class GraphOperator(LocalOperator):
         acting_str = f"acting_on={ao}"
         if len(acting_str) > 55:
             acting_str = f"#acting_on={len(ao)} locations"
-        return f"{type(self).__name__}(dim={self.hilbert.size}, {acting_str}, constant={self.constant}, dtype={self.dtype}, graph={self.graph})"
+        _str = (
+            f"{type(self).__name__}(dim={self.hilbert.size}, {acting_str}, "
+            f"constant={self.constant}, dtype={self.dtype}, graph={self.graph})"
+        )
+        return _str

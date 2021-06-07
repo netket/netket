@@ -231,3 +231,13 @@ def test_pauli():
     assert np.allclose(op.to_dense(), op_l.to_dense())
 
     assert op.to_sparse().shape == op_l.to_sparse().shape
+
+
+def test_graph_operator_build_error():
+    g = nk.graph.Graph(edges=edges)
+    hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
+
+    bond = np.asarray([[1, 1, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+
+    with pytest.raises(ValueError):
+        nk.operator.GraphOperator(hi, g, site_ops=[sigmax], bond_ops=[bond])
