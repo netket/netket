@@ -33,7 +33,7 @@ from netket import utils
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
-from netket.utils import maybe_wrap_module
+from netket.utils import maybe_wrap_module, warn_deprecation
 from netket.utils.types import DType, Array, PyTree, PRNGKeyT, Shape, NNInitFunc
 from netket.optimizer import SR
 from netket.operator import (
@@ -73,7 +73,8 @@ class MCMixedState(VariationalMixedState, MCState):
         sampler_diag: Sampler = None,
         n_samples_diag: int = None,
         n_samples_per_rank_diag: Optional[int] = None,
-        n_discard_diag: Optional[int] = None,
+        n_discard_per_chain_diag: Optional[int] = None,
+        n_discard_diag: Optional[int] = None,  # deprecated
         seed=None,
         sampler_seed: Optional[int] = None,
         variables=None,
@@ -89,12 +90,12 @@ class MCMixedState(VariationalMixedState, MCState):
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
                 specified together with n_samples (default=None).
-            n_discard: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
+            n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
             n_samples_diag: the total number of samples across chains and processes when sampling the diagonal
                 of the density matrix (default=1000).
             n_samples_per_rank_diag: the total number of samples across chains on one process when sampling the diagonal.
                 Cannot be specified together with `n_samples_diag` (default=None).
-            n_discard_diag: number of discarded samples at the beginning of each monte-carlo chain used when sampling
+            n_discard_per_chain_diag: number of discarded samples at the beginning of each monte-carlo chain used when sampling
                 the diagonal of the density matrix for observables (default=n_samples_diag/10).
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
@@ -141,16 +142,33 @@ class MCMixedState(VariationalMixedState, MCState):
 
         diagonal_apply_fun = nkjax.HashablePartial(apply_diagonal, self._apply_fun)
 
-        for kw in ["n_samples", "n_discard"]:
+        for kw in [
+            "n_samples",
+            "n_discard",
+            "n_discard_per_chain",
+        ]:  # TODO remove n_discard after deprecation.
             if kw in kwargs:
                 kwargs.pop(kw)
+
+        # TODO: remove deprecation.
+        if n_discard_diag is not None and n_discard_per_chain_diag is not None:
+            raise InvalidInputError(
+                "`n_discard_diag` has been renamed to `n_discard_per_chain_diag` and deprecated."
+                "Specify only `n_discard_per_chain_diag`."
+            )
+        elif n_discard_diag is not None:
+            warn_deprecation(
+                "`n_discard_diag` has been renamed to `n_discard_per_chain_diag` and deprecated."
+                "Please update your code to `n_discard_per_chain_diag`."
+            )
+            n_discard_per_chain_diag = n_discard_diag
 
         self._diagonal = MCState(
             sampler_diag,
             apply_fun=diagonal_apply_fun,
             n_samples=n_samples_diag,
             n_samples_per_rank=n_samples_per_rank_diag,
-            n_discard=n_discard_diag,
+            n_discard_per_chain=n_discard_per_chain_diag,
             variables=self.variables,
             seed=seed_diag,
             sampler_seed=sampler_seed_diag,
@@ -202,15 +220,38 @@ class MCMixedState(VariationalMixedState, MCState):
         self.diagonal.chain_length = length
 
     @property
-    def n_discard_diag(self) -> int:
+    def n_discard_per_chain_diag(self) -> int:
         """Number of discarded samples at the beginning of the markov chain used to
         sample the diagonal of this mixed state.
         """
-        return self.diagonal.n_discard
+        return self.diagonal.n_discard_per_chain
+
+    @n_discard_per_chain_diag.setter
+    def n_discard_per_chain_diag(self, n_discard_per_chain: Optional[int]):
+        self.diagonal.n_discard_per_chain = n_discard_per_chain
+
+    # TODO: deprecate
+    @property
+    def n_discard_diag(self) -> int:
+        """
+        DEPRECATED: Use `n_discard_per_chain_diag` instead.
+
+        Number of discarded samples at the beginning of the markov chain.
+        """
+        warn_deprecation(
+            "`n_discard_diag` has been renamed to `n_discard_per_chain_diag` and deprecated."
+            "Please update your code to use `n_discard_per_chain_diag`."
+        )
+
+        return self.n_discard_per_chain_diag
 
     @n_discard_diag.setter
-    def n_discard_diag(self, n_discard: Optional[int]):
-        self.diagonal.n_discard = n_discard
+    def n_discard_diag(self, val) -> int:
+        warn_deprecation(
+            "`n_discard_diag` has been renamed to `n_discard_per_chain_diag` and deprecated."
+            "Please update your code to use `n_discard_per_chain_diag`."
+        )
+        self.n_discard_per_chain_diag = val
 
     @MCState.parameters.setter
     def parameters(self, pars: PyTree):
@@ -267,11 +308,11 @@ class MCMixedState(VariationalMixedState, MCState):
             + "\n  hilbert = {},".format(self.hilbert)
             + "\n  sampler = {},".format(self.sampler)
             + "\n  n_samples = {},".format(self.n_samples)
-            + "\n  n_discard = {},".format(self.n_discard)
+            + "\n  n_discard_per_chain = {},".format(self.n_discard_per_chain)
             + "\n  sampler_state = {},".format(self.sampler_state)
             + "\n  sampler_diag = {},".format(self.sampler_diag)
             + "\n  n_samples_diag = {},".format(self.n_samples_diag)
-            + "\n  n_discard_diag = {},".format(self.n_discard_diag)
+            + "\n  n_discard_per_chain_diag = {},".format(self.n_discard_per_chain_diag)
             + "\n  sampler_state_diag = {},".format(self.diagonal.sampler_state)
             + "\n  n_parameters = {})".format(self.n_parameters)
         )
@@ -294,7 +335,7 @@ def serialize_MCMixedState(vstate):
         "sampler_state": serialization.to_state_dict(vstate.sampler_state),
         "diagonal": serialization.to_state_dict(vstate.diagonal),
         "n_samples": vstate.n_samples,
-        "n_discard": vstate.n_discard,
+        "n_discard_per_chain": vstate.n_discard_per_chain,
     }
     return state_dict
 
@@ -317,7 +358,7 @@ def deserialize_MCMixedState(vstate, state_dict):
         vstate.sampler_state, state_dict["sampler_state"]
     )
     new_vstate.n_samples = state_dict["n_samples"]
-    new_vstate.n_discard = state_dict["n_discard"]
+    new_vstate.n_discard_per_chain = state_dict["n_discard_per_chain"]
 
     return new_vstate
 

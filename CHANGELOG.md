@@ -15,6 +15,8 @@
 
 ### Breaking Changes
 
+* `MCState.n_discard` has been renamed `MCState.n_discard_per_chain` and the old binding has been deprecated [#739](https://github.com/netket/netket/pull/739).
+
 
 ### Bug Fixes
 

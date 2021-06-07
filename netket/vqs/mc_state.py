@@ -34,7 +34,7 @@ from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
 from netket.stats import Stats, statistics, mean, sum_inplace
-from netket.utils import maybe_wrap_module, deprecated, mpi, wrap_afun
+from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -95,7 +95,7 @@ class MCState(VariationalState):
 
     _n_samples: int = 0
     """Total number of samples across all mpi processes."""
-    _n_discard: int = 0
+    _n_discard_per_chain: int = 0
     """Number of samples discarded at the beginning of every Monte-Carlo chain."""
     _samples: Optional[jnp.ndarray] = None
     """Cached samples obtained with the last sampling."""
@@ -112,7 +112,8 @@ class MCState(VariationalState):
         *,
         n_samples: int = None,
         n_samples_per_rank: Optional[int] = None,
-        n_discard: Optional[int] = None,
+        n_discard: Optional[int] = None,  # deprecated
+        n_discard_per_chain: Optional[int] = None,
         variables: Optional[PyTree] = None,
         init_fun: NNInitFunc = None,
         apply_fun: Callable = None,
@@ -131,7 +132,7 @@ class MCState(VariationalState):
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
                 specified together with n_samples (default=None).
-            n_discard: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
+            n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
@@ -193,6 +194,18 @@ class MCState(VariationalState):
                 "can be specified at the same time."
             )
 
+        if n_discard is not None and n_discard_per_chain is not None:
+            raise InvalidInputError(
+                "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
+                "Specify only `n_discard_per_chain`."
+            )
+        elif n_discard is not None:
+            warn_deprecation(
+                "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
+                "Please update your code to use `n_discard_per_chain`."
+            )
+            n_discard_per_chain = n_discard
+
         if sample_fun is not None:
             self._sample_fun = sample_fun
         else:
@@ -218,7 +231,7 @@ class MCState(VariationalState):
         else:
             self.n_samples_per_rank = n_samples_per_rank
 
-        self.n_discard = n_discard
+        self.n_discard_per_chain = n_discard_per_chain
 
     def init(self, seed=None, dtype=None):
         """
@@ -301,30 +314,57 @@ class MCState(VariationalState):
         self.reset()
 
     @property
-    def n_discard(self) -> int:
+    def n_discard_per_chain(self) -> int:
         """
         Number of discarded samples at the beginning of the markov chain.
         """
-        return self._n_discard
+        return self._n_discard_per_chain
 
-    @n_discard.setter
-    def n_discard(self, n_discard: Optional[int]):
-        if n_discard is not None and n_discard < 0:
+    @n_discard_per_chain.setter
+    def n_discard_per_chain(self, n_discard_per_chain: Optional[int]):
+        if n_discard_per_chain is not None and n_discard_per_chain < 0:
             raise ValueError(
-                "Invalid number of discarded samples: n_discard={}".format(n_discard)
+                "Invalid number of discarded samples: n_discard_per_chain={}".format(
+                    n_discard_per_chain
+                )
             )
 
         # don't discard if ExactSampler
         if isinstance(self.sampler, ExactSampler):
-            if n_discard is not None and n_discard > 0:
+            if n_discard_per_chain is not None and n_discard_per_chain > 0:
                 warnings.warn(
-                    "Exact Sampler does not need to discard samples. Setting n_discard to 0."
+                    "Exact Sampler does not need to discard samples. Setting n_discard_per_chain to 0."
                 )
-            n_discard = 0
+            n_discard_per_chain = 0
 
-        self._n_discard = (
-            int(n_discard) if n_discard is not None else self.n_samples // 10
+        self._n_discard_per_chain = (
+            int(n_discard_per_chain)
+            if n_discard_per_chain is not None
+            else self.n_samples // 10
         )
+
+    # TODO: deprecate
+    @property
+    def n_discard(self) -> int:
+        """
+        DEPRECATED: Use `n_discard_per_chain` instead.
+
+        Number of discarded samples at the beginning of the markov chain.
+        """
+        warn_deprecation(
+            "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
+            "Please update your code to use `n_discard_per_chain`."
+        )
+
+        return self.n_discard_per_chain
+
+    @n_discard.setter
+    def n_discard(self, val) -> int:
+        warn_deprecation(
+            "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
+            "Please update your code to use `n_discard_per_chain`."
+        )
+        self.n_discard_per_chain = val
 
     def reset(self):
         """
@@ -338,7 +378,7 @@ class MCState(VariationalState):
         *,
         chain_length: Optional[int] = None,
         n_samples: Optional[int] = None,
-        n_discard: Optional[int] = None,
+        n_discard_per_chain: Optional[int] = None,
     ) -> jnp.ndarray:
         """
         Sample a certain number of configurations.
@@ -349,26 +389,26 @@ class MCState(VariationalState):
         Args:
             chain_length: The length of the markov chains.
             n_samples: The total number of samples across all MPI ranks.
-            n_discard: Number of discarded samples at the beginning of the markov chain.
+            n_discard_per_chain: Number of discarded samples at the beginning of the markov chain.
         """
         if n_samples is None and chain_length is None:
             chain_length = self.chain_length
         elif chain_length is None:
             chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
-        if n_discard is None:
-            n_discard = self.n_discard
+        if n_discard_per_chain is None:
+            n_discard_per_chain = self.n_discard_per_chain
 
         self.sampler_state = self.sampler.reset(
             self.model, self.variables, self.sampler_state
         )
 
-        if self.n_discard > 0:
+        if self.n_discard_per_chain > 0:
             _, self.sampler_state = self.sampler.sample(
                 self.model,
                 self.variables,
                 state=self.sampler_state,
-                chain_length=n_discard,
+                chain_length=n_discard_per_chain,
             )
 
         self._samples, self.sampler_state = self.sampler.sample(
@@ -548,7 +588,7 @@ class MCState(VariationalState):
             + "\n  hilbert = {},".format(self.hilbert)
             + "\n  sampler = {},".format(self.sampler)
             + "\n  n_samples = {},".format(self.n_samples)
-            + "\n  n_discard = {},".format(self.n_discard)
+            + "\n  n_discard_per_chain = {},".format(self.n_discard_per_chain)
             + "\n  sampler_state = {},".format(self.sampler_state)
             + "\n  n_parameters = {})".format(self.n_parameters)
         )
@@ -817,7 +857,7 @@ def serialize_MCState(vstate):
         "variables": serialization.to_state_dict(vstate.variables),
         "sampler_state": serialization.to_state_dict(vstate.sampler_state),
         "n_samples": vstate.n_samples,
-        "n_discard": vstate.n_discard,
+        "n_discard_per_chain": vstate.n_discard_per_chain,
     }
     return state_dict
 
@@ -835,7 +875,7 @@ def deserialize_MCState(vstate, state_dict):
         vstate.sampler_state, state_dict["sampler_state"]
     )
     new_vstate.n_samples = state_dict["n_samples"]
-    new_vstate.n_discard = state_dict["n_discard"]
+    new_vstate.n_discard_per_chain = state_dict["n_discard_per_chain"]
 
     return new_vstate
 

@@ -26,7 +26,7 @@ def test_AR_VMC(s):
     model = nk.models.ARNNDense(hilbert=hilbert, layers=3, features=5)
     sampler = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
 
-    vstate = nk.variational.MCState(sampler, model, n_samples=6, n_discard=0)
+    vstate = nk.variational.MCState(sampler, model, n_samples=6, n_discard_per_chain=0)
     vstate.sample()
 
     H = nk.operator.Ising(hilbert=hilbert, graph=graph, h=1)
