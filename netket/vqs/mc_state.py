@@ -333,7 +333,7 @@ class MCState(VariationalState):
         if self.sampler.is_exact:
             if n_discard_per_chain is not None and n_discard_per_chain > 0:
                 warnings.warn(
-                    "Exact sampler does not need to discard samples. Setting n_discard_per_chain to 0."
+                    "An exact sampler does not need to discard samples. Setting n_discard_per_chain to 0."
                 )
             n_discard_per_chain = 0
 
