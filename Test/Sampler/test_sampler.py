@@ -302,3 +302,11 @@ def test_throwing(model_and_weights):
         ma, w = model_and_weights(hi)
 
         sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+
+
+def test_exact_sampler(sampler):
+    known_exact_samplers = [nk.sampler.ExactSampler, nk.sampler.ARDirectSampler]
+    if any(isinstance(sampler, x) for x in known_exact_samplers):
+        assert sampler.is_exact == True
+    else:
+        assert sampler.is_exact == False

@@ -155,7 +155,7 @@ class Sampler(abc.ABC):
     def is_exact(self) -> bool:
         """
         Returns `True` if the sampler is exact.
-        
+
         The sampler is exact if the samples are always distributed according to the
         chosen power of the variational state.
         """
