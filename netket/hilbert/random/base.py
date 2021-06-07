@@ -29,14 +29,13 @@ def random_state(hilb, key, *, size=None, dtype=np.float32):
     r"""Generates either a single or a batch of uniformly distributed random states.
 
     Args:
+        hilb: The hilbert space
+        key: The Jax PRNGKey
         size: If provided, returns a batch of configurations of the form (size, #) if
             size is an integer or (*size, #) if it is a tuple and where # is the Hilbert
             space size. By default, a single random configuration with shape (#,) is
             returned.
-        out: If provided, the random quantum numbers will be inserted into this array,
-             which should be of the appropriate shape (see `size`) and data type.
-        rgen: The random number generator. If None, the global NetKet random
-            number generator is used.
+        dtype: The dtype of the resulting states.
 
     Example:
 
