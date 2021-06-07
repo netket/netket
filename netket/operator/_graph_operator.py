@@ -25,6 +25,7 @@ from ._local_operator import LocalOperator
 
 
 def is_hermitian(a, rtol=1e-05, atol=1e-08):
+    a = np.asarray(a)
     return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
 
 
