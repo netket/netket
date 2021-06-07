@@ -175,6 +175,7 @@ def test_character_table(grp, cls, dims):
     assert_allclose(np.diag(np.diag(column_prod)), column_prod, atol=1e-10)
 
 
+@pytest.mark.flaky
 @pytest.mark.parametrize("grp,cls,dims", details)
 def test_irrep_matrices(grp, cls, dims):
     irreps = grp.irrep_matrices()
