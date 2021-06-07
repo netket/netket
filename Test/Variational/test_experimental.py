@@ -35,7 +35,7 @@ def vstate(request):
         visible_bias_init=nk.nn.initializers.normal(),
     )
 
-    return nk.variational.MCState(
+    return nk.vqs.MCState(
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
@@ -48,11 +48,11 @@ def test_variables_from_file(vstate, tmp_path):
         f.write(serialization.to_bytes(vstate.variables))
 
     for name in [fname, fname[:-6]]:
-        vstate2 = nk.variational.MCState(
+        vstate2 = nk.vqs.MCState(
             vstate.sampler, vstate.model, n_samples=10, seed=SEED + 100
         )
 
-        vstate2.variables = nk.variational.experimental.variables_from_file(
+        vstate2.variables = nk.vqs.experimental.variables_from_file(
             name, vstate2.variables
         )
 
@@ -72,12 +72,12 @@ def test_variables_from_tar(vstate, tmp_path):
             )
 
     for name in [fname, fname[:-4]]:
-        vstate2 = nk.variational.MCState(
+        vstate2 = nk.vqs.MCState(
             vstate.sampler, vstate.model, n_samples=10, seed=SEED + 100
         )
 
         for j in [0, 3, 8]:
-            vstate2.variables = nk.variational.experimental.variables_from_tar(
+            vstate2.variables = nk.vqs.experimental.variables_from_tar(
                 name, vstate2.variables, j
             )
 
@@ -87,7 +87,7 @@ def test_variables_from_tar(vstate, tmp_path):
             )
 
         with pytest.raises(KeyError):
-            nk.variational.experimental.variables_from_tar(name, vstate2.variables, 15)
+            nk.vqs.experimental.variables_from_tar(name, vstate2.variables, 15)
 
 
 def save_binary_to_tar(tar_file, byte_data, name):

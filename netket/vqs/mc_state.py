@@ -132,7 +132,8 @@ class MCState(VariationalState):
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
                 specified together with n_samples (default=None).
-            n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=n_samples/10).
+            n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=0 for exact sampler,
+                and n_samples/10 for approximate sampler).
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
@@ -146,7 +147,6 @@ class MCState(VariationalState):
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
             training_kwargs: a dict containing the optionaal keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
-
         """
         super().__init__(sampler.hilbert)
 
@@ -329,11 +329,11 @@ class MCState(VariationalState):
                 )
             )
 
-        # don't discard if ExactSampler
-        if isinstance(self.sampler, ExactSampler):
+        # don't discard if the sampler is exact
+        if self.sampler.is_exact:
             if n_discard_per_chain is not None and n_discard_per_chain > 0:
                 warnings.warn(
-                    "Exact Sampler does not need to discard samples. Setting n_discard_per_chain to 0."
+                    "An exact sampler does not need to discard samples. Setting n_discard_per_chain to 0."
                 )
             n_discard_per_chain = 0
 

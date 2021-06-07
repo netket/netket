@@ -151,6 +151,16 @@ class Sampler(abc.ABC):
         """
         return self.n_chains_per_rank
 
+    @property
+    def is_exact(self) -> bool:
+        """
+        Returns `True` if the sampler is exact.
+
+        The sampler is exact if the samples are always distributed according to the
+        chosen power of the variational state.
+        """
+        return False
+
     def log_pdf(self, model: Union[Callable, nn.Module]) -> Callable:
         """
         Returns a closure with the log_pdf function encoded by this sampler.
