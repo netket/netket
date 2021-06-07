@@ -125,7 +125,7 @@ def test_vmc_functions():
 
     n_samples = 16000
     ma.n_samples = n_samples
-    ma.n_discard = 100
+    ma.n_discard_per_chain = 100
 
     ## Check zero gradieent
     _, grads = ma.expect_and_grad(ha)
@@ -239,7 +239,7 @@ def test_vmc_gradient(dtype):
     grad_exact = central_diff_grad(energy_fun, pars, 1.0e-5, ma, ha.to_sparse())
 
     driver.state.n_samples = 1e5
-    driver.state.n_discard = 1e3
+    driver.state.n_discard_per_chain = 1e3
     driver.state.parameters = pars_0
     _, _grad_approx = ma.expect_and_grad(ha)  # driver._forward_and_backward()
     grad_approx, _ = nk.jax.tree_ravel(_grad_approx)

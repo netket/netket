@@ -83,7 +83,7 @@ def test_n_samples_api(vstate):
     with raises(
         ValueError,
     ):
-        vstate.n_discard = -1
+        vstate.n_discard_per_chain = -1
 
     vstate.n_samples = 2
     assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
@@ -93,14 +93,14 @@ def test_n_samples_api(vstate):
     assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
 
     vstate.n_samples = 1000
-    vstate.n_discard = None
-    assert vstate.n_discard == 0
+    vstate.n_discard_per_chain = None
+    assert vstate.n_discard_per_chain == 0
 
     vstate.sampler = nk.sampler.MetropolisLocal(
         hilbert=nk.hilbert.DoubledHilbert(hi), n_chains=16
     )
-    vstate.n_discard = None
-    assert vstate.n_discard == vstate.n_samples // 10
+    vstate.n_discard_per_chain = None
+    assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
 
 def test_n_samples_diag_api(vstate):
@@ -117,7 +117,7 @@ def test_n_samples_diag_api(vstate):
     with raises(
         ValueError,
     ):
-        vstate.n_discard = -1
+        vstate.n_discard_per_chain = -1
 
     vstate.n_samples_diag = 2
     assert (
@@ -139,12 +139,27 @@ def test_n_samples_diag_api(vstate):
     )
 
     vstate.n_samples = 1000
-    vstate.n_discard = None
-    assert vstate.n_discard_diag == 0
+    vstate.n_discard_per_chain = None
+    assert vstate.n_discard_per_chain_diag == 0
 
     vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
-    vstate.n_discard_diag = None
-    assert vstate.n_discard_diag == vstate.n_samples_diag // 10
+    vstate.n_discard_per_chain_diag = None
+    assert vstate.n_discard_per_chain_diag == vstate.n_samples_diag // 10
+
+
+def test_deprecations(vstate):
+    vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+
+    # deprecation
+    with pytest.warns(FutureWarning):
+        vstate.n_discard_diag = 10
+
+    with pytest.warns(FutureWarning):
+        vstate.n_discard_diag
+
+    vstate.n_discard_diag = 10
+    assert vstate.n_discard_diag == 10
+    assert vstate.n_discard_per_chain_diag == 10
 
 
 def test_serialization(vstate):
@@ -164,9 +179,9 @@ def test_serialization(vstate):
     np.testing.assert_allclose(vstate.samples, vstate_new.samples)
     np.testing.assert_allclose(vstate.diagonal.samples, vstate_new.diagonal.samples)
     assert vstate.n_samples == vstate_new.n_samples
-    assert vstate.n_discard == vstate_new.n_discard
+    assert vstate.n_discard_per_chain == vstate_new.n_discard_per_chain
     assert vstate.n_samples_diag == vstate_new.n_samples_diag
-    assert vstate.n_discard_diag == vstate_new.n_discard_diag
+    assert vstate.n_discard_per_chain_diag == vstate_new.n_discard_per_chain_diag
 
 
 @pytest.mark.parametrize(
