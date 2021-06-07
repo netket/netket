@@ -64,7 +64,7 @@ def vstate(request):
 
     sa = nk.sampler.ExactSampler(hilbert=nk.hilbert.DoubledHilbert(hi), n_chains=16)
 
-    vs = nk.variational.MCMixedState(sa, ma, n_samples=1000, seed=SEED)
+    vs = nk.vqs.MCMixedState(sa, ma, n_samples=1000, seed=SEED)
 
     return vs
 
@@ -167,7 +167,7 @@ def test_serialization(vstate):
 
     bdata = serialization.to_bytes(vstate)
 
-    vstate_new = nk.variational.MCMixedState(
+    vstate_new = nk.vqs.MCMixedState(
         vstate.sampler, vstate.model, n_samples=10, seed=SEED + 313
     )
 

@@ -84,7 +84,7 @@ def vstate(request):
 
     sa = nk.sampler.ExactSampler(hilbert=hi, n_chains=16)
 
-    vs = nk.variational.MCState(sa, ma, n_samples=1000, seed=SEED)
+    vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
     return vs
 
@@ -146,9 +146,7 @@ def test_serialization(vstate):
     old_nsamples = vstate.n_samples
     old_ndiscard = vstate.n_discard_per_chain
 
-    vstate = nk.variational.MCState(
-        vstate.sampler, vstate.model, n_samples=10, seed=SEED + 100
-    )
+    vstate = nk.vqs.MCState(vstate.sampler, vstate.model, n_samples=10, seed=SEED + 100)
 
     vstate = serialization.from_bytes(vstate, bdata)
 

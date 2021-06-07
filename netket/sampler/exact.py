@@ -53,6 +53,10 @@ class ExactSampler(Sampler):
     option.
     """
 
+    @property
+    def is_exact(sampler):
+        return True
+
     def _init_state(sampler, machine, params, key):
         pdf = jnp.zeros(sampler.hilbert.n_states, dtype=jnp.float32)
         return ExactSamplerState(pdf=pdf, rng=key)

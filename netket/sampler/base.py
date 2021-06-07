@@ -151,6 +151,13 @@ class Sampler(abc.ABC):
         """
         return self.n_chains_per_rank
 
+    @property
+    def is_exact(self) -> bool:
+        """
+        Whether the sampler is exact.
+        """
+        return False
+
     def log_pdf(self, model: Union[Callable, nn.Module]) -> Callable:
         """
         Returns a closure with the log_pdf function encoded by this sampler.

@@ -63,6 +63,10 @@ class ARDirectSamplerState(SamplerState):
 class ARDirectSampler(Sampler):
     """Direct sampler for autoregressive neural networks."""
 
+    @property
+    def is_exact(sampler):
+        return True
+
     def _init_cache(sampler, model, σ, key):
         variables = model.init(key, σ)
         if "cache" in variables:
