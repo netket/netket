@@ -230,7 +230,9 @@ class Lattice(Graph):
                 of length `ndim`.
             pbc: If ``True`` then the constructed lattice
                 will have periodic boundary conditions, otherwise
-                open boundary conditions are imposed (default=`True`).
+                open boundary conditions are imposed. Can also be an boolean sequence
+                of length `ndim`, indicating either open or closed boundary conditions
+                separately for each direction.
             site_offsets: The position offsets of sites in the unit cell (one site at
                 the origin by default).
             distance_atol: Distance below which spatial points are considered equal for
@@ -305,6 +307,8 @@ class Lattice(Graph):
         graph = igraph.Graph()
         graph.add_vertices(len(old_nodes))
         graph.add_edges([(new_nodes[edge[0]], new_nodes[edge[1]]) for edge in edges])
+        graph.simplify()
+
         self._sites = []
         for i, site in enumerate(sites[old_node] for old_node in old_nodes):
             site.id = i
