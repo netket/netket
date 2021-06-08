@@ -18,9 +18,12 @@ import jax
 from jax import numpy as jnp
 import numpy as np
 
+from netket.utils.dispatch import parametric
+
 from .abstract_hilbert import AbstractHilbert
 
 
+# TODO: Create parametric class
 class DoubledHilbert(AbstractHilbert):
     r"""Superoperatorial hilbert space for states living in the
     tensorised state H\otimes H, encoded according to Choi's isomorphism."""

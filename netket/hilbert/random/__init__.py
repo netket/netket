@@ -45,30 +45,29 @@ you should define a function taking 4 inputs, the hilbert space, a jax PRNG key 
 the dtype of the derised result. For random operations you should use the key 
 provided.
 
-def random_state_myhilbert_scalar_impl(hilb: MyHilbert, key, dtype):    
+@netket.utils.dispatch.dispatch
+def random_state(hilb: MyHilbert, key, dtype):    
     return mystate
 
-The batched version takes an extra argument, that is the number of batches to generate, 
-an int.
-
-def random_state_myhilbert_batch_impl(hilb: MyHilbert, key, batches, dtype):    
+@netket.utils.dispatch.dispatch
+def random_state(hilb: MyHilbert, key, batches: int, dtype):    
     return mystate
 
-Then register the implementation with the following function:
-batch can be None or your implementation. 
+flip_state is implemented in the same way, through
 
-nk.hilbert.random.register_random_state_impl(MyHilbert, scalar=random_state_myhilbert_scalar_impl, batch=None)
+@netket.utils.dispatch.dispatch
+def flip_state_scalar(hilb: Fock, key, σ, idx):
+    return new_state, oldval
 
-flip_state is implemented in the same way, through the function register_flip_state_impl
+There is a vmapped default fallback for the batched version.
 
+@netket.utils.dispatch.dispatch
+def flip_state_batch(hilb: Fock, key, σ, idx):
+    return new_states, oldvals
+    
 """
 
-from .base import (
-    random_state,
-    flip_state,
-    register_flip_state_impl,
-    register_random_state_impl,
-)
+from .base import random_state, flip_state
 
 from . import custom
 from . import qubit

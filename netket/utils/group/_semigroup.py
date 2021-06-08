@@ -22,9 +22,9 @@ from dataclasses import dataclass
 from typing import List
 
 import numpy as np
-from plum import dispatch
 
 from netket.utils.types import Array
+from netket.utils.dispatch import dispatch
 
 
 class Element(ABC):

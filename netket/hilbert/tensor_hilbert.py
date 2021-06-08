@@ -28,6 +28,7 @@ import numpy as _np
 import netket as nk
 
 
+# TODO: Make parametric class
 class TensorHilbert(AbstractHilbert):
     r"""Tensor product of several sub-spaces.
 
