@@ -13,11 +13,10 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-import itertools
-from itertools import product
 from math import pi
+
 from netket.utils.types import Array
-from typing import Dict, Sequence, Tuple, Union, Optional
+from typing import Callable, Dict, Sequence, Tuple, Union, Optional
 import warnings
 
 import networkx as _nx
@@ -25,90 +24,23 @@ import numpy as _np
 from scipy.spatial import cKDTree
 from scipy.sparse import find, triu
 
-from netket.utils.deprecation import deprecated as _deprecated, warn_deprecation
-from netket.utils.semigroup import Identity, Element, PermutationGroup
+from netket.utils.deprecation import deprecated as _deprecated
 from netket.utils import HashableArray
+from netket.utils.float import comparable, comparable_periodic, is_approx_int
+from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
 
 from .graph import NetworkX
-
-tol_digits = 5
-cutoff_tol = _np.power(10.0, -tol_digits)
-"""Tolerance for the maximum distance cutoff when computing the sparse distance matrix.
-This is necessary because of floating-point errors when computing the distance in non-trivial
-lattices.
-"""
 
 PositionT = _np.ndarray
 CoordT = _np.ndarray
 
 
-@dataclass(frozen=True)
-class Translation(Element):
-    perms: Tuple[Tuple[int]]
-    shift: Tuple[int]
-
-    def __call__(self, sites):
-        for i, dim in enumerate(self.shift):
-            perm = self.perms[i]
-            for j in range(dim):
-                sites = _np.take(sites, perm)
-
-        return sites
-
-    def __repr__(self):
-        return f"T{self.shift}"
+class InvalidSiteError(Exception):
+    pass
 
 
-@dataclass(frozen=True)
-class PlanarRotation(Element):
-    perm: Tuple[int]
-    num_rots: int
-
-    def __call__(self, sites):
-        for i in range(self.num_rots):
-            sites = _np.take(sites, self.perm)
-
-        return sites
-
-    def __repr__(self):
-        return f"Rot{self.num_rots}"
-
-
-@dataclass(frozen=True)
-class Reflection(Element):
-
-    perm: Tuple[int]
-
-    def __call__(self, sites):
-        sites = _np.take(sites, self.perm)
-
-        return sites
-
-    def __repr__(self):
-        return f"Ref"
-
-
-def get_edges(atoms_positions, cutoff, distance_atol=cutoff_tol):
-    cutoff = cutoff + distance_atol
-    kdtree = cKDTree(atoms_positions)
-    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
-    id1, id2, values = find(triu(dist_matrix))
-    pairs = []
-    min_dists = {}  # keys are nodes, values are min dists
-    for node in _np.unique(_np.concatenate((id1, id2))):
-        min_dist = _np.min(values[(id1 == node) | (id2 == node)])
-        min_dists[node] = min_dist
-    for node in _np.unique(id1):
-        min_dist = _np.min(values[id1 == node])
-        mask = (id1 == node) & (_np.isclose(values, min_dist))
-        first = id1[mask]
-        second = id2[mask]
-        for pair in zip(first, second):
-            if _np.isclose(min_dist, min_dists[pair[0]]) and _np.isclose(
-                min_dist, min_dists[pair[1]]
-            ):
-                pairs.append(pair)
-    return pairs
+class InvalidWaveVectorError(Exception):
+    pass
 
 
 @dataclass
@@ -121,75 +53,92 @@ class LatticeSite:
     """Integer ID of this site"""
     position: PositionT
     """Real-space position of this site"""
-    cell_coord: CoordT
+    basis_coord: CoordT
     """basis coordinates of this site"""
 
     def __repr__(self):
-        s = ", ".join(map(str, (self.id, self.cell_coord)))
+        s = ", ".join(map(str, (self.id, self.basis_coord)))
         return f"LatticeSite({s})"
 
 
 def create_sites(
     basis_vectors, extent, apositions, pbc
-) -> Tuple[Tuple[LatticeSite, bool], Dict[HashableArray, int]]:
-    shell_vec = _np.zeros(extent.size, dtype=int)
-    shift_vec = _np.zeros(extent.size, dtype=int)
+) -> Tuple[Sequence[LatticeSite], Sequence[bool], Dict[HashableArray, int]]:
     # note: by modifying these, the number of shells can be tuned.
-    shell_vec[pbc] = 2
-    shift_vec[pbc] = 1
-    ranges = tuple([list(range(ex)) for ex in extent + shell_vec])
+    shell_vec = _np.where(pbc, 2, 0)
+    shift_vec = _np.where(pbc, 1, 0)
+
+    shell_min = 0 - shift_vec
+    shell_max = _np.asarray(extent) + shell_vec - shift_vec
+    # cell coordinates
+    ranges = [slice(lo, hi) for lo, hi in zip(shell_min, shell_max)]
+    # site coordinate within unit cell
+    ranges += [slice(0, len(apositions))]
+
+    basis_coords = _np.vstack([_np.ravel(x) for x in _np.mgrid[ranges]]).T
+    site_coords = (
+        basis_coords[:, :-1]
+        + _np.tile(apositions.T, reps=len(basis_coords) // len(apositions)).T
+    )
+    positions = site_coords @ basis_vectors
+
     sites = []
-    cell_coord_to_site = {}
-    for s_cell in itertools.product(*ranges):
-        s_coord_cell = _np.asarray(s_cell) - shift_vec
-        inside = not (_np.any(s_coord_cell < 0) or _np.any(s_coord_cell > (extent - 1)))
-        atom_count = len(sites)
-        for i, atom_coord in enumerate(apositions):
-            s_coord_site = s_coord_cell + atom_coord
-            r_coord_site = _np.matmul(basis_vectors.T, s_coord_site)
-            cell_coord_site = _np.array((*s_coord_cell, i), dtype=int)
-            sites.append(
-                (
-                    LatticeSite(
-                        id=None,  # to be set later, after sorting all sites
-                        position=r_coord_site,
-                        cell_coord=cell_coord_site,
-                    ),
-                    inside,
-                ),
-            )
-            cell_coord_to_site[HashableArray(cell_coord_site)] = atom_count + i
-    return sites, cell_coord_to_site
+    coord_to_site = {}
+    for idx, (coord, pos) in enumerate(zip(basis_coords, positions)):
+        sites.append(
+            LatticeSite(
+                id=None,  # to be set later, after sorting all sites
+                basis_coord=coord,
+                position=pos,
+            ),
+        )
+        coord_to_site[HashableArray(coord)] = idx
+    is_inside = ~(
+        _np.any(basis_coords[:, :-1] < 0, axis=1)
+        | _np.any(basis_coords[:, :-1] > (extent - 1), axis=1)
+    )
+    return sites, is_inside, coord_to_site
+
+
+def get_edges(positions, cutoff):
+    kdtree = cKDTree(positions)
+    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
+    row, col, dst = find(triu(dist_matrix))
+    dst = comparable(dst)
+    _, ii = _np.unique(dst, return_inverse=True)
+
+    return sorted(list(zip(row[ii == 0], col[ii == 0])))
 
 
 def get_true_edges(
     basis_vectors: PositionT,
     sites: Sequence[LatticeSite],
-    cell_coord_to_site,
+    inside: Sequence[bool],
+    basis_coord_to_site,
     extent,
-    distance_atol=cutoff_tol,
+    distance_atol,
 ):
-    positions = _np.array([p.position for p, _ in sites])
+    positions = _np.array([p.position for p in sites])
     naive_edges = get_edges(
-        positions, _np.linalg.norm(basis_vectors, axis=1).max(), distance_atol
+        positions, _np.linalg.norm(basis_vectors, axis=1).max() + distance_atol
     )
-    true_edges = []
+    true_edges = set()
     for node1, node2 in naive_edges:
-        site1, inside1 = sites[node1]
-        site2, inside2 = sites[node2]
+        site1, inside1 = sites[node1], inside[node1]
+        site2, inside2 = sites[node2], inside[node2]
         if inside1 and inside2:
-            true_edges.append((node1, node2))
+            true_edges.add((node1, node2))
         elif inside1 or inside2:
-            cell1 = site1.cell_coord
-            cell2 = site2.cell_coord
+            cell1 = site1.basis_coord
+            cell2 = site2.basis_coord
             cell1[:-1] = cell1[:-1] % extent
             cell2[:-1] = cell2[:-1] % extent
-            node1 = cell_coord_to_site[HashableArray(cell1)]
-            node2 = cell_coord_to_site[HashableArray(cell2)]
+            node1 = basis_coord_to_site[HashableArray(cell1)]
+            node2 = basis_coord_to_site[HashableArray(cell2)]
             edge = (node1, node2)
             if edge not in true_edges and (node2, node1) not in true_edges:
-                true_edges.append(edge)
-    return true_edges
+                true_edges.add(edge)
+    return list(true_edges)
 
 
 def deprecated(alternative):
@@ -220,18 +169,20 @@ class Lattice(NetworkX):
     A lattice built by periodic arrangement of a given unit cell.
 
     The lattice is represented as a Bravais lattice with (:code:`basis_vectors`)
-    :math:`\{a_d\}_{d=1}^D` (where :math:`D = \mathtt{ndim}` is the dimension of the lattice)
-    and a unit cell consisting of one or more sites,
-    The positions of those sites within the unit cell can be specified by the :code:`site_offsets`
-    parameter. The :code:`extent` is a array where :code:`extent[d]` specifies the number of
-    times each unit cell is translated along direction :math:`d`.
+    :math:`\{a_d\}_{d=1}^D` (where :math:`D = \mathtt{ndim}` is the dimension of the
+    lattice) and a unit cell consisting of one or more sites,
+    The positions of those sites within the unit cell can be specified by the
+    :code:`site_offsets` parameter. The :code:`extent` is a array where
+    :code:`extent[d]` specifies the number of times each unit cell is translated along
+    direction :math:`d`.
     The full lattice is then generated by placing a site at each of the points
 
     .. math::
 
         R_{rq} = \sum_{d=1}^D r_d a_d + b_q \in \mathbb R^D
 
-    where :math:`r_d \in \{1, \ldots, \mathtt{extent}[d]\}` and :math:`b_q = \mathtt{site\_offsets}[q]`.
+    where :math:`r_d \in \{1, \ldots, \mathtt{extent}[d]\}` and
+    :math:`b_q = \mathtt{site\_offsets}[q]`.
     We also refer to :math:`q` as the `label` of the site within the unit cell.
 
     The lattice class supports three ways of addressing a specific lattice site:
@@ -242,8 +193,8 @@ class Lattice(NetworkX):
         :code:`self.nodes()`, :code:`self.positions` or :code:`self.basis_coords`.
 
     positions
-        Real-space position vector :math:`R_{rq}` as defined above, which is available from
-        :func:`~netket.graph.Lattice.positions` and can be resolved into an id via
+        Real-space position vector :math:`R_{rq}` as defined above, which is available
+        from :func:`~netket.graph.Lattice.positions` and can be resolved into an id via
         :func:`~netket.graph.Lattice.id_from_position`.
 
     basis coordinates
@@ -251,8 +202,9 @@ class Lattice(NetworkX):
         with :math:`r` being the integer vector of length :code:`ndim` specifying the
         cell position as multiples of the primitive vectors and the site label :math:`q`
         giving the number of the site within the unit cell.
-        Basis coordinates are available from :func:`~netket.graph.Lattice.basis_coords` and
-        can be resolved into an id via :func:`~netket.graph.Lattice.id_from_basis_coords`.
+        Basis coordinates are available from :func:`~netket.graph.Lattice.basis_coords`
+        and can be resolved into an id via
+        :func:`~netket.graph.Lattice.id_from_basis_coords`.
     """
     # Initialization
     # ------------------------------------------------------------------------
@@ -265,9 +217,11 @@ class Lattice(NetworkX):
         site_offsets: Optional[_np.ndarray] = None,
         atoms_coord: Optional[_np.ndarray] = None,
         distance_atol: float = 1e-5,
+        point_group: Optional[PointGroup] = None,
     ):
         """
-        Constructs a new ``Lattice`` given its side length and the features of the unit cell.
+        Constructs a new ``Lattice`` given its side length and the features of the unit
+        cell.
 
         Args:
             basis_vectors: The basis vectors of the lattice. Should be an array
@@ -277,9 +231,11 @@ class Lattice(NetworkX):
             pbc: If ``True`` then the constructed lattice
                 will have periodic boundary conditions, otherwise
                 open boundary conditions are imposed (default=`True`).
-            site_offsets: The position offsets of sites in the unit cell (one site at the origin by default).
-            distance_atol: Distance below which spatial points are considered equal for the purpose
-                of identifying nearest neighbors.
+            site_offsets: The position offsets of sites in the unit cell (one site at
+                the origin by default).
+            distance_atol: Distance below which spatial points are considered equal for
+                the purpose of identifying nearest neighbors.
+            point_group: Default `PointGroup` object for constructing space groups
 
         Examples:
             Constructs a Kagome lattice with 3 × 3 unit cells:
@@ -329,12 +285,15 @@ class Lattice(NetworkX):
 
         self._extent = _np.asarray(extent, dtype=int)
 
-        sites, self._basis_coord_to_site = create_sites(
-            self._basis_vectors, self._extent, site_pos_fractional, pbc
+        self._point_group = point_group
+
+        sites, inside, self._basis_coord_to_site = create_sites(
+            self._basis_vectors, self._extent, site_pos_fractional, self._pbc
         )
         edges = get_true_edges(
             self._basis_vectors,
             sites,
+            inside,
             self._basis_coord_to_site,
             self._extent,
             distance_atol,
@@ -344,25 +303,24 @@ class Lattice(NetworkX):
         # Rename sites
         old_nodes = sorted(set(node for edge in edges for node in edge))
         self._sites = []
-        for i, (site, _) in enumerate(sites[old_node] for old_node in old_nodes):
+        for i, site in enumerate(sites[old_node] for old_node in old_nodes):
             site.id = i
             self._sites.append(site)
         new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
         graph = _nx.relabel_nodes(graph, new_nodes)
         self._basis_coord_to_site = {
-            HashableArray(p.cell_coord): p.id for p in self._sites
+            HashableArray(p.basis_coord): p.id for p in self._sites
         }
         self._positions = _np.array([p.position for p in self._sites])
-        self._basis_coords = _np.array([p.cell_coord for p in self._sites])
+        self._basis_coords = _np.array([p.basis_coord for p in self._sites])
 
         # Order node names
         edges = list(graph.edges())
         graph = _nx.MultiGraph()
         graph.add_nodes_from([p.id for p in self._sites])
         graph.add_edges_from(edges)
-
-        lattice_dims = _np.expand_dims(self._extent, 1) * self.basis_vectors
-        self._inv_dims = _np.linalg.inv(lattice_dims)
+        self._lattice_dims = _np.expand_dims(self._extent, 1) * self.basis_vectors
+        self._inv_dims = _np.linalg.inv(self._lattice_dims)
         int_positions = self._to_integer_position(self._positions)
         self._int_position_to_site = {
             HashableArray(pos): index for index, pos in enumerate(int_positions)
@@ -402,28 +360,30 @@ class Lattice(NetworkX):
             site_offsets = _np.zeros(basis_vectors.shape[0])[None, :]
 
         site_offsets = _np.asarray(site_offsets)
-        site_pos_fractional = _np.asarray(
-            [
-                _np.matmul(_np.linalg.inv(basis_vectors.T), atom_coord)
-                for atom_coord in site_offsets
-            ]
-        )
-        if (
-            site_pos_fractional.min() < -cutoff_tol
-            or site_pos_fractional.max() > 1 + cutoff_tol
-        ):
-            raise ValueError(
-                "site_offsets positions must be contained inside the primitive cell"
-            )
-        uniques = _np.unique(site_offsets, axis=0)
-        if len(site_offsets) != uniques.shape[0]:
-            site_offsets = _np.asarray(uniques)
+        fractional_coords = site_offsets @ _np.linalg.inv(basis_vectors)
+        fractional_coords_int = comparable_periodic(fractional_coords)
+        # Check for duplicates (also across unit cells)
+        uniques, idx = _np.unique(fractional_coords_int, axis=0, return_index=True)
+        if len(site_offsets) != len(uniques):
+            site_offsets = site_offsets[idx]
+            fractional_coords = fractional_coords[idx]
+            fractional_coords_int = fractional_coords_int[idx]
             warnings.warn(
                 "Some atom positions are not unique. Duplicates were dropped, and "
                 f"now atom positions are {site_offsets}",
                 UserWarning,
             )
-        return site_offsets, site_pos_fractional
+        # Check if any site is outside primitive cell (may cause KDTree to malfunction)
+        if _np.any(fractional_coords_int < comparable(0.0)) or _np.any(
+            fractional_coords_int > comparable(1.0)
+        ):
+
+            warnings.warn(
+                "Some sites were specified outside the primitive unit cell. This may"
+                "cause errors in automatic edge finding.",
+                UserWarning,
+            )
+        return site_offsets, fractional_coords
 
     @staticmethod
     def _clean_pbc(pbc, ndim):
@@ -436,8 +396,8 @@ class Lattice(NetworkX):
             or not all(isinstance(b, bool) for b in pbc)
         ):
             raise ValueError(
-                "pbc must be either a boolean or a sequence of booleans with length equal to "
-                "the lattice dimenion"
+                "pbc must be either a boolean or a sequence of booleans with length"
+                "equal to  the lattice dimenion"
             )
         else:
             return _np.asarray(pbc, dtype=bool)
@@ -491,37 +451,44 @@ class Lattice(NetworkX):
 
     # Site lookup
     # ------------------------------------------------------------------------
+
     def _to_integer_position(self, positions: PositionT) -> Array:
-        frac_positions = _np.matmul(positions, self._inv_dims) % 1
-        return _np.around(frac_positions * 10 ** tol_digits).astype(int) % (
-            10 ** tol_digits
-        )
+        frac_positions = _np.matmul(positions, self._inv_dims)
+        return comparable_periodic(frac_positions, self.pbc)
 
     @staticmethod
     def _get_id_from_dict(
         dict: Dict[HashableArray, int], key: Array
     ) -> Union[int, Array]:
-        if key.ndim == 1:
-            return dict.get(HashableArray(key), None)
-        elif key.ndim == 2:
-            return _np.array([dict.get(HashableArray(k), None) for k in key])
-        else:
-            raise ValueError("Input needs to be rank 1 or rank 2 array")
+        try:
+            if key.ndim == 1:
+                return dict[HashableArray(key)]
+            elif key.ndim == 2:
+                return _np.array([dict[HashableArray(k)] for k in key])
+            else:
+                raise ValueError("Input needs to be rank 1 or rank 2 array")
+        except KeyError as e:
+            raise InvalidSiteError(
+                "Some coordinates do not correspond to a valid lattice site"
+            ) from e
 
     def id_from_position(self, position: PositionT) -> Union[int, Array]:
         """
-        Return the id for a site at the given position. When passed a rank-2 array
-        where each row is a position, this method returns an array of the corresponding ids.
-        In both cases, None is returned for positions that do not correspond to a site.
+        Returns the id for a site at the given position. When passed a rank-2 array
+        where each row is a position, returns an array of the corresponding ids.
+        Throws an `InvalidSiteError` if any of the positions do not correspond
+        to a site.
         """
         int_pos = self._to_integer_position(position)
-        return self._get_id_from_dict(self._int_position_to_site, int_pos)
+        ids = self._get_id_from_dict(self._int_position_to_site, int_pos)
+        return ids
 
     def id_from_basis_coords(self, basis_coords: CoordT) -> Union[int, Array]:
         """
-        Return the id for a site at the given basis coordinates. When passed a rank-2 array
-        where each row is a coordinate vector, this method returns an array of the corresponding
-        ids. In both cases, None is returned for coords that do not correspond to a site.
+        Return the id for a site at the given basis coordinates. When passed a rank-2
+        array where each row is a coordinate vector, returns an array of the
+        corresponding ids. Throws an `InvalidSiteError` if any of the coords do
+        not correspond to a site.
         """
         key = _np.asarray(basis_coords)
         return self._get_id_from_dict(self._basis_coord_to_site, key)
@@ -531,12 +498,133 @@ class Lattice(NetworkX):
         Return the position of the site with given basis coordinates.
         When passed a rank-2 array where each row is a coordinate vector,
         this method returns an array of the corresponding positions.
-        Throws a KeyError if no site is found for any of the coordinates.
+        Throws an `InvalidSiteError` if no site is found for any of the coordinates.
         """
         ids = self.id_from_basis_coords(basis_coords)
-        if _np.any(ids == None):  # pylint: disable=singleton-comparison
-            raise KeyError(f"No site found at at least one of {basis_coords}")
         return self.positions[ids]
+
+    def to_reciprocal_lattice(self, ks: Array) -> Array:
+        """
+        Converts wave vectors from Cartesian axes to reciprocal lattice vectors.
+
+        Arguments:
+            ks: wave vectors in Cartesian axes. Multidimensional arrays are accepted,
+                the Cartesian coordinates must form the last dimension.
+
+        Returns:
+            The same wave vectors in the reciprocal basis **of the simulation box.**
+            Valid wave vector components in this basis are integers in (periodic BCs)
+            or zero (in open BCs).
+
+        Throws an `InvalidWaveVectorError` if any of the supplied wave vectors
+        are not reciprocal lattice vectors of the simulation box.
+        """
+        # Ensure that ks has at least 2 dimensions
+        ks = _np.asarray(ks)
+        if ks.ndim == 1:
+            ks = ks[_np.newaxis, :]
+
+        result = ks @ self._lattice_dims.T / (2 * pi)
+        # Check that these are integers
+        is_valid = is_approx_int(result)
+        if not _np.all(is_valid):
+            raise InvalidWaveVectorError(
+                "Some wave vectors are not reciprocal lattice vectors of the simulation"
+                "box spanned by\n"
+                + "\n".join(
+                    [
+                        str(self._lattice_dims[i])
+                        + (" (PBC)" if self.pbc[i] else " (OBC)")
+                        for i in range(self.ndim)
+                    ]
+                )
+            )
+
+        result = _np.asarray(_np.rint(result), dtype=int)
+        # For axes with non-periodic BCs, the k-component must be 0
+        is_valid = _np.logical_or(self.pbc, result == 0)
+        if not _np.all(is_valid):
+            raise InvalidWaveVectorError(
+                "Some wave vectors are inconisistent with open boundary conditions"
+            )
+
+        return result
+
+    # Generating space groups
+    # -----------------------------------------------------------------------
+    def space_group_builder(
+        self, point_group: Optional[PointGroup] = None
+    ) -> "SpaceGroupBuilder":
+        """
+        Returns a `SpaceGroupBuilder` object that represents the spatial symmetries of
+        `self`.
+
+        Arguments:
+            point_group: a `PointGroup` object describing the point-group
+                         symmetries of `self`. Optional, if not supplied, the
+                         `PointGroup` object provded at construction is used.
+
+        Returns:
+            A `SpaceGroupBuilder` object that generates `PermutationGroup`s
+            encoding the action of `point_group`, the translation group of `self`,
+            and the space group obtained as their semidirect product as
+            permutations of the sites of `self`. It also yields space group irreps
+            for symmetrising wave functions.
+        """
+        from .space_group import SpaceGroupBuilder
+
+        if point_group is None:
+            if isinstance(self._point_group, PointGroup):
+                point_group = self._point_group
+            elif isinstance(self._point_group, Callable):
+                self._point_group = self._point_group()
+                point_group = self._point_group
+            else:
+                raise RuntimeError(
+                    "space_group_builder() missing required argument 'point_group'\n"
+                    "(lattice has no default point group)"
+                )
+        return SpaceGroupBuilder(self, point_group)
+
+    def space_group(self, point_group: Optional[PointGroup] = None) -> PermutationGroup:
+        """
+        Returns the space group generated by the translation symmetries of `self`
+        and the elements of `point_group` as a `PermutationGroup` acting on the
+        sites of `self`.
+        If no `point_group` is specified, uses the point group provided upon
+        construction.
+        """
+        return self.space_group_builder(point_group).space_group
+
+    def point_group(self, point_group: Optional[PointGroup] = None) -> PermutationGroup:
+        """
+        Returns the action of `point_group` on the sites of `self` as a
+        `PermutationGroup`. If no `point_group` is specified, uses the point group
+        provided upon construction.
+        """
+        return self.space_group_builder(point_group).point_group
+
+    def rotation_group(
+        self, point_group: Optional[PointGroup] = None
+    ) -> PermutationGroup:
+        """
+        Returns the action of rotations (i.e. symmetries with determinant +1) in
+        `point_group` on the sites of `self` as a `PermutationGroup`.
+        If no `point_group` is specified, uses the point group provided upon
+        construction.
+        """
+        return self.space_group_builder(point_group).rotation_group
+
+    def translation_group(
+        self, dim: Optional[Union[int, Sequence[int]]] = None
+    ) -> PermutationGroup:
+        """
+        Returns the group of lattice translations of `self` as a `PermutationGroup`
+        acting on the sites of `self`.
+        """
+        return self.space_group_builder(
+            trivial_point_group(self.ndim)
+        ).translation_group(dim)
 
     # Output and drawing
     # ------------------------------------------------------------------------
@@ -568,8 +656,8 @@ class Lattice(NetworkX):
             node_color: String with the colour of the nodes.
             node_size: Area of the nodes (as in matplotlib.pyplot.scatter).
             edge_color: String with the colour of the edges.
-            curvature: A Bezier curve is fit, where the "height" of the curve is `curvature`
-                times the "length" of the curvature.
+            curvature: A Bezier curve is fit, where the "height" of the curve is
+                `curvature` times the "length" of the curvature.
             font_size: fontsize of the labels for each node.
             font_color: Colour of the font used to label nodes.
 
@@ -585,7 +673,8 @@ class Lattice(NetworkX):
             positions = self.positions
         else:
             raise ValueError(
-                f"Make sure that the graph is 1D or 2D in order to be drawn. Now it is {self._ndim}D"
+                "Make sure that the graph is 1D or 2D in order to be drawn. "
+                f" Now it is {self._ndim}D"
             )
         if ax is None:
             _, ax = plt.subplots(figsize=figsize)
@@ -615,22 +704,22 @@ class Lattice(NetworkX):
     # ------------------------------------------------------------------------
     @deprecated("basis_coords[site_id, -1]")
     def atom_label(self, site_id: int) -> int:
-        """`Deprecated`, please use :code:`basis_coords[site_id, -1]` instead."""
+        """Deprecated. please use :code:`basis_coords[site_id, -1]` instead."""
         return self.basis_coords[site_id, -1]
 
     @deprecated("basis_coords[site_id, :-1]")
     def site_to_vector(self, site_id: int) -> CoordT:
-        """`Deprecated`, please use :code:`basis_coords[site_id, :-1]` instead."""
+        """Deprecated. please use :code:`basis_coords[site_id, :-1]` instead."""
         return self.basis_coords[site_id, :-1]
 
     @deprecated("positions[site_id]")
     def site_to_coord(self, site_id: int) -> PositionT:
-        """`Deprecated`, please use :code:`positions[site_id]` instead."""
+        """Deprecated. please use :code:`positions[site_id]` instead."""
         return self.positions[site_id]
 
     @deprecated("id_from_basis_coords([*vector, 0])")
     def vector_to_site(self, vector: CoordT) -> int:
-        """`Deprecated`, please use :code:`id_from_basis_coords([*vector, 0])` instead."""
+        """Deprecated. please use :code:`id_from_basis_coords([*vector, 0])` instead."""
         # Note: This only gives one site within the unit cell, so that
         # `vector_to_site(site_to_vector(i)) == i` is _not_ true in general,
         # which is consistent with the behavior of the v2 lattice.
@@ -638,109 +727,17 @@ class Lattice(NetworkX):
 
     @deprecated("position_from_basis_coords([*vector, label])")
     def vector_to_coord(self, vector: CoordT, label: int) -> PositionT:
-        """`Deprecated`, please use :code:`position_from_basis_coords([*vector, label])` instead."""
+        "Deprecated. please use :code:`position_from_basis_coords([*vector, label])`."
         return self.position_from_basis_coords([*vector, label])
 
     @property
     @deprecated("positions")
     def coordinates(self) -> PositionT:
-        """`Deprecated`, please use :code:`positions` instead."""
+        """Deprecated. please use :code:`positions` instead."""
         return self.positions
 
     @property
     @deprecated("site_offsets")
     def atoms_coord(self) -> PositionT:
-        """`Deprecated`, please use :code:`site_offsets` instead."""
+        """Deprecated. please use :code:`site_offsets` instead."""
         return self._site_offsets
-
-    # Symmetries
-    # ------------------------------------------------------------------------
-    def _get_id_or_raise(self, pos: PositionT) -> Union[int, Array]:
-        ids = self.id_from_position(pos)
-        if _np.any(ids == None):  # pylint: disable=singleton-comparison
-            raise KeyError(f"No site found at at least one of {pos}")
-        return ids
-
-    def translation_perm(self):
-        perms = []
-        for vec in self.basis_vectors:
-            perm = []
-            for position in self._positions:
-                position = position.copy() + vec
-                perm.append(self._get_id_or_raise(position))
-
-            perms.append(tuple(perm))
-        return tuple(perms)
-
-    def rotation_perm(self, period, axes=[0, 1]):
-        perm = []
-        axes = list(axes)
-        angle = 2 * pi / period
-        rot_mat = _np.array(
-            [[_np.cos(angle), -_np.sin(angle)], [_np.sin(angle), _np.cos(angle)]]
-        )
-
-        rpositions = self._positions.copy()
-        rpositions[:, axes] = _np.matmul(rpositions[:, axes], rot_mat)
-
-        for position in rpositions:
-            try:
-                perm.append(self._get_id_or_raise(position))
-            except KeyError as e:
-                raise ValueError(
-                    "Rotation with the specified period and axes does not map lattice to itself"
-                ) from e
-
-        return tuple(perm)
-
-    def reflection_perm(self, axis=0):
-        perm = []
-        rpositions = self._positions.copy()
-        rpositions[:, axis] = -1 * rpositions[:, axis]
-
-        for position in rpositions:
-            try:
-                perm.append(self._get_id_or_raise(position))
-            except KeyError as e:
-                raise ValueError(
-                    "Reflection about specified axis does not map lattice to itself"
-                ) from e
-
-        return tuple(perm)
-
-    def planar_rotations(self, period, axes=[0, 1]) -> PermutationGroup:
-        """
-        Returns PermutationGroup corresponding to rotations about specfied axes with specified period
-
-        Arguments:
-            period: Period of the rotations
-            axes: Axes that define the plane of the rotation
-        """
-
-        perm = self.rotation_perm(period, axes)
-        rotations = [PlanarRotation(perm, n) for n in range(1, period)]
-
-        return PermutationGroup([Identity()] + rotations, degree=self.n_nodes)
-
-    def basis_translations(self) -> PermutationGroup:
-        """
-        Returns PermutationGroup corresponding to translations by site_offsets vectors
-        """
-
-        translations = product(*[range(i) for i in self._extent])
-        next(translations)
-
-        perms = self.translation_perm()
-        translations = [Translation(perms, i) for i in translations]
-
-        return PermutationGroup([Identity()] + translations, degree=self.n_nodes)
-
-    def reflections(self, axis=0) -> PermutationGroup:
-        """
-        Returns PermutationGroup corresponding to reflection about axis
-        args:
-          axis: Generated reflections about specified axis
-        """
-        perm = self.reflection_perm(axis)
-
-        return PermutationGroup([Identity()] + [Reflection(perm)], degree=self.n_nodes)

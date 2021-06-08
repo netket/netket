@@ -21,8 +21,8 @@ import numpy as np
 
 from netket.nn.initializers import normal, zeros
 from netket.utils import HashableArray
-from netket.utils.semigroup import PermutationGroup
 from netket.utils.types import Array, DType, PRNGKeyT, Shape
+from netket.utils.group import PermutationGroup
 
 default_kernel_init = normal(stddev=0.01)
 
@@ -152,14 +152,8 @@ class DenseEquivariant(Module):
 
         C^i_g = \sum_h {\bf W}_{g^{-1} h} \cdot {\bf f}_h
 
-    Symmetry poses that are linked by the same symmetry element are connected
-    by the same filter. The output symmetry group is an involution over the
-    input symmetry group, i.e. the symmetry group is inverted by G-convolution
-
-    .. math ::
-
-        {\bf C}*(g) = C(g^{-1})
-
+    Group elements that differ by the same symmetry operation (i.e. :math:`g = xh`
+    and :math:`g' = xh'`) are connected by the same filter.
     """
 
     symmetry_info: Union[HashableArray, PermutationGroup]

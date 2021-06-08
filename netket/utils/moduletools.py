@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
 
 def _hide_submodules(module_name, *, remove_self=True, ignore=[]):
     """
@@ -51,3 +53,37 @@ def rename_class(new_name):
         return clz
 
     return decorator
+
+
+def export(fn):
+    """
+    Add the function `fn` to the list of exported attributes of this
+    module, `__all__`.
+
+    Args:
+        fn: the function or class to export.
+    """
+    mod = sys.modules[fn.__module__]
+    if hasattr(mod, "__all__"):
+        mod.__all__.append(fn.__name__)
+    else:
+        mod.__all__ = [fn.__name__]
+    return fn
+
+
+def hide_unexported(module_name):
+    """
+    Overloads the `__dir__` function of the given module in order to
+    only show on autocompletion the attributes inside of `__all__`.
+
+    You can add to `__all__` by using the decorator :ref:`@export`.
+
+    Args:
+        module_name: the name of the module to process.
+    """
+    module = sys.modules[module_name]
+
+    def __dir__():
+        return module.__all__
+
+    setattr(module, "__dir__", __dir__)

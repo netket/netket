@@ -17,8 +17,7 @@ from typing import List, Generator, Union
 import numpy as np
 import networkx as _nx
 
-from netket.utils.semigroup import Permutation, PermutationGroup
-
+from netket.utils.group import Permutation, PermutationGroup
 from .abstract_graph import AbstractGraph
 
 
@@ -92,6 +91,7 @@ class NetworkX(AbstractGraph):
         r"""The number of edges in the graph."""
         return self.graph.size()
 
+    # TODO turn into a struct.property_cached?
     def automorphisms(self) -> PermutationGroup:
         # TODO: check how to compute these when we have a coloured graph where there could
         #       be a duplicated edge with two different colors.
@@ -111,10 +111,14 @@ class NetworkX(AbstractGraph):
             aux_graph.add_edges_from(self.edges())
             ismags = _nx.isomorphism.GraphMatcher(aux_graph, aux_graph)
             _automorphisms = [
-                Permutation([iso[i] for i in aux_graph.nodes()])
+                [iso[i] for i in aux_graph.nodes()]
                 for iso in ismags.isomorphisms_iter()
             ]
-            self._automorphisms = PermutationGroup(_automorphisms, self.n_nodes)
+            # sort them s.t. the identity comes first
+            _automorphisms = np.unique(_automorphisms, axis=0).tolist()
+            self._automorphisms = PermutationGroup(
+                [Permutation(i) for i in _automorphisms], self.n_nodes
+            )
             return self._automorphisms
 
     def __repr__(self):

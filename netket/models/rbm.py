@@ -20,8 +20,8 @@ import jax
 from jax import numpy as jnp
 from flax import linen as nn
 from netket.utils import HashableArray
-from netket.utils.semigroup import PermutationGroup
 from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
+from netket.utils.group import PermutationGroup
 
 from netket import nn as nknn
 from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal

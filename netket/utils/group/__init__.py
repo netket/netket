@@ -12,24 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .abstract_graph import AbstractGraph
-from .graph import NetworkX, Graph, Edgeless, DoubledGraph, disjoint_union
-from .lattice import Lattice
-from .common_lattices import (
-    Grid,
-    Hypercube,
-    Cube,
-    Square,
-    Chain,
-    BCC,
-    FCC,
-    Diamond,
-    Pyrochlore,
-    Triangular,
-    Honeycomb,
-    Kagome,
-)
+from ._semigroup import Element, Identity
+from ._group import FiniteGroup
+from ._permutation_group import Permutation, PermutationGroup
+from ._point_group import PGSymmetry, PointGroup, trivial_point_group
 
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from . import axial, cubic, planar

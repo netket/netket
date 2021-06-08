@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .types import Array, DType
+from .types import Array, DType, Shape
 
 
 @dataclass(frozen=True)
@@ -48,3 +48,7 @@ class HashableArray:
         if dtype is None:
             dtype = self.wrapped.dtype
         return self.wrapped.__array__(dtype)
+
+    @property
+    def shape(self) -> Shape:
+        return self.wrapped.shape
