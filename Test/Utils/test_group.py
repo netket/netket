@@ -187,7 +187,7 @@ def test_irrep_matrices(grp, cls, dims):
         assert_allclose(
             irrep[true_product_table, :, :],
             np.einsum("iab,jbc->ijac", irrep, irrep),
-            atol=1e-14,
+            atol=1e-7,
         )
 
 
