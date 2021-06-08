@@ -175,7 +175,6 @@ def test_character_table(grp, cls, dims):
     assert_allclose(np.diag(np.diag(column_prod)), column_prod, atol=1e-10)
 
 
-@pytest.mark.flaky
 @pytest.mark.parametrize("grp,cls,dims", details)
 def test_irrep_matrices(grp, cls, dims):
     irreps = grp.irrep_matrices()
@@ -183,7 +182,7 @@ def test_irrep_matrices(grp, cls, dims):
     true_product_table = grp.product_table[grp.inverse]
     for i, irrep in enumerate(irreps):
         # characters are the traces of the irrep matrices
-        assert_allclose(np.trace(irrep, axis1=1, axis2=2), characters[i], atol=1e-10)
+        assert_allclose(np.trace(irrep, axis1=1, axis2=2), characters[i], atol=1e-8)
         # irrep matrices respect the group multiplication rule
         assert_allclose(
             irrep[true_product_table, :, :],
