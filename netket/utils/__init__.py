@@ -38,4 +38,6 @@ jax_available = True
 flax_available = True
 mpi4jax_available = mpi.mpi_available
 
-_hide_submodules(__name__, remove_self=False, ignore=["numbers", "types", "float", "dispatch"])
+_hide_submodules(
+    __name__, remove_self=False, ignore=["numbers", "types", "float", "dispatch"]
+)
