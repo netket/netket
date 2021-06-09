@@ -21,7 +21,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from netket.utils import deprecated
+from netket.utils import deprecated, warn_deprecation
 
 
 """int: Maximum number of states that can be indexed"""
