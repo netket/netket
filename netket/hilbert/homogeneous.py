@@ -192,7 +192,7 @@ class HomogeneousHilbert(AbstractHilbert):
         )
 
         clsname = type(self).__name__
-        return f"{clsname}(local_size={self._local_size}, N={len(self.size)}{constr})"
+        return f"{clsname}(local_size={self._local_size}, N={self.size}{constr})"
 
     @property
     def _attrs(self):
