@@ -5,8 +5,8 @@ DEV_DEPENDENCIES = [
     "pytest-xdist>=2",
     "coverage>=5",
     "pytest-cov>=2.10.1",
+    "networkx~=2.4",
     "flaky>=3.7",
-    "python-igraph",
     "pre-commit",
     "black==20.8b1",
 ]
@@ -18,7 +18,7 @@ BASE_DEPENDENCIES = [
     "tqdm~=4.56",
     "plum-dispatch~=1.0",
     "numba>=0.52, <0.54",
-    "networkx~=2.4",
+    "python-igraph~=0.9",
     "jax>=0.2.9, <0.2.14",
     "jaxlib>=0.1.57",
     "flax>=0.3.0, <0.4",

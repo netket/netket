@@ -19,7 +19,7 @@ from netket.utils.types import Array
 from typing import Callable, Dict, Sequence, Tuple, Union, Optional
 import warnings
 
-import networkx as _nx
+import igraph
 import numpy as _np
 from scipy.spatial import cKDTree
 from scipy.sparse import find, triu
@@ -29,7 +29,7 @@ from netket.utils import HashableArray
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
 
-from .graph import NetworkX
+from .graph import Graph
 
 PositionT = _np.ndarray
 CoordT = _np.ndarray
@@ -164,7 +164,7 @@ REPR_TEMPLATE = """Lattice(
 """
 
 
-class Lattice(NetworkX):
+class Lattice(Graph):
     r"""
     A lattice built by periodic arrangement of a given unit cell.
 
@@ -298,27 +298,22 @@ class Lattice(NetworkX):
             self._extent,
             distance_atol,
         )
-        graph = _nx.MultiGraph(edges)
 
-        # Rename sites
         old_nodes = sorted(set(node for edge in edges for node in edge))
+        new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
+
+        graph = igraph.Graph()
+        graph.add_vertices(len(old_nodes))
+        graph.add_edges([(new_nodes[edge[0]], new_nodes[edge[1]]) for edge in edges])
         self._sites = []
         for i, site in enumerate(sites[old_node] for old_node in old_nodes):
             site.id = i
             self._sites.append(site)
-        new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
-        graph = _nx.relabel_nodes(graph, new_nodes)
         self._basis_coord_to_site = {
             HashableArray(p.basis_coord): p.id for p in self._sites
         }
         self._positions = _np.array([p.position for p in self._sites])
         self._basis_coords = _np.array([p.basis_coord for p in self._sites])
-
-        # Order node names
-        edges = list(graph.edges())
-        graph = _nx.MultiGraph()
-        graph.add_nodes_from([p.id for p in self._sites])
-        graph.add_edges_from(edges)
         self._lattice_dims = _np.expand_dims(self._extent, 1) * self.basis_vectors
         self._inv_dims = _np.linalg.inv(self._lattice_dims)
         int_positions = self._to_integer_position(self._positions)
@@ -326,7 +321,7 @@ class Lattice(NetworkX):
             HashableArray(pos): index for index, pos in enumerate(int_positions)
         }
 
-        super().__init__(graph)
+        super().__init__(list(graph.get_edgelist()), graph.vcount())
 
     @staticmethod
     def _clean_basis(basis_vectors):
@@ -679,24 +674,44 @@ class Lattice(NetworkX):
         if ax is None:
             _, ax = plt.subplots(figsize=figsize)
 
-        # FIXME (future) as of 11Apr2021, networkx can draw curved
-        # edges only for directed graphs.
-        _nx.draw_networkx_edges(
-            self.graph.to_directed(),
-            pos=positions,
-            edgelist=self.edges(),
-            connectionstyle=f"arc3,rad={curvature}",
-            ax=ax,
-            arrowsize=0.1,
-            edge_color=edge_color,
-            node_size=node_size,
+        for edge in self.edges():
+            x1, y1 = positions[edge[0]]
+            x2, y2 = positions[edge[1]]
+            annotation = ax.annotate(
+                "",
+                xy=(x1, y1),
+                xycoords="data",
+                xytext=(x2, y2),
+                textcoords="data",
+                arrowprops=dict(
+                    arrowstyle="-",
+                    color=edge_color,
+                    shrinkA=0,
+                    shrinkB=0,
+                    patchA=None,
+                    patchB=None,
+                    connectionstyle=f"arc3,rad={curvature}",
+                ),
+            )
+        ax.scatter(
+            *positions.T,
+            s=node_size,
+            c=node_color,
+            marker="o",
+            zorder=annotation.get_zorder() + 1,
         )
-        _nx.draw_networkx_nodes(
-            self.graph, pos=positions, ax=ax, node_color=node_color, node_size=node_size
-        )
-        _nx.draw_networkx_labels(
-            self.graph, pos=positions, ax=ax, font_size=font_size, font_color=font_color
-        )
+        for node in self.nodes():
+            x1, y1 = positions[node]
+            ax.text(
+                x1,
+                y1,
+                str(node),
+                horizontalalignment="center",
+                verticalalignment="center",
+                fontsize=font_size,
+                color=font_color,
+                zorder=annotation.get_zorder() + 1,
+            )
         ax.axis("equal")
         return ax
 

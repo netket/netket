@@ -13,16 +13,18 @@
 # limitations under the License.
 
 import jax
-from jax.experimental.stax import Dense
 from jax.experimental import stax
 
 from collections import OrderedDict
+import warnings
+import igraph
 
 from .abstract_machine import AbstractMachine
 
 import numpy as _np
 from jax import numpy as jnp
 from jax import random
+from netket.graph import Chain
 from netket.legacy.random import randint as _randint
 from netket import utils
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_leaves
@@ -387,18 +389,11 @@ def mpsPeriodic(hilbert, graph, bond_dim, diag=False, symperiod=None, dtype=comp
     loc_vals_bias = jax.numpy.min(local_states)
 
     # check whether graph is periodic chain
-    import networkx as _nx
-
-    edges = graph.edges()
-    G = _nx.Graph()
-    G.add_edges_from(edges)
-
-    G_chain = _nx.Graph()
-    G_chain.add_edges_from([(i, (i + 1) % L) for i in range(L)])
-
-    if not _nx.algorithms.is_isomorphic(G, G_chain):
-        print(
-            "Warning: graph is not isomorphic to chain with periodic boundary conditions"
+    chain_graph = Chain(graph.n_edges).to_igraph()
+    if not igraph.Graph(edges=graph.edges()).isomorphic(chain_graph):
+        warnings.warn(
+            "Warning: graph is not isomorphic to chain with periodic boundary conditions",
+            UserWarning,
         )
 
     # determine shape of unit cell
