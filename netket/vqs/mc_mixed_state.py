@@ -24,21 +24,17 @@ from flax import serialization
 
 import netket
 from netket import jax as nkjax
-from netket import utils
 from netket.sampler import Sampler
 from netket.stats import Stats, statistics
 from netket.utils import warn_deprecation
 from netket.utils.types import PyTree
-from netket.optimizer import SR
 from netket.operator import (
     AbstractOperator,
-    define_local_cost_function,
     local_cost_function,
-    local_value_cost,
     local_value_op_op_cost,
 )
 
-from .base import VariationalState, VariationalMixedState
+from .base import VariationalMixedState
 from .mc_state import MCState
 
 AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
