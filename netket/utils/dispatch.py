@@ -12,20 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
-from jax import numpy as jnp
-
-from netket.hilbert import Qubit
-from netket.utils.dispatch import dispatch
-
-
-@dispatch
-def random_state(hilb: Qubit, key, batches: int, *, dtype):
-    rs = jax.random.randint(key, shape=(batches, hilb.size), minval=0, maxval=2)
-    return jnp.asarray(rs, dtype=dtype)
-
-
-## flips
-@dispatch
-def flip_state_scalar(hilb: Qubit, key, x, i):
-    return jax.ops.index_update(x, i, -x[i] + 1), x[i]
+from plum import dispatch, parametric, convert

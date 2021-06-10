@@ -19,10 +19,10 @@ import itertools
 from typing import Optional
 
 import numpy as np
-from plum import dispatch
 
 from netket.utils import HashableArray, struct
 from netket.utils.types import Array, DType, Shape
+from netket.utils.dispatch import dispatch
 
 from ._group import FiniteGroup
 from ._semigroup import Element

@@ -1,12 +1,12 @@
 from numbers import Number
 
 from typing import Any, Union
-from plum import dispatch
 
 import numpy as np
 import jax
 import jaxlib
 
+from .dispatch import dispatch
 from .types import Array
 
 

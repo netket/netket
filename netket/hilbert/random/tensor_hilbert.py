@@ -12,32 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List
-
 import jax
-import numpy as np
 from jax import numpy as jnp
 
-# from numba import jit
-
 from netket.hilbert import TensorHilbert
-
-from .base import (
-    random_state_batch,
-    register_random_state_impl,
-    flip_state_scalar,
-    register_flip_state_impl,
-)
+from netket.utils.dispatch import dispatch
 
 
-def random_state_batch_doubled_impl(hilb: TensorHilbert, key, batches, dtype):
-    shape = (batches, hilb.size)
-
+@dispatch
+def random_state(hilb: TensorHilbert, key, batches: int, *, dtype):
     keys = jax.random.split(key, hilb._n_hilbert_spaces)
 
     vs = [
-        random_state_batch(hi, k, batches, dtype)
-        for (hi, k) in zip(hilb._hilbert_spaces, keys)
+        random_state(hilb._hilbert_spaces[i], keys[i], batches, dtype=dtype)
+        for i in range(hilb._n_hilbert_spaces)
     ]
 
     return jnp.concatenate(vs, axis=1)
@@ -60,12 +48,8 @@ def _make_subfun(hilb, i, sub_hi):
     return subfun
 
 
-## flips
-from jax import experimental
-from jax.experimental import host_callback
-
-
-def flip_state_scalar_doubled(hilb: TensorHilbert, key, state, index):
+@dispatch
+def flip_state_scalar(hilb: TensorHilbert, key, state, index):
 
     subfuns = []
     for (i, sub_hi) in enumerate(hilb._hilbert_spaces):
@@ -76,7 +60,3 @@ def flip_state_scalar_doubled(hilb: TensorHilbert, key, state, index):
         branches.append(subfuns[i])
 
     return jax.lax.switch(index, branches, (key, state, index))
-
-
-register_random_state_impl(TensorHilbert, batch=random_state_batch_doubled_impl)
-register_flip_state_impl(TensorHilbert, scalar=flip_state_scalar_doubled)

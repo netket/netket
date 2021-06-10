@@ -21,12 +21,12 @@ from math import pi
 from typing import Dict, Optional, Tuple
 
 import numpy as np
-from plum import dispatch
 from scipy.linalg import schur
 
 from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.types import Array, Shape
+from netket.utils.dispatch import dispatch
 
 from ._group import FiniteGroup
 from ._semigroup import Element, Identity

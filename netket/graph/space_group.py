@@ -15,7 +15,6 @@
 # Ignore false-positives for redefined `product` functions:
 # pylint: disable=function-redefined
 
-from plum import dispatch
 import numpy as np
 from functools import reduce
 from math import pi
@@ -23,9 +22,11 @@ from typing import Optional, Sequence
 
 from .lattice import Lattice
 
-from netket.utils.types import Array, Union
 from netket.utils import struct
+from netket.utils.types import Array, Union
 from netket.utils.float import prune_zeros
+from netket.utils.dispatch import dispatch
+
 from netket.utils.group import (
     Identity,
     PointGroup,
