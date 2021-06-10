@@ -120,6 +120,7 @@ def test_lattice_graphs(i, name):
     assert graph.n_edges == graph.n_nodes * coordination_number[i] // 2
 
 
+# netket#743 : multiple edges and self-loops in lattice 
 @pytest.mark.parametrize(
     "size,n_nodes,n_edges",
     zip(
