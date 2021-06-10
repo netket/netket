@@ -12,20 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from fractions import Fraction
-from typing import Optional, List, Tuple, Union, Iterable
+from typing import Optional, List, Tuple, Union
 
-import jax
-from jax import numpy as jnp
 import numpy as np
-from netket.graph import AbstractGraph
-from numba import jit
 
 from .abstract_hilbert import AbstractHilbert
-from .hilbert_index import HilbertIndex
-
-import numpy as _np
-import netket as nk
 
 
 # TODO: Make parametric class
@@ -45,26 +36,26 @@ class TensorHilbert(AbstractHilbert):
 
         self._hilbert_spaces = hilb_spaces
         self._n_hilbert_spaces = len(hilb_spaces)
-        self._hilbert_i = _np.concatenate(
+        self._hilbert_i = np.concatenate(
             [[i for _ in range(hi.size)] for (i, hi) in enumerate(hilb_spaces)]
         )
 
         self._sizes = tuple([hi.size for hi in hilb_spaces])
-        self._cum_sizes = _np.cumsum(self._sizes)
-        self._cum_indices = _np.concatenate([[0], self._cum_sizes])
+        self._cum_sizes = np.cumsum(self._sizes)
+        self._cum_indices = np.concatenate([[0], self._cum_sizes])
         self._size = sum(self._sizes)
 
         self._shape = np.concatenate([hi.shape for hi in hilb_spaces])
 
         self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
-        self._ns_states_r = _np.flip(self._ns_states)
-        self._cum_ns_states = _np.concatenate([[0], _np.cumprod(self._ns_states)])
+        self._ns_states_r = np.flip(self._ns_states)
+        self._cum_ns_states = np.concatenate([[0], np.cumprod(self._ns_states)])
         self._cum_ns_states_r = np.flip(
             np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
         )
         self._n_states = np.prod(self._ns_states)
 
-        self._delta_indices_i = _np.array(
+        self._delta_indices_i = np.array(
             [self._cum_indices[i] for i in self._hilbert_i]
         )
 
@@ -123,7 +114,7 @@ class TensorHilbert(AbstractHilbert):
 
         rem = numbers
         for (i, dim) in enumerate(self._ns_states_r):
-            rem, loc_numbers = _np.divmod(rem, dim)
+            rem, loc_numbers = np.divmod(rem, dim)
             hi_i = self._n_hilbert_spaces - (i + 1)
             self._hilbert_spaces[hi_i].numbers_to_states(
                 loc_numbers, out=out[:, self._cum_indices[hi_i] : self._cum_sizes[hi_i]]
@@ -175,7 +166,7 @@ class TensorHilbert(AbstractHilbert):
                 spaces_center = (space_center_l, space_center_r)
             else:
                 spaces_center = (spaces_center,)
-        except:
+        except Exception:
             spaces_center = (space_center_l, space_center_r)
 
         return TensorHilbert(*spaces_l, *spaces_center, *spaces_r)

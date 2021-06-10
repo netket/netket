@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Tuple, List, Callable
+from typing import Optional, List, Callable
 
 from numbers import Real
-
-import numpy as np
-from numba import jit
 
 from netket.graph import AbstractGraph
 
@@ -40,12 +37,12 @@ class CustomHilbert(HomogeneousHilbert):
         a number of sites, or modes, within this hilbert space.
 
         Args:
-            local_states (list or None): Eigenvalues of the states. If the allowed states are an
-                         infinite number, None should be passed as an argument.
+            local_states (list or None): Eigenvalues of the states. If the allowed
+                states are an infinite number, None should be passed as an argument.
             N: Number of modes in this hilbert space (default 1).
             constraint_fn: A function specifying constraints on the quantum numbers.
-                        Given a batch of quantum numbers it should return a vector
-                        of bools specifying whether those states are valid or not.
+                Given a batch of quantum numbers it should return a vector
+                of bools specifying whether those states are valid or not.
 
         Examples:
            Simple custom hilbert space.
@@ -63,7 +60,7 @@ class CustomHilbert(HomogeneousHilbert):
     def __pow__(self, n):
         if self._has_constraint:
             raise NotImplementedError(
-                """Cannot exponentiate a CustomHilbert with constraints. 
+                """Cannot exponentiate a CustomHilbert with constraints.
                 Construct it from scratch instead."""
             )
 

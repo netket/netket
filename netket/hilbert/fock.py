@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Tuple, Optional, Union, Iterable
+from typing import List, Optional, Union
 
-import jax
-from jax import numpy as jnp
 import numpy as np
 from numba import jit
 
 from netket.graph import AbstractGraph
+from netket.utils import deprecated
 
 from .homogeneous import HomogeneousHilbert
 from ._deprecations import graph_to_N_depwarn
@@ -45,12 +44,13 @@ class Fock(HomogeneousHilbert):
         and total number of bosons.
 
         Args:
-          n_max: Maximum occupation for a site (inclusive). If None, the local occupation
-            number is unbounded.
+          n_max: Maximum occupation for a site (inclusive). If None, the local
+            occupation number is unbounded.
           N: number of bosonic modes (default = 1)
           n_particles: Constraint for the number of particles. If None, no constraint
             is imposed.
-          graph: (Deprecated, pleaese use `N`) A graph, from which the number of nodes is extracted.
+          graph: (Deprecated, pleaese use `N`) A graph, from which the number of nodes
+            is extracted.
 
         Examples:
            Simple boson hilbert space.
@@ -166,7 +166,7 @@ class Fock(HomogeneousHilbert):
         out.fill(0.0)
         ss = self.size
 
-        for i in range(self.n_particles):
+        for _ in range(self.n_particles):
             s = rgen.integers(0, ss, size=())
 
             out[sites[s]] += 1
@@ -199,9 +199,6 @@ class Fock(HomogeneousHilbert):
                 self._random_state_with_constraint_legacy(out, rgen, self.n_max)
 
         return out
-
-
-from netket.utils import deprecated
 
 
 @deprecated(
