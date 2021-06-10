@@ -228,7 +228,3 @@ class NDM(nn.Module):
         return (
             ψ_S(σr, σc, symmetric=True) + 1j * ψ_A(σr, σc, symmetric=False) + Π(σr, σc)
         )
-
-        x = self.activation(x)
-
-        return jnp.sum(x, axis=-1) + out_bias
