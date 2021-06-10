@@ -140,19 +140,6 @@ def test_var(_mpi_comm, _mpi_rank, _mpi_size):
 
 
 @common.onlyif_mpi
-def test_sum_inplace(_mpi_rank, _mpi_size, _mpi_comm):
-    data = np.arange(_mpi_size * 10 * 11).reshape(_mpi_size, 10, 11)
-    data = _mpi_comm.bcast(data)
-    mydata = np.copy(data[_mpi_rank])
-
-    ref_sum = np.sum(data, axis=0)
-    ret = nk.stats.sum_inplace(mydata)
-    # mydata should be changed in place
-    assert mydata == approx(ref_sum)
-    np.testing.assert_almost_equal(ret, mydata)
-
-
-@common.onlyif_mpi
 def test_subtract_mean(_mpi_rank, _mpi_size, _mpi_comm):
     data = np.random.rand(_mpi_size, 10, 11, 12)
     data = _mpi_comm.bcast(data)
