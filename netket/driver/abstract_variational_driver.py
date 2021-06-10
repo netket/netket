@@ -247,20 +247,20 @@ class AbstractVariationalDriver(abc.ABC):
         callbacks = _to_iterable(callback)
         callback_stop = False
 
-        with tqdm(
-            self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
-        ) as itr:
+        with tqdm(total=n_iter, disable=not show_progress) as pbar:
+            old_step = self.step_count
             first_step = True
 
-            for step in itr:
+            for step in self.iter(n_iter, step_size):
 
                 log_data = self.estimate(obs)
 
                 # if the cost-function is defined then report it in the progress bar
                 if self._loss_stats is not None:
-                    itr.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    pbar.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
                     log_data[self._loss_name] = self._loss_stats
 
+                # Execute callbacks before loggers because they can append to log_data
                 for callback in callbacks:
                     if not callback(step, log_data, self):
                         callback_stop = True
@@ -272,10 +272,17 @@ class AbstractVariationalDriver(abc.ABC):
                     if mpi.mpi_any(callback_stop):
                         break
 
+                # Update the progress bar
+                pbar.update(self.step_count - old_step)
+                old_step = self.step_count
+
                 # Reset the timing of tqdm after the first step, to ignore compilation time
                 if first_step:
                     first_step = False
-                    itr.unpause()
+                    pbar.unpause()
+
+            # Final update so that it shows up filled.
+            pbar.update(self.step_count - old_step)
 
         # flush at the end of the evolution so that final values are saved to
         # file
