@@ -10,7 +10,7 @@ DEV_DEPENDENCIES = [
     "pre-commit",
     "black==20.8b1",
 ]
-MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.11"]
+MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]
 TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]
 BASE_DEPENDENCIES = [
     "numpy~=1.18",
@@ -19,7 +19,7 @@ BASE_DEPENDENCIES = [
     "plum-dispatch~=1.0",
     "numba>=0.52, <0.54",
     "python-igraph~=0.9",
-    "jax>=0.2.9, <0.2.14",
+    "jax>=0.2.9, <0.2.15",
     "jaxlib>=0.1.57",
     "flax>=0.3.0, <0.4",
     "orjson~=3.4",
