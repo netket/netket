@@ -21,7 +21,6 @@ from flax import struct
 
 from netket.utils.types import PyTree
 from netket.utils.mpi import n_nodes
-from netket.stats import sum_inplace
 import netket.jax as nkjax
 
 from .qgt_jacobian_dense import QGTJacobianDense

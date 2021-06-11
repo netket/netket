@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import jax.numpy as jnp
-from ._sum_inplace import sum_inplace as mpi_sum
 
 from netket.utils import mpi
 
@@ -58,7 +57,8 @@ def mean(a, axis=None, keepdims: bool = False):
     """
     out = a.mean(axis=axis, keepdims=keepdims)
 
-    return mpi_sum(out) / mpi.n_nodes
+    out, _ = mpi.mpi_mean_jax(out)
+    return out
 
 
 def sum(a, axis=None, keepdims: bool = False):
@@ -85,7 +85,8 @@ def sum(a, axis=None, keepdims: bool = False):
         # assume it's a scalar
         a_sum = jnp.asarray(a)
 
-    return mpi_sum(a_sum)
+    out, _ = mpi.mpi_sum_jax(a_sum)
+    return out
 
 
 def var(a, axis=None, ddof: int = 0):

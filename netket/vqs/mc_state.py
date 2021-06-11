@@ -33,7 +33,7 @@ from netket import utils
 from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.sampler import Sampler, SamplerState, ExactSampler
-from netket.stats import Stats, statistics, mean, sum_inplace
+from netket.stats import Stats, statistics, mean
 from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
 from netket.optimizer import LinearOperator
@@ -694,7 +694,7 @@ def grad_expect_hermitian(
         parameters,
     )
 
-    return Ō, tree_map(sum_inplace, Ō_grad), new_model_state
+    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
 
 
 @partial(jax.jit, static_argnums=(1, 2, 3))
@@ -759,7 +759,7 @@ def grad_expect_operator_kernel(
 
     return (
         Ō_stats,
-        tree_map(lambda x: sum_inplace(x) / mpi.n_nodes, Ō_pars_grad),
+        tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad),
         model_state,
     )
 
@@ -828,7 +828,7 @@ def grad_expect_operator_Lrho2(
     # der_logs_ave = d_logpsi(
     #    jnp.ones_like(_logpsi_ave).real / (n_samples_node * utils.n_nodes)
     # )[0]
-    der_logs_ave = tree_map(sum_inplace, der_logs_ave)
+    der_logs_ave = tree_map(lambda x: mpi.mpi_sum_jax(x)[0], der_logs_ave)
 
     def gradfun(der_loc_vals, der_logs_ave):
         par_dims = der_loc_vals.ndim - 1
