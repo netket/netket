@@ -12,18 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-import dataclasses
 import tarfile
 import time
 from io import BytesIO
-import shutil
 import glob
 
 import os
 from os import path as _path
-import numpy as np
-import jax
 
 from flax import serialization
 
@@ -44,9 +39,9 @@ class StateLog:
     A logger which serializes the variables of the variational state during a run.
 
     The data is saved either to a directory or tar archive in a sequence of files named
-    `[0.mpack, 1.mpack, ...]` where the filename is incremented every time the logger is called.
-    The tar file inside is not flushed to disk (closed) until this object is deleted or python
-    is shut down.
+    `[0.mpack, 1.mpack, ...]` where the filename is incremented every time the logger is
+    called. The tar file inside is not flushed to disk (closed) until this object is
+    deleted or python is shut down.
     """
 
     def __init__(
@@ -60,12 +55,16 @@ class StateLog:
         Initialize the :code:`StateLogger`.
 
         Args:
-            output_prefix: the name of the output file before the extension (if tar=True) or of the
-                output folder.
-            save_every: every how many iterations the variables should be saved. (default 1)
-            mode: Specify the behaviour in case the file already exists at this output_prefix. Options are
-                - `[w]rite`: (default) overwrites file/delete the folder if it already exists;
-                - `[a]ppend`: appends to the file/folder if it exists, overwise creates a new file;
+            output_prefix: the name of the output file before the extension (if
+                tar=True) or of the output folder.
+            save_every: every how many iterations the variables should be saved.
+                (default 1)
+            mode: Specify the behaviour in case the file already exists at this
+                output_prefix. Options are
+                - `[w]rite`: (default) overwrites file/delete the folder if
+                  it already exists;
+                - `[a]ppend`: appends to the file/folder if it exists, overwise
+                  creates a new file;
                 - `[x]` or `fail`: fails if file/folder already exists;
             tar: if True creates a tar archive instead of a folder.
         """
@@ -81,7 +80,8 @@ class StateLog:
 
         if not ((mode == "write") or (mode == "append") or (mode == "fail")):
             raise ValueError(
-                "Mode not recognized: should be one of `[w]rite`, `[a]ppend` or `[x]`(fail)."
+                "Mode not recognized: should be one of `[w]rite`, `[a]ppend` or "
+                "`[x]`(fail)."
             )
 
         if tar is True:
@@ -93,7 +93,8 @@ class StateLog:
 
         if file_exists and mode == "fail":
             raise ValueError(
-                "Output file/folder already exists. Either delete it manually or change `output_prefix`."
+                "Output file/folder already exists. Either delete it manually or "
+                "change `output_prefix`."
             )
 
         dir_name = _path.dirname(output_prefix)

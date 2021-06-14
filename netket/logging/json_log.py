@@ -13,18 +13,14 @@
 # limitations under the License.
 
 import json
-import dataclasses
 import orjson
 import time
 
 import os
 from os import path as _path
 import numpy as np
-import jax
 
 from flax import serialization
-
-from jax.tree_util import tree_map
 
 from .runtime_log import RuntimeLog
 
@@ -62,16 +58,16 @@ class JsonLog(RuntimeLog):
     Json Logger, that can be passed with keyword argument `logger` to Monte
     Carlo drivers in order to serialize the outpit data of the simulation.
 
-    If the model state is serialized, then it is serialized using the msgpack protocol of flax.
-    For more information on how to de-serialize the output, see
+    If the model state is serialized, then it is serialized using the msgpack protocol
+    of flax. For more information on how to de-serialize the output, see
     `here <https://flax.readthedocs.io/en/latest/flax.serialization.html>`_.
     The target of the serialization is the variational state itself.
 
-    Data is serialized to json as several nested dictionaries. You can deserialize by simply calling
-    :code:`json.load(open(filename))`.
-    Logged expectation values will be captured inside histories objects, so they will have a
-    subfield `iter` with the iterations at which that quantity has been computed, then `Mean` and
-    others.
+    Data is serialized to json as several nested dictionaries. You can deserialize
+    by simply calling :code:`json.load(open(filename))`.
+    Logged expectation values will be captured inside histories objects, so they will
+    have a subfield `iter` with the iterations at which that quantity has been computed,
+    then `Mean` and others.
     Complex numbers are logged as dictionaries :code:`{'real':list, 'imag':list}`.
     """
 
@@ -89,16 +85,19 @@ class JsonLog(RuntimeLog):
 
         Args:
             output_prefix: the name of the output files before the extension
-            save_params_every: every how many iterations should machine parameters be flushed to file
+            save_params_every: every how many iterations should machine parameters be
+                flushed to file
             write_every: every how many iterations should data be flushed to file
-            mode: Specify the behaviour in case the file already exists at this output_prefix. Options are
+            mode: Specify the behaviour in case the file already exists at this
+                output_prefix. Options are
                 - `[w]rite`: (default) overwrites file if it already exists;
-                - `[a]ppend`: appends to the file if it exists, overwise creates a new file;
+                - `[a]ppend`: appends to the file if it exists, overwise creates it;
                 - `[x]` or `fail`: fails if file already exists;
-            save_params: bool flag indicating whever variables of the variational state should be serialized
-                at some interval. The output file is overwritten every time variables are saved again.
-            autoflush_cost: Maximum fraction of runtime that can be dedicated to serializing data. Defaults to
-                0.005 (0.5 per cent)
+            save_params: bool flag indicating whever variables of the variational state
+                should be serialized at some interval. The output file is overwritten
+                every time variables are saved again.
+            autoflush_cost: Maximum fraction of runtime that can be dedicated to
+                serializing data. Defaults to 0.005 (0.5 per cent)
         """
         super().__init__()
 
@@ -112,7 +111,8 @@ class JsonLog(RuntimeLog):
 
         if not ((mode == "write") or (mode == "append") or (mode == "fail")):
             raise ValueError(
-                "Mode not recognized: should be one of `[w]rite`, `[a]ppend` or `[x]`(fail)."
+                "Mode not recognized: should be one of `[w]rite`, `[a]ppend` or"
+                "`[x]`(fail)."
             )
 
         file_exists = _exists_json(output_prefix)
@@ -123,14 +123,16 @@ class JsonLog(RuntimeLog):
             # if there is only the .mpacck file but not the json one, raise an error
             if not _path.exists(output_prefix + ".log"):
                 raise ValueError(
-                    "History file does not exists, but wavefunction file does. Please change `output_prefix or set mode=`write`."
+                    "History file does not exists, but wavefunction file does."
+                    "Please change `output_prefix or set mode=`write`."
                 )
 
             starting_json_content = json.load(open(output_prefix + ".log"))
 
         elif file_exists and mode == "fail":
             raise ValueError(
-                "Output file already exists. Either delete it manually or change `output_prefix`."
+                "Output file already exists. Either delete it manually or"
+                "change `output_prefix`."
             )
 
         dir_name = _path.dirname(output_prefix)
@@ -217,8 +219,9 @@ class JsonLog(RuntimeLog):
             self._flush_params(variational_state)
 
     def __repr__(self):
-        _str = f"JsonLog('{self._prefix}', mode={self._file_mode}, autoflush_cost={self._autoflush_cost})"
-        _str = _str + f"\n  Runtime cost:"
+        _str = f"JsonLog('{self._prefix}', mode={self._file_mode}, "
+        _str = _str + f"autoflush_cost={self._autoflush_cost})"
+        _str = _str + "\n  Runtime cost:"
         _str = _str + f"\n  \tLog:    {self._flush_log_time}"
         _str = _str + f"\n  \tParams: {self._flush_pars_time}"
         return _str
