@@ -22,7 +22,6 @@ from flax import struct
 import jax
 from jax import numpy as jnp
 
-from numba import jit
 import numpy as np
 
 from netket import jax as nkjax
@@ -111,7 +110,6 @@ class Stats:
 
 
 def _get_blocks(data, block_size):
-    n_chains = data.shape[0]
     chain_length = data.shape[1]
 
     n_blocks = int(np.floor(chain_length / float(block_size)))
@@ -189,6 +187,7 @@ def _statistics(data, batch_size):
     block_good = (tau_block < 6 * l_block) * (n_blocks >= batch_size)
 
     stat_dtype = nkjax.dtype_real(data.dtype)
+
     # if batch_good:
     #    error_of_mean = jnp.sqrt(batch_var / n_batches)
     #    tau_corr = jnp.max(0, tau_batch)
@@ -199,6 +198,7 @@ def _statistics(data, batch_size):
     #    error_of_mean = jnp.nan
     #    tau_corr = jnp.nan
     # jax style
+
     def batch_good_err(args):
         batch_var, tau_batch, *_ = args
         error_of_mean = jnp.sqrt(batch_var / n_batches)
