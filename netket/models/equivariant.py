@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional, Tuple, Any, Callable, Iterable
+from typing import Union, Optional, Tuple, Any
 
 import numpy as np
 
@@ -22,20 +22,20 @@ from jax import numpy as jnp
 from flax import linen as nn
 
 from netket.utils import HashableArray
-from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
+from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 
 
 from netket import nn as nknn
-from netket.nn.initializers import lecun_complex, zeros, variance_scaling
+from netket.nn.initializers import zeros, variance_scaling
 
 
 class GCNN(nn.Module):
-    """Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
+    r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
     that is invariant over a specified symmetry group.
 
-    The G-CNN is described in ` Cohen et. {\it al} <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
-    and applied to quantum many-body problems in ` Roth et. {\it al} <https://arxiv.org/pdf/2104.05085.pdf>`_.
+    The G-CNN is described in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    and applied to quantum many-body problems in ` Roth et. *al* <https://arxiv.org/pdf/2104.05085.pdf>`_.
 
     The G-CNN alternates convolution operations with pointwise non-linearities. The first
     layer is symmetrized linear transform given by DenseSymm, while the other layers are
@@ -51,7 +51,7 @@ class GCNN(nn.Module):
     symmetries: Union[HashableArray, PermutationGroup]
     """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
 
-    Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`. 
+    Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
     layers: int
     """Number of layers (not including sum layer over output)."""
@@ -135,8 +135,9 @@ class GCNN(nn.Module):
             x = self.activation(x)
             x = self.equivariant_layers[layer](x)
 
-        if not self.output_activation == None:
+        if self.output_activation is not None:
             x = self.output_activation(x)
+
         # variance scaling for output layer
         x = jnp.sum(x, axis=-1) / np.sqrt(x.shape[-1])
 

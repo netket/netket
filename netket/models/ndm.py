@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional, Tuple, Any, Callable, Iterable
+from typing import Union, Any
 
 import numpy as np
 
@@ -20,15 +20,11 @@ import jax
 from jax import numpy as jnp
 from flax import linen as nn
 
-from netket.hilbert import AbstractHilbert
-from netket.graph import AbstractGraph
-from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
+from netket.utils.types import NNInitFunc
 
 from netket import jax as nkjax
 from netket import nn as nknn
-from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal
-
-from .rbm import RBM
+from netket.nn.initializers import zeros, normal
 
 default_kernel_init = normal(stddev=0.001)
 
@@ -162,11 +158,11 @@ class NDM(nn.Module):
     activation: Any = nknn.logcosh
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
-    """The feature density for the pure-part of the ansatz. 
+    """The feature density for the pure-part of the ansatz.
     Number of features equal to alpha * input.shape[-1]
     """
     beta: Union[float, int] = 1
-    """The feature density for the mixed-part of the ansatz. 
+    """The feature density for the mixed-part of the ansatz.
     Number of features equal to beta * input.shape[-1]
     """
     use_hidden_bias: bool = True

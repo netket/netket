@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from itertools import chain
 from typing import Any
 import warnings
 
@@ -53,9 +52,9 @@ class MPSPeriodic(nn.Module):
     """Whether or not to use diagonal matrices in the MPS tensors."""
     symperiod: bool = None
     """
-    Periodicity in the chain of MPS tensors. 
+    Periodicity in the chain of MPS tensors.
 
-    The chain of MPS tensors is constructed as a sequence of identical 
+    The chain of MPS tensors is constructed as a sequence of identical
     unit cells consisting of symperiod tensors. if None, symperiod equals the
     number of physical degrees of freedom.
     """
