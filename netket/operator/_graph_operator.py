@@ -110,7 +110,7 @@ class GraphOperator(LocalOperator):
 
             if len(bond_ops) > 0:
                 #  Use edge_colors to populate operators
-                for (u, v, color) in graph.edges(color=True):
+                for (u, v), color in zip(graph.edges, graph.edge_colors):
                     edge = u, v
                     for c, bond_color in enumerate(bond_ops_colors):
                         if bond_color == color:
@@ -119,7 +119,7 @@ class GraphOperator(LocalOperator):
         else:
             assert len(bond_ops) == 1
 
-            for edge in graph.edges():
+            for edge in graph.edges:
                 operators.append(bond_ops[0])
                 acting_on.append(edge)
 

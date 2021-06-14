@@ -390,7 +390,7 @@ def mpsPeriodic(hilbert, graph, bond_dim, diag=False, symperiod=None, dtype=comp
 
     # check whether graph is periodic chain
     chain_graph = Chain(graph.n_edges).to_igraph()
-    if not igraph.Graph(edges=graph.edges()).isomorphic(chain_graph):
+    if not igraph.Graph(edges=graph.edges).isomorphic(chain_graph):
         warnings.warn(
             "Warning: graph is not isomorphic to chain with periodic boundary conditions",
             UserWarning,

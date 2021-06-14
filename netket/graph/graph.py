@@ -18,7 +18,7 @@ import numpy as np
 import igraph
 
 from netket.utils.group import Permutation, PermutationGroup
-from .abstract_graph import AbstractGraph, Edge, ColoredEdge, EdgeSequence
+from .abstract_graph import AbstractGraph, Color, Edge, ColoredEdge
 
 
 class Graph(AbstractGraph):
@@ -79,7 +79,7 @@ class Graph(AbstractGraph):
         if "color" not in self._igraph.edge_attributes():
             self._igraph.es.set_attribute_values("color", [0] * self._igraph.ecount())
         else:
-            if not all(isinstance(c, int) for (_, _, c) in self.edges(color=True)):
+            if not all(isinstance(c, int) for c in self.edge_colors):
                 raise ValueError(
                     "graph has 'color' edge attributes, but not all colors are integers."
                 )
@@ -126,21 +126,16 @@ class Graph(AbstractGraph):
     def n_edges(self) -> int:
         return self._igraph.ecount()
 
+    @property
     def nodes(self) -> Sequence[int]:
         return range(self._igraph.vcount())
 
-    def edges(self, color: Union[bool, int] = False) -> EdgeSequence:
-        edges = self._igraph.get_edgelist()
-        if color is False:
-            return edges
-        colors = self._edge_colors
-        if color is True:
-            return [(*e, c) for e, c in zip(edges, colors)]
-        else:
-            return [e for e, c in zip(edges, colors) if c == color]
+    @property
+    def edges(self) -> Sequence[Edge]:
+        return self._igraph.get_edgelist()
 
     @property
-    def _edge_colors(self):
+    def edge_colors(self) -> Sequence[Color]:
         return self._igraph.es.get_attribute_values("color")
 
     # Graph algorithms
@@ -152,7 +147,7 @@ class Graph(AbstractGraph):
         """
         Compute the graph autmorphisms of this graph.
         """
-        colors = self._edge_colors
+        colors = self.edge_colors
         result = self._igraph.get_isomorphisms_vf2(
             edge_color1=colors, edge_color2=colors
         )
@@ -205,11 +200,11 @@ def DoubledGraph(graph: AbstractGraph) -> Graph:
         graph: The graph to double
     """
 
-    dedges = list(graph.edges())
+    dedges = list(graph.edges)
     n_v = graph.n_nodes
 
     dnodes = 2 * n_v
-    dedges += [(edge[0] + n_v, edge[1] + n_v) for edge in graph.edges()]
+    dedges += [(edge[0] + n_v, edge[1] + n_v) for edge in graph.edges]
 
     return Graph(n_nodes=dnodes, edges=dedges)
 

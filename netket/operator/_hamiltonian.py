@@ -145,7 +145,7 @@ class Ising(SpecialHamiltonian):
 
         self._h = dtype(h)
         self._J = dtype(J)
-        self._edges = np.asarray(list(graph.edges()), dtype=np.intp)
+        self._edges = np.asarray(list(graph.edges), dtype=np.intp)
 
         self._dtype = dtype
 
@@ -495,7 +495,7 @@ class BoseHubbard(SpecialHamiltonian):
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
-        self._edges = np.asarray(list(graph.edges()))
+        self._edges = np.asarray(list(graph.edges))
         self._max_conn = 1 + self._edges.shape[0] * 2
         self._max_mels = np.empty(self._max_conn, dtype=self.dtype)
         self._max_xprime = np.empty((self._max_conn, self._n_sites))

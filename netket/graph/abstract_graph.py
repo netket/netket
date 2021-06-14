@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import abc
-from typing import List, Iterator, Sequence, Tuple, Union
+from typing import List, Sequence, Tuple
 
-
-Edge = Tuple[int, int]
-ColoredEdge = Tuple[int, int, int]
-EdgeSequence = Union[Sequence[Edge], Sequence[ColoredEdge]]
+Node = int
+Edge = Tuple[Node, Node]
+Color = int
+ColoredEdge = Tuple[Node, Node, Edge]
 
 
 class AbstractGraph(abc.ABC):
@@ -34,13 +34,22 @@ class AbstractGraph(abc.ABC):
         r"""True if the graph is bipartite"""
         raise NotImplementedError
 
+    @property
     @abc.abstractmethod
-    def edges(self, color: Union[bool, int] = False) -> EdgeSequence:
-        r"""Iterator over the edges of the graph. Optionally filter by edge color."""
+    def edges(self) -> Sequence[Edge]:
+        r"""The edges of the graph."""
         raise NotImplementedError
 
+    @property
     @abc.abstractmethod
-    def nodes(self) -> Iterator[int]:
+    def edge_colors(self) -> Sequence[Color]:
+        """Sequence of the colors of each edge. The order corresponds to
+        the order of edges in `self.edges`."""
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def nodes(self) -> Sequence[Node]:
         r"""Iterator over the nodes of the graph"""
         raise NotImplementedError
 
@@ -64,7 +73,7 @@ class AbstractGraph(abc.ABC):
     @property
     def n_edges(self) -> int:
         r"""The number of edges in the graph."""
-        return len(self.edges())
+        return len(self.edges)
 
     @abc.abstractmethod
     def adjacency_list(self) -> List[List]:

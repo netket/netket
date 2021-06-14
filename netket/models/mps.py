@@ -86,7 +86,7 @@ class MPSPeriodic(nn.Module):
 
         # check whether graph is periodic chain
         chain_graph = Chain(self.graph.n_edges).to_igraph()
-        if not ig.Graph(edges=self.graph.edges()).isomorphic(chain_graph):
+        if not ig.Graph(edges=self.graph.edges).isomorphic(chain_graph):
             warnings.warn(
                 "Warning: graph is not isomorphic to chain with periodic boundary conditions",
                 UserWarning,

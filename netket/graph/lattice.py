@@ -188,7 +188,7 @@ class Lattice(Graph):
     The lattice class supports three ways of addressing a specific lattice site:
 
     id
-        An integer index that is used to identify the site in :code:`self.edges()` and
+        An integer index that is used to identify the site in :code:`self.edges` and
         also corresponds to the index of the corresponding site in sequences like
         :code:`self.nodes()`, :code:`self.positions` or :code:`self.basis_coords`.
 
@@ -678,7 +678,7 @@ class Lattice(Graph):
         if ax is None:
             _, ax = plt.subplots(figsize=figsize)
 
-        for edge in self.edges():
+        for edge in self.edges:
             x1, y1 = positions[edge[0]]
             x2, y2 = positions[edge[1]]
             annotation = ax.annotate(
@@ -704,7 +704,7 @@ class Lattice(Graph):
             marker="o",
             zorder=annotation.get_zorder() + 1,
         )
-        for node in self.nodes():
+        for node in self.nodes:
             x1, y1 = positions[node]
             ax.text(
                 x1,
