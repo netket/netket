@@ -12,15 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union, Tuple, Any
-
-import jax
-from jax import numpy as jnp
-from flax import struct
+from typing import Callable, Optional, Any
 
 from dataclasses import dataclass
 
-from netket.utils.types import PyTree, Array
+from netket.utils.types import PyTree
 from netket.vqs import VariationalState
 
 from .linear_operator import LinearOperator, SolverT
@@ -53,7 +49,7 @@ class LinearPreconditioner:
     """Function used to solve the linear system."""
 
     solver_restart: bool = False
-    """If False uses the last solution of the linear system as a starting point for the solution 
+    """If False uses the last solution of the linear system as a starting point for the solution
     of the next."""
 
     x0: Optional[PyTree] = None
@@ -86,12 +82,4 @@ class LinearPreconditioner:
             + f"\n\tsolver          = {self.solver}, "
             + f"\n\tsolver_restart  = {self.solver_restart},"
             + ")"
-        )
-
-    def __repr__(self):
-        return (
-            f"{type(self).__name__}("
-            + f"lhs_constructor = {self.lhs_constructor}, "
-            + f"solver = {self.solver}, "
-            + f"solver_restart = {self.solver_restart})"
         )

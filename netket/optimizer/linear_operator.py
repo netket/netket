@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union, Tuple, Any
+from typing import Callable, Optional, Tuple, Any
 
 import jax
 from jax import numpy as jnp
 from flax import struct
 
-from netket.utils.types import PyTree, Array
+from netket.utils.types import PyTree
 
 
 class _Uninitialized:

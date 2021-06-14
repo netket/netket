@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple
+from typing import Optional
 from functools import partial, wraps
 from netket.jax import compose
 
@@ -24,11 +24,9 @@ import numpy as np
 
 from netket.stats import subtract_mean
 from netket.utils import mpi
-import netket.jax as nkjax
 
 from netket.utils.types import Array, Callable, PyTree, Scalar
 
-import netket.jax as nkjax
 from netket.jax import tree_cast, tree_conj, tree_axpy, tree_to_real
 
 

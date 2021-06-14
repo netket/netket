@@ -12,18 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union, Tuple, Any
-from functools import partial, wraps
+from functools import partial
 import warnings
 from textwrap import dedent
 
-import numpy as np
 import jax
-from jax import numpy as jnp
-from flax import struct
 
-from netket.utils.types import PyTree, Array
-from netket.utils import mpi
 import netket.jax as nkjax
 
 
@@ -35,9 +29,9 @@ def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorph
         if not homogeneous_vars:
             warnings.warn(
                 dedent(
-                    """The ansatz has non homogeneous variables, which might not behave well with the 
+                    """The ansatz has non homogeneous variables, which might not behave well with the
                        holomorhic implemnetation.
-                       Use `holomorphic=False` or mode='complex' for more accurate results but 
+                       Use `holomorphic=False` or mode='complex' for more accurate results but
                        lower performance.
                     """
                 )
