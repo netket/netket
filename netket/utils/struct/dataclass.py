@@ -32,15 +32,10 @@
 """Utilities for defining custom classes that can be used with jax transformations.
 """
 
-from typing import TypeVar
-import sys
-import inspect
 from functools import partial
 
 import dataclasses
 from dataclasses import MISSING
-
-import builtins
 
 from flax import serialization
 
@@ -50,7 +45,7 @@ from .utils import _set_new_attribute, _create_fn, get_class_globals
 
 try:
     from dataclasses import _FIELDS
-except:
+except ImportError:
     _FIELDS = "__dataclass_fields__"
 
 _CACHES = "__dataclass_caches__"
@@ -96,9 +91,12 @@ def field(pytree_node=True, serialize=True, cache=False, **kwargs):
     """Mark a field of a dataclass to be:
 
     Args:
-        pytree_node: a leaf node in the pytree representation of this dataclass. If False this must be hashable
-        serialize: If True the node is included in the serialization. In general you should not specify this.
-        cache: If True this node is a cache and will be reset every time fields are modified.
+        pytree_node: a leaf node in the pytree representation of this dataclass.
+            If False this must be hashable
+        serialize: If True the node is included in the serialization.
+            In general you should not specify this.
+        cache: If True this node is a cache and will be reset every time
+            fields are modified.
     """
     return dataclasses.field(
         metadata={"pytree_node": pytree_node, "serialize": serialize, "cache": cache},
@@ -125,7 +123,10 @@ class CachedProperty:
             )
 
     def __repr__(self):
-        return f"CachedProperty(name={self.name}, type={self.type}, pytree_node={self.pytree_node})"
+        return (
+            f"CachedProperty(name={self.name}, "
+            f"type={self.type}, pytree_node={self.pytree_node})"
+        )
 
 
 def property_cached(fun):
@@ -148,11 +149,14 @@ def _set_annotation(clz, attr, typ):
     clz.__annotations__[attr] = typ
 
 
-def process_cached_properties(clz, globals={}):
+def process_cached_properties(clz, globals=None):
     """Looks for all attributes in clz, if anyone is a CachedProperty instance,
     which is a sential wrapper for methods, then create a cached attribute using
     dataclass language, set them as pytree_node=False so they are untracked.
     """
+
+    if globals is None:
+        globals = {}
 
     cached_props = {}
     self_name = "self"
@@ -188,7 +192,7 @@ def process_cached_properties(clz, globals={}):
         body_lines = [
             f"if {self_name}.{cache_name} is Uninitialized:",
             f"\tBUILTINS.object.__setattr__({self_name},{cache_name!r},self.{compute_name}())",
-            f"",
+            "",
             f"return {self_name}.{cache_name}",
         ]
 
@@ -231,7 +235,7 @@ def process_cached_properties(clz, globals={}):
 
     # create precompute method
     _precompute_body_method = []
-    for name, cp in cached_props.items():
+    for name in cached_props.keys():
         _precompute_body_method.append(f"{self_name}.{name}")
 
     # Create the precompute method
@@ -257,7 +261,7 @@ def purge_cache_fields(clz):
     flds = getattr(clz, _FIELDS, None)
     if flds is not None:
         caches = getattr(clz, _CACHES)
-        for name, cp in caches.items():
+        for name, _ in caches.items():
             cname = _cache_name(name)
             if cname in flds:
                 flds.pop(cname)
@@ -267,7 +271,7 @@ def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash
 
     # If there is no __pre_init__ method in the class, create a default
     # one calling pre init on super() if there is one.
-    if not _PRE_INIT_NAME in data_clz.__dict__:
+    if _PRE_INIT_NAME not in data_clz.__dict__:
 
         def _preprocess_args_default(self, *args, **kwargs):
             if hasattr(super(data_clz, self), _PRE_INIT_NAME):
@@ -286,7 +290,7 @@ def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash
     # Create a new init function calling __pre_init__ and then __dataclass_init__
     self_name = "self"
     body_lines = [
-        f"if not __skip_preprocess:",
+        "if not __skip_preprocess:",
         f"\targs, kwargs = {self_name}.{_PRE_INIT_NAME}(*args, **kwargs)",
         f"{self_name}.{_DATACLASS_INIT_NAME}(*args, **kwargs)",
     ]
@@ -344,21 +348,28 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False):
     See their documentation for standard behaviour.
 
     The new functionalities added by NetKet are:
-     - it is possible to define a method `__pre_init__(*args, **kwargs) -> Tuple[Tuple,Dict]` that processes the arguments
-       and keyword arguments provided to the dataclass constructor. This allows to deprecate argument
-       names and add some logic to customize the constructors.
-       This function should return a tuple of the edited `(args, kwargs)`. If inheriting from other classes it is reccomended
-       (though not mandated) to call the same method in parent classes.
-       The function should return arguments and keyword arguments that will match the standard dataclass constructor.
-       The function can also not be called in some internal cases, so it should not be a strict requirement to execute it.
+     - it is possible to define a method `__pre_init__(*args, **kwargs) ->
+       Tuple[Tuple,Dict]` that processes the arguments and keyword arguments provided
+       to the dataclass constructor. This allows to deprecate argument names and add
+       some logic to customize the constructors.
+       This function should return a tuple of the edited `(args, kwargs)`. If
+       inheriting from other classes it is recomended (though not mandated) to
+       call the same method in parent classes. The function should return arguments and
+       keyword arguments that will match the standard dataclass constructor.
+       The function can also not be called in some internal cases, so it should not be
+       a strict requirement to execute it.
 
-     - Cached Properties. It is possible to mark properties of a netket dataclass with `@property_cached`. This will make the
-       property behave as a standard property, but it's value is cached and reset every time a dataclass is manipulated.
-       Cached properties can be part of the flattened pytree or not. See :ref:`netket.utils.struct.property_cached` for more info.
+     - Cached Properties. It is possible to mark properties of a netket dataclass with
+       `@property_cached`. This will make the property behave as a standard property,
+       but it's value is cached and reset every time a dataclass is manipulated.
+       Cached properties can be part of the flattened pytree or not.
+       See :ref:`netket.utils.struct.property_cached` for more info.
 
     Optinal Args:
-        init_doc: the docstring for the init method. Otherwise it's inherited from `__pre_init__`.
-        cache_hash: If True the hash is computed only once and cached. Use if the computation is expensive.
+        init_doc: the docstring for the init method. Otherwise it's inherited
+            from `__pre_init__`.
+        cache_hash: If True the hash is computed only once and cached. Use if
+            the computation is expensive.
 
     """
 
@@ -392,7 +403,7 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False):
 
     # List the cache fields
     cache_fields = []
-    for name, cp in getattr(data_clz, _CACHES, {}).items():
+    for _, cp in getattr(data_clz, _CACHES, {}).items():
         cache_fields.append(cp.cache_name)
         # they count as meta fields
         meta_fields.append(cp.cache_name)

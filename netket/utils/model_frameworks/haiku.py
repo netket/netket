@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import flax
+import sys
+
+from flax import serialization
 from flax.core import freeze
 
 from .base import ModuleFramework, framework
+
 
 # expose jax-stax as a flax module
 class HaikuWrapper:
@@ -26,7 +29,15 @@ class HaikuWrapper:
         variables = self.transformed.init(rng["params"], *args, **kwargs)
         return freeze({"params": variables})
 
-    def apply(self, variables, *args, rngs=None, method=None, mutable=False, **kwargs):
+    def apply(
+        self,
+        variables,
+        *args,
+        rngs=None,
+        method=None,  # noqa: W0613
+        mutable=False,
+        **kwargs,
+    ):
         if mutable is not False:
             raise ValueError("Not implemented")
 
@@ -53,7 +64,7 @@ class HaikuFramework(ModuleFramework):
     @staticmethod
     def is_my_module(module) -> bool:
         # this will only get callede if the module is loaded
-        import haiku, inspect
+        import haiku  # noqa: E0401
 
         # jax modules are tuples
         if isinstance(module, haiku.Transformed):
@@ -71,28 +82,27 @@ class HaikuFramework(ModuleFramework):
         return freeze({"params": variables})
 
     @staticmethod
-    def unwrap_params(variables):
-        return variables["params"]
+    def unwrap_params(wrapped_variables):
+        return wrapped_variables["params"]
 
-
-from flax import serialization
 
 already_registered = False
 
+
 # Haiku uses FlatMapping objects instead of FrozenDict when freezing dicts.
-#  They are functionally equivalent but we must teach flax how to serialize them.
+# They are functionally equivalent but we must teach flax how to serialize them.
 def register_serialization_functions():
-    global already_registered
+    global already_registered  # noqa: W0603
     if not already_registered:
         already_registered = True
-        import haiku
+        import haiku  # noqa: E0401
 
         FlatMappingType = type(haiku.data_structures.to_immutable_dict({"ciao": 1}))
 
         def serialize_flat_mapping(flat_mapping):
             return dict(flat_mapping)
 
-        def deserialize_flat_mapping(flat_mapping, state_dict):
+        def deserialize_flat_mapping(flat_mapping, _):
             return haiku.data_structures.to_immutable_dict(flat_mapping)
 
         serialization.register_serialization_state(

@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass
-
 import numpy as np
 
 from .types import Array, DType, Shape
+from .struct import dataclass
 
 
-@dataclass(frozen=True)
+@dataclass(cache_hash=True)
 class HashableArray:
     """
     This class wraps a numpy or jax array in order to make it hashable and
@@ -32,14 +31,13 @@ class HashableArray:
     wrapped: Array
     """The wrapped array. Note that this array is read-only."""
 
-    def __post_init__(self):
-        object.__setattr__(self, "wrapped", self.wrapped.copy())
-        if isinstance(self.wrapped, np.ndarray):
-            self.wrapped.flags.writeable = False
-        object.__setattr__(self, "_HashableArray__hash", hash(self.wrapped.tobytes()))
+    def __pre_init__(self, wrapped):
+        wrapped = wrapped.copy()
+        wrapped.flags.writeable = False
+        return (wrapped,), {}
 
     def __hash__(self):
-        return self.__hash
+        return hash(self.wrapped.tobytes())
 
     def __eq__(self, other):
         return np.all(self.wrapped == other.wrapped)

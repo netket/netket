@@ -14,12 +14,10 @@
 
 from typing import Callable
 
-import jax
-
 from . import struct
 
 
-def get_afun_if_module(mod_or_fun, *args, **kwargs) -> Callable:
+def get_afun_if_module(mod_or_fun) -> Callable:
     """Returns the apply function if it's a module. Does nothing otherwise."""
     if hasattr(mod_or_fun, "apply"):
         return mod_or_fun.apply
@@ -38,7 +36,7 @@ class WrappedApplyFun:
         return f"{type(self).__name__}(apply={self.apply}, hash={hash(self)})"
 
 
-def wrap_afun(mod_or_fun, *args, **kwargs):
+def wrap_afun(mod_or_fun):
     """Wraps a callable to be a module-like object with the method `apply`.
     Does nothing if it already has an apply method.
     """

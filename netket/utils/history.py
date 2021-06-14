@@ -13,21 +13,20 @@
 # limitations under the License.
 
 from typing import Union, Any, List, Tuple, Dict, Optional
+from functools import partial
+from numbers import Number
 
 import numpy as np
-from numbers import Number
-import jax.numpy as jnp
-
 
 from .dispatch import dispatch
-from .numbers import dtype, is_scalar
+from .numbers import is_scalar
 from .types import Array, DType
 
 
 def raise_if_len_not_match(length, expected_length, string):
     if length != expected_length:
         raise ValueError(
-            """
+            f"""
             Length mismatch: expected object of length {expected_length}, but
             got object of length {length} for key {string}.
             """
@@ -169,7 +168,7 @@ class History:
     def __getitem__(self, key) -> Array:
         # if its an int corresponding to an element not inside the dict,
         # treat it as accessing a slice of a single element
-        if isinstance(key, int) and not key in self:
+        if isinstance(key, int) and key not in self:
             return self._get_slice(key)
 
         # support slice syntax
@@ -235,8 +234,9 @@ class History:
     def __iter__(self):
         """
         You can iterate the values in history object.
+
+        Returns the Iterator object.
         """
-        """Returns the Iterator object """
         return iter(zip(self.iters, self.values))
 
     def __getattr__(self, attr):
@@ -251,7 +251,7 @@ class History:
             "History("
             + f"\n   keys  = {self.keys()}, "
             + f"\n   iters = {self.iters},"
-            + f"\n)"
+            + "\n)"
         )
 
     def __str__(self):
@@ -264,7 +264,7 @@ def append(self: History, val: Any):
 
 
 @dispatch
-def append(self: History, val: History, it: Any):
+def append(self: History, val: History, it: Any):  # noqa: E0102, F811
     if not set(self.keys()) == set(val.keys()):
         raise ValueError("cannot concatenate MVHistories with different keys")
 
@@ -280,7 +280,7 @@ def append(self: History, val: History, it: Any):
 
 
 @dispatch
-def append(self: History, values: dict, it: Any):
+def append(self: History, values: dict, it: Any):  # noqa: E0102, F811
     for key, val in values.items():
         _vals = self._value_dict[key]
 
@@ -292,7 +292,7 @@ def append(self: History, values: dict, it: Any):
             # and if we fail, resize tby reallocating to a new buffer.
             try:
                 _vals.resize(new_shape)
-            except:
+            except ValueError:
                 _vals = np.resize(_vals, new_shape)
                 self._value_dict[key] = _vals
 
@@ -302,7 +302,7 @@ def append(self: History, values: dict, it: Any):
 
     try:
         self.iters.resize(len(self.iters) + 1)
-    except:
+    except ValueError:
         self._value_dict["iters"] = np.resize(self.iters, (len(self.iters) + 1))
 
     self.iters[-1] = it
@@ -310,7 +310,7 @@ def append(self: History, values: dict, it: Any):
 
 
 @dispatch
-def append(self: History, val: Any, it: Any):
+def append(self: History, val: Any, it: Any):  # noqa: E0102, F811
     if self._single_value and is_scalar(val) or hasattr(val, "__array__"):
         append(self, {"value": val}, it)
     elif hasattr(val, "to_compound"):
@@ -319,10 +319,6 @@ def append(self: History, val: Any, it: Any):
         append(self, val.to_dict(), it)
     else:
         append(self, {"value": val}, it)
-
-
-from functools import partial
-from jax.tree_util import tree_map
 
 
 def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):

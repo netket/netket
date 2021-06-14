@@ -72,9 +72,6 @@ def deprecated_new_name(message):
     return deprecated_decorator
 
 
-from functools import wraps
-
-
 def wraps_legacy(legacy_fun, argname, argtype):
     """
     Wraps a function with the same name as a legacy function

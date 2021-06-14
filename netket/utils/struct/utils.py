@@ -1,9 +1,6 @@
-from typing import TypeVar
 import sys
-import inspect
 import builtins
 
-import dataclasses
 from dataclasses import MISSING
 
 
@@ -41,7 +38,7 @@ def _create_fn(
     txt = f"def __create_fn__({local_vars}):\n{txt}\n return {name}"
 
     ns = {}
-    exec(txt, globals, ns)
+    exec(txt, globals, ns)  # noqa: W0122
     fn = ns["__create_fn__"](**locals)
 
     if doc is not None:

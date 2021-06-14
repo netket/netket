@@ -1,10 +1,6 @@
 from numbers import Number
 
-from typing import Any, Union
-
-import numpy as np
-import jax
-import jaxlib
+from typing import Any
 
 from .dispatch import dispatch
 from .types import Array
@@ -16,20 +12,20 @@ def dtype(x: Number):
 
 
 @dispatch
-def dtype(x: Array):
+def dtype(x: Array):  # noqa: F811, E0102
     return x.dtype
 
 
 @dispatch
-def is_scalar(x: Any):
+def is_scalar(_: Any):
     return False
 
 
 @dispatch
-def is_scalar(x: Number):
+def is_scalar(_: Number):  # noqa: F811, E0102
     return True
 
 
 @dispatch
-def is_scalar(x: Array):
+def is_scalar(x: Array):  # noqa: F811, E0102
     return x.ndim == 0

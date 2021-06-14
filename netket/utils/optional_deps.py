@@ -13,7 +13,7 @@
 # limitations under the License.
 
 try:
-    import torch  # type: ignore
+    import torch  # noqa
 
     torch_available = True
 except ImportError:
@@ -21,7 +21,7 @@ except ImportError:
 
 
 try:
-    import tensorboardX  # type: ignore
+    import tensorboardX  # noqa
 
     tensorboard_available = True
 except ImportError:
@@ -29,7 +29,7 @@ except ImportError:
 
 
 try:
-    import backpack  # type: ignore
+    import backpack  # noqa
 
     backpack_available = True
 except ImportError:

@@ -22,7 +22,7 @@ It can be used in combination with the fixtures defined in Test/conftest.py, nam
 _mpi_rank, mpi_size and _mpi_comm, that retrieve the number of mpi rank, size and comm
 used by netket.
 
-I fyou need to trick netket into executing some code without MPI when running under MPI, 
+I fyou need to trick netket into executing some code without MPI when running under MPI,
 you can use the class netket_disable_mpi below
 
 Example:

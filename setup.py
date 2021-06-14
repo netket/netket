@@ -9,6 +9,7 @@ DEV_DEPENDENCIES = [
     "flaky>=3.7",
     "pre-commit",
     "black==20.8b1",
+    "flakehell>=0.9",
 ]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]
 TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]

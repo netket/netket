@@ -60,6 +60,7 @@ from . import (
 from .driver import VMC
 from .driver import SteadyState
 
+
 # Deprecations
 @_deprecated("VMC")
 def Vmc(*args, **kwarags):
