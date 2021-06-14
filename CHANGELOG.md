@@ -17,7 +17,7 @@
 ### Breaking Changes
 
 * The `graph.Grid` class has been removed. {ref}`graph.Grid` will now return an instance of {ref}`graph.Lattice` supporting the same API but with new functionalities related to spatial symmetries. The `color_edges` optional keyword argument has been removed without deprecation. [#724](https://github.com/netket/netket/pull/724)
-* The `.nodes` and `.edges` methods of `graph.AbstractGraph` are now properties. For `.edges`, this now matches NetKet v2. Furthermore, the `AbstractGraph.edge_colors` property has been added (note that, in contrast to NetKet v2, it only contains the colors now without duplicating the information of `.edges`).
+* The `.nodes` and `.edges` methods of `graph.AbstractGraph` are now properties. For `.edges`, this now matches NetKet v2. Furthermore, the `AbstractGraph.edge_colors` property has been added (note that, in contrast to NetKet v2, it only contains the colors now without duplicating the information of `.edges`). [#756](https://github.com/netket/netket/pull/756)
 * `MCState.n_discard` has been renamed `MCState.n_discard_per_chain` and the old binding has been deprecated [#739](https://github.com/netket/netket/pull/739).
 
 
