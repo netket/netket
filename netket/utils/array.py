@@ -33,7 +33,10 @@ class HashableArray:
 
     def __pre_init__(self, wrapped):
         wrapped = wrapped.copy()
-        wrapped.flags.writeable = False
+
+        if isinstance(wrapped, np.ndarray):
+            wrapped.flags.writeable = False
+
         return (wrapped,), {}
 
     def __hash__(self):
