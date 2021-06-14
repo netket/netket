@@ -16,10 +16,7 @@ import abc
 import numbers
 from functools import partial
 
-import numpy as np
-
 from tqdm import tqdm
-import warnings
 
 import jax
 from jax.tree_util import tree_map
