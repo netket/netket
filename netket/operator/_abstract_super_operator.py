@@ -12,13 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numbers
-from typing import List
-
-import numpy as np
-
 from ._abstract_operator import AbstractOperator
-from ._local_operator import LocalOperator
 from netket.hilbert import DoubledHilbert, AbstractHilbert
 
 

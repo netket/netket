@@ -12,15 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from numba import jit
-
-import numpy as np
 from netket.utils.types import DType
 
 from netket.graph import AbstractGraph
-from netket.hilbert import Fock, AbstractHilbert
+from netket.hilbert import AbstractHilbert
 
-from ._abstract_operator import AbstractOperator
 from ._local_operator import LocalOperator
 
 
@@ -81,7 +77,7 @@ class GraphOperator(LocalOperator):
 
         if graph.n_nodes != hilbert.size:
             raise ValueError(
-                """The number of vertices in the graph ({graph.n_nodes}) 
+                """The number of vertices in the graph ({graph.n_nodes})
                                 must match the hilbert space size ({hilbert.size})"""
             )
 

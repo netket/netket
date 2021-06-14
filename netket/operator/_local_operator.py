@@ -13,20 +13,17 @@
 # limitations under the License.
 
 import numbers
-from typing import Union, Tuple, List, Optional
+from typing import Union, List, Optional
 from netket.utils.types import DType, Array
 from textwrap import dedent
 
 import numpy as np
 from numba import jit
 
-import jax
-import jax.numpy as jnp
-
 from netket.hilbert import AbstractHilbert, Fock
 
 from ._abstract_operator import AbstractOperator
-from ._lazy import Transpose, Adjoint, Squared
+from ._lazy import Transpose
 
 
 @jit(nopython=True)
@@ -159,8 +156,6 @@ def _reorder_kronecker_product(hi, mat, acting_on):
     acting_on_sorted = np.sort(acting_on)
     if np.all(acting_on_sorted == acting_on):
         return mat, acting_on
-
-    acting_on_sorted_ids = np.argsort(acting_on)
 
     # could write custom binary <-> int logic instead of using Fock...
     # Since i need to work with bit-strings (where instead of bits i
@@ -591,7 +586,7 @@ class LocalOperator(AbstractOperator):
 
         if operator.shape[0] != np.prod(n_local_states_per_site):
             raise RuntimeError(
-                r"""the given operator matrix has shape={} and acts on 
+                r"""the given operator matrix has shape={} and acts on
                     the sites={}, which have a local hilbert space size of
                     sizes={} giving an expected shape
                     for the operator expected_shape={}.""".format(
@@ -615,7 +610,7 @@ class LocalOperator(AbstractOperator):
             self._acting_on[-1, :acting_size].max() > self.hilbert.size
             or self._acting_on[-1, :acting_size].min() < 0
         ):
-            raise InvalidInputError("Operator acts on an invalid set of sites")
+            raise ValueError("Operator acts on an invalid set of sites")
 
         self._local_states = resize(
             self._local_states,

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Optional, Tuple, List
+from typing import Tuple
 
 import numpy as np
 import jax.numpy as jnp
@@ -302,7 +302,7 @@ class AbstractOperator(abc.ABC):
             _get_conn_flattened_closure not implemented for this operator type.
             You were probably trying to use an operator with a sampler.
             Please report this bug.
-            
+
             numba4jax won't work.
             """
         )
