@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, reduce
-from typing import Optional, Tuple, Any, Union, Tuple, Callable
+from typing import Optional, Tuple, Callable
 
 import numpy as np
 
@@ -24,13 +24,11 @@ from jax.tree_util import (
     tree_flatten,
     tree_unflatten,
     tree_map,
-    tree_multimap,
     tree_leaves,
 )
-from jax.util import as_hashable_function
 
 from netket.utils import random_seed, mpi
-from netket.utils.mpi import MPI, MPI_jax_comm
+from netket.utils.mpi import MPI_jax_comm
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Scalar
 
 

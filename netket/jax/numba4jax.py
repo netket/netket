@@ -84,11 +84,9 @@ import jax
 from jax.interpreters import batching
 from jax.interpreters import xla
 from jax.lib import xla_client
-from jaxlib import xla_extension
 
 import numba
 from numba import types as nb_types
-import numba.typed as nb_typed
 import numpy as np
 
 from netket import config
@@ -147,11 +145,6 @@ def _xla_translation_cpu(numba_fn, abstract_eval_fn, xla_builder, *args):
         *[_xla_shape_to_abstract(shape) for shape in input_shapes]
     )
     output_shapes = tuple(array.shape for array in output_abstract_arrays)
-    output_shapes_flattened = tuple(
-        dim for array in output_abstract_arrays for dim in array.shape
-    )
-    output_ndims = tuple(array.ndim for array in output_abstract_arrays)
-    output_ndims_offsets = tuple(np.cumsum(np.concatenate([[0], output_ndims])))
     output_dtypes = tuple(array.dtype for array in output_abstract_arrays)
     layout_for_shape = lambda shape: range(len(shape) - 1, -1, -1)
     output_layouts = map(layout_for_shape, output_shapes)
@@ -163,9 +156,6 @@ def _xla_translation_cpu(numba_fn, abstract_eval_fn, xla_builder, *args):
 
     input_dtypes = tuple(shape.element_type() for shape in input_shapes)
     input_dimensions = tuple(shape.dimensions() for shape in input_shapes)
-
-    output_i = tuple(i for i in range(len(output_shapes)))
-    input_i = tuple(i for i in range(len(input_dimensions)))
 
     n_out = len(output_shapes)
     n_in = len(input_dimensions)
@@ -248,18 +238,18 @@ def _xla_translation_gpu(numba_fn, abstract_eval_fn, xla_builder, *args):
     raise RuntimeError(
         dedent(
             """
-                       The numba4jax module, which allows calling numba
-                       functions from jax-jitted functions, is not 
-                       supported on the GPU.
+            The numba4jax module, which allows calling numba
+            functions from jax-jitted functions, is not
+            supported on the GPU.
 
-                       Most probably you were using a Sampler Transition
-                       rule that only works on CPU. Use the version of this
-                       sampler instead.
+            Most probably you were using a Sampler Transition
+            rule that only works on CPU. Use the version of this
+            sampler instead.
 
-                       If you are a hardcore developer and are not scared
-                       of CUDA, C and LLVM, get in touch with us to make
-                       it work.
-                       """
+            If you are a hardcore developer and are not scared
+            of CUDA, C and LLVM, get in touch with us to make
+            it work.
+            """
         )
     )
 

@@ -14,21 +14,10 @@
 
 from typing import Callable, Tuple, Any, Union, Sequence
 
-from functools import partial, wraps
 import operator
 
-import numpy as np
-
 import jax
-from jax import numpy as jnp
 from jax.util import safe_map
-from jax.tree_util import (
-    tree_flatten,
-    tree_unflatten,
-    tree_map,
-    tree_multimap,
-    tree_leaves,
-)
 
 from .utils import is_complex, tree_leaf_iscomplex, eval_shape
 

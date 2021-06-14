@@ -14,7 +14,7 @@
 
 # The score function (REINFORCE) gradient estimator of an expectation
 
-from typing import Union, Callable, Tuple, Any
+from typing import Callable, Tuple
 from functools import partial
 
 import jax
@@ -23,7 +23,6 @@ from jax import numpy as jnp
 from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
 from netket.utils.types import PyTree
 
-from ._grad import grad
 from ._vjp import vjp as nkvjp
 
 
