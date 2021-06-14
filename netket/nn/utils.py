@@ -24,7 +24,6 @@ def to_array(hilbert, apply_fun, variables, normalize=True):
     # could be made easier if we update mpi4jax
     n_states = hilbert.n_states
     n_states_fake = int(np.ceil(n_states / mpi.n_nodes)) * mpi.n_nodes
-    n_fake_states = n_states_fake - n_states
     states_n = np.arange(n_states)
     fake_states_n = np.arange(n_states_fake - n_states)
 
