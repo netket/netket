@@ -1,7 +1,4 @@
 import sys
-import os
-import platform
-import importlib
 import re
 
 from ._common import exec_in_terminal
@@ -116,21 +113,3 @@ def get_proc_cpuinfo():
     info["supports_avx"] = "avx" in info["flags"]
     info["supports_avx2"] = "avx2" in info["flags"]
     return info
-
-
-def available_cpus():
-    if PLATFORM.startswith("linux"):
-        try:
-            m = re.search(
-                r"(?m)^Cpus_allowed:\s*(.*)$", open("/proc/self/status").read()
-            )
-            if m:
-                res = bin(int(m.group(1).replace(",", ""), 16)).count("1")
-                if res > 0:
-                    return res
-        except IOError:
-            pass
-    else:
-        import multiprocessing
-
-        return multiprocessing.cpu_count()
