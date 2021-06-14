@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from typing import Any
-import math
 
 from numba import jit
 
@@ -43,10 +42,10 @@ class CustomRuleNumpy(MetropolisRule):
         # Raise errors if hilbert is not an Hilbert
         if not isinstance(self.operator, AbstractOperator):
             raise TypeError(
-                "Argument to CustomRuleNumpy must be a valid operator.".format(
-                    type(operator)
-                )
+                "Argument to CustomRuleNumpy must be a valid operator, "
+                f"but operator is a {type(self.operator)}."
             )
+
         _check_operators(self.operator.operators)
 
         if self.weight_list is not None:

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Callable
-
 from functools import partial
 
 import numpy as np
@@ -21,15 +19,22 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from jax.experimental import loops
-from jax.experimental import host_callback as hcb
 
 from netket import config
-from netket.hilbert import AbstractHilbert
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils import struct
 
-from .base import Sampler, SamplerState
-from .metropolis import MetropolisSamplerState, MetropolisSampler, MetropolisRule
+# for deprecations
+from netket.utils import wraps_legacy
+from netket.legacy.machine import AbstractMachine
+from netket.legacy.sampler import (
+    MetropolisLocalPt as LegacyMetropolisLocalPt,
+    MetropolisExchangePt as LegacyMetropolisExchangePt,
+    MetropolisHamiltonianPt as LegacyMetropolisHamiltonianPt,
+)
+
+
+from .metropolis import MetropolisSamplerState, MetropolisSampler
 
 
 @struct.dataclass
@@ -63,7 +68,7 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         return text
 
 
-_init_doc = """
+_init_doc = r"""
 ``MetropolisSampler`` is a generic Metropolis-Hastings sampler using
 a transition rule to perform moves in the Markov Chain.
 The transition kernel is used to generate
@@ -71,11 +76,11 @@ a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
 The move is accepted with probability
 
 .. math::
-    A(s\\rightarrow s^\\prime) = \\mathrm{min}\\left (1,\\frac{P(s^\\prime)}{P(s)} F(e^{L(s,s^\\prime)})\\right),
+    A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)})\right),
 
 where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
 user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
-and :math:`L(s,s^\\prime)` is a suitable correcting factor computed by the transition kernel.
+and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
 
 
 Args:
@@ -260,7 +265,7 @@ class MetropolisPtSampler(MetropolisSampler):
                     maxval=2,
                     shape=(sampler.n_chains,),
                 )  # 0 or 1
-                iswap_order = jnp.mod(swap_order + 1, 2)  #  1 or 0
+                # iswap_order = jnp.mod(swap_order + 1, 2)  #  1 or 0
 
                 # indices of even swapped elements (per-row)
                 idxs = jnp.arange(0, sampler.n_replicas, 2).reshape(
@@ -312,7 +317,8 @@ class MetropolisPtSampler(MetropolisSampler):
 
                 do_swap = jnp.dstack((do_swap, do_swap)).reshape(
                     (-1, sampler.n_replicas)
-                )  #  concat along last dimension
+                )  # concat along last dimension
+
                 # roll if swap_ordeer is odd
                 @partial(jax.vmap, in_axes=(0, 0), out_axes=0)
                 def fix_swap(do_swap, swap_order):
@@ -324,7 +330,7 @@ class MetropolisPtSampler(MetropolisSampler):
                 # jax.experimental.host_callback.id_print(state.beta)
                 # jax.experimental.host_callback.id_print(proposed_beta)
 
-                new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
+                # new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
 
                 def cb(data):
                     _bt, _pbt, new_beta, so, do_swap, log_prob, prob = data
@@ -428,21 +434,14 @@ class MetropolisPtSampler(MetropolisSampler):
         )
 
 
-from netket.utils import wraps_legacy
-from netket.legacy.machine import AbstractMachine
-
-from .rules import LocalRule
-from netket.legacy.sampler import MetropolisLocalPt as LegacyMetropolisLocalPt
-
-
 @wraps_legacy(LegacyMetropolisLocalPt, "machine", AbstractMachine)
 def MetropolisLocalPt(hilbert, *args, **kwargs):
-    """
+    r"""
     Sampler acting on one local degree of freedom.
 
     This sampler acts locally only on one local degree of freedom :math:`s_i`,
     and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s_N`,
-    where :math:`s^\prime_i \\neq s_i`.
+    where :math:`s^\prime_i \neq s_i`.
 
     The transition probability associated to this
     sampler can be decomposed into two steps:
@@ -472,11 +471,9 @@ def MetropolisLocalPt(hilbert, *args, **kwargs):
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
         dtype: The dtype of the statees sampled (default = np.float32).
     """
+    from .rules import LocalRule
+
     return MetropolisPtSampler(hilbert, LocalRule(), *args, **kwargs)
-
-
-from .rules import ExchangeRule
-from netket.legacy.sampler import MetropolisExchangePt as LegacyMetropolisExchangePt
 
 
 @wraps_legacy(LegacyMetropolisExchangePt, "machine", AbstractMachine)
@@ -532,14 +529,10 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
           >>> print(sa)
           MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
     """
+    from .rules import ExchangeRule
+
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
     return MetropolisPtSampler(hilbert, rule, *args, **kwargs)
-
-
-from .rules import HamiltonianRule
-from netket.legacy.sampler import (
-    MetropolisHamiltonianPt as LegacyMetropolisHamiltonianPt,
-)
 
 
 @wraps_legacy(LegacyMetropolisHamiltonianPt, "machine", AbstractMachine)
@@ -588,5 +581,7 @@ def MetropolisHamiltonianPt(hilbert, hamiltonian, *args, **kwargs):
        >>> print(sa)
        MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
     """
+    from .rules import HamiltonianRule
+
     rule = HamiltonianRule(hamiltonian)
     return MetropolisPtSampler(hilbert, rule, *args, **kwargs)

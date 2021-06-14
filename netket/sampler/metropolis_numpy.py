@@ -16,23 +16,21 @@ import math
 from dataclasses import dataclass
 from functools import partial
 
-from typing import Optional, Any, Union, Tuple, Callable
+from typing import Any, Tuple, Callable
 
 import numpy as np
-from numba import jit, int64, float64
+from numba import jit
 from jax import numpy as jnp
 import jax
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.mpi import mpi_sum, n_nodes
-from netket.utils.types import PyTree, PRNGKeyT
-from netket.utils.deprecation import deprecated, warn_deprecation
+from netket.utils.types import PyTree
+from netket.utils.deprecation import deprecated
 
 import netket.jax as nkjax
 
 from .metropolis import MetropolisSampler
-
-SeedType = Union[int, PRNGKeyT]
 
 
 @dataclass
@@ -283,29 +281,16 @@ def acceptance_kernel(
     return accepted
 
 
-# def MetropolisSamplerNumpy(
-#     hilbert: AbstractHilbert,
-#     rule,
-#     n_sweeps: Optional[int] = None,
-#     **kwargs,
-# ):
-#     if n_sweeps is None:
-#         n_sweeps = hilbert.size
-
-#     return MetropolisSamplerNumpy_(
-#         hilbert=hilbert, rule=rule, n_sweeps=n_sweeps, **kwargs
-#     )
-
-
-from .rules import LocalRuleNumpy, HamiltonianRuleNumpy, CustomRuleNumpy
-
-
 def MetropolisLocalNumpy(hilbert: AbstractHilbert, *args, **kwargs):
+    from .rules import LocalRuleNumpy
+
     rule = LocalRuleNumpy()
     return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)
 
 
 def MetropolisHamiltonianNumpy(hilbert: AbstractHilbert, hamiltonian, *args, **kwargs):
+    from .rules import HamiltonianRuleNumpy
+
     rule = HamiltonianRuleNumpy(hamiltonian)
     return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)
 
@@ -313,5 +298,7 @@ def MetropolisHamiltonianNumpy(hilbert: AbstractHilbert, hamiltonian, *args, **k
 def MetropolisCustomNumpy(
     hilbert: AbstractHilbert, move_operators, move_weights=None, *args, **kwargs
 ):
+    from .rules import CustomRuleNumpy
+
     rule = CustomRuleNumpy(move_operators, move_weights)
     return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)

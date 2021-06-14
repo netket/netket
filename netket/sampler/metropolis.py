@@ -18,12 +18,20 @@ import jax
 from jax import numpy as jnp
 from jax.experimental import loops
 
-from netket.hilbert import AbstractHilbert
 from netket.utils import mpi
 from netket.utils.types import PyTree, PRNGKeyT
 
 from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
+
+# TODO remove
+from netket.utils import wraps_legacy
+from netket.legacy.machine import AbstractMachine
+from netket.legacy.sampler import (
+    MetropolisLocal as LegacyMetropolisLocal,
+    MetropolisExchange as LegacyMetropolisExchange,
+    MetropolisHamiltonian as LegacyMetropolisHamiltonian,
+)
 
 from .base import Sampler, SamplerState
 
@@ -152,8 +160,8 @@ class MetropolisSamplerState(SamplerState):
 
     @property
     @deprecated(
-        """Please use the attribute `.acceptance` instead of 
-        `.acceptance_ratio`. The new attribute `.acceptance` returns the 
+        """Please use the attribute `.acceptance` instead of
+        `.acceptance_ratio`. The new attribute `.acceptance` returns the
         acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
         returning a percentage, which is a bug."""
     )
@@ -194,7 +202,7 @@ class MetropolisSamplerState(SamplerState):
 
 @struct.dataclass
 class MetropolisSampler(Sampler):
-    """
+    r"""
     Metropolis-Hastings sampler for an Hilbert space according to a specific transition rule.
 
     The transition rule is used to generate a proposed state :math:`s^\prime`, starting from the
@@ -202,7 +210,7 @@ class MetropolisSampler(Sampler):
 
     .. math::
 
-        A(s \\rightarrow s^\\prime) = \\mathrm{min} \\left( 1,\\frac{P(s^\\prime)}{P(s)} F(e^{L(s,s^\\prime)}) \\right) ,
+        A(s \rightarrow s^\prime) = \mathrm{min} \left( 1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)}) \right) ,
 
     where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
     user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
@@ -219,7 +227,7 @@ class MetropolisSampler(Sampler):
     """If True resets the chain state when reset is called (every new sampling)."""
 
     def __pre_init__(self, hilbert, rule, **kwargs):
-        """
+        r"""
         Constructs a Metropolis Sampler.
 
         Args:
@@ -365,21 +373,14 @@ class MetropolisSampler(Sampler):
         )
 
 
-from netket.utils import wraps_legacy
-from netket.legacy.machine import AbstractMachine
-
-from .rules import LocalRule
-from netket.legacy.sampler import MetropolisLocal as LegacyMetropolisLocal
-
-
 @wraps_legacy(LegacyMetropolisLocal, "machine", AbstractMachine)
 def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
-    """
+    r"""
     Sampler acting on one local degree of freedom.
 
     This sampler acts locally only on one local degree of freedom :math:`s_i`,
     and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s_N`,
-    where :math:`s^\prime_i \\neq s_i`.
+    where :math:`s^\prime_i \neq s_i`.
 
     The transition probability associated to this
     sampler can be decomposed into two steps:
@@ -408,11 +409,9 @@ def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
         dtype: The dtype of the statees sampled (default = np.float32).
     """
+    from .rules import LocalRule
+
     return MetropolisSampler(hilbert, LocalRule(), *args, **kwargs)
-
-
-from .rules import ExchangeRule
-from netket.legacy.sampler import MetropolisExchange as LegacyMetropolisExchange
 
 
 @wraps_legacy(LegacyMetropolisExchange, "machine", AbstractMachine)
@@ -469,12 +468,10 @@ def MetropolisExchange(
           >>> print(sa)
           MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
     """
+    from .rules import ExchangeRule
+
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
     return MetropolisSampler(hilbert, rule, *args, **kwargs)
-
-
-from .rules import HamiltonianRule
-from netket.legacy.sampler import MetropolisHamiltonian as LegacyMetropolisHamiltonian
 
 
 @wraps_legacy(LegacyMetropolisHamiltonian, "machine", AbstractMachine)
@@ -524,5 +521,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSa
        >>> print(sa)
        MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
     """
+    from .rules import HamiltonianRule
+
     rule = HamiltonianRule(hamiltonian)
     return MetropolisSampler(hilbert, rule, *args, **kwargs)
