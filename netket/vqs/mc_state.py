@@ -14,14 +14,13 @@
 
 import warnings
 from functools import partial
-from typing import Any, Optional, Callable, Iterable, Union, Tuple, List, Dict
+from typing import Optional, Callable, Union, Tuple, Dict
 
 import numpy as np
 
 import jax
 from jax import numpy as jnp
 from jax import tree_map
-from jax.util import as_hashable_function
 
 import flax
 from flax import linen as nn
@@ -29,20 +28,17 @@ from flax import serialization
 
 import netket
 from netket import jax as nkjax
-from netket import utils
 from netket import config
-from netket.hilbert import AbstractHilbert
-from netket.sampler import Sampler, SamplerState, ExactSampler
+from netket.sampler import Sampler, SamplerState
 from netket.stats import Stats, statistics, mean
 from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
-from netket.utils.types import PyTree, PRNGKeyT, SeedT, Shape, NNInitFunc
+from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
 from netket.operator import (
     AbstractOperator,
     AbstractSuperOperator,
-    define_local_cost_function,
     local_cost_function,
     local_value_cost,
     Squared,
@@ -189,13 +185,13 @@ class MCState(VariationalState):
         if n_samples is None and n_samples_per_rank is None:
             n_samples = 1000
         elif n_samples is not None and n_samples_per_rank is not None:
-            raise InvalidInputError(
+            raise ValueError(
                 "Only one argument between `n_samples` and `n_samples_per_rank`"
                 "can be specified at the same time."
             )
 
         if n_discard is not None and n_discard_per_chain is not None:
-            raise InvalidInputError(
+            raise ValueError(
                 "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
                 "Specify only `n_discard_per_chain`."
             )
@@ -618,7 +614,8 @@ def _expect(
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
+    def logpsi(w, σ):
+        return model_apply_fun({"params": w, **model_state}, σ)
 
     log_pdf = (
         lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
@@ -727,10 +724,10 @@ def grad_expect_operator_kernel(
         σ = σ.reshape((-1, σ_shape[-1]))
 
     has_aux = mutable is not False
-    if not has_aux:
-        out_axes = (0, 0)
-    else:
-        out_axes = (0, 0, 0)
+    # if not has_aux:
+    #    out_axes = (0, 0)
+    # else:
+    #    out_axes = (0, 0, 0)
 
     if not has_aux:
         logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
@@ -781,10 +778,10 @@ def grad_expect_operator_Lrho2(
     n_samples_node = σ.shape[0]
 
     has_aux = mutable is not False
-    if not has_aux:
-        out_axes = (0, 0)
-    else:
-        out_axes = (0, 0, 0)
+    # if not has_aux:
+    #    out_axes = (0, 0)
+    # else:
+    #    out_axes = (0, 0, 0)
 
     if not has_aux:
         logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
@@ -794,9 +791,9 @@ def grad_expect_operator_Lrho2(
             {"params": w, **model_state}, σ, mutable=mutable
         )[0]
 
-    local_kernel_vmap = jax.vmap(
-        partial(local_value_kernel, logpsi), in_axes=(None, 0, 0, 0), out_axes=0
-    )
+    # local_kernel_vmap = jax.vmap(
+    #    partial(local_value_kernel, logpsi), in_axes=(None, 0, 0, 0), out_axes=0
+    # )
 
     # _Lρ = local_kernel_vmap(parameters, σ, σp, mels).reshape((σ_shape[0], -1))
     (

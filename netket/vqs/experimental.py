@@ -70,8 +70,6 @@ def variables_from_tar(filename: str, variables: _PyTree, i: int):
             filename = filename + ".tar"
 
     with _tarfile.TarFile(filename, "r") as file:
-        inner_files = file.getnames()
-
         info = file.getmember(str(i) + ".mpack")
         with file.extractfile(info) as f:
             return _serialization.from_bytes(variables, f.read())

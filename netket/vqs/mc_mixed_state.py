@@ -12,29 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
-from functools import partial
-from typing import Any, Optional, Callable, Iterable, Union, Tuple, List
+from typing import Optional, Callable, Union, Tuple
 
 import numpy as np
 
 import jax
 from jax import numpy as jnp
-from jax import tree_map
-from jax.util import as_hashable_function
 
-import flax
 from flax import linen as nn
 from flax import serialization
 
 import netket
 from netket import jax as nkjax
 from netket import utils
-from netket.hilbert import AbstractHilbert
-from netket.sampler import Sampler, SamplerState, ExactSampler
-from netket.stats import Stats, statistics, mean
-from netket.utils import maybe_wrap_module, warn_deprecation
-from netket.utils.types import DType, Array, PyTree, PRNGKeyT, Shape, NNInitFunc
+from netket.sampler import Sampler
+from netket.stats import Stats, statistics
+from netket.utils import warn_deprecation
+from netket.utils.types import PyTree
 from netket.optimizer import SR
 from netket.operator import (
     AbstractOperator,
@@ -152,7 +146,7 @@ class MCMixedState(VariationalMixedState, MCState):
 
         # TODO: remove deprecation.
         if n_discard_diag is not None and n_discard_per_chain_diag is not None:
-            raise InvalidInputError(
+            raise ValueError(
                 "`n_discard_diag` has been renamed to `n_discard_per_chain_diag` and deprecated."
                 "Specify only `n_discard_per_chain_diag`."
             )
