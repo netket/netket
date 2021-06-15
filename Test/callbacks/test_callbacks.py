@@ -1,32 +1,22 @@
-import netket.legacy as nk
+import netket as nk
 import time
-
-import pytest
-
-pytestmark = pytest.mark.legacy
 
 SEED = 3141592
 L = 8
 
 
 def _vmc(n_iter=20):
-    nk.random.seed(SEED)
     hi = nk.hilbert.Spin(s=0.5) ** L
 
-    ma = nk.machine.RbmSpin(hilbert=hi, alpha=1)
-    ma.init_random_parameters(sigma=0.01, seed=SEED)
+    ma = nk.models.RBM(alpha=1)
 
     ha = nk.operator.Ising(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
-    sa = nk.sampler.MetropolisLocal(machine=ma)
+    sa = nk.sampler.MetropolisLocal(hi)
+    vs = nk.vqs.MCState(sa, ma, n_samples=500, seed=SEED)
 
-    op = nk.optimizer.Sgd(ma, learning_rate=0.1)
+    op = nk.optimizer.Sgd(learning_rate=0.1)
 
-    return nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=500)
-
-    st = time.time()
-    vmc.run(n_iter, callback=callbacks)
-    runtime = time.time() - st
-    return vmc.step_count, runtime
+    return nk.Vmc(hamiltonian=ha, variational_state=vs, optimizer=op)
 
 
 def test_earlystopping_with_patience():
