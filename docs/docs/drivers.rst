@@ -40,7 +40,7 @@ The resulting code looks a bit like this:
 
     optimizer = nk.optimizer.SGD(learning_rate=0.1)
 
-    vstate = nk.variational.MCState(sampler, model, n_samples=1000)
+    vstate = nk.vqs.MCState(sampler, model, n_samples=1000)
 
     gs = nk.driver.VMC(hamiltonian, optimizer, variational_state=vstate)
 
