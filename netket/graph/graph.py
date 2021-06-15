@@ -198,8 +198,9 @@ def DoubledGraph(graph: AbstractGraph) -> Graph:
     """
     DoubledGraph(graph)
 
-    Constructs a DoubledGraph representing the doubled hilbert space of a density operator.
-    The resulting graph is composed of two disjoint sub-graphs identical to the input.
+    Constructs a DoubledGraph representing the doubled hilbert space of a density
+    operator. The resulting graph is composed of two disjoint sub-graphs identical
+    to the input.
 
     Args:
         graph: The graph to double

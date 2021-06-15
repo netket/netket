@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 from functools import partial
 from collections import namedtuple
 
@@ -24,13 +23,13 @@ from netket.utils.numbers import is_scalar
 
 import jax
 
-default_iterative = "cg"
-# default_direct = "eigen"
-
 from ..qgt import QGTAuto
 from ..preconditioner import LinearPreconditioner
 
 Preconditioner = namedtuple("Preconditioner", ["object", "solver"])
+
+default_iterative = "cg"
+# default_direct = "eigen"
 
 
 @wraps_legacy(SR_legacy, "machine", AbstractMachine)
@@ -63,7 +62,7 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
     # API
 
     old_api = False
-    new_api = False
+    # new_api = False
 
     if "matrix" in kwargs:
         # new syntax
@@ -79,14 +78,14 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
     if len(args) > 0:
         if is_scalar(args[0]):  # it's diag_shift
             old_api = True
-        else:
-            new_api = True
+        # else:
+        #    new_api = True
 
         if len(args) > 1:
             if isinstance(args[1], str):
                 old_api = True
-            else:
-                new_api = True
+        #     else:
+        #        new_api = True
 
     if old_api:
         for (i, arg) in enumerate(args):

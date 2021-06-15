@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union, Tuple, Any
+from typing import Optional, Union
 from functools import partial
 
 import jax
@@ -160,11 +160,6 @@ class QGTJacobianPyTreeT(LinearOperator):
             In R→R and R→C modes, real and imaginary parts of parameters get own rows/columns
         """
         return _to_dense(self)
-
-
-########################################################################################
-#####                                  QGT Logic                                   #####
-########################################################################################
 
 
 @jax.jit

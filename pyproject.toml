@@ -1,3 +1,28 @@
+# Setup and install configuration
+
+[dev-dependencies]
+black = { version = "^21.6b0", python = "^3.6" }
+pre-commit = ">= 2.7"
+pytest = ">= 6"
+pytest-xdist = ">= 2"
+flaky = ">= 3.7"
+coverage = ">= 5"
+pytest-cov = ">= 2.10.1"
+flakehell = ">= 0.9"
+
+[build-system]
+requires = ["setuptools>=50", 
+            "wheel", 
+            "toml",
+            "setuptools_scm[toml]>=3.4", 
+            "setuptools_scm_git_archive"]
+
+[tool.setuptools_scm]
+write_to = "netket/_version.py"
+
+
+# Development tools
+
 [tool.black]
 line-length = 88
 target-version = ['py36', 'py37', 'py38']
@@ -24,25 +49,6 @@ concurrency = ["multiprocessing"]
 command_line = "-m pytest --verbose Test"
 source = ["netket"]
 
-[dev-dependencies]
-black = { version = "^18.3-alpha.0", python = "^3.6" }
-pre-commit = ">= 2.7"
-pytest = ">= 6"
-pytest-xdist = ">= 2"
-flaky = ">= 3.7"
-coverage = ">= 5"
-pytest-cov = ">= 2.10.1"
-
-[build-system]
-requires = ["setuptools>=50", 
-            "wheel", 
-            "toml",
-            "setuptools_scm[toml]>=3.4", 
-            "setuptools_scm_git_archive"]
-
-[tool.setuptools_scm]
-write_to = "netket/_version.py"
-
 [tool.pytest.ini_options]
 addopts = "--color=yes --verbose --durations=0 -n auto"
 doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER"
@@ -57,3 +63,37 @@ filterwarnings = [
 testpaths = [
     "Test",
 ]
+
+[tool.flakehell]
+exclude = ["netket/legacy"]
+# make output nice
+format = "grouped"
+max-line-length = 88
+# show line of source code in output
+show_source = true
+
+[tool.flakehell.plugins]
+pycodestyle = ["+*", 
+               "-E203", 
+               "-E501", 
+               "-W503", 
+               "-E741", 
+               "-E266",  # too many leading #
+               "-E731", # do not assign lambda expression, use def
+               ]
+pyflakes = ["+*", "-E203"]
+
+# match by prefix
+[tool.flakehell.exceptions."tests/"]
+pycodestyle = ["-F401"]     # disable a check
+pyflakes = ["-*"]           # disable a plugin
+
+# match by glob
+[tool.flakehell.exceptions."**/__init__.py"]
+pyflakes = ["-F401"]
+pycodestyle = ["-F401", "-E402"]
+
+[tool.flakehell.exceptions."netket/nn/"]
+pyflakes = ["-F401", "-F403", "-F405"]
+pycodestyle = ["-F401", "-E402"]
+

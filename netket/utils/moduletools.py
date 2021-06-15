@@ -15,13 +15,13 @@
 import sys
 
 
-def _hide_submodules(module_name, *, remove_self=True, ignore=[]):
+def _hide_submodules(module_name, *, remove_self=True, ignore=tuple()):
     """
     Hide all submodules created by files (not folders) in module_name defined
     at module_path.
     If remove_self=True, also removes itself from the module.
     """
-    import sys, os
+    import os
 
     module = sys.modules[module_name]
     module_path = module.__path__[0]

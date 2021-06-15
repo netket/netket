@@ -62,6 +62,4 @@ from .initializers import zeros, ones
 
 from flax.linen import Embed
 
-from flax.linen import compact
-
 from .utils import to_array, to_matrix

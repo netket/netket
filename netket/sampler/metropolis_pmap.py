@@ -12,25 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Callable, Union, Tuple
+from typing import Callable, Union, Tuple
 from functools import partial
 
 import jax
 from jax import numpy as jnp
-from jax.experimental import loops
 
 import numpy as np
 
 from flax import linen as nn
 
-from netket.hilbert import AbstractHilbert
 from netket.utils import mpi, config, struct
-from netket.utils.types import PyTree, PRNGKeyT
+from netket.utils.types import PyTree
 
-from netket.utils.deprecation import deprecated, warn_deprecation
-
-from .base import Sampler, SamplerState
-from .metropolis import MetropolisRule, MetropolisSamplerState, MetropolisSampler
+from .base import SamplerState
+from .metropolis import MetropolisSamplerState, MetropolisSampler
 
 
 @struct.dataclass
@@ -58,7 +54,7 @@ class MetropolisSamplerPmapState(MetropolisSamplerState):
 
 @struct.dataclass
 class MetropolisSamplerPmap(MetropolisSampler):
-    """
+    r"""
     Metropolis-Hastings sampler for an Hilbert space according to a specific transition rule where chains are split
     among the available devices (`jax.devices()`).
 
@@ -72,7 +68,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
 
     .. math::
 
-        A(s \\rightarrow s^\\prime) = \\mathrm{min} \\left( 1,\\frac{P(s^\\prime)}{P(s)} F(e^{L(s,s^\\prime)}) \\right) ,
+        A(s \rightarrow s^\prime) = \mathrm{min} \left( 1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)}) \right) ,
 
     where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
     user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
@@ -134,12 +130,12 @@ class MetropolisSamplerPmap(MetropolisSampler):
         if not config.FLAGS["NETKET_EXPERIMENTAL"]:
             raise RuntimeError(
                 """
-                               The Pmapped Metropolis sampler is an experimental 
-                               feature. We have not yet extensively investigated how it affects 
+                               The Pmapped Metropolis sampler is an experimental
+                               feature. We have not yet extensively investigated how it affects
                                performance, and when it is appropriate to use it.
 
                                The API is experimental, and might change without warnings in
-                               future NetKet releases. 
+                               future NetKet releases.
 
                                Use it at your own risk by setting the environment variable
                                NETKET_EXPERIMENTAL=1

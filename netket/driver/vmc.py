@@ -12,20 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
-
 import jax
 import jax.numpy as jnp
-from jax.tree_util import tree_map
 
+from textwrap import dedent
+
+from netket.utils.types import PyTree
+from netket.operator import AbstractOperator
 from netket.stats import Stats
 from netket.vqs import MCState
 from netket.optimizer import (
     identity_preconditioner,
-    LinearPreconditioner,
     PreconditionerT,
 )
 from netket.utils import warn_deprecation
+
 
 from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
@@ -39,12 +40,12 @@ class VMC(AbstractVariationalDriver):
     # TODO docstring
     def __init__(
         self,
-        hamiltonian,
+        hamiltonian: AbstractOperator,
         optimizer,
         *args,
         variational_state=None,
         preconditioner: PreconditionerT = None,
-        sr=None,
+        sr: PreconditionerT = None,
         sr_restart: bool = None,
         **kwargs,
     ):
@@ -66,10 +67,13 @@ class VMC(AbstractVariationalDriver):
 
         if variational_state.hilbert != hamiltonian.hilbert:
             raise TypeError(
-                f"""the variational_state has hilbert space {variational_state.hilbert} 
-                                (this is normally defined by the hilbert space in the sampler), but
-                                the hamiltonian has hilbert space {hamiltonian.hilbert}. 
-                                The two should match."""
+                dedent(
+                    f"""the variational_state has hilbert space {variational_state.hilbert}
+                    (this is normally defined by the hilbert space in the sampler), but
+                    the hamiltonian has hilbert space {hamiltonian.hilbert}.
+                    The two should match.
+                    """
+                )
             )
 
         if sr is not None:

@@ -13,25 +13,21 @@
 # limitations under the License.
 
 import abc
-from typing import Optional, Any, Union, Tuple, Callable, Iterator
-from functools import singledispatch, partial
+from typing import Optional, Union, Tuple, Callable, Iterator
+from functools import partial
 
 import jax
 import numpy as np
 
 from flax import linen as nn
 from jax import numpy as jnp
-from jax.experimental import loops
 
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.utils import mpi, get_afun_if_module, wrap_afun
-from netket.utils.types import PyTree, PRNGKeyT, DType
+from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
 from netket.utils import struct, numbers
-
-SeedType = Union[int, PRNGKeyT]
-
 
 fancy = []
 
@@ -144,7 +140,7 @@ class Sampler(abc.ABC):
 
     @property
     def n_batches(self) -> int:
-        """
+        r"""
         The batch size of the configuration $\sigma$ used by this sampler.
 
         In general, it is equivalent to :attr:`~Sampler.n_chains`.
@@ -185,7 +181,7 @@ class Sampler(abc.ABC):
         sampler,
         machine: Union[Callable, nn.Module],
         parameters: PyTree,
-        seed: Optional[SeedType] = None,
+        seed: Optional[SeedT] = None,
     ) -> SamplerState:
         """
         Creates the structure holding the state of the sampler.

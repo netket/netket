@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from netket.utils import warn_deprecation
-import numpy as np
+
 
 # To be removed in v3.1
 def graph_to_N_depwarn(N, graph):
@@ -22,21 +22,22 @@ def graph_to_N_depwarn(N, graph):
         warn_deprecation(
             r"""
             The ``graph`` argument for hilbert spaces has been deprecated in v3.0.
-			It has been replaced by the argument ``N`` accepting an integer, with 
-			the number of nodese in the graph. 
+            It has been replaced by the argument ``N`` accepting an integer, with
+            the number of nodes in the graph.
 
-			You can update your code by passing `N=_your_graph.n_nodes`.
-			If you are also using Ising, Heisemberg, BoseHubbard or GraphOperator
-			hamiltonians you must now provide them with the extra argument
-			``graph=_your_graph``, as they no longer take it from the hilbert space.
-			"""
+            You can update your code by passing `N=_your_graph.n_nodes`.
+            If you are also using `Ising`, `Heisenberg`, `BoseHubbard` or `GraphOperator`
+            Hamiltonians you must now provide them with the extra argument
+            ``graph=_your_graph``, as they no longer take it from the Hilbert space.
+            """
         )
 
         if N == 1:
             return graph.n_nodes
         else:
             raise ValueError(
-                "Graph object can only take one argumnent among N and graph (deprecated)."
+                "Graph object can only take one argument among N and graph"
+                "(deprecated)."
             )
 
     return N

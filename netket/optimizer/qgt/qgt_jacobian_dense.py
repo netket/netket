@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union, Tuple, Any
-from functools import partial, wraps
-import warnings
-from textwrap import dedent
+from typing import Optional, Union
+from functools import partial
 
-import numpy as np
 import jax
 from jax import numpy as jnp
 from flax import struct
 
-from netket.utils.types import PyTree, Array
+from netket.utils.types import PyTree
 from netket.utils import mpi
 import netket.jax as nkjax
 
@@ -106,7 +103,7 @@ class QGTJacobianDenseT(LinearOperator):
     """
 
     O: jnp.ndarray = Uninitialized
-    """Gradients O_ij = ∂log ψ(σ_i)/∂p_j of the neural network 
+    """Gradients O_ij = ∂log ψ(σ_i)/∂p_j of the neural network
     for all samples σ_i at given values of the parameters p_j
     Average <O_j> subtracted for each parameter
     Divided through with sqrt(#samples) to normalise S matrix

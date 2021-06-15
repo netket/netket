@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import numpy as np
-import jax.numpy as jnp
 
 from .mpi import n_nodes, MPI, MPI_py_comm, MPI_jax_comm
 

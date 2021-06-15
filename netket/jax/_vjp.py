@@ -14,23 +14,16 @@
 
 from typing import Callable, Tuple, Any, Union
 
-from functools import partial
-
 import jax
-
-import numpy as np
 
 from jax import numpy as jnp
 from jax.tree_util import (
-    tree_flatten,
-    tree_unflatten,
     tree_map,
     tree_multimap,
-    tree_leaves,
 )
 
 
-from .utils import is_complex, tree_leaf_iscomplex, eval_shape, dtype_complex
+from .utils import is_complex, tree_leaf_iscomplex, eval_shape
 
 
 # _grad_CC, _RR and _RC are the batched gradient functions for machines going

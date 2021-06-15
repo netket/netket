@@ -13,20 +13,15 @@
 # limitations under the License.
 
 import jax
-import flax
 import numpy as np
 
-from jax import numpy as jnp
-from jax.experimental import host_callback as hcb
 from flax import struct
 from numba import jit
 
 import math
 
-from typing import Any
-
 from netket.operator import AbstractOperator
-from netket.jax import numba_to_jax, njit4jax
+from netket.jax import njit4jax
 
 from ..metropolis import MetropolisRule
 
@@ -64,14 +59,12 @@ class HamiltonianRule(MetropolisRule):
         # Raise errors if hilbert is not an Hilbert
         if not isinstance(self.operator, AbstractOperator):
             raise TypeError(
-                "Argument to HamiltonianRule must be a valid operator.".format(
-                    type(self.operator)
-                )
+                "Argument to HamiltonianRule must be a valid operator, "
+                f"but operator is a {type(self.operator)}."
             )
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
 
-        hilbert = sampler.hilbert
         get_conn_flattened = rule.operator._get_conn_flattened_closure()
         n_conn_from_sections = rule.operator._n_conn_from_sections
 

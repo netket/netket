@@ -18,7 +18,7 @@ Graph
    :nosignatures:
 
    netket.graph.AbstractGraph
-   netket.graph.NetworkX
+   netket.graph.Graph
    netket.graph.Edgeless
    netket.graph.Hypercube
    netket.graph.Lattice
@@ -394,8 +394,6 @@ Utility functions and classes.
    :nosignatures:
 
    netket.utils.HashableArray
-   netket.utils.semigroup.SemiGroup
-   netket.utils.semigroup.PermutationGroup
 
 .. _callbacks-api:
 

@@ -12,15 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union, Tuple, Any
+from typing import Any
 from functools import partial
 
 import jax
-from jax import numpy as jnp
-from flax import struct
 
-from netket.utils.types import PyTree
-from netket.utils.mpi import n_nodes
 import netket.jax as nkjax
 
 from .qgt_jacobian_dense import QGTJacobianDense

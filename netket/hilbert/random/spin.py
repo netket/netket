@@ -95,7 +95,6 @@ def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
     return out
 
 
-## flips
 @dispatch
 def flip_state_scalar(hilb: Spin, key, state, index):
     if hilb._s == 0.5:

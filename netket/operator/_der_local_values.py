@@ -15,12 +15,8 @@
 import numpy as np
 from numba import jit
 
-import jax as _jax
-
-from netket.utils import jax_available
 from netket.legacy.machine import Jax as _Jax
 
-from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 from ._der_local_values_jax import der_local_values_jax
 
 

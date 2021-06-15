@@ -13,10 +13,8 @@
 # limitations under the License.
 
 from fractions import Fraction
-from typing import Optional, List, Union, Iterable
+from typing import Optional, List, Union
 
-import jax
-from jax import numpy as jnp
 import numpy as np
 from netket.graph import AbstractGraph
 from numba import jit
@@ -39,7 +37,8 @@ def _check_total_sz(total_sz, S, size):
 
     # If half-integer spins (1/2, 3/2)
     if local_size % 2 == 0:
-        # Check that the total magnetization is odd if odd spins or even if even # of spins
+        # Check that the total magnetization is odd if odd spins or even if even
+        # number of spins
         if (size + m) % 2 != 0:
             raise ValueError(
                 "Cannot fix the total magnetization: Nspins + 2*totalSz must be even."
@@ -72,7 +71,8 @@ class Spin(HomogeneousHilbert):
         Args:
            s: Spin at each site. Must be integer or half-integer.
            N: Number of sites (default=1)
-           total_sz: If given, constrains the total spin of system to a particular value.
+           total_sz: If given, constrains the total spin of system to a particular
+                value.
            graph: (deprecated) a graph from which to extract the number of sites.
 
         Examples:
@@ -185,7 +185,7 @@ class Spin(HomogeneousHilbert):
         out.fill(-round(2 * self._s))
         ss = self.size
 
-        for i in range(round(self._s * self.size) + self._total_sz):
+        for _ in range(round(self._s * self.size) + self._total_sz):
             s = rgen.integers(0, ss, size=())
 
             out[sites[s]] += 2

@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union, Tuple, Any
+from typing import Callable, Optional, Union
 from functools import partial
 
 import jax
-import flax
 from jax import numpy as jnp
 from flax import struct
 
-from netket.utils.types import PyTree, Array
+from netket.utils.types import PyTree
 import netket.jax as nkjax
 
 from .qgt_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
@@ -85,7 +84,7 @@ class QGTOnTheFlyT(LinearOperator):
     """Optional state of the ansataz."""
 
     centered: bool = struct.field(pytree_node=False, default=True)
-    """Uses S=⟨ΔÔᶜΔÔ⟩ if True (default), S=⟨ÔᶜΔÔ⟩ otherwise. The two forms are 
+    """Uses S=⟨ΔÔᶜΔÔ⟩ if True (default), S=⟨ÔᶜΔÔ⟩ otherwise. The two forms are
     mathematically equivalent, but might lead to different results due to numerical
     precision. The non-centered variant should be approximately 33% faster.
     """
@@ -113,11 +112,6 @@ class QGTOnTheFlyT(LinearOperator):
         return _to_dense(self)
 
 
-########################################################################################
-#####                                  QGT Logic                                   #####
-########################################################################################
-
-
 @jax.jit
 def onthefly_mat_treevec(
     S: QGTOnTheFly, vec: Union[PyTree, jnp.ndarray]
@@ -134,7 +128,7 @@ def onthefly_mat_treevec(
         # If the input is a vector
         if not nkjax.tree_size(S.params) == vec.size:
             raise ValueError(
-                """Size mismatch between number of parameters ({nkjax.tree_size(S.params)}) 
+                """Size mismatch between number of parameters ({nkjax.tree_size(S.params)})
                                 and vector size {vec.size}.
                              """
             )

@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union, Iterable, List
-
-import jax
-from jax import numpy as jnp
+from typing import Optional, Union, List
 
 from netket.graph import AbstractGraph
 

@@ -77,19 +77,19 @@ except ImportError:
                 warnings.warn(
                     dedent(
                         f"""
-                    MPI WARNING: It seems you might be running Python with MPI, but dependencies required
-                    by NetKet to enable MPI support are missing or cannot be loaded, so MPI support is
-                    disabled.
+                    MPI WARNING: It seems you might be running Python with MPI, but
+                    dependencies required by NetKet to enable MPI support are missing
+                    or cannot be loaded, so MPI support is disabled.
 
-                    NetKet will not take advantage of MPI, and every MPI rank will execute the
-                    same code independently.
+                    NetKet will not take advantage of MPI, and every MPI rank will
+                    execute the same code independently.
 
                     MPI dependencies are:
                       - mpi4py>=3.0.1     ....... {"available" if _mpi4py_loaded else "missing"}
                       - mpi4jax>=0.2.11   ....... {"available" if _mpi4jax_loaded else "missing"}
 
                     To enable MPI support, install the missing dependencies.
-                    To learn more about MPI and NetKet consult the documentation at 
+                    To learn more about MPI and NetKet consult the documentation at
                     https://www.netket.org/docs/getting_started.html
 
                     To disable this warning, set the environment variable `NETKET_MPI_WARNING=0`

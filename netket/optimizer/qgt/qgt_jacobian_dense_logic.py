@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union, Tuple, Any
+from typing import Callable, Optional, Tuple
 from functools import partial, wraps
 
 import numpy as np
 import jax
 from jax import numpy as jnp
-from flax import struct
 
 from netket.stats import subtract_mean
 from netket.utils.types import PyTree, Array
@@ -28,6 +27,7 @@ import netket.jax as nkjax
 from .qgt_jacobian_pytree_logic import (
     single_sample,
 )
+
 
 # Utilities for splitting real and imaginary part
 def _to_re(x):

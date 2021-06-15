@@ -25,7 +25,6 @@ def random_state(hilb: Qubit, key, batches: int, *, dtype):
     return jnp.asarray(rs, dtype=dtype)
 
 
-## flips
 @dispatch
 def flip_state_scalar(hilb: Qubit, key, x, i):
     return jax.ops.index_update(x, i, -x[i] + 1), x[i]

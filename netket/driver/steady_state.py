@@ -12,19 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
-
 import jax
 import jax.numpy as jnp
-from jax.tree_util import tree_map
 
 from netket.operator import Squared, AbstractSuperOperator
-from netket.stats import Stats
 from netket.vqs import MCMixedState
 from netket.utils import warn_deprecation
 from netket.optimizer import (
     identity_preconditioner,
-    LinearPreconditioner,
     PreconditionerT,
 )
 
@@ -42,10 +37,10 @@ class SteadyState(AbstractVariationalDriver):
         lindbladian,
         optimizer,
         *args,
-        variational_state=None,
-        preconditioner=None,
-        sr=None,
-        sr_restart=None,
+        variational_state: MCMixedState = None,
+        preconditioner: PreconditionerT = None,
+        sr: PreconditionerT = None,
+        sr_restart: bool = None,
         **kwargs,
     ):
         """

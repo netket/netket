@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json as _json
-from os import path as _path
 from netket.stats.mc_stats import Stats
 
 
@@ -25,26 +23,21 @@ def tree_log(tree, root, data):
     if tree is None:
         return data
     elif isinstance(tree, list):
-        tmp = [
-            tree_log(val, root + "/{}".format(i), data) for (i, val) in enumerate(tree)
-        ]
-        return data
+        for (i, val) in enumerate(tree):
+            tree_log(val, root + f"/{i}", data)
+
     elif isinstance(tree, list) and hasattr(tree, "_fields"):
-        tmp = [
-            tree_log(getattr(tree, key), root + "/{}".format(key), data)
-            for key in tree._fields
-        ]
-        return data
+        for key in tree._fields:
+            tree_log(getattr(tree, key), root + f"/{key}", data)
+
     elif isinstance(tree, tuple):
-        tmp = tuple(
-            tree_log(val, root + "/{}".format(i), data) for (i, val) in enumerate(tree)
-        )
-        return data
+        for (i, val) in enumerate(tree):
+            tree_log(val, root + f"/{i}", data)
+
     elif isinstance(tree, dict):
-        return {
-            key: tree_log(value, root + "/{}".format(key), data)
-            for key, value in tree.items()
-        }
+        for key, value in tree.items():
+            key: tree_log(value, root + f"/{key}", data)  # noqa: F722
+
     else:
         data.append((root, tree))
         return data
@@ -131,7 +124,7 @@ class TBLog:
     def _flush_log(self):
         self._writer.flush()
 
-    def _flush_params(self, machine):
+    def _flush_params(self, _):
         return None
 
     def flush(self, machine=None):

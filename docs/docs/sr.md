@@ -15,7 +15,7 @@ In NetKet you can obtain (an approximation of) the quantum geometric tensor of a
 ```python
 ma = nk.models.RBM(alpha=1, dtype=float)
 sa = nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5, 16), n_chains=16)
-vs = nk.variational.MCState(sa, ma)
+vs = nk.vqs.MCState(sa, ma)
 
 qgt = vs.quantum_geometric_tensor()
 ```

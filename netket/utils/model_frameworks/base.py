@@ -15,6 +15,8 @@
 import dataclasses
 import abc
 
+from flax.core import freeze
+
 
 @dataclasses.dataclass(frozen=True)
 class ModuleFramework(abc.ABC):
@@ -30,7 +32,7 @@ class ModuleFramework(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def wrap(clz, module):
+    def wrap(module):
         return module
 
     @staticmethod
@@ -40,7 +42,7 @@ class ModuleFramework(abc.ABC):
     @staticmethod
     @abc.abstractmethod
     def unwrap_params(wrapped_variables):
-        return wrapped_module
+        return wrapped_variables
 
 
 registered_frameworks = []
@@ -73,8 +75,8 @@ class UnknownFramework(ModuleFramework):
         return module
 
     @staticmethod
-    def unwrap_params(params):
-        return params
+    def unwrap_params(wrapped_variables):
+        return wrapped_variables
 
 
 def identify_framework(module):

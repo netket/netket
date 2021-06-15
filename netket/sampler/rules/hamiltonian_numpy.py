@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
 import math
 
 from numba import jit
@@ -20,7 +19,6 @@ from numba import jit
 import numpy as np
 from flax import struct
 
-from netket.legacy import random as _random
 from netket.operator import AbstractOperator
 
 
@@ -53,9 +51,8 @@ class HamiltonianRuleNumpy(MetropolisRule):
         # Raise errors if hilbert is not an Hilbert
         if not isinstance(self.operator, AbstractOperator):
             raise TypeError(
-                "Argument to HamiltonianRuleNumpy must be a valid operator.".format(
-                    type(operator)
-                )
+                "Argument to HamiltonianRule must be a valid operator, "
+                f"but operator is a {type(self.operator)}."
             )
 
     def init_state(rule, sampler, machine, params, key):

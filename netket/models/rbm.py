@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional, Tuple, Any, Callable, Iterable
+from typing import Union, Any
 
 import numpy as np
 
@@ -20,11 +20,11 @@ import jax
 from jax import numpy as jnp
 from flax import linen as nn
 from netket.utils import HashableArray
-from netket.utils.types import PRNGKeyT, Shape, DType, Array, NNInitFunc
+from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 
 from netket import nn as nknn
-from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal
+from netket.nn.initializers import normal
 
 default_kernel_init = normal(stddev=0.01)
 

@@ -75,7 +75,7 @@ parameters, to the constructor.
 
     model = nk.models.RBM(alpha=1, dtype=float, kernel_init=nk.nn.initializers.normal(stddev=0.01))
 
-    vstate = nk.variational.MCState(sampler, model, n_samples=500)
+    vstate = nk.vqs.MCState(sampler, model, n_samples=500)
 
 When constructed, the variational state will call the model's init method to generate the state and the
 parameters, and will also initialize the sampler.
@@ -172,7 +172,7 @@ The number of samples is then split among the number of chains/batches of the sa
 
     sampler = nk.sampler.MetropolisLocal(hilbert, n_chains=8)
 
-    vstate = nk.variational.MCState(sampler, nk.models.RBM(), n_samples=500)
+    vstate = nk.vqs.MCState(sampler, nk.models.RBM(), n_samples=500)
 
     print(vstate.n_samples)
     504
@@ -252,7 +252,7 @@ A simple example to serialize data is provided below:
 .. code:: python
 
     # construct an RBM model on 10 spins
-    vstate = nk.variational.MCState(nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
+    vstate = nk.vqs.MCState(nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
                                     nk.models.RBM())
 
     import flax
@@ -266,7 +266,7 @@ And here we de-serialize it:
 .. code:: python
 
     # construct a new RBM model on 10 spins
-    vstate = nk.variational.MCState(nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
+    vstate = nk.vqs.MCState(nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
                                     nk.models.RBM())
 
     # load

@@ -47,7 +47,8 @@ class AbstractGraph(abc.ABC):
     @abc.abstractmethod
     def distances(self) -> List[List]:
         r"""List containing the distances between the nodes.
-        The fact that some node may not be reachable from another is represented by -1"""
+        The distance between unconnected nodes (no path exists between them) is set to -1
+        """
         raise NotImplementedError
 
     @abc.abstractmethod

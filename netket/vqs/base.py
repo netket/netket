@@ -13,8 +13,7 @@
 # limitations under the License.
 
 import abc
-from functools import partial
-from typing import Any, Optional, Tuple, Callable
+from typing import Any, Optional, Tuple
 
 import jax
 import flax
@@ -24,9 +23,9 @@ import jax.numpy as jnp
 
 import netket.jax as nkjax
 import netket.nn as nknn
-from netket.operator import AbstractOperator, LocalLiouvillian
-from netket.hilbert import AbstractHilbert, DoubledHilbert
-from netket.utils.types import DType, Array, PyTree, PRNGKeyT, Shape, NNInitFunc
+from netket.operator import AbstractOperator
+from netket.hilbert import AbstractHilbert
+from netket.utils.types import PyTree, PRNGKeyT, NNInitFunc
 from netket.stats import Stats
 
 

@@ -12,22 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Union, Tuple, Callable
+from typing import Any, Optional, Tuple, Callable
 from functools import partial
 
 import jax
 from jax import numpy as jnp
 from jax.experimental import host_callback as hcb
 
-from typing import Any
-
-from flax import struct
-
 from netket.nn import to_array
-from netket.hilbert import AbstractHilbert
 from netket.utils import struct
-from netket.utils import mpi
-from netket.utils.types import DType, PyTree
+from netket.utils.types import PyTree, SeedT
 
 from .base import Sampler, SamplerState
 
@@ -57,9 +51,14 @@ class ExactSampler(Sampler):
     def is_exact(sampler):
         return True
 
-    def _init_state(sampler, machine, params, key):
+    def _init_state(
+        sampler,
+        machine: Callable,
+        parameters: PyTree,
+        seed: Optional[SeedT] = None,
+    ):
         pdf = jnp.zeros(sampler.hilbert.n_states, dtype=jnp.float32)
-        return ExactSamplerState(pdf=pdf, rng=key)
+        return ExactSamplerState(pdf=pdf, rng=seed)
 
     def _reset(sampler, machine, parameters, state):
         pdf = jnp.absolute(
@@ -82,10 +81,8 @@ class ExactSampler(Sampler):
         # We use a host-callback to convert integers labelling states to
         # valid state-arrays because that code is written with numba and
         # we have not yet converted it to jax.
-        numbers_to_states = lambda numbers: sampler.hilbert.numbers_to_states(numbers)
-
         sample = hcb.call(
-            numbers_to_states,
+            lambda numbers: sampler.hilbert.numbers_to_states(numbers),
             numbers,
             result_shape=jax.ShapeDtypeStruct(
                 (sampler.n_chains_per_rank, sampler.hilbert.size), jnp.float64
@@ -145,10 +142,8 @@ def _sample_chain(
     # For future investigators:
     # this will lead to a crash if numbers_to_state throws.
     # it throws if we feed it nans!
-    numbers_to_states = lambda numbers: sampler.hilbert.numbers_to_states(numbers)
-
     samples = hcb.call(
-        numbers_to_states,
+        lambda numbers: sampler.hilbert.numbers_to_states(numbers),
         numbers,
         result_shape=jax.ShapeDtypeStruct(
             (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),

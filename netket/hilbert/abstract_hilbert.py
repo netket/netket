@@ -13,23 +13,23 @@
 # limitations under the License.
 
 import abc
-from functools import partial
 
-from typing import List, Tuple, Optional, Generator, Union, Iterable, Iterator
+from typing import List, Tuple, Optional, Union, Iterable, Iterator
 
-import jax
 import jax.numpy as jnp
 import numpy as np
 
-from netket.utils import deprecated, warn_deprecation
+from netket.utils import warn_deprecation
 
-
-"""int: Maximum number of states that can be indexed"""
 max_states = np.iinfo(np.int32).max
+"""int: Maximum number of states that can be indexed"""
 
 
-class NoneType:
+class NoneTypeT:
     pass
+
+
+NoneType = NoneTypeT()
 
 
 legacy_warn_str = (
@@ -109,15 +109,17 @@ class AbstractHilbert(abc.ABC):
         self, numbers: Union[int, np.ndarray], out: Optional[np.ndarray] = None
     ) -> np.ndarray:
         r"""Returns the quantum numbers corresponding to the n-th basis state
-        for input n. n is an array of integer indices such that numbers[k]=Index(states[k]).
+        for input n. n is an array of integer indices such that
+        :code:py:`numbers[k]=Index(states[k])`.
         Throws an exception iff the space is not indexable.
 
         Args:
-            numbers (numpy.array): Batch of input numbers to be converted into arrays of quantum numbers.
+            numbers (numpy.array): Batch of input numbers to be converted into arrays of
+                quantum numbers.
             out: Optional Array of quantum numbers corresponding to numbers.
         """
         if out is None:
-            out = np.empty((np.atleast_1d(numbers).shape[0], self._size))
+            out = np.empty((np.atleast_1d(numbers).shape[0], self.size))
 
         if np.any(numbers >= self.n_states):
             raise ValueError("numbers outside the range of allowed states")
@@ -144,9 +146,8 @@ class AbstractHilbert(abc.ABC):
         """
         if states.shape[-1] != self.size:
             raise ValueError(
-                f"""Size of this state ({states.shape[-1]}) not 
-                                 corresponding to this hilbert space {self.size}
-                                 """
+                f"Size of this state ({states.shape[-1]}) not"
+                f"corresponding to this hilbert space {self.size}"
             )
 
         states_r = np.asarray(np.reshape(states, (-1, states.shape[-1])))
@@ -182,8 +183,8 @@ class AbstractHilbert(abc.ABC):
     # def random_state(self, key, size=None, dtype=np.float32):
     def random_state(
         self,
-        key=NoneType(),
-        size: Optional[int] = NoneType(),
+        key=NoneType,
+        size: Optional[int] = NoneType,
         dtype=np.float32,
         out: Optional[np.ndarray] = None,
         rgen=None,
@@ -193,15 +194,18 @@ class AbstractHilbert(abc.ABC):
 
         Args:
             key: rng state from a jax-style functional generator.
-            size: If provided, returns a batch of configurations of the form :code:`(size, N)` if size
-                  is an integer or :code:`(*size, N)` if it is a tuple and where :math:`N` is the Hilbert space size.
-                  By default, a single random configuration with shape :code:`(#,)` is returned.
+            size: If provided, returns a batch of configurations of the form
+                  :code:`(size, N)` if size is an integer or :code:`(*size, N)` if it is
+                  a tuple and where :math:`N` is the Hilbert space size.
+                  By default, a single random configuration with shape
+                  :code:`(#,)` is returned.
             dtype: DType of the resulting vector.
             out: Deprecated. Will be removed in v3.1
             rgen: Deprecated. Will be removed in v3.1
 
         Returns:
-            A state or batch of states sampled from the uniform distribution on the hilbert space.
+            A state or batch of states sampled from the uniform distribution on the
+            hilbert space.
 
         Example:
 
@@ -217,26 +221,21 @@ class AbstractHilbert(abc.ABC):
         # legacy support
         # TODO: Remove in 3.1
         # if no positional arguments, and key is unspecified -> legacy
-
-        if isinstance(key, NoneType):
+        if key is NoneType:
             warn_deprecation(legacy_warn_str)
             # legacy sure
-            if isinstance(size, NoneType):
+            if size is NoneType:
                 return self._random_state_legacy(size=None, out=out, rgen=rgen)
             else:
                 return self._random_state_legacy(size=size, out=out, rgen=rgen)
-        elif (
-            isinstance(key, tuple)
-            or isinstance(key, int)
-            and isinstance(size, NoneType)
-        ):
+        elif isinstance(key, tuple) or isinstance(key, int) and size is NoneType:
             # if one positional argument legacy typee...
             warn_deprecation(legacy_warn_str)
             return self._random_state_legacy(size=key, out=out, rgen=rgen)
         else:
             from netket.hilbert import random
 
-            size = size if not isinstance(size, NoneType) else None
+            size = size if size is not NoneType else None
 
             return random.random_state(self, key, size, dtype=dtype)
 
@@ -303,7 +302,6 @@ class AbstractHilbert(abc.ABC):
         Tuple of hashable attributs, used to compute the immutable
         hash of this Hilbert space
         """
-        pass
 
     def __eq__(self, other) -> bool:
         if isinstance(other, type(self)):

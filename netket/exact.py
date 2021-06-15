@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import itertools as _itertools
-
 import numpy as np
-from scipy.sparse.linalg import LinearOperator, bicgstab
+from scipy.sparse.linalg import bicgstab
 
 from .operator import AbstractOperator
 
-from ._exact_dynamics import PyExactTimePropagation
+from ._exact_dynamics import PyExactTimePropagation  # noqa: F401
 
 
 def lanczos_ed(
@@ -41,15 +39,16 @@ def lanczos_ed(
             eigenvectors has almost no performance benefits.
         matrix_free: If true, matrix elements are computed on the fly.
             Otherwise, the operator is first converted to a sparse matrix.
-        scipy_args: Additional keyword arguments passed to `scipy.sparse.linalg.eigvalsh`.
-            See the Scipy documentation for further information.
+        scipy_args: Additional keyword arguments passed to
+            `scipy.sparse.linalg.eigvalsh`. See the Scipy documentation for further
+            information.
 
     Returns:
-        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors` is True.
-
-        w: Array containing the lowest `first_n` eigenvalues.
-
-        v: Array containing the eigenvectors as columns, such that`v[:, i]` corresponds to `w[i]`.
+        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors`
+        is True.
+         - w: Array containing the lowest `first_n` eigenvalues.
+         - v: Array containing the eigenvectors as columns, such that`v[:, i]`
+            corresponds to `w[i]`.
 
     Example:
         Test for 1D Ising chain with 8 sites.
@@ -93,7 +92,8 @@ def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
             of the operator.
 
     Returns:
-        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors` is True.
+        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors`
+        is True.
 
     Example:
 
@@ -131,7 +131,8 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
 
     Args:
         lindblad: The lindbladian encoding the master equation.
-        sparse: Whever to use sparse matrices (default: False for ed, True for iterative)
+        sparse: Whever to use sparse matrices (default: False for ed, True for
+            iterative)
         method: 'ed' (exact diagonalization) or 'iterative' (iterative bicgstabl)
         rho0: starting density matrix for the iterative diagonalization (default: None)
         kwargs...: additional kwargs passed to bicgstabl
@@ -142,14 +143,12 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
     Keyword Args:
         maxiter: maximum number of iterations for the iterative solver (default: None)
         tol: The precision for the calculation (default: 1e-05)
-        callback: User-supplied function to call after each iteration. It is called as callback(xk),
-                  where xk is the current solution vector
+        callback: User-supplied function to call after each iteration. It is called as
+            callback(xk), where xk is the current solution vector
 
     Returns:
         The steady-state density matrix.
     """
-    from numpy import sqrt, array
-
     if sparse is None:
         sparse = True
 

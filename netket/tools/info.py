@@ -14,13 +14,12 @@
 
 import sys
 import platform
-import importlib
-
-PLATFORM = sys.platform
 
 from ._common import exec_in_terminal, version, is_available
 from ._cpu_info import cpu_info
 from ._mpi_info import get_global_mpi_info, get_link_flags
+
+PLATFORM = sys.platform
 
 STD_SPACE = 20
 
@@ -59,7 +58,7 @@ def info():
     # try to import version without import netket itself
     from .. import _version
 
-    printfmt(f"NetKet version", _version.version)
+    printfmt("NetKet version", _version.version)
     print()
 
     print("# Python")
@@ -88,7 +87,7 @@ def info():
     print()
 
     # try to load jax
-    print(f"# NetKet dependencies")
+    print("# NetKet dependencies")
     printfmt("numpy", version("numpy"), indent=1)
     printfmt("jaxlib", version("jaxlib"), indent=1)
     printfmt("jax", version("jax"), indent=1)
@@ -101,7 +100,7 @@ def info():
     print()
 
     if is_available("jax"):
-        print(f"# Jax ")
+        print("# Jax ")
         import jax
 
         backends = _jax_backends()
@@ -111,15 +110,15 @@ def info():
         print()
 
     if is_available("mpi4jax"):
-        print(f"# MPI4JAX")
+        print("# MPI4JAX")
         import mpi4jax
 
         if hasattr(mpi4jax._src.xla_bridge, "HAS_GPU_EXT"):
-            printfmt(f"HAS_GPU_EXT", mpi4jax._src.xla_bridge.HAS_GPU_EXT, indent=1)
+            printfmt("HAS_GPU_EXT", mpi4jax._src.xla_bridge.HAS_GPU_EXT, indent=1)
         print()
 
     if is_available("mpi4py"):
-        print(f"# MPI ")
+        print("# MPI ")
         import mpi4py
         from mpi4py import MPI
 

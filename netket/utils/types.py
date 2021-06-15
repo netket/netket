@@ -25,7 +25,7 @@ import numpy as _np
 # eventually delete this.
 try:
     _DeviceArray = _jaxlib.xla_extension.DeviceArray
-except:
+except AttributeError:
     _DeviceArray = _jax.interpreters.xla._DeviceArray
 
 

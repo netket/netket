@@ -16,7 +16,7 @@ import numpy as np
 
 from netket.utils.moduletools import export, hide_unexported
 
-from .axial import cuboid, cuboid_rotations
+from .axial import cuboid, cuboid_rotations  # noqa: F401
 from .axial import inversion_group as _inv_group
 from .axial import reflection_group as _refl_group
 from .axial import rotation as _rotation
