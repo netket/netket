@@ -69,9 +69,9 @@ def test_gcnn(use_bias, symmetries, lattice):
         use_bias=use_bias,
         bias_init=nk.nn.initializers.uniform(),
     )
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
 
-    v = hi.random_state(jax.random.PRNGKey(3))
+    v = hi.random_state(jax.random.PRNGKey(0), 3)
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
 
     for val in vals:
@@ -190,7 +190,7 @@ def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
         hidden_bias_init=nk.nn.initializers.uniform(),
         visible_bias_init=nk.nn.initializers.uniform(),
     )
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
 
     vmc = nk.VMC(
         nk.operator.BoseHubbard(hi, g, U=1.0),
