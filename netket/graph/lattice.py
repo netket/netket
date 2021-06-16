@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from math import pi
 
 from netket.utils.types import Array
-from typing import Callable, Dict, Sequence, Tuple, Union, Optional
+from typing import Callable, Dict, Sequence, Tuple, Union, Optional, TYPE_CHECKING
 import warnings
 
 import igraph
@@ -30,6 +30,9 @@ from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
 
 from .graph import Graph
+
+if TYPE_CHECKING:
+    from .space_group import SpaceGroupBuilder
 
 PositionT = _np.ndarray
 CoordT = _np.ndarray
