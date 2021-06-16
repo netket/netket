@@ -5,8 +5,7 @@ from netket.operator.boson import (
 )
 from netket.operator import spin, boson
 from netket.operator import LocalOperator
-import netket.legacy as nk
-import networkx as nx
+import netket as nk
 import numpy as np
 import pytest
 from pytest import approx, raises
