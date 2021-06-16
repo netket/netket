@@ -19,7 +19,6 @@ from numba import jit
 import numpy as np
 from flax import struct
 
-from netket.legacy import random as _random
 from netket.operator import AbstractOperator
 
 
@@ -92,7 +91,7 @@ class CustomRuleNumpy(MetropolisRule):
 @jit(nopython=True)
 def _pick_random_and_init(batch_size, move_cumulative, out):
     for i in range(batch_size):
-        p = _random.uniform()
+        p = np.random.uniform(0.0, 1.0)
         out[i] = np.searchsorted(move_cumulative, p)
 
     # return out
@@ -102,7 +101,7 @@ def _pick_random_and_init(batch_size, move_cumulative, out):
 def _choose_and_return(σp, x_prime, mels, sections, log_prob_corr):
     low = 0
     for i in range(σp.shape[0]):
-        p = _random.uniform()
+        p = np.random.uniform(0.0, 1.0)
         exit_state = 0
         cumulative_prob = mels[low].real
         while p > cumulative_prob:
