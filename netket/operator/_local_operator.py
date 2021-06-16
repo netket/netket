@@ -854,7 +854,7 @@ class LocalOperator(AbstractOperator):
         """
 
         return self._get_conn_flattened_kernel(
-            x,
+            np.asarray(x),
             sections,
             self._local_states,
             self._basis,
