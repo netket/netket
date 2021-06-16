@@ -41,7 +41,7 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
 
     print(pars)
 
-    v = hi.random_state(jax.random.PRNGKey(3))
+    v = hi.random_state(jax.random.PRNGKey(1), 3)
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
 
     for val in vals:
