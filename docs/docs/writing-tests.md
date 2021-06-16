@@ -18,8 +18,8 @@ If you add a new file to netket, if might be a good idea to split it's tests int
 the relevant submodule, too.
 
 Common functions and methods used throughout our testing infrastructure are defined in the file
-`Test/common.py` and every test is expected to use them if necessary. 
-Some common fixtures are also defined inside `Test/conftest.py` and are available to all tests.
+`test/common.py` and every test is expected to use them if necessary. 
+Some common fixtures are also defined inside `test/conftest.py` and are available to all tests.
 Those do not need to be imported explicitly, as pytest will take care of it.
 
 ## Tests and MPI
@@ -32,7 +32,7 @@ Tests not testing MPI-related fucntionality should be skipped when executed unde
 To mark a whole module to be skipped under mpi, you can define the following variable
 
 ```python
-# Test/Hilbert/test_tensor.py
+# test/hilbert/test_tensor.py
 
 from .. import common
 

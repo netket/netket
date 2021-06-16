@@ -37,7 +37,7 @@ def _symmetrizer_col(perms, features):
     of shape (n_sites×n_hidden,) satisfying
         W[ij] = w[col[ij]]  <=>  W = w[col].
 
-    See Test/Models/test_nn.py:test_symmetrizer for how this relates to the
+    See test/models/test_nn.py:test_symmetrizer for how this relates to the
     matrix form of the symmetrizer.
     """
     n_symm, n_sites = perms.shape

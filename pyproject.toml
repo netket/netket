@@ -46,7 +46,7 @@ exclude = '''
 branch = true
 parallel = true
 concurrency = ["multiprocessing"]
-command_line = "-m pytest --verbose Test"
+command_line = "-m pytest --verbose test"
 source = ["netket"]
 
 [tool.pytest.ini_options]
@@ -61,7 +61,7 @@ filterwarnings = [
     "ignore:Call to deprecated function 'Boson'"
 ]
 testpaths = [
-    "Test",
+    "test",
 ]
 
 [tool.flakehell]

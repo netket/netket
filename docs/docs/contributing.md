@@ -66,7 +66,7 @@ Follow these steps to contribute code:
    the repository:
 
    ```bash
-   pytest -n auto Test/
+   pytest -n auto test/
    ```
 
    If your code contribution touches parts of NetKet that are expected to work under MPI, such
@@ -75,14 +75,14 @@ Follow these steps to contribute code:
    should also disable pytest parallelization.
 
    ```bash
-   mpirun -np 2 pytest -n0 Test/
+   mpirun -np 2 pytest -n0 test/
    ```
 
    NetKet's test suite is quite large, so if you know the specific test file that covers your
    changes, you can limit the tests to that; for example:
 
    ```bash
-   pytest -n auto Test/Hilbert
+   pytest -n auto test/hilbert
    ```
 
 7. Once you are satisfied with your change, create a commit as follows (
@@ -148,7 +148,7 @@ On the command line, this can be done via
 # to reformat a specific file
 black Path/To/The/file.py
 # to reformat all files below the specified directories
-black Test/ Examples/
+black test/ Examples/
 ```
 before creating a pull request.
 There are other options of running Black: For example, an [Atom package](https://atom.io/packages/python-black) is available and Black is integrated into the [VS Code Python extension](https://code.visualstudio.com/docs/python/editing#_formatting).
