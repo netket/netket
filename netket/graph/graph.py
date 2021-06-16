@@ -17,6 +17,7 @@ from typing import List, Optional, Sequence, Union
 import numpy as np
 import igraph
 
+from netket.utils.deprecation import warn_deprecation
 from netket.utils.group import Permutation, PermutationGroup
 from .abstract_graph import AbstractGraph, Edge, ColoredEdge, EdgeSequence
 
@@ -66,7 +67,7 @@ class Graph(AbstractGraph):
     # Conversion
     # ------------------------------------------------------------------------
     @classmethod
-    def from_igraph(cls, graph: igraph.Graph):
+    def from_igraph(cls, graph: igraph.Graph) -> "Graph":
         """
         Creates a new Graph instance from an igraph.Graph instance.
         """
@@ -79,7 +80,7 @@ class Graph(AbstractGraph):
         if "color" not in self._igraph.edge_attributes():
             self._igraph.es.set_attribute_values("color", [0] * self._igraph.ecount())
         else:
-            if not all(isinstance(c, int) for (_, _, c) in self.edges(color=True)):
+            if not all(isinstance(c, int) for c in self.edge_colors):
                 raise ValueError(
                     "graph has 'color' edge attributes, but not all colors are integers."
                 )
@@ -87,7 +88,7 @@ class Graph(AbstractGraph):
         return self
 
     @classmethod
-    def from_networkx(cls, graph):
+    def from_networkx(cls, graph) -> "Graph":
         """
         Creates a new Graph instance from a networkx graph.
         """
@@ -129,19 +130,41 @@ class Graph(AbstractGraph):
     def nodes(self) -> Sequence[int]:
         return range(self._igraph.vcount())
 
-    def edges(self, color: Union[bool, int] = False) -> EdgeSequence:
-        edges = self._igraph.get_edgelist()
-        if color is False:
-            return edges
-        colors = self._edge_colors
-        if color is True:
-            return [(*e, c) for e, c in zip(edges, colors)]
+    def edges(
+        self,
+        color=None,
+        *,
+        return_color: bool = False,
+        filter_color: Optional[int] = None,
+    ) -> EdgeSequence:
+        if color:
+            warn_deprecation(
+                "The color option has been split into return_color and filter_color."
+            )
+            if isinstance(color, int):
+                filter_color = color
+            elif isinstance(color, bool):
+                return_color = color
+            else:
+                raise TypeError("Incorrect type for 'color'")
+
+        if not return_color and filter_color is None:
+            return self._igraph.get_edgelist()
+
+        edges_with_color = zip(self._igraph.get_edgelist(), self.edge_colors)
+        if filter_color is not None:
+            edges_with_color = filter(lambda x: x[1] == filter_color, edges_with_color)
+        if return_color:
+            return [(*e, c) for (e, c) in edges_with_color]
         else:
-            return [e for e, c in zip(edges, colors) if c == color]
+            return [e for (e, _) in edges_with_color]
 
     @property
-    def _edge_colors(self):
-        return self._igraph.es.get_attribute_values("color")
+    def edge_colors(self):
+        if self.n_edges > 0:
+            return self._igraph.es.get_attribute_values("color")
+        else:
+            return []
 
     # Graph algorithms
     # ------------------------------------------------------------------------
@@ -152,7 +175,7 @@ class Graph(AbstractGraph):
         """
         Compute the graph autmorphisms of this graph.
         """
-        colors = self._edge_colors
+        colors = self.edge_colors
         result = self._igraph.get_isomorphisms_vf2(
             edge_color1=colors, edge_color2=colors
         )
