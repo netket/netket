@@ -5,7 +5,7 @@ from netket.operator.boson import (
 )
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
 from netket.operator import LocalOperator
-import netket.legacy as nk
+import netket as nk
 import networkx as nx
 import numpy as np
 import pytest

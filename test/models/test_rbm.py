@@ -16,6 +16,8 @@ import netket as nk
 import numpy as np
 import jax.numpy as jnp
 
+import jax
+
 from .test_nn import _setup_symm
 
 import pytest
@@ -35,11 +37,11 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
         hidden_bias_init=nk.nn.initializers.uniform(),
         visible_bias_init=nk.nn.initializers.uniform(),
     )
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
 
     print(pars)
 
-    v = hi.random_state(3)
+    v = hi.random_state(jax.random.PRNGKey(3))
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
 
     for val in vals:
@@ -67,9 +69,9 @@ def test_gcnn(use_bias, symmetries, lattice):
         use_bias=use_bias,
         bias_init=nk.nn.initializers.uniform(),
     )
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
 
-    v = hi.random_state(3)
+    v = hi.random_state(jax.random.PRNGKey(3))
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
 
     for val in vals:
@@ -188,7 +190,7 @@ def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
         hidden_bias_init=nk.nn.initializers.uniform(),
         visible_bias_init=nk.nn.initializers.uniform(),
     )
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(1))
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
 
     vmc = nk.VMC(
         nk.operator.BoseHubbard(hi, g, U=1.0),
