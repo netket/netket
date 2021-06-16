@@ -18,7 +18,7 @@ onlyif_mpi = pytest.mark.skipif(nk.utils.mpi.n_nodes < 2, reason="Only run with 
 """Use as a decorator to mark a test to be executed only when running with at least 2 MPI
 nodes.
 
-It can be used in combination with the fixtures defined in Test/conftest.py, namely
+It can be used in combination with the fixtures defined in test/conftest.py, namely
 _mpi_rank, mpi_size and _mpi_comm, that retrieve the number of mpi rank, size and comm
 used by netket.
 
