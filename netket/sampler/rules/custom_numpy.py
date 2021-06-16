@@ -76,7 +76,7 @@ class CustomRuleNumpy(MetropolisRule):
         # numba does not support jitting np.random number generators
         # so we have to generate the random numbers outside the jit
         # block
-        rnd_uniform = rng.uniform(0.0, 1.0, size=batch_size)
+        rnd_uniform = rng.uniform(0.0, 1.0, size=σ.shape[0])
 
         _pick_random_and_init(
             σ.shape[0],
