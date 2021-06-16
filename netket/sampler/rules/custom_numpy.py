@@ -73,9 +73,15 @@ class CustomRuleNumpy(MetropolisRule):
     def transition(rule, sampler, machine, parameters, state, rng, σ):
         rule_state = state.rule_state
 
+        # numba does not support jitting np.random number generators
+        # so we have to generate the random numbers outside the jit
+        # block
+        rnd_uniform = rng.uniform(0.0, 1.0, size=batch_size)
+
         _pick_random_and_init(
             σ.shape[0],
             rule_state.weight_cumsum,
+            rnd_uniform=rnd_uniform,
             out=rule_state.rand_op_n,
         )
 
@@ -83,25 +89,35 @@ class CustomRuleNumpy(MetropolisRule):
             state.σ, rule_state.sections, rule_state.rand_op_n
         )
 
+        # numba does not support jitting np.random number generators
+        # so we have to generate the random numbers outside the jit
+        # block
+        rnd_uniform = rng.uniform(0.0, 1.0, size=state.σ1.shape[0])
+
         _choose_and_return(
-            state.σ1, σ_conns, mels, rule_state.sections, state.log_prob_corr
+            state.σ1,
+            σ_conns,
+            mels,
+            rule_state.sections,
+            state.log_prob_corr,
+            rnd_uniform,
         )
 
 
 @jit(nopython=True)
-def _pick_random_and_init(batch_size, move_cumulative, out):
+def _pick_random_and_init(batch_size, move_cumulative, rnd_uniform, out):
     for i in range(batch_size):
-        p = np.random.uniform(0.0, 1.0)
+        p = rnd_uniform[i]
         out[i] = np.searchsorted(move_cumulative, p)
 
     # return out
 
 
 @jit(nopython=True)
-def _choose_and_return(σp, x_prime, mels, sections, log_prob_corr):
+def _choose_and_return(σp, x_prime, mels, sections, log_prob_corr, rnd_uniform):
     low = 0
     for i in range(σp.shape[0]):
-        p = np.random.uniform(0.0, 1.0)
+        p = rnd_uniform[i]
         exit_state = 0
         cumulative_prob = mels[low].real
         while p > cumulative_prob:
