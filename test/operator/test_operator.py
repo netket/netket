@@ -144,12 +144,11 @@ def test_repr(op):
 def test_get_conn_numpy_closure(op):
     hi = op.hilbert
     closure = op._get_conn_flattened_closure()
-    # work around Numba#6980
-    v = np.asarray(hi.random_state(jax.random.PRNGKey(0), 120))
+    v = hi.random_state(jax.random.PRNGKey(0), 120)
     conn = np.empty(v.shape[0], dtype=np.intp)
     conn2 = np.empty(v.shape[0], dtype=np.intp)
 
-    vp, mels = closure(v, conn)
+    vp, mels = closure(np.asarray(v), conn)
     vp2, mels2 = op.get_conn_flattened(v, conn, pad=False)
 
     np.testing.assert_equal(vp, vp2)
