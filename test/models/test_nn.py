@@ -51,7 +51,7 @@ def test_DenseSymm(symmetries, use_bias):
         use_bias=use_bias,
         bias_init=nk.nn.initializers.uniform(),
     )
-    pars = ma.init(nk.jax.PRNGKey(), nk.jax.PRNGKey())
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
 
     v = hi.random_state(3)
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
