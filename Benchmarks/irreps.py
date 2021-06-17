@@ -11,12 +11,16 @@ def benchmark(gen):
     
     squares = np.diag(g.product_table[g.inverse])
     frob = np.array(np.rint(np.sum(g.character_table()[:,squares], axis=1)/len(g)), dtype=int)
+    dims = np.array(np.rint(g.character_table()[:,0]), dtype=int)
 
     real = np.sum(frob == 1)
     cplx = np.sum(frob == 0)
     quat = np.sum(frob == -1)
+    label = {1: '(R)', 0: '(C)', -1: '(Q)'}
 
+    print(f'  * Group size: {len(g)}')
     print(f'  * {real} real, {cplx} complex, {quat} quaternionic irreps')
+    print( '  * Irrep dimensions: ' + ', '.join([f'{dims[i]}{label[frob[i]]}' for i in range(len(frob))]))
     print(f'  * New implementation: {t1:.6f} sec')
     print(f'  * Old implementation: {t2:.6f} sec')
 
@@ -26,6 +30,7 @@ for size in [4,6,9,12]:
     for pg,pgn in [(C(3),'C(3)'), (C(6),'C(6)'), (D(3),'D(3)'), (D(6),'D(6)')]:
         print(f'* {pgn}')
         benchmark(lambda: lattice.space_group(pg))
+    print('')
 
 for size in [3,6,9,12]:
     lattice = Square(size)
@@ -33,3 +38,4 @@ for size in [3,6,9,12]:
     for pg,pgn in [(C(2), 'C(2)'), (C(4), 'C(4)'), (D(2), 'D(2)'), (D(4), 'D(4)')]:
         print(f'* {pgn}')
         benchmark(lambda: lattice.space_group(pg))
+    print('')
