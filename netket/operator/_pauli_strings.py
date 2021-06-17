@@ -248,7 +248,7 @@ class PauliStrings(AbstractOperator):
         """
 
         return self._flattened_kernel(
-            x,
+            np.asarray(x),
             sections,
             self._x_prime_max,
             self._mels_max,

@@ -332,7 +332,7 @@ class Ising(SpecialHamiltonian):
         """
 
         return self._flattened_kernel(
-            x,
+            np.asarray(x),
             sections,
             self._edges,
             self._h,
@@ -774,7 +774,7 @@ class BoseHubbard(SpecialHamiltonian):
             self._max_xprime = np.empty((total_size, x.shape[1]), dtype=x.dtype)
 
         return self._flattened_kernel(
-            x,
+            np.asarray(x),
             sections,
             self._edges,
             self._U,
