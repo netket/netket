@@ -137,14 +137,15 @@ class Graph(AbstractGraph):
         return_color: bool = False,
         filter_color: Optional[int] = None,
     ) -> EdgeSequence:
-        if color:
+        if color is not None:
             warn_deprecation(
                 "The color option has been split into return_color and filter_color."
             )
-            if isinstance(color, int):
-                filter_color = color
-            elif isinstance(color, bool):
+            # need to check for bool first, because bool is a subclass of int
+            if isinstance(color, bool):
                 return_color = color
+            elif isinstance(color, int):
+                filter_color = color
             else:
                 raise TypeError("Incorrect type for 'color'")
 
