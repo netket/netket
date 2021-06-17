@@ -17,6 +17,7 @@
 
 import itertools
 from typing import List, Tuple
+from functools import reduce
 
 import numpy as np
 
@@ -263,7 +264,7 @@ class FiniteGroup(FiniteSemiGroup):
         return representatives, self.character_table_by_class
 
     @struct.property_cached
-    def _irrep_matrices(self) -> PyTree:
+    def old_irrep_matrices(self) -> PyTree:
         random = np.random.standard_normal
         # Generate the eigensystem of a random linear combination of matrices
         # in the group's regular representation (namely, product_table == g)
@@ -301,6 +302,68 @@ class FiniteGroup(FiniteSemiGroup):
             irreps.append(
                 prune_zeros(
                     np.einsum("gi,ghj ->hij", w.conj(), w[true_product_table, :])
+                )
+            )
+
+        return irreps
+
+    @struct.property_cached
+    def _irrep_matrices(self) -> PyTree:
+        # We use Dixon's algorithm (Math. Comp. 24 (1970), 707) to decompose
+        # the regular representation of the group into its irreps
+        # For real irreps, we make sure the matrices are real
+
+        # Check Frobenius-Schur indicators of all irreps
+        true_product_table = self.product_table[self.inverse]
+        squares = np.diag(true_product_table)
+        frob = np.array(np.rint(np.sum(self.character_table()[:,squares], axis=1)/len(self)), dtype=int)
+
+        def invariant_subspaces(e):
+            # Calculate the sum of ρᴴeρ for all matrices ρ in the regular rep
+            # This commutes with all the ρ, so its eigenspaces reduce the rep
+            # With probability 1, there are no accidental degeneracies
+            # except for complex irreps and real symmetric e.
+            e = e + e.T.conj()
+            E = reduce(np.add, (e[np.ix_(perm,perm)] for perm in self.product_table[np.ix_(self.inverse,self.inverse)].T))
+            e,v = np.linalg.eigh(E)
+            
+            # indices that split v into eigenspaces
+            _,starting_idx = np.unique(comparable(e), return_index=True)
+            
+            # calculate vᴴρv for one eigenvector per eigenspace and all matrices
+            # in the regular rep
+            vs = v[:,starting_idx]
+            proj = np.einsum("xi,xgi->gi",vs.conj(), vs[true_product_table,:])
+            starting_idx = list(starting_idx) + [len(self)]
+            return v,starting_idx,proj
+
+        eigen = {}
+        if np.any(frob == 1):
+            # real irreps: e is a random real symmetric matrix
+            e = np.random.standard_normal((len(self), len(self)))
+            eigen['real'] = invariant_subspaces(e)
+        if np.any(frob != 1):
+            # complex or quaternionic irreps: e is a random hermitian matrix
+            e = np.random.standard_normal((2, len(self), len(self)))
+            e = e[0] + 1j * e[1]
+            eigen['cplx'] = invariant_subspaces(e)
+            
+        irreps = []
+
+        for i,chi in enumerate(self.character_table()):
+            v,idx,proj = eigen['real'] if frob[i]==1 else eigen['cplx']
+            # Check which eigenspaces belong to this irrep
+            # the regular projection is calculated from the vᴴρv obtained before
+            proj = chi.conj() @ proj
+            proj = np.logical_not(np.isclose(proj, 0.0))
+            # Pick the first eigenspace in this irrep
+            first = np.arange(len(idx)-1, dtype=int)[proj][0]
+            v = v[:, idx[first]:idx[first+1]]
+            # v is now the basis of a single irrep
+            # project the regular rep onto it
+            irreps.append(
+                prune_zeros(
+                    np.einsum("gi,ghj ->hij", v.conj(), v[true_product_table, :])
                 )
             )
 
