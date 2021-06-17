@@ -308,10 +308,12 @@ class FiniteGroup(FiniteSemiGroup):
         return irreps
 
     @struct.property_cached
-    def two_run_irrep_matrices(self) -> PyTree:
+    def _irrep_matrices(self) -> PyTree:
         # We use Dixon's algorithm (Math. Comp. 24 (1970), 707) to decompose
         # the regular representation of the group into its irreps
         # For real irreps, we make sure the matrices are real
+        from datetime import datetime
+        now = datetime.now
 
         # Check Frobenius-Schur indicators of all irreps
         true_product_table = self.product_table[self.inverse]
@@ -319,12 +321,15 @@ class FiniteGroup(FiniteSemiGroup):
         frob = np.array(np.rint(np.sum(self.character_table()[:,squares], axis=1)/len(self)), dtype=int)
 
         def invariant_subspaces(e):
-            # Calculate the sum of ρᴴeρ for all matrices ρ in the regular rep
-            # This commutes with all the ρ, so its eigenspaces reduce the rep
+            # Construct a Hermitian matrix that commutes with all matrices
+            # in the regular rep.
+            # These matrices obey E_{g,h} = e_{gh^{-1}} for some vector e
+            E = e[self.product_table[np.ix_(self.inverse,self.inverse)]]
+            E = E + E.T.conj()
+            
+            # Since E commutes with all the ρ, its eigenspaces reduce the rep
             # With probability 1, there are no accidental degeneracies
             # except for complex irreps and real symmetric e.
-            e = e + e.T.conj()
-            E = reduce(np.add, (e[np.ix_(perm,perm)] for perm in self.product_table[np.ix_(self.inverse,self.inverse)].T))
             e,v = np.linalg.eigh(E)
             
             # indices that split v into eigenspaces
@@ -333,32 +338,28 @@ class FiniteGroup(FiniteSemiGroup):
             # calculate vᴴρv for one eigenvector per eigenspace and all matrices
             # in the regular rep
             vs = v[:,starting_idx]
-            #proj = np.einsum("xi,xgi->gi",vs.conj(), vs[true_product_table,:])
+            proj = np.einsum("xi,xgi->gi",vs.conj(), vs[true_product_table,:])
             starting_idx = list(starting_idx) + [len(self)]
-            return v,starting_idx,vs#proj
+            return v,starting_idx,proj
 
         eigen = {}
         if np.any(frob == 1):
-            # real irreps: e is a random real symmetric matrix
-            e = np.random.standard_normal((len(self), len(self)))
+            # real irreps: start from a real symmetric invariant matrix
+            e = np.random.standard_normal(len(self))
             eigen['real'] = invariant_subspaces(e)
         if np.any(frob != 1):
-            # complex or quaternionic irreps: e is a random hermitian matrix
-            e = np.random.standard_normal((2, len(self), len(self)))
+            # complex or quaternionic irreps: complex hermitian invariant matrix
+            e = np.random.standard_normal((2, len(self)))
             e = e[0] + 1j * e[1]
             eigen['cplx'] = invariant_subspaces(e)
             
         irreps = []
 
         for i,chi in enumerate(self.character_table()):
-            v,idx,vs = eigen['real'] if frob[i]==1 else eigen['cplx']
+            v,idx,proj = eigen['real'] if frob[i]==1 else eigen['cplx']
             # Check which eigenspaces belong to this irrep
             # the regular projection is calculated from the vᴴρv obtained before
-            #proj = chi.conj() @ proj
-            # the last argument of einsum is the regular projector on this irrep
-            proj = np.einsum(
-                "gi,hi,gh->i", vs.conj(), vs, chi.conj()[self.product_table]
-            )
+            proj = chi.conj() @ proj
             proj = np.logical_not(np.isclose(proj, 0.0))
             # Pick the first eigenspace in this irrep
             first = np.arange(len(idx)-1, dtype=int)[proj][0]
@@ -374,7 +375,7 @@ class FiniteGroup(FiniteSemiGroup):
         return irreps
     
     @struct.property_cached
-    def _irrep_matrices(self) -> PyTree:
+    def all_real_irrep_matrices(self) -> PyTree:
         # We use Dixon's algorithm (Math. Comp. 24 (1970), 707) to decompose
         # the regular representation of the group into its irreps
         # For real irreps, we make sure the matrices are real
