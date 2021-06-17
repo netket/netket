@@ -308,7 +308,7 @@ class FiniteGroup(FiniteSemiGroup):
         return irreps
 
     @struct.property_cached
-    def _irrep_matrices(self) -> PyTree:
+    def two_run_irrep_matrices(self) -> PyTree:
         # We use Dixon's algorithm (Math. Comp. 24 (1970), 707) to decompose
         # the regular representation of the group into its irreps
         # For real irreps, we make sure the matrices are real
@@ -368,6 +368,76 @@ class FiniteGroup(FiniteSemiGroup):
             irreps.append(
                 prune_zeros(
                     np.einsum("gi,ghj ->hij", v.conj(), v[true_product_table, :])
+                )
+            )
+
+        return irreps
+    
+    @struct.property_cached
+    def _irrep_matrices(self) -> PyTree:
+        # We use Dixon's algorithm (Math. Comp. 24 (1970), 707) to decompose
+        # the regular representation of the group into its irreps
+        # For real irreps, we make sure the matrices are real
+
+        # Check Frobenius-Schur indicators of all irreps
+        true_product_table = self.product_table[self.inverse]
+        squares = np.diag(true_product_table)
+        frob = np.array(np.rint(np.sum(self.character_table()[:,squares], axis=1)/len(self)), dtype=int)
+
+        # We start from random real symmetric and imaginary antisymmetric matrices
+        # The latter is projected on the subspace of complex/quaternionic reps
+        # This leads to real eigenvectors for real irreps only
+        e = np.random.standard_normal((len(self), len(self)))
+        e = e + e.T
+        # Calculate the sum of ρᴴeρ for all matrices ρ in the regular rep
+        # This commutes with all the ρ, so its eigenspaces reduce the rep
+        # With probability 1, there are no accidental degeneracies
+        # except for complex irreps and their conjugates
+        E = reduce(np.add, (e[np.ix_(perm,perm)] for perm in self.product_table[np.ix_(self.inverse,self.inverse)].T))
+        e,v = np.linalg.eigh(E)
+            
+        # indices that split v into eigenspaces
+        _,idx = np.unique(comparable(e), return_index=True)
+            
+        # calculate vᴴρv for one eigenvector per eigenspace and all matrices
+        # in the regular rep
+        vs = v[:,idx]
+        matelem = np.einsum("xi,xgi->gi",vs.conj(), vs[true_product_table,:])
+        idx = list(idx) + [len(self)]
+
+        # if we have non-real irreps, we'll need to split some eigenspaces
+        # using a complex hermitian matrix that commutes with the regular rep
+        if np.any(frob != 1):
+            e_cplx = np.random.standard_normal((2, len(self), len(self)))
+            e_cplx = e_cplx[0] + 1j * e_cplx[1]
+            e_cplx = e_cplx + e_cplx.T.conj()
+            E_cplx = reduce(np.add, (e_cplx[np.ix_(perm,perm)] for perm in self.product_table[np.ix_(self.inverse,self.inverse)].T))
+            
+        irreps = []
+
+        for i,chi in enumerate(self.character_table()):
+            proj = chi.conj() @ matelem
+            proj = np.logical_not(np.isclose(proj, 0.0))
+            # Pick the first eigenspace in this irrep
+            first = np.arange(len(idx)-1, dtype=int)[proj][0]
+            w = v[:, idx[first]:idx[first+1]]
+            
+            # If the irrep is real, w is the basis of a single irrep
+            # if not, we project E_cplx on this space to separate the components
+            if frob[i] != 1:
+                E_ = w.T.conj() @ E_cplx @ w
+                e_,v_ = np.linalg.eigh(E_)
+                w = w @ v_
+                # now, the two halves of w are bases of two conjugate irreps
+                # check if the first vector belongs to it
+                proj = w[:,0].conj() @  chi.conj()[self.product_table] @ w[:,0]
+                w = w[:,:(w.shape[1]//2)] if np.isclose(proj,0.0) else w[:,(w.shape[1]//2):]
+            
+            # w is now the basis of a single irrep
+            # project the regular rep onto it
+            irreps.append(
+                prune_zeros(
+                    np.einsum("gi,ghj ->hij", w.conj(), w[true_product_table, :])
                 )
             )
 
