@@ -401,6 +401,7 @@ def test_computes_distances():
 
 def test_lattice_is_bipartite():
     for graph in graphs:
+        print(graph)
         g = nx.Graph()
         for edge in graph.edges():
             g.add_edge(edge[0], edge[1])
@@ -441,17 +442,17 @@ def test_adjacency_list():
 #    count = lambda it: sum(1 for _ in it)
 #
 #    g = Grid([4, 4], pbc=True, color_edges=True)
-#    assert count(g.edges(color=0)) == 16
-#    assert count(g.edges(color=1)) == 16
+#    assert count(g.edges(filter_color=0)) == 16
+#    assert count(g.edges(filter_color=1)) == 16
 #    assert g.n_edges == 32
 #
 #    g = Grid([4, 2], pbc=True, color_edges=True)
-#    assert count(g.edges(color=0)) == 8
-#    assert count(g.edges(color=1)) == 4
+#    assert count(g.edges(filter_color=0)) == 8
+#    assert count(g.edges(filter_color=1)) == 4
 #
 #    g = Grid([4, 2], pbc=False, color_edges=True)
-#    assert count(g.edges(color=0)) == 6
-#    assert count(g.edges(color=1)) == 4
+#    assert count(g.edges(filter_color=0)) == 6
+#    assert count(g.edges(filter_color=1)) == 4
 #
 #    with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
 #        g = Grid([2, 4], pbc=[True, True])
@@ -651,11 +652,11 @@ def test_edge_color_accessor():
     edges = [(0, 1, 0), (0, 3, 1), (1, 2, 1), (2, 3, 0)]
     g = Graph(edges=edges)
 
-    assert edges == sorted(g.edges(color=True))
+    assert edges == sorted(g.edges(return_color=True))
 
     g = Hypercube(4, 1)
 
-    assert [(i, j, 0) for (i, j, _) in edges] == sorted(g.edges(color=True))
+    assert [(i, j, 0) for (i, j, _) in edges] == sorted(g.edges(return_color=True))
 
 
 def test_union():
@@ -673,13 +674,13 @@ def test_graph_conversions():
     g = Graph.from_igraph(igraph)
     assert g.n_nodes == igraph.vcount()
     assert g.edges() == igraph.get_edgelist()
-    assert all(c == 0 for c in g._edge_colors)
+    assert all(c == 0 for c in g.edge_colors)
 
     nxg = nx.star_graph(5)
     g = Graph.from_networkx(nxg)
     assert g.n_nodes == igraph.vcount()
     assert g.edges() == igraph.get_edgelist()
-    assert all(c == 0 for c in g._edge_colors)
+    assert all(c == 0 for c in g.edge_colors)
 
     igraph = ig.Graph()
     igraph.add_vertices(3)
@@ -701,5 +702,17 @@ def test_graph_conversions():
         },
     )
     g = Graph.from_igraph(igraph)
-    assert g.edges(color=0) == [(0, 1)]
-    assert g.edges(color=1) == [(1, 2)]
+    assert g.edges(filter_color=0) == [(0, 1)]
+    assert g.edges(filter_color=1) == [(1, 2)]
+    assert g.edges(filter_color=0, return_color=True) == [(0, 1, 0)]
+    assert g.edges(filter_color=1, return_color=True) == [(1, 2, 1)]
+
+    with pytest.warns(FutureWarning):
+        assert g.edges(color=0) == g.edges(filter_color=0)
+    with pytest.warns(FutureWarning):
+        assert g.edges(color=True) == g.edges(return_color=True)
+
+
+def test_edge_colors():
+    for g in graphs:
+        assert all(isinstance(c, int) for c in g.edge_colors)

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import List, Iterator, Sequence, Tuple, Union
+from typing import List, Iterator, Sequence, Tuple, Union, Optional
 
 
 Edge = Tuple[int, int]
@@ -35,8 +35,27 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def edges(self, color: Union[bool, int] = False) -> EdgeSequence:
-        r"""Iterator over the edges of the graph. Optionally filter by edge color."""
+    def edges(
+        self, return_color: bool = False, filter_color: Optional[int] = None
+    ) -> EdgeSequence:
+        r"""Returns the sequence of edges of the graph.
+
+        Arguments:
+            return_color: If :code:`True`, return edges with added color information.
+            filter_color: If set, return only edges of the given color.
+
+        Returns:
+            A sequence of edges as tuples :code:`(i, j)` or, if `return_color` is
+            passed, a sequence of tuples :code:`(i, j, c)` with :code:`c` indicating
+            the color of the respective edge.
+        """
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def edge_colors(self) -> Sequence[int]:
+        r"""Sequence of edge colors, in the order of the edges returned by
+        :code:`self.edges`."""
         raise NotImplementedError
 
     @abc.abstractmethod
