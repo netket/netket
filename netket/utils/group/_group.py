@@ -17,13 +17,12 @@
 
 import itertools
 from typing import List, Tuple
-from functools import reduce
 
 import numpy as np
 
 from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, prune_zeros
-from netket.utils.types import Array, PyTree
+from netket.utils.types import Array
 from netket.utils.dispatch import dispatch
 
 from ._semigroup import Element, FiniteSemiGroup, Identity
