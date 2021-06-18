@@ -12,7 +12,7 @@ SEED = 123
 pytestmark = common.skipif_mpi
 
 
-@pytest.mark.parametrize("rdtype", [jnp.float32, jnp.float64])
+@pytest.mark.parametrize("rdtype", [jnp.float64])
 def test_log_cosh(rdtype):
     N = 100
     x = jnp.sort(jax.random.uniform(jax.random.PRNGKey(SEED), (N,), dtype=rdtype) * 5)
