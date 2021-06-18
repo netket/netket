@@ -19,6 +19,7 @@ import itertools
 from typing import List, Tuple
 
 import numpy as np
+import jax
 
 from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, prune_zeros
@@ -263,7 +264,7 @@ class FiniteGroup(FiniteSemiGroup):
         return representatives, self.character_table_by_class
 
     @struct.property_cached
-    def _irrep_matrices(self) -> List[Array]:
+    def _irrep_matrices(self, key=jax.random.PRNGKey(0)) -> List[Array]:
         """
         Generates irrep matrices using Dixon's algorithm (Math. Comp. 24 (1970), 707).
 
@@ -281,7 +282,10 @@ class FiniteGroup(FiniteSemiGroup):
             dtype=int,
         )
 
-        def invariant_subspaces(e):
+        def random(n, key, dtype=float):
+            return np.asarray(jax.random.normal(key, (n,), dtype))
+
+        def invariant_subspaces(e, key):
             # Construct a Hermitian matrix that commutes with all matrices
             # in the regular rep.
             # These matrices obey E_{g,h} = e_{gh^{-1}} for some vector e
@@ -301,22 +305,22 @@ class FiniteGroup(FiniteSemiGroup):
             # These are calculated as linear combinations of sᴴρv for the
             # regular rep matrices ρ, which is given by the latter two terms
             vs = v[:, starting_idx]
-            s = np.random.standard_normal(len(self))
+            s = random(len(self), key)
             s = s[self.product_table[np.ix_(self.inverse, self.inverse)]]
             proj = self.character_table().conj() @ s @ vs
             starting_idx = list(starting_idx) + [len(self)]
             return v, starting_idx, proj
 
         eigen = {}
+        keys = jax.random.split(key, 4)
         if np.any(frob == 1):
             # real irreps: start from a real symmetric invariant matrix
-            e = np.random.standard_normal(len(self))
-            eigen["real"] = invariant_subspaces(e)
+            e = random(len(self), keys[0])
+            eigen["real"] = invariant_subspaces(e, keys[1])
         if np.any(frob != 1):
             # complex or quaternionic irreps: complex hermitian invariant matrix
-            e = np.random.standard_normal((2, len(self)))
-            e = e[0] + 1j * e[1]
-            eigen["cplx"] = invariant_subspaces(e)
+            e = random(len(self), keys[2], dtype=complex)
+            eigen["cplx"] = invariant_subspaces(e, keys[3])
 
         irreps = []
 
@@ -328,11 +332,7 @@ class FiniteGroup(FiniteSemiGroup):
             first = np.arange(len(idx) - 1, dtype=int)[proj][0]
             v = v[:, idx[first] : idx[first + 1]]
             # v is now the basis of a single irrep: project the regular rep onto it
-            irreps.append(
-                prune_zeros(
-                    np.einsum("gi,ghj ->hij", v.conj(), v[true_product_table, :])
-                )
-            )
+            irreps.append(np.einsum("gi,ghj ->hij", v.conj(), v[true_product_table, :]))
 
         return irreps
 
