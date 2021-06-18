@@ -142,6 +142,7 @@ class Ising(SpecialHamiltonian):
         ), "The size of the graph must match the hilbert space"
 
         super().__init__(hilbert)
+        self._impl = None
 
         self._h = dtype(h)
         self._J = dtype(J)
@@ -154,14 +155,41 @@ class Ising(SpecialHamiltonian):
         """The magnitude of the transverse field"""
         return self._h
 
+    @h.setter
+    def h(self, val):
+        self._h = val
+        if self._impl is not None:
+            self.implementation._h = val
+
     @property
     def J(self) -> float:
         """The magnitude of the hopping"""
         return self._J
 
+    @J.setter
+    def J(self, val):
+        self._J = val
+        if self._impl is not None:
+            self.implementation._J = val
+
     @property
     def edges(self) -> np.ndarray:
         return self._edges
+
+    @property
+    def implementation(self):
+        if self._impl is None:
+            from ._hamiltonian_impl import get_ising_jitted_implementation
+
+            constructor = get_ising_jitted_implementation(self.dtype)
+
+            self._impl = constructor(
+                self._h,
+                self._J,
+                self._edges,
+            )
+
+        return self._impl
 
     @property
     def is_hermitian(self) -> bool:
@@ -233,8 +261,8 @@ class Ising(SpecialHamiltonian):
                 "Cannot add hamiltonians on different hilbert spaces"
             )
 
-        self._h += other.h
-        self._J += other.J
+        self.h += other.h
+        self.J += other.J
 
     def _isub_same_hamiltonian(self, other):
         if self.hilbert != other.hilbert:
@@ -242,66 +270,8 @@ class Ising(SpecialHamiltonian):
                 "Cannot add hamiltonians on different hilbert spaces"
             )
 
-        self._h -= other.h
-        self._J -= other.J
-
-    @staticmethod
-    @jit(nopython=True)
-    def _flattened_kernel(
-        x,
-        sections,
-        edges,
-        h,
-        J,
-    ):
-        n_sites = x.shape[1]
-        n_conn = n_sites + 1
-
-        x_prime = np.empty(
-            (
-                x.shape[0] * n_conn,
-                n_sites,
-            )
-        )
-        mels = np.empty(x.shape[0] * n_conn, dtype=type(h))
-
-        diag_ind = 0
-
-        for i in range(x.shape[0]):
-            mels[diag_ind] = 0.0
-            for k in range(edges.shape[0]):
-                mels[diag_ind] += (
-                    J
-                    * x[
-                        i,
-                        edges[
-                            k,
-                            0,
-                        ],
-                    ]
-                    * x[
-                        i,
-                        edges[
-                            k,
-                            1,
-                        ],
-                    ]
-                )
-
-            odiag_ind = 1 + diag_ind
-
-            mels[odiag_ind : (odiag_ind + n_sites)].fill(-h)
-
-            x_prime[diag_ind : (diag_ind + n_conn)] = np.copy(x[i])
-
-            for j in range(n_sites):
-                x_prime[j + odiag_ind][j] *= -1.0
-
-            diag_ind += n_conn
-
-            sections[i] = diag_ind
-
-        return x_prime, mels
+        self.h -= other.h
+        self.J -= other.J
 
     def get_conn_flattened(
         self,
@@ -331,24 +301,16 @@ class Ising(SpecialHamiltonian):
 
         """
 
-        return self._flattened_kernel(
-            np.asarray(x),
-            sections,
-            self._edges,
-            self._h,
-            self._J,
-        )
+        return self.implementation.get_conn_flattened(np.asarray(x), sections, pad)
 
     def _get_conn_flattened_closure(self):
-        _edges = self._edges
-        _h = self._h
-        _J = self._J
-        fun = self._flattened_kernel
 
-        def gccf_fun(x, sections):
-            return fun(x, sections, _edges, _h, _J)
+        O = self.implementation
 
-        return jit(nopython=True)(gccf_fun)
+        def _fun(x, sections, pad=False):
+            return O.get_conn_flattened(x, sections, pad)
+
+        return jit(nopython=True)(_fun)
 
     def __repr__(self):
         return f"Ising(J={self._J}, h={self._h}; dim={self.hilbert.size})"

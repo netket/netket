@@ -34,6 +34,7 @@ from .model_frameworks import maybe_wrap_module
 from .history import History, accum_in_tree, accum_histories_in_tree
 
 from . import mpi
+from . import numba
 
 _hide_submodules(
     __name__, remove_self=False, ignore=["numbers", "types", "float", "dispatch"]

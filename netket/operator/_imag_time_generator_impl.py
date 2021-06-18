@@ -1,10 +1,5 @@
-import numbers
-from typing import Union, Tuple, List, Optional
-from numpy.typing import DTypeLike, ArrayLike
-
 import numpy as np
 import numba
-from numba import jit
 from numba.experimental import jitclass
 
 
@@ -85,7 +80,6 @@ class ImagTimeGeneratorImpl:
         xs[:, :] = 0
         mels[:] = 0
 
-        sec = 0
         off = 0
 
         n_hr_i = 0

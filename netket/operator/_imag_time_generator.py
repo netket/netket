@@ -1,10 +1,5 @@
-import numbers
-from typing import List as PyList
-
 import numpy as np
-import numba
 from numba import jit
-from numba.typed import List
 
 from scipy.sparse.linalg import LinearOperator
 
