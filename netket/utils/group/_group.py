@@ -297,10 +297,14 @@ class FiniteGroup(FiniteSemiGroup):
             # indices that split v into eigenspaces
             _, starting_idx = np.unique(comparable(e), return_index=True)
 
-            # calculate vᴴρv for one eigenvector per eigenspace and all matrices
-            # in the regular rep
+            # Calculate sᴴPv for one eigenvector v per eigenspace, a fixed
+            # random vector s and all regular projectors P
+            # These are calculated as linear combinations of sᴴρv for the
+            # regular rep matrices ρ, which is given by the latter two terms
             vs = v[:, starting_idx]
-            proj = np.einsum("xi,xgi->gi", vs.conj(), vs[true_product_table, :])
+            s = np.random.standard_normal(len(self))
+            s = s[self.product_table[np.ix_(self.inverse, self.inverse)]]
+            proj = self.character_table().conj() @ s @ vs
             starting_idx = list(starting_idx) + [len(self)]
             return v, starting_idx, proj
 
@@ -320,9 +324,7 @@ class FiniteGroup(FiniteSemiGroup):
         for i, chi in enumerate(self.character_table()):
             v, idx, proj = eigen["real"] if frob[i] == 1 else eigen["cplx"]
             # Check which eigenspaces belong to this irrep
-            # the regular projection is calculated from the vᴴρv obtained before
-            proj = chi.conj() @ proj
-            proj = np.logical_not(np.isclose(proj, 0.0))
+            proj = np.logical_not(np.isclose(proj[i], 0.0))
             # Pick the first eigenspace in this irrep
             first = np.arange(len(idx) - 1, dtype=int)[proj][0]
             v = v[:, idx[first] : idx[first + 1]]
