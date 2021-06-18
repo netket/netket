@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
 import functools
+from functools import wraps
 
+import jax
 from jax import numpy as jnp
 
-from functools import wraps
+from netket.utils import deprecated
 
 
 def iscomplex(x):
@@ -86,15 +87,33 @@ from jax.numpy import cosh
 from jax.numpy import sinh
 
 
-def logcosh(x):
+def log_cosh(x):
     sgn_x = -2 * jnp.signbit(x.real) + 1
     x = x * sgn_x
     return x + jnp.log1p(jnp.exp(-2.0 * x)) - jnp.log(2.0)
 
 
-def logsinh(x):
+def log_sinh(x):
     return jax.numpy.log(jax.numpy.sinh(x))
 
 
-def logtanh(x):
+def log_tanh(x):
     return jax.numpy.log(jax.numpy.tanh(x))
+
+
+# TODO: DEPRECATION 3.1
+@deprecated("Deprecated. Use log_cosh instead")
+def logcosh(x):
+    return log_cosh(x)
+
+
+# TODO: DEPRECATION 3.1
+@deprecated("Deprecated. Use log_cosh instead")
+def logtanh(x):
+    return log_tanh(x)
+
+
+# TODO: DEPRECATION 3.1
+@deprecated("Deprecated. Use log_cosh instead")
+def logsinh(x):
+    return log_sinh(x)

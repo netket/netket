@@ -32,9 +32,9 @@ from .activation import (
     tanh,
     cosh,
     sinh,
-    logcosh,
-    logsinh,
-    logtanh,
+    log_cosh,
+    log_sinh,
+    log_tanh,
 )
 from flax.linen import (
     MultiHeadDotProductAttention,

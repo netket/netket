@@ -36,7 +36,7 @@ class RBM(nn.Module):
 
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.logcosh
+    activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -96,7 +96,7 @@ class RBMModPhase(nn.Module):
 
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.logcosh
+    activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -149,7 +149,7 @@ class RBMMultiVal(nn.Module):
     """The number of classes in the one-hot encoding"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.logcosh
+    activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -200,7 +200,7 @@ class RBMSymm(nn.Module):
     """
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.logcosh
+    activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
