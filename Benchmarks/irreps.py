@@ -7,6 +7,7 @@ import numpy as np
 
 def benchmark(gen):
     g = gen()
+    t0 = timeit(lambda: g.product_table, number=1)
     t1 = timeit(lambda: g._irrep_matrices, number=1)
     # g = gen()
     # t2 = timeit(lambda: g.old_irrep_matrices, number=1)
@@ -29,6 +30,7 @@ def benchmark(gen):
         + ", ".join([f"{dims[i]}{label[frob[i]]}" for i in range(len(frob))])
     )
     print(f"  * New implementation: {t1:.6f} sec")
+    print(f"  * Calculating the product table: {t0:.6f} sec")
     # print(f'  * Old implementation: {t2:.6f} sec')
 
 
