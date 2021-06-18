@@ -38,23 +38,27 @@ __all__ = [
     "nn",
 ]
 
+from . import jax
+from . import stats
+
+from . import graph
+from . import hilbert
+
+from . import nn
+
 from . import legacy
 
 from . import (
-    hilbert,
     exact,
     callbacks,
-    graph,
     logging,
     operator,
     models,
     sampler,
-    jax,
-    nn,
-    stats,
     vqs,
     optimizer,
 )
+
 
 # Main applications
 from .driver import VMC

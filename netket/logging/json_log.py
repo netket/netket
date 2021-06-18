@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import orjson
 import time
 
@@ -91,7 +90,6 @@ class JsonLog(RuntimeLog):
             mode: Specify the behaviour in case the file already exists at this
                 output_prefix. Options are
                 - `[w]rite`: (default) overwrites file if it already exists;
-                - `[a]ppend`: appends to the file if it exists, overwise creates it;
                 - `[x]` or `fail`: fails if file already exists;
             save_params: bool flag indicating whever variables of the variational state
                 should be serialized at some interval. The output file is overwritten
@@ -115,21 +113,12 @@ class JsonLog(RuntimeLog):
                 "`[x]`(fail)."
             )
 
+        if mode == "append":
+            raise ValueError("Append mode is no longer supported.")
+
         file_exists = _exists_json(output_prefix)
 
-        starting_json_content = {"Output": []}
-
-        if file_exists and mode == "append":
-            # if there is only the .mpacck file but not the json one, raise an error
-            if not _path.exists(output_prefix + ".log"):
-                raise ValueError(
-                    "History file does not exists, but wavefunction file does."
-                    "Please change `output_prefix or set mode=`write`."
-                )
-
-            starting_json_content = json.load(open(output_prefix + ".log"))
-
-        elif file_exists and mode == "fail":
+        if file_exists and mode == "fail":
             raise ValueError(
                 "Output file already exists. Either delete it manually or"
                 "change `output_prefix`."
