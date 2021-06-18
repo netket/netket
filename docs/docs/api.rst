@@ -249,7 +249,7 @@ Activation functions
     softmax
     softplus
     swish
-    logcosh
+    log_cosh
 
 
 .. _variational-api:

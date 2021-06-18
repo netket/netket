@@ -16,6 +16,10 @@ import netket as nk
 import optax
 import pytest
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 
 @pytest.mark.parametrize("s", [1 / 2, 1])
 def test_AR_VMC(s):
