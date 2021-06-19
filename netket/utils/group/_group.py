@@ -267,23 +267,18 @@ class FiniteGroup(FiniteSemiGroup):
 
     @struct.property_cached
     def _irrep_matrices(self) -> List[Array]:
-        """
-        Generates irrep matrices using Dixon's algorithm (Math. Comp. 24 (1970), 707).
+        # We use Dixon's algorithm (Math. Comp. 24 (1970), 707) to decompose
+        # the regular representation of the group into its irreps.
+        # We start with a Hermitian matrix E that commutes with every matrix in
+        # this rep: the space spanned by its degenerate eigenvectors then all
+        # transform according to some rep of the group.
+        # The matrix is randomised to ensure there are no accidental degeneracies,
+        # i.e. all these spaces are irreps.
+        # For real irreps, real matrices are returned: if needed, the same
+        # routine is run with a real symmetric and a complex Hermitian matrix.
 
-        We decompose the regular representation of the group into its irreps
-        For real irreps, we make sure the matrices are real
-        """
-
-        # Check Frobenius-Schur indicators of all irreps
         true_product_table = self.product_table[self.inverse]
         inverted_product_table = true_product_table[:, self.inverse]
-        squares = np.diag(true_product_table)
-        frob = np.array(
-            np.rint(
-                np.sum(self.character_table()[:, squares], axis=1).real / len(self)
-            ),
-            dtype=int,
-        )
 
         def invariant_subspaces(e, key):
             # Construct a Hermitian matrix that commutes with all matrices
@@ -293,7 +288,7 @@ class FiniteGroup(FiniteSemiGroup):
             e = e + e.T.conj()
 
             # Since E commutes with all the ρ, its eigenspaces reduce the rep
-            # With probability 1, there are no accidental degeneracies
+            # For a random input vector, there are no accidental degeneracies
             # except for complex irreps and real symmetric E.
             e, v = np.linalg.eigh(e)
 
@@ -310,6 +305,16 @@ class FiniteGroup(FiniteSemiGroup):
             starting_idx = list(starting_idx) + [len(self)]
             return v, starting_idx, proj
 
+        # Calculate the eigenspaces for a real and/or complex random matrix
+        # To check which are needed, calculate Frobenius-Schur indicators
+        # This is +1, 0, -1 for real, complex, and quaternionic irreps
+        squares = np.diag(true_product_table)
+        frob = np.array(
+            np.rint(
+                np.sum(self.character_table()[:, squares], axis=1).real / len(self)
+            ),
+            dtype=int,
+        )
         eigen = {}
         keys = jax.random.split(jax.random.PRNGKey(0), 4)
         if np.any(frob == 1):
