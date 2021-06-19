@@ -274,6 +274,7 @@ class FiniteGroup(FiniteSemiGroup):
 
         # Check Frobenius-Schur indicators of all irreps
         true_product_table = self.product_table[self.inverse]
+        inverted_product_table = true_product_table[:, self.inverse]
         squares = np.diag(true_product_table)
         frob = np.array(
             np.rint(
@@ -289,13 +290,13 @@ class FiniteGroup(FiniteSemiGroup):
             # Construct a Hermitian matrix that commutes with all matrices
             # in the regular rep.
             # These matrices obey E_{g,h} = e_{gh^{-1}} for some vector e
-            E = e[self.product_table[np.ix_(self.inverse, self.inverse)]]
-            E = E + E.T.conj()
+            e = e[inverted_product_table]
+            e = e + e.T.conj()
 
             # Since E commutes with all the ρ, its eigenspaces reduce the rep
             # With probability 1, there are no accidental degeneracies
-            # except for complex irreps and real symmetric e.
-            e, v = np.linalg.eigh(E)
+            # except for complex irreps and real symmetric E.
+            e, v = np.linalg.eigh(e)
 
             # indices that split v into eigenspaces
             _, starting_idx = np.unique(comparable(e), return_index=True)
@@ -305,8 +306,7 @@ class FiniteGroup(FiniteSemiGroup):
             # These are calculated as linear combinations of sᴴρv for the
             # regular rep matrices ρ, which is given by the latter two terms
             vs = v[:, starting_idx]
-            s = random(len(self), key)
-            s = s[self.product_table[np.ix_(self.inverse, self.inverse)]]
+            s = random(len(self), key)[inverted_product_table]
             proj = self.character_table().conj() @ s @ vs
             starting_idx = list(starting_idx) + [len(self)]
             return v, starting_idx, proj
