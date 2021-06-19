@@ -301,6 +301,7 @@ class FiniteGroup(FiniteSemiGroup):
             # regular rep matrices ρ, which is given by the latter two terms
             vs = v[:, starting_idx]
             s = random(len(self), key)[inverted_product_table]
+            # row #i of this `s` is sᴴρ(self[i]), where sᴴ is the random vector
             proj = self.character_table().conj() @ s @ vs
             starting_idx = list(starting_idx) + [len(self)]
             return v, starting_idx, proj
