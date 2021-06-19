@@ -204,7 +204,9 @@ class FiniteGroup(FiniteSemiGroup):
         # since we only want a random linear combination, we forget about the
         # constant |S| and only divide each column through with the appropriate |T|
         class_matrix = (
-            classes @ np.random.uniform(size=len(self))[self.product_table] @ classes.T
+            classes
+            @ random(len(self), jax.random.PRNGKey(0))[self.product_table]
+            @ classes.T
         )
         class_matrix /= class_sizes
 
@@ -264,7 +266,7 @@ class FiniteGroup(FiniteSemiGroup):
         return representatives, self.character_table_by_class
 
     @struct.property_cached
-    def _irrep_matrices(self, key=jax.random.PRNGKey(0)) -> List[Array]:
+    def _irrep_matrices(self) -> List[Array]:
         """
         Generates irrep matrices using Dixon's algorithm (Math. Comp. 24 (1970), 707).
 
@@ -282,9 +284,6 @@ class FiniteGroup(FiniteSemiGroup):
             ),
             dtype=int,
         )
-
-        def random(n, key, dtype=float):
-            return np.asarray(jax.random.normal(key, (n,), dtype))
 
         def invariant_subspaces(e, key):
             # Construct a Hermitian matrix that commutes with all matrices
@@ -312,7 +311,7 @@ class FiniteGroup(FiniteSemiGroup):
             return v, starting_idx, proj
 
         eigen = {}
-        keys = jax.random.split(key, 4)
+        keys = jax.random.split(jax.random.PRNGKey(0), 4)
         if np.any(frob == 1):
             # real irreps: start from a real symmetric invariant matrix
             e = random(len(self), keys[0])
@@ -350,6 +349,10 @@ class FiniteGroup(FiniteSemiGroup):
 
 def _cplx_sign(x):
     return x / np.abs(x)
+
+
+def random(n, key, dtype=float):
+    return np.asarray(jax.random.normal(key, (n,), dtype))
 
 
 @dispatch
