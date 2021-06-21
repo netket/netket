@@ -66,8 +66,6 @@ class ARNNDense(ARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
-    eps: float = 1e-7
-    """a small number to avoid numerical instability."""
 
     def setup(self):
         if isinstance(self.features, int):
@@ -123,8 +121,6 @@ class ARNNConv1D(ARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
-    eps: float = 1e-7
-    """a small number to avoid numerical instability."""
 
     def setup(self):
         if isinstance(self.features, int):
@@ -156,6 +152,15 @@ class ARNNConv1D(ARNN):
         return _call(self, inputs)
 
 
+def l2_normalize(log_psi: Array) -> Array:
+    """
+    Normalizes log_psi to have L2-norm 1 along the last axis.
+    """
+    return log_psi - 1 / 2 * jax.scipy.special.logsumexp(
+        2 * log_psi.real, axis=-1, keepdims=True
+    )
+
+
 def _conditional_log_psi(
     model: ARNN, inputs: Array, cache: PyTree
 ) -> Tuple[Array, PyTree]:
@@ -170,13 +175,7 @@ def _conditional_log_psi(
             x = model.activation(x)
         x = model._layers[i](x)
 
-    log_psi = x
-    # Subtract max_log_psi_sqr when computing the norm
-    log_psi_sqr = 2 * log_psi.real
-    max_log_psi_sqr = log_psi_sqr.max(axis=-1, keepdims=True)
-    sum_psi_sqr = jnp.exp(log_psi_sqr - max_log_psi_sqr).sum(axis=-1, keepdims=True)
-    log_psi -= 1 / 2 * (jnp.log(sum_psi_sqr + model.eps) + max_log_psi_sqr)
-
+    log_psi = l2_normalize(x)
     return log_psi, cache
 
 

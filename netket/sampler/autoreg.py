@@ -36,13 +36,10 @@ def batch_choice(key, a, p):
     Returns:
       The generated samples as an 1D array of shape `(batch_size,)`.
     """
-
-    def scan_fun(key, p_i):
-        new_key, key = jax.random.split(key)
-        out_i = jax.random.choice(key, a, p=p_i)
-        return new_key, out_i
-
-    _, out = jax.lax.scan(scan_fun, key, p)
+    p_cumsum = p.cumsum(axis=1)
+    r = p_cumsum[:, -1:] * jax.random.uniform(key, shape=(p.shape[0], 1))
+    indices = (r > p_cumsum).sum(axis=1)
+    out = a[indices]
     return out
 
 
@@ -77,7 +74,9 @@ class ARDirectSampler(Sampler):
 
     def _init_state(sampler, model, params, key):
         new_key, key = jax.random.split(key)
-        σ = jnp.zeros((sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype)
+        σ = jnp.zeros(
+            (sampler.n_chains_per_rank, sampler.hilbert.size), dtype=sampler.dtype
+        )
         cache = sampler._init_cache(model, σ, key)
         return ARDirectSamplerState(σ=σ, cache=cache, key=new_key)
 
@@ -117,7 +116,8 @@ def _sample_chain(sampler, model, params, state, chain_length):
     # We just need a buffer for `σ` before generating each sample
     # The result does not depend on the initial contents in it
     σ = jnp.zeros(
-        (chain_length * sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype
+        (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
+        dtype=sampler.dtype,
     )
 
     # Init `cache` before generating each sample,
@@ -130,7 +130,7 @@ def _sample_chain(sampler, model, params, state, chain_length):
         (σ, cache, key_scan),
         indices,
     )
-    σ = σ.reshape((chain_length, sampler.n_chains, sampler.hilbert.size))
+    σ = σ.reshape((chain_length, sampler.n_chains_per_rank, sampler.hilbert.size))
 
     new_state = state.replace(σ=σ, cache=cache, key=new_key)
     return σ, new_state
