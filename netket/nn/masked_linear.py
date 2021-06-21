@@ -168,17 +168,13 @@ class MaskedConv1D(nn.Module):
 
         in_features = inputs.shape[-1]
         assert in_features % self.feature_group_count == 0
-        kernel_shape = (kernel_size,) + (
+        kernel_shape = (
+            kernel_size,
             in_features // self.feature_group_count,
             self.features,
         )
 
-        kernel = self.param(
-            "kernel",
-            self.kernel_init,
-            kernel_shape,
-            self.dtype,
-        )
+        kernel = self.param("kernel", self.kernel_init, kernel_shape, self.dtype)
         kernel = jnp.asarray(kernel, dtype)
 
         if self.exclusive:
