@@ -19,7 +19,6 @@ import itertools
 from typing import List, Tuple
 
 import numpy as np
-import jax
 
 from netket.utils import HashableArray, struct
 from netket.utils.float import comparable, prune_zeros
@@ -204,9 +203,7 @@ class FiniteGroup(FiniteSemiGroup):
         # since we only want a random linear combination, we forget about the
         # constant |S| and only divide each column through with the appropriate |T|
         class_matrix = (
-            classes
-            @ random(len(self), jax.random.PRNGKey(0))[self.product_table]
-            @ classes.T
+            classes @ random(len(self), seed=0)[self.product_table] @ classes.T
         )
         class_matrix /= class_sizes
 
@@ -280,7 +277,7 @@ class FiniteGroup(FiniteSemiGroup):
         true_product_table = self.product_table[self.inverse]
         inverted_product_table = true_product_table[:, self.inverse]
 
-        def invariant_subspaces(e, key):
+        def invariant_subspaces(e, seed):
             # Construct a Hermitian matrix that commutes with all matrices
             # in the regular rep.
             # These matrices obey E_{g,h} = e_{gh^{-1}} for some vector e
@@ -300,7 +297,7 @@ class FiniteGroup(FiniteSemiGroup):
             # These are calculated as linear combinations of sᴴρv for the
             # regular rep matrices ρ, which is given by the latter two terms
             vs = v[:, starting_idx]
-            s = random(len(self), key)[inverted_product_table]
+            s = random(len(self), seed=seed)[inverted_product_table]
             # row #i of this `s` is sᴴρ(self[i]), where sᴴ is the random vector
             proj = self.character_table().conj() @ s @ vs
             starting_idx = list(starting_idx) + [len(self)]
@@ -317,15 +314,14 @@ class FiniteGroup(FiniteSemiGroup):
             dtype=int,
         )
         eigen = {}
-        keys = jax.random.split(jax.random.PRNGKey(0), 4)
         if np.any(frob == 1):
             # real irreps: start from a real symmetric invariant matrix
-            e = random(len(self), keys[0])
-            eigen["real"] = invariant_subspaces(e, keys[1])
+            e = random(len(self), seed=0)
+            eigen["real"] = invariant_subspaces(e, seed=1)
         if np.any(frob != 1):
             # complex or quaternionic irreps: complex hermitian invariant matrix
-            e = random(len(self), keys[2], dtype=complex)
-            eigen["cplx"] = invariant_subspaces(e, keys[3])
+            e = random(len(self), seed=2, cplx=True)
+            eigen["cplx"] = invariant_subspaces(e, seed=3)
 
         irreps = []
 
@@ -357,8 +353,13 @@ def _cplx_sign(x):
     return x / np.abs(x)
 
 
-def random(n, key, dtype=float):
-    return np.asarray(jax.random.normal(key, (n,), dtype))
+def random(n, seed, cplx=False):
+    if cplx:
+        v = np.random.default_rng(seed).normal(size=(2, n))
+        v = v[0] + 1j * v[1]
+        return v
+    else:
+        return np.random.default_rng(seed).normal(size=n)
 
 
 @dispatch
