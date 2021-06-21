@@ -152,8 +152,8 @@ class Sampler(abc.ABC):
         """
         Returns `True` if the sampler is exact.
 
-        The sampler is exact if the samples are always distributed according to the
-        chosen power of the variational state.
+        The sampler is exact if all the samples are exactly distributed according to the
+        chosen power of the variational state, and there is no correlation among them.
         """
         return False
 
