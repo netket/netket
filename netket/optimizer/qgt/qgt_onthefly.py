@@ -22,7 +22,7 @@ from flax import struct
 from netket.utils.types import PyTree
 import netket.jax as nkjax
 
-from .qgt_onthefly_logic import mat_vec as mat_vec_onthefly, tree_cast
+from .qgt_onthefly_logic import mat_vec_fun, tree_cast
 
 from ..linear_operator import LinearOperator, Uninitialized
 
@@ -89,6 +89,8 @@ class QGTOnTheFlyT(LinearOperator):
     precision. The non-centered variant should be approximately 33% faster.
     """
 
+    holomorphic: bool = struct.field(pytree_node=False, default=True)
+
     def __post_init__(self):
         super().__post_init__()
 
@@ -99,8 +101,13 @@ class QGTOnTheFlyT(LinearOperator):
     def __matmul__(self, y):
         return onthefly_mat_treevec(self, y)
 
-    def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs) -> PyTree:
-        return _solve(self, solve_fun, y, x0=x0)
+    def _solve(
+        self, solve_fun, y: PyTree, *, x0: Optional[PyTree], fast: bool = True, **kwargs
+    ) -> PyTree:
+        if fast:
+            return _fast_solve(self, solve_fun, y, x0=x0)
+        else:
+            return _solve(self, solve_fun, y, x0=x0)
 
     def to_dense(self) -> jnp.ndarray:
         """
@@ -144,16 +151,15 @@ def onthefly_mat_treevec(
     def fun(W, σ):
         return S.apply_fun({"params": W, **S.model_state}, σ)
 
-    mat_vec = partial(
-        mat_vec_onthefly,
-        forward_fn=fun,
+    res = mat_vec_fun(
+        apply_fun=S.apply_fun,
         params=S.params,
         samples=S.samples,
-        diag_shift=S.diag_shift,
+        model_state=S.model_state,
         centered=S.centered,
-    )
-
-    res = mat_vec(vec)
+        holomorphic=S.holomorphic,
+        diag_shift=S.diag_shift,
+    )(vec)
 
     if ravel_result:
         res, _ = nkjax.tree_ravel(res)
@@ -163,16 +169,39 @@ def onthefly_mat_treevec(
 
 @jax.jit
 def _solve(
-    self: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs
+    S: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs
 ) -> PyTree:
 
-    y = tree_cast(y, self.params)
+    y = tree_cast(y, S.params)
 
     # we could cache this...
     if x0 is None:
         x0 = jax.tree_map(jnp.zeros_like, y)
 
-    out, info = solve_fun(self, y, x0=x0)
+    out, info = solve_fun(S, y, x0=x0)
+    return out, info
+
+
+@jax.jit
+def _fast_solve(
+    S: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs
+) -> PyTree:
+    y = tree_cast(y, S.params)
+
+    if x0 is None:
+        x0 = jax.tree_map(jnp.zeros_like, y)
+
+    mat_vec = mat_vec_fun(
+        apply_fun=S.apply_fun,
+        params=S.params,
+        samples=S.samples,
+        model_state=S.model_state,
+        centered=S.centered,
+        holomorphic=S.holomorphic,
+        diag_shift=S.diag_shift,
+    )
+
+    out, info = solve_fun(mat_vec, y, x0=x0)
     return out, info
 
 
