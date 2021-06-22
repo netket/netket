@@ -473,8 +473,8 @@ class BoseHubbard(SpecialHamiltonian):
 
            >>> import netket as nk
            >>> g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
-           >>> hi = nk.hilbert.Boson(n_max=3, n_bosons=6, N=g.n_nodes)
-           >>> op = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
+           >>> hi = nk.hilbert.Fock(n_max=3, n_particles=6, N=g.n_nodes)
+           >>> op = nk.operator.BoseHubbard(hi, U=4.0, graph=g)
            >>> print(op.hilbert.size)
            9
         """
