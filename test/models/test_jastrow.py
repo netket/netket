@@ -25,7 +25,7 @@ def test_Jastrow(dtype):
     g = nk.graph.Chain(N)
 
     ma = nk.models.Jastrow(dtype=dtype)
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
+    _ = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
 
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),

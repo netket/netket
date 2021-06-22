@@ -14,11 +14,6 @@
 
 """Tests for flax.struct."""
 
-
-from .. import common
-
-pytestmark = common.skipif_mpi
-
 from typing import Any
 import pytest
 from functools import partial
@@ -28,6 +23,10 @@ import dataclasses
 from netket.utils import struct
 
 import jax
+
+from .. import common
+
+pytestmark = common.skipif_mpi
 
 
 @struct.dataclass
@@ -107,7 +106,7 @@ def test_pytree_nodes(PointT):
 
 def test_pytree_nodes_inheritance():
     p = Point1Child(x=1, y=2, z=3, meta={"abc": True})
-    p2 = Point1Child(1, 2, {"abc": True}, 3)
+    _ = Point1Child(1, 2, {"abc": True}, 3)
     leaves = jax.tree_leaves(p)
     assert leaves == [1, 2, 3]
     new_p = jax.tree_map(lambda x: x + x, p)
@@ -166,6 +165,6 @@ def test_cache_hash():
     a = Point0cache(1)
     assert a.__Point0cache_hash_cache is struct.Uninitialized
     hash(a) == 123
-    assert a.__Point0cache_hash_cache is 123
+    assert a.__Point0cache_hash_cache == 123
     object.__setattr__(a, "__Point0cache_hash_cache", 1234)
     hash(a) == 1234

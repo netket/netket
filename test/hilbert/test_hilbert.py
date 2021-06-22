@@ -14,13 +14,11 @@
 
 import itertools
 import netket as nk
-import networkx as nx
 import numpy as np
 import pytest
-from netket.hilbert import *
+from netket.hilbert import Spin, Fock, CustomHilbert, Qubit, DoubledHilbert
 
 import jax
-from jax import numpy as jnp
 
 from .. import common
 
@@ -75,17 +73,18 @@ hilberts["Spin 1/2 with total Sz Small"] = Spin(s=3, total_sz=1.0, N=4)
 hilberts["Fock Small"] = Fock(n_max=3, N=5)
 
 # Qubit
-hilberts["Qubit Small"] = nk.hilbert.Qubit(N=1)
+hilberts["Qubit Small"] = Qubit(N=1)
 
 # Custom Hilbert
 hilberts["Custom Hilbert Small"] = CustomHilbert(local_states=[-1232, 132, 0], N=5)
 
 # Custom Hilbert
-hilberts["Doubled Hilbert"] = nk.hilbert.DoubledHilbert(
+hilberts["Doubled Hilbert"] = DoubledHilbert(
     CustomHilbert(local_states=[-1232, 132, 0], N=5)
 )
 
 # hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
+
 
 #
 # Tests
@@ -189,9 +188,9 @@ def test_hilbert_index(hi):
     op = nk.operator.Heisenberg(hilbert=Spin(s=0.5, N=g.n_nodes), graph=g)
 
     with pytest.raises(RuntimeError):
-        m1 = op.to_dense()
+        op.to_dense()
     with pytest.raises(RuntimeError):
-        m2 = op.to_sparse()
+        op.to_sparse()
 
 
 def test_state_iteration():
@@ -207,8 +206,8 @@ def test_deprecations():
     g = nk.graph.Edgeless(3)
 
     with pytest.warns(FutureWarning):
-        hilbert = Spin(s=0.5, graph=g)
+        Spin(s=0.5, graph=g)
 
     with pytest.warns(FutureWarning):
         with pytest.raises(ValueError):
-            hilbert = Spin(s=0.5, graph=g, N=3)
+            Spin(s=0.5, graph=g, N=3)

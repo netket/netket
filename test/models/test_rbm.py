@@ -91,7 +91,7 @@ def test_RBMSymm_creation():
 
     def check_init(creator):
         ma = creator()
-        p = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(0))
+        _ = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(0))
 
     perms = [[0, 1, 2, 3, 4, 5, 6, 7]]
 
@@ -124,7 +124,7 @@ def test_GCNN_creation():
 
     def check_init(creator):
         ma = creator()
-        p = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(0))
+        _ = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(0))
 
     perms = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]]
 
@@ -190,7 +190,7 @@ def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
         hidden_bias_init=nk.nn.initializers.uniform(),
         visible_bias_init=nk.nn.initializers.uniform(),
     )
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
+    _ = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
 
     vmc = nk.VMC(
         nk.operator.BoseHubbard(hi, g, U=1.0),

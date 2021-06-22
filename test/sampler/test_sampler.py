@@ -1,9 +1,21 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import netket as nk
-import networkx as nx
 import numpy as np
 import pytest
-from pytest import approx
-from scipy.stats import power_divergence, combine_pvalues, chisquare
+from scipy.stats import combine_pvalues, chisquare
 
 import jax
 import flax
@@ -145,7 +157,7 @@ def set_pdf_power(request):
             pytest.skip(f"Running only --mpow={cmdline_mpow}.")
 
         if isinstance(sampler, nk.sampler.ARDirectSampler) and request.param != 2:
-            pytest.skip(f"ARDirectSampler only supports machine_pow = 2.")
+            pytest.skip("ARDirectSampler only supports machine_pow = 2.")
 
         return sampler.replace(machine_pow=request.param)
 
@@ -212,7 +224,6 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
     sampler = set_pdf_power(sampler_c)
 
     hi = sampler.hilbert
-    all_states = hi.all_states()
     n_states = hi.n_states
 
     ma, w = model_and_weights(hi, sampler)
@@ -279,7 +290,8 @@ def test_throwing(model_and_weights):
 
         ma, w = model_and_weights(hi)
 
-        sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+        # test raising of init state
+        sampler.init_state(ma, w, seed=SAMPLER_SEED)
 
     with pytest.raises(ValueError):
         sampler = nk.sampler.MetropolisHamiltonianNumpy(
@@ -290,7 +302,8 @@ def test_throwing(model_and_weights):
 
         ma, w = model_and_weights(hi)
 
-        sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+        # test raising of init state
+        sampler.init_state(ma, w, seed=SAMPLER_SEED)
 
     with pytest.raises(flax.errors.ScopeParamShapeError):
         sampler = nk.sampler.MetropolisHamiltonianNumpy(
@@ -301,12 +314,13 @@ def test_throwing(model_and_weights):
 
         ma, w = model_and_weights(hi)
 
-        sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+        # test raising of init state
+        sampler.init_state(ma, w, seed=SAMPLER_SEED)
 
 
 def test_exact_sampler(sampler):
     known_exact_samplers = [nk.sampler.ExactSampler, nk.sampler.ARDirectSampler]
     if any(isinstance(sampler, x) for x in known_exact_samplers):
-        assert sampler.is_exact == True
+        assert sampler.is_exact is True
     else:
-        assert sampler.is_exact == False
+        assert sampler.is_exact is False

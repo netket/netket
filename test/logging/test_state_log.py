@@ -1,12 +1,5 @@
 import pytest
 
-import jax
-import jax.numpy as jnp
-import jax.flatten_util
-import numpy as np
-from functools import partial
-import itertools
-
 import tarfile
 import glob
 
@@ -21,7 +14,6 @@ pytestmark = common.skipif_mpi
 def vstate(request):
     N = 8
     hi = nk.hilbert.Spin(1 / 2, N)
-    g = nk.graph.Chain(N)
 
     ma = nk.models.RBM(
         alpha=1,

@@ -1,3 +1,17 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import pytest
 
 import netket as nk
@@ -180,9 +194,9 @@ def test_lattice_site_lookup():
     np.testing.assert_almost_equal(ids, [0, 1])
 
     with pytest.raises(_lattice.InvalidSiteError):
-        idx = g.id_from_position([[0.5]])
+        g.id_from_position([[0.5]])
     with pytest.raises(_lattice.InvalidSiteError):
-        idx = g.id_from_position([0.5])
+        g.id_from_position([0.5])
 
     with pytest.raises(_lattice.InvalidSiteError):
         pos = g.position_from_basis_coords([2])
@@ -226,9 +240,9 @@ def test_lattice_symmetry(i, name):
     # Try an invalid symmetry group and fail
     with pytest.raises(_lattice.InvalidSiteError):
         if dimension[i] == 2:
-            sg = graph.space_group(group.planar.C(5))
+            _ = graph.space_group(group.planar.C(5))
         else:
-            sg = graph.space_group(group.axial.C(5))
+            _ = graph.space_group(group.axial.C(5))
     # Generate space group using the preloaded point group
     sgb = graph.space_group_builder()
 
@@ -257,7 +271,7 @@ def test_lattice_symmetry(i, name):
 
     # Try an invalid wave vector and fail
     with pytest.raises(_lattice.InvalidWaveVectorError):
-        lg = sgb.little_group([1] * dimension[i])
+        _ = sgb.little_group([1] * dimension[i])
 
     # The little group of Γ is the full point group
     assert sgb.little_group(np.zeros(dimension[i])) == sgb.point_group_
@@ -346,7 +360,7 @@ def test_draw_lattices():
             with pytest.raises(ValueError):
                 lattice.draw()
         else:
-            ax = lattice.draw(
+            _ = lattice.draw(
                 figsize=(1.2, 3),
                 node_color="blue",
                 node_size=600,
@@ -605,19 +619,19 @@ def test_triangular_space_group(lattice):
 
     g = lattice([3, 3], pbc=False)
     with pytest.raises(RuntimeError):
-        grp = g.rotation_group()
+        _ = g.rotation_group()
     with pytest.raises(RuntimeError):
-        grp = g.point_group()
+        _ = g.point_group()
     with pytest.raises(RuntimeError):
-        grp = g.space_group()
+        _ = g.space_group()
 
     g = lattice([2, 4])
     with pytest.raises(RuntimeError):
-        grp = g.rotation_group()
+        _ = g.rotation_group()
     with pytest.raises(RuntimeError):
-        grp = g.point_group()
+        _ = g.point_group()
     with pytest.raises(RuntimeError):
-        grp = g.space_group()
+        _ = g.space_group()
     # 2x4 unit cells of the triangle lattice make a rectangular grid
     assert len(g.point_group(group.planar.rectangle())) == 4
 

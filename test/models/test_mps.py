@@ -1,19 +1,6 @@
-from functools import partial
-from io import StringIO
-
 import pytest
-from pytest import approx, raises
 
-import numpy as np
-import jax
-import jax.numpy as jnp
 import netket as nk
-from netket import nn as nknn
-import flax
-
-from contextlib import redirect_stderr
-import tempfile
-import re
 
 
 @pytest.mark.parametrize("diag", [False, True])
@@ -44,4 +31,4 @@ def test_mps_nonchain():
     ):
         ma = nk.models.MPSPeriodic(hi, g, bond_dim=2)
         sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
-        vs = nk.vqs.MCState(sa, ma, n_samples=1000)
+        _ = nk.vqs.MCState(sa, ma, n_samples=1000)

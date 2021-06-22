@@ -14,13 +14,10 @@
 
 import netket as nk
 import numpy as np
-import networkx as nx
 from scipy import sparse
 from scipy.sparse import linalg
-from numpy import linalg as lalg
-import pytest
+
 from pytest import approx
-import os
 
 from netket.operator import spin
 

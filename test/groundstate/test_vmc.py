@@ -123,13 +123,12 @@ def test_vmc_functions():
     assert driver.energy.mean == approx(ma.expect(ha).mean, abs=1e-5)
 
     state = ma.to_array()
-    exact_dist = np.abs(state) ** 2
 
     n_samples = 16000
     ma.n_samples = n_samples
     ma.n_discard_per_chain = 100
 
-    ## Check zero gradieent
+    # Check zero gradieent
     _, grads = ma.expect_and_grad(ha)
 
     def check_shape(a, b):
@@ -139,9 +138,7 @@ def test_vmc_functions():
     grads, _ = nk.jax.tree_ravel(grads)
 
     assert np.mean(np.abs(grads) ** 2) == approx(0.0, abs=1e-8)
-    ## end
-
-    states = np.array(list(ma.hilbert.states()))
+    # end
 
     for op, name in (ha, "ha"), (sx, "sx"):
         print("Testing expectation of op={}".format(name))
