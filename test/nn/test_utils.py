@@ -24,7 +24,9 @@ from .. import common  # noqa: F401
 SEED = 111
 
 
-@pytest.fixture(params=[pytest.param(M, id=f"Fock(M={M})") for M in [0, 3, 5, 7, 9]])
+@pytest.fixture(
+    params=[pytest.param(M, id=f"Fock(M={M})") for M in [0, 2, 3, 4, 5, 6, 8]]
+)
 def vstate(request):
     M = request.param
     # keep this a prime number so we get different sizes on every rank...
@@ -61,7 +63,9 @@ def test_to_array(vstate, normalize):
     np.testing.assert_allclose(psi_norm, psi_exact)
 
 
-@pytest.fixture(params=[pytest.param(M, id=f"Fock(M={M})") for M in [0, 5, 9]])
+@pytest.fixture(
+    params=[pytest.param(M, id=f"Fock(M={M})") for M in [0, 2, 3, 4, 5, 6, 8]]
+)
 def vstate_rho(request):
     M = request.param
     # keep this a prime number so we get different sizes on every rank...
