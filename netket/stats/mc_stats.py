@@ -73,16 +73,6 @@ class Stats:
     def to_compound(self):
         return "Mean", self.to_dict()
 
-    # Remove this method once we remove legacy.
-    def to_json(self):
-        jsd = {}
-        jsd["Mean"] = float(self.mean.real)
-        jsd["Variance"] = float(self.variance)
-        jsd["Sigma"] = float(self.error_of_mean)
-        jsd["R_hat"] = float(self.R_hat)
-        jsd["TauCorr"] = float(self.tau_corr)
-        return jsd
-
     def __repr__(self):
         mean, err, var = _format_decimal(self.mean, self.error_of_mean, self.variance)
         if not math.isnan(self.R_hat):
