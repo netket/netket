@@ -67,17 +67,27 @@ def benchmark(n_nodes, n_samples, n_layers, width):
     vecp = vec * jax.random.normal(keys[3], shape=vec.shape, dtype=vec.dtype)
     pars = unravel(vecp)
 
-    time1 = timeit(lambda: jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs1)), number=1)
+    time1 = timeit(
+        lambda: jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs1)),
+        number=1,
+    )
 
     # See what jit hath wrought us
     vstate._samples = hilbert.random_state(key=keys[4], size=n_samples)
     vstate._parameters = pars
     qgt_ = qgt.QGTOnTheFly(vstate=vstate, diag_shift=0.01, centered=False)
 
-    time2 = timeit(lambda: jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs2)), number = 10)/10
-    print(f'{n_nodes}\t{width}\t{n_layers}\t{n_samples}\t{time1:.6f}\t{time2:.6f}')
+    time2 = (
+        timeit(
+            lambda: jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs2)),
+            number=10,
+        )
+        / 10
+    )
+    print(f"{n_nodes}\t{width}\t{n_layers}\t{n_samples}\t{time1:.6f}\t{time2:.6f}")
 
-print(f'# Nodes\tWidth\tLayers\tSamples\tJitting\tAfter jitting')
+
+print(f"# Nodes\tWidth\tLayers\tSamples\tJitting\tAfter jitting")
 
 # Different network widths/system sizes
 benchmark(256, 256, 4, 256)

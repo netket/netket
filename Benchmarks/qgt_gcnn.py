@@ -11,11 +11,13 @@ from typing import Any
 from netket.utils.types import NNInitFunc
 import timeit
 
-def timeit_gc(x, number = 1):
-    return timeit.Timer(x, 'gc.enable()').timeit(number=number)
+
+def timeit_gc(x, number=1):
+    return timeit.Timer(x, "gc.enable()").timeit(number=number)
+
 
 # Benchmark starts here
-def benchmark(side, n_samples, layers, features, pure_jax = True):
+def benchmark(side, n_samples, layers, features, pure_jax=True):
     n_nodes = side * side
     keys = jax.random.split(jax.random.PRNGKey(0), 5)
 
@@ -57,31 +59,42 @@ def benchmark(side, n_samples, layers, features, pure_jax = True):
     vecp = vec * jax.random.normal(keys[3], shape=vec.shape, dtype=vec.dtype)
     pars = unravel(vecp)
 
-    time1 = timeit_gc(lambda: jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs1)), number = 1)
-    
+    time1 = timeit_gc(
+        lambda: jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs1)),
+        number=1,
+    )
+
     # See what jit hath wrought us
     vstate._samples = hilbert.random_state(key=keys[4], size=n_samples)
     vstate._parameters = pars
     qgt_ = qgt.QGTOnTheFly(vstate=vstate, diag_shift=0.01)
 
-    time2 = timeit_gc(lambda: jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs2)), number=5)/5
-    print(f'{side}\t{features}\t{layers}\t{n_samples}\t{pure_jax}\t{time1:.6f}\t{time2:.6f}')
+    time2 = (
+        timeit_gc(
+            lambda: jax.tree_map(lambda x: x.block_until_ready(), qgt_.solve(cg, rhs2)),
+            number=5,
+        )
+        / 5
+    )
+    print(
+        f"{side}\t{features}\t{layers}\t{n_samples}\t{pure_jax}\t{time1:.6f}\t{time2:.6f}"
+    )
 
 
-print(f'# Side length\tFeatures\tLayers\tSamples\tPure JAX\tJitting\tAfter jitting')
+print(f"# Side length\tFeatures\tLayers\tSamples\tPure JAX\tJitting\tAfter jitting")
 
 # Different system sizes
 benchmark(6, 256, 4, 4)
 benchmark(8, 256, 4, 4)
 benchmark(12, 256, 4, 4)
-#benchmark(16, 256, 4, 4)
+# benchmark(16, 256, 4, 4)
 
 # Different feature count
 benchmark(8, 256, 4, 2)
 benchmark(8, 256, 4, 4)
 benchmark(8, 256, 4, 6)
-#benchmark(8, 256, 4, 8)
-#benchmark(8, 256, 4, 12)
+# benchmark(8, 256, 4, 8)
+# benchmark(8, 256, 4, 12)
 
 # Different sample numbers
 benchmark(8, 256, 4, 4)
@@ -93,7 +106,7 @@ benchmark(8, 2048, 4, 4)
 benchmark(8, 256, 4, 4)
 benchmark(8, 256, 8, 4)
 benchmark(8, 256, 12, 4)
-#benchmark(8, 256, 32, 4)
+# benchmark(8, 256, 32, 4)
 
 # Pure JAX?
 benchmark(8, 256, 4, 4, False)
