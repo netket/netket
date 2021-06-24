@@ -72,9 +72,11 @@ def estimate_gradient(logpsi, variables, Ô, σ):
     O_loc -= O_loc.mean()
     O_loc /= np.prod(O_loc.shape)
 
-    Opsi = nk.legacy.machine._jax_utils.vjp(
-        variables, logpsi, σ.reshape((-1, σ.shape[-1])), O_loc.reshape((-1,)), True
-    )
+    σr = σ.reshape((-1, σ.shape[-1]))
+    O_loc_r = O_loc.reshape(-1)
+
+    _, vjp = nk.jax.vjp(logpsi, variables, σr, conjugate=True)
+    Opsi = vjp(O_loc_r.conjugate())[0]
 
     return Opsi
 
@@ -206,9 +208,10 @@ def central_diff_grad(func, x, eps, *args):
 def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
     assert der_log.shape == num_der_log.shape
 
-    assert np.max(np.real(der_log - num_der_log)) == approx(
-        0.0, rel=rel_eps, abs=abs_eps
+    np.testing.assert_allclose(
+        der_log.real, num_der_log.real, rtol=rel_eps, atol=abs_eps
     )
+
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
     assert np.max(
         np.abs(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0)

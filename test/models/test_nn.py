@@ -43,6 +43,8 @@ def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("use_bias", [True, False])
 def test_DenseSymm(symmetries, use_bias):
+    rng = nk.jax.PRNGSeq(0)
+
     g, hi, perms = _setup_symm(symmetries, N=8)
 
     ma = nk.nn.DenseSymm(
@@ -51,9 +53,9 @@ def test_DenseSymm(symmetries, use_bias):
         use_bias=use_bias,
         bias_init=nk.nn.initializers.uniform(),
     )
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
+    pars = ma.init(rng.next(), hi.random_state(rng.next(), 1))
 
-    v = hi.random_state(3)
+    v = hi.random_state(rng.next(), 3)
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
     for val in vals:
         assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
@@ -63,6 +65,8 @@ def test_DenseSymm(symmetries, use_bias):
 @pytest.mark.parametrize("use_bias", [True, False])
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
 def test_DenseEquivariant(symmetries, use_bias, lattice):
+    rng = nk.jax.PRNGSeq(0)
+
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
     pt = perms.product_table
@@ -76,7 +80,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice):
         bias_init=nk.nn.initializers.uniform(),
     )
 
-    pars = ma.init(nk.jax.PRNGKey(), np.random.normal(0, 1, [1, n_symm]))
+    pars = ma.init(rng.next(), np.random.normal(0, 1, [1, n_symm]))
 
     # inv_pt computes chosen_op = gh^-1 instead of g^-1h
     chosen_op = np.random.randint(n_symm)
@@ -86,7 +90,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice):
     inv_pt = inverse.product_table
     sym_op = np.where(inv_pt == chosen_op, 1.0, 0.0)
 
-    v = random.normal(random.PRNGKey(0), [3, n_symm])
+    v = random.normal(rng.next(), [3, n_symm])
     v_trans = dot(v, sym_op)
 
     out = ma.apply(pars, v)

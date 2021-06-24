@@ -1,5 +1,4 @@
 import netket as nk
-import networkx as nx
 import numpy as np
 
 import pytest
@@ -19,7 +18,7 @@ operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi, graph=g)
 
 # Bose Hubbard
 g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
-hi = nk.hilbert.Boson(n_max=3, n_bosons=6, N=g.n_nodes)
+hi = nk.hilbert.Fock(n_max=3, n_particles=6, N=g.n_nodes)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
 
 # Graph Hamiltonian
@@ -111,8 +110,6 @@ def test_is_hermitean(op):
 
     rstate = np.zeros(hi.size)
 
-    local_states = hi.local_states
-
     for i in range(100):
         hi.random_state(out=rstate)
         rstatet, mels = op.get_conn(rstate)
@@ -146,7 +143,6 @@ def test_get_conn_numpy_closure(op):
     closure = op._get_conn_flattened_closure()
     v = hi.random_state(jax.random.PRNGKey(0), 120)
     conn = np.empty(v.shape[0], dtype=np.intp)
-    conn2 = np.empty(v.shape[0], dtype=np.intp)
 
     vp, mels = closure(np.asarray(v), conn)
     vp2, mels2 = op.get_conn_flattened(v, conn, pad=False)
@@ -159,7 +155,7 @@ def test_get_conn_numpy_closure(op):
     "op", [pytest.param(op, id=name) for name, op in op_special.items()]
 )
 def test_to_local_operator(op):
-    op_local = op.to_local_operator()
+    op.to_local_operator()
     # TODO check dense representaiton.
 
 
@@ -209,7 +205,7 @@ def test_Heisenberg():
 
         assert not g.is_bipartite()
 
-        ha = nk.operator.Heisenberg(hi, graph=g, sign_rule=True)
+        nk.operator.Heisenberg(hi, graph=g, sign_rule=True)
 
 
 def test_pauli():
