@@ -18,7 +18,7 @@ from netket import legacy as nk
 g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
 
 # Boson Hilbert Space
-hi = nk.hilbert.Boson(N=g.n_nodes, n_max=3, n_bosons=8)
+hi = nk.hilbert.Fock(N=g.n_nodes, n_max=3, n_bosons=8)
 
 # Bose Hubbard Hamiltonian
 ha = nk.operator.BoseHubbard(hilbert=hi, graph=g, U=4.0)

@@ -1,17 +1,7 @@
-from netket.operator.boson import (
-    create as bcreate,
-    destroy as bdestroy,
-    number as bnumber,
-)
-from netket.operator import spin, boson
-from netket.operator import LocalOperator
+from netket.operator import spin
 import netket as nk
 import numpy as np
-import pytest
-from pytest import approx, raises
-import os
 
-from numpy import testing
 from numpy.testing import assert_almost_equal
 
 herm_operators = {}

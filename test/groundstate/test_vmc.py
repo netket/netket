@@ -72,9 +72,11 @@ def estimate_gradient(logpsi, variables, Ô, σ):
     O_loc -= O_loc.mean()
     O_loc /= np.prod(O_loc.shape)
 
-    Opsi = nk.legacy.machine._jax_utils.vjp(
-        variables, logpsi, σ.reshape((-1, σ.shape[-1])), O_loc.reshape((-1,)), True
-    )
+    σr = σ.reshape((-1, σ.shape[-1]))
+    O_loc_r = O_loc.reshape(-1)
+
+    _, vjp = nk.jax.vjp(logpsi, variables, σr, conjugate=True)
+    Opsi = vjp(O_loc_r.conjugate())[0]
 
     return Opsi
 
@@ -121,13 +123,12 @@ def test_vmc_functions():
     assert driver.energy.mean == approx(ma.expect(ha).mean, abs=1e-5)
 
     state = ma.to_array()
-    exact_dist = np.abs(state) ** 2
 
     n_samples = 16000
     ma.n_samples = n_samples
     ma.n_discard_per_chain = 100
 
-    ## Check zero gradieent
+    # Check zero gradient
     _, grads = ma.expect_and_grad(ha)
 
     def check_shape(a, b):
@@ -137,9 +138,7 @@ def test_vmc_functions():
     grads, _ = nk.jax.tree_ravel(grads)
 
     assert np.mean(np.abs(grads) ** 2) == approx(0.0, abs=1e-8)
-    ## end
-
-    states = np.array(list(ma.hilbert.states()))
+    # end
 
     for op, name in (ha, "ha"), (sx, "sx"):
         print("Testing expectation of op={}".format(name))
@@ -206,9 +205,10 @@ def central_diff_grad(func, x, eps, *args):
 def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
     assert der_log.shape == num_der_log.shape
 
-    assert np.max(np.real(der_log - num_der_log)) == approx(
-        0.0, rel=rel_eps, abs=abs_eps
+    np.testing.assert_allclose(
+        der_log.real, num_der_log.real, rtol=rel_eps, atol=abs_eps
     )
+
     # The imaginary part is a bit more tricky, there might be an arbitrary phase shift
     assert np.max(
         np.abs(np.exp(np.imag(der_log - num_der_log) * 1.0j) - 1.0)

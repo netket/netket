@@ -18,7 +18,6 @@ import jax.numpy as jnp
 
 from numpy.testing import assert_equal
 
-import netket as nk
 from netket.jax import PRNGKey, PRNGSeq
 from netket.utils import HashableArray
 

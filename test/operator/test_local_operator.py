@@ -6,11 +6,9 @@ from netket.operator.boson import (
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
 from netket.operator import LocalOperator
 import netket as nk
-import networkx as nx
 import numpy as np
 import pytest
 from pytest import approx, raises
-import os
 
 herm_operators = {}
 generic_operators = {}
@@ -109,8 +107,6 @@ def test_local_operator_transpose_conjugation():
 
 def test_local_operator_add():
     sz0 = nk.operator.spin.sigmaz(hi, 0)
-    sz1 = nk.operator.spin.sigmaz(hi, 1)
-    sz2 = nk.operator.spin.sigmaz(hi, 2)
 
     ham = 0.5 * sz0.to_dense()
     ha = 0.5 * sz0
@@ -206,7 +202,7 @@ def test_simple_operators():
         assert (sigmap(hi, i).to_dense() == sigmap_hat.to_dense()).all()
 
     print("Testing create/destroy composition...")
-    hi = nk.hilbert.Boson(3, N=L)
+    hi = nk.hilbert.Fock(3, N=L)
     for i in range(L):
         print("i=", i)
         a = bdestroy(hi, i)
@@ -219,7 +215,7 @@ def test_simple_operators():
     print("Testing mixed spaces...")
     L = 3
     his = nk.hilbert.Spin(0.5, N=L)
-    hib = nk.hilbert.Boson(3, N=L - 1)
+    hib = nk.hilbert.Fock(3, N=L - 1)
     hi = his * hib
     for i in range(hi.size):
         print("i=", i)
@@ -273,7 +269,7 @@ def test_mul_matmul():
     assert np.allclose(op.to_dense(), 2.0 * sx0sy1_hat.to_dense())
 
     with pytest.raises(TypeError):
-        doesnotwork = sx0_hat @ 2.0
+        sx0_hat @ 2.0
     with pytest.raises(TypeError):
         op = nk.operator.LocalOperator(hi, sx, [0])
         op @= 2.0
@@ -305,9 +301,9 @@ def test_truediv():
     assert np.allclose((sx0sy1_hat / 2).to_dense(), 0.5 * sx0sy1_hat.to_dense())
 
     with pytest.raises(TypeError):
-        doesnotwork = sx0_hat / sy1_hat
+        sx0_hat / sy1_hat
     with pytest.raises(TypeError):
-        doesnotwork = 1.0 / sx0_hat
+        1.0 / sx0_hat
 
     sx0sy1 = sx0sy1_hat.to_dense()
     sx0sy1_hat /= 3.0

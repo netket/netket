@@ -1,17 +1,8 @@
-from functools import partial
-from io import StringIO
-
 import pytest
-from pytest import approx, raises
+from pytest import raises
 
 import numpy as np
-import jax
-import jax.numpy as jnp
 import netket as nk
-
-from contextlib import redirect_stderr
-import tempfile
-import re
 
 from .. import common
 
@@ -65,12 +56,12 @@ def _setup_ss(dtype=np.float32, sr=True):
     return lind, vs, driver
 
 
-def _setup_obs():
+def _setup_obs(L):
     hi = nk.hilbert.Spin(s=0.5) ** L
 
     obs_sx = nk.operator.LocalOperator(hi)
     for i in range(L):
-        obs_sx += nk.operator.LocalOperator(hi, sx, [i])
+        obs_sx += nk.operator.spin.sigmax(hi, i)
 
     obs = {"SigmaX": obs_sx}
     return obs

@@ -34,3 +34,4 @@ def test_key_split(_mpi_size, _mpi_comm):
     key, _ = nk.jax.mpi_split(key)
     keys = MPI.COMM_WORLD.allgather(key)
     assert all([not jnp.all(k == keys) for k in keys])
+    assert len(keys) == size

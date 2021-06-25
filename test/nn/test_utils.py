@@ -1,30 +1,36 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import pytest
 
-import jax
 import jax.numpy as jnp
-import jax.flatten_util
 import numpy as np
-from functools import partial
-import itertools
-
-import tarfile
-import glob
-from io import BytesIO
-
-from flax import serialization
 
 import netket as nk
 
-from .. import common
+from .. import common  # noqa: F401
 
 SEED = 111
 
 
-@pytest.fixture(params=[pytest.param(M, id=f"Fock(M={M})") for M in [0, 3, 5, 7, 9]])
+@pytest.fixture(
+    params=[pytest.param(M, id=f"Fock(M={M})") for M in [0, 2, 3, 4, 5, 6, 8]]
+)
 def vstate(request):
     M = request.param
     # keep this a prime number so we get different sizes on every rank...
-    hi = nk.hilbert.Fock(7, 1)
+    hi = nk.hilbert.Fock(M, 1)
 
     ma = nk.models.RBM(
         alpha=1,
@@ -57,11 +63,13 @@ def test_to_array(vstate, normalize):
     np.testing.assert_allclose(psi_norm, psi_exact)
 
 
-@pytest.fixture(params=[pytest.param(M, id=f"Fock(M={M})") for M in [0, 5, 9]])
+@pytest.fixture(
+    params=[pytest.param(M, id=f"Fock(M={M})") for M in [0, 2, 3, 4, 5, 6, 8]]
+)
 def vstate_rho(request):
     M = request.param
     # keep this a prime number so we get different sizes on every rank...
-    hi = nk.hilbert.Fock(7, 1)
+    hi = nk.hilbert.Fock(M, 1)
 
     ma = nk.models.NDM()
 

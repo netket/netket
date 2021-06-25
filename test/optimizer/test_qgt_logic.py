@@ -1,3 +1,17 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # test qgt_onthefly_logic with inhomogeneous parameters
 
 import pytest
@@ -5,16 +19,12 @@ import pytest
 import jax
 import jax.numpy as jnp
 import jax.flatten_util
-import numpy as np
-from jax.scipy.sparse.linalg import cg
 from netket.optimizer.qgt import qgt_onthefly_logic, qgt_jacobian_pytree_logic
 
 from functools import partial
 import itertools
 
 from netket import jax as nkjax
-
-import pytest
 
 from .. import common
 
@@ -329,7 +339,6 @@ def test_matvec_linear_transpose(e, centered, jit):
     "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
 )
 def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype):
-    diag_shift = 0.01
     mv = qgt_jacobian_pytree_logic._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):

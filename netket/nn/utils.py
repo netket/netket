@@ -23,9 +23,9 @@ def to_array(hilbert, apply_fun, variables, normalize=True):
     # mpi4jax does not have (yet) allgatherv so we need to be creative
     # could be made easier if we update mpi4jax
     n_states = hilbert.n_states
-    n_states_fake = int(np.ceil(n_states / mpi.n_nodes)) * mpi.n_nodes
+    n_states_padded = int(np.ceil(n_states / mpi.n_nodes)) * mpi.n_nodes
     states_n = np.arange(n_states)
-    fake_states_n = np.arange(n_states_fake - n_states)
+    fake_states_n = np.arange(n_states_padded - n_states)
 
     # divide the hilbert space in chunks for each node
     states_per_rank = np.split(np.concatenate([states_n, fake_states_n]), mpi.n_nodes)
@@ -53,7 +53,7 @@ def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize):
     # last rank, get rid of fake elements
     if mpi.rank == mpi.n_nodes - 1 and n_fake_states > 0:
         log_psi_local = jax.ops.index_update(
-            log_psi_local, jax.ops.index[-n_fake_states:], 0.0
+            log_psi_local, jax.ops.index[-n_fake_states:], -jnp.inf
         )
 
     if normalize:
