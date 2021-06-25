@@ -128,7 +128,7 @@ def test_vmc_functions():
     ma.n_samples = n_samples
     ma.n_discard_per_chain = 100
 
-    # Check zero gradieent
+    # Check zero gradient
     _, grads = ma.expect_and_grad(ha)
 
     def check_shape(a, b):
