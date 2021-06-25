@@ -83,17 +83,17 @@ for name, op in operators.items():
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 def test_produce_elements_in_hilbert(op):
+    rng = nk.jax.PRNGSeq(0)
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
     assert hi.size > 0
-    rstate = np.zeros(hi.size)
 
     local_states = hi.local_states
 
     max_conn_size = op.max_conn_size
 
     for i in range(1000):
-        hi.random_state(out=rstate)
+        rstate = hi.random_state(rng.next())
 
         rstatet, mels = op.get_conn(rstate)
 
@@ -105,13 +105,15 @@ def test_produce_elements_in_hilbert(op):
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 def test_is_hermitean(op):
+    rng = nk.jax.PRNGSeq(0)
+
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
 
     rstate = np.zeros(hi.size)
 
     for i in range(100):
-        hi.random_state(out=rstate)
+        rstate = hi.random_state(rng.next())
         rstatet, mels = op.get_conn(rstate)
 
         for k, state in enumerate(rstatet):
