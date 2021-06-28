@@ -82,7 +82,7 @@ def test_liouvillian_no_dissipators():
 
 def test_lindblad_zero_eigenvalue():
     lind_mat = lind.to_sparse()
-    w, v = linalg.eigsh(lind_mat.H * lind_mat, which="SM")
+    w, v = linalg.eigsh(lind_mat.T.conj() * lind_mat, which="SM")
     assert w[0] <= 10e-10
 
 
