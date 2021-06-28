@@ -170,14 +170,14 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
 
             lind_mat = lindblad.to_dense()
 
-            ldagl = lind_mat.H * lind_mat
+            ldagl = lind_mat.T.conj() * lind_mat
             w, v = eigh(ldagl)
 
         else:
             from scipy.sparse.linalg import eigsh
 
             lind_mat = lindblad.to_sparse()
-            ldagl = lind_mat.H * lind_mat
+            ldagl = lind_mat.T.conj() * lind_mat
 
             w, v = eigsh(ldagl, which="SM", k=2)
 
