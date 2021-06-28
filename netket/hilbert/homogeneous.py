@@ -126,7 +126,7 @@ class HomogeneousHilbert(AbstractHilbert):
 
     @property
     def n_states(self) -> int:
-        r"""int: The total dimension of the many-body Hilbert space.
+        r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
 
         hind = self._get_hilbert_index()
@@ -138,8 +138,13 @@ class HomogeneousHilbert(AbstractHilbert):
 
     @property
     def is_finite(self) -> bool:
-        r"""bool: Whether the local hilbert space is finite."""
+        r"""Whether the local hilbert space is finite."""
         return self._is_finite
+
+    @property
+    def constrained(self) -> bool:
+        r"""Returns True if the hilbert space is constrained."""
+        return self._has_constraint
 
     def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
         hind = self._get_hilbert_index()
