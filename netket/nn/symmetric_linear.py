@@ -207,6 +207,8 @@ class DenseSymmFFT(Module):
                 (self.features, self.n_cells*self.sites_per_cell),
                 self.dtype,
             )
+        
+        kernel = jnp.asarray(kernel, dtype)
 
         if self.mask:
             kernel = kernel*jnp.expand_dims(self.mask,0)
@@ -229,6 +231,7 @@ class DenseSymmFFT(Module):
                 bias = self.param("bias", self.bias_init, (self.features, 1), dtype)
             else:
                 bias = self.param("bias", zeros, (self.features, 1), dtype)
+            bias = jnp.asarray(bias, dtype)
             x += bias
 
         return x
@@ -323,6 +326,7 @@ class DenseEquivariantFFT(Module):
                 bias = self.param("bias", self.bias_init, (self.out_features, 1), dtype)
             else: 
                 bias = self.param("bias", zeros, (self.out_features, 1), dtype)
+            bias = jnp.asarray(bias, dtype)
             x += bias
 
         return x
@@ -470,6 +474,8 @@ class DenseEquivariantIrrep(Module):
                 bias = self.param("bias", self.bias_init, (self.out_features, 1), dtype)
             else: 
                 bias = self.param("bias", zeros, (self.out_features, 1), dtype)
+            bias = jnp.asarray(bias, dtype)
+
             x += bias
 
         return x
