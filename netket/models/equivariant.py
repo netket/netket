@@ -28,7 +28,14 @@ from netket.graph import Graph
 
 from netket import nn as nknn
 from netket.nn.initializers import zeros, variance_scaling
-from netket.nn.symmetric_linear import DenseSymmMatrix, DenseSymmFFT, DenseEquivariantFFT, DenseEquivariantMatrix, DenseEquivariantIrrep
+from netket.nn.symmetric_linear import (
+    DenseSymmMatrix,
+    DenseSymmFFT,
+    DenseEquivariantFFT,
+    DenseEquivariantMatrix,
+    DenseEquivariantIrrep,
+)
+
 
 class GCNN_FFT(nn.Module):
 
@@ -36,7 +43,7 @@ class GCNN_FFT(nn.Module):
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    product_table: HashableArray    
+    product_table: HashableArray
     """Product table describing the algebra of the symmetry group
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
@@ -72,7 +79,7 @@ class GCNN_FFT(nn.Module):
 
         self.dense_symm = DenseSymmFFT(
             space_group=self.symmetries,
-            shape = self.shape,
+            shape=self.shape,
             features=self.features[0],
             dtype=self.dtype,
             use_bias=self.use_bias,
@@ -84,7 +91,7 @@ class GCNN_FFT(nn.Module):
         self.equivariant_layers = [
             DenseEquivariantFFT(
                 product_table=self.product_table,
-                shape = self.shape,
+                shape=self.shape,
                 in_features=self.features[layer],
                 out_features=self.features[layer + 1],
                 use_bias=self.use_bias,
@@ -105,29 +112,30 @@ class GCNN_FFT(nn.Module):
 
         if self.output_activation is not None:
             x = self.output_activation(x)
-        
-        x = x.reshape(-1,self.features[-1]*self.n_symm)
-        x_max = jnp.max(x, axis=-1, keepdims=True)
-        x = jnp.exp(x-x_max)
-        x = x.reshape(-1, self.features[-1], self.n_symm)
-        x = jnp.sum(x,1)
 
-        x = jnp.sum(x*jnp.array(self.characters),-1)
+        x = x.reshape(-1, self.features[-1] * self.n_symm)
+        x_max = jnp.max(x, axis=-1, keepdims=True)
+        x = jnp.exp(x - x_max)
+        x = x.reshape(-1, self.features[-1], self.n_symm)
+        x = jnp.sum(x, 1)
+
+        x = jnp.sum(x * jnp.array(self.characters), -1)
 
         x = jnp.log(x) + jnp.squeeze(x_max)
 
         if self.imag_part:
-            return 1j*jnp.imag(x)
+            return 1j * jnp.imag(x)
         else:
             return x
-      
+
+
 class GCNN_Irrep(nn.Module):
 
     symmetries: HashableArray
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    irreps: Tuple[HashableArray]    
+    irreps: Tuple[HashableArray]
     """List of irreducible represenation matrices"""
     layers: int
     """Number of layers (not including sum layer over output)."""
@@ -190,21 +198,22 @@ class GCNN_Irrep(nn.Module):
 
         if self.output_activation is not None:
             x = self.output_activation(x)
-        
-        x = x.reshape(-1,self.features[-1]*self.n_symm)
-        x_max = jnp.max(x, axis=-1, keepdims=True)
-        x = jnp.exp(x-x_max)
-        x = x.reshape(-1, self.features[-1], self.n_symm)
-        x = jnp.sum(x,1)
 
-        x = jnp.sum(x*jnp.array(self.characters),-1)
+        x = x.reshape(-1, self.features[-1] * self.n_symm)
+        x_max = jnp.max(x, axis=-1, keepdims=True)
+        x = jnp.exp(x - x_max)
+        x = x.reshape(-1, self.features[-1], self.n_symm)
+        x = jnp.sum(x, 1)
+
+        x = jnp.sum(x * jnp.array(self.characters), -1)
 
         x = jnp.log(x) + jnp.squeeze(x_max)
 
         if self.imag_part:
-            return 1j*jnp.imag(x)
+            return 1j * jnp.imag(x)
         else:
             return x
+
 
 class GCNN_Parity_FFT(nn.Module):
 
@@ -212,7 +221,7 @@ class GCNN_Parity_FFT(nn.Module):
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    product_table: HashableArray    
+    product_table: HashableArray
     """Product table describing the algebra of the symmetry group
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
@@ -250,7 +259,7 @@ class GCNN_Parity_FFT(nn.Module):
 
         self.dense_symm = DenseSymmFFT(
             space_group=self.symmetries,
-            shape = self.shape,
+            shape=self.shape,
             features=self.features[0],
             dtype=self.dtype,
             use_bias=self.use_bias,
@@ -291,42 +300,57 @@ class GCNN_Parity_FFT(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        
-        x_flip = self.dense_symm(-1*x)
+
+        x_flip = self.dense_symm(-1 * x)
         x = self.dense_symm(x)
 
         for layer in range(self.layers - 1):
             x = self.activation(x)
             x_flip = self.activation(x_flip)
 
-            x_new = self.equivariant_layers[layer](x) + self.equivariant_layers_flip[layer](x_flip)
-            x_flip = self.equivariant_layers[layer](x_flip) + self.equivariant_layers_flip[layer](x)
-            x = jnp.array(x_new,copy=True)
+            x_new = self.equivariant_layers[layer](x) + self.equivariant_layers_flip[
+                layer
+            ](x_flip)
+            x_flip = self.equivariant_layers[layer](
+                x_flip
+            ) + self.equivariant_layers_flip[layer](x)
+            x = jnp.array(x_new, copy=True)
 
-        x = jnp.concatenate((x,x_flip),-2)
+        x = jnp.concatenate((x, x_flip), -2)
 
         if self.output_activation is not None:
             x = self.output_activation(x)
-        
-        x = x.reshape(-1,2*self.features[-1]*self.n_symm)
+
+        x = x.reshape(-1, 2 * self.features[-1] * self.n_symm)
         x_max = jnp.max(x, axis=-1, keepdims=True)
-        x = jnp.exp(x-x_max)
-        x = x.reshape(-1, self.features[-1], 2*self.n_symm)
-        x = jnp.sum(x,1)
+        x = jnp.exp(x - x_max)
+        x = x.reshape(-1, self.features[-1], 2 * self.n_symm)
+        x = jnp.sum(x, 1)
 
         if self.parity == 1:
-            par_chars = jnp.expand_dims(jnp.concatenate((jnp.array(self.characters),jnp.array(self.characters)),0),0)
+            par_chars = jnp.expand_dims(
+                jnp.concatenate(
+                    (jnp.array(self.characters), jnp.array(self.characters)), 0
+                ),
+                0,
+            )
         else:
-            par_chars = jnp.expand_dims(jnp.concatenate((jnp.array(self.characters),-1*jnp.array(self.characters)),0),0)
+            par_chars = jnp.expand_dims(
+                jnp.concatenate(
+                    (jnp.array(self.characters), -1 * jnp.array(self.characters)), 0
+                ),
+                0,
+            )
 
-        x = jnp.sum(x*par_chars,-1)
+        x = jnp.sum(x * par_chars, -1)
 
         x = jnp.log(x) + jnp.squeeze(x_max)
 
         if self.imag_part:
-            return 1j*jnp.imag(x)
+            return 1j * jnp.imag(x)
         else:
             return x
+
 
 class GCNN_Parity_Irrep(nn.Module):
 
@@ -334,7 +358,7 @@ class GCNN_Parity_Irrep(nn.Module):
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    irreps: Tuple[HashableArray]    
+    irreps: Tuple[HashableArray]
     """List of irreducible represenation matrices"""
     layers: int
     """Number of layers (not including sum layer over output)."""
@@ -407,43 +431,58 @@ class GCNN_Parity_Irrep(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        x_flip = self.dense_symm(-1*x)
+        x_flip = self.dense_symm(-1 * x)
         x = self.dense_symm(x)
-        
+
         for layer in range(self.layers - 1):
             x = self.activation(x)
             x_flip = self.activation(x_flip)
 
-            x_new = self.equivariant_layers[layer](x) + self.equivariant_layers_flip[layer](x_flip)
-            x_flip = self.equivariant_layers[layer](x_flip) + self.equivariant_layers_flip[layer](x)
-            x = jnp.array(x_new,copy=True)
+            x_new = self.equivariant_layers[layer](x) + self.equivariant_layers_flip[
+                layer
+            ](x_flip)
+            x_flip = self.equivariant_layers[layer](
+                x_flip
+            ) + self.equivariant_layers_flip[layer](x)
+            x = jnp.array(x_new, copy=True)
 
-        x = jnp.concatenate((x,x_flip),-2)
+        x = jnp.concatenate((x, x_flip), -2)
 
         if self.output_activation is not None:
             x = self.output_activation(x)
-        
-        x = x.reshape(-1,2*self.features[-1]*self.n_symm)
+
+        x = x.reshape(-1, 2 * self.features[-1] * self.n_symm)
         x_max = jnp.max(x, axis=-1, keepdims=True)
-        x = jnp.exp(x-x_max)
-        x = x.reshape(-1, self.features[-1], 2*self.n_symm)
-        x = jnp.sum(x,1)
+        x = jnp.exp(x - x_max)
+        x = x.reshape(-1, self.features[-1], 2 * self.n_symm)
+        x = jnp.sum(x, 1)
 
         if self.parity == 1:
-            par_chars = jnp.expand_dims(jnp.concatenate((jnp.array(self.characters),jnp.array(self.characters)),0),0)
+            par_chars = jnp.expand_dims(
+                jnp.concatenate(
+                    (jnp.array(self.characters), jnp.array(self.characters)), 0
+                ),
+                0,
+            )
         else:
-            par_chars = jnp.expand_dims(jnp.concatenate((jnp.array(self.characters),-1*jnp.array(self.characters)),0),0)
+            par_chars = jnp.expand_dims(
+                jnp.concatenate(
+                    (jnp.array(self.characters), -1 * jnp.array(self.characters)), 0
+                ),
+                0,
+            )
 
-        x = jnp.sum(x*par_chars,-1)
+        x = jnp.sum(x * par_chars, -1)
 
         x = jnp.log(x) + jnp.squeeze(x_max)
 
         if self.imag_part:
-            return 1j*jnp.imag(x)
+            return 1j * jnp.imag(x)
         else:
             return x
 
-def GCNN(symmetry_info=None,mode="auto",**kwargs):
+
+def GCNN(symmetry_info=None, mode="auto", **kwargs):
 
     r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
     that is invariant over a specified symmetry group.
@@ -460,17 +499,17 @@ def GCNN(symmetry_info=None,mode="auto",**kwargs):
 
         {\bf f}^{i+1}_h = \Gamma( \sum_h W_{g^{-1} h} {\bf f}^i_h).
 
-    Args:   
+    Args:
         symmetries: A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
         Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
         product_table: Product table describing the algebra of the symmetry group
         Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
         layers: Number of layers (not including sum layer over output).
-        features: Number of features in each layer starting from the input. 
+        features: Number of features in each layer starting from the input.
         If a single number is given, all layers will have the same number of features.
         characters: Array specifying the characters of the desired symmetry representation
         dtype: The dtype of the weights
-        parity: 
+        parity:
         activation: The nonlinear activation function between hidden layers.
         output_activation: The nonlinear activation before the output.
         imag_part: If true return only the imaginary part of the output
@@ -479,9 +518,9 @@ def GCNN(symmetry_info=None,mode="auto",**kwargs):
         kernel_init: Initializer for the Dense layer matrix.
         bias_init: Initializer for the hidden bias.
     """
-    if isinstance(symmetry_info,Graph):
-        try: 
-            #If we can find a space group default to fast fourier transforms
+    if isinstance(symmetry_info, Graph):
+        try:
+            # If we can find a space group default to fast fourier transforms
             sg = symmetry_info.space_group()
             if mode == "irreps":
                 symmetries = HashableArray(np.asarray(sg))
@@ -493,63 +532,70 @@ def GCNN(symmetry_info=None,mode="auto",**kwargs):
                 if not "shape" in kwargs:
                     kwargs["shape"] = symmetry_info.extent
         except:
-            #If we can't find a space group use the irrep projection
+            # If we can't find a space group use the irrep projection
             sg = symmetry_info.automorphisms()
             if mode == "fft":
                 warnings.warn(
-                    "Graph without a space group specified. Switching to matrix implementation", 
+                    "Graph without a space group specified. Switching to matrix implementation",
                 )
                 mode = "irreps"
 
             symmetries = HashableArray(np.asarray(sg))
             irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
 
-    elif isinstance(symmetry_info,PermutationGroup):
-        #If we get a group (and no other info) default to irrep projection
+    elif isinstance(symmetry_info, PermutationGroup):
+        # If we get a group (and no other info) default to irrep projection
         if mode == "fft":
             symmetries = HashableArray(np.asarray(symmetry_info))
             product_table = HashableArray(symmetry_info.product_table)
-        else: 
+        else:
             mode = "irreps"
             symmetries = HashableArray(np.asarray(symmetry_info))
-            irreps = tuple(HashableArray(irrep) for irrep in symmetry_info.irrep_matrices())
+            irreps = tuple(
+                HashableArray(irrep) for irrep in symmetry_info.irrep_matrices()
+            )
     elif not symmetry_info:
         if mode == "irreps":
             if not ("irreps" in kwargs and "symmetries" in kwargs):
-                raise ValueError("Either a graph, permutation group or both irreps and symmetries must be specified")
+                raise ValueError(
+                    "Either a graph, permutation group or both irreps and symmetries must be specified"
+                )
             else:
                 symmetries = kwargs["symmetries"]
                 irreps = kwargs["irreps"]
-                del kwargs["symmetries"],kwargs["irreps"]
+                del kwargs["symmetries"], kwargs["irreps"]
         if mode == "fft":
             if not ("product_table" in kwargs and "symmetries" in kwargs):
-                raise ValueError("Either a graph, permutation group or both product table and symmetries must be specified")
-            else:               
+                raise ValueError(
+                    "Either a graph, permutation group or both product table and symmetries must be specified"
+                )
+            else:
                 symmetries = kwargs["symmetries"]
                 product_table = kwargs["product_table"]
-                del kwargs["symmetries"],kwargs["product_table"]
+                del kwargs["symmetries"], kwargs["product_table"]
 
     if mode == "fft":
         if not "shape" in kwargs:
-            raise KeyError("Must pass keyword argument shape which specifies the shape of the translation group")        
+            raise KeyError(
+                "Must pass keyword argument shape which specifies the shape of the translation group"
+            )
     else:
         if "shape" in kwargs:
-            del kwargs['shape']
+            del kwargs["shape"]
 
-    if isinstance(kwargs['features'],int):
-        kwargs['features'] = (kwargs['features'],)*kwargs['layers']
+    if isinstance(kwargs["features"], int):
+        kwargs["features"] = (kwargs["features"],) * kwargs["layers"]
 
     if "characters" not in kwargs:
         kwargs["characters"] = HashableArray(np.ones(len(np.asarray(symmetries))))
 
-    if "parity" in kwargs: 
+    if "parity" in kwargs:
         if mode == "fft":
-            return GCNN_Parity_FFT(symmetries,product_table,**kwargs)
+            return GCNN_Parity_FFT(symmetries, product_table, **kwargs)
         else:
-            return GCNN_Parity_Irrep(symmetries,irreps,**kwargs)
+            return GCNN_Parity_Irrep(symmetries, irreps, **kwargs)
     else:
         if mode == "fft":
-            return GCNN_FFT(symmetries,product_table,**kwargs)
+            return GCNN_FFT(symmetries, product_table, **kwargs)
         else:
-            return GCNN_Irrep(symmetries,irreps,**kwargs)
-
+            return GCNN_Irrep(symmetries, irreps, **kwargs)

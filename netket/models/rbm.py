@@ -240,6 +240,7 @@ class RBMSymm(nn.Module):
             precision=self.precision,
         )(x_in)
         x = self.activation(x)
+        x = x.reshape(-1, self.n_symm * self.n_sites)
         x = jnp.sum(x, axis=-1)
 
         if self.use_visible_bias:
