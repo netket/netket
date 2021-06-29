@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, Union
+from typing import Any, Callable, Union, Optional, Tuple
 
 from flax.linen.module import Module, compact
 from jax import lax
@@ -23,7 +23,8 @@ from netket.nn.initializers import normal, zeros
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape
 from netket.utils.group import PermutationGroup
-from netket.graph improt Graph
+from netket.graph import Graph
+import warnings
 
 def _symmetrizer_col(perms, features):
     """
@@ -62,16 +63,16 @@ class DenseSymmMatrix(Module):
     """The number of symmetry-reduced features. The full output size is len(symmetries) * features."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
-    mask: Optional[HashableArray]
+    mask: Optional[HashableArray] = None
     """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
     dtype: Any = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]]
+    kernel_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
-    bias_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]
+    bias_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
     """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
@@ -79,6 +80,8 @@ class DenseSymmMatrix(Module):
         perms = np.asarray(self.symmetries)
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
+
+        self.stdev = 1./np.sqrt(self.n_sites)
 
         self.symm_cols = jnp.asarray(_symmetrizer_col(perms, self.features))
 
@@ -99,21 +102,26 @@ class DenseSymmMatrix(Module):
         return jnp.expand_dims(bias, (0,2))
 
     @compact
-    def __call__(self, inputs: Array) -> Array:
+    def __call__(self, x: Array) -> Array:
         """Applies the symmetrized linear transformation to the inputs along the last dimension.
 
         Args:
-          inputs: The nd-array to be transformed.
+          x: The nd-array to be transformed.
 
         Returns:
           The transformed input.
         """
-        dtype = jnp.promote_types(inputs.dtype, self.dtype)
-        inputs = jnp.asarray(inputs, dtype)
+        dtype = jnp.promote_types(x.dtype, self.dtype)
+        x = jnp.asarray(x, dtype)
 
-        kernel = self.param(
-            "kernel", self.kernel_init, (inputs.shape[-1], self.features), self.dtype
-        )
+        if self.kernel_init:
+            kernel = self.param(
+                "kernel", self.kernel_init, (x.shape[-1], self.features), self.dtype
+            )
+        else:
+            kernel = self.param(
+                "kernel", normal(self.stdev), (x.shape[-1], self.features), self.dtype
+            )
 
         if self.mask:
             kernel = kernel*jnp.expand_dims(self.mask,1)
@@ -121,19 +129,22 @@ class DenseSymmMatrix(Module):
         kernel = self.full_kernel(kernel).reshape(-1,self.features,self.n_symm)
         kernel = jnp.asarray(kernel, dtype)
 
-        y = lax.dot_general(
-            inputs,
+        x = lax.dot_general(
+            x,
             kernel,
-            (((inputs.ndim - 1,), (0,)), ((), ())),
+            (((x.ndim - 1,), (0,)), ((), ())),
             precision=self.precision,
         )
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            if self.bias_init:
+                bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            else:
+                bias = self.param("bias", zeros, (self.features,), self.dtype)
             bias = jnp.asarray(self.full_bias(bias), dtype)
-            y += bias
+            x += bias
 
-        return y
+        return x
 
 class DenseSymmFFT(Module):
     """Implements a symmetrized projection onto a space group using a Fast Fourier Transform """
@@ -146,30 +157,30 @@ class DenseSymmFFT(Module):
     """Tuple that corresponds to shape of lattice"""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
-    mask: Optional[HashableArray]
+    mask: Optional[HashableArray] = None
     """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
-    dtype: DType = jnp.complex128
+    dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
 
-    kernel_init: Callable[[PRNGKeyT, Shape, DType], Array] = default_kernel_init
+    kernel_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
     """Initializer for the Dense layer matrix."""
-    bias_init: Callable[[PRNGKeyT, Shape, DType], Array] = zeros
+    bias_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
     """Initializer for the bias."""
 
     def setup(self):
         self.n_cells = np.product(np.asarray(self.shape))
-        self.n_symm = len(self.space_group)//self.n_cells
-        self.sites_per_cell = self.space_group.shape[1]//self.n_cells
-        self.norm = np.sqrt(self.space_group.shape[1])
+        self.n_symm = len(np.asarray(self.space_group))//self.n_cells
+        self.sites_per_cell = np.asarray(self.space_group).shape[1]//self.n_cells
+               
+        self.stdev = 1./np.sqrt(self.n_cells*self.sites_per_cell)
 
-        self.mapping = self.space_group[:,:self.sites_per_cell].reshape(self.n_cells,self.n_symm, self.sites_per_cell).transpose(1,2,0).reshape(self.n_symm, self.sites_per_cell,*self.shape)
+        self.mapping = np.asarray(self.space_group)[:,:self.sites_per_cell].reshape(self.n_cells,self.n_symm, self.sites_per_cell).transpose(1,2,0).reshape(self.n_symm, self.sites_per_cell,*self.shape)
 
-    def make_filters(self,filters):
-        filters = filters[...,self.mapping]
+    def make_kernel(self,kernel):
+        kernel = kernel[...,self.mapping]
 
-        return filters
-
+        return kernel
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -182,23 +193,31 @@ class DenseSymmFFT(Module):
 
         x = x.reshape(-1,self.n_cells,self.sites_per_cell).transpose(0,2,1).reshape(-1,self.sites_per_cell,*self.shape)
 
-        filters = self.param(
-            "filters",
-            normal(1./self.norm),
-            (self.features, self.n_cells*self.sites_per_cell),
-            self.dtype,
-        )
+        if self.kernel_init:
+            kernel = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, self.n_cells*self.sites_per_cell),
+                self.dtype,
+            )
+        else:
+            kernel = self.param(
+                "kernel",
+                normal(self.stdev),
+                (self.features, self.n_cells*self.sites_per_cell),
+                self.dtype,
+            )
 
         if self.mask:
-            filters = filters*jnp.expand_dims(self.mask,0)
+            kernel = kernel*jnp.expand_dims(self.mask,0)
 
-        filters = self.make_filters(filters)
+        kernel = self.make_kernel(kernel)
 
         x = jnp.fft.fftn(x,s=self.shape).reshape(*x.shape[:2], self.n_cells)
 
-        filters = jnp.fft.fftn(filters,s=self.shape).reshape(*filters.shape[:3],self.n_cells)
+        kernel = jnp.fft.fftn(kernel,s=self.shape).reshape(*kernel.shape[:3],self.n_cells)
 
-        x = jax.lax.dot_general(x, filters,(((1,),(2,)),((2,),(3,))),precision=self.precision)
+        x = lax.dot_general(x, kernel,(((1,),(2,)),((2,),(3,))),precision=self.precision)
         x = x.transpose(1,2,3,0)
         x = x.reshape(*x.shape[:3],*self.shape)
 
@@ -206,100 +225,13 @@ class DenseSymmFFT(Module):
         x = x.transpose(0,1,3,2).reshape(*x.shape[:2],-1)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features, 1), dtype)
+            if self.bias_init:
+                bias = self.param("bias", self.bias_init, (self.features, 1), dtype)
+            else:
+                bias = self.param("bias", zeros, (self.features, 1), dtype)
             x += bias
 
         return x
-
-class DenseEquivariantMatrix(Module):
-
-    symmetry_info: Union[HashableArray, PermutationGroup]
-    """Flattened product table generated by PermutationGroup.produt_table().ravel()
-    that specifies the product of the group with its involution, or the
-    PermutationGroup object itself"""
-    in_features: int
-    """The number of symmetry-reduced input features. The full input size
-    is n_symm*in_features."""
-    out_features: int
-    """The number of symmetry-reduced output features. The full output size
-    is n_symm*out_features."""
-    use_bias: bool = True
-    """Whether to add a bias to the output (default: True)."""
-    dtype: Any = jnp.float64
-    """The dtype of the weights."""
-    precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
-
-    kernel_init: Callable[[PRNGKeyT, Shape, DType], Array] = default_kernel_init
-    """Initializer for the Dense layer matrix."""
-    bias_init: Callable[[PRNGKeyT, Shape, DType], Array] = zeros
-    """Initializer for the bias."""
-
-    def setup(self):
-        # pylint: disable=attribute-defined-outside-init
-        if isinstance(self.symmetry_info, PermutationGroup):
-            self.symmetry_info = HashableArray(self.symmetry_info.product_table.ravel())
-        if not np.asarray(self.symmetry_info).ndim == 1:
-            raise ValueError("Product table should be flattened")
-
-        self.n_symm = int(np.sqrt(np.asarray(self.symmetry_info).shape[0]))
-
-    def full_kernel(self, kernel):
-        """
-        Converts the symmetry-reduced kernel of shape (n_sites, features) to
-        the full Dense kernel of shape (n_sites, features * n_symm).
-        """
-
-        result = jnp.take(kernel, self.symmetry_info, 0)
-        result = result.reshape(
-            self.n_symm, self.n_symm, self.in_features, self.out_features
-        )
-        result = result.transpose(2, 0, 3, 1).reshape(
-            self.n_symm * self.in_features, -1
-        )
-
-        return result
-
-    def full_bias(self, bias):
-        """
-        Convert symmetry-reduced bias of shape (features,) to the full bias of
-        shape (n_symm * features,).
-        """
-        return jnp.repeat(bias, self.n_symm)
-
-    @compact
-    def __call__(self, inputs: Array) -> Array:
-        """Applies the equivariant transform to the inputs along the last dimension.
-        Args:
-          inputs: The nd-array to be transformed.
-        Returns:
-          The transformed input.
-        """
-        dtype = jnp.promote_types(inputs.dtype, self.dtype)
-        inputs = jnp.asarray(inputs, dtype)
-
-        kernel = self.param(
-            "kernel",
-            self.kernel_init,
-            (inputs.shape[-1] // self.in_features, self.in_features, self.out_features),
-            self.dtype,
-        )
-        kernel = self.full_kernel(kernel)
-        kernel = jnp.asarray(kernel, dtype)
-
-        y = lax.dot_general(
-            inputs,
-            kernel,
-            (((inputs.ndim - 1,), (0,)), ((), ())),
-            precision=self.precision,
-        )
-
-        if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
-            bias = jnp.asarray(self.full_bias(bias), dtype)
-            y += bias
-
-        return y
 
 class DenseEquivariantFFT(Module):
     """Implements a group convolution over a space group using a Fast Fourier Transform
@@ -315,29 +247,31 @@ class DenseEquivariantFFT(Module):
     """Tuple that corresponds to shape of lattice"""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
-    mask: Optional[HashableArray]
+    mask: Optional[HashableArray] = None
     """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
-    dtype: DType = jnp.complex128
+    dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Callable[[PRNGKeyT, Shape, DType], Array] = default_kernel_init
+    kernel_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
     """Initializer for the Dense layer matrix."""
-    bias_init: Callable[[PRNGKeyT, Shape, DType], Array] = zeros
+    bias_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
     """Initializer for the bias."""
 
     def setup(self):
 
         self.n_cells = np.product(np.asarray(self.shape))
-        self.n_symm = len(self.product_table)//self.n_cells
-        self.norm = np.sqrt(2*self.in_features*self.n_cells*self.n_symm)
-        self.mapping = self.product_table[:self.n_symm].reshape(self.n_symm, self.n_cells, self.n_symm).transpose(0,2,1).reshape(self.n_symm, self.n_symm, *self.shape)
+        self.n_symm = len(np.asarray(self.product_table))//self.n_cells
+        
+        self.stdev = 1./np.sqrt(self.in_features*self.n_cells*self.n_symm)
 
-    def make_filters(self,filters):
-        filters = filters[...,self.mapping]
+        self.mapping = np.asarray(self.product_table)[:self.n_symm].reshape(self.n_symm, self.n_cells, self.n_symm).transpose(0,2,1).reshape(self.n_symm, self.n_symm, *self.shape)
 
-        return filters
+    def make_kernel(self,kernel):
+        kernel = kernel[...,self.mapping]
+
+        return kernel
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -351,23 +285,33 @@ class DenseEquivariantFFT(Module):
         x = x.reshape(*x.shape[:-1],self.n_cells,self.n_symm).transpose(0,1,3,2)
         x = x.reshape(*x.shape[:-1],*self.shape)
 
-        filters = self.param(
-            "filters",
-            normal(1./self.norm),
-            (self.out_features,self.in_features,self.n_symm*self.n_cells,),
-            self.dtype,
-        )
+        if self.kernel_init:
+            kernel = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.out_features,self.in_features,self.n_symm*self.n_cells,),
+                self.dtype,
+            )
+        else:
+            kernel = self.param(
+                "kernel",
+                normal(self.stdev),
+                (self.out_features,self.in_features,self.n_symm*self.n_cells,),
+                self.dtype,
+            )
+
+        kernel = jnp.asarray(kernel,dtype)
 
         if self.mask:
             kernel = kernel*jnp.expand_dims(self.mask,(0,1))
 
-        filters = self.make_filters(filters)
+        kernel = self.make_kernel(kernel)
 
         x = jnp.fft.fftn(x,s=self.shape).reshape(*x.shape[:3],self.n_cells)
 
-        filters = jnp.fft.fftn(filters,s=self.shape).reshape(*filters.shape[:4],self.n_cells)
+        kernel = jnp.fft.fftn(kernel,s=self.shape).reshape(*kernel.shape[:4],self.n_cells)
 
-        x = jax.lax.dot_general(x,filters,(((1,2),(1,2)),((3,),(4,))),precision=self.precision)
+        x = lax.dot_general(x,kernel,(((1,2),(1,2)),((3,),(4,))),precision=self.precision)
         x = x.transpose(1,2,3,0)
         x = x.reshape(*x.shape[:3],*self.shape)
 
@@ -375,7 +319,10 @@ class DenseEquivariantFFT(Module):
         x = x.transpose(0,1,3,2).reshape(*x.shape[:2],-1)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.out_features, 1), dtype)
+            if self.bias_init:
+                bias = self.param("bias", self.bias_init, (self.out_features, 1), dtype)
+            else: 
+                bias = self.param("bias", zeros, (self.out_features, 1), dtype)
             x += bias
 
         return x
@@ -410,17 +357,17 @@ class DenseEquivariantIrrep(Module):
     """The number of output features; returned as the second dimension of the output."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
-    mask: Optional[HashableArray]
+    mask: Optional[HashableArray] = None
     """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
 
-    dtype: DType = jnp.complex128
+    dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Callable[[PRNGKeyT, Shape, DType], Array] = default_kernel_init
+    kernel_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
     """Initializer for the Dense layer matrix."""
-    bias_init: Callable[[PRNGKeyT, Shape, DType], Array] = zeros
+    bias_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
     """Initializer for the bias."""
 
     def setup(self):
@@ -446,7 +393,8 @@ class DenseEquivariantIrrep(Module):
         limits = np.cumsum([0] + [np.prod(shape) for shape in shapes])
 
         self.disassemble = lambda vecs: tuple(vecs[...,limits[i]:limits[i+1]].reshape(vecs.shape[:-1]+shape) for i,shape in enumerate(shapes))
-                
+        
+        self.stdev = 1./np.sqrt(self.in_features*self.n_symm)
 
     def forward_ft(self, inputs: Array, dtype: DType) -> Tuple[Array]:
         """Performs a forward group Fourier transform on the input. 
@@ -489,12 +437,23 @@ class DenseEquivariantIrrep(Module):
         x = jnp.asarray(x, dtype)
         x = self.forward_ft(x,dtype=dtype)
 
-        kernel = self.param(
-            "kernel",
-            normal(1./np.sqrt(2*self.in_features*self.n_symm)),
-            (self.in_features, self.out_features, self.n_symm),
-            self.dtype,
-        )
+        if self.kernel_init:
+            kernel = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.in_features, self.out_features, self.n_symm),
+                self.dtype,
+            )
+
+        else:
+            kernel = self.param(
+                "kernel",
+                normal(self.stdev),
+                (self.in_features, self.out_features, self.n_symm),
+                self.dtype,
+            )
+        
+        kernel = jnp.asarray(kernel,dtype)
 
         if self.mask:
             kernel = kernel*jnp.expand_dims(self.mask,(0,1))
@@ -507,7 +466,121 @@ class DenseEquivariantIrrep(Module):
         x = self.inverse_ft(x,dtype)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.out_features, 1), dtype)
+            if self.bias_init:
+                bias = self.param("bias", self.bias_init, (self.out_features, 1), dtype)
+            else: 
+                bias = self.param("bias", zeros, (self.out_features, 1), dtype)
+            x += bias
+
+        return x
+
+class DenseEquivariantMatrix(Module):
+    r"""Implements a group convolution operation that is equivariant over a symmetry group
+    by multiplying by the full kernel matrix"""
+
+    fpt: HashableArray
+    """Flattened product table generated by PermutationGroup.produt_table().ravel()
+    that specifies the product of the group with its involution, or the
+    PermutationGroup object itself"""
+    in_features: int
+    """The number of symmetry-reduced input features. The full input size
+    is n_symm*in_features."""
+    out_features: int
+    """The number of symmetry-reduced output features. The full output size
+    is n_symm*out_features."""
+    use_bias: bool = True
+    """Whether to add a bias to the output (default: True)."""
+    mask: Optional[HashableArray] = None
+    """Whether to mask the filters to restrict the connectivity"""
+    dtype: Any = jnp.float64
+    """The dtype of the weights."""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
+
+    kernel_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
+    """Initializer for the Dense layer matrix."""
+    bias_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
+    """Initializer for the bias."""
+
+    def setup(self):
+
+        self.n_symm = np.asarray(self.fpt).shape[0]
+        
+        self.stdev = 1./np.sqrt(self.in_features*self.n_symm)
+
+
+    def full_kernel(self, kernel):
+        """
+        Converts the symmetry-reduced kernel of shape (n_sites, features) to
+        the full Dense kernel of shape (n_sites, features * n_symm).
+        """
+
+        result = jnp.take(kernel, jnp.asarray(self.fpt).ravel(), 0)
+        result = result.reshape(
+            self.n_symm, self.n_symm, self.in_features, self.out_features
+        )
+        result = result.transpose(2, 0, 3, 1).reshape(
+            self.n_symm * self.in_features, -1
+        )
+
+        return result
+
+    def full_bias(self, bias):
+        """
+        Convert symmetry-reduced bias of shape (features,) to the full bias of
+        shape (n_symm * features,).
+        """
+        return jnp.repeat(bias, self.n_symm)
+
+    @compact
+    def __call__(self, x: Array) -> Array:
+        """Applies the equivariant transform to the inputs along the last dimension.
+        Args:
+          x: The nd-array to be transformed.
+        Returns:
+          The transformed input.
+        """
+        dtype = jnp.promote_types(x.dtype, self.dtype)
+        x = jnp.asarray(x, dtype)
+
+        if self.kernel_init:
+            kernel = self.param(
+                "kernel",
+                self.kernel_init,
+                (x.shape[-1], self.in_features, self.out_features),
+                self.dtype,
+            )
+        else:
+            kernel = self.param(
+                "kernel",
+                normal(self.stdev),
+                (x.shape[-1], self.in_features, self.out_features),
+                self.dtype,
+            )
+        
+        kernel = jnp.asarray(kernel,dtype)
+
+        if self.mask:
+            kernel = kernel*jnp.expand_dims(self.mask,(1,2))
+
+        kernel = self.full_kernel(kernel)
+        kernel = jnp.asarray(kernel, dtype)
+        
+        x = x.reshape(-1,x.shape[1]*x.shape[2])
+
+        x = lax.dot_general(
+            x,
+            kernel,
+            (((x.ndim - 1,), (0,)), ((), ())),
+            precision=self.precision,
+        )
+
+        if self.use_bias:
+            if self.bias_init:
+                bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
+            else:
+                bias = self.param("bias", zeros, (self.out_features,), self.dtype)
+            bias = jnp.asarray(self.full_bias(bias), dtype)
             x += bias
 
         return x
@@ -536,29 +609,34 @@ def DenseSymm(symmetry_info, mode="auto", **kwargs):
         bias_init: Optional bias initialization function. Defaults to zero initialization
     """
 
-    if isinstance(symmetry_info,graph):
+    if isinstance(symmetry_info,Graph):
         try: 
             symmetries = HashableArray(np.asarray(symmetry_info.space_group()))
-            if mode == "auto":
+            if mode == "auto" or mode == "fft":
                 mode = "fft"
+                kwargs["shape"] = symmetry_info.extent
         except:
             if mode == "fft":
                 warnings.warn(
-                "Graph without a space group specified. Switching to matrix implementation 
-                Warning,
+                "Graph without a space group specified. Switching to matrix implementation", 
                 )
                 mode = "matrix"
             symmetries = HashableArray(np.asarray(symmetry_info.automorphisms()))
-
-    elif isinstance(symmetry_info,PermuationGroup):
-        symmetries = HashableArray(np.asarray(symmetry_info))
     else:
-        symmetries = HashableArray(symmetry_info)
+        try:
+            symmetries = HashableArray(np.asarray(symmetry_info))
+        except:
+            raise ValueError("Invalid specification of symmetries")
 
     if mode == "fft":
-        return DenseSymmFFT(symmetry_info,**kwargs)
+        if "shape" in kwargs:
+            return DenseSymmFFT(symmetries,**kwargs)
+        else:
+            raise KeyError("Must pass keyword argument shape which specifies the shape of the translation group")        
     else:
-        return DenseSymmMatrix(symmetry_info,**kwargs)
+        if "shape" in kwargs:
+            del kwargs['shape']
+        return DenseSymmMatrix(symmetries,**kwargs)
     
 def DenseEquivariant(symmetry_info, mode="auto", **kwargs):
     r"""A group convolution operation that is equivariant over a symmetry group
@@ -581,9 +659,10 @@ def DenseEquivariant(symmetry_info, mode="auto", **kwargs):
     Args:
         symmetry_info: A specification of the symmetry group. Can be given by a nk.graph.Graph, 
         or the product table of a nk.utils.PermuationGroup. 
-        mode: string "fft, irreps, auto" specifying whether to use a fast fourier transform or fourier
-        transform with projection on to the irreducible representations. The FFT is preferable for
-        large lattices as it scales like Nlog(N)
+        mode: string "fft, irreps, matrix, auto" specifying whether to use a fast fourier transform
+        over the translation group, a fourier transform using the irreducible representations or 
+        by constructing the full kernel matrix. Auto will choose the fastest model based on the
+        information specified
         features: The number of symmetry-reduced features. The full output size is n_symm*features.
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros that can be used
@@ -595,34 +674,81 @@ def DenseEquivariant(symmetry_info, mode="auto", **kwargs):
         bias_init: Optional bias initialization function. Defaults to zero initialization
     """
     
-    if isinstance(symmetry_info,graph):
+    if isinstance(symmetry_info,Graph):
         try: 
+            #If we can find a space group default to fast fourier transforms
             sg = symmetry_info.space_group()
             if mode == "irreps":
                 symmetries = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
+            elif mode == "matrix":
+                symmetries = HashableArray(sg.product_table)
             else:
                 mode = "fft"
                 symmetries = HashableArray(sg.product_table)
+                if not "shape" in kwargs:
+                    kwargs["shape"] = symmetry_info.extent
         except:
+            #If we can't find a space group use the irrep projection
             sg = symmetry_info.automorphisms()
             if mode == "fft":
                 warnings.warn(
-                "Graph without a space group specified. Switching to irrep implementation 
-                Warning,
+                    "Graph without a space group specified. Switching to matrix implementation", 
                 )
                 mode = "irreps"
-            symmetries = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
+                symmetries = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
+            elif mode == "matrix":
+                symmetries = HashableArray(sg.product_table)
+            else: 
+                mode = "irreps"
+                symmetries = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
 
-    elif isinstance(symmetry_info,PermuationGroup):
+    elif isinstance(symmetry_info,PermutationGroup):
+        #If we get a group (and no other info) default to irrep projection
         if mode == "fft":
             symmetries = HashableArray(symmetry_info.product_table)
+        elif mode == "matrix":
+            symmetries = HashableArray(sg.product_table)
         else: 
+            mode = "irreps"
             symmetries = tuple(HashableArray(irrep) for irrep in symmetry_info.irrep_matrices())
     else:
-        symmetries = HashableArray(symmetry_info)
-
+        try:
+            #If we get an array, make sure it's a valid product table
+            arr = np.asarray(symmetry_info)
+            if arr.ndim == 2 and arr.shape[0] == arr.shape[1]:
+                if mode == "fft":
+                    symmetries = HashableArray(arr)
+                if mode == "matrix" or mode == "auto":
+                    mode == "matrix"
+                    symmetries = HashableArray(arr)
+                if mode == "irreps":
+                    raise ValueError("For irreps mode, please pass the irreducible representations as a list generated by calling group.irrep_matrices()")
+            else: 
+                raise ValueError("Invalid product table shape")
+        except: 
+            #If we get something other than a Graph, PermutationGroup or Array it should be a list of irreps
+            if isinstance(symmetry_info,list) or isinstance(symmetry_info,tuple):
+                if mode == "auto" or mode == "irreps":
+                    mode = "irreps"
+                    symmetries = tuple(HashableArray(irrep) for irrep in symmetry_info)
+                else: 
+                    raise ValueError("Specify mode irreps to use irrep matrices")
+            else:
+                #Error message if we can't be more specific 
+                raise ValueError("Invalid specification of symmetries")
+            
     if mode == "fft":
-        return DenseEquivariantFFT(symmetries,**kwargs)
+        #Need to specify shape of translation group to do FFT
+        try: 
+            if "shape" in kwargs:
+                return DenseEquivariantFFT(symmetries,**kwargs)
+        except:
+            raise KeyError("Must pass keyword argument shape which specifies the shape of the translation group")        
     else:
-        return DenseEquivariantIrrep(symmetries,**kwargs)
+        if "shape" in kwargs:
+            del kwargs['shape']
+        if mode == "irreps":
+            return DenseEquivariantIrrep(symmetries,**kwargs)
+        else:
+            return DenseEquivariantMatrix(symmetries,**kwargs)
     
