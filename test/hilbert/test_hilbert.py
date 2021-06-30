@@ -19,6 +19,7 @@ import pytest
 from netket.hilbert import Spin, Fock, CustomHilbert, Qubit, DoubledHilbert
 
 import jax
+import jax.numpy as jnp
 
 from .. import common
 
@@ -138,6 +139,37 @@ def test_random_states(hi):
         assert hi.random_state(jax.random.PRNGKey(13), size=10).shape == (10, hi.size)
         # assert hi.random_state(jax.random.PRNGKey(13), size=(10,)).shape == (10, hi.size)
         # assert hi.random_state(jax.random.PRNGKey(13), size=(10, 2)).shape == (10, 2, hi.size)
+
+
+@pytest.mark.parametrize(
+    "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
+)
+def test_flip_state(hi):
+    rng = nk.jax.PRNGSeq(1)
+    N_batches = 20
+
+    if hi.is_discrete:
+        local_states = hi.local_states
+        states = hi.random_state(rng.next(), N_batches)
+
+        ids = jnp.asarray(
+            jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
+            dtype=int,
+        )
+
+        new_states, old_vals = nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
+
+        assert new_states.shape == states.shape
+
+        assert np.all(np.in1d(new_states.reshape(-1), local_states))
+
+        states_np = np.asarray(states)
+        states_new_np = np.array(new_states)
+
+        for (row, col) in enumerate(ids):
+            states_new_np[row, col] = states_np[row, col]
+
+        np.testing.assert_allclose(states_np, states_new_np)
 
 
 @pytest.mark.parametrize(
