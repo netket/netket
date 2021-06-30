@@ -29,16 +29,11 @@ def _gen_to_bare_numbers(conditions):
 
 
 @jit(nopython=True)
-def _to_constrained_numbers_kernel(has_constraint, bare_numbers, numbers):
-    if not has_constraint:
-        return numbers
-    else:
-        found = np.searchsorted(bare_numbers, numbers)
-        if np.max(found) >= bare_numbers.shape[0]:
-            raise RuntimeError(
-                "The required state does not satisfy the given constraints."
-            )
-        return found
+def _to_constrained_numbers_kernel(bare_numbers, numbers):
+    found = np.searchsorted(bare_numbers, numbers)
+    if np.max(found) >= bare_numbers.shape[0]:
+        raise RuntimeError("The required state does not satisfy the given constraints.")
+    return found
 
 
 class HomogeneousHilbert(AbstractHilbert):
@@ -153,11 +148,13 @@ class HomogeneousHilbert(AbstractHilbert):
     def _states_to_numbers(self, states, out):
         hind = self._get_hilbert_index()
 
-        out = _to_constrained_numbers_kernel(
-            self._has_constraint,
-            self._bare_numbers,
-            hind.states_to_numbers(states, out),
-        )
+        hind.states_to_numbers(states, out)
+
+        if self._has_constraint:
+            out[:] = _to_constrained_numbers_kernel(
+                self._bare_numbers,
+                out,
+            )
 
         return out
 
