@@ -19,7 +19,7 @@ from jax import lax
 import jax.numpy as jnp
 import numpy as np
 
-from netket.nn.initializers import normal, zeros
+from netket.nn.initializers import normal, zeros, unit_normal_scaling
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
 from netket.utils.group import PermutationGroup
@@ -72,9 +72,9 @@ class DenseSymmMatrix(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: Optional[NNInitFunc] = None
+    kernel_init: NNInitFunc = unit_normal_scaling()
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
-    bias_init: Optional[NNInitFunc] = None
+    bias_init: NNInitFunc = zeros()
     """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
@@ -82,8 +82,6 @@ class DenseSymmMatrix(Module):
         perms = np.asarray(self.symmetries)
         self.n_symm, self.n_sites = perms.shape
         self.n_hidden = self.features * self.n_symm
-
-        self.stdev = 1.0 / np.sqrt(self.n_sites)
 
         self.symm_cols = jnp.asarray(_symmetrizer_col(perms, self.features))
 
@@ -116,14 +114,9 @@ class DenseSymmMatrix(Module):
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
 
-        if self.kernel_init:
-            kernel = self.param(
-                "kernel", self.kernel_init, (x.shape[-1], self.features), self.dtype
-            )
-        else:
-            kernel = self.param(
-                "kernel", normal(self.stdev), (x.shape[-1], self.features), self.dtype
-            )
+        kernel = self.param(
+            "kernel", self.kernel_init, (x.shape[-1], self.features), self.dtype
+        )
 
         if self.mask:
             kernel = kernel * jnp.expand_dims(self.mask, 1)
@@ -139,10 +132,7 @@ class DenseSymmMatrix(Module):
         )
 
         if self.use_bias:
-            if self.bias_init:
-                bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            else:
-                bias = self.param("bias", zeros, (self.features,), self.dtype)
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             bias = jnp.asarray(self.full_bias(bias), dtype)
             x += bias
 
@@ -166,17 +156,15 @@ class DenseSymmFFT(Module):
     """The dtype of the weights."""
     precision: Any = None
 
-    kernel_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
-    """Initializer for the Dense layer matrix."""
-    bias_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
-    """Initializer for the bias."""
+    kernel_init: NNInitFunc = unit_normal_scaling()
+    """Initializer for the Dense layer matrix. Defaults to variance scaling"""
+    bias_init: NNInitFunc = zeros()
+    """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_symm = len(np.asarray(self.space_group)) // self.n_cells
         self.sites_per_cell = np.asarray(self.space_group).shape[1] // self.n_cells
-
-        self.stdev = 1.0 / np.sqrt(self.n_cells * self.sites_per_cell)
 
         self.mapping = (
             np.asarray(self.space_group)[:, : self.sites_per_cell]
@@ -205,20 +193,12 @@ class DenseSymmFFT(Module):
             .reshape(-1, self.sites_per_cell, *self.shape)
         )
 
-        if self.kernel_init:
-            kernel = self.param(
-                "kernel",
-                self.kernel_init,
-                (self.features, self.n_cells * self.sites_per_cell),
-                self.dtype,
-            )
-        else:
-            kernel = self.param(
-                "kernel",
-                normal(self.stdev),
-                (self.features, self.n_cells * self.sites_per_cell),
-                self.dtype,
-            )
+        kernel = self.param(
+            "kernel",
+            self.kernel_init,
+            (self.features, self.n_cells * self.sites_per_cell),
+            self.dtype,
+        )
 
         kernel = jnp.asarray(kernel, dtype)
 
@@ -243,10 +223,7 @@ class DenseSymmFFT(Module):
         x = x.transpose(0, 1, 3, 2).reshape(*x.shape[:2], -1)
 
         if self.use_bias:
-            if self.bias_init:
-                bias = self.param("bias", self.bias_init, (self.features, 1), dtype)
-            else:
-                bias = self.param("bias", zeros, (self.features, 1), dtype)
+            bias = self.param("bias", self.bias_init, (self.features, 1), self.dtype)
             bias = jnp.asarray(bias, dtype)
             x += bias
 
@@ -273,18 +250,16 @@ class DenseEquivariantFFT(Module):
     """The dtype of the weights."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-
-    kernel_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
-    """Initializer for the Dense layer matrix."""
-    bias_init: Optional[Callable[[PRNGKeyT, Shape, DType], Array]] = None
-    """Initializer for the bias."""
+    
+    kernel_init: NNInitFunc = unit_normal_scaling()
+    """Initializer for the Dense layer matrix. Defaults to variance scaling"""
+    bias_init: NNInitFunc = zeros()
+    """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
 
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_symm = len(np.asarray(self.product_table)) // self.n_cells
-
-        self.stdev = 1.0 / np.sqrt(self.in_features * self.n_cells * self.n_symm)
 
         self.mapping = (
             np.asarray(self.product_table)[: self.n_symm]
@@ -310,28 +285,17 @@ class DenseEquivariantFFT(Module):
         x = x.reshape(*x.shape[:-1], self.n_cells, self.n_symm).transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
-        if self.kernel_init:
-            kernel = self.param(
-                "kernel",
-                self.kernel_init,
-                (
-                    self.out_features,
-                    self.in_features,
-                    self.n_symm * self.n_cells,
-                ),
-                self.dtype,
-            )
-        else:
-            kernel = self.param(
-                "kernel",
-                normal(self.stdev),
-                (
-                    self.out_features,
-                    self.in_features,
-                    self.n_symm * self.n_cells,
-                ),
-                self.dtype,
-            )
+
+        kernel = self.param(
+            "kernel",
+            self.kernel_init,
+            (
+                self.out_features,
+                self.in_features,
+                self.n_symm * self.n_cells,
+            ),
+            self.dtype,
+        )
 
         kernel = jnp.asarray(kernel, dtype)
 
@@ -356,10 +320,7 @@ class DenseEquivariantFFT(Module):
         x = x.transpose(0, 1, 3, 2).reshape(*x.shape[:2], -1)
 
         if self.use_bias:
-            if self.bias_init:
-                bias = self.param("bias", self.bias_init, (self.out_features, 1), dtype)
-            else:
-                bias = self.param("bias", zeros, (self.out_features, 1), dtype)
+            bias = self.param("bias", self.bias_init, (self.out_features, 1), self.dtype)
             bias = jnp.asarray(bias, dtype)
             x += bias
 
