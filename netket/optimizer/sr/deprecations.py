@@ -35,11 +35,12 @@ from .. import qgt
     >>> nk.optimizer.SR(nk.optimizer.qgt.QGTOnTheFly, solver=solver, diag_shift=0.01)
     """
 )
-def SRLazyCG(diag_shift: float = 0.01, **kwargs):
+def SRLazyCG(diag_shift: float = 0.01, centered: bool = True, **kwargs):
     return SR(
         qgt.QGTOnTheFly,
         solver=partial(jax.scipy.sparse.linalg.cg, **kwargs),
         diag_shift=diag_shift,
+        centered=centered,
         **kwargs,
     )
 
@@ -57,10 +58,11 @@ def SRLazyCG(diag_shift: float = 0.01, **kwargs):
     >>> nk.optimizer.SR(nk.optimizer.qgt.QGTOnTheFly, solver=solver, diag_shift=0.01)
     """
 )
-def SRLazyGMRES(diag_shift: float = 0.01, **kwargs):
+def SRLazyGMRES(diag_shift: float = 0.01, centered: bool = True, **kwargs):
     return SR(
         qgt.QGTOnTheFly,
         solver=partial(jax.scipy.sparse.linalg.gmres, **kwargs),
         diag_shift=diag_shift,
+        centered=centered,
         **kwargs,
     )
