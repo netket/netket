@@ -27,7 +27,7 @@ from netket.utils.group import PermutationGroup
 from netket.graph import Graph
 
 from netket import nn as nknn
-from netket.nn.initializers import zeros, variance_scaling
+from netket.nn.initializers import zeros, unit_normal_scaling
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
     DenseSymmFFT,
@@ -68,9 +68,9 @@ class GCNN_FFT(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: Optional[NNInitFunc] = None
+    kernel_init: NNInitFunc = unit_normal_scaling
     """Initializer for the Dense layer matrix."""
-    bias_init: Optional[NNInitFunc] = None
+    bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias."""
 
     def setup(self):
@@ -156,9 +156,9 @@ class GCNN_Irrep(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: Optional[NNInitFunc] = None
+    kernel_init: NNInitFunc = unit_normal_scaling
     """Initializer for the Dense layer matrix."""
-    bias_init: Optional[NNInitFunc] = None
+    bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias."""
 
     def setup(self):
@@ -248,9 +248,9 @@ class GCNN_Parity_FFT(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: Optional[NNInitFunc] = None
+    kernel_init: NNInitFunc = unit_normal_scaling
     """Initializer for the Dense layer matrix."""
-    bias_init: Optional[NNInitFunc] = None
+    bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias."""
 
     def setup(self):
@@ -381,9 +381,9 @@ class GCNN_Parity_Irrep(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: Optional[NNInitFunc] = None
+    kernel_init: NNInitFunc = unit_normal_scaling
     """Initializer for the Dense layer matrix."""
-    bias_init: Optional[NNInitFunc] = None
+    bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias."""
 
     def setup(self):
@@ -482,7 +482,7 @@ class GCNN_Parity_Irrep(nn.Module):
             return x
 
 
-def GCNN(symmetry_info=None, mode="auto", **kwargs):
+def GCNN(symmetries=None, mode="auto", **kwargs):
 
     r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
     that is invariant over a specified symmetry group.
@@ -518,67 +518,56 @@ def GCNN(symmetry_info=None, mode="auto", **kwargs):
         kernel_init: Initializer for the Dense layer matrix.
         bias_init: Initializer for the hidden bias.
     """
-    if isinstance(symmetry_info, Graph):
-        try:
-            # If we can find a space group default to fast fourier transforms
-            sg = symmetry_info.space_group()
-            if mode == "irreps":
-                symmetries = HashableArray(np.asarray(sg))
-                irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
-            else:
+
+    if isinstance(symmetries, Graph):
+        # With graph try to find point group, otherwise default to automorphisms
+        if "point_group" in kwargs:
+            sg = symmetries.space_group(kwargs["point_group"])
+            if mode == "auto":
                 mode = "fft"
-                symmetries = HashableArray(np.asarray(sg))
-                product_table = HashableArray(sg.product_table)
-                if not "shape" in kwargs:
-                    kwargs["shape"] = symmetry_info.extent
-        except:
-            # If we can't find a space group use the irrep projection
+            del kwargs["point_group"]
+        elif symmetries._point_group:
+            sg = symmetries.space_group()
+            if mode == "auto":
+                mode = "fft"
+        else:
             sg = symmetry_info.automorphisms()
+            if mode == "auto" or mode == "fft":
+                mode = "irreps"
             if mode == "fft":
                 warnings.warn(
-                    "Graph without a space group specified. Switching to matrix implementation",
+                    "Graph without a space group specified. Switching to irrep implementation",
                 )
-                mode = "irreps"
-
-            symmetries = HashableArray(np.asarray(sg))
-            irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
-
-    elif isinstance(symmetry_info, PermutationGroup):
-        # If we get a group (and no other info) default to irrep projection
         if mode == "fft":
-            symmetries = HashableArray(np.asarray(symmetry_info))
-            product_table = HashableArray(symmetry_info.product_table)
-        else:
+            kwargs["shape"] = tuple(symmetries.extent)
+    elif isinstance(symmetries, PermutationGroup):
+        # If we get a group and default to irrep projection
+        if mode == "auto":
             mode = "irreps"
-            symmetries = HashableArray(np.asarray(symmetry_info))
-            irreps = tuple(
-                HashableArray(irrep) for irrep in symmetry_info.irrep_matrices()
+        sg = symmetries
+    else:
+        if "irreps" in kwargs and (mode == "irreps" or mode == "auto"):
+            mode = "irreps"
+            sg = symmetries
+            irreps = tuple(HashableArray(irrep) for irrep in kwargs["irreps"])
+            del kwargs["irreps"]
+        elif "product_table" in kwargs and (mode == "fft" or mode == "auto"):
+            mode = "fft"
+            sg = symmetries
+            product_table = HashableArray(kwargs["product_table"])
+            del kwargs["product_table"]
+        else:
+            raise ValueError(
+                "Specification of symmetries is wrong or incompatible with selected mode"
             )
-    elif not symmetry_info:
-        if mode == "irreps":
-            if not ("irreps" in kwargs and "symmetries" in kwargs):
-                raise ValueError(
-                    "Either a graph, permutation group or both irreps and symmetries must be specified"
-                )
-            else:
-                symmetries = kwargs["symmetries"]
-                irreps = kwargs["irreps"]
-                del kwargs["symmetries"], kwargs["irreps"]
-        if mode == "fft":
-            if not ("product_table" in kwargs and "symmetries" in kwargs):
-                raise ValueError(
-                    "Either a graph, permutation group or both product table and symmetries must be specified"
-                )
-            else:
-                symmetries = kwargs["symmetries"]
-                product_table = kwargs["product_table"]
-                del kwargs["symmetries"], kwargs["product_table"]
 
     if mode == "fft":
         if not "shape" in kwargs:
             raise KeyError(
                 "Must pass keyword argument shape which specifies the shape of the translation group"
             )
+        else:
+            kwargs["shape"] = tuple(kwargs["shape"])
     else:
         if "shape" in kwargs:
             del kwargs["shape"]
@@ -587,15 +576,24 @@ def GCNN(symmetry_info=None, mode="auto", **kwargs):
         kwargs["features"] = (kwargs["features"],) * kwargs["layers"]
 
     if "characters" not in kwargs:
-        kwargs["characters"] = HashableArray(np.ones(len(np.asarray(symmetries))))
+        kwargs["characters"] = HashableArray(np.ones(len(np.asarray(sg))))
 
-    if "parity" in kwargs:
-        if mode == "fft":
-            return GCNN_Parity_FFT(symmetries, product_table, **kwargs)
+    if mode == "fft":
+        sym = HashableArray(np.asarray(sg))
+        if not "product_table" in locals():
+            product_table = HashableArray(sg.product_table)
+
+        if "parity" in kwargs:
+            return GCNN_Parity_FFT(sym, product_table, **kwargs)
         else:
-            return GCNN_Parity_Irrep(symmetries, irreps, **kwargs)
+            return GCNN_FFT(sym, product_table, **kwargs)
     else:
-        if mode == "fft":
-            return GCNN_FFT(symmetries, product_table, **kwargs)
+        sym = HashableArray(np.asarray(sg))
+
+        if not "irreps" in locals():
+            irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
+
+        if "parity" in kwargs:
+            return GCNN_Parity_Irrep(sym, irreps, **kwargs)
         else:
-            return GCNN_Irrep(symmetries, irreps, **kwargs)
+            return GCNN_Irrep(sym, irreps, **kwargs)

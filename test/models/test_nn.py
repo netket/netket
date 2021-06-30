@@ -51,7 +51,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
     if mode == "matrix":
         ma = nk.nn.DenseSymm(
             symmetries=perms,
-            mode = mode,
+            mode=mode,
             features=8,
             use_bias=use_bias,
             bias_init=nk.nn.initializers.uniform(),
@@ -59,13 +59,13 @@ def test_DenseSymm(symmetries, use_bias, mode):
     else:
         ma = nk.nn.DenseSymm(
             symmetries=perms,
-            shape = tuple(g.extent),
-            mode = mode,
+            shape=tuple(g.extent),
+            mode=mode,
             features=8,
             use_bias=use_bias,
             bias_init=nk.nn.initializers.uniform(),
         )
-        
+
     pars = ma.init(rng.next(), hi.random_state(rng.next(), 1))
 
     v = hi.random_state(rng.next(), 3)

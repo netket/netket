@@ -229,9 +229,9 @@ class RBMSymm(nn.Module):
 
     @nn.compact
     def __call__(self, x_in):
-        x = nknn.DenseSymm(
+        x = nknn.symmetric_linear.DenseSymmMatrix(
             name="Dense",
-            symmetry_info=self.symmetries,
+            symmetries=self.symmetries,
             features=self.features,
             dtype=self.dtype,
             use_bias=self.use_hidden_bias,
