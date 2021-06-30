@@ -30,7 +30,8 @@ hilberts = {}
 hilberts["Spin 1/2"] = Spin(s=0.5, N=20)
 
 # Spin 1/2 with total Sz
-hilberts["Spin 1/2 with total Sz"] = Spin(s=0.5, total_sz=1.0, N=20)
+hilberts["Spin[0.5, N=20, total_sz=1"] = Spin(s=0.5, total_sz=1.0, N=20)
+hilberts["Spin[0.5, N=5, total_sz=-1.5"] = Spin(s=0.5, total_sz=-1.5, N=5)
 
 # Spin 1/2 with total Sz
 hilberts["Spin 1 with total Sz, even sites"] = Spin(s=1.0, total_sz=5.0, N=6)
@@ -79,7 +80,15 @@ hilberts["Qubit Small"] = Qubit(N=1)
 hilberts["Custom Hilbert Small"] = CustomHilbert(local_states=[-1232, 132, 0], N=5)
 
 # Custom Hilbert
-hilberts["Doubled Hilbert"] = DoubledHilbert(
+hilberts["DoubledHilbert[Spin]"] = DoubledHilbert(Spin(0.5, N=5))
+
+hilberts["DoubledHilbert[Spin(total_sz=0.5)]"] = DoubledHilbert(
+    Spin(0.5, N=5, total_sz=0.5)
+)
+
+hilberts["DoubledHilbert[Fock]"] = DoubledHilbert(Spin(0.5, N=5))
+
+hilberts["DoubledHilbert[CustomHilbert]"] = DoubledHilbert(
     CustomHilbert(local_states=[-1232, 132, 0], N=5)
 )
 
