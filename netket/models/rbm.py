@@ -231,7 +231,7 @@ class RBMSymm(nn.Module):
     def __call__(self, x_in):
         x = nknn.DenseSymm(
             name="Dense",
-            symmetries=self.symmetries,
+            symmetry_info=self.symmetries,
             features=self.features,
             dtype=self.dtype,
             use_bias=self.use_hidden_bias,
@@ -240,7 +240,8 @@ class RBMSymm(nn.Module):
             precision=self.precision,
         )(x_in)
         x = self.activation(x)
-        x = x.reshape(-1, self.n_symm * self.n_sites)
+
+        x = x.reshape(-1, self.features*self.n_symm)
         x = jnp.sum(x, axis=-1)
 
         if self.use_visible_bias:

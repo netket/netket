@@ -63,7 +63,7 @@ def test_gcnn(use_bias, symmetries, lattice):
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
     ma = nk.models.GCNN(
-        symmetries=perms,
+        symmetry_info=perms,
         layers=4,
         features=4,
         use_bias=use_bias,
