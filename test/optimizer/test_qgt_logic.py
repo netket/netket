@@ -215,17 +215,6 @@ def test_vjp(e):
     assert tree_allclose(actual, expected)
 
 
-@pytest.mark.parametrize("holomorphic", [True])
-@pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize("outdtype, pardtype", r_r_test_types + c_c_test_types)
-def test_mean(e):
-    actual = qgt_onthefly_logic.O_mean(e.f, e.params, e.samples)
-    expected = qgt_onthefly_logic.tree_conj(
-        reassemble_complex(e.okmean_real.real, target=e.target)
-    )
-    assert tree_allclose(actual, expected)
-
-
 @pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
