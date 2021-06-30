@@ -23,6 +23,7 @@ from netket.nn.initializers import normal, zeros, unit_normal_scaling
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
 from netket.utils.group import PermutationGroup
+from typing import Sequence
 from netket.graph import Graph
 import warnings
 
@@ -72,9 +73,9 @@ class DenseSymmMatrix(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = unit_normal_scaling()
+    kernel_init: NNInitFunc = unit_normal_scaling
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
-    bias_init: NNInitFunc = zeros()
+    bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
@@ -156,9 +157,9 @@ class DenseSymmFFT(Module):
     """The dtype of the weights."""
     precision: Any = None
 
-    kernel_init: NNInitFunc = unit_normal_scaling()
+    kernel_init: NNInitFunc = unit_normal_scaling
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
-    bias_init: NNInitFunc = zeros()
+    bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
@@ -254,9 +255,9 @@ class DenseEquivariantFFT(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
     
-    kernel_init: NNInitFunc = unit_normal_scaling()
+    kernel_init: NNInitFunc = unit_normal_scaling
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
-    bias_init: NNInitFunc = zeros()
+    bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
@@ -370,9 +371,9 @@ class DenseEquivariantIrrep(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = unit_normal_scaling()
+    kernel_init: NNInitFunc = unit_normal_scaling
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
-    bias_init: NNInitFunc = zeros()
+    bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
@@ -515,9 +516,9 @@ class DenseEquivariantMatrix(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = unit_normal_scaling()
+    kernel_init: NNInitFunc = unit_normal_scaling
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
-    bias_init: NNInitFunc = zeros()
+    bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
@@ -532,11 +533,12 @@ class DenseEquivariantMatrix(Module):
         the full Dense kernel of shape (n_sites, features * n_symm).
         """
 
-        result = jnp.take(kernel, jnp.asarray(self.product_table).ravel(), 0)
+        result = jnp.take(kernel, jnp.asarray(self.product_table).ravel(), 2)
+
         result = result.reshape(
-            self.n_symm, self.n_symm, self.in_features, self.out_features
+            self.out_features, self.in_features, self.n_symm, self.n_symm
         )
-        result = result.transpose(2, 0, 3, 1).reshape(
+        result = result.transpose(1, 2, 0, 3).reshape(
             self.n_symm * self.in_features, -1
         )
 
@@ -565,15 +567,14 @@ class DenseEquivariantMatrix(Module):
         kernel = self.param(
             "kernel",
             self.kernel_init,
-            (x.shape[-1], self.in_features, self.out_features),
+            (self.out_features, self.in_features, self.n_symm),
             self.dtype,
         )
-
 
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask:
-            kernel = kernel * jnp.expand_dims(self.mask, (1, 2))
+            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.full_kernel(kernel)
         kernel = jnp.asarray(kernel, dtype)
@@ -698,7 +699,7 @@ def DenseEquivariant(symmetries, mode="auto", **kwargs):
     """
 
     if isinstance(symmetries, Graph):
-        kwargs["shape"] = symmetries.extent
+        #With graph try to find point group, otherwise default to automorphisms
         if "point_group" in kwargs:
             sg = symmetries.space_group(kwargs['point_group'])
             if mode == "auto":
@@ -707,67 +708,57 @@ def DenseEquivariant(symmetries, mode="auto", **kwargs):
         elif symmetries._point_group:
             sg = symmetries.space_group()
             if mode == "auto":
-                mode = "fft"        
+                mode = "fft" 
         else:
             sg = symmetry_info.automorphisms()
-            if mode == 'auto' or mode == 
+            if mode == "auto" or mode == "fft":
+                mode = "irreps"
             if mode == "fft":
                 warnings.warn(
                     "Graph without a space group specified. Switching to irrep implementation",
                 )
+        if mode == "fft":
+            kwargs["shape"] = tuple(symmetries.extent)
 
     elif isinstance(symmetries, PermutationGroup):
-        # If we get a group (and no other info) default to irrep projection
+        # If we get a group and default to irrep projection
         if mode == "auto":
             mode = "irreps"
-            symmetries = HashableArray(symmetry_info.product_table)
-        elif mode == "matrix":
-            symmetries = HashableArray(sg.product_table)
-        else:
-            mode = "irreps"
-            symmetries = tuple(
-                HashableArray(irrep) for irrep in symmetry_info.irrep_matrices()
+        sg = symmetries
+
+    elif isinstance(symmetries, Sequence):
+        if not mode == "irreps":
+            warnings.warn(
+                "Irrep matrices specified. Switching to irrep implementation",
             )
-    else:
-        try:
-            # If we get an array, make sure it's a valid product table
-            arr = np.asarray(symmetry_info)
-            if arr.ndim == 2 and arr.shape[0] == arr.shape[1]:
-                if mode == "fft":
-                    symmetries = HashableArray(arr)
-                if mode == "matrix" or mode == "auto":
-                    mode == "matrix"
-                    symmetries = HashableArray(arr)
-                if mode == "irreps":
-                    raise ValueError(
-                        "For irreps mode, please pass the irreducible representations as a list generated by calling group.irrep_matrices()"
-                    )
+            mode = "irreps"
+        return DenseEquivariantIrrep(symmetries,**kwargs)
+    else: 
+        if symmetries.ndim == 2 and symmetries.shape[0] == symmetries.shape[1]:
+            if mode == "irreps":
+                warnings.warn(
+                    "Product table specified. Switching to matrix implementation",
+                )
+                mode = "matrix"
+
+            if mode == "matrix":
+                return DenseEquivariantMatrix(symmetries, **kwargs)
             else:
-                raise ValueError("Invalid product table shape")
-        except:
-            # If we get something other than a Graph, PermutationGroup or Array it should be a list of irreps
-            if isinstance(symmetry_info, list) or isinstance(symmetry_info, tuple):
-                if mode == "auto" or mode == "irreps":
-                    mode = "irreps"
-                    symmetries = tuple(HashableArray(irrep) for irrep in symmetry_info)
+                if "shape" in kwargs:
+                    return DenseEquivariantFFT(symmetries,**kwargs)
                 else:
-                    raise ValueError("Specify mode irreps to use irrep matrices")
-            else:
-                # Error message if we can't be more specific
-                raise ValueError("Invalid specification of symmetries")
+                    raise KeyError(
+                        "Must pass keyword argument shape which specifies the shape of the translation group"
+                    )
+        return ValueError("Invalid Specification of Symmetries")
 
     if mode == "fft":
-        # Need to specify shape of translation group to do FFT
-        if "shape" in kwargs:
-            return DenseEquivariantFFT(symmetries, **kwargs)
-        else:
-            raise KeyError(
-                "Must pass keyword argument shape which specifies the shape of the translation group"
-            )
-    else:
+        return DenseEquivariantFFT(HashableArray(sg.product_table))
+    else:   
         if "shape" in kwargs:
             del kwargs["shape"]
         if mode == "irreps":
-            return DenseEquivariantIrrep(symmetries, **kwargs)
+            irreps = tuple(HashableArray(irrep) for irrep in symmetries.irrep_matrices())
+            return DenseEquivariantIrrep(irreps, **kwargs)
         else:
-            return DenseEquivariantMatrix(symmetries, **kwargs)
+            return DenseEquivariantMatrix(HashableArray(symmetries.product_table), **kwargs)

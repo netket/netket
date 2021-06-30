@@ -42,17 +42,30 @@ def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
 
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("use_bias", [True, False])
-def test_DenseSymm(symmetries, use_bias):
+@pytest.mark.parametrize("mode", ["fft", "matrix"])
+def test_DenseSymm(symmetries, use_bias, mode):
     rng = nk.jax.PRNGSeq(0)
 
     g, hi, perms = _setup_symm(symmetries, N=8)
 
-    ma = nk.nn.DenseSymm(
-        symmetry_info=perms,
-        features=8,
-        use_bias=use_bias,
-        bias_init=nk.nn.initializers.uniform(),
-    )
+    if mode == "matrix":
+        ma = nk.nn.DenseSymm(
+            symmetries=perms,
+            mode = mode,
+            features=8,
+            use_bias=use_bias,
+            bias_init=nk.nn.initializers.uniform(),
+        )
+    else:
+        ma = nk.nn.DenseSymm(
+            symmetries=perms,
+            shape = tuple(g.extent),
+            mode = mode,
+            features=8,
+            use_bias=use_bias,
+            bias_init=nk.nn.initializers.uniform(),
+        )
+        
     pars = ma.init(rng.next(), hi.random_state(rng.next(), 1))
 
     v = hi.random_state(rng.next(), 3)
@@ -75,7 +88,17 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode):
 
     if mode == "irrep":
         ma = nk.nn.DenseEquivariant(
-            symmetry_info=perms,
+            symmetries=perms,
+            mode=mode,
+            in_features=1,
+            out_features=1,
+            use_bias=use_bias,
+            bias_init=nk.nn.initializers.uniform(),
+        )
+    elif mode == "fft":
+        ma = nk.nn.DenseEquivariant(
+            symmetries=pt,
+            shape=tuple(g.extent),
             mode=mode,
             in_features=1,
             out_features=1,
@@ -84,8 +107,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode):
         )
     else:
         ma = nk.nn.DenseEquivariant(
-            symmetry_info=pt,
-            shape=tuple(g.extent),
+            symmetries=pt,
             mode=mode,
             in_features=1,
             out_features=1,
