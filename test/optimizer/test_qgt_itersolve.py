@@ -24,6 +24,7 @@ from numpy import testing
 import jax.flatten_util
 
 import netket as nk
+import netket.jax as nkjax
 from netket.optimizer import qgt
 
 from .. import common
@@ -51,32 +52,50 @@ QGT_objects["JacobianDense(rescale_shift=True)"] = partial(
 solvers = {}
 solvers_tol = {}
 
-solvers["gmres"] = jax.scipy.sparse.linalg.gmres
-solvers_tol[solvers["gmres"]] = 1e-5
+solvers["gmres"] = partial(jax.scipy.sparse.linalg.gmres, tol=1e-6)
+solvers_tol[solvers["gmres"]] = 4e-5
 solvers["cholesky"] = nk.optimizer.solver.cholesky
 solvers_tol[solvers["cholesky"]] = 1e-8
 
 
+RBM = partial(
+    nk.models.RBM,
+    hidden_bias_init=nk.nn.initializers.normal(),
+    visible_bias_init=nk.nn.initializers.normal(),
+)
+RBMModPhase = partial(
+    nk.models.RBMModPhase,
+    hidden_bias_init=nk.nn.initializers.normal(),
+    kernel_init=nk.nn.initializers.normal(),
+)
+
+models = {
+    "RBM[dtype=float]": partial(RBM, dtype=float),
+    "RBM[dtype=complex]": partial(RBM, dtype=complex),
+    "RBMModPhase[dtype=float]": partial(RBMModPhase, dtype=float),
+}
+
 dtypes = {"float": float, "complex": complex}
 
 
-@pytest.fixture(params=[pytest.param(dtype, id=name) for name, dtype in dtypes.items()])
-def vstate(request):
+@pytest.fixture(
+    params=[pytest.param(modelT, id=name) for name, modelT in models.items()]
+)
+def model(request):
+
+    modelT = request.param
+
+    return modelT(alpha=1)
+
+
+@pytest.fixture
+def vstate(request, model):
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
 
-    dtype = request.param
-
-    ma = nk.models.RBM(
-        alpha=1,
-        dtype=dtype,
-        hidden_bias_init=nk.nn.initializers.normal(),
-        visible_bias_init=nk.nn.initializers.normal(),
-    )
-
     vstate = nk.vqs.MCState(
         nk.sampler.MetropolisLocal(hi),
-        ma,
+        model,
     )
     vstate.init_parameters(
         nk.nn.initializers.normal(stddev=0.001), seed=jax.random.PRNGKey(3)
@@ -128,8 +147,17 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
 )
 def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     S = qgt(vstate)
-    y = vstate.parameters
+    rng = nkjax.PRNGSeq(0)
+    y = jax.tree_map(
+        lambda x: 0.001 * jax.random.normal(rng.next(), x.shape, dtype=x.dtype),
+        vstate.parameters,
+    )
     x = S @ y
+
+    def check_same_dtype(x, y):
+        assert x.dtype == y.dtype
+
+    jax.tree_multimap(check_same_dtype, x, y)
 
     # test multiplication by dense gives same result...
     y_dense, unravel = nk.jax.tree_ravel(y)
@@ -168,7 +196,9 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
 
     assert Sd.ndim == 2
     if hasattr(S, "mode"):
-        if S.mode == "complex":
+        if S.mode == "complex" and np.issubdtype(
+            vstate.model.dtype, np.complexfloating
+        ):
             assert Sd.shape == (2 * vstate.n_parameters, 2 * vstate.n_parameters)
         else:
             assert Sd.shape == (vstate.n_parameters, vstate.n_parameters)
