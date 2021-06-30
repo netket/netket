@@ -37,7 +37,7 @@ def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
         n_states = int(2 * S) + 1
         # if constrained and S == 1/2, use a trick to sample quickly
         if n_states == 2:
-            m = hilb._total_sz * 2
+            m = int(hilb._total_sz * 2)
             nup = (N + m) // 2
             ndown = (N - m) // 2
 
@@ -83,7 +83,7 @@ def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
         sites = list(range(hilb.size))
         ss = hilb.size
 
-        for i in range(round(hilb._s * hilb.size) + hilb._total_sz):
+        for i in range(round(hilb._s * hilb.size + hilb._total_sz)):
             s = rgen.integers(0, ss, size=())
 
             out[b, sites[s]] += 2

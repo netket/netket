@@ -29,16 +29,11 @@ def _gen_to_bare_numbers(conditions):
 
 
 @jit(nopython=True)
-def _to_constrained_numbers_kernel(has_constraint, bare_numbers, numbers):
-    if not has_constraint:
-        return numbers
-    else:
-        found = np.searchsorted(bare_numbers, numbers)
-        if np.max(found) >= bare_numbers.shape[0]:
-            raise RuntimeError(
-                "The required state does not satisfy the given constraints."
-            )
-        return found
+def _to_constrained_numbers_kernel(bare_numbers, numbers):
+    found = np.searchsorted(bare_numbers, numbers)
+    if np.max(found) >= bare_numbers.shape[0]:
+        raise RuntimeError("The required state does not satisfy the given constraints.")
+    return found
 
 
 class HomogeneousHilbert(AbstractHilbert):
@@ -126,7 +121,7 @@ class HomogeneousHilbert(AbstractHilbert):
 
     @property
     def n_states(self) -> int:
-        r"""int: The total dimension of the many-body Hilbert space.
+        r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
 
         hind = self._get_hilbert_index()
@@ -138,8 +133,13 @@ class HomogeneousHilbert(AbstractHilbert):
 
     @property
     def is_finite(self) -> bool:
-        r"""bool: Whether the local hilbert space is finite."""
+        r"""Whether the local hilbert space is finite."""
         return self._is_finite
+
+    @property
+    def constrained(self) -> bool:
+        r"""Returns True if the hilbert space is constrained."""
+        return self._has_constraint
 
     def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
         hind = self._get_hilbert_index()
@@ -148,11 +148,13 @@ class HomogeneousHilbert(AbstractHilbert):
     def _states_to_numbers(self, states, out):
         hind = self._get_hilbert_index()
 
-        out = _to_constrained_numbers_kernel(
-            self._has_constraint,
-            self._bare_numbers,
-            hind.states_to_numbers(states, out),
-        )
+        hind.states_to_numbers(states, out)
+
+        if self._has_constraint:
+            out[:] = _to_constrained_numbers_kernel(
+                self._bare_numbers,
+                out,
+            )
 
         return out
 

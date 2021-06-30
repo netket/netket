@@ -103,7 +103,7 @@ class Spin(HomogeneousHilbert):
         else:
             constraints = None
 
-        self._total_sz = total_sz if total_sz is None else int(total_sz)
+        self._total_sz = total_sz if total_sz is None else total_sz
         self._s = s
 
         super().__init__(local_states, N, constraints)
@@ -185,7 +185,7 @@ class Spin(HomogeneousHilbert):
         out.fill(-round(2 * self._s))
         ss = self.size
 
-        for _ in range(round(self._s * self.size) + self._total_sz):
+        for _ in range(round(self._s * self.size + self._total_sz)):
             s = rgen.integers(0, ss, size=())
 
             out[sites[s]] += 2

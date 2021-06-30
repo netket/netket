@@ -60,25 +60,25 @@ class AbstractHilbert(abc.ABC):
     @abc.abstractmethod
     def size(self) -> int:
         r"""The total number number of spins."""
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @property
     @abc.abstractmethod
     def shape(self) -> Tuple[int, ...]:
         r"""The size of the hilbert space on every site."""
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @property
     @abc.abstractmethod
     def is_discrete(self) -> bool:
         r"""Whether the hilbert space is discrete."""
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @property
     @abc.abstractmethod
     def is_finite(self) -> bool:
         r"""Whether the local hilbert space is finite."""
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abc.abstractmethod
     def size_at_index(self, i: int) -> int:
@@ -90,7 +90,7 @@ class AbstractHilbert(abc.ABC):
         Returns:
             The number of degrees of freedom at that site
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abc.abstractmethod
     def states_at_index(self, i: int) -> Optional[List[float]]:
@@ -103,7 +103,7 @@ class AbstractHilbert(abc.ABC):
         Returns:
             A list of values or None if there are infintely many.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def numbers_to_states(
         self, numbers: Union[int, np.ndarray], out: Optional[np.ndarray] = None

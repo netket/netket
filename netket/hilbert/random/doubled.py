@@ -18,6 +18,7 @@ from jax import numpy as jnp
 from netket.hilbert import DoubledHilbert
 from netket.utils.dispatch import dispatch
 
+from ..homogeneous import HomogeneousHilbert
 from .base import flip_state_scalar, random_state
 
 
@@ -33,6 +34,23 @@ def random_state(hilb: DoubledHilbert, key, batches: int, *, dtype):  # noqa: F8
 
 @dispatch
 def flip_state_scalar(hilb: DoubledHilbert, key, state, index):  # noqa: F811
+    return _flip_state_scalar_fallback(hilb, key, state, index)
+
+
+# If homogeneous with no constraint, use faster implementation
+# and do not consider it as a doubled hilbert.
+@dispatch
+def flip_state_scalar(  # noqa: F811
+    hilb: DoubledHilbert[HomogeneousHilbert], key, state, index
+):
+    if not hilb.physical.constrained:
+        return flip_state_scalar(hilb.physical, key, state, index)
+    else:
+        return _flip_state_scalar_fallback(hilb, key, state, index)
+
+
+# default implementation
+def _flip_state_scalar_fallback(hilb, key, state, index):
     def flip_lower_state_scalar(args):
         key, state, index = args
         return flip_state_scalar(hilb.physical, key, state, index)
