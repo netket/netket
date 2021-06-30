@@ -500,16 +500,18 @@ def GCNN(symmetries=None, mode="auto", **kwargs):
         {\bf f}^{i+1}_h = \Gamma( \sum_h W_{g^{-1} h} {\bf f}^i_h).
 
     Args:
-        symmetries: A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
-        Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
+        symmetries: A group of symmetry operations (or array of permutation indices)
+            over which the network should be equivariant. Numpy/Jax arrays must be
+            wrapped into an :class:`netket.utils.HashableArray`.
         product_table: Product table describing the algebra of the symmetry group
-        Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
+            Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
         layers: Number of layers (not including sum layer over output).
-        features: Number of features in each layer starting from the input.
-        If a single number is given, all layers will have the same number of features.
+        features: Number of features in each layer starting from the input. If a single
+            number is given, all layers will have the same number of features.
         characters: Array specifying the characters of the desired symmetry representation
         dtype: The dtype of the weights
-        parity:
+        parity: Optional argument with value +/-1 that specifies the eigenvalue
+            with respect to parity (only use on two level systems)
         activation: The nonlinear activation function between hidden layers.
         output_activation: The nonlinear activation before the output.
         imag_part: If true return only the imaginary part of the output
