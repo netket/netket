@@ -241,7 +241,7 @@ class RBMSymm(nn.Module):
         )(x_in)
         x = self.activation(x)
 
-        x = x.reshape(-1, self.features*self.n_symm)
+        x = x.reshape(-1, self.features * self.n_symm)
         x = jnp.sum(x, axis=-1)
 
         if self.use_visible_bias:

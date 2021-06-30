@@ -415,7 +415,6 @@ class DenseEquivariantIrrep(Module):
             [jnp.asarray(irrep).reshape(self.n_symm, -1) for irrep in self.irreps],
             axis=1,
         )
-        print(self.forward.shape)
         self.inverse = jnp.concatenate(
             [
                 jnp.asarray(irrep).conj().reshape(self.n_symm, -1)
@@ -490,7 +489,7 @@ class DenseEquivariantIrrep(Module):
 
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
-          
+
         x = self.forward_ft(x, dtype=dtype)
 
         if self.kernel_init:
@@ -515,11 +514,6 @@ class DenseEquivariantIrrep(Module):
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.forward_ft(kernel, dtype=dtype)
-
-        for i in x:
-            print(i.shape)
-        for i in kernel:
-            print(i.shape)
 
         x = tuple(
             lax.dot_general(
@@ -610,6 +604,8 @@ class DenseEquivariantMatrix(Module):
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
 
+        x = x.reshape(-1, x.shape[1] * x.shape[2])
+
         if self.kernel_init:
             kernel = self.param(
                 "kernel",
@@ -632,8 +628,6 @@ class DenseEquivariantMatrix(Module):
 
         kernel = self.full_kernel(kernel)
         kernel = jnp.asarray(kernel, dtype)
-
-        x = x.reshape(-1, x.shape[1] * x.shape[2])
 
         x = lax.dot_general(
             x,

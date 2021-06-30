@@ -35,7 +35,7 @@ def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
         perms = g.translation_group()
     else:
         # All chain automorphisms, N_symm = 2 N_sites
-        perms = g.automorphisms()
+        perms = g.space_group()
 
     return g, hi, perms
 
@@ -48,7 +48,7 @@ def test_DenseSymm(symmetries, use_bias):
     g, hi, perms = _setup_symm(symmetries, N=8)
 
     ma = nk.nn.DenseSymm(
-        symmetries=perms,
+        symmetry_info=perms,
         features=8,
         use_bias=use_bias,
         bias_init=nk.nn.initializers.uniform(),
@@ -64,7 +64,8 @@ def test_DenseSymm(symmetries, use_bias):
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("use_bias", [True, False])
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
-def test_DenseEquivariant(symmetries, use_bias, lattice):
+@pytest.mark.parametrize("mode", ["fft", "matrix", "irrep"])
+def test_DenseEquivariant(symmetries, use_bias, lattice, mode):
     rng = nk.jax.PRNGSeq(0)
 
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
@@ -72,15 +73,27 @@ def test_DenseEquivariant(symmetries, use_bias, lattice):
     pt = perms.product_table
     n_symm = np.asarray(perms).shape[0]
 
-    ma = nk.nn.DenseEquivariant(
-        symmetry_info=pt.ravel(),
-        in_features=1,
-        out_features=1,
-        use_bias=use_bias,
-        bias_init=nk.nn.initializers.uniform(),
-    )
+    if mode == "irrep":
+        ma = nk.nn.DenseEquivariant(
+            symmetry_info=perms,
+            mode=mode,
+            in_features=1,
+            out_features=1,
+            use_bias=use_bias,
+            bias_init=nk.nn.initializers.uniform(),
+        )
+    else:
+        ma = nk.nn.DenseEquivariant(
+            symmetry_info=pt,
+            shape=tuple(g.extent),
+            mode=mode,
+            in_features=1,
+            out_features=1,
+            use_bias=use_bias,
+            bias_init=nk.nn.initializers.uniform(),
+        )
 
-    pars = ma.init(rng.next(), np.random.normal(0, 1, [1, n_symm]))
+    pars = ma.init(rng.next(), np.random.normal(0, 1, [1, 1, n_symm]))
 
     # inv_pt computes chosen_op = gh^-1 instead of g^-1h
     chosen_op = np.random.randint(n_symm)
@@ -90,14 +103,14 @@ def test_DenseEquivariant(symmetries, use_bias, lattice):
     inv_pt = inverse.product_table
     sym_op = np.where(inv_pt == chosen_op, 1.0, 0.0)
 
-    v = random.normal(rng.next(), [3, n_symm])
-    v_trans = dot(v, sym_op)
+    v = random.normal(rng.next(), [3, 1, n_symm])
+    v_trans = jnp.matmul(v, sym_op)
 
     out = ma.apply(pars, v)
     out_trans = ma.apply(pars, v_trans)
 
     # output should be involution
-    assert jnp.allclose(dot(out, sym_op.transpose(0, 1)), out_trans)
+    assert jnp.allclose(jnp.matmul(out, sym_op), out_trans)
 
 
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
