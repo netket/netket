@@ -44,7 +44,7 @@ def dwdt_mcstate(state: MCState, self, t, w):
     state.reset()
 
     self._loss_stats, self._loss_grad = state.expect_and_grad(
-        self.generator, is_hermitian=True
+        self.generator(t), is_hermitian=True
     )
     self._loss_grad = tree_map(lambda x: -1.0j * x, self._loss_grad)
 
@@ -60,7 +60,7 @@ def dwdt_mcmixedstate(state: MCMixedState, self, t, w):
     state.reset()
 
     self._loss_stats, self._loss_grad = state.expect_and_grad(
-        self.generator, is_hermitian=True
+        self.generator(t), is_hermitian=True
     )
 
     self._S = self.qgt(self.state)
@@ -145,7 +145,7 @@ class TimeEvolution(AbstractVariationalDriver):
                 raise ValueError(
                     "If tspan is specified, you cannot also specify t0 and tend."
                 )
-            if not isinstance(t_span, tuple):
+            if not isinstance(tspan, tuple):
                 raise TypeError("tspan must be a tuple.")
 
             t0, tend = tspan
@@ -157,7 +157,10 @@ class TimeEvolution(AbstractVariationalDriver):
             variational_state, optimizer=None, minimized_quantity_name="generator"
         )
 
-        self._generator = operator.collect()  # type: AbstractOperator
+        if isinstance(operator, AbstractOperator):
+            self._generator = lambda _: operator.collect()  # type: AbstractOperator
+        else:
+            self._generator = operator
 
         self.qgt = qgt  # type: SR
         self.linear_solver = linear_solver
