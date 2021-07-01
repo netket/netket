@@ -16,18 +16,18 @@ from typing import Optional, List, Tuple, Union
 
 import numpy as np
 
-from .abstract_hilbert import AbstractHilbert
+from .lattice_hilbert import LatticeHilbert
 
 
 # TODO: Make parametric class
-class TensorHilbert(AbstractHilbert):
-    r"""Tensor product of several sub-spaces.
+class TensorHilbert(LatticeHilbert):
+    r"""Tensor product of several lattice sub-spaces.
 
     In general you should not need to construcct this objecct directly, but
     rather may get it when multiplying hilbert spaces.
     """
 
-    def __init__(self, *hilb_spaces: AbstractHilbert):
+    def __init__(self, *hilb_spaces: LatticeHilbert):
         r"""Constructs a tensor Hilbert space
 
         Args:
@@ -171,7 +171,7 @@ class TensorHilbert(AbstractHilbert):
 
         return TensorHilbert(*spaces_l, *spaces_center, *spaces_r)
 
-    def ptrace(self, sites: Union[int, List]) -> Optional[AbstractHilbert]:
+    def ptrace(self, sites: Union[int, List]) -> Optional[LatticeHilbert]:
         if isinstance(sites, int):
             sites = [sites]
 

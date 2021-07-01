@@ -19,7 +19,7 @@ from numbers import Real
 import numpy as np
 from numba import jit
 
-from .abstract_hilbert import AbstractHilbert
+from .lattice_hilbert import LatticeHilbert
 from .hilbert_index import HilbertIndex
 
 
@@ -36,7 +36,7 @@ def _to_constrained_numbers_kernel(bare_numbers, numbers):
     return found
 
 
-class HomogeneousHilbert(AbstractHilbert):
+class HomogeneousHilbert(LatticeHilbert):
     r"""The Abstract base class for homogeneous hilbert spaces.
 
     This class should only be subclassed and should not be instantiated directly.
