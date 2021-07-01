@@ -31,7 +31,7 @@ jobs:
 
           - os: macos-latest
             python-version: 3.8
-            mpi: "mpich"
+            mpi: "openmpi"
             main_tests: true
 
           - os: ubuntu-latest
