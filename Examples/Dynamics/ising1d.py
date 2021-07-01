@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+import netket.experimental as nkx
 
 # 1D Lattice
 L = 20  # 10
@@ -32,7 +33,7 @@ ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=complex)
 sa = nk.sampler.MetropolisHamiltonian(hi, ha, n_chains=16)
 
 # Variational state
-vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard=100)
+vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard=100)
 
 # Optimizer
 op = nk.optimizer.Sgd(0.01)
@@ -48,10 +49,10 @@ Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
 gs.run(n_iter=300, out="example_ising1d_GS", obs={"Sx": Sx})
 
 # Create solver for time propagation
-solver = nk.dynamics.Heun(dt=0.01)
+solver = nkx.dynamics.Heun(dt=0.01)
 
 ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
-te = nk.TimeEvolution(ha1, variational_state=vs, sr=sr, solver=solver)
+te = nkx.TimeEvolution(ha1, variational_state=vs, sr=sr, solver=solver)
 
 log = nk.logging.JsonLog("example_ising1d_TE")
 te.run(1.0, out=log, show_progress=True, obs={"SX": Sx})

@@ -35,7 +35,6 @@ __all__ = [
     "stats",
     "utils",
     "vqs",
-    "dynamics",
     "nn",
 ]
 
@@ -56,15 +55,12 @@ from . import (
     sampler,
     vqs,
     optimizer,
-    dynamics,
 )
 
 
 # Main applications
 from .driver import VMC
 from .driver import SteadyState
-
-from .dynamics import TimeEvolution
 
 # Deprecations
 @_deprecated("VMC")
