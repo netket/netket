@@ -26,7 +26,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
+ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=complex)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisHamiltonian(hi, ha, n_chains=16)
@@ -35,21 +35,24 @@ sa = nk.sampler.MetropolisHamiltonian(hi, ha, n_chains=16)
 vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard=100)
 
 # Optimizer
-sr = nk.optimizer.SR(diag_shift=0.0001)
-
-#
-solver = nk.dynamics.Euler(dt=0.01)
-
-te = nk.TimeEvolution(ha, variational_state=vs, sr=sr, solver=solver)
-
-Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
-
-log = nk.logging.JsonLog("test")
-
-out = te.run(1.0, out=log, show_progress=False, obs={"SX": Sx}, step_size=0.1)[0]
+op = nk.optimizer.Sgd(0.01)
+sr = nk.optimizer.SR(diag_shift=1e-4)
 
 # Variational monte carlo driver
-# gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=50)
+gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=50)
+
+# Create observable
+Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
 
 # Run the optimization for 300 iterations
-# gs.run(n_iter=300, out="test")
+gs.run(n_iter=300, out="example_ising1d_GS", obs={"Sx": Sx})
+
+# Create solver for time propagation
+solver = nk.dynamics.Heun(dt=0.01)
+
+ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
+te = nk.TimeEvolution(ha1, variational_state=vs, sr=sr, solver=solver)
+
+log = nk.logging.JsonLog("example_ising1d_TE")
+te.run(1.0, out=log, show_progress=True, obs={"SX": Sx})
+

@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from functools import singledispatch
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Tuple, Union
+from netket.utils.types import Array
 
 import numpy as np
 import scipy.integrate as _scint
