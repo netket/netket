@@ -73,17 +73,31 @@ class QGTAuto:
     """
 
     _last_vstate = None
-    _last_matrix = None
+    """Cached last variational state to skip logic to decide what type of
+    QGT to chose.
+    """
 
-    def __init__(self, solver=None):
+    _last_matrix = None
+    """
+    Cached last QGT. Used when vstate == _last_vstate
+    """
+
+    _kwargs = {}
+    """
+    Kwargs passed at construction. Used when constructing a QGT.
+    """
+
+    def __init__(self, solver=None, **kwargs):
         self._solver = solver
+
+        self._kwargs = kwargs
 
     def __call__(self, variational_state, *args, **kwargs):
         if self._last_vstate != variational_state:
             self._last_vstate = variational_state
 
             self._last_matrix = default_qgt_matrix(
-                variational_state, solver=self._solver, **kwargs
+                variational_state, solver=self._solver, **self._kwargs, **kwargs
             )
 
         return self._last_matrix(variational_state, *args, **kwargs)
