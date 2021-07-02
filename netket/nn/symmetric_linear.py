@@ -132,6 +132,8 @@ class DenseSymmMatrix(Module):
             precision=self.precision,
         )
 
+        x = x.reshape(-1, self.features, self.n_symm)
+
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             bias = jnp.asarray(self.full_bias(bias), dtype)
@@ -163,12 +165,14 @@ class DenseSymmFFT(Module):
     """Initializer for the bias. Defaults to zero initialization"""
 
     def setup(self):
+        sg = np.asarray(self.space_group)
+
         self.n_cells = np.product(np.asarray(self.shape))
-        self.n_symm = len(np.asarray(self.space_group)) // self.n_cells
-        self.sites_per_cell = np.asarray(self.space_group).shape[1] // self.n_cells
+        self.n_symm = len(sg) // self.n_cells
+        self.sites_per_cell = sg.shape[1] // self.n_cells
 
         self.mapping = (
-            np.asarray(self.space_group)[:, : self.sites_per_cell]
+            sg[:, : self.sites_per_cell]
             .reshape(self.n_cells, self.n_symm, self.sites_per_cell)
             .transpose(1, 2, 0)
             .reshape(self.n_symm, self.sites_per_cell, *self.shape)
@@ -262,11 +266,13 @@ class DenseEquivariantFFT(Module):
 
     def setup(self):
 
+        pt = np.asarray(self.product_table)
+
         self.n_cells = np.product(np.asarray(self.shape))
-        self.n_symm = len(np.asarray(self.product_table)) // self.n_cells
+        self.n_symm = len(pt) // self.n_cells
 
         self.mapping = (
-            np.asarray(self.product_table)[: self.n_symm]
+            pt[: self.n_symm]
             .reshape(self.n_symm, self.n_cells, self.n_symm)
             .transpose(0, 2, 1)
             .reshape(self.n_symm, self.n_symm, *self.shape)
@@ -286,7 +292,8 @@ class DenseEquivariantFFT(Module):
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
 
-        x = x.reshape(*x.shape[:-1], self.n_cells, self.n_symm).transpose(0, 1, 3, 2)
+        x = x.reshape(*x.shape[:-1], self.n_cells, self.n_symm)
+        x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
         kernel = self.param(
@@ -320,7 +327,8 @@ class DenseEquivariantFFT(Module):
         x = x.reshape(*x.shape[:3], *self.shape)
 
         x = jnp.fft.ifftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
-        x = x.transpose(0, 1, 3, 2).reshape(*x.shape[:2], -1)
+        x = x.transpose(0, 1, 3, 2)
+        x = x.reshape(*x.shape[:2], -1)
 
         if self.use_bias:
             bias = self.param(
@@ -417,7 +425,7 @@ class DenseEquivariantIrrep(Module):
             for i, shape in enumerate(shapes)
         )
 
-    def forward_ft(self, inputs: Array, dtype: DType) -> Tuple[Array]:
+    def forward_ft(self, inputs: Array) -> Tuple[Array]:
         """Performs a forward group Fourier transform on the input.
         This is defined by
         :: math ::
@@ -430,7 +438,7 @@ class DenseEquivariantIrrep(Module):
         """
         return self.disassemble(jnp.tensordot(inputs, self.forward, axes=1))
 
-    def inverse_ft(self, inputs: Tuple[Array], dtype: DType) -> Array:
+    def inverse_ft(self, inputs: Tuple[Array]) -> Array:
         """Performs an inverse group Fourier transform on the input.
         This is defined by
         :: math ::
@@ -445,7 +453,6 @@ class DenseEquivariantIrrep(Module):
             jnp.tensordot(self.assemble(inputs), self.inverse, axes=1),
             # Irrep matrices might be complex, so `result` might be complex
             # even if the inputs are real
-            dtype=dtype,
         )
 
     @compact
@@ -457,7 +464,7 @@ class DenseEquivariantIrrep(Module):
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
 
-        x = self.forward_ft(x, dtype=dtype)
+        x = self.forward_ft(x)
 
         kernel = self.param(
             "kernel",
@@ -471,7 +478,7 @@ class DenseEquivariantIrrep(Module):
         if self.mask:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.forward_ft(kernel, dtype=dtype)
+        kernel = self.forward_ft(kernel)
 
         x = tuple(
             lax.dot_general(
@@ -480,7 +487,7 @@ class DenseEquivariantIrrep(Module):
             for i in range(len(x))
         )
 
-        x = self.inverse_ft(x, dtype)
+        x = self.inverse_ft(x)
 
         if self.use_bias:
             bias = self.param(

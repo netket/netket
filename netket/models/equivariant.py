@@ -106,6 +106,7 @@ class GCNN_FFT(nn.Module):
     @nn.compact
     def __call__(self, x):
         x = self.dense_symm(x)
+
         for layer in range(self.layers - 1):
             x = self.activation(x)
             x = self.equivariant_layers[layer](x)
@@ -192,7 +193,9 @@ class GCNN_Irrep(nn.Module):
     @nn.compact
     def __call__(self, x):
         x = self.dense_symm(x)
+
         for layer in range(self.layers - 1):
+
             x = self.activation(x)
             x = self.equivariant_layers[layer](x)
 
