@@ -311,14 +311,14 @@ class GCNN_Parity_FFT(nn.Module):
             x = self.activation(x)
             x_flip = self.activation(x_flip)
 
-            x_new = self.equivariant_layers[layer](x) + self.equivariant_layers_flip[
+            x_new = (self.equivariant_layers[layer](x) + self.equivariant_layers_flip[
                 layer
-            ](x_flip)
-            x_flip = self.equivariant_layers[layer](
+            ](x_flip))/np.sqrt(2)
+            x_flip = (self.equivariant_layers[layer](
                 x_flip
-            ) + self.equivariant_layers_flip[layer](x)
+            ) + self.equivariant_layers_flip[layer](x))/np.sqrt(2)
             x = jnp.array(x_new, copy=True)
-
+            
         x = jnp.concatenate((x, x_flip), -2)
 
         if self.output_activation is not None:
@@ -441,12 +441,12 @@ class GCNN_Parity_Irrep(nn.Module):
             x = self.activation(x)
             x_flip = self.activation(x_flip)
 
-            x_new = self.equivariant_layers[layer](x) + self.equivariant_layers_flip[
+            x_new = (self.equivariant_layers[layer](x) + self.equivariant_layers_flip[
                 layer
-            ](x_flip)
-            x_flip = self.equivariant_layers[layer](
+            ](x_flip))/np.sqrt(2)
+            x_flip = (self.equivariant_layers[layer](
                 x_flip
-            ) + self.equivariant_layers_flip[layer](x)
+            ) + self.equivariant_layers_flip[layer](x))/np.sqrt(2)
             x = jnp.array(x_new, copy=True)
 
         x = jnp.concatenate((x, x_flip), -2)
