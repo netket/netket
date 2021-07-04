@@ -16,9 +16,7 @@ from functools import partial
 
 import jax
 
-import warnings
-
-from netket.utils import deprecated
+from netket.utils import deprecated, warn_deprecation
 
 from .api import build_SR as SR
 from .. import qgt
@@ -37,11 +35,11 @@ from .. import qgt
     >>> nk.optimizer.SR(nk.optimizer.qgt.QGTOnTheFly, solver=solver, diag_shift=0.01)
     """
 )
-def SRLazyCG(diag_shift: float = 0.01, centered: bool = True, **kwargs):
+def SRLazyCG(diag_shift: float = 0.01, centered: bool = None, **kwargs):
 
-    if centered:
-        warnings.warn(
-            """The argument `centered` is deprecated. The implementation now always behaves as if centered=False."""
+    if centered is not None:
+        warn_deprecation(
+            "The argument `centered` is deprecated. The implementation now always behaves as if centered=False."
         )
 
     return SR(
@@ -65,11 +63,11 @@ def SRLazyCG(diag_shift: float = 0.01, centered: bool = True, **kwargs):
     >>> nk.optimizer.SR(nk.optimizer.qgt.QGTOnTheFly, solver=solver, diag_shift=0.01)
     """
 )
-def SRLazyGMRES(diag_shift: float = 0.01, centered: bool = True, **kwargs):
+def SRLazyGMRES(diag_shift: float = 0.01, centered: bool = None, **kwargs):
 
-    if centered:
-        warnings.warn(
-            """The argument `centered` is deprecated. The implementation now always behaves as if centered=False."""
+    if centered is not None:
+        warn_deprecation(
+            "The argument `centered` is deprecated. The implementation now always behaves as if centered=False."
         )
 
     return SR(

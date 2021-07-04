@@ -43,6 +43,11 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
     """
     if vstate is None:
         return partial(QGTOnTheFly, **kwargs)
+     
+    if "centered" in kwargs:
+        warn_deprecated(
+            "The argument `centered` is deprecated. The implementation now always behaves as if centered=False."
+            )
 
     return QGTOnTheFlyT(
         apply_fun=vstate._apply_fun,
