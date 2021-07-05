@@ -21,7 +21,7 @@ from flax import struct
 
 import netket.jax as nkjax
 from netket.utils.types import PyTree
-from netket.utils import warn_deprecated
+from netket.utils import warn_deprecation
 
 from .qgt_onthefly_logic import mat_vec as mat_vec_onthefly
 
@@ -46,7 +46,7 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
         return partial(QGTOnTheFly, **kwargs)
 
     if "centered" in kwargs:
-        warn_deprecated(
+        warn_deprecation(
             "The argument `centered` is deprecated. The implementation now always behaves as if centered=False."
         )
 
