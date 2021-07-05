@@ -65,10 +65,6 @@ class TensorHilbert(DiscreteHilbert):
         return self._size
 
     @property
-    def is_discrete(self):
-        return all([hi.is_discrete for hi in self._hilbert_spaces])
-
-    @property
     def is_finite(self):
         return all([hi.is_finite for hi in self._hilbert_spaces])
 

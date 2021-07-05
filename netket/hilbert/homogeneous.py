@@ -195,7 +195,7 @@ class HomogeneousHilbert(DiscreteHilbert):
     # legacy interoperability.
     # TODO: Remove in 3.1
     def _random_state_legacy(self, size=None, *, out=None, rgen=None):
-        if not self.is_discrete or not self.is_finite or self._has_constraint:
+        if not self.is_finite or self._has_constraint:
             raise NotImplementedError()
 
         # Default version for discrete hilbert spaces without constraints.

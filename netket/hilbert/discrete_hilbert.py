@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import List, Tuple, Optional, Union, Iterator
+from textwrap import dedent
 
 import numpy as np
 
@@ -66,9 +67,29 @@ class DiscreteHilbert(AbstractHilbert):
         return self._shape
 
     @property
-    def is_discrete(self) -> bool:
-        r"""Whether the hilbert space is discrete."""
-        return True  # pragma: no cover
+    def is_finite(self) -> bool:
+        r"""Whether the local hilbert space is finite."""
+        raise NotImplementedError(  # pragma: no cover
+            dedent(
+                f"""
+            `is_finite` is not implemented for discrete hilbert
+            space {type(self)}.
+            """
+            )
+        )
+
+    @property
+    def n_states(self) -> int:
+        r"""The total dimension of the many-body Hilbert space.
+        Throws an exception iff the space is not indexable."""
+        raise NotImplementedError(  # pragma: no cover
+            dedent(
+                f"""
+            `n_states` is not implemented for discrete hilbert
+            space {type(self)}.
+            """
+            )
+        )
 
     def size_at_index(self, i: int) -> int:
         r"""Size of the local degrees of freedom for the i-th variable.

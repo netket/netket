@@ -63,22 +63,6 @@ class AbstractHilbert(abc.ABC):
         Hilbert space."""
         raise NotImplementedError()  # pragma: no cover
 
-    @property
-    def is_discrete(self) -> bool:
-        r"""Whether the hilbert space is discrete."""
-        return False  # pragma: no cover
-
-    @property
-    def is_finite(self) -> bool:
-        r"""Whether the local hilbert space is finite."""
-        return False  # pragma: no cover
-
-    @property
-    def n_states(self) -> int:
-        r"""The total dimension of the many-body Hilbert space.
-        Throws an exception iff the space is not indexable."""
-        raise ValueError("The Hilbert space is infinite.")
-
     # after removing legacy:
     # signature must be the following
     # def random_state(self, key, size=None, dtype=np.float32):

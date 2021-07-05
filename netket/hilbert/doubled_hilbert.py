@@ -57,10 +57,6 @@ class DoubledHilbert(DiscreteHilbert):
         return self._shape
 
     @property
-    def is_discrete(self):
-        return self.physical.is_discrete
-
-    @property
     def is_finite(self):
         return self.physical.is_finite
 
