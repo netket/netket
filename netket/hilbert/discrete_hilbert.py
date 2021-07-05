@@ -200,9 +200,6 @@ class DiscreteHilbert(AbstractHilbert):
     @property
     def is_indexable(self) -> bool:
         """Whever the space can be indexed with an integer"""
-        if not self.is_discrete:
-            return False
-
         if not self.is_finite:
             return False
 
