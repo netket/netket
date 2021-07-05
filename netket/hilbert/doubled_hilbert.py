@@ -18,11 +18,11 @@ import numpy as np
 
 from netket.utils.dispatch import parametric
 
-from .abstract_hilbert import AbstractHilbert
+from .discrete_hilbert import DiscreteHilbert
 
 
 @parametric
-class DoubledHilbert(AbstractHilbert):
+class DoubledHilbert(DiscreteHilbert):
     r"""Superoperatorial hilbert space for states living in the
     tensorised state H\otimes H, encoded according to Choi's isomorphism."""
 
