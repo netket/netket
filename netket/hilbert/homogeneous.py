@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Tuple, List, Callable
+from typing import Optional, List, Callable
 
 from numbers import Real
 
 import numpy as np
 from numba import jit
 
-from .lattice_hilbert import LatticeHilbert
+from .discrete_hilbert import DiscreteHilbert
 from .hilbert_index import HilbertIndex
 
 
@@ -36,7 +36,7 @@ def _to_constrained_numbers_kernel(bare_numbers, numbers):
     return found
 
 
-class HomogeneousHilbert(LatticeHilbert):
+class HomogeneousHilbert(DiscreteHilbert):
     r"""The Abstract base class for homogeneous hilbert spaces.
 
     This class should only be subclassed and should not be instantiated directly.
@@ -63,7 +63,6 @@ class HomogeneousHilbert(LatticeHilbert):
                 specifying whether those states are valid or not.
         """
         assert isinstance(N, int)
-        super().__init__()
 
         self._size = N
 
@@ -85,22 +84,13 @@ class HomogeneousHilbert(LatticeHilbert):
 
         self._hilbert_index = None
 
-        self._shape = tuple(self._local_size for _ in range(self.size))
+        shape = tuple(self._local_size for _ in range(self.size))
+        super().__init__(shape=shape)
 
     @property
     def size(self) -> int:
         r"""The total number number of degrees of freedom."""
         return self._size
-
-    @property
-    def shape(self) -> Tuple[int, ...]:
-        r"""The size of the hilbert space on every site."""
-        return self._shape
-
-    @property
-    def is_discrete(self) -> bool:
-        r"""Whether the hilbert space is discrete."""
-        return True
 
     @property
     def local_size(self) -> int:

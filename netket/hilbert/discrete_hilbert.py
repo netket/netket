@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union, Iterator
+from typing import List, Tuple, Optional, Union, Iterator
 
 import numpy as np
 
@@ -41,15 +41,45 @@ legacy_warn_str = (
 )
 
 
-class LatticeHilbert(AbstractHilbert):
+class DiscreteHilbert(AbstractHilbert):
     """Abstract class for an hilbert space defined on a lattice.
 
     This class definese the common interface that can be used to
     interact with hilbert spaces on lattices.
     """
 
-    def __init__(self):
+    def __init__(self, shape: Tuple[int, ...]):
+        """
+        Initializes a discrete Hilbert space with a basis of given shape.
+
+        Args:
+            shape: The local dimension of the Hilbert space for each degree
+                of freedom.
+        """
+        self._shape = shape
+
         super().__init__()
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        r"""The size of the hilbert space on every site."""
+        return self._shape
+
+    @property
+    def is_discrete(self) -> bool:
+        r"""Whether the hilbert space is discrete."""
+        return True  # pragma: no cover
+
+    def size_at_index(self, i: int) -> int:
+        r"""Size of the local degrees of freedom for the i-th variable.
+
+        Args:
+            i: The index of the desired site
+
+        Returns:
+            The number of degrees of freedom at that site
+        """
+        return self.shape[i]  # prgma: no cover
 
     def states_at_index(self, i: int) -> Optional[List[float]]:
         r"""A list of discrete local quantum numbers at the site i.
@@ -159,7 +189,7 @@ class LatticeHilbert(AbstractHilbert):
 
         return np.sum(np.log(self.shape)) <= log_max
 
-    def __mul__(self, other: "LatticeHilbert"):
+    def __mul__(self, other: "DiscreteHilbert"):
         if self == other:
             return self ** 2
         else:

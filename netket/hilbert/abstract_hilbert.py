@@ -59,13 +59,8 @@ class AbstractHilbert(abc.ABC):
     @property
     @abc.abstractmethod
     def size(self) -> int:
-        r"""The total number number of spins."""
-        raise NotImplementedError()  # pragma: no cover
-
-    @property
-    @abc.abstractmethod
-    def shape(self) -> Tuple[int, ...]:
-        r"""The size of the hilbert space on every site."""
+        r"""The number number of degrees of freedom in the basis of this
+        Hilbert space."""
         raise NotImplementedError()  # pragma: no cover
 
     @property
@@ -77,17 +72,6 @@ class AbstractHilbert(abc.ABC):
     def is_finite(self) -> bool:
         r"""Whether the local hilbert space is finite."""
         return False  # pragma: no cover
-
-    def size_at_index(self, i: int) -> int:
-        r"""Size of the local degrees of freedom for the i-th variable.
-
-        Args:
-            i: The index of the desired site
-
-        Returns:
-            The number of degrees of freedom at that site
-        """
-        return self.shape[i]  # prgma: no cover
 
     @property
     def n_states(self) -> int:
