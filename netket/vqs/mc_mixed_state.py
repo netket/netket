@@ -14,8 +14,6 @@
 
 from typing import Optional, Callable, Union, Tuple
 
-import numpy as np
-
 import jax
 from jax import numpy as jnp
 
@@ -25,14 +23,10 @@ from flax import serialization
 import netket
 from netket import jax as nkjax
 from netket.sampler import Sampler
-from netket.stats import Stats, statistics
+from netket.stats import Stats
 from netket.utils import warn_deprecation
 from netket.utils.types import PyTree
-from netket.operator import (
-    AbstractOperator,
-    local_cost_function,
-    local_value_op_op_cost,
-)
+from netket.operator import AbstractOperator
 
 from .base import VariationalMixedState
 from .mc_state import MCState
@@ -259,28 +253,6 @@ class MCMixedState(VariationalMixedState, MCState):
         super().reset()
         if self.diagonal is not None:
             self.diagonal.reset()
-
-    def expect_operator(self, Ô: AbstractOperator) -> Stats:
-        σ = self.diagonal.samples
-        σ_shape = σ.shape
-        σ = σ.reshape((-1, σ.shape[-1]))
-
-        σ_np = np.asarray(σ)
-        σp, mels = Ô.get_conn_padded(σ_np)
-
-        # now we have to concatenate the two
-        O_loc = local_cost_function(
-            local_value_op_op_cost,
-            self._apply_fun,
-            self.variables,
-            σp,
-            mels,
-            σ,
-        ).reshape(σ_shape[:-1])
-
-        # notice that loc.T is passed to statistics, since that function assumes
-        # that the first index is the batch index.
-        return statistics(O_loc.T)
 
     def expect_and_grad_operator(
         self, Ô: AbstractOperator, is_hermitian=None

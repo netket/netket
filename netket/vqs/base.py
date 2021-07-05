@@ -26,7 +26,32 @@ import netket.nn as nknn
 from netket.operator import AbstractOperator
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import PyTree, PRNGKeyT, NNInitFunc
+from netket.utils.dispatch import dispatch
 from netket.stats import Stats
+
+
+@dispatch
+def expect(vstate, operator):
+    """
+    Computes the expectation value of the given operator over the
+    variational state
+
+    Args:
+        vstate: The VariationalState
+        operator: The Operator or SuperOperator.
+    """
+    raise NotImplementedError(
+        (
+            "To implement vstate.expect for a custom operator, implement "
+            "the multiple-dispatch (plum-dispatc) based method according "
+            ""
+            "@nk.vqs.expect.register"
+            f"expect(vstate : {type(vstate)}, operator: {type(operator)}):"
+            "   return ..."
+            ""
+            "which uses multiple dispatch to select the correct function."
+        )
+    )
 
 
 class VariationalState(abc.ABC):
@@ -147,7 +172,6 @@ class VariationalState(abc.ABC):
         """
         pass
 
-    @abc.abstractmethod
     def expect(self, Ô: AbstractOperator) -> Stats:
         r"""Estimates the quantum expectation value for a given operator O.
             In the case of a pure state $\psi$, this is $<O>= <Psi|O|Psi>/<Psi|Psi>$
@@ -159,7 +183,7 @@ class VariationalState(abc.ABC):
         Returns:
             An estimation of the quantum expectation value <O>.
         """
-        raise NotImplementedError
+        return expect(self, Ô)
 
     def grad(
         self, Ô, *, is_hermitian: Optional[bool] = None, mutable: Optional[Any] = None
@@ -241,16 +265,6 @@ class VariationalMixedState(VariationalState):
     def hilbert_physical(self) -> AbstractHilbert:
         return self._hilbert_physical
 
-    def expect(self, Ô: AbstractOperator) -> Stats:
-        # If it is super-operator treat, they act on the same space so
-        # the expectation value is standard.
-        if self.hilbert == Ô.hilbert:
-            return super().expect(Ô)
-        elif self.hilbert_physical == Ô.hilbert:
-            return self.expect_operator(Ô)
-        else:
-            return NotImplemented
-
     def expect_and_grad(
         self,
         Ô: AbstractOperator,
@@ -268,10 +282,6 @@ class VariationalMixedState(VariationalState):
             )
         else:
             return NotImplemented
-
-    @abc.abstractmethod
-    def expect_operator(self, Ô: AbstractOperator) -> Stats:
-        raise NotImplementedError
 
     def grad_operator(self, Ô: AbstractOperator) -> Stats:
         return self.expect_and_grad_operator(Ô)[1]

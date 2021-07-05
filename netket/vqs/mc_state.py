@@ -26,7 +26,6 @@ import flax
 from flax import linen as nn
 from flax import serialization
 
-import netket
 from netket import jax as nkjax
 from netket import config
 from netket.sampler import Sampler, SamplerState
@@ -42,6 +41,7 @@ from netket.operator import (
     local_cost_function,
     local_value_cost,
     Squared,
+    _der_local_values_jax,
 )
 
 from .base import VariationalState
@@ -451,31 +451,6 @@ class MCState(VariationalState):
         """
         return self.log_value(σ)
 
-    def expect(self, Ô: AbstractOperator) -> Stats:
-        if not self.hilbert == Ô.hilbert:
-            return NotImplemented
-
-        σ = self.samples
-
-        if isinstance(Ô, Squared):
-            Ô = Ô.parent
-            kernel = local_value_squared_kernel
-        else:
-            kernel = local_value_kernel
-
-        σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
-
-        return _expect(
-            self.sampler.machine_pow,
-            self._apply_fun,
-            kernel,
-            self.parameters,
-            self.model_state,
-            σ,
-            σp,
-            mels,
-        )
-
     def expect_and_grad(
         self,
         Ô: AbstractOperator,
@@ -574,7 +549,7 @@ class MCState(VariationalState):
         return qgt_T(self)
 
     def to_array(self, normalize: bool = True) -> jnp.ndarray:
-        return netket.nn.to_array(
+        return nn.to_array(
             self.hilbert, self._apply_fun, self.variables, normalize=normalize
         )
 
@@ -799,10 +774,10 @@ def grad_expect_operator_Lrho2(
     (
         Lρ,
         der_loc_vals,
-    ) = netket.operator._der_local_values_jax._local_values_and_grads_notcentered_kernel(
+    ) = _der_local_values_jax._local_values_and_grads_notcentered_kernel(
         logpsi, parameters, σp, mels, σ
     )
-    # netket.operator._der_local_values_jax._local_values_and_grads_notcentered_kernel returns a loc_val that is conjugated
+    # _der_local_values_jax._local_values_and_grads_notcentered_kernel returns a loc_val that is conjugated
     Lρ = jnp.conjugate(Lρ)
 
     LdagL_stats = statistics((jnp.abs(Lρ) ** 2).T)
