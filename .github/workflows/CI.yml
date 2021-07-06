@@ -98,5 +98,9 @@ jobs:
           mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 test
           coverage combine --append
 
+      - name: Debug with tmate on failure
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+
       - name: Upload coverage
         uses: codecov/codecov-action@v1
