@@ -12,22 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Tuple, Union
+from typing import Optional, List, Union
 
 import numpy as np
 
-from .abstract_hilbert import AbstractHilbert
+from .discrete_hilbert import DiscreteHilbert
 
 
 # TODO: Make parametric class
-class TensorHilbert(AbstractHilbert):
-    r"""Tensor product of several sub-spaces.
+class TensorHilbert(DiscreteHilbert):
+    r"""Tensor product of several lattice sub-spaces.
 
     In general you should not need to construcct this objecct directly, but
     rather may get it when multiplying hilbert spaces.
     """
 
-    def __init__(self, *hilb_spaces: AbstractHilbert):
+    def __init__(self, *hilb_spaces: DiscreteHilbert):
         r"""Constructs a tensor Hilbert space
 
         Args:
@@ -45,8 +45,6 @@ class TensorHilbert(AbstractHilbert):
         self._cum_indices = np.concatenate([[0], self._cum_sizes])
         self._size = sum(self._sizes)
 
-        self._shape = np.concatenate([hi.shape for hi in hilb_spaces])
-
         self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
         self._ns_states_r = np.flip(self._ns_states)
         self._cum_ns_states = np.concatenate([[0], np.cumprod(self._ns_states)])
@@ -59,19 +57,12 @@ class TensorHilbert(AbstractHilbert):
             [self._cum_indices[i] for i in self._hilbert_i]
         )
 
-        super().__init__()
+        shape = np.concatenate([hi.shape for hi in hilb_spaces])
+        super().__init__(shape=shape)
 
     @property
     def size(self) -> int:
         return self._size
-
-    @property
-    def shape(self) -> Tuple[int, ...]:
-        return self._shape
-
-    @property
-    def is_discrete(self):
-        return all([hi.is_discrete for hi in self._hilbert_spaces])
 
     @property
     def is_finite(self):
@@ -82,12 +73,12 @@ class TensorHilbert(AbstractHilbert):
             if i < sz:
                 return j
 
-    def size_at_index(self, i):
-        # j = self._sub_index(i)
-        # return self._hilbert_spaces[j].size_at_index(i-self._cum_indices[j-1])
-        return self._hilbert_spaces[self._hilbert_i[i]].size_at_index(
-            i - self._delta_indices_i[i]
-        )
+    # def size_at_index(self, i):
+    #    # j = self._sub_index(i)
+    #    # return self._hilbert_spaces[j].size_at_index(i-self._cum_indices[j-1])
+    #    return self._hilbert_spaces[self._hilbert_i[i]].size_at_index(
+    #        i - self._delta_indices_i[i]
+    #    )
 
     def states_at_index(self, i):
         # j = self._sub_index(i)
@@ -171,7 +162,7 @@ class TensorHilbert(AbstractHilbert):
 
         return TensorHilbert(*spaces_l, *spaces_center, *spaces_r)
 
-    def ptrace(self, sites: Union[int, List]) -> Optional[AbstractHilbert]:
+    def ptrace(self, sites: Union[int, List]) -> Optional[DiscreteHilbert]:
         if isinstance(sites, int):
             sites = [sites]
 

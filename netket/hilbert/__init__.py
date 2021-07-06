@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from .abstract_hilbert import AbstractHilbert
+from .discrete_hilbert import DiscreteHilbert
+
 from .custom_hilbert import CustomHilbert
 from .doubled_hilbert import DoubledHilbert
 from .spin import Spin

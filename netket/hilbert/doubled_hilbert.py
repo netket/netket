@@ -18,11 +18,11 @@ import numpy as np
 
 from netket.utils.dispatch import parametric
 
-from .abstract_hilbert import AbstractHilbert
+from .discrete_hilbert import DiscreteHilbert
 
 
 @parametric
-class DoubledHilbert(AbstractHilbert):
+class DoubledHilbert(DiscreteHilbert):
     r"""Superoperatorial hilbert space for states living in the
     tensorised state H\otimes H, encoded according to Choi's isomorphism."""
 
@@ -46,8 +46,7 @@ class DoubledHilbert(AbstractHilbert):
         self.physical = hilb
         self._size = 2 * hilb.size
 
-        self._shape = hilb.shape * 2
-        super().__init__()
+        super().__init__(shape=hilb.shape * 2)
 
     @property
     def size(self):
@@ -56,10 +55,6 @@ class DoubledHilbert(AbstractHilbert):
     @property
     def shape(self):
         return self._shape
-
-    @property
-    def is_discrete(self):
-        return self.physical.is_discrete
 
     @property
     def is_finite(self):
