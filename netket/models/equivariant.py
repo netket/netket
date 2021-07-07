@@ -111,8 +111,7 @@ class GCNN_FFT(nn.Module):
             x = self.activation(x)
             x = self.equivariant_layers[layer](x)
 
-        if self.output_activation is not None:
-            x = self.output_activation(x)
+        x = self.output_activation(x)
 
         x = x.reshape(-1, self.features[-1] * self.n_symm)
         x_max = jnp.max(x, axis=-1, keepdims=True)
