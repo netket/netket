@@ -60,8 +60,8 @@ class GCNN_FFT(nn.Module):
     """The dtype of the weights."""
     activation: Any = jax.nn.selu
     """The nonlinear activation function between hidden layers."""
-    output_activation: Any = None
-    """The nonlinear activation before the output."""
+    output_activation: Any = identity
+    """The nonlinear activation before the output. Defaults to the identity."""
     imag_part: bool = False
     """If true return only the imaginary part of the output"""
     use_bias: bool = True
