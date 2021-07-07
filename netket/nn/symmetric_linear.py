@@ -664,8 +664,10 @@ def DenseSymm(symmetries, mode="auto", **kwargs):
         if "shape" in kwargs:
             return DenseSymmFFT(sym, **kwargs)
         else:
-            raise KeyError(
-                "Must pass keyword argument shape which specifies the shape of the translation group"
+            raise TypeError(
+                "When requesting `mode=fft`, the shape of the translation group must be specified. "
+                "Either supply the `shape` keyword argument or pass a `netket.graph.Graph` object to "
+                "the symmetries keyword argument."
             )
     else:
         if "shape" in kwargs:
