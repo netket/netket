@@ -56,7 +56,7 @@ class GCNN_FFT(nn.Module):
     all layers will have the same number of features."""
     characters: HashableArray
     """Array specifying the characters of the desired symmetry representation"""
-    dtype: Any = np.float64
+    dtype: Any = float
     """The dtype of the weights."""
     activation: Any = jax.nn.selu
     """The nonlinear activation function between hidden layers."""
