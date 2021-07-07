@@ -670,8 +670,6 @@ def DenseSymm(symmetries, mode="auto", **kwargs):
                 "the symmetries keyword argument."
             )
     else:
-        if "shape" in kwargs:
-            del kwargs["shape"]
         return DenseSymmMatrix(sym, **kwargs)
 
 
