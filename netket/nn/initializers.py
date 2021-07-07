@@ -20,9 +20,3 @@ from functools import partial
 from flax.linen.initializers import *
 
 lecun_complex = partial(variance_scaling, 1.0, "fan_in", "normal", dtype=jnp.complex64)
-
-
-def unit_normal_scaling(key, shape, dtype):
-    return jax.random.normal(key, shape, dtype) / jnp.sqrt(
-        jnp.prod(jnp.asarray(shape[1:]))
-    )

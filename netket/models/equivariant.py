@@ -27,7 +27,7 @@ from netket.utils.group import PermutationGroup
 from netket.graph import Graph
 
 from netket import nn as nknn
-from netket.nn.initializers import zeros, unit_normal_scaling
+from netket.nn.initializers import zeros
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
     DenseSymmFFT,
@@ -37,7 +37,23 @@ from netket.nn.symmetric_linear import (
 )
 
 
+def identity(x):
+    return x
+
+
+def unit_normal_scaling(key, shape, dtype):
+    return jax.random.normal(key, shape, dtype) / jnp.sqrt(
+        jnp.prod(jnp.asarray(shape[1:]))
+    )
+
+
 class GCNN_FFT(nn.Module):
+
+    """Implements a GCNN using a fast fourier transform over the translation group.
+    The group convolution can be written in terms of translational convolutions with
+    symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    The translational convolutions are then implemented with Fast Fourier Transforms.
+    """
 
     symmetries: HashableArray
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
@@ -130,7 +146,25 @@ class GCNN_FFT(nn.Module):
 
 
 class GCNN_Irrep(nn.Module):
+    """Implements a GCNN by projecting onto irreducible
+    representations of the group. The projection onto
+    the group is implemented with matrix multiplication"""
 
+    """Layers act on a feature maps of shape [batch_size, in_features, n_symm] and 
+    eeturns a feature map of shape [batch_size, out_features, n_symm]. 
+    The input and the output are related by
+    :: math ::
+        y^{(i)}_g = \sum_{h,j} f^{(j)}_h W^{(ij)}_{h^{-1}g}.
+    Note that this switches the convention of Cohen et al. to use an actual group
+    convolution, but this doesn't affect equivariance.
+    The convolution is implemented in terms of a group Fourier transform.
+    Therefore, the group structure is represented internally as the set of its
+    irrep matrices. After Fourier transforming, the convolution translates to
+    :: math ::
+        y^{(i)}_\rho = \sum_j f^{(j)}_\rho W^{(ij)}_\rho,
+    where all terms are d x d matrices rather than numbers, and the juxtaposition
+    stands for matrix multiplication.
+    """
     symmetries: HashableArray
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
@@ -148,7 +182,7 @@ class GCNN_Irrep(nn.Module):
     """The dtype of the weights."""
     activation: Any = jax.nn.selu
     """The nonlinear activation function between hidden layers."""
-    output_activation: Any = None
+    output_activation: Any = identity
     """The nonlinear activation before the output."""
     imag_part: bool = False
     """If true return only the imaginary part of the output"""
@@ -198,8 +232,7 @@ class GCNN_Irrep(nn.Module):
             x = self.activation(x)
             x = self.equivariant_layers[layer](x)
 
-        if self.output_activation is not None:
-            x = self.output_activation(x)
+        x = self.output_activation(x)
 
         x = x.reshape(-1, self.features[-1] * self.n_symm)
         x_max = jnp.max(x, axis=-1, keepdims=True)
@@ -218,6 +251,12 @@ class GCNN_Irrep(nn.Module):
 
 
 class GCNN_Parity_FFT(nn.Module):
+    """Implements a GCNN using a fast fourier transform over the translation group.
+    The group convolution can be written in terms of translational convolutions with
+    symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    The translational convolutions are then implemented with Fast Fourier Transforms.
+    This model adds parity symmetry under the transformation x->-x
+    """
 
     symmetries: HashableArray
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
@@ -242,7 +281,7 @@ class GCNN_Parity_FFT(nn.Module):
     """The dtype of the weights."""
     activation: Any = jax.nn.selu
     """The nonlinear activation function between hidden layers."""
-    output_activation: Any = None
+    output_activation: Any = identity
     """The nonlinear activation before the output."""
     imag_part: bool = False
     """If true return only the imaginary part of the output"""
@@ -310,18 +349,19 @@ class GCNN_Parity_FFT(nn.Module):
             x = self.activation(x)
             x_flip = self.activation(x_flip)
 
-            x_new = (self.equivariant_layers[layer](x) + self.equivariant_layers_flip[
-                layer
-            ](x_flip))/np.sqrt(2)
-            x_flip = (self.equivariant_layers[layer](
-                x_flip
-            ) + self.equivariant_layers_flip[layer](x))/np.sqrt(2)
+            x_new = (
+                self.equivariant_layers[layer](x)
+                + self.equivariant_layers_flip[layer](x_flip)
+            ) / np.sqrt(2)
+            x_flip = (
+                self.equivariant_layers[layer](x_flip)
+                + self.equivariant_layers_flip[layer](x)
+            ) / np.sqrt(2)
             x = jnp.array(x_new, copy=True)
-            
+
         x = jnp.concatenate((x, x_flip), -2)
 
-        if self.output_activation is not None:
-            x = self.output_activation(x)
+        x = self.output_activation(x)
 
         x = x.reshape(-1, 2 * self.features[-1] * self.n_symm)
         x_max = jnp.max(x, axis=-1, keepdims=True)
@@ -355,7 +395,28 @@ class GCNN_Parity_FFT(nn.Module):
 
 
 class GCNN_Parity_Irrep(nn.Module):
+    """Implements a GCNN by projecting onto irreducible
+    representations of the group. The projection onto
+    the group is implemented with matrix multiplication"""
 
+    """Layers act on a feature maps of shape [batch_size, in_features, n_symm] and 
+    eeturns a feature map of shape [batch_size, out_features, n_symm]. 
+    The input and the output are related by
+    :: math ::
+        y^{(i)}_g = \sum_{h,j} f^{(j)}_h W^{(ij)}_{h^{-1}g}.
+    Note that this switches the convention of Cohen et al. to use an actual group
+    convolution, but this doesn't affect equivariance.
+    The convolution is implemented in terms of a group Fourier transform.
+    Therefore, the group structure is represented internally as the set of its
+    irrep matrices. After Fourier transforming, the convolution translates to
+    :: math ::
+        y^{(i)}_\rho = \sum_j f^{(j)}_\rho W^{(ij)}_\rho,
+    where all terms are d x d matrices rather than numbers, and the juxtaposition
+    stands for matrix multiplication.
+
+    This model adds parity symmetry under the transformation x->-x
+
+    """
     symmetries: HashableArray
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
@@ -375,7 +436,7 @@ class GCNN_Parity_Irrep(nn.Module):
     """The dtype of the weights."""
     activation: Any = jax.nn.selu
     """The nonlinear activation function between hidden layers."""
-    output_activation: Any = None
+    output_activation: Any = identity
     """The nonlinear activation before the output."""
     imag_part: bool = False
     """If true return only the imaginary part of the output"""
@@ -440,18 +501,19 @@ class GCNN_Parity_Irrep(nn.Module):
             x = self.activation(x)
             x_flip = self.activation(x_flip)
 
-            x_new = (self.equivariant_layers[layer](x) + self.equivariant_layers_flip[
-                layer
-            ](x_flip))/np.sqrt(2)
-            x_flip = (self.equivariant_layers[layer](
-                x_flip
-            ) + self.equivariant_layers_flip[layer](x))/np.sqrt(2)
+            x_new = (
+                self.equivariant_layers[layer](x)
+                + self.equivariant_layers_flip[layer](x_flip)
+            ) / np.sqrt(2)
+            x_flip = (
+                self.equivariant_layers[layer](x_flip)
+                + self.equivariant_layers_flip[layer](x)
+            ) / np.sqrt(2)
             x = jnp.array(x_new, copy=True)
 
         x = jnp.concatenate((x, x_flip), -2)
 
-        if self.output_activation is not None:
-            x = self.output_activation(x)
+        x = self.output_activation(x)
 
         x = x.reshape(-1, 2 * self.features[-1] * self.n_symm)
         x_max = jnp.max(x, axis=-1, keepdims=True)
@@ -484,7 +546,19 @@ class GCNN_Parity_Irrep(nn.Module):
             return x
 
 
-def GCNN(symmetries=None, mode="auto", **kwargs):
+def GCNN(
+    symmetries=None,
+    mode="auto",
+    shape=None,
+    point_group=None,
+    irreps=None,
+    product_table=None,
+    features=None,
+    layers=None,
+    characters=None,
+    parity=None,
+    **kwargs,
+):
 
     r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
     that is invariant over a specified symmetry group.
@@ -525,79 +599,107 @@ def GCNN(symmetries=None, mode="auto", **kwargs):
 
     if isinstance(symmetries, Graph):
         # With graph try to find point group, otherwise default to automorphisms
-        if "point_group" in kwargs:
-            sg = symmetries.space_group(kwargs["point_group"])
+        if point_group:
+            sg = symmetries.space_group(point_group)
             if mode == "auto":
                 mode = "fft"
-            del kwargs["point_group"]
         elif symmetries._point_group:
             sg = symmetries.space_group()
             if mode == "auto":
                 mode = "fft"
         else:
             sg = symmetry_info.automorphisms()
-            if mode == "auto" or mode == "fft":
+            if mode == "auto":
                 mode = "irreps"
             if mode == "fft":
-                warnings.warn(
-                    "Graph without a space group specified. Switching to irrep implementation",
+                raise ValueError(
+                    "When requesting 'mode=fft' a valid point group must be specified"
+                    "in order to construct the space group"
                 )
         if mode == "fft":
-            kwargs["shape"] = tuple(symmetries.extent)
+            shape = tuple(symmetries.extent)
     elif isinstance(symmetries, PermutationGroup):
         # If we get a group and default to irrep projection
         if mode == "auto":
             mode = "irreps"
         sg = symmetries
     else:
-        if "irreps" in kwargs and (mode == "irreps" or mode == "auto"):
+        if not irreps is None and (mode == "irreps" or mode == "auto"):
             mode = "irreps"
             sg = symmetries
-            irreps = tuple(HashableArray(irrep) for irrep in kwargs["irreps"])
-            del kwargs["irreps"]
-        elif "product_table" in kwargs and (mode == "fft" or mode == "auto"):
+            irreps = tuple(HashableArray(irrep) for irrep in irreps)
+        elif not product_table is None and (mode == "fft" or mode == "auto"):
             mode = "fft"
             sg = symmetries
-            product_table = HashableArray(kwargs["product_table"])
-            del kwargs["product_table"]
+            product_table = HashableArray(product_table)
         else:
             raise ValueError(
                 "Specification of symmetries is wrong or incompatible with selected mode"
             )
 
     if mode == "fft":
-        if not "shape" in kwargs:
-            raise KeyError(
-                "Must pass keyword argument shape which specifies the shape of the translation group"
+        if shape is None:
+            raise TypeError(
+                "When requesting `mode=fft`, the shape of the translation group must be specified. "
+                "Either supply the `shape` keyword argument or pass a `netket.graph.Graph` object to "
+                "the symmetries keyword argument."
             )
         else:
-            kwargs["shape"] = tuple(kwargs["shape"])
-    else:
-        if "shape" in kwargs:
-            del kwargs["shape"]
+            shape = tuple(shape)
 
-    if isinstance(kwargs["features"], int):
-        kwargs["features"] = (kwargs["features"],) * kwargs["layers"]
+    if isinstance(features, int):
+        features = (features,) * layers
 
-    if "characters" not in kwargs:
-        kwargs["characters"] = HashableArray(np.ones(len(np.asarray(sg))))
+    if not characters:
+        characters = HashableArray(np.ones(len(np.asarray(sg))))
 
     if mode == "fft":
         sym = HashableArray(np.asarray(sg))
-        if not "product_table" in locals():
+        if not product_table:
             product_table = HashableArray(sg.product_table)
-
-        if "parity" in kwargs:
-            return GCNN_Parity_FFT(sym, product_table, **kwargs)
+        if parity:
+            return GCNN_Parity_FFT(
+                symmetries=sym,
+                product_table=product_table,
+                layers=layers,
+                features=features,
+                characters=characters,
+                shape=shape,
+                parity=parity,
+                *kwargs,
+            )
         else:
-            return GCNN_FFT(sym, product_table, **kwargs)
+            return GCNN_FFT(
+                symmetries=sym,
+                product_table=product_table,
+                layers=layers,
+                features=features,
+                characters=characters,
+                shape=shape,
+                **kwargs,
+            )
     else:
         sym = HashableArray(np.asarray(sg))
 
-        if not "irreps" in locals():
+        if not irreps:
             irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
 
-        if "parity" in kwargs:
-            return GCNN_Parity_Irrep(sym, irreps, **kwargs)
+        if parity:
+            return GCNN_Parity_Irrep(
+                symmetries=sym,
+                irreps=irreps,
+                layers=layers,
+                features=features,
+                characters=characters,
+                parity=parity,
+                **kwargs,
+            )
         else:
-            return GCNN_Irrep(sym, irreps, **kwargs)
+            return GCNN_Irrep(
+                symmetries=sym,
+                irreps=irreps,
+                layers=layers,
+                features=features,
+                characters=characters,
+                **kwargs,
+            )

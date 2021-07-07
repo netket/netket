@@ -69,7 +69,7 @@ def test_gcnn(use_bias, symmetries, lattice, mode):
             mode=mode,
             shape=g.extent,
             layers=2,
-            features=1,
+            features=2,
             use_bias=use_bias,
             bias_init=nk.nn.initializers.uniform(),
         )
@@ -78,7 +78,7 @@ def test_gcnn(use_bias, symmetries, lattice, mode):
             symmetries=perms,
             mode=mode,
             layers=2,
-            features=1,
+            features=2,
             use_bias=use_bias,
             bias_init=nk.nn.initializers.uniform(),
         )
@@ -210,7 +210,7 @@ def test_GCNN_creation(mode):
 
     # need to specify shape
     if mode == "fft":
-        with pytest.raises(KeyError):
+        with pytest.raises(TypeError):
             check_init(
                 lambda: nk.models.GCNN(
                     symmetries=perms,

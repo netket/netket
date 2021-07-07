@@ -18,14 +18,21 @@ from flax.linen.module import Module, compact
 from jax import lax
 import jax.numpy as jnp
 import numpy as np
+import jax
 
-from netket.nn.initializers import normal, zeros, unit_normal_scaling
+from netket.nn.initializers import normal, zeros
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
 from netket.utils.group import PermutationGroup
 from typing import Sequence
 from netket.graph import Graph
 import warnings
+
+
+def unit_normal_scaling(key, shape, dtype):
+    return jax.random.normal(key, shape, dtype) / jnp.sqrt(
+        jnp.prod(jnp.asarray(shape[1:]))
+    )
 
 
 def _symmetrizer_col(perms, features):
@@ -239,8 +246,11 @@ class DenseSymmFFT(Module):
 
 
 class DenseEquivariantFFT(Module):
-    """Implements a group convolution over a space group using a Fast Fourier Transform
-    over the translation group"""
+    """Implements a group convolution using a fast fourier transform over the translation group.
+    The group convolution can be written in terms of translational convolutions with
+    symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    The translational convolutions are then implemented with Fast Fourier Transforms.
+    """
 
     product_table: HashableArray
     """ product table for space group"""
@@ -345,7 +355,7 @@ class DenseEquivariantFFT(Module):
 
 class DenseEquivariantIrrep(Module):
     """Implements a group convolutional layer by projecting onto irreducible
-    represesntations of the space group."""
+    representations of the group."""
 
     """Acts on a feature map of shape [batch_size, in_features, n_symm] and 
     eeturns a feature map of shape [batch_size, out_features, n_symm]. 
@@ -604,7 +614,7 @@ class DenseEquivariantMatrix(Module):
         return x
 
 
-def DenseSymm(symmetries, mode="auto", **kwargs):
+def DenseSymm(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
     """
     Implements a projection onto a symmetry group. The output will be
     equivariant with respect to the symmetry operations in the group and can
@@ -634,24 +644,21 @@ def DenseSymm(symmetries, mode="auto", **kwargs):
     """
 
     if isinstance(symmetries, Graph):
-        kwargs["shape"] = symmetries.extent
-        if "point_group" in kwargs:
-            sym = HashableArray(
-                np.asarray(symmetries.space_group(kwargs["point_group"]))
-            )
+        shape = tuple(symmetries.extent)
+        if point_group:
+            sym = HashableArray(np.asarray(symmetries.space_group(point_group)))
             if mode == "auto":
                 mode = "fft"
-            del kwargs["point_group"]
         elif symmetries._point_group:
             sym = HashableArray(np.asarray(symmetries.space_group()))
             if mode == "auto":
                 mode = "fft"
         else:
             if mode == "fft":
-                warnings.warn(
-                    "Graph without a space group specified. Switching to matrix implementation",
+                raise ValueError(
+                    "When requesting 'mode=fft' a valid point group must be specified"
+                    "in order to construct the space group"
                 )
-                mode = "matrix"
             sym = HashableArray(np.asarray(symmetries.automorphisms()))
     elif isinstance(symmetries, PermutationGroup) or hasattr(symmetries, "__len__"):
         sym = HashableArray(np.asarray(symmetries))
@@ -661,19 +668,19 @@ def DenseSymm(symmetries, mode="auto", **kwargs):
         )
 
     if mode == "fft":
-        if "shape" in kwargs:
-            return DenseSymmFFT(sym, **kwargs)
-        else:
+        if shape is None:
             raise TypeError(
                 "When requesting `mode=fft`, the shape of the translation group must be specified. "
                 "Either supply the `shape` keyword argument or pass a `netket.graph.Graph` object to "
                 "the symmetries keyword argument."
             )
+        else:
+            return DenseSymmFFT(sym, shape=shape, **kwargs)
     else:
         return DenseSymmMatrix(sym, **kwargs)
 
 
-def DenseEquivariant(symmetries, mode="auto", **kwargs):
+def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
     r"""A group convolution operation that is equivariant over a symmetry group
 
     Acts on a feature map of symmetry poses of shape [batch_size,n_symm*in_features]
@@ -712,11 +719,10 @@ def DenseEquivariant(symmetries, mode="auto", **kwargs):
 
     if isinstance(symmetries, Graph):
         # With graph try to find point group, otherwise default to automorphisms
-        if "point_group" in kwargs:
-            sg = symmetries.space_group(kwargs["point_group"])
+        if point_group:
+            sg = symmetries.space_group(point_group)
             if mode == "auto":
                 mode = "fft"
-            del kwargs["point_group"]
         elif symmetries._point_group:
             sg = symmetries.space_group()
             if mode == "auto":
@@ -726,11 +732,12 @@ def DenseEquivariant(symmetries, mode="auto", **kwargs):
             if mode == "auto" or mode == "fft":
                 mode = "irreps"
             if mode == "fft":
-                warnings.warn(
-                    "Graph without a space group specified. Switching to irrep implementation",
+                raise ValueError(
+                    "When requesting 'mode=fft' a valid point group must be specified"
+                    "in order to construct the space group"
                 )
         if mode == "fft":
-            kwargs["shape"] = tuple(symmetries.extent)
+            shape = tuple(symmetries.extent)
 
     elif isinstance(symmetries, PermutationGroup):
         # If we get a group and default to irrep projection
@@ -740,35 +747,35 @@ def DenseEquivariant(symmetries, mode="auto", **kwargs):
 
     elif isinstance(symmetries, Sequence):
         if not mode == "irreps":
-            warnings.warn(
-                "Irrep matrices specified. Switching to irrep implementation",
-            )
-            mode = "irreps"
+            raise ValueError("Specification of symmetries incompatible with mode")
         return DenseEquivariantIrrep(symmetries, **kwargs)
     else:
         if symmetries.ndim == 2 and symmetries.shape[0] == symmetries.shape[1]:
             if mode == "irreps":
-                warnings.warn(
-                    "Product table specified. Switching to matrix implementation",
-                )
-                mode = "matrix"
-
+                raise ValueError("Specification of symmetries incompatible with mode")
             if mode == "matrix":
                 return DenseEquivariantMatrix(symmetries, **kwargs)
             else:
-                if "shape" in kwargs:
-                    return DenseEquivariantFFT(symmetries, **kwargs)
-                else:
-                    raise KeyError(
-                        "Must pass keyword argument shape which specifies the shape of the translation group"
+                if shape is None:
+                    raise TypeError(
+                        "When requesting `mode=fft`, the shape of the translation group must be specified. "
+                        "Either supply the `shape` keyword argument or pass a `netket.graph.Graph` object to "
+                        "the symmetries keyword argument."
                     )
+                else:
+                    return DenseEquivariantFFT(symmetries, shape=shape, **kwargs)
         return ValueError("Invalid Specification of Symmetries")
 
     if mode == "fft":
-        return DenseEquivariantFFT(HashableArray(sg.product_table))
+        if shape is None:
+            raise TypeError(
+                "When requesting `mode=fft`, the shape of the translation group must be specified. "
+                "Either supply the `shape` keyword argument or pass a `netket.graph.Graph` object to "
+                "the symmetries keyword argument."
+            )
+        else:
+            return DenseEquivariantFFT(HashableArray(sg.product_table), shape=shape)
     else:
-        if "shape" in kwargs:
-            del kwargs["shape"]
         if mode == "irreps":
             irreps = tuple(
                 HashableArray(irrep) for irrep in symmetries.irrep_matrices()
