@@ -228,7 +228,6 @@ class GCNN_Irrep(nn.Module):
         x = self.dense_symm(x)
 
         for layer in range(self.layers - 1):
-
             x = self.activation(x)
             x = self.equivariant_layers[layer](x)
 
