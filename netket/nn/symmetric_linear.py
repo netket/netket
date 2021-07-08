@@ -25,7 +25,7 @@ from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
 from netket.utils.group import PermutationGroup
 from typing import Sequence
-from netket.graph import Graph
+from netket.graph import Graph, Lattice
 import warnings
 
 
@@ -355,9 +355,9 @@ class DenseEquivariantFFT(Module):
 
 class DenseEquivariantIrrep(Module):
     """Implements a group convolutional layer by projecting onto irreducible
-    representations of the group."""
+    representations of the group.
 
-    """Acts on a feature map of shape [batch_size, in_features, n_symm] and 
+    Acts on a feature map of shape [batch_size, in_features, n_symm] and 
     eeturns a feature map of shape [batch_size, out_features, n_symm]. 
     The input and the output are related by
     :: math ::
@@ -643,23 +643,19 @@ def DenseSymm(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
         bias_init: Optional bias initialization function. Defaults to zero initialization
     """
 
-    if isinstance(symmetries, Graph):
+    if isinstance(symmetries, Lattice) and (not point_group is None or not symmetries._point_group is None):
         shape = tuple(symmetries.extent)
-        if point_group:
+        if not point_group is None or not symmetries._point_group is None:
             sym = HashableArray(np.asarray(symmetries.space_group(point_group)))
             if mode == "auto":
                 mode = "fft"
-        elif symmetries._point_group:
-            sym = HashableArray(np.asarray(symmetries.space_group()))
-            if mode == "auto":
-                mode = "fft"
-        else:
-            if mode == "fft":
-                raise ValueError(
-                    "When requesting 'mode=fft' a valid point group must be specified"
-                    "in order to construct the space group"
-                )
-            sym = HashableArray(np.asarray(symmetries.automorphisms()))
+    elif isinstance(symmetries,Graph):
+        if mode == "fft":
+            raise ValueError(
+                "When requesting 'mode=fft' a valid point group must be specified"
+                "in order to construct the space group"
+            )
+        sym = HashableArray(np.asarray(symmetries.automorphisms()))
     elif isinstance(symmetries, PermutationGroup) or hasattr(symmetries, "__len__"):
         sym = HashableArray(np.asarray(symmetries))
     else:
@@ -676,8 +672,10 @@ def DenseSymm(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
             )
         else:
             return DenseSymmFFT(sym, shape=shape, **kwargs)
-    else:
+    elif mode in ["matrix","auto"]:
         return DenseSymmMatrix(sym, **kwargs)
+    else: 
+        raise ValueError(f"Unknown mode={mode}. Valid modes are 'fft', 'matrix', or 'auto'.")
 
 
 def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
@@ -717,31 +715,22 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
         bias_init: Optional bias initialization function. Defaults to zero initialization
     """
 
-    if not mode in ["auto", "fft", "irreps", "matrix"]:
-        raise ValueError("{} is not a valid mode.".format(mode))
-
-    if isinstance(symmetries, Graph):
+    if isinstance(symmetries, Lattice) and (not point_group is None or not symmetries._point_group is None):
+        shape = tuple(symmetries.extent)
         # With graph try to find point group, otherwise default to automorphisms
-        if point_group:
+        if not point_group is None or not symmetries._point_group is None:
             sg = symmetries.space_group(point_group)
             if mode == "auto":
                 mode = "fft"
-        elif symmetries._point_group:
-            sg = symmetries.space_group()
-            if mode == "auto":
-                mode = "fft"
-        else:
-            sg = symmetry_info.automorphisms()
-            if mode == "auto" or mode == "fft":
-                mode = "irreps"
-            if mode == "fft":
-                raise ValueError(
-                    "When requesting 'mode=fft' a valid point group must be specified"
-                    "in order to construct the space group"
-                )
+    elif isinstance(symmetries, Graph):
+        sg = symmetry_info.automorphisms()
+        if mode == "auto" or mode == "fft":
+            mode = "irreps"
         if mode == "fft":
-            shape = tuple(symmetries.extent)
-
+            raise ValueError(
+                "When requesting 'mode=fft' a valid point group must be specified"
+                "in order to construct the space group"
+            )
     elif isinstance(symmetries, PermutationGroup):
         # If we get a group and default to irrep projection
         if mode == "auto":
@@ -780,8 +769,11 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
             return DenseEquivariantFFT(
                 HashableArray(sg.product_table), shape=shape, **kwargs
             )
-    elif mode == "irreps":
+    elif mode in ["irreps","auto"]:
         irreps = tuple(HashableArray(irrep) for irrep in symmetries.irrep_matrices())
         return DenseEquivariantIrrep(irreps, **kwargs)
-    else:
+    elif mode == "matrix":
         return DenseEquivariantMatrix(HashableArray(symmetries.product_table), **kwargs)
+    else:
+        raise ValueError(f"Unknown mode={mode}. Valid modes are 'fft', 'matrix', 'irreps' or 'auto'.")
+      
