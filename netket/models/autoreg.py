@@ -220,13 +220,13 @@ def _call(model: ARNN, inputs: Array) -> Array:
 @dispatch
 def _local_states_to_numbers(hilbert: Spin, x: Array) -> Array:  # noqa: F811
     numbers = (x + hilbert.local_size - 1) / 2
-    numbers = jnp.asarray(numbers, jnp.int64)
+    numbers = jnp.asarray(numbers, jnp.int32)
     return numbers
 
 
 @dispatch
 def _local_states_to_numbers(hilbert: Fock, x: Array) -> Array:  # noqa: F811
-    numbers = jnp.asarray(x, jnp.int64)
+    numbers = jnp.asarray(x, jnp.int32)
     return numbers
 
 
