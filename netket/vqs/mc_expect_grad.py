@@ -42,7 +42,6 @@ def expect_and_grad(
     vstate: MCState,
     Ô: Squared[AbstractOperator],
     covariance_formula: TrueT,
-    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     _check_hilbert(vstate, Ô)
@@ -76,7 +75,6 @@ def expect_and_grad(  # noqa: F811
     vstate: MCMixedState,
     Ô: Squared[AbstractSuperOperator],
     covariance_formula: TrueT,
-    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     _check_hilbert(vstate, Ô)
@@ -104,13 +102,13 @@ def expect_and_grad(  # noqa: F811
 
 # mixed state, hermitian operator
 @dispatch.multi(
-    (MCState, AbstractOperator, TrueT), (MCMixedState, AbstractSuperOperator, TrueT)
+    (MCState, AbstractOperator, TrueT, Any),
+    (MCMixedState, AbstractSuperOperator, TrueT, Any),
 )
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
     covariance_formula: TrueT,
-    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     _check_hilbert(vstate, Ô)
@@ -140,7 +138,6 @@ def expect_and_grad(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
     covariance_formula: FalseT,
-    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     _check_hilbert(vstate, Ô)

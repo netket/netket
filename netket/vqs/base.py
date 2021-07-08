@@ -346,5 +346,7 @@ def expect_and_grad(  # noqa: F811
     if covariance_formula is None:
         covariance_formula = TrueT() if operator.is_hermitian else FalseT()
 
-    print(f"covariance formula is: {covariance_formula} ({type(covariance_formula)})")
-    return expect_and_grad(vstate, operator, covariance_formula, mutable=mutable)
+    if mutable is None:
+        mutable = vstate.mutable
+
+    return expect_and_grad(vstate, operator, covariance_formula, mutable)
