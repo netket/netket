@@ -416,6 +416,7 @@ class GCNN_Parity_Irrep(nn.Module):
     This model adds parity symmetry under the transformation x->-x
 
     """
+
     symmetries: HashableArray
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
