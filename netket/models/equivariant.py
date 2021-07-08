@@ -25,6 +25,7 @@ from netket.utils import HashableArray
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph
+from jax.scipy.special import logsumexp
 
 from netket import nn as nknn
 from netket.nn.initializers import zeros
@@ -128,15 +129,9 @@ class GCNN_FFT(nn.Module):
 
         x = self.output_activation(x)
 
-        x = x.reshape(-1, self.features[-1] * self.n_symm)
-        x_max = jnp.max(x, axis=-1, keepdims=True)
-        x = jnp.exp(x - x_max)
-        x = x.reshape(-1, self.features[-1], self.n_symm)
-        x = jnp.sum(x, 1)
-
-        x = jnp.sum(x * jnp.array(self.characters), -1)
-
-        x = jnp.log(x) + jnp.squeeze(x_max)
+        x = logsumexp(
+            x, axis=(1, 2), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
+        )
 
         if self.imag_part:
             return 1j * jnp.imag(x)
@@ -233,15 +228,9 @@ class GCNN_Irrep(nn.Module):
 
         x = self.output_activation(x)
 
-        x = x.reshape(-1, self.features[-1] * self.n_symm)
-        x_max = jnp.max(x, axis=-1, keepdims=True)
-        x = jnp.exp(x - x_max)
-        x = x.reshape(-1, self.features[-1], self.n_symm)
-        x = jnp.sum(x, 1)
-
-        x = jnp.sum(x * jnp.array(self.characters), -1)
-
-        x = jnp.log(x) + jnp.squeeze(x_max)
+        x = logsumexp(
+            x, axis=(1, 2), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
+        )
 
         if self.imag_part:
             return 1j * jnp.imag(x)
@@ -362,30 +351,22 @@ class GCNN_Parity_FFT(nn.Module):
 
         x = self.output_activation(x)
 
-        x = x.reshape(-1, 2 * self.features[-1] * self.n_symm)
-        x_max = jnp.max(x, axis=-1, keepdims=True)
-        x = jnp.exp(x - x_max)
-        x = x.reshape(-1, self.features[-1], 2 * self.n_symm)
-        x = jnp.sum(x, 1)
-
         if self.parity == 1:
             par_chars = jnp.expand_dims(
                 jnp.concatenate(
                     (jnp.array(self.characters), jnp.array(self.characters)), 0
                 ),
-                0,
+                (0, 1),
             )
         else:
             par_chars = jnp.expand_dims(
                 jnp.concatenate(
                     (jnp.array(self.characters), -1 * jnp.array(self.characters)), 0
                 ),
-                0,
+                (0, 1),
             )
 
-        x = jnp.sum(x * par_chars, -1)
-
-        x = jnp.log(x) + jnp.squeeze(x_max)
+        x = logsumexp(x, axis=(1, 2), b=par_chars)
 
         if self.imag_part:
             return 1j * jnp.imag(x)
@@ -515,30 +496,22 @@ class GCNN_Parity_Irrep(nn.Module):
 
         x = self.output_activation(x)
 
-        x = x.reshape(-1, 2 * self.features[-1] * self.n_symm)
-        x_max = jnp.max(x, axis=-1, keepdims=True)
-        x = jnp.exp(x - x_max)
-        x = x.reshape(-1, self.features[-1], 2 * self.n_symm)
-        x = jnp.sum(x, 1)
-
         if self.parity == 1:
             par_chars = jnp.expand_dims(
                 jnp.concatenate(
                     (jnp.array(self.characters), jnp.array(self.characters)), 0
                 ),
-                0,
+                (0, 1),
             )
         else:
             par_chars = jnp.expand_dims(
                 jnp.concatenate(
                     (jnp.array(self.characters), -1 * jnp.array(self.characters)), 0
                 ),
-                0,
+                (0, 1),
             )
 
-        x = jnp.sum(x * par_chars, -1)
-
-        x = jnp.log(x) + jnp.squeeze(x_max)
+        x = logsumexp(x, axis=(1, 2), b=par_chars)
 
         if self.imag_part:
             return 1j * jnp.imag(x)

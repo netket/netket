@@ -95,19 +95,10 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode):
             use_bias=use_bias,
             bias_init=nk.nn.initializers.uniform(),
         )
-    elif mode == "fft":
-        ma = nk.nn.DenseEquivariant(
-            symmetries=pt,
-            shape=tuple(g.extent),
-            mode=mode,
-            in_features=1,
-            out_features=1,
-            use_bias=use_bias,
-            bias_init=nk.nn.initializers.uniform(),
-        )
     else:
         ma = nk.nn.DenseEquivariant(
             symmetries=pt,
+            shape=tuple(g.extent),
             mode=mode,
             in_features=1,
             out_features=1,
