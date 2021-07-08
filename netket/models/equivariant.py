@@ -164,6 +164,7 @@ class GCNN_Irrep(nn.Module):
     where all terms are d x d matrices rather than numbers, and the juxtaposition
     stands for matrix multiplication.
     """
+
     symmetries: HashableArray
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
