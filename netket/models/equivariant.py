@@ -396,9 +396,9 @@ class GCNN_Parity_FFT(nn.Module):
 class GCNN_Parity_Irrep(nn.Module):
     """Implements a GCNN by projecting onto irreducible
     representations of the group. The projection onto
-    the group is implemented with matrix multiplication"""
+    the group is implemented with matrix multiplication
 
-    """Layers act on a feature maps of shape [batch_size, in_features, n_symm] and 
+    Layers act on a feature maps of shape [batch_size, in_features, n_symm] and 
     eeturns a feature map of shape [batch_size, out_features, n_symm]. 
     The input and the output are related by
     :: math ::
