@@ -48,7 +48,6 @@ def unit_normal_scaling(key, shape, dtype):
 
 
 class GCNN_FFT(nn.Module):
-
     """Implements a GCNN using a fast fourier transform over the translation group.
     The group convolution can be written in terms of translational convolutions with
     symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
