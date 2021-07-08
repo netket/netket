@@ -21,12 +21,25 @@ from .. import common
 pytestmark = common.skipif_mpi
 
 
-@pytest.mark.parametrize("s", [1 / 2, 1])
-def test_AR_VMC(s):
-    L = 4
-
-    graph = nk.graph.Hypercube(length=L, n_dim=1)
-    hilbert = nk.hilbert.Spin(s=s, N=L)
+@pytest.mark.parametrize(
+    "hilbert",
+    [
+        pytest.param(
+            nk.hilbert.Spin(s=1 / 2, N=4),
+            id="spin_1/2",
+        ),
+        pytest.param(
+            nk.hilbert.Spin(s=1, N=4),
+            id="spin_1",
+        ),
+        pytest.param(
+            nk.hilbert.Fock(n_max=3, N=4),
+            id="fock",
+        ),
+    ],
+)
+def test_AR_VMC(hilbert):
+    graph = nk.graph.Hypercube(length=hilbert.size, n_dim=1)
     model = nk.models.ARNNDense(hilbert=hilbert, layers=3, features=5)
     sampler = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
 

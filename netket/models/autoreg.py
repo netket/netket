@@ -18,7 +18,10 @@ from typing import Any, Callable, Iterable, Tuple, Union
 import jax
 from flax import linen as nn
 from jax import numpy as jnp
-from netket.hilbert import CustomHilbert
+from plum import dispatch
+
+from netket.hilbert import Fock, Spin
+from netket.hilbert.homogeneous import HomogeneousHilbert
 from netket.nn import MaskedConv1D, MaskedDense1D
 from netket.nn.initializers import zeros
 from netket.nn.masked_linear import default_kernel_init
@@ -27,6 +30,20 @@ from netket.utils.types import Array, DType, NNInitFunc, PyTree
 
 class ARNN(nn.Module):
     """Base class for autoregressive neural networks."""
+
+    hilbert: HomogeneousHilbert
+    """the Hilbert space. Only homogeneous unconstrained Hilbert spaces are supported."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        if not isinstance(self.hilbert, HomogeneousHilbert):
+            raise ValueError(
+                f"Only homogeneous Hilbert spaces are supported by ARNN, but hilbert is a {type(self.hilbert)}."
+            )
+
+        if self.hilbert.constrained:
+            raise ValueError("Only unconstrained Hilbert spaces are supported by ARNN.")
 
     @abc.abstractmethod
     def conditionals(self, inputs: Array, cache: PyTree) -> Tuple[Array, PyTree]:
@@ -47,8 +64,6 @@ class ARNN(nn.Module):
 class ARNNDense(ARNN):
     """Autoregressive neural network with dense layers."""
 
-    hilbert: CustomHilbert
-    """the discrete Hilbert space."""
     layers: int
     """number of layers."""
     features: Union[Iterable[int], int]
@@ -98,8 +113,6 @@ class ARNNDense(ARNN):
 class ARNNConv1D(ARNN):
     """Autoregressive neural network with 1D convolution layers."""
 
-    hilbert: CustomHilbert
-    """the discrete Hilbert space."""
     layers: int
     """number of layers."""
     features: Union[Iterable[int], int]
@@ -194,8 +207,7 @@ def _call(model: ARNN, inputs: Array) -> Array:
     if inputs.ndim == 1:
         inputs = jnp.expand_dims(inputs, axis=0)
 
-    idx = (inputs + model.hilbert.local_size - 1) / 2
-    idx = jnp.asarray(idx, jnp.int64)
+    idx = _local_states_to_numbers(model.hilbert, inputs)
     idx = jnp.expand_dims(idx, axis=-1)
 
     log_psi, _ = _conditional_log_psi(model, inputs, None)
@@ -203,3 +215,23 @@ def _call(model: ARNN, inputs: Array) -> Array:
     log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
 
     return log_psi
+
+
+@dispatch
+def _local_states_to_numbers(hilbert: Spin, x: Array) -> Array:  # noqa: F811
+    numbers = (x + hilbert.local_size - 1) / 2
+    numbers = jnp.asarray(numbers, jnp.int32)
+    return numbers
+
+
+@dispatch
+def _local_states_to_numbers(hilbert: Fock, x: Array) -> Array:  # noqa: F811
+    numbers = jnp.asarray(x, jnp.int32)
+    return numbers
+
+
+@dispatch
+def _local_states_to_numbers(hilbert: Any, x: Array) -> Array:  # noqa: F811
+    raise NotImplementedError(
+        f"_local_states_to_numbers is not implemented for hilbert {type(hilbert)}."
+    )

@@ -20,7 +20,23 @@ from jax import numpy as jnp
 
 
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
-@pytest.mark.parametrize("s", [1 / 2, 1])
+@pytest.mark.parametrize(
+    "hilbert",
+    [
+        pytest.param(
+            nk.hilbert.Spin(s=1 / 2, N=4),
+            id="spin_1/2",
+        ),
+        pytest.param(
+            nk.hilbert.Spin(s=1, N=4),
+            id="spin_1",
+        ),
+        pytest.param(
+            nk.hilbert.Fock(n_max=3, N=4),
+            id="fock",
+        ),
+    ],
+)
 @pytest.mark.parametrize(
     "partial_model",
     [
@@ -56,11 +72,9 @@ from jax import numpy as jnp
         ),
     ],
 )
-def test_ARNN(partial_model, s, dtype):
-    L = 4
+def test_ARNN(partial_model, hilbert, dtype):
     batch_size = 3
 
-    hilbert = nk.hilbert.Spin(s=s, N=L)
     model = partial_model(hilbert, dtype)
 
     key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
@@ -76,7 +90,7 @@ def test_ARNN(partial_model, s, dtype):
 
     # Test if the model is autoregressive
     for i in range(batch_size):
-        for j in range(L):
+        for j in range(hilbert.size):
             # Change one input element at a time
             spins_new = spins.at[i, j].set(-spins[i, j])
             p_new, _ = model.apply(params, spins_new, None, method=model.conditionals)
@@ -86,3 +100,19 @@ def test_ARNN(partial_model, s, dtype):
             p_diff = p_diff.at[i, j + 1 :].set(0)
 
             np.testing.assert_allclose(p_diff, 0, err_msg=f"i={i} j={j}")
+
+
+def test_throwing():
+    def build_model(hilbert):
+        nk.models.ARNNConv1D(hilbert=hilbert, layers=3, features=5, kernel_size=2)
+
+    # Only homogeneous Hilbert spaces are supported
+    with pytest.raises(ValueError):
+        hilbert = nk.hilbert.Spin(s=1 / 2, N=4)
+        hilbert = nk.hilbert.DoubledHilbert(hilbert)
+        build_model(None)
+
+    # Only unconstrained Hilbert spaces are supported
+    with pytest.raises(ValueError):
+        hilbert = nk.hilbert.Fock(n_max=3, N=4, n_particles=3)
+        build_model(hilbert)
