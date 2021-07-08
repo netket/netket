@@ -296,6 +296,26 @@ def expect_and_grad(  # noqa: F811
     covariance_formula: Optional[bool] = None,
     mutable=None,
 ):
+    r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+
+    Args:
+        vstate: The variational state
+        Ô: the operator Ô for which we compute the expectation value and it's gradient
+        covariance_formula: whever to use the covariance formula, usually reserved for
+            hermitian operators.
+        mutable: Can be bool, str, or list. Specifies which collections in the model_state should
+                 be treated as  mutable: bool: all/no collections are mutable. str: The name of a
+                 single mutable  collection. list: A list of names of mutable collections.
+                 This is used to mutate the state of the model while you train it (for example
+                 to implement BatchNorm. Consult
+                 `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
+                 for a more in-depth exaplanation).
+
+    Returns:
+        An estimation of the quantum expectation value <O>.
+        An estimation of the average gradient of the quantum expectation value <O>.
+    """
+
     # convert to type-static True/False
     if isinstance(covariance_formula, bool):
         covariance_formula = TrueT() if covariance_formula else FalseT()
