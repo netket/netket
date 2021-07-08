@@ -717,7 +717,7 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
         bias_init: Optional bias initialization function. Defaults to zero initialization
     """
 
-    if not mode in ["auto","fft","irreps","matrix"]:
+    if not mode in ["auto", "fft", "irreps", "matrix"]:
         raise ValueError("{} is not a valid mode.".format(mode))
 
     if isinstance(symmetries, Graph):
@@ -749,7 +749,7 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
         sg = symmetries
 
     elif isinstance(symmetries, Sequence):
-        if not mode in ["irreps","auto"]:
+        if not mode in ["irreps", "auto"]:
             raise ValueError("Specification of symmetries incompatible with mode")
         return DenseEquivariantIrrep(symmetries, **kwargs)
     else:
@@ -777,13 +777,11 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
                 "the symmetries keyword argument."
             )
         else:
-            return DenseEquivariantFFT(HashableArray(sg.product_table), shape=shape, **kwargs)
+            return DenseEquivariantFFT(
+                HashableArray(sg.product_table), shape=shape, **kwargs
+            )
     elif mode == "irreps":
-        irreps = tuple(
-            HashableArray(irrep) for irrep in symmetries.irrep_matrices()
-        )
+        irreps = tuple(HashableArray(irrep) for irrep in symmetries.irrep_matrices())
         return DenseEquivariantIrrep(irreps, **kwargs)
     else:
-        return DenseEquivariantMatrix(
-            HashableArray(symmetries.product_table), **kwargs
-        )
+        return DenseEquivariantMatrix(HashableArray(symmetries.product_table), **kwargs)

@@ -398,8 +398,8 @@ class GCNN_Parity_Irrep(nn.Module):
     representations of the group. The projection onto
     the group is implemented with matrix multiplication
 
-    Layers act on a feature maps of shape [batch_size, in_features, n_symm] and 
-    eeturns a feature map of shape [batch_size, out_features, n_symm]. 
+    Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
+    eeturns a feature map of shape [batch_size, out_features, n_symm].
     The input and the output are related by
     :: math ::
         y^{(i)}_g = \sum_{h,j} f^{(j)}_h W^{(ij)}_{h^{-1}g}.
@@ -597,7 +597,7 @@ def GCNN(
         bias_init: Initializer for the hidden bias.
     """
 
-    if not mode in ["auto","fft","irreps"]:
+    if not mode in ["auto", "fft", "irreps"]:
         raise ValueError("{} is not a valid mode.".format(mode))
 
     if isinstance(symmetries, Graph):
