@@ -717,6 +717,9 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
         bias_init: Optional bias initialization function. Defaults to zero initialization
     """
 
+    if not mode in ["auto","fft","irreps","matrix"]:
+        raise ValueError("{} is not a valid mode.".format(mode))
+
     if isinstance(symmetries, Graph):
         # With graph try to find point group, otherwise default to automorphisms
         if point_group:
@@ -746,14 +749,14 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
         sg = symmetries
 
     elif isinstance(symmetries, Sequence):
-        if not mode == "irreps":
+        if not mode in ["irreps","auto"]:
             raise ValueError("Specification of symmetries incompatible with mode")
         return DenseEquivariantIrrep(symmetries, **kwargs)
     else:
         if symmetries.ndim == 2 and symmetries.shape[0] == symmetries.shape[1]:
             if mode == "irreps":
                 raise ValueError("Specification of symmetries incompatible with mode")
-            if mode == "matrix":
+            elif mode == "matrix":
                 return DenseEquivariantMatrix(symmetries, **kwargs)
             else:
                 if shape is None:
@@ -774,14 +777,13 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
                 "the symmetries keyword argument."
             )
         else:
-            return DenseEquivariantFFT(HashableArray(sg.product_table), shape=shape)
+            return DenseEquivariantFFT(HashableArray(sg.product_table), shape=shape, **kwargs)
+    elif mode == "irreps":
+        irreps = tuple(
+            HashableArray(irrep) for irrep in symmetries.irrep_matrices()
+        )
+        return DenseEquivariantIrrep(irreps, **kwargs)
     else:
-        if mode == "irreps":
-            irreps = tuple(
-                HashableArray(irrep) for irrep in symmetries.irrep_matrices()
-            )
-            return DenseEquivariantIrrep(irreps, **kwargs)
-        else:
-            return DenseEquivariantMatrix(
-                HashableArray(symmetries.product_table), **kwargs
-            )
+        return DenseEquivariantMatrix(
+            HashableArray(symmetries.product_table), **kwargs
+        )

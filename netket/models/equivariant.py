@@ -597,13 +597,16 @@ def GCNN(
         bias_init: Initializer for the hidden bias.
     """
 
+    if not mode in ["auto","fft","irreps"]:
+        raise ValueError("{} is not a valid mode.".format(mode))
+
     if isinstance(symmetries, Graph):
         # With graph try to find point group, otherwise default to automorphisms
-        if point_group:
+        if point_group is not None:
             sg = symmetries.space_group(point_group)
             if mode == "auto":
                 mode = "fft"
-        elif symmetries._point_group:
+        elif symmetries._point_group is not None:
             sg = symmetries.space_group()
             if mode == "auto":
                 mode = "fft"
@@ -655,7 +658,7 @@ def GCNN(
 
     if mode == "fft":
         sym = HashableArray(np.asarray(sg))
-        if not product_table:
+        if product_table is None:
             product_table = HashableArray(sg.product_table)
         if parity:
             return GCNN_Parity_FFT(
@@ -666,7 +669,7 @@ def GCNN(
                 characters=characters,
                 shape=shape,
                 parity=parity,
-                *kwargs,
+                **kwargs,
             )
         else:
             return GCNN_FFT(
@@ -681,7 +684,7 @@ def GCNN(
     else:
         sym = HashableArray(np.asarray(sg))
 
-        if not irreps:
+        if irreps is None:
             irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
 
         if parity:

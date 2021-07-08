@@ -63,11 +63,11 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
 def test_gcnn(use_bias, symmetries, lattice, mode):
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
-    else:
+    if mode == "fft":
         ma = nk.models.GCNN(
             symmetries=perms,
             mode=mode,
-            shape=g.extent,
+            shape=tuple(g.extent),
             layers=2,
             features=2,
             use_bias=use_bias,
