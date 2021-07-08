@@ -129,7 +129,9 @@ class GCNN_FFT(nn.Module):
 
         x = self.output_activation(x)
 
-        x = logsumexp(x,axis=(1,2),b=jnp.expand_dims(jnp.asarray(self.characters),(0,1)))
+        x = logsumexp(
+            x, axis=(1, 2), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
+        )
 
         if self.imag_part:
             return 1j * jnp.imag(x)
@@ -142,8 +144,8 @@ class GCNN_Irrep(nn.Module):
     representations of the group. The projection onto
     the group is implemented with matrix multiplication
 
-    Layers act on a feature maps of shape [batch_size, in_features, n_symm] and 
-    eeturns a feature map of shape [batch_size, out_features, n_symm]. 
+    Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
+    eeturns a feature map of shape [batch_size, out_features, n_symm].
     The input and the output are related by
     :: math ::
         y^{(i)}_g = \sum_{h,j} f^{(j)}_h W^{(ij)}_{h^{-1}g}.
@@ -225,8 +227,10 @@ class GCNN_Irrep(nn.Module):
             x = self.equivariant_layers[layer](x)
 
         x = self.output_activation(x)
-        
-        x = logsumexp(x,axis=(1,2),b=jnp.expand_dims(jnp.asarray(self.characters),(0,1)))
+
+        x = logsumexp(
+            x, axis=(1, 2), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
+        )
 
         if self.imag_part:
             return 1j * jnp.imag(x)
@@ -352,17 +356,17 @@ class GCNN_Parity_FFT(nn.Module):
                 jnp.concatenate(
                     (jnp.array(self.characters), jnp.array(self.characters)), 0
                 ),
-                (0,1),
+                (0, 1),
             )
         else:
             par_chars = jnp.expand_dims(
                 jnp.concatenate(
                     (jnp.array(self.characters), -1 * jnp.array(self.characters)), 0
                 ),
-                (0,1),
+                (0, 1),
             )
 
-        x = logsumexp(x,axis=(1,2),b=par_chars)
+        x = logsumexp(x, axis=(1, 2), b=par_chars)
 
         if self.imag_part:
             return 1j * jnp.imag(x)
@@ -375,8 +379,8 @@ class GCNN_Parity_Irrep(nn.Module):
     representations of the group. The projection onto
     the group is implemented with matrix multiplication
 
-    Layers act on a feature maps of shape [batch_size, in_features, n_symm] and 
-    eeturns a feature map of shape [batch_size, out_features, n_symm]. 
+    Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
+    eeturns a feature map of shape [batch_size, out_features, n_symm].
     The input and the output are related by
     :: math ::
         y^{(i)}_g = \sum_{h,j} f^{(j)}_h W^{(ij)}_{h^{-1}g}.
@@ -425,7 +429,6 @@ class GCNN_Parity_Irrep(nn.Module):
     """Initializer for the Dense layer matrix."""
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias."""
-    
 
     def setup(self):
 
@@ -498,17 +501,17 @@ class GCNN_Parity_Irrep(nn.Module):
                 jnp.concatenate(
                     (jnp.array(self.characters), jnp.array(self.characters)), 0
                 ),
-                (0,1),
+                (0, 1),
             )
         else:
             par_chars = jnp.expand_dims(
                 jnp.concatenate(
                     (jnp.array(self.characters), -1 * jnp.array(self.characters)), 0
                 ),
-                (0,1),
+                (0, 1),
             )
 
-        x = logsumexp(x,axis=(1,2),b=par_chars)
+        x = logsumexp(x, axis=(1, 2), b=par_chars)
 
         if self.imag_part:
             return 1j * jnp.imag(x)
@@ -567,7 +570,9 @@ def GCNN(
         bias_init: Initializer for the hidden bias.
     """
 
-    if isinstance(symmetries, Lattice) and (point_group is not None or symmetries._point_group is not None):
+    if isinstance(symmetries, Lattice) and (
+        point_group is not None or symmetries._point_group is not None
+    ):
         # With graph try to find point group, otherwise default to automorphisms
         shape = tuple(symmetries.extent)
         sg = symmetries.space_group(point_group)
@@ -642,7 +647,7 @@ def GCNN(
                 shape=shape,
                 **kwargs,
             )
-    elif mode in ["irreps","auto"]:
+    elif mode in ["irreps", "auto"]:
         sym = HashableArray(np.asarray(sg))
 
         if irreps is None:
@@ -668,5 +673,6 @@ def GCNN(
                 **kwargs,
             )
     else:
-        raise ValueError(f"Unknown mode={mode}. Valid modes are 'fft',irreps' or 'auto'.")
-
+        raise ValueError(
+            f"Unknown mode={mode}. Valid modes are 'fft',irreps' or 'auto'."
+        )

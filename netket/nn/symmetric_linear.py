@@ -357,8 +357,8 @@ class DenseEquivariantIrrep(Module):
     """Implements a group convolutional layer by projecting onto irreducible
     representations of the group.
 
-    Acts on a feature map of shape [batch_size, in_features, n_symm] and 
-    eeturns a feature map of shape [batch_size, out_features, n_symm]. 
+    Acts on a feature map of shape [batch_size, in_features, n_symm] and
+    eeturns a feature map of shape [batch_size, out_features, n_symm].
     The input and the output are related by
     :: math ::
         y^{(i)}_g = \sum_{h,j} f^{(j)}_h W^{(ij)}_{h^{-1}g}.
@@ -643,13 +643,15 @@ def DenseSymm(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
         bias_init: Optional bias initialization function. Defaults to zero initialization
     """
 
-    if isinstance(symmetries, Lattice) and (not point_group is None or not symmetries._point_group is None):
+    if isinstance(symmetries, Lattice) and (
+        not point_group is None or not symmetries._point_group is None
+    ):
         shape = tuple(symmetries.extent)
         if not point_group is None or not symmetries._point_group is None:
             sym = HashableArray(np.asarray(symmetries.space_group(point_group)))
             if mode == "auto":
                 mode = "fft"
-    elif isinstance(symmetries,Graph):
+    elif isinstance(symmetries, Graph):
         if mode == "fft":
             raise ValueError(
                 "When requesting 'mode=fft' a valid point group must be specified"
@@ -672,10 +674,12 @@ def DenseSymm(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
             )
         else:
             return DenseSymmFFT(sym, shape=shape, **kwargs)
-    elif mode in ["matrix","auto"]:
+    elif mode in ["matrix", "auto"]:
         return DenseSymmMatrix(sym, **kwargs)
-    else: 
-        raise ValueError(f"Unknown mode={mode}. Valid modes are 'fft', 'matrix', or 'auto'.")
+    else:
+        raise ValueError(
+            f"Unknown mode={mode}. Valid modes are 'fft', 'matrix', or 'auto'."
+        )
 
 
 def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
@@ -715,7 +719,9 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
         bias_init: Optional bias initialization function. Defaults to zero initialization
     """
 
-    if isinstance(symmetries, Lattice) and (not point_group is None or not symmetries._point_group is None):
+    if isinstance(symmetries, Lattice) and (
+        not point_group is None or not symmetries._point_group is None
+    ):
         shape = tuple(symmetries.extent)
         # With graph try to find point group, otherwise default to automorphisms
         if not point_group is None or not symmetries._point_group is None:
@@ -769,11 +775,12 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
             return DenseEquivariantFFT(
                 HashableArray(sg.product_table), shape=shape, **kwargs
             )
-    elif mode in ["irreps","auto"]:
+    elif mode in ["irreps", "auto"]:
         irreps = tuple(HashableArray(irrep) for irrep in symmetries.irrep_matrices())
         return DenseEquivariantIrrep(irreps, **kwargs)
     elif mode == "matrix":
         return DenseEquivariantMatrix(HashableArray(symmetries.product_table), **kwargs)
     else:
-        raise ValueError(f"Unknown mode={mode}. Valid modes are 'fft', 'matrix', 'irreps' or 'auto'.")
-      
+        raise ValueError(
+            f"Unknown mode={mode}. Valid modes are 'fft', 'matrix', 'irreps' or 'auto'."
+        )
