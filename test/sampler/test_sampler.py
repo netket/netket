@@ -94,6 +94,7 @@ samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
 
 samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi, n_chains=16)
 samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1, n_chains=16)
+samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u, n_chains=16)
 
 
 # The following fixture initialisees a model and it's weights
