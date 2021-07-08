@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from netket.utils.dispatch import parametric
+
 from ._abstract_operator import AbstractOperator
 
 
@@ -44,6 +46,7 @@ class WrappedOperator(AbstractOperator):
         return other @ self.collect()
 
 
+@parametric
 class Transpose(WrappedOperator):
     """
     A wrapper lazily representing the transpose of the wrapped object.
@@ -89,6 +92,7 @@ class Transpose(WrappedOperator):
         return self.parent.to_sparse().T
 
 
+@parametric
 class Adjoint(WrappedOperator):
     """
     A wrapper lazily representing the adjoint (conjugate-transpose) of the wrapped object.
@@ -149,6 +153,7 @@ class Adjoint(WrappedOperator):
         return self.parent.to_sparse().T.conj()
 
 
+@parametric
 class Squared(WrappedOperator):
     """
     A wrapper lazily representing the matrix-squared (A^dag A) of the wrapped object A.
