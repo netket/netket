@@ -20,7 +20,6 @@ import numpy as np
 
 from netket.utils.dispatch import dispatch
 
-NoneType = type(None)
 Dim = Union[Tuple[int], Tuple[int, int], Tuple[int, int, int]]
 
 
@@ -56,7 +55,7 @@ def random_state(hilb, key, size, dtype):  # noqa: F811
 
 
 @dispatch
-def random_state(hilb, key, size: NoneType, *, dtype):  # noqa: F811
+def random_state(hilb, key, size: None, *, dtype):  # noqa: F811
     return random_state(hilb, key, 1, dtype=dtype)[0]
 
 
@@ -87,7 +86,7 @@ def random_state(hilb, key, size: int, *, dtype):  # noqa: F811
 
 
 @dispatch
-def random_state(hilb, key, size: NoneType, *, dtype):  # noqa: F811
+def random_state(hilb, key, size: None, *, dtype):  # noqa: F811
     return random_state(hilb, key, 1, dtype=dtype)[0]
 
 
