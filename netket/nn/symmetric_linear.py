@@ -614,7 +614,7 @@ class DenseEquivariantMatrix(Module):
         return x
 
 
-def DenseSymm(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
+def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
     """
     Implements a projection onto a symmetry group. The output will be
     equivariant with respect to the symmetry operations in the group and can
@@ -625,22 +625,22 @@ def DenseSymm(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
             nk.graph.Graph, a nk.utils.PermuationGroup, or an array [n_symm, n_sites]
             specifying the permutations corresponding to symmetry transformations
             of the lattice.
-        point_group: If symmetries is a graph the default point group of the
-            graph is overwritten from which the space group is build. To only
-            symmetrize over the point_group instead set symmetries=point_group
+        point_group: The point group, from which the space group is built.
+            If symmetries is a graph the default point group is overwritten.
         mode: string "fft, matrix, auto" specifying whether to use a fast Fourier
             transform, matrix multiplication, or to choose a sensible default
-            based on the symmetry group
+            based on the symmetry group.
+        shape: A tuple specifying the dimensions of the translation group.
         features: The number of symmetry-reduced features. The full output size
             is [n_symm,features].
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
-            that can be used to give the kernel a particular shape
-        dtype: The datatype of the weights. Defaults to a 64bit float
-        precision: Optional argument specifying numerical precision of the computation
+            that can be used to give the kernel a particular shape.
+        dtype: The datatype of the weights. Defaults to a 64bit float.
+        precision: Optional argument specifying numerical precision of the computation.
             see `jax.lax.Precision`for details.
-        kernel_init: Optional kernel initialization function. Defaults to variance scaling
-        bias_init: Optional bias initialization function. Defaults to zero initialization
+        kernel_init: Optional kernel initialization function. Defaults to variance scaling.
+        bias_init: Optional bias initialization function. Defaults to zero initialization.
     """
 
     if isinstance(symmetries, Lattice) and (
@@ -702,20 +702,23 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
             nk.graph.Graph, an nk.utils.PermuationGroup, a list of irreducible
-            representations or a product table
+            representations or a product table.
+        point_group: The point group, from which the space group is built.
+            If symmetries is a graph the default point group is overwritten.
         mode: string "fft, irreps, matrix, auto" specifying whether to use a fast
             fourier transform over the translation group, a fourier transform using
             the irreducible representations or by constructing the full kernel matrix.
+        shape: A tuple specifying the dimensions of the translation group.
         features: The number of symmetry-reduced features. The full output size
             is n_symm*features.
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
-            that can be used to give the kernel a particular shape
-        dtype: The datatype of the weights. Defaults to a 64bit float
-        precision: Optional argument specifying numerical precision of the computation
+            that can be used to give the kernel a particular shape.
+        dtype: The datatype of the weights. Defaults to a 64bit float.
+        precision: Optional argument specifying numerical precision of the computation.
             see `jax.lax.Precision`for details.
-        kernel_init: Optional kernel initialization function. Defaults to variance scaling
-        bias_init: Optional bias initialization function. Defaults to zero initialization
+        kernel_init: Optional kernel initialization function. Defaults to variance scaling.
+        bias_init: Optional bias initialization function. Defaults to zero initialization.
     """
 
     if isinstance(symmetries, Lattice) and (

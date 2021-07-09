@@ -521,13 +521,13 @@ class GCNN_Parity_Irrep(nn.Module):
 
 def GCNN(
     symmetries=None,
+    product_table=None,
+    irreps=None,
+    point_group=None,
     mode="auto",
     shape=None,
-    point_group=None,
-    irreps=None,
-    product_table=None,
-    features=None,
     layers=None,
+    features=None,
     characters=None,
     parity=None,
     **kwargs,
@@ -548,23 +548,33 @@ def GCNN(
         {\bf f}^{i+1}_h = \Gamma( \sum_h W_{g^{-1} h} {\bf f}^i_h).
 
     Args:
-        symmetries: A group of symmetry operations (or array of permutation indices)
-            over which the network should be equivariant. Numpy/Jax arrays must be
-            wrapped into an :class:`netket.utils.HashableArray`.
-        product_table: Product table describing the algebra of the symmetry group
-            Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
+        symmetries: A specification of the symmetry group. Can be given by a
+            nk.graph.Graph, a nk.utils.PermuationGroup, or an array [n_symm, n_sites]
+            specifying the permutations corresponding to symmetry transformations
+            of the lattice.
+        product_table: Product table describing the algebra of the symmetry group.
+            Only needs to be specified if mode='fft' and symmetries is specified as an array.
+        irreps: List of 3D tensors that project onto irreducible representations of the symmetry group.
+            Only needs to be specified if mode='irreps' and symmetries is specified as an array.
+        point_group: The point group, from which the space group is built.
+            If symmetries is a graph the default point group is overwritten.
+        mode: string "fft, irreps, matrix, auto" specifying whether to use a fast
+            fourier transform over the translation group, a fourier transform using
+            the irreducible representations or by constructing the full kernel matrix.
+        shape: A tuple specifying the dimensions of the translation group.
         layers: Number of layers (not including sum layer over output).
         features: Number of features in each layer starting from the input. If a single
             number is given, all layers will have the same number of features.
         characters: Array specifying the characters of the desired symmetry representation
-        dtype: The dtype of the weights
         parity: Optional argument with value +/-1 that specifies the eigenvalue
-            with respect to parity (only use on two level systems)
+            with respect to parity (only use on two level systems).
+        dtype: The dtype of the weights.
         activation: The nonlinear activation function between hidden layers.
         output_activation: The nonlinear activation before the output.
-        imag_part: If true return only the imaginary part of the output
-        use_bias: if True uses a bias in all layers.
-        precision: numerical precision of the computation see `jax.lax.Precision`for details.
+        equal_amplitudes: If True forces all basis states to have equal amplitude
+            by setting Re[psi] = 0.
+        use_bias: If True uses a bias in all layers.
+        precision: Numerical precision of the computation see `jax.lax.Precision`for details.
         kernel_init: Initializer for the Dense layer matrix.
         bias_init: Initializer for the hidden bias.
     """
