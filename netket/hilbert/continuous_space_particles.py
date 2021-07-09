@@ -3,20 +3,24 @@ from typing import Tuple
 from .abstract_hilbert import AbstractHilbert
 
 class Particles(AbstractHilbert):
-    """Class for continuous Hilbert space.
-
-    This class definese the common interface that can be used to
-    interact with hilbert spaces in continuum.
+    """Class for the Hilbert space of particles
+    in continuous space.
+    This class defines the common interface that
+    can be used to interact with particles defined
+    in continuous space.
     """
 
     def __init__(self, N: int, L: Tuple[float, ...], pbc: Tuple[bool, ...], ptype: str):
         """
-        Initializes a continuous Hilbert space.
+        Constructs new ``Particles`` given specifications
+         of the continuous space they are defined in.
 
-        :param N: Number of particles
-        :param L: spatial extension in each spatial dimension
-        :param pbc: Whether or not to use periodic boundary conditions for each spatial dimension
-        :param type: Type of particles (bosonic,..)
+        Args:
+            N: Number of particles
+            L: spatial extension in each spatial dimension
+            pbc: Whether or not to use periodic boundary
+                conditions for each spatial dimension
+            ptype: Type of particles (bosonic,..)
         """
         self._N = N
         self._L = L
@@ -32,14 +36,12 @@ class Particles(AbstractHilbert):
 
     @property
     def size(self) -> int:
-        r"""The number number of degrees of freedom in the
-                Hilbert space."""
+
         return self._N * len(self._L)
 
     @property
     def N(self) -> int:
-        r"""The number of particles
-        """
+        r"""The number of particles"""
         return self._N
 
     @property
@@ -55,7 +57,7 @@ class Particles(AbstractHilbert):
     @property
     def ptype(self):
         r"""The type of particles under consideration"""
-        return self._type
+        return self._ptype
 
     @property
     def _attrs(self):
@@ -63,5 +65,5 @@ class Particles(AbstractHilbert):
             self.size,
             self.L,
             self.pbc,
-            self.type,
+            self.ptype,
         )

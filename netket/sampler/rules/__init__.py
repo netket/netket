@@ -15,7 +15,7 @@
 from .local import LocalRule
 from .exchange import ExchangeRule
 from .hamiltonian import HamiltonianRule
-from .gaussian_continuous import GaussianRule
+from .continuous_gaussian import GaussianRule
 
 # numpy backend
 from .local_numpy import LocalRuleNumpy

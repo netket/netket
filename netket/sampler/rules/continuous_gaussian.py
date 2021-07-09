@@ -15,14 +15,14 @@ class GaussianRule(MetropolisRule):
     """
     s: float = 1.
 
-    def transition(rule, sampler, machine, parameters, state, key, σ, s):
+    def transition(rule, sampler, machine, parameters, state, key, σ, sigma):
 
         n_chains = σ.shape[0]
         hilb = sampler.hilbert
         boundary = jnp.tile(jnp.array(hilb.N * hilb.L))
-        modulus = jnp.where(boundary == None, np.inf, boundary)
+        modulus = jnp.where(boundary == None, jnp.inf, boundary)
 
-        prop = jax.random.normal(key, shape=(n_chains, hilb.size)) * rule.s
+        prop = jax.random.normal(key, shape=(n_chains, hilb.size)) * rule.sigma
         σp = jnp.where(boundary == None, σ + prop, (σ + prop) % modulus)
 
         return σp, None

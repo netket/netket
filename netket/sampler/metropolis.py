@@ -526,11 +526,13 @@ def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSa
     rule = HamiltonianRule(hamiltonian)
     return MetropolisSampler(hilbert, rule, *args, **kwargs)
 
-def MetropolisContinuous(hilbert, s, *args, **kwargs) -> MetropolisSampler:
-    r"""This sampler acts on all particle positions simultaneously and proposes a new state according to a Gaussian distribution with width s.
+def MetropolisGaussian(hilbert, sigma, *args, **kwargs) -> MetropolisSampler:
+    r"""This sampler acts on all particle positions simultaneously
+    and proposes a new state according to a Gaussian distribution
+    with width sigma.
     Args:
        hilber: The continuous Hilbert space
-       s: The width of the Gaussian proposal distribution
+       sigma: The width of the Gaussian proposal distribution
        n_chains: The number of Markov Chain to be run in parallel on a single process.
        sweep_size: The number of exchanges that compose a single sweep.
                    If None, sweep_size is equal to the number of degrees of freedom (n_visible).
@@ -538,5 +540,5 @@ def MetropolisContinuous(hilbert, s, *args, **kwargs) -> MetropolisSampler:
 
     from .rules import GaussianRule
 
-    rule = GaussianRule(s)
+    rule = GaussianRule(sigma)
     return MetropolisSampler(hilbert, rule, *args, **kwargs)
