@@ -4,6 +4,22 @@
 
 # Change Log
 
+## NetKet 3.0b4 (unreleased)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.0b3...master).
+
+### New features
+
+
+### Breaking Changes
+
+
+### Internal Changes
+
+
+### Bug Fixes
+
+
 ## NetKet 3.0b3 (unreleased)
 
 [GitHub commits](https://github.com/netket/netket/compare/v3.0b2...master).
@@ -18,11 +34,21 @@
 
 * The `graph.Grid` class has been removed. {ref}`graph.Grid` will now return an instance of {ref}`graph.Lattice` supporting the same API but with new functionalities related to spatial symmetries. The `color_edges` optional keyword argument has been removed without deprecation. [#724](https://github.com/netket/netket/pull/724)
 * `MCState.n_discard` has been renamed `MCState.n_discard_per_chain` and the old binding has been deprecated [#739](https://github.com/netket/netket/pull/739).
+* `nk.optimizer.qgt.QGTOnTheFly` option `centered=True` has been removed because we are now convinced the two options yielded equivalent results. `QGTOnTheFly` now always behaves as if `centered=False` [#706](https://github.com/netket/netket/pull/706).
 
+### Internal Changes
+
+* `networkX` has been replaced by `igraph`, yielding a considerable speedup for some graph-related operations [#729](https://github.com/netket/netket/pull/729).
+* `netket.hilbert.random` module now uses `plum-dispatch` (through `netket.utils.dispatch`) to select the correct implementation of `random_state` and `flip_state`. This makes it easy to define new hilbert states and extend their functionality easily.  [#734](https://github.com/netket/netket/pull/734).
+* The AbstractHilbert interface is now much smaller in order to also support continuous Hilbert spaces. Any functionality specific to discrete hilbert spaces (what was previously supported) has been moved to a new abstract type `nk.hilbert.DiscreteHilbert`. Any Hilbert space previously subclassing {ref}`nk.hilbert.AbstractHilbert` should be modified to subclass {ref}`nk.hilbert.DiscreteHilbert` [#800](https://github.com/netket/netket/pull/800).
 
 ### Bug Fixes
 
 * `nn.to_array` and `MCState.to_array`, if `normalize=False`, do not subtract the logarithm of the maximum value from the state  [#705](https://github.com/netket/netket/pull/705).
+* Autoregressive networks now work with Fock space and give correct errors if the hilbert space is not supported  [#806](https://github.com/netket/netket/pull/806).
+* Autoregressive networks are now much (x10-x100) faster  [#705](https://github.com/netket/netket/pull/705).
+* Do not throw errors when calling `operator.get_conn_flattened(states)` with a jax array  [#764](https://github.com/netket/netket/pull/764).
+* Fix bug with the driver progress bar when `step_size != 1`  [#747](https://github.com/netket/netket/pull/747).
 
 
 ## NetKet 3.0b2 (published on 31 May 2021)
