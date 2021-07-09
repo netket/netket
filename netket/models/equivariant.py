@@ -532,7 +532,6 @@ def GCNN(
     parity=None,
     **kwargs,
 ):
-
     r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
     that is invariant over a specified symmetry group.
 
