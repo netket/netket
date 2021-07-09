@@ -229,7 +229,7 @@ class GCNN_Irrep(nn.Module):
         x = self.output_activation(x)
 
         x = logsumexp(
-            x, axis=(1, 2), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
+            x, axis=(-2, -1), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
         )
 
         if self.imag_part:
