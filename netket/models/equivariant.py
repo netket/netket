@@ -366,7 +366,7 @@ class GCNN_Parity_FFT(nn.Module):
                 (0, 1),
             )
 
-        x = logsumexp(x, axis=(1, 2), b=par_chars)
+        x = logsumexp(x, axis=(-2,-1), b=par_chars)
 
         if self.imag_part:
             return 1j * jnp.imag(x)
