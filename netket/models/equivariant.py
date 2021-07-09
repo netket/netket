@@ -78,8 +78,8 @@ class GCNN_FFT(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output. Defaults to the identity."""
-    imag_part: bool = False
-    """If true return only the imaginary part of the output"""
+    equal_amplitudes: bool = False
+    """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
     precision: Any = None
@@ -133,7 +133,7 @@ class GCNN_FFT(nn.Module):
             x, axis=(-2, -1), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
         )
 
-        if self.imag_part:
+        if self.equal_amplitudes:
             return 1j * jnp.imag(x)
         else:
             return x
@@ -179,8 +179,8 @@ class GCNN_Irrep(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
-    imag_part: bool = False
-    """If true return only the imaginary part of the output"""
+    equal_amplitudes: bool = False
+    """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
     precision: Any = None
@@ -232,7 +232,7 @@ class GCNN_Irrep(nn.Module):
             x, axis=(-2, -1), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
         )
 
-        if self.imag_part:
+        if self.equal_amplitudes:
             return 1j * jnp.imag(x)
         else:
             return x
@@ -271,8 +271,8 @@ class GCNN_Parity_FFT(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
-    imag_part: bool = False
-    """If true return only the imaginary part of the output"""
+    equal_amplitudes: bool = False
+    """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
     precision: Any = None
@@ -366,9 +366,9 @@ class GCNN_Parity_FFT(nn.Module):
                 (0, 1),
             )
 
-        x = logsumexp(x, axis=(-2,-1), b=par_chars)
+        x = logsumexp(x, axis=(-2, -1), b=par_chars)
 
-        if self.imag_part:
+        if self.equal_amplitudes:
             return 1j * jnp.imag(x)
         else:
             return x
@@ -419,8 +419,8 @@ class GCNN_Parity_Irrep(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
-    imag_part: bool = False
-    """If true return only the imaginary part of the output"""
+    equal_amplitudes: bool = False
+    """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
     precision: Any = None
@@ -513,7 +513,7 @@ class GCNN_Parity_Irrep(nn.Module):
 
         x = logsumexp(x, axis=(-2, -1), b=par_chars)
 
-        if self.imag_part:
+        if self.equal_amplitudes:
             return 1j * jnp.imag(x)
         else:
             return x
