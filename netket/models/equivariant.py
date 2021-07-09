@@ -79,7 +79,7 @@ class GCNN_FFT(nn.Module):
     output_activation: Any = identity
     """The nonlinear activation before the output. Defaults to the identity."""
     equal_amplitudes: bool = False
-    """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
+    """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
     precision: Any = None
@@ -180,7 +180,7 @@ class GCNN_Irrep(nn.Module):
     output_activation: Any = identity
     """The nonlinear activation before the output."""
     equal_amplitudes: bool = False
-    """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
+    """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
     precision: Any = None
