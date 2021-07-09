@@ -647,10 +647,9 @@ def DenseSymm(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
         not point_group is None or not symmetries._point_group is None
     ):
         shape = tuple(symmetries.extent)
-        if not point_group is None or not symmetries._point_group is None:
-            sym = HashableArray(np.asarray(symmetries.space_group(point_group)))
-            if mode == "auto":
-                mode = "fft"
+        sym = HashableArray(np.asarray(symmetries.space_group(point_group)))
+        if mode == "auto":
+            mode = "fft"
     elif isinstance(symmetries, Graph):
         if mode == "fft":
             raise ValueError(
