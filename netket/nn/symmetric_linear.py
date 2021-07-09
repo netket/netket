@@ -683,7 +683,7 @@ def DenseSymm(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
 
 
 def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
-    r"""A group convolution operation that is equivariant over a symmetry group
+    r"""A group convolution operation that is equivariant over a symmetry group.
 
     Acts on a feature map of symmetry poses of shape [batch_size,n_symm*in_features]
     and returns a feature  map of poses of shape [batch_size,n_symm*out_features]
