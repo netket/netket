@@ -20,9 +20,9 @@
 ### Bug Fixes
 
 
-## NetKet 3.0b3 (unreleased)
+## NetKet 3.0b3 (published on 9 july 2021)
 
-[GitHub commits](https://github.com/netket/netket/compare/v3.0b2...master).
+[GitHub commits](https://github.com/netket/netket/compare/v3.0b2...v3.0b3).
 
 ### New features
 
