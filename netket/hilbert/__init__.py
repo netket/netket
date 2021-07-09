@@ -15,6 +15,8 @@
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
 
+from .continuous_hilbert import Particles
+
 from .custom_hilbert import CustomHilbert
 from .doubled_hilbert import DoubledHilbert
 from .spin import Spin
