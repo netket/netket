@@ -724,10 +724,9 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
     ):
         shape = tuple(symmetries.extent)
         # With graph try to find point group, otherwise default to automorphisms
-        if not point_group is None or not symmetries._point_group is None:
-            sg = symmetries.space_group(point_group)
-            if mode == "auto":
-                mode = "fft"
+        sg = symmetries.space_group(point_group)
+        if mode == "auto":
+            mode = "fft"
     elif isinstance(symmetries, Graph):
         sg = symmetry_info.automorphisms()
         if mode == "auto" or mode == "fft":
