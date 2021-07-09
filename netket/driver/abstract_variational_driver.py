@@ -269,14 +269,14 @@ class AbstractVariationalDriver(abc.ABC):
                     if mpi.mpi_any(callback_stop):
                         break
 
-                # Update the progress bar
-                pbar.update(self.step_count - old_step)
-                old_step = self.step_count
-
                 # Reset the timing of tqdm after the first step, to ignore compilation time
                 if first_step:
                     first_step = False
                     pbar.unpause()
+
+                # Update the progress bar
+                pbar.update(self.step_count - old_step)
+                old_step = self.step_count
 
             # Final update so that it shows up filled.
             pbar.update(self.step_count - old_step)
