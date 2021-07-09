@@ -728,9 +728,9 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
             mode = "fft"
     elif isinstance(symmetries, Graph):
         sg = symmetry_info.automorphisms()
-        if mode == "auto" or mode == "fft":
+        if mode == "auto":
             mode = "irreps"
-        if mode == "fft":
+        elif mode == "fft":
             raise ValueError(
                 "When requesting 'mode=fft' a valid point group must be specified"
                 "in order to construct the space group"
