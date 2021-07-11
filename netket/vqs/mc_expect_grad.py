@@ -41,7 +41,7 @@ def _check_hilbert(A, B):
 def expect_and_grad(
     vstate: MCState,
     Ô: Squared[AbstractOperator],
-    covariance_formula: TrueT,
+    use_covariance: TrueT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     _check_hilbert(vstate, Ô)
@@ -74,7 +74,7 @@ def expect_and_grad(
 def expect_and_grad(  # noqa: F811
     vstate: MCMixedState,
     Ô: Squared[AbstractSuperOperator],
-    covariance_formula: TrueT,
+    use_covariance: TrueT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     _check_hilbert(vstate, Ô)
@@ -108,7 +108,7 @@ def expect_and_grad(  # noqa: F811
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
-    covariance_formula: TrueT,
+    use_covariance: TrueT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     _check_hilbert(vstate, Ô)
@@ -137,7 +137,7 @@ def expect_and_grad(  # noqa: F811
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
-    covariance_formula: FalseT,
+    use_covariance: FalseT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     _check_hilbert(vstate, Ô)

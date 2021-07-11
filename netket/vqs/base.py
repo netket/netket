@@ -182,7 +182,7 @@ class VariationalState(abc.ABC):
         Ô: AbstractOperator,
         *,
         mutable: Optional[Any] = None,
-        covariance_formula: Optional[bool] = None,
+        use_covariance: Optional[bool] = None,
     ) -> Tuple[Stats, PyTree]:
         r"""Estimates both the gradient of the quantum expectation value of a given operator O.
 
@@ -205,9 +205,7 @@ class VariationalState(abc.ABC):
         if mutable is None:
             mutable = self.mutable
 
-        return expect_and_grad(
-            self, Ô, covariance_formula=covariance_formula, mutable=mutable
-        )
+        return expect_and_grad(self, Ô, use_covariance=use_covariance, mutable=mutable)
 
     # @abc.abstractmethod
     def quantum_geometric_tensor(self, qgt_T):
@@ -287,13 +285,13 @@ def expect(vstate: VariationalState, operator: AbstractOperator):
     )
 
 
-# default dispatch where covariance_formula is not specified
+# default dispatch where use_covariance is not specified
 @dispatch
 def expect_and_grad(  # noqa: F811
     vstate: VariationalState,
     operator: AbstractOperator,
     *,
-    covariance_formula: Optional[bool] = None,
+    use_covariance: Optional[bool] = None,
     mutable=None,
 ):
     r"""Estimates both the gradient of the quantum expectation value of a given operator O.
@@ -301,7 +299,7 @@ def expect_and_grad(  # noqa: F811
     Args:
         vstate: The variational state
         Ô: the operator Ô for which we compute the expectation value and it's gradient
-        covariance_formula: whever to use the covariance formula, usually reserved for
+        use_covariance: whever to use the covariance formula, usually reserved for
             hermitian operators.
         mutable: Can be bool, str, or list. Specifies which collections in the model_state should
                  be treated as  mutable: bool: all/no collections are mutable. str: The name of a
@@ -317,13 +315,13 @@ def expect_and_grad(  # noqa: F811
     """
 
     # convert to type-static True/False
-    if isinstance(covariance_formula, bool):
-        covariance_formula = TrueT() if covariance_formula else FalseT()
+    if isinstance(use_covariance, bool):
+        use_covariance = TrueT() if use_covariance else FalseT()
 
-    if covariance_formula is None:
-        covariance_formula = TrueT() if operator.is_hermitian else FalseT()
+    if use_covariance is None:
+        use_covariance = TrueT() if operator.is_hermitian else FalseT()
 
     if mutable is None:
         mutable = vstate.mutable
 
-    return expect_and_grad(vstate, operator, covariance_formula, mutable)
+    return expect_and_grad(vstate, operator, use_covariance, mutable)
