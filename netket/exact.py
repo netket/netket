@@ -29,7 +29,7 @@ def lanczos_ed(
     scipy_args: dict = None,
 ):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
-    of a Hermitian operator using `scipy.sparse.linalg.eigsh`.
+    of a Hermitian operator using :meth:`scipy.sparse.linalg.eigsh`.
 
     Args:
         operator: NetKet operator to diagonalize.
@@ -40,19 +40,20 @@ def lanczos_ed(
         matrix_free: If true, matrix elements are computed on the fly.
             Otherwise, the operator is first converted to a sparse matrix.
         scipy_args: Additional keyword arguments passed to
-            `scipy.sparse.linalg.eigvalsh`. See the Scipy documentation for further
+            :meth:`scipy.sparse.linalg.eigvalsh`. See the Scipy documentation for further
             information.
 
     Returns:
         Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors`
         is True.
-         - w: Array containing the lowest `first_n` eigenvalues.
-         - v: Array containing the eigenvectors as columns, such that`v[:, i]`
-            corresponds to `w[i]`.
+
+        - w: Array containing the lowest `first_n` eigenvalues.
+        - v: Array containing the eigenvectors as columns, such that`v[:, i]`
+          corresponds to `w[i]`.
 
     Example:
         Test for 1D Ising chain with 8 sites.
-        s
+
         >>> import netket as nk
         >>> hi = nk.hilbert.Spin(s=1/2)**8
         >>> hamiltonian = nk.operator.Ising(hi, h=1.0, graph=nk.graph.Chain(8))

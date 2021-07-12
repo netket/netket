@@ -67,6 +67,7 @@ class StateLog:
                   creates a new file;
                 - `[x]` or `fail`: fails if file/folder already exists;
             tar: if True creates a tar archive instead of a folder.
+
         """
         super().__init__()
 

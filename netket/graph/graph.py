@@ -23,6 +23,13 @@ from .abstract_graph import AbstractGraph, Edge, ColoredEdge, EdgeSequence
 
 
 class Graph(AbstractGraph):
+    """
+    A simple implementation of Graph based on an external graph library.
+
+    The underlying implemnetation is based on igraph and supports conversion to
+    networkx, but this is an implementation detail and could be changed in the future.
+    """
+
     # Initialization
     # ------------------------------------------------------------------------
     def __init__(
@@ -124,7 +131,7 @@ class Graph(AbstractGraph):
         return self._igraph.vcount()
 
     @property
-    def n_edges(self) -> int:
+    def n_edges(self):
         return self._igraph.ecount()
 
     def nodes(self) -> Sequence[int]:
