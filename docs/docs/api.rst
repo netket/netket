@@ -15,6 +15,7 @@ Graph
 
 .. autosummary::
    :toctree: _generated/graph
+   :template: class
    :nosignatures:
 
    netket.graph.AbstractGraph
@@ -33,6 +34,7 @@ Hilbert
 
 .. autosummary::
    :toctree: _generated/hilbert
+   :template: class
    :nosignatures:
 
    netket.hilbert.AbstractHilbert
@@ -184,6 +186,7 @@ neural quantum states.
 
 .. autosummary::
    :toctree: _generated/models
+   :template: flax_model
    :nosignatures:
 
    netket.models.RBM
