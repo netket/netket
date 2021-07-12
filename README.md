@@ -8,7 +8,6 @@
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/netket/badges/version.svg)](https://anaconda.org/conda-forge/netket)
 [![Paper](https://img.shields.io/badge/paper-SoftwareX%2010%2C%20100311%20(2019)-B31B1B)](https://doi.org/10.1016/j.softx.2019.100311)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/netket/netket/v.2.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![codecov](https://codecov.io/gh/netket/netket/branch/master/graph/badge.svg?token=gzcOlpO5lB)](https://codecov.io/gh/netket/netket)
 
@@ -55,6 +54,7 @@ To enable MPI support you must install [mpi4jax](https://github.com/PhilipVinc/m
 
 To check whever MPI support is enabled, check the flags 
 ```python
+>>> import netket
 >>> netket.utils.mpi_available
 True
 
