@@ -138,10 +138,12 @@ class Graph(AbstractGraph):
 
     @property
     def n_nodes(self) -> int:
+        r"""The number of nodes (or vertices) in the graph"""
         return self._igraph.vcount()
 
     @property
     def n_edges(self):
+        r"""The number of edges in the graph."""
         return self._igraph.ecount()
 
     def nodes(self) -> Sequence[int]:
@@ -178,7 +180,9 @@ class Graph(AbstractGraph):
             return [e for (e, _) in edges_with_color]
 
     @property
-    def edge_colors(self):
+    def edge_colors(self) -> Sequence[int]:
+        r"""Sequence of edge colors, in the order of the edges returned by
+        :code:`self.edges`."""
         if self.n_edges > 0:
             return self._igraph.es.get_attribute_values("color")
         else:
