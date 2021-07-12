@@ -34,13 +34,16 @@ extensions = [
 # Napoleon settings
 autodoc_docstring_signature = True
 autodoc_inherit_docstrings = True
+allow_inherited = True
 autosummary_generate = True
-napoleon_use_param = True
+napoleon_preprocess_types = True
 
 panels_add_bootstrap_css = False
 
 master_doc = "index"
 
+autoclass_content = "class"
+autodoc_class_signature = "separated"
 autodoc_typehints = "description"
 
 # Add any paths that contain templates here, relative to this directory.
@@ -184,3 +187,35 @@ html_sidebars = {
 redirects = {
     "documentation": "docs/getting_started.html",
 }
+
+
+# do not show __init__ if it does not have a docstring
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    print(f"Autodoc skip: {what}, {name}, {obj}, {skip}, {options}")
+    # Ref: https://stackoverflow.com/a/21449475/
+    exclusions = (
+        "__weakref__",  # special-members
+        "__doc__",
+        "__module__",
+        "__dict__",  # undoc-members
+    )
+    exclude = name in exclusions
+    if name == "__init__":
+        exclude = True if obj.__doc__ is None else False
+    return True if (skip or exclude) else None
+
+
+## bug in sphinx: take docstring
+# def warn_undocumented_members(app, what, name, obj, options, lines):
+#    if name.startswith("netket"):
+#        print(f"Autodoc dostuff: {what}, {name}, {obj}, {lines}, {options}")
+#        print(f"the type is {type(obj)}")
+#        if obj.__doc__ == None:
+#
+#    else:
+#        print(f"Autodoc cacca: {what}, {name}, {obj}, {lines}, {options}")
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", autodoc_skip_member)
+    # app.connect('autodoc-process-docstring', warn_undocumented_members);
