@@ -5,7 +5,12 @@
 .. autoclass:: {{ objname }}
    :show-inheritance:
 
+
+   {% block stuff %}{%- if '__init__' in all_methods %}
+
    .. automethod:: {{ name }}.__init__
+   {%- endif -%}{% endblock %}
+
 
    {% block methods %}
       {% if attributes %}
