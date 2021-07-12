@@ -36,7 +36,17 @@ class Graph(AbstractGraph):
         self,
         edges: Union[Sequence[Edge], Sequence[ColoredEdge]],
         n_nodes: Optional[int] = None,
-    ) -> None:
+    ):
+        """
+        Construct the a graph starting from a list of edges and optionally a given
+        number of nodes.
+
+        Args:
+            edges: list of (undirected) edges
+            n_nodes: number of nodes. Can be used to specify the number vertices in the
+                graph if not all vertices appear in an edge.
+
+        """
         edges, colors = self._clean_edges(edges)
         if n_nodes is None:
             if len(edges) > 0:
