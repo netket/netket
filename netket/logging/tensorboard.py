@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from numbers import Number
+
 from netket.stats.mc_stats import Stats
 
 
@@ -19,9 +21,15 @@ def tree_log(tree, root, data):
     """
     Maps all elements in tree, recursively calling tree_log with a new root string,
     and when it reaches leaves pushes (string, leave) tuples to data.
+
+    Args:
+        tree: a pytree where the leaf nodes contain data
+        root: the root of the tags used to log to tensorboard
+        data: a container modified in place
+
     """
     if tree is None:
-        return data
+        return
     elif isinstance(tree, list):
         for (i, val) in enumerate(tree):
             tree_log(val, root + f"/{i}", data)
@@ -36,11 +44,20 @@ def tree_log(tree, root, data):
 
     elif isinstance(tree, dict):
         for key, value in tree.items():
-            key: tree_log(value, root + f"/{key}", data)  # noqa: F722
+            tree_log(value, root + f"/{key}", data)  # noqa: F722
+
+    elif hasattr(tree, "to_compound"):
+        tree_log(tree.to_compound()[1], root, data)  # noqa: F722
+
+    elif hasattr(tree, "to_dict"):
+        tree_log(tree.to_dict(), root, data)  # noqa: F722
+
+    elif isinstance(tree, complex):
+        tree_log(tree.real, root + "/re", data)  # noqa: F722
+        tree_log(tree.imag, root + "/im", data)  # noqa: F722
 
     else:
         data.append((root, tree))
-        return data
 
 
 class TBLog:
@@ -109,13 +126,7 @@ class TBLog:
         tree_log(item, "", data)
 
         for key, val in data:
-            if isinstance(val, Stats):
-                val = val.mean
-
-            if isinstance(val, complex):
-                self._writer.add_scalar(key[1:] + "/re", val.real, step)
-                self._writer.add_scalar(key[1:] + "/im", val.imag, step)
-            else:
+            if isinstance(val, Number):
                 self._writer.add_scalar(key[1:], val, step)
 
         self._writer.flush()
