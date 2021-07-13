@@ -6,10 +6,12 @@
    :show-inheritance:
 
 
-   {% block stuff %}{%- if '__init__' in all_methods %}
+   {% if all_methods is defined and all_methods %}
+   {% block init %}{%- if '__init__' in all_methods %}
 
    .. automethod:: {{ name }}.__init__
    {%- endif -%}{% endblock %}
+   {%- endif -%}
 
 
    {% block methods %}
