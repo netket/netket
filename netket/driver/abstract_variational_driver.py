@@ -112,7 +112,7 @@ class AbstractVariationalDriver(abc.ABC):
         count is set to 0.
         """
         self.state.reset()
-        self.step_count = 0
+        self._step_count = 0
         pass
 
     @abc.abstractmethod
@@ -148,6 +148,10 @@ class AbstractVariationalDriver(abc.ABC):
         This can be used, for example, to identify the line in a log file.
         """
         return self._step_count
+    
+    @step_count.setter
+    def step_count(self, step_count):
+        self._step_count = step_count
 
     def iter(self, n_steps: int, step: int = 1):
         """
