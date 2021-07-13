@@ -149,10 +149,6 @@ class AbstractVariationalDriver(abc.ABC):
         """
         return self._step_count
     
-    @step_count.setter
-    def step_count(self, step_count):
-        self._step_count = step_count
-
     def iter(self, n_steps: int, step: int = 1):
         """
         Returns a generator which advances the VMC optimization, yielding
