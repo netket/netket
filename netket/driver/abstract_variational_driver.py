@@ -148,7 +148,7 @@ class AbstractVariationalDriver(abc.ABC):
         This can be used, for example, to identify the line in a log file.
         """
         return self._step_count
-    
+
     def iter(self, n_steps: int, step: int = 1):
         """
         Returns a generator which advances the VMC optimization, yielding
