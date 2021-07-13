@@ -23,8 +23,8 @@ def destroy(
     hilbert: AbstractHilbert, site: int, dtype: DType = float
 ) -> _LocalOperator:
     """
-    Builds the boson destruction operator :math:`\\hat{a}` acting on the `site`-th of the
-     Hilbert space `hilbert`.
+    Builds the boson destruction operator :math:`\\hat{a}` acting on the `site`-th of
+    the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
@@ -47,8 +47,8 @@ def destroy(
 
 def create(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
-    Builds the boson creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th of the
-     Hilbert space `hilbert`.
+    Builds the boson creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th
+    of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
@@ -71,8 +71,8 @@ def create(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalO
 
 def number(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
-    Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the `site`-th of the
-    Hilbert space `hilbert`.
+    Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
+    `site`-th of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
@@ -97,8 +97,9 @@ def proj(
     hilbert: AbstractHilbert, site: int, n: int, dtype: DType = float
 ) -> _LocalOperator:
     """
-    Builds the projector operator :math:`|n\\rangle\\langle n |` acting on the `site`-th of the
-    Hilbert space `hilbert` and collapsing on the state with `n` bosons.
+    Builds the projector operator :math:`|n\\rangle\\langle n |` acting on the
+    `site`-th of the Hilbert space `hilbert` and collapsing on the state with `n`
+    bosons.
 
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
