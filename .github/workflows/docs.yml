@@ -39,6 +39,10 @@ jobs:
         cd docs 
         make html
 
+    - name: Setup tmate session
+      if: ${{ failure() }}
+      uses: mxschmitt/action-tmate@v3
+
     # Create an artifact of the html output.
     - uses: actions/upload-artifact@v1
       if: github.event.pull_request.head.repo.full_name != 'netket/netket'
