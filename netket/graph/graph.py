@@ -23,13 +23,30 @@ from .abstract_graph import AbstractGraph, Edge, ColoredEdge, EdgeSequence
 
 
 class Graph(AbstractGraph):
+    """
+    A simple implementation of Graph based on an external graph library.
+
+    The underlying implemnetation is based on igraph and supports conversion to
+    networkx, but this is an implementation detail and could be changed in the future.
+    """
+
     # Initialization
     # ------------------------------------------------------------------------
     def __init__(
         self,
         edges: Union[Sequence[Edge], Sequence[ColoredEdge]],
         n_nodes: Optional[int] = None,
-    ) -> None:
+    ):
+        """
+        Construct the a graph starting from a list of edges and optionally a given
+        number of nodes.
+
+        Args:
+            edges: list of (undirected) edges
+            n_nodes: number of nodes. Can be used to specify the number vertices in the
+                graph if not all vertices appear in an edge.
+
+        """
         edges, colors = self._clean_edges(edges)
         if n_nodes is None:
             if len(edges) > 0:
@@ -121,10 +138,12 @@ class Graph(AbstractGraph):
 
     @property
     def n_nodes(self) -> int:
+        r"""The number of nodes (or vertices) in the graph"""
         return self._igraph.vcount()
 
     @property
-    def n_edges(self) -> int:
+    def n_edges(self):
+        r"""The number of edges in the graph."""
         return self._igraph.ecount()
 
     def nodes(self) -> Sequence[int]:
@@ -161,7 +180,9 @@ class Graph(AbstractGraph):
             return [e for (e, _) in edges_with_color]
 
     @property
-    def edge_colors(self):
+    def edge_colors(self) -> Sequence[int]:
+        r"""Sequence of edge colors, in the order of the edges returned by
+        :code:`self.edges`."""
         if self.n_edges > 0:
             return self._igraph.es.get_attribute_values("color")
         else:

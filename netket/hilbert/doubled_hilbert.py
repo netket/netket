@@ -18,30 +18,35 @@ import numpy as np
 
 from netket.utils.dispatch import parametric
 
+from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
 
 
 @parametric
 class DoubledHilbert(DiscreteHilbert):
-    r"""Superoperatorial hilbert space for states living in the
-    tensorised state H\otimes H, encoded according to Choi's isomorphism."""
+    r"""
+    Superoperatorial hilbert space for states living in the tensorised state
+    :math:`\hat{H}\otimes \hat{H}`, encoded according to Choi's isomorphism.
+    """
 
-    def __init__(self, hilb):
-        r"""Superoperatorial hilbert space for states living in the
-           tensorised state H\otimes H, encoded according to Choi's isomorphism.
+    def __init__(self, hilb: AbstractHilbert):
+        r"""
+        Superoperatorial hilbert space for states living in the tensorised
+        state :math:`\hat{H}\otimes \hat{H}`, encoded according to Choi's
+        isomorphism.
 
         Args:
-            hilb: the hilbrt space H.
+            hilb: the Hilbert space H.
 
         Examples:
             Simple superoperatorial hilbert space for few spins.
 
-           >>> import netket as nk
-           >>> g = nk.graph.Hypercube(length=5,n_dim=2,pbc=True)
-           >>> hi = nk.hilbert.Spin(N=3, s=0.5)
-           >>> hi2 = nk.hilbert.DoubledHilbert(hi)
-           >>> print(hi2.size)
-           6
+            >>> import netket as nk
+            >>> g = nk.graph.Hypercube(length=5,n_dim=2,pbc=True)
+            >>> hi = nk.hilbert.Spin(N=3, s=0.5)
+            >>> hi2 = nk.hilbert.DoubledHilbert(hi)
+            >>> print(hi2.size)
+            6
         """
         self.physical = hilb
         self._size = 2 * hilb.size

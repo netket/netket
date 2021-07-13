@@ -119,7 +119,7 @@ class DiscreteHilbert(AbstractHilbert):
     ) -> np.ndarray:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n. n is an array of integer indices such that
-        :code:py:`numbers[k]=Index(states[k])`.
+        :code:`numbers[k]=Index(states[k])`.
         Throws an exception iff the space is not indexable.
 
         Args:
