@@ -191,7 +191,6 @@ redirects = {
 
 # do not show __init__ if it does not have a docstring
 def autodoc_skip_member(app, what, name, obj, skip, options):
-    print(f"Autodoc skip: {what}, {name}, {obj}, {skip}, {options}")
     # Ref: https://stackoverflow.com/a/21449475/
     exclusions = (
         "__weakref__",  # special-members
