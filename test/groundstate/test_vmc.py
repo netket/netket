@@ -98,6 +98,14 @@ def test_raise_n_iter():
     ):
         driver.run("prova", 12)
 
+def test_reset():
+    ha, *_, driver = _setup_vmc()
+    assert driver.step_count == 0
+    driver.advance(1)
+    assert driver.step_count == 1
+    driver.reset()
+    assert driver.step_count == 0
+
 
 def test_vmc_construction_vstate():
     ha, sx, ma, sa, driver = _setup_vmc()
