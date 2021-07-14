@@ -250,9 +250,11 @@ class History:
         if len(self.iters) < 5:
             iters_repr = repr(self.iters)
         else:
-            iters_repr = (f"[{self.iters[0]}, {self.iters[1]}, ..."
-                          f" {self.iters[-2]}, {self.iters[-1]}] "
-                          f"({len(self.iters)} steps)")
+            iters_repr = (
+                f"[{self.iters[0]}, {self.iters[1]}, ..."
+                f" {self.iters[-2]}, {self.iters[-1]}] "
+                f"({len(self.iters)} steps)"
+            )
         return (
             "History("
             + f"\n   keys  = {self.keys()}, "

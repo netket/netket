@@ -79,6 +79,7 @@ def test_accum_mvhistory():
     # test that repr does not fail
     repr(tree)
 
+
 def test_append():
     a1 = nk.utils.History(create_mock_data_iter(0))
     a2 = nk.utils.History(create_mock_data_iter(1), iters=1)

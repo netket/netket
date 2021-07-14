@@ -98,6 +98,7 @@ def test_raise_n_iter():
     ):
         driver.run("prova", 12)
 
+
 def test_reset():
     ha, *_, driver = _setup_vmc()
     assert driver.step_count == 0
