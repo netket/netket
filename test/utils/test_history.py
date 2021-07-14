@@ -76,6 +76,9 @@ def test_accum_mvhistory():
     # check compound master type
     np.testing.assert_allclose(np.array(tree["compound"]), np.arange(10) * 10)
 
+    # test that repr does not fail
+    repr(tree)
+
 
 def test_append():
     a1 = nk.utils.History(create_mock_data_iter(0))
@@ -97,3 +100,7 @@ def test_append():
     for key in a1.keys():
         assert len(a0[key]) == 2
     assert all(a1.iters == np.arange(2))
+
+    # test that repr does not fail
+    repr(a1)
+    repr(a2)
