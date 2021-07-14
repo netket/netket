@@ -112,7 +112,7 @@ class AbstractVariationalDriver(abc.ABC):
         count is set to 0.
         """
         self.state.reset()
-        self.step_count = 0
+        self._step_count = 0
         pass
 
     @abc.abstractmethod
