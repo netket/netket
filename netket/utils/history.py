@@ -247,10 +247,16 @@ class History:
         raise AttributeError
 
     def __repr__(self):
+        if len(self.iters) < 5:
+            iters_repr = repr(self.iters)
+        else:
+            iters_repr = (f"[{self.iters[0]}, {self.iters[1]}, ..."
+                          f" {self.iters[-2]}, {self.iters[-1]}] "
+                          f"({len(self.iters)} steps)")
         return (
             "History("
             + f"\n   keys  = {self.keys()}, "
-            + f"\n   iters = {self.iters},"
+            + f"\n   iters = {iters_repr},"
             + "\n)"
         )
 
