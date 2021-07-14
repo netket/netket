@@ -14,7 +14,6 @@
 
 import abc
 from typing import Any, Optional, Tuple
-from textwrap import dedent
 
 import jax
 import flax
@@ -259,35 +258,35 @@ class VariationalMixedState(VariationalState):
         return NotImplemented
 
 
-@dispatch
+@dispatch.abstract
 def expect(vstate: VariationalState, operator: AbstractOperator):
     """
     Computes the expectation value of the given operator over the
-    variational state
+    variational state.
+
+    Additional Information:
+        To implement `vstate.expect` for a custom operator, implement
+        the multiple-dispatch (plum-dispatc) based method according
+
+        .. code:
+
+            @nk.vqs.expect.register
+            expect(vstate : VStateType operator: OperatorType):
+                return ...
 
     Args:
         vstate: The VariationalState
         operator: The Operator or SuperOperator.
+
+    Returns:
+        The expectation value wrapped in a `Stats` object.
     """
-    raise NotImplementedError(
-        dedent(
-            """
-            To implement vstate.expect for a custom operator, implement
-            the multiple-dispatch (plum-dispatc) based method according
-
-            @nk.vqs.expect.register
-            expect(vstate : {type(vstate)}, operator: {type(operator)}):
-                return ...
-
-            which uses multiple dispatch to select the correct function.
-            """
-        )
-    )
+    pass
 
 
 # default dispatch where use_covariance is not specified
 @dispatch
-def expect_and_grad(  # noqa: F811
+def expect_and_grad(
     vstate: VariationalState,
     operator: AbstractOperator,
     *,
@@ -295,6 +294,17 @@ def expect_and_grad(  # noqa: F811
     mutable=None,
 ):
     r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+
+    Additional Information:
+        To implement `vstate.expect` for a custom operator, implement
+        the multiple-dispatch (plum-dispatc) based method according to the signature below.
+
+        .. code:
+
+            @nk.vqs.expect.register
+            expect_and_grad(vstate : VStateType, operator: OperatorType,
+                            use_covariance : bool/TrueT/FalseT, * mutable)
+                return ...
 
     Args:
         vstate: The variational state
