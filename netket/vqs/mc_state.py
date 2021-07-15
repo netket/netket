@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Optional, Callable, Union, Dict
+from typing import Any, Callable, Dict, Optional, Union
 
 import numpy as np
 
@@ -128,6 +128,7 @@ class MCState(VariationalState):
             n_discard: DEPRECATED. Please use `n_discard_per_chain` which has the same behaviour.
         """
         super().__init__(sampler.hilbert)
+        self._model = None
 
         # Init type 1: pass in a model
         if model is not None:
@@ -137,7 +138,7 @@ class MCState(VariationalState):
             # model and model2 will have the same hash.
             _, model = maybe_wrap_module(model)
 
-            self.model = model
+            self._model = model
 
             self._init_fun = nkjax.HashablePartial(
                 lambda model, *args, **kwargs: model.init(*args, **kwargs), model
@@ -231,6 +232,15 @@ class MCState(VariationalState):
 
         variables = self._init_fun({"params": key}, dummy_input)
         self.variables = variables
+
+    @property
+    def model(self) -> Optional[Any]:
+        """Returns the model definition of this variational state.
+
+        This field is optional, and is set to `None` if the variational state has
+        been initialized using a custom function.
+        """
+        return self._model
 
     @property
     def sampler(self) -> Sampler:
