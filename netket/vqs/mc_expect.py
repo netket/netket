@@ -137,9 +137,8 @@ def _expect(
     def logpsi(w, σ):
         return model_apply_fun({"params": w, **model_state}, σ)
 
-    log_pdf = (
-        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
-    )
+    def log_pdf(w, σ):
+        return machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
 
     local_value_vmap = jax.vmap(
         partial(local_value_kernel, logpsi),

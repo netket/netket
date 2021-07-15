@@ -31,7 +31,7 @@ from .mc_expect import local_value_kernel, local_value_squared_kernel
 
 def _check_hilbert(A, B):
     if A.hilbert != B.hilbert:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             f"Non matching hilbert spaces {A.hilbert} and {B.hilbert}"
         )
 
