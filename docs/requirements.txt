@@ -1,4 +1,4 @@
-Sphinx==3.5.4
+Sphinx==4.0.3
 sphinx-autodoc-typehints>=1.11.1
 sphinx-bootstrap-theme>=0.7.1
 sphinx-markdown-parser>=0.2.4
