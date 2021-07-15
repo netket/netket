@@ -163,42 +163,6 @@ def expect_and_grad(  # noqa: F811
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(1, 2))
-def _expect(
-    machine_pow: int,
-    model_apply_fun: Callable,
-    local_value_kernel: Callable,
-    parameters: PyTree,
-    model_state: PyTree,
-    σ: jnp.ndarray,
-    σp: jnp.ndarray,
-    mels: jnp.ndarray,
-) -> Stats:
-    σ_shape = σ.shape
-
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
-
-    def logpsi(w, σ):
-        return model_apply_fun({"params": w, **model_state}, σ)
-
-    log_pdf = (
-        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
-    )
-
-    local_value_vmap = jax.vmap(
-        partial(local_value_kernel, logpsi),
-        in_axes=(None, 0, 0, 0),
-        out_axes=0,
-    )
-
-    _, Ō_stats = nkjax.expect(
-        log_pdf, local_value_vmap, parameters, σ, σp, mels, n_chains=σ_shape[0]
-    )
-
-    return Ō_stats
-
-
 @partial(jax.jit, static_argnums=(0, 1))
 def grad_expect_hermitian(
     model_apply_fun: Callable,
