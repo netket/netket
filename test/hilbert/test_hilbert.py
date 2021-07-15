@@ -23,6 +23,7 @@ from netket.hilbert import (
     Qubit,
     DoubledHilbert,
     DiscreteHilbert,
+    ContinuousBoson,
 )
 
 import jax
@@ -102,6 +103,12 @@ hilberts["DoubledHilbert[CustomHilbert]"] = DoubledHilbert(
 
 # hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
 
+# Continuous space
+# no pbc
+hilberts["ContinuousSpaceHilbert"] = nk.hilbert.ContinuousBoson(
+    N=5, L=(np.inf, 10.0), pbc=(False, True)
+)
+
 
 #
 # Tests
@@ -116,6 +123,9 @@ def test_consistent_size(hi):
         assert len(hi.local_states) == hi.local_size
         for state in hi.local_states:
             assert np.isfinite(state).all()
+    elif isinstance(hi, ContinuousBoson):
+        assert hi.N > 0
+        assert hi.sdim == (hi.size // hi.N)
 
 
 @pytest.mark.parametrize(
@@ -123,10 +133,10 @@ def test_consistent_size(hi):
 )
 def test_random_states(hi):
     assert hi.size > 0
-    assert hi.local_size > 0
-    assert len(hi.local_states) == hi.local_size
 
     if isinstance(hi, DiscreteHilbert):
+        assert hi.local_size > 0
+        assert len(hi.local_states) == hi.local_size
         local_states = hi.local_states
         for i in range(100):
             rstate = hi.random_state(jax.random.PRNGKey(i * 14))
@@ -147,6 +157,27 @@ def test_random_states(hi):
         # assert hi.random_state(jax.random.PRNGKey(13), size=(10,)).shape == (10, hi.size)
         # assert hi.random_state(jax.random.PRNGKey(13), size=(10, 2)).shape == (10, 2, hi.size)
 
+    elif isinstance(hi, ContinuousBoson):
+        assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
+        assert (
+            hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype
+            == np.float32
+        )
+        assert (
+            hi.random_state(jax.random.PRNGKey(13), dtype=np.complex64).dtype
+            == np.complex64
+        )
+        assert hi.random_state(jax.random.PRNGKey(13), 10).shape == (10, hi.size)
+        assert hi.random_state(jax.random.PRNGKey(13), size=10).shape == (10, hi.size)
+
+        # check that boundary conditions are fulfilled if any are given
+        state = hi.random_state(jax.random.PRNGKey(13))
+        boundary = hi.pbc_to_array()
+        extension = hi.L_to_array()
+        assert jnp.sum(
+            jnp.where(jnp.equal(boundary, True), state < extension, 0)
+        ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
+
 
 @pytest.mark.parametrize(
     "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
@@ -154,7 +185,6 @@ def test_random_states(hi):
 def test_flip_state(hi):
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
-
     if isinstance(hi, DiscreteHilbert):
         local_states = hi.local_states
         states = hi.random_state(rng.next(), N_batches)
@@ -178,6 +208,9 @@ def test_flip_state(hi):
 
         np.testing.assert_allclose(states_np, states_new_np)
 
+    elif isinstance(hi, ContinuousBoson):
+        return
+
 
 @pytest.mark.parametrize(
     "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
@@ -186,10 +219,10 @@ def test_random_states_legacy(hi):
     nk.legacy.random.seed(12345)
 
     assert hi.size > 0
-    assert hi.local_size > 0
-    assert len(hi.local_states) == hi.local_size
 
     if isinstance(hi, DiscreteHilbert):
+        assert hi.local_size > 0
+        assert len(hi.local_states) == hi.local_size
         rstate = np.zeros(hi.size)
         local_states = hi.local_states
         for i in range(100):
@@ -203,11 +236,18 @@ def test_random_states_legacy(hi):
         assert hi.random_state(size=(10,)).shape == (10, hi.size)
         assert hi.random_state(size=(10, 2)).shape == (10, 2, hi.size)
 
+    elif isinstance(hi, ContinuousBoson):
+        return
+
 
 @pytest.mark.parametrize(
     "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
 )
 def test_hilbert_index(hi):
+
+    if isinstance(hi, ContinuousBoson):
+        return
+
     assert hi.size > 0
     assert hi.local_size > 0
 

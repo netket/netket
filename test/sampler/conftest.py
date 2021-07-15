@@ -20,7 +20,7 @@ def pytest_addoption(parser):
         "--sampler",
         action="store",
         default="",
-        help="sampler: exact, metropolis, metropolispt or pt, local, hamiltonian, custom, autoregressive",
+        help="sampler: exact, metropolis, metropolispt or pt, local, hamiltonian, custom, autoregressive, gaussian",
     )
 
     parser.addoption(

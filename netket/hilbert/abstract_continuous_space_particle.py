@@ -1,16 +1,19 @@
 from typing import Tuple
 
+import jax.numpy as jnp
+
 from .abstract_hilbert import AbstractHilbert
 
-class Particles(AbstractHilbert):
-    """Class for the Hilbert space of particles
+
+class AbstractParticle(AbstractHilbert):
+    """Abstract class for the Hilbert space of particles
     in continuous space.
     This class defines the common interface that
     can be used to interact with particles defined
     in continuous space.
     """
 
-    def __init__(self, N: int, L: Tuple[float, ...], pbc: Tuple[bool, ...], ptype: str):
+    def __init__(self, N: int, L: Tuple[float, ...], pbc: Tuple[bool, ...]):
         """
         Constructs new ``Particles`` given specifications
          of the continuous space they are defined in.
@@ -20,12 +23,10 @@ class Particles(AbstractHilbert):
             L: spatial extension in each spatial dimension
             pbc: Whether or not to use periodic boundary
                 conditions for each spatial dimension
-            ptype: Type of particles (bosonic,..)
         """
         self._N = N
         self._L = L
         self._pbc = pbc
-        self._ptype = ptype
 
         if not len(self._L) == len(self._pbc):
             raise AssertionError(
@@ -36,7 +37,6 @@ class Particles(AbstractHilbert):
 
     @property
     def size(self) -> int:
-
         return self._N * len(self._L)
 
     @property
@@ -55,15 +55,24 @@ class Particles(AbstractHilbert):
         return self._pbc
 
     @property
-    def ptype(self):
-        r"""The type of particles under consideration"""
-        return self._ptype
-
-    @property
     def _attrs(self):
         return (
             self.size,
             self.L,
             self.pbc,
-            self.ptype,
         )
+
+    def pbc_to_array(self):
+        r"""Returns an array of length self.size
+        indicating whether or not there are
+        periodic boundary conditions"""
+        return jnp.array(self.N * self.pbc)
+
+    def L_to_array(self):
+        r"""Returns an array of length self.size
+        with the spatial extension in each
+        spatial dimension. If no periodic boundaries
+        are defined in a spatial dimension
+        returns np.inf"""
+        Ls = jnp.array(self.N * self.L)
+        return jnp.where(jnp.equal(self.pbc_to_array(), False), jnp.inf, Ls)

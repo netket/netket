@@ -11,17 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import netket as nk
-import numpy as np
-import pytest
-from scipy.stats import combine_pvalues, chisquare
-
-import jax
 import flax
 from jax import numpy as jnp
 
 from .. import common
+
+import netket as nk
+from netket.hilbert import DiscreteHilbert, ContinuousBoson
+import numpy as np
+import pytest
+from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
+
+import jax
+from jax.config import config
+
+config.update("jax_enable_x64", True)
+
 
 pytestmark = common.skipif_mpi
 
@@ -97,6 +102,13 @@ samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1, n_chai
 samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u, n_chains=16)
 
 
+# Hilbert space and sampler for particles
+hi_particles = nk.hilbert.ContinuousBoson(N=3, L=(np.inf,), pbc=(False,))
+samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
+    hi_particles, sigma=1.0, n_chains=16
+)
+
+
 # The following fixture initialisees a model and it's weights
 # for tests that require it.
 @pytest.fixture
@@ -104,6 +116,8 @@ def model_and_weights(request):
     def build_model(hilb, sampler=None):
         if isinstance(sampler, nk.sampler.ARDirectSampler):
             ma = nk.models.ARNNDense(hilbert=hilb, layers=3, features=5)
+        elif isinstance(hilb, ContinuousBoson):
+            ma = nk.models.Gaussian()
         else:
             # Build RBM by default
             ma = nk.models.RBM(
@@ -114,7 +128,7 @@ def model_and_weights(request):
             )
             # init network
 
-        w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hi.size)))
+        w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hilb.size)))
 
         return ma, w
 
@@ -167,14 +181,21 @@ def set_pdf_power(request):
 
 def test_states_in_hilbert(sampler, model_and_weights):
     hi = sampler.hilbert
-    all_states = hi.all_states()
+    if isinstance(hi, DiscreteHilbert):
+        all_states = hi.all_states()
 
-    ma, w = model_and_weights(hi, sampler)
+        ma, w = model_and_weights(hi, sampler)
 
-    for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
-        assert sample.shape == (sampler.n_chains, hi.size)
-        for v in sample:
-            assert v in all_states
+        for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
+            assert sample.shape == (sampler.n_chains, hi.size)
+            for v in sample:
+                assert v in all_states
+
+    elif isinstance(hi, ContinuousBoson):
+        ma, w = model_and_weights(hi, sampler)
+
+        for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
+            assert sample.shape == (sampler.n_chains, hi.size)
 
     # if hasattr(sa, "acceptance"):
     #    assert np.min(sampler.acceptance) >= 0 and np.max(sampler.acceptance) <= 1.0
@@ -225,53 +246,105 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
     sampler = set_pdf_power(sampler_c)
 
     hi = sampler.hilbert
-    n_states = hi.n_states
+    if isinstance(hi, DiscreteHilbert):
+        n_states = hi.n_states
 
-    ma, w = model_and_weights(hi, sampler)
+        ma, w = model_and_weights(hi, sampler)
 
-    n_samples = max(40 * n_states, 100)
+        n_samples = max(40 * n_states, 100)
 
-    ps = np.absolute(nk.nn.to_array(hi, ma, w, normalize=False)) ** sampler.machine_pow
-    ps /= ps.sum()
-
-    n_rep = 6
-    pvalues = np.zeros(n_rep)
-
-    sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
-
-    for jrep in range(n_rep):
-        sampler_state = sampler.reset(ma, w, state=sampler_state)
-
-        # Burnout phase
-        samples, sampler_state = sampler.sample(
-            ma, w, state=sampler_state, chain_length=n_samples // 100
+        ps = (
+            np.absolute(nk.nn.to_array(hi, ma, w, normalize=False))
+            ** sampler.machine_pow
         )
+        ps /= ps.sum()
 
-        assert samples.shape == (
-            n_samples // 100,
-            sampler.n_chains,
-            hi.size,
-        )
-        samples, sampler_state = sampler.sample(
-            ma, w, state=sampler_state, chain_length=n_samples
-        )
+        n_rep = 6
+        pvalues = np.zeros(n_rep)
 
-        assert samples.shape == (n_samples, sampler.n_chains, hi.size)
+        sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
 
-        sttn = hi.states_to_numbers(np.asarray(samples.reshape(-1, hi.size)))
-        n_s = sttn.size
+        for jrep in range(n_rep):
+            sampler_state = sampler.reset(ma, w, state=sampler_state)
 
-        # fill in the histogram for sampler
-        unique, counts = np.unique(sttn, return_counts=True)
-        hist_samp = np.zeros(n_states)
-        hist_samp[unique] = counts
+            # Burnout phase
+            samples, sampler_state = sampler.sample(
+                ma, w, state=sampler_state, chain_length=n_samples // 100
+            )
 
-        # expected frequencies
-        f_exp = n_s * ps
-        statistics, pvalues[jrep] = chisquare(hist_samp, f_exp=f_exp)
+            assert samples.shape == (
+                n_samples // 100,
+                sampler.n_chains,
+                hi.size,
+            )
+            samples, sampler_state = sampler.sample(
+                ma, w, state=sampler_state, chain_length=n_samples
+            )
 
-    s, pval = combine_pvalues(pvalues, method="fisher")
-    assert pval > 0.01 or np.max(pvalues) > 0.01
+            assert samples.shape == (n_samples, sampler.n_chains, hi.size)
+
+            sttn = hi.states_to_numbers(np.asarray(samples.reshape(-1, hi.size)))
+            n_s = sttn.size
+
+            # fill in the histogram for sampler
+            unique, counts = np.unique(sttn, return_counts=True)
+            hist_samp = np.zeros(n_states)
+            hist_samp[unique] = counts
+
+            # expected frequencies
+            f_exp = n_s * ps
+            statistics, pvalues[jrep] = chisquare(hist_samp, f_exp=f_exp)
+
+        s, pval = combine_pvalues(pvalues, method="fisher")
+        assert pval > 0.01 or np.max(pvalues) > 0.01
+
+    elif isinstance(hi, ContinuousBoson):
+        ma, w = model_and_weights(hi, sampler)
+        n_samples = 5000
+        n_discard = 2000
+        n_rep = 6
+        pvalues = np.zeros(n_rep)
+
+        sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+        for jrep in range(n_rep):
+            sampler_state = sampler.reset(ma, w, state=sampler_state)
+
+            # Burnout phase
+            samples, sampler_state = sampler.sample(
+                ma, w, state=sampler_state, chain_length=n_discard
+            )
+
+            assert samples.shape == (
+                n_discard,
+                sampler.n_chains,
+                hi.size,
+            )
+            samples, sampler_state = sampler.sample(
+                ma, w, state=sampler_state, chain_length=n_samples
+            )
+
+            assert samples.shape == (n_samples, sampler.n_chains, hi.size)
+
+            samples = samples.reshape(-1, samples.shape[-1])
+
+            dist = multivariate_normal(
+                mean=np.zeros(samples.shape[-1]),
+                cov=np.linalg.inv(
+                    sampler.machine_pow
+                    * np.dot(w["params"]["kernel"].T, w["params"]["kernel"])
+                ),
+            )
+            exact_samples = dist.rvs(size=samples.shape[0])
+
+            counts, bins = np.histogramdd(samples, bins=10)
+            counts_exact, _ = np.histogramdd(exact_samples, bins=bins)
+
+            statistics, pvalues[jrep] = kstest(
+                counts.reshape(-1), counts_exact.reshape(-1)
+            )
+
+        s, pval = combine_pvalues(pvalues, method="fisher")
+        assert pval > 0.01 or np.max(pvalues) > 0.01
 
 
 def test_throwing(model_and_weights):
