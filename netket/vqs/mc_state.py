@@ -119,10 +119,13 @@ class MCState(VariationalState):
             init_fun: Function of the signature f(model, shape, rng_key, dtype) -> Optional_state, parameters used to
                 initialise the parameters. Defaults to the standard flax initialiser. Only specify if your network has
                 a non-standard init method.
+            variables: Optional initial value for the variables (parameters and model state) of the model.
             apply_fun: Function of the signature f(model, variables, σ) that should evaluate the model. Defafults to
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
+            sample_fun: Optional function used to sample the state, if it is not the same as `apply_fun`.
             training_kwargs: a dict containing the optionaal keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
+            n_discard: DEPRECATED. Please use `n_discard_per_chain` which has the same behaviour.
         """
         super().__init__(sampler.hilbert)
 

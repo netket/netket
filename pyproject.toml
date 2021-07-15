@@ -98,3 +98,18 @@ pycodestyle = ["-F401", "-E402"]
 pyflakes = ["-F401", "-F403", "-F405"]
 pycodestyle = ["-F401", "-E402"]
 
+# ignore on docs
+[tool.flakehell.exceptions."**/*.md"]
+pyflakes = ["-*"]
+pycodestyle = ["-*"]
+
+# ignore on docs
+[tool.flakehell.exceptions."**/*.rst"]
+pyflakes = ["-*"]
+pycodestyle = ["-*"]
+
+
+# ignore on docs
+[tool.flakehell.exceptions."docs/"]
+pyflakes = ["-*"]
+pycodestyle = ["-*", "-E999"]
