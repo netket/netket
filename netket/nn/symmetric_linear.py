@@ -98,7 +98,7 @@ class DenseSymmMatrix(Module):
         Converts the symmetry-reduced kernel of shape (n_sites, features) to
         the full Dense kernel of shape (n_sites, features * n_symm).
         """
-        kernel = kernel.reshape(-1)
+        kernel = kernel.transpose(1, 0).reshape(-1)
         result = kernel[self.symm_cols]
         return result.reshape(self.n_sites, -1)
 
@@ -123,7 +123,7 @@ class DenseSymmMatrix(Module):
         x = jnp.asarray(x, dtype)
 
         kernel = self.param(
-            "kernel", self.kernel_init, (x.shape[-1], self.features), self.dtype
+            "kernel", self.kernel_init, (self.features, self.n_sites), self.dtype
         )
 
         if self.mask:
@@ -235,9 +235,9 @@ class DenseSymmFFT(Module):
         x = x.transpose(0, 1, 3, 2).reshape(*x.shape[:2], -1)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features, 1), self.dtype)
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
-            x += bias
+            x += jnp.expand_dims(bias, (0, 2))
 
         if jnp.can_cast(x, dtype):
             return x
@@ -279,13 +279,13 @@ class DenseEquivariantFFT(Module):
         pt = np.asarray(self.product_table)
 
         self.n_cells = np.product(np.asarray(self.shape))
-        self.n_symm = len(pt) // self.n_cells
+        self.n_point = len(pt) // self.n_cells
 
         self.mapping = (
-            pt[: self.n_symm]
-            .reshape(self.n_symm, self.n_cells, self.n_symm)
+            pt[: self.n_point]
+            .reshape(self.n_point, self.n_cells, self.n_point)
             .transpose(0, 2, 1)
-            .reshape(self.n_symm, self.n_symm, *self.shape)
+            .reshape(self.n_point, self.n_point, *self.shape)
         )
 
     def make_kernel(self, kernel):
@@ -302,7 +302,7 @@ class DenseEquivariantFFT(Module):
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
 
-        x = x.reshape(*x.shape[:-1], self.n_cells, self.n_symm)
+        x = x.reshape(*x.shape[:-1], self.n_cells, self.n_point)
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
@@ -312,7 +312,7 @@ class DenseEquivariantFFT(Module):
             (
                 self.out_features,
                 self.in_features,
-                self.n_symm * self.n_cells,
+                self.n_point * self.n_cells,
             ),
             self.dtype,
         )
@@ -341,11 +341,9 @@ class DenseEquivariantFFT(Module):
         x = x.reshape(*x.shape[:2], -1)
 
         if self.use_bias:
-            bias = self.param(
-                "bias", self.bias_init, (self.out_features, 1), self.dtype
-            )
+            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
-            x += bias
+            x += jnp.expand_dims(bias, (0, 2))
 
         if jnp.can_cast(x, dtype):
             return x
@@ -479,7 +477,7 @@ class DenseEquivariantIrrep(Module):
         kernel = self.param(
             "kernel",
             self.kernel_init,
-            (self.in_features, self.out_features, self.n_symm),
+            (self.out_features, self.in_features, self.n_symm),
             self.dtype,
         )
 
@@ -492,7 +490,7 @@ class DenseEquivariantIrrep(Module):
 
         x = tuple(
             lax.dot_general(
-                x[i], kernel[i], (((1, 4), (0, 3)), ((2,), (2,)))
+                x[i], kernel[i], (((1, 4), (1, 3)), ((2,), (2,)))
             ).transpose(1, 3, 0, 2, 4)
             for i in range(len(x))
         )
@@ -500,12 +498,10 @@ class DenseEquivariantIrrep(Module):
         x = self.inverse_ft(x)
 
         if self.use_bias:
-            bias = self.param(
-                "bias", self.bias_init, (self.out_features, 1), self.dtype
-            )
+            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
 
-            x += bias
+            x += jnp.expand_dims(bias, (0, 2))
 
         if jnp.can_cast(x, dtype):
             return x
@@ -609,7 +605,7 @@ class DenseEquivariantMatrix(Module):
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
             bias = jnp.asarray(self.full_bias(bias), dtype)
-            x += bias
+            x += jnp.expand_dims(bias, (0, 2))
 
         return x
 
@@ -619,6 +615,10 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
     Implements a projection onto a symmetry group. The output will be
     equivariant with respect to the symmetry operations in the group and can
     be averaged to produce an invariant model.
+
+    Note: The output shape has changed to seperate the feature and symmetry
+    dimensions. The previous shape was [num_samples, num_symm*features] and
+    the new shape is [num_samples, num_symm, features]
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
@@ -684,8 +684,8 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
 def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
     r"""A group convolution operation that is equivariant over a symmetry group.
 
-    Acts on a feature map of symmetry poses of shape [batch_size,n_symm*in_features]
-    and returns a feature  map of poses of shape [batch_size,n_symm*out_features]
+    Acts on a feature map of symmetry poses of shape [num_samples, in_features, num_symm]
+    and returns a feature  map of poses of shape [num_samples, out_features, num_symm]
 
     G-convolutions are described in ` Cohen et. {\it al} <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
     and applied to quantum many-body problems in ` Roth et. {\it al} <https://arxiv.org/pdf/2104.05085.pdf>`_

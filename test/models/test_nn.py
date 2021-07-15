@@ -40,7 +40,7 @@ def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
     return g, hi, perms
 
 
-@pytest.mark.parametrize("symmetries", ["trans", "autom"])
+@pytest.mark.parametrize("symmetries", ["trans", "space_group"])
 @pytest.mark.parametrize("use_bias", [True, False])
 @pytest.mark.parametrize("mode", ["fft", "matrix"])
 def test_DenseSymm(symmetries, use_bias, mode):
@@ -74,7 +74,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
         assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
 
 
-@pytest.mark.parametrize("symmetries", ["trans", "autom"])
+@pytest.mark.parametrize("symmetries", ["trans", "space_group"])
 @pytest.mark.parametrize("use_bias", [True, False])
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
 @pytest.mark.parametrize("mode", ["fft", "matrix", "irreps"])
@@ -126,7 +126,78 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode):
     assert jnp.allclose(jnp.matmul(out, sym_op), out_trans)
 
 
-@pytest.mark.parametrize("symmetries", ["trans", "autom"])
+@pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
+@pytest.mark.parametrize("symmetries", ["trans", "space_group"])
+def test_modes_DenseSymm(lattice, symmetries):
+
+    rng = nk.jax.PRNGSeq(0)
+    g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
+
+    ma_fft = nk.nn.DenseSymm(
+        symmetries=perms,
+        mode="fft",
+        features=4,
+        shape=tuple(g.extent),
+        bias_init=nk.nn.initializers.uniform(),
+    )
+    ma_matrix = nk.nn.DenseSymm(
+        symmetries=perms,
+        mode="matrix",
+        features=4,
+        bias_init=nk.nn.initializers.uniform(),
+    )
+
+    dum_input = np.random.normal(0, 1, [1, g.n_nodes])
+    pars = ma_fft.init(rng.next(), dum_input)
+    _ = ma_matrix.init(rng.next(), dum_input)
+
+    assert jnp.allclose(ma_fft.apply(pars, dum_input), ma_matrix.apply(pars, dum_input))
+
+
+@pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
+@pytest.mark.parametrize("symmetries", ["trans", "space_group"])
+def test_modes_DenseEquivariant(lattice, symmetries):
+
+    rng = nk.jax.PRNGSeq(0)
+    g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
+
+    ma_fft = nk.nn.DenseEquivariant(
+        symmetries=perms,
+        mode="fft",
+        in_features=1,
+        out_features=1,
+        shape=tuple(g.extent),
+        bias_init=nk.nn.initializers.uniform(),
+    )
+    ma_irreps = nk.nn.DenseEquivariant(
+        symmetries=perms,
+        mode="irreps",
+        in_features=1,
+        out_features=1,
+        bias_init=nk.nn.initializers.uniform(),
+    )
+    ma_matrix = nk.nn.DenseEquivariant(
+        symmetries=perms,
+        mode="matrix",
+        in_features=1,
+        out_features=1,
+        bias_init=nk.nn.initializers.uniform(),
+    )
+
+    dum_input = np.random.normal(0, 1, [1, 1, len(perms)])
+    pars = ma_fft.init(rng.next(), dum_input)
+    _ = ma_irreps.init(rng.next(), dum_input)
+    _ = ma_matrix.init(rng.next(), dum_input)
+
+    fft_out = ma_fft.apply(pars, dum_input)
+    irreps_out = ma_irreps.apply(pars, dum_input)
+    matrix_out = ma_matrix.apply(pars, dum_input)
+
+    assert jnp.allclose(fft_out, irreps_out)
+    assert jnp.allclose(fft_out, matrix_out)
+
+
+@pytest.mark.parametrize("symmetries", ["trans", "space_group"])
 @pytest.mark.parametrize("features", [1, 2, 5])
 def test_symmetrizer(symmetries, features):
     from netket.nn.symmetric_linear import _symmetrizer_col
