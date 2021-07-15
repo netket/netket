@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Optional, Callable, Union, Dict
+from typing import Any, Callable, Dict, Optional, Union
 
 import numpy as np
 
@@ -137,7 +137,7 @@ class MCState(VariationalState):
             # model and model2 will have the same hash.
             _, model = maybe_wrap_module(model)
 
-            self.model = model
+            self._model = model
 
             self._init_fun = nkjax.HashablePartial(
                 lambda model, *args, **kwargs: model.init(*args, **kwargs), model
@@ -156,7 +156,7 @@ class MCState(VariationalState):
                     "If you don't provide variables, you must pass a valid init_fun."
                 )
 
-            self.model = wrap_afun(apply_fun)
+            self._model = wrap_afun(apply_fun)
 
         else:
             raise ValueError(
@@ -231,6 +231,15 @@ class MCState(VariationalState):
 
         variables = self._init_fun({"params": key}, dummy_input)
         self.variables = variables
+
+    @property
+    def model(self) -> Optional[Any]:
+        """Returns the model definition of this variational state.
+
+        This field is optional, and is set to `None` if the variational state has
+        been initialized using a custom function.
+        """
+        return self._model
 
     @property
     def sampler(self) -> Sampler:
