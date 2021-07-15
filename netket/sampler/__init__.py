@@ -33,7 +33,7 @@ from .metropolis import (
     MetropolisRule,
     MetropolisSamplerState,
     MetropolisHamiltonian,
-    MetropolisGaussian
+    MetropolisGaussian,
 )
 
 from .metropolis_numpy import (
