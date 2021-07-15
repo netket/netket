@@ -98,7 +98,7 @@ class DenseSymmMatrix(Module):
         Converts the symmetry-reduced kernel of shape (n_sites, features) to
         the full Dense kernel of shape (n_sites, features * n_symm).
         """
-        kernel = kernel.transpose(1,0).reshape(-1)
+        kernel = kernel.transpose(1, 0).reshape(-1)
         result = kernel[self.symm_cols]
         return result.reshape(self.n_sites, -1)
 
@@ -237,7 +237,7 @@ class DenseSymmFFT(Module):
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
-            x += jnp.expand_dims(bias,(0,2))
+            x += jnp.expand_dims(bias, (0, 2))
 
         if jnp.can_cast(x, dtype):
             return x
@@ -341,11 +341,9 @@ class DenseEquivariantFFT(Module):
         x = x.reshape(*x.shape[:2], -1)
 
         if self.use_bias:
-            bias = self.param(
-                "bias", self.bias_init, (self.out_features,), self.dtype
-            )
+            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
-            x += jnp.expand_dims(bias,(0,2))
+            x += jnp.expand_dims(bias, (0, 2))
 
         if jnp.can_cast(x, dtype):
             return x
@@ -500,12 +498,10 @@ class DenseEquivariantIrrep(Module):
         x = self.inverse_ft(x)
 
         if self.use_bias:
-            bias = self.param(
-                "bias", self.bias_init, (self.out_features,), self.dtype
-            )
+            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
 
-            x += jnp.expand_dims(bias,(0,2))
+            x += jnp.expand_dims(bias, (0, 2))
 
         if jnp.can_cast(x, dtype):
             return x
@@ -606,12 +602,12 @@ class DenseEquivariantMatrix(Module):
             precision=self.precision,
         )
 
-        x = x.reshape(-1,self.out_features,self.n_symm)
+        x = x.reshape(-1, self.out_features, self.n_symm)
 
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
             bias = jnp.asarray(self.full_bias(bias), dtype)
-            x += jnp.expand_dims(bias,(0,2))
+            x += jnp.expand_dims(bias, (0, 2))
 
         return x
 
@@ -622,8 +618,8 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
     equivariant with respect to the symmetry operations in the group and can
     be averaged to produce an invariant model.
 
-    Note: The output shape has changed to seperate the feature and symmetry 
-    dimensions. The previous shape was [num_samples, num_symm*features] and 
+    Note: The output shape has changed to seperate the feature and symmetry
+    dimensions. The previous shape was [num_samples, num_symm*features] and
     the new shape is [num_samples, num_symm, features]
 
     Args:
