@@ -146,7 +146,7 @@ class VariationalState(abc.ABC):
         r"""Resets the internal cache of th variational state.
         Called automatically when the parameters/state is updated.
         """
-        pass
+        pass  # pragma: no cover
 
     def expect(self, Ô: AbstractOperator) -> Stats:
         r"""Estimates the quantum expectation value for a given operator O.
@@ -219,7 +219,7 @@ class VariationalState(abc.ABC):
         Returns:
             nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def to_array(self, normalize: bool = True) -> jnp.ndarray:
         """
@@ -232,7 +232,7 @@ class VariationalState(abc.ABC):
             An exponentially large vector representing the state in the computational
             basis.
         """
-        return NotImplemented
+        return NotImplemented  # pragma: no cover
 
 
 class VariationalMixedState(VariationalState):
@@ -255,7 +255,7 @@ class VariationalMixedState(VariationalState):
             An exponentially large matrix representing the state in the computational
             basis.
         """
-        return NotImplemented
+        return NotImplemented  # pragma: no cover
 
 
 @dispatch.abstract
@@ -281,7 +281,7 @@ def expect(vstate: VariationalState, operator: AbstractOperator):
     Returns:
         The expectation value wrapped in a `Stats` object.
     """
-    pass
+    pass  # pragma: no cover
 
 
 # default dispatch where use_covariance is not specified

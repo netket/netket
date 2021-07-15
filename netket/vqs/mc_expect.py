@@ -30,7 +30,7 @@ ATrainFunType = Callable[
 
 def _check_hilbert(A, B):
     if A.hilbert != B.hilbert:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             f"Non matching hilbert spaces {A.hilbert} and {B.hilbert}"
         )
 
