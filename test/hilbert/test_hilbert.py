@@ -125,7 +125,7 @@ def test_consistent_size(hi):
             assert np.isfinite(state).all()
     elif isinstance(hi, ContinuousBoson):
         assert hi.N > 0
-        assert hi.sdim == (hi.size // hi.N)
+        assert len(hi.L) == (hi.size // hi.N)
 
 
 @pytest.mark.parametrize(
