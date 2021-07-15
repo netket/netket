@@ -128,7 +128,6 @@ class MCState(VariationalState):
             n_discard: DEPRECATED. Please use `n_discard_per_chain` which has the same behaviour.
         """
         super().__init__(sampler.hilbert)
-        self._model = None
 
         # Init type 1: pass in a model
         if model is not None:
@@ -157,7 +156,7 @@ class MCState(VariationalState):
                     "If you don't provide variables, you must pass a valid init_fun."
                 )
 
-            self.model = wrap_afun(apply_fun)
+            self._model = wrap_afun(apply_fun)
 
         else:
             raise ValueError(
