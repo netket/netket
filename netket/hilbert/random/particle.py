@@ -12,11 +12,14 @@ def random_state(hilb: AbstractParticle, key, batches: int, *, dtype):
     in a spatial dimension. Otherwise the particles are
     positioned evenly along the box from 0 to L, with Gaussian noise
     of certain width."""
+    pbc = jnp.array(hilb.n_particles * hilb.pbc)
+    boundary = jnp.tile(pbc, (batches, 1))
 
-    boundary = jnp.tile(hilb.pbc_to_array(), (batches, 1))
-    modulus = hilb.L_to_array()
+    Ls = jnp.array(hilb.n_particles * hilb.extend)
+    modulus = jnp.where(jnp.equal(pbc, False), jnp.inf, Ls)
+
     gaussian = jax.random.normal(key, shape=(batches, hilb.size))
-    width = jnp.min(modulus) / (4.0 * hilb.N)
+    width = jnp.min(modulus) / (4.0 * hilb.n_particles)
     """The width gives the noise level. In the periodic case the
     particles are evenly distributed between 0 and min(L). The
     distance between the particles coordinates is therefore given by

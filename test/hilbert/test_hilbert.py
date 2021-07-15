@@ -124,8 +124,8 @@ def test_consistent_size(hi):
         for state in hi.local_states:
             assert np.isfinite(state).all()
     elif isinstance(hi, ContinuousBoson):
-        assert hi.N > 0
-        assert len(hi.L) == (hi.size // hi.N)
+        assert hi.n_particles > 0
+        assert len(hi.extend) == (hi.size // hi.n_particles)
 
 
 @pytest.mark.parametrize(
@@ -172,8 +172,10 @@ def test_random_states(hi):
 
         # check that boundary conditions are fulfilled if any are given
         state = hi.random_state(jax.random.PRNGKey(13))
-        boundary = hi.pbc_to_array()
-        extension = hi.L_to_array()
+        boundary = jnp.array(hi.n_particles * hi.pbc)
+        Ls = jnp.array(hi.n_particles * hi.extend)
+        extension = jnp.where(jnp.equal(boundary, False), jnp.inf, Ls)
+
         assert jnp.sum(
             jnp.where(jnp.equal(boundary, True), state < extension, 0)
         ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
@@ -208,9 +210,6 @@ def test_flip_state(hi):
 
         np.testing.assert_allclose(states_np, states_new_np)
 
-    elif isinstance(hi, ContinuousBoson):
-        return
-
 
 @pytest.mark.parametrize(
     "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
@@ -236,49 +235,47 @@ def test_random_states_legacy(hi):
         assert hi.random_state(size=(10,)).shape == (10, hi.size)
         assert hi.random_state(size=(10, 2)).shape == (10, 2, hi.size)
 
-    elif isinstance(hi, ContinuousBoson):
-        return
-
 
 @pytest.mark.parametrize(
     "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
 )
 def test_hilbert_index(hi):
-
-    if isinstance(hi, ContinuousBoson):
-        return
-
     assert hi.size > 0
-    assert hi.local_size > 0
+    if isinstance(hi, DiscreteHilbert):
+        assert hi.local_size > 0
 
-    log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)
+        log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)
 
-    if hi.is_indexable:
-        assert hi.size * np.log(hi.local_size) < log_max_states
-        assert np.allclose(hi.states_to_numbers(hi.all_states()), range(hi.n_states))
+        if hi.is_indexable:
+            assert hi.size * np.log(hi.local_size) < log_max_states
+            assert np.allclose(
+                hi.states_to_numbers(hi.all_states()), range(hi.n_states)
+            )
 
-        # batched version of number to state
-        n_few = min(hi.n_states, 100)
-        few_states = np.zeros(shape=(n_few, hi.size))
-        for k in range(n_few):
-            few_states[k] = hi.numbers_to_states(k)
+            # batched version of number to state
+            n_few = min(hi.n_states, 100)
+            few_states = np.zeros(shape=(n_few, hi.size))
+            for k in range(n_few):
+                few_states[k] = hi.numbers_to_states(k)
 
-        assert np.allclose(hi.numbers_to_states(np.asarray(range(n_few))), few_states)
+            assert np.allclose(
+                hi.numbers_to_states(np.asarray(range(n_few))), few_states
+            )
 
-    else:
-        assert not hi.is_indexable
+        else:
+            assert not hi.is_indexable
+
+            with pytest.raises(RuntimeError):
+                hi.n_states
+
+        # Check that a large hilbert space raises error when constructing matrices
+        g = nk.graph.Hypercube(length=100, n_dim=1)
+        op = nk.operator.Heisenberg(hilbert=Spin(s=0.5, N=g.n_nodes), graph=g)
 
         with pytest.raises(RuntimeError):
-            hi.n_states
-
-    # Check that a large hilbert space raises error when constructing matrices
-    g = nk.graph.Hypercube(length=100, n_dim=1)
-    op = nk.operator.Heisenberg(hilbert=Spin(s=0.5, N=g.n_nodes), graph=g)
-
-    with pytest.raises(RuntimeError):
-        op.to_dense()
-    with pytest.raises(RuntimeError):
-        op.to_sparse()
+            op.to_dense()
+        with pytest.raises(RuntimeError):
+            op.to_sparse()
 
 
 def test_state_iteration():

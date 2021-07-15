@@ -1,6 +1,4 @@
-from typing import Tuple
-
-import jax.numpy as jnp
+from typing import Tuple, Union
 
 from .abstract_hilbert import AbstractHilbert
 
@@ -13,7 +11,9 @@ class AbstractParticle(AbstractHilbert):
     in continuous space.
     """
 
-    def __init__(self, N: int, L: Tuple[float, ...], pbc: Tuple[bool, ...]):
+    def __init__(
+        self, N: int, L: Tuple[float, ...], pbc: Union[bool, Tuple[bool, ...]]
+    ):
         """
         Constructs new ``Particles`` given specifications
          of the continuous space they are defined in.
@@ -22,15 +22,20 @@ class AbstractParticle(AbstractHilbert):
             N: Number of particles
             L: spatial extension in each spatial dimension
             pbc: Whether or not to use periodic boundary
-                conditions for each spatial dimension
+                conditions for each spatial dimension.
+                If bool, its value will be used for all spatial
+                dimensions.
         """
         self._N = N
         self._L = L
-        self._pbc = pbc
 
+        if isinstance(pbc, bool):
+            pbc = [pbc] * len(self._L)
+
+        self._pbc = pbc
         if not len(self._L) == len(self._pbc):
-            raise AssertionError(
-                """You need to define boundary conditions for each spatial dimension."""
+            raise ValueError(
+                """`pbc` must be either a bool or a tuple indicating the periodicity of each spatial dimension."""
             )
 
         super().__init__()
@@ -40,12 +45,12 @@ class AbstractParticle(AbstractHilbert):
         return self._N * len(self._L)
 
     @property
-    def N(self) -> int:
+    def n_particles(self) -> int:
         r"""The number of particles"""
         return self._N
 
     @property
-    def L(self) -> Tuple[float, ...]:
+    def extend(self) -> Tuple[float, ...]:
         r"""Spatial extension in each spatial dimension"""
         return self._L
 
@@ -58,21 +63,6 @@ class AbstractParticle(AbstractHilbert):
     def _attrs(self):
         return (
             self.size,
-            self.L,
+            self.extend,
             self.pbc,
         )
-
-    def pbc_to_array(self):
-        r"""Returns an array of length self.size
-        indicating whether or not there are
-        periodic boundary conditions"""
-        return jnp.array(self.N * self.pbc)
-
-    def L_to_array(self):
-        r"""Returns an array of length self.size
-        with the spatial extension in each
-        spatial dimension. If no periodic boundaries
-        are defined in a spatial dimension
-        returns np.inf"""
-        Ls = jnp.array(self.N * self.L)
-        return jnp.where(jnp.equal(self.pbc_to_array(), False), jnp.inf, Ls)

@@ -20,4 +20,4 @@ class ContinuousBoson(AbstractParticle):
         super().__init__(N, L, pbc)
 
     def __repr__(self):
-        return "ContinuousBoson(N={}, d={})".format(self.N, len(self.L))
+        return "ContinuousBoson(N={}, d={})".format(self.n_particles, len(self.extend))
