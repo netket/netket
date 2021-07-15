@@ -62,6 +62,8 @@ liouv = nk.operator.LocalLiouvillian(ha.to_local_operator(), jump_ops)
 
 # operators["operator:(Lind)"] = liouv
 operators["operator:(Lind^2)"] = liouv.H @ liouv
+operators["operator:H"] = ha
+operators["operator:sigmam"] = jump_ops[0]
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
