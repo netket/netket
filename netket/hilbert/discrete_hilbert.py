@@ -100,7 +100,7 @@ class DiscreteHilbert(AbstractHilbert):
         Returns:
             The number of degrees of freedom at that site
         """
-        return self.shape[i]  # prgma: no cover
+        return self.shape[i]  # pragma: no cover
 
     def states_at_index(self, i: int) -> Optional[List[float]]:
         r"""A list of discrete local quantum numbers at the site i.

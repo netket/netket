@@ -127,6 +127,7 @@
 
    docs/custom_models
    docs/custom_preconditioners
+   docs/custom_expect
 
 .. toctree::
    :maxdepth: 2

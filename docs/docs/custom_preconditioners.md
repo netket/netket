@@ -1,4 +1,4 @@
-# Defining Custom Preconditioners
+# Defining Custom Preconditioners
 
 NetKet calls _gradient preconditioner_ that class of techniques that transform the
 gradient of the cost function in order to improve convergence properties before
@@ -57,11 +57,11 @@ When defining a preconditioner object you have two options: you can implement th
 
 The bare-minimum API a preconditioner `lhs` must implement:
  
-	- It must be a class
+    - It must be a class
 
-	- There must be a function to build it from a variational state. This function will be called with the variational state as the first positional argument.  This function must not necessarily be a method of the class. 
+    - There must be a function to build it from a variational state. This function will be called with the variational state as the first positional argument.  This function must not necessarily be a method of the class. 
 
-	- This class must have a `solve(self, function, gradient, *, x0=None)` method taking as argument the gradient to be preconditioned and must not error if a keyword argument `x0` is passed to it. `x0` is the output of `solve` the last time it has been called, and might be ignored if not needed. `function` is the function computing the preconditioner.
+    - This class must have a `solve(self, function, gradient, *, x0=None)` method taking as argument the gradient to be preconditioned and must not error if a keyword argument `x0` is passed to it. `x0` is the output of `solve` the last time it has been called, and might be ignored if not needed. `function` is the function computing the preconditioner.
 
 You can subclass the abstract base class :ref`nk.optimizer.PreconditionerObject` to be sure that you are
 implementing the correct interface, but you are not obliged to subclass it.
@@ -69,20 +69,20 @@ implementing the correct interface, but you are not obliged to subclass it.
 When you implement such an interface you are left with maximum flexibility, however you will be responsible for `jax.jit`ing all computational intensive methods (most likely `solve`).
 
 ```python
-
 def MyObject(variational_state):
-	stuff_a, stuff_b = compute_stuff(variational_state)
-	return MyObjectT(stuff_a, stuff_b)
+    stuff_a, stuff_b = compute_stuff(variational_state)
+    return MyObjectT(stuff_a, stuff_b)
+
 
 class MyObjectT:
-	def __init__(self, a,b):
-		# setup this object
+    def __init__(self, a,b):
+        # setup this object
 
-	def solve(self, preconditioner_function, y, *, x0=None):
-		# prepare
-		...
-		# compute
-		return solve_fun(self, y, x0=x0)
+    def solve(self, preconditioner_function, y, *, x0=None):
+        # prepare
+        ...
+        # compute
+        return solve_fun(self, y, x0=x0)
 ```
 
 Be warned that if you want to {ref}`jax.jit` compile the solve method, as it is usually computationally intensive, you must either specify how to flatten and unflatten to a PyTree your `MyObjectT`, or you should mark it as a `flax.struct.dataclass`, which is a frozen dataclass which does that automatically.
@@ -107,29 +107,29 @@ To implement the LinearOperator interface you should implement the following met
 ```python
 
 def MyLinearOperator(variational_state):
-	stuff_a, stuff_b = compute_stuff(variational_state)
-	return MyLinearOperatorT(stuff_a, stuff_b)
+    stuff_a, stuff_b = compute_stuff(variational_state)
+    return MyLinearOperatorT(stuff_a, stuff_b)
 
 @flax.struct.dataclass
 class MyLinearOperatorT(nk.optimizer.LinearOperator):
 
-	@jax.jit
-	def __matmul__(self, y):
-		# prepare
-		...
-		# compute
-		return result 
+    @jax.jit
+    def __matmul__(self, y):
+        # prepare
+        ...
+        # compute
+        return result 
 
-	@jax.jit
-	def to_dense(self):
-		...
-		return dense_matrix
+    @jax.jit
+    def to_dense(self):
+        ...
+        return dense_matrix
 
-	#optional
+    #optional
     @jax.jit
     def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None) -> PyTree:
-    	#...
-    	return solution, solution_info
+        #...
+        return solution, solution_info
 ```
 
 The bare minimum thing to implement is `__matmul__`, specifying how to multiply the linear operator by a pytree.
@@ -146,8 +146,8 @@ The preconditioner function must have the following signature:
 
 ```python
 def preconditioner_function(object, gradient, *, x0=None):
-	#...
-	return preconditioned_gradient, x0
+    #...
+    return preconditioned_gradient, x0
 ```
 
 The object that will be passed is the selected preconditioner object, previously constructed. 

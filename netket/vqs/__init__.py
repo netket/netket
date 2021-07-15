@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import VariationalState, VariationalMixedState
+from .base import VariationalState, VariationalMixedState, expect, expect_and_grad
 from .mc_state import MCState
 from .mc_mixed_state import MCMixedState
+
+from . import mc_expect
+from . import mc_expect_grad
 
 from . import experimental
 

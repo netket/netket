@@ -14,35 +14,23 @@
 
 import warnings
 from functools import partial
-from typing import Optional, Callable, Union, Tuple, Dict
+from typing import Optional, Callable, Union, Dict
 
 import numpy as np
 
 import jax
 from jax import numpy as jnp
-from jax import tree_map
 
 import flax
-from flax import linen as nn
 from flax import serialization
 
-import netket
 from netket import jax as nkjax
-from netket import config
+from netket import nn
 from netket.sampler import Sampler, SamplerState
-from netket.stats import Stats, statistics, mean
 from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
-
-from netket.operator import (
-    AbstractOperator,
-    AbstractSuperOperator,
-    local_cost_function,
-    local_value_cost,
-    Squared,
-)
 
 from .base import VariationalState
 
@@ -58,14 +46,6 @@ def compute_chain_length(n_chains, n_samples):
 
     chain_length = int(np.ceil(n_samples / n_chains))
     return chain_length
-
-
-def local_value_kernel(logpsi, pars, σ, σp, mel):
-    return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
-
-
-def local_value_squared_kernel(logpsi, pars, σ, σp, mel):
-    return jnp.abs(local_value_kernel(logpsi, pars, σ, σp, mel)) ** 2
 
 
 @partial(jax.jit, static_argnums=0)
@@ -139,10 +119,13 @@ class MCState(VariationalState):
             init_fun: Function of the signature f(model, shape, rng_key, dtype) -> Optional_state, parameters used to
                 initialise the parameters. Defaults to the standard flax initialiser. Only specify if your network has
                 a non-standard init method.
+            variables: Optional initial value for the variables (parameters and model state) of the model.
             apply_fun: Function of the signature f(model, variables, σ) that should evaluate the model. Defafults to
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
+            sample_fun: Optional function used to sample the state, if it is not the same as `apply_fun`.
             training_kwargs: a dict containing the optionaal keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
+            n_discard: DEPRECATED. Please use `n_discard_per_chain` which has the same behaviour.
         """
         super().__init__(sampler.hilbert)
 
@@ -451,112 +434,6 @@ class MCState(VariationalState):
         """
         return self.log_value(σ)
 
-    def expect(self, Ô: AbstractOperator) -> Stats:
-        if not self.hilbert == Ô.hilbert:
-            return NotImplemented
-
-        σ = self.samples
-
-        if isinstance(Ô, Squared):
-            Ô = Ô.parent
-            kernel = local_value_squared_kernel
-        else:
-            kernel = local_value_kernel
-
-        σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
-
-        return _expect(
-            self.sampler.machine_pow,
-            self._apply_fun,
-            kernel,
-            self.parameters,
-            self.model_state,
-            σ,
-            σp,
-            mels,
-        )
-
-    def expect_and_grad(
-        self,
-        Ô: AbstractOperator,
-        *,
-        mutable=None,
-        is_hermitian=None,
-    ) -> Tuple[Stats, PyTree]:
-        if not self.hilbert == Ô.hilbert:
-            return NotImplemented
-
-        # By default the mutable variables are defined in the variationalstate itself.
-        if mutable is None:
-            mutable = self.mutable
-
-        if is_hermitian is None:
-            is_hermitian = Ô.is_hermitian
-
-        if isinstance(Ô, Squared):
-            squared_operator = True
-        else:
-            squared_operator = False
-
-        if squared_operator:
-            Ô = Ô.parent
-
-        σ = self.samples
-        σp, mels = Ô.get_conn_padded(np.asarray(σ.reshape((-1, σ.shape[-1]))))
-
-        if is_hermitian:
-            if squared_operator:
-                if isinstance(Ô, AbstractSuperOperator):
-                    Ō, Ō_grad, new_model_state = grad_expect_operator_Lrho2(
-                        self._apply_fun,
-                        mutable,
-                        self.parameters,
-                        self.model_state,
-                        self.samples,
-                        σp,
-                        mels,
-                    )
-                else:
-                    Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
-                        self.sampler.machine_pow,
-                        self._apply_fun,
-                        local_value_squared_kernel,
-                        mutable,
-                        self.parameters,
-                        self.model_state,
-                        self.samples,
-                        σp,
-                        mels,
-                    )
-
-            else:
-                Ō, Ō_grad, new_model_state = grad_expect_hermitian(
-                    self._apply_fun,
-                    mutable,
-                    self.parameters,
-                    self.model_state,
-                    σ,
-                    σp,
-                    mels,
-                )
-        else:
-            Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
-                self.sampler.machine_pow,
-                self._apply_fun,
-                local_value_kernel,
-                mutable,
-                self.parameters,
-                self.model_state,
-                self.samples,
-                σp,
-                mels,
-            )
-
-        if mutable is not False:
-            self.model_state = new_model_state
-
-        return Ō, Ō_grad
-
     def quantum_geometric_tensor(
         self, qgt_T: LinearOperator = QGTAuto()
     ) -> LinearOperator:
@@ -574,7 +451,7 @@ class MCState(VariationalState):
         return qgt_T(self)
 
     def to_array(self, normalize: bool = True) -> jnp.ndarray:
-        return netket.nn.to_array(
+        return nn.to_array(
             self.hilbert, self._apply_fun, self.variables, normalize=normalize
         )
 
@@ -596,254 +473,6 @@ class MCState(VariationalState):
             + "sampler = {}, ".format(self.sampler)
             + "n_samples = {})".format(self.n_samples)
         )
-
-
-@partial(jax.jit, static_argnums=(1, 2))
-def _expect(
-    machine_pow: int,
-    model_apply_fun: Callable,
-    local_value_kernel: Callable,
-    parameters: PyTree,
-    model_state: PyTree,
-    σ: jnp.ndarray,
-    σp: jnp.ndarray,
-    mels: jnp.ndarray,
-) -> Stats:
-    σ_shape = σ.shape
-
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
-
-    def logpsi(w, σ):
-        return model_apply_fun({"params": w, **model_state}, σ)
-
-    log_pdf = (
-        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
-    )
-
-    local_value_vmap = jax.vmap(
-        partial(local_value_kernel, logpsi),
-        in_axes=(None, 0, 0, 0),
-        out_axes=0,
-    )
-
-    _, Ō_stats = nkjax.expect(
-        log_pdf, local_value_vmap, parameters, σ, σp, mels, n_chains=σ_shape[0]
-    )
-
-    return Ō_stats
-
-
-@partial(jax.jit, static_argnums=(0, 1))
-def grad_expect_hermitian(
-    model_apply_fun: Callable,
-    mutable: bool,
-    parameters: PyTree,
-    model_state: PyTree,
-    σ: jnp.ndarray,
-    σp: jnp.ndarray,
-    mels: jnp.ndarray,
-) -> Tuple[PyTree, PyTree]:
-
-    σ_shape = σ.shape
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
-
-    n_samples = σ.shape[0] * mpi.n_nodes
-
-    O_loc = local_cost_function(
-        local_value_cost,
-        model_apply_fun,
-        {"params": parameters, **model_state},
-        σp,
-        mels,
-        σ,
-    )
-
-    Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
-
-    O_loc -= Ō.mean
-
-    # Then compute the vjp.
-    # Code is a bit more complex than a standard one because we support
-    # mutable state (if it's there)
-    if mutable is False:
-        _, vjp_fun = nkjax.vjp(
-            lambda w: model_apply_fun({"params": w, **model_state}, σ),
-            parameters,
-            conjugate=True,
-        )
-        new_model_state = None
-    else:
-        _, vjp_fun, new_model_state = nkjax.vjp(
-            lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
-            parameters,
-            conjugate=True,
-            has_aux=True,
-        )
-    Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
-
-    Ō_grad = jax.tree_multimap(
-        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
-            target.dtype
-        ),
-        Ō_grad,
-        parameters,
-    )
-
-    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
-
-
-@partial(jax.jit, static_argnums=(1, 2, 3))
-def grad_expect_operator_kernel(
-    machine_pow: int,
-    model_apply_fun: Callable,
-    local_kernel: Callable,
-    mutable: bool,
-    parameters: PyTree,
-    model_state: PyTree,
-    σ: jnp.ndarray,
-    σp: jnp.ndarray,
-    mels: jnp.ndarray,
-) -> Tuple[PyTree, PyTree, Stats]:
-
-    if not config.FLAGS["NETKET_EXPERIMENTAL"]:
-        raise RuntimeError(
-            """
-                           Computing the gradient of a squared or non hermitian
-                           operator is an experimental feature under development
-                           and is known not to return wrong values sometimes.
-
-                           If you want to debug it, set the environment variable
-                           NETKET_EXPERIMENTAL=1
-                           """
-        )
-
-    σ_shape = σ.shape
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
-
-    has_aux = mutable is not False
-    # if not has_aux:
-    #    out_axes = (0, 0)
-    # else:
-    #    out_axes = (0, 0, 0)
-
-    if not has_aux:
-        logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
-    else:
-        # TODO: output the mutable state
-        logpsi = lambda w, σ: model_apply_fun(
-            {"params": w, **model_state}, σ, mutable=mutable
-        )[0]
-
-    log_pdf = (
-        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
-    )
-
-    def expect_closure(*args):
-        local_kernel_vmap = jax.vmap(
-            partial(local_kernel, logpsi), in_axes=(None, 0, 0, 0), out_axes=0
-        )
-
-        return nkjax.expect(log_pdf, local_kernel_vmap, *args, n_chains=σ_shape[0])
-
-    def expect_closure_pars(pars):
-        return expect_closure(pars, σ, σp, mels)
-
-    Ō, Ō_pb, Ō_stats = nkjax.vjp(expect_closure_pars, parameters, has_aux=True)
-    Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))
-
-    return (
-        Ō_stats,
-        tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad),
-        model_state,
-    )
-
-
-@partial(jax.jit, static_argnums=(0, 1))
-def grad_expect_operator_Lrho2(
-    model_apply_fun: Callable,
-    mutable: bool,
-    parameters: PyTree,
-    model_state: PyTree,
-    σ: jnp.ndarray,
-    σp: jnp.ndarray,
-    mels: jnp.ndarray,
-) -> Tuple[PyTree, PyTree, Stats]:
-    σ_shape = σ.shape
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
-
-    n_samples_node = σ.shape[0]
-
-    has_aux = mutable is not False
-    # if not has_aux:
-    #    out_axes = (0, 0)
-    # else:
-    #    out_axes = (0, 0, 0)
-
-    if not has_aux:
-        logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
-    else:
-        # TODO: output the mutable state
-        logpsi = lambda w, σ: model_apply_fun(
-            {"params": w, **model_state}, σ, mutable=mutable
-        )[0]
-
-    # local_kernel_vmap = jax.vmap(
-    #    partial(local_value_kernel, logpsi), in_axes=(None, 0, 0, 0), out_axes=0
-    # )
-
-    # _Lρ = local_kernel_vmap(parameters, σ, σp, mels).reshape((σ_shape[0], -1))
-    (
-        Lρ,
-        der_loc_vals,
-    ) = netket.operator._der_local_values_jax._local_values_and_grads_notcentered_kernel(
-        logpsi, parameters, σp, mels, σ
-    )
-    # netket.operator._der_local_values_jax._local_values_and_grads_notcentered_kernel returns a loc_val that is conjugated
-    Lρ = jnp.conjugate(Lρ)
-
-    LdagL_stats = statistics((jnp.abs(Lρ) ** 2).T)
-    LdagL_mean = LdagL_stats.mean
-
-    # old implementation
-    # this is faster, even though i think the one below should be faster
-    # (this works, but... yeah. let's keep it here and delete in a while.)
-    grad_fun = jax.vmap(nkjax.grad(logpsi, argnums=0), in_axes=(None, 0), out_axes=0)
-    der_logs = grad_fun(parameters, σ)
-    der_logs_ave = tree_map(lambda x: mean(x, axis=0), der_logs)
-
-    # TODO
-    # NEW IMPLEMENTATION
-    # This should be faster, but should benchmark as it seems slower
-    # to compute der_logs_ave i can just do a jvp with a ones vector
-    # _logpsi_ave, d_logpsi = nkjax.vjp(lambda w: logpsi(w, σ), parameters)
-    # TODO: this ones_like might produce a complexXX type but we only need floatXX
-    # and we cut in 1/2 the # of operations to do.
-    # der_logs_ave = d_logpsi(
-    #    jnp.ones_like(_logpsi_ave).real / (n_samples_node * utils.n_nodes)
-    # )[0]
-    der_logs_ave = tree_map(lambda x: mpi.mpi_sum_jax(x)[0], der_logs_ave)
-
-    def gradfun(der_loc_vals, der_logs_ave):
-        par_dims = der_loc_vals.ndim - 1
-
-        _lloc_r = Lρ.reshape((n_samples_node,) + tuple(1 for i in range(par_dims)))
-
-        grad = mean(der_loc_vals.conjugate() * _lloc_r, axis=0) - (
-            der_logs_ave.conjugate() * LdagL_mean
-        )
-        return grad
-
-    LdagL_grad = jax.tree_util.tree_multimap(gradfun, der_loc_vals, der_logs_ave)
-
-    return (
-        LdagL_stats,
-        LdagL_grad,
-        model_state,
-    )
 
 
 # serialization

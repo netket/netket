@@ -38,8 +38,6 @@ def identity_preconditioner(vstate: VariationalState, gradient: PyTree):
 class LinearPreconditioner:
     """Linear Preconditioner for the gradient. Needs a function to construct the LHS of
     the Linear System and a solver to solve the linear system.
-
-    A
     """
 
     lhs_constructor: LHSConstructorT
