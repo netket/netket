@@ -542,7 +542,7 @@ def MetropolisGaussian(hilbert, sigma=1.0, *args, **kwargs) -> MetropolisSampler
     """
     if not isinstance(hilbert, AbstractParticle):
         raise ValueError(
-            "This sampler only works for Continuous Hilbert spaces, try another one."
+            "This sampler only works for Continuous Hilbert spaces."
         )
 
     from .rules import GaussianRule
