@@ -347,7 +347,7 @@ class GCNN_Parity_FFT(nn.Module):
             ) / np.sqrt(2)
             x = jnp.array(x_new, copy=True)
 
-        x = jnp.concatenate((x, x_flip), -2)
+        x = jnp.concatenate((x, x_flip), -1)
 
         x = self.output_activation(x)
 
@@ -492,7 +492,7 @@ class GCNN_Parity_Irrep(nn.Module):
             ) / np.sqrt(2)
             x = jnp.array(x_new, copy=True)
 
-        x = jnp.concatenate((x, x_flip), -2)
+        x = jnp.concatenate((x, x_flip), -1)
 
         x = self.output_activation(x)
 

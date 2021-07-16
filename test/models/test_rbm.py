@@ -56,11 +56,11 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     vmc.advance(1)
 
 
-@pytest.mark.parametrize("use_bias", [True, False])
+@pytest.mark.parametrize("parity", [True, False])
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
 @pytest.mark.parametrize("mode", ["fft", "irreps"])
-def test_gcnn(use_bias, symmetries, lattice, mode):
+def test_gcnn(parity, symmetries, lattice, mode):
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
     ma = nk.models.GCNN(
@@ -69,7 +69,7 @@ def test_gcnn(use_bias, symmetries, lattice, mode):
         shape=tuple(g.extent),
         layers=2,
         features=2,
-        use_bias=use_bias,
+        parity=parity,
         bias_init=nk.nn.initializers.uniform(),
     )
 
