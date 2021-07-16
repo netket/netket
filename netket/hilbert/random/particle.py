@@ -20,12 +20,12 @@ def random_state(hilb: AbstractParticle, key, batches: int, *, dtype):
 
     gaussian = jax.random.normal(key, shape=(batches, hilb.size))
     width = jnp.min(modulus) / (4.0 * hilb.n_particles)
-    """The width gives the noise level. In the periodic case the
-    particles are evenly distributed between 0 and min(L). The
-    distance between the particles coordinates is therefore given by
-    min(L) / hilb.N. To avoid particles to have coincident
-    positions the noise level should be smaller than half this distance.
-    We choose width = min(L) / (4*hilb.N)"""
+    # The width gives the noise level. In the periodic case the
+    # particles are evenly distributed between 0 and min(L). The
+    # distance between the particles coordinates is therefore given by
+    # min(L) / hilb.N. To avoid particles to have coincident
+    # positions the noise level should be smaller than half this distance.
+    # We choose width = min(L) / (4*hilb.N)
     noise = gaussian * width
     uniform = jnp.tile(jnp.linspace(0.0, jnp.min(modulus), hilb.size), (batches, 1))
 
