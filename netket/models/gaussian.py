@@ -6,10 +6,12 @@ from netket.utils.types import DType, Array, NNInitFunc
 
 
 class Gaussian(nn.Module):
-    r"""Multivariate Gaussain function with mean 0
-    and covariance matrix :math:`\Sigma_{ij}`:
-    :math:`\Psi(x) = \exp(\sum_{ij} x_i \Sigma_{ij} x_j)`.
-    The :math:`\Sigma_{ij} = AA^T` matrix is stored as
+    r"""
+    Multivariate Gaussain function with mean 0 and parametrised covariance matrix
+    :math:`\Sigma_{ij}`.
+    
+    The wavefunction is given by the formula: :math:`\Psi(x) = \exp(\sum_{ij} x_i \Sigma_{ij} x_j)`.
+    The (positive definite) :math:`\Sigma_{ij} = AA^T` matrix is stored as
     non-positive definite matrix A.
     """
 
