@@ -46,8 +46,6 @@ from . import hilbert
 
 from . import nn
 
-from . import legacy
-
 from . import (
     exact,
     callbacks,

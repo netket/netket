@@ -26,8 +26,6 @@ from ._local_liouvillian import LocalLiouvillian
 from . import spin, boson
 
 # TODO: Deprecated. Remove in v3.1
-from ._local_values import local_values
-from ._der_local_values import der_local_values
 from ._der_local_values_jax import local_energy_kernel
 
 from ._local_cost_functions import (

@@ -18,7 +18,6 @@ import numpy as np
 from numba import jit
 
 from netket.graph import AbstractGraph
-from netket.utils import deprecated
 
 from .homogeneous import HomogeneousHilbert
 from ._deprecations import graph_to_N_depwarn
@@ -159,62 +158,3 @@ class Fock(HomogeneousHilbert):
     @property
     def _attrs(self):
         return (self.size, self._n_max, self._constraint_fn)
-
-    def _random_state_with_constraint_legacy(self, out, rgen, n_max):
-        sites = list(range(self.size))
-
-        out.fill(0.0)
-        ss = self.size
-
-        for _ in range(self.n_particles):
-            s = rgen.integers(0, ss, size=())
-
-            out[sites[s]] += 1
-
-            if out[sites[s]] == n_max:
-                sites.pop(s)
-                ss -= 1
-
-    def _random_state_legacy(self, size=None, *, out=None, rgen=None):
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self._size) if size is not None else (self._size,)
-
-        if out is None:
-            out = np.empty(shape=shape)
-
-        if rgen is None:
-            rgen = np.random.default_rng()
-
-        if self.n_particles is None:
-            out[:] = rgen.integers(0, self.n_max, size=shape)
-        else:
-            if size is not None:
-                out_r = out.reshape(-1, self._size)
-                for b in range(out_r.shape[0]):
-                    self._random_state_with_constraint_legacy(
-                        out_r[b], rgen, self.n_max
-                    )
-            else:
-                self._random_state_with_constraint_legacy(out, rgen, self.n_max)
-
-        return out
-
-
-@deprecated(
-    """
-Boson has been replaced by Fock. Please use fock, which has
-the same semantics except for n_bosons which was replaced by
-n_particles.
-
-You should update your code because it will break in a future
-version.
-"""
-)
-def Boson(
-    n_max: Optional[int] = None,
-    N: int = 1,
-    n_bosons: Optional[int] = None,
-    graph: Optional[AbstractGraph] = None,
-) -> Fock:
-    return Fock(n_max, N, n_bosons, graph)

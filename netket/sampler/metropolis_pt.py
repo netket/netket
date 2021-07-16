@@ -24,16 +24,6 @@ from netket import config
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils import struct
 
-# for deprecations
-from netket.utils import wraps_legacy
-from netket.legacy.machine import AbstractMachine
-from netket.legacy.sampler import (
-    MetropolisLocalPt as LegacyMetropolisLocalPt,
-    MetropolisExchangePt as LegacyMetropolisExchangePt,
-    MetropolisHamiltonianPt as LegacyMetropolisHamiltonianPt,
-)
-
-
 from .metropolis import MetropolisSamplerState, MetropolisSampler
 
 
@@ -434,7 +424,6 @@ class MetropolisPtSampler(MetropolisSampler):
         )
 
 
-@wraps_legacy(LegacyMetropolisLocalPt, "machine", AbstractMachine)
 def MetropolisLocalPt(hilbert, *args, **kwargs):
     r"""
     Sampler acting on one local degree of freedom.
@@ -476,7 +465,6 @@ def MetropolisLocalPt(hilbert, *args, **kwargs):
     return MetropolisPtSampler(hilbert, LocalRule(), *args, **kwargs)
 
 
-@wraps_legacy(LegacyMetropolisExchangePt, "machine", AbstractMachine)
 def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **kwargs):
     r"""
     This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
@@ -535,7 +523,6 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
     return MetropolisPtSampler(hilbert, rule, *args, **kwargs)
 
 
-@wraps_legacy(LegacyMetropolisHamiltonianPt, "machine", AbstractMachine)
 def MetropolisHamiltonianPt(hilbert, hamiltonian, *args, **kwargs):
     r"""
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).

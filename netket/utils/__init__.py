@@ -26,7 +26,7 @@ from . import mpi
 from .optional_deps import torch_available, tensorboard_available, backpack_available
 from .seed import random_seed
 
-from .deprecation import warn_deprecation, deprecated, deprecated_new_name, wraps_legacy
+from .deprecation import warn_deprecation, deprecated, deprecated_new_name
 from .moduletools import _hide_submodules, rename_class
 
 from .model_frameworks import maybe_wrap_module

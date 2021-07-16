@@ -15,10 +15,6 @@
 from functools import partial
 from collections import namedtuple
 
-from netket.utils import wraps_legacy
-from netket.legacy.optimizer import SR as SR_legacy
-from netket.legacy.machine import AbstractMachine
-
 from netket.utils.numbers import is_scalar
 
 import jax
@@ -32,7 +28,6 @@ default_iterative = "cg"
 # default_direct = "eigen"
 
 
-@wraps_legacy(SR_legacy, "machine", AbstractMachine)
 def build_SR(*args, solver_restart: bool = False, **kwargs):
     """
     Construct the structure holding the parameters for using the

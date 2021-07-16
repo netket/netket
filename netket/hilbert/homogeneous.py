@@ -191,24 +191,3 @@ class HomogeneousHilbert(DiscreteHilbert):
             self._has_constraint,
             self._constraint_fn,
         )
-
-    # legacy interoperability.
-    # TODO: Remove in 3.1
-    def _random_state_legacy(self, size=None, *, out=None, rgen=None):
-        if not self.is_finite or self._has_constraint:
-            raise NotImplementedError()
-
-        # Default version for discrete hilbert spaces without constraints.
-        # More specialized initializations can be defined in the derived classes.
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self._size) if size is not None else (self._size,)
-
-        if out is None:
-            out = np.empty(shape=shape)
-        if rgen is None:
-            rgen = np.random.default_rng()
-
-        out[:] = rgen.choice(self.local_states, size=shape)
-
-        return out

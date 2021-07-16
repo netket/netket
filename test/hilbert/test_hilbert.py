@@ -100,8 +100,6 @@ hilberts["DoubledHilbert[CustomHilbert]"] = DoubledHilbert(
     CustomHilbert(local_states=[-1232, 132, 0], N=5)
 )
 
-# hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
-
 
 #
 # Tests
@@ -177,31 +175,6 @@ def test_flip_state(hi):
             states_new_np[row, col] = states_np[row, col]
 
         np.testing.assert_allclose(states_np, states_new_np)
-
-
-@pytest.mark.parametrize(
-    "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
-)
-def test_random_states_legacy(hi):
-    nk.legacy.random.seed(12345)
-
-    assert hi.size > 0
-    assert hi.local_size > 0
-    assert len(hi.local_states) == hi.local_size
-
-    if isinstance(hi, DiscreteHilbert):
-        rstate = np.zeros(hi.size)
-        local_states = hi.local_states
-        for i in range(100):
-            hi.random_state(out=rstate)
-            for state in rstate:
-                assert state in local_states
-
-        assert hi.random_state().shape == (hi.size,)
-        assert hi.random_state(10).shape == (10, hi.size)
-        assert hi.random_state(size=10).shape == (10, hi.size)
-        assert hi.random_state(size=(10,)).shape == (10, hi.size)
-        assert hi.random_state(size=(10, 2)).shape == (10, 2, hi.size)
 
 
 @pytest.mark.parametrize(
