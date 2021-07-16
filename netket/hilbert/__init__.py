@@ -14,6 +14,7 @@
 
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
+from .abstract_continuous_space_particle import AbstractParticle
 
 from .custom_hilbert import CustomHilbert
 from .doubled_hilbert import DoubledHilbert
@@ -21,6 +22,8 @@ from .spin import Spin
 from .fock import Fock
 from .qubit import Qubit
 from .hilbert_index import HilbertIndex
+from .continuous_space_boson import ContinuousBoson
+from .continuous_space_fermion import ContinuousFermion
 
 from .tensor_hilbert import TensorHilbert
 

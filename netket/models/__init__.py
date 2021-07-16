@@ -17,6 +17,7 @@ from .equivariant import GCNN
 from .jastrow import Jastrow
 from .mps import MPSPeriodic
 
+from .gaussian import Gaussian
 from .ndm import NDM
 from .autoreg import ARNN, ARNNDense, ARNNConv1D
 
