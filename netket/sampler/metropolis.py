@@ -541,9 +541,7 @@ def MetropolisGaussian(hilbert, sigma=1.0, *args, **kwargs) -> MetropolisSampler
                    If None, sweep_size is equal to the number of degrees of freedom (n_visible).
     """
     if not isinstance(hilbert, AbstractParticle):
-        raise ValueError(
-            "This sampler only works for Continuous Hilbert spaces."
-        )
+        raise ValueError("This sampler only works for Continuous Hilbert spaces.")
 
     from .rules import GaussianRule
 

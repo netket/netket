@@ -9,7 +9,7 @@ class Gaussian(nn.Module):
     r"""
     Multivariate Gaussain function with mean 0 and parametrised covariance matrix
     :math:`\Sigma_{ij}`.
-    
+
     The wavefunction is given by the formula: :math:`\Psi(x) = \exp(\sum_{ij} x_i \Sigma_{ij} x_j)`.
     The (positive definite) :math:`\Sigma_{ij} = AA^T` matrix is stored as
     non-positive definite matrix A.
