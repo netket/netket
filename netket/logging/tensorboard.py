@@ -14,7 +14,7 @@
 
 from numbers import Number
 
-from netket.stats.mc_stats import Stats
+from netket.utils import deprecated
 
 
 def tree_log(tree, root, data):
@@ -60,7 +60,7 @@ def tree_log(tree, root, data):
         data.append((root, tree))
 
 
-class TBLog:
+class TensorBoardLog:
     """
     Creates a tensorboard logger using tensorboardX's summarywriter.
     Refer to its documentation for further details
@@ -91,7 +91,7 @@ class TBLog:
           the logdir directory. More details on filename construction in
           tensorboard.summary.writer.event_file_writer.EventFileWriter.
         write_to_disk (boolean):
-          If pass `False`, TBLog will not write to disk.
+          If pass `False`, TensorBoardLog will not write to disk.
     Examples:
         Logging optimisation to tensorboard.
 
@@ -99,13 +99,13 @@ class TBLog:
         >>>
         >>> import netket as nk
         >>> # create a summary writer with automatically generated folder name.
-        >>> writer = nk.logging.TBLog()
+        >>> writer = nk.logging.TensorBoardLog()
         >>> # folder location: runs/May04_22-14-54_s-MacBook-Pro.local/
         >>> # create a summary writer using the specified folder name.
-        >>> writer = nk.logging.TBLog("my_experiment")
+        >>> writer = nk.logging.TensorBoardLog("my_experiment")
         >>> # folder location: my_experiment
         >>> # create a summary writer with comment appended.
-        >>> writer = nk.logging.TBLog(comment="LR_0.1_BATCH_16")
+        >>> writer = nk.logging.TensorBoardLog(comment="LR_0.1_BATCH_16")
         >>> # folder location: runs/May04_22-14-54_s-MacBook-Pro.localLR_0.1_BATCH_16/
     """
 
@@ -148,3 +148,12 @@ class TBLog:
 
         if machine is not None:
             self._flush_params(machine)
+
+
+# TODO: deprecate in 3.1
+@deprecated(
+    "TBLog has been renamed to `TensorBoardLog` and will be removed in the next"
+    "minor release. Please update your usages."
+)
+def TBLog(*args, **kwargs):
+    return TensorBoardLog(*args, **kwargs)
