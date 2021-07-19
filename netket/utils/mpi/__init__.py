@@ -13,8 +13,7 @@
 # limitations under the License.
 
 from .mpi import (
-    mpi_available,
-    mpi4jax_available,
+    mpi4jax_available as available,
     MPI,
     MPI_py_comm,
     MPI_jax_comm,
