@@ -17,14 +17,10 @@ jobs:
           - os: ubuntu-latest
             python-version: 3.8
             mpi: ""
-
-          - os: ubuntu-latest
-            python-version: 3.8
-            mpi: ""
             doctest: true
 
           - os: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.9
             mpi: "mpich"
             main_tests: true
 
