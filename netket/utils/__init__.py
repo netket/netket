@@ -26,17 +26,12 @@ from . import mpi
 from .optional_deps import torch_available, tensorboard_available, backpack_available
 from .seed import random_seed
 
-from .deprecation import warn_deprecation, deprecated, deprecated_new_name, wraps_legacy
+from .deprecation import warn_deprecation, deprecated, deprecated_new_name
 from .moduletools import _hide_submodules, rename_class
 
 from .model_frameworks import maybe_wrap_module
 
 from .history import History, accum_in_tree, accum_histories_in_tree
-
-# TODO: legacy -> to be removed
-jax_available = True
-flax_available = True
-mpi4jax_available = mpi.mpi_available
 
 _hide_submodules(
     __name__, remove_self=False, ignore=["numbers", "types", "float", "dispatch"]

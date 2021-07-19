@@ -17,8 +17,6 @@ from scipy.sparse.linalg import bicgstab
 
 from .operator import AbstractOperator
 
-from ._exact_dynamics import PyExactTimePropagation  # noqa: F401
-
 
 def lanczos_ed(
     operator: AbstractOperator,

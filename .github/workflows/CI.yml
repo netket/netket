@@ -17,7 +17,6 @@ jobs:
           - os: ubuntu-latest
             python-version: 3.8
             mpi: ""
-            legacy: true
 
           - os: ubuntu-latest
             python-version: 3.8
@@ -84,13 +83,7 @@ jobs:
       - name: NetKet docstring tests
         if: ${{ matrix.doctest }}
         run: |
-          pytest --doctest-continue-on-failure --doctest-modules netket/ --ignore-glob="netket/legacy/**"
-
-      - name: Netket Legacy tests
-        if: ${{ matrix.legacy }}
-        run : |
-          export NETKET_EXPERIMENTAL=1
-          pytest --cov=netket --cov-append --legacy-only test
+          pytest --doctest-continue-on-failure --doctest-modules netket/
 
       - name: MPI tests
         if: matrix.mpi != '' 

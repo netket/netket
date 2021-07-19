@@ -214,31 +214,6 @@ def test_flip_state(hi):
 @pytest.mark.parametrize(
     "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
 )
-def test_random_states_legacy(hi):
-    nk.legacy.random.seed(12345)
-
-    assert hi.size > 0
-
-    if isinstance(hi, DiscreteHilbert):
-        assert hi.local_size > 0
-        assert len(hi.local_states) == hi.local_size
-        rstate = np.zeros(hi.size)
-        local_states = hi.local_states
-        for i in range(100):
-            hi.random_state(out=rstate)
-            for state in rstate:
-                assert state in local_states
-
-        assert hi.random_state().shape == (hi.size,)
-        assert hi.random_state(10).shape == (10, hi.size)
-        assert hi.random_state(size=10).shape == (10, hi.size)
-        assert hi.random_state(size=(10,)).shape == (10, hi.size)
-        assert hi.random_state(size=(10, 2)).shape == (10, 2, hi.size)
-
-
-@pytest.mark.parametrize(
-    "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
-)
 def test_hilbert_index(hi):
     assert hi.size > 0
     if isinstance(hi, DiscreteHilbert):

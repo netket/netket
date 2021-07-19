@@ -65,7 +65,7 @@ testpaths = [
 ]
 
 [tool.flakehell]
-exclude = ["netket/legacy", "test/legacy"]
+exclude = []
 # make output nice
 format = "grouped"
 max-line-length = 88

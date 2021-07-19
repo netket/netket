@@ -135,18 +135,3 @@ class DoubledHilbert(DiscreteHilbert):
     @property
     def _attrs(self):
         return (self.physical,)
-
-    def _random_state_legacy(self, size=None, *, out=None, rgen=None):
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self.size) if size is not None else (self.size,)
-
-        if out is None:
-            out = np.empty(shape=shape)
-
-        n = self.size_physical
-
-        self.physical.random_state(out=out[..., :n], size=size, rgen=rgen)
-        self.physical.random_state(out=out[..., n:], size=size, rgen=rgen)
-
-        return out
