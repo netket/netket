@@ -39,7 +39,7 @@ def vstate(request):
         visible_bias_init=nk.nn.initializers.normal(),
     )
 
-    return nk.variational.MCState(
+    return nk.vqs.MCState(
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
@@ -73,7 +73,7 @@ def vstate_rho(request):
 
     ma = nk.models.NDM()
 
-    return nk.variational.MCMixedState(
+    return nk.vqs.MCMixedState(
         nk.sampler.MetropolisLocal(nk.hilbert.DoubledHilbert(hi)),
         ma,
     )

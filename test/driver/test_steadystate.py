@@ -41,9 +41,7 @@ def _setup_ss(dtype=np.float32, sr=True):
     sa = nk.sampler.MetropolisLocal(hilbert=nk.hilbert.DoubledHilbert(hi))
     sa_obs = nk.sampler.MetropolisLocal(hilbert=hi)
 
-    vs = nk.variational.MCMixedState(
-        sa, ma, sampler_diag=sa_obs, n_samples=1000, seed=SEED
-    )
+    vs = nk.vqs.MCMixedState(sa, ma, sampler_diag=sa_obs, n_samples=1000, seed=SEED)
 
     op = nk.optimizer.Sgd(learning_rate=0.05)
     if sr:
