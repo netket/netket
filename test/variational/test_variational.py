@@ -15,7 +15,7 @@
 from functools import partial
 
 import pytest
-from pytest import approx, raises
+from pytest import approx, raises, warns
 
 import numpy as np
 import jax
@@ -93,6 +93,16 @@ def vstate(request):
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
     return vs
+
+
+def test_deprecated_name():
+    with warns(FutureWarning):
+        nk.variational.expect
+
+    with raises(AttributeError):
+        nk.variational.accabalubba
+
+    assert dir(nk.vqs) == dir(nk.variational)
 
 
 def test_n_samples_api(vstate):
