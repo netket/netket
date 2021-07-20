@@ -1,6 +1,21 @@
-from pytest import approx
-import netket as nk
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import pytest
 import numpy as np
+
+import netket as nk
 
 from .. import common
 
@@ -16,7 +31,8 @@ sz = [[1, 0], [0, -1]]
 sigmam = [[0, 0], [1, 0]]
 
 
-def _setup_system():
+@pytest.fixture
+def liouvillian():
     hi = nk.hilbert.Spin(s=0.5) ** L
 
     ha = nk.operator.LocalOperator(hi)
@@ -30,55 +46,25 @@ def _setup_system():
 
     # Create the liouvillian
     lind = nk.operator.LocalLiouvillian(ha, j_ops)
-    return hi, lind
+    return lind
 
 
-def _setup_ss(**kwargs):
-    nk.random.seed(SEED)
-    np.random.seed(SEED)
+@pytest.mark.parametrize("sparse", [True, False])
+def test_exact_ss_ed(liouvillian, sparse):
+    lind = liouvillian
 
-    hi, lind = _setup_system()
-
-    ma = nk.machine.density_matrix.RbmSpin(hilbert=hi, alpha=1)
-    ma.init_random_parameters(sigma=0.01, seed=SEED)
-
-    sa = nk.sampler.MetropolisLocal(machine=ma)
-    sa_obs = nk.sampler.MetropolisLocal(machine=ma.diagonal())
-
-    op = nk.optimizer.Sgd(ma, learning_rate=0.1)
-
-    if "sr" in kwargs:
-        sr = nk.optimizer.SR(ma, **kwargs["sr"])
-        kwargs["sr"] = sr
-
-    ss = nk.SteadyState(
-        lindblad=lind, sampler=sa, optimizer=op, sampler_obs=sa_obs, **kwargs
-    )
-
-    return ma, ss
-
-
-def _setup_obs():
-    hi = nk.hilbert.Spin(s=0.5) ** L
-
-    obs_sx = nk.operator.LocalOperator(hi)
-    for i in range(L):
-        obs_sx += nk.operator.LocalOperator(hi, sx, [i])
-
-    obs = {"SigmaX": obs_sx}
-    return obs
-
-
-def test_exact_ss_ed():
-    _, lind = _setup_system()
-
-    dm_ss = nk.exact.steady_state(lind, method="ed", sparse=True)
+    dm_ss = nk.exact.steady_state(lind, method="ed", sparse=sparse)
     Lop = lind.to_sparse()
 
     mat = np.abs(Lop @ dm_ss.reshape(-1))
-    print(mat)
-    assert np.all(mat == approx(0.0, rel=1e-4, abs=1e-4))
-    assert dm_ss.trace() - 1 == approx(0.0, rel=1e-5, abs=1e-8)
+    np.testing.assert_allclose(dm_ss.trace() - 1, 0.0, rtol=1e-5, atol=1e-8)
+
+    # it does not work for sparse
+    if not sparse:
+        with pytest.warns(UserWarning):
+            nk.exact.steady_state(lind, method="ed", sparse=sparse)
+    else:
+        np.testing.assert_allclose(mat, 0.0, rtol=1e-4, atol=1e-4)
 
     # dm_ss_d = nk.exact.steady_state(lind, method="ed", sparse=False)
     # Lop = lind.to_sparse()
@@ -88,13 +74,23 @@ def test_exact_ss_ed():
     # assert np.all(mat == approx(0.0, rel=1e-4, abs=1e-4))
 
 
-def test_exact_ss_iterative():
-    _, lind = _setup_system()
+@pytest.mark.parametrize("sparse", [True, False])
+@pytest.mark.parametrize("rho0", [False, True])
+def test_exact_ss_iterative(liouvillian, sparse, rho0):
+    lind = liouvillian
+    M = liouvillian.hilbert.physical.n_states
 
-    dm_ss = nk.exact.steady_state(lind, sparse=True, method="iterative", tol=1e-5)
+    if rho0:
+        rho0 = np.zeros((M, M), dtype=liouvillian.dtype)
+        rho0[1:2] = 0.4
+    else:
+        rho0 = None
+
+    dm_ss = nk.exact.steady_state(
+        lind, sparse=sparse, method="iterative", tol=1e-5, rho0=rho0
+    )
     Lop = lind.to_linear_operator()
 
     mat = np.abs(Lop @ dm_ss.reshape(-1))
-    print(mat)
-    assert np.all(mat == approx(0.0, rel=1e-5, abs=1e-5))
-    assert dm_ss.trace() - 1 == approx(0.0, rel=1e-5, abs=1e-5)
+    np.testing.assert_allclose(mat, 0.0, rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(dm_ss.trace() - 1, 0.0, rtol=1e-5, atol=1e-5)

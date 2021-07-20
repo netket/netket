@@ -66,7 +66,7 @@ class AbstractVariationalDriver(abc.ABC):
         self._variational_state = variational_state
         self.optimizer = optimizer
 
-    def _forward_and_backward(self):
+    def _forward_and_backward(self):  # pragma: no cover
         """
         Performs the forward and backward pass at the same time.
         Concrete drivers should either override this method, or override individually
@@ -85,7 +85,7 @@ class AbstractVariationalDriver(abc.ABC):
         Concrete should either implement _forward and _backward or the joint method
         _forward_and_backward.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def _backward(self):
         """
@@ -93,7 +93,7 @@ class AbstractVariationalDriver(abc.ABC):
         Concrete should either implement _forward and _backward or the joint method
         _forward_and_backward.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def _estimate_stats(self, observable):
         """
@@ -120,7 +120,7 @@ class AbstractVariationalDriver(abc.ABC):
         """
         Returns an info string used to print information to screen about this driver.
         """
-        pass
+        pass  # pragma: no cover
 
     @property
     def state(self):

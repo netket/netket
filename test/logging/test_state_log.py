@@ -22,7 +22,7 @@ def vstate(request):
         visible_bias_init=nk.nn.initializers.normal(),
     )
 
-    return nk.variational.MCState(
+    return nk.vqs.MCState(
         nk.sampler.MetropolisLocal(hi),
         ma,
     )

@@ -28,7 +28,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
     ma = nk.models.RBM(alpha=1, dtype=dtype)
     sa = nk.sampler.ExactSampler(hilbert=hi, n_chains=16)
 
-    vs = nk.variational.MCState(sa, ma, n_samples=1000, seed=SEED)
+    vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
     ha = nk.operator.Ising(hi, graph=g, h=1.0)
     op = nk.optimizer.Sgd(learning_rate=0.05)
