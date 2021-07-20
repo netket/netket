@@ -44,7 +44,7 @@ def info():
     When called via::
 
         # python3 -m netket.tools.check_mpi
-        mpi_available     : True
+        mpi4py_available     : True
         mpi4jax_available : True
         n_nodes           : 1
 

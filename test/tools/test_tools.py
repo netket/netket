@@ -12,22 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .mpi import (
-    mpi4jax_available as available,
-    MPI,
-    MPI_py_comm,
-    MPI_jax_comm,
-    n_nodes,
-    node_number,
-    rank,
-)
 
-from .primitives import mpi_sum, mpi_mean, mpi_any, mpi_bcast, mpi_allgather, mpi_max
-from .primitives import (
-    mpi_sum_jax,
-    mpi_mean_jax,
-    mpi_any_jax,
-    mpi_bcast_jax,
-    mpi_allgather_jax,
-    mpi_max_jax,
-)
+def test_tools_check_mpi():
+    from netket.tools import check_mpi  # noqa: F401
+
+
+def test_tools_info():
+    from netket.tools import info  # noqa: F401

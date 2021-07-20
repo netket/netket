@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.utils.mpi import mpi_available, mpi4jax_available, rank, n_nodes
+from netket.utils.mpi.mpi import mpi4py_available, mpi4jax_available
+from netket.utils.mpi import rank, n_nodes
 
 from ._cpu_info import available_cpus
 
@@ -22,7 +23,7 @@ def check_mpi():
     When called via::
 
         # python3 -m netket.tools.check_mpi
-        mpi_available                : True
+        mpi4puavailable              : True
         mpi4jax_available            : True
         avalable_cpus (rank 0)       : 12
         n_nodes                      : 1
@@ -36,11 +37,11 @@ def check_mpi():
         return
 
     info = {
-        "mpi_available": mpi_available,
+        "mpi4py_available": mpi4py_available,
         "mpi4jax_available": mpi4jax_available,
         "avalable_cpus (rank 0)": available_cpus(),
     }
-    if mpi_available:
+    if mpi4py_available:
         from mpi4py import MPI
 
         info.update(

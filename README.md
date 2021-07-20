@@ -55,7 +55,7 @@ To enable MPI support you must install [mpi4jax](https://github.com/PhilipVinc/m
 To check whever MPI support is enabled, check the flags 
 ```python
 >>> import netket
->>> netket.utils.mpi_available
+>>> netket.utils.mpi.available
 True
 
 ```

@@ -26,9 +26,9 @@ try:
     from mpi4py import MPI
 
     _mpi4py_loaded = True
-    mpi_available = True
+    mpi4py_available = True
 
-    #  We don't use the standard communicator because Jax and
+    # We don't use the standard communicator because Jax and
     # np/python must use different ones to avoid desync issues
     # so we insulate also from the user-space.
     MPI_py_comm = MPI.COMM_WORLD.Create(MPI.COMM_WORLD.Get_group())
@@ -52,7 +52,7 @@ try:
     mpi4jax_available = True
 
 except ImportError:
-    mpi_available = False
+    mpi4py_available = False
     mpi4jax_available = False
     MPI_py_comm = None
     MPI_jax_comm = None
@@ -98,7 +98,7 @@ except ImportError:
                 )
 
 
-if mpi_available:
+if mpi4py_available:
     _MIN_MPI4JAX_VERSION = "0.3.1"
 
     def _get_version_tuple(verstr):

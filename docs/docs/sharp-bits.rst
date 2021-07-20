@@ -24,7 +24,7 @@ Note that when using :code:`netket` it is crucial to run Python with the same im
 If you encounter issues, you can check whether your MPI environment is set up properly by running::
 
    $ mpirun -np 2 python3 -m netket.tools.check_mpi
-   mpi_available                : True
+   mpi4py_available             : True
    mpi4jax_available            : True
    avalable_cpus (rank 0)       : 12
    n_nodes                      : 1
