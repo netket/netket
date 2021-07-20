@@ -126,7 +126,7 @@ class DenseSymmMatrix(Module):
             "kernel", self.kernel_init, (self.features, self.n_sites), self.dtype
         )
 
-        if not self.mask is None:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, 0)
 
         kernel = self.full_kernel(kernel).reshape(-1, self.features, self.n_symm)
@@ -214,7 +214,7 @@ class DenseSymmFFT(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if not self.mask is None:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, 0)
 
         kernel = self.make_kernel(kernel)
@@ -319,7 +319,7 @@ class DenseEquivariantFFT(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if not self.mask is None:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.make_kernel(kernel)
@@ -483,7 +483,7 @@ class DenseEquivariantIrrep(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if self.mask:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.forward_ft(kernel)
@@ -589,7 +589,7 @@ class DenseEquivariantMatrix(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if not self.mask is None:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.full_kernel(kernel)
@@ -646,7 +646,7 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
     """
 
     if isinstance(symmetries, Lattice) and (
-        not point_group is None or not symmetries._point_group is None
+        point_group is not None or symmetries._point_group is not None
     ):
         shape = tuple(symmetries.extent)
         sym = HashableArray(np.asarray(symmetries.space_group(point_group)))
@@ -724,7 +724,7 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
     """
 
     if isinstance(symmetries, Lattice) and (
-        not point_group is None or not symmetries._point_group is None
+        point_group is not None or symmetries._point_group is not None
     ):
         shape = tuple(symmetries.extent)
         # With graph try to find point group, otherwise default to automorphisms

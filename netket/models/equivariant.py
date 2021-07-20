@@ -602,11 +602,11 @@ def GCNN(
             mode = "irreps"
         sg = symmetries
     else:
-        if not irreps is None and (mode == "irreps" or mode == "auto"):
+        if irreps is not None and (mode == "irreps" or mode == "auto"):
             mode = "irreps"
             sg = symmetries
             irreps = tuple(HashableArray(irrep) for irrep in irreps)
-        elif not product_table is None and (mode == "fft" or mode == "auto"):
+        elif product_table is not None and (mode == "fft" or mode == "auto"):
             mode = "fft"
             sg = symmetries
             product_table = HashableArray(product_table)
