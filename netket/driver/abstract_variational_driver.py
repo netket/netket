@@ -75,9 +75,9 @@ class AbstractVariationalDriver(abc.ABC):
         Returns:
             the update for the weights.
         """
-        self._forward()
-        dp = self._backward()
-        return dp
+        self._forward()  # pragma: no cover
+        dp = self._backward()  # pragma: no cover
+        return dp  # pragma: no cover
 
     def _forward(self):
         """
@@ -85,7 +85,7 @@ class AbstractVariationalDriver(abc.ABC):
         Concrete should either implement _forward and _backward or the joint method
         _forward_and_backward.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def _backward(self):
         """
@@ -93,7 +93,7 @@ class AbstractVariationalDriver(abc.ABC):
         Concrete should either implement _forward and _backward or the joint method
         _forward_and_backward.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def _estimate_stats(self, observable):
         """
@@ -120,7 +120,7 @@ class AbstractVariationalDriver(abc.ABC):
         """
         Returns an info string used to print information to screen about this driver.
         """
-        pass
+        pass  # pragma: no cover
 
     @property
     def state(self):
