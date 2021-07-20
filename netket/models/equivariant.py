@@ -628,8 +628,10 @@ def GCNN(
     if isinstance(features, int):
         features = (features,) * layers
 
-    if not characters:
+    if characters is None:
         characters = HashableArray(np.ones(len(np.asarray(sg))))
+    else:
+        characters = HashableArray(characters)
 
     if mode == "fft":
         sym = HashableArray(np.asarray(sg))

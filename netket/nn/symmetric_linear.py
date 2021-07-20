@@ -126,7 +126,7 @@ class DenseSymmMatrix(Module):
             "kernel", self.kernel_init, (self.features, self.n_sites), self.dtype
         )
 
-        if self.mask:
+        if not self.mask is None:
             kernel = kernel * jnp.expand_dims(self.mask, 0)
 
         kernel = self.full_kernel(kernel).reshape(-1, self.features, self.n_symm)
@@ -214,7 +214,7 @@ class DenseSymmFFT(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if self.mask:
+        if not self.mask is None:
             kernel = kernel * jnp.expand_dims(self.mask, 0)
 
         kernel = self.make_kernel(kernel)
@@ -319,7 +319,7 @@ class DenseEquivariantFFT(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if self.mask:
+        if not self.mask is None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.make_kernel(kernel)
@@ -589,7 +589,7 @@ class DenseEquivariantMatrix(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if self.mask:
+        if not self.mask is None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.full_kernel(kernel)
