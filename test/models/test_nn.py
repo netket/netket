@@ -78,7 +78,8 @@ def test_DenseSymm(symmetries, use_bias, mode):
 @pytest.mark.parametrize("use_bias", [True, False])
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
 @pytest.mark.parametrize("mode", ["fft", "matrix", "irreps"])
-def test_DenseEquivariant(symmetries, use_bias, lattice, mode):
+@pytest.mark.parametrize("mask", [True, False])
+def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
     rng = nk.jax.PRNGSeq(0)
 
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
@@ -86,12 +87,18 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode):
     pt = perms.product_table
     n_symm = np.asarray(perms).shape[0]
 
+    if mask:
+        mask = np.random.randint(0, 2, [n_symm])
+    else:
+        mask = np.ones([n_symm])
+
     if mode == "irreps":
         ma = nk.nn.DenseEquivariant(
             symmetries=perms,
             mode=mode,
             in_features=1,
             out_features=1,
+            mask=mask,
             use_bias=use_bias,
             bias_init=nk.nn.initializers.uniform(),
         )
@@ -102,6 +109,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode):
             mode=mode,
             in_features=1,
             out_features=1,
+            mask=mask,
             use_bias=use_bias,
             bias_init=nk.nn.initializers.uniform(),
         )
