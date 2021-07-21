@@ -89,7 +89,11 @@ def sum(a, axis=None, keepdims: bool = False):
     return out
 
 
-def var(a, axis=None, ddof: int = 0):
+# needed othewise it is shadowed...
+_mean = mean
+
+
+def var(a, axis=None, ddof: int = 0, mean=None):
     """
     Compute the variance mean along the specified axis and over MPI processes.
     Assumes same shape on all MPI processes.
@@ -106,12 +110,13 @@ def var(a, axis=None, ddof: int = 0):
         The array with reduced dimensions defined by axis. If out is not none, returns out.
 
     """
-    m = mean(a, axis=axis)
+    if mean is None:
+        mean = _mean(a, axis=axis)
 
     if axis is None:
-        ssq = jnp.abs(a - m) ** 2.0
+        ssq = jnp.abs(a - mean) ** 2.0
     else:
-        ssq = jnp.abs(a - jnp.expand_dims(m, axis)) ** 2.0
+        ssq = jnp.abs(a - jnp.expand_dims(mean, axis)) ** 2.0
 
     out = sum(ssq, axis=axis)
 

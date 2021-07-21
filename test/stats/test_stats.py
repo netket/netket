@@ -25,80 +25,82 @@ from netket.stats import statistics
 from scipy.optimize import curve_fit
 from numba import jit
 
-from .. import common
-
-pytestmark = common.skipif_mpi
+from netket.stats import mean as mpi_mean, var as mpi_var
 
 
-WEIGHT_SEED = 3
+@pytest.mark.parametrize("n_chains", [1, 2, 3, 8, 9, 16])
+@pytest.mark.parametrize("dtype", [float, complex])
+def test_stats_mean_std(n_chains, _mpi_size, dtype):
+    n_samples = 10000
+    num_samples_per_chain = n_samples // (n_chains * _mpi_size)
 
+    seed = nk.jax.mpi_split(nk.jax.PRNGKey(0))
+    # pick a random distribution ...
+    data = jax.random.normal(seed, (num_samples_per_chain, n_chains), dtype=dtype)
 
-@partial(jax.jit, static_argnums=0)
-@partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=(0))
-def local_value_kernel(logpsi, pars, σ, σp, mel):
-    return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
+    block_size = 32
+    stats = nk.stats.statistics(data.T, block_size)
 
-
-def local_values(logpsi, variables, Ô, σ):
-    σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
-    loc_vals = local_value_kernel(
-        logpsi, variables, σ.reshape((-1, σ.shape[-1])), σp, mels
-    )
-    return loc_vals.reshape(σ.shape[:-1])
-
-
-def _setup():
-    g = nk.graph.Hypercube(3, 2)
-    hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
-
-    ham = nk.operator.Heisenberg(hi, graph=g)
-
-    ma = nk.models.RBM(alpha=2, dtype=np.complex64)
-
-    return hi, ham, ma
-
-
-def _test_stats_mean_std(hi, ham, ma, n_chains):
-    w = ma.init(jax.random.PRNGKey(WEIGHT_SEED * n_chains), jnp.zeros((1, hi.size)))
-
-    sampler = nk.sampler.MetropolisLocal(hi, n_chains=n_chains)
-
-    n_samples = 16000
-    num_samples_per_chain = n_samples // n_chains
-
-    # Discard a few samples
-    _, state = sampler.sample(ma, w, chain_length=1000)
-
-    samples, state = sampler.sample(
-        ma, w, chain_length=num_samples_per_chain, state=state
-    )
-    assert samples.shape == (num_samples_per_chain, n_chains, hi.size)
-
-    # eloc = np.empty((num_samples_per_chain, n_chains), dtype=np.complex128)
-    eloc = local_values(ma.apply, w, ham, samples)
-    assert eloc.shape == (num_samples_per_chain, n_chains)
-
-    stats = statistics(eloc.T)
-
-    assert stats.mean == pytest.approx(np.mean(eloc))
-    if n_chains > 1:
-
+    assert stats.mean == pytest.approx(mpi_mean(data))
+    if n_chains >= 8:
+        assert isinstance(stats, nk.stats.ChainStats)
         # variance == average sample variance over chains
-        assert stats.variance == pytest.approx(np.var(eloc))
+        assert stats.variance == pytest.approx(mpi_var(data))
         # R estimate
         B_over_n = stats.error_of_mean ** 2
         W = stats.variance
         assert stats.R_hat == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
+    else:
+        assert isinstance(stats, nk.stats.BlockStats)
+        # it uses blocks
+        n_blocks = (num_samples_per_chain * n_chains) // block_size
+        assert n_blocks == stats.n_blocks
+
+        data_blocks = data.reshape(-1)[: n_blocks * block_size]
 
 
-@common.skipif_mpi
-def test_stats_mean_std():
-    hi, ham, ma = _setup()
-    for bs in (1, 2, 16, 32):
-        _test_stats_mean_std(hi, ham, ma, bs)
+@pytest.mark.parametrize("n_chains", [1, 2, 8, 16])
+@pytest.mark.parametrize("dtype", [float, complex])
+@pytest.mark.parametrize("n_splits", [2, 3, 6])
+def test_stats_merge(n_chains, n_splits, dtype, _mpi_size):
+    n_samples_tot = 1000000
+    num_samples_per_chain = n_samples_tot // (n_chains * _mpi_size * n_splits)
+
+    seed = nk.jax.mpi_split(nk.jax.PRNGKey(0))
+    # pick a random distribution ...
+    data = jax.random.normal(
+        seed, (n_splits, num_samples_per_chain, n_chains), dtype=dtype
+    )
+
+    data_1 = data.reshape(-1, n_chains)
+    stats = nk.stats.statistics(data_1.T)
+
+    stats_acc = nk.stats.statistics(data[0].T)
+    for i in range(1, n_splits):
+        stats_acc = stats_acc.merge(nk.stats.statistics(data[i].T))
+
+    if isinstance(stats_acc, nk.stats.BlockStats):
+        err_rtol = 6e-2
+        tau_rtol = 5e-2
+        tau_atol = 2e-2
+    else:
+        err_rtol = 1e-5
+        tau_rtol = 1e-5
+        tau_atol = 0
+
+    np.testing.assert_allclose(stats_acc.mean, stats.mean)
+    np.testing.assert_allclose(stats_acc.variance, stats.variance)
+    np.testing.assert_allclose(stats_acc.error, stats.error, rtol=err_rtol)
+    np.testing.assert_allclose(stats_acc.r_hat, stats.r_hat)
+    np.testing.assert_allclose(
+        stats_acc.tau_corr, stats.tau_corr, rtol=tau_rtol, atol=tau_atol
+    )
 
 
-def _test_tau_corr(batch_size, sig_corr):
+@pytest.mark.parametrize("batch_size", [1, 2, 8, 16, 32, 64])
+def test_tau_corr(batch_size):
+    sig_corr = 0.5
+
     def next_pow_two(n):
         i = 1
         while i < n:
@@ -160,35 +162,28 @@ def _test_tau_corr(batch_size, sig_corr):
 
     stats = statistics(data)
 
-    assert np.mean(data) == pytest.approx(stats.mean)
-    assert np.var(data) == pytest.approx(stats.variance)
+    assert mpi_mean(data) == pytest.approx(stats.mean)
+    assert mpi_var(data) == pytest.approx(stats.variance)
 
     assert tau_fit_m == pytest.approx(stats.tau_corr, rel=1, abs=3)
 
-    eom_fit = np.sqrt(np.var(data) * tau_fit_m / float(n_samples * batch_size))
+    eom_fit = np.sqrt(mpi_var(data) * tau_fit_m / float(n_samples * batch_size))
 
     print(stats.error_of_mean, eom_fit)
     assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.6)
 
 
-def test_tau_corr():
-    sig_corr = 0.5
-    for bs in (1, 2, 32, 64):
-        _test_tau_corr(bs, sig_corr)
-
-
 def test_decimal_format():
-    from netket.stats import Stats
+    from netket.stats.stats_base import _format_decimal
 
-    assert str(Stats(1.0, 1e-3)) == "1.0000 ± 0.0010 [σ²=nan]"
-    assert str(Stats(1.0, 1e-6)) == "1.0000000 ± 0.0000010 [σ²=nan]"
-    assert str(Stats(1.0, 1e-7)) == "1.000e+00 ± 1.000e-07 [σ²=nan]"
+    _format_decimal(1.0, 1e-3, np.nan) == ("1.0000", "0.0010", "nan")
+    _format_decimal(1.0, 1e-6, np.nan) == ("1.0000000", "0.0000010", "nan")
+    _format_decimal(1.0, 1e-7, np.nan) == ("1.000e+00", "1.000e-07", "nan")
 
-    assert str(Stats(float("nan"), float("inf"))) == "nan ± inf [σ²=nan]"
-    assert str(Stats(1.0, float("nan"))) == "1.000e+00 ± nan [σ²=nan]"
-    assert str(Stats(1.0, float("inf"))) == "1.000e+00 ± inf [σ²=nan]"
-    assert str(Stats(float("inf"), 0.0)) == "inf ± 0.000e+00 [σ²=nan]"
-    assert str(Stats(1.0, 0.0)) == "1.000e+00 ± 0.000e+00 [σ²=nan]"
+    _format_decimal(float("nan"), float("inf"), np.nan) == ("nan", "inf", "nan")
+    _format_decimal(1.0, float("nan"), np.nan) == ("1.000e+00", "nan", "nan")
+    _format_decimal(1.0, float("inf"), np.nan) == ("1.000e+00", "inf", "nan")
+    _format_decimal(float("inf"), 0.0, np.nan) == ("inf", "0.000e+00", "nan")
+    _format_decimal(1.0, 0.0, np.nan) == ("1.000e+00", "0.000e+00", "nan")
 
-    assert str(Stats(1.0, 0.12, 0.5)) == "1.00 ± 0.12 [σ²=0.50]"
-    assert str(Stats(1.0, 0.12, 0.5, R_hat=1.01)) == "1.00 ± 0.12 [σ²=0.50, R̂=1.0100]"
+    _format_decimal(1.0, 0.12, 0.5) == ("1.00", "0.12", "0.50")

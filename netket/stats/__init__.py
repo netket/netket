@@ -14,7 +14,8 @@
 
 from .mpi_stats import subtract_mean, mean, sum, var, total_size
 
-from .mc_stats import statistics, Stats
+from .stats_base import StatsBase as Stats
+from .mc_stats import statistics, BlockStats, ChainStats
 
 from netket.utils import _hide_submodules
 
