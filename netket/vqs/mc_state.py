@@ -49,7 +49,14 @@ def compute_chain_length(n_chains, n_samples):
 
 
 @partial(jax.jit, static_argnums=0)
-def apply(fun, *args):
+def jit_evaluate(fun: Callable, *args):
+    """
+    call `fun(*args)` inside of a `jax.jit` frame.
+
+    Args:
+        fun: the hashable callable to be evaluated.
+        args: the arguments to the function.
+    """
     return fun(*args)
 
 
@@ -229,7 +236,7 @@ class MCState(VariationalState):
 
         dummy_input = jnp.zeros((1, self.hilbert.size), dtype=dtype)
 
-        variables = self._init_fun({"params": key}, dummy_input)
+        variables = jit_evaluate(self._init_fun, {"params": key}, dummy_input)
         self.variables = variables
 
     @property
@@ -434,7 +441,7 @@ class MCState(VariationalState):
 
         Given a batch of inputs (Nb, N), returns a batch of outputs (Nb,).
         """
-        return apply(self._apply_fun, self.variables, σ)
+        return jit_evaluate(self._apply_fun, self.variables, σ)
 
     @deprecated("Use MCState.log_value(σ) instead.")
     def evaluate(self, σ: jnp.ndarray) -> jnp.ndarray:
