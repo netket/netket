@@ -8,8 +8,7 @@ from jax import numpy as jnp
 
 from flax import linen as nn
 
-from netket import jax as nkjax
-from netket.stats import Stats
+from netket.stats import Stats, statistics
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
@@ -118,7 +117,7 @@ def expect(vstate: MCMixedState, Ô: AbstractOperator) -> Stats:  # noqa: F811
     )
 
 
-@partial(jax.jit, static_argnums=(1, 2))
+@partial(jax.jit, static_argnums=(1, 2, 8))
 def _expect(
     machine_pow: int,
     model_apply_fun: Callable,
@@ -128,6 +127,7 @@ def _expect(
     σ: jnp.ndarray,
     σp: jnp.ndarray,
     mels: jnp.ndarray,
+    precompute_statistics: bool = True,
 ) -> Stats:
     σ_shape = σ.shape
 
@@ -146,8 +146,11 @@ def _expect(
         out_axes=0,
     )
 
-    _, Ō_stats = nkjax.expect(
-        log_pdf, local_value_vmap, parameters, σ, σp, mels, n_chains=σ_shape[0]
-    )
+    Oloc_σ = local_value_vmap(parameters, σ, σp, mels)
+
+    # Do not reduce over mpi yet, because we might be evaluating just a batch
+    # (the mpi reduction is done lazily if/when needed and only once)
+    # For performance, better to do it inside a jax.jit block
+    Ō_stats = statistics(Oloc_σ.T, precompute=False)
 
     return Ō_stats
