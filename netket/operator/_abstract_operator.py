@@ -138,21 +138,26 @@ class AbstractOperator(abc.ABC):
         connections for every y_i.
 
         Args:
-            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                        the batch of quantum numbers x.
+            x : A N-tensor of shape (...,hilbert.size) containing
+                        the batch/batches of quantum numbers x.
 
         Returns:
-            matrix: The connected states x', in a 3D tensor.
-            array: A matrix containing the matrix elements :math:`O(x,x')` associated to each x' for every batch.
+            x_primes: The connected states x', in a N+1-tensor.
+            mels: A N-tensor containing the matrix elements :math:`O(x,x')`
+                associated to each x' for every batch.
         """
-        sections = np.empty(x.shape[0], dtype=np.int32)
-        x_primes, mels = self.get_conn_flattened(x, sections, pad=True)
+        n_visible = x.shape[-1]
+        n_samples = x.size // n_visible
+
+        sections = np.empty(n_samples, dtype=np.int32)
+        x_primes, mels = self.get_conn_flattened(
+            x.reshape(-1, x.shape[-1]), sections, pad=True
+        )
 
         n_primes = sections[0]
-        n_visible = x.shape[1]
 
-        x_primes_r = x_primes.reshape(-1, n_primes, n_visible)
-        mels_r = mels.reshape(-1, n_primes)
+        x_primes_r = x_primes.reshape(*x.shape[:-1], n_primes, n_visible)
+        mels_r = mels.reshape(*x.shape[:-1], n_primes)
 
         return x_primes_r, mels_r
 
