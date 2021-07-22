@@ -160,7 +160,7 @@ def grad_expect_hermitian_minibatch_forward(
 # part 2: average them
 @jax.jit
 def grad_expect_hermitian_minibatch_average(O_locs: List[jnp.ndarray]):
-    stats = [statistics(O_loc.T) for O_loc in O_locs]
+    stats = [statistics(O_loc.T, precompute=False) for O_loc in O_locs]
     stat_acc = None
     for stat in stats:
         if stat_acc is None:
