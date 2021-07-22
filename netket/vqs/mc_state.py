@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union, Tuple
 
 import numpy as np
 
@@ -30,11 +30,13 @@ from netket.operator import AbstractOperator
 from netket.stats import Stats
 from netket.sampler import Sampler, SamplerState
 from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
+from netket.utils.dispatch import dispatch, TrueT, FalseT, Bool
+
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
-from .base import VariationalState, expect
+from .base import VariationalState, expect, expect_and_grad
 
 AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
 ATrainFunType = Callable[
@@ -410,12 +412,9 @@ class MCState(VariationalState):
     @property
     def n_minibatches(self) -> int:
         if self.minibatch_size is None:
-            minibatch_size = self.n_samples_per_rank
-        else:
-            minibatch_size = self.minibatch_size
+            return None
 
-        minibatch_length = minibatch_size // self.sampler.n_chains
-
+        minibatch_length = self.minibatch_size // self.sampler.n_chains
         return self.chain_length // minibatch_length
 
     @n_minibatches.setter
@@ -519,7 +518,45 @@ class MCState(VariationalState):
         Returns:
             An estimation of the quantum expectation value <O>.
         """
-        return expect(self, Ô, self.minibatch_size)
+        return expect(self, Ô, self.n_minibatches)
+
+    def expect_and_grad(
+        self,
+        Ô: AbstractOperator,
+        *,
+        mutable: Optional[Any] = None,
+        use_covariance: Optional[bool] = None,
+    ) -> Tuple[Stats, PyTree]:
+        r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+
+        Args:
+            Ô: the operator Ô for which we compute the expectation value and it's gradient
+            mutable: Can be bool, str, or list. Specifies which collections in the model_state should
+                     be treated as  mutable: bool: all/no collections are mutable. str: The name of a
+                     single mutable  collection. list: A list of names of mutable collections.
+                     This is used to mutate the state of the model while you train it (for example
+                     to implement BatchNorm. Consult
+                     `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
+                     for a more in-depth exaplanation).
+            is_hermitian: optional override for whever to use or not the hermitian logic. By default
+                          it's automatically detected.
+
+        Returns:
+            An estimation of the quantum expectation value <O>.
+            An estimation of the average gradient of the quantum expectation value <O>.
+        """
+        if mutable is None:
+            mutable = self.mutable
+
+        if use_covariance is None:
+            use_covariance = TrueT() if Ô.is_hermitian else FalseT()
+
+        if self.minibatch_size is None:
+            return expect_and_grad(self, Ô, use_covariance, mutable)
+        else:
+            return expect_and_grad(
+                self, Ô, use_covariance, mutable, self.n_minibatches
+            )
 
     @deprecated("Use MCState.log_value(σ) instead.")
     def evaluate(self, σ: jnp.ndarray) -> jnp.ndarray:
@@ -578,26 +615,22 @@ def precompute_merge_stats(*stats):
         else:
             stat_acc = stat_acc.merge(stat)
 
-    stat._precompute_cached_properties()
-    return stat
+    stat_acc._precompute_cached_properties()
+    return stat_acc
 
 
 # overloads for batched expect
 @expect.dispatch
 def expect_nominibatch(
-    vstate: MCState, operator: AbstractOperator, minibatch_size: None
+    vstate: MCState, operator: AbstractOperator, n_minibatches: None
 ):
     return precompute_merge_stats(expect(vstate, operator))
 
 
 @expect.dispatch
-def expect_minibatch(vstate: MCState, operator: AbstractOperator, minibatch_size: int):
+def expect_minibatch(vstate: MCState, operator: AbstractOperator, n_minibatches: int):
     σ = vstate.samples
-
-    n_chains = σ.shape[1]
-    minibatch_length = minibatch_size // n_chains
-
-    σr = σ.reshape(-1, minibatch_length, σ.shape[1], σ.shape[2])
+    σr = σ.reshape(n_minibatches, -1, σ.shape[1], σ.shape[2])
 
     i = 0
     stats = []
@@ -605,6 +638,7 @@ def expect_minibatch(vstate: MCState, operator: AbstractOperator, minibatch_size
         vstate._samples = σr[i]
         stats.append(expect(vstate, operator))
 
+    vstate._samples = σ
     # merge
     return precompute_merge_stats(*stats)
 

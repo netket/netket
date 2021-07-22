@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
 import jax
 import flax
@@ -26,7 +26,7 @@ import netket.nn as nknn
 from netket.operator import AbstractOperator
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import PyTree, PRNGKeyT, NNInitFunc
-from netket.utils.dispatch import dispatch, TrueT, FalseT
+from netket.utils.dispatch import dispatch, TrueT, FalseT, Bool
 from netket.stats import Stats
 
 
@@ -204,7 +204,10 @@ class VariationalState(abc.ABC):
         if mutable is None:
             mutable = self.mutable
 
-        return expect_and_grad(self, Ô, use_covariance=use_covariance, mutable=mutable)
+        if use_covariance is None:
+            use_covariance = TrueT() if operator.is_hermitian else FalseT()
+
+        return expect_and_grad(self, Ô, use_covariance, mutable)
 
     # @abc.abstractmethod
     def quantum_geometric_tensor(self, qgt_T):
@@ -285,13 +288,13 @@ def expect(vstate: VariationalState, operator: AbstractOperator):
 
 
 # default dispatch where use_covariance is not specified
-@dispatch
+@dispatch.abstract
 def expect_and_grad(
     vstate: VariationalState,
     operator: AbstractOperator,
-    *,
-    use_covariance: Optional[bool] = None,
-    mutable=None,
+    use_covariance: Union[bool, TrueT, FalseT],
+    mutable,
+    *args: Any,
 ):
     r"""Estimates both the gradient of the quantum expectation value of a given operator O.
 
@@ -324,14 +327,40 @@ def expect_and_grad(
         An estimation of the average gradient of the quantum expectation value <O>.
     """
 
-    # convert to type-static True/False
-    if isinstance(use_covariance, bool):
-        use_covariance = TrueT() if use_covariance else FalseT()
 
-    if use_covariance is None:
-        use_covariance = TrueT() if operator.is_hermitian else FalseT()
+@expect_and_grad.dispatch
+def expect_and_grad(
+    vstate: VariationalState,
+    operator: AbstractOperator,
+    use_covariance: bool,
+    *args,
+    **kwargs,
+):
+    use_covariance = TrueT() if use_covariance else FalseT()
+    return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)
 
-    if mutable is None:
-        mutable = vstate.mutable
 
-    return expect_and_grad(vstate, operator, use_covariance, mutable)
+@expect_and_grad.dispatch
+def expect_and_grad(
+    vstate: VariationalState,
+    operator: AbstractOperator,
+    use_covariance: None,
+    *args,
+    **kwargs,
+):
+    use_covariance = TrueT() if operator.is_hermitian else FalseT()
+    return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)
+
+
+@expect_and_grad.dispatch
+def expect_and_grad(
+    vstate: VariationalState,
+    operator: AbstractOperator,
+    use_covariance: Bool,
+    mutable: None,
+    *args: Any,
+    **kwargs,
+):
+    return expect_and_grad(
+        vstate, operator, use_covariance, vstate.mutable, *args, **kwargs
+    )

@@ -27,6 +27,7 @@ from .mc_state import MCState
 from .mc_mixed_state import MCMixedState
 
 from .mc_expect import local_value_kernel, local_value_squared_kernel
+from .utils import vjp_with_aux
 
 
 def _check_hilbert(A, B):
@@ -193,23 +194,14 @@ def grad_expect_hermitian(
 
     O_loc -= Ō.mean
 
-    # Then compute the vjp.
-    # Code is a bit more complex than a standard one because we support
-    # mutable state (if it's there)
-    if mutable is False:
-        _, vjp_fun = nkjax.vjp(
-            lambda w: model_apply_fun({"params": w, **model_state}, σ),
-            parameters,
-            conjugate=True,
-        )
-        new_model_state = None
-    else:
-        _, vjp_fun, new_model_state = nkjax.vjp(
-            lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
-            parameters,
-            conjugate=True,
-            has_aux=True,
-        )
+    _, vjp_fun, new_model_state = vjp_with_aux(
+        lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
+        parameters,
+        conjugate=True,
+        mutable=mutable,
+    )
+    new_model_state = model_state if mutable is False else new_model_state
+
     Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
 
     Ō_grad = jax.tree_multimap(

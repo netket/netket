@@ -20,6 +20,7 @@ from . import mc_expect
 from . import mc_expect_grad
 
 from . import experimental
+from . import mc_expect_grad_minibatch
 
 from netket.utils import _hide_submodules
 
