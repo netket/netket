@@ -723,8 +723,10 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
             fourier transform over the translation group, a fourier transform using
             the irreducible representations or by constructing the full kernel matrix.
         shape: A tuple specifying the dimensions of the translation group.
-        features: The number of symmetry-reduced features. The full output size
-            is n_symm*features.
+        in_features: The number of symmetry-reduced features. The full input size
+            is n_symm*in_features.
+        out_features: The number of symmetry-reduced features. The full output size
+            is n_symm*out_features.
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
             that can be used to give the kernel a particular shape.
