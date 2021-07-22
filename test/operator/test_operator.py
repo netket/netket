@@ -154,6 +154,40 @@ def test_get_conn_numpy_closure(op):
 
 
 @pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in operators.items()]
+)
+@pytest.mark.parametrize(
+    "shape",
+    [
+        pytest.param(s, id=f"shape={s}")
+        for s in [
+            (2,),
+            (
+                2,
+                1,
+            ),
+            (2, 1, 1),
+        ]
+    ],
+)
+def test_get_conn_padded(op, shape):
+    hi = op.hilbert
+
+    v = hi.random_state(jax.random.PRNGKey(0), shape)
+
+    vp, mels = op.get_conn_padded(v)
+
+    assert vp.ndim == v.ndim + 1
+    assert mels.ndim == v.ndim
+    print(mels.shape)
+    print(vp.shape)
+
+    vp_f, mels_f = op.get_conn_padded(v.reshape(-1, hi.size))
+    np.testing.assert_allclose(vp_f, vp.reshape(-1, *vp.shape[-2:]))
+    np.testing.assert_allclose(mels_f, mels.reshape(-1, mels.shape[-1]))
+
+
+@pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in op_special.items()]
 )
 def test_to_local_operator(op):
