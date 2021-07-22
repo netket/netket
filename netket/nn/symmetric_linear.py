@@ -36,7 +36,7 @@ def unit_normal_scaling(key, shape, dtype):
 
 
 def _symmetrizer_col(perms, features):
-    """
+    r"""
     Creates the mapping from symmetry-reduced kernel w to full kernel W, s.t.
         W[ij] = S[ij][kl] w[kl]
     where [ij] ∈ [0,...,n_sites×n_hidden) and [kl] ∈ [0,...,n_sites×features).
@@ -62,7 +62,7 @@ def _symmetrizer_col(perms, features):
 
 
 class DenseSymmMatrix(Module):
-    """Implements a symmetrized linear transformation over a permutation group
+    r"""Implements a symmetrized linear transformation over a permutation group
     using matrix multiplication."""
 
     symmetries: HashableArray
@@ -126,7 +126,7 @@ class DenseSymmMatrix(Module):
             "kernel", self.kernel_init, (self.features, self.n_sites), self.dtype
         )
 
-        if self.mask:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, 0)
 
         kernel = self.full_kernel(kernel).reshape(-1, self.features, self.n_symm)
@@ -150,7 +150,7 @@ class DenseSymmMatrix(Module):
 
 
 class DenseSymmFFT(Module):
-    """Implements a symmetrized projection onto a space group using a Fast Fourier Transform"""
+    r"""Implements a symmetrized projection onto a space group using a Fast Fourier Transform"""
 
     space_group: HashableArray
     """Array that lists the space group as permutations"""
@@ -214,7 +214,7 @@ class DenseSymmFFT(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if self.mask:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, 0)
 
         kernel = self.make_kernel(kernel)
@@ -246,7 +246,7 @@ class DenseSymmFFT(Module):
 
 
 class DenseEquivariantFFT(Module):
-    """Implements a group convolution using a fast fourier transform over the translation group.
+    r"""Implements a group convolution using a fast fourier transform over the translation group.
     The group convolution can be written in terms of translational convolutions with
     symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
     The translational convolutions are then implemented with Fast Fourier Transforms.
@@ -319,7 +319,7 @@ class DenseEquivariantFFT(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if self.mask:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.make_kernel(kernel)
@@ -352,21 +352,27 @@ class DenseEquivariantFFT(Module):
 
 
 class DenseEquivariantIrrep(Module):
-    """Implements a group convolutional layer by projecting onto irreducible
+    r"""Implements a group convolutional layer by projecting onto irreducible
     representations of the group.
 
     Acts on a feature map of shape [batch_size, in_features, n_symm] and
     eeturns a feature map of shape [batch_size, out_features, n_symm].
     The input and the output are related by
-    :: math ::
+
+    .. math ::
+
         y^{(i)}_g = \sum_{h,j} f^{(j)}_h W^{(ij)}_{h^{-1}g}.
+
     Note that this switches the convention of Cohen et al. to use an actual group
     convolution, but this doesn't affect equivariance.
     The convolution is implemented in terms of a group Fourier transform.
     Therefore, the group structure is represented internally as the set of its
     irrep matrices. After Fourier transforming, the convolution translates to
-    :: math ::
+
+    .. math ::
+
         y^{(i)}_\rho = \sum_j f^{(j)}_\rho W^{(ij)}_\rho,
+
     where all terms are d x d matrices rather than numbers, and the juxtaposition
     stands for matrix multiplication.
     """
@@ -434,10 +440,13 @@ class DenseEquivariantIrrep(Module):
         )
 
     def forward_ft(self, inputs: Array) -> Tuple[Array]:
-        """Performs a forward group Fourier transform on the input.
+        r"""Performs a forward group Fourier transform on the input.
         This is defined by
-        :: math ::
+
+        .. math ::
+
             \hat{f}_\rho = \sum_g f(g) \rho(g),
+
         where :math:`\rho` is an irrep of the group.
         The Fourier transform is performed over the last index, and is returned
         as a tuple of arrays, each entry corresponding to the entry of `irreps`
@@ -447,10 +456,13 @@ class DenseEquivariantIrrep(Module):
         return self.disassemble(jnp.tensordot(inputs, self.forward, axes=1))
 
     def inverse_ft(self, inputs: Tuple[Array]) -> Array:
-        """Performs an inverse group Fourier transform on the input.
+        r"""Performs an inverse group Fourier transform on the input.
         This is defined by
-        :: math ::
+
+        .. math ::
+
             f(g) = \frac{1}{|G|} \sum_\rho d_\rho {\rm Tr}(\rho(g^{-1}) \hat{f}_\rho)
+
         where the sum runs over all irreps of the group.
         The input is a tuple of arrays whose the last two dimensions match the
         dimensions of each irrep. The inverse Fourier transform is performed
@@ -483,7 +495,7 @@ class DenseEquivariantIrrep(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if self.mask:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.forward_ft(kernel)
@@ -589,7 +601,7 @@ class DenseEquivariantMatrix(Module):
 
         kernel = jnp.asarray(kernel, dtype)
 
-        if self.mask:
+        if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.full_kernel(kernel)
@@ -613,7 +625,7 @@ class DenseEquivariantMatrix(Module):
 
 
 def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
-    """
+    r"""
     Implements a projection onto a symmetry group. The output will be
     equivariant with respect to the symmetry operations in the group and can
     be averaged to produce an invariant model.
@@ -646,7 +658,7 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
     """
 
     if isinstance(symmetries, Lattice) and (
-        not point_group is None or not symmetries._point_group is None
+        point_group is not None or symmetries._point_group is not None
     ):
         shape = tuple(symmetries.extent)
         sym = HashableArray(np.asarray(symmetries.space_group(point_group)))
@@ -711,8 +723,10 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
             fourier transform over the translation group, a fourier transform using
             the irreducible representations or by constructing the full kernel matrix.
         shape: A tuple specifying the dimensions of the translation group.
-        features: The number of symmetry-reduced features. The full output size
-            is n_symm*features.
+        in_features: The number of symmetry-reduced features. The full input size
+            is n_symm*in_features.
+        out_features: The number of symmetry-reduced features. The full output size
+            is n_symm*out_features.
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
             that can be used to give the kernel a particular shape.
@@ -724,7 +738,7 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
     """
 
     if isinstance(symmetries, Lattice) and (
-        not point_group is None or not symmetries._point_group is None
+        point_group is not None or symmetries._point_group is not None
     ):
         shape = tuple(symmetries.extent)
         # With graph try to find point group, otherwise default to automorphisms
@@ -732,7 +746,7 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
         if mode == "auto":
             mode = "fft"
     elif isinstance(symmetries, Graph):
-        sg = symmetry_info.automorphisms()
+        sg = symmetries.automorphisms()
         if mode == "auto":
             mode = "irreps"
         elif mode == "fft":
@@ -747,7 +761,7 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
         sg = symmetries
 
     elif isinstance(symmetries, Sequence):
-        if not mode in ["irreps", "auto"]:
+        if mode not in ["irreps", "auto"]:
             raise ValueError("Specification of symmetries incompatible with mode")
         return DenseEquivariantIrrep(symmetries, **kwargs)
     else:

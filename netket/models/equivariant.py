@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional, Tuple, Any
+from typing import Tuple, Any
 
 import numpy as np
 
@@ -27,13 +27,11 @@ from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
 from jax.scipy.special import logsumexp
 
-from netket import nn as nknn
 from netket.nn.initializers import zeros
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
     DenseSymmFFT,
     DenseEquivariantFFT,
-    DenseEquivariantMatrix,
     DenseEquivariantIrrep,
 )
 
@@ -49,7 +47,7 @@ def unit_normal_scaling(key, shape, dtype):
 
 
 class GCNN_FFT(nn.Module):
-    """Implements a GCNN using a fast fourier transform over the translation group.
+    r"""Implements a GCNN using a fast fourier transform over the translation group.
     The group convolution can be written in terms of translational convolutions with
     symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
     The translational convolutions are then implemented with Fast Fourier Transforms.
@@ -140,22 +138,28 @@ class GCNN_FFT(nn.Module):
 
 
 class GCNN_Irrep(nn.Module):
-    """Implements a GCNN by projecting onto irreducible
+    r"""Implements a GCNN by projecting onto irreducible
     representations of the group. The projection onto
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
     eeturns a feature map of shape [batch_size, out_features, n_symm].
     The input and the output are related by
-    :: math ::
+
+    .. math ::
+
         y^{(i)}_g = \sum_{h,j} f^{(j)}_h W^{(ij)}_{h^{-1}g}.
+
     Note that this switches the convention of Cohen et al. to use an actual group
     convolution, but this doesn't affect equivariance.
     The convolution is implemented in terms of a group Fourier transform.
     Therefore, the group structure is represented internally as the set of its
     irrep matrices. After Fourier transforming, the convolution translates to
-    :: math ::
+
+    .. math ::
+
         y^{(i)}_\rho = \sum_j f^{(j)}_\rho W^{(ij)}_\rho,
+
     where all terms are d x d matrices rather than numbers, and the juxtaposition
     stands for matrix multiplication.
     """
@@ -239,7 +243,7 @@ class GCNN_Irrep(nn.Module):
 
 
 class GCNN_Parity_FFT(nn.Module):
-    """Implements a GCNN using a fast fourier transform over the translation group.
+    r"""Implements a GCNN using a fast fourier transform over the translation group.
     The group convolution can be written in terms of translational convolutions with
     symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
     The translational convolutions are then implemented with Fast Fourier Transforms.
@@ -375,22 +379,28 @@ class GCNN_Parity_FFT(nn.Module):
 
 
 class GCNN_Parity_Irrep(nn.Module):
-    """Implements a GCNN by projecting onto irreducible
+    r"""Implements a GCNN by projecting onto irreducible
     representations of the group. The projection onto
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
     eeturns a feature map of shape [batch_size, out_features, n_symm].
     The input and the output are related by
-    :: math ::
+
+    .. math ::
+
         y^{(i)}_g = \sum_{h,j} f^{(j)}_h W^{(ij)}_{h^{-1}g}.
+
     Note that this switches the convention of Cohen et al. to use an actual group
     convolution, but this doesn't affect equivariance.
     The convolution is implemented in terms of a group Fourier transform.
     Therefore, the group structure is represented internally as the set of its
     irrep matrices. After Fourier transforming, the convolution translates to
-    :: math ::
+
+    .. math ::
+
         y^{(i)}_\rho = \sum_j f^{(j)}_\rho W^{(ij)}_\rho,
+
     where all terms are d x d matrices rather than numbers, and the juxtaposition
     stands for matrix multiplication.
 
@@ -588,7 +598,7 @@ def GCNN(
         if mode == "auto":
             mode = "fft"
     elif isinstance(symmetries, Graph):
-        sg = symmetry_info.automorphisms()
+        sg = symmetries.automorphisms()
         if mode == "auto":
             mode = "irreps"
         if mode == "fft":
@@ -602,11 +612,11 @@ def GCNN(
             mode = "irreps"
         sg = symmetries
     else:
-        if not irreps is None and (mode == "irreps" or mode == "auto"):
+        if irreps is not None and (mode == "irreps" or mode == "auto"):
             mode = "irreps"
             sg = symmetries
             irreps = tuple(HashableArray(irrep) for irrep in irreps)
-        elif not product_table is None and (mode == "fft" or mode == "auto"):
+        elif product_table is not None and (mode == "fft" or mode == "auto"):
             mode = "fft"
             sg = symmetries
             product_table = HashableArray(product_table)
@@ -628,8 +638,10 @@ def GCNN(
     if isinstance(features, int):
         features = (features,) * layers
 
-    if not characters:
+    if characters is None:
         characters = HashableArray(np.ones(len(np.asarray(sg))))
+    else:
+        characters = HashableArray(characters)
 
     if mode == "fft":
         sym = HashableArray(np.asarray(sg))

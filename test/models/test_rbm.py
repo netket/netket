@@ -210,6 +210,24 @@ def test_GCNN_creation(mode):
                 )
             )
 
+    # character table
+    check_init(
+        lambda: nk.models.GCNN(
+            symmetries=g,
+            mode=mode,
+            layers=2,
+            features=4,
+            characters=np.ones([len(np.asarray(space_group))]),
+        )
+    )
+
+    # equal amplitudes
+    check_init(
+        lambda: nk.models.GCNN(
+            symmetries=g, mode=mode, layers=2, features=4, equal_amplitudes=True
+        )
+    )
+
 
 @pytest.mark.parametrize("use_hidden_bias", [True, False])
 @pytest.mark.parametrize("use_visible_bias", [True, False])
