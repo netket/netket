@@ -93,7 +93,8 @@ class PauliStrings(AbstractOperator):
 
         def append(key, k):
             # convert list to tuple
-            key = tuple(key)
+            key = set(key)  # order of X and Y does not matter
+            key = tuple(key)  # make hashable
             if key in acting:
                 acting[key].append(k)
             else:
