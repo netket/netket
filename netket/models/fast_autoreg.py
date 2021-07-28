@@ -12,73 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import abc
 from math import sqrt
 from typing import Any, Callable, Iterable, Tuple, Union
 
 import jax
-from flax import linen as nn
 from jax import numpy as jnp
 from plum import dispatch
 
-from netket.hilbert import Fock, Spin
-from netket.hilbert.homogeneous import HomogeneousHilbert
-from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
+from netket.models.autoreg import (
+    ARNN,
+    _call,
+    _conditionals,
+    _reshape_inputs,
+    l2_normalize,
+)
+from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
 from netket.nn.initializers import zeros
 from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc
 
 
-class ARNN(nn.Module):
-    """Base class for autoregressive neural networks."""
-
-    hilbert: HomogeneousHilbert
-    """the Hilbert space. Only homogeneous unconstrained Hilbert spaces are supported."""
-
-    def __post_init__(self):
-        super().__post_init__()
-
-        if not isinstance(self.hilbert, HomogeneousHilbert):
-            raise ValueError(
-                f"Only homogeneous Hilbert spaces are supported by ARNN, but hilbert is a {type(self.hilbert)}."
-            )
-
-        if self.hilbert.constrained:
-            raise ValueError("Only unconstrained Hilbert spaces are supported by ARNN.")
-
-    @abc.abstractmethod
-    def _conditional(self, inputs: Array, index: int) -> Array:
-        """
-        Computes the conditional probabilities for a site to take each value.
-        This method gives the expected output only if the correct caches are given in `variables`.
-        Typically, it should only be called successively with indices 0, 1, 2, ...,
-        as in the autoregressive sampling procedure.
-
-        Args:
-          inputs: configurations with dimensions (batch, Hilbert.size).
-          index: index of the site.
-
-        Returns:
-          The probabilities with dimensions (batch, Hilbert.local_size).
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def conditionals(self, inputs: Array) -> Array:
-        """
-        Computes the conditional probabilities for each site to take each value.
-
-        Args:
-          inputs: configurations with dimensions (batch, Hilbert.size).
-
-        Returns:
-          The probabilities with dimensions (batch, Hilbert.size, Hilbert.local_size).
-        """
-        raise NotImplementedError
-
-
-class ARNNDense(ARNN):
-    """Autoregressive neural network with dense layers."""
+class FastARNNDense(ARNN):
+    """
+    Fast autoregressive neural network with dense layers.
+    See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    TODO: FastMaskedDense1D does not support JIT yet
+    """
 
     layers: int
     """number of layers."""
@@ -107,7 +66,8 @@ class ARNNDense(ARNN):
         assert features[-1] == self.hilbert.local_size
 
         self._layers = [
-            MaskedDense1D(
+            FastMaskedDense1D(
+                size=self.hilbert.size,
                 features=features[i],
                 exclusive=(i == 0),
                 use_bias=self.use_bias,
@@ -120,7 +80,7 @@ class ARNNDense(ARNN):
         ]
 
     def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditionals(self, inputs)[:, index, :]
+        return _conditional(self, inputs, index)
 
     def conditionals(self, inputs: Array) -> Array:
         return _conditionals(self, inputs)
@@ -129,8 +89,11 @@ class ARNNDense(ARNN):
         return _call(self, inputs)
 
 
-class ARNNConv1D(ARNN):
-    """Autoregressive neural network with 1D convolution layers."""
+class FastARNNConv1D(ARNN):
+    """
+    Fast autoregressive neural network with 1D convolution layers.
+    See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    """
 
     layers: int
     """number of layers."""
@@ -163,7 +126,7 @@ class ARNNConv1D(ARNN):
         assert features[-1] == self.hilbert.local_size
 
         self._layers = [
-            MaskedConv1D(
+            FastMaskedConv1D(
                 features=features[i],
                 kernel_size=self.kernel_size,
                 kernel_dilation=self.kernel_dilation,
@@ -178,7 +141,7 @@ class ARNNConv1D(ARNN):
         ]
 
     def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditionals(self, inputs)[:, index, :]
+        return _conditional(self, inputs, index)
 
     def conditionals(self, inputs: Array) -> Array:
         return _conditionals(self, inputs)
@@ -187,8 +150,11 @@ class ARNNConv1D(ARNN):
         return _call(self, inputs)
 
 
-class ARNNConv2D(ARNN):
-    """Autoregressive neural network with 2D convolution layers."""
+class FastARNNConv2D(ARNN):
+    """
+    Fast autoregressive neural network with 2D convolution layers.
+    See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    """
 
     layers: int
     """number of layers."""
@@ -225,7 +191,8 @@ class ARNNConv2D(ARNN):
         assert features[-1] == self.hilbert.local_size
 
         self._layers = [
-            MaskedConv2D(
+            FastMaskedConv2D(
+                L=self.L,
                 features=features[i],
                 kernel_size=self.kernel_size,
                 kernel_dilation=self.kernel_dilation,
@@ -240,7 +207,7 @@ class ARNNConv2D(ARNN):
         ]
 
     def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditionals(self, inputs)[:, index, :]
+        return _conditional(self, inputs, index)
 
     def conditionals(self, inputs: Array) -> Array:
         return _conditionals(self, inputs)
@@ -249,89 +216,27 @@ class ARNNConv2D(ARNN):
         return _call(self, inputs)
 
 
-def l2_normalize(log_psi: Array) -> Array:
+def _conditional(model: ARNN, inputs: Array, index: int) -> Array:
     """
-    Normalizes log_psi to have L2-norm 1 along the last axis.
+    Computes the conditional probabilities for a site to take each value.
+    See `ARNN.conditional`.
     """
-    return log_psi - 1 / 2 * jax.scipy.special.logsumexp(
-        2 * log_psi.real, axis=-1, keepdims=True
-    )
+    if inputs.ndim == 1:
+        inputs = jnp.expand_dims(inputs, axis=0)
 
-
-def _conditionals_log_psi(model: ARNN, inputs: Array) -> Array:
-    """
-    Computes the log of the conditional wave-functions for each site if it takes each value.
-    See `ARNN.conditionals`.
-    """
-    inputs = _reshape_inputs(model, inputs)
-
-    x = jnp.expand_dims(inputs, axis=-1)
+    # When `index = 0`, it doesn't matter what slice of `x` we take
+    x = inputs[:, index - 1, None]
 
     for i in range(model.layers):
         if i > 0:
             x = model.activation(x)
-        x = model._layers[i](x)
+        x = model._layers[i].update_site(x, index)
 
-    x = x.reshape((x.shape[0], -1, x.shape[-1]))
     log_psi = l2_normalize(x)
-    return log_psi
-
-
-def _conditionals(model: ARNN, inputs: Array) -> Array:
-    """
-    Computes the conditional probabilities for each site to take each value.
-    See `ARNN.conditionals`.
-    """
-    if inputs.ndim == 1:
-        inputs = jnp.expand_dims(inputs, axis=0)
-
-    log_psi = _conditionals_log_psi(model, inputs)
-
     p = jnp.exp(2 * log_psi.real)
     return p
 
 
-def _call(model: ARNN, inputs: Array) -> Array:
-    """Returns log_psi."""
-
-    if inputs.ndim == 1:
-        inputs = jnp.expand_dims(inputs, axis=0)
-
-    idx = _local_states_to_numbers(model.hilbert, inputs)
-    idx = jnp.expand_dims(idx, axis=-1)
-
-    log_psi = _conditionals_log_psi(model, inputs)
-
-    log_psi = jnp.take_along_axis(log_psi, idx, axis=-1)
-    log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
-    return log_psi
-
-
 @dispatch
-def _reshape_inputs(model: ARNNConv2D, inputs: Array) -> Array:  # noqa: F811
+def _reshape_inputs(model: FastARNNConv2D, inputs: Array) -> Array:  # noqa: F811
     return inputs.reshape((inputs.shape[0], model.L, model.L))
-
-
-@dispatch
-def _reshape_inputs(model: Any, inputs: Array) -> Array:  # noqa: F811
-    return inputs
-
-
-@dispatch
-def _local_states_to_numbers(hilbert: Spin, x: Array) -> Array:  # noqa: F811
-    numbers = (x + hilbert.local_size - 1) / 2
-    numbers = jnp.asarray(numbers, jnp.int32)
-    return numbers
-
-
-@dispatch
-def _local_states_to_numbers(hilbert: Fock, x: Array) -> Array:  # noqa: F811
-    numbers = jnp.asarray(x, jnp.int32)
-    return numbers
-
-
-@dispatch
-def _local_states_to_numbers(hilbert: Any, x: Array) -> Array:  # noqa: F811
-    raise NotImplementedError(
-        f"_local_states_to_numbers is not implemented for hilbert {type(hilbert)}."
-    )

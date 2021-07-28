@@ -13,14 +13,17 @@
 # limitations under the License.
 
 import netket as nk
+import numpy as np
 import optax
 import pytest
+from jax import numpy as jnp
 
 from .. import common
 
 pytestmark = common.skipif_mpi
 
 
+@pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize(
     "hilbert",
     [
@@ -38,16 +41,134 @@ pytestmark = common.skipif_mpi
         ),
     ],
 )
-def test_AR_VMC(hilbert):
+@pytest.mark.parametrize(
+    "partial_models",
+    [
+        # pytest.param(
+        #     (
+        #         lambda hilbert, dtype: nk.models.ARNNDense(
+        #             hilbert=hilbert,
+        #             layers=3,
+        #             features=5,
+        #             dtype=dtype,
+        #         ),
+        #         lambda hilbert, dtype: nk.models.FastARNNDense(
+        #             hilbert=hilbert,
+        #             layers=3,
+        #             features=5,
+        #             dtype=dtype,
+        #         ),
+        #     ),
+        #     id="dense",
+        # ),
+        pytest.param(
+            (
+                lambda hilbert, dtype: nk.models.ARNNConv1D(
+                    hilbert=hilbert,
+                    layers=3,
+                    features=5,
+                    kernel_size=2,
+                    dtype=dtype,
+                ),
+                lambda hilbert, dtype: nk.models.FastARNNConv1D(
+                    hilbert=hilbert,
+                    layers=3,
+                    features=5,
+                    kernel_size=2,
+                    dtype=dtype,
+                ),
+            ),
+            id="conv1d",
+        ),
+        pytest.param(
+            (
+                lambda hilbert, dtype: nk.models.ARNNConv1D(
+                    hilbert=hilbert,
+                    layers=3,
+                    features=5,
+                    kernel_size=2,
+                    kernel_dilation=2,
+                    dtype=dtype,
+                ),
+                lambda hilbert, dtype: nk.models.FastARNNConv1D(
+                    hilbert=hilbert,
+                    layers=3,
+                    features=5,
+                    kernel_size=2,
+                    kernel_dilation=2,
+                    dtype=dtype,
+                ),
+            ),
+            id="conv1d_dilation",
+        ),
+        pytest.param(
+            (
+                lambda hilbert, dtype: nk.models.ARNNConv2D(
+                    hilbert=hilbert,
+                    layers=3,
+                    features=5,
+                    kernel_size=(2, 3),
+                    dtype=dtype,
+                ),
+                lambda hilbert, dtype: nk.models.FastARNNConv2D(
+                    hilbert=hilbert,
+                    layers=3,
+                    features=5,
+                    kernel_size=(2, 3),
+                    dtype=dtype,
+                ),
+            ),
+            id="conv2d",
+        ),
+        pytest.param(
+            (
+                lambda hilbert, dtype: nk.models.ARNNConv2D(
+                    hilbert=hilbert,
+                    layers=3,
+                    features=5,
+                    kernel_size=(2, 3),
+                    kernel_dilation=(2, 2),
+                    dtype=dtype,
+                ),
+                lambda hilbert, dtype: nk.models.FastARNNConv2D(
+                    hilbert=hilbert,
+                    layers=3,
+                    features=5,
+                    kernel_size=(2, 3),
+                    kernel_dilation=(2, 2),
+                    dtype=dtype,
+                ),
+            ),
+            id="conv2d_dilation",
+        ),
+    ],
+)
+def test_AR_VMC(partial_models, hilbert, dtype):
+    model1 = partial_models[0](hilbert, dtype)
+    model2 = partial_models[1](hilbert, dtype)
+
+    sampler1 = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
+    vstate1 = nk.vqs.MCState(sampler1, model1, n_samples=6, seed=123, sampler_seed=456)
+    assert vstate1.n_discard_per_chain == 0
+    samples1 = vstate1.sample()
+
     graph = nk.graph.Hypercube(length=hilbert.size, n_dim=1)
-    model = nk.models.ARNNDense(hilbert=hilbert, layers=3, features=5)
-    sampler = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
-
-    vstate = nk.vqs.MCState(sampler, model, n_samples=6)
-    assert vstate.n_discard_per_chain == 0
-    vstate.sample()
-
     H = nk.operator.Ising(hilbert=hilbert, graph=graph, h=1)
     optimizer = optax.adam(learning_rate=1e-3)
-    vmc = nk.VMC(H, optimizer, variational_state=vstate)
-    vmc.run(n_iter=3)
+    vmc1 = nk.VMC(H, optimizer, variational_state=vstate1)
+    vmc1.run(n_iter=3)
+    samples_trained1 = vstate1.sample()
+
+    sampler2 = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
+    vstate2 = nk.vqs.MCState(sampler2, model2, n_samples=6, seed=123, sampler_seed=456)
+    samples2 = vstate2.sample()
+
+    # Samples from FastARNN* should be the same as those from ARNN*
+    np.testing.assert_allclose(samples2, samples1)
+
+    vmc2 = nk.VMC(H, optimizer, variational_state=vstate2)
+    vmc2.run(n_iter=3)
+    samples_trained2 = vstate2.sample()
+
+    # Samples from FastARNN* after training should be the same as those from ARNN*
+    np.testing.assert_allclose(samples_trained2, samples_trained1)
