@@ -265,6 +265,7 @@ def test_pauli():
 
 
 def test_pauli_order():
+    """Check related to PR #836"""
     coeff1 = 1 + 0.9j
     coeff2 = 0.3 + 0.43j
     op = nk.operator.PauliStrings(["IZXY", "ZZYX"], [coeff1, coeff2])
