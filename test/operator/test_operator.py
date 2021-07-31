@@ -262,3 +262,33 @@ def test_pauli():
     assert np.allclose(op.to_dense(), op_l.to_dense())
 
     assert op.to_sparse().shape == op_l.to_sparse().shape
+
+
+def test_pauli_order():
+    """Check related to PR #836"""
+    coeff1 = 1 + 0.9j
+    coeff2 = 0.3 + 0.43j
+    op = nk.operator.PauliStrings(["IZXY", "ZZYX"], [coeff1, coeff2])
+    op1 = nk.operator.PauliStrings(["IZXY"], [coeff1])
+    op2 = nk.operator.PauliStrings(["ZZYX"], [coeff2])
+    op1_true = (
+        coeff1
+        * nk.operator.spin.sigmaz(op.hilbert, 1, dtype=complex)
+        * nk.operator.spin.sigmax(op.hilbert, 2)
+        * nk.operator.spin.sigmay(op.hilbert, 3)
+    )
+    op2_true = (
+        coeff2
+        * nk.operator.spin.sigmaz(op.hilbert, 0, dtype=complex)
+        * nk.operator.spin.sigmaz(op.hilbert, 1)
+        * nk.operator.spin.sigmay(op.hilbert, 2)
+        * nk.operator.spin.sigmax(op.hilbert, 3)
+    )
+    assert np.allclose(op1.to_dense(), op1_true.to_dense())
+    assert np.allclose(op2.to_dense(), op2_true.to_dense())
+    assert np.allclose(op.to_dense(), (op1_true.to_dense() + op2_true.to_dense()))
+
+    v = op.hilbert.all_states()
+    vp, mels = op.get_conn_padded(v)
+    assert vp.shape[1] == 1
+    assert mels.shape[1] == 1
