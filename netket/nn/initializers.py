@@ -17,9 +17,14 @@ from functools import partial
 import jax
 from flax.linen.initializers import *
 from jax import numpy as jnp
-from jax._src.nn.initializers import _compute_fans
-
 from netket.jax.utils import dtype_real
+
+
+def _compute_fans(shape, in_axis=-2, out_axis=-1):
+    receptive_field_size = shape.total / shape[in_axis] / shape[out_axis]
+    fan_in = shape[in_axis] * receptive_field_size
+    fan_out = shape[out_axis] * receptive_field_size
+    return fan_in, fan_out
 
 
 def _complex_uniform(key, shape, dtype):

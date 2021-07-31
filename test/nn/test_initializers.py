@@ -55,6 +55,8 @@ def test_initializer(init, dtype):
 
     assert jnp.abs(param).max() == pytest.approx(max_norm, abs=1e-3)
 
+    # Draw random samples using rejection sampling, and test if `param` and
+    # `samples` are from the same distribution
     rand_shape = (10 ** 3,)
     rand_dtype = dtype_real(dtype)
     if init == "uniform":
