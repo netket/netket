@@ -88,7 +88,7 @@ def sigmaz(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalO
 
 def sigmam(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
-    Builds the :math:`\\sigma^{-} = \\sigma^x - i \\sigma^y` operator acting on the
+    Builds the :math:`\\sigma^{-} = \\frac{1}{2}(\\sigma^x - i \\sigma^y)` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Spin space of local dimension M, it is considered
@@ -111,7 +111,7 @@ def sigmam(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalO
 
 def sigmap(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
     """
-    Builds the :math:`\\sigma^{+} = \\sigma^x + i \\sigma^y` operator acting on the
+    Builds the :math:`\\sigma^{+} = \\frac{1}{2}(\\sigma^x + i \\sigma^y)` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Spin space of local dimension M, it is considered
