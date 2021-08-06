@@ -257,7 +257,7 @@ A simple example to serialize data is provided below:
 
     import flax
 
-    with open("test.mpack", 'w') as file:
+    with open("test.mpack", 'wb') as file:
       file.write(flax.serialization.to_bytes(vstate))
 
 
