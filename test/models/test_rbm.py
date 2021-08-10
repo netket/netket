@@ -24,22 +24,19 @@ import pytest
 
 
 @pytest.mark.parametrize("use_hidden_bias", [True, False])
-@pytest.mark.parametrize("use_visible_bias", [True, False])
+@pytest.mark.parametrize("parity", [True, False])
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
-def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
+def test_RBMSymm(use_hidden_bias, parity, symmetries):
     g, hi, perms = _setup_symm(symmetries, N=8)
 
     ma = nk.models.RBMSymm(
         symmetries=perms,
         alpha=4,
-        use_visible_bias=use_visible_bias,
+        parity=parity,
         use_hidden_bias=use_hidden_bias,
         hidden_bias_init=nk.nn.initializers.uniform(),
-        visible_bias_init=nk.nn.initializers.uniform(),
     )
     pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
-
-    print(pars)
 
     v = hi.random_state(jax.random.PRNGKey(1), 3)
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]

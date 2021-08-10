@@ -26,6 +26,7 @@ from netket.utils.group import PermutationGroup
 from netket import nn as nknn
 from netket.nn.initializers import normal
 from netket.models.equivariant import GCNN
+from netket.graph import Lattice, Graph
 
 
 default_kernel_init = normal(stddev=0.01)
@@ -193,7 +194,15 @@ class RBMMultiVal(nn.Module):
         return self.RBM(x_oh)
 
 
-def RBMSymm(alpha=None, features=None, activation=nknn.log_cosh):
+def RBMSymm(
+    symmetries=None,
+    alpha=None,
+    features=1,
+    activation=nknn.log_cosh,
+    use_hidden_bias=True,
+    hidden_bias_init=None,
+    **kwargs,
+):
     """
     A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
 
@@ -239,69 +248,22 @@ def RBMSymm(alpha=None, features=None, activation=nknn.log_cosh):
                 f"RBMSymm: alpha={alpha} is too small "
                 f"for {n_symm} permutations, alpha ≥ {n_symm / n_sites} is needed."
             )
-
-    return GCNN(layers=1, features=features, output_activation=activation, **kwargs)
-
-
-class RBMSymm(nn.Module):
-    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
-
-    symmetries: Union[HashableArray, PermutationGroup]
-    """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
-    Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
-    """
-    dtype: Any = np.float64
-    """The dtype of the weights."""
-    activation: Any = nknn.log_cosh
-    """The nonlinear activation function."""
-    alpha: Union[float, int] = 1
-    """feature density. Number of features equal to alpha * input.shape[-1]"""
-    use_hidden_bias: bool = True
-    """if True uses a bias in the dense layer (hidden layer bias)."""
-    use_visible_bias: bool = True
-    """if True adds a bias to the input not passed through the nonlinear layer."""
-    precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
-
-    kernel_init: NNInitFunc = normal(stddev=0.1)
-    """Initializer for the Dense layer matrix."""
-    hidden_bias_init: NNInitFunc = normal(stddev=0.1)
-    """Initializer for the hidden bias."""
-    visible_bias_init: NNInitFunc = normal(stddev=0.1)
-    """Initializer for the visible bias."""
-
-    def setup(self):
-        self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
-        self.features = int(self.alpha * self.n_sites / self.n_symm)
-        if self.alpha > 0 and self.features == 0:
-            raise ValueError(
-                f"RBMSymm: alpha={self.alpha} is too small "
-                f"for {self.n_symm} permutations, alpha ≥ {self.n_symm / self.n_sites} is needed."
-            )
-
-    @nn.compact
-    def __call__(self, x_in):
-        x = nknn.DenseSymm(
-            name="Dense",
-            mode="matrix",
-            symmetries=self.symmetries,
-            features=self.features,
-            dtype=self.dtype,
-            use_bias=self.use_hidden_bias,
-            kernel_init=self.kernel_init,
-            bias_init=self.hidden_bias_init,
-            precision=self.precision,
-        )(x_in)
-        x = self.activation(x)
-
-        x = x.reshape(-1, self.features * self.n_symm)
-        x = jnp.sum(x, axis=-1)
-
-        if self.use_visible_bias:
-            v_bias = self.param(
-                "visible_bias", self.visible_bias_init, (1,), self.dtype
-            )
-            out_bias = v_bias[0] * jnp.sum(x_in, axis=-1)
-            return x + out_bias
-        else:
-            return x
+    if hidden_bias_init is None:
+        return GCNN(
+            symmetries=symmetries,
+            layers=1,
+            features=features,
+            output_activation=activation,
+            use_bias=use_hidden_bias,
+            **kwargs,
+        )
+    else:
+        return GCNN(
+            symmetries=symmetries,
+            layers=1,
+            features=features,
+            output_activation=activation,
+            use_bias=use_hidden_bias,
+            bias_init=hidden_bias_init,
+            **kwargs,
+        )

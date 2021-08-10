@@ -612,7 +612,9 @@ def GCNN(
             mode = "irreps"
         sg = symmetries
     else:
-        if irreps is not None and (mode == "irreps" or mode == "auto"):
+        if layers == 1:
+            sg = symmetries
+        elif irreps is not None and (mode == "irreps" or mode == "auto"):
             mode = "irreps"
             sg = symmetries
             irreps = tuple(HashableArray(irrep) for irrep in irreps)
@@ -645,7 +647,7 @@ def GCNN(
 
     if mode == "fft":
         sym = HashableArray(np.asarray(sg))
-        if product_table is None:
+        if product_table is None and layers > 1:
             product_table = HashableArray(sg.product_table)
         if parity:
             return GCNN_Parity_FFT(
@@ -671,7 +673,7 @@ def GCNN(
     elif mode in ["irreps", "auto"]:
         sym = HashableArray(np.asarray(sg))
 
-        if irreps is None:
+        if irreps is None and layers > 1:
             irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
 
         if parity:
