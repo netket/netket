@@ -29,7 +29,7 @@ def _compute_fans(shape, in_axis=-2, out_axis=-1):
 
 def _complex_uniform(key, shape, dtype):
     """
-    Sample uniform random values within a circle on the complex plane,
+    Sample uniform random values within a disk on the complex plane,
     with zero mean and unit variance.
     """
     key_r, key_theta = jax.random.split(key)
@@ -56,7 +56,32 @@ def variance_scaling(
     scale, mode, distribution, in_axis=-2, out_axis=-1, dtype=jnp.float32
 ):
     """
-    `jax.nn.initializers.variance_scaling` with complex dtype supported.
+    Initializer capable of adapting its scale to the shape of the weights tensor.
+
+    With `distribution="truncated_normal" or "normal"`, samples are
+    drawn from a truncated/untruncated normal distribution with a mean of zero and
+    a standard deviation (after truncation, if used) `stddev = sqrt(scale / n)`,
+    where `n` is:
+    - number of input units in the weights tensor, if `mode="fan_in"`
+    - number of output units, if `mode="fan_out"`
+    - average of the numbers of input and output units, if `mode="fan_avg"`
+
+    With `distribution="truncated_normal"`, the absolute values of the samples are
+    truncated below 2 standard deviations before truncation.
+
+    With `distribution="uniform"`, samples are drawn from:
+    - a uniform interval, if `dtype` is real
+    - a uniform disk, if `dtype` is complex
+    with a mean of zero and a standard deviation of `stddev`.
+
+    Args:
+      scale: scaling factor (positive float).
+      mode: one of "fan_in", "fan_out", and "fan_avg".
+      distribution: random distribution to use. One of "truncated_normal",
+        "normal" and "uniform".
+      in_axis: axis of the input dimension in the weights tensor (default: -2).
+      out_axis: axis of the output dimension in the weights tensor (default: -1).
+      dtype: the dtype of the weights (default: float32).
     """
 
     def init(key, shape, dtype=dtype):
