@@ -75,6 +75,8 @@ class ARNN(nn.Module):
 
         Examples:
 
+          >>> import pytest; pytest.skip("skip automated test of this docstring")
+          >>>
           >>> p = model.apply(variables, σ, method=model.conditionals)
           >>> print(p[2, 3, :])
           [0.3 0.7]
