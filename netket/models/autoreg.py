@@ -61,7 +61,6 @@ class ARNN(nn.Module):
         Returns:
           The probabilities with dimensions (batch, Hilbert.local_size).
         """
-        raise NotImplementedError
 
     @abc.abstractmethod
     def conditionals(self, inputs: Array) -> Array:
@@ -73,8 +72,16 @@ class ARNN(nn.Module):
 
         Returns:
           The probabilities with dimensions (batch, Hilbert.size, Hilbert.local_size).
+
+        Examples:
+
+          >>> p = model.apply(variables, σ, method=model.conditionals)
+          >>> print(p[2, 3, :])
+          [0.3 0.7]
+          # For the 3rd spin of the 2nd sample in the batch,
+          # it takes probability 0.3 to be spin down (local state index 0),
+          # and probability 0.7 to be spin up (local state index 1).
         """
-        raise NotImplementedError
 
 
 class ARNNDense(ARNN):
