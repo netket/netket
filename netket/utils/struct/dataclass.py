@@ -132,6 +132,10 @@ class CachedProperty:
 def property_cached(fun=None, pytree_node=False):
     """Decorator to make the method behave as a property but cache the resulting value and
     clears it upon replace.
+
+    Args:
+        pytree_node: a leaf node in the pytree representation of this dataclass.
+            If False this must be hashable
     """
     if fun is None:
         return partial(property_cached, pytree_node=pytree_node)
