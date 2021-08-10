@@ -62,10 +62,9 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 source_suffix = [".rst", ".ipynb", ".md"]
 
 # Markdown parser latex support
-myst_enable_extensions = ["dollarmath", "amsmath"]
-
+myst_enable_extensions = ["dollarmath", "amsmath", "braket"]
+myst_update_mathjax = False
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
-
 
 # -- Options for HTML output -------------------------------------------------
 
