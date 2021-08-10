@@ -129,14 +129,18 @@ class CachedProperty:
         )
 
 
-def property_cached(fun):
+def property_cached(fun=None, pytree_node=False):
     """Decorator to make the method behave as a property but cache the resulting value and
     clears it upon replace.
-    """
-    # if fun is None:
-    #    return partial(property_cached, pytree_node=pytree_node)
 
-    return CachedProperty(fun, pytree_node=False)
+    Args:
+        pytree_node: a leaf node in the pytree representation of this dataclass.
+            If False this must be hashable
+    """
+    if fun is None:
+        return partial(property_cached, pytree_node=pytree_node)
+
+    return CachedProperty(fun, pytree_node=pytree_node)
 
 
 def _set_annotation(clz, attr, typ):
@@ -243,7 +247,7 @@ def process_cached_properties(clz, globals=None):
         _precompute_body_method.append("pass")
 
     fun = _create_fn(
-        name,
+        PRECOMPUTE_CACHED_PROPERTY_NAME,
         [self_name],
         _precompute_body_method,
         globals=globals,
@@ -288,14 +292,18 @@ def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash
     _set_new_attribute(data_clz, _DATACLASS_INIT_NAME, data_clz.__init__)
 
     # Create a new init function calling __pre_init__ and then __dataclass_init__
+    # If __precompute_cached_properties is True, then also precompute all cached
+    # properties after having initialised the dataclass
     self_name = "self"
     body_lines = [
         "if not __skip_preprocess:",
         f"\targs, kwargs = {self_name}.{_PRE_INIT_NAME}(*args, **kwargs)",
         f"{self_name}.{_DATACLASS_INIT_NAME}(*args, **kwargs)",
+        "if __precompute_cached_properties:",
+        f"\t{self_name}.{PRECOMPUTE_CACHED_PROPERTY_NAME}()",
     ]
 
-    # If r3equested, create the cache hash field
+    # If requested, create the cache hash field
     if cache_hash:
         body_lines.append(
             f"BUILTINS.object.__setattr__({self_name},{_hash_cache_name(data_clz.__name__)!r},Uninitialized)"
@@ -303,7 +311,13 @@ def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash
 
     fun = _create_fn(
         "__init__",
-        [self_name, "*args", "__skip_preprocess=False", "**kwargs"],
+        [
+            self_name,
+            "*args",
+            "__precompute_cached_properties=False",
+            "__skip_preprocess=False",
+            "**kwargs",
+        ],
         body_lines,
         globals=globals,
     )
@@ -405,8 +419,12 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False):
     cache_fields = []
     for _, cp in getattr(data_clz, _CACHES, {}).items():
         cache_fields.append(cp.cache_name)
+        # they count as struct fields
+        if cp.pytree_node:
+            data_fields.append(cp.cache_name)
         # they count as meta fields
-        meta_fields.append(cp.cache_name)
+        else:
+            meta_fields.append(cp.cache_name)
 
     def replace(self, **updates):
         """Returns a new object replacing the specified fields with new values."""

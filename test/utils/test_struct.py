@@ -168,3 +168,44 @@ def test_cache_hash():
     assert a.__Point0cache_hash_cache == 123
     object.__setattr__(a, "__Point0cache_hash_cache", 1234)
     hash(a) == 1234
+
+
+@struct.dataclass
+class PointC:
+    x: float
+    y: float
+
+    @struct.property_cached(pytree_node=True)
+    def cached_node(self) -> int:
+        return self.x * self.y
+
+
+# test for pytree_node=True cached properties
+def test_cached_pytreenode_properties():
+    # check cache uninitialized then populated
+    p = PointC(2.0, 3.0)
+    assert p.__cached_node_cache is struct.Uninitialized
+    assert p.cached_node == 2.0 * 3.0
+    assert p.__cached_node_cache == 6.0
+
+    # check cache reset after call to replace
+    p = p.replace(y=3.0)
+    assert p.__cached_node_cache is struct.Uninitialized
+    assert p.cached_node == 2.0 * 3.0
+    assert p.__cached_node_cache == 6.0
+
+    @jax.jit
+    def compute(x: PointC):
+        return x.cached_node * 3, x
+
+    # check cache populated when returned from jitted function
+    p = PointC(2.0, 3.0)
+    res, p2 = compute(p)
+    assert p.__cached_node_cache is struct.Uninitialized
+    assert res == 6.0 * 3
+    assert p2.__cached_node_cache == 6.0
+
+    # check cache not modified by jit
+    res, p3 = compute(p2)
+    assert res == 6.0 * 3
+    assert p3.__cached_node_cache == 6.0
