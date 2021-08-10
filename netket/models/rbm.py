@@ -25,6 +25,8 @@ from netket.utils.group import PermutationGroup
 
 from netket import nn as nknn
 from netket.nn.initializers import normal
+from netket.models.equivariant import GCNN
+
 
 default_kernel_init = normal(stddev=0.01)
 
@@ -189,6 +191,56 @@ class RBMMultiVal(nn.Module):
         x_oh = jnp.reshape(x_oh, batches + (self.n_classes * N,))
         # apply the rbm to this output
         return self.RBM(x_oh)
+
+
+def RBMSymm(alpha=None, features=None, activation=nknn.log_cosh):
+    """
+    A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
+
+    Args:
+        symmetries: A specification of the symmetry group. Can be given by a
+            nk.graph.Graph, a nk.utils.PermuationGroup, or an array [n_symm, n_sites]
+            specifying the permutations corresponding to symmetry transformations
+            of the lattice.
+        dtype: The dtype of the weights.
+        activation: The nonlinear activation function.
+        alpha: feature density. Number of features equal to alpha * input.shape[-1]
+        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias).
+        precision: numerical precision of the computation see `jax.lax.Precision`for details.
+        kernel_init: Initializer for the Dense layer matrix.
+        hidden_bias_init: Initializer for the hidden bias.
+        characters: Array specifying the characters of the desired symmetry representation
+        parity: Optional argument with value +/-1 that specifies the eigenvalue
+            with respect to parity (only use on two level systems).
+        equal_amplitudes: If True forces all basis states to have equal amplitude
+            by setting Re[psi] = 0.
+        mode: string "fft, matrix, auto" specifying whether to use a fast
+            fourier transform over the translation group, or by constructing
+            the full kernel matrix.
+        point_group: The point group, from which the space group is built.
+            If symmetries is a graph the default point group is overwritten.
+    """
+
+    if alpha is not None:
+        if isinstance(symmetries, Graph) and (
+            point_group is not None or symmetries._point_group is not None
+        ):
+            n_sites = symmetries.n_nodes
+            n_symm = symmetries.space_group(point_group)
+        elif isinstance(symmetries, Graph):
+            n_sites = symmetries.n_nodes
+            n_symm = len(symmetries.automorphisms())
+        else:
+            n_symm, n_sites = np.asarray(symmetries).shape
+
+        features = int(alpha * n_sites / n_symm)
+        if alpha > 0 and features == 0:
+            raise ValueError(
+                f"RBMSymm: alpha={alpha} is too small "
+                f"for {n_symm} permutations, alpha ≥ {n_symm / n_sites} is needed."
+            )
+
+    return GCNN(layers=1, features=features, output_activation=activation, **kwargs)
 
 
 class RBMSymm(nn.Module):

@@ -568,9 +568,9 @@ def GCNN(
             Only needs to be specified if mode='irreps' and symmetries is specified as an array.
         point_group: The point group, from which the space group is built.
             If symmetries is a graph the default point group is overwritten.
-        mode: string "fft, irreps, matrix, auto" specifying whether to use a fast
-            fourier transform over the translation group, a fourier transform using
-            the irreducible representations or by constructing the full kernel matrix.
+        mode: string "fft, irreps, auto" specifying whether to use a fast
+            fourier transform over the translation group, or a fourier transform using
+            the irreducible representations.
         shape: A tuple specifying the dimensions of the translation group.
         layers: Number of layers (not including sum layer over output).
         features: Number of features in each layer starting from the input. If a single
