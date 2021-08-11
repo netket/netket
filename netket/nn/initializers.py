@@ -74,6 +74,11 @@ def variance_scaling(
     - a uniform disk, if `dtype` is complex
     with a mean of zero and a standard deviation of `stddev`.
 
+    The generalization of variance scaling initializers to complex numbers is discussed in,
+    e.g., `Trabelsi et. {\\it al} <https://arxiv.org/abs/1705.09792>`_.
+    They proposed an axisymmetric distribution implemented by first sampling the modulus
+    from the radial CDF, then uniformly sampling the phase.
+
     Args:
       scale: scaling factor (positive float).
       mode: one of "fan_in", "fan_out", and "fan_avg".

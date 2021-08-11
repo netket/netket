@@ -16,27 +16,33 @@ from math import sqrt
 
 import jax
 import netket as nk
+import numpy as np
 import pytest
 from jax import numpy as jnp
 from netket.jax.utils import dtype_real
 from netket.nn.initializers import lecun_normal, lecun_uniform
-from numpy import prod
 from scipy.stats import kstest
 
 
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
+@pytest.mark.parametrize("ndim", [2, 3, 4])
 @pytest.mark.parametrize("init", ["uniform", "truncated_normal"])
-def test_initializer(init, dtype):
+def test_initializer(init, ndim, dtype):
     if init == "uniform":
         init_fun = lecun_uniform()
     elif init == "truncated_normal":
         init_fun = lecun_normal()
 
     key = nk.jax.PRNGKey()
-    shape = (2, 2, 2, 10 ** 6)
+    # The lengths of the weight dimensions and the input dimension are random
+    shape = tuple(np.random.randint(1, 10) for _ in range(ndim))
+    shape_prod = np.prod(shape)
+    # The length of the output dimension is a statistically large number, but not too large that OOM
+    len_out = int(10 ** 7 / shape_prod)
+    shape += (len_out,)
     param = init_fun(key, shape, dtype)
 
-    variance = 1 / prod(shape[:-1])
+    variance = 1 / shape_prod
     stddev = sqrt(variance)
 
     assert param.mean() == pytest.approx(0, abs=1e-3)
