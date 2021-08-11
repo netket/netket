@@ -9,16 +9,27 @@
 [GitHub commits](https://github.com/netket/netket/compare/v3.0b3...master).
 
 ### New features
-
+* DenseSymm now accepts a mode argument to specify whever the symmetries should be computed with a full dense matrix or FFT. The latter method is much faster for sufficiently large systems. Other kwargs have been added to satisfy the interface. The api changes are also reflected in RBMSymm and GCNN. [#792](https://github.com/netket/netket/pull/792)
 
 ### Breaking Changes
-
+* The so-called legacy netket in `netket.legacy` has been removed. [#773](https://github.com/netket/netket/pull/773)
 
 ### Internal Changes
+* The methods `expect` and `expect_and_grad` of `MCState` now use dispatch to select the relevant implementation of the algorithm. They can therefore be expanded and overridden without editing NetKet's source code. [#804](https://github.com/netket/netket/pull/804)
+* `netket.utils.mpi_available` has been moved to `netket.utils.mpi.available` to have a more consistent api interface (all mpi-related properties in the same submodule). [#827](https://github.com/netket/netket/pull/827)
+* `netket.logging.TBLog` has been renamed to `netket.logging.TensorBoardLog` for better readability. A deprecation warning is now issued if the older name is used [#827](https://github.com/netket/netket/pull/827)
+* When `MCState` initializes a model by calling `model.init`, the call is now jitted. This should speed it up for non-trivial models but might break non-jit invariant models.  [#832](https://github.com/netket/netket/pull/832)
+* `operator.get_conn_padded` now supports arbitrarily-dimensioned bitstrings as input and reshapes the output accordingly.  [#834](https://github.com/netket/netket/pull/834)
+* NetKet's implementation of dataclasses now support `pytree_node=True/False` on cached properties. [#835](https://github.com/netket/netket/pull/835)
+* Plum version has been bumped to 1.5.1 to avoid broken versions (1.4, 1.5). [#856](https://github.com/netket/netket/pull/856).
+* Numba version 0.54 is now allowed [#857](https://github.com/netket/netket/pull/857).
 
 
 ### Bug Fixes
-
+* Fix Progress bar bug. [#810](https://github.com/netket/netket/pull/810)
+* Make the repr/printing of history objects nicer in the REPL. [#819](https://github.com/netket/netket/pull/819)
+* The field `MCState.model` is now read-only, to prevent user errors. [#822](https://github.com/netket/netket/pull/822)
+* The order of the operators in `PauliString` does no longer influences the estimate of the number of non-zero connected elements. [#836](https://github.com/netket/netket/pull/836)
 
 ## NetKet 3.0b3 (published on 9 july 2021)
 
