@@ -38,7 +38,7 @@ def test_initializer(init, ndim, dtype):
     shape = tuple(np.random.randint(1, 10) for _ in range(ndim))
     shape_prod = np.prod(shape)
     # The length of the output dimension is a statistically large number, but not too large that OOM
-    len_out = int(10 ** 7 / shape_prod)
+    len_out = int(10 ** 6 / shape_prod)
     shape += (len_out,)
     param = init_fun(key, shape, dtype)
 
@@ -63,16 +63,16 @@ def test_initializer(init, ndim, dtype):
 
     # Draw random samples using rejection sampling, and test if `param` and
     # `samples` are from the same distribution
-    rand_shape = (10 ** 3,)
+    rand_key = nk.jax.PRNGKey()
+    rand_shape = (10 ** 4,)
     rand_dtype = dtype_real(dtype)
     if init == "uniform":
         if jnp.issubdtype(dtype, jnp.floating):
-            key = nk.jax.PRNGKey()
             samples = jax.random.uniform(
-                key, rand_shape, rand_dtype, -max_norm, max_norm
+                rand_key, rand_shape, rand_dtype, -max_norm, max_norm
             )
         else:
-            key_real, key_imag = jax.random.split(nk.jax.PRNGKey())
+            key_real, key_imag = jax.random.split(rand_key)
             samples = (
                 jax.random.uniform(
                     key_real, rand_shape, rand_dtype, -max_norm, max_norm
@@ -87,7 +87,7 @@ def test_initializer(init, ndim, dtype):
             rand_stddev = max_norm / 2
         else:
             rand_stddev = max_norm / (2 * sqrt(2))
-        samples = jax.random.normal(key, rand_shape, rand_dtype) * rand_stddev
+        samples = jax.random.normal(rand_key, rand_shape, rand_dtype) * rand_stddev
     samples = samples[jnp.abs(samples) < max_norm]
 
     _, pvalue = kstest(param.flatten(), samples)
