@@ -189,4 +189,4 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             Sd_all = S.to_dense()
 
-            np.testing.assert_allclose(Sd_all, Sd, rtol=1e-5, atol=1e-17)
+            np.testing.assert_allclose(Sd_all, Sd, rtol=1e-5, atol=1e-15)
