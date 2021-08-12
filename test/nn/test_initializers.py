@@ -33,7 +33,7 @@ def test_initializer(init, ndim, dtype):
     elif init == "truncated_normal":
         init_fun = lecun_normal()
 
-    key = nk.jax.PRNGKey()
+    key = nk.jax.PRNGKey(12)
     # The lengths of the weight dimensions and the input dimension are random
     shape = tuple(np.random.randint(1, 10) for _ in range(ndim))
     shape_prod = np.prod(shape)
