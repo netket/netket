@@ -18,6 +18,7 @@ import jax as _jax
 import jaxlib as _jaxlib
 import numpy as _np
 
+# TODO: remove when jaxlib 0.1.61 is required and M1 jax/netket runs on m1 natively.
 # compatibility with jaxlib<=0.1.61
 # we don't really support this old jaxlib, because previous
 # versions had bugs and dont work with mpi4jax, but some people
