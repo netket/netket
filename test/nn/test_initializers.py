@@ -23,6 +23,9 @@ from netket.jax.utils import dtype_real
 from netket.nn.initializers import lecun_normal, lecun_uniform
 from scipy.stats import kstest
 
+seed = 12345
+np.random.seed(seed)
+
 
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize("ndim", [2, 3, 4])
@@ -33,7 +36,7 @@ def test_initializer(init, ndim, dtype):
     elif init == "truncated_normal":
         init_fun = lecun_normal()
 
-    key = nk.jax.PRNGKey(12)
+    key, rand_key = jax.random.split(nk.jax.PRNGKey(seed))
     # The lengths of the weight dimensions and the input dimension are random
     shape = tuple(np.random.randint(1, 10) for _ in range(ndim))
     shape_prod = np.prod(shape)
@@ -63,7 +66,6 @@ def test_initializer(init, ndim, dtype):
 
     # Draw random samples using rejection sampling, and test if `param` and
     # `samples` are from the same distribution
-    rand_key = nk.jax.PRNGKey(13)
     rand_shape = (10 ** 4,)
     rand_dtype = dtype_real(dtype)
     if init == "uniform":
