@@ -18,10 +18,10 @@ import flax
 from flax import linen as nn
 from jax import lax
 from jax import numpy as jnp
-from netket.nn.initializers import lecun_complex, zeros
+from netket.nn.initializers import lecun_normal, zeros
 from netket.utils.types import Array, DType, NNInitFunc
 
-default_kernel_init = lecun_complex()
+default_kernel_init = lecun_normal()
 
 
 def wrap_kernel_init(kernel_init, mask):

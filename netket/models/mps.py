@@ -23,10 +23,7 @@ import numpy as np
 
 from netket.graph import AbstractGraph, Chain
 from netket.hilbert import AbstractHilbert
-from netket.nn.initializers import lecun_normal
 from netket.utils.types import NNInitFunc
-
-default_kernel_init = lecun_normal()
 
 
 class MPSPeriodic(nn.Module):
