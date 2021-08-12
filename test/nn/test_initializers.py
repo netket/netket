@@ -24,13 +24,14 @@ from netket.nn.initializers import lecun_normal, lecun_uniform
 from scipy.stats import kstest
 
 seed = 12345
-np.random.seed(seed)
 
 
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize("ndim", [2, 3, 4])
 @pytest.mark.parametrize("init", ["uniform", "truncated_normal"])
 def test_initializer(init, ndim, dtype):
+    np.random.seed(seed)
+
     if init == "uniform":
         init_fun = lecun_uniform()
     elif init == "truncated_normal":
