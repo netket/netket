@@ -63,7 +63,7 @@ def test_initializer(init, ndim, dtype):
 
     # Draw random samples using rejection sampling, and test if `param` and
     # `samples` are from the same distribution
-    rand_key = nk.jax.PRNGKey()
+    rand_key = nk.jax.PRNGKey(13)
     rand_shape = (10 ** 4,)
     rand_dtype = dtype_real(dtype)
     if init == "uniform":
