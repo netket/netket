@@ -37,7 +37,7 @@ op = nk.optimizer.Sgd(learning_rate=0.1)
 sr = nk.optimizer.SR(solver=nk.optimizer.solver.cholesky, diag_shift=0.01)
 
 # Variational state
-vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
+vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
 
 # Variational monte carlo driver with a variational state
 gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)

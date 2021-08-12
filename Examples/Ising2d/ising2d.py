@@ -30,7 +30,7 @@ ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # The variational state
-vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
+vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
 vs.init_parameters(nk.nn.initializers.normal(stddev=0.01), seed=1234)
 
 # Optimizer
