@@ -53,7 +53,7 @@ solvers = {}
 solvers_tol = {}
 
 solvers["gmres"] = partial(jax.scipy.sparse.linalg.gmres, tol=1e-6)
-solvers_tol[solvers["gmres"]] = 4e-5
+solvers_tol[solvers["gmres"]] = 4e-4
 solvers["cholesky"] = nk.optimizer.solver.cholesky
 solvers_tol[solvers["cholesky"]] = 1e-8
 
