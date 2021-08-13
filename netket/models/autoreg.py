@@ -49,7 +49,7 @@ class ARNN(nn.Module):
     @abc.abstractmethod
     def _conditional(self, inputs: Array, index: int) -> Array:
         """
-        Computes the conditional probabilities for a site to take each value.
+        Computes the conditional probabilities for a site to take a given value.
         This method gives the expected output only if the correct caches are given in `variables`.
         Typically, it should only be called successively with indices 0, 1, 2, ...,
         as in the autoregressive sampling procedure.
