@@ -36,28 +36,22 @@ def wrap_kernel_init(kernel_init, mask):
 
 
 class MaskedDense1D(nn.Module):
-    """
-    1D linear transformation module with mask for autoregressive NN.
-
-    Attributes:
-      features: number of output features, should be the last dimension.
-      exclusive: True if an output element does not depend on the input element
-        at the same index.
-      use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float64).
-      precision: numerical precision of the computation, see `jax.lax.Precision`
-        for details.
-      kernel_init: initializer for the weight matrix.
-      bias_init: initializer for the bias.
-    """
+    """1D linear transformation module with mask for autoregressive NN."""
 
     features: int
+    """number of output features, should be the last dimension."""
     exclusive: bool
+    """True if an output element does not depend on the input element at the same index."""
     use_bias: bool = True
+    """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
+    """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
+    """initializer for the weight matrix."""
     bias_init: NNInitFunc = zeros
+    """initializer for the bias."""
 
     @nn.compact
     def __call__(self, inputs: Array) -> Array:
@@ -111,35 +105,28 @@ class MaskedDense1D(nn.Module):
 
 
 class MaskedConv1D(nn.Module):
-    """
-    1D convolution module with mask for autoregressive NN.
-
-    Attributes:
-      features: number of convolution filters.
-      kernel_size: length of the convolutional kernel.
-      kernel_dilation: dilation factor of the convolution kernel.
-      exclusive: True if an output element does not depend on the input element
-        at the same index.
-      feature_group_count: integer, default 1. If specified divides the input
-        features into groups.
-      use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float64).
-      precision: numerical precision of the computation, see `jax.lax.Precision`
-        for details.
-      kernel_init: initializer for the convolutional kernel.
-      bias_init: initializer for the bias.
-    """
+    """1D convolution module with mask for autoregressive NN."""
 
     features: int
+    """number of convolution filters."""
     kernel_size: int
+    """length of the convolutional kernel."""
     kernel_dilation: int
+    """dilation factor of the convolution kernel."""
     exclusive: bool
+    """True if an output element does not depend on the input element at the same index."""
     feature_group_count: int = 1
+    """if specified, divides the input features into groups (default: 1)."""
     use_bias: bool = True
+    """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
+    """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
+    """initializer for the convolutional kernel."""
     bias_init: NNInitFunc = zeros
+    """initializer for the bias."""
 
     @nn.compact
     def __call__(self, inputs: Array) -> Array:
@@ -215,37 +202,29 @@ class MaskedConv1D(nn.Module):
 
 
 class MaskedConv2D(nn.Module):
-    """
-    2D convolution module with mask for autoregressive NN.
-
-    Attributes:
-      features: number of convolution filters.
-      kernel_size: shape of the convolutional kernel `(h, w)`. Typically,
-        `h = w // 2 + 1`.
-      kernel_dilation: a sequence of 2 integers, giving the dilation factor to
-        apply in each spatial dimension of the convolution kernel.
-      exclusive: True if an output element does not depend on the input element
-        at the same index.
-      feature_group_count: integer, default 1. If specified divides the input
-        features into groups.
-      use_bias: whether to add a bias to the output (default: True).
-      dtype: the dtype of the computation (default: float64).
-      precision: numerical precision of the computation, see `jax.lax.Precision`
-        for details.
-      kernel_init: initializer for the convolutional kernel.
-      bias_init: initializer for the bias.
-    """
+    """2D convolution module with mask for autoregressive NN."""
 
     features: int
+    """number of convolution filters."""
     kernel_size: Tuple[int, int]
+    """shape of the convolutional kernel `(h, w)`. Typically, `h = w // 2 + 1`."""
     kernel_dilation: Tuple[int, int]
+    """a sequence of 2 integers, giving the dilation factor to
+    apply in each spatial dimension of the convolution kernel."""
     exclusive: bool
+    """True if an output element does not depend on the input element at the same index."""
     feature_group_count: int = 1
+    """if specified, divides the input features into groups (default: 1)."""
     use_bias: bool = True
+    """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
+    """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
+    """initializer for the convolutional kernel."""
     bias_init: NNInitFunc = zeros
+    """initializer for the bias."""
 
     def setup(self):
         kernel_h, kernel_w = self.kernel_size

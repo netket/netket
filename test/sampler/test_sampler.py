@@ -126,8 +126,8 @@ def model_and_weights(request):
                 kernel_init=nk.nn.initializers.normal(stddev=0.1),
                 hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
             )
-            # init network
 
+        # init network
         w = ma.init(jax.random.PRNGKey(WEIGHT_SEED), jnp.zeros((1, hilb.size)))
 
         return ma, w
@@ -393,8 +393,8 @@ def test_throwing(model_and_weights):
 
 
 def test_exact_sampler(sampler):
-    known_exact_samplers = [nk.sampler.ExactSampler, nk.sampler.ARDirectSampler]
-    if any(isinstance(sampler, x) for x in known_exact_samplers):
+    known_exact_samplers = (nk.sampler.ExactSampler, nk.sampler.ARDirectSampler)
+    if isinstance(sampler, known_exact_samplers):
         assert sampler.is_exact is True
     else:
         assert sampler.is_exact is False

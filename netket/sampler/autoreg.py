@@ -14,12 +14,12 @@
 
 from functools import partial
 
-from netket.sampler import Sampler, SamplerState
-from netket.utils import struct
-from netket.utils.types import PRNGKeyT, PyTree
-
 import jax
 from jax import numpy as jnp
+
+from netket.sampler import Sampler, SamplerState
+from netket.utils import struct
+from netket.utils.types import PRNGKeyT
 
 
 def batch_choice(key, a, p):
@@ -45,10 +45,6 @@ def batch_choice(key, a, p):
 
 @struct.dataclass
 class ARDirectSamplerState(SamplerState):
-    σ: jnp.ndarray
-    """current batch of (maybe partially sampled) configurations."""
-    cache: PyTree
-    """auxiliary states, e.g., used to implement fast autoregressive sampling."""
     key: PRNGKeyT
     """state of the random number generator."""
 
@@ -65,47 +61,54 @@ class ARDirectSampler(Sampler):
         return True
 
     def _init_cache(sampler, model, σ, key):
-        variables = model.init(key, σ)
+        variables = model.init(key, σ, 0, method=model._conditional)
         if "cache" in variables:
-            _, cache = variables.pop("cache")
+            cache = variables["cache"]
         else:
             cache = None
         return cache
 
-    def _init_state(sampler, model, params, key):
-        new_key, key = jax.random.split(key)
-        σ = jnp.zeros(
-            (sampler.n_chains_per_rank, sampler.hilbert.size), dtype=sampler.dtype
-        )
-        cache = sampler._init_cache(model, σ, key)
-        return ARDirectSamplerState(σ=σ, cache=cache, key=new_key)
+    def _init_state(sampler, model, variables, key):
+        return ARDirectSamplerState(key=key)
 
-    def _reset(sampler, model, params, state):
+    def _reset(sampler, model, variables, state):
         return state
 
-    def _sample_chain(sampler, model, params, state, chain_length):
-        return _sample_chain(sampler, model, params, state, chain_length)
+    def _sample_chain(sampler, model, variables, state, chain_length):
+        return _sample_chain(sampler, model, variables, state, chain_length)
 
-    def _sample_next(sampler, model, params, state):
-        σ, new_state = sampler._sample_chain(model, params, state, 1)
+    def _sample_next(sampler, model, variables, state):
+        σ, new_state = sampler._sample_chain(model, variables, state, 1)
         σ = σ.squeeze(axis=0)
         return new_state, σ
 
 
 @partial(jax.jit, static_argnums=(1, 4))
-def _sample_chain(sampler, model, params, state, chain_length):
+def _sample_chain(sampler, model, variables, state, chain_length):
+    if "cache" in variables:
+        variables, _ = variables.pop("cache")
+
     def scan_fun(carry, index):
         σ, cache, key = carry
+        if cache:
+            _variables = {**variables, "cache": cache}
+        else:
+            _variables = variables
         new_key, key = jax.random.split(key)
 
-        p, cache = model.apply(
-            params,
+        p, mutables = model.apply(
+            _variables,
             σ,
-            cache,
-            method=model.conditionals,
+            index,
+            method=model._conditional,
+            mutable=["cache"],
         )
+        if "cache" in mutables:
+            cache = mutables["cache"]
+        else:
+            cache = None
+
         local_states = jnp.asarray(sampler.hilbert.local_states, dtype=sampler.dtype)
-        p = p[:, index, :]
         new_σ = batch_choice(key, local_states, p)
         σ = σ.at[:, index].set(new_σ)
 
@@ -120,17 +123,13 @@ def _sample_chain(sampler, model, params, state, chain_length):
         dtype=sampler.dtype,
     )
 
-    # Init `cache` before generating each sample,
-    # even if `params` is not changed and `reset` is not called
+    # Initialize `cache` before generating each sample,
+    # even if `variables` is not changed and `reset` is not called
     cache = sampler._init_cache(model, σ, key_init)
 
     indices = jnp.arange(sampler.hilbert.size)
-    (σ, cache, _), _ = jax.lax.scan(
-        scan_fun,
-        (σ, cache, key_scan),
-        indices,
-    )
+    (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
     σ = σ.reshape((chain_length, sampler.n_chains_per_rank, sampler.hilbert.size))
 
-    new_state = state.replace(σ=σ, cache=cache, key=new_key)
+    new_state = state.replace(key=new_key)
     return σ, new_state
