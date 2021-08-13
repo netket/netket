@@ -29,7 +29,7 @@ from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc
 
 
-class ARNN(nn.Module):
+class AbstractARNN(nn.Module):
     """Base class for autoregressive neural networks."""
 
     hilbert: HomogeneousHilbert
@@ -50,6 +50,7 @@ class ARNN(nn.Module):
     def _conditional(self, inputs: Array, index: int) -> Array:
         """
         Computes the conditional probabilities for a site to take a given value.
+
         This method gives the expected output only if the correct caches are given in `variables`.
         Typically, it should only be called successively with indices 0, 1, 2, ...,
         as in the autoregressive sampling procedure.
@@ -86,7 +87,7 @@ class ARNN(nn.Module):
         """
 
 
-class ARNNDense(ARNN):
+class ARNNDense(AbstractARNN):
     """Autoregressive neural network with dense layers."""
 
     layers: int
@@ -138,7 +139,7 @@ class ARNNDense(ARNN):
         return _call(self, inputs)
 
 
-class ARNNConv1D(ARNN):
+class ARNNConv1D(AbstractARNN):
     """Autoregressive neural network with 1D convolution layers."""
 
     layers: int
@@ -196,7 +197,7 @@ class ARNNConv1D(ARNN):
         return _call(self, inputs)
 
 
-class ARNNConv2D(ARNN):
+class ARNNConv2D(AbstractARNN):
     """Autoregressive neural network with 2D convolution layers."""
 
     layers: int
@@ -267,10 +268,10 @@ def l2_normalize(log_psi: Array) -> Array:
     )
 
 
-def _conditionals_log_psi(model: ARNN, inputs: Array) -> Array:
+def _conditionals_log_psi(model: AbstractARNN, inputs: Array) -> Array:
     """
     Computes the log of the conditional wave-functions for each site if it takes each value.
-    See `ARNN.conditionals`.
+    See `AbstractARNN.conditionals`.
     """
     inputs = _reshape_inputs(model, inputs)
 
@@ -286,10 +287,10 @@ def _conditionals_log_psi(model: ARNN, inputs: Array) -> Array:
     return log_psi
 
 
-def _conditionals(model: ARNN, inputs: Array) -> Array:
+def _conditionals(model: AbstractARNN, inputs: Array) -> Array:
     """
     Computes the conditional probabilities for each site to take each value.
-    See `ARNN.conditionals`.
+    See `AbstractARNN.conditionals`.
     """
     if inputs.ndim == 1:
         inputs = jnp.expand_dims(inputs, axis=0)
@@ -300,7 +301,7 @@ def _conditionals(model: ARNN, inputs: Array) -> Array:
     return p
 
 
-def _call(model: ARNN, inputs: Array) -> Array:
+def _call(model: AbstractARNN, inputs: Array) -> Array:
     """Returns log_psi."""
 
     if inputs.ndim == 1:

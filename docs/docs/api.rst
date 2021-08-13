@@ -197,7 +197,7 @@ neural quantum states.
    netket.models.MPSPeriodic
    netket.models.NDM
    netket.models.GCNN
-   netket.models.ARNN
+   netket.models.AbstractARNN
    netket.models.ARNNDense
    netket.models.ARNNConv1D
    netket.models.ARNNConv2D

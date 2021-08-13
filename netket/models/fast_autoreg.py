@@ -20,7 +20,7 @@ from jax import numpy as jnp
 from plum import dispatch
 
 from netket.models.autoreg import (
-    ARNN,
+    AbstractARNN,
     _call,
     _conditionals,
     _reshape_inputs,
@@ -32,7 +32,7 @@ from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc
 
 
-class FastARNNDense(ARNN):
+class FastARNNDense(AbstractARNN):
     """
     Fast autoregressive neural network with dense layers.
     See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
@@ -89,7 +89,7 @@ class FastARNNDense(ARNN):
         return _call(self, inputs)
 
 
-class FastARNNConv1D(ARNN):
+class FastARNNConv1D(AbstractARNN):
     """
     Fast autoregressive neural network with 1D convolution layers.
     See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
@@ -150,7 +150,7 @@ class FastARNNConv1D(ARNN):
         return _call(self, inputs)
 
 
-class FastARNNConv2D(ARNN):
+class FastARNNConv2D(AbstractARNN):
     """
     Fast autoregressive neural network with 2D convolution layers.
     See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
@@ -216,10 +216,10 @@ class FastARNNConv2D(ARNN):
         return _call(self, inputs)
 
 
-def _conditional(model: ARNN, inputs: Array, index: int) -> Array:
+def _conditional(model: AbstractARNN, inputs: Array, index: int) -> Array:
     """
-    Computes the conditional probabilities for a site to take each value.
-    See `ARNN.conditional`.
+    Computes the conditional probabilities for a site to take a given value.
+    See `AbstractARNN._conditional`.
     """
     if inputs.ndim == 1:
         inputs = jnp.expand_dims(inputs, axis=0)
