@@ -30,7 +30,13 @@ from netket.utils.types import Array, DType, NNInitFunc
 
 
 class AbstractARNN(nn.Module):
-    """Base class for autoregressive neural networks."""
+    """
+    Base class for autoregressive neural networks.
+
+    Subclasses must implement `__call__` and `conditionals`.
+    They can also override `_conditional` to implement the caching for fast autoregressive sampling.
+    See :ref:`netket.nn.FastARNNConv1D` for example.
+    """
 
     hilbert: HomogeneousHilbert
     """the Hilbert space. Only homogeneous unconstrained Hilbert spaces are supported."""
@@ -46,13 +52,11 @@ class AbstractARNN(nn.Module):
         if self.hilbert.constrained:
             raise ValueError("Only unconstrained Hilbert spaces are supported by ARNN.")
 
-    @abc.abstractmethod
     def _conditional(self, inputs: Array, index: int) -> Array:
         """
         Computes the conditional probabilities for a site to take a given value.
 
-        This method gives the expected output only if the correct caches are given in `variables`.
-        Typically, it should only be called successively with indices 0, 1, 2, ...,
+        It should only be called successively with indices 0, 1, 2, ...,
         as in the autoregressive sampling procedure.
 
         Args:
@@ -62,6 +66,7 @@ class AbstractARNN(nn.Module):
         Returns:
           The probabilities with dimensions (batch, Hilbert.local_size).
         """
+        return self.conditionals(inputs)[:, index, :]
 
     @abc.abstractmethod
     def conditionals(self, inputs: Array) -> Array:
@@ -100,7 +105,7 @@ class ARNNDense(AbstractARNN):
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
-    """the dtype of the weights (default: float64)."""
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -129,9 +134,6 @@ class ARNNDense(AbstractARNN):
             for i in range(self.layers)
         ]
 
-    def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditionals(self, inputs)[:, index, :]
-
     def conditionals(self, inputs: Array) -> Array:
         return _conditionals(self, inputs)
 
@@ -156,7 +158,7 @@ class ARNNConv1D(AbstractARNN):
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
-    """the dtype of the weights (default: float64)."""
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -187,9 +189,6 @@ class ARNNConv1D(AbstractARNN):
             for i in range(self.layers)
         ]
 
-    def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditionals(self, inputs)[:, index, :]
-
     def conditionals(self, inputs: Array) -> Array:
         return _conditionals(self, inputs)
 
@@ -215,7 +214,7 @@ class ARNNConv2D(AbstractARNN):
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
-    """the dtype of the weights (default: float64)."""
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -248,9 +247,6 @@ class ARNNConv2D(AbstractARNN):
             )
             for i in range(self.layers)
         ]
-
-    def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditionals(self, inputs)[:, index, :]
 
     def conditionals(self, inputs: Array) -> Array:
         return _conditionals(self, inputs)

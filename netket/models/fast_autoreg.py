@@ -35,8 +35,11 @@ from netket.utils.types import Array, DType, NNInitFunc
 class FastARNNDense(AbstractARNN):
     """
     Fast autoregressive neural network with dense layers.
+
     See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
-    TODO: FastMaskedDense1D does not support JIT yet
+
+    TODO: FastMaskedDense1D does not support JIT yet, because it involves slicing the cached inputs
+    and the weights with a dynamic shape.
     """
 
     layers: int
@@ -49,7 +52,7 @@ class FastARNNDense(AbstractARNN):
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
-    """the dtype of the weights (default: float64)."""
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -92,6 +95,7 @@ class FastARNNDense(AbstractARNN):
 class FastARNNConv1D(AbstractARNN):
     """
     Fast autoregressive neural network with 1D convolution layers.
+
     See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
 
@@ -109,7 +113,7 @@ class FastARNNConv1D(AbstractARNN):
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
-    """the dtype of the weights (default: float64)."""
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -153,6 +157,7 @@ class FastARNNConv1D(AbstractARNN):
 class FastARNNConv2D(AbstractARNN):
     """
     Fast autoregressive neural network with 2D convolution layers.
+
     See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
 
@@ -171,7 +176,7 @@ class FastARNNConv2D(AbstractARNN):
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     dtype: DType = jnp.float64
-    """the dtype of the weights (default: float64)."""
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -224,7 +229,7 @@ def _conditional(model: AbstractARNN, inputs: Array, index: int) -> Array:
     if inputs.ndim == 1:
         inputs = jnp.expand_dims(inputs, axis=0)
 
-    # When `index = 0`, it doesn't matter what slice of `x` we take
+    # When `index = 0`, it doesn't matter which site we take
     x = inputs[:, index - 1, None]
 
     for i in range(model.layers):
