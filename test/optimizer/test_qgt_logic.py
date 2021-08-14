@@ -201,7 +201,8 @@ def test_reassemble_complex(e):
         e.params, reassemble_complex(tree_toreal_flat(e.params), target=e.target)
     )
 
-'''
+
+"""
 @pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
@@ -316,7 +317,7 @@ def test_matvec_linear_transpose(e, jit):
     )
     # (expected,) = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_), target=e.target), v)(v)
     assert tree_allclose(actual, expected)
-'''
+"""
 
 # TODO separate test for prepare_centered_oks
 @pytest.mark.parametrize("holomorphic", [True])

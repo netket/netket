@@ -25,11 +25,12 @@ from netket.jax import tree_conj, tree_axpy
 # input with the S-matrix, defined as Sₖₗ = ⟨ΔOₖ* ΔOₗ⟩, where ΔOₖ = Oₖ-⟨Oₖ⟩,
 # and Oₖ is the derivative of log ψ w.r.t. parameter #k.
 
-# Given the Jacobian J of the neural network, S = JᴴMᴴMJ, where M is an 
+# Given the Jacobian J of the neural network, S = JᴴMᴴMJ, where M is an
 # n_sample × n_sample matrix which subtracts the mean. As M is a projector, S = JᴴMJ.
 
 # The factory function is used so that the gradient calculations in jax.linearize can be
 # jitted; the arguments of mat_vec are outputs of jax.linearize, which are pytrees
+
 
 def mat_vec(jvp_fn, v, diag_shift):
     # Save linearisation work
@@ -40,10 +41,11 @@ def mat_vec(jvp_fn, v, diag_shift):
     w = subtract_mean(w)  # w/ MPI
     # Oᴴw = (wᴴO)ᴴ = (w* O)* since 1D arrays are not transposed
     # vjp_fn packages output into a length-1 tuple
-    res, = tree_conj(vjp_fn(w.conjugate()))
+    (res,) = tree_conj(vjp_fn(w.conjugate()))
     res = jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)
 
     return tree_axpy(diag_shift, v, res)  # res + diag_shift * v
+
 
 @partial(jax.jit, static_argnums=0)
 def mat_vec_factory(forward_fn, params, model_state, samples):
