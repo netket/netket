@@ -40,10 +40,10 @@ def mat_vec(jvp_fn, v, diag_shift):
     w = subtract_mean(w)  # w/ MPI
     # Oᴴw = (wᴴO)ᴴ = (w* O)* since 1D arrays are not transposed
     # vjp_fn packages output into a length-1 tuple
-    w, = tree_conj(vjp_fn(w.conjugate()))
+    res, = tree_conj(vjp_fn(w.conjugate()))
+    res = jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)
 
-    return tree_axpy(diag_shift, v, w)  # result = w + diag_shift * v
-    #return jax.tree_multimap(lambda x_, y_: diag_shift * x_ + y_, v, w)
+    return tree_axpy(diag_shift, v, res)  # res + diag_shift * v
 
 @partial(jax.jit, static_argnums=0)
 def mat_vec_factory(forward_fn, params, model_state, samples):
