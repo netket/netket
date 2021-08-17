@@ -368,6 +368,18 @@ def grad_expect_operator_Lrho2(
 
     LdagL_grad = jax.tree_util.tree_multimap(gradfun, der_loc_vals, der_logs_ave)
 
+    # ⟨L†L⟩ ∈ R, so if the parameters are real we should cast away
+    # the imaginary part of the gradient.
+    # we do this also for standard gradient of energy.
+    # this avoid errors in #867, #789, #850
+    LdagL_grad = jax.tree_multimap(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
+            target.dtype
+        ),
+        LdagL_grad,
+        parameters,
+    )
+
     return (
         LdagL_stats,
         LdagL_grad,
