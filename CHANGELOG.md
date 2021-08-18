@@ -13,6 +13,7 @@
 
 ### Breaking Changes
 * The default initializer for `netket.nn.Dense` layers now matches the same default as `flax.linen`, and it is `lecun_normal` instead of `normal(0.01)` [#869](https://github.com/netket/netket/pull/869)
+* The default initializer for `netket.nn.DenseSymm` layers is now chosen in order to give variance 1 to every output channel, therefore defaulting to `lecun_normal` [#870](https://github.com/netket/netket/pull/870)
 
 ### Internal Changes
 

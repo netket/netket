@@ -16,17 +16,60 @@ from typing import Any, Callable, Union, Optional, Tuple
 
 from flax.linen.module import Module, compact
 from jax import lax
+
 import jax.numpy as jnp
 import numpy as np
 import jax
 
-from netket.nn.initializers import normal, zeros
+from netket.nn.initializers import (
+    normal,
+    zeros,
+    lecun_normal,
+    variance_scaling,
+    _complex_truncated_normal,
+)
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
 from netket.utils.group import PermutationGroup
 from typing import Sequence
 from netket.graph import Graph, Lattice
 import warnings
+
+
+class _default_densesymm_initializer:
+    pass
+
+
+default_densesymm_initializer = _default_densesymm_initializer()
+"""
+Sentinel value to signal the default densesymm initializer.
+"""
+
+
+def get_default_densesymm_init(real_input_size, *, scale=1):
+    """
+    Returns a kernel init equivalent to lecun_normal but
+    whose scale depends on the number of physical degrees of freedom of the
+    layer.
+
+    This is the correct initialization to have in order to guarantee variance
+    1 of every output channel.
+    """
+
+    def init(key, shape, dtype):
+        shape = jax.core.as_named_shape(shape)
+
+        variance = jnp.array(scale / real_input_size, dtype=dtype)
+
+        if jnp.issubdtype(dtype, jnp.floating):
+            # constant is stddev of standard normal truncated to (-2, 2)
+            stddev = jnp.sqrt(variance) / 0.87962566103423978
+            return jax.random.truncated_normal(key, -2, 2, shape, dtype) * stddev
+        else:
+            stddev = jnp.sqrt(variance) / 0.95311164380491208
+            return _complex_truncated_normal(key, 2, shape, dtype) * stddev
+
+    return init
 
 
 def unit_normal_scaling(key, shape, dtype):
@@ -80,7 +123,7 @@ class DenseSymmMatrix(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = unit_normal_scaling
+    kernel_init: NNInitFunc = default_densesymm_initializer
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
     bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization"""
@@ -122,8 +165,14 @@ class DenseSymmMatrix(Module):
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
 
+        # generate the default kernel init if necessary
+        kernel_init = (
+            get_default_densesymm_init(x.shape[-1])
+            if self.kernel_init is default_densesymm_initializer
+            else self.kernel_init
+        )
         kernel = self.param(
-            "kernel", self.kernel_init, (self.features, self.n_sites), self.dtype
+            "kernel", kernel_init, (self.features, self.n_sites), self.dtype
         )
 
         if self.mask is not None:
@@ -166,7 +215,7 @@ class DenseSymmFFT(Module):
     """The dtype of the weights."""
     precision: Any = None
 
-    kernel_init: NNInitFunc = unit_normal_scaling
+    kernel_init: NNInitFunc = lecun_normal()
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
     bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization"""
@@ -205,9 +254,15 @@ class DenseSymmFFT(Module):
             .reshape(-1, self.sites_per_cell, *self.shape)
         )
 
+        # generate the default kernel init if necessary
+        kernel_init = (
+            get_default_densesymm_init(self.n_cells * self.sites_per_cell)
+            if self.kernel_init is default_densesymm_initializer
+            else self.kernel_init
+        )
         kernel = self.param(
             "kernel",
-            self.kernel_init,
+            kernel_init,
             (self.features, self.n_cells * self.sites_per_cell),
             self.dtype,
         )
