@@ -16,11 +16,16 @@ from typing import Any, Callable, Union, Optional, Tuple
 
 from flax.linen.module import Module, compact
 from jax import lax
+
 import jax.numpy as jnp
 import numpy as np
 import jax
 
-from netket.nn.initializers import normal, zeros
+from netket.nn.initializers import (
+    normal,
+    zeros,
+    lecun_normal,
+)
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
 from netket.utils.group import PermutationGroup
@@ -80,7 +85,7 @@ class DenseSymmMatrix(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = unit_normal_scaling
+    kernel_init: NNInitFunc = lecun_normal()
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
     bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization"""
@@ -166,7 +171,7 @@ class DenseSymmFFT(Module):
     """The dtype of the weights."""
     precision: Any = None
 
-    kernel_init: NNInitFunc = unit_normal_scaling
+    kernel_init: NNInitFunc = lecun_normal()
     """Initializer for the Dense layer matrix. Defaults to variance scaling"""
     bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization"""
