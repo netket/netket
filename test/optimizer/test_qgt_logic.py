@@ -203,75 +203,19 @@ def test_reassemble_complex(e):
 
 
 @pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize("outdtype, pardtype", test_types)
-def test_vjp(e):
-    actual = qgt_onthefly_logic.O_vjp(e.f, e.params, e.samples, e.w)
-    expected = qgt_onthefly_logic.tree_conj(
-        reassemble_complex(
-            (e.w @ e.ok_real).real.astype(e.params_real_flat.dtype), target=e.target
-        )
-    )
-    assert tree_allclose(actual, expected)
-
-
-@pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize("outdtype, pardtype", test_types)
-def test_OH_w(e):
-    actual = qgt_onthefly_logic.OH_w(
-        e.f,
-        e.params,
-        e.samples,
-        e.w,
-    )
-    expected = reassemble_complex(
-        (e.ok_real.conjugate().transpose() @ e.w).real.astype(e.params_real_flat.dtype),
-        target=e.target,
-    )
-    assert tree_allclose(actual, expected)
-
-
-@pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize("outdtype, pardtype", test_types)
-def test_jvp(e):
-    actual = qgt_onthefly_logic.O_jvp(e.f, e.params, e.samples, e.v)
-    expected = e.ok_real @ e.v_real_flat
-    assert tree_allclose(actual, expected)
-
-
-@pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize("outdtype, pardtype", test_types)
-def test_Odagger_O_v(e):
-    actual = qgt_onthefly_logic.Odagger_O_v(e.f, e.params, e.samples, e.v)
-    expected = reassemble_complex(
-        (e.ok_real.conjugate().transpose() @ e.ok_real @ e.v_real_flat).real / e.n_samp,
-        target=e.target,
-    )
-    assert tree_allclose(actual, expected)
-
-
-@pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [25])
-@pytest.mark.parametrize("outdtype, pardtype", all_test_types)
-def test_Odagger_DeltaO_v(e):
-    actual = qgt_onthefly_logic.Odagger_DeltaO_v(e.f, e.params, e.samples, e.v)
-    expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
-    assert tree_allclose(actual, expected)
-
-
-@pytest.mark.parametrize("holomorphic", [True, False])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 def test_matvec(e, jit):
     diag_shift = 0.01
-    mv = qgt_onthefly_logic.mat_vec
+
+    def f(params_model_state, x):
+        return e.f(params_model_state["params"], x)
+
+    mv = qgt_onthefly_logic.mat_vec_factory(f, e.params, {}, e.samples)
     if jit:
-        mv = jax.jit(mv, static_argnums=1)
-    actual = mv(e.v, e.f, e.params, e.samples, diag_shift)
+        mv = jax.jit(mv)
+    actual = mv(e.v, diag_shift)
     expected = reassemble_complex(
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
     )
@@ -283,34 +227,28 @@ def test_matvec(e, jit):
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 def test_matvec_linear_transpose(e, jit):
-    def mvt(v, f, params, samples, w):
-        (res,) = jax.linear_transpose(
-            lambda v_: qgt_onthefly_logic.mat_vec(
-                v_,
-                f,
-                params,
-                samples,
-                0.0,
-            ),
-            v,
-        )(w)
+    def f(params_model_state, x):
+        return e.f(params_model_state["params"], x)
+
+    mv = qgt_onthefly_logic.mat_vec_factory(f, e.params, {}, e.samples)
+
+    def mvt(v, w):
+        (res,) = jax.linear_transpose(lambda v_: mv(v_, 0.0), v)(w)
         return res
 
     if jit:
-        mvt = jax.jit(mvt, static_argnums=1)
+        mv = jax.jit(mv)
+        mvt = jax.jit(mvt)
 
     w = e.v
-    actual = mvt(e.v, e.f, e.params, e.samples, w)
+    actual = mvt(e.v, w)
 
     # use that S is hermitian:
     # S^T = (O^H O)^T = O^T O* = (O^H O)* = S*
     # S^T w = S* w = (S w*)*
-    expected = qgt_onthefly_logic.tree_conj(
-        qgt_onthefly_logic.mat_vec(
-            qgt_onthefly_logic.tree_conj(w),
-            e.f,
-            e.params,
-            e.samples,
+    expected = nkjax.tree_conj(
+        mv(
+            nkjax.tree_conj(w),
             0.0,
         )
     )
