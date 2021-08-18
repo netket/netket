@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
 from functools import partial
 
 import jax
@@ -138,3 +139,41 @@ xavier_uniform = glorot_uniform
 xavier_normal = glorot_normal
 kaiming_uniform = he_uniform
 kaiming_normal = he_normal
+
+
+def truncated_normal_rescale_dof(
+    scale: float = 1, *, override_dof: Optional[float] = None
+):
+    """
+    Initializer capable of adapting its scale to the shape of the weights tensor.
+
+    samples are drawn from a truncated/untruncated normal distribution with a mean
+    of zero and a  standard deviation (after truncation, if used)
+    `stddev = sqrt(scale / n)`, where `n` is the number of degrees of freedom in
+    the initialized tensor.
+
+    It is possible to override the number of degrees of freedom and set it to an
+    arbitray value.
+
+    Args:
+        scale: The scale of the distribution (default = 1).
+        override_dof: The optional override of the number of degrees of freedom.
+    """
+
+    def init(key, shape, dtype):
+        if override_dof is None:  # noqa: F823
+            dof = jax.core.as_named_shape(shape).total
+        else:
+            dof = override_dof
+
+        variance = jnp.array(scale / dof, dtype=dtype)
+
+        if jnp.issubdtype(dtype, jnp.floating):
+            # constant is stddev of standard normal truncated to (-2, 2)
+            stddev = jnp.sqrt(variance) / 0.87962566103423978
+            return jax.random.truncated_normal(key, -2, 2, shape, dtype) * stddev
+        else:
+            stddev = jnp.sqrt(variance) / 0.95311164380491208
+            return _complex_truncated_normal(key, 2, shape, dtype) * stddev
+
+    return init
