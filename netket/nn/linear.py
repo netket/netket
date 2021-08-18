@@ -22,7 +22,7 @@ from jax import lax
 import jax.numpy as jnp
 import numpy as np
 
-from netket.nn.initializers import lecun_normal, normal, zeros
+from netket.nn.initializers import lecun_normal, zeros
 
 PRNGKey = Any
 Shape = Iterable[int]
