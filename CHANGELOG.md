@@ -4,9 +4,25 @@
 
 # Change Log
 
-## NetKet 3.0b4 (unreleased)
+## NetKet 3.0b5 (unreleased)
 
-[GitHub commits](https://github.com/netket/netket/compare/v3.0b3...master).
+[GitHub commits](https://github.com/netket/netket/compare/v3.0b4...master).
+
+### New features
+
+
+### Breaking Changes
+* The default initializer for `netket.nn.Dense` layers now matches the same default as `flax.linen`, and it is `lecun_normal` instead of `normal(0.01)` [#869](https://github.com/netket/netket/pull/869)
+
+### Internal Changes
+
+
+### Bug Fixes
+
+
+## NetKet 3.0b4 (17 august 2021)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.0b3...v3.0b4).
 
 ### New features
 * DenseSymm now accepts a mode argument to specify whever the symmetries should be computed with a full dense matrix or FFT. The latter method is much faster for sufficiently large systems. Other kwargs have been added to satisfy the interface. The api changes are also reflected in RBMSymm and GCNN. [#792](https://github.com/netket/netket/pull/792)
