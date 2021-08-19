@@ -21,16 +21,16 @@ To install, run one of the two following commands
 The flag :code:`--pre` tells pip to also install pre-release versions. As NetKet 3 is in beta, this is necessary.
 
 If you want to run NetKet on a GPU, you must install a GPU-compatible :code:`jaxlib`. For that, we advise you to
-look at the instructions on `jax repository <https://github.com/google/jax#pip-installation>`_, however at the time
+look at the instructions on `jax repository <https://github.com/google/jax#pip-installation-gpu-cuda>`_, however at the time
 of writing, this means you should run the following command: 
 
 .. code:: bash 
 
-    pip install -U jax jaxlib==X.XX.XX+cudaYYY -f https://storage.googleapis.com/jax-releases/jax_releases.html
+    pip install --upgrade "jax[cuda111]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
-where X.XX.XX should be a recent jaxlib version and YYY the cuda version installed on your computer.
-At the time of writing, Netket was tested with X=0.1.62 and cuda=111
-
+Where the jaxlib version must correspond to the version of the existing CUDA installation you want to use. Refer to jax
+documentation to learn more about matching cuda versions with python wheels.
+   
 To query the installed `netket` version you can run the following command in your shell
 
 .. code:: bash 
