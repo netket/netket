@@ -627,13 +627,6 @@ class DenseEquivariantMatrix(Module):
 
         return result
 
-    def full_bias(self, bias):
-        """
-        Convert symmetry-reduced bias of shape (features,) to the full bias of
-        shape (n_symm * features,).
-        """
-        return jnp.repeat(bias, self.n_symm)
-
     @compact
     def __call__(self, x: Array) -> Array:
         """Applies the equivariant transform to the inputs along the last dimension.
@@ -673,7 +666,6 @@ class DenseEquivariantMatrix(Module):
 
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
-            bias = jnp.asarray(self.full_bias(bias), dtype)
             x += jnp.expand_dims(bias, (0, 2))
 
         return x
