@@ -848,10 +848,10 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
                 HashableArray(sg.product_table), shape=shape, **kwargs
             )
     elif mode in ["irreps", "auto"]:
-        irreps = tuple(HashableArray(irrep) for irrep in symmetries.irrep_matrices())
+        irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
         return DenseEquivariantIrrep(irreps, **kwargs)
     elif mode == "matrix":
-        return DenseEquivariantMatrix(HashableArray(symmetries.product_table), **kwargs)
+        return DenseEquivariantMatrix(HashableArray(sg.product_table), **kwargs)
     else:
         raise ValueError(
             f"Unknown mode={mode}. Valid modes are 'fft', 'matrix', 'irreps' or 'auto'."
