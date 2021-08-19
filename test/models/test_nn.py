@@ -73,6 +73,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
     for val in vals:
         assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
 
+
 @pytest.mark.parametrize("mode", ["fft", "matrix", "irreps"])
 def test_DenseEquivariant_creation(mode):
     g = nk.graph.Chain(8)
@@ -81,7 +82,7 @@ def test_DenseEquivariant_creation(mode):
 
     def check_init(creator):
         ma = creator()
-        _ = ma.init(nk.jax.PRNGKey(0), np.ones([1,4,16]))
+        _ = ma.init(nk.jax.PRNGKey(0), np.ones([1, 4, 16]))
 
     perms = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]]
 
@@ -116,7 +117,7 @@ def test_DenseEquivariant_creation(mode):
             )
         )
 
-    # init with arrays 
+    # init with arrays
     if mode == "irreps":
         check_init(
             lambda: nk.nn.DenseEquivariant(
@@ -136,8 +137,8 @@ def test_DenseEquivariant_creation(mode):
                 out_features=4,
             )
         )
-    else: 
-          check_init(
+    else:
+        check_init(
             lambda: nk.nn.DenseEquivariant(
                 symmetries=space_group.product_table,
                 mode=mode,
@@ -145,7 +146,6 @@ def test_DenseEquivariant_creation(mode):
                 out_features=4,
             )
         )
-
 
 
 @pytest.mark.parametrize("symmetries", ["trans", "space_group"])
