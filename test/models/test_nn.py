@@ -74,6 +74,80 @@ def test_DenseSymm(symmetries, use_bias, mode):
         assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
 
 
+@pytest.mark.parametrize("mode", ["fft", "matrix", "irreps"])
+def test_DenseEquivariant_creation(mode):
+    g = nk.graph.Chain(8)
+    space_group = g.space_group()
+    hi = nk.hilbert.Spin(1 / 2, N=8)
+
+    def check_init(creator):
+        ma = creator()
+        _ = ma.init(nk.jax.PRNGKey(0), np.ones([1, 4, 16]))
+
+    perms = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]]
+
+    # Init with graph
+    check_init(
+        lambda: nk.nn.DenseEquivariant(
+            symmetries=g,
+            mode=mode,
+            in_features=4,
+            out_features=4,
+        )
+    )
+
+    # init with space_group
+    if mode == "irreps":
+        check_init(
+            lambda: nk.nn.DenseEquivariant(
+                symmetries=space_group,
+                mode=mode,
+                in_features=4,
+                out_features=4,
+            )
+        )
+    else:
+        check_init(
+            lambda: nk.nn.DenseEquivariant(
+                symmetries=space_group,
+                shape=tuple(g.extent),
+                mode=mode,
+                in_features=4,
+                out_features=4,
+            )
+        )
+
+    # init with arrays
+    if mode == "irreps":
+        check_init(
+            lambda: nk.nn.DenseEquivariant(
+                symmetries=space_group.irrep_matrices(),
+                mode=mode,
+                in_features=4,
+                out_features=4,
+            )
+        )
+    elif mode == "fft":
+        check_init(
+            lambda: nk.nn.DenseEquivariant(
+                symmetries=space_group.product_table,
+                mode=mode,
+                shape=(8,),
+                in_features=4,
+                out_features=4,
+            )
+        )
+    else:
+        check_init(
+            lambda: nk.nn.DenseEquivariant(
+                symmetries=space_group.product_table,
+                mode=mode,
+                in_features=4,
+                out_features=4,
+            )
+        )
+
+
 @pytest.mark.parametrize("symmetries", ["trans", "space_group"])
 @pytest.mark.parametrize("use_bias", [True, False])
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])

@@ -7,7 +7,7 @@ from timeit import timeit
 # Test DenseSymm
 
 for L in [2, 4, 6, 8, 10]:
-    dum_input = np.random.normal(0, 1, [1, L * L])
+    dum_input = np.random.normal(0, 1, [1000, L * L])
     graph = Square(L)
     ma_fft = DenseSymm(symmetries=graph, mode="fft", features=4)
     ma_matrix = DenseSymm(symmetries=graph, mode="matrix", features=4)
@@ -54,13 +54,13 @@ for L in [2, 4, 6, 8, 10]:
         symmetries=product_table, mode="matrix", in_features=4, out_features=4
     )
 
-    dum_input = np.random.normal(0, 1, [1, 4, len(sg)])
+    dum_input = np.random.normal(0, 1, [1000, 4, len(sg)])
 
     params_fft = ma_fft.init(jax.random.PRNGKey(0), dum_input)
     apply_fft = jax.jit(lambda x: ma_fft.apply(params_fft, x))
 
-    params_irreps = ma_matrix.init(jax.random.PRNGKey(0), dum_input)
-    apply_irreps = jax.jit(lambda x: ma_matrix.apply(params_irreps, x))
+    params_irreps = ma_irreps.init(jax.random.PRNGKey(0), dum_input)
+    apply_irreps = jax.jit(lambda x: ma_irreps.apply(params_irreps, x))
 
     params_matrix = ma_matrix.init(jax.random.PRNGKey(0), dum_input)
     apply_matrix = jax.jit(lambda x: ma_matrix.apply(params_matrix, x))
