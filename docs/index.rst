@@ -143,4 +143,5 @@
    :caption: API documentation
    :hidden:
 
+   docs/api-stability
    docs/api
