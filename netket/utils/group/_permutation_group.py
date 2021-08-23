@@ -166,7 +166,7 @@ class PermutationGroup(FiniteGroup):
             lookup = self._canonical_lookup()
 
             for g_inv in inverse:
-                row_perms = perms[:,g_inv]
+                row_perms = perms[:, g_inv]
                 row_pt = [lookup[HashableArray(perm)] for perm in row_perms]
                 product_table.append(row_pt)
 
