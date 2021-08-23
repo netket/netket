@@ -16,10 +16,12 @@
     :header: text-center text-bold h2
     :container: p-2
 
-    :doc:`Using Jax: Netket 3 preview <tutorials/jax>`
+    :doc:`Introduction to NetKet 3 <tutorials/netket3>`
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    Learn how to define a simple model in bare jax.
+    Learn how to use NetKet 3 while studying a simple model. You will also learn
+    how to define a model in Flax, how to exploit lattice symmetries and use 
+    variable learning rates.
 
     ---
 
