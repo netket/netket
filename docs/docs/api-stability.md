@@ -37,6 +37,15 @@ netket.submodule.subsubmodule.public_fun
 netket.submodule.subsubmodule._private_fun
 ```
 
+```{warning}
+If you only use functions and properties without a leading underscore, and follow
+the tutorials and examples, your code will be fine.
+
+If your code uses properties or functions with a leading underscore, you're 
+probably using private, unstable APIs. That's ok, but be careful in not updating
+the minor NetKet version!
+```
+
 Exceptions to the above rule are:
 
  - methods, functions or classes whose name starts with an underscore;
