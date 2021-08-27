@@ -4,7 +4,7 @@ Getting Started
 
 .. currentmodule:: netket
 
-Welcome to the documentation for Netket 3.0 (alpha).
+Welcome to the documentation for Netket 3.0.
 
 Please read the release notes to see what has changed since the last release.
 
