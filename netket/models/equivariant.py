@@ -27,7 +27,8 @@ from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
 from jax.scipy.special import logsumexp
 
-from netket.nn.initializers import zeros, piecewise_selu
+from netket.nn.initializers import zeros
+from netket.nn.activation import piecewise_selu
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
     DenseSymmFFT,
