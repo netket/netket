@@ -20,7 +20,7 @@
 
     .. rst-class:: h1
 
-      **Netket**
+      **NetKet**
 
     .. rst-class:: h2
 
@@ -31,7 +31,7 @@
       <div class="btn-group">
         <a class="btn btn-primary btn-lg" href="https://www.sciencedirect.com/science/article/pii/S2352711019300974" role="button">Paper</a>
         <div class="btn-group">
-          <a class="btn btn-info btn-lg" href="getting_started.html" role="button">pip install --pre netket</a>
+          <a class="btn btn-info btn-lg" href="getting_started.html" role="button">pip install netket</a>
         </div>
       </div>
 
@@ -48,6 +48,26 @@
         .. rst-class:: text-muted
 
             NetKet is an open-source project delivering cutting-edge methods for the study of many-body quantum systems with artificial neural networks and machine learning techniques.
+
+
+.. container:: centered-bubble
+
+    .. container:: jumbotron-fluid centered-bubble-header
+      
+        .. rst-class:: h3
+
+            23 august 2021: NetKet 3 ❤️ Jax
+
+        .. rst-class:: text-muted
+
+            18 months in development, NetKet 3.0 indicates a major new step for the NetKet project. 
+            NetKet has been totally rewritten in Python and is now a `Jax <https://jax.readthedocs.io>`_-based library. 
+            This guarantees outstanding performance while allowing researchers to exploit
+            machine-learning frameworks to define advanced Neural-Networks. 
+            
+            GPUs and Google's TPUs are now supported too!
+
+            Update now and try the new `examples <https://github.com/netket/netket/tree/master/Examples>`_!
 
 
 
@@ -143,4 +163,5 @@
    :caption: API documentation
    :hidden:
 
+   docs/api-stability
    docs/api

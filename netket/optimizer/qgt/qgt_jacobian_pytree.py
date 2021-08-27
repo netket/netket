@@ -161,6 +161,12 @@ class QGTJacobianPyTreeT(LinearOperator):
         """
         return _to_dense(self)
 
+    def __repr__(self):
+        return (
+            f"QGTJacobianPyTree(diag_shift={self.diag_shift}, "
+            f"scale={self.scale}, mode={self.mode})"
+        )
+
 
 @jax.jit
 def _matmul(

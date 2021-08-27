@@ -41,7 +41,6 @@ jobs:
 
     # Create an artifact of the html output.
     - uses: actions/upload-artifact@v1
-      if: github.event.pull_request.head.repo.full_name != 'netket/netket'
       with:
         name: DocumentationHTML
         path: docs/_build/html/

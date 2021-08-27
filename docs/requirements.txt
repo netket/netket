@@ -7,7 +7,7 @@ sphinxcontrib-jsmath>=1.0.1
 sphinxcontrib-napoleon>=0.7
 myst-parser>=0.13.7
 sphinx_reredirects
-nbsphinx>=0.8
+nbsphinx==0.8.7
 jaxlib>=0.1.59
 sphinx_panels>=0.5.2
 -e .
