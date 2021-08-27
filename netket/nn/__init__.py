@@ -35,6 +35,7 @@ from .activation import (
     log_cosh,
     log_sinh,
     log_tanh,
+    piecewise_selu,
 )
 from flax.linen import (
     MultiHeadDotProductAttention,
