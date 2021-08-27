@@ -192,6 +192,9 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
 def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
     S = qgt(vstate)
 
+    # test repr
+    str(S)
+
     Sd = S.to_dense()
 
     assert Sd.ndim == 2

@@ -157,31 +157,26 @@ class PermutationGroup(FiniteGroup):
 
     @struct.property_cached
     def product_table(self) -> Array:
-        try:
-            perms = self.to_array()
-            inverse = perms[self.inverse].squeeze()
-            n_symm = len(perms)
-            product_table = np.zeros([n_symm, n_symm], dtype=int)
+        perms = self.to_array()
+        inverse = perms[self.inverse].squeeze()
+        n_symm = len(perms)
+        lookup = np.unique(np.column_stack((perms, np.arange(len(self)))), axis=0)
 
-            inv_t = inverse.transpose()
-            perms_t = perms.transpose()
-            inv_elements = perms_t[inv_t].reshape(-1, n_symm * n_symm).transpose()
+        product_table = np.zeros([n_symm, n_symm], dtype=int)
+        for i, g_inv in enumerate(inverse):
+            row_perms = perms[:, g_inv]
+            row_perms = np.unique(
+                np.column_stack((row_perms, np.arange(len(self)))), axis=0
+            )
+            # row_perms should be a permutation of perms, so identical after sorting
+            if np.any(row_perms[:, :-1] != lookup[:, :-1]):
+                raise RuntimeError(
+                    "PermutationGroup is not closed under multiplication"
+                )
+            # match elements in row_perms to group indices
+            product_table[i, row_perms[:, -1]] = lookup[:, -1]
 
-            inv_perms = [HashableArray(element) for element in inv_elements]
-
-            lookup = self._canonical_lookup()
-
-            inds = [(index, lookup[element]) for index, element in enumerate(inv_perms)]
-
-            inds = np.asarray(inds)
-
-            product_table[inds[:, 0] // n_symm, inds[:, 0] % n_symm] = inds[:, 1]
-
-            return product_table
-        except KeyError as err:
-            raise RuntimeError(
-                "PermutationGroup is not closed under multiplication"
-            ) from err
+        return product_table
 
     @property
     def shape(self) -> Shape:

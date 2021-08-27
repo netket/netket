@@ -106,6 +106,9 @@ class QGTOnTheFlyT(LinearOperator):
         """
         return _to_dense(self)
 
+    def __repr__(self):
+        return f"QGTOnTheFly(diag_shift={self.diag_shift})"
+
 
 @jax.jit
 def onthefly_mat_treevec(
