@@ -65,7 +65,10 @@ def log_tanh(x):
 
 def piecewise_selu(x):
     # Returns selu that operates seperately on  real and complex parts
-    return jax.lax.complex(selu(x.real), selu(x.imag))
+    if jax.numpy.iscomplexobj(x):
+        return jax.lax.complex(selu(x.real), selu(x.imag))
+    else:
+        return selu(x)
 
 
 # TODO: DEPRECATION 3.1
