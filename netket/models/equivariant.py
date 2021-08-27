@@ -27,7 +27,7 @@ from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
 from jax.scipy.special import logsumexp
 
-from netket.nn.initializers import zeros
+from netket.nn.initializers import zeros, piecewise_selu
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
     DenseSymmFFT,
@@ -72,7 +72,7 @@ class GCNN_FFT(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     dtype: Any = float
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = piecewise_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output. Defaults to the identity."""
@@ -179,7 +179,7 @@ class GCNN_Irrep(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = piecewise_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
@@ -271,7 +271,7 @@ class GCNN_Parity_FFT(nn.Module):
     """Integer specifying the eigenvalue with respect to parity"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = piecewise_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
@@ -425,7 +425,7 @@ class GCNN_Parity_Irrep(nn.Module):
     """Integer specifying the eigenvalue with respect to parity"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = piecewise_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""

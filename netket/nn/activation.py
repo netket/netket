@@ -63,6 +63,11 @@ def log_tanh(x):
     return jax.numpy.log(jax.numpy.tanh(x))
 
 
+def piecewise_selu(x):
+    # Returns selu that operates seperately on  real and complex parts
+    return jax.lax.complex(selu(x.real), selu(x.imag))
+
+
 # TODO: DEPRECATION 3.1
 @deprecated("Deprecated. Use log_cosh instead")
 def logcosh(x):
