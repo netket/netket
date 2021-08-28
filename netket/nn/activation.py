@@ -70,6 +70,13 @@ def piecewise_selu(x):
     else:
         return selu(x)
 
+def piecewise_relu(x):
+    # Returns selu that operates seperately on  real and complex parts
+    if jax.numpy.iscomplexobj(x):
+        return jax.lax.complex(relu(x.real), relu(x.imag))
+    else:
+        return relu(x)
+
 
 # TODO: DEPRECATION 3.1
 @deprecated("Deprecated. Use log_cosh instead")
