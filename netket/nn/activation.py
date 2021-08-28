@@ -70,6 +70,7 @@ def piecewise_selu(x):
     else:
         return selu(x)
 
+    
 def piecewise_relu(x):
     # Returns selu that operates seperately on  real and complex parts
     if jax.numpy.iscomplexobj(x):
