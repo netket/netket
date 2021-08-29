@@ -49,6 +49,16 @@ from jax.numpy import cosh
 from jax.numpy import sinh
 
 
+def complexify(f):
+    def cf(x):
+        if iscomplexobj(x):
+            return jax.lax.complex(f(x.real), f(x.imag))
+        else:
+            return f(x)
+
+    return cf
+
+
 def log_cosh(x):
     sgn_x = -2 * jnp.signbit(x.real) + 1
     x = x * sgn_x
@@ -63,20 +73,8 @@ def log_tanh(x):
     return jax.numpy.log(jax.numpy.tanh(x))
 
 
-def piecewise_selu(x):
-    # Returns selu that operates seperately on  real and complex parts
-    if jax.numpy.iscomplexobj(x):
-        return jax.lax.complex(selu(x.real), selu(x.imag))
-    else:
-        return selu(x)
-
-    
-def piecewise_relu(x):
-    # Returns selu that operates seperately on  real and complex parts
-    if jax.numpy.iscomplexobj(x):
-        return jax.lax.complex(relu(x.real), relu(x.imag))
-    else:
-        return relu(x)
+C_selu = complexify(selu)
+C_relu = complexify(relu)
 
 
 # TODO: DEPRECATION 3.1
