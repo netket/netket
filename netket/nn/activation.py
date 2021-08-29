@@ -52,7 +52,7 @@ from jax.numpy import sinh
 def complexify(f):
     # Modifies a non-linearity to act seperately on the real and imaginary parts
     def cf(x):
-        if iscomplexobj(x):
+        if jnp.iscomplexobj(x):
             return jax.lax.complex(f(x.real), f(x.imag))
         else:
             return f(x)
