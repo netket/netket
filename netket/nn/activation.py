@@ -78,8 +78,8 @@ def log_tanh(x):
     return jax.numpy.log(jax.numpy.tanh(x))
 
 
-C_selu = complexify(selu)
-C_relu = complexify(relu)
+ri_selu = complexify(selu)
+ri_relu = complexify(relu)
 
 
 # TODO: DEPRECATION 3.1
