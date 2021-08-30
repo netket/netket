@@ -140,6 +140,8 @@ def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
          >>> print(g.n_nodes)
          1000
     """
+    if not isinstance(length, int) or length <= 0:
+        raise TypeError("Argument `length` must be a positive integer")
     length_vector = [length] * n_dim
     return Grid(length_vector, pbc=pbc)
 
