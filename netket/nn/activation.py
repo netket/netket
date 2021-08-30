@@ -48,14 +48,14 @@ from jax.numpy import tanh
 from jax.numpy import cosh
 from jax.numpy import sinh
 
-from netket.jax import HashablePartial
+from netket.jax import HashablePartial, dtype_real
 
 
 @HashablePartial
 def complexify(f):
     # Modifies a non-linearity to act seperately on the real and imaginary parts
     def cf(x):
-        sqrt2 = jnp.sqrt(jnp.array(2, dtype=nk.jax.dtype_real(x)))
+        sqrt2 = jnp.sqrt(jnp.array(2, dtype=dtype_real))
         if jnp.iscomplexobj(x):
             return jax.lax.complex(f(sqrt2 * x.real), f(sqrt2 * x.imag)) / sqrt2
         else:
