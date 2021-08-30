@@ -51,16 +51,17 @@ from jax.numpy import sinh
 from netket.jax import HashablePartial
 
 
-def complexify(func):
+@HashablePartial
+def complexify(f):
     # Modifies a non-linearity to act seperately on the real and imaginary parts
-    def cf(f, x):
+    def cf(x):
         sqrt2 = jnp.sqrt(jnp.array(2, dtype=nk.jax.dtype_real(x)))
         if jnp.iscomplexobj(x):
             return jax.lax.complex(f(sqrt2 * x.real), f(sqrt2 * x.imag)) / sqrt2
         else:
             return f(x)
 
-    return HashablePartial(cf, f=func)
+    return cf
 
 
 def log_cosh(x):
