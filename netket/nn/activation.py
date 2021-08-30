@@ -55,7 +55,7 @@ from netket.jax import HashablePartial
 def complexify(f):
     # Modifies a non-linearity to act seperately on the real and imaginary parts
     def cf(x):
-        sqrt2 = jnp.sqrt(jnp.array(2),dtype=x.real.dtype)
+        sqrt2 = jnp.sqrt(jnp.array(2), dtype=x.real.dtype)
         if jnp.iscomplexobj(x):
             return jax.lax.complex(f(sqrt2 * x.real), f(sqrt2 * x.imag)) / sqrt2
         else:
