@@ -288,6 +288,18 @@ class AbstractOperator(abc.ABC):
         """
         return self.to_sparse().todense().A
 
+    def to_qobj(self) -> "qutip.Qobj":  # noqa: F821
+        r"""Convert the operator to a qutip's Qobj.
+
+        Returns:
+            A `qutip.Qobj` object.
+        """
+        from qutip import Qobj
+
+        return Qobj(
+            self.to_sparse(), dims=[list(self.hilbert.shape), list(self.hilbert.shape)]
+        )
+
     def apply(self, v: np.ndarray) -> np.ndarray:
         op = self.to_linear_operator()
         return op.dot(v)

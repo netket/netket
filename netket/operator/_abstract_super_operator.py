@@ -39,3 +39,6 @@ class AbstractSuperOperator(AbstractOperator):
     def hilbert_physical(self) -> AbstractHilbert:
         """The physical hilbert space on which this super-operator acts."""
         return self.hilbert.physical
+
+    def to_qobj(self) -> "qutip.Qobj":  # noqa: F821
+        raise NotImplementedError("Superoperator to Qobj not yet implemented")
