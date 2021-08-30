@@ -48,16 +48,19 @@ from jax.numpy import tanh
 from jax.numpy import cosh
 from jax.numpy import sinh
 
+from netket.jax import HashablePartial
 
-def complexify(f):
+
+def complexify(func):
     # Modifies a non-linearity to act seperately on the real and imaginary parts
-    def cf(x):
+    def cf(f, x):
+        sqrt2 = jnp.sqrt(jnp.array(2, dtype=nk.jax.dtype_real(x)))
         if jnp.iscomplexobj(x):
-            return jax.lax.complex(f(x.real), f(x.imag))
+            return jax.lax.complex(f(sqrt2 * x.real), f(sqrt2 * x.imag)) / sqrt2
         else:
             return f(x)
 
-    return cf
+    return HashablePartial(cf, f=func)
 
 
 def log_cosh(x):
@@ -85,12 +88,12 @@ def logcosh(x):
 
 
 # TODO: DEPRECATION 3.1
-@deprecated("Deprecated. Use log_cosh instead")
+@deprecated("Deprecated. Use log_tanh instead")
 def logtanh(x):
     return log_tanh(x)
 
 
 # TODO: DEPRECATION 3.1
-@deprecated("Deprecated. Use log_cosh instead")
+@deprecated("Deprecated. Use log_sinh instead")
 def logsinh(x):
     return log_sinh(x)
