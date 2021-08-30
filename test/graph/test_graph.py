@@ -305,6 +305,18 @@ def test_graph_wrong():
     with pytest.raises(ValueError):
         nk.graph.Graph([1, 2, 3], [1, 2, 3])
 
+    with pytest.raises(TypeError):
+        nk.graph.Hypercube([5])
+
+    with pytest.raises(TypeError):
+        nk.graph.Cube([5])
+
+    with pytest.raises(TypeError):
+        nk.graph.Square([5])
+
+    with pytest.raises(TypeError):
+        nk.graph.Chain([5])
+
 
 def test_edges_are_correct():
     def check_edges(length, n_dim, pbc):
