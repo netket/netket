@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.hilbert import AbstractHilbert
-from netket.utils.types import DType
+from netket.utils.types import DType as _DType
+
+from netket.hilbert import AbstractHilbert as _AbstractHilbert
 
 from ._local_operator import LocalOperator as _LocalOperator
 
 
-def sigmax(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
+def sigmax(
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^x` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -41,7 +44,7 @@ def sigmax(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalO
 
 
 def sigmay(
-    hilbert: AbstractHilbert, site: int, dtype: DType = complex
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = complex
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^y` operator acting on the `site`-th of the Hilbert
@@ -64,7 +67,9 @@ def sigmay(
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmaz(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
+def sigmaz(
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^z` operator acting on the `site`-th of the Hilbert
     space `hilbert`.
@@ -86,7 +91,9 @@ def sigmaz(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalO
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmam(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
+def sigmam(
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^{-} = \\frac{1}{2}(\\sigma^x - i \\sigma^y)` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -109,7 +116,9 @@ def sigmam(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalO
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
-def sigmap(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalOperator:
+def sigmap(
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^{+} = \\frac{1}{2}(\\sigma^x + i \\sigma^y)` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -130,7 +139,3 @@ def sigmap(hilbert: AbstractHilbert, site: int, dtype: DType = float) -> _LocalO
     D = np.array([np.sqrt(S2 - m * (m + 1)) for m in np.arange(S - 1, -(S + 1), -1)])
     mat = np.diag(D, 1)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
-
-
-# clean up the module
-del AbstractHilbert, DType

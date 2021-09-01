@@ -21,7 +21,6 @@ from .doubled_hilbert import DoubledHilbert
 from .spin import Spin
 from .fock import Fock
 from .qubit import Qubit
-from .hilbert_index import HilbertIndex
 from .continuous_space_boson import ContinuousBoson
 from .continuous_space_fermion import ContinuousFermion
 
