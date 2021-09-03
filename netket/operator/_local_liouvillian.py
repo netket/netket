@@ -441,3 +441,15 @@ class LocalLiouvillian(AbstractSuperOperator):
         L = LinearOperator((op_size, op_size), matvec=matvec, dtype=iHnh.dtype)
 
         return L
+
+    def to_qobj(self) -> "qutip.liouvillian":  # noqa: F821
+        r"""Convert the operator to a qutip's liouvillian Qobj.
+
+        Returns:
+            A `qutip.liouvillian` object.
+        """
+        from qutip import liouvillian
+
+        return liouvillian(
+            self.hamiltonian.to_qobj(), [op.to_qobj() for op in self.jump_operators]
+        )

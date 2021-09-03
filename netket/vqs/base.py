@@ -19,6 +19,7 @@ import jax
 import flax
 from flax.core.frozen_dict import FrozenDict
 
+import numpy as np
 import jax.numpy as jnp
 
 import netket.jax as nkjax
@@ -234,6 +235,17 @@ class VariationalState(abc.ABC):
         """
         return NotImplemented  # pragma: no cover
 
+    def to_qobj(self):
+        r"""Convert the variational state to a qutip's ket Qobj.
+
+        Returns:
+            A `qutip.Qobj` object.
+        """
+        from qutip import Qobj
+
+        q_dims = [list(self.hilbert.shape), [1 for i in range(self.hilbert.size)]]
+        return Qobj(np.asarray(self.to_array()), dims=q_dims)
+
 
 class VariationalMixedState(VariationalState):
     def __init__(self, hilbert, *args, **kwargs):
@@ -256,6 +268,17 @@ class VariationalMixedState(VariationalState):
             basis.
         """
         return NotImplemented  # pragma: no cover
+
+    def to_qobj(self):
+        r"""Convert this mixed state to a qutip density matrix Qobj.
+
+        Returns:
+            A `qutip.Qobj` object.
+        """
+        from qutip import Qobj
+
+        q_dims = [list(self.hilbert.shape), list(self.hilbert.shape)]
+        return Qobj(np.asarray(self.to_matrix()), dims=q_dims)
 
 
 @dispatch.abstract
