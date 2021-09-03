@@ -15,6 +15,12 @@ class OperatorList:
         self._index2operatorkeys = []
 
     def __getitem__(self, key: Union[int, slice]) -> np.ndarray:
+        if isinstance(key, slice):
+            length = len(self._index2operatorkeys)
+            return [
+                self._operators[self._index2operatorkeys[k]]
+                for k in range(*key.indices(length))
+            ]
         return self._operators[self._index2operatorkeys[key]]
 
     def __setitem__(self, key: int, operator: np.ndarray) -> None:
