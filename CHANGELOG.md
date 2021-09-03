@@ -9,7 +9,7 @@
 [GitHub commits](https://github.com/netket/netket/compare/v3.0...master).
 
 ### New features
-
+* Added Conversion methods `to_qobj()` to operators and variational states, that produce QuTiP's qobjects. 
 
 ### Breaking Changes
 
