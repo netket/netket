@@ -24,6 +24,7 @@ from netket.hilbert import AbstractHilbert, Fock
 
 from ._abstract_operator import AbstractOperator
 from ._lazy import Transpose
+from ._operator_list import OperatorList
 
 
 @jit(nopython=True)
@@ -474,7 +475,7 @@ class LocalOperator(AbstractOperator):
         return self.__mul__(other)
 
     def _init_zero(self):
-        self._operators = []
+        self._operators = OperatorList()
         self._n_operators = 0
 
         self._max_op_size = 0
