@@ -52,7 +52,7 @@ from netket.jax import HashablePartial
 
 
 @HashablePartial
-def complexify(f):
+def reim(f):
     # Modifies a non-linearity to act seperately on the real and imaginary parts
     def cf(x):
         sqrt2 = jnp.sqrt(jnp.array(2, dtype=x.real.dtype))
@@ -78,8 +78,8 @@ def log_tanh(x):
     return jax.numpy.log(jax.numpy.tanh(x))
 
 
-ri_selu = complexify(selu)
-ri_relu = complexify(relu)
+reim_selu = reim(selu)
+reim_relu = reim(relu)
 
 
 # TODO: DEPRECATION 3.1
