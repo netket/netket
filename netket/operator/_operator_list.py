@@ -24,7 +24,7 @@ class OperatorList:
         return self._operators[self._index2operatorkeys[key]]
 
     def __setitem__(self, key: int, operator: np.ndarray) -> None:
-        value_hash = hash(operator.tostring())
+        value_hash = hash(operator.tobytes())
         self._index2operatorkeys[key] = value_hash
         if value_hash not in self._operators.keys():
             self._operators[value_hash] = operator
