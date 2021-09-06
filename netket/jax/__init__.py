@@ -40,6 +40,17 @@ from ._grad import grad, value_and_grad
 
 from ._expect import expect
 
+from ._batch_utils import (
+    unbatch,
+    batch,
+    rebatch,
+    unbatch_output,
+    unbatch_args,
+    batch_args,
+)
+from ._scanmap import scan_accum, scan_append, scanmap
+
+
 from .numba4jax import numba_to_jax, njit4jax
 
 from netket.utils import _hide_submodules
