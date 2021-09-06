@@ -23,7 +23,7 @@ import netket.jax as nkjax
 from netket.utils.types import PyTree
 from netket.utils import warn_deprecation
 
-from .qgt_onthefly_logic import mat_vec_factory
+from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
 
 from ..linear_operator import LinearOperator, Uninitialized
 
@@ -62,13 +62,21 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
     else:
         samples = vstate.samples.reshape((-1, vstate.samples.shape[-1]))
 
-    mat_vec = mat_vec_factory(
+    chunk_size = vstate.chunk_size
+    n_samples = samples.shape[0]
+
+    if chunk_size is None or chunk_size >= n_samples:
+        mv_factory = mat_vec_factory
+    else:
+        samples, _ = nkjax.chunk(samples, chunk_size)
+        mv_factory = mat_vec_chunked_factory
+
+    mat_vec = mv_factory(
         forward_fn=vstate._apply_fun,
         params=vstate.parameters,
         model_state=vstate.model_state,
         samples=samples,
     )
-
     return QGTOnTheFlyT(
         _mat_vec=mat_vec,
         _params=vstate.parameters,
@@ -128,7 +136,7 @@ def onthefly_mat_treevec(
     # if hasa ndim it's an array and not a pytree
     if hasattr(vec, "ndim"):
         if not vec.ndim == 1:
-            raise ValueError("Unsupported mat-vec for batches of vectors")
+            raise ValueError("Unsupported mat-vec for chunks of vectors")
         # If the input is a vector
         if not nkjax.tree_size(S._params) == vec.size:
             raise ValueError(
