@@ -78,18 +78,11 @@ def log_tanh(x):
     return jax.numpy.log(jax.numpy.tanh(x))
 
 
-def reim_selu():
+reim_selu = reim(selu)
+r"""Returns the selu non-linearity, applied seperately to the real and imaginary parts"""
 
-    r"""Returns the selu non-linearity, applied seperately to the real and imaginary parts"""
-
-    return reim(selu)
-
-
-def reim_relu():
-
-    r"""Returns the relu non-linearity, applied seperately to the real and imaginary parts"""
-
-    return reim(relu)
+reim_relu = reim(relu)
+r"""Returns the relu non-linearity, applied seperately to the real and imaginary parts"""
 
 
 # TODO: DEPRECATION 3.1
