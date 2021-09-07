@@ -257,6 +257,8 @@ Activation functions
     softplus
     swish
     log_cosh
+    reim_relu
+    reim_selu
 
 
 .. _variational-api:
