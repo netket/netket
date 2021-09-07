@@ -51,7 +51,6 @@ from jax.numpy import sinh
 from netket.jax import HashablePartial
 
 
-@HashablePartial
 def reim(f):
     # Modifies a non-linearity to act seperately on the real and imaginary parts
     def reim_activation(f, x):
