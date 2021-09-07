@@ -9,6 +9,7 @@
 [GitHub commits](https://github.com/netket/netket/compare/v3.0...master).
 
 ### New features
+* Added Conversion methods `to_qobj()` to operators and variational states, that produce QuTiP's qobjects. 
 * A function `nk.nn.activation.reim` has been added that transforms a nonlinearity to act seperately on the real and imaginary parts   
 * Nonlinearities `reim_selu` and `reim_relu` have been added 
 
