@@ -54,14 +54,14 @@ from netket.jax import HashablePartial
 @HashablePartial
 def reim(f):
     # Modifies a non-linearity to act seperately on the real and imaginary parts
-    def cf(x):
+    def reim_activation(f, x):
         sqrt2 = jnp.sqrt(jnp.array(2, dtype=x.real.dtype))
         if jnp.iscomplexobj(x):
             return jax.lax.complex(f(sqrt2 * x.real), f(sqrt2 * x.imag)) / sqrt2
         else:
             return f(x)
 
-    return cf
+    return HashablePartial(reim_activation, f)
 
 
 def log_cosh(x):
