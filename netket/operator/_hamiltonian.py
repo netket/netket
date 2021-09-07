@@ -402,7 +402,8 @@ class Heisenberg(GraphOperator):
                 [0, -1, 0, 0],
                 [0, 0, -1, 0],
                 [0, 0, 0, 1],
-            ]
+            ],
+            dtype=np.float64,
         )
         exchange = np.array(
             [
@@ -410,7 +411,8 @@ class Heisenberg(GraphOperator):
                 [0, 0, 2, 0],
                 [0, 2, 0, 0],
                 [0, 0, 0, 0],
-            ]
+            ],
+            dtype=np.float64,
         )
         if sign_rule:
             if not graph.is_bipartite():
