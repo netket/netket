@@ -45,7 +45,7 @@ def dwdt_mcstate(state: MCState, self, t, w):
     state.reset()
 
     self._loss_stats, self._loss_grad = state.expect_and_grad(
-        self.generator(t), is_hermitian=True
+        self.generator(t), use_covariance=True,
     )
     self._loss_grad = tree_map(lambda x: -1.0j * x, self._loss_grad)
 
@@ -61,7 +61,7 @@ def dwdt_mcmixedstate(state: MCMixedState, self, t, w):
     state.reset()
 
     self._loss_stats, self._loss_grad = state.expect_and_grad(
-        self.generator(t), is_hermitian=True
+        self.generator(t), use_covariance=True,
     )
 
     self._S = self.qgt(self.state)
