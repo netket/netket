@@ -129,10 +129,10 @@ The first thing to do is import NetKet. We usually shorten it to `nk`.
 
     g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 
-Then, one must define the systeme to be studied. To do so, the first
+Then, one must define the system to be studied. To do so, the first
 thing to do is usually defining the lattice of the model. This is not
 always required, but it can sometimes avoid errors.
-Seveeral types of Lattices (graphs) are defined in the :ref:`Graph` 
+Several types of Lattices (graphs) are defined in the :ref:`Graph` 
 submodule.
 
 In the example above we chose a 1-Dimensional chain with 20 sites and
@@ -173,7 +173,7 @@ This can happen if you mix single and double precision in your models and the sa
 is described in `Jax:Type promotion semantics <https://jax.readthedocs.io/en/latest/type_promotion.html>`_.
 
 Hilbert space samplers are defined in the :ref:`Sampler` submodule. In general 
-you must provide the constructor the hilbert space to be sampled and some options. 
+you must provide the constructor of the hilbert space to be sampled and some options. 
 In this case we ask for 16 markov chains. 
 The default behaviour for samplers is to output states with double precision, but
 this can be configured by specifying the :code:`dtype` argument when constructing the
@@ -199,9 +199,9 @@ use an arbitrary flax optimiser, or define your own.
     gs.run(n_iter=300, out=None)
 
 Once you have all the pieces together, you can construct a variational monte
-carlo optimisation driver by passing the constructor the hamiltonian and thee 
-optimmmiser (which must always be the first two arguments), and theene the
-sampler, mahcine and various options.
+carlo optimisation driver by passing the constructor the hamiltonian and the
+optimizer (which must always be the first two arguments), and then the
+sampler, machine and various options.
 
 Once that is done, you can run the simulation by calling the :ref:`run` method
 in the driver, specifying the output loggers and the number of iterations in

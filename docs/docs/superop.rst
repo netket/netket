@@ -19,7 +19,7 @@ space along both of their dimensions.
 The Density Matrix and the Liouvillian
 --------------------------------------
 
-The lindblad master equation that is encoded in the Liouvillian is:
+The lindblad master equation that is encoded in the liouvillian is:
 
 .. math ::
 
@@ -61,7 +61,7 @@ An intuitive derivation of the formula above can be had by trying to compute the
 :math:`\langle \sigma | \hat{\mathcal{L}}(\hat{\rho})|\eta\rangle` connecting to 
 :math:`\langle x | \hat{\rho} | y \rangle`.
 
-Alternatively, a formal derivation of the formula above is laied out by my fellow Fabrizio in the appendix 
+Alternatively, a formal derivation of the formula above is laid out by my fellow Fabrizio in the appendix 
 A1 of `this article <https://arxiv.org/pdf/1909.11619.pdf#page=16>`_.
 
 
