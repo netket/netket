@@ -45,7 +45,7 @@ If you are not familiar with Flax, it's a package that allows to define Neural N
 parametrized functions. While we suggest to read carefully the `introduction to Flax <https://flax.readthedocs.io/en/latest/notebooks/flax_basics.html>`_, if you are impatient and just want to define some simple, easy
 models you can find some examples in the `Model Surgery <https://flax.readthedocs.io/en/latest/howtos/model_surgery.html>`_ section of Flax documentation.
 
-Over examples can be found in the source of the :ref:`Pre-built models <_Models>` distributed with NetKet, such as
+Other examples can be found in the source of the :ref:`Pre-built models <_Models>` distributed with NetKet, such as
 :class:`~netket.models.RBM` (the simplest one), :class:`~netket.models.MPSPeriodic` and :class:`~netket.models.NDM` for
 more complicated examples.
 
@@ -156,7 +156,7 @@ Sampling
 ^^^^^^^^
 
 You can also change the number of samples to extract (note: this will
-trigger recompilation of the sample function, so you should not this
+trigger recompilation of the sample function, so you should not do this
 in a hot loop) by changing :py:attr:`~netket.vqs.MCState.n_samples`, and
 the number of discarded samples at the beginning of every markov chain by
 changing :py:attr:`~netket.vqs.MCState.n_discard_per_chain`.
