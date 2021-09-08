@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
+
 from netket.utils.types import DType
 
 from netket.graph import AbstractGraph
@@ -85,6 +87,10 @@ class GraphOperator(LocalOperator):
         if len(bond_ops) == 0 and len(site_ops) == 0:
             raise ValueError("Must input at least site_ops or bond_ops.")
 
+        # Convert input arrays if necessary
+        site_ops = [np.asarray(op, dtype=dtype) for op in site_ops]
+        bond_ops = [np.asarray(op, dtype=dtype) for op in bond_ops]
+
         # Create the local operator as the sum of all site and bond operators
         operators = []
         acting_on = []
@@ -92,7 +98,7 @@ class GraphOperator(LocalOperator):
         # Site operators
         if len(site_ops) > 0:
             for i in range(graph.n_nodes):
-                for j, site_op in enumerate(site_ops):
+                for _, site_op in enumerate(site_ops):
                     operators.append(site_op)
                     acting_on.append([i])
 
