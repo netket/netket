@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import numbers
 from typing import Union, List, Optional
 from netket.utils.types import DType, Array
@@ -251,9 +252,9 @@ class LocalOperator(AbstractOperator):
 
         # If we asked for a specific dtype, enforce it.
         if dtype is None:
-            dtype = np.promote_types(operators[0].dtype, np.float32)
-            for op in operators[1:]:
-                np.promote_types(dtype, op.dtype)
+            dtype = functools.reduce(
+                lambda dt, op: np.promote_types(dt, op.dtype), operators, np.float32
+            )
 
         self._dtype = dtype
         self._init_zero()
