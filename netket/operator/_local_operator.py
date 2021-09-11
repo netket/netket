@@ -549,7 +549,10 @@ class LocalOperator(AbstractOperator):
             n_local_states_per_site = np.asarray(
                 [self.hilbert.size_at_index(i) for i in acting_on]
             )
-            assert self._operators[support_i].shape[0] == self._operators[support_i].shape[1]
+            assert (
+                self._operators[support_i].shape[0]
+                == self._operators[support_i].shape[1]
+            )
             _op_coo = self._operators[support_i].tocoo()
             self._append_matrix(
                 _op_coo.data,
@@ -707,8 +710,10 @@ class LocalOperator(AbstractOperator):
         epsilon,
         hilb_size_per_site,
     ):
-        n_conns[: operator_size] = 0
-        for element, ridx, cidx in zip(operator_data, operator_row_index, operator_column_index):
+        n_conns[:operator_size] = 0
+        for element, ridx, cidx in zip(
+            operator_data, operator_row_index, operator_column_index
+        ):
             if ridx == cidx:
                 diag_mels[ridx] = element
             else:
@@ -719,7 +724,7 @@ class LocalOperator(AbstractOperator):
                         cidx,
                         hilb_size_per_site,
                         local_states_per_site[:acting_size, :],
-                        x_prime[ridx, k_conn, :acting_size]
+                        x_prime[ridx, k_conn, :acting_size],
                     )
                     n_conns[ridx] += 1
         # CODE FOR COMPARISON:
@@ -770,7 +775,9 @@ class LocalOperator(AbstractOperator):
                 actmin = min(act)
                 for site in act_i:
                     if site not in act:
-                        I = sp.eye(self.hilbert.shape[site], dtype=self.dtype, format="csr")
+                        I = sp.eye(
+                            self.hilbert.shape[site], dtype=self.dtype, format="csr"
+                        )
                         if site < actmin:
                             _act = [site] + _act
                             _op = sp.kron(I, _op)
@@ -781,7 +788,9 @@ class LocalOperator(AbstractOperator):
                 act_i_min = min(act_i)
                 for site in act:
                     if site not in act_i:
-                        I = sp.eye(self.hilbert.shape[site], dtype=self.dtype, format="csr")
+                        I = sp.eye(
+                            self.hilbert.shape[site], dtype=self.dtype, format="csr"
+                        )
                         if site < act_i_min:
                             _act_i = [site] + _act_i
                             _op_i = sp.kron(I, _op_i)
@@ -855,7 +864,9 @@ class LocalOperator(AbstractOperator):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         max_size = self.n_operators if self._nonzero_diagonal else 0
         for op in self._operators:
-            nnz_rows = (abs(op) > self.mel_cutoff).getnnz(axis=1) - np.where(np.abs(op.diagonal()) > 0, 1, 0)
+            nnz_rows = (abs(op) > self.mel_cutoff).getnnz(axis=1) - np.where(
+                np.abs(op.diagonal()) > 0, 1, 0
+            )
             max_size += np.max(nnz_rows)
 
         return max_size
