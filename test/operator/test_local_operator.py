@@ -318,7 +318,7 @@ def test_copy():
         assert op_copy is not op
         for o1, o2 in zip(op._operators, op_copy._operators):
             assert o1 is not o2
-            assert np.all(o1 == o2)
+            assert np.all(o1.A == o2.A)
         same_matrices(op, op_copy)
 
 
