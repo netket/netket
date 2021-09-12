@@ -543,8 +543,7 @@ class LocalOperator(AbstractOperator):
         # If overlapping support, add the local operators themselves
         if support_i is not None:
             dim = min(operator.shape[0], self._operators[support_i].shape[0])
-            _opv = self._operators[support_i][:dim, :dim]
-            _opv += operator[:dim, :dim]
+            self._operators[support_i][:dim, :dim] += operator[:dim, :dim]
 
             n_local_states_per_site = np.asarray(
                 [self.hilbert.size_at_index(i) for i in acting_on]
@@ -711,6 +710,7 @@ class LocalOperator(AbstractOperator):
         hilb_size_per_site,
     ):
         n_conns[:operator_size] = 0
+        diag_mels[:operator_size] = 0
         for element, ridx, cidx in zip(
             operator_data, operator_row_index, operator_column_index
         ):
