@@ -27,16 +27,13 @@ explicit_fixed_step_solvers = {
 }
 
 explicit_adaptive_solvers = {
-    #"RK12": RK12,
+    # "RK12": RK12,
     "RK23": RK23,
     "RK45": RK45,
 }
 
 
-@pytest.mark.parametrize(
-    "solver",
-    explicit_fixed_step_solvers
-)
+@pytest.mark.parametrize("solver", explicit_fixed_step_solvers)
 def test_ode_solver(solver):
     if solver == "Euler":  # first order
 
@@ -70,10 +67,7 @@ def test_ode_solver(solver):
     np.testing.assert_allclose(y_t[:, 0], y_ref)
 
 
-@pytest.mark.parametrize(
-    "solver",
-    explicit_adaptive_solvers
-)
+@pytest.mark.parametrize("solver", explicit_adaptive_solvers)
 def test_adaptive_solver(solver):
     name = solver
     solver = explicit_adaptive_solvers[solver]
