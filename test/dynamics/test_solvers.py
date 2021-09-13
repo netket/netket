@@ -15,7 +15,9 @@
 import pytest
 import numpy as np
 
-from netket.dynamics import Euler, Heun, Midpoint, RK4
+import scipy.integrate as sci
+
+from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK23, RK45
 
 explicit_fixed_step_solvers = {
     "Euler": Euler,
@@ -27,23 +29,31 @@ explicit_fixed_step_solvers = {
 
 @pytest.mark.parametrize("solver", explicit_fixed_step_solvers.keys())
 def test_ode_solver(solver):
+    if solver == "Euler":  # first order
+        def ode(t, x, **_):
+            return 1.0
+    else:  # quadratic function for higher-order solvers
+        def ode(t, x, **_):
+            return t
+    
     solver = explicit_fixed_step_solvers[solver]
 
-    def ode(t, x):
-        return t * x
 
-    def solution(t):
-        return 2.0 * np.exp(t**2 / 2.0)
-
-    times = np.linspace(0, 2, 100)
-    y_ref = solution(times)
+    y0 = np.array([1.0])
+    times = np.linspace(0, 2, 10, endpoint=False)
     
-    y0 = [2.0]
-    solv = solver(dt=0.02)(ode, (0.0, 2.0), y0)
+    sol = sci.solve_ivp(ode, (0.0, 2.0), y0, t_eval=times)
+    y_ref = sol.y[0]
 
+    solv = solver(dt=0.2)(ode, (0.0, 2.0), y0)
+
+    t = []
     y_t = []
-    for i in range(200):
+    for i in range(10):
+        t.append(solv.t)
         y_t.append(solv.y)
         solv.step()
+    y_t = np.asarray(y_t)
     
-    np.testing.assert_allclose(y_t, y_ref)
+    np.testing.assert_allclose(t, times)
+    np.testing.assert_allclose(y_t[:, 0], y_ref)
