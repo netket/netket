@@ -15,13 +15,13 @@
 from builtins import RuntimeError, next
 import dataclasses
 from functools import partial
-from typing import Callable, Optional, Tuple, Type
+from typing import Callable, Optional, Tuple
 
 import jax
 import jax.numpy as jnp
 
 from netket.utils.struct import dataclass
-from netket.utils.types import Array, PyTree
+from netket.utils.types import Array
 
 dtype = jnp.float64
 
@@ -128,8 +128,8 @@ def adapt_time_step(dt, scaled_error):
     err_exponent = -1.0 / 5.0
     return dt * jnp.clip(
         safety_factor * scaled_error ** err_exponent,
-        1e-2,
-        1e2,
+        1e-1,
+        1e1,
     )
 
 
@@ -176,6 +176,9 @@ class _RKSolver:
     use_adaptive: bool
     norm: Callable
 
+    atol: float = 0.0
+    rtol: float = 1e-7
+
     def __post_init__(self):
         if self.use_adaptive and not self.tableau.is_adaptive:
             raise RuntimeError(
@@ -185,8 +188,8 @@ class _RKSolver:
             self._do_step = lambda fn, st: general_time_step_adaptive(
                 fn,
                 st,
-                atol=0.0,
-                rtol=1e-7,
+                atol=self.atol,
+                rtol=self.rtol,
                 norm_fn=self.norm,
             )
             self._step_fn = lambda t, dt, y, **kw: self.tableau.step_with_error(
@@ -235,11 +238,13 @@ class _RKSolver:
         return self._rkstate.y
 
 
-def RKSolver(dt, tableau, adaptive=False, norm=None):
+def RKSolver(dt, tableau, adaptive=False, norm=None, **kwargs):
     def make(f, tspan, y0):
         y0 = jnp.asarray(y0)
         t0, tend = tspan
-        return _RKSolver(tableau, f, t0, y0, dt, tend, use_adaptive=adaptive, norm=norm)
+        return _RKSolver(
+            tableau, f, t0, y0, dt, tend, use_adaptive=adaptive, norm=norm, **kwargs
+        )
 
     return make
 
@@ -296,7 +301,7 @@ RK4 = partial(RKSolver, tableau=bt_rk4)
 
 # Adaptive step:
 # Heun Euler https://en.wikipedia.org/wiki/Runge–Kutta_methods
-bt_rk21  = TableauRKExplicit(
+bt_rk12  = TableauRKExplicit(
                 name = "rk21", 
                 order = (2,1),
                 a = jnp.array([[0,   0],
@@ -306,6 +311,7 @@ bt_rk21  = TableauRKExplicit(
                 c = jnp.array( [0, 1], dtype=dtype),
                 c_error = None,
                 )
+RK12 = partial(RKSolver, tableau=bt_rk12)
 
 # Bogacki–Shampine coefficients
 bt_rk23  = TableauRKExplicit(
@@ -320,6 +326,7 @@ bt_rk23  = TableauRKExplicit(
                 c = jnp.array( [0, 1/2, 3/4, 1], dtype=dtype),
                 c_error = None,
                 )
+RK23 = partial(RKSolver, tableau=bt_rk23)
 
 bt_rk4_fehlberg  = TableauRKExplicit(
                 name = "fehlberg", 
@@ -352,4 +359,5 @@ bt_rk4_dopri  = TableauRKExplicit(
                 c = jnp.array( [ 0,           1/5,         3/10,        4/5,      8/9,           1,         1], dtype=dtype),
                 c_error = None,
                 )
+RK45 = partial(RKSolver, tableau=bt_rk4_dopri)
 # fmt: on

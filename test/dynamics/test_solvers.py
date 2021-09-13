@@ -17,7 +17,7 @@ import numpy as np
 
 import scipy.integrate as sci
 
-from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK23, RK45
+from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
 
 explicit_fixed_step_solvers = {
     "Euler": Euler,
@@ -26,22 +26,33 @@ explicit_fixed_step_solvers = {
     "RK4": RK4,
 }
 
+explicit_adaptive_solvers = {
+    #"RK12": RK12,
+    "RK23": RK23,
+    "RK45": RK45,
+}
 
-@pytest.mark.parametrize("solver", explicit_fixed_step_solvers.keys())
+
+@pytest.mark.parametrize(
+    "solver",
+    explicit_fixed_step_solvers
+)
 def test_ode_solver(solver):
     if solver == "Euler":  # first order
+
         def ode(t, x, **_):
             return 1.0
+
     else:  # quadratic function for higher-order solvers
+
         def ode(t, x, **_):
             return t
-    
-    solver = explicit_fixed_step_solvers[solver]
 
+    solver = explicit_fixed_step_solvers[solver]
 
     y0 = np.array([1.0])
     times = np.linspace(0, 2, 10, endpoint=False)
-    
+
     sol = sci.solve_ivp(ode, (0.0, 2.0), y0, t_eval=times)
     y_ref = sol.y[0]
 
@@ -54,6 +65,41 @@ def test_ode_solver(solver):
         y_t.append(solv.y)
         solv.step()
     y_t = np.asarray(y_t)
-    
+
     np.testing.assert_allclose(t, times)
     np.testing.assert_allclose(y_t[:, 0], y_ref)
+
+
+@pytest.mark.parametrize(
+    "solver",
+    explicit_adaptive_solvers
+)
+def test_adaptive_solver(solver):
+    name = solver
+    solver = explicit_adaptive_solvers[solver]
+
+    tol = 1e-7
+
+    def ode(t, x, **_):
+        return -t * x
+
+    y0 = np.array([1.0])
+    solv = solver(dt=0.2, adaptive=True, rtol=tol)(ode, (0.0, 2.0), y0)
+
+    t = []
+    y_t = []
+    last_step = -1
+    while solv.t <= 2.0:
+        print(solv._rkstate)
+        if solv._rkstate.step_no != last_step:
+            last_step = solv._rkstate.step_no
+            t.append(solv.t)
+            y_t.append(solv.y)
+        solv.step()
+    y_t = np.asarray(y_t)
+
+    print(t)
+    sol = sci.solve_ivp(ode, (0.0, 2.0), y0, t_eval=t, atol=0.0, rtol=tol, method=name)
+    y_ref = sol.y[0]
+
+    np.testing.assert_allclose(y_t[:, 0], y_ref, rtol=1e-5)
