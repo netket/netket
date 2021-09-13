@@ -60,6 +60,52 @@ class TableauRKExplicit:
         """
         return len(self.c)
 
+    def _get_ks(
+        self,
+        f: Callable,
+        t: float,
+        dt: float,
+        y_t: Array,
+    ):
+        times = t + self.c * dt
+
+        k = jnp.zeros((y_t.shape[0], self.stages), dtype=y_t.dtype)
+        for l in range(self.stages):
+            dy_l = jnp.sum(self.a[l, :] * k, axis=1)
+            k_l = f(times[l], y_t + dt * dy_l, stage=l)
+            k = jax.ops.index_update(k, jax.ops.index[:, l], k_l)
+
+        return k
+
+    def step(
+        self,
+        f: Callable,
+        t: float,
+        dt: float,
+        y_t: Array,
+    ):
+        k = self._get_ks(f, t, dt, y_t)
+
+        b = self.b[0] if self.b.ndim == 2 else self.b
+        y_tp1 = y_t + dt * jnp.sum(b * k, axis=1)
+        return y_tp1
+
+    def step_with_error(
+        self,
+        f: Callable,
+        t: float,
+        dt: float,
+        y_t: Array,
+    ):
+        if not self.is_adaptive:
+            raise RuntimeError(f"{self} is not adaptive")
+
+        k = self._get_ks(f, t, dt, y_t)
+
+        y_tp1 = y_t + dt * jnp.sum(self.b[0] * k, axis=1)
+        y_err = dt * jnp.sum((self.b[0] - self.b[1]) * k, axis=1)
+        return y_tp1, y_err
+
 
 @dataclass
 class RungeKuttaState:
@@ -68,54 +114,6 @@ class RungeKuttaState:
     y: Array
     dt: float
     last_norm: Optional[float]
-
-
-def _rk_internal_step(
-    f: Callable,
-    tableau: TableauRKExplicit,
-    t: float,
-    dt: float,
-    y_t: Array,
-):
-    times = t + tableau.c * dt
-
-    k = jnp.zeros((y_t.shape[0], tableau.stages), dtype=y_t.dtype)
-    for l in range(tableau.stages):
-        dy_l = jnp.sum(tableau.a[l, :] * k, axis=1)
-        k_l = f(times[l], y_t + dt * dy_l, stage=l)
-        k = jax.ops.index_update(k, jax.ops.index[:, l], k_l)
-
-    return k
-
-
-def rk_single_step(
-    f: Callable,
-    tableau: TableauRKExplicit,
-    t: float,
-    dt: float,
-    y_t: Array,
-):
-    k = _rk_internal_step(f, tableau, t, dt, y_t)
-
-    b = tableau.b[0] if tableau.b.ndim == 2 else tableau.b
-    y_tp1 = y_t + dt * jnp.sum(b * k, axis=1)
-    return y_tp1
-
-
-def rk_error_step(
-    f: Callable,
-    tableau: TableauRKExplicit,
-    t: float,
-    dt: float,
-    y_t: Array,
-):
-    assert tableau.is_adaptive
-
-    k = _rk_internal_step(f, tableau, t, dt, y_t)
-
-    y_tp1 = y_t + dt * jnp.sum(tableau.b[0] * k, axis=1)
-    y_err = dt * jnp.sum((tableau.b[0] - tableau.b[1]) * k, axis=1)
-    return y_tp1, y_err
 
 
 def scaled_error(y, y_err, atol, rtol, *, norm=None):
@@ -191,13 +189,13 @@ class _RKSolver:
                 rtol=1e-7,
                 norm_fn=self.norm,
             )
-            self._step_fn = lambda t, dt, y, **kw: rk_error_step(
-                self.f, self.tableau, t, dt, y, **kw
+            self._step_fn = lambda t, dt, y, **kw: self.tableau.step_with_error(
+                self.f, t, dt, y, **kw
             )
         else:
             self._do_step = general_time_step_fixed
-            self._step_fn = lambda t, dt, y, **kw: rk_single_step(
-                self.f, self.tableau, t, dt, y, **kw
+            self._step_fn = lambda t, dt, y, **kw: self.tableau.step(
+                self.f, t, dt, y, **kw
             )
 
         self._rkstate = RungeKuttaState(
