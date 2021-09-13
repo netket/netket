@@ -18,7 +18,6 @@ from netket.utils.types import DType, Array
 from textwrap import dedent
 
 import numpy as np
-from scipy.sparse import csr_matrix
 import scipy.sparse as sp
 from numba import jit
 
@@ -45,8 +44,8 @@ def _number_to_state(number, hilbert_size_per_site, local_states_per_site, out):
     return out
 
 
-def is_hermitian(a: csr_matrix, rtol=1e-05, atol=1e-08) -> bool:
-    c = np.abs(a - a.getH()) - rtol * np.abs(a)
+def is_hermitian(a: sp.csr_matrix, rtol=1e-05, atol=1e-08) -> bool:
+    c = np.abs(a - a.T.conj()) - rtol * np.abs(a)
     return c.max() <= atol
 
 
@@ -250,7 +249,7 @@ class LocalOperator(AbstractOperator):
             operators = [operators]
             acting_on = [acting_on]
 
-        operators = [csr_matrix(operator) for operator in operators]
+        operators = [sp.csr_matrix(operator) for operator in operators]
 
         # If we asked for a specific dtype, enforce it.
         if dtype is None:
@@ -514,7 +513,7 @@ class LocalOperator(AbstractOperator):
             raise ValueError(f"Cannot cast type {operator.dtype} to {self.dtype}")
 
         acting_on = np.asarray(acting_on, dtype=np.intp)
-        operator = csr_matrix(operator, dtype=self.dtype)
+        operator = sp.csr_matrix(operator, dtype=self.dtype)
 
         if np.unique(acting_on).size != acting_on.size:
             raise ValueError("acting_on contains repeated entries.")
@@ -552,12 +551,17 @@ class LocalOperator(AbstractOperator):
                 self._operators[support_i].shape[0]
                 == self._operators[support_i].shape[1]
             )
-            _op_coo = self._operators[support_i].tocoo()
+            operator_row_index, operator_column_index = self._operators[
+                support_i
+            ].nonzero()
+            operator_data = np.asarray(
+                self._operators[support_i][operator_row_index, operator_column_index]
+            ).squeeze(axis=0)
             self._append_matrix(
-                _op_coo.data,
-                _op_coo.row,
-                _op_coo.col,
-                _op_coo.shape[0],
+                operator_data,
+                operator_row_index,
+                operator_column_index,
+                self._operators[support_i].shape[0],
                 self._diag_mels[support_i],
                 self._mels[support_i],
                 self._x_prime[support_i],
@@ -577,7 +581,7 @@ class LocalOperator(AbstractOperator):
         else:
             self.__add_new_operator__(operator, acting_on)
 
-    def __add_new_operator__(self, operator: csr_matrix, acting_on: np.ndarray):
+    def __add_new_operator__(self, operator: sp.csr_matrix, acting_on: np.ndarray):
         # Else, we must add a completely new operator
         self._n_operators += 1
         self._operators.append(operator)
@@ -669,12 +673,15 @@ class LocalOperator(AbstractOperator):
         if acting_on.max() + 1 >= self._size:
             self._size = acting_on.max() + 1
 
-        _op_coo = operator.tocoo()
+        operator_row_index, operator_column_index = operator.nonzero()
+        operator_data = np.asarray(
+            operator[operator_row_index, operator_column_index]
+        ).squeeze(axis=0)
         self._append_matrix(
-            _op_coo.data,
-            _op_coo.row,
-            _op_coo.col,
-            _op_coo.shape[0],
+            operator_data,
+            operator_row_index,
+            operator_column_index,
+            operator.shape[0],
             self._diag_mels[-1],
             self._mels[-1],
             self._x_prime[-1],
@@ -757,12 +764,10 @@ class LocalOperator(AbstractOperator):
 
             if act.size == act_i.size and np.array_equal(act, act_i):
                 # non-interesecting with same support
-                # TODO is it necessary to create a copy here?
-                operators.append(self._operators[i].dot(op))
+                operators.append(self._operators[i] @ op)
                 acting_on.append(act_i.tolist())
             elif inters.size == 0:
                 # disjoint supports
-                # TODO is it necessary to create a copy here?
                 operators.append(sp.kron(self._operators[i], op))
                 acting_on.append(act_i.tolist() + act.tolist())
             else:
@@ -804,7 +809,7 @@ class LocalOperator(AbstractOperator):
 
                 if len(_act) == len(_act_i) and np.array_equal(_act, _act_i):
                     # non-interesecting with same support
-                    operators.append(_op_i.dot(_op))
+                    operators.append(_op_i @ _op)
                     acting_on.append(_act_i)
                 else:
                     raise ValueError("Something failed")
