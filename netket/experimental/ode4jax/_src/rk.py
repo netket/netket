@@ -133,6 +133,7 @@ def adapt_time_step(dt, scaled_error):
     )
 
 
+@partial(jax.jit, static_argnames=["step_fn", "norm_fn"])
 def general_time_step_adaptive(
     step_fn: Callable,
     rkstate: RungeKuttaState,
@@ -143,18 +144,20 @@ def general_time_step_adaptive(
     next_y, y_err = step_fn(rkstate.t, rkstate.dt, rkstate.y)
     scaled_err = scaled_error(rkstate.y, y_err, atol, rtol, norm=norm_fn)
     next_dt = adapt_time_step(rkstate.dt, scaled_err)
-    # TODO: make jitable
-    if scaled_err < 1.0:
-        return rkstate.replace(
+    return jax.lax.cond(
+        scaled_err < 1.0,
+        lambda _: rkstate.replace(
             step_no=rkstate.step_no + 1,
             y=next_y,
             t=rkstate.t + rkstate.dt,
             dt=next_dt,
-        )
-    else:
-        return rkstate.replace(dt=next_dt)
+        ),
+        lambda _: rkstate.replace(dt=next_dt),
+        None,
+    )
 
 
+@partial(jax.jit, static_argnames=["step_fn", "norm_fn"])
 def general_time_step_fixed(step_fn: Callable, rkstate: RungeKuttaState):
     next_y = step_fn(rkstate.t, rkstate.dt, rkstate.y)
     r = rkstate.replace(t=rkstate.t + rkstate.dt, y=next_y, step_no=rkstate.step_no + 1)
