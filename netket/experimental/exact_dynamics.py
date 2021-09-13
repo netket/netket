@@ -134,8 +134,10 @@ class ExactTimePropagation:
         elif isinstance(hamiltonian, Callable):
             self._h = lambda t: _make_op(hamiltonian(t), matrix_type)
         else:
-            raise TypeError("hamiltonian needs to be an AbstractOperator or function "
-                            "Time t -> AbstractOperator.")
+            raise TypeError(
+                "hamiltonian needs to be an AbstractOperator or function "
+                "Time t -> AbstractOperator."
+            )
         self._rhs = _make_rhs(self._h, propagation_type)
 
         self._mynode = _rank

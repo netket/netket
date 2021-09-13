@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from builtins import RuntimeError, next
 import dataclasses
 from functools import partial
-from typing import Callable, Tuple
+from typing import Callable, Optional, Tuple, Type
 
 import jax
 import jax.numpy as jnp
@@ -34,7 +35,8 @@ class TableauRKExplicit:
     a: jax.numpy.ndarray
     b: jax.numpy.ndarray
     c: jax.numpy.ndarray
-    c_error: jax.numpy.ndarray
+    c_error: Optional[jax.numpy.ndarray]
+    """Coefficients for error estimation."""
 
     @property
     def is_explicit(self):
@@ -42,7 +44,7 @@ class TableauRKExplicit:
 
     @property
     def is_adaptive(self):
-        self.b.ndim == 2
+        return self.b.ndim == 2
 
     @property
     def is_FSAL(self):
@@ -51,22 +53,114 @@ class TableauRKExplicit:
         return jnp.all(self.a[-1, :] == self.b[0, :]) and self.c[-1] == 1
 
     @property
-    def steps(self):
+    def stages(self):
+        """
+        Number of stages (equal to the number of evaluations of the ode function)
+        of the RK scheme.
+        """
         return len(self.c)
 
 
-def rk_single_step(
-    f: Callable, tableau: TableauRKExplicit, t: float, dt: float, y_t: Array
+@dataclass
+class RungeKuttaState:
+    step_no: int
+    t: float
+    y: Array
+    dt: float
+    last_norm: Optional[float]
+
+
+def _rk_internal_step(
+    f: Callable,
+    tableau: TableauRKExplicit,
+    t: float,
+    dt: float,
+    y_t: Array,
 ):
     times = t + tableau.c * dt
 
-    k = jnp.zeros((y_t.shape[0], tableau.steps), dtype=y_t.dtype)
-    for l in range(tableau.steps):
-        dy_l = jnp.sum(tableau.a[:, l] * k, axis=1)
-        k_l = f(times[l], y_t + dt * dy_l)
+    k = jnp.zeros((y_t.shape[0], tableau.stages), dtype=y_t.dtype)
+    for l in range(tableau.stages):
+        dy_l = jnp.sum(tableau.a[l, :] * k, axis=1)
+        k_l = f(times[l], y_t + dt * dy_l, stage=l)
         k = jax.ops.index_update(k, jax.ops.index[:, l], k_l)
 
-    return y_t + dt * jnp.sum(tableau.b * k, axis=1)
+    return k
+
+
+def rk_single_step(
+    f: Callable,
+    tableau: TableauRKExplicit,
+    t: float,
+    dt: float,
+    y_t: Array,
+):
+    k = _rk_internal_step(f, tableau, t, dt, y_t)
+
+    b = tableau.b[0] if tableau.b.ndim == 2 else tableau.b
+    y_tp1 = y_t + dt * jnp.sum(b * k, axis=1)
+    return y_tp1
+
+
+def rk_error_step(
+    f: Callable,
+    tableau: TableauRKExplicit,
+    t: float,
+    dt: float,
+    y_t: Array,
+):
+    assert tableau.is_adaptive
+
+    k = _rk_internal_step(f, tableau, t, dt, y_t)
+
+    y_tp1 = y_t + dt * jnp.sum(tableau.b[0] * k, axis=1)
+    y_err = dt * jnp.sum((tableau.b[0] - tableau.b[1]) * k, axis=1)
+    return y_tp1, y_err
+
+
+def scaled_error(y, y_err, atol, rtol, *, norm=None):
+    if norm is None:
+        norm = jnp.linalg.norm
+    scale = (atol + norm(y) * rtol) / y_err.shape[0]
+    return norm(y_err) / scale
+
+
+def adapt_time_step(dt, scaled_error):
+    safety_factor = 0.95
+    err_exponent = -1.0 / 5.0
+    return dt * jnp.clip(
+        safety_factor * scaled_error ** err_exponent,
+        1e-2,
+        1e2,
+    )
+
+
+def general_time_step_adaptive(
+    step_fn: Callable,
+    rkstate: RungeKuttaState,
+    atol: float,
+    rtol: float,
+    norm_fn: Callable,
+):
+    next_y, y_err = step_fn(rkstate.t, rkstate.dt, rkstate.y)
+    scaled_err = scaled_error(rkstate.y, y_err, atol, rtol, norm=norm_fn)
+    next_dt = adapt_time_step(rkstate.dt, scaled_err)
+    # TODO: make jitable
+    if scaled_err < 1.0:
+        return rkstate.replace(
+            step_no=rkstate.step_no + 1,
+            y=next_y,
+            t=rkstate.t + rkstate.dt,
+            dt=next_dt,
+        )
+    else:
+        return rkstate.replace(dt=next_dt)
+
+
+def general_time_step_fixed(step_fn: Callable, rkstate: RungeKuttaState):
+    next_y = step_fn(rkstate.t, rkstate.dt, rkstate.y)
+    r = rkstate.replace(t=rkstate.t + rkstate.dt, y=next_y, step_no=rkstate.step_no + 1)
+    return r
 
 
 @dataclasses.dataclass
@@ -78,16 +172,54 @@ class _RKSolver:
     y0: Array
 
     dt: float
+
     tend: float
 
+    use_adaptive: bool
+    norm: Callable
+
     def __post_init__(self):
-        self.steps = 0
-        self.t = self.t0
+        if self.use_adaptive and not self.tableau.is_adaptive:
+            raise RuntimeError(
+                f"Solver {self.tablaeu} does not support adaptive step size"
+            )
+        if self.use_adaptive:
+            self._do_step = lambda fn, st: general_time_step_adaptive(
+                fn,
+                st,
+                atol=0.0,
+                rtol=1e-7,
+                norm_fn=self.norm,
+            )
+            self._step_fn = lambda t, dt, y, **kw: rk_error_step(
+                self.f, self.tableau, t, dt, y, **kw
+            )
+        else:
+            self._do_step = general_time_step_fixed
+            self._step_fn = lambda t, dt, y, **kw: rk_single_step(
+                self.f, self.tableau, t, dt, y, **kw
+            )
+
+        self._rkstate = RungeKuttaState(
+            step_no=0,
+            t=self.t0,
+            y=self.y0,
+            dt=self.dt,
+            last_norm=None,
+        )
 
     def step(self):
-        self.y0 = rk_single_step(self.f, self.tableau, self.t, self.dt, self.y0)
-        self.steps += 1
-        self.t = self.t0 + self.steps * self.dt
+        self._rkstate = self._do_step(
+            self._step_fn,
+            self._rkstate,
+        )
+
+        # self.y0, self.y_err = rk_single_step(self.f, self.tableau, self.t, self.dt, self.y0)
+
+        # err = self.norm(self.y_err)
+        # dt = adapt_time_step(self.dt, err)
+
+        # self.t = self.t0 + self.steps * self.dt
 
     @property
     def status(self):
@@ -97,14 +229,19 @@ class _RKSolver:
             return "done"
 
     @property
+    def t(self):
+        return self._rkstate.t
+
+    @property
     def y(self):
-        return self.y0
+        return self._rkstate.y
 
 
-def RKSolver(dt, tableau):
+def RKSolver(dt, tableau, adaptive=False, norm=None):
     def make(f, tspan, y0):
+        y0 = jnp.asarray(y0)
         t0, tend = tspan
-        return _RKSolver(tableau, f, t0, y0, dt, tend)
+        return _RKSolver(tableau, f, t0, y0, dt, tend, use_adaptive=adaptive, norm=norm)
 
     return make
 
@@ -145,7 +282,6 @@ bt_heun = TableauRKExplicit(
                 )
 Heun = partial(RKSolver, tableau=bt_heun)
 
-
 bt_rk4  = TableauRKExplicit(
                 name = "rk4", 
                 order = (4,),
@@ -162,7 +298,7 @@ RK4 = partial(RKSolver, tableau=bt_rk4)
 
 # Adaptive step:
 # Heun Euler https://en.wikipedia.org/wiki/Runge–Kutta_methods
-br_rk21  = TableauRKExplicit(
+bt_rk21  = TableauRKExplicit(
                 name = "rk21", 
                 order = (2,1),
                 a = jnp.array([[0,   0],
@@ -174,7 +310,7 @@ br_rk21  = TableauRKExplicit(
                 )
 
 # Bogacki–Shampine coefficients
-br_rk23  = TableauRKExplicit(
+bt_rk23  = TableauRKExplicit(
                 name = "rk23", 
                 order = (2,3),
                 a = jnp.array([[0,   0,   0,   0],
@@ -203,7 +339,7 @@ bt_rk4_fehlberg  = TableauRKExplicit(
                 )
 
 
-bt_rk4  = TableauRKExplicit(
+bt_rk4_dopri  = TableauRKExplicit(
                 name = "dopri", 
                 order = (5,4),
                 a = jnp.array([[ 0,           0,           0,           0,        0,             0,         0 ],

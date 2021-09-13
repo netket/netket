@@ -41,27 +41,34 @@ def dwdt(state, self, t, w):
 
 
 @dwdt.register
-def dwdt_mcstate(state: MCState, self, t, w):
+def dwdt_mcstate(state: MCState, self, t, w, *, stage=None):
     state.reset()
 
     self._loss_stats, self._loss_grad = state.expect_and_grad(
-        self.generator(t), use_covariance=True,
+        self.generator(t),
+        use_covariance=True,
     )
     self._loss_grad = tree_map(lambda x: -1.0j * x, self._loss_grad)
 
-    self._S = self.qgt(self.state)
+    self._S_intermediate = self.qgt(self.state)
+    if stage == 0:
+        self._S = self._S_intermediate
 
     x0 = self._dp if self.linear_solver_restart is False else None
-    self._dp, self._sr_info = self._S.solve(self.linear_solver, self._loss_grad, x0=x0)
+    self._dp, self._sr_info = self._S_intermediate.solve(
+        self.linear_solver, self._loss_grad, x0=x0
+    )
+
     return self._dp
 
 
 @dwdt.register
-def dwdt_mcmixedstate(state: MCMixedState, self, t, w):
+def dwdt_mcmixedstate(state: MCMixedState, self, t, w, **kwargs):
     state.reset()
 
     self._loss_stats, self._loss_grad = state.expect_and_grad(
-        self.generator(t), use_covariance=True,
+        self.generator(t),
+        use_covariance=True,
     )
 
     self._S = self.qgt(self.state)
