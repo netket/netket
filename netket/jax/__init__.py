@@ -50,6 +50,7 @@ from ._batch_utils import (
 )
 from ._scanmap import scan_accum, scan_append, scan_append_accum, scanmap
 
+from ._vjp_batched import vjp_batched
 
 from .numba4jax import numba_to_jax, njit4jax
 
