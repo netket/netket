@@ -22,8 +22,21 @@ def _multimap(f, *args):
 
 
 def scan_append_accum(f, x, append_cond, op=_tree_add):
+    """Evaluate f element by element in x while appending and/or accumulating the results
 
-    # append_cond: a tuple which marks if a given result should be appended (True) or accumulated with op (False);
+    Args:
+        f: a function that takes elements of the leading dimension of x
+        x: a pytree where each leaf array has the same leading dimension
+        append_cond: a bool (if f returns just one result) or a tuple of bools (if f returns multiple values)
+            which indicates whether the individual result should be appended or accumulated
+        op: a function to accumulate the specified results. Defaults to a sum.
+    Returns:
+        returns the (tuple of) results corresponding to the output of f
+        where each result is given by:
+        - a (pytree of) array(s) with leading dimension same as x, containing the evaluation of f at each element in x
+        - a (pytree of) array with the same shape as the corresponding output of f, containg the reduction over op of f evaluated at each x"""
+    # TODO: custom initialization (not just 0.) (or avoid it?)
+    # TODO: different op for each result
 
     x0 = jax.tree_map(lambda x: x[0], x)
 
