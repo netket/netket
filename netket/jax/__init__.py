@@ -48,7 +48,7 @@ from ._batch_utils import (
     unbatch_args,
     batch_args,
 )
-from ._scanmap import scan_accum, scan_append, scanmap
+from ._scanmap import scan_accum, scan_append, scan_append_accum, scanmap
 
 
 from .numba4jax import numba_to_jax, njit4jax
