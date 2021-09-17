@@ -271,3 +271,15 @@ def test_deprecations():
     with pytest.warns(FutureWarning):
         with pytest.raises(ValueError):
             Spin(s=0.5, graph=g, N=3)
+
+
+def test_composite_hilbert():
+    hi1 = Spin(s=1 / 2, N=8)
+    hi2 = Spin(s=3 / 2, N=8)
+
+    hi = hi1 * hi2
+
+    assert hi.size == hi1.size + hi2.size
+
+    for i in range(hi.size):
+        assert hi.size_at_index(i) == 2 if i < 8 else 4

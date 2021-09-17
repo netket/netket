@@ -12,12 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Tuple, Union
+
 from netket.utils.types import DType
 
 from netket.graph import AbstractGraph
 from netket.hilbert import AbstractHilbert
 
 from ._local_operator import LocalOperator
+
+
+def check_acting_on_subspace(acting_on_subspace, hilbert, graph):
+    if acting_on_subspace is None:
+        acting_on_subspace = list(range(hilbert.size))
+    elif isinstance(acting_on_subspace, int):
+        start = acting_on_subspace
+        acting_on_subspace = [start + i for i in range(graph.n_nodes)]
+    elif isinstance(acting_on_subspace, list):
+        if len(acting_on_subspace) != graph.n_nodes:
+            raise ValueError(
+                "acting_on_subspace must be a list of length graph.n_nodes"
+            )
+    else:
+        raise TypeError("acting_on_subspace must be a list or single integer")
+
+    return acting_on_subspace
 
 
 class GraphOperator(LocalOperator):
@@ -34,6 +53,8 @@ class GraphOperator(LocalOperator):
         bond_ops=[],
         bond_ops_colors=[],
         dtype: DType = None,
+        *,
+        acting_on_subspace: Union[List[int], int] = None,
     ):
         r"""
         A graph-based quantum operator. In its simplest terms, this is the sum of
@@ -57,6 +78,12 @@ class GraphOperator(LocalOperator):
              specified, the user must give a list of site operators.
          bond_ops_colors: A list of edge colors, specifying the color each
              bond operator acts on. The default is an empty list.
+         dtype: Data type type of the matrix elements.
+         acting_on_subspace: Specifies the mapping between nodes of the graph and
+            Hilbert space sites, so that graph node :code:`i ∈ [0, ..., graph.n_nodes]`,
+            corresponds to :code:`acting_on_subspace[i] ∈ [0, ..., hilbert.n_sites]`.
+            Must be a list of length `graph.n_nodes`. Passing a single integer :code:`start`
+            is equivalent to :code:`[start, ..., start + graph.n_nodes - 1]`.
 
         Examples:
          Constructs a ``GraphOperator`` operator for a 2D system.
@@ -74,12 +101,10 @@ class GraphOperator(LocalOperator):
          >>> print(op)
          GraphOperator(dim=20, #acting_on=40 locations, constant=0, dtype=float64, graph=Graph(n_nodes=20, n_edges=20))
         """
-
-        if graph.n_nodes != hilbert.size:
-            raise ValueError(
-                """The number of vertices in the graph ({graph.n_nodes})
-                                must match the hilbert space size ({hilbert.size})"""
-            )
+        acting_on_subspace = check_acting_on_subspace(
+            acting_on_subspace, hilbert, graph
+        )
+        self._acting_on_subspace = acting_on_subspace
 
         # Ensure that at least one of SiteOps and BondOps was initialized
         if len(bond_ops) == 0 and len(site_ops) == 0:
@@ -92,9 +117,10 @@ class GraphOperator(LocalOperator):
         # Site operators
         if len(site_ops) > 0:
             for i in range(graph.n_nodes):
-                for j, site_op in enumerate(site_ops):
+                for site_op in site_ops:
+                    i_prime = acting_on_subspace[i]
                     operators.append(site_op)
-                    acting_on.append([i])
+                    acting_on.append([i_prime])
 
         # Bond operators
         if len(bond_ops_colors) > 0:
@@ -107,17 +133,18 @@ class GraphOperator(LocalOperator):
             if len(bond_ops) > 0:
                 #  Use edge_colors to populate operators
                 for (u, v, color) in graph.edges(return_color=True):
-                    edge = u, v
+                    u, v = acting_on_subspace[u], acting_on_subspace[v]
                     for c, bond_color in enumerate(bond_ops_colors):
                         if bond_color == color:
                             operators.append(bond_ops[c])
-                            acting_on.append(edge)
+                            acting_on.append([u, v])
         else:
             assert len(bond_ops) == 1
 
-            for edge in graph.edges():
+            for u, v in graph.edges():
+                u, v = acting_on_subspace[u], acting_on_subspace[v]
                 operators.append(bond_ops[0])
-                acting_on.append(edge)
+                acting_on.append([u, v])
 
         super().__init__(hilbert, operators, acting_on, dtype=dtype)
         self._graph = graph
@@ -126,6 +153,14 @@ class GraphOperator(LocalOperator):
     def graph(self) -> AbstractGraph:
         """The graph on which this Operator is defined"""
         return self._graph
+
+    @property
+    def acting_on_subspace(self):
+        """
+        Mapping between nodes of the graph and Hilbert space sites as given in
+        the constructor.
+        """
+        return self._acting_on_subspace
 
     def __repr__(self):
         ao = self.acting_on

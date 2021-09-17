@@ -33,6 +33,15 @@ operators["Graph Hamiltonian"] = nk.operator.GraphOperator(
     hi, g, site_ops=[sigmax], bond_ops=[mszsz]
 )
 
+g_sub = nk.graph.Graph(edges=edges[:7])  # edges of first eight sites
+operators["Graph Hamiltonian (on subspace)"] = nk.operator.GraphOperator(
+    hi,
+    g_sub,
+    site_ops=[sigmax],
+    bond_ops=[mszsz],
+    acting_on_subspace=8,
+)
+
 # Graph Hamiltonian with colored edges
 edges_c = [(i, j, i % 2) for i, j in edges]
 g = nk.graph.Graph(edges=edges_c)
@@ -470,3 +479,30 @@ def test_pauli_zero():
     all_states = op.hilbert.all_states()
     _, mels = op.get_conn_padded(all_states)
     assert np.allclose(mels, 0)
+
+
+def test_operator_on_subspace():
+    hi = nk.hilbert.Spin(1 / 2, N=3) * nk.hilbert.Qubit(N=3)
+    g = nk.graph.Chain(3, pbc=False)
+
+    h1 = nk.operator.GraphOperator(hi, g, bond_ops=[mszsz], acting_on_subspace=0)
+    assert h1.acting_on_subspace == list(range(3))
+    assert nk.exact.lanczos_ed(h1)[0] == pytest.approx(-2.0)
+
+    h2 = nk.operator.GraphOperator(hi, g, bond_ops=[mszsz], acting_on_subspace=3)
+    assert h2.acting_on_subspace == list(range(3, 6))
+    assert nk.exact.lanczos_ed(h2)[0] == pytest.approx(-2.0)
+
+    h12 = h1 + h2
+    assert sorted(h12.acting_on) == [[0, 1], [1, 2], [3, 4], [4, 5]]
+    assert nk.exact.lanczos_ed(h12)[0] == pytest.approx(-4.0)
+
+    h3 = nk.operator.GraphOperator(
+        hi, g, bond_ops=[mszsz], acting_on_subspace=[0, 2, 4]
+    )
+    assert h3.acting_on_subspace == [0, 2, 4]
+    assert nk.exact.lanczos_ed(h3)[0] == pytest.approx(-2.0)
+    assert h3.acting_on == [[0, 2], [2, 4]]
+
+    h4 = nk.operator.Heisenberg(hi, g, acting_on_subspace=0)
+    assert h4.acting_on == h1.acting_on
