@@ -14,7 +14,7 @@
 
 import functools
 import numbers
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Any
 from netket.utils.types import DType, Array
 from textwrap import dedent
 
@@ -817,7 +817,7 @@ class LocalOperator(AbstractOperator):
 
         return operators, acting_on
 
-    def copy(self, *, dtype: Optional = None):
+    def copy(self, *, dtype: Optional[Any] = None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
 
