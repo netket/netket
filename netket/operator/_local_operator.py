@@ -817,7 +817,7 @@ class LocalOperator(AbstractOperator):
 
         return operators, acting_on
 
-    def copy(self, *, dtype: Optional[Any] = None):
+    def copy(self, *, dtype: Optional[DType] = None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
 
