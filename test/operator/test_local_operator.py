@@ -331,6 +331,6 @@ def test_raises_unsorted_hilbert():
 def test_type_promotion():
     hi = nk.hilbert.Qubit(1)
     real_op = nk.operator.spin.sigmax(hi, 0, dtype=float)
-    complex_op = nk.operator.spin.sigmay(hi, 0, dtype=complex)
-    promoted_op = real_op + complex_op
+    complex_mat = nk.operator.spin.sigmay(hi, 0, dtype=complex).to_dense()
+    promoted_op = real_op + nk.operator.LocalOperator(hi, complex_mat, acting_on=[0])
     assert promoted_op.dtype == np.complex128
