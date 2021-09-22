@@ -151,6 +151,14 @@ def vjp_batched(
     if isinstance(batch_argnums, int):
         batch_argnums = (batch_argnums,)
 
+    if not all(map(lambda x: (0 <= x) and (x < len(primals)), batch_argnums)):
+        raise ValueError(
+            "batch_argnums must index primals. Got batch_argnums={} but len(primals)={}".format(
+                batch_argnums, len(primals)
+            )
+        )
+        # TODO also check they are unique?
+
     if isinstance(nondiff_argnums, int):
         nondiff_argnums = (nondiff_argnums,)
 
