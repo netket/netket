@@ -30,7 +30,7 @@ def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False):
     # since xla is probably not able to optimize it away through the scan/loop if its trashed at the end
     # TODO pass closure to vjp instead ?
     res = _trash_tuple_elements(res, nondiff_argnums)
-    return y, *res
+    return (y,) + res
 
 
 def __vjp_fun_batched(
