@@ -4,13 +4,7 @@ from jax.tree_util import Partial
 
 from functools import partial
 
-from netket.jax import (
-    batch,
-    unbatch,
-    compose,
-    scanmap,
-    scan_append_accum,
-)
+from netket.jax import batch, unbatch, compose, scanmap, scan_append_accum, vjp as nkvjp
 
 
 from ._scanmap import _multimap
@@ -29,8 +23,8 @@ def _trash_tuple_elements(t, nums=()):
     return tuple(r for i, r in enumerate(t) if i not in nums)
 
 
-def _vjp(fun, cotangents, *primals, nondiff_argnums=()):
-    y, vjp_fun = jax.vjp(fun, *primals)
+def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False):
+    y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate)
     res = vjp_fun(cotangents)
     # trash non-needed tuple elements  of the output here
     # since xla is probably not able to optimize it away through the scan/loop if its trashed at the end
@@ -46,6 +40,7 @@ def __vjp_fun_batched(
     batch_argnums,
     nondiff_argnums,
     batch_size,
+    conjugate,
     _vjp,
     _append_cond_fun,
 ):
@@ -60,7 +55,7 @@ def __vjp_fun_batched(
     # cotangents, and whatever requested in primals; +2 since 0 is the function, and 1 is cotangents
     argnums = (1,) + tuple(map(lambda x: x + 2, batch_argnums))
     res = scanmap(
-        partial(_vjp, nondiff_argnums=nondiff_argnums),
+        partial(_vjp, nondiff_argnums=nondiff_argnums, conjugate=conjugate),
         scan_fun=scan_fun,
         argnums=argnums,
     )(fun, cotangents, *primals)
@@ -88,12 +83,13 @@ _value_and_vjp_fun_batched = compose(
 
 def vjp_batched(
     fun,
-    primals,
+    *primals,
     has_aux=False,
     batch_argnums=(),
     batch_size=0,
     nondiff_argnums=(),
     return_forward=False,
+    conjugate=False,
 ):
     """calculate the vjp in small batches for a function where the leading dimension of the output only depends on the leading dimension of some of the arguments
 
@@ -175,6 +171,7 @@ def vjp_batched(
             batch_argnums=batch_argnums,
             nondiff_argnums=nondiff_argnums,
             batch_size=batch_size,
+            conjugate=conjugate,
         ),
         primals,
     )
