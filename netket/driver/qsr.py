@@ -35,7 +35,16 @@ from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
 
 
-def convert_bases(Us):
+def _check_bases_type(Us):
+    """Checks if the given bases are valid for the Qsr driver.
+
+    Args:
+        Us (list or np.ndarray): A list of bases
+
+    Raises:
+        ValueError: When not given a list or np.ndarray
+        TypeError: If the type of the operators is not a child of AbstractOperator
+    """
     if not (isinstance(Us, list) or isinstance(Us, np.ndarray)):
         raise ValueError(
             "The bases should be a list or np.ndarray(dtype=object)" " of the bases."
@@ -51,7 +60,7 @@ def convert_data(sigma_s, Us):
     """
     Converts samples and rotation operators to a more direct computational format.
     """
-    Us = convert_bases(Us)
+    Us = _check_bases_type(Us)
 
     N = sigma_s.shape[-1]
     sigma_s = sigma_s.reshape(-1, N)
