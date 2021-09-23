@@ -238,18 +238,18 @@ class QSR(AbstractVariationalDriver):
         seed=None,
         **kwargs,
     ):
-        """
-        Initializes the driver class.
+        """Initializes the QSR driver class.
 
         Args:
-            hamiltonian: The Hamiltonian of the system.
-            optimizer: Determines how optimization steps are performed given the
-                bare energy gradient.
-            preconditioner: Determines which preconditioner to use for the loss gradient.
-                This must be a tuple of `(object, solver)` as documented in the section
-                `preconditioners` in the documentation. The standard preconditioner
-                included with NetKet is Stochastic Reconfiguration. By default, no
-                preconditioner is used and the bare gradient is passed to the optimizer.
+            training_data (Tuple): A tuple of two lists.
+            training_batch_size (int): The trainign batch size.
+            optimizer (optax.GradientTransformation): The optimizer to use. You can use optax optimizers or choose from the predefined optimizers netket offers.
+            variational_state (nk.vqs.VariationalState, optional): The Variational state. Defaults to None and will initialize a MCState in that case
+            preconditioner (netket.optimizer.PreconditionerT, optional): The preconditioner to use. Defaults to identity_preconditioner.
+            seed (int, optional): The RNG seed. Defaults to None.
+
+        Raises:
+            TypeError: If the training data is not a 2 element tuple.
         """
         if variational_state is None:
             variational_state = MCState(*args, **kwargs)
@@ -280,12 +280,6 @@ class QSR(AbstractVariationalDriver):
         self.training_batch_size = training_batch_size
 
     def _forward_and_backward(self):
-        """
-        Performs a number of VMC optimization steps.
-
-        Args:
-            n_steps (int): Number of steps to perform.
-        """
         state = self.state
 
         state.reset()
