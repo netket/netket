@@ -47,55 +47,55 @@ def convert_bases(Us):
     raise TypeError("Unknown type of measurement basis.")
 
 
-def convert_data(σs, Us):
+def convert_data(sigma_s, Us):
     """
     Converts samples and rotation operators to a more direct computational format.
     """
     Us = convert_bases(Us)
 
-    N = σs.shape[-1]
-    σs = σs.reshape(-1, N)
-    Nb = σs.shape[0]
+    N = sigma_s.shape[-1]
+    sigma_s = sigma_s.reshape(-1, N)
+    Nb = sigma_s.shape[0]
 
     # constant number of connected per opoerator
     Nc = Us[0].hilbert.local_size
-    σp = np.zeros((0, N), dtype=σs.dtype)
+    sigma_p = np.zeros((0, N), dtype=sigma_s.dtype)
     mels = np.zeros((0,), dtype=Us[0].dtype)
     secs = np.zeros(Nb + 1, dtype=np.intp)
     MAX_LEN = 0
 
     last_i = 0
-    for (i, (σ, U)) in enumerate(zip(σs, Us)):
-        σp_i, mels_i = U.get_conn(σ)
-        # σp_i, mels_i = _remove_zeros(σp_i, mels_i)
+    for (i, (sigma_, U)) in enumerate(zip(sigma_s, Us)):
+        sigma_p_i, mels_i = U.get_conn(sigma_)
+        # sigma_p_i, mels_i = _remove_zeros(sigma_p_i, mels_i)
 
         Nc = mels_i.size
-        σp.resize((last_i + Nc, N))
+        sigma_p.resize((last_i + Nc, N))
         mels.resize((last_i + Nc,))
-        σp[last_i:, :] = σp_i
+        sigma_p[last_i:, :] = sigma_p_i
         mels[last_i:] = mels_i
         secs[i] = last_i
         last_i = last_i + Nc
         MAX_LEN = max(Nc, MAX_LEN)
 
     # last
-    σp.resize((last_i + MAX_LEN, N))
+    sigma_p.resize((last_i + MAX_LEN, N))
     mels.resize((last_i + MAX_LEN,))
-    σp[last_i + Nc :, :] = 0.0
+    sigma_p[last_i + Nc :, :] = 0.0
     mels[last_i + Nc :] = 0.0
     secs[-1] = last_i  # + MAX_LEN
 
-    return σp, mels, secs, MAX_LEN
+    return sigma_p, mels, secs, MAX_LEN
 
 
 @njit
 def _compose_sampled_data(
-    σp, mels, secs, MAX_LEN, sampled_indices, min_padding_factor=128
+    sigma_p, mels, secs, MAX_LEN, sampled_indices, min_padding_factor=128
 ):
     N_samples = sampled_indices.size
-    N = σp.shape[-1]
+    N = sigma_p.shape[-1]
 
-    _σp = np.zeros((N_samples * MAX_LEN, N), dtype=σp.dtype)
+    _sigma_p = np.zeros((N_samples * MAX_LEN, N), dtype=sigma_p.dtype)
     _mels = np.zeros((N_samples * MAX_LEN,), dtype=mels.dtype)
     _secs = np.zeros((N_samples + 1,), dtype=secs.dtype)
     _maxlen = 0
@@ -106,7 +106,7 @@ def _compose_sampled_data(
         len_i = end_i - start_i
 
         # print(f"{n}, {i}, {last_i}, {start_i}, {end_i}")
-        _σp[last_i : last_i + len_i, :] = σp[start_i:end_i, :]
+        _sigma_p[last_i : last_i + len_i, :] = sigma_p[start_i:end_i, :]
         _mels[last_i : last_i + len_i] = mels[start_i:end_i]
 
         last_i = last_i + len_i
@@ -119,17 +119,17 @@ def _compose_sampled_data(
     )  # minimum padding at 64 to avoid excessive recmpilation
     padded_size = padding_factor * int(np.ceil(last_i / padding_factor))
 
-    _σp = _σp[:padded_size, :]
+    _sigma_p = _sigma_p[:padded_size, :]
     _mels = _mels[:padded_size]
 
-    return _σp, _mels, _secs, _maxlen
+    return _sigma_p, _mels, _secs, _maxlen
 
 
 @partial(jax.jit, static_argnums=0)
-def _avg_O(afun, pars, model_state, σ):
-    σ = σ.reshape((-1, σ.shape[-1]))
-    _, vjp = nkjax.vjp(lambda W: afun({"params": W, **model_state}, σ), pars)
-    (O_avg,) = vjp(jnp.ones(σ.shape[0]) / σ.shape[0])
+def _avg_O(afun, pars, model_state, sigma_):
+    sigma_ = sigma_.reshape((-1, sigma_.shape[-1]))
+    _, vjp = nkjax.vjp(lambda W: afun({"params": W, **model_state}, sigma_), pars)
+    (O_avg,) = vjp(jnp.ones(sigma_.shape[0]) / sigma_.shape[0])
     return jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], O_avg)
 
 
@@ -157,18 +157,18 @@ def sum_sections(arr, secs, MAX_SIZE):
 
 
 @partial(jax.jit, static_argnums=(0, 5))
-def local_value_rotated_kernel(logψ, pars, σp, mel, secs, MAX_LEN):
-    logψ_σp = logψ(pars, σp)
-    U_σσp_ψ_σp = mel * jnp.exp(logψ_σp)
+def local_value_rotated_kernel(log_psi, pars, sigma_p, mel, secs, MAX_LEN):
+    log_psi_sigma_p = log_psi(pars, sigma_p)
+    U_sigma_sigma_p_psi_sigma_p = mel * jnp.exp(log_psi_sigma_p)
 
-    return jnp.log(sum_sections(U_σσp_ψ_σp, secs, MAX_LEN))
+    return jnp.log(sum_sections(U_sigma_sigma_p_psi_sigma_p, secs, MAX_LEN))
 
 
 @partial(jax.jit, static_argnums=(0, 6))
-def grad_local_value_rotated(logψ, pars, model_state, σp, mel, secs, MAX_LEN):
+def grad_local_value_rotated(log_psi, pars, model_state, sigma_p, mel, secs, MAX_LEN):
     log_val_rotated, vjp = nkjax.vjp(
         lambda W: local_value_rotated_kernel(
-            logψ, {"params": W, **model_state}, σp, mel, secs, MAX_LEN
+            log_psi, {"params": W, **model_state}, sigma_p, mel, secs, MAX_LEN
         ),
         pars,
     )
@@ -192,11 +192,11 @@ def compose_grads(grad_neg, grad_pos):
 
 # for nll
 @partial(jax.jit, static_argnums=(0, 5))
-def local_value_rotated_amplitude(logψ, pars, σp, mel, secs, MAX_LEN):
-    logψ_σp = logψ(pars, σp)
-    U_σσp_ψ_σp = mel * jnp.exp(logψ_σp)
+def local_value_rotated_amplitude(logψ, pars, sigma_p, mel, secs, MAX_LEN):
+    logψ_sigma_p = logψ(pars, sigma_p)
+    U_sigma_sigma_p_ψ_sigma_p = mel * jnp.exp(logψ_sigma_p)
 
-    return jnp.log(jnp.abs(sum_sections(U_σσp_ψ_σp, secs, MAX_LEN)) ** 2)
+    return jnp.log(jnp.abs(sum_sections(U_sigma_sigma_p_ψ_sigma_p, secs, MAX_LEN)) ** 2)
 
 
 #####
@@ -258,9 +258,9 @@ class QSR(AbstractVariationalDriver):
             np.asarray(nkjax.mpi_split(nkjax.PRNGKey(seed)))
         )
 
-        σp, mels, secs, MAX_LEN = convert_data(*training_data)
+        sigma_p, mels, secs, MAX_LEN = convert_data(*training_data)
         self._training_samples, self._training_rotations = training_data
-        self._training_σp = σp
+        self._training_sigma_p = sigma_p
         self._training_mels = mels
         self._training_secs = secs
         self._training_max_len = MAX_LEN
@@ -294,8 +294,8 @@ class QSR(AbstractVariationalDriver):
         )
 
         # compose data
-        self._σp, self._mels, self._secs, self._maxlen = _compose_sampled_data(
-            self._training_σp,
+        self._sigma_p, self._mels, self._secs, self._maxlen = _compose_sampled_data(
+            self._training_sigma_p,
             self._training_mels,
             self._training_secs,
             self._training_max_len,
@@ -306,7 +306,7 @@ class QSR(AbstractVariationalDriver):
             state._apply_fun,
             state.parameters,
             state.model_state,
-            self._σp,
+            self._sigma_p,
             self._mels,
             self._secs,
             self._maxlen,
@@ -331,7 +331,7 @@ class QSR(AbstractVariationalDriver):
         log_val_rot = local_value_rotated_amplitude(
             self.state._apply_fun,
             self.state.variables,
-            self._σp,
+            self._sigma_p,
             self._mels,
             self._secs,
             self._maxlen,
