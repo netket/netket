@@ -186,7 +186,7 @@ class AbstractOperator(abc.ABC):
         """
         raise NotImplementedError()
 
-    def get_conn(self, x):
+    def get_conn(self, x: np.ndarray):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
         that the matrix element :math:`O(x,x')` is different from zero. In general there
@@ -199,11 +199,15 @@ class AbstractOperator(abc.ABC):
         Returns:
             matrix: The connected states x' of shape (N_connected,hilbert.size)
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-        
+
         Raise:
             ValueError: If the given quantum number is not compatible with the hilbert space.
         """
-        if x.size != self.hilbert.size:
+        if x.ndim != 1:
+            raise ValueError(
+                "get_conn does not support batches. Please use get_conn_flattened instead."
+            )
+        if x.shape[0] != self.hilbert.size:
             raise ValueError(
                 "The given quantum numbers do not match the hilbert space."
             )
