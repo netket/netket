@@ -136,11 +136,11 @@ def _compose_sampled_data(
 
 
 @partial(jax.jit, static_argnums=0)
-def _avg_O(afun, pars, model_state, sigma_):
-    sigma_ = sigma_.reshape((-1, sigma_.shape[-1]))
+def _avg_O(afun, pars, model_state, sigma):
+    sigma = sigma.reshape((-1, sigma.shape[-1]))
     _, vjp = nkjax.vjp(lambda W: afun(
-        {"params": W, **model_state}, sigma_), pars)
-    (O_avg,) = vjp(jnp.ones(sigma_.shape[0]) / sigma_.shape[0])
+        {"params": W, **model_state}, sigma), pars)
+    (O_avg,) = vjp(jnp.ones(sigma.shape[0]) / sigma.shape[0])
     return jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], O_avg)
 
 
@@ -203,11 +203,11 @@ def compose_grads(grad_neg, grad_pos):
 
 # for nll
 @partial(jax.jit, static_argnums=(0, 5))
-def local_value_rotated_amplitude(logψ, pars, sigma_p, mel, secs, MAX_LEN):
-    logψ_sigma_p = logψ(pars, sigma_p)
-    U_sigma_sigma_p_ψ_sigma_p = mel * jnp.exp(logψ_sigma_p)
+def local_value_rotated_amplitude(log_psi, pars, sigma_p, mel, secs, MAX_LEN):
+    log_psi_sigma_p = log_psi(pars, sigma_p)
+    U_sigma_sigma_p_psi_sigma_p = mel * jnp.exp(log_psi_sigma_p)
 
-    return jnp.log(jnp.abs(sum_sections(U_sigma_sigma_p_ψ_sigma_p, secs, MAX_LEN)) ** 2)
+    return jnp.log(jnp.abs(sum_sections(U_sigma_sigma_p_psi_sigma_p, secs, MAX_LEN)) ** 2)
 
 
 #####
