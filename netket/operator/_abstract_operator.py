@@ -205,7 +205,8 @@ class AbstractOperator(abc.ABC):
         """
         if x.size != self.hilbert.size:
             raise ValueError(
-                "The given quantum numbers do not match the hilbert space.")
+                "The given quantum numbers do not match the hilbert space."
+            )
 
         return self.get_conn_flattened(
             x.reshape((1, -1)),
