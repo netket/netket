@@ -199,8 +199,13 @@ class AbstractOperator(abc.ABC):
         Returns:
             matrix: The connected states x' of shape (N_connected,hilbert.size)
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-
+        
+        Raise:
+            ValueError: If the given quantum number is not compatible with the hilbert space.
         """
+        if x.size != self.hilbert.size:
+            raise ValueError(
+                "The given quantum numbers do not match the hilbert space.")
 
         return self.get_conn_flattened(
             x.reshape((1, -1)),
