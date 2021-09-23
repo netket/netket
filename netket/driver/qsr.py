@@ -223,10 +223,9 @@ def tree_norm(a):
 
 class QSR(AbstractVariationalDriver):
     """
-    Energy minimization using Variational Monte Carlo (VMC).
+    Quantum State reconstruction driver.
     """
 
-    # TODO docstring
     def __init__(
         self,
         training_data,
