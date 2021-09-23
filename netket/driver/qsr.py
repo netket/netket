@@ -56,17 +56,20 @@ def _check_bases_type(Us):
     raise TypeError("Unknown type of measurement basis.")
 
 
-def convert_data(sigma_s, Us):
-    """
-    Converts samples and rotation operators to a more direct computational format.
+def _convert_data(sigma_s, Us):
+    """Converts samples and rotation operators to a more direct computational format.
+
+    Args:
+        sigma_s (np.ndarray): The states
+        Us (np.ndarray or list): The list of rotations
     """
     Us = _check_bases_type(Us)
-
+    # TODO: add Error message when user tries to convert less or more sigmas than Us
     N = sigma_s.shape[-1]
     sigma_s = sigma_s.reshape(-1, N)
     Nb = sigma_s.shape[0]
 
-    # constant number of connected per opoerator
+    # constant number of connected states per opoerator
     Nc = Us[0].hilbert.local_size
     sigma_p = np.zeros((0, N), dtype=sigma_s.dtype)
     mels = np.zeros((0,), dtype=Us[0].dtype)
@@ -74,10 +77,8 @@ def convert_data(sigma_s, Us):
     MAX_LEN = 0
 
     last_i = 0
-    for (i, (sigma_, U)) in enumerate(zip(sigma_s, Us)):
-        sigma_p_i, mels_i = U.get_conn(sigma_)
-        # sigma_p_i, mels_i = _remove_zeros(sigma_p_i, mels_i)
-
+    for (i, (sigma, U)) in enumerate(zip(sigma_s, Us)):
+        sigma_p_i, mels_i = U.get_conn(sigma)
         Nc = mels_i.size
         sigma_p.resize((last_i + Nc, N))
         mels.resize((last_i + Nc,))
@@ -90,8 +91,8 @@ def convert_data(sigma_s, Us):
     # last
     sigma_p.resize((last_i + MAX_LEN, N))
     mels.resize((last_i + MAX_LEN,))
-    sigma_p[last_i + Nc :, :] = 0.0
-    mels[last_i + Nc :] = 0.0
+    sigma_p[last_i + Nc:, :] = 0.0
+    mels[last_i + Nc:] = 0.0
     secs[-1] = last_i  # + MAX_LEN
 
     return sigma_p, mels, secs, MAX_LEN
@@ -115,8 +116,8 @@ def _compose_sampled_data(
         len_i = end_i - start_i
 
         # print(f"{n}, {i}, {last_i}, {start_i}, {end_i}")
-        _sigma_p[last_i : last_i + len_i, :] = sigma_p[start_i:end_i, :]
-        _mels[last_i : last_i + len_i] = mels[start_i:end_i]
+        _sigma_p[last_i: last_i + len_i, :] = sigma_p[start_i:end_i, :]
+        _mels[last_i: last_i + len_i] = mels[start_i:end_i]
 
         last_i = last_i + len_i
         _secs[n + 1] = last_i
@@ -137,7 +138,8 @@ def _compose_sampled_data(
 @partial(jax.jit, static_argnums=0)
 def _avg_O(afun, pars, model_state, sigma_):
     sigma_ = sigma_.reshape((-1, sigma_.shape[-1]))
-    _, vjp = nkjax.vjp(lambda W: afun({"params": W, **model_state}, sigma_), pars)
+    _, vjp = nkjax.vjp(lambda W: afun(
+        {"params": W, **model_state}, sigma_), pars)
     (O_avg,) = vjp(jnp.ones(sigma_.shape[0]) / sigma_.shape[0])
     return jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], O_avg)
 
@@ -267,7 +269,7 @@ class QSR(AbstractVariationalDriver):
             np.asarray(nkjax.mpi_split(nkjax.PRNGKey(seed)))
         )
 
-        sigma_p, mels, secs, MAX_LEN = convert_data(*training_data)
+        sigma_p, mels, secs, MAX_LEN = _convert_data(*training_data)
         self._training_samples, self._training_rotations = training_data
         self._training_sigma_p = sigma_p
         self._training_mels = mels
