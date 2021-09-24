@@ -375,7 +375,6 @@ class QSR(AbstractVariationalDriver):
         lines = [
             "{}: {}".format(name, info(obj, depth=depth + 1))
             for name, obj in [
-                ("Hamiltonian ", self._ham),
                 ("Optimizer   ", self._optimizer),
                 ("SR solver   ", self.sr),
                 ("State       ", self.state),
