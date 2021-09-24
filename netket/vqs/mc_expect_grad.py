@@ -15,7 +15,7 @@ from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch, TrueT, FalseT
 
 from netket.operator import (
-    AbstractOperator,
+    DiscreteOperator,
     AbstractSuperOperator,
     local_cost_function,
     local_value_cost,
@@ -40,7 +40,7 @@ def _check_hilbert(A, B):
 @dispatch
 def expect_and_grad(
     vstate: MCState,
-    Ô: Squared[AbstractOperator],
+    Ô: Squared[DiscreteOperator],
     use_covariance: TrueT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
@@ -102,12 +102,12 @@ def expect_and_grad(  # noqa: F811
 
 # mixed state, hermitian operator
 @dispatch.multi(
-    (MCState, AbstractOperator, TrueT, Any),
+    (MCState, DiscreteOperator, TrueT, Any),
     (MCMixedState, AbstractSuperOperator, TrueT, Any),
 )
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
-    Ô: AbstractOperator,
+    Ô: DiscreteOperator,
     use_covariance: TrueT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
@@ -136,7 +136,7 @@ def expect_and_grad(  # noqa: F811
 @dispatch
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
-    Ô: AbstractOperator,
+    Ô: DiscreteOperator,
     use_covariance: FalseT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
@@ -242,7 +242,6 @@ def grad_expect_operator_kernel(
                            Computing the gradient of a squared or non hermitian
                            operator is an experimental feature under development
                            and is known not to return wrong values sometimes.
-
                            If you want to debug it, set the environment variable
                            NETKET_EXPERIMENTAL=1
                            """
@@ -367,18 +366,6 @@ def grad_expect_operator_Lrho2(
         return grad
 
     LdagL_grad = jax.tree_util.tree_multimap(gradfun, der_loc_vals, der_logs_ave)
-
-    # ⟨L†L⟩ ∈ R, so if the parameters are real we should cast away
-    # the imaginary part of the gradient.
-    # we do this also for standard gradient of energy.
-    # this avoid errors in #867, #789, #850
-    LdagL_grad = jax.tree_multimap(
-        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
-            target.dtype
-        ),
-        LdagL_grad,
-        parameters,
-    )
 
     return (
         LdagL_stats,
