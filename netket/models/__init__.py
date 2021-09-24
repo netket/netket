@@ -16,7 +16,10 @@ from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm
 from .equivariant import GCNN
 from .jastrow import Jastrow
 from .mps import MPSPeriodic
+
 from .gaussian import Gaussian
+from .DeepSets import DS
+
 from .ndm import NDM
 from .autoreg import AbstractARNN, ARNNDense, ARNNConv1D, ARNNConv2D
 from .fast_autoreg import FastARNNDense, FastARNNConv1D, FastARNNConv2D
