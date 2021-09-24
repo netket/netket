@@ -14,7 +14,8 @@ class DiscreteOperator(AbstractOperator):
     r"""This class is the base class for operators defined on a
     discrete Hilbert space. Users interested in implementing new
     quantum Operators for discrete Hilbert spaces should derive
-    their own class from this class"""
+    their own class from this class
+    """
 
     def __init__(self, hilbert: AbstractHilbert):
         super().__init__(hilbert)
