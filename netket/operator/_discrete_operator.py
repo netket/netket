@@ -196,6 +196,41 @@ class DiscreteOperator(AbstractOperator):
         op = self.to_linear_operator()
         return op.dot(v)
 
+    def __matmul__(self, other):
+        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+            return self.apply(other)
+        elif isinstance(other, AbstractOperator):
+            if self == other and self.is_hermitian:
+                from ._lazy import Squared
+
+                return Squared(self)
+            else:
+                return self._op__matmul__(other)
+        else:
+            return NotImplemented
+
+    def _op__matmul__(self, other):
+        "Implementation on subclasses of __matmul__"
+        return NotImplemented
+
+    def __rmatmul__(self, other):
+        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+            # return self.apply(other)
+            return NotImplemented
+        elif isinstance(other, AbstractOperator):
+            if self == other and self.is_hermitian:
+                from ._lazy import Squared
+
+                return Squared(self)
+            else:
+                return self._op__rmatmul__(other)
+        else:
+            return NotImplemented
+
+    def _op__rmatmul__(self, other):
+        "Implementation on subclasses of __matmul__"
+        return NotImplemented
+
     def to_linear_operator(self):
         return self.to_sparse()
 

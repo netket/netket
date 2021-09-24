@@ -110,40 +110,5 @@ class AbstractOperator(abc.ABC):
     def conj(self, *, concrete=False) -> "AbstractOperator":
         return self.conjugate(concrete=False)
 
-    def __matmul__(self, other):
-        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
-            return self.apply(other)
-        elif isinstance(other, AbstractOperator):
-            if self == other and self.is_hermitian:
-                from ._lazy import Squared
-
-                return Squared(self)
-            else:
-                return self._op__matmul__(other)
-        else:
-            return NotImplemented
-
-    def _op__matmul__(self, other):
-        "Implementation on subclasses of __matmul__"
-        return NotImplemented
-
-    def __rmatmul__(self, other):
-        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
-            # return self.apply(other)
-            return NotImplemented
-        elif isinstance(other, AbstractOperator):
-            if self == other and self.is_hermitian:
-                from ._lazy import Squared
-
-                return Squared(self)
-            else:
-                return self._op__rmatmul__(other)
-        else:
-            return NotImplemented
-
-    def _op__rmatmul__(self, other):
-        "Implementation on subclasses of __matmul__"
-        return NotImplemented
-
     def __repr__(self):
         return f"{type(self).__name__}(hilbert={self.hilbert})"
