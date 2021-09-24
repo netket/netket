@@ -253,7 +253,7 @@ class QSR(AbstractVariationalDriver):
         if variational_state is None:
             variational_state = MCState(*args, **kwargs)
 
-        super().__init__(variational_state, optimizer, minimized_quantity_name="KL")
+        super().__init__(variational_state, optimizer)
 
         self.preconditioner = preconditioner
 
