@@ -111,7 +111,7 @@ class AbstractOperator(abc.ABC):
         return self.conjugate(concrete=False)
 
     def __matmul__(self, other):
-        if isinstance(other, jnp.ndarray) or isinstance(other, jnp.ndarray):
+        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
             if self == other and self.is_hermitian:
