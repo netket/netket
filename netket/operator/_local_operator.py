@@ -44,7 +44,7 @@ def _number_to_state(number, hilbert_size_per_site, local_states_per_site, out):
 
     return out
 
-
+# TODO jit this. But scipy matrices are not jit-friendly so a solution must be found
 def is_hermitian(a: sp.csr_matrix, rtol=1e-05, atol=1e-08) -> bool:
     c = np.abs(a - a.T.conj()) - rtol * np.abs(a)
     return c.max() <= atol
