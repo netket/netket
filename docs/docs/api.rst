@@ -54,6 +54,7 @@ Operators
    :nosignatures:
 
    netket.operator.AbstractOperator
+   netket.operator.DiscreteOperator
    netket.operator.BoseHubbard
    netket.operator.GraphOperator
    netket.operator.LocalOperator
