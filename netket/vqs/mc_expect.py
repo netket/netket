@@ -14,9 +14,10 @@ from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
 from netket.operator import (
-    AbstractOperator,
+    DiscreteOperator,
     AbstractSuperOperator,
     Squared,
+    KineticPotential,
 )
 
 from .mc_state import MCState
@@ -78,8 +79,8 @@ def expect(vstate: MCState, Ô: Squared) -> Stats:  # noqa: F811
     )
 
 
-@dispatch.multi((MCState, AbstractOperator), (MCMixedState, AbstractSuperOperator))
-def expect(vstate: MCState, Ô: AbstractOperator) -> Stats:  # noqa: F811
+@dispatch.multi((MCState, DiscreteOperator), (MCMixedState, AbstractSuperOperator))
+def expect(vstate: MCState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     _check_hilbert(vstate, Ô)
 
     σ = vstate.samples
@@ -99,7 +100,7 @@ def expect(vstate: MCState, Ô: AbstractOperator) -> Stats:  # noqa: F811
 
 
 @dispatch
-def expect(vstate: MCMixedState, Ô: AbstractOperator) -> Stats:  # noqa: F811
+def expect(vstate: MCMixedState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     _check_hilbert(vstate.diagonal, Ô)
 
     σ = vstate.diagonal.samples
@@ -115,6 +116,22 @@ def expect(vstate: MCMixedState, Ô: AbstractOperator) -> Stats:  # noqa: F811
         σ,
         σp,
         mels,
+    )
+
+
+@dispatch
+def expect(vstate: MCState, Ô: KineticPotential) -> Stats:  # noqa: F811
+    _check_hilbert(vstate.diagonal, Ô)
+
+    x = vstate.samples
+    kernel = Ô.total_energy
+    return _expect_continuous(
+        vstate.sampler.machine_pow,
+        vstate._apply_fun,
+        kernel,
+        vstate.parameters,
+        vstate.model_state,
+        x,
     )
 
 
@@ -148,6 +165,39 @@ def _expect(
 
     _, Ō_stats = nkjax.expect(
         log_pdf, local_value_vmap, parameters, σ, σp, mels, n_chains=σ_shape[0]
+    )
+
+    return Ō_stats
+
+
+def _expect_continuous(
+    machine_pow: int,
+    model_apply_fun: Callable,
+    kernel: Callable,
+    parameters: PyTree,
+    model_state: PyTree,
+    x: jnp.ndarray,
+) -> Stats:
+    x_shape = x.shape
+
+    if jnp.ndim(x) != 2:
+        x = x.reshape((-1, x_shape[-1]))
+
+    def logpsi(w, x):
+        return model_apply_fun({"params": w, **model_state}, x)
+
+    log_pdf = (
+        lambda w, x: machine_pow * model_apply_fun({"params": w, **model_state}, x).real
+    )
+
+    local_value_vmap = jax.vmap(
+        partial(kernel, logpsi),
+        in_axes=(None, 0),
+        out_axes=0,
+    )
+
+    _, Ō_stats = nkjax.expect(
+        log_pdf, local_value_vmap, parameters, x, model_state, n_chains=x_shape[0]
     )
 
     return Ō_stats
