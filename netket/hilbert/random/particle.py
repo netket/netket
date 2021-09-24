@@ -27,8 +27,12 @@ def random_state(hilb: AbstractParticle, key, batches: int, *, dtype):
     # positions the noise level should be smaller than half this distance.
     # We choose width = min(L) / (4*hilb.N)
     noise = gaussian * width
-    uniform = jnp.tile(jnp.linspace(0.0, jnp.min(modulus), hilb.size), (batches, 1))
 
+    # k = int(jnp.round(hilb.n_particles**(1/3)))
+    # basis = jnp.tile(jnp.array([min(hilb.extend) * i / (k-1) for i in range(k)]), (len(hilb.extend), 1))
+    # uniform = jnp.tile(jnp.array(jnp.meshgrid(*basis)).T.reshape(-1), (batches, 1))
+    uniform = jnp.tile(jnp.linspace(0, hilb.extend[0], hilb.size), (batches, 1))
     rs = jnp.where(jnp.equal(boundary, False), gaussian, (uniform + noise) % modulus)
+    # rs = jnp.tile(jnp.linspace(0, hilb.extend[0], hilb.size), (batches, 1))
 
     return jnp.asarray(rs, dtype=dtype)
