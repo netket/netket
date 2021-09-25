@@ -44,9 +44,10 @@ def _number_to_state(number, hilbert_size_per_site, local_states_per_site, out):
 
     return out
 
+
 # TODO jit this. But scipy matrices are not jit-friendly so a solution must be found
 def is_hermitian(a: sp.csr_matrix, rtol=1e-05, atol=1e-08) -> bool:
-    c = np.abs(a - a.T.conj()) - rtol * np.abs(a)
+    c = np.abs(a - a.conj().T) - rtol * np.abs(a)
     return c.max() <= atol
 
 
@@ -228,6 +229,7 @@ class LocalOperator(AbstractOperator):
         """
         super().__init__(hilbert)
         self._constant = constant
+        self._all_operators_hermitian = True
 
         if not all(
             [_is_sorted(hilbert.states_at_index(i)) for i in range(hilbert.size)]
@@ -250,7 +252,10 @@ class LocalOperator(AbstractOperator):
             operators = [operators]
             acting_on = [acting_on]
 
-        operators = [operator if isinstance(operator, sp.csr_matrix) else sp.csr_matrix(operator) for operator in operators]
+        operators = [
+            operator if isinstance(operator, sp.csr_matrix) else sp.csr_matrix(operator)
+            for operator in operators
+        ]
 
         # If we asked for a specific dtype, enforce it.
         if dtype is None:
@@ -573,11 +578,12 @@ class LocalOperator(AbstractOperator):
                 n_local_states_per_site,
             )
 
-            isherm = True
-            for op in self._operators:
-                isherm = isherm and is_hermitian(op)
+            self._all_operators_hermitian = (
+                self._all_operators_hermitian
+                and is_hermitian(self._operators[support_i])
+            )
 
-            self._is_hermitian = isherm
+            self._is_hermitian = self._all_operators_hermitian
             self._nonzero_diagonal = has_nonzero_diagonal(self)
         else:
             self.__add_new_operator__(operator, acting_on)
@@ -693,11 +699,11 @@ class LocalOperator(AbstractOperator):
             n_local_states_per_site,
         )
 
-        isherm = True
-        for op in self._operators:
-            isherm = isherm and is_hermitian(op)
+        self._all_operators_hermitian = self._all_operators_hermitian and is_hermitian(
+            self._operators[-1]
+        )
 
-        self._is_hermitian = isherm
+        self._is_hermitian = self._all_operators_hermitian
 
         self._nonzero_diagonal = has_nonzero_diagonal(self)
 
