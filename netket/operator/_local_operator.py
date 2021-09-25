@@ -250,7 +250,7 @@ class LocalOperator(AbstractOperator):
             operators = [operators]
             acting_on = [acting_on]
 
-        operators = [sp.csr_matrix(operator) for operator in operators]
+        operators = [operator if isinstance(operator, sp.csr_matrix) else sp.csr_matrix(operator) for operator in operators]
 
         # If we asked for a specific dtype, enforce it.
         if dtype is None:
