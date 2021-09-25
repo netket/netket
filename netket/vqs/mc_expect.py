@@ -14,7 +14,7 @@ from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
 from netket.operator import (
-    AbstractOperator,
+    DiscreteOperator,
     AbstractSuperOperator,
     Squared,
 )
@@ -78,8 +78,8 @@ def expect(vstate: MCState, Ô: Squared) -> Stats:  # noqa: F811
     )
 
 
-@dispatch.multi((MCState, AbstractOperator), (MCMixedState, AbstractSuperOperator))
-def expect(vstate: MCState, Ô: AbstractOperator) -> Stats:  # noqa: F811
+@dispatch.multi((MCState, DiscreteOperator), (MCMixedState, AbstractSuperOperator))
+def expect(vstate: MCState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     _check_hilbert(vstate, Ô)
 
     σ = vstate.samples
@@ -99,7 +99,7 @@ def expect(vstate: MCState, Ô: AbstractOperator) -> Stats:  # noqa: F811
 
 
 @dispatch
-def expect(vstate: MCMixedState, Ô: AbstractOperator) -> Stats:  # noqa: F811
+def expect(vstate: MCMixedState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     _check_hilbert(vstate.diagonal, Ô)
 
     σ = vstate.diagonal.samples

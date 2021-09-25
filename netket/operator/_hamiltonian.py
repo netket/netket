@@ -24,11 +24,11 @@ from netket.utils.types import DType
 from . import spin, boson
 from ._local_operator import LocalOperator
 from ._graph_operator import GraphOperator
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 from ._lazy import Squared
 
 
-class SpecialHamiltonian(AbstractOperator):
+class SpecialHamiltonian(DiscreteOperator):
     def to_local_operator(self):
         raise NotImplementedError(
             "Must implemented to_local_operator for {}".format(type(self))
