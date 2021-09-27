@@ -165,6 +165,14 @@ class PyTreeArray:
             assert not pt2._isnd(0)
         return matmul(self, pt2)
 
+    def __rmatmul__(self, pt1):
+        if not isinstance(pt1, PyTreeArray):
+            # assume its a pytree vector
+            pt1 = PyTreeArray1(pt1)
+        else:
+            assert not pt1._isnd(0)
+        return matmul(pt1, self)
+
     def conjugate(self):
         return self._elementwise(jnp.conj)
 
