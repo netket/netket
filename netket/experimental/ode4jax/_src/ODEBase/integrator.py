@@ -139,25 +139,29 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 		tstops = jnp.linspace(tspan[0], tspan[1], num=tstops)
 
 	if saveat is None:
-		saveat = jnp.asarray([])
+		_saveat = jnp.asarray([])
 	elif isinstance(saveat, Number):
-		saveat = jnp.linspace(tspan[0], tspan[1], num=saveat)
+		_saveat = jnp.linspace(tspan[0], tspan[1], num=saveat)[1:-1]
+	else:
+		_saveat = jnp.asarray(saveat)
 
 	if save_everystep is None:
-		save_everystep = len(saveat) == 0
+		save_everystep = len(_saveat) == 0
 
 	if save_start is None:
-		save_start = save_everystep or len(saveat) == 0 or isinstance(saveat, Number)# or problem.tspan[0] in saveat
+		save_start = save_everystep or len(_saveat) == 0 or np.isscalar(saveat)# or problem.tspan[0] in saveat
+		_saveat = jnp.append(tspan[0], _saveat)
 
 	if save_end is None:
-		save_end = save_everystep or len(saveat) == 0 or isinstance(saveat, Number)# or problem.tspan[1] in saveat
+		save_end = save_everystep or len(_saveat) == 0 or np.isscalar(saveat)# or problem.tspan[1] in saveat
+		_saveat = jnp.append(_saveat, tspan[1])
 
 	opts = DEOptions(maxiters=maxiters, adaptive=adaptive, abstol=abstol_internal, reltol=reltol_internal, 
-		controller=controller, saveat=jnp.sort(saveat), next_saveat_id=0, tstops=jnp.sort(tstops), save_everystep=save_everystep, 
+		controller=controller, saveat=jnp.sort(_saveat), next_saveat_id=0, tstops=jnp.sort(tstops), save_everystep=save_everystep, 
 		save_start=save_start, save_end=save_end, next_tstop_id=0, dtmax=dtmax, dtmin=dtmin)
 
 
-	n_saved_pts = len(saveat) + save_start + save_end
+	n_saved_pts = len(_saveat)
 	solution = ODESolution.make(u, n_saved_pts)
 
 	return ODEIntegrator(solution=solution, u=u, t=t, tprev=t, f=problem.f, alg=alg, tdir=tdir, 
