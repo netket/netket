@@ -25,11 +25,16 @@ class ODESolution:
 
 	def set(self, iter_count, t, val):
 		self.t = self.t.at[iter_count].set(t)
-		self.u = self.u.at[iter_count,...].set(val)
+		self.u = self.u.at[iter_count].set(val)
 		self.last_id = iter_count
 
 	@staticmethod
 	def make(u, n):
-		u_prealloc = jnp.zeros((n,)+u.shape, dtype=u.dtype)
-		t_prealloc = jnp.zeros((n,), dtype=u.dtype)
+
+		def prealloc_arr(x):
+			return jnp.zeros((n,)+x.shape, dtype=x.dtype)
+		u_prealloc = jax.tree_map(prealloc_arr, u)
+
+		t_prealloc = jnp.zeros((n,), dtype=float)
+
 		return ODESolution(u_prealloc, t_prealloc, last_id=0)

@@ -106,9 +106,10 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 	if dtmax is None:
 		dtmax = problem.tspan[-1] - problem.tspan[0]
 
-	# convert negative dtmax to positive
-	if dtmax > 0 and tdir < 0:
-		dtmax = dtmax * tdir
+	# convert positive dtmax to negative if tdir is negative
+	#if dtmax > 0 and tdir < 0:
+	#	dtmax = dtmax * tdir
+	dtmax = jnp.abs(dtmax) * tdir
 
 	if dtmin is None:
 		dtmin = problem.dtmin(use_end_time=False)

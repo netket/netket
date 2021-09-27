@@ -18,37 +18,33 @@ from .rk import AbstractODEAlgorithm, perform_step
 
 @dispatch
 def _solve(problem: ODEProblem, alg: AbstractODEAlgorithm, *args, **kwargs):
-#
-#  def cond_fun(integrator):
-#    return not integrator.missing_tstops
-#
-#  def while_fun(integrator):
-#    def _cond_fun(integrator):
-#      return jnp.all(integrator.tdir * integrator.t < integrator.opts.next_tstops)
-#
-#    def _while_fun(integrator):
-#      loopheader(integrator)
-#      #
-#      perform_step(integrator, integrator.cache)
-#      loopfooter(integrator)
-#
-#    integrator = jax.lax.while_loop(_cond_fun, _while_fun, integrator)
-#    integrator = handle_tstop(integrator)
-#
-#  integrator = jax.lax.while_loop(cond_fun, while_fun, integrator)
-#
-#  postamble(integrator)
-#
-#  return integrator
-  
-  # very wip
-  integrator = init(problem, alg, dt=0.02, saveat=51)
 
-  while integrator.t < problem.tspan[1]:
-      integrator = _jstep(integrator)
+  def cond_fun(integrator):
+    is_solving = integrator.t <= problem.tspan[1]
+    not_errored = jnp.logical_not(integrator.error_code)
+    return jnp.logical_and(is_solving, not_errored) 
+
+  def while_fun(integrator):
+    #def _cond_fun(integrator):
+    #  return jnp.all(integrator.tdir * integrator.t < integrator.opts.next_tstops)
+    #
+    #def _while_fun(integrator):
+    #  loopheader(integrator)
+    #  #
+    #  perform_step(integrator, integrator.cache)
+    #  loopfooter(integrator)
+    #
+    #integrator = jax.lax.while_loop(_cond_fun, _while_fun, integrator)
+    #integrator = handle_tstop(integrator)
+    return _step(integrator)
+
+  integrator = init(problem, alg, *args, **kwargs)
+
+  integrator = jax.lax.while_loop(cond_fun, while_fun, integrator)
+
+  #postamble(integrator)
 
   return integrator.solution
-
 
 @dispatch
 def _step(integrator: ODEIntegrator):
@@ -160,7 +156,23 @@ def apply_step(integrator: ODEIntegrator):
 
 def check_error(integrator: ODEIntegrator):
   # integratorinterface::347
-  return jnp.asarray(0, dtype=int)
+  _dt_nan = jnp.isnan(integrator.dt)
+  _maxiter = integrator.iter > integrator.opts.maxiters
+
+  return jnp.logical_or(_dt_nan, _maxiter)
+
+# this is slow
+def get_error(integrator: ODEIntegrator):
+  def passthrough(val, errcode):
+    return errcode * (not val==0) + (val==0)*val 
+
+  _dt_nan = jnp.isnan(integrator.dt)
+  _maxiter = integrator.iter > integrator.opts.maxiters
+
+  res = jax.lax.cond(_dt_nan, lambda res: passthrough(res,1), lambda res: res, 0)
+  res = jax.lax.cond(_maxiter, lambda res: passthrough(res,2), lambda res: res, 0)
+
+  return res
 
 ###############################
 ###############################
