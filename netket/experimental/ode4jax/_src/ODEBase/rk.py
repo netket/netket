@@ -53,18 +53,47 @@ def perform_step(integrator: AbstractIntegrator, cache: AbstractODERKAlgorithmCa
 
 	if integrator.opts.adaptive:
 
-		u_t = tableau.step(integrator.f, integrator.t, integrator.dt, integrator.u)
-		t = integrator.t + integrator.dt
-
-		integrator.u = u_t
-		#integrator.t = t
-	else:
 		u_t, err_t = tableau.step_with_error(integrator.f, integrator.t, integrator.dt, integrator.u)
 		t = integrator.t + integrator.dt
 
 		integrator.u = u_t
-		#integrator.t = t
+		# integrator.t = t
 		# todo update error
+	else:
+		u_t = tableau.step(integrator.f, integrator.t, integrator.dt, integrator.u)
+		t = integrator.t + integrator.dt
+
+		integrator.u = u_t
+		# integrator.t = t
 
 	return integrator
 
+
+##
+@dispatch
+def get_current_adaptive_order(alg: AbstractODEAlgorithm, cache):
+	pass
+
+@dispatch
+def get_current_adaptive_order(alg: AbstractODERKAlgorithm, cache):
+	return alg.tableau[0]
+
+
+##
+def default_controller(alg, cache, qoldinit):
+	#if ispredictive(alg): PredictiveController
+	# if isstandard(alg): IController
+	beta1, beta2 = _digest_beta1_beta2(alg, cache)
+	return PIController(beta1, beta2)
+
+
+#def _digest_beta1_beta2(alg, cache, QT, _beta1, _beta2):
+#  if typeof(alg) <: OrdinaryDiffEqCompositeAlgorithm
+#    beta2 = _beta2 === nothing ? _composite_beta2_default(alg.algs, cache.current, QT) : _beta2
+#    beta1 = _beta1 === nothing ? _composite_beta1_default(alg.algs, cache.current, QT, beta2) : _beta1
+#  else
+#    beta2 = _beta2 === nothing ? beta2_default(alg) : _beta2
+#    beta1 = _beta1 === nothing ? beta1_default(alg,beta2) : _beta1
+#  end
+#  return convert(QT, beta1)::QT, convert(QT, beta2)::QT
+#
