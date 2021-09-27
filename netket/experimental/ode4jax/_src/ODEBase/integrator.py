@@ -40,6 +40,8 @@ from .problem import ODEProblem
 from .solution import ODESolution
 from .options import DEOptions
 
+from .utils import strong_dtype
+
 @struct.dataclass(_frozen=False)
 class ODEIntegrator(AbstractIntegrator):
 	solution: AbstractSolution
@@ -78,8 +80,8 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 	maxiters=None, adaptive=None):
 	
 	tspan = problem.tspan
-	tdir = np.sign(tspan[-1] - tspan[0])
-	t = problem.tspan[0]
+	tdir = jnp.sign(tspan[-1] - tspan[0])
+	t = jnp.array(problem.tspan[0], dtype=float)
 	u = problem.u0
 
 	if abstol is None:
@@ -118,14 +120,14 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 		elif adaptive is False:
 			raise ValueError("Must specify dt for non-adaptive solvers algorithms.")
 
-		dt = 0
+		dt = jnp.array(0)
 
+	dt = strong_dtype(dt)
+	# concretize dt
 	cache = alg_cache(alg, u, reltol_internal)
 
-	if controller is None:
+	#if controller is None:
 		#controller = default_controller(alg, cache) 
-		controller = None
-
 
 	if tstops is None:
 		if adaptive:
@@ -160,7 +162,7 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 	return ODEIntegrator(solution=solution, u=u, t=t, tprev=t, f=problem.f, alg=alg, tdir=tdir, 
 						 success_iter=0, iter=0, opts=opts, saveiter=0, saveiter_dense=0,
 						 dt=dt, dtcache=dt, dtpropose=dt, force_stepfail=jnp.asarray(False), 
-						 error_code=jnp.array(0, dtype=int), cache=cache)
+						 error_code=jnp.array(False, dtype=bool), cache=cache)
 
 @dispatch
 def _initialize(integrator: ODEIntegrator):
