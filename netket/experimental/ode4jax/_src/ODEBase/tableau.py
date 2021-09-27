@@ -82,24 +82,30 @@ class TableauRKExplicit:
 
     def step(
         self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
+        integrator,
     ):
+        f = integrator.f
+        t = integrator.t
+        dt = integrator.dt
+        y_t = integrator.u
+
         k = self._get_ks(f, t, dt, y_t)
 
         b = self.b[0] if self.b.ndim == 2 else self.b
         y_tp1 = y_t + dt * b @ k
+
+        integrator.k = k.at[jnp.array([1,-1])].get()
         return y_tp1
 
     def step_with_error(
         self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
+        integrator,
     ):
+        f = integrator.f
+        t = integrator.t
+        dt = integrator.dt
+        y_t = integrator.u
+
         if not self.is_adaptive:
             raise RuntimeError(f"{self} is not adaptive")
 
@@ -107,6 +113,9 @@ class TableauRKExplicit:
 
         y_tp1 = y_t + dt * b[0] @ k
         y_err = dt * (b[0]-b[1]) @ k
+
+        integrator.k = k.at[jnp.array([1,-1])].get()
+
         return y_tp1, y_err
 
 

@@ -17,9 +17,33 @@ class AbstractODEAlgorithm(AbstractAlgorithm):
 	def is_adaptive(self):
 		return False
 
+	@property
+	def alg_order(self):
+		raise NotImplementedError
+
 @struct.dataclass
-class AbstractODERKAlgorithm(AbstractODEAlgorithm):
+class AbstractODETableauAlgorithm(AbstractODEAlgorithm):
+	@property
+	def tableau(self):
+		raise NotImplementedError
+
+	@property
+	def alg_order(self):
+		return self.tableau.order[0]
+
+	@property
+	def n_stages(self):
+		return self.tableau.stages
+
+	@property
+	def is_adaptive(self):
+		return self.tableau.is_adaptive
+
+
+@struct.dataclass
+class AbstractODERKAlgorithm(AbstractODETableauAlgorithm):
 	pass
+
 
 @struct.dataclass
 class Euler(AbstractODERKAlgorithm):
@@ -53,14 +77,14 @@ def perform_step(integrator: AbstractIntegrator, cache: AbstractODERKAlgorithmCa
 
 	if integrator.opts.adaptive:
 
-		u_t, err_t = tableau.step_with_error(integrator.f, integrator.t, integrator.dt, integrator.u)
+		u_t, err_t = tableau.step_with_error(integrator)
 		t = integrator.t + integrator.dt
 
 		integrator.u = u_t
 		# integrator.t = t
 		# todo update error
 	else:
-		u_t = tableau.step(integrator.f, integrator.t, integrator.dt, integrator.u)
+		u_t = tableau.step(integrator)
 		t = integrator.t + integrator.dt
 
 		integrator.u = u_t
@@ -77,23 +101,3 @@ def get_current_adaptive_order(alg: AbstractODEAlgorithm, cache):
 @dispatch
 def get_current_adaptive_order(alg: AbstractODERKAlgorithm, cache):
 	return alg.tableau[0]
-
-
-##
-def default_controller(alg, cache, qoldinit):
-	#if ispredictive(alg): PredictiveController
-	# if isstandard(alg): IController
-	beta1, beta2 = _digest_beta1_beta2(alg, cache)
-	return PIController(beta1, beta2)
-
-
-#def _digest_beta1_beta2(alg, cache, QT, _beta1, _beta2):
-#  if typeof(alg) <: OrdinaryDiffEqCompositeAlgorithm
-#    beta2 = _beta2 === nothing ? _composite_beta2_default(alg.algs, cache.current, QT) : _beta2
-#    beta1 = _beta1 === nothing ? _composite_beta1_default(alg.algs, cache.current, QT, beta2) : _beta1
-#  else
-#    beta2 = _beta2 === nothing ? beta2_default(alg) : _beta2
-#    beta1 = _beta1 === nothing ? beta1_default(alg,beta2) : _beta1
-#  end
-#  return convert(QT, beta1)::QT, convert(QT, beta2)::QT
-#
