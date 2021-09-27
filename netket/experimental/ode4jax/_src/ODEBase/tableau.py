@@ -23,21 +23,10 @@ import jax.numpy as jnp
 from netket.utils.struct import dataclass
 from netket.utils.types import Array
 
-from netket.experimental import pytreearray as pta
+from .utils import expand_dim
 
 dtype = jnp.float64
 
-
-def _expand_dim(arr, sz):
-    def _expand(x):
-        return jnp.zeros((sz,)+ x.shape, dtype=x.dtype)
-
-    res = jax.tree_map(_expand, arr)
-
-    if isinstance(arr, pta.PyTreeArray):
-        res = pta.PyTreeArray2(res.tree)
-
-    return res
 
 @dataclass
 class TableauRKExplicit:
@@ -83,7 +72,7 @@ class TableauRKExplicit:
         times = t + self.c * dt
         
         #k = jnp.zeros((y_t.shape[0], self.stages), dtype=y_t.dtype)
-        k = _expand_dim(y_t, self.stages)
+        k = expand_dim(y_t, self.stages)
         for l in range(self.stages):
             dy_l = self.a[l,:] @ k
             k_l = f(times[l], y_t + dt * dy_l, stage=l)
