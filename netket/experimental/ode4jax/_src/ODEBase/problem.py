@@ -22,6 +22,7 @@ from typing import Callable, Optional, Tuple, Type
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from netket.utils import struct
 from netket.utils.types import Array, PyTree
@@ -29,6 +30,7 @@ from netket.utils.types import Array, PyTree
 dtype = jnp.float64
 
 from ..base import AbstractProblem
+from netket.experimental.pytreearray import PyTreeArray1
 
 @struct.dataclass
 class ODEProblem(AbstractProblem):
@@ -43,7 +45,10 @@ class ODEProblem(AbstractProblem):
 
 		tspan = (jnp.asarray(tspan[0]), jnp.asarray(tspan[1]))
 
-		u0 = jnp.asarray(u0)
+		if isinstance(u0, np.ndarray) or isinstance(u0, jnp.ndarray):
+			u0 = jnp.asarray(u0)
+		else:
+			u0 = PyTreeArray1(u0)
 
 		if u0.ndim == 0:
 			u0 = u0.reshape(1)
