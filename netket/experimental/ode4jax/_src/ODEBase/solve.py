@@ -20,7 +20,7 @@ from .rk import AbstractODEAlgorithm, perform_step
 def _solve(problem: ODEProblem, alg: AbstractODEAlgorithm, *args, **kwargs):
 
   def cond_fun(integrator):
-    is_solving = integrator.t <= problem.tspan[1]
+    is_solving = integrator.t < problem.tspan[1]
     not_errored = jnp.logical_not(integrator.error_code)
     return jnp.logical_and(is_solving, not_errored) 
 
@@ -211,6 +211,8 @@ def saveat(integrator):
   Process saveat instructions.
   """
   if integrator.opts.saveat is None:
+    return
+  elif len(integrator.ops.saveat) == 0:
     return
 
   cond = integrator.opts.saveat[integrator.opts.next_saveat_id] <= integrator.t
