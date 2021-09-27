@@ -30,3 +30,10 @@ class _IndexUpdateRef:
             _val = val if not isinstance(val, PyTreeArray) else val.tree
             _tree = jax.tree_multimap(_update, self.pytreearr.tree, _val)
             return PyTreeArray(_tree, self.pytreearr.treedefs, self.pytreearr.axes)
+
+
+    def get(self):
+        def _get(x):
+            return x.at[self.index]
+        tree = jax.tree_map(_get, self.pytreearr.tree)
+        return PyTreeArray1(tree)
