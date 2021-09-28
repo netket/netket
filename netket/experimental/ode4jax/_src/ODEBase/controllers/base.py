@@ -34,8 +34,6 @@ dtype = jnp.float64
 from ...base import AbstractIntegrator, AbstractSolution
 from ...base import alg_cache
 
-from ..rk import AbstractODEAlgorithm
-
 from ..problem import ODEProblem
 from ..solution import ODESolution
 from ..options import DEOptions
@@ -53,7 +51,7 @@ class AbstractController:
 		pass
 
 	@dispatch
-	def accept_step_controller(self, integrator)
+	def accept_step_controller(self, integrator):
 		""" 
 		Checks whever the controller should accept a step based on the current
 		error estimate

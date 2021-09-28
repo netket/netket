@@ -23,7 +23,7 @@ import jax.numpy as jnp
 from netket.utils.struct import dataclass
 from netket.utils.types import Array
 
-from .utils import expand_dim
+from ..utils import expand_dim
 
 dtype = jnp.float64
 
@@ -79,45 +79,6 @@ class TableauRKExplicit:
             k = k.at[l].set(k_l)
 
         return k
-
-    def step(
-        self,
-        integrator,
-    ):
-        f = integrator.f
-        t = integrator.t
-        dt = integrator.dt
-        y_t = integrator.u
-
-        k = self._get_ks(f, t, dt, y_t)
-
-        b = self.b[0] if self.b.ndim == 2 else self.b
-        y_tp1 = y_t + dt * b @ k
-
-        integrator.k = k.at[jnp.array([1,-1])].get()
-        return y_tp1
-
-    def step_with_error(
-        self,
-        integrator,
-    ):
-        f = integrator.f
-        t = integrator.t
-        dt = integrator.dt
-        y_t = integrator.u
-
-        if not self.is_adaptive:
-            raise RuntimeError(f"{self} is not adaptive")
-
-        k = self._get_ks(f, t, dt, y_t)
-
-        y_tp1 = y_t + dt * b[0] @ k
-        y_err = dt * (b[0]-b[1]) @ k
-
-        integrator.k = k.at[jnp.array([1,-1])].get()
-
-        return y_tp1, y_err
-
 
 # fmt: off
 # Fixed Step methods
