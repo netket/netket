@@ -1,3 +1,3 @@
 from .base import AbstractODEAlgorithm, perform_step
 
-from .rk import Euler, RK4
+from .rk import Euler, RK4, RK23

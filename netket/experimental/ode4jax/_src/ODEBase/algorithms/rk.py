@@ -32,3 +32,9 @@ class RK4(AbstractODERKAlgorithm):
     def tableau(self):
         return tableau.bt_rk4
 
+@struct.dataclass
+class RK23(AbstractODERKAlgorithm):
+    @property
+    def tableau(self):
+        return tableau.bt_rk23
+

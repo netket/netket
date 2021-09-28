@@ -39,10 +39,20 @@ class DEOptions:
 
 	saveat : Any
 	next_saveat_id : int
-	controller: Any
 
 	dtmin : float
 	dtmax : float
+
+	internalnorm : Any = struct.field(pytree_node=False)
+	errornorm : Any = struct.field(pytree_node=False)
+
+	controller: Any
+	qsteady_min : float
+	qsteady_max : float
+	qoldinit : float
+	qmax: float
+	qmin : float
+	gamma: float
 
 	save_start: bool = struct.field(pytree_node=False, default=False)
 	save_end: bool = struct.field(pytree_node=False, default=False)

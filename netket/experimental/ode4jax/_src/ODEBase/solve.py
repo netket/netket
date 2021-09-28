@@ -89,12 +89,18 @@ def loopheader(integrator: ODEIntegrator):
   cond = integrator.iter > 0
   def true_body(integrator):
     if integrator.opts.adaptive:
-      raise TypeError
+      def _accept_step(integrator):
+        integrator.success_iter += 1
+        integrator = apply_step(integrator)
+        return integrator
+      def _reject_step(integrator):
+        integrator.opts.controller.step_reject_controller(integrator, integrator.alg)
+        return integrator
+      integrator = jax.lax.cond(integrator.accept_step, _accept_step, _reject_step, integrator)
     else:
-      integrator = integrator.replace()
       integrator.success_iter += 1
       integrator = apply_step(integrator.replace())
-      return integrator
+    return integrator
   def false_body(integrator):
     integrator = integrator.replace()
     return integrator
@@ -158,6 +164,9 @@ def apply_step(integrator: ODEIntegrator):
   integrator.uprev = integrator.u
   integrator.dt = integrator.dtpropose
 
+  if integrator.alg.is_fsal:
+    integrator.fsalfirst = integrator.fsallast
+
   ## fsal
   return integrator
 
@@ -204,11 +213,23 @@ def loopfooter(integrator: ODEIntegrator):
   ttmp = integrator.t + integrator.dt
   if integrator.opts.adaptive:
     # 
-    q = integrator.controller.stepsize_controller(integrator, integrator.alg)
-    #integrator.isout = integrator.opts.isoutofdomain(integrator.u,integrator.p,ttmp)
-    #integrator.accept_step = (!integrator.isout && integrator.controller.accept_step_controller(integrator)) || (integrator.opts.force_dtmin && abs(integrator.dt) <= timedepentdtmin(integrator))
-    # ...
-    pass
+    q = integrator.opts.controller.stepsize_controller(integrator, integrator.alg)
+    integrator.accept_step = integrator.opts.controller.accept_step_controller(integrator) #forcedttmin
+
+    # if accept
+    def accept_fun(integrator):
+      dtnew = integrator.opts.controller.step_accept_controller(integrator, integrator.alg, q)
+      integrator.tprev = integrator.t
+      integrator.t = ttmp
+      #TODO round integrator.t to nearest tstop if needed
+      integrator.dtpropose = calc_dt_propose(integrator, dtnew)
+      # handle callbacks
+      return integrator
+    def reject_fun(integrator):
+      return integrator
+    print(integrator.accept_step)
+    integrator = jax.lax.cond(integrator.accept_step, accept_fun, reject_fun, integrator)
+
   else:
     integrator.tprev = integrator.t
 
@@ -223,6 +244,10 @@ def loopfooter(integrator: ODEIntegrator):
 
   return integrator
 
+def calc_dt_propose(integrator: ODEIntegrator, dtnew):
+  dtpropose = integrator.tdir*jnp.minimum(jnp.abs(integrator.opts.dtmax),jnp.abs(dtnew))
+  dtpropose = integrator.tdir*jnp.maximum(jnp.abs(dtpropose), jnp.abs(integrator.opts.dtmin))
+  return dtpropose
 
 from .dense import _ode_addsteps, ode_interpolant
 

@@ -63,7 +63,7 @@ class AbstractController:
 		pass
 
 	@dispatch
-	def step_reject_controller(self, integrator, alg, q):
+	def step_reject_controller(self, integrator, alg):
 		pass
 
 	@dispatch

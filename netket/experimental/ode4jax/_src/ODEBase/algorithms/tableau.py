@@ -38,6 +38,7 @@ class TableauRKExplicit:
     b: jax.numpy.ndarray
     c: jax.numpy.ndarray
     c_error: Optional[jax.numpy.ndarray]
+    _fsal: bool = False
     """Coefficients for error estimation."""
 
     @property
@@ -52,7 +53,9 @@ class TableauRKExplicit:
     def is_FSAL(self):
         """Returns True if the first iteration is the same as last,
         meaning that ..."""
-        return jnp.all(self.a[-1, :] == self.b[0, :]) and self.c[-1] == 1
+        #b = self.b[0] if self.b.ndim == 2 else self.b
+        #return jnp.all(self.a[-1, :] == b) and self.c[-1] == 1
+        return self._fsal
 
     @property
     def stages(self):
@@ -61,24 +64,6 @@ class TableauRKExplicit:
         of the RK scheme.
         """
         return len(self.c)
-
-    def _get_ks(
-        self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
-    ):
-        times = t + self.c * dt
-        
-        #k = jnp.zeros((y_t.shape[0], self.stages), dtype=y_t.dtype)
-        k = expand_dim(y_t, self.stages)
-        for l in range(self.stages):
-            dy_l = self.a[l,:] @ k
-            k_l = f(times[l], y_t + dt * dy_l, stage=l)
-            k = k.at[l].set(k_l)
-
-        return k
 
 # fmt: off
 # Fixed Step methods
@@ -122,7 +107,7 @@ bt_rk4  = TableauRKExplicit(
                 a = jnp.array([[0,   0,   0,   0],
                                [1/2, 0,   0,   0],
                                [0,   1/2, 0,   0],
-                               [0,   0,   1,   1]], dtype=dtype),
+                               [0,   0,   1,   0]], dtype=dtype),
                 b = jnp.array( [1/6,  1/3,  1/3,  1/6], dtype=dtype),
                 c = jnp.array( [0, 1/2, 1/2, 1], dtype=dtype),
                 c_error = None,
@@ -189,6 +174,7 @@ bt_rk4_dopri  = TableauRKExplicit(
                                [ 5179/57600,  0,           7571/16695,  393/640,  -92097/339200, 187/2100,  1/40 ]], dtype=dtype),
                 c = jnp.array( [ 0,           1/5,         3/10,        4/5,      8/9,           1,         1], dtype=dtype),
                 c_error = None,
+                _fsal=True,
                 )
 #RK45 = partial(RKSolver, tableau=bt_rk4_dopri)
 # fmt: on

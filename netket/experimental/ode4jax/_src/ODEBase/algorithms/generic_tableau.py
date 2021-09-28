@@ -11,6 +11,7 @@ from ...base import AbstractAlgorithm
 from ...base import AbstractIntegrator
 
 from .base import AbstractODEAlgorithm, AbstractODEAlgorithmCache, get_current_adaptive_order, perform_step
+from ..utils import expand_dim
 
 @struct.dataclass
 class AbstractODETableauAlgorithm(AbstractODEAlgorithm):
@@ -29,6 +30,14 @@ class AbstractODETableauAlgorithm(AbstractODEAlgorithm):
     @property
     def is_adaptive(self):
         return self.tableau.is_adaptive
+
+    @property
+    def is_fsal(self):
+        # even if the tableau is not, the generic implementation is fsal
+        return False
+
+    def uses_uprev(self, adaptive):
+        return True
 
     def make_cache(self, u, reltol_internal):
         return TrivialAlgorithmCache()
@@ -50,17 +59,39 @@ def perform_step(integrator: AbstractIntegrator, alg: AbstractODETableauAlgorith
 
     tableau = alg.tableau
 
-    k = tableau._get_ks(f, t, dt, u_t)
+    ## Compute k
+    times = t + tableau.c * dt
+    
+    k = expand_dim(u_t, tableau.stages)
 
+    # First one (cached)
+    k.at[0].set(integrator.fsalfirst)
+
+    # Middle ones
+    for l in range(1, tableau.stages):
+        du_l = tableau.a[l,0:l] @ k.at[0:l].get()
+        k_l = f(times[l], u_t + dt * du_l, stage=l)
+        k = k.at[l].set(k_l)
+
+    # Cache the last one
+    integrator.fsallast = k_l 
+    #integrator.fsallast = k.at[-1].get()
+
+    ## Compute the updates
     b = tableau.b[0] if tableau.b.ndim == 2 else tableau.b
     u_tp1 = u_t + dt * b @ k
 
+    ## compute error estimates
     if integrator.opts.adaptive:
         if not tableau.is_adaptive:
             raise RuntimeError(f"{self} is not adaptive")
 
-        u_err = ut * (tableau.b[0]-tableau.b[1]) @ k
-        # todo update error
+        u_err = dt * (tableau.b[0]-tableau.b[1]) @ k
+        integrator.EEst = integrator.opts.errornorm(u_err, u_t, u_tp1, integrator.opts.abstol, integrator.opts.reltol, 
+                                                    integrator.opts.internalnorm, t)
+
+    if not tableau.is_FSAL:
+        integrator.fsallast = f(u_t, t+dt)
 
     # cache used for interpolation
     integrator.k = k.at[jnp.array([1,-1])].get()

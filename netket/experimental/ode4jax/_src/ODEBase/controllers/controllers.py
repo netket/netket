@@ -104,7 +104,7 @@ class IController(AbstractController):
         return integrator.dt/q 
 
     @dispatch
-    def step_reject_controller(self, integrator, alg, q):
+    def step_reject_controller(self, integrator, alg):
         integrator.dt = integrator.qold
 
 
@@ -151,14 +151,14 @@ class PIController(AbstractController):
         qmin = integrator.opts.qmin
         qmax = integrator.opts.qmax
         gamma = integrator.opts.gamma
-        qold = integrator.opts.qold
+        qold = integrator.qold
 
         EEst = integrator.EEst
 
         q11 = EEst ** self.beta1
         q = q11 / qold ** self.beta2
         integrator.q11 = q11
-        q = jnp.maximum(1/qmax, jnp.minimum(1/qmin, q/tmp))
+        q = jnp.maximum(1/qmax, jnp.minimum(1/qmin, q/gamma))
         return q
 
     @dispatch
@@ -182,10 +182,10 @@ class PIController(AbstractController):
         return integrator.dt/q 
 
     @dispatch
-    def step_reject_controller(self, integrator, alg, q):
+    def step_reject_controller(self, integrator, alg):
         qmin = integrator.opts.qmin
         gamma = integrator.opts.gamma
-        q11 = integrator.opts.q11
+        q11 = integrator.q11
 
         integrator.dt = integrator.dt / jnp.minimum(1/qmin, q11/gamma)
 

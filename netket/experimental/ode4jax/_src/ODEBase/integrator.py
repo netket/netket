@@ -32,7 +32,7 @@ from netket.utils.types import Array, PyTree
 dtype = jnp.float64
 
 from ..base import AbstractIntegrator, AbstractSolution
-from ..base import alg_cache
+from ..base import alg_cache, default_norm, calculate_error
 
 from .algorithms import AbstractODEAlgorithm
 
@@ -49,12 +49,18 @@ class ODEIntegrator(AbstractIntegrator):
 	u: PyTree
 	k: PyTree
 	uprev: PyTree
+	fsalfirst: PyTree
+	fsallast: PyTree
+	EEst: float
 	t: float
 	tprev: float
 	tdir:float 
 	dt: float
 	dtcache: float
 	dtpropose:float
+	accept_step: bool
+	q11: float
+	qold: float
 	iter: int
 	alg: AbstractODEAlgorithm
 	success_iter:int
@@ -80,12 +86,13 @@ class ODEIntegrator(AbstractIntegrator):
 @dispatch
 def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol=None, dt=None, dtmin=None, dtmax=None, 
 	saveat=None, save_start=None, save_end=None, tstops=None, callback=None, controller=None, save_everystep=None,
-	maxiters=None, adaptive=None):
+	maxiters=None, adaptive=None, errornorm=None, internalnorm=None, qmin=None, qmax=None, qsteady_min=None, 
+	qsteady_max=None, gamma=None):
 	
 	tspan = problem.tspan
 	tdir = jnp.sign(tspan[-1] - tspan[0])
 	t = jnp.array(problem.tspan[0], dtype=float)
-	u = problem.u0
+	u = strong_dtype(problem.u0)
 
 	if abstol is None:
 		abstol_internal = 1/10**6
@@ -130,8 +137,29 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 	# concretize dt
 	cache = alg.make_cache(u, reltol_internal)
 
+	if internalnorm is None:
+		internalnorm = default_norm
+
+	if errornorm is None:
+		errornorm = calculate_error
+
 	if controller is None:
 		controller = default_controller(alg, cache) 
+
+	if qmin is None:
+		qmin = jnp.array(alg.qmin_default)
+
+	if qmax is None:
+		qmax = jnp.array(alg.qmax_default)
+
+	if qsteady_min is None:
+		qsteady_min = jnp.array(alg.qsteady_min_default)
+
+	if qsteady_max is None:
+		qsteady_max = jnp.array(alg.qsteady_max_default)
+
+	if gamma is None:
+		gamma = jnp.array(alg.gamma_default)
 
 	if tstops is None:
 		if adaptive:
@@ -161,18 +189,27 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 
 	opts = DEOptions(maxiters=maxiters, adaptive=adaptive, abstol=abstol_internal, reltol=reltol_internal, 
 		controller=controller, saveat=jnp.sort(_saveat), next_saveat_id=0, tstops=jnp.sort(tstops), save_everystep=save_everystep, 
-		save_start=save_start, save_end=save_end, next_tstop_id=0, dtmax=dtmax, dtmin=dtmin)
+		save_start=save_start, save_end=save_end, next_tstop_id=0, dtmax=dtmax, dtmin=dtmin, 
+		internalnorm=internalnorm, errornorm=errornorm,
+		qsteady_min=qsteady_min, qsteady_max=qsteady_max, qoldinit=jnp.array(0.0001), qmin=qmin, qmax=qmax,
+		gamma=gamma)
 
+
+	if alg.uses_uprev(adaptive):
+		uprev = u
+	else:
+		uprev = None
 
 	n_saved_pts = len(_saveat)
 	solution = ODESolution.make(u, n_saved_pts)
 
 	k = expand_dim(u, 2)
 
-	return ODEIntegrator(solution=solution, u=u, uprev=u, t=t, k=k, tprev=t, f=problem.f, alg=alg, tdir=tdir, 
+	return ODEIntegrator(solution=solution, u=u, uprev=u, fsalfirst=u, fsallast=u, t=t, k=k, tprev=t, f=problem.f, alg=alg, tdir=tdir, 
 						 success_iter=0, iter=0, opts=opts, saveiter=0, saveiter_dense=0,
 						 dt=dt, dtcache=dt, dtpropose=dt, force_stepfail=jnp.asarray(False), 
-						 error_code=jnp.array(False, dtype=bool), cache=cache)
+						 error_code=jnp.array(False, dtype=bool), cache=cache, EEst=jnp.array(0), 
+						 accept_step=jnp.array(True, dtype=bool), q11=jnp.array(1.0), qold=jnp.array(0.0001))
 
 @dispatch
 def _initialize(integrator: ODEIntegrator):
@@ -193,6 +230,10 @@ def _initialize(integrator: ODEIntegrator):
 			lambda _ : integrator.opts.next_saveat_id + 1, 
 			lambda _: integrator.opts.next_saveat_id,
 			None)
+
+	# initialize fsal
+	integrator.fsalfirst = integrator.f(integrator.uprev, integrator.t) # Pre-start fsal
+	integrator.fsallast = jax.tree_map(lambda x: jnp.zeros_like(x), integrator.fsalfirst)
 
 	# initialize callback
 	# initialize cache
