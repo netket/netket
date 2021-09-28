@@ -34,21 +34,24 @@ dtype = jnp.float64
 from ..base import AbstractIntegrator, AbstractSolution
 from ..base import alg_cache
 
-from .rk import AbstractODEAlgorithm
+from .algorithms import AbstractODEAlgorithm
 
 from .problem import ODEProblem
 from .solution import ODESolution
 from .options import DEOptions
 
-from .utils import strong_dtype
+from .alg_utils import default_controller
+from .utils import strong_dtype, expand_dim
 
 @struct.dataclass(_frozen=False)
 class ODEIntegrator(AbstractIntegrator):
 	solution: AbstractSolution
 	u: PyTree
+	k: PyTree
+	uprev: PyTree
 	t: float
-	tdir:float 
 	tprev: float
+	tdir:float 
 	dt: float
 	dtcache: float
 	dtpropose:float
@@ -125,10 +128,10 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 
 	dt = strong_dtype(dt)
 	# concretize dt
-	cache = alg_cache(alg, u, reltol_internal)
+	cache = alg.make_cache(u, reltol_internal)
 
-	#if controller is None:
-		#controller = default_controller(alg, cache) 
+	if controller is None:
+		controller = default_controller(alg, cache) 
 
 	if tstops is None:
 		if adaptive:
@@ -164,7 +167,9 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 	n_saved_pts = len(_saveat)
 	solution = ODESolution.make(u, n_saved_pts)
 
-	return ODEIntegrator(solution=solution, u=u, t=t, tprev=t, f=problem.f, alg=alg, tdir=tdir, 
+	k = expand_dim(u, 2)
+
+	return ODEIntegrator(solution=solution, u=u, uprev=u, t=t, k=k, tprev=t, f=problem.f, alg=alg, tdir=tdir, 
 						 success_iter=0, iter=0, opts=opts, saveiter=0, saveiter_dense=0,
 						 dt=dt, dtcache=dt, dtpropose=dt, force_stepfail=jnp.asarray(False), 
 						 error_code=jnp.array(False, dtype=bool), cache=cache)
@@ -196,6 +201,12 @@ def _initialize(integrator: ODEIntegrator):
 	handle_dt(integrator)
 
 def handle_dt(integrator):
+	"""
+	Handle the settings of dt when the integrator has been constructed.
+
+	Tries to guess an initial dt if it has not been set, else does nothing.
+	"""
+
 	if integrator.opts.adaptive:
 		cond = lambda : jnp.all(integrator.dt == 0) and integrator.adaptive
 

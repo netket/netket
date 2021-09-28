@@ -14,7 +14,7 @@ from ..base import init
 
 from .problem import ODEProblem
 from .integrator import ODEIntegrator
-from .rk import AbstractODEAlgorithm, perform_step
+from .algorithms import AbstractODEAlgorithm, perform_step
 
 @dispatch
 def _solve(problem: ODEProblem, alg: AbstractODEAlgorithm, *args, **kwargs):
@@ -57,8 +57,8 @@ def _step(integrator: ODEIntegrator):
   #   postamble!(integrator)
   #   break return
 
-  # perform the actual integration step
-  integrator = perform_step(integrator, integrator.cache)
+  # perform the actual integration step. updates u but not t
+  integrator = perform_step(integrator, integrator.alg, integrator.cache)
 
   # 
   integrator = loopfooter(integrator)
@@ -76,6 +76,12 @@ _jstep = jax.jit(_step)
 ###############################
 # utils
 def loopheader(integrator: ODEIntegrator):
+  """
+  Applied right after iterators/callback, at the beginning of a solve step.
+
+  Evaluates if the last step should be accepted or rejected (only executed after
+  the first step).
+  """
   # Apply right after iterators / callbacks
 
   # If this is at least the second iteration, apply the update from the last
@@ -130,10 +136,15 @@ def modify_dt_for_tstops(integrator):
   def true_body(integrator):
     tdir_t = integrator.tdir * integrator.t
     tdir_tstop = integrator.first_tstop
+
+    # If we are adaptive, change the dt
     if integrator.opts.adaptive:
       new_dt = integrator.tdir * jnp.minimum(jnp.abs(integrator.dt), jnp.abs(tdir_tstop - tdir_t)) 
       integrator = integrator.replace(dt=new_dt)
       # missing case from julia integrator_utils:42
+      # elseif iszero(integrator.dtcache) && integrator.dtchangeable
+      #    integrator.dt = integrator.tdir * abs(tdir_tstop - tdir_t) 
+    # If we are not adaptive, then compute the dt to hit the point desired
     else:
       new_dt = integrator.tdir * jnp.minimum(jnp.abs(integrator.dtcache), jnp.abs(tdir_tstop - tdir_t))
       integrator = integrator.replace(dt=new_dt)
@@ -185,11 +196,18 @@ def loopfooter(integrator: ODEIntegrator):
 
   Executes callbacks and save data
   """
+
+  # set flags for fsal
+
   #if integrator.step_forcefail
   #
   ttmp = integrator.t + integrator.dt
   if integrator.opts.adaptive:
     # 
+    q = integrator.controller.stepsize_controller(integrator, integrator.alg)
+    #integrator.isout = integrator.opts.isoutofdomain(integrator.u,integrator.p,ttmp)
+    #integrator.accept_step = (!integrator.isout && integrator.controller.accept_step_controller(integrator)) || (integrator.opts.force_dtmin && abs(integrator.dt) <= timedepentdtmin(integrator))
+    # ...
     pass
   else:
     integrator.tprev = integrator.t
@@ -206,20 +224,37 @@ def loopfooter(integrator: ODEIntegrator):
   return integrator
 
 
+from .dense import _ode_addsteps, ode_interpolant
+
 def saveat(integrator):
   """
   Process saveat instructions.
   """
   if integrator.opts.saveat is None:
     return
-  elif len(integrator.ops.saveat) == 0:
+  elif len(integrator.opts.saveat) == 0:
     return
 
-  cond = integrator.opts.saveat[integrator.opts.next_saveat_id] <= integrator.t
+  # TODO: this only handles one saved point per time-step.
+  # in principle there could be more than one 
+  next_save_t = integrator.opts.saveat[integrator.opts.next_saveat_id] 
+  cond = next_save_t <= integrator.t
 
   def do_save_body(solution):
+    curt = integrator.tdir * next_save_t
+
+    # if curt does not match integrator.t exactly...
+    k = integrator.k
+    #k = addsteps(integrator)
+    theta = (curt - integrator.tprev)/integrator.dt
+    idxs = 0 #integrator.opts.save_idxs
+    val = ode_interpolant(theta, integrator, idxs, 0)
     solution = solution.replace()
-    solution.set(integrator.saveiter, integrator.t, integrator.u)
+    solution.set(integrator.saveiter, curt, val)
+
+    # if integrator.t == curt then
+    #solution = solution.replace()
+    #solution.set(integrator.saveiter, integrator.t, integrator.u)
     saveiter = integrator.saveiter + 1
     saveiter_dense = integrator.saveiter_dense + 1
     return (solution, saveiter, saveiter_dense)

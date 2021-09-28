@@ -38,3 +38,7 @@ class ODESolution:
 		t_prealloc = jnp.zeros((n,), dtype=float)
 
 		return ODESolution(u_prealloc, t_prealloc, last_id=0)
+
+	def compress(self):
+		self.t = self.t.at[0:self.last_id].get()
+		self.u = self.u.at[0:self.last_id].get()
