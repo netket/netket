@@ -68,10 +68,13 @@ class ODEIntegrator(AbstractIntegrator):
 	saveiter:int
 	saveiter_dense:int
 	f: Callable = struct.field(pytree_node=False)
+	p: Any
 	force_stepfail : bool 
 	error_code : int
 
 	cache: Any
+
+	#progress: bool = struct.field(pytree_node=False)
 
 	@property
 	def has_tstops(self):
@@ -87,12 +90,13 @@ class ODEIntegrator(AbstractIntegrator):
 def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol=None, dt=None, dtmin=None, dtmax=None, 
 	saveat=None, save_start=None, save_end=None, tstops=None, callback=None, controller=None, save_everystep=None,
 	maxiters=None, adaptive=None, errornorm=None, internalnorm=None, qmin=None, qmax=None, qsteady_min=None, 
-	qsteady_max=None, gamma=None):
+	qsteady_max=None, gamma=None, progress=False):
 	
 	tspan = problem.tspan
 	tdir = jnp.sign(tspan[-1] - tspan[0])
 	t = jnp.array(problem.tspan[0], dtype=float)
 	u = strong_dtype(problem.u0)
+	p = problem.p
 
 	if abstol is None:
 		abstol_internal = 1/10**6
@@ -209,7 +213,8 @@ def _init(problem: ODEProblem, alg: AbstractODEAlgorithm, *, abstol=None, reltol
 						 success_iter=0, iter=0, opts=opts, saveiter=0, saveiter_dense=0,
 						 dt=dt, dtcache=dt, dtpropose=dt, force_stepfail=jnp.asarray(False), 
 						 error_code=jnp.array(False, dtype=bool), cache=cache, EEst=jnp.array(0), 
-						 accept_step=jnp.array(True, dtype=bool), q11=jnp.array(1.0), qold=jnp.array(0.0001))
+						 accept_step=jnp.array(True, dtype=bool), q11=jnp.array(1.0), qold=jnp.array(0.0001), 
+						 p=p)
 
 @dispatch
 def _initialize(integrator: ODEIntegrator):
@@ -232,7 +237,7 @@ def _initialize(integrator: ODEIntegrator):
 			None)
 
 	# initialize fsal
-	integrator.fsalfirst = integrator.f(integrator.uprev, integrator.t) # Pre-start fsal
+	integrator.fsalfirst = integrator.f(integrator.uprev, integrator.p, integrator.t) # Pre-start fsal
 	integrator.fsallast = jax.tree_map(lambda x: jnp.zeros_like(x), integrator.fsalfirst)
 
 	# initialize callback

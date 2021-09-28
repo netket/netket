@@ -227,7 +227,6 @@ def loopfooter(integrator: ODEIntegrator):
       return integrator
     def reject_fun(integrator):
       return integrator
-    print(integrator.accept_step)
     integrator = jax.lax.cond(integrator.accept_step, accept_fun, reject_fun, integrator)
 
   else:

@@ -42,6 +42,10 @@ class PyTreeArray:
         return jax.tree_map(jnp.dtype, self.tree)
 
     @property
+    def size(self):
+        return jax.tree_util.tree_reduce(lambda x,y: x+y, jax.tree_map(jnp.size, self.tree))
+
+    @property
     def _treedef(self):
         td = reduce(lambda s1, s2: s1.compose(s2), self.treedefs)
         assert td == jax.tree_structure(self.tree)
@@ -77,6 +81,9 @@ class PyTreeArray:
         n = len(self.treedefs)
         assert n == len(self.axes)
         return n
+
+    #def keys(self):
+    #    return self.tree.keys()
 
     def transpose(self):
         return transpose(self)

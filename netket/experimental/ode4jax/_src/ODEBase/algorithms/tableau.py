@@ -71,7 +71,7 @@ bt_feuler = TableauRKExplicit(
                 name = "feuler", 
                 order = (1,),
                 a = jnp.zeros((1,1), dtype=dtype),
-                b = jnp.ones((1,1), dtype=dtype),
+                b = jnp.ones([1,], dtype=dtype),
                 c = jnp.zeros((1), dtype=dtype),
                 c_error = None,
                 )

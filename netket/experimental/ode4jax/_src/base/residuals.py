@@ -7,7 +7,7 @@ def default_norm(res, t):
   if isinstance(res, jnp.ndarray):
     return jnp.sqrt(jnp.mean(jnp.abs(res)**2))
   else:
-    raise TypeError()
+    return jnp.sqrt(jax.tree_util.tree_reduce(lambda x,y: x+y, jax.tree_map(lambda x: jnp.sum(jnp.abs(x)**2), res))/res.size)
 
 def calculate_error(ut, u0, u1, a, p, internalnorm, t):
   res = calculate_residuals(ut, u0, u1, a, p, internalnorm, t)
