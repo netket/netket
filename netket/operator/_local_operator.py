@@ -229,7 +229,6 @@ class LocalOperator(AbstractOperator):
         """
         super().__init__(hilbert)
         self._constant = constant
-        self._all_operators_hermitian = True
 
         if not all(
             [_is_sorted(hilbert.states_at_index(i)) for i in range(hilbert.size)]
@@ -301,9 +300,16 @@ class LocalOperator(AbstractOperator):
         return self._size
 
     @property
+    # @functools.lru_cache() # this does not update the value when self attributes are modified
+    # TODO: a way to cache the property depending on modifications of self._operators is described here:
+    # https://stackoverflow.com/questions/48262273/python-bookkeeping-dependencies-in-cached-attributes-that-might-change
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
-        return self._is_hermitian
+        return functools.reduce(
+            lambda a, b: a and b,
+            (is_hermitian(op) for op in self._operators),
+            True,
+        )
 
     @property
     def mel_cutoff(self) -> float:
@@ -500,7 +506,6 @@ class LocalOperator(AbstractOperator):
         self._local_states = np.zeros((0, 0, 0), dtype=np.float64)
 
         self._basis = np.zeros((0, 0), dtype=np.int64)
-        self._is_hermitian = True
 
     def _acting_on_list(self):
         acting_on = []
@@ -577,13 +582,6 @@ class LocalOperator(AbstractOperator):
                 self.mel_cutoff,
                 n_local_states_per_site,
             )
-
-            self._all_operators_hermitian = (
-                self._all_operators_hermitian
-                and is_hermitian(self._operators[support_i])
-            )
-
-            self._is_hermitian = self._all_operators_hermitian
             self._nonzero_diagonal = has_nonzero_diagonal(self)
         else:
             self.__add_new_operator__(operator, acting_on)
@@ -698,12 +696,6 @@ class LocalOperator(AbstractOperator):
             self.mel_cutoff,
             n_local_states_per_site,
         )
-
-        self._all_operators_hermitian = self._all_operators_hermitian and is_hermitian(
-            self._operators[-1]
-        )
-
-        self._is_hermitian = self._all_operators_hermitian
 
         self._nonzero_diagonal = has_nonzero_diagonal(self)
 
