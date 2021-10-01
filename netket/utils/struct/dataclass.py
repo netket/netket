@@ -389,7 +389,9 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
     """
 
     if clz is None:
-        return partial(dataclass, init_doc=init_doc, cache_hash=cache_hash, _frozen=_frozen)
+        return partial(
+            dataclass, init_doc=init_doc, cache_hash=cache_hash, _frozen=_frozen
+        )
 
     # get globals of the class to put generated methods in there
     _globals = get_class_globals(clz)
