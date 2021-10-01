@@ -326,3 +326,21 @@ def test_raises_unsorted_hilbert():
     hi = nk.hilbert.CustomHilbert([-1, 1, 0], N=3)
     with pytest.raises(ValueError):
         nk.operator.LocalOperator(hi)
+
+
+def test_qutip_conversion():
+    # skip test if qutip not installed
+    pytest.importorskip("qutip")
+
+    hi = nk.hilbert.Spin(s=1 / 2, N=2)
+    op = nk.operator.spin.sigmax(hi, 0)
+
+    q_obj = op.to_qobj()
+
+    assert q_obj.type == "oper"
+    assert len(q_obj.dims) == 2
+    assert q_obj.dims[0] == list(op.hilbert.shape)
+    assert q_obj.dims[1] == list(op.hilbert.shape)
+
+    assert q_obj.shape == (op.hilbert.n_states, op.hilbert.n_states)
+    np.testing.assert_allclose(q_obj.data.todense(), op.to_dense())
