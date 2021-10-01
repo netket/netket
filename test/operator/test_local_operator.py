@@ -327,6 +327,7 @@ def test_raises_unsorted_hilbert():
     with pytest.raises(ValueError):
         nk.operator.LocalOperator(hi)
 
+
 def test_qutip_conversion():
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -343,4 +344,3 @@ def test_qutip_conversion():
 
     assert q_obj.shape == (op.hilbert.n_states, op.hilbert.n_states)
     np.testing.assert_allclose(q_obj.data.todense(), op.to_dense())
-
