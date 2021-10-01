@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+
 import jax
 import numpy as np
 
 from flax import struct
 from numba import jit
-
-import math
+from numba4jax import njit4jax
 
 from netket.operator import AbstractOperator
-from netket.jax import njit4jax
 
 from ..metropolis import MetropolisRule
 
