@@ -22,6 +22,8 @@ from .local_numpy import LocalRuleNumpy
 from .hamiltonian_numpy import HamiltonianRuleNumpy
 from .custom_numpy import CustomRuleNumpy
 
+from .better import BetterRule
+
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)
