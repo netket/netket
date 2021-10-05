@@ -19,8 +19,8 @@ import netket as nk
 import numpy as np
 import pytest
 from jax import numpy as jnp
+from jax.nn.initializers import lecun_normal, lecun_uniform
 from netket.jax.utils import dtype_real
-from netket.nn.initializers import lecun_normal, lecun_uniform
 from scipy.stats import kstest
 
 seed = 12345

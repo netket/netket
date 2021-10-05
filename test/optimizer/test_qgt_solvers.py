@@ -16,10 +16,9 @@ import pytest
 
 from functools import partial
 
-
 import jax
-
 import jax.flatten_util
+from jax.nn.initializers import normal
 
 import netket as nk
 from netket.optimizer import qgt
@@ -49,17 +48,15 @@ def vstate(request):
     ma = nk.models.RBM(
         alpha=1,
         dtype=dtype,
-        hidden_bias_init=nk.nn.initializers.normal(),
-        visible_bias_init=nk.nn.initializers.normal(),
+        hidden_bias_init=normal(),
+        visible_bias_init=normal(),
     )
 
     vstate = nk.vqs.MCState(
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
-    vstate.init_parameters(
-        nk.nn.initializers.normal(stddev=0.001), seed=jax.random.PRNGKey(3)
-    )
+    vstate.init_parameters(normal(stddev=0.001), seed=jax.random.PRNGKey(3))
 
     vstate.sample()
 

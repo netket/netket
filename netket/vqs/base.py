@@ -18,12 +18,11 @@ from typing import Any, Optional, Tuple
 import jax
 import flax
 from flax.core.frozen_dict import FrozenDict
-
 import numpy as np
 import jax.numpy as jnp
+from jax.nn.initializers import normal
 
 import netket.jax as nkjax
-import netket.nn as nknn
 from netket.operator import AbstractOperator
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import PyTree, PRNGKeyT, NNInitFunc
@@ -124,14 +123,14 @@ class VariationalState(abc.ABC):
             model. DO NOT SPECIFY IT INSIDE THE INIT FUNCTION
 
         Args:
-            init_fun: a jax initializer such as :ref:`netket.nn.initializers.normal`. Must be a Callable
+            init_fun: a jax initializer such as :ref:`jax.nn.initializers.normal`. Must be a Callable
                 taking 3 inputs, the jax PRNG key, the shape and the dtype, and outputting an array with
-                the valid dtype and shape. If left unspecified, defaults to :code:`netket.nn.initializers.normal(stddev=0.01)`
+                the valid dtype and shape. If left unspecified, defaults to :code:`jax.nn.initializers.normal(stddev=0.01)`
             seed: Optional seed to be used. The seed is synced across all MPI processes. If unspecified, uses
                 a random seed.
         """
         if init_fun is None:
-            init_fun = nknn.initializers.normal(stddev=0.01)
+            init_fun = normal(stddev=0.01)
 
         rng = nkjax.PRNGSeq(nkjax.PRNGKey(seed))
 

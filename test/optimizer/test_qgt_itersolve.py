@@ -17,11 +17,10 @@ import pytest
 from functools import partial
 
 import jax
-
 import numpy as np
 from numpy import testing
-
 import jax.flatten_util
+from jax.nn.initializers import normal
 
 import netket as nk
 import netket.jax as nkjax
@@ -60,13 +59,13 @@ solvers_tol[solvers["cholesky"]] = 1e-8
 
 RBM = partial(
     nk.models.RBM,
-    hidden_bias_init=nk.nn.initializers.normal(),
-    visible_bias_init=nk.nn.initializers.normal(),
+    hidden_bias_init=normal(),
+    visible_bias_init=normal(),
 )
 RBMModPhase = partial(
     nk.models.RBMModPhase,
-    hidden_bias_init=nk.nn.initializers.normal(),
-    kernel_init=nk.nn.initializers.normal(),
+    hidden_bias_init=normal(),
+    kernel_init=normal(),
 )
 
 models = {
@@ -97,9 +96,7 @@ def vstate(request, model):
         nk.sampler.MetropolisLocal(hi),
         model,
     )
-    vstate.init_parameters(
-        nk.nn.initializers.normal(stddev=0.001), seed=jax.random.PRNGKey(3)
-    )
+    vstate.init_parameters(normal(stddev=0.001), seed=jax.random.PRNGKey(3))
 
     vstate.sample()
 

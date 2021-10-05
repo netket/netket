@@ -13,9 +13,10 @@
 # limitations under the License.
 
 import jax
-from flax.linen.initializers import *
 from jax import numpy as jnp
+from jax.nn import initializers
 from netket.jax.utils import dtype_real
+from netket.utils.deprecation import deprecated
 
 
 def _complex_truncated_normal(key, upper, shape, dtype):
@@ -29,3 +30,27 @@ def _complex_truncated_normal(key, upper, shape, dtype):
     r = jnp.sqrt(-jnp.log(1 - t))
     theta = 2 * jnp.pi * jax.random.uniform(key_theta, shape, dtype)
     return r * jnp.exp(1j * theta)
+
+
+_func_names = [
+    "glorot_normal",
+    "glorot_uniform",
+    "he_normal",
+    "he_uniform",
+    "kaiming_normal",
+    "kaiming_uniform",
+    "lecun_normal",
+    "lecun_uniform",
+    "normal",
+    "ones",
+    "orthogonal",
+    "delta_orthogonal",
+    "uniform",
+    "variance_scaling",
+    "xavier_normal",
+    "xavier_uniform",
+    "zeros",
+]
+_msg = "`netket.nn.initializers` is deprecated. Use `jax.nn.initializers` instead."
+for func_name in _func_names:
+    locals()[func_name] = deprecated(_msg, func_name)(getattr(initializers, func_name))

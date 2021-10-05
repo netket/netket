@@ -21,8 +21,9 @@ from netket.hilbert import DiscreteHilbert, ContinuousBoson
 import numpy as np
 import pytest
 from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
-
 import jax
+from jax.nn.initializers import normal
+
 from jax.config import config
 
 config.update("jax_enable_x64", True)
@@ -123,8 +124,8 @@ def model_and_weights(request):
             ma = nk.models.RBM(
                 alpha=1,
                 dtype=complex,
-                kernel_init=nk.nn.initializers.normal(stddev=0.1),
-                hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+                kernel_init=normal(stddev=0.1),
+                hidden_bias_init=normal(stddev=0.1),
             )
 
         # init network
