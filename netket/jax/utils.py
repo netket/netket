@@ -317,7 +317,10 @@ def compose(*funcs):
 
     return reduce(_compose, funcs)
 
-def PRNGKey(seed: Optional[SeedT] = None, *, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
+
+def PRNGKey(
+    seed: Optional[SeedT] = None, *, root: int = 0, comm=MPI_jax_comm
+) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
     The same seed will be distributed to all processes.
@@ -332,6 +335,7 @@ def PRNGKey(seed: Optional[SeedT] = None, *, root: int = 0, comm=MPI_jax_comm) -
     key = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key)
 
     return key
+
 
 def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
