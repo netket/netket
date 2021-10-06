@@ -127,7 +127,7 @@ def vjp_batched(
            ...: X = jax.random.uniform(k[2], shape=(1024,8))
            ...: w = jax.random.uniform(k[3], shape=(1024,))
 
-        In [4]: vjp_fun_batched = vjp_batched(f, (p, X), batch_argnums=(1,), batch_size=32, nondiff_argnums=1)
+        In [4]: vjp_fun_batched = vjp_batched(f, p, X, batch_argnums=(1,), batch_size=32, nondiff_argnums=1)
            ...: vjp_fun = jax.vjp(f, p, X)[1]
 
         In [5]: vjp_fun_batched(w)
