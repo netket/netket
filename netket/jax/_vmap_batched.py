@@ -25,8 +25,7 @@ def vmap_batched(f: Callable, in_axes=0, *, batch_size: Optional[int]):
         def _fun(x):
             n_elements = x.shape[0]
 
-            n_batches = n_elements // batch_size
-            n_rest = n_elements % batch_size
+            n_batches, n_rest = divmod(n_elements, batch_size)
 
             # split inputs
             x_batches = batch(x[: n_elements - n_rest, ...], batch_size)
