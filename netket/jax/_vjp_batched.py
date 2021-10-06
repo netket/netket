@@ -163,8 +163,25 @@ def vjp_batched(
         nondiff_argnums = (nondiff_argnums,)
 
     if batch_size == 0 or batch_argnums == ():
-        raise NotImplementedError  # TODO call normal jax.vjp ?
 
+        y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate)
+
+        if return_forward:
+
+            def __vjp_fun(y, vjp_fun, cotangents):
+                res = vjp_fun(cotangents)
+                res = _trash_tuple_elements(res, nondiff_argnums)
+                return y, res
+
+            return Partial(__vjp_fun, y, vjp_fun)
+        else:
+
+            def __vjp_fun(vjp_fun, cotangents):
+                res = vjp_fun(cotangents)
+                res = _trash_tuple_elements(res, nondiff_argnums)
+                return res
+
+            return Partial(__vjp_fun, vjp_fun)
     if has_aux:
         raise NotImplementedError
         # fun = compose(lambda x_aux: x_aux[0], fun)
