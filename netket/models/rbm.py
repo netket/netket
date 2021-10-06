@@ -24,9 +24,31 @@ from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 
 from netket import nn as nknn
-from netket.nn.initializers import normal
+from netket.nn.initializers import (
+    normal,
+    truncated_normal_rescale_dof,
+)
 
-default_kernel_init = normal(stddev=0.01)
+default_kernel_init = truncated_normal_rescale_dof(2)
+"""
+Default initialization for the RBM kernel.
+
+Since the output of the (only) dense layer is summed over the output, the kernel is
+initialized so the output has variance 1, therefore with variance
+:math:`2/(N_sites*N_sites*alpha)`.
+
+The 2 comes from the standard variance of the log_cosh activation, which is 0.5.
+"""
+
+default_bias_init = truncated_normal_rescale_dof(2)
+
+default_visible_bias_init = truncated_normal_rescale_dof(0.01)
+"""
+The visible bias is a truncated normal distribution with scaled variance 0.01.
+
+The very small scale ensures that the initial bias is almost zero, but there's a
+signal for the stochastic gradient descent.
+"""
 
 
 class RBM(nn.Module):
@@ -49,9 +71,9 @@ class RBM(nn.Module):
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
-    hidden_bias_init: NNInitFunc = default_kernel_init
+    hidden_bias_init: NNInitFunc = default_bias_init
     """Initializer for the hidden bias."""
-    visible_bias_init: NNInitFunc = default_kernel_init
+    visible_bias_init: NNInitFunc = default_visible_bias_init
     """Initializer for the visible bias."""
 
     @nn.compact
@@ -107,7 +129,7 @@ class RBMModPhase(nn.Module):
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
-    hidden_bias_init: NNInitFunc = default_kernel_init
+    hidden_bias_init: NNInitFunc = default_bias_init
     """Initializer for the hidden bias."""
 
     @nn.compact
@@ -162,9 +184,9 @@ class RBMMultiVal(nn.Module):
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
-    hidden_bias_init: NNInitFunc = default_kernel_init
+    hidden_bias_init: NNInitFunc = default_bias_init
     """Initializer for the hidden bias."""
-    visible_bias_init: NNInitFunc = default_kernel_init
+    visible_bias_init: NNInitFunc = default_visible_bias_init
     """Initializer for the visible bias."""
 
     def setup(self):
