@@ -164,7 +164,7 @@ def vjp_batched(
 
     if batch_size == 0 or batch_argnums == ():
 
-        y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate)
+        y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
 
         if return_forward:
 
