@@ -2,7 +2,6 @@ import jax
 import jax.numpy as jnp
 
 from jax import linear_util as lu
-from jax import numpy as jnp
 from jax.api_util import argnums_partial
 
 from functools import partial
