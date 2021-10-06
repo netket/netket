@@ -331,7 +331,9 @@ def _local_states_to_numbers(hilbert: Spin, x: Array) -> Array:  # noqa: F811
 
 
 @dispatch
-def _local_states_to_numbers(hilbert: Union[Fock,Qubit], x: Array) -> Array:  # noqa: F811
+def _local_states_to_numbers(
+    hilbert: Union[Fock, Qubit], x: Array
+) -> Array:  # noqa: F811
     numbers = jnp.asarray(x, jnp.int32)
     return numbers
 
