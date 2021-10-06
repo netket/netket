@@ -40,6 +40,9 @@ def scan_append_accum(f, x, append_cond, op=_tree_add):
 
     x0 = jax.tree_map(lambda x: x[0], x)
 
+    if jax.tree_leaves(x)[0].shape[0] == 1:
+        return jax.tree_map(partial(jnp.expand_dims, axis=0), f(x0))
+
     # the original idea was to use pytrees, however for now just operate on the return value tuple
     _get_append_part = partial(_multimap, lambda c, x: x if c else None, append_cond)
     _get_op_part = partial(_multimap, lambda c, x: x if not c else None, append_cond)
