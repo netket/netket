@@ -19,14 +19,14 @@ def _multimap(f, *args):
 
 
 def scan_append_reduce(f, x, append_cond, op=_tree_add):
-    """Evaluate f element by element in x while appending and/or reduceulating the results
+    """Evaluate f element by element in x while appending and/or reducing the results
 
     Args:
         f: a function that takes elements of the leading dimension of x
         x: a pytree where each leaf array has the same leading dimension
         append_cond: a bool (if f returns just one result) or a tuple of bools (if f returns multiple values)
             which indicates whether the individual result should be appended or reduced
-        op: a function to reduce the specified results. Defaults to a sum.
+        op: a function to (pairwise) reduce the specified results. Defaults to a sum.
     Returns:
         returns the (tuple of) results corresponding to the output of f
         where each result is given by:
