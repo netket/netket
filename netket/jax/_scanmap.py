@@ -40,23 +40,32 @@ def scan_append_accum(f, x, append_cond, op=_tree_add):
 
     x0 = jax.tree_map(lambda x: x[0], x)
 
+    # special code path if there is only one element
+    # to avoid having to rely on xla/llvm to optimize the overhead away
     if jax.tree_leaves(x)[0].shape[0] == 1:
         return jax.tree_map(partial(jnp.expand_dims, axis=0), f(x0))
 
     # the original idea was to use pytrees, however for now just operate on the return value tuple
     _get_append_part = partial(_multimap, lambda c, x: x if c else None, append_cond)
     _get_op_part = partial(_multimap, lambda c, x: x if not c else None, append_cond)
-    _tree_select = partial(_multimap, lambda c, t1, t2: t2 if c else t1, append_cond)
+    _tree_select = partial(_multimap, lambda c, t1, t2: t1 if c else t2, append_cond)
 
-    res_init = _get_op_part(_tree_zeros_like(jax.eval_shape(f, x0)))
+    carry_init = True, _get_op_part(_tree_zeros_like(jax.eval_shape(f, x0)))
 
     def f_(carry, x):
-        r = f(x)
-        return op(carry, _get_op_part(r)), _get_append_part(r)
+        is_first, y_carry = carry
+        y = f(x)
+        y_op = _get_op_part(y)
+        y_append = _get_append_part(y)
+        # select here to avoid the user having to specify the zero element for op
+        y_accum = jax.tree_multimap(
+            partial(jax.lax.select, is_first), y_op, op(y_carry, y_op)
+        )
+        return (False, y_accum), y_append
 
-    res = jax.lax.scan(f_, res_init, x, unroll=1)
+    (_, res_op), res_append = jax.lax.scan(f_, carry_init, x, unroll=1)
     # reconstruct the result from the accumulated and appended parts in the two trees
-    return _tree_select(*res)
+    return _tree_select(res_append, res_op)
 
 
 scan_append = partial(scan_append_accum, append_cond=True)
