@@ -21,7 +21,7 @@ def _batch_vmapped_function(vmapped_fun, batch_size):
         x_batches = batch(x[: n_elements - n_rest, ...], batch_size)
         x_rest = x[n_elements - n_rest :, ...]
 
-        if n_batches == 0:
+        if n_batches == 0 or batch_size == n_elements:
             y = vmapped_fun(x_rest)
         else:
             y_batches = unbatch(scanmap(vmapped_fun, scan_append)(x_batches))
