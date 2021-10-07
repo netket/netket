@@ -43,10 +43,6 @@ from ._expect import expect
 from ._batch_utils import (
     unbatch,
     batch,
-    rebatch,
-    unbatch_output,
-    unbatch_args,
-    batch_args,
 )
 from ._scanmap import scan_accum, scan_append, scan_append_accum, scanmap
 from ._vjp_batched import vjp_batched
