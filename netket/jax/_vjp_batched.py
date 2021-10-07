@@ -93,7 +93,7 @@ def vjp_batched(
     *primals,
     has_aux=False,
     batch_argnums=(),
-    batch_size=0,
+    batch_size=None,
     nondiff_argnums=(),
     return_forward=False,
     conjugate=False,
@@ -169,7 +169,7 @@ def vjp_batched(
     if isinstance(nondiff_argnums, int):
         nondiff_argnums = (nondiff_argnums,)
 
-    if batch_size == 0 or batch_argnums == ():
+    if batch_size is None or batch_argnums == ():
 
         y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
 
