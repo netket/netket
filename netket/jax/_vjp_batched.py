@@ -4,7 +4,14 @@ from jax.tree_util import Partial
 
 from functools import partial
 
-from netket.jax import batch, unbatch, compose, scanmap, scan_append_accum, vjp as nkvjp
+from netket.jax import (
+    batch,
+    unbatch,
+    compose,
+    scanmap,
+    scan_append_reduce,
+    vjp as nkvjp,
+)
 
 
 from ._scanmap import _multimap
@@ -46,7 +53,7 @@ def __vjp_fun_batched(
 ):
 
     append_cond = _append_cond_fun(primals, nondiff_argnums, batch_argnums)
-    scan_fun = partial(scan_append_accum, append_cond=append_cond)
+    scan_fun = partial(scan_append_reduce, append_cond=append_cond)
     primals = tuple(
         _tree_batch(p, batch_size) if i in batch_argnums else p
         for i, p in enumerate(primals)
