@@ -20,7 +20,7 @@ from pytest import raises
 import numpy as np
 import jax
 import netket as nk
-import flax
+from jax.nn.initializers import normal
 
 from .. import common
 
@@ -32,21 +32,21 @@ SEED = 2148364
 
 machines = {}
 
-standard_init = flax.linen.initializers.normal()
+standard_init = normal()
 NDM = partial(nk.models.NDM, bias_init=standard_init, visible_bias_init=standard_init)
 
 machines["model:(R->C)"] = NDM(
     alpha=1,
     beta=1,
     dtype=float,
-    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-    bias_init=nk.nn.initializers.normal(stddev=0.1),
+    kernel_init=normal(stddev=0.1),
+    bias_init=normal(stddev=0.1),
 )
 # machines["model:(C->C)"] = RBM(
 #    alpha=1,
 #    dtype=complex,
-#    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-#    bias_init=nk.nn.initializers.normal(stddev=0.1),
+#    kernel_init=normal(stddev=0.1),
+#    bias_init=normal(stddev=0.1),
 # )
 
 operators = {}

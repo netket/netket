@@ -20,7 +20,7 @@ BASE_DEPENDENCIES = [
     "plum-dispatch~=1.5.1",
     "numba>=0.52, <0.55",
     "python-igraph~=0.9",
-    "jax>0.2.16, <0.2.22",
+    "jax>=0.2.21, <0.2.22",
     "jaxlib>=0.1.69",
     "flax>=0.3.0, <0.4",
     "orjson~=3.4",

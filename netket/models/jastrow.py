@@ -14,8 +14,8 @@
 
 import flax.linen as nn
 import jax.numpy as jnp
+from jax.nn.initializers import normal
 
-from netket.nn.initializers import normal
 from netket.utils.types import DType, Array, NNInitFunc
 
 

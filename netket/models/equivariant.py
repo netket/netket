@@ -20,14 +20,13 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.nn.initializers import zeros
+from jax.scipy.special import logsumexp
 
 from netket.utils import HashableArray
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
-from jax.scipy.special import logsumexp
-
-from netket.nn.initializers import zeros
 from netket.nn.activation import reim_selu
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
