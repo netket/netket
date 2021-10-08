@@ -348,3 +348,21 @@ def test_is_hermitian():
 
     for op in herm_operators.values():
         assert (1j * op).is_hermitian == False
+
+
+def test_qutip_conversion():
+    # skip test if qutip not installed
+    pytest.importorskip("qutip")
+
+    hi = nk.hilbert.Spin(s=1 / 2, N=2)
+    op = nk.operator.spin.sigmax(hi, 0)
+
+    q_obj = op.to_qobj()
+
+    assert q_obj.type == "oper"
+    assert len(q_obj.dims) == 2
+    assert q_obj.dims[0] == list(op.hilbert.shape)
+    assert q_obj.dims[1] == list(op.hilbert.shape)
+
+    assert q_obj.shape == (op.hilbert.n_states, op.hilbert.n_states)
+    np.testing.assert_allclose(q_obj.data.todense(), op.to_dense())

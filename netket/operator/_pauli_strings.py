@@ -21,10 +21,10 @@ from numba import jit
 
 from netket.hilbert import Qubit
 
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 
 
-class PauliStrings(AbstractOperator):
+class PauliStrings(DiscreteOperator):
     """A Hamiltonian consisiting of the sum of products of Pauli operators."""
 
     def __init__(

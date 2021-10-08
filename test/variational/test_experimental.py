@@ -17,11 +17,11 @@ import pytest
 import jax
 import jax.flatten_util
 import numpy as np
+from flax import serialization
+from jax.nn.initializers import normal
 
 import tarfile
 from io import BytesIO
-
-from flax import serialization
 
 import netket as nk
 
@@ -40,8 +40,8 @@ def vstate(request):
     ma = nk.models.RBM(
         alpha=1,
         dtype=float,
-        hidden_bias_init=nk.nn.initializers.normal(),
-        visible_bias_init=nk.nn.initializers.normal(),
+        hidden_bias_init=normal(),
+        visible_bias_init=normal(),
     )
 
     return nk.vqs.MCState(

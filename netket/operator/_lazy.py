@@ -14,10 +14,10 @@
 
 from netket.utils.dispatch import parametric
 
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 
 
-class WrappedOperator(AbstractOperator):
+class WrappedOperator(DiscreteOperator):
     def get_conn_flattened(self, *args):
         return NotImplementedError
 
@@ -52,7 +52,7 @@ class Transpose(WrappedOperator):
     A wrapper lazily representing the transpose of the wrapped object.
     """
 
-    parent: AbstractOperator
+    parent: DiscreteOperator
     """The wrapped object"""
 
     def __init__(self, op):
@@ -98,7 +98,7 @@ class Adjoint(WrappedOperator):
     A wrapper lazily representing the adjoint (conjugate-transpose) of the wrapped object.
     """
 
-    parent: AbstractOperator
+    parent: DiscreteOperator
     """The wrapped object"""
 
     def __init__(self, op):
@@ -159,7 +159,7 @@ class Squared(WrappedOperator):
     A wrapper lazily representing the matrix-squared (A^dag A) of the wrapped object A.
     """
 
-    parent: AbstractOperator
+    parent: DiscreteOperator
     """The wrapped object"""
 
     def __init__(self, op):

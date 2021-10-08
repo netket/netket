@@ -19,7 +19,7 @@ import inspect
 from textwrap import dedent
 
 
-def deprecated(reason=None):
+def deprecated(reason=None, func_name=None):
     r"""
     This is a decorator which can be used to mark functions as deprecated. It
     will result in a warning being emitted when the function is used.
@@ -27,7 +27,9 @@ def deprecated(reason=None):
 
     def decorator(func):
         object_type = "class" if inspect.isclass(func) else "function"
-        message = "Call to deprecated {} {!r}".format(object_type, func.__name__)
+        message = "Call to deprecated {} {!r}".format(
+            object_type, func_name or func.__name__
+        )
         if reason is not None:
             message += f" ({dedent(reason)})"
 

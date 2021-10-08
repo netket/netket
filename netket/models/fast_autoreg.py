@@ -17,6 +17,7 @@ from typing import Any, Callable, Iterable, Tuple, Union
 
 import jax
 from jax import numpy as jnp
+from jax.nn.initializers import zeros
 from plum import dispatch
 
 from netket.models.autoreg import (
@@ -27,7 +28,6 @@ from netket.models.autoreg import (
     l2_normalize,
 )
 from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
-from netket.nn.initializers import zeros
 from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc
 

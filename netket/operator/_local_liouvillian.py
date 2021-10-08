@@ -21,7 +21,7 @@ from numba.typed import List
 
 from scipy.sparse.linalg import LinearOperator
 
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 from ._abstract_super_operator import AbstractSuperOperator
 
@@ -63,8 +63,8 @@ class LocalLiouvillian(AbstractSuperOperator):
 
     def __init__(
         self,
-        ham: AbstractOperator,
-        jump_ops: PyList[AbstractOperator] = [],
+        ham: DiscreteOperator,
+        jump_ops: PyList[DiscreteOperator] = [],
         dtype=complex,
     ):
         super().__init__(ham.hilbert)

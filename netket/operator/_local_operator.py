@@ -24,7 +24,7 @@ from numba import jit
 
 from netket.hilbert import AbstractHilbert, Fock
 
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 from ._lazy import Transpose
 
 
@@ -54,7 +54,7 @@ def is_hermitian(a: sp.csr_matrix, rtol=1e-05, atol=1e-08) -> bool:
 def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> DType:
     if isinstance(obj, numbers.Number):
         return type(obj)
-    elif isinstance(obj, AbstractOperator):
+    elif isinstance(obj, DiscreteOperator):
         return obj.dtype
     elif isinstance(obj, np.ndarray):
         return obj.dtype
@@ -193,7 +193,7 @@ def _reorder_kronecker_product(hi, mat, acting_on):
     return mat_sorted, acting_on_sorted
 
 
-class LocalOperator(AbstractOperator):
+class LocalOperator(DiscreteOperator):
     """A custom local operator. This is a sum of an arbitrary number of operators
     acting locally on a limited set of k quantum numbers (i.e. k-local,
     in the quantum information sense).
@@ -384,7 +384,7 @@ class LocalOperator(AbstractOperator):
         return -1 * self
 
     def __mul__(self, other):
-        if isinstance(other, AbstractOperator):
+        if isinstance(other, DiscreteOperator):
             op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
             return op.__imatmul__(other)
         elif not isinstance(other, numbers.Number):
@@ -406,7 +406,7 @@ class LocalOperator(AbstractOperator):
         return op
 
     def __imul__(self, other):
-        if isinstance(other, AbstractOperator):
+        if isinstance(other, DiscreteOperator):
             return self.__imatmul__(other)
         elif not isinstance(other, numbers.Number):
             return NotImplemented
