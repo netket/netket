@@ -19,12 +19,11 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.nn.initializers import zeros, normal
 
 from netket.utils.types import NNInitFunc
-
 from netket import jax as nkjax
 from netket import nn as nknn
-from netket.nn.initializers import zeros, normal
 
 default_kernel_init = normal(stddev=0.001)
 

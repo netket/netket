@@ -18,14 +18,13 @@ import jax.numpy as jnp
 import jax.random as random
 import numpy as np
 import scipy.sparse
-from jax.lax import dot
+from jax.nn.initializers import uniform
 from netket.utils.group import PermutationGroup
 
 import pytest
 
 
 def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
-
     g = lattice(N)
 
     hi = nk.hilbert.Spin(1 / 2, g.n_nodes)
@@ -54,7 +53,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
             mode=mode,
             features=8,
             use_bias=use_bias,
-            bias_init=nk.nn.initializers.uniform(),
+            bias_init=uniform(),
         )
     else:
         ma = nk.nn.DenseSymm(
@@ -63,7 +62,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
             mode=mode,
             features=8,
             use_bias=use_bias,
-            bias_init=nk.nn.initializers.uniform(),
+            bias_init=uniform(),
         )
 
     pars = ma.init(rng.next(), hi.random_state(rng.next(), 1))
@@ -78,13 +77,10 @@ def test_DenseSymm(symmetries, use_bias, mode):
 def test_DenseEquivariant_creation(mode):
     g = nk.graph.Chain(8)
     space_group = g.space_group()
-    hi = nk.hilbert.Spin(1 / 2, N=8)
 
     def check_init(creator):
         ma = creator()
         _ = ma.init(nk.jax.PRNGKey(0), np.ones([1, 4, 16]))
-
-    perms = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]]
 
     # Init with graph
     check_init(
@@ -174,7 +170,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
             out_features=1,
             mask=mask,
             use_bias=use_bias,
-            bias_init=nk.nn.initializers.uniform(),
+            bias_init=uniform(),
         )
     else:
         ma = nk.nn.DenseEquivariant(
@@ -185,7 +181,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
             out_features=1,
             mask=mask,
             use_bias=use_bias,
-            bias_init=nk.nn.initializers.uniform(),
+            bias_init=uniform(),
         )
 
     pars = ma.init(rng.next(), np.random.normal(0, 1, [1, 1, n_symm]))
@@ -220,13 +216,13 @@ def test_modes_DenseSymm(lattice, symmetries):
         mode="fft",
         features=4,
         shape=tuple(g.extent),
-        bias_init=nk.nn.initializers.uniform(),
+        bias_init=uniform(),
     )
     ma_matrix = nk.nn.DenseSymm(
         symmetries=perms,
         mode="matrix",
         features=4,
-        bias_init=nk.nn.initializers.uniform(),
+        bias_init=uniform(),
     )
 
     dum_input = np.random.normal(0, 1, [1, g.n_nodes])
@@ -249,21 +245,21 @@ def test_modes_DenseEquivariant(lattice, symmetries):
         in_features=1,
         out_features=1,
         shape=tuple(g.extent),
-        bias_init=nk.nn.initializers.uniform(),
+        bias_init=uniform(),
     )
     ma_irreps = nk.nn.DenseEquivariant(
         symmetries=perms,
         mode="irreps",
         in_features=1,
         out_features=1,
-        bias_init=nk.nn.initializers.uniform(),
+        bias_init=uniform(),
     )
     ma_matrix = nk.nn.DenseEquivariant(
         symmetries=perms,
         mode="matrix",
         in_features=1,
         out_features=1,
-        bias_init=nk.nn.initializers.uniform(),
+        bias_init=uniform(),
     )
 
     dum_input = np.random.normal(0, 1, [1, 1, len(perms)])

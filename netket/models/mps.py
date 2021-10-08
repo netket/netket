@@ -20,6 +20,7 @@ from flax import linen as nn
 import jax
 from jax import numpy as jnp
 import numpy as np
+from jax.nn.initializers import normal
 
 from netket.graph import AbstractGraph, Chain
 from netket.hilbert import AbstractHilbert
@@ -55,7 +56,7 @@ class MPSPeriodic(nn.Module):
     unit cells consisting of symperiod tensors. if None, symperiod equals the
     number of physical degrees of freedom.
     """
-    kernel_init: NNInitFunc = jax.nn.initializers.normal(
+    kernel_init: NNInitFunc = normal(
         stddev=0.01
     )  # default standard deviation equals 1e-2
     """the initializer for the MPS weights."""

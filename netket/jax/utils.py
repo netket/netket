@@ -318,7 +318,9 @@ def compose(*funcs):
     return reduce(_compose, funcs)
 
 
-def PRNGKey(seed: Optional[SeedT] = None, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
+def PRNGKey(
+    seed: Optional[SeedT] = None, *, root: int = 0, comm=MPI_jax_comm
+) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
     The same seed will be distributed to all processes.
@@ -330,12 +332,12 @@ def PRNGKey(seed: Optional[SeedT] = None, root: int = 0, comm=MPI_jax_comm) -> P
     else:
         key = seed
 
-    key, _ = mpi.mpi_bcast_jax(key, root=root, comm=comm)
+    key = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key)
 
     return key
 
 
-def mpi_split(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
+def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
     Split a key across MPI nodes in the communicator.
     Only the input key on the root process matters.
@@ -353,7 +355,7 @@ def mpi_split(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     # on all MPI nodes?
     keys = jax.random.split(key, mpi.n_nodes)
 
-    keys, _ = mpi.mpi_bcast_jax(keys, root=root)
+    keys = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys)
 
     return keys[mpi.rank]
 

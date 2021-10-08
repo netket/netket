@@ -20,7 +20,7 @@ from pytest import approx, raises, warns
 import numpy as np
 import jax
 import netket as nk
-import flax
+from jax.nn.initializers import normal
 
 from .. import common
 
@@ -32,7 +32,7 @@ SEED = 2148364
 
 machines = {}
 
-standard_init = flax.linen.initializers.normal()
+standard_init = normal()
 RBM = partial(
     nk.models.RBM, hidden_bias_init=standard_init, visible_bias_init=standard_init
 )
@@ -41,26 +41,26 @@ RBMModPhase = partial(nk.models.RBMModPhase, hidden_bias_init=standard_init)
 nk.models.RBM(
     alpha=1,
     dtype=complex,
-    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-    hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+    kernel_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(R->R)"] = RBM(
     alpha=1,
     dtype=float,
-    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-    hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+    kernel_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(R->C)"] = RBMModPhase(
     alpha=1,
     dtype=float,
-    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-    hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+    kernel_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(C->C)"] = RBM(
     alpha=1,
     dtype=complex,
-    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-    hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+    kernel_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
 )
 
 operators = {}
@@ -175,7 +175,7 @@ def test_serialization(vstate):
 def test_init_parameters(vstate):
     vstate.init_parameters(seed=SEED)
     pars = vstate.parameters
-    vstate.init_parameters(nk.nn.initializers.normal(stddev=0.01), seed=SEED)
+    vstate.init_parameters(normal(stddev=0.01), seed=SEED)
     pars2 = vstate.parameters
 
     def _f(x, y):
@@ -199,6 +199,22 @@ def test_expect_numpysampler_works(vstate, operator):
     vstate.sampler = sampl
     out = vstate.expect(operator)
     assert isinstance(out, nk.stats.Stats)
+
+
+def test_qutip_conversion(vstate):
+    # skip test if qutip not installed
+    pytest.importorskip("qutip")
+
+    ket = vstate.to_array()
+    q_obj = vstate.to_qobj()
+
+    assert q_obj.type == "ket"
+    assert len(q_obj.dims) == 2
+    assert q_obj.dims[0] == list(vstate.hilbert.shape)
+    assert q_obj.dims[1] == [1 for i in range(vstate.hilbert.size)]
+
+    assert q_obj.shape == (vstate.hilbert.n_states, 1)
+    np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
 
 
 @pytest.mark.parametrize(

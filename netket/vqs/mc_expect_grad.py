@@ -15,7 +15,7 @@ from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch, TrueT, FalseT
 
 from netket.operator import (
-    AbstractOperator,
+    DiscreteOperator,
     AbstractSuperOperator,
     local_cost_function,
     local_value_cost,
@@ -40,7 +40,7 @@ def _check_hilbert(A, B):
 @dispatch
 def expect_and_grad(
     vstate: MCState,
-    Ô: Squared[AbstractOperator],
+    Ô: Squared[DiscreteOperator],
     use_covariance: TrueT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
@@ -102,12 +102,12 @@ def expect_and_grad(  # noqa: F811
 
 # mixed state, hermitian operator
 @dispatch.multi(
-    (MCState, AbstractOperator, TrueT, Any),
+    (MCState, DiscreteOperator, TrueT, Any),
     (MCMixedState, AbstractSuperOperator, TrueT, Any),
 )
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
-    Ô: AbstractOperator,
+    Ô: DiscreteOperator,
     use_covariance: TrueT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
@@ -136,7 +136,7 @@ def expect_and_grad(  # noqa: F811
 @dispatch
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
-    Ô: AbstractOperator,
+    Ô: DiscreteOperator,
     use_covariance: FalseT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:

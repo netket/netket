@@ -45,8 +45,6 @@ from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap
 from ._vjp_batched import vjp_batched
 from ._vmap_batched import vmap_batched
 
-from .numba4jax import numba_to_jax, njit4jax
-
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)

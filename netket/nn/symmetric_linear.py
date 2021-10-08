@@ -20,14 +20,9 @@ from jax import lax
 import jax.numpy as jnp
 import numpy as np
 import jax
+from jax.nn.initializers import normal, zeros, lecun_normal, variance_scaling
 
-from netket.nn.initializers import (
-    normal,
-    zeros,
-    lecun_normal,
-    variance_scaling,
-    _complex_truncated_normal,
-)
+from netket.nn.initializers import _complex_truncated_normal
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
 from netket.utils.group import PermutationGroup

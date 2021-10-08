@@ -19,12 +19,12 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.nn.initializers import normal
+
 from netket.utils import HashableArray
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
-
 from netket import nn as nknn
-from netket.nn.initializers import normal
 
 default_kernel_init = normal(stddev=0.01)
 

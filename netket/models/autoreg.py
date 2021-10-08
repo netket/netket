@@ -19,12 +19,12 @@ from typing import Any, Callable, Iterable, Tuple, Union
 import jax
 from flax import linen as nn
 from jax import numpy as jnp
+from jax.nn.initializers import zeros
 from plum import dispatch
 
-from netket.hilbert import Fock, Spin
+from netket.hilbert import Fock, Spin, Qubit
 from netket.hilbert.homogeneous import HomogeneousHilbert
 from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
-from netket.nn.initializers import zeros
 from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc
 
@@ -331,7 +331,9 @@ def _local_states_to_numbers(hilbert: Spin, x: Array) -> Array:  # noqa: F811
 
 
 @dispatch
-def _local_states_to_numbers(hilbert: Fock, x: Array) -> Array:  # noqa: F811
+def _local_states_to_numbers(
+    hilbert: Union[Fock, Qubit], x: Array
+) -> Array:  # noqa: F811
     numbers = jnp.asarray(x, jnp.int32)
     return numbers
 

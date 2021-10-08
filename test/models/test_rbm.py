@@ -14,9 +14,9 @@
 
 import netket as nk
 import numpy as np
-import jax.numpy as jnp
-
 import jax
+import jax.numpy as jnp
+from jax.nn.initializers import uniform
 
 from .test_nn import _setup_symm
 
@@ -34,8 +34,8 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
         alpha=4,
         use_visible_bias=use_visible_bias,
         use_hidden_bias=use_hidden_bias,
-        hidden_bias_init=nk.nn.initializers.uniform(),
-        visible_bias_init=nk.nn.initializers.uniform(),
+        hidden_bias_init=uniform(),
+        visible_bias_init=uniform(),
     )
     pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
 
@@ -70,7 +70,7 @@ def test_gcnn(parity, symmetries, lattice, mode):
         layers=2,
         features=2,
         parity=parity,
-        bias_init=nk.nn.initializers.uniform(),
+        bias_init=uniform(),
     )
 
     pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
@@ -242,8 +242,8 @@ def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
         n_classes=M + 1,
         use_visible_bias=use_visible_bias,
         use_hidden_bias=use_hidden_bias,
-        hidden_bias_init=nk.nn.initializers.uniform(),
-        visible_bias_init=nk.nn.initializers.uniform(),
+        hidden_bias_init=uniform(),
+        visible_bias_init=uniform(),
     )
     _ = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
 

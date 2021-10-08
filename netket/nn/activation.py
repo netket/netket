@@ -48,6 +48,21 @@ from jax.numpy import tanh
 from jax.numpy import cosh
 from jax.numpy import sinh
 
+from netket.jax import HashablePartial
+
+
+def reim(f):
+    r"""Modifies a non-linearity to act seperately on the real and imaginary parts"""
+
+    def reim_activation(f, x):
+        sqrt2 = jnp.sqrt(jnp.array(2, dtype=x.real.dtype))
+        if jnp.iscomplexobj(x):
+            return jax.lax.complex(f(sqrt2 * x.real), f(sqrt2 * x.imag)) / sqrt2
+        else:
+            return f(x)
+
+    return HashablePartial(reim_activation, f)
+
 
 def log_cosh(x):
     sgn_x = -2 * jnp.signbit(x.real) + 1
@@ -63,6 +78,13 @@ def log_tanh(x):
     return jax.numpy.log(jax.numpy.tanh(x))
 
 
+reim_selu = reim(selu)
+r"""Returns the selu non-linearity, applied seperately to the real and imaginary parts"""
+
+reim_relu = reim(relu)
+r"""Returns the relu non-linearity, applied seperately to the real and imaginary parts"""
+
+
 # TODO: DEPRECATION 3.1
 @deprecated("Deprecated. Use log_cosh instead")
 def logcosh(x):
@@ -70,12 +92,12 @@ def logcosh(x):
 
 
 # TODO: DEPRECATION 3.1
-@deprecated("Deprecated. Use log_cosh instead")
+@deprecated("Deprecated. Use log_tanh instead")
 def logtanh(x):
     return log_tanh(x)
 
 
 # TODO: DEPRECATION 3.1
-@deprecated("Deprecated. Use log_cosh instead")
+@deprecated("Deprecated. Use log_sinh instead")
 def logsinh(x):
     return log_sinh(x)
