@@ -305,11 +305,7 @@ class LocalOperator(AbstractOperator):
     # https://stackoverflow.com/questions/48262273/python-bookkeeping-dependencies-in-cached-attributes-that-might-change
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
-        return functools.reduce(
-            lambda a, b: a and b,
-            (is_hermitian(op) for op in self._operators),
-            True,
-        )
+        return np.all(self._is_hermitian_op)
 
     @property
     def mel_cutoff(self) -> float:
@@ -357,6 +353,7 @@ class LocalOperator(AbstractOperator):
                 self._add_operator(operator, acting_on)
 
             self._constant += other.constant
+            self._is_hermitian_op[0] = np.isreal(self._constant)
             self._nonzero_diagonal = has_nonzero_diagonal(self)
 
             return self
@@ -368,6 +365,7 @@ class LocalOperator(AbstractOperator):
                 )
 
             self._constant += other
+            self._is_hermitian_op[0] = np.isreal(self._constant)
             self._nonzero_diagonal = has_nonzero_diagonal(self)
             return self
 
@@ -397,9 +395,11 @@ class LocalOperator(AbstractOperator):
         op._diag_mels *= other
         op._mels *= other
         op._constant *= other
+        op._is_hermitian_op[0] = np.isreal(op._constant)
 
-        for _op in op._operators:
+        for i, _op in enumerate(op._operators):
             _op *= other
+            op._is_hermitian_op[i + 1] = is_hermitian(_op)
 
         op._nonzero_diagonal = has_nonzero_diagonal(op)
 
@@ -419,9 +419,11 @@ class LocalOperator(AbstractOperator):
         self._diag_mels *= other
         self._mels *= other
         self._constant *= other
+        self._is_hermitian_op[0] = np.isreal(self._constant)
 
-        for _op in self._operators:
+        for i, _op in enumerate(self._operators):
             _op *= other
+            self._is_hermitian_op[i + 1] = is_hermitian(_op)
 
         self._nonzero_diagonal = has_nonzero_diagonal(self)
 
@@ -466,6 +468,7 @@ class LocalOperator(AbstractOperator):
             self *= other._constant
             self += prod
             self._constant = 0.0
+            self._is_hermitian_op[0] = True
         else:
             self = prod
 
@@ -506,6 +509,13 @@ class LocalOperator(AbstractOperator):
         self._local_states = np.zeros((0, 0, 0), dtype=np.float64)
 
         self._basis = np.zeros((0, 0), dtype=np.int64)
+
+        # Array saving whether each operator is hermitian (plus one component to keep if self._constant is also hermitian).
+        self._is_hermitian_op = np.zeros((self._n_operators + 1,), dtype=bool)
+        # TODO: (VolodyaCO) I guess that if we have an operator with diagonal elements equal to 1j*C+Y, some complex constant, and
+        # self._constant=-1j*C, then the actual diagonal would be Y. How do we check hermiticity taking into account the diagonal
+        # elements as well as the self._constant? For the moment I just check hermiticity of the added constant, which must be real.
+        self._is_hermitian_op[0] = np.isreal(self._constant)
 
     def _acting_on_list(self):
         acting_on = []
@@ -554,6 +564,9 @@ class LocalOperator(AbstractOperator):
         if support_i is not None:
             dim = min(operator.shape[0], self._operators[support_i].shape[0])
             self._operators[support_i][:dim, :dim] += operator[:dim, :dim]
+            self._is_hermitian_op[support_i + 1] = is_hermitian(
+                self._operators[support_i]
+            )
 
             n_local_states_per_site = np.asarray(
                 [self.hilbert.size_at_index(i) for i in acting_on]
@@ -677,6 +690,12 @@ class LocalOperator(AbstractOperator):
         )
         if acting_on.max() + 1 >= self._size:
             self._size = acting_on.max() + 1
+
+        self._is_hermitian_op = resize(
+            self._is_hermitian_op,
+            shape=(self.n_operators + 1,),
+            init=is_hermitian(operator),
+        )
 
         operator_row_index, operator_column_index = operator.nonzero()
         operator_data = np.asarray(
