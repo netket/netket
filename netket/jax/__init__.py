@@ -40,10 +40,7 @@ from ._grad import grad, value_and_grad
 
 from ._expect import expect
 
-from ._batch_utils import (
-    unbatch,
-    batch,
-)
+from ._batch_utils import batch, unbatch
 from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap
 from ._vjp_batched import vjp_batched
 from ._vmap_batched import vmap_batched
