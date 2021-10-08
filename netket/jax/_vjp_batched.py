@@ -1,12 +1,8 @@
-import jax
-
 from jax.tree_util import Partial
 
 from functools import partial
 
 from netket.jax import (
-    batch,
-    unbatch,
     compose,
     scanmap,
     scan_append_reduce,
@@ -16,11 +12,7 @@ from netket.jax import (
 
 from ._scanmap import _multimap
 
-
-_tree_batch = lambda x, *args, **kwargs: jax.tree_map(
-    lambda l: batch(l, *args, **kwargs), x
-)
-_tree_unbatch = partial(jax.tree_map, unbatch)
+from ._batch_utils import _batch as _tree_batch, _unbatch as _tree_unbatch
 
 
 def _trash_tuple_elements(t, nums=()):
