@@ -3,7 +3,7 @@ from typing import Callable, Optional
 import jax
 import jax.numpy as jnp
 
-from ._batch_utils import batch, unbatch
+from ._batch_utils import _batch, _unbatch
 from ._scanmap import scanmap, scan_append
 
 
@@ -18,13 +18,13 @@ def _batch_vmapped_function(vmapped_fun, batch_size):
         n_batches, n_rest = divmod(n_elements, batch_size)
 
         # split inputs
-        x_batches = batch(x[: n_elements - n_rest, ...], batch_size)
+        x_batches = _batch(x[: n_elements - n_rest, ...], batch_size)
         x_rest = x[n_elements - n_rest :, ...]
 
         if n_batches == 0 or batch_size == n_elements:
             y = vmapped_fun(x_rest)
         else:
-            y_batches = unbatch(scanmap(vmapped_fun, scan_append)(x_batches))
+            y_batches = _unbatch(scanmap(vmapped_fun, scan_append)(x_batches))
 
             if n_rest == 0:
                 y = y_batches
