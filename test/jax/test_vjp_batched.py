@@ -11,7 +11,6 @@ def test_vjp_batched():
 
     k = jax.random.split(jax.random.PRNGKey(123), 4)
     p = jax.random.uniform(k[0], shape=(8,))
-    # v = jax.random.uniform(k[1], shape=(8,))
     X = jax.random.uniform(k[2], shape=(1024, 8))
     w = jax.random.uniform(k[3], shape=(1024,))
 
