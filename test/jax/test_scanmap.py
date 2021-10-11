@@ -8,13 +8,13 @@ from functools import partial
 
 
 @pytest.mark.parametrize("jit", [False, True])
-def test_scan_append_reduce(jit):
+@pytest.mark.parametrize("N", [1, 100])
+def test_scan_append_reduce(jit, N):
     def f(x):
         y = jnp.sin(x)
         return y, y, y ** 2
 
-    N = 100
-    x = jnp.linspace(0.0, jnp.pi, N)
+    x = jnp.linspace(0.0, jnp.pi, 2 * N).reshape((N, 2))
 
     scan_append_reduce = nk.jax.scan_append_reduce
     if jit:
@@ -24,12 +24,13 @@ def test_scan_append_reduce(jit):
     y_expected = jnp.sin(x)
 
     np.testing.assert_allclose(y, y_expected)
-    np.testing.assert_allclose(s, y_expected.sum())
-    np.testing.assert_allclose(s2, (y_expected ** 2).sum())
+    np.testing.assert_allclose(s, y_expected.sum(axis=0))
+    np.testing.assert_allclose(s2, (y_expected ** 2).sum(axis=0))
 
 
 @pytest.mark.parametrize("jit", [False, True])
-def test_scanmap(jit):
+@pytest.mark.parametrize("N", [1, 100])
+def test_scanmap(jit, N):
 
     scan_fun = partial(nk.jax.scan_append_reduce, append_cond=(True, False, False))
 
@@ -41,13 +42,12 @@ def test_scanmap(jit):
     if jit:
         f = jax.jit(f)
 
-    N = 100
-    x = jnp.linspace(0.0, jnp.pi, N)
+    x = jnp.linspace(0.0, jnp.pi, 2 * N).reshape((N, 2))
     c = 1.0
 
     y, s, s2 = f(c, x)
     y_expected = jnp.sin(x) + c
 
     np.testing.assert_allclose(y, y_expected)
-    np.testing.assert_allclose(s, y_expected.sum())
-    np.testing.assert_allclose(s2, (y_expected ** 2).sum())
+    np.testing.assert_allclose(s, y_expected.sum(axis=0))
+    np.testing.assert_allclose(s2, (y_expected ** 2).sum(axis=0))
