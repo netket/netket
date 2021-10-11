@@ -300,11 +300,13 @@ class LocalOperator(DiscreteOperator):
         return self._size
 
     @property
-    # @functools.lru_cache() # this does not update the value when self attributes are modified
-    # TODO: a way to cache the property depending on modifications of self._operators is described here:
+    # A way to cache the property depending on modifications of self._operators is described here:
     # https://stackoverflow.com/questions/48262273/python-bookkeeping-dependencies-in-cached-attributes-that-might-change
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
+        # TODO: (VolodyaCO) I guess that if we have an operator with diagonal elements equal to 1j*C+Y, some complex constant, and
+        # self._constant=-1j*C, then the actual diagonal would be Y. How do we check hermiticity taking into account the diagonal
+        # elements as well as the self._constant? For the moment I just check hermiticity of the added constant, which must be real.
         return np.all(self._is_hermitian_op) and np.isreal(self._constant)
 
     @property
@@ -353,7 +355,6 @@ class LocalOperator(DiscreteOperator):
                 self._add_operator(operator, acting_on)
 
             self._constant += other.constant
-            self._is_hermitian_op[0] = np.isreal(self._constant)
             self._nonzero_diagonal = has_nonzero_diagonal(self)
 
             return self
@@ -365,7 +366,6 @@ class LocalOperator(DiscreteOperator):
                 )
 
             self._constant += other
-            self._is_hermitian_op[0] = np.isreal(self._constant)
             self._nonzero_diagonal = has_nonzero_diagonal(self)
             return self
 
@@ -395,11 +395,10 @@ class LocalOperator(DiscreteOperator):
         op._diag_mels *= other
         op._mels *= other
         op._constant *= other
-        op._is_hermitian_op[0] = np.isreal(op._constant)
 
         for i, _op in enumerate(op._operators):
             _op *= other
-            op._is_hermitian_op[i + 1] = is_hermitian(_op)
+            op._is_hermitian_op[i] = is_hermitian(_op)
 
         op._nonzero_diagonal = has_nonzero_diagonal(op)
 
@@ -419,11 +418,10 @@ class LocalOperator(DiscreteOperator):
         self._diag_mels *= other
         self._mels *= other
         self._constant *= other
-        self._is_hermitian_op[0] = np.isreal(self._constant)
 
         for i, _op in enumerate(self._operators):
             _op *= other
-            self._is_hermitian_op[i + 1] = is_hermitian(_op)
+            self._is_hermitian_op[i] = is_hermitian(_op)
 
         self._nonzero_diagonal = has_nonzero_diagonal(self)
 
@@ -468,7 +466,6 @@ class LocalOperator(DiscreteOperator):
             self *= other._constant
             self += prod
             self._constant = 0.0
-            self._is_hermitian_op[0] = True
         else:
             self = prod
 
@@ -511,11 +508,7 @@ class LocalOperator(DiscreteOperator):
         self._basis = np.zeros((0, 0), dtype=np.int64)
 
         # Array saving whether each operator is hermitian (plus one component to keep if self._constant is also hermitian).
-        self._is_hermitian_op = np.zeros((self._n_operators + 1,), dtype=bool)
-        # TODO: (VolodyaCO) I guess that if we have an operator with diagonal elements equal to 1j*C+Y, some complex constant, and
-        # self._constant=-1j*C, then the actual diagonal would be Y. How do we check hermiticity taking into account the diagonal
-        # elements as well as the self._constant? For the moment I just check hermiticity of the added constant, which must be real.
-        self._is_hermitian_op[0] = np.isreal(self._constant)
+        self._is_hermitian_op = np.zeros((self._n_operators,), dtype=bool)
 
     def _acting_on_list(self):
         acting_on = []
@@ -564,9 +557,7 @@ class LocalOperator(DiscreteOperator):
         if support_i is not None:
             dim = min(operator.shape[0], self._operators[support_i].shape[0])
             self._operators[support_i][:dim, :dim] += operator[:dim, :dim]
-            self._is_hermitian_op[support_i + 1] = is_hermitian(
-                self._operators[support_i]
-            )
+            self._is_hermitian_op[support_i] = is_hermitian(self._operators[support_i])
 
             n_local_states_per_site = np.asarray(
                 [self.hilbert.size_at_index(i) for i in acting_on]
@@ -693,7 +684,7 @@ class LocalOperator(DiscreteOperator):
 
         self._is_hermitian_op = resize(
             self._is_hermitian_op,
-            shape=(self.n_operators + 1,),
+            shape=(self.n_operators,),
             init=is_hermitian(operator),
         )
 
