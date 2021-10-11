@@ -44,6 +44,8 @@ class AbstractARNN(nn.Module):
     hilbert: HomogeneousHilbert
     """the Hilbert space. Only homogeneous unconstrained Hilbert spaces are supported."""
 
+    # machine_pow: int = 2 Must be defined on subclasses
+
     def __post_init__(self):
         super().__post_init__()
 

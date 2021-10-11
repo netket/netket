@@ -16,6 +16,7 @@
 ### Breaking Changes
 * The default initializer for `netket.models.GCNN` has been changed to from `jax.nn.selu` to `netket.nn.reim_selu` [#892](https://github.com/netket/netket/pull/892)
 * `netket.nn.initializers` has been deprecated in favor of `jax.nn.initializers` [#935](https://github.com/netket/netket/pull/935).
+* Subclasses of `AbstractARNN` must define the field `machine_pow` [#940](https://github.com/netket/netket/pull/940)
 
 ### Internal Changes
 
