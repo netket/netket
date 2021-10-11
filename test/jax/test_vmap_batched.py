@@ -7,7 +7,7 @@ import numpy as np
 
 
 @pytest.mark.parametrize("jit", [False, True])
-@pytest.mark.parametrize("batch_size", [None, 16, 10000, 1000000])
+@pytest.mark.parametrize("batch_size", [None, 16, 123, 10000, 1000000])
 def test_vmap_batched(batch_size, jit):
     x = jnp.linspace(0.0, 1.0, 100000).reshape((10000, 10))
 
