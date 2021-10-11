@@ -305,7 +305,7 @@ class LocalOperator(DiscreteOperator):
     # https://stackoverflow.com/questions/48262273/python-bookkeeping-dependencies-in-cached-attributes-that-might-change
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
-        return np.all(self._is_hermitian_op)
+        return np.all(self._is_hermitian_op) and np.isreal(self._constant)
 
     @property
     def mel_cutoff(self) -> float:
