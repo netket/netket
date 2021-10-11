@@ -24,8 +24,8 @@ from netket.models.autoreg import (
     AbstractARNN,
     _call,
     _conditionals,
+    _normalize,
     _reshape_inputs,
-    l2_normalize,
 )
 from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
 from netket.nn.masked_linear import default_kernel_init
@@ -237,8 +237,8 @@ def _conditional(model: AbstractARNN, inputs: Array, index: int) -> Array:
             x = model.activation(x)
         x = model._layers[i].update_site(x, index)
 
-    log_psi = l2_normalize(x)
-    p = jnp.exp(2 * log_psi.real)
+    log_psi = _normalize(x, model.machine_pow)
+    p = jnp.exp(model.machine_pow * log_psi.real)
     return p
 
 

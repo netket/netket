@@ -20,6 +20,7 @@ from flax.core import freeze
 from jax import numpy as jnp
 
 
+@pytest.mark.parametrize("machine_pow", [1, 2])
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize(
     "hilbert",
@@ -42,8 +43,9 @@ from jax import numpy as jnp
     "partial_model",
     [
         pytest.param(
-            lambda hilbert, dtype: nk.models.ARNNDense(
+            lambda hilbert, machine_pow, dtype: nk.models.ARNNDense(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 dtype=dtype,
@@ -51,8 +53,9 @@ from jax import numpy as jnp
             id="dense",
         ),
         pytest.param(
-            lambda hilbert, dtype: nk.models.ARNNConv1D(
+            lambda hilbert, machine_pow, dtype: nk.models.ARNNConv1D(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 kernel_size=2,
@@ -61,8 +64,9 @@ from jax import numpy as jnp
             id="conv1d",
         ),
         pytest.param(
-            lambda hilbert, dtype: nk.models.ARNNConv1D(
+            lambda hilbert, machine_pow, dtype: nk.models.ARNNConv1D(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 kernel_size=2,
@@ -72,8 +76,9 @@ from jax import numpy as jnp
             id="conv1d_dilation",
         ),
         pytest.param(
-            lambda hilbert, dtype: nk.models.ARNNConv2D(
+            lambda hilbert, machine_pow, dtype: nk.models.ARNNConv2D(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 kernel_size=(2, 3),
@@ -82,8 +87,9 @@ from jax import numpy as jnp
             id="conv2d",
         ),
         pytest.param(
-            lambda hilbert, dtype: nk.models.ARNNConv2D(
+            lambda hilbert, machine_pow, dtype: nk.models.ARNNConv2D(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 kernel_size=(2, 3),
@@ -93,8 +99,9 @@ from jax import numpy as jnp
             id="conv2d_dilation",
         ),
         pytest.param(
-            lambda hilbert, dtype: nk.models.FastARNNDense(
+            lambda hilbert, machine_pow, dtype: nk.models.FastARNNDense(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 dtype=dtype,
@@ -102,8 +109,9 @@ from jax import numpy as jnp
             id="fast_dense",
         ),
         pytest.param(
-            lambda hilbert, dtype: nk.models.FastARNNConv1D(
+            lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv1D(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 kernel_size=2,
@@ -112,8 +120,9 @@ from jax import numpy as jnp
             id="fast_conv1d",
         ),
         pytest.param(
-            lambda hilbert, dtype: nk.models.FastARNNConv1D(
+            lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv1D(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 kernel_size=2,
@@ -123,8 +132,9 @@ from jax import numpy as jnp
             id="fast_conv1d_dilation",
         ),
         pytest.param(
-            lambda hilbert, dtype: nk.models.FastARNNConv2D(
+            lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv2D(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 kernel_size=(2, 3),
@@ -133,8 +143,9 @@ from jax import numpy as jnp
             id="fast_conv2d",
         ),
         pytest.param(
-            lambda hilbert, dtype: nk.models.FastARNNConv2D(
+            lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv2D(
                 hilbert=hilbert,
+                machine_pow=machine_pow,
                 layers=3,
                 features=5,
                 kernel_size=(2, 3),
@@ -145,10 +156,10 @@ from jax import numpy as jnp
         ),
     ],
 )
-def test_ARNN(partial_model, hilbert, dtype):
+def test_ARNN(partial_model, hilbert, dtype, machine_pow):
     batch_size = 3
 
-    model = partial_model(hilbert, dtype)
+    model = partial_model(hilbert, machine_pow, dtype)
 
     key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
     spins = hilbert.random_state(key_spins, size=batch_size)
@@ -157,7 +168,7 @@ def test_ARNN(partial_model, hilbert, dtype):
     # Test if the model is normalized
     # The result may not be very accurate, because it is in exp space
     psi = nk.nn.to_array(hilbert, model.apply, params, normalize=False)
-    assert psi.conj() @ psi == pytest.approx(1, rel=1e-5, abs=1e-5)
+    assert (jnp.abs(psi) ** machine_pow).sum() == pytest.approx(1, rel=1e-5, abs=1e-5)
 
     # Test if the model is autoregressive
     for i in range(batch_size):
@@ -172,6 +183,7 @@ def test_ARNN(partial_model, hilbert, dtype):
             np.testing.assert_allclose(p_new, p, err_msg=f"i={i} j={j}")
 
 
+@pytest.mark.parametrize("machine_pow", [1, 2])
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize(
     "hilbert",
@@ -195,14 +207,16 @@ def test_ARNN(partial_model, hilbert, dtype):
     [
         pytest.param(
             (
-                lambda hilbert, dtype: nk.models.ARNNDense(
+                lambda hilbert, machine_pow, dtype: nk.models.ARNNDense(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     dtype=dtype,
                 ),
-                lambda hilbert, dtype: nk.models.FastARNNDense(
+                lambda hilbert, machine_pow, dtype: nk.models.FastARNNDense(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     dtype=dtype,
@@ -212,15 +226,17 @@ def test_ARNN(partial_model, hilbert, dtype):
         ),
         pytest.param(
             (
-                lambda hilbert, dtype: nk.models.ARNNConv1D(
+                lambda hilbert, machine_pow, dtype: nk.models.ARNNConv1D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=2,
                     dtype=dtype,
                 ),
-                lambda hilbert, dtype: nk.models.FastARNNConv1D(
+                lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv1D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=2,
@@ -231,16 +247,18 @@ def test_ARNN(partial_model, hilbert, dtype):
         ),
         pytest.param(
             (
-                lambda hilbert, dtype: nk.models.ARNNConv1D(
+                lambda hilbert, machine_pow, dtype: nk.models.ARNNConv1D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=2,
                     kernel_dilation=2,
                     dtype=dtype,
                 ),
-                lambda hilbert, dtype: nk.models.FastARNNConv1D(
+                lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv1D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=2,
@@ -252,15 +270,17 @@ def test_ARNN(partial_model, hilbert, dtype):
         ),
         pytest.param(
             (
-                lambda hilbert, dtype: nk.models.ARNNConv2D(
+                lambda hilbert, machine_pow, dtype: nk.models.ARNNConv2D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=(2, 3),
                     dtype=dtype,
                 ),
-                lambda hilbert, dtype: nk.models.FastARNNConv2D(
+                lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv2D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=(2, 3),
@@ -271,16 +291,18 @@ def test_ARNN(partial_model, hilbert, dtype):
         ),
         pytest.param(
             (
-                lambda hilbert, dtype: nk.models.ARNNConv2D(
+                lambda hilbert, machine_pow, dtype: nk.models.ARNNConv2D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=(2, 3),
                     kernel_dilation=(2, 2),
                     dtype=dtype,
                 ),
-                lambda hilbert, dtype: nk.models.FastARNNConv2D(
+                lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv2D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=(2, 3),
@@ -292,11 +314,11 @@ def test_ARNN(partial_model, hilbert, dtype):
         ),
     ],
 )
-def test_same(partial_models, hilbert, dtype):
+def test_same(partial_models, hilbert, dtype, machine_pow):
     batch_size = 3
 
-    model1 = partial_models[0](hilbert, dtype)
-    model2 = partial_models[1](hilbert, dtype)
+    model1 = partial_models[0](hilbert, machine_pow, dtype)
+    model2 = partial_models[1](hilbert, machine_pow, dtype)
 
     key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
     spins = hilbert.random_state(key_spins, size=batch_size)
@@ -329,7 +351,13 @@ def test_same(partial_models, hilbert, dtype):
 
 def test_throwing():
     def build_model(hilbert):
-        nk.models.ARNNConv1D(hilbert=hilbert, layers=3, features=5, kernel_size=2)
+        nk.models.ARNNConv1D(
+            hilbert=hilbert,
+            machine_pow=2,
+            layers=3,
+            features=5,
+            kernel_size=2,
+        )
 
     # Only homogeneous Hilbert spaces are supported
     with pytest.raises(ValueError):

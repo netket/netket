@@ -22,7 +22,7 @@ from jax import numpy as jnp
 from jax.nn.initializers import zeros
 from plum import dispatch
 
-from netket.hilbert import Fock, Spin, Qubit
+from netket.hilbert import Fock, Qubit, Spin
 from netket.hilbert.homogeneous import HomogeneousHilbert
 from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
 from netket.nn.masked_linear import default_kernel_init
@@ -40,6 +40,8 @@ class AbstractARNN(nn.Module):
 
     hilbert: HomogeneousHilbert
     """the Hilbert space. Only homogeneous unconstrained Hilbert spaces are supported."""
+    machine_pow: int
+    """exponent according to which the outputs of `__call__` are normalized."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -255,12 +257,12 @@ class ARNNConv2D(AbstractARNN):
         return _call(self, inputs)
 
 
-def l2_normalize(log_psi: Array) -> Array:
+def _normalize(log_psi: Array, machine_pow: int) -> Array:
     """
     Normalizes log_psi to have L2-norm 1 along the last axis.
     """
-    return log_psi - 1 / 2 * jax.scipy.special.logsumexp(
-        2 * log_psi.real, axis=-1, keepdims=True
+    return log_psi - 1 / machine_pow * jax.scipy.special.logsumexp(
+        machine_pow * log_psi.real, axis=-1, keepdims=True
     )
 
 
@@ -279,7 +281,7 @@ def _conditionals_log_psi(model: AbstractARNN, inputs: Array) -> Array:
         x = model._layers[i](x)
 
     x = x.reshape((x.shape[0], -1, x.shape[-1]))
-    log_psi = l2_normalize(x)
+    log_psi = _normalize(x, model.machine_pow)
     return log_psi
 
 
@@ -293,7 +295,7 @@ def _conditionals(model: AbstractARNN, inputs: Array) -> Array:
 
     log_psi = _conditionals_log_psi(model, inputs)
 
-    p = jnp.exp(2 * log_psi.real)
+    p = jnp.exp(model.machine_pow * log_psi.real)
     return p
 
 
@@ -331,9 +333,9 @@ def _local_states_to_numbers(hilbert: Spin, x: Array) -> Array:  # noqa: F811
 
 
 @dispatch
-def _local_states_to_numbers(
+def _local_states_to_numbers(  # noqa: F811
     hilbert: Union[Fock, Qubit], x: Array
-) -> Array:  # noqa: F811
+) -> Array:
     numbers = jnp.asarray(x, jnp.int32)
     return numbers
 

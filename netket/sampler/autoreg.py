@@ -54,7 +54,11 @@ class ARDirectSamplerState(SamplerState):
 
 @struct.dataclass
 class ARDirectSampler(Sampler):
-    """Direct sampler for autoregressive neural networks."""
+    """
+    Direct sampler for autoregressive neural networks.
+
+    `ARDirectSampler.machine_pow` has no effect. Please set the model's `machine_pow` instead.
+    """
 
     @property
     def is_exact(sampler):

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import flax
 from jax import numpy as jnp
 
@@ -116,7 +117,9 @@ samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
 def model_and_weights(request):
     def build_model(hilb, sampler=None):
         if isinstance(sampler, nk.sampler.ARDirectSampler):
-            ma = nk.models.ARNNDense(hilbert=hilb, layers=3, features=5)
+            ma = nk.models.ARNNDense(
+                hilbert=hilb, machine_pow=sampler.machine_pow, layers=3, features=5
+            )
         elif isinstance(hilb, ContinuousBoson):
             ma = nk.models.Gaussian()
         else:
@@ -171,9 +174,6 @@ def set_pdf_power(request):
                 )
         elif int(cmdline_mpow) != request.param:
             pytest.skip(f"Running only --mpow={cmdline_mpow}.")
-
-        if isinstance(sampler, nk.sampler.ARDirectSampler) and request.param != 2:
-            pytest.skip("ARDirectSampler only supports machine_pow = 2.")
 
         return sampler.replace(machine_pow=request.param)
 

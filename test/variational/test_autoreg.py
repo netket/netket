@@ -23,6 +23,7 @@ from .. import common
 pytestmark = common.skipif_mpi
 
 
+@pytest.mark.parametrize("machine_pow", [1, 2])
 @pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize(
     "hilbert",
@@ -46,14 +47,16 @@ pytestmark = common.skipif_mpi
     [
         # pytest.param(
         #     (
-        #         lambda hilbert, dtype: nk.models.ARNNDense(
+        #         lambda hilbert, machine_pow, dtype: nk.models.ARNNDense(
         #             hilbert=hilbert,
+        #             machine_pow=machine_pow,
         #             layers=3,
         #             features=5,
         #             dtype=dtype,
         #         ),
-        #         lambda hilbert, dtype: nk.models.FastARNNDense(
+        #         lambda hilbert, machine_pow, dtype: nk.models.FastARNNDense(
         #             hilbert=hilbert,
+        #             machine_pow=machine_pow,
         #             layers=3,
         #             features=5,
         #             dtype=dtype,
@@ -63,15 +66,17 @@ pytestmark = common.skipif_mpi
         # ),
         pytest.param(
             (
-                lambda hilbert, dtype: nk.models.ARNNConv1D(
+                lambda hilbert, machine_pow, dtype: nk.models.ARNNConv1D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=2,
                     dtype=dtype,
                 ),
-                lambda hilbert, dtype: nk.models.FastARNNConv1D(
+                lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv1D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=2,
@@ -82,16 +87,18 @@ pytestmark = common.skipif_mpi
         ),
         pytest.param(
             (
-                lambda hilbert, dtype: nk.models.ARNNConv1D(
+                lambda hilbert, machine_pow, dtype: nk.models.ARNNConv1D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=2,
                     kernel_dilation=2,
                     dtype=dtype,
                 ),
-                lambda hilbert, dtype: nk.models.FastARNNConv1D(
+                lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv1D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=2,
@@ -103,15 +110,17 @@ pytestmark = common.skipif_mpi
         ),
         pytest.param(
             (
-                lambda hilbert, dtype: nk.models.ARNNConv2D(
+                lambda hilbert, machine_pow, dtype: nk.models.ARNNConv2D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=(2, 3),
                     dtype=dtype,
                 ),
-                lambda hilbert, dtype: nk.models.FastARNNConv2D(
+                lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv2D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=(2, 3),
@@ -122,16 +131,18 @@ pytestmark = common.skipif_mpi
         ),
         pytest.param(
             (
-                lambda hilbert, dtype: nk.models.ARNNConv2D(
+                lambda hilbert, machine_pow, dtype: nk.models.ARNNConv2D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=(2, 3),
                     kernel_dilation=(2, 2),
                     dtype=dtype,
                 ),
-                lambda hilbert, dtype: nk.models.FastARNNConv2D(
+                lambda hilbert, machine_pow, dtype: nk.models.FastARNNConv2D(
                     hilbert=hilbert,
+                    machine_pow=machine_pow,
                     layers=3,
                     features=5,
                     kernel_size=(2, 3),
@@ -143,9 +154,9 @@ pytestmark = common.skipif_mpi
         ),
     ],
 )
-def test_AR_VMC(partial_models, hilbert, dtype):
-    model1 = partial_models[0](hilbert, dtype)
-    model2 = partial_models[1](hilbert, dtype)
+def test_AR_VMC(partial_models, hilbert, dtype, machine_pow):
+    model1 = partial_models[0](hilbert, machine_pow, dtype)
+    model2 = partial_models[1](hilbert, machine_pow, dtype)
 
     sampler1 = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
     vstate1 = nk.vqs.MCState(sampler1, model1, n_samples=6, seed=123, sampler_seed=456)
