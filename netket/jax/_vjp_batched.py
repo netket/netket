@@ -1,3 +1,5 @@
+import jax
+
 from jax.tree_util import Partial
 
 from functools import partial
@@ -161,7 +163,23 @@ def vjp_batched(
     if isinstance(nondiff_argnums, int):
         nondiff_argnums = (nondiff_argnums,)
 
-    if batch_size is None or batch_argnums == ():
+    if batch_argnums == ():
+        batch_size = None
+
+    if batch_size is not None:
+        n_elements = jax.tree_leaves(primals[batch_argnums[0]])[0].shape[0]
+
+        # check that they are all the same size
+        batch_leaves = jax.tree_leaves([primals[i] for i in batch_argnums])
+        if not all(map(lambda x: x.shape[0] == n_elements, batch_leaves)):
+            raise ValueError(
+                "The batched arguments have inconsistent leading array dimensions"
+            )
+
+        if batch_size >= n_elements:
+            batch_size = None
+
+    if batch_size is None:
 
         y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
 
