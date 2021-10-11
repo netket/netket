@@ -59,6 +59,8 @@ class FastARNNDense(AbstractARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         if isinstance(self.features, int):
@@ -120,6 +122,8 @@ class FastARNNConv1D(AbstractARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         if isinstance(self.features, int):
@@ -183,6 +187,8 @@ class FastARNNConv2D(AbstractARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         self.L = int(sqrt(self.hilbert.size))

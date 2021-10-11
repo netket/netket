@@ -33,15 +33,16 @@ class AbstractARNN(nn.Module):
     """
     Base class for autoregressive neural networks.
 
-    Subclasses must implement `__call__` and `conditionals`.
+    Subclasses must implement the methods `__call__` and `conditionals`.
     They can also override `_conditional` to implement the caching for fast autoregressive sampling.
     See :ref:`netket.nn.FastARNNConv1D` for example.
+
+    They must also implement the field `machine_pow`,
+    which specifies the exponent to normalize the outputs of `__call__`.
     """
 
     hilbert: HomogeneousHilbert
     """the Hilbert space. Only homogeneous unconstrained Hilbert spaces are supported."""
-    machine_pow: int
-    """exponent according to which the outputs of `__call__` are normalized."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -114,6 +115,8 @@ class ARNNDense(AbstractARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         if isinstance(self.features, int):
@@ -167,6 +170,8 @@ class ARNNConv1D(AbstractARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         if isinstance(self.features, int):
@@ -223,6 +228,8 @@ class ARNNConv2D(AbstractARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         self.L = int(sqrt(self.hilbert.size))
