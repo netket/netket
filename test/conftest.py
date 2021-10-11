@@ -27,3 +27,12 @@ def _mpi_comm(request):
     from netket.utils.mpi import MPI_py_comm
 
     return MPI_py_comm
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--arnn_test_rate",
+        action="store",
+        default=0.1,
+        help="rate of running a test for ARNN",
+    )

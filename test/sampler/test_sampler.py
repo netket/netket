@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import flax
 from jax import numpy as jnp
 
@@ -116,7 +117,9 @@ samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
 def model_and_weights(request):
     def build_model(hilb, sampler=None):
         if isinstance(sampler, nk.sampler.ARDirectSampler):
-            ma = nk.models.ARNNDense(hilbert=hilb, layers=3, features=5)
+            ma = nk.models.ARNNDense(
+                hilbert=hilb, machine_pow=sampler.machine_pow, layers=3, features=5
+            )
         elif isinstance(hilb, ContinuousBoson):
             ma = nk.models.Gaussian()
         else:
@@ -391,6 +394,9 @@ def test_throwing(model_and_weights):
 
         # test raising of init state
         sampler.init_state(ma, w, seed=SAMPLER_SEED)
+
+    with pytest.raises(ValueError):
+        nk.sampler.ARDirectSampler(hi, machine_pow=1)
 
 
 def test_exact_sampler(sampler):
