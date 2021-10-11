@@ -23,7 +23,7 @@ from jax import numpy as jnp
 @pytest.fixture
 def skip(request):
     rate = request.config.getoption("--arnn_test_rate")
-    rng = np.random.default_rng(abs(hash(request.node.callspec.id)))
+    rng = np.random.default_rng(abs(hash(str(request.node.callspec.id))))
     if rng.random() > rate:
         pytest.skip(
             "Running only a portion of the tests for ARNN. Use --arnn_test_rate=1 to run all tests."

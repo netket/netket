@@ -175,6 +175,9 @@ def set_pdf_power(request):
         elif int(cmdline_mpow) != request.param:
             pytest.skip(f"Running only --mpow={cmdline_mpow}.")
 
+        if isinstance(sampler, nk.sampler.ARDirectSampler) and request.param != 2:
+            pytest.skip("ARDirectSampler only supports machine_pow = 2.")
+
         return sampler.replace(machine_pow=request.param)
 
     return fun
@@ -391,6 +394,9 @@ def test_throwing(model_and_weights):
 
         # test raising of init state
         sampler.init_state(ma, w, seed=SAMPLER_SEED)
+
+    with pytest.raises(ValueError):
+        nk.sampler.ARDirectSampler(hi, machine_pow=1)
 
 
 def test_exact_sampler(sampler):

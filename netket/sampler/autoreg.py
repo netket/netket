@@ -60,6 +60,13 @@ class ARDirectSampler(Sampler):
     `ARDirectSampler.machine_pow` has no effect. Please set the model's `machine_pow` instead.
     """
 
+    def __post_init__(self):
+        super().__post_init__()
+
+        # self.machine_pow may be traced in jit
+        if isinstance(self.machine_pow, int) and self.machine_pow != 2:
+            raise ValueError("ARDirectSampler.machine_pow should not be used.")
+
     @property
     def is_exact(sampler):
         return True
