@@ -19,7 +19,7 @@ def _batch_vmapped_function(vmapped_fun, batch_size):
 
         n_batches, n_rest = divmod(n_elements, batch_size)
 
-        if n_batches == 0 or batch_size == n_elements:
+        if n_batches == 0 or batch_size >= n_elements:
             y = vmapped_fun(x)
         else:
             # split inputs
