@@ -7,7 +7,7 @@ from functools import partial
 
 
 @pytest.mark.parametrize("jit", [False, True])
-@pytest.mark.parametrize("batch_size", [None, 32, 10000000])
+@pytest.mark.parametrize("batch_size", [None, 32, 1000000])
 @pytest.mark.parametrize("return_forward", [False, True])
 def test_vjp_batched(batch_size, jit, return_forward):
     @partial(jax.vmap, in_axes=(None, 0))
@@ -16,8 +16,8 @@ def test_vjp_batched(batch_size, jit, return_forward):
 
     k = jax.random.split(jax.random.PRNGKey(123), 4)
     p = jax.random.uniform(k[0], shape=(8,))
-    X = jax.random.uniform(k[2], shape=(10000000, 8))
-    w = jax.random.uniform(k[3], shape=(10000000,))
+    X = jax.random.uniform(k[2], shape=(1000000, 8))
+    w = jax.random.uniform(k[3], shape=(1000000,))
 
     vjp_fun_batched = nk.jax.vjp_batched(
         f,

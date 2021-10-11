@@ -7,9 +7,9 @@ import numpy as np
 
 
 @pytest.mark.parametrize("jit", [False, True])
-@pytest.mark.parametrize("batch_size", [None, 32, 10000000])
+@pytest.mark.parametrize("batch_size", [None, 32, 1000000])
 def test_vmap_batched(batch_size, jit):
-    x = jnp.linspace(0.0, 1.0, 100000000).reshape((10000000, 10))
+    x = jnp.linspace(0.0, 1.0, 10000000).reshape((1000000, 10))
 
     def f(x):
         assert x.shape == (10,)
