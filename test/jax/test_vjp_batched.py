@@ -9,7 +9,9 @@ from functools import partial
 @pytest.mark.parametrize("jit", [False, True])
 @pytest.mark.parametrize("batch_size", [None, 16, 10000, 1000000])
 @pytest.mark.parametrize("return_forward", [False, True])
-def test_vjp_batched(batch_size, jit, return_forward):
+@pytest.mark.parametrize("batch_argnums", [1, (1,)])
+@pytest.mark.parametrize("nondiff_argnums", [1, (1,)])
+def test_vjp_batched(batch_size, jit, return_forward, batch_argnums, nondiff_argnums):
     @partial(jax.vmap, in_axes=(None, 0))
     def f(p, x):
         return jax.lax.log(p.dot(jax.lax.sin(x)))
@@ -23,9 +25,9 @@ def test_vjp_batched(batch_size, jit, return_forward):
         f,
         p,
         X,
-        batch_argnums=(1,),
+        batch_argnums=batch_argnums,
         batch_size=batch_size,
-        nondiff_argnums=1,
+        nondiff_argnums=nondiff_argnums,
         return_forward=return_forward,
     )
     y_expected, vjp_fun = jax.vjp(f, p, X)
