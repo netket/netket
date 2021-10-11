@@ -13,17 +13,19 @@ def _batch_vmapped_function(vmapped_fun, batch_size):
     # TODO axes
 
     def _fun(x):
+
+        # TODO support pytrees
         n_elements = x.shape[0]
 
         n_batches, n_rest = divmod(n_elements, batch_size)
 
-        # split inputs
-        x_batches = _batch(x[: n_elements - n_rest, ...], batch_size)
-        x_rest = x[n_elements - n_rest :, ...]
-
         if n_batches == 0 or batch_size == n_elements:
-            y = vmapped_fun(x_rest)
+            y = vmapped_fun(x)
         else:
+            # split inputs
+            x_batches = _batch(x[: n_elements - n_rest, ...], batch_size)
+            x_rest = x[n_elements - n_rest :, ...]
+
             y_batches = _unbatch(scanmap(vmapped_fun, scan_append)(x_batches))
 
             if n_rest == 0:

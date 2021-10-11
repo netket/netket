@@ -61,7 +61,7 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add):
     # special code path if there is only one element
     # to avoid having to rely on xla/llvm to optimize the overhead away
     if jax.tree_leaves(x)[0].shape[0] == 1:
-        return jax.tree_map(partial(jnp.expand_dims, axis=0), f(x0))
+        return return jax.tree_map(partial(jnp.expand_dims, axis=0), f(x0))
 
     # the original idea was to use pytrees, however for now just operate on the return value tuple
     _get_append_part = partial(_multimap, lambda c, x: x if c else None, append_cond)
