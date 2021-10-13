@@ -164,7 +164,11 @@ class VariationalState(abc.ABC):
         return expect(self, Ô)
 
     def grad(
-        self, Ô, *, use_covariance: Optional[bool] = None, mutable: Optional[Any] = None
+        self,
+        Ô,
+        *,
+        use_covariance: Optional[bool] = None,
+        mutable: Optional[Any] = None,
     ) -> PyTree:
         r"""Estimates the gradient of the quantum expectation value of a given operator O.
 
@@ -176,7 +180,9 @@ class VariationalState(abc.ABC):
         Returns:
             array: An estimation of the average gradient of the quantum expectation value <O>.
         """
-        return self.expect_and_grad(Ô, use_covariance=use_covariance, mutable=mutable)[1]
+        return self.expect_and_grad(Ô, use_covariance=use_covariance, mutable=mutable)[
+            1
+        ]
 
     def expect_and_grad(
         self,
@@ -221,7 +227,7 @@ class VariationalState(abc.ABC):
                 is automatically selected.
 
         Returns:
-            nk.optimizer.LinearOperator: A linear operator representing the quantum 
+            nk.optimizer.LinearOperator: A linear operator representing the quantum
                 geometric tensor.
         """
         raise NotImplementedError  # pragma: no cover
