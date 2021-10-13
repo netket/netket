@@ -1,12 +1,10 @@
 from functools import partial
-from typing import Callable, Union
+from typing import Callable
 
 import numpy as np
 
 import jax
 from jax import numpy as jnp
-
-from flax import linen as nn
 
 from netket import jax as nkjax
 from netket.stats import Stats
@@ -21,11 +19,6 @@ from netket.operator import (
 
 from .mc_state import MCState
 from .mc_mixed_state import MCMixedState
-
-AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
-ATrainFunType = Callable[
-    [nn.Module, PyTree, jnp.ndarray, Union[bool, PyTree]], jnp.ndarray
-]
 
 
 def _check_hilbert(A, B):

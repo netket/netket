@@ -42,7 +42,7 @@ def _make_subfun(hilb, i, sub_hi):
             sub_hi, key, sub_state, index - hilb._cum_indices[i]
         )
         idx = jax.ops.index[hilb._cum_indices[i] : hilb._cum_sizes[i]]
-        new_state = jax.ops.index_update(state, idx, new_sub_state)
+        new_state = state.at[idx].set(new_sub_state)
         return new_state, old_val
 
     return subfun

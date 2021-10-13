@@ -267,19 +267,11 @@ class MetropolisPtSampler(MetropolisSampler):
                 # for every rows of the input, swap elements at idxs with elements at inn
                 @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
                 def swap_rows(beta_row, idxs, inn):
-                    proposed_beta = jax.ops.index_update(
-                        beta_row,
-                        idxs,
-                        beta_row[inn],
-                        unique_indices=True,
-                        indices_are_sorted=True,
+                    proposed_beta = beta_row.at[idxs].set(
+                        beta_row[inn], unique_indices=True, indices_are_sorted=True
                     )
-                    proposed_beta = jax.ops.index_update(
-                        proposed_beta,
-                        inn,
-                        beta_row[idxs],
-                        unique_indices=True,
-                        indices_are_sorted=False,
+                    proposed_beta = proposed_beta.at[inn].set(
+                        beta_row[idxs], unique_indices=True, indices_are_sorted=False
                     )
                     return proposed_beta
 

@@ -67,8 +67,8 @@ class ExchangeRule_(MetropolisRule):
             si = rule.clusters[cluster, 0]
             sj = rule.clusters[cluster, 1]
 
-            σp = jax.ops.index_update(σ, si, σ[sj])
-            return jax.ops.index_update(σp, sj, σ[si])
+            σp = σ.at[si].set(σ[sj])
+            return σp.at[sj].set(σ[si])
 
         return (
             jax.vmap(scalar_update_fun, in_axes=(0, 0), out_axes=0)(σ, cluster_id),
