@@ -52,9 +52,7 @@ def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize):
 
     # last rank, get rid of fake elements
     if mpi.rank == mpi.n_nodes - 1 and n_fake_states > 0:
-        log_psi_local = jax.ops.index_update(
-            log_psi_local, jax.ops.index[-n_fake_states:], -jnp.inf
-        )
+        log_psi_local = log_psi_local.at[jax.ops.index[-n_fake_states:]].set(-jnp.inf)
 
     if normalize:
         # subtract logmax for better numerical stability
