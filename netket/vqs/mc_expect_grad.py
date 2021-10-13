@@ -196,20 +196,13 @@ def grad_expect_hermitian(
     # Then compute the vjp.
     # Code is a bit more complex than a standard one because we support
     # mutable state (if it's there)
-    if mutable is False:
-        _, vjp_fun = nkjax.vjp(
-            lambda w: model_apply_fun({"params": w, **model_state}, σ),
-            parameters,
-            conjugate=True,
-        )
-        new_model_state = None
-    else:
-        _, vjp_fun, new_model_state = nkjax.vjp(
-            lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
-            parameters,
-            conjugate=True,
-            has_aux=True,
-        )
+    is_mutable = mutable is not False
+    _, vjp_fun, *new_model_state = nkjax.vjp(
+        lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
+        parameters,
+        conjugate=True,
+        has_aux=is_mutable,
+    )
     Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
 
     Ō_grad = jax.tree_multimap(
@@ -219,6 +212,8 @@ def grad_expect_hermitian(
         Ō_grad,
         parameters,
     )
+
+    new_model_state = new_model_state[0] if is_mutable else None
 
     return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
 
