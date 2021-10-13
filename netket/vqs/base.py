@@ -15,12 +15,14 @@
 import abc
 from typing import Any, Optional, Tuple
 
-import jax
-import flax
-from flax.core.frozen_dict import FrozenDict
 import numpy as np
+
+import jax
 import jax.numpy as jnp
 from jax.nn.initializers import normal
+
+import flax
+from flax.core.frozen_dict import FrozenDict
 
 import netket.jax as nkjax
 from netket.operator import AbstractOperator
@@ -104,30 +106,31 @@ class VariationalState(abc.ABC):
         return flax.core.freeze({"params": self.parameters, **self.model_state})
 
     @variables.setter
-    def variables(self, vars: PyTree):
-        if not isinstance(vars, FrozenDict):
-            vars = flax.core.freeze(vars)
+    def variables(self, var: PyTree):
+        if not isinstance(var, FrozenDict):
+            var = flax.core.freeze(var)
 
-        self.model_state, self.parameters = vars.pop("params")
+        self.model_state, self.parameters = var.pop("params")
 
     def init_parameters(
         self, init_fun: Optional[NNInitFunc] = None, *, seed: Optional[PRNGKeyT] = None
     ):
         r"""
-        Re-initializes all the parameters with the provided initialization function, defaulting to
-        the normal distribution of standard deviation 0.01.
+        Re-initializes all the parameters with the provided initialization function,
+        defaulting to the normal distribution of standard deviation 0.01.
 
         .. warning::
 
-            The init function will not change the dtype of the parameters, which is determined by the
-            model. DO NOT SPECIFY IT INSIDE THE INIT FUNCTION
+            The init function will not change the dtype of the parameters, which is
+            determined by the model. DO NOT SPECIFY IT INSIDE THE INIT FUNCTION
 
         Args:
-            init_fun: a jax initializer such as :ref:`jax.nn.initializers.normal`. Must be a Callable
-                taking 3 inputs, the jax PRNG key, the shape and the dtype, and outputting an array with
-                the valid dtype and shape. If left unspecified, defaults to :code:`jax.nn.initializers.normal(stddev=0.01)`
-            seed: Optional seed to be used. The seed is synced across all MPI processes. If unspecified, uses
-                a random seed.
+            init_fun: a jax initializer such as :ref:`jax.nn.initializers.normal`.
+                Must be a Callable taking 3 inputs, the jax PRNG key, the shape and the
+                dtype, and outputting an array with the valid dtype and shape. If left
+                unspecified, defaults to :code:`jax.nn.initializers.normal(stddev=0.01)`
+            seed: Optional seed to be used. The seed is synced across all MPI processes.
+                If unspecified, uses a random seed.
         """
         if init_fun is None:
             init_fun = normal(stddev=0.01)
@@ -146,7 +149,6 @@ class VariationalState(abc.ABC):
         r"""Resets the internal cache of th variational state.
         Called automatically when the parameters/state is updated.
         """
-        pass  # pragma: no cover
 
     def expect(self, Ô: AbstractOperator) -> Stats:
         r"""Estimates the quantum expectation value for a given operator O.
@@ -162,7 +164,7 @@ class VariationalState(abc.ABC):
         return expect(self, Ô)
 
     def grad(
-        self, Ô, *, is_hermitian: Optional[bool] = None, mutable: Optional[Any] = None
+        self, Ô, *, use_covariance: Optional[bool] = None, mutable: Optional[Any] = None
     ) -> PyTree:
         r"""Estimates the gradient of the quantum expectation value of a given operator O.
 
@@ -174,7 +176,7 @@ class VariationalState(abc.ABC):
         Returns:
             array: An estimation of the average gradient of the quantum expectation value <O>.
         """
-        return self.expect_and_grad(Ô, mutable=mutable)[1]
+        return self.expect_and_grad(Ô, use_covariance=use_covariance, mutable=mutable)[1]
 
     def expect_and_grad(
         self,
@@ -186,16 +188,17 @@ class VariationalState(abc.ABC):
         r"""Estimates both the gradient of the quantum expectation value of a given operator O.
 
         Args:
-            Ô: the operator Ô for which we compute the expectation value and it's gradient
-            mutable: Can be bool, str, or list. Specifies which collections in the model_state should
-                     be treated as  mutable: bool: all/no collections are mutable. str: The name of a
-                     single mutable  collection. list: A list of names of mutable collections.
-                     This is used to mutate the state of the model while you train it (for example
-                     to implement BatchNorm. Consult
-                     `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
-                     for a more in-depth exaplanation).
-            is_hermitian: optional override for whever to use or not the hermitian logic. By default
-                          it's automatically detected.
+            Ô: the operator Ô for which we compute the expectation value and its
+                gradient
+            mutable: Can be bool, str, or list. Specifies which collections in the
+                `model_state` should be treated as  mutable: bool: all/no collections
+                are mutable. str: The name of a single mutable  collection. list: A list
+                of names of mutable collections. This is used to mutate the state of the
+                model while you train it (for example to implement BatchNorm. Consult
+                `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
+                for a more in-depth exaplanation).
+            is_hermitian: optional override for whever to use or not the hermitian
+                logic. By default it's automatically detected.
 
         Returns:
             An estimation of the quantum expectation value <O>.
@@ -207,17 +210,19 @@ class VariationalState(abc.ABC):
         return expect_and_grad(self, Ô, use_covariance=use_covariance, mutable=mutable)
 
     # @abc.abstractmethod
-    def quantum_geometric_tensor(self, qgt_T):
+    def quantum_geometric_tensor(self, qgt_type):
         r"""Computes an estimate of the quantum geometric tensor G_ij.
 
-        This function returns a linear operator that can be used to apply G_ij to a given vector
-        or can be converted to a full matrix.
+        This function returns a linear operator that can be used to apply G_ij to a
+        given vector or can be converted to a full matrix.
 
         Args:
-            qgt_T: the optional type of the quantum geometric tensor. By default it's automatically selected.
+            qgt_type: the optional type of the quantum geometric tensor. By default it
+                is automatically selected.
 
         Returns:
-            nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
+            nk.optimizer.LinearOperator: A linear operator representing the quantum 
+                geometric tensor.
         """
         raise NotImplementedError  # pragma: no cover
 
@@ -303,7 +308,6 @@ def expect(vstate: VariationalState, operator: AbstractOperator):
     Returns:
         The expectation value wrapped in a `Stats` object.
     """
-    pass  # pragma: no cover
 
 
 # default dispatch where use_covariance is not specified
