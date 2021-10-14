@@ -68,7 +68,7 @@ jobs:
       - name: Pip install oldest dependencies
         if: matrix.oldest_deps
         run: |
-          python conf/compute_odlest_deps.py
+          python conf/compute_oldest_dependencies.py
           pip install -r oldest_requirements.txt
 
       - name: Pip install packages
