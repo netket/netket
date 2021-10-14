@@ -18,14 +18,14 @@ import pytest  # noqa: F401
 def pytest_addoption(parser):
     parser.addoption(
         "--sampler",
-        action="store",
+        type=str,
         default="",
         help="sampler: exact, metropolis, metropolispt or pt, local, hamiltonian, custom, autoregressive, gaussian",
     )
 
     parser.addoption(
         "--mpow",
-        action="store",
+        type=str,
         default="single",
         help="mpow: single, all, 1,2,3...",
     )
