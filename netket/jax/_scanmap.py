@@ -19,16 +19,19 @@ def _multimap(f, *args):
     except TypeError:
         return f(*args)
 
-#TODO: When minimum jax is v0.2.22, remove this function and import directly 
+
+# TODO: When minimum jax is v0.2.22, remove this function and import directly
 # argnums_partial.
-# This works around onled argnums_partial implementations that did not have 
+# This works around onled argnums_partial implementations that did not have
 # require_static_args_hashable kwarg (which was implicitly False).
-if module_version(jax)>= (0,2,22):
+if module_version(jax) >= (0, 2, 22):
     argnums_partial = _argnums_partial
 else:
+
     @wraps(_argnums_partial)
     def argnums_partial(*args, require_static_args_hashable=True, **kwargs):
         return _argnums_partial(*args, **kwargs)
+
 
 def scan_append_reduce(f, x, append_cond, op=_tree_add):
     """Evaluate f element by element in x while appending and/or reducing the results
@@ -134,7 +137,9 @@ def scanmap(fun, scan_fun, argnums=0):
 
     def f_(*args, **kwargs):
         f = lu.wrap_init(fun, kwargs)
-        f_partial, dyn_args = argnums_partial(f, argnums, args, require_static_args_hashable=False)
+        f_partial, dyn_args = argnums_partial(
+            f, argnums, args, require_static_args_hashable=False
+        )
         return scan_fun(lambda x: f_partial.call_wrapped(*x), dyn_args)
 
     return f_

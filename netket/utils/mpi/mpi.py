@@ -100,7 +100,7 @@ except ImportError:
 
 
 if mpi4py_available:
-    _MIN_MPI4JAX_VERSION = (0,3,1)
+    _MIN_MPI4JAX_VERSION = (0, 3, 1)
 
     if module_version(mpi4jax) < _MIN_MPI4JAX_VERSION:
         raise ImportError(

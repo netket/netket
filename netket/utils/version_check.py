@@ -1,5 +1,6 @@
 import importlib
 
+
 def version_tuple(verstr):
     # drop everything after the numeric part of the version
     allowed_chars = "0123456789."
@@ -18,4 +19,3 @@ def module_version(module: str):
         module = importlib.import_module(module)
 
     return version_tuple(module.__version__)
-
