@@ -1,12 +1,14 @@
 import pkg_resources
+import distutils.core
 
 package_name = "netket"
 
-package = pkg_resources.working_set.by_key[package_name]
+setup = distutils.core.run_setup("setup.py")
+requirements = [pkg_resources.Requirement(pkg) for pkg in setup.install_requires]
 
 oldest_dependencies = []
 
-for requirement in package.requires():
+for requirement in requirements:
     dependency = requirement.project_name
     if requirement.extras:
         dependency += '[' + ','.join(requirement.extras) + ']'
