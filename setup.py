@@ -16,7 +16,7 @@ TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]
 BASE_DEPENDENCIES = [
     "numpy~=1.18",
     "scipy~=1.5",
-    "tqdm~=4.56",
+    "tqdm~=4.60",
     "plum-dispatch~=1.5.1",
     "numba>=0.52, <0.55",
     "python-igraph~=0.9",
