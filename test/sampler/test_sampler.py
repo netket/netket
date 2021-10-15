@@ -166,7 +166,7 @@ def set_pdf_power(request):
             pass
         elif cmdline_mpow == "single":
             # same sampler leads to same rng
-            rng = np.random.default_rng(abs(hash((type(sampler), repr(sampler)))))
+            rng = np.random.default_rng(common.hash_for_seed(sampler))
             exponent = rng.integers(1, 3)  # 1 or 2
             if exponent != request.param:
                 pytest.skip(

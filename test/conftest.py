@@ -32,7 +32,7 @@ def _mpi_comm(request):
 def pytest_addoption(parser):
     parser.addoption(
         "--arnn_test_rate",
-        action="store",
-        default=0.1,
+        type=float,
+        default=0.2,
         help="rate of running a test for ARNN",
     )
