@@ -21,6 +21,8 @@ from . import mc_expect_grad
 
 from . import experimental
 
+from .exact import ExactState
+
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__, ignore=["experimental"])
