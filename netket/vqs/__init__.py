@@ -20,6 +20,8 @@ from .mc import MCState, MCMixedState, get_local_kernel_arguments, get_local_ker
 # eventually remove this file and import
 from . import experimental
 
+from .exact import ExactState
+
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__, ignore=["experimental"], hide_folder=["mc"])
