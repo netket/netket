@@ -21,7 +21,7 @@ jobs:
             oldest_deps: false
 
           - os: ubuntu-latest
-            python-version: 3.9
+            python-version: 3.10
             mpi: "mpich"
             main_tests: true
             oldest_deps: false
