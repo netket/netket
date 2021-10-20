@@ -239,7 +239,7 @@ class ExactState(VariationalState):
 
     # cached computations
     @property
-    def _all_states():
+    def _all_states(self):
         if self._states is None:
             self._states = self.hilbert.all_states()
         return self._states
