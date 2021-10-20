@@ -51,34 +51,33 @@ def expect(vstate: ExactState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     return Stats(mean=expval_O, error_of_mean=0.0, variance=variance)
 
 
-# @dispatch
-# def expect_and_grad(
-#    vstate: ExactState,
-#    Ô: DiscreteOperator,
-#    use_covariance: TrueT,
-#    mutable: Any,
-# ) -> Tuple[Stats, PyTree]:
-#    _check_hilbert(vstate, Ô)
-#
-#    O = sparsify(Ô)
-#    Ψ = vstate.to_array()
-#    σ = vstate._all_states
-#
-#    OΨ = O@Ψ
-#    expval_O = Ψ.conj().T@OΨ
-#
-#    is_mutable = mutable is not False
-#    model_apply_fun = vstate._apply_fun
-#    model_state = vstate.model_state
-#
-#    _, vjp_fun, *new_model_state = nkjax.vjp(
-#        lambda w: jnp.exp(model_apply_fun({"params": w, **model_state}, σ, mutable=mutable)),
-#        parameters,
-#        conjugate=True,
-#        has_aux=is_mutable,
-#    )
-#
-#    ΔOΨ = OΨ - expval_O
-#    vjp_fun(OΨ)
-#
-#    return _exp_grad(vstate._apply_fun, )
+@dispatch
+def expect_and_grad(
+   vstate: ExactState,
+   Ô: DiscreteOperator,
+   use_covariance: TrueT,
+   mutable: Any,
+) -> Tuple[Stats, PyTree]:
+   _check_hilbert(vstate, Ô)
+   
+   O = sparsify(Ô)
+   Ψ = vstate.to_array()
+   σ = vstate._all_states
+   OΨ = O@Ψ
+   expval_O = Ψ.conj().T@OΨ
+
+   is_mutable = mutable is not False
+   model_apply_fun = vstate._apply_fun
+   model_state = vstate.model_state
+
+   _, vjp_fun, *new_model_state = nkjax.vjp(
+       lambda w: jnp.exp(model_apply_fun({"params": w, **model_state}, σ, mutable=mutable)),
+       parameters,
+       conjugate=True,
+       has_aux=is_mutable,
+   )
+
+   ΔOΨ = OΨ - expval_O
+   vjp_fun(OΨ)
+
+    return _exp_grad(vstate._apply_fun, )
