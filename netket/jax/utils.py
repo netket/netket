@@ -276,7 +276,7 @@ class HashablePartial(partial):
     """
 
     # TODO omit if running with Python 3.10+
-    def __new__(cls, func, /, *args, **keywords):
+    def __new__(cls, func, *args, **keywords):
         # In Python 3.10+ if func is itself a functools.partial instance,
         # functools.partial.__new__ would merge the arguments of this HashablePartial
         # instance with the arguments of the func
