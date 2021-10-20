@@ -275,6 +275,21 @@ class HashablePartial(partial):
     It also stores the computed hash for faster hashing.
     """
 
+    # TODO omit if running with Python 3.10+
+    def __new__(cls, func, /, *args, **keywords):
+        # In Python 3.10+ if func is itself a functools.partial instance,
+        # functools.partial.__new__ would merge the arguments of this HashablePartial
+        # instance with the arguments of the func
+        # Pre 3.10 this does not happen, so here we emulate this behaviour recursively
+        # This is necessary since functools.partial objects do not have a __code__
+        # property which we use for the hash
+        while isinstance(func, partial):
+            original_func = func
+            func = original_func.func
+            args = original_func.args + args
+            keywords = {**original_func.keywords, **keywords}
+        return super(HashablePartial, cls).__new__(cls, func, *args, **keywords)
+
     def __init__(self, *args, **kwargs):
         self._hash = None
 
