@@ -44,7 +44,7 @@ def expect(vstate: ExactState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     Ψ = vstate.to_array()
 
     OΨ = O @ Ψ
-    expval_O = Ψ.conj().T @ OΨ
+    expval_O = (Ψ.conj() * OΨ).sum()#Ψ.conj().T @ OΨ
 
     expval_O2 = Ψ.conj().T @ O @ (OΨ)
 
@@ -66,9 +66,8 @@ def expect_and_grad(
   Ψ = vstate.to_array()
 
   OΨ = O@Ψ
-  expval_O = ((Ψ.conj() * Ψ) * OΨ).sum()
-  ΔOΨ = (OΨ - expval_O) * (Ψ.conj() * Ψ)
-
+  expval_O = (Ψ.conj() * OΨ).sum()
+  ΔOΨ = (OΨ - expval_O * Ψ.conj()) * Ψ
   _, Ō_grad, new_model_state = _exp_grad(
       vstate._apply_fun,
       mutable,
@@ -95,7 +94,7 @@ def _exp_grad(
 ) -> Tuple[PyTree, PyTree]:
 
   _, vjp_fun, *new_model_state = nkjax.vjp(
-      lambda w: jnp.exp(model_apply_fun({"params": w, **model_state}, σ, mutable=mutable)),
+      lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
       parameters,
       conjugate=True,
       has_aux=mutable,
