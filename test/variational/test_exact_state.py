@@ -104,6 +104,7 @@ def test_deprecated_name():
 
     assert dir(nk.vqs) == dir(nk.variational)
 
+
 def test_deprecations(vstate):
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
@@ -179,7 +180,6 @@ def test_qutip_conversion(vstate):
         for name, op in operators.items()
     ],
 )
-
 def central_diff_grad(func, x, eps, *args, dtype=None):
     if dtype is None:
         dtype = x.dtype
