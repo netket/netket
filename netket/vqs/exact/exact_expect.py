@@ -69,7 +69,6 @@ def expect_and_grad(
   expval_O = Ψ.conj().T@OΨ
   ΔOΨ = OΨ - expval_O
 
-
   _, Ō_grad, new_model_state = _exp_grad(
       vstate._apply_fun,
       mutable,
