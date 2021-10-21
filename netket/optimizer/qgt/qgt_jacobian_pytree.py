@@ -68,9 +68,10 @@ def QGTJacobianPyTree(
         )
 
     from netket.vqs.exact import ExactState
+
     if isinstance(vstate, ExactState):
         samples = jnp.array(vstate._all_states)
-        pdf = (vstate.to_array().conj() * vstate.to_array())
+        pdf = vstate.to_array().conj() * vstate.to_array()
     else:
         samples = vstate.samples
         pdf = None
@@ -95,7 +96,7 @@ def QGTJacobianPyTree(
         vstate.model_state,
         mode,
         rescale_shift,
-        pdf
+        pdf,
     )
 
     return QGTJacobianPyTreeT(

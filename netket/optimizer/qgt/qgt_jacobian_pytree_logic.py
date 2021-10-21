@@ -113,7 +113,12 @@ def _multiply_by_pdf(oks, pdf):
     multiply Oⱼₖ by pdf
     """
 
-    return jax.tree_map(lambda x: (x.reshape(x.shape[0], -1).transpose() * pdf).transpose().reshape(x.shape), oks)
+    return jax.tree_map(
+        lambda x: (x.reshape(x.shape[0], -1).transpose() * pdf)
+        .transpose()
+        .reshape(x.shape),
+        oks,
+    )
 
 
 def stack_jacobian(centered_oks: PyTree) -> PyTree:
@@ -276,7 +281,9 @@ def prepare_centered_oks(
         )
     else:
         oks = jacobian_fun(f, params, samples)
-        oks_mean = jax.tree_map(partial(mean, axis=0), _multiply_by_pdf(oks, pdf * samples.shape[0]))
+        oks_mean = jax.tree_map(
+            partial(mean, axis=0), _multiply_by_pdf(oks, pdf * samples.shape[0])
+        )
         centered_oks = jax.tree_multimap(lambda x, y: x - y, oks, oks_mean)
 
         centered_oks = _multiply_by_pdf(centered_oks, jnp.sqrt(pdf))

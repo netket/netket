@@ -44,7 +44,7 @@ def expect(vstate: ExactState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     Ψ = vstate.to_array()
 
     OΨ = O @ Ψ
-    expval_O = (Ψ.conj() * OΨ).sum()#Ψ.conj().T @ OΨ
+    expval_O = (Ψ.conj() * OΨ).sum()  # Ψ.conj().T @ OΨ
 
     expval_O2 = Ψ.conj().T @ O @ (OΨ)
 
@@ -54,33 +54,33 @@ def expect(vstate: ExactState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
 
 @dispatch
 def expect_and_grad(
-  vstate: ExactState,
-  Ô: DiscreteOperator,
-  use_covariance: TrueT,
-  mutable: Any,
+    vstate: ExactState,
+    Ô: DiscreteOperator,
+    use_covariance: TrueT,
+    mutable: Any,
 ) -> Tuple[Stats, PyTree]:
-  _check_hilbert(vstate, Ô)
-  
-  O = sparsify(Ô)
+    _check_hilbert(vstate, Ô)
 
-  Ψ = vstate.to_array()
+    O = sparsify(Ô)
 
-  OΨ = O@Ψ
-  expval_O = (Ψ.conj() * OΨ).sum()
-  ΔOΨ = (OΨ - expval_O * Ψ.conj()) * Ψ
-  _, Ō_grad, new_model_state = _exp_grad(
-      vstate._apply_fun,
-      mutable,
-      vstate.parameters,
-      vstate.model_state,
-      vstate._all_states,
-      ΔOΨ
-  )
+    Ψ = vstate.to_array()
 
-  if mutable is not False:
-    vstate.model_state = new_model_state
+    OΨ = O @ Ψ
+    expval_O = (Ψ.conj() * OΨ).sum()
+    ΔOΨ = (OΨ - expval_O * Ψ.conj()) * Ψ
+    _, Ō_grad, new_model_state = _exp_grad(
+        vstate._apply_fun,
+        mutable,
+        vstate.parameters,
+        vstate.model_state,
+        vstate._all_states,
+        ΔOΨ,
+    )
 
-  return expval_O, Ō_grad
+    if mutable is not False:
+        vstate.model_state = new_model_state
+
+    return expval_O, Ō_grad
 
 
 @partial(jax.jit, static_argnums=(0, 1))
@@ -93,16 +93,16 @@ def _exp_grad(
     inp: jnp.ndarray,
 ) -> Tuple[PyTree, PyTree]:
 
-  _, vjp_fun, *new_model_state = nkjax.vjp(
-      lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
-      parameters,
-      conjugate=True,
-      has_aux=mutable,
-  )
+    _, vjp_fun, *new_model_state = nkjax.vjp(
+        lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
+        parameters,
+        conjugate=True,
+        has_aux=mutable,
+    )
 
-  Ō_grad = vjp_fun(inp)[0]
+    Ō_grad = vjp_fun(inp)[0]
 
-  Ō_grad = jax.tree_multimap(
+    Ō_grad = jax.tree_multimap(
         lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
             target.dtype
         ),
@@ -110,6 +110,6 @@ def _exp_grad(
         parameters,
     )
 
-  new_model_state = new_model_state[0] if mutable else None
+    new_model_state = new_model_state[0] if mutable else None
 
-  return None, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
+    return None, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
