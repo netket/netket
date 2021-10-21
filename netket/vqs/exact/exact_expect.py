@@ -66,8 +66,8 @@ def expect_and_grad(
   Ψ = vstate.to_array()
 
   OΨ = O@Ψ
-  expval_O = Ψ.conj().T@OΨ
-  ΔOΨ = OΨ - expval_O
+  expval_O = ((Ψ.conj() * Ψ) * OΨ).sum()
+  ΔOΨ = (OΨ - expval_O) * (Ψ.conj() * Ψ)
 
   _, Ō_grad, new_model_state = _exp_grad(
       vstate._apply_fun,
@@ -75,7 +75,7 @@ def expect_and_grad(
       vstate.parameters,
       vstate.model_state,
       vstate._all_states,
-      ΔOΨ * (Ψ.conj().T * Ψ)
+      ΔOΨ
   )
 
   if mutable is not False:
