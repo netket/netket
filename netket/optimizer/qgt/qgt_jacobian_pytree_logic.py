@@ -22,7 +22,7 @@ import jax.numpy as jnp
 
 import numpy as np
 
-from netket.stats import subtract_mean
+from netket.stats import subtract_mean, mean
 from netket.utils import mpi
 
 from netket.utils.types import Array, Callable, PyTree, Scalar
@@ -108,6 +108,14 @@ def _divide_by_sqrt_n_samp(oks, samples):
     return jax.tree_map(lambda x: x / np.sqrt(n_samp), oks)
 
 
+def _multiply_by_pdf(oks, pdf):
+    """
+    multiply Oⱼₖ by pdf
+    """
+
+    return jax.tree_map(lambda x: (x.reshape(x.shape[0], -1).transpose() * pdf).transpose().reshape(x.shape), oks)
+
+
 def stack_jacobian(centered_oks: PyTree) -> PyTree:
     """
     Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
@@ -187,6 +195,7 @@ def prepare_centered_oks(
     model_state: Optional[PyTree],
     mode: str,
     rescale_shift: bool,
+    pdf,
 ) -> PyTree:
     """
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
@@ -203,7 +212,7 @@ def prepare_centered_oks(
         model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
-
+        pdf: |\psi(x)|^2 if exact optimization is being used else None
     Returns:
         if not rescale_shift:
             a pytree representing the centered jacobian of ln Ψ evaluated at the samples σ, divided by √n;
@@ -223,6 +232,7 @@ def prepare_centered_oks(
     if mode == "real":
         split_complex_params = True  # convert C→R and R&C→R to R→R
         centered_jacobian_fun = centered_jacobian_real_holo
+        jacobian_fun = jacobian_real_holo
     elif mode == "complex":
         split_complex_params = True  # convert C→C and R&C→C to R→C
         # centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
@@ -233,9 +243,11 @@ def prepare_centered_oks(
             stack_jacobian_tuple,
             partial(centered_jacobian_cplx, _build_fn=lambda *x: x),
         )
+        jacobian_fun = jacobian_cplx
     elif mode == "holomorphic":
         split_complex_params = False
         centered_jacobian_fun = centered_jacobian_real_holo
+        jacobian_fun = jacobian_real_holo
     else:
         raise NotImplementedError(
             'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
@@ -253,14 +265,21 @@ def prepare_centered_oks(
     else:
         f = forward_fn
 
-    centered_oks = _divide_by_sqrt_n_samp(
-        centered_jacobian_fun(
-            f,
-            params,
+    if pdf is None:
+        centered_oks = _divide_by_sqrt_n_samp(
+            centered_jacobian_fun(
+                f,
+                params,
+                samples,
+            ),
             samples,
-        ),
-        samples,
-    )
+        )
+    else:
+        oks = jacobian_fun(f, params, samples)
+        oks_mean = jax.tree_map(partial(mean, axis=0), _multiply_by_pdf(oks, pdf * samples.shape[0]))
+        centered_oks = jax.tree_multimap(lambda x, y: x - y, oks, oks_mean)
+
+        centered_oks = _multiply_by_pdf(centered_oks, jnp.sqrt(pdf))
     if rescale_shift:
         return _rescale(centered_oks)
     else:

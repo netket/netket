@@ -55,7 +55,8 @@ def QGTJacobianPyTree(
               models. holomorphic works for any function assuming it's holomorphic
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
-        rescale_shift: If True rescales the diagonal shift
+        rescale_shift: If True rescales the diagonal shift.
+        pdf: |\psi(x)|^2 if exact optimization is being used else None
     """
     if vstate is None:
         return partial(
@@ -66,13 +67,21 @@ def QGTJacobianPyTree(
             **kwargs,
         )
 
+    from netket.vqs.exact import ExactState
+    if isinstance(vstate, ExactState):
+        samples = jnp.array(vstate._all_states)
+        pdf = (vstate.to_array().conj() * vstate.to_array())
+    else:
+        samples = vstate.samples
+        pdf = None
+
     # Choose sensible default mode
     if mode is None:
         mode = choose_jacobian_mode(
             vstate._apply_fun,
             vstate.parameters,
             vstate.model_state,
-            vstate.samples,
+            samples,
             mode=mode,
             holomorphic=holomorphic,
         )
@@ -82,10 +91,11 @@ def QGTJacobianPyTree(
     O, scale = prepare_centered_oks(
         vstate._apply_fun,
         vstate.parameters,
-        vstate.samples.reshape(-1, vstate.samples.shape[-1]),
+        samples.reshape(-1, samples.shape[-1]),
         vstate.model_state,
         mode,
         rescale_shift,
+        pdf
     )
 
     return QGTJacobianPyTreeT(
