@@ -201,13 +201,13 @@ class PauliStrings(DiscreteOperator):
             self._initialized = True
 
     @classmethod
-    def from_openfermion(cls, of_qubit_operator, n_qubits: int):
+    def from_openfermion(cls, of_qubit_operator, n_qubits: int = None):
         r"""
         Converts an openfermion QubitOperator into a netket PauliStrings.
 
         Args:
             of_qubit_operator: openfermion.ops.QubitOperator object
-            n_qubits (int): total number of qubits in the system
+            n_qubits (int): total number of qubits in the system, default None means inferring it from the QubitOperator
 
         Returns:
             A PauliStrings object.
@@ -218,6 +218,14 @@ class PauliStrings(DiscreteOperator):
             raise NotImplementedError()
         operators = []
         weights = []
+        if n_qubits is None:
+            # we always start counting from 0, so we only determine the maximum location
+            n_qubits = (
+                max(
+                    max(term[0] for term in op) for op in of_qubit_operator.terms.keys()
+                )
+                + 1
+            )
         for operator, weight in of_qubit_operator.terms.items():  # gives dict
             s = ["I"] * n_qubits
             for loc, op in operator:
