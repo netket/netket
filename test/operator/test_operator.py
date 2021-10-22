@@ -213,6 +213,7 @@ def test_deduced_hilbert_pauli():
     op = nk.operator.PauliStrings(["XXI", "YZX", "IZX"], [0.1, 0.2, -1.4])
     assert op.hilbert.size == 3
     assert len(op.hilbert.local_states) == 2
+    assert isinstance(op.hilbert, nk.hilbert.Qubit)
     assert np.allclose(op.hilbert.local_states, (0, 1))
 
 
@@ -244,8 +245,16 @@ def test_Heisenberg():
         nk.operator.Heisenberg(hi, graph=g, sign_rule=True)
 
 
-def test_pauli():
-    op = nk.operator.PauliStrings(["XX", "YZ", "IZ"], [0.1, 0.2, -1.4])
+@pytest.mark.parametrize(
+    "hilbert",
+    [
+        pytest.param(hi, id=str(hi))
+        for hi in (nk.hilbert.Spin(1 / 2, 2), nk.hilbert.Qubit(2), None)
+    ],
+)
+def test_pauli(hilbert):
+
+    op = nk.operator.PauliStrings(["XX", "YZ", "IZ"], [0.1, 0.2, -1.4], hilbert=hilbert)
 
     op_l = (
         0.1
@@ -292,3 +301,22 @@ def test_pauli_order():
     vp, mels = op.get_conn_padded(v)
     assert vp.shape[1] == 1
     assert mels.shape[1] == 1
+
+
+def test_pauli_matmul():
+    op1 = nk.operator.PauliStrings(["X"], [1])
+    op2 = nk.operator.PauliStrings(["Y", "Z"], [1, 1])
+    op_true_mm = nk.operator.PauliStrings(["Z", "Y"], [1j, -1j])
+    op_mm = op1 @ op2
+    assert np.allclose(op_mm.to_dense(), op_true_mm.to_dense())
+
+
+def test_pauli_add_and_multiply():
+    op1 = nk.operator.PauliStrings(["X"], [1])
+    op2 = nk.operator.PauliStrings(["X", "Y", "Z"], [-1, 1, 1])
+    op_true_add = nk.operator.PauliStrings(["Y", "Z"], [1, 1])
+    op_add = op1 + op2
+    assert np.allclose(op_add.to_dense(), op_true_add.to_dense())
+    op_true_multiply = nk.operator.PauliStrings(["X", "Y", "Z"], [-2, 2, 2])
+    op_multiply = op2 * 2
+    assert np.allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
