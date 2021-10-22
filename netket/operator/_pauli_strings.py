@@ -200,6 +200,35 @@ class PauliStrings(DiscreteOperator):
 
             self._initialized = True
 
+    @classmethod
+    def from_openfermion(cls, of_qubit_operator, n_qubits: int):
+        r"""
+        Converts an openfermion QubitOperator into a netket PauliStrings.
+
+        Args:
+            of_qubit_operator: openfermion.ops.QubitOperator object
+            n_qubits (int): total number of qubits in the system
+
+        Returns:
+            A PauliStrings object.
+        """
+        from openfermion.ops import QubitOperator
+
+        if not isinstance(of_qubit_operator, QubitOperator):
+            raise NotImplementedError()
+        operators = []
+        weights = []
+        for operator, weight in of_qubit_operator.terms.items():  # gives dict
+            s = ["I"] * n_qubits
+            for loc, op in operator:
+                assert (
+                    loc < n_qubits
+                ), "operator index {} is longer than n_qubits={}".format(loc, n_qubits)
+                s[loc] = op
+            operators.append("".join(s))
+            weights.append(weight)
+        return cls(operators, weights)
+
     @property
     def dtype(self) -> DType:
         """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
