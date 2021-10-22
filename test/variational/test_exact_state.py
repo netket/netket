@@ -87,10 +87,7 @@ operators["operator:(Non Hermitian)"] = H
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
 def vstate(request):
     ma = request.param
-
-    sa = nk.sampler.ExactSampler(hilbert=hi, n_chains=16)
-
-    vs = nk.vqs.ExactState(sa, ma)
+    vs = nk.vqs.ExactState(hi, ma)
 
     return vs
 
@@ -105,21 +102,6 @@ def test_deprecated_name():
     assert dir(nk.vqs) == dir(nk.variational)
 
 
-def test_deprecations(vstate):
-    vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
-
-    # deprecation
-    with pytest.warns(FutureWarning):
-        vstate.n_discard = 10
-
-    with pytest.warns(FutureWarning):
-        vstate.n_discard
-
-    vstate.n_discard = 10
-    assert vstate.n_discard == 10
-    assert vstate.n_discard_per_chain == 10
-
-
 def test_init_parameters(vstate):
     vstate.init_parameters(seed=SEED)
     pars = vstate.parameters
@@ -130,23 +112,6 @@ def test_init_parameters(vstate):
         np.testing.assert_allclose(x, y)
 
     jax.tree_multimap(_f, pars, pars2)
-
-
-@pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
-)
-def test_expect_numpysampler_works(vstate, operator):
-    sampl = nk.sampler.MetropolisLocalNumpy(vstate.hilbert)
-    vstate.sampler = sampl
-    out = vstate.expect(operator)
-    assert isinstance(out, nk.stats.Stats)
 
 
 def test_qutip_conversion(vstate):
@@ -216,4 +181,33 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
         np.mod(num_der_log.imag, np.pi * 2),
         rtol=rel_eps,
         atol=abs_eps,
+    )
+
+
+def test_heisenberg_solved_exactly(abs_eps=1.0e-3, rel_eps=1.0e-4):
+    L = 6
+    g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ha = nk.operator.Heisenberg(hilbert=hi, graph=g)
+    ma = nk.models.RBM(alpha=10, dtype=float)
+    vs = nk.vqs.ExactState(hi, ma)
+
+    op = nk.optimizer.Sgd(learning_rate=0.003)
+
+    gs = nk.driver.VMC(
+        ha,
+        op,
+        variational_state=vs,
+        preconditioner=nk.optimizer.SR(qgt=nk.optimizer.qgt.QGTJacobianPyTree),
+    )
+
+    log = nk.logging.RuntimeLog()
+    gs.run(n_iter=2000, out=log)
+
+    energy_variational = vs.expect(ha)
+
+    E_gs, ket_gs = nk.exact.lanczos_ed(ha, compute_eigenvectors=True)
+
+    np.testing.assert_allclose(
+        energy_variational.mean, E_gs[0].real, atol=abs_eps, rtol=rel_eps
     )
