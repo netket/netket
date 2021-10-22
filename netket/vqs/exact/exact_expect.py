@@ -28,7 +28,7 @@ def _check_hilbert(A, B):
         )
 
 
-# @lru_cache
+@lru_cache(5)
 def sparsify(Ô):
     """
     Converts to sparse but also cache the sparsificated result to speed up.
