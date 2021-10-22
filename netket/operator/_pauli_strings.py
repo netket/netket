@@ -214,7 +214,8 @@ class PauliStrings(DiscreteOperator):
     def _op__matmul__(self, other):
         if not isinstance(other, PauliStrings):
             return NotImplemented
-        assert self.hilbert == other.hilbert
+        if not self.hilbert == other.hilbert:
+            raise ValueError(f"Can only multiply identical hilbert spaces (got A@B, A={self.hilbert}, B={other.hilbert})")
         operators, weights = _matmul(
             self._orig_operators,
             self._orig_weights,
