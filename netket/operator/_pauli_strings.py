@@ -211,7 +211,7 @@ class PauliStrings(DiscreteOperator):
         self.setup()
         return self._n_operators
 
-    def __matmul__(self, other):
+    def _op__matmul__(self, other):
         assert isinstance(other, PauliStrings)
         assert self.hilbert == other.hilbert
         operators, weights = _matmul(
