@@ -241,7 +241,7 @@ class ExactState(VariationalState):
     @property
     def _all_states(self):
         if self._states is None:
-            self._states = self.hilbert.all_states()
+            self._states = jnp.array(self.hilbert.all_states())
         return self._states
 
     def __repr__(self):
