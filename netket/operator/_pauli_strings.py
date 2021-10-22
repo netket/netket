@@ -285,9 +285,6 @@ class PauliStrings(DiscreteOperator):
     ):
         x_prime = np.zeros((x.shape[0] * max_conn, x_prime.shape[1]))
         mels = np.zeros((x.shape[0] * max_conn), dtype=mels.dtype)
-        assert (
-            len(local_states) == 2
-        ), "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
         state_1 = local_states[-1]
 
         n_c = 0
