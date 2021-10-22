@@ -24,17 +24,20 @@ from netket.hilbert import Qubit, AbstractHilbert
 
 from ._discrete_operator import DiscreteOperator
 
+valid_pauli_regex = re.compile(r"^[XYZI]+$")
+
 
 class PauliStrings(DiscreteOperator):
     """A Hamiltonian consisiting of the sum of products of Pauli operators."""
 
     def __init__(
         self,
-        operators: List[str],
-        weights: List[Union[float, complex]],
+        hilbert: AbstractHilbert,
+        operators: List[str] = None,
+        weights: List[Union[float, complex]] = None,
+        *,
         cutoff: float = 1.0e-10,
         dtype: DType = complex,
-        hilbert: AbstractHilbert = None,
         initialize: bool = False,
     ):
         """
@@ -55,8 +58,16 @@ class PauliStrings(DiscreteOperator):
            >>> op.hilbert.size
            2
         """
+        if not isinstance(hilbert, AbstractHilbert):
+            # if first argument is not Hilbert, then shift all arguments by one
+            hilbert, operators, weights = None, hilbert, operators
+
         if len(operators) == 0:
             raise ValueError("No Pauli operators passed.")
+
+        if weights is None:
+            # default weight is 1
+            weights = [True for i in operators]
 
         if len(weights) != len(operators):
             raise ValueError("weights should have the same length as operators.")
@@ -69,10 +80,7 @@ class PauliStrings(DiscreteOperator):
         if not consistent:
             raise ValueError("Pauli strings have inhomogeneous lengths.")
 
-        def valid_match(strg, search=re.compile(r"^[XYZI]+$").search):
-            return bool(search(strg))
-
-        consistent = all(valid_match(op) for op in operators)
+        consistent = all(bool(valid_pauli_regex.search(op)) for op in operators)
         if not consistent:
             raise ValueError(
                 """Operators in string must be one of
@@ -80,7 +88,9 @@ class PauliStrings(DiscreteOperator):
             )
 
         if hilbert is None:
+            # raise deprecation warning
             hilbert = Qubit(_hilb_size)
+
         super().__init__(hilbert)
         assert (
             self.hilbert.local_size == 2
@@ -106,10 +116,6 @@ class PauliStrings(DiscreteOperator):
 
     def setup(self, force=False):
         if force or not self._initialized:
-
-            assert (
-                self.hilbert.local_size == 2
-            ), "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
 
             dtype = self._dtype
             n_operators = len(self._orig_operators)
@@ -211,11 +217,22 @@ class PauliStrings(DiscreteOperator):
         self.setup()
         return self._n_operators
 
+    def __repr__(self):
+        print_list = []
+        for op, w in zip(self._orig_operators, self._orig_weights):
+            print_list.append("    {} : {}".format(op, str(w)))
+        s = "PauliStrings(hilbert={}, dict(operators:weights)=\n{}\n)".format(
+            self.hilbert, ",\n".join(print_list)
+        )
+        return s
+
     def _op__matmul__(self, other):
         if not isinstance(other, PauliStrings):
-            return NotImplemented
+            return NotImplementedError
         if not self.hilbert == other.hilbert:
-            raise ValueError(f"Can only multiply identical hilbert spaces (got A@B, A={self.hilbert}, B={other.hilbert})")
+            raise ValueError(
+                f"Can only multiply identical hilbert spaces (got A@B, A={self.hilbert}, B={other.hilbert})"
+            )
         operators, weights = _matmul(
             self._orig_operators,
             self._orig_weights,
@@ -234,12 +251,13 @@ class PauliStrings(DiscreteOperator):
         return self * scalar
 
     def __mul__(self, scalar):
-        assert np.issubdtype(type(scalar), np.number)
+        if not np.issubdtype(type(scalar), np.number):
+            raise NotImplementedError
         weights = self._orig_weights * scalar
         return PauliStrings(
+            self.hilbert,
             self._orig_operators,
             weights,
-            hilbert=self.hilbert,
             dtype=self.dtype,
             cutoff=self._cutoff,
         )
@@ -250,17 +268,21 @@ class PauliStrings(DiscreteOperator):
     def __add__(self, other):
         if np.issubdtype(type(other), np.number):
             if other != 0.0:
-                return NotImplemented
+                return NotImplementedError
             return self
-        assert isinstance(other, PauliStrings)
-        assert self.hilbert == other.hilbert
+        if not isinstance(other, PauliStrings):
+            raise NotImplementedError
+        if not self.hilbert == other.hilbert:
+            raise ValueError(
+                f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, B={other.hilbert})"
+            )
         operators = np.concatenate((self._orig_operators, other._orig_operators))
         weights = np.concatenate((self._orig_weights, other._orig_weights))
         operators, weights = _reduce_pauli_string(operators, weights)
         return PauliStrings(
+            self.hilbert,
             operators,
             weights,
-            hilbert=self.hilbert,
             dtype=self.dtype,
             cutoff=self._cutoff,
         )

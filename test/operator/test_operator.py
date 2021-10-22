@@ -253,8 +253,13 @@ def test_Heisenberg():
     ],
 )
 def test_pauli(hilbert):
+    operators = ["XX", "YZ", "IZ"]
+    weights = [0.1, 0.2, -1.4]
 
-    op = nk.operator.PauliStrings(["XX", "YZ", "IZ"], [0.1, 0.2, -1.4], hilbert=hilbert)
+    if hilbert is None:
+        op = nk.operator.PauliStrings(operators, weights)
+    else:
+        op = nk.operator.PauliStrings(hilbert, operators, weights)
 
     op_l = (
         0.1
