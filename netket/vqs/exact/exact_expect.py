@@ -90,12 +90,13 @@ def _exp_grad(
     σ: jnp.ndarray,
     inp: jnp.ndarray,
 ) -> Tuple[PyTree, PyTree]:
+    is_mutable = mutable is not False
 
     _, vjp_fun, *new_model_state = nkjax.vjp(
         lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
         parameters,
         conjugate=True,
-        has_aux=mutable,
+        has_aux=is_mutable,
     )
 
     Ō_grad = vjp_fun(inp)[0]
@@ -108,6 +109,6 @@ def _exp_grad(
         parameters,
     )
 
-    new_model_state = new_model_state[0] if mutable else None
+    new_model_state = new_model_state[0] if is_mutable else None
 
     return None, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
