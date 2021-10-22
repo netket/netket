@@ -46,9 +46,7 @@ def expect(vstate: ExactState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     OΨ = O @ Ψ
     expval_O = (Ψ.conj() * OΨ).sum()  # Ψ.conj().T @ OΨ
 
-    expval_O2 = Ψ.conj().T @ O @ (OΨ)
-
-    variance = expval_O2 - expval_O ** 2
+    variance = jnp.sum(jnp.abs(OΨ - expval_O * Ψ) ** 2)
     return Stats(mean=expval_O, error_of_mean=0.0, variance=variance)
 
 
