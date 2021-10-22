@@ -40,6 +40,9 @@ class DiscreteOperator(AbstractOperator):
             mels: A N-tensor containing the matrix elements :math:`O(x,x')`
                 associated to each x' for every batch.
         """
+
+        x = np.asarray(x)
+
         n_visible = x.shape[-1]
         n_samples = x.size // n_visible
 

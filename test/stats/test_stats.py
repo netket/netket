@@ -40,7 +40,7 @@ def local_value_kernel(logpsi, pars, σ, σp, mel):
 
 
 def local_values(logpsi, variables, Ô, σ):
-    σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
+    σp, mels = Ô.get_conn_padded(σ.reshape((-1, σ.shape[-1])))
     loc_vals = local_value_kernel(
         logpsi, variables, σ.reshape((-1, σ.shape[-1])), σp, mels
     )

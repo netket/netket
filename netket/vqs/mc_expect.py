@@ -1,8 +1,6 @@
 from functools import partial
 from typing import Callable
 
-import numpy as np
-
 import jax
 from jax import numpy as jnp
 
@@ -57,7 +55,7 @@ def expect(vstate: MCState, Ô: Squared) -> Stats:  # noqa: F811
 
     σ = vstate.samples
 
-    σp, mels = Ô.parent.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
+    σp, mels = Ô.parent.get_conn_padded(σ.reshape((-1, σ.shape[-1])))
 
     return _expect(
         vstate.sampler.machine_pow,
@@ -77,7 +75,7 @@ def expect(vstate: MCState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
 
     σ = vstate.samples
 
-    σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
+    σp, mels = Ô.get_conn_padded(σ.reshape((-1, σ.shape[-1])))
 
     return _expect(
         vstate.sampler.machine_pow,
@@ -97,7 +95,7 @@ def expect(vstate: MCMixedState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
 
     σ = vstate.diagonal.samples
 
-    σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
+    σp, mels = Ô.get_conn_padded(σ.reshape((-1, σ.shape[-1])))
 
     return _expect(
         vstate.sampler.machine_pow,
