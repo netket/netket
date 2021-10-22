@@ -200,7 +200,7 @@ def prepare_centered_oks(
     model_state: Optional[PyTree],
     mode: str,
     rescale_shift: bool,
-    pdf,
+    pdf = None,
 ) -> PyTree:
     """
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
