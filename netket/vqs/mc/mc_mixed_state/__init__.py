@@ -13,3 +13,7 @@
 # limitations under the License.
 
 from .state import MCMixedState
+
+from . import expect
+
+from . import expect_grad

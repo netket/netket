@@ -32,92 +32,49 @@ from netket.operator import (
     ContinuousOperator,
 )
 
+from netket.vqs.mc import kernels, check_hilbert, get_configs, get_fun
+
 from .state import MCState
-from ..mc_mixed_state import MCMixedState
-
-
-def _check_hilbert(A, B):
-    if A.hilbert != B.hilbert:
-        raise NotImplementedError(  # pragma: no cover
-            f"Non matching hilbert spaces {A.hilbert} and {B.hilbert}"
-        )
-
-
-def local_value_kernel(logpsi, pars, σ, σp, mel):
-    """
-    local_value kernel for MCState and generic operators
-    """
-    return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
-
-
-def local_value_squared_kernel(logpsi, pars, σ, σp, mel):
-    """
-    local_value kernel for MCState and Squared (generic) operators
-    """
-    return jnp.abs(local_value_kernel(logpsi, pars, σ, σp, mel)) ** 2
-
-
-def local_value_op_op_cost(logpsi, pars, σ, σp, mel):
-    """
-    local_value kernel for MCMixedState and generic operators
-    """
-    σ_σp = jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(σp, σ)
-    σ_σ = jnp.hstack((σ, σ))
-    return jnp.sum(mel * jnp.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
-
-
-@dispatch.multi((MCState, Squared), (MCMixedState, Squared))
-def expect(vstate: MCState, Ô: Squared) -> Stats:  # noqa: F811
-    _check_hilbert(vstate, Ô)
-
-    σ = vstate.samples
-
-    σp, mels = Ô.parent.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
-
-    return _expect(
-        vstate.sampler.machine_pow,
-        vstate._apply_fun,
-        local_value_squared_kernel,
-        vstate.parameters,
-        vstate.model_state,
-        σ,
-        σp,
-        mels,
-    )
-
-
-@dispatch.multi((MCState, DiscreteOperator), (MCMixedState, AbstractSuperOperator))
-def expect(vstate: MCState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
-    _check_hilbert(vstate, Ô)
-
-    σ = vstate.samples
-
-    σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
-
-    return _expect(
-        vstate.sampler.machine_pow,
-        vstate._apply_fun,
-        local_value_kernel,
-        vstate.parameters,
-        vstate.model_state,
-        σ,
-        σp,
-        mels,
-    )
 
 
 @dispatch
-def expect(vstate: MCMixedState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
-    _check_hilbert(vstate.diagonal, Ô)
+def get_configs(vstate: MCState, Ô: Squared):
+    check_hilbert(vstate.hilbert, Ô.hilbert)
 
-    σ = vstate.diagonal.samples
+    σ = vstate.samples
+    σp, mels = Ô.parent.get_conn_padded(σ)
+    return σ, σp, mels
 
-    σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
+
+@dispatch
+def get_fun(vstate: MCState, Ô: Squared):
+    return kernels.local_value_squared_kernel
+
+
+@dispatch
+def get_configs(vstate: MCState, Ô: DiscreteOperator):
+    check_hilbert(vstate.hilbert, Ô.hilbert)
+
+    σ = vstate.samples
+    σp, mels = Ô.get_conn_padded(σ)
+    return σ, σp, mels
+
+
+@dispatch
+def get_fun(vstate: MCState, Ô: DiscreteOperator):
+    return kernels.local_value_kernel
+
+
+@dispatch
+def expect(vstate: MCState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
+    σ, σp, mels = get_configs(vstate, Ô)
+
+    local_estimator_fun = get_fun(vstate, Ô)
 
     return _expect(
-        vstate.sampler.machine_pow,
+        local_estimator_fun,
         vstate._apply_fun,
-        local_value_op_op_cost,
+        vstate.sampler.machine_pow,
         vstate.parameters,
         vstate.model_state,
         σ,
@@ -143,11 +100,11 @@ def expect(vstate: MCState, Ô: ContinuousOperator) -> Stats:  # noqa: F811
     )
 
 
-@partial(jax.jit, static_argnums=(1, 2))
+@partial(jax.jit, static_argnums=(0, 1))
 def _expect(
-    machine_pow: int,
-    model_apply_fun: Callable,
     local_value_kernel: Callable,
+    model_apply_fun: Callable,
+    machine_pow: int,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
@@ -158,6 +115,10 @@ def _expect(
 
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
+
+    if jnp.ndim(σp) != 3:
+        σp = σp.reshape((σ.shape[0], -1, σ_shape[-1]))
+        mels = mels.reshape(σp.shape[:-1])
 
     def logpsi(w, σ):
         return model_apply_fun({"params": w, **model_state}, σ)

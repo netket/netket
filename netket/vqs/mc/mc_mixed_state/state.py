@@ -29,7 +29,8 @@ from netket.utils.types import PyTree
 from netket.operator import AbstractOperator
 
 from netket.vqs import VariationalMixedState
-from ..mc_state import MCState
+
+from netket.vqs.mc import MCState
 
 
 def apply_diagonal(bare_afun, w, x, *args, **kwargs):
