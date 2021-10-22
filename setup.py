@@ -12,7 +12,7 @@ DEV_DEPENDENCIES = [
     "flakehell>=0.9",
 ]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]
-TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]
+EXTRA_DEPENDENCIES = ["tensorboardx>=2.0.0", "openfermion>=1.0.0"]
 BASE_DEPENDENCIES = [
     "numpy~=1.18",
     "scipy~=1.5",
@@ -54,7 +54,7 @@ setup(
     extras_require={
         "dev": DEV_DEPENDENCIES,
         "mpi": MPI_DEPENDENCIES,
-        "tensorboard": TENSORBOARD_DEPENDENCIES,
-        "all": MPI_DEPENDENCIES + DEV_DEPENDENCIES + TENSORBOARD_DEPENDENCIES,
+        "extra": EXTRA_DEPENDENCIES,
+        "all": MPI_DEPENDENCIES + DEV_DEPENDENCIES + EXTRA_DEPENDENCIES,
     },
 )
