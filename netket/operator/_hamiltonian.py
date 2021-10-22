@@ -17,6 +17,10 @@ from numba import jit
 import numpy as np
 import math
 
+import jax
+import jax.numpy as jnp
+from functools import partial, wraps
+
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert, Fock
 from netket.utils.types import DType
@@ -102,7 +106,7 @@ class SpecialHamiltonian(DiscreteOperator):
         return self.to_local_operator() @ other
 
 
-class Ising(SpecialHamiltonian):
+class IsingBase(SpecialHamiltonian):
     r"""
     The Transverse-Field Ising Hamiltonian :math:`-h\sum_i \sigma_i^{(x)} +J\sum_{\langle i,j\rangle} \sigma_i^{(z)}\sigma_j^{(z)}`.
 
@@ -143,10 +147,9 @@ class Ising(SpecialHamiltonian):
 
         super().__init__(hilbert)
 
+        self._edges = list(graph.edges())
         self._h = dtype(h)
         self._J = dtype(J)
-        self._edges = np.asarray(list(graph.edges()), dtype=np.intp)
-
         self._dtype = dtype
 
     @property
@@ -178,30 +181,6 @@ class Ising(SpecialHamiltonian):
         else:
             raise NotImplementedError
 
-    @staticmethod
-    @jit(nopython=True)
-    def n_conn(x, out):
-        r"""Return the number of states connected to x.
-
-        Args:
-            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                        the batch of quantum numbers x.
-            out (array): If None an output array is allocated.
-
-        Returns:
-            array: The number of connected states x' for each x[i].
-
-        """
-        if out is None:
-            out = np.empty(
-                x.shape[0],
-                dtype=np.int32,
-            )
-
-        out.fill(x.shape[1] + 1)
-
-        return out
-
     @property
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
@@ -209,7 +188,7 @@ class Ising(SpecialHamiltonian):
 
     def copy(self):
         graph = Graph(edges=[list(edge) for edge in self.edges])
-        return Ising(hilbert=self.hilbert, graph=graph, J=self.J, h=self.h)
+        return self.__class__(hilbert=self.hilbert, graph=graph, J=self.J, h=self.h)
 
     def to_local_operator(self):
         # The hamiltonian
@@ -244,6 +223,39 @@ class Ising(SpecialHamiltonian):
 
         self._h -= other.h
         self._J -= other.J
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(J={self._J}, h={self._h}; dim={self.hilbert.size})"
+
+
+class Ising(IsingBase):
+    @wraps(IsingBase.__init__)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._edges = np.asarray(self._edges, dtype=np.intp)
+
+    @staticmethod
+    @jit(nopython=True)
+    def n_conn(x, out):
+        r"""Return the number of states connected to x.
+
+        Args:
+            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
+                        the batch of quantum numbers x.
+            out (array): If None an output array is allocated.
+
+        Returns:
+            array: The number of connected states x' for each x[i].
+
+        """
+        if out is None:
+            out = np.empty(
+                x.shape[0],
+                dtype=np.int32,
+            )
+
+        out.fill(x.shape[1] + 1)
+        return out
 
     @staticmethod
     @jit(nopython=True)
@@ -350,8 +362,56 @@ class Ising(SpecialHamiltonian):
 
         return jit(nopython=True)(gccf_fun)
 
-    def __repr__(self):
-        return f"Ising(J={self._J}, h={self._h}; dim={self.hilbert.size})"
+
+@partial(jax.jit, static_argnums=4, inline=True)
+def _ising_kernel_jax(x, edges, h, J):
+
+    n_sites = x.shape[1]
+    n_conn = n_sites + 1
+
+    mels = jnp.zeros((x.shape[0], n_conn))  # TODO dtype?
+    mels = mels.at[:, 1:].set(-h)
+    mels = mels.at[:, 0].add(J * (x[:, edges[:, 0]] * x[:, edges[:, 1]]).sum(axis=-1))
+
+    def _flip_lower_diag(x):
+        _flip = jax.lax.neg
+        cond = jnp.eye(*x.shape[-2:], k=-1, dtype=bool)
+        cond = jax.lax.broadcast(cond, x.shape[:-2])
+        return jax.lax.select(cond, _flip(x), x)
+
+    x_prime = jax.lax.broadcast_in_dim(x, (x.shape[0], n_conn, n_sites), (0, 2))
+    x_prime = _flip_lower_diag(x_prime)
+
+    return x_prime, mels
+
+
+@partial(jax.jit, inline=True)
+def _ising_n_conn_jax(x):
+    return jax.lax.broadcast(x.shape[1] + 1, (x.shape[0],))
+
+
+class IsingJax(IsingBase):
+    @wraps(IsingBase.__init__)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._edges = jnp.asarray(self._edges, dtype=jnp.int32)
+
+    def get_conn_padded(self, x):
+        x_prime, mels = _ising_kernel_jax(
+            x.reshape((-1, x.shape[-1])), self._edges, self._h, self._J
+        )
+        return x_prime.reshape(x.shape[:-1] + x_prime.shape[1:]), mels.reshape(
+            x.shape[:-1] + mels.shape[1:]
+        )
+
+    def n_conn(x):
+        return _ising_n_conn_jax(x)
+
+    def get_conn_flattened(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def get_conn(self, x):
+        raise NotImplementedError
 
 
 class Heisenberg(GraphOperator):
