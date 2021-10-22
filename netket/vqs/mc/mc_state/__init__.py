@@ -12,14 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import VariationalState, VariationalMixedState, expect, expect_and_grad
+from .state import MCState
 
-from .mc import MCState, MCMixedState
-
-# TODO: this is deprecated in favour of netket.experimental.vqs
-# eventually remove this file and import
-from . import experimental
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__, ignore=["experimental"])
+from . import expect
+from . import expect_grad
