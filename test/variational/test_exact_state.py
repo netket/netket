@@ -184,8 +184,8 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
     )
 
 
-def test_heisenberg_solved_exactly(abs_eps=1.0e-3, rel_eps=1.0e-4):
-    L = 6
+@pytest.mark.parametrize("L,n_iterations", [(4, 1000), (6, 2000), (8, 4000)])
+def test_heisenberg_solved_exactly(L, n_iterations, abs_eps=1.0e-3, rel_eps=1.0e-4):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
     ha = nk.operator.Heisenberg(hilbert=hi, graph=g)
@@ -202,7 +202,36 @@ def test_heisenberg_solved_exactly(abs_eps=1.0e-3, rel_eps=1.0e-4):
     )
 
     log = nk.logging.RuntimeLog()
-    gs.run(n_iter=2000, out=log)
+    gs.run(n_iter=n_iterations, out=log)
+
+    energy_variational = vs.expect(ha)
+
+    E_gs, ket_gs = nk.exact.lanczos_ed(ha, compute_eigenvectors=True)
+
+    np.testing.assert_allclose(
+        energy_variational.mean, E_gs[0].real, atol=abs_eps, rtol=rel_eps
+    )
+
+
+@pytest.mark.parametrize("L,n_iterations,h", [(4, 1000, 1), (6, 2000, 2), (8, 4000, 3)])
+def test_TFIM_solved_exactly(L, n_iterations, h, abs_eps=1.0e-3, rel_eps=1.0e-4):
+    g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ha = nk.operator.Ising(hilbert=hi, graph=g, h=h)
+    ma = nk.models.RBM(alpha=10, dtype=float)
+    vs = nk.vqs.ExactState(hi, ma)
+
+    op = nk.optimizer.Sgd(learning_rate=0.003)
+
+    gs = nk.driver.VMC(
+        ha,
+        op,
+        variational_state=vs,
+        preconditioner=nk.optimizer.SR(qgt=nk.optimizer.qgt.QGTJacobianPyTree),
+    )
+
+    log = nk.logging.RuntimeLog()
+    gs.run(n_iter=n_iterations, out=log)
 
     energy_variational = vs.expect(ha)
 
