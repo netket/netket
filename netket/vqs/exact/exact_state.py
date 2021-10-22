@@ -48,7 +48,7 @@ def jit_evaluate(fun: Callable, *args):
 
 
 class ExactState(VariationalState):
-    """Variational State for a Variational Neural Quantum State computed on the whole
+    """Variational State for a variational quantum state computed on the whole
     Hilbert space without Monte Carlo sampling.
 
     Expectation values and gradients are deterministic.
