@@ -175,6 +175,7 @@ class ExactState(VariationalState):
         that the parameters/state is updated.
         """
         self._array = None
+        self._pdf = None
 
     @property
     def model(self) -> Optional[Any]:
