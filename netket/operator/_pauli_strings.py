@@ -249,7 +249,7 @@ class PauliStrings(DiscreteOperator):
     def __add__(self, other):
         if np.issubdtype(type(other), np.number):
             if other != 0.0:
-                raise ValueError("cannot add number to PauliStrings object")
+                return NotImplemented
             return self
         assert isinstance(other, PauliStrings)
         assert self.hilbert == other.hilbert
