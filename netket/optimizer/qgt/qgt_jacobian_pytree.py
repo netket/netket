@@ -71,7 +71,7 @@ def QGTJacobianPyTree(
 
     if isinstance(vstate, ExactState):
         samples = vstate._all_states
-        pdf = vstate.to_array().conj() * vstate.to_array()
+        pdf = vstate.probability_distribution()
     else:
         samples = vstate.samples
         pdf = None
