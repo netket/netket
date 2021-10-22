@@ -22,7 +22,7 @@ import jax.numpy as jnp
 
 import numpy as np
 
-from netket.stats import subtract_mean, mean
+from netket.stats import subtract_mean, mean, sum
 from netket.utils import mpi
 
 from netket.utils.types import Array, Callable, PyTree, Scalar
@@ -279,9 +279,7 @@ def prepare_centered_oks(
         )
     else:
         oks = jacobian_fun(f, params, samples)
-        oks_mean = jax.tree_map(
-            partial(mean, axis=0), _multiply_by_pdf(oks, pdf * samples.shape[0])
-        )
+        oks_mean = jax.tree_map(partial(sum, axis=0), _multiply_by_pdf(oks, pdf))
         centered_oks = jax.tree_multimap(lambda x, y: x - y, oks, oks_mean)
 
         centered_oks = _multiply_by_pdf(centered_oks, jnp.sqrt(pdf))
