@@ -15,6 +15,8 @@
 import math
 
 import jax
+import jax.numpy as jnp
+
 import numpy as np
 
 from flax import struct
@@ -114,3 +116,35 @@ def _choose(vp, sections, rand_vec, out, w):
         out[i] = vp[n_rand]
         w[i] = math.log(s - low_range)
         low_range = s
+
+
+@struct.dataclass
+class HamiltonianRuleJax(HamiltonianRule):
+    """
+    Rule proposing moves according to the terms in an operator.
+
+    In this case, the transition matrix is taken to be:
+
+    .. math::
+
+       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
+
+    This rule only works with operators which are written in jax.
+    """
+
+    def transition(self, _0, _1, _2, _3, key, x):
+
+        xp, _ = self.operator.get_conn_padded(x)
+
+        n_conn = self.operator.n_conn(x)
+
+        rand_i = jax.random.randint(key, shape=(x.shape[0],), minval=0, maxval=n_conn)
+        x_proposed = xp[jnp.arange(xp.shape[0]), rand_i]
+
+        n_conn_proposed = self.operator.n_conn(x_proposed)
+        log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
+
+        return x_proposed, log_prob_corr
+
+    def __repr__(self):
+        return f"HamiltonianRuleJax({self.operator})"
