@@ -108,15 +108,16 @@ class PauliStrings(DiscreteOperator):
 
         self._initialized = False
         if initialize:
-            self.setup()
+            self._setup()
 
     @classmethod
-    def identity(cls, hilbert, **kwargs):
+    def identity(cls, hilbert: AbstractHilbert, **kwargs):
         operators = ("I" * hilbert.size,)
         weights = (1,)
         return PauliStrings(hilbert, operators, weights, **kwargs)
 
-    def setup(self, force=False):
+    def _setup(self, force=False):
+        """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
 
             dtype = self._dtype
@@ -200,6 +201,8 @@ class PauliStrings(DiscreteOperator):
             self._mels_max = np.empty((n_operators), dtype=dtype)
             self._n_operators = n_operators
 
+            self._local_states
+
             self._initialized = True
 
     @property
@@ -216,7 +219,7 @@ class PauliStrings(DiscreteOperator):
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         # 1 connection for every operator X, Y, Z...
-        self.setup()
+        self._setup()
         return self._n_operators
 
     def __repr__(self):
@@ -242,11 +245,11 @@ class PauliStrings(DiscreteOperator):
             other._orig_weights,
         )
         return PauliStrings(
-            operators=operators,
-            weights=weights,
+            self.hilbert,
+            operators,
+            weights,
             cutoff=max(self._cutoff, other._cutoff),
             dtype=self.dtype,
-            hilbert=self.hilbert,
         )
 
     def __rmul__(self, scalar):
@@ -360,7 +363,7 @@ class PauliStrings(DiscreteOperator):
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        self.setup()
+        self._setup()
         x = np.array(x)
         assert (
             x.shape[-1] == self.hilbert.size
@@ -378,12 +381,12 @@ class PauliStrings(DiscreteOperator):
             self._z_check,
             self._cutoff,
             self._n_operators,
-            np.array(self.hilbert.local_states),
+            self._local_states,
             pad,
         )
 
     def _get_conn_flattened_closure(self):
-        self.setup()
+        self._setup()
         _x_prime_max = self._x_prime_max
         _mels_max = self._mels_max
         _sites = self._sites
@@ -395,7 +398,7 @@ class PauliStrings(DiscreteOperator):
         _cutoff = self._cutoff
         _n_operators = self._n_operators
         fun = self._flattened_kernel
-        _local_states = np.array(self.hilbert.local_states)
+        _local_states = self.local_states
 
         def gccf_fun(x, sections):
             return fun(
@@ -463,8 +466,18 @@ def _split_string(s):
     return [x for x in str(s)]
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True)
 def _make_new_pauli_string(op1, w1, op2, w2):
+    """Compute the (symbolic) tensor product of two pauli strings with weights
+    Args:
+        op1, op2 (str): Pauli strings (e.g. IIXIIXZ).
+        w1, w2 (complex): The corresponding weights
+
+    Returns:
+        new_op (str): the new pauli string (result of the tensor product)
+        new_weight (complex): the weight of the pauli string
+
+    """
     assert len(op1) == len(op2)
     op1 = _split_string(op1)
     op2 = _split_string(op2)
@@ -472,11 +485,21 @@ def _make_new_pauli_string(op1, w1, op2, w2):
     new_op = [o[0] for o in o_w]
     new_weights = np.array([o[1] for o in o_w])
     new_op = "".join(new_op)
-    new_weights = w1 * w2 * np.prod(new_weights)
-    return new_op, new_weights
+    new_weight = w1 * w2 * np.prod(new_weights)
+    return new_op, new_weight
 
 
 def _reduce_pauli_string(op_arr, w_arr):
+    """From a list of pauli strings, sum the weights of duplicate strings.
+    Args:
+        op1, op2 (str): Pauli strings (e.g. IIXIIXZ).
+        w1, w2 (complex): The corresponding weights
+
+    Returns:
+        new_op (str): the new pauli string (result of the tensor product)
+        new_weight (complex): the weight of the pauli string
+
+    """
     operators_unique, idx = np.unique(op_arr, return_inverse=True)
     if len(operators_unique) == len(op_arr):
         return op_arr, w_arr
@@ -490,6 +513,17 @@ def _reduce_pauli_string(op_arr, w_arr):
 
 
 def _matmul(op_arr1, w_arr1, op_arr2, w_arr2):
+    """(Symbolic) Tensor product of two PauliStrings
+    Args:
+        op_arr1, op_arr2 (np.array(dtype=str)): Arrays operators (strings) in a PauliStrings sum
+        w_arr1, w_arr2 (np.array(dtype=complex)): The corresponding weights of the operators in the sums
+
+    Returns:
+        operators (np.array(dtype=str)): Array of the resulting operator strings
+        new_weight (np.array(dtype=complex)): Array of the corresponding weights
+
+    """
+
     operators = []
     weights = []
     for (op1, w1), (op2, w2) in product(zip(op_arr1, w_arr1), zip(op_arr2, w_arr2)):
@@ -497,4 +531,5 @@ def _matmul(op_arr1, w_arr1, op_arr2, w_arr2):
         operators.append(op)
         weights.append(w)
     operators, weights = np.array(operators), np.array(weights)
-    return _reduce_pauli_string(operators, weights)
+    operators, weights = _reduce_pauli_string(operators, weights)
+    return operators, weights
