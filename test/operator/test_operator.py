@@ -260,6 +260,7 @@ def test_pauli(hilbert):
         op = nk.operator.PauliStrings(operators, weights)
     else:
         op = nk.operator.PauliStrings(hilbert, operators, weights)
+        assert op.hilbert == hilbert
 
     op_l = (
         0.1
