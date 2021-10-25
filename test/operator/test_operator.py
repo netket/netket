@@ -278,7 +278,17 @@ def test_pauli(hilbert):
 
     assert op.to_sparse().shape == op_l.to_sparse().shape
 
-    print(op)  # test the __repr__
+
+def test_pauli_trivials():
+    operators = ["XX", "YZ", "IZ"]
+
+    # without weight
+    nk.operator.PauliStrings(operators)
+    nk.operator.PauliStrings(nk.hilbert.Qubit(2), operators)
+    nk.operator.PauliStrings(nk.hilbert.Spin(1 / 2, 2), operators)
+
+    nk.operator.PauliStrings.identity(nk.hilbert.Qubit(2))
+    nk.operator.PauliStrings.identity(nk.hilbert.Spin(1 / 2, 2))
 
 
 def test_pauli_order():
@@ -326,5 +336,7 @@ def test_pauli_add_and_multiply():
     op_add = op1 + op2
     assert np.allclose(op_add.to_dense(), op_true_add.to_dense())
     op_true_multiply = nk.operator.PauliStrings(["X", "Y", "Z"], [-2, 2, 2])
-    op_multiply = op2 * 2
+    op_multiply = op2 * 2  # right
+    assert np.allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
+    op_multiply = 2 * op2  # left
     assert np.allclose(op_multiply.to_dense(), op_true_multiply.to_dense())

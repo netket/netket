@@ -201,7 +201,7 @@ class PauliStrings(DiscreteOperator):
             self._mels_max = np.empty((n_operators), dtype=dtype)
             self._n_operators = n_operators
 
-            self._local_states
+            self._local_states = np.array(self.hilbert.local_states)
 
             self._initialized = True
 
@@ -398,7 +398,7 @@ class PauliStrings(DiscreteOperator):
         _cutoff = self._cutoff
         _n_operators = self._n_operators
         fun = self._flattened_kernel
-        _local_states = self.local_states
+        _local_states = self._local_states
 
         def gccf_fun(x, sections):
             return fun(
