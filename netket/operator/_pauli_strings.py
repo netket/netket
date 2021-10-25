@@ -38,7 +38,6 @@ class PauliStrings(DiscreteOperator):
         *,
         cutoff: float = 1.0e-10,
         dtype: DType = complex,
-        initialize: bool = False,
     ):
         """
         Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
@@ -48,7 +47,6 @@ class PauliStrings(DiscreteOperator):
            operators (list(string)): A list of Pauli operators in string format, e.g. ['IXX', 'XZI'].
            weights: A list of amplitudes of the corresponding Pauli operator.
            cutoff (float): a cutoff to remove small matrix elements
-           initialize: (bool) whether to initialize the operator to enable computation of connected elements
 
         Examples:
            Constructs a new ``PauliStrings`` operator X_0*X_1 + 3.*Z_0*Z_1.
@@ -107,8 +105,6 @@ class PauliStrings(DiscreteOperator):
         self._dtype = dtype
 
         self._initialized = False
-        if initialize:
-            self._setup()
 
     @classmethod
     def identity(cls, hilbert: AbstractHilbert, **kwargs):
@@ -273,7 +269,8 @@ class PauliStrings(DiscreteOperator):
     def __add__(self, other):
         if np.issubdtype(type(other), np.number):
             if other != 0.0:
-                return NotImplementedError
+                # adding a constant = adding IIII...III with weight being the constant
+                return self + PauliStrings.identity(self.hilbert) * other
             return self
         if not isinstance(other, PauliStrings):
             raise NotImplementedError
@@ -515,13 +512,12 @@ def _reduce_pauli_string(op_arr, w_arr):
 def _matmul(op_arr1, w_arr1, op_arr2, w_arr2):
     """(Symbolic) Tensor product of two PauliStrings
     Args:
-        op_arr1, op_arr2 (np.array(dtype=str)): Arrays operators (strings) in a PauliStrings sum
-        w_arr1, w_arr2 (np.array(dtype=complex)): The corresponding weights of the operators in the sums
+        op_arr1, op_arr2 (np.array): Arrays operators (strings) in a PauliStrings sum
+        w_arr1, w_arr2 (np.array): The corresponding weights of the operators in the sums
 
     Returns:
-        operators (np.array(dtype=str)): Array of the resulting operator strings
-        new_weight (np.array(dtype=complex)): Array of the corresponding weights
-
+        operators (np.array): Array of the resulting operator strings
+        new_weight (np.array): Array of the corresponding weights
     """
 
     operators = []

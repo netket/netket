@@ -281,14 +281,31 @@ def test_pauli(hilbert):
 
 def test_pauli_trivials():
     operators = ["XX", "YZ", "IZ"]
+    weights = [0.1, 0.2, -1.4]
 
     # without weight
     nk.operator.PauliStrings(operators)
     nk.operator.PauliStrings(nk.hilbert.Qubit(2), operators)
     nk.operator.PauliStrings(nk.hilbert.Spin(1 / 2, 2), operators)
 
+    # using keywords
+    nk.operator.PauliStrings(operators, weights)
+    nk.operator.PauliStrings(nk.hilbert.Qubit(2), operators, weights)
+    nk.operator.PauliStrings(nk.hilbert.Spin(1 / 2, 2), operators, weights)
+
     nk.operator.PauliStrings.identity(nk.hilbert.Qubit(2))
     nk.operator.PauliStrings.identity(nk.hilbert.Spin(1 / 2, 2))
+
+
+def test_pauli_cutoff():
+    weights = [1, -1, 1]
+    operators = ["ZI", "IZ", "XX"]
+    op = nk.operator.PauliStrings(operators, weights, cutoff=1e-8)
+    hilbert = op.hilbert
+    x = np.ones((2,)) * hilbert.local_states[0]
+    xp, mels = op.get_conn(x)
+    assert xp.shape[-1] == hilbert.size
+    assert xp.shape[-2] == 1
 
 
 def test_pauli_order():
@@ -328,6 +345,33 @@ def test_pauli_matmul():
     op_mm = op1 @ op2
     assert np.allclose(op_mm.to_dense(), op_true_mm.to_dense())
 
+    # more extensive test
+    operators1, weights1 = ["XII", "IXY"], [1, 3]
+    op1 = nk.operator.PauliStrings(operators1, weights1)
+    operators2, weights2 = ["XZZ", "YIZ", "ZII", "IIY"], [1, 0.2, 0.3, 3.1]
+    op2 = nk.operator.PauliStrings(operators2, weights2)
+    op = op1 @ op2
+    op1_true = weights1[0] * nk.operator.spin.sigmax(op.hilbert, 0, dtype=complex)
+    op1_true += (
+        weights1[1]
+        * nk.operator.spin.sigmax(op.hilbert, 1, dtype=complex)
+        * nk.operator.spin.sigmay(op.hilbert, 2)
+    )
+    op2_true = (
+        weights2[0]
+        * nk.operator.spin.sigmax(op.hilbert, 0, dtype=complex)
+        * nk.operator.spin.sigmaz(op.hilbert, 1)
+        * nk.operator.spin.sigmaz(op.hilbert, 2)
+    )
+    op2_true += (
+        weights2[1]
+        * nk.operator.spin.sigmay(op.hilbert, 0, dtype=complex)
+        * nk.operator.spin.sigmaz(op.hilbert, 2)
+    )
+    op2_true += weights2[2] * nk.operator.spin.sigmaz(op.hilbert, 0, dtype=complex)
+    op2_true += weights2[3] * nk.operator.spin.sigmay(op.hilbert, 2, dtype=complex)
+    assert np.allclose(op1_true @ op2_true, op.to_dense())
+
 
 def test_pauli_add_and_multiply():
     op1 = nk.operator.PauliStrings(["X"], [1])
@@ -340,3 +384,7 @@ def test_pauli_add_and_multiply():
     assert np.allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
     op_multiply = 2 * op2  # left
     assert np.allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
+
+    op_add_cte = nk.operator.PauliStrings(["X", "Y", "Z"], [-1, 1, 1]) + 2
+    op_true_add_cte = nk.operator.PauliStrings(["X", "Y", "Z", "I"], [-1, 1, 1, 2])
+    assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
