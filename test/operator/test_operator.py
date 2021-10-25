@@ -370,7 +370,7 @@ def test_pauli_matmul():
     )
     op2_true += weights2[2] * nk.operator.spin.sigmaz(op.hilbert, 0, dtype=complex)
     op2_true += weights2[3] * nk.operator.spin.sigmay(op.hilbert, 2, dtype=complex)
-    assert np.allclose(op1_true @ op2_true, op.to_dense())
+    assert np.allclose((op1_true @ op2_true).to_dense(), op.to_dense())
 
 
 def test_pauli_add_and_multiply():
