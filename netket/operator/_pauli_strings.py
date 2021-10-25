@@ -106,10 +106,10 @@ class PauliStrings(DiscreteOperator):
 
         self._initialized = False
 
-    @classmethod
-    def identity(cls, hilbert: AbstractHilbert, **kwargs):
+    @staticmethod
+    def identity(hilbert: AbstractHilbert, **kwargs):
         operators = ("I" * hilbert.size,)
-        weights = (1,)
+        weights = (1.0,)
         return PauliStrings(hilbert, operators, weights, **kwargs)
 
     def _setup(self, force=False):
