@@ -110,7 +110,7 @@ class PauliStrings(DiscreteOperator):
             self.setup()
 
     @classmethod
-    def identity_from_hilbert(cls, hilbert, **kwargs):
+    def identity_from_hilbert(cls, hilbert: Hilbert, **kwargs):
         operators = ("I" * hilbert.size,)
         weights = (1,)
         return PauliStrings(operators, weights, hilbert=hilbert, **kwargs)
