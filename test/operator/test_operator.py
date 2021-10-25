@@ -277,6 +277,8 @@ def test_pauli(hilbert):
 
     assert op.to_sparse().shape == op_l.to_sparse().shape
 
+    print(op)  # test the __repr__
+
 
 def test_pauli_order():
     """Check related to PR #836"""
