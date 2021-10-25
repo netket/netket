@@ -93,9 +93,10 @@ class PauliStrings(DiscreteOperator):
             hilbert = Qubit(_hilb_size)
 
         super().__init__(hilbert)
-        assert (
-            self.hilbert.local_size == 2
-        ), "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
+        if self.hilbert.local_size != 2:
+            raise ValueError(
+                "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
+            )
 
         self._cutoff = cutoff
         b_weights = np.asarray(weights, dtype=dtype)
@@ -110,10 +111,10 @@ class PauliStrings(DiscreteOperator):
             self.setup()
 
     @classmethod
-    def identity_from_hilbert(cls, hilbert, **kwargs):
+    def identity(cls, hilbert, **kwargs):
         operators = ("I" * hilbert.size,)
         weights = (1,)
-        return PauliStrings(operators, weights, hilbert=hilbert, **kwargs)
+        return PauliStrings(hilbert, operators, weights, **kwargs)
 
     def setup(self, force=False):
         if force or not self._initialized:
@@ -222,8 +223,8 @@ class PauliStrings(DiscreteOperator):
         print_list = []
         for op, w in zip(self._orig_operators, self._orig_weights):
             print_list.append("    {} : {}".format(op, str(w)))
-        s = "PauliStrings(hilbert={}, dict(operators:weights)=\n{}\n)".format(
-            self.hilbert, ",\n".join(print_list)
+        s = "PauliStrings(hilbert={}, n_strings={}, dict(operators:weights)=\n{}\n)".format(
+            self.hilbert, len(self._orig_operators), ",\n".join(print_list)
         )
         return s
 
