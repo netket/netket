@@ -87,7 +87,6 @@ class PauliStrings(DiscreteOperator):
             )
 
         if hilbert is None:
-            # raise deprecation warning
             hilbert = Qubit(_hilb_size)
 
         super().__init__(hilbert)
