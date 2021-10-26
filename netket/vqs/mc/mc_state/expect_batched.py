@@ -56,8 +56,6 @@ def expect_fallback(vstate: MCState, operator: DiscreteOperator, batch_size):
 def expect_mcstate_operator_batched(
     vstate: MCState, Ô: DiscreteOperator, batch_size: int
 ) -> Stats:  # noqa: F811
-    _check_hilbert(vstate, Ô)
-
     σ, σp, mels = get_configs(vstate, Ô)
 
     local_estimator_fun = get_fun(vstate, Ô, batch_size)
@@ -92,6 +90,10 @@ def _expect_minibatches(
 
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
+
+    if jnp.ndim(σp) != 3:
+        σp = σp.reshape((σ.shape[0], -1, σ_shape[-1]))
+        mels = mels.reshape(σp.shape[:-1])
 
     def logpsi(w, σ):
         return model_apply_fun({"params": w, **model_state}, σ)
