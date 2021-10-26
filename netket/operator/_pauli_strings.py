@@ -207,7 +207,10 @@ class PauliStrings(DiscreteOperator):
 
     @staticmethod
     def from_openfermion(
-        hilbert: AbstractHilbert, of_qubit_operator=None, *, n_qubits: int = None
+        hilbert: AbstractHilbert,
+        of_qubit_operator: "openfermion.ops.QubitOperator" = None,  # noqa: F821
+        *,
+        n_qubits: int = None,
     ):
         r"""
         Converts an openfermion QubitOperator into a netket PauliStrings.
