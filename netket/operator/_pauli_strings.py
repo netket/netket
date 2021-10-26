@@ -210,7 +210,7 @@ class PauliStrings(DiscreteOperator):
         Args:
             of_qubit_operator: openfermion.ops.QubitOperator object
             hilbert: hilbert of the resulting PauliStrings object (default None gives Qubit)
-            n_qubits (int): total number of qubits in the system, default None means inferring it from the QubitOperator
+            n_qubits (int): total number of qubits in the system, default None means inferring it from the QubitOperator. Argument is ignored when hilbert is given.
 
         Returns:
             A PauliStrings object.
@@ -221,6 +221,9 @@ class PauliStrings(DiscreteOperator):
             raise NotImplementedError()
         operators = []
         weights = []
+        if hilbert is not None:
+            # no warning, just overwrite
+            n_qubits = hilbert.size
         if n_qubits is None:
             # we always start counting from 0, so we only determine the maximum location
             n_qubits = (
@@ -238,7 +241,10 @@ class PauliStrings(DiscreteOperator):
                 s[loc] = op
             operators.append("".join(s))
             weights.append(weight)
-        return PauliStrings(hilbert, operators, weights)
+        if hilbert is None:
+            return PauliStrings(operators, weights)
+        else:
+            return PauliStrings(hilbert, operators, weights)
 
     @property
     def dtype(self) -> DType:

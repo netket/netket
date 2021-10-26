@@ -396,6 +396,8 @@ def test_openfermion_conversion():
     from openfermion.ops import QubitOperator
 
     of_qubit_operator = 0.5 * QubitOperator("X0 X5") + 0.3 * QubitOperator("Z0")
-    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator, 6)
+    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator, n_qubits=6)
     assert isinstance(ps, nk.operator.PauliStrings)
+    # check default
+    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
     assert ps.hilbert.size == 6
