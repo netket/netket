@@ -42,7 +42,7 @@ class PauliStrings(DiscreteOperator):
         """
         Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
         This class has two possible forms for initialization: ``PauliStrings(hilbert, operators, ...)`` or  ``PauliStrings(operators, ...)``.
-        When no hilbert argument is passed, the hilbert defaults to Qubit.
+        When no hilbert argument is passed, the hilbert defaults to Qubit, where the number of qubits is automatically deduced from the operators.
 
         Args:
            hilbert: A hilbert space, optional (is no ``AbstractHilbert`` is passed, default is Qubit)
