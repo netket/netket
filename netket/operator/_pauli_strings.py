@@ -225,9 +225,10 @@ class PauliStrings(DiscreteOperator):
     ):
         r"""
         Converts an openfermion QubitOperator into a netket PauliStrings.
+        The hilbert first argument can be dropped, see __init__ for details and default value
 
         Args:
-            hilbert (optional): hilbert of the resulting PauliStrings object (default None gives Qubit)
+            hilbert (optional): hilbert of the resulting PauliStrings object
             of_qubit_operator (required): openfermion.ops.QubitOperator object
             n_qubits (int): total number of qubits in the system, default None means inferring it from the QubitOperator. Argument is ignored when hilbert is given.
 
@@ -235,6 +236,9 @@ class PauliStrings(DiscreteOperator):
             A PauliStrings object.
         """
         from openfermion.ops import QubitOperator
+
+        if hilbert is None:
+            raise ValueError("None-valued hilbert passed.")
 
         if not isinstance(hilbert, AbstractHilbert):
             # if first argument is not Hilbert, then shift all arguments by one
@@ -264,10 +268,11 @@ class PauliStrings(DiscreteOperator):
                 s[loc] = op
             operators.append("".join(s))
             weights.append(weight)
-        if hilbert is None:
-            return PauliStrings(operators, weights)
-        else:
-            return PauliStrings(hilbert, operators, weights)
+
+        ps_args = (operators, weights)
+        if hilbert is not None:
+            ps_args = (hilbert,) + ps_args
+        return PauliStrings(*ps_args)
 
     @property
     def dtype(self) -> DType:
