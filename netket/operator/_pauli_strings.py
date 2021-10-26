@@ -200,13 +200,16 @@ class PauliStrings(DiscreteOperator):
 
             self._initialized = True
 
-    @classmethod
-    def from_openfermion(cls, of_qubit_operator, n_qubits: int = None):
+    @staticmethod
+    def from_openfermion(
+        of_qubit_operator, hilbert: AbstractHilbert = None, n_qubits: int = None
+    ):
         r"""
         Converts an openfermion QubitOperator into a netket PauliStrings.
 
         Args:
             of_qubit_operator: openfermion.ops.QubitOperator object
+            hilbert: hilbert of the resulting PauliStrings object (default None gives Qubit)
             n_qubits (int): total number of qubits in the system, default None means inferring it from the QubitOperator
 
         Returns:
@@ -235,7 +238,7 @@ class PauliStrings(DiscreteOperator):
                 s[loc] = op
             operators.append("".join(s))
             weights.append(weight)
-        return cls(operators, weights)
+        return PauliStrings(hilbert, operators, weights)
 
     @property
     def dtype(self) -> DType:
