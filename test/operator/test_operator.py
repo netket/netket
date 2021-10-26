@@ -10,6 +10,7 @@ operators = {}
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 operators["Ising 1D"] = nk.operator.Ising(hi, g, h=1.321)
+operators["Ising 1D Jax"] = nk.operator.IsingJax(hi, g, h=1.321)
 
 # Heisenberg 1D
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
