@@ -49,6 +49,7 @@ def expect_and_grad(  # noqa: F811
     vstate: MCState,
     Ô: DiscreteOperator,
     use_covariance: TrueT,
+    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
@@ -103,6 +104,7 @@ def expect_and_grad(
     vstate: MCState,
     Ô: Squared[DiscreteOperator],
     use_covariance: Any,
+    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)

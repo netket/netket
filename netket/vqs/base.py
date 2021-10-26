@@ -212,7 +212,7 @@ class VariationalState(abc.ABC):
         if mutable is None:
             mutable = self.mutable
 
-        return expect_and_grad(self, Ô, use_covariance=use_covariance, mutable=mutable)
+        return expect_and_grad(self, Ô, use_covariance, mutable=mutable)
 
     # @abc.abstractmethod
     def quantum_geometric_tensor(self, qgt_type):
@@ -316,13 +316,14 @@ def expect(vstate: VariationalState, operator: AbstractOperator):
 
 
 # default dispatch where use_covariance is not specified
-@dispatch
+@dispatch(precedence=10)
 def expect_and_grad(
     vstate: VariationalState,
     operator: AbstractOperator,
-    *,
-    use_covariance: Optional[bool] = None,
+    use_covariance: Optional[bool],
+    *args,
     mutable=None,
+    **kwargs
 ):
     r"""Estimates both the gradient of the quantum expectation value of a given operator O.
 
@@ -365,4 +366,4 @@ def expect_and_grad(
     if mutable is None:
         mutable = vstate.mutable
 
-    return expect_and_grad(vstate, operator, use_covariance, mutable)
+    return expect_and_grad(vstate, operator, use_covariance, *args, mutable=mutable, **kwargs)
