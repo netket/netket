@@ -61,6 +61,11 @@ class PauliStrings(DiscreteOperator):
             # if first argument is not Hilbert, then shift all arguments by one
             hilbert, operators, weights = None, hilbert, operators
 
+        if operators is None:
+            raise ValueError(
+                "None valued operators passed. (Might arised when passing None valued hilbert explicitly)"
+            )
+
         if len(operators) == 0:
             raise ValueError("No Pauli operators passed.")
 
