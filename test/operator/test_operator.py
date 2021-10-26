@@ -388,3 +388,30 @@ def test_pauli_add_and_multiply():
     op_add_cte = nk.operator.PauliStrings(["X", "Y", "Z"], [-1, 1, 1]) + 2
     op_true_add_cte = nk.operator.PauliStrings(["X", "Y", "Z", "I"], [-1, 1, 1, 2])
     assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
+
+
+def test_openfermion_conversion():
+    # skip test if openfermion not installed
+    pytest.importorskip("openfermion")
+    from openfermion.ops import QubitOperator
+
+    of_qubit_operator = 0.5 * QubitOperator("X0 X3") + 0.3 * QubitOperator("Z0")
+
+    # no extra info given
+    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator)
+    assert isinstance(ps, nk.operator.PauliStrings)
+    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
+    assert ps.hilbert.size == 4
+
+    # number of qubits given
+    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator, n_qubits=6)
+    assert isinstance(ps, nk.operator.PauliStrings)
+    # check default
+    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
+    assert ps.hilbert.size == 6
+
+    # with hilbert
+    hilbert = nk.hilbert.Spin(1 / 2, 6)
+    ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
+    assert ps.hilbert == hilbert
+    assert ps.hilbert.size == 6

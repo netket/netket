@@ -61,6 +61,11 @@ class PauliStrings(DiscreteOperator):
             # if first argument is not Hilbert, then shift all arguments by one
             hilbert, operators, weights = None, hilbert, operators
 
+        if operators is None:
+            raise ValueError(
+                "None valued operators passed. (Might arised when passing None valued hilbert explicitly)"
+            )
+
         if len(operators) == 0:
             raise ValueError("No Pauli operators passed.")
 
@@ -199,6 +204,59 @@ class PauliStrings(DiscreteOperator):
             self._local_states = np.array(self.hilbert.local_states)
 
             self._initialized = True
+
+    @staticmethod
+    def from_openfermion(
+        hilbert: AbstractHilbert,
+        of_qubit_operator: "openfermion.ops.QubitOperator" = None,  # noqa: F821
+        *,
+        n_qubits: int = None,
+    ):
+        r"""
+        Converts an openfermion QubitOperator into a netket PauliStrings.
+
+        Args:
+            hilbert (optional): hilbert of the resulting PauliStrings object (default None gives Qubit)
+            of_qubit_operator (required): openfermion.ops.QubitOperator object
+            n_qubits (int): total number of qubits in the system, default None means inferring it from the QubitOperator. Argument is ignored when hilbert is given.
+
+        Returns:
+            A PauliStrings object.
+        """
+        from openfermion.ops import QubitOperator
+
+        if not isinstance(hilbert, AbstractHilbert):
+            # if first argument is not Hilbert, then shift all arguments by one
+            hilbert, of_qubit_operator = None, hilbert
+
+        if not isinstance(of_qubit_operator, QubitOperator):
+            raise NotImplementedError()
+        operators = []
+        weights = []
+        if hilbert is not None:
+            # no warning, just overwrite
+            n_qubits = hilbert.size
+        if n_qubits is None:
+            # we always start counting from 0, so we only determine the maximum location
+            n_qubits = (
+                max(
+                    max(term[0] for term in op) for op in of_qubit_operator.terms.keys()
+                )
+                + 1
+            )
+        for operator, weight in of_qubit_operator.terms.items():  # gives dict
+            s = ["I"] * n_qubits
+            for loc, op in operator:
+                assert (
+                    loc < n_qubits
+                ), "operator index {} is longer than n_qubits={}".format(loc, n_qubits)
+                s[loc] = op
+            operators.append("".join(s))
+            weights.append(weight)
+        if hilbert is None:
+            return PauliStrings(operators, weights)
+        else:
+            return PauliStrings(hilbert, operators, weights)
 
     @property
     def dtype(self) -> DType:
