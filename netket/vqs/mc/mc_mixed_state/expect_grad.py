@@ -50,6 +50,7 @@ def expect_and_grad(  # noqa: F811
     vstate: MCMixedState,
     Ô: Squared[AbstractSuperOperator],
     use_covariance: TrueT,
+    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     Ô = Ô.parent
