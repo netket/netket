@@ -20,8 +20,9 @@ from typing import Any
 from functools import partial
 
 import jax
-from jax import numpy as jnp
+import jax.numpy as jnp
 
+import netket.jax as nkjax
 
 def batch_discrete_kernel(kernel):
     """
@@ -73,3 +74,33 @@ def local_value_op_op_cost(logpsi, pars, σ, args):
     σ_σp = jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(σp, σ)
     σ_σ = jnp.hstack((σ, σ))
     return jnp.sum(mel * jnp.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
+
+
+
+## Batched versions of those kernels are defined below.
+
+def local_value_kernel_batched(logpsi, pars, σ, σp, mel, *, batch_size=None):
+    """
+    local_value kernel for MCState and generic operators
+    """
+    logpsi_batched = nkjax.vmap_batched(
+        partial(logpsi, pars), in_axes=0, batch_size=batch_size
+    )
+    N = σ.shape[-1]
+
+    logpsi_σ = logpsi_batched(σ.reshape((-1, N))).reshape(σ.shape[:-1] + (1,))
+    logpsi_σp = logpsi_batched(σp.reshape((-1, N))).reshape(σp.shape[:-1])
+
+    return jnp.sum(mel * jnp.exp(logpsi_σp - logpsi_σ), axis=-1)
+
+
+def local_value_squared_kernel_batched(logpsi, pars, σ, σp, mel, *, batch_size=None):
+    """
+    local_value kernel for MCState and Squared (generic) operators
+    """
+    return (
+        jnp.abs(
+            local_value_kernel_batched(logpsi, pars, σ, σp, mel, batch_size=batch_size)
+        )
+        ** 2
+    )
