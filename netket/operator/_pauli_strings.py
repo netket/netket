@@ -41,22 +41,33 @@ class PauliStrings(DiscreteOperator):
     ):
         """
         Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
+        This class has two possible forms for initialization: ``PauliStrings(hilbert, operators, ...)`` or  ``PauliStrings(operators, ...)``.
+        When no hilbert argument is passed, the hilbert defaults to Qubit.
 
         Args:
-           hilbert: A hilbert space, optional (default is Qubit)
+           hilbert: A hilbert space, optional (is no ``AbstractHilbert`` is passed, default is Qubit)
            operators (list(string)): A list of Pauli operators in string format, e.g. ['IXX', 'XZI'].
            weights: A list of amplitudes of the corresponding Pauli operator.
            cutoff (float): a cutoff to remove small matrix elements
 
         Examples:
-           Constructs a new ``PauliStrings`` operator X_0*X_1 + 3.*Z_0*Z_1.
+           Constructs a new ``PauliStrings`` operator X_0*X_1 + 3.*Z_0*Z_1 with both construction schemes.
 
            >>> import netket as nk
            >>> operators, weights = ['XX','ZZ'], [1,3]
            >>> op = nk.operator.PauliStrings(operators, weights)
+           >>> op.hilbert
+           Qubit(N=2)
            >>> op.hilbert.size
            2
+           >>> hilbert = nk.hilbert.Spin(1/2, 2)
+           >>> op = nk.operator.PauliStrings(hilbert, operators, weights)
+           >>> op.hilbert
+           Spin(s=1/2, N=2)
         """
+        if hilbert is None:
+            raise ValueError("None-valued hilbert passed.")
+
         if not isinstance(hilbert, AbstractHilbert):
             # if first argument is not Hilbert, then shift all arguments by one
             hilbert, operators, weights = None, hilbert, operators
