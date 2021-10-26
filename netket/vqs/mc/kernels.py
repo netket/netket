@@ -104,3 +104,21 @@ def local_value_squared_kernel_batched(logpsi, pars, σ, σp, mel, *, batch_size
         )
         ** 2
     )
+
+
+def local_value_op_op_cost_batched(logpsi, pars, σ, σp, mel, *, batch_size=None):
+    """
+    local_value kernel for MCMixedState and generic operators
+    """
+    σ_σp = jax.vmap(
+        lambda σpi, σi: jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(
+            σpi, σi
+        ),
+        in_axes=(0, 0),
+        out_axes=0,
+    )
+    σ_σ = jax.vmap(lambda σi: jnp.hstack((σi, σi)), in_axes=0)(σ)
+
+    return local_value_kernel_batched(
+        logpsi, pars, σ_σ, σ_σp, mel, batch_size=batch_size
+    )
