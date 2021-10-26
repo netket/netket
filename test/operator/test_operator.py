@@ -412,6 +412,6 @@ def test_openfermion_conversion():
 
     # with hilbert
     hilbert = nk.hilbert.Spin(1 / 2, 6)
-    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator, hilbert=hilbert)
+    ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
     assert ps.hilbert == hilbert
     assert ps.hilbert.size == 6
