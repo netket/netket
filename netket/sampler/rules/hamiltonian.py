@@ -134,14 +134,49 @@ class HamiltonianRuleJax(HamiltonianRule):
 
     def transition(self, _0, _1, _2, _3, key, x):
 
-        xp, _ = self.operator.get_conn_padded(x)
+        xp, mels = self.operator.get_conn_padded(x)
 
         n_conn = self.operator.n_conn(x)
 
+        # def _n_conn(mels):
+        #     nonzeros = jnp.abs(mels) > 0
+        #     return nonzeros.sum(axis=-1)
+        # n_conn = _n_conn(mels)
+
         rand_i = jax.random.randint(key, shape=(x.shape[0],), minval=0, maxval=n_conn)
-        x_proposed = xp[jnp.arange(xp.shape[0]), rand_i]
+
+        # we need to shift rand_i so that we only select the nonzeros
+        #
+        # if we were to assume that the nonzero mels are gathered at the beginning of each
+        # row we could avoid this, i.e. just do
+        # x_proposed = xp[jnp.arange(xp.shape[0]), rand_i]
+        #
+        # instead of actually shifting we build a mask for the selected element in each row
+        # and sum over the zeros at the end
+
+        # TODO let the operator supply the nonzeros or nonzero_i_plus1 directly
+        nonzeros = jnp.abs(mels) > 0
+        nonzero_i_plus1 = (jnp.cumsum(nonzeros, axis=-1)) * nonzeros
+        rand_i_mask = nonzero_i_plus1 == jnp.expand_dims(rand_i + 1, -1)
+        x_proposed = (xp * jnp.expand_dims(rand_i_mask, -1)).sum(axis=1)
 
         n_conn_proposed = self.operator.n_conn(x_proposed)
+
+        # _, mels_proposed = self.operator.get_conn_padded(x_proposed)
+        # n_conn_proposed = _n_conn(mels_proposed)
+
+        # if there are no connected elements x_proposed might
+        # contain illegal states (i.e. zeros)
+        # and log_prob_corr will be nan
+        # TODO is it safe to assume that n_conn >=1 ?
+        #
+        # no_nonzeros = nonzeros.sum(axis=-1) == 0
+        # x_proposed = jax.lax.select(
+        #     jax.lax.broadcast_in_dim(no_nonzeros, x.shape, (0,)), x, x_proposed
+        # )
+        # n_conn = jnp.maximum(n_conn, 1)
+        # n_conn_proposed = jnp.maximum(n_conn_proposed, 1)
+
         log_prob_corr = jnp.log(n_conn) - jnp.log(n_conn_proposed)
 
         return x_proposed, log_prob_corr
