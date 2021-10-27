@@ -415,3 +415,26 @@ def test_openfermion_conversion():
     ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
     assert ps.hilbert == hilbert
     assert ps.hilbert.size == 6
+
+@pytest.mark.parametrize(
+    "hilbert",
+    [
+        pytest.param(hi, id=str(hi))
+        for hi in (nk.hilbert.Spin(1 / 2, 2), nk.hilbert.Qubit(2), None)
+    ],
+)
+def test_pauli_output(hilbert):
+    ha = nk.operator.PauliStrings(nk.hilbert.Spin(1/2, 2), ["IZ", 'ZI'], [1.,1.])
+    all_states = ha.hilbert.all_states()
+    xp, _ = ha.get_conn_padded(all_states)
+    xp = xp.reshape(-1, ha.hilbert.size)
+
+    # following will throw an error if the output is not a valid hilbert state
+    for xpi in xp:
+        assert np.any(xpi == all_states), "{} not in hilbert space {}".format(xpi, ha.hilbert)
+
+def test_pauli_dense():
+    for op in ('I', 'X', 'Y', 'Z'):
+        ha1 = nk.operator.PauliStrings(nk.hilbert.Qubit(1), [op], [1])
+        ha2 = nk.operator.PauliStrings(nk.hilbert.Spin(1/2, 1), [op], [1])
+        assert np.allclose(ha1.to_dense(), ha2.to_dense())

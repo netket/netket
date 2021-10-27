@@ -380,13 +380,14 @@ class PauliStrings(DiscreteOperator):
         local_states,
         pad=False,
     ):
-        x_prime = np.zeros((x.shape[0] * max_conn, x_prime.shape[1]))
+        x_prime = np.empty((x.shape[0] * max_conn, x_prime.shape[1]), dtype=x.dtype)
         mels = np.zeros((x.shape[0] * max_conn), dtype=mels.dtype)
         state_1 = local_states[-1]
 
         n_c = 0
         for b in range(x.shape[0]):
             xb = x[b]
+            x_prime[b*max_conn:(b+1)*max_conn,:] = np.copy(xb) # initialize
             for i in range(sites.shape[0]):
                 mel = 0.0
                 for j in range(n_op[i]):
