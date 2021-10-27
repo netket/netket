@@ -29,7 +29,11 @@ extensions = [
     "sphinx_panels",
     "nbsphinx",
     "myst_parser",
+    "sphinx.ext.graphviz",
+    "sphinx.ext.inheritance_diagram",
 ]
+
+#inheritance_graph_attrs = dict(rankdir="TB", size='""')
 
 # Napoleon settings
 autodoc_docstring_signature = True
