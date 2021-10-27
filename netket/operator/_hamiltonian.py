@@ -363,31 +363,51 @@ class Ising(IsingBase):
         return jit(nopython=True)(gccf_fun)
 
 
-@partial(jax.jit, static_argnums=4, inline=True)
-def _ising_kernel_jax(x, edges, h, J):
-
+# @partial(jax.jit, inline=True)
+def _ising_mels_jax(x, edges, h, J):
     n_sites = x.shape[1]
-    n_conn = n_sites + 1
+    n_conn_max = n_sites + 1
 
-    mels = jnp.zeros((x.shape[0], n_conn))  # TODO dtype?
+    mels = jnp.zeros((x.shape[0], n_conn_max))  # TODO dtype?
     mels = mels.at[:, 1:].set(-h)
     mels = mels.at[:, 0].add(J * (x[:, edges[:, 0]] * x[:, edges[:, 1]]).sum(axis=-1))
+    return mels
+
+
+# @partial(jax.jit, inline=True)
+def _ising_conn_states_jax(x, edges, h, J):
+
+    n_sites = x.shape[1]
+    n_conn_max = n_sites + 1
 
     def _flip_lower_diag(x):
+        # TODO only works for spin 1/2
         _flip = jax.lax.neg
         cond = jnp.eye(*x.shape[-2:], k=-1, dtype=bool)
         cond = jax.lax.broadcast(cond, x.shape[:-2])
         return jax.lax.select(cond, _flip(x), x)
 
-    x_prime = jax.lax.broadcast_in_dim(x, (x.shape[0], n_conn, n_sites), (0, 2))
+    x_prime = jax.lax.broadcast_in_dim(x, (x.shape[0], n_conn_max, n_sites), (0, 2))
     x_prime = _flip_lower_diag(x_prime)
 
+    return x_prime
+
+
+@partial(jax.jit, inline=True)
+def _ising_kernel_jax(x, edges, h, J):
+    mels = _ising_mels_jax(x, edges, h, J)
+    x_prime = _ising_conn_states_jax(x, edges, h, J)
     return x_prime, mels
 
 
 @partial(jax.jit, inline=True)
-def _ising_n_conn_jax(x):
-    return jax.lax.broadcast(x.shape[1] + 1, (x.shape[0],))
+def _ising_n_conn_jax(x, edges, h, J):
+    n_sites = x.shape[1]
+    n_conn_X = (jnp.abs(h) > 0) * n_sites
+    # TODO only works for spin 1/2
+    # TODO duplicated with mels
+    n_conn_Z = jnp.abs(J * (x[:, edges[:, 0]] * x[:, edges[:, 1]]).sum(axis=-1)) > 0
+    return n_conn_X + n_conn_Z
 
 
 class IsingJax(IsingBase):
@@ -404,8 +424,8 @@ class IsingJax(IsingBase):
             x.shape[:-1] + mels.shape[1:]
         )
 
-    def n_conn(x):
-        return _ising_n_conn_jax(x)
+    def n_conn(self, x):
+        return _ising_n_conn_jax(x, self._edges, self._h, self._J)
 
     def get_conn_flattened(self, *args, **kwargs):
         raise NotImplementedError
