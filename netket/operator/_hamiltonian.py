@@ -151,6 +151,7 @@ class IsingBase(SpecialHamiltonian):
         self._h = dtype(h)
         self._J = dtype(J)
         self._dtype = dtype
+        self._local_states = hilbert.local_states
 
     @property
     def h(self) -> float:
@@ -370,33 +371,50 @@ def _ising_mels_jax(x, edges, h, J):
 
     mels = jnp.zeros((x.shape[0], n_conn_max))  # TODO dtype?
     mels = mels.at[:, 1:].set(-h)
-    mels = mels.at[:, 0].add(J * (x[:, edges[:, 0]] * x[:, edges[:, 1]]).sum(axis=-1))
+    mels = mels.at[:, 0].add(
+        J * (2 * (x[:, edges[:, 0]] == x[:, edges[:, 1]]) - 1).sum(axis=-1)
+    )
     return mels
 
 
-# @partial(jax.jit, inline=True)
-def _ising_conn_states_jax(x, edges, h, J):
+# @partial(jax.jit, static_argnames=('local_states'), inline=True)
+def _ising_conn_states_jax(x, edges, h, J, local_states):
 
     n_sites = x.shape[1]
     n_conn_max = n_sites + 1
 
-    def _flip_lower_diag(x):
-        # TODO only works for spin 1/2
-        _flip = jax.lax.neg
+    def _flip_if(cond, x, local_states):
+        # TODO here we could special-case for qubit / ising
+        # by taking -x / 1-x
+        # i.e
+        # if local_states[0]-local_states[1] == 0:
+        #      return jax.lax.select(cond, -x, x)
+        # elif local_states[0] == 0:
+        #     return jax.lax.select(cond, local_states[1]-x, x)
+        # elif local_states[1] == 0:
+        #     return jax.lax.select(cond, local_states[0]-x, x)
+        # else:
+        #     ...
+        was_state_0 = x == local_states[0]
+        state_0 = jax.lax.broadcast(local_states[0], x.shape)
+        state_1 = jax.lax.broadcast(local_states[1], x.shape)
+        return jax.lax.select(jax.lax.bitwise_xor(cond, was_state_0), state_0, state_1)
+
+    def _flip_lower_diag(x, local_states):
         cond = jnp.eye(*x.shape[-2:], k=-1, dtype=bool)
         cond = jax.lax.broadcast(cond, x.shape[:-2])
-        return jax.lax.select(cond, _flip(x), x)
+        return _flip_if(cond, x, local_states)
 
     x_prime = jax.lax.broadcast_in_dim(x, (x.shape[0], n_conn_max, n_sites), (0, 2))
-    x_prime = _flip_lower_diag(x_prime)
+    x_prime = _flip_lower_diag(x_prime, local_states)
 
     return x_prime
 
 
-@partial(jax.jit, inline=True)
-def _ising_kernel_jax(x, edges, h, J):
+@partial(jax.jit, static_argnames="local_states", inline=True)
+def _ising_kernel_jax(x, edges, h, J, local_states):
     mels = _ising_mels_jax(x, edges, h, J)
-    x_prime = _ising_conn_states_jax(x, edges, h, J)
+    x_prime = _ising_conn_states_jax(x, edges, h, J, local_states)
     return x_prime, mels
 
 
@@ -404,10 +422,10 @@ def _ising_kernel_jax(x, edges, h, J):
 def _ising_n_conn_jax(x, edges, h, J):
     n_sites = x.shape[1]
     n_conn_X = (jnp.abs(h) > 0) * n_sites
-    # TODO only works for spin 1/2
     # TODO duplicated with mels
-    n_conn_Z = jnp.abs(J * (x[:, edges[:, 0]] * x[:, edges[:, 1]]).sum(axis=-1)) > 0
-    return n_conn_X + n_conn_Z
+    mels_ZZ = J * (2 * (x[:, edges[:, 0]] == x[:, edges[:, 1]]) - 1).sum(axis=-1)
+    n_conn_ZZ = jnp.abs(mels_ZZ) > 0
+    return n_conn_X + n_conn_ZZ
 
 
 class IsingJax(IsingBase):
@@ -415,10 +433,15 @@ class IsingJax(IsingBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._edges = jnp.asarray(self._edges, dtype=jnp.int32)
+        self._local_states = tuple(self._local_states)
 
     def get_conn_padded(self, x):
         x_prime, mels = _ising_kernel_jax(
-            x.reshape((-1, x.shape[-1])), self._edges, self._h, self._J
+            x.reshape((-1, x.shape[-1])),
+            self._edges,
+            self._h,
+            self._J,
+            self._local_states,
         )
         return x_prime.reshape(x.shape[:-1] + x_prime.shape[1:]), mels.reshape(
             x.shape[:-1] + mels.shape[1:]
