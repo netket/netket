@@ -88,7 +88,7 @@ def model(request):
 
 
 @pytest.fixture
-def vstate(request, model):
+def vstate(request, model, chunk_size):
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
 
@@ -99,6 +99,8 @@ def vstate(request, model):
     vstate.init_parameters(normal(stddev=0.001), seed=jax.random.PRNGKey(3))
 
     vstate.sample()
+
+    vstate.chunk_size = chunk_size
 
     return vstate
 
@@ -111,6 +113,7 @@ def vstate(request, model):
     "solver",
     [pytest.param(solver, id=name) for name, solver in solvers.items()],
 )
+@pytest.mark.parametrize("chunk_size", [None, 18])
 def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     S = qgt(vstate)
     x, _ = S.solve(solver, vstate.parameters)
@@ -142,6 +145,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     "qgt",
     [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
 )
+@pytest.mark.parametrize("chunk_size", [None, 18])
 def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     S = qgt(vstate)
     rng = nkjax.PRNGSeq(0)
@@ -186,6 +190,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     "qgt",
     [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
 )
+@pytest.mark.parametrize("chunk_size", [None, 18])
 def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
     S = qgt(vstate)
 
