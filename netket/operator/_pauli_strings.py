@@ -387,7 +387,9 @@ class PauliStrings(DiscreteOperator):
         n_c = 0
         for b in range(x.shape[0]):
             xb = x[b]
-            x_prime[b*max_conn:(b+1)*max_conn,:] = np.copy(xb) # initialize
+            # initialize
+            x_prime[b * max_conn : (b + 1) * max_conn, :] = np.copy(xb)
+
             for i in range(sites.shape[0]):
                 mel = 0.0
                 for j in range(n_op[i]):
