@@ -39,7 +39,7 @@ autosummary_generate = True
 napoleon_preprocess_types = True
 
 # PEP 526 annotations
-napoleon_attr_annotations = True 
+napoleon_attr_annotations = True
 
 panels_add_bootstrap_css = False
 
@@ -227,8 +227,10 @@ def setup(app):
     # fix modules
     process_module_names(netket)
 
+
 import netket
 import inspect
+
 
 def process_module_names(module, modname="", inner=0):
     """
@@ -239,17 +241,11 @@ def process_module_names(module, modname="", inner=0):
     This fixes the fact that for example netket.graph.Lattice is actually
     netket.graph.lattice.Lattice
     """
-    # try:
-    #     print(' '*inner, f"Processing {modname}::>>{module.__name__}")
-    # except:
-    #     print(' '*inner, f"Processing {module} in {modname}, has no name")
     if hasattr(module, "__all__"):
         for subm in module.__all__:
-            obj = getattr(module, subm) 
-            process_module_names(obj, f"{module.__name__}", inner=inner+1)
+            obj = getattr(module, subm)
+            process_module_names(obj, f"{module.__name__}", inner=inner + 1)
     elif inspect.isclass(module):
-        #print(' '*(inner+2), f"Setting {module.__name__}.__module__ = {modname}")
         module.__module__ = modname
     elif inspect.isfunction(module):
-        #print(' '*(inner+2), f"Setting {module.__name__}.__module__ = {modname}")
         module.__module__ = modname
