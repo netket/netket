@@ -92,6 +92,12 @@ samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltoni
     reset_chains=True,
 )
 
+ha_jax = nk.operator.IsingJax(hilbert=hi, graph=g, h=1.0)
+
+samplers["Metropolis(HamiltonianRuleJax): Spin"] = nk.sampler.MetropolisSampler(
+    hi, reset_chains=True, rule=nk.sampler.rules.HamiltonianRuleJax(ha_jax)
+)
+
 samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
     hi, move_operators=move_op
 )
