@@ -33,10 +33,10 @@ dependencies, you can run the following command:
 
 ```
 pip install 'git+https://github.com/netket/netket.git#egg=netket[all]'
-``` 
+```
 
 You can also install the MPI-related dependencies by using `[dev,mpi]` between the square brackets.
-We recommend to install NetKet with all it's extra dependencies, which are documented below. 
+We recommend to install NetKet with all it's extra dependencies, which are documented below.
 However, if you do not have a working MPI compiler in your PATH this installation will most likely fail because
 it will attempt to install `mpi4py`, which enables MPI support in netket.
 
@@ -49,13 +49,13 @@ To check what is the latest version released on both distributions you can inspe
 When installing netket with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
  - '[dev]': installs development-related dependencies such as black, pytest and testing dependencies
  - '[mpi]': Installs `mpi4py` to enable multi-process parallelism. Requires a working MPI compiler in your path
- - '[tensorboard]': Installs `tensorboardx` to enable logging to tensorboard.
+ - '[extra]': Installs `tensorboardx` to enable logging to tensorboard, and openfermion to convert the QubitOperators.
  - '[all]': Installs all extra dependencies
 
 ### MPI Support
 To enable MPI support you must install [mpi4jax](https://github.com/PhilipVinc/mpi4jax). Please note that we advise to install mpi4jax  with the same tool (conda or pip) with which you install it's dependency `mpi4py`.
 
-To check whever MPI support is enabled, check the flags 
+To check whever MPI support is enabled, check the flags
 ```python
 >>> import netket
 >>> netket.utils.mpi.available

@@ -43,7 +43,7 @@ jobs:
 
     env:
       MPICH_INTERFACE_HOSTNAME: localhost
-      USE_MPI: ${{ matrix.mpi }} 
+      USE_MPI: ${{ matrix.mpi }}
 
     steps:
       - uses: actions/checkout@v2
@@ -75,7 +75,7 @@ jobs:
         run: |
           pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
-            pip install -e ".[dev]"
+            pip install -e ".[dev, extras]"
           else
             pip install -e ".[dev, mpi]"
           fi
@@ -92,7 +92,7 @@ jobs:
           pytest --doctest-continue-on-failure --doctest-modules netket/
 
       - name: MPI tests
-        if: matrix.mpi != '' 
+        if: matrix.mpi != ''
         run: |
           mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 test
           coverage combine --append
