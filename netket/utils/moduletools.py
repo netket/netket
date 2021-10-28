@@ -41,6 +41,8 @@ def _hide_submodules(module_name, *, remove_self=True, ignore=tuple()):
     if remove_self and hasattr(module, "_hide_submodules"):
         delattr(module, "_hide_submodules")
 
+    auto_export(module)
+
 
 def rename_class(new_name):
     """
@@ -69,6 +71,26 @@ def export(fn):
     else:
         mod.__all__ = [fn.__name__]
     return fn
+
+
+def auto_export(module):
+    """
+    Automatically construct __all__ with all modules desired.
+    This is necessary to have correct paths in the documentation.
+    """
+    elements = dir(module)
+
+    if not hasattr(module, "__all__"):
+        setattr(module, "__all__", [])
+
+    _all = module.__all__
+
+    for el in elements:
+        if el.startswith("_"):
+            continue
+
+        if el not in _all:
+            _all.append(el)
 
 
 def hide_unexported(module_name):

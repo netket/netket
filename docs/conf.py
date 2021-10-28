@@ -38,6 +38,9 @@ allow_inherited = True
 autosummary_generate = True
 napoleon_preprocess_types = True
 
+# PEP 526 annotations
+napoleon_attr_annotations = True
+
 panels_add_bootstrap_css = False
 
 master_doc = "index"
@@ -65,7 +68,7 @@ source_suffix = {
 }
 
 # Markdown parser latex support
-myst_enable_extensions = ["dollarmath", "amsmath", "braket"]
+myst_enable_extensions = ["dollarmath", "amsmath"]
 myst_update_mathjax = False
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
@@ -220,3 +223,29 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 def setup(app):
     app.connect("autodoc-skip-member", autodoc_skip_member)
     # app.connect('autodoc-process-docstring', warn_undocumented_members);
+
+    # fix modules
+    process_module_names(netket)
+
+
+import netket
+import inspect
+
+
+def process_module_names(module, modname="", inner=0):
+    """
+    This function goes through everything that is exported through __all__ in every
+    module, recursively, and if it hits classes or functions it chagnes their __module__
+    so that it reflects the one we want printed in the docs (instead of the actual one).
+
+    This fixes the fact that for example netket.graph.Lattice is actually
+    netket.graph.lattice.Lattice
+    """
+    if hasattr(module, "__all__"):
+        for subm in module.__all__:
+            obj = getattr(module, subm)
+            process_module_names(obj, f"{module.__name__}", inner=inner + 1)
+    elif inspect.isclass(module):
+        module.__module__ = modname
+    elif inspect.isfunction(module):
+        module.__module__ = modname

@@ -27,8 +27,8 @@ class Qubit(HomogeneousHilbert):
         r"""Initializes a qubit hilbert space.
 
         Args:
-        N: Number of qubits.
-        graph: (deprecated) a graph from which to extract the number of sites.
+            N: Number of qubits.
+            graph: (deprecated) a graph from which to extract the number of sites.
 
         Examples:
             Simple spin hilbert space.
