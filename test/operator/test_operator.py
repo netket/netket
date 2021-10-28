@@ -79,10 +79,11 @@ for name, op in operators.items():
         op_special[name] = op
 
 
+@pytest.mark.parametrize("attr", ["get_conn", "get_conn_padded"])
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-def test_produce_elements_in_hilbert(op):
+def test_produce_elements_in_hilbert(op, attr):
     rng = nk.jax.PRNGSeq(0)
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
@@ -95,7 +96,7 @@ def test_produce_elements_in_hilbert(op):
     for i in range(1000):
         rstate = hi.random_state(rng.next())
 
-        rstatet, mels = op.get_conn(rstate)
+        rstatet, mels = getattr(op, attr)(rstate)
 
         assert np.all(np.isin(rstatet, local_states))
         assert len(mels) <= max_conn_size
