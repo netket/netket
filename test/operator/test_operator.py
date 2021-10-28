@@ -444,3 +444,13 @@ def test_pauli_dense():
         ha1 = nk.operator.PauliStrings(nk.hilbert.Qubit(1), [op], [1])
         ha2 = nk.operator.PauliStrings(nk.hilbert.Spin(1 / 2, 1), [op], [1])
         assert np.allclose(ha1.to_dense(), ha2.to_dense())
+
+
+def test_pauli_zero():
+    op1 = nk.operator.PauliStrings(["IZ"], [1])
+    op2 = nk.operator.PauliStrings(["IZ"], [-1])
+    op = op1 + op2
+
+    all_states = op.hilbert.all_states()
+    _, mels = op.get_conn_padded(all_states)
+    assert np.allclose(mels, 0)
