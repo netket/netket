@@ -30,7 +30,7 @@ extensions = [
     "nbsphinx",
     "myst_parser",
     "sphinx.ext.graphviz",
-    "sphinx.ext.inheritance_diagram",
+    "btd.sphinx.inheritance_diagram", # this is a custom patched version because of bug sphinx#2484
 ]
 
 # inheritance_graph_attrs = dict(rankdir="TB", size='""')

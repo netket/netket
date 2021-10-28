@@ -1,0 +1,2 @@
+sphinx>=2.3.1
+btd.sphinx.graphviz>=2.3.1
