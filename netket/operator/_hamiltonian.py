@@ -772,6 +772,9 @@ class BoseHubbard(SpecialHamiltonian):
         if self._max_mels.size < total_size:
             self._max_mels = np.empty(total_size, dtype=self._max_mels.dtype)
             self._max_xprime = np.empty((total_size, x.shape[1]), dtype=x.dtype)
+        else:
+            if x.dtype != self._max_xprime.dtype:
+                self._max_xprime = self._max_xprime.astype(x.dtype)
 
         return self._flattened_kernel(
             np.asarray(x),

@@ -380,13 +380,16 @@ class PauliStrings(DiscreteOperator):
         local_states,
         pad=False,
     ):
-        x_prime = np.zeros((x.shape[0] * max_conn, x_prime.shape[1]))
+        x_prime = np.empty((x.shape[0] * max_conn, x_prime.shape[1]), dtype=x.dtype)
         mels = np.zeros((x.shape[0] * max_conn), dtype=mels.dtype)
         state_1 = local_states[-1]
 
         n_c = 0
         for b in range(x.shape[0]):
             xb = x[b]
+            # initialize
+            x_prime[b * max_conn : (b + 1) * max_conn, :] = np.copy(xb)
+
             for i in range(sites.shape[0]):
                 mel = 0.0
                 for j in range(n_op[i]):
@@ -559,6 +562,20 @@ def _make_new_pauli_string(op1, w1, op2, w2):
     return new_op, new_weight
 
 
+def _remove_zero_weights(op_arr, w_arr):
+    if len(op_arr) == 0:
+        return op_arr, w_arr
+    idx_nz = ~np.isclose(w_arr, 0)
+    if np.any(idx_nz):
+        operators = op_arr[idx_nz]
+        weights = w_arr[idx_nz]
+    else:
+        # convention
+        operators = np.array(["I" * len(op_arr[0])])
+        weights = np.array([0], dtype=w_arr.dtype)
+    return operators, weights
+
+
 def _reduce_pauli_string(op_arr, w_arr):
     """From a list of pauli strings, sum the weights of duplicate strings.
     Args:
@@ -572,13 +589,12 @@ def _reduce_pauli_string(op_arr, w_arr):
     """
     operators_unique, idx = np.unique(op_arr, return_inverse=True)
     if len(operators_unique) == len(op_arr):
-        return op_arr, w_arr
+        # still remove zeros
+        return _remove_zero_weights(op_arr, w_arr)
     summed_weights = np.array(
         [np.sum(w_arr[idx == i]) for i in range(len(operators_unique))]
     )
-    idx_nz = ~np.isclose(summed_weights, 0)
-    operators = operators_unique[idx_nz]
-    weights = summed_weights[idx_nz]
+    operators, weights = _remove_zero_weights(operators_unique, summed_weights)
     return operators, weights
 
 
