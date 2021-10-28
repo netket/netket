@@ -39,7 +39,6 @@ from ._local_cost_functions import (
 )
 
 
-
 from netket.utils import _auto_export
 
 _auto_export(__name__)

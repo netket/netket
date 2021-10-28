@@ -21,7 +21,7 @@ from .discrete_hilbert import DiscreteHilbert
 
 # TODO: Make parametric class
 class TensorHilbert(DiscreteHilbert):
-    r"""Tensor product of several Discrete sub-spaces, representing the space 
+    r"""Tensor product of several Discrete sub-spaces, representing the space
 
     In general you should not construct this object directly, but you should
     simply multiply different hilbert spaces together. In this case, Python's
