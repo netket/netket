@@ -34,6 +34,7 @@ extensions = [
 ]
 
 #inheritance_graph_attrs = dict(rankdir="TB", size='""')
+graphviz_output_format = 'svg'
 
 # Napoleon settings
 autodoc_docstring_signature = True
