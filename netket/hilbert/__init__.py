@@ -14,6 +14,9 @@
 
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
+from .homogeneous import HomogeneousHilbert
+from .tensor_hilbert import TensorHilbert
+
 from .abstract_continuous_space_particle import AbstractParticle
 
 from .custom_hilbert import CustomHilbert

@@ -21,10 +21,24 @@ from .discrete_hilbert import DiscreteHilbert
 
 # TODO: Make parametric class
 class TensorHilbert(DiscreteHilbert):
-    r"""Tensor product of several lattice sub-spaces.
+    r"""Tensor product of several Discrete sub-spaces, representing the space 
 
-    In general you should not need to construcct this objecct directly, but
-    rather may get it when multiplying hilbert spaces.
+    In general you should not construct this object directly, but you should
+    simply multiply different hilbert spaces together. In this case, Python's
+    `*` operator will be interpreted as a tensor product.
+
+    This Hilbert can be used as a replacement anywhere a Uniform Hilbert space
+    is not required.
+
+    Examples:
+        Couple a bosonic mode with spins
+
+        >>> from netket.hilbert import Spin, Fock
+        >>> Fock(3)*Spin(0.5, 5)
+        Fock(n_max=3, N=1)*Spin(s=1/2, N=5)
+        >>> type(_)
+        <class 'netket.hilbert.tensor_hilbert.TensorHilbert'>
+
     """
 
     def __init__(self, *hilb_spaces: DiscreteHilbert):
