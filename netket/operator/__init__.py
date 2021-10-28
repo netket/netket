@@ -37,3 +37,9 @@ from ._local_cost_functions import (
     local_value_cost,
     local_value_op_op_cost,
 )
+
+
+
+from netket.utils import _auto_export
+
+_auto_export(__name__)
