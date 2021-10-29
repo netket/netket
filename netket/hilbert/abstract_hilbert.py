@@ -29,7 +29,7 @@ class AbstractHilbert(abc.ABC):
     This class definese the common interface used to interact with Hilbert spaces.
 
     An AbstractHilbert object identifies an Hilbert space and a computational basis on
-    such hilbert space, such as the z-basis for spins on a lattice, or the 
+    such hilbert space, such as the z-basis for spins on a lattice, or the
     position-basis for particles in a box.
 
     Hilbert Spaces are generally immutable python objects that must be hashable in order
