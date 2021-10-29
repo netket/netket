@@ -39,43 +39,38 @@
 #
 import setuptools
 
-projectName =           "sphinx.inheritance_diagram"
+projectName = "sphinx.inheritance_diagram"
 projectNameWithPrefix = "btd." + projectName
-version =               "2.3.1.post1"
+version = "2.3.1.post1"
 
 setuptools.setup(
-	name=projectNameWithPrefix,
-	version=version,
-
-	author="Sphinx team, Patrick Lehmann",
-	author_email="Paebbels@gmail.com",
-	# maintainer="Patrick Lehmann",
-	# maintainer_email="Paebbels@gmail.com",
-
-	description="Embedding diagrams rendered with inheritance_diagram.",
-	long_description_content_type="text/markdown",
-
-	# download_url="https://github.com/buildthedocs/sphinx.inheritance_diagram/tarball/0.1.0",
-
-	packages=setuptools.find_namespace_packages(),
-	classifiers=[
-		"License :: OSI Approved :: BSD License",
-		"Operating System :: OS Independent",
-		"Programming Language :: Python :: 3 :: Only",
-		"Programming Language :: Python :: 3.4",
-		"Programming Language :: Python :: 3.5",
-		"Programming Language :: Python :: 3.6",
-		"Programming Language :: Python :: 3.7",
-		"Programming Language :: Python :: 3.8",
-		"Development Status :: 5 - Production/Stable",
-		"Intended Audience :: Developers",
-		"Topic :: Documentation :: Sphinx",
-		"Framework :: Sphinx :: Extension"
-	],
-	keywords="Sphinx Documentation Inheritance Diagram Graphviz",
-
-	python_requires='>=3.4',
-	install_requires=[],
-	# provides=
-	# obsoletes=
+    name=projectNameWithPrefix,
+    version=version,
+    author="Sphinx team, Patrick Lehmann",
+    author_email="Paebbels@gmail.com",
+    # maintainer="Patrick Lehmann",
+    # maintainer_email="Paebbels@gmail.com",
+    description="Embedding diagrams rendered with inheritance_diagram.",
+    long_description_content_type="text/markdown",
+    # download_url="https://github.com/buildthedocs/sphinx.inheritance_diagram/tarball/0.1.0",
+    packages=setuptools.find_namespace_packages(),
+    classifiers=[
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Topic :: Documentation :: Sphinx",
+        "Framework :: Sphinx :: Extension",
+    ],
+    keywords="Sphinx Documentation Inheritance Diagram Graphviz",
+    python_requires=">=3.4",
+    install_requires=[],
+    # provides=
+    # obsoletes=
 )
