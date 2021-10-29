@@ -23,7 +23,10 @@ def _chunk(x, chunk_size=None):
 
     n_chunks, residual = divmod(n, chunk_size)
     if residual != 0:
-        raise ValueError("the first dimension of x must be divisible by chunk_size")
+        raise ValueError(
+            "The first dimension of x must be divisible by chunk_size."
+            + f"\n            Got x.shape={x.shape} but chunk_size={chunk_size}."
+        )
     return x.reshape((n_chunks, chunk_size) + x.shape[1:])
 
 
