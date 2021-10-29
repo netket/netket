@@ -145,7 +145,7 @@ class PauliStrings(DiscreteOperator):
 
             def append(key, k):
                 # convert list to tuple
-                key = tuple(set(key))  # order of X and Y does not matter
+                key = tuple(sorted(key))  # order of X and Y does not matter
                 if key in acting:
                     acting[key].append(k)
                 else:
