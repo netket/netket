@@ -26,10 +26,14 @@ max_states = np.iinfo(np.int32).max
 class AbstractHilbert(abc.ABC):
     """Abstract class for NetKet hilbert objects.
 
-    This class definese the common interface that can be used to
-    interact with hilbert spaces.
+    This class definese the common interface used to interact with Hilbert spaces.
 
-    Hilbert Spaces are immutable.
+    An AbstractHilbert object identifies an Hilbert space and a computational basis on
+    such hilbert space, such as the z-basis for spins on a lattice, or the 
+    position-basis for particles in a box.
+
+    Hilbert Spaces are generally immutable python objects that must be hashable in order
+    to be used as static arguments to `jax.jit` functions.
     """
 
     def __init__(self):
