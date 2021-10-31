@@ -216,18 +216,26 @@ class ExactState(VariationalState):
         """
         raise NotImplementedError
 
-    def to_array(self, normalize: bool = True) -> jnp.ndarray:
+    def to_array(self, normalize: bool = True, allgather: bool = False) -> jnp.ndarray:
 
         if self._array is None and normalize:
             self._array = nn.to_array(
-                self.hilbert, self._apply_fun, self.variables, normalize=normalize
+                self.hilbert,
+                self._apply_fun,
+                self.variables,
+                normalize=normalize,
+                allgather=allgather,
             )
 
         if normalize:
             arr = self._array
         else:
             arr = nn.to_array(
-                self.hilbert, self._apply_fun, self.variables, normalize=normalize
+                self.hilbert,
+                self._apply_fun,
+                self.variables,
+                normalize=normalize,
+                allgather=allgather,
             )
 
         return arr
