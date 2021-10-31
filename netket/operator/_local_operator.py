@@ -777,7 +777,7 @@ class LocalOperator(DiscreteOperator):
                 acting_on.append(act_i.tolist())
             elif inters.size == 0:
                 # disjoint supports
-                operators.append(sp.kron(self._operators[i], op))
+                operators.append(sp.kron(self._operators[i], op, format="csr"))
                 acting_on.append(act_i.tolist() + act.tolist())
             else:
                 _act = list(act)
@@ -794,10 +794,10 @@ class LocalOperator(DiscreteOperator):
                         )
                         if site < actmin:
                             _act = [site] + _act
-                            _op = sp.kron(I, _op)
+                            _op = sp.kron(I, _op, format="csr")
                         else:  #  site > actmax
                             _act = _act + [site]
-                            _op = sp.kron(_op, I)
+                            _op = sp.kron(_op, I, format="csr")
 
                 act_i_min = min(act_i)
                 for site in act:
@@ -807,10 +807,10 @@ class LocalOperator(DiscreteOperator):
                         )
                         if site < act_i_min:
                             _act_i = [site] + _act_i
-                            _op_i = sp.kron(I, _op_i)
+                            _op_i = sp.kron(I, _op_i, format="csr")
                         else:  #  site > actmax
                             _act_i = _act_i + [site]
-                            _op_i = sp.kron(_op_i, I)
+                            _op_i = sp.kron(_op_i, I, format="csr")
 
                 # reorder
                 _op, _act = _reorder_kronecker_product(self.hilbert, _op, _act)
