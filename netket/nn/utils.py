@@ -15,10 +15,9 @@ def split_array_mpi(array):
     n_states = array.shape[0]
     n_states_padded = int(np.ceil(n_states / mpi.n_nodes)) * mpi.n_nodes
     states_n = np.arange(n_states)
-    fake_states_n = np.arange(n_states_padded - n_states)
 
     # divide the hilbert space in chunks for each node
-    states_per_rank = np.split(np.concatenate([states_n, fake_states_n]), mpi.n_nodes)
+    states_per_rank = np.array_split(states_n, mpi.n_nodes)
 
     return array[states_per_rank[mpi.rank]]
 
