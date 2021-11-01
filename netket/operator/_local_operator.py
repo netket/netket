@@ -978,7 +978,7 @@ class LocalOperator(DiscreteOperator):
             for i in range(n_operators):
                 if nonzero_diagonal:
                     mels[c_diag] += diag_mels[i, xs_n[b, i]]
-                    
+
                 n_conn_i = n_conns[i, xs_n[b, i]]
 
                 if n_conn_i > 0:
