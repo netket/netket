@@ -216,7 +216,7 @@ class ExactState(VariationalState):
         """
         raise NotImplementedError
 
-    def to_array(self, normalize: bool = True, allgather: bool = False) -> jnp.ndarray:
+    def to_array(self, normalize: bool = True, allgather: bool = True) -> jnp.ndarray:
 
         if self._array is None and normalize:
             self._array = nn.to_array(
@@ -250,7 +250,7 @@ class ExactState(VariationalState):
     @property
     def _all_states(self):
         if self._states is None:
-            self._states = jnp.array(nn.split_hilbert_space(self.hilbert))
+            self._states = self.hilbert.all_states()
         return self._states
 
     def __repr__(self):
