@@ -37,6 +37,7 @@ jobs:
             mpi: ""
             main_tests: true
             oldest_deps: true
+            env: NUMBA_BOUNDSCHECK=1
 
         #python-version: [3.6, 3.7, 3.8]
         #os: [ubuntu-latest, macos-latest]
