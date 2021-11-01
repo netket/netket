@@ -66,4 +66,4 @@ from .initializers import zeros, ones
 
 from flax.linen import Embed
 
-from .utils import to_array, to_matrix, split_hilbert_space
+from .utils import to_array, to_matrix, split_array_mpi
