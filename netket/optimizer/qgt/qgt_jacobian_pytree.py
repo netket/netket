@@ -28,6 +28,8 @@ from ..linear_operator import LinearOperator, Uninitialized
 from .qgt_jacobian_pytree_logic import mat_vec, prepare_centered_oks
 from .qgt_jacobian_common import choose_jacobian_mode
 
+from netket.nn import split_array_mpi
+
 
 def QGTJacobianPyTree(
     vstate=None,
@@ -70,8 +72,8 @@ def QGTJacobianPyTree(
     from netket.vqs.exact import ExactState
 
     if isinstance(vstate, ExactState):
-        samples = vstate._all_states
-        pdf = vstate.probability_distribution()
+        samples = split_array_mpi(vstate._all_states)
+        pdf = split_array_mpi(vstate.probability_distribution())
     else:
         samples = vstate.samples
         pdf = None

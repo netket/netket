@@ -7,15 +7,12 @@ from netket.utils import mpi
 import jax
 
 
-def split_hilbert_space(hilbert):
+def split_array_mpi(array):
     """
-    Splits all states of `hilbert` between mpi threads and returns
-      the results as a vector.
+    Splits the array between mpi theads by the first dimension
     """
-    if not hilbert.is_indexable:
-        raise RuntimeError("The hilbert space is not indexable")
 
-    n_states = hilbert.n_states
+    n_states = array.shape[0]
     n_states_padded = int(np.ceil(n_states / mpi.n_nodes)) * mpi.n_nodes
     states_n = np.arange(n_states)
     fake_states_n = np.arange(n_states_padded - n_states)
@@ -23,9 +20,7 @@ def split_hilbert_space(hilbert):
     # divide the hilbert space in chunks for each node
     states_per_rank = np.split(np.concatenate([states_n, fake_states_n]), mpi.n_nodes)
 
-    xs = hilbert.numbers_to_states(states_per_rank[mpi.rank])
-
-    return xs
+    return array[states_per_rank[mpi.rank]]
 
 
 def to_array(hilbert, apply_fun, variables, normalize=True, allgather=True):
