@@ -29,7 +29,12 @@ extensions = [
     "sphinx_panels",
     "nbsphinx",
     "myst_parser",
+    "sphinx.ext.graphviz",
+    "btd.sphinx.inheritance_diagram",  # this is a custom patched version because of bug sphinx#2484
 ]
+
+# inheritance_graph_attrs = dict(rankdir="TB", size='""')
+# graphviz_output_format = 'svg'
 
 # Napoleon settings
 autodoc_docstring_signature = True

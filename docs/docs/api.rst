@@ -20,9 +20,9 @@ Graph
 
    netket.graph.AbstractGraph
    netket.graph.Graph
+   netket.graph.Lattice
    netket.graph.Edgeless
    netket.graph.Hypercube
-   netket.graph.Lattice
    netket.graph.lattice.LatticeSite
    netket.graph.Chain
    netket.graph.Grid
@@ -38,11 +38,16 @@ Hilbert
    :nosignatures:
 
    netket.hilbert.AbstractHilbert
+   netket.hilbert.AbstractParticle
+   netket.hilbert.DiscreteHilbert
+   netket.hilbert.HomogeneousHilbert
    netket.hilbert.CustomHilbert
+   netket.hilbert.TensorHilbert
    netket.hilbert.DoubledHilbert
-   netket.hilbert.Fock
-   netket.hilbert.Qubit
    netket.hilbert.Spin
+   netket.hilbert.Qubit
+   netket.hilbert.Fock
+   netket.hilbert.ContinuousBoson
 
 .. _operators-api:
 

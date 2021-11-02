@@ -77,7 +77,13 @@ def auto_export(module):
     """
     Automatically construct __all__ with all modules desired.
     This is necessary to have correct paths in the documentation.
+
+    Args:
+        module: a module or module name
     """
+    if isinstance(module, str):
+        module = sys.modules[module]
+
     elements = dir(module)
 
     if not hasattr(module, "__all__"):
