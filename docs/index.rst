@@ -134,11 +134,11 @@
    docs/getting_started
    docs/changelog
    docs/superop
+   docs/hilbert
    docs/varstate
    docs/sr
    docs/drivers
    docs/sharp-bits
-
 
 .. toctree::
    :maxdepth: 2
