@@ -134,20 +134,12 @@ def test_lattice_graphs(i, name):
     assert graph.n_edges == graph.n_nodes * coordination_number[i] // 2
 
 
-# netket#743 : multiple edges and self-loops in lattice
-@pytest.mark.parametrize(
-    "size,n_nodes,n_edges",
-    zip(
-        [[1], [2, 1], [3, 2]],
-        [1, 2, 6],
-        [0, 1, 9],
-    ),
-)
-def test_no_redundant_edges(size, n_nodes, n_edges):
-    g = Grid(size)
+# netket#743 : multiple edges
+def test_no_redundant_edges():
+    g = Grid([3, 2])
     print(g.edges())
-    assert g.n_nodes == n_nodes
-    assert g.n_edges == n_edges
+    assert g.n_nodes == 6
+    assert g.n_edges == 9
 
 
 @pytest.mark.parametrize("g", graphs + symmetric_graphs)
