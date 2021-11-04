@@ -65,11 +65,11 @@ class LatticeSite:
 
 
 def create_sites(
-    basis_vectors, extent, apositions, pbc
+    basis_vectors, extent, apositions, pbc, order
 ) -> Tuple[Sequence[LatticeSite], Sequence[bool], Dict[HashableArray, int]]:
     # note: by modifying these, the number of shells can be tuned.
-    shell_vec = _np.where(pbc, 2, 0)
-    shift_vec = _np.where(pbc, 1, 0)
+    shell_vec = _np.where(pbc, 2 * order, 0)
+    shift_vec = _np.where(pbc, order, 0)
 
     shell_min = 0 - shift_vec
     shell_max = _np.asarray(extent) + shell_vec - shift_vec
@@ -103,14 +103,15 @@ def create_sites(
     return sites, is_inside, coord_to_site
 
 
-def get_edges(positions, cutoff):
+def get_edges(positions, cutoff, order):
     kdtree = cKDTree(positions)
     dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
     row, col, dst = find(triu(dist_matrix))
     dst = comparable(dst)
     _, ii = _np.unique(dst, return_inverse=True)
 
-    return sorted(list(zip(row[ii == 0], col[ii == 0])))
+    k = order - 1
+    return sorted(list(zip(row[ii == k], col[ii == k])))
 
 
 def get_true_edges(
@@ -120,10 +121,13 @@ def get_true_edges(
     basis_coord_to_site,
     extent,
     distance_atol,
+    order,
 ):
     positions = _np.array([p.position for p in sites])
     naive_edges = get_edges(
-        positions, _np.linalg.norm(basis_vectors, axis=1).max() + distance_atol
+        positions,
+        order * _np.linalg.norm(basis_vectors, axis=1).max() + distance_atol,
+        order,
     )
     true_edges = set()
     for node1, node2 in naive_edges:
@@ -221,6 +225,7 @@ class Lattice(Graph):
         atoms_coord: Optional[_np.ndarray] = None,
         distance_atol: float = 1e-5,
         point_group: Optional[PointGroup] = None,
+        edge_order: int = 1,
     ):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit
@@ -241,6 +246,8 @@ class Lattice(Graph):
             distance_atol: Distance below which spatial points are considered equal for
                 the purpose of identifying nearest neighbors.
             point_group: Default `PointGroup` object for constructing space groups
+            edge_order: For :code:`edge_order == k`, edges between :math:`k`-nearest
+                neighbors are included in the graph.
 
         Examples:
             Constructs a Kagome lattice with 3 × 3 unit cells:
@@ -293,7 +300,11 @@ class Lattice(Graph):
         self._point_group = point_group
 
         sites, inside, self._basis_coord_to_site = create_sites(
-            self._basis_vectors, self._extent, site_pos_fractional, self._pbc
+            self._basis_vectors,
+            self._extent,
+            site_pos_fractional,
+            self._pbc,
+            edge_order,
         )
         edges = get_true_edges(
             self._basis_vectors,
@@ -302,6 +313,7 @@ class Lattice(Graph):
             self._basis_coord_to_site,
             self._extent,
             distance_atol,
+            edge_order,
         )
 
         old_nodes = sorted(set(node for edge in edges for node in edge))
