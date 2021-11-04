@@ -110,8 +110,7 @@ def get_edges(positions, cutoff, order):
     dst = comparable(dst)
     _, ii = _np.unique(dst, return_inverse=True)
 
-    k = order - 1
-    return sorted(list(zip(row[ii == k], col[ii == k])))
+    return [sorted(list(zip(row[ii == k], col[ii == k]))) for k in range(order)]
 
 
 def get_true_edges(
@@ -124,28 +123,35 @@ def get_true_edges(
     order,
 ):
     positions = _np.array([p.position for p in sites])
-    naive_edges = get_edges(
+    naive_edges_by_order = get_edges(
         positions,
         order * _np.linalg.norm(basis_vectors, axis=1).max() + distance_atol,
         order,
     )
-    true_edges = set()
-    for node1, node2 in naive_edges:
-        site1, inside1 = sites[node1], inside[node1]
-        site2, inside2 = sites[node2], inside[node2]
-        if inside1 and inside2:
-            true_edges.add((node1, node2))
-        elif inside1 or inside2:
-            cell1 = site1.basis_coord
-            cell2 = site2.basis_coord
-            cell1[:-1] = cell1[:-1] % extent
-            cell2[:-1] = cell2[:-1] % extent
-            node1 = basis_coord_to_site[HashableArray(cell1)]
-            node2 = basis_coord_to_site[HashableArray(cell2)]
-            edge = (node1, node2)
-            if edge not in true_edges and (node2, node1) not in true_edges:
-                true_edges.add(edge)
-    return list(true_edges)
+    true_edges_by_order = []
+    for k, naive_edges in enumerate(naive_edges_by_order):
+        true_edges = set()
+        for node1, node2 in naive_edges:
+            site1, inside1 = sites[node1], inside[node1]
+            site2, inside2 = sites[node2], inside[node2]
+            if inside1 and inside2:
+                true_edges.add((node1, node2))
+            elif inside1 or inside2:
+                cell1 = site1.basis_coord
+                cell2 = site2.basis_coord
+                cell1[:-1] = cell1[:-1] % extent
+                cell2[:-1] = cell2[:-1] % extent
+                node1 = basis_coord_to_site[HashableArray(cell1)]
+                node2 = basis_coord_to_site[HashableArray(cell2)]
+                edge = (node1, node2)
+                if edge not in true_edges and (node2, node1) not in true_edges:
+                    if node1 == node2:
+                        raise RuntimeError(
+                            f"Lattice contains self-referential edge {(node1, node2)} of order {k}"
+                        )
+                    true_edges.add(edge)
+        true_edges_by_order.append(list(true_edges))
+    return true_edges_by_order
 
 
 def deprecated(alternative):
@@ -225,7 +231,7 @@ class Lattice(Graph):
         atoms_coord: Optional[_np.ndarray] = None,
         distance_atol: float = 1e-5,
         point_group: Optional[PointGroup] = None,
-        edge_order: int = 1,
+        max_neighbor_order: int = 1,
     ):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit
@@ -246,8 +252,10 @@ class Lattice(Graph):
             distance_atol: Distance below which spatial points are considered equal for
                 the purpose of identifying nearest neighbors.
             point_group: Default `PointGroup` object for constructing space groups
-            edge_order: For :code:`edge_order == k`, edges between :math:`k`-nearest
-                neighbors are included in the graph.
+            max_neighbor_order: For :code:`max_neighbor_order == k`, edges between up
+                to :math:`k`-nearest neighbor sites (measured by their Euclidean distance)
+                are included in the graph. The edges can be distiguished by their color,
+                which is set to :math:`k`.
 
         Examples:
             Constructs a Kagome lattice with 3 × 3 unit cells:
@@ -284,6 +292,8 @@ class Lattice(Graph):
               [0.75       1.29903811]
               [1.25       1.29903811]]
         """
+        if max_neighbor_order < 1:
+            raise ValueError("max_neighbor_order must be >= 1.")
 
         self._basis_vectors = self._clean_basis(basis_vectors)
         self._ndim = self._basis_vectors.shape[1]
@@ -304,7 +314,7 @@ class Lattice(Graph):
             self._extent,
             site_pos_fractional,
             self._pbc,
-            edge_order,
+            max_neighbor_order,
         )
         edges = get_true_edges(
             self._basis_vectors,
@@ -313,16 +323,23 @@ class Lattice(Graph):
             self._basis_coord_to_site,
             self._extent,
             distance_atol,
-            edge_order,
+            max_neighbor_order,
         )
 
-        old_nodes = sorted(set(node for edge in edges for node in edge))
+        old_nodes = sorted(
+            set(node for edges_k in edges for edge in edges_k for node in edge)
+        )
         new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
 
-        graph = igraph.Graph()
-        graph.add_vertices(len(old_nodes))
-        graph.add_edges([(new_nodes[edge[0]], new_nodes[edge[1]]) for edge in edges])
-        graph.simplify()
+        edges_by_order = []
+        for edges_k in edges:
+            graph = igraph.Graph()
+            graph.add_vertices(len(old_nodes))
+            graph.add_edges(
+                [(new_nodes[edge[0]], new_nodes[edge[1]]) for edge in edges_k]
+            )
+            graph.simplify()
+            edges_by_order.append(list(graph.get_edgelist()))
 
         self._sites = []
         for i, site in enumerate(sites[old_node] for old_node in old_nodes):
@@ -340,7 +357,8 @@ class Lattice(Graph):
             HashableArray(pos): index for index, pos in enumerate(int_positions)
         }
 
-        super().__init__(list(graph.get_edgelist()), graph.vcount())
+        colored_edges = [(*e, k) for k, es in enumerate(edges_by_order) for e in es]
+        super().__init__(colored_edges, len(self._sites))
 
     @staticmethod
     def _clean_basis(basis_vectors):
