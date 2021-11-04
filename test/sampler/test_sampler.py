@@ -18,7 +18,7 @@ from jax import numpy as jnp
 from .. import common
 
 import netket as nk
-from netket.hilbert import DiscreteHilbert, ContinuousBoson
+from netket.hilbert import DiscreteHilbert, ContinuousParticle
 import numpy as np
 import pytest
 from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
@@ -105,7 +105,7 @@ samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u, n_chains=16
 
 
 # Hilbert space and sampler for particles
-hi_particles = nk.hilbert.ContinuousBoson(N=3, L=(np.inf,), pbc=(False,))
+hi_particles = nk.hilbert.ContinuousParticle(N=3, L=(np.inf,), pbc=(False,))
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
     hi_particles, sigma=1.0, n_chains=16
 )
@@ -120,7 +120,7 @@ def model_and_weights(request):
             ma = nk.models.ARNNDense(
                 hilbert=hilb, machine_pow=sampler.machine_pow, layers=3, features=5
             )
-        elif isinstance(hilb, ContinuousBoson):
+        elif isinstance(hilb, ContinuousParticle):
             ma = nk.models.Gaussian()
         else:
             # Build RBM by default
@@ -195,7 +195,7 @@ def test_states_in_hilbert(sampler, model_and_weights):
             for v in sample:
                 assert v in all_states
 
-    elif isinstance(hi, ContinuousBoson):
+    elif isinstance(hi, ContinuousParticle):
         ma, w = model_and_weights(hi, sampler)
 
         for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
@@ -302,7 +302,7 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
         s, pval = combine_pvalues(pvalues, method="fisher")
         assert pval > 0.01 or np.max(pvalues) > 0.01
 
-    elif isinstance(hi, ContinuousBoson):
+    elif isinstance(hi, ContinuousParticle):
         ma, w = model_and_weights(hi, sampler)
         n_samples = 5000
         n_discard = 2000
