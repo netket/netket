@@ -8,7 +8,11 @@ class ContinuousParticle(ContinuousHilbert):
     Fermions."""
 
     def __init__(
-        self, N: int, L: Tuple[float, ...], pbc: Union[bool, Tuple[bool, ...]], mode = AnyStr
+        self,
+        N: int,
+        L: Tuple[float, ...],
+        pbc: Union[bool, Tuple[bool, ...]],
+        mode=AnyStr,
     ):
         """
         Constructs new ``Particles`` given specifications

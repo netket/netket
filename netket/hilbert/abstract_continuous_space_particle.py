@@ -11,8 +11,7 @@ class ContinuousHilbert(AbstractHilbert):
     in continuous space.
     """
 
-    def __init__(
-        self, domain: Tuple[float, ...]):
+    def __init__(self, domain: Tuple[float, ...]):
         """
         Constructs new ``Particles`` given specifications
          of the continuous space they are defined in.
@@ -31,6 +30,4 @@ class ContinuousHilbert(AbstractHilbert):
 
     @property
     def _attrs(self):
-        return (
-            self._extent,
-        )
+        return (self._extent,)
