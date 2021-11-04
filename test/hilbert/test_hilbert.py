@@ -125,7 +125,7 @@ def test_consistent_size(hi):
             assert np.isfinite(state).all()
     elif isinstance(hi, ContinuousParticle):
         assert hi.n_particles > 0
-        assert len(hi.extend) == (hi.size // hi.n_particles)
+        assert len(hi.extent) == (hi.size // hi.n_particles)
 
 
 @pytest.mark.parametrize(
@@ -173,7 +173,7 @@ def test_random_states(hi):
         # check that boundary conditions are fulfilled if any are given
         state = hi.random_state(jax.random.PRNGKey(13))
         boundary = jnp.array(hi.n_particles * hi.pbc)
-        Ls = jnp.array(hi.n_particles * hi.extend)
+        Ls = jnp.array(hi.n_particles * hi.extent)
         extension = jnp.where(jnp.equal(boundary, False), jnp.inf, Ls)
 
         assert jnp.sum(
