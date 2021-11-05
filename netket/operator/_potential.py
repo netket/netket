@@ -7,7 +7,9 @@ from netket.operator import ContinousOperator
 
 
 class PotentialEnergy(ContinousOperator):
-    def __init__(self, hilbert: AbstractHilbert, afun: Callable, dtype: Optional[DType] = float):
+    def __init__(
+        self, hilbert: AbstractHilbert, afun: Callable, dtype: Optional[DType] = float
+    ):
         r"""Args:
         afun: The potential energy as function of x_in
         x_in (1Darray): A sample of particle positions

@@ -7,9 +7,11 @@ from netket.operator import ContinousOperator
 
 import jax.numpy as jnp
 
-class SumOperator(ContinousOperator):
 
-    def __init__(self, hilbert: AbstractHilbert, operators: List, dtype: Optional[DType] = float):
+class SumOperator(ContinousOperator):
+    def __init__(
+        self, hilbert: AbstractHilbert, operators: List, dtype: Optional[DType] = float
+    ):
 
         self._ops = operators
 

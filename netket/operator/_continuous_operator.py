@@ -5,6 +5,7 @@ from netket.utils.types import DType
 from netket.hilbert import AbstractHilbert
 from netket.operator import AbstractOperator
 
+
 class ContinousOperator(AbstractOperator):
     def __init__(self, hilbert: AbstractHilbert, dtype: Optional[DType] = float):
 
@@ -24,7 +25,7 @@ class ContinousOperator(AbstractOperator):
     def __add__(self, other):
         if isinstance(self, ContinousOperator) and isinstance(other, ContinousOperator):
             from netket.operator import SumOperator
+
             return SumOperator(self.hilbert, [self, other], self.dtype)
         else:
             NotImplementedError
-

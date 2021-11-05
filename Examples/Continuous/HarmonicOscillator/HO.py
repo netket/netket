@@ -7,6 +7,7 @@ import netket.operator
 def v(x):
     return 0.5 * jnp.linalg.norm(x) ** 2
 
+
 L = 10.0
 
 hib = nk.hilbert.ContinuousParticle(N=5, L=(jnp.inf,), pbc=(False,))
