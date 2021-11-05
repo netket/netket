@@ -436,26 +436,18 @@ class Heisenberg(GraphOperator):
         )
 
         if isinstance(J, Sequence):
-            super().__init__(
-                hilbert,
-                graph,
-                bond_ops=[
-                    J[i] * (sz_sz - exchange if sign_rule[i] else sz_sz + exchange)
-                    for i in range(len(J))
-                ],
-                bond_ops_colors=list(range(len(J))),
-            )
+            bond_ops = [
+                J[i] * (sz_sz - exchange if sign_rule[i] else sz_sz + exchange)
+                for i in range(len(J))
+            ]
+            bond_ops_colors = list(range(len(J)))
         else:
-            if sign_rule:
-                heis_term = sz_sz - exchange
-            else:
-                heis_term = sz_sz + exchange
+            bond_ops = [J * (sz_sz - exchange if sign_rule else sz_sz + exchange)]
+            bond_ops_colors = []
 
-            super().__init__(
-                hilbert,
-                graph,
-                bond_ops=[J * heis_term],
-            )
+        super().__init__(
+            hilbert, graph, bond_ops=bond_ops, bond_ops_colors=bond_ops_colors
+        )
 
     @property
     def J(self) -> float:
