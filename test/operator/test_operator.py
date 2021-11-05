@@ -45,6 +45,11 @@ operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
     bond_ops_colors=[0, 1],
 )
 
+# Heisenberg with colored edges
+operators["Heisenberg (colored edges)"] = nk.operator.Heisenberg(
+    hi, g, J=[1, 2], sign_rule=[True, False]
+)
+
 # Custom Hamiltonian
 sx = [[0, 1], [1, 0]]
 sy = [[0, -1.0j], [1.0j, 0]]
@@ -244,6 +249,17 @@ def test_Heisenberg():
         assert not g.is_bipartite()
 
         nk.operator.Heisenberg(hi, graph=g, sign_rule=True)
+
+    L = 8
+    edges = [(i, (i + 1) % L, 0) for i in range(L)] + [
+        (i, (i + 2) % L, 1) for i in range(L)
+    ]
+    hi = nk.hilbert.Spin(0.5) ** L
+    g = nk.graph.Graph(edges=edges)
+    ha1 = nk.operator.Heisenberg(hi, graph=g, J=[1, 0.5])
+    ha2 = nk.operator.Heisenberg(hi, graph=g, J=[1, 0.5], sign_rule=[True, False])
+
+    assert gs_energy(ha1) == pytest.approx(gs_energy(ha2))
 
 
 @pytest.mark.parametrize(
