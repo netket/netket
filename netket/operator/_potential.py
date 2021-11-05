@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Union
+from typing import Optional, Callable
 
 from netket.utils.types import DType
 
@@ -14,7 +14,6 @@ class PotentialEnergy(ContinousOperator):
     ):
         r"""Args:
         afun: The potential energy as function of x_in
-        x_in (1Darray): A sample of particle positions
         """
 
         self._afun = afun
@@ -28,7 +27,7 @@ class PotentialEnergy(ContinousOperator):
     def expect_kernel(self, logpsi, params, x_in, data):
         r"""
         Args:
-            x_in (1Darray): A sample of particle positions
+            x_in: A sample of particle positions
         """
 
         return jnp.sum(jnp.array(data) * self._afun(x_in))

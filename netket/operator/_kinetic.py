@@ -17,7 +17,7 @@ class KineticEnergy(ContinousOperator):
         dtype: Optional[DType] = float,
     ):
         r"""Args:
-        mass: int if all masses are the same, array indicating the mass of each particle otherwise
+        mass: float if all masses are the same, list indicating the mass of each particle otherwise
         """
 
         self._dtype = dtype

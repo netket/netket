@@ -16,9 +16,14 @@ class SumOperator(ContinousOperator):
         coeff: float,
         dtype: Optional[DType] = float,
     ):
-
+        r"""Args:
+        operators: A list of ContinousOperator objects
+        coeff: A coefficient for each ContinousOperator object
+        """
         self._ops = operators
         self._coeff = coeff
+        self._dtype = dtype
+
         super().__init__(hilbert)
 
     @property

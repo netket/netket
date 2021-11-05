@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 
 from netket.utils.types import DType
 
@@ -7,6 +7,12 @@ from netket.operator import AbstractOperator
 
 
 class ContinousOperator(AbstractOperator):
+    r"""This class is the base class for operators defined on a
+    continuous space Hilbert space. Users interested in implementing new
+    quantum Operators for continuous Hilbert spaces should derive
+    their own class from this class
+    """
+
     def __init__(self, hilbert: AbstractHilbert, dtype: Optional[DType] = float):
 
         self._dtype = dtype
@@ -17,9 +23,14 @@ class ContinousOperator(AbstractOperator):
         return self._dtype
 
     def expect_kernel(self, logpsi, params, x_in, data):
+        r"""In this method the action of the operator on a given quantum state
+        logpsi at a given congfiguration is defined."""
         raise NotImplementedError
 
     def pack_data(self):
+        r"""This methods makes it possible to give coefficients to the expect_kernel method above.
+        For example for the kinetic energy this method would return the masses of the
+        individual particles."""
         raise NotImplementedError
 
     def __add__(self, other):
