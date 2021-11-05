@@ -17,7 +17,8 @@ from numba import jit
 import numpy as np
 import math
 from typing import Union, Sequence
-#from collections.abc import Sequence
+
+# from collections.abc import Sequence
 
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert, Fock
@@ -394,11 +395,11 @@ class Heisenberg(GraphOperator):
             >>> hi = nk.hilbert.Spin(s=0.5, total_sz=0, N=g.n_nodes)
             >>> op = nk.operator.Heisenberg(hilbert=hi, graph=g)
             >>> print(op)
-            Heisenberg(J=1, sign_rule=True; dim=20)
+            Heisenberg(J=1.0, sign_rule=True; dim=20)
         """
         if isinstance(J, Sequence):
             # check that the number of Js matches the number of colours
-            assert len(J) == max(graph.edge_colors)+1
+            assert len(J) == max(graph.edge_colors) + 1
 
             if sign_rule is None:
                 sign_rule = [False] * len(J)
@@ -407,13 +408,14 @@ class Heisenberg(GraphOperator):
                 for i in range(len(J)):
                     subgraph = Graph(edges=graph.edges(filter_color=i))
                     if sign_rule[i] and not subgraph.is_bipartite():
-                        raise ValueError("sign_rule=True specified for a non-bipartite lattice")
+                        raise ValueError(
+                            "sign_rule=True specified for a non-bipartite lattice"
+                        )
         else:
             if sign_rule is None:
                 sign_rule = graph.is_bipartite()
             elif sign_rule and not graph.is_bipartite():
                 raise ValueError("sign_rule=True specified for a non-bipartite lattice")
-                
 
         self._J = J
         self._sign_rule = sign_rule
@@ -439,15 +441,18 @@ class Heisenberg(GraphOperator):
             super().__init__(
                 hilbert,
                 graph,
-                bond_ops=[J[i] * (sz_sz - exchange if sign_rule[i] else sz_sz + exchange) for i in range(len(J))],
-                bond_ops_colors = list(range(len(J)))
+                bond_ops=[
+                    J[i] * (sz_sz - exchange if sign_rule[i] else sz_sz + exchange)
+                    for i in range(len(J))
+                ],
+                bond_ops_colors=list(range(len(J))),
             )
         else:
             if sign_rule:
                 heis_term = sz_sz - exchange
             else:
                 heis_term = sz_sz + exchange
-                
+
             super().__init__(
                 hilbert,
                 graph,
