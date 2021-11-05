@@ -15,7 +15,7 @@ from netket.operator import (
     DiscreteOperator,
     AbstractSuperOperator,
     Squared,
-    ContinousOperator
+    ContinousOperator,
 )
 
 from .mc_state import MCState
@@ -111,6 +111,7 @@ def expect(vstate: MCMixedState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
         mels,
     )
 
+
 @dispatch
 def expect(vstate: MCState, Ô: ContinousOperator) -> Stats:  # noqa: F811
     _check_hilbert(vstate.diagonal, Ô)
@@ -161,6 +162,7 @@ def _expect(
 
     return Ō_stats
 
+
 def _expect_continuous(
     machine_pow: int,
     model_apply_fun: Callable,
@@ -177,9 +179,7 @@ def _expect_continuous(
     def logpsi(w, x):
         return model_apply_fun({"params": w}, x)
 
-    log_pdf = (
-        lambda w, x: machine_pow * model_apply_fun({"params": w}, x).real
-    )
+    log_pdf = lambda w, x: machine_pow * model_apply_fun({"params": w}, x).real
 
     local_value_vmap = jax.vmap(
         partial(kernel, logpsi),

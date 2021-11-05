@@ -21,7 +21,7 @@ from netket.operator import (
     local_value_cost,
     Squared,
     _der_local_values_jax,
-    ContinousOperator
+    ContinousOperator,
 )
 
 from .mc_state import MCState
@@ -163,6 +163,7 @@ def expect_and_grad(  # noqa: F811
 
     return Ō, Ō_grad
 
+
 @dispatch
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
@@ -180,6 +181,7 @@ def expect_and_grad(  # noqa: F811
     )
 
     return Ō, Ō_grad
+
 
 @partial(jax.jit, static_argnums=(0, 1))
 def grad_expect_hermitian(
@@ -399,6 +401,7 @@ def grad_expect_operator_Lrho2(
         model_state,
     )
 
+
 @partial(jax.jit, static_argnums=(0, 1))
 def _grad_expect_continuous(
     model_apply_fun: Callable,
@@ -453,4 +456,3 @@ def _grad_expect_continuous(
     )
 
     return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)
-
