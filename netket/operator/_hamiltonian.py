@@ -18,8 +18,6 @@ import numpy as np
 import math
 from typing import Union, Sequence
 
-# from collections.abc import Sequence
-
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert, Fock
 from netket.utils.types import DType
