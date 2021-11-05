@@ -250,6 +250,17 @@ def test_Heisenberg():
 
         nk.operator.Heisenberg(hi, graph=g, sign_rule=True)
 
+    L = 8
+    edges = [(i, (i + 1) % L, 0) for i in range(L)] + [
+        (i, (i + 2) % L, 1) for i in range(L)
+    ]
+    hi = nk.hilbert.Spin(0.5) ** L
+    g = nk.graph.Graph(edges=edges)
+    ha1 = nk.operator.Heisenberg(hi, graph=g, J=[1, 0.5])
+    ha2 = nk.operator.Heisenberg(hi, graph=g, J=[1, 0.5], sign_rule=[True, False])
+
+    assert gs_energy(ha1) == pytest.approx(gs_energy(ha2))
+
 
 @pytest.mark.parametrize(
     "hilbert",
