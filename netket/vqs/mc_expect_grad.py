@@ -21,6 +21,7 @@ from netket.operator import (
     local_value_cost,
     Squared,
     _der_local_values_jax,
+    ContinousOperator
 )
 
 from .mc_state import MCState
@@ -162,6 +163,23 @@ def expect_and_grad(  # noqa: F811
 
     return Ō, Ō_grad
 
+@dispatch
+def expect_and_grad(  # noqa: F811
+    vstate: MCState,
+    Ô: ContinousOperator,
+    use_covariance: Any,
+    mutable: Any,
+) -> Tuple[Stats, PyTree]:
+    _check_hilbert(vstate, Ô)
+
+    x = vstate.samples
+    kernel = Ô.expect_kernel
+
+    Ō, Ō_grad = _grad_expect_continuous(
+        vstate._apply_fun, kernel, vstate.parameters, Ô.pack_data(), x
+    )
+
+    return Ō, Ō_grad
 
 @partial(jax.jit, static_argnums=(0, 1))
 def grad_expect_hermitian(
@@ -380,3 +398,59 @@ def grad_expect_operator_Lrho2(
         LdagL_grad,
         model_state,
     )
+
+@partial(jax.jit, static_argnums=(0, 1))
+def _grad_expect_continuous(
+    model_apply_fun: Callable,
+    kernel,
+    parameters: PyTree,
+    masses: PyTree,
+    x: jnp.ndarray,
+) -> Tuple[PyTree, PyTree]:
+
+    x_shape = x.shape
+    if jnp.ndim(x) != 2:
+        x = x.reshape((-1, x_shape[-1]))
+
+    n_samples = x.shape[0] * mpi.n_nodes
+
+    def logpsi(w, σ):
+        return model_apply_fun({"params": w}, σ)
+
+    local_value_vmap = jax.vmap(
+        partial(kernel, logpsi),
+        in_axes=(None, 0, None),
+        out_axes=0,
+    )
+    x = x.reshape((-1, 1, x_shape[-1]))
+
+    def compute_kernel(i, x):
+        Oloc = local_value_vmap(parameters, x, masses)
+
+        return i, Oloc
+
+    _, O_loc = jax.lax.scan(compute_kernel, 0, x)
+    O_loc = O_loc.reshape(-1)
+
+    Ō = statistics(O_loc.reshape(x_shape[:-1]).T)
+    x = x.reshape((-1, x_shape[-1]))
+    O_loc -= Ō.mean
+
+    _, vjp_fun = nkjax.vjp(
+        lambda w: model_apply_fun({"params": w}, x),
+        parameters,
+        conjugate=False,
+    )
+
+    Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
+
+    Ō_grad = jax.tree_multimap(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
+            target.dtype
+        ),
+        Ō_grad,
+        parameters,
+    )
+
+    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)
+
