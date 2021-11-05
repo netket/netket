@@ -10,13 +10,13 @@ def v(x):
 
 L = 10.0
 
-hib = nk.hilbert.ContinuousParticle(N=5, L=(jnp.inf,), pbc=(False,))
+hilb = nk.hilbert.ContinuousParticle(N=5, L=(jnp.inf,), pbc=(False,))
 
-sab = nk.sampler.MetropolisGaussian(hib, sigma=1.0, n_chains=16, n_sweeps=1)
+sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, n_sweeps=1)
 model = nk.models.Gaussian(dtype=float)
 
-ekin = nk.operator.KineticEnergy(hib, jnp.ones(5))
-pot = nk.operator.PotentialEnergy(hib, v)
+ekin = nk.operator.KineticEnergy(hilb, jnp.ones(5))
+pot = nk.operator.PotentialEnergy(hilb, v)
 ha = ekin + pot
 
 model = nk.models.Gaussian(dtype=float)
