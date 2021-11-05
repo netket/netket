@@ -16,6 +16,8 @@ from numba import jit
 
 import numpy as np
 import math
+from typing import Union, Sequence
+#from collections.abc import Sequence
 
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert, Fock
@@ -363,7 +365,7 @@ class Heisenberg(GraphOperator):
         self,
         hilbert: AbstractHilbert,
         graph: AbstractGraph,
-        J: float = 1,
+        J: Union[float, Sequence[float]] = 1.0,
         sign_rule=None,
     ):
         """
@@ -374,11 +376,15 @@ class Heisenberg(GraphOperator):
             hilbert: Hilbert space the operator acts on.
             graph: The graph upon which this hamiltonian is defined.
             J: The strength of the coupling. Default is 1.
-            sign_rule: If enabled, Marshal's sign rule will be used. On a bipartite
+               Can pass a sequence of coupling strengths with coloured graphs:
+               edges of colour n will have coupling strength J[n]
+            sign_rule: If True, Marshal's sign rule will be used. On a bipartite
                        lattice, this corresponds to a basis change flipping the Sz direction
                        at every odd site of the lattice. For non-bipartite lattices, the
                        sign rule cannot be applied. Defaults to True if the lattice is
                        bipartite, False otherwise.
+                       If a sequence of coupling strengths is passed, defaults to False
+                       and a matching sequence of sign_rule must be specified to override it
 
         Examples:
          Constructs a ``Heisenberg`` operator for a 1D system.
@@ -390,8 +396,24 @@ class Heisenberg(GraphOperator):
             >>> print(op)
             Heisenberg(J=1, sign_rule=True; dim=20)
         """
-        if sign_rule is None:
-            sign_rule = graph.is_bipartite()
+        if isinstance(J, Sequence):
+            # check that the number of Js matches the number of colours
+            assert len(J) == max(graph.edge_colors)+1
+
+            if sign_rule is None:
+                sign_rule = [False] * len(J)
+            else:
+                assert len(sign_rule) == len(J)
+                for i in range(len(J)):
+                    subgraph = Graph(edges=graph.edges(filter_color=i))
+                    if sign_rule[i] and not subgraph.is_bipartite():
+                        raise ValueError("sign_rule=True specified for a non-bipartite lattice")
+        else:
+            if sign_rule is None:
+                sign_rule = graph.is_bipartite()
+            elif sign_rule and not graph.is_bipartite():
+                raise ValueError("sign_rule=True specified for a non-bipartite lattice")
+                
 
         self._J = J
         self._sign_rule = sign_rule
@@ -412,18 +434,25 @@ class Heisenberg(GraphOperator):
                 [0, 0, 0, 0],
             ]
         )
-        if sign_rule:
-            if not graph.is_bipartite():
-                raise ValueError("sign_rule=True specified for a non-bipartite lattice")
-            heis_term = sz_sz - exchange
-        else:
-            heis_term = sz_sz + exchange
 
-        super().__init__(
-            hilbert,
-            graph,
-            bond_ops=[J * heis_term],
-        )
+        if isinstance(J, Sequence):
+            super().__init__(
+                hilbert,
+                graph,
+                bond_ops=[J[i] * (sz_sz - exchange if sign_rule[i] else sz_sz + exchange) for i in range(len(J))],
+                bond_ops_colors = list(range(len(J)))
+            )
+        else:
+            if sign_rule:
+                heis_term = sz_sz - exchange
+            else:
+                heis_term = sz_sz + exchange
+                
+            super().__init__(
+                hilbert,
+                graph,
+                bond_ops=[J * heis_term],
+            )
 
     @property
     def J(self) -> float:

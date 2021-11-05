@@ -45,6 +45,9 @@ operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
     bond_ops_colors=[0, 1],
 )
 
+# Heisenberg with colored edges
+operators["Heisenberg (colored edges)"] = nk.operator.Heisenberg(hi, g, J = [1,2], sign_rule=[True,False])
+
 # Custom Hamiltonian
 sx = [[0, 1], [1, 0]]
 sy = [[0, -1.0j], [1.0j, 0]]
