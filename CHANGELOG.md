@@ -9,6 +9,7 @@
 [GitHub commits](https://github.com/netket/netket/compare/v3.0...master).
 
 ### New features
+* `Heisenberg` Hamiltonians support different coupling strengths on `Graph` edges with different colors. [#972](https://github.com/netket/netket/pull/972).
 
 ### Breaking Changes
 
