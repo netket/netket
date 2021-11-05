@@ -5,19 +5,19 @@ import netket.operator
 
 
 def v(x):
-    return 0.5 * jnp.linalg.norm(x) ** 2
+    return jnp.linalg.norm(x) ** 2
 
 
 L = 10.0
 
-hilb = nk.hilbert.ContinuousParticle(N=5, L=(jnp.inf,), pbc=(False,))
+hilb = nk.hilbert.Particle(N=5, L=(jnp.inf,), pbc=(False,))
 
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, n_sweeps=1)
 model = nk.models.Gaussian(dtype=float)
 
-ekin = nk.operator.KineticEnergy(hilb, jnp.ones(5))
+ekin = nk.operator.KineticEnergy(hilb, 5 * [2.0])
 pot = nk.operator.PotentialEnergy(hilb, v)
-ha = ekin + pot
+ha = 0.5 * ekin + 0.5 * pot
 
 model = nk.models.Gaussian(dtype=float)
 

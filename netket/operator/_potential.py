@@ -1,9 +1,11 @@
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
 
 from netket.utils.types import DType
 
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinousOperator
+
+import jax.numpy as jnp
 
 
 class PotentialEnergy(ContinousOperator):
@@ -29,8 +31,7 @@ class PotentialEnergy(ContinousOperator):
             x_in (1Darray): A sample of particle positions
         """
 
-        return self._afun(x_in)
+        return jnp.sum(jnp.array(data) * self._afun(x_in))
 
     def pack_data(self):
-
-        return self.hilbert.size * [0]
+        return [1.0]

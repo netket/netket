@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from netket.utils.types import DType
 
@@ -17,15 +17,31 @@ class ContinousOperator(AbstractOperator):
         return self._dtype
 
     def expect_kernel(self, logpsi, params, x_in, data):
-        return NotImplementedError
+        raise NotImplementedError
 
     def pack_data(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     def __add__(self, other):
         if isinstance(self, ContinousOperator) and isinstance(other, ContinousOperator):
             from netket.operator import SumOperator
 
-            return SumOperator(self.hilbert, [self, other], self.dtype)
+            return SumOperator(self.hilbert, [self, other], 1.0, self.dtype)
         else:
-            NotImplementedError
+            return NotImplementedError
+
+    def __rmul__(self, other):
+        if isinstance(self, ContinousOperator) and isinstance(other, float):
+            from netket.operator import SumOperator
+
+            return SumOperator(self.hilbert, [self], other, self.dtype)
+        else:
+            return NotImplementedError
+
+    def __mul__(self, other):
+        if isinstance(self, ContinousOperator) and isinstance(other, float):
+            from netket.operator import SumOperator
+
+            return SumOperator(self.hilbert, [self], other, self.dtype)
+        else:
+            return NotImplementedError

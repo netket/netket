@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from netket.utils.types import DType, PyTree
 
@@ -11,11 +11,13 @@ import jax.numpy as jnp
 
 class KineticEnergy(ContinousOperator):
     def __init__(
-        self, hilbert: AbstractHilbert, mass: PyTree, dtype: Optional[DType] = float
+        self,
+        hilbert: AbstractHilbert,
+        mass: Union[float, list],
+        dtype: Optional[DType] = float,
     ):
         r"""Args:
-        afun: The potential energy as function of x_in
-        x_in (1Darray): A sample of particle positions
+        mass: int if all masses are the same, array indicating the mass of each particle otherwise
         """
 
         self._dtype = dtype
@@ -51,11 +53,13 @@ class KineticEnergy(ContinousOperator):
 
         dp_dx = dlogpsi_x(x_in) ** 2
 
-        return -0.5 * jnp.sum(1.0 / jnp.array(data)[0, :] * (dp_dx2 + dp_dx))
+        return -0.5 * jnp.sum(1.0 / jnp.array(data) * (dp_dx2 + dp_dx))
 
     def pack_data(self) -> PyTree:
+        if isinstance(self._mass, list):
+            return self._mass
 
-        return self._mass
+        return self.hilbert.size * [self._mass]
 
         """
         def hvp(df, tangents, x):
