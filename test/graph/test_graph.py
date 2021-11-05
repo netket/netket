@@ -734,3 +734,20 @@ def test_graph_conversions():
 def test_edge_colors():
     for g in graphs:
         assert all(isinstance(c, int) for c in g.edge_colors)
+
+
+def test_lattice_k_neighbors():
+    l0 = nk.graph.Chain(8, max_neighbor_order=1)
+    l1 = nk.graph.Chain(8, max_neighbor_order=2)
+    l2 = nk.graph.Chain(8, max_neighbor_order=3)
+
+    colors = set(c for *_, c in l1.edges(return_color=True))
+    assert colors == {0, 1}
+    colors = set(c for *_, c in l2.edges(return_color=True))
+    assert colors == {0, 1, 2}
+
+    assert set(l0.edges()) == set(l1.edges(filter_color=0))
+    assert set(l0.edges()) == set(l2.edges(filter_color=0))
+    assert set(l1.edges(filter_color=1)) == set(l2.edges(filter_color=1))
+
+    assert l0.n_edges < l1.n_edges < l2.n_edges

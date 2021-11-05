@@ -104,6 +104,11 @@ def create_sites(
 
 
 def get_edges(positions, cutoff, order):
+    """
+    Given an array of spatial `positions`, returns a list `es`, so that
+    `es[k]` contains all pairs of (k + 1)-nearest neighbors up to `order`.
+    Only edges up to distance `cutoff` are considered.
+    """
     kdtree = cKDTree(positions)
     dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
     row, col, dst = find(triu(dist_matrix))
@@ -255,7 +260,7 @@ class Lattice(Graph):
             max_neighbor_order: For :code:`max_neighbor_order == k`, edges between up
                 to :math:`k`-nearest neighbor sites (measured by their Euclidean distance)
                 are included in the graph. The edges can be distiguished by their color,
-                which is set to :math:`k`.
+                which is set to :math:`k - 1` (so nearest-neighbor edges have color 0).
 
         Examples:
             Constructs a Kagome lattice with 3 × 3 unit cells:
