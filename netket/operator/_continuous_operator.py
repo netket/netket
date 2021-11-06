@@ -24,7 +24,7 @@ class ContinousOperator(AbstractOperator):
 
     def expect_kernel(self, logpsi, params, x_in, data):
         r"""In this method the action of the operator on a given quantum state
-        logpsi at a given congfiguration is defined."""
+        logpsi at a given congfiguration x_in is defined."""
         raise NotImplementedError
 
     def pack_data(self):

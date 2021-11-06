@@ -15,9 +15,9 @@ hilb = nk.hilbert.Particle(N=5, L=(jnp.inf,), pbc=(False,))
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, n_sweeps=1)
 model = nk.models.Gaussian(dtype=float)
 
-ekin = nk.operator.KineticEnergy(hilb, 5 * [2.0])
+ekin = nk.operator.KineticEnergy(hilb, mass=1.)
 pot = nk.operator.PotentialEnergy(hilb, v)
-ha = 0.5 * ekin + 0.5 * pot
+ha = ekin + 0.5 * pot
 
 model = nk.models.Gaussian(dtype=float)
 
