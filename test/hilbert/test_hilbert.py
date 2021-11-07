@@ -23,7 +23,7 @@ from netket.hilbert import (
     Qubit,
     DoubledHilbert,
     DiscreteHilbert,
-    ContinuousParticle,
+    Particle,
 )
 
 import jax
@@ -105,7 +105,7 @@ hilberts["DoubledHilbert[CustomHilbert]"] = DoubledHilbert(
 
 # Continuous space
 # no pbc
-hilberts["ContinuousSpaceHilbert"] = nk.hilbert.ContinuousParticle(
+hilberts["ContinuousSpaceHilbert"] = nk.hilbert.Particle(
     N=5, L=(np.inf, 10.0), pbc=(False, True)
 )
 
@@ -123,7 +123,7 @@ def test_consistent_size(hi):
         assert len(hi.local_states) == hi.local_size
         for state in hi.local_states:
             assert np.isfinite(state).all()
-    elif isinstance(hi, ContinuousParticle):
+    elif isinstance(hi, Particle):
         assert hi.n_particles > 0
         assert len(hi.extent) == (hi.size // hi.n_particles)
 
@@ -157,7 +157,7 @@ def test_random_states(hi):
         # assert hi.random_state(jax.random.PRNGKey(13), size=(10,)).shape == (10, hi.size)
         # assert hi.random_state(jax.random.PRNGKey(13), size=(10, 2)).shape == (10, 2, hi.size)
 
-    elif isinstance(hi, ContinuousParticle):
+    elif isinstance(hi, Particle):
         assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
         assert (
             hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype

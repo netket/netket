@@ -1,7 +1,8 @@
-from typing import Tuple, Union, AnyStr
-from netket.utils import is_scalar
+from typing import Tuple, Union
 
-from .abstract_continuous_space_particle import ContinuousHilbert
+# from netket.utils import is_scalar
+
+from .continuous_hilbert import ContinuousHilbert
 
 
 class Particle(ContinuousHilbert):
@@ -26,7 +27,7 @@ class Particle(ContinuousHilbert):
                 dimensions.
         """
         # Assume 1D if L is a scalar
-        if is_scalar(L):
+        if not hasattr(L, "__len__"):
             L = (L,)
 
         if isinstance(pbc, bool):
