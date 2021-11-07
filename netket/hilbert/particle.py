@@ -1,4 +1,5 @@
 from typing import Tuple, Union, AnyStr
+from netket.utils import is_scalar
 
 from .abstract_continuous_space_particle import ContinuousHilbert
 
@@ -24,12 +25,15 @@ class Particle(ContinuousHilbert):
                 If bool, its value will be used for all spatial
                 dimensions.
         """
-        self._N = N
-        self._L = L
+        # Assume 1D if L is a scalar
+        if is_scalar(L):
+            L = (L,)
 
         if isinstance(pbc, bool):
-            pbc = [pbc] * len(self._L)
+            pbc = [pbc] * len(L)
 
+        self._N = N
+        self._L = L
         self._pbc = pbc
 
         super().__init__(self._L, self._pbc)
@@ -42,6 +46,10 @@ class Particle(ContinuousHilbert):
     def n_particles(self) -> int:
         r"""The number of particles"""
         return self._N
+
+    @property
+    def _attrs(self):
+        return (self._N, self._L, self._pbc)
 
     def __repr__(self):
         return "ContinuousParticle(N={}, d={})".format(
