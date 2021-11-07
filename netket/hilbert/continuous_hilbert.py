@@ -35,7 +35,3 @@ class ContinuousHilbert(AbstractHilbert):
     def pbc(self) -> Tuple[bool, ...]:
         r"""Whether or not to use periodic boundary conditions for each spatial dimension"""
         return self._pbc
-
-    @property
-    def _attrs(self):
-        return (self._extent,)
