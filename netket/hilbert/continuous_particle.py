@@ -3,7 +3,7 @@ from typing import Tuple, Union, AnyStr
 from .abstract_continuous_space_particle import ContinuousHilbert
 
 
-class ContinuousParticle(ContinuousHilbert):
+class Particle(ContinuousHilbert):
     r"""Hilbert space derived from AbstractParticle for
     Fermions."""
 

@@ -24,7 +24,7 @@ from .doubled_hilbert import DoubledHilbert
 from .spin import Spin
 from .fock import Fock
 from .qubit import Qubit
-from .continuous_particle import ContinuousParticle
+from .continuous_particle import Particle
 
 from .tensor_hilbert import TensorHilbert
 

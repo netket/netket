@@ -1,12 +1,12 @@
 import jax
 from jax import numpy as jnp
 
-from netket.hilbert import ContinuousParticle
+from netket.hilbert import Particle
 from netket.utils.dispatch import dispatch
 
 
 @dispatch
-def random_state(hilb: ContinuousParticle, key, batches: int, *, dtype):
+def random_state(hilb: Particle, key, batches: int, *, dtype):
     """Positions particles w.r.t. normal distribution,
     if no periodic boundary conditions are applied
     in a spatial dimension. Otherwise the particles are
