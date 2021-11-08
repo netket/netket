@@ -10,6 +10,7 @@
 
 ### New features
 * `Heisenberg` Hamiltonians support different coupling strengths on `Graph` edges with different colors. [#972](https://github.com/netket/netket/pull/972).
+* `GraphOperator` (and `Heisenberg`) now support passing a custom mapping of graph nodes to Hilbert space sites via the new `acting_on_subspace` argument. This makes it possible to create `GraphOperator`s that act on a subset of sites, which is useful in composite Hilbert spaces. [#924](https://github.com/netket/netket/pull/924)
 
 ### Breaking Changes
 
