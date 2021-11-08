@@ -24,7 +24,7 @@ class GaussianRule(MetropolisRule):
         pbc = jnp.array(hilb.n_particles * hilb.pbc)
         boundary = jnp.tile(pbc, (n_chains, 1))
 
-        Ls = jnp.array(hilb.n_particles * hilb.extend)
+        Ls = jnp.array(hilb.n_particles * hilb.extent)
         modulus = jnp.where(jnp.equal(pbc, False), jnp.inf, Ls)
 
         prop = jax.random.normal(key, shape=(n_chains, hilb.size)) * rule.sigma

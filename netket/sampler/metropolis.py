@@ -18,7 +18,7 @@ import jax
 from jax import numpy as jnp
 from jax.experimental import loops
 
-from netket.hilbert import AbstractParticle
+from netket.hilbert import ContinuousHilbert
 
 from netket.utils import mpi
 from netket.utils.types import PyTree, PRNGKeyT
@@ -521,6 +521,7 @@ def MetropolisGaussian(hilbert, sigma=1.0, *args, **kwargs) -> MetropolisSampler
     r"""This sampler acts on all particle positions simultaneously
     and proposes a new state according to a Gaussian distribution
     with width sigma.
+
     Args:
        hilber: The continuous Hilbert space
        sigma: The width of the Gaussian proposal distribution (default: 1.0)
@@ -528,7 +529,7 @@ def MetropolisGaussian(hilbert, sigma=1.0, *args, **kwargs) -> MetropolisSampler
        sweep_size: The number of exchanges that compose a single sweep.
                    If None, sweep_size is equal to the number of degrees of freedom (n_visible).
     """
-    if not isinstance(hilbert, AbstractParticle):
+    if not isinstance(hilbert, ContinuousHilbert):
         raise ValueError("This sampler only works for Continuous Hilbert spaces.")
 
     from .rules import GaussianRule
