@@ -18,7 +18,7 @@
 import numpy as np
 from functools import reduce
 from math import pi
-from typing import Optional, Sequence
+from typing import Optional, Iterable
 
 from .lattice import Lattice
 
@@ -67,6 +67,14 @@ class Translation(Permutation):
 @dispatch
 def product(p: Translation, q: Translation):
     return Translation(p(np.asarray(q)), p._vector + q._vector)
+
+
+def _ensure_iterable(x):
+    """Extracts iterables given in varargs"""
+    if isinstance(x[0], Iterable):
+        return x[0]
+    else:
+        return x
 
 
 @struct.dataclass
@@ -158,7 +166,7 @@ class SpaceGroupBuilder:
         )
 
     def translation_group(
-        self, axes: Optional[Union[int, Sequence[int]]] = None
+        self, axes: Optional[Union[int, Iterable[int]]] = None
     ) -> PermutationGroup:
         """
         The group of valid translations of `self.lattice` as a `PermutationGroup`
@@ -202,11 +210,12 @@ class SpaceGroupBuilder:
         This is the subgroup of the point group that leaves *k* invariant.
 
         Arguments:
-            *k: components of the wave vector in Cartesian axes
+            k: the wave vector in Cartesian axes
 
         Returns:
             the little co-group as a `PointGroup`
         """
+        k = _ensure_iterable(k)
         return PointGroup(
             [self.point_group_[i] for i in self._little_group_index(k)],
             ndim=self.point_group_.ndim,
@@ -221,7 +230,7 @@ class SpaceGroupBuilder:
         This is convenient when calculating space group irreps.
         """
         idx = self._little_group_index(k)
-        CT = self.little_group(*k).character_table()
+        CT = self.little_group(k).character_table()
         CT_full = np.zeros((CT.shape[0], len(self.point_group_)))
         CT_full[:, idx] = CT
         return CT_full / idx.size if divide else CT_full
@@ -232,7 +241,7 @@ class SpaceGroupBuilder:
         to the star of the wave vector *k*.
 
         Arguments:
-            *k: components of the wave vector in Cartesian axes
+            k: the wave vector in Cartesian axes
 
         Returns:
             An array `CT` listing the characters for a number of irreps of the
@@ -241,6 +250,7 @@ class SpaceGroupBuilder:
             `self.little_group(k).character_table[i].
             `CT[i,j]` gives the character of `self.space_group[j]` in the same.
         """
+        k = _ensure_iterable(k)
         # Wave vectors
         big_star_Cart = np.tensordot(self.point_group_.matrices(), k, axes=1)
         big_star = self.lattice.to_reciprocal_lattice(big_star_Cart) * (
