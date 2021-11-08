@@ -751,3 +751,15 @@ def test_lattice_k_neighbors():
     assert set(l1.edges(filter_color=1)) == set(l2.edges(filter_color=1))
 
     assert l0.n_edges < l1.n_edges < l2.n_edges
+
+    with pytest.raises(RuntimeError, match="Lattice contains self-referential edge"):
+        nk.graph.Chain(length=3, max_neighbor_order=3)
+
+    for k in range(1, 11):
+        assert nk.graph.Chain(100, max_neighbor_order=k).n_edges == 100 * k
+
+    assert nk.graph.Square(10, pbc=True, max_neighbor_order=2).n_edges == 400
+
+    g = nk.graph.Square(10, pbc=True, max_neighbor_order=2)
+    assert len(g.edges(filter_color=0)) == 200
+    assert len(g.edges(filter_color=1)) == 200
