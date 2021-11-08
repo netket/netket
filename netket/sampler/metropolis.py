@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Callable
+from typing import Any, Optional, Callable, Tuple
 
 import jax
 from jax import numpy as jnp
@@ -91,7 +91,7 @@ class MetropolisRule:
         state: SamplerState,
         key: PRNGKeyT,
         σ: jnp.ndarray,
-    ) -> jnp.ndarray:
+    ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
 
         raise NotImplementedError("error")
 
@@ -203,9 +203,9 @@ class MetropolisSampler(Sampler):
 
     .. math::
 
-        A(s \rightarrow s^\prime) = \mathrm{min} \left( 1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)}) \right) ,
+        A(s \rightarrow s^\prime) = \mathrm{min} \left( 1,\frac{P(s^\prime)}{P(s)} e^{L(s,s^\prime)} \right) ,
 
-    where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
+    where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here :math:`M(s)` is a
     user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
     and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
 
@@ -379,7 +379,7 @@ def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
 
     1. One of the site indices :math:`i = 1\dots N` is chosen with uniform probability.
 
-    2. Among all the possible (:math:`m`) values that :math:`s_i` can take,
+    2. Among all the possible (:math:`m - 1`) values that :math:`s^\prime_i` can take,
     one of them is chosen with uniform probability.
 
     For example, in the case of spin :math:`1/2` particles, :math:`m=2`
@@ -389,7 +389,7 @@ def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
     In the case of bosons, with occupation numbers
     :math:`s_i = 0, 1, \dots n_{\mathrm{max}}`, :class:`MetropolisLocal`
     would pick a random local occupation number uniformly between :math:`0`
-    and :math:`n_{\mathrm{max}}`.
+    and :math:`n_{\mathrm{max}}` except the current :math:`s_i`.
 
     Args:
         hilbert: The hilbert space to sample
@@ -506,7 +506,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSa
        >>> # Transverse-field Ising Hamiltonian
        >>> ha = nk.operator.Ising(hilbert=hi, h=1.0, graph=g)
        >>>
-       >>> # Construct a MetropolisExchange Sampler
+       >>> # Construct a MetropolisHamiltonian Sampler
        >>> sa = nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
        MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)

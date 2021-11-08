@@ -50,7 +50,7 @@ class Sampler(abc.ABC):
     """
     Abstract base class for all samplers.
 
-    It contains the fields that all of them should posses, defining the common
+    It contains the fields that all of them should possess, defining the common
     API.
     Note that fields marked with pytree_node=False are treated as static arguments
     when jitting.
