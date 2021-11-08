@@ -65,7 +65,7 @@ This can be achieved through the method {meth}`~netket.hilbert.AbstractHilbert.r
 `random_state` behaves similarly to {fun}`jax.random.uniform`: the first argument is a Jax PRNGKey, the second is the shape or number of resulting elements and the third is the dtype of the output (which defaults to `jnp.float32`, or single precision.
 The resulting basis elements will be distributed uniformly.
 
-```note
+```{admonition} Jax PRNG
 If you are not familiar with Jax random number generators: Jax PRNGKey is the state of the Pseudo-random number generator, that determines what will be the next random numbers generated. To learn more about it, refer to [this documentation](https://jax.readthedocs.io/en/latest/jax.random.html)).
 ```
 
@@ -120,7 +120,7 @@ You can also obtain the total size of the hilbert space by invoking {attr}`~netk
 96
 ```
 
-Do bear in mind that this attribute only works if the hilbert space is indexable ({attr}`~netket.hilbert.DiscreteHilbert.is_indexable`), which is True when it has a size smaller than $2^{64}$. 
+Do bear in mind that this attribute only works if the hilbert space is indexable ({attr}`~netket.hilbert.DiscreteHilbert.is_indexable`), which is True when it has a size smaller than $ 2^{64} $. 
 
 NetKet also supports discrete-but-infinite hilbert spaces, such as Fock spaces with no cutoff. 
 Those hilbert spaces are of course not indexable ({attr}`~netket.hilbert.DiscreteHilbert.is_indexable` will return `False`) and they are further signaled by the attribute ({attr}`~netket.hilbert.DiscreteHilbert.is_finite`, which will be set to `False`.
@@ -136,7 +136,7 @@ Fock(n_max=INT_MAX, N=3)
 Fock(n_max=INT_MAX, N=3)
 ```
 
-Do bear in mind that due to computational limitations, _infinite_ Hilbert spaces are not technically infinite, but simply have their cutoff set to `2^{63}`, the largest signed integer.
+Do bear in mind that due to computational limitations, _infinite_ Hilbert spaces are not technically infinite, but simply have their cutoff set to $ 2^{63} $, the largest signed integer.
 
 ### Indexable spaces
 
@@ -189,14 +189,14 @@ Lastly, it is also possible to obtain the batch of all basis states with the {me
 The Hilbert spaces provided by NetKet are compatible with some simple constraints. 
 The constraints that can be imposed are quite ~constrained~ limited themselves: they can only act on the set of basis elements, for example by excluding those that do not satisfy a certain condition. 
 
-```{admonition} Warning: Common error
+```{warning} Warning: Common error
 When you define a constrained Hilbert space and you use it with a Markov-Chain sampler, the constraints guarantees that the initial state of the chain, generated through the {meth}`~netket.hilbert.DiscreteHilbert.random_state` method, respects the constraint.
 
 However, *it is not guaranteed that a transition rule will respect the constraint.* 
 In fact, built-in samplers are not aware of the constraints directly, even though some of can still be used effectively with constraints.
 
-A typical error is to use {ref}`~netket.sampler.MetropolisLocal` with a constrained Hilbert space, such as a Fock space with a fixed number of particles.
-A simple workaround is to use {ref}`~netket.sampler.MetropolisExchange`: as it exchanges the value on two different sites, it guarantees that the total number
+A typical error is to use {class}`~netket.sampler.MetropolisLocal` with a constrained Hilbert space, such as a Fock space with a fixed number of particles.
+A simple workaround is to use {class}`~netket.sampler.MetropolisExchange`: as it exchanges the value on two different sites, it guarantees that the total number
 of particles is conserved, and therefore respects the constraint if it is correctly imposed at the initialization of the chain.
 
 In short: when working with constrained Hilbert spaces you have to take extra care when chosing your sampler. And if you have exotic constraints you will most likely need to define your own transition kernel. But don't worry: it is very easy! (however nobody has yet written documentation for it. In the meantime, have a look at [this discussion](https://github.com/netket/netket/discussions/755#discussioncomment-858719))
@@ -227,6 +227,49 @@ The constraints supported on the built-in hilbert spaces are:
         [2., 0.]])
  ```
  - It is also possible to define a custom (Homogeneous) hilbert space with a custom constraint. To see how to do that, check the section...
+
+
+### Defining Custom constraints
+
+NetKet provides a custom class `CustomHilbert`, that makes it relatively simple to define your own constaint on homogeneous Hilbert spaces.
+In this example we show how to use it to build a space that behaves like {ref}`Fock`, while enforcing even parity.
+
+```python
+>>> import numba
+>>>
+>>> @numba.njit
+>>> def accept_even(states):
+>>> 	return states.sum(axis=-1) % 2 == 0
+>>>
+>>> n_max = 3; N_sites = 5
+>>> hi = netket.hilbert.CustomHilbert(local_states=range(n_max), N=N_sites, constraint_fn=accept_even)
+>>> hi.all_states()
+array([[0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 2.],
+       [0., 0., 0., 1., 1.],
+       [0., 0., 0., 2., 0.],
+       ...
+```
+
+The constraint function sums the basis number (a number in `range(n_max)`) and then checks if it is even. 
+Pleaes notice how we used `@numba.njit` to speed up the constraint.
+
+If you then want to sample this space, you'll encounter the following error:
+
+```python
+>>> import jax
+>>> hi.random_state(jax.random.PRNGKey(3), 3)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/home/filippovicentini/Dropbox/Ricerca/Codes/Python/netket/netket/hilbert/abstract_hilbert.py", line 84, in random_state
+    return random.random_state(self, key, size, dtype=dtype)
+  File "plum/function.py", line 537, in plum.function.Function.__call__
+  File "/home/filippovicentini/Dropbox/Ricerca/Codes/Python/netket/netket/hilbert/random/custom.py", line 25, in random_state
+    raise NotImplementedError()
+NotImplementedError
+```
+
+This is because you did not specify how to sample the space. To do so, we must use
 
 
 ## Using Hilbert spaces with {ref}`jax.jit`ted functions
