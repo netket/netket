@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Tuple, Union
 from numba import jit
 
 import numpy as np
@@ -146,7 +147,10 @@ class Ising(SpecialHamiltonian):
 
         self._h = dtype(h)
         self._J = dtype(J)
-        self._edges = np.asarray(list(graph.edges()), dtype=np.intp)
+        self._edges = np.asarray(
+            [[u, v] for u, v in graph.edges()],
+            dtype=np.intp,
+        )
 
         self._dtype = dtype
 
@@ -271,23 +275,7 @@ class Ising(SpecialHamiltonian):
         for i in range(x.shape[0]):
             mels[diag_ind] = 0.0
             for k in range(edges.shape[0]):
-                mels[diag_ind] += (
-                    J
-                    * x[
-                        i,
-                        edges[
-                            k,
-                            0,
-                        ],
-                    ]
-                    * x[
-                        i,
-                        edges[
-                            k,
-                            1,
-                        ],
-                    ]
-                )
+                mels[diag_ind] += J * x[i, edges[k, 0]] * x[i, edges[k, 1]]
 
             odiag_ind = 1 + diag_ind
 
@@ -366,6 +354,8 @@ class Heisenberg(GraphOperator):
         graph: AbstractGraph,
         J: Union[float, Sequence[float]] = 1.0,
         sign_rule=None,
+        *,
+        acting_on_subspace: Union[List[int], int] = None,
     ):
         """
         Constructs an Heisenberg operator given a hilbert space and a graph providing the
@@ -378,12 +368,17 @@ class Heisenberg(GraphOperator):
                Can pass a sequence of coupling strengths with coloured graphs:
                edges of colour n will have coupling strength J[n]
             sign_rule: If True, Marshal's sign rule will be used. On a bipartite
-                       lattice, this corresponds to a basis change flipping the Sz direction
-                       at every odd site of the lattice. For non-bipartite lattices, the
-                       sign rule cannot be applied. Defaults to True if the lattice is
-                       bipartite, False otherwise.
-                       If a sequence of coupling strengths is passed, defaults to False
-                       and a matching sequence of sign_rule must be specified to override it
+                lattice, this corresponds to a basis change flipping the Sz direction
+                at every odd site of the lattice. For non-bipartite lattices, the
+                sign rule cannot be applied. Defaults to True if the lattice is
+                bipartite, False otherwise.
+                If a sequence of coupling strengths is passed, defaults to False
+                and a matching sequence of sign_rule must be specified to override it
+            acting_on_subspace: Specifies the mapping between nodes of the graph and
+                Hilbert space sites, so that graph node :code:`i ∈ [0, ..., graph.n_nodes - 1]`,
+                corresponds to :code:`acting_on_subspace[i] ∈ [0, ..., hilbert.n_sites]`.
+                Must be a list of length `graph.n_nodes`. Passing a single integer :code:`start`
+                is equivalent to :code:`[start, ..., start + graph.n_nodes - 1]`.
 
         Examples:
          Constructs a ``Heisenberg`` operator for a 1D system.
@@ -446,7 +441,11 @@ class Heisenberg(GraphOperator):
             bond_ops_colors = []
 
         super().__init__(
-            hilbert, graph, bond_ops=bond_ops, bond_ops_colors=bond_ops_colors
+            hilbert,
+            graph,
+            bond_ops=bond_ops,
+            bond_ops_colors=bond_ops_colors,
+            acting_on_subspace=acting_on_subspace,
         )
 
     @property
