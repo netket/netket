@@ -38,7 +38,7 @@ Hilbert
    :nosignatures:
 
    netket.hilbert.AbstractHilbert
-   netket.hilbert.AbstractParticle
+   netket.hilbert.ContinuousHilbert
    netket.hilbert.DiscreteHilbert
    netket.hilbert.HomogeneousHilbert
    netket.hilbert.CustomHilbert
@@ -47,7 +47,7 @@ Hilbert
    netket.hilbert.Spin
    netket.hilbert.Qubit
    netket.hilbert.Fock
-   netket.hilbert.ContinuousBoson
+   netket.hilbert.Particle
 
 .. _operators-api:
 

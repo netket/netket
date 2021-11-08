@@ -54,7 +54,7 @@ This is an integer that exposes how many degrees of freedom has the basis of the
 For discrete spaces, this corresponds exactly to the number of sites (which is, e.g., the number of spins in a `Spin` Hilbert space).
 Therefore, elements of the basis of an $N$ spin-$1/2$ system are vectors in $\{-1,+1\}^N$, an $N-$ dimensional space.
 
-As NetKet is a package focused on Monte Carlo calculations, we also need a way to generate random configurations from a given Hilbert space.
+As NetKet is a package focused on Monte Carlo calculations, we also need a way to generate random configurations distributed uniformly from the basis of an Hilbert space.
 This can be achieved through the method {meth}`~netket.hilbert.AbstractHilbert.random_state`. 
 
 ```{eval-rst}
@@ -183,26 +183,50 @@ Do notice that all those methods work with arrays too and will convert an array 
 
 Lastly, it is also possible to obtain the batch of all basis states with the {meth}`~netket.hilbert.DiscreteHilbert.all_states` method. 
 
+### Constrained Hilbert spaces
 
-## Generating uniform samples
 
-It is always possible to sample the basis set of an Hilbert space according to the uniform distribution.
-This can be done using the method {meth}`~netket.hilbert.DiscreteHilbert.random_state`. 
-This method behaves similarly to {ref}`jax.random` generators: the first argument must be a valid {ref}`jax.random.PRNGKey`, 
-the second argument is an optional shape argument and the last one is the data type (dtype) of the output.
+The Hilbert spaces provided by NetKet are compatible with some simple constraints. 
+The constraints that can be imposed are quite ~constrained~ limited themselves: they can only act on the set of basis elements, for example by excluding those that do not satisfy a certain condition. 
 
-````python
->>> key = jax.random.PRNGKey(1)
->>> hi.random_state(key)
-DeviceArray([0., 1., 0.], dtype=float32)
->>> hi.random_state(key, 3)
-DeviceArray([[0., 0., 0.],
-             [1., 1., 1.],
-             [0., 0., 1.]], dtype=float32)
+```{admonition} Warning: Common error
+When you define a constrained Hilbert space and you use it with a Markov-Chain sampler, the constraints guarantees that the initial state of the chain, generated through the {meth}`~netket.hilbert.DiscreteHilbert.random_state` method, respects the constraint.
 
+However, *it is not guaranteed that a transition rule will respect the constraint.* 
+In fact, built-in samplers are not aware of the constraints directly, even though some of can still be used effectively with constraints.
+
+A typical error is to use {ref}`~netket.sampler.MetropolisLocal` with a constrained Hilbert space, such as a Fock space with a fixed number of particles.
+A simple workaround is to use {ref}`~netket.sampler.MetropolisExchange`: as it exchanges the value on two different sites, it guarantees that the total number
+of particles is conserved, and therefore respects the constraint if it is correctly imposed at the initialization of the chain.
+
+In short: when working with constrained Hilbert spaces you have to take extra care when chosing your sampler. And if you have exotic constraints you will most likely need to define your own transition kernel. But don't worry: it is very easy! (however nobody has yet written documentation for it. In the meantime, have a look at [this discussion](https://github.com/netket/netket/discussions/755#discussioncomment-858719))
 ```
 
-The distribution respects
+The constraints supported on the built-in hilbert spaces are:
+
+ - {class}`Spin` supports an optional keyword argument `total_sz` which can be used to impose a fixed total magnetization. 
+ The total magnetization of a basis element is defined as $\sum_i \sigma_i$. Be aware that this constraint is efficiently
+ imposed when calling `random_state` only for spins-$ S=1/2 $, while for larger values of $ S $ it is not efficient. This
+ should not be a problem as long as you use this method just to initialise your markov chains.
+ ```python
+ >>> hi = nk.hilbert.Spin(0.5, 4, total_sz=0)
+ >>> hi.all_states()
+ array([[-1., -1.,  1.,  1.],
+        [-1.,  1., -1.,  1.],
+        [-1.,  1.,  1., -1.],
+        [ 1., -1., -1.,  1.],
+        [ 1., -1.,  1., -1.],
+        [ 1.,  1., -1., -1.]])
+ ```
+ - {class}`Fock` supports an optional keyword argument `n_particles` which can be used to impose a fixed total number of particles. 
+ ```python
+ >>> hi = nk.hilbert.Fock(N=2, n_particles=2)
+ >>> hi.all_states()
+ array([[0., 2.],
+        [1., 1.],
+        [2., 0.]])
+ ```
+ - It is also possible to define a custom (Homogeneous) hilbert space with a custom constraint. To see how to do that, check the section...
 
 
 ## Using Hilbert spaces with {ref}`jax.jit`ted functions
@@ -215,6 +239,6 @@ All attributes and methods of Hilbert spaces can be freely used inside of a `jax
 {meth}`~netket.hilbert.DiscreteHilbert.states_to_numbers` and {meth}`~netket.hilbert.DiscreteHilbert.numbers_to_states`, because
 they are written using {ref}`numpy` instead of jax.
 
-In particular, `random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax 
+In particular the {meth}`~netket.hilbert.DiscreteHilbert.random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax 
 {ref}`jax.random.PRNGKey` object as the first argument.
 
