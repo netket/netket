@@ -196,13 +196,13 @@ class SpaceGroupBuilder:
         is_in_little_group = np.all(big_star == big_star[0], axis=1)
         return np.arange(len(self.point_group_))[is_in_little_group]
 
-    def little_group(self, k: Array) -> PointGroup:
+    def little_group(self, *k) -> PointGroup:
         """
         Returns the little co-group corresponding to wave vector *k*.
         This is the subgroup of the point group that leaves *k* invariant.
 
         Arguments:
-            k: the wave vector in Cartesian axes
+            *k: components of the wave vector in Cartesian axes
 
         Returns:
             the little co-group as a `PointGroup`
@@ -221,18 +221,18 @@ class SpaceGroupBuilder:
         This is convenient when calculating space group irreps.
         """
         idx = self._little_group_index(k)
-        CT = self.little_group(k).character_table()
+        CT = self.little_group(*k).character_table()
         CT_full = np.zeros((CT.shape[0], len(self.point_group_)))
         CT_full[:, idx] = CT
         return CT_full / idx.size if divide else CT_full
 
-    def space_group_irreps(self, k: Array) -> Array:
+    def space_group_irreps(self, *k) -> Array:
         """
         Returns the portion of the character table of the full space group corresponding
         to the star of the wave vector *k*.
 
         Arguments:
-            k: the wave vector in Cartesian axes
+            *k: components of the wave vector in Cartesian axes
 
         Returns:
             An array `CT` listing the characters for a number of irreps of the
