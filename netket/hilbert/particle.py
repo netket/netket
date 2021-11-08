@@ -1,7 +1,5 @@
 from typing import Tuple, Union
 
-# from netket.utils import is_scalar
-
 from .continuous_hilbert import ContinuousHilbert
 
 
