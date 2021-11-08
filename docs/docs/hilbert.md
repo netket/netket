@@ -52,7 +52,7 @@ Currently, all the operators shipping with NetKet hardcode the choice of $\hat{Z
 All Hilbert spaces expose one attribute: {attr}`~netket.hilbert.AbstractHilbert.size` 
 This is an integer that exposes how many degrees of freedom has the basis of the Hilbert space.
 For discrete spaces, this corresponds exactly to the number of sites (which is, e.g., the number of spins in a `Spin` Hilbert space).
-Therefore, elements of the basis of an $N$ spin-$1/2$ system are vectors in $\mathbb{R}^N$, an $N-$ dimensional space.
+Therefore, elements of the basis of an $N$ spin-$1/2$ system are vectors in $\{-1,+1\}^N$, an $N-$ dimensional space.
 
 As NetKet is a package focused on Monte Carlo calculations, we also need a way to generate random configurations from a given Hilbert space.
 This can be achieved through the method {meth}`~netket.hilbert.AbstractHilbert.random_state`. 
@@ -83,7 +83,6 @@ Please do open an issue or a feature request on the GitHub repository if you enc
 
 ## The `DiscreteHilbert` interface
 
-Discrete Hilbert spaces have a much more full fledged API. 
 {ref}`netket.hilbert.DiscreteHilbert` is also an abstract class from which any hilbert space with countable (or discrete) local degrees of freedom must inherit.
 Examples of such spaces are spins or bosons on a lattice.
 
