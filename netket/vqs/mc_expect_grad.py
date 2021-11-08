@@ -177,7 +177,7 @@ def expect_and_grad(  # noqa: F811
     kernel = Ô.expect_kernel
 
     Ō, Ō_grad = _grad_expect_continuous(
-        vstate._apply_fun, kernel, vstate.parameters, Ô.pack_data(), x
+        vstate._apply_fun, kernel, vstate.parameters, Ô._pack_arguments(), x
     )
 
     return Ō, Ō_grad
@@ -407,7 +407,7 @@ def _grad_expect_continuous(
     model_apply_fun: Callable,
     kernel,
     parameters: PyTree,
-    masses: PyTree,
+    additional_data: PyTree,
     x: jnp.ndarray,
 ) -> Tuple[PyTree, PyTree]:
 
@@ -428,7 +428,7 @@ def _grad_expect_continuous(
     x = x.reshape((-1, 1, x_shape[-1]))
 
     def compute_kernel(i, x):
-        Oloc = local_value_vmap(parameters, x, masses)
+        Oloc = local_value_vmap(parameters, x, additional_data)
 
         return i, Oloc
 

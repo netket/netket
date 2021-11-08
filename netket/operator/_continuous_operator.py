@@ -14,6 +14,9 @@ class ContinousOperator(AbstractOperator):
     """
 
     def __init__(self, hilbert: AbstractHilbert, dtype: Optional[DType] = float):
+        r"""Args:
+        hilbert: The underlying Hilbert space on which the operator is defined
+        """
 
         self._dtype = dtype
         super().__init__(hilbert)
@@ -22,12 +25,19 @@ class ContinousOperator(AbstractOperator):
     def dtype(self) -> DType:
         return self._dtype
 
-    def expect_kernel(self, logpsi, params, x_in, data):
-        r"""In this method the action of the operator on a given quantum state
-        logpsi at a given congfiguration x_in is defined."""
+    def expect_kernel(self, logpsi, params, x, data):
+        r"""In this method the action of the local operator on a given quantum state
+        logpsi at a given congfiguration x is defined.
+        :math:`O_{loc}(x) =  \frac{\bra{x}O{\ket{\psi}}{\bra{x}\ket{\psi}}`
+        Args:
+            logpsi: variational state
+            params: parameters for the variational state
+            x: a sample of particle positions
+            data: additional data
+        """
         raise NotImplementedError
 
-    def pack_data(self):
+    def _pack_arguments(self):
         r"""This methods makes it possible to give coefficients to the expect_kernel method above.
         For example for the kinetic energy this method would return the masses of the
         individual particles."""

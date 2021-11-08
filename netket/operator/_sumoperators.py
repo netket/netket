@@ -37,5 +37,7 @@ class SumOperator(ContinousOperator):
         ]
         return jnp.sum(jnp.array(result))
 
-    def pack_data(self):
-        return [jnp.array(self._coeff) * jnp.array(op.pack_data()) for op in self._ops]
+    def _pack_arguments(self):
+        return [
+            jnp.array(self._coeff) * jnp.array(op._pack_arguments()) for op in self._ops
+        ]

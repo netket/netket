@@ -9,12 +9,13 @@ import jax.numpy as jnp
 
 
 class PotentialEnergy(ContinousOperator):
+    r"""Args:
+    afun: The potential energy as function of x
+    """
+
     def __init__(
         self, hilbert: AbstractHilbert, afun: Callable, dtype: Optional[DType] = float
     ):
-        r"""Args:
-        afun: The potential energy as function of x_in
-        """
 
         self._afun = afun
         self._dtype = dtype
@@ -24,13 +25,9 @@ class PotentialEnergy(ContinousOperator):
     def dtype(self) -> DType:
         return self._dtype
 
-    def expect_kernel(self, logpsi, params, x_in, data):
-        r"""
-        Args:
-            x_in: A sample of particle positions
-        """
+    def expect_kernel(self, logpsi, params, x, data):
 
-        return jnp.sum(jnp.array(data) * self._afun(x_in))
+        return jnp.sum(jnp.array(data) * self._afun(x))
 
-    def pack_data(self):
+    def _pack_arguments(self):
         return [1.0]

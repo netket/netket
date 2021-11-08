@@ -123,7 +123,7 @@ def expect(vstate: MCState, Ô: ContinousOperator) -> Stats:  # noqa: F811
         vstate._apply_fun,
         kernel,
         vstate.parameters,
-        Ô.pack_data(),
+        Ô._pack_arguments(),
         x,
     )
 
@@ -168,7 +168,7 @@ def _expect_continuous(
     model_apply_fun: Callable,
     kernel: Callable,
     parameters: PyTree,
-    masses: PyTree,
+    additional_data: PyTree,
     x: jnp.ndarray,
 ) -> Stats:
     x_shape = x.shape
@@ -188,7 +188,7 @@ def _expect_continuous(
     )
 
     _, Ō_stats = nkjax.expect(
-        log_pdf, local_value_vmap, parameters, x, masses, n_chains=x_shape[0]
+        log_pdf, local_value_vmap, parameters, x, additional_data, n_chains=x_shape[0]
     )
 
     return Ō_stats
