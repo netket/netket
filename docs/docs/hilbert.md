@@ -21,9 +21,9 @@ You can see a birds-eye of the inheritance diagram among the various kinds of Hi
 
 {ref}`netket.hilbert.AbstractHilbert` makes very few assumptions on the structure of the resulting space and you will generally very rarely interact with it directly.
 
-There are then two more abstract Hilbert space types: {ref}`netket.hilbert.DiscreteHilbert`, representing Hilbert spaces where the local degrees of freedom are countable, and {ref}`netket.hilbert.AbstractParticle`, representing the Hilbert spaces of particles in continuous, real-space. 
+There are then two more abstract Hilbert space types: {ref}`netket.hilbert.DiscreteHilbert`, representing Hilbert spaces where the local degrees of freedom are countable, and {ref}`netket.hilbert.ContinuousHilbert`, representing the Hilbert spaces with continuous bases, such as particles in a box. 
 
-Those two abstract types are very different: `AbstractParticle` (or continuous) Hilbert spaces are still experimental and we don't support yet many ways to manipulate them, while `DiscreteHilbert` spaces are much more developed and offer many utilities and handy functionalities.
+Those two abstract types are very different: `ContinuousHilbert` spaces are still experimental and we don't support yet many ways to manipulate them, while `DiscreteHilbert` spaces are much more developed and offer many utilities and handy functionalities.
 
 Among the discrete Hilbert spaces the most important ones are {ref}`netket.hilbert.HomogeneousHilbert` spaces, where the local degrees of freedom are identical among different sites, of which there exist the {ref}`netket.hilbert.Fock`, {ref}`netket.hilbert.Spin` and {ref}`netket.hilbert.Qubit` implementation.
 
@@ -184,6 +184,37 @@ Do notice that all those methods work with arrays too, and will convert an array
 Lastly, it is also possible to obtain the batch of all basis states with the {meth}`~netket.hilbert.DiscreteHilbert.all_states` method. 
 
 
+## Generating uniform samples
+
+It is always possible to sample the basis set of an Hilbert space according to the uniform distribution.
+This can be done using the method {meth}`~netket.hilbert.DiscreteHilbert.random_state`. 
+This method behaves similarly to {ref}`jax.random` generators: the first argument must be a valid {ref}`jax.random.PRNGKey`, 
+the second argument is an optional shape argument and the last one is the data type (dtype) of the output.
+
+````python
+>>> key = jax.random.PRNGKey(1)
+>>> hi.random_state(key)
+DeviceArray([0., 1., 0.], dtype=float32)
+>>> hi.random_state(key, 3)
+DeviceArray([[0., 0., 0.],
+             [1., 1., 1.],
+             [0., 0., 1.]], dtype=float32)
+
+```
+
+The distribution respects
+
+
 ## Using Hilbert spaces with {ref}`jax.jit`ted functions
 
-Hilbert spaces are immutable, hashable objects
+Hilbert spaces are immutable, hashable objects. 
+Their hash is computed by hashing their inner fields, determined by the internal {meth}`~netket.hilbert.DiscreteHilbert._attrs` method.
+You can freely use `AbstractHilbert` objects inside of `jax.jit`ted functions as long as you specify that they are `static`.
+
+All attributes and methods of Hilbert spaces can be freely used inside of a `jax.jit` block except for 
+{meth}`~netket.hilbert.DiscreteHilbert.states_to_numbers` and {meth}`~netket.hilbert.DiscreteHilbert.numbers_to_states`, because
+they are written using {ref}`numpy` instead of jax.
+
+In particular, `random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax 
+{ref}`jax.random.PRNGKey` object as the first argument.
+
