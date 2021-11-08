@@ -23,6 +23,7 @@ from ._local_operator import LocalOperator
 
 
 def check_acting_on_subspace(acting_on_subspace, hilbert, graph):
+    """Check `acting_on_subspace` argument used by various operators."""
     if acting_on_subspace is None:
         acting_on_subspace = list(range(hilbert.size))
     elif isinstance(acting_on_subspace, int):
