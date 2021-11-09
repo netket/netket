@@ -15,4 +15,5 @@
 from .io import variables_from_file, variables_from_tar
 
 from netket.utils import _hide_submodules
+
 _hide_submodules(__name__)
