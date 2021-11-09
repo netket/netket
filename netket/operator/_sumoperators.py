@@ -1,3 +1,16 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import Union, List, Optional, Callable
 
 from netket.utils.types import DType, PyTree, Array
@@ -10,6 +23,10 @@ import jax.numpy as jnp
 
 
 class SumOperator(ContinousOperator):
+    r"""This class implements the action of the _expect_kernel()-method of
+    ContinuousOperator for a sum of ContinuousOperator objects.
+    """
+
     def __init__(
         self,
         *operators: List,
@@ -17,10 +34,11 @@ class SumOperator(ContinousOperator):
         dtype: Optional[DType] = None,
     ):
         r"""
+        Returns the action of a sum of local operators.
         Args:
-            hilbert: The underlying Hilbert space on which the operators are defined
             operators: A list of ContinousOperator objects
-            coeff: A coefficient for each ContinousOperator object
+            coefficients: A coefficient for each ContinousOperator object
+            dtype: Data type of the matrix elements. Defaults to `np.float64`
         """
 
         hil = [op.hilbert for op in operators]
