@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Deprecation warnings for netket.optim, renamed to netket.optimizer
-
 from netket.utils import warn_deprecation as _warn_deprecation
 
 _old_module_name = "netket.vqs.experimental"
