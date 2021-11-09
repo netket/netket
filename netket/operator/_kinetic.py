@@ -24,8 +24,8 @@ class KineticEnergy(ContinousOperator):
         dtype: Optional[DType] = float,
     ):
 
-        self._mass = mass
         self._dtype = dtype
+        self._mass = jnp.asarray(mass, dtype=dtype)
 
         super().__init__(hilbert)
 

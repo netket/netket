@@ -15,8 +15,12 @@ class ContinousOperator(AbstractOperator):
 
     def __init__(self, hilbert: AbstractHilbert, dtype: Optional[DType] = float):
         r"""
+        Constructs the continuous operator acting on the given hilbert space and
+        with a certain data type.
+
         Args:
             hilbert: The underlying Hilbert space on which the operator is defined
+            dtype: Data type of the matrix elements. Defaults to `np.float64`
         """
 
         self._dtype = dtype
@@ -31,8 +35,8 @@ class ContinousOperator(AbstractOperator):
     ):
         r"""This method defines the action of the local operator on a given quantum state
         `logpsi` for a given congfiguration `x`.
-         :math:`O_{loc}(x) =  \frac{\bra{x}O{\ket{\psi}}{\bra{x}\ket{\psi}}`
-         This method is executed inside of a `jax.jit` block.
+        :math:`O_{loc}(x) =  \frac{\bra{x}O{\ket{\psi}}{\bra{x}\ket{\psi}}`
+        This method is executed inside of a `jax.jit` block.
         Any static data from the operator itself should be captured in the method.
         Any array should be passed through the `_pack_arguments` method in order to be
         traced by jax, and will be passed as the `data` argument.
