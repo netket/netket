@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket import config as _config
-
 from .base import (
     Sampler,
     SamplerState,
@@ -43,19 +41,12 @@ from .metropolis_numpy import (
     MetropolisCustomNumpy,
 )
 
-from .metropolis_pt import (
-    MetropolisPtSampler,
-    MetropolisLocalPt,
-    MetropolisExchangePt,
-)
-
 from .autoreg import ARDirectSampler
 
 from . import rules
 
 # Shorthand
 Metropolis = MetropolisSampler
-MetropolisPt = MetropolisPtSampler
 MetropolisNumpy = MetropolisSamplerNumpy
 
 # Replacements for effficiency

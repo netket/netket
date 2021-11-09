@@ -20,11 +20,10 @@ import jax
 from jax import numpy as jnp
 from jax.experimental import loops
 
-from netket import config
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils import struct
 
-from .metropolis import MetropolisSamplerState, MetropolisSampler
+from netket.sampler import MetropolisSamplerState, MetropolisSampler
 
 
 @struct.dataclass
@@ -101,17 +100,6 @@ class MetropolisPtSampler(MetropolisSampler):
     """The number of replicas"""
 
     def __post_init__(self):
-        if not config.FLAGS["NETKET_EXPERIMENTAL"]:
-            raise RuntimeError(
-                """
-                               Parallel Tempering samplers are under development and
-                               are known not to work.
-
-                               If you want to debug it, set the environment variable
-                               NETKET_EXPERIMENTAL=1
-                               """
-            )
-
         super().__post_init__()
         if (
             not isinstance(self.n_replicas, int)

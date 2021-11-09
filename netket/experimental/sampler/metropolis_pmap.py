@@ -22,7 +22,7 @@ import numpy as np
 
 from flax import linen as nn
 
-from netket.utils import mpi, config, struct
+from netket.utils import mpi, struct
 from netket.utils.types import PyTree
 
 from netket.sampler import SamplerState
