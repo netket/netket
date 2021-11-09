@@ -165,3 +165,4 @@
 
    docs/api-stability
    docs/api
+   docs/api-experimental

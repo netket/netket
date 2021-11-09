@@ -14,7 +14,10 @@
 
 * In addition to nearest-neighbor edges, `Lattice` can now generate edges between next-nearest and, more generally, k-nearest neighbors via the constructor argument `max_neighbor_order`. The edges can be distinguished by their `color` property (which is used, e.g., by `GraphOperator` to apply different bond operators). [#970](https://github.com/netket/netket/pull/970)
 
+* A new `netket.experimental` module (hidden by default) has been created. All experimental features have been moved there. [#976](https://github.com/netket/netket/pull/976)
+
 ### Breaking Changes
+* Moved `nk.vqs.variables_from_***` to `nk.experimental.vqs` module. Also moved the experimental samplers to `nk.sampler.MetropolisPt` and `nk.sampler.MetropolisPmap` to `nk.experimental.sampler`. [#976](https://github.com/netket/netket/pull/976)
 
 ### Internal Changes
 
