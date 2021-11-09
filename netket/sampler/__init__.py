@@ -53,8 +53,6 @@ from .autoreg import ARDirectSampler
 
 from . import rules
 
-from .metropolis_pmap import MetropolisSamplerPmap
-
 # Shorthand
 Metropolis = MetropolisSampler
 MetropolisPt = MetropolisPtSampler
