@@ -163,6 +163,7 @@ def _expect(
     return Ō_stats
 
 
+@partial(jax.jit, static_argnums=(1, 2))
 def _expect_continuous(
     machine_pow: int,
     model_apply_fun: Callable,

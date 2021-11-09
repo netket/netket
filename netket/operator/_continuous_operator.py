@@ -77,7 +77,7 @@ class ContinousOperator(AbstractOperator):
 
             return SumOperator(self, other)
         else:
-            return NotImplementedError
+            return NotImplemented
 
     def __rmul__(self, other):
         if isinstance(self, ContinousOperator) and isinstance(other, float):
@@ -85,7 +85,7 @@ class ContinousOperator(AbstractOperator):
 
             return self * other
         else:
-            return NotImplementedError
+            return NotImplemented
 
     def __mul__(self, other):
         if isinstance(self, ContinousOperator) and isinstance(other, float):
@@ -93,4 +93,4 @@ class ContinousOperator(AbstractOperator):
 
             return SumOperator(self, coefficients=other)
         else:
-            return NotImplementedError
+            return NotImplemented

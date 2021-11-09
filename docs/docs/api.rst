@@ -86,6 +86,18 @@ Pre-defined operators
    netket.operator.spin.sigmap
    netket.operator.spin.sigmam
 
+
+Continuous space operators
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: _generated/hilbert
+   :nosignatures:
+   netket.operator.ContinuousOperator
+   netket.operator.KineticEnergy
+   netket.operator.PotentialEnergy
+   netkket.operator.SumOperator
+
 .. _exact-api:
 
 Exact solvers
