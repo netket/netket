@@ -18,7 +18,7 @@
 import numpy as np
 from functools import reduce
 from math import pi
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Sequence
 
 from .lattice import Lattice
 
@@ -166,7 +166,7 @@ class SpaceGroupBuilder:
         )
 
     def translation_group(
-        self, axes: Optional[Union[int, Iterable[int]]] = None
+        self, axes: Optional[Union[int, Sequence[int]]] = None
     ) -> PermutationGroup:
         """
         The group of valid translations of `self.lattice` as a `PermutationGroup`
@@ -204,7 +204,7 @@ class SpaceGroupBuilder:
         is_in_little_group = np.all(big_star == big_star[0], axis=1)
         return np.arange(len(self.point_group_))[is_in_little_group]
 
-    def little_group(self, *k) -> PointGroup:
+    def little_group(self, *k: Array) -> PointGroup:
         """
         Returns the little co-group corresponding to wave vector *k*.
         This is the subgroup of the point group that leaves *k* invariant.
@@ -235,7 +235,7 @@ class SpaceGroupBuilder:
         CT_full[:, idx] = CT
         return CT_full / idx.size if divide else CT_full
 
-    def space_group_irreps(self, *k) -> Array:
+    def space_group_irreps(self, *k: Array) -> Array:
         """
         Returns the portion of the character table of the full space group corresponding
         to the star of the wave vector *k*.
