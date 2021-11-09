@@ -1,5 +1,5 @@
 import jax.numpy as jnp
-
+import numpy as np
 import netket
 
 
@@ -39,8 +39,8 @@ def test_potential_energy():
     x = jnp.array([0])
     energy1 = pot1._expect_kernel(model1, 0.0, x, pot1._pack_arguments())
     energy2 = pot2._expect_kernel(model1, 0.0, x, pot2._pack_arguments())
-    assert jnp.allclose(energy1, v1(x))
-    assert jnp.allclose(energy2, v2(x))
+    np.testing.assert_allclose(energy1, v1(x))
+    np.testing.assert_allclose(energy2, v2(x))
 
 
 def test_kinetic_energy():
@@ -49,24 +49,24 @@ def test_kinetic_energy():
         model2, 0.0, jnp.array([1, 2, 3.0]), kin1._pack_arguments()
     )
     kinen1 = jnp.sum(kinexact(x) / 20.0)
-    assert jnp.allclose(energy1, kinen1)
+    np.testing.assert_allclose(energy1, kinen1)
 
 
 def test_sumoperator():
     x = jnp.array([1, 2, 3.0])
     potenergy = pottot._expect_kernel(model2, 0.0, x, pottot._pack_arguments())
     energy10p52 = pot10p52._expect_kernel(model2, 0.0, x, pot10p52._pack_arguments())
-    assert jnp.allclose(potenergy, v1(x) + v2(x))
-    assert jnp.allclose(energy10p52, v1(x) + 0.5 * v2(x))
+    np.testing.assert_allclose(potenergy, v1(x) + v2(x))
+    np.testing.assert_allclose(energy10p52, v1(x) + 0.5 * v2(x))
 
     kinenergy = kintot._expect_kernel(model2, 0.0, x, kintot._pack_arguments())
     kinenergyex = jnp.sum(kinexact(x) / 20.0) + jnp.sum(kinexact(x) / 2.0)
-    assert jnp.allclose(kinenergy, kinenergyex)
+    np.testing.assert_allclose(kinenergy, kinenergyex)
 
     kinen10p52 = kin10p52._expect_kernel(model2, 0.0, x, kin10p52._pack_arguments())
     kinenergy10p52ex = jnp.sum(kinexact(x) / 20.0) + 0.5 * jnp.sum(kinexact(x) / 2.0)
-    assert jnp.allclose(kinen10p52, kinenergy10p52ex)
+    np.testing.assert_allclose(kinen10p52, kinenergy10p52ex)
 
     enertot = etot._expect_kernel(model2, 0.0, x, etot._pack_arguments())
     enerexact = v1(x) + v2(x) + jnp.sum(kinexact(x) / 20.0) + jnp.sum(kinexact(x) / 2.0)
-    assert jnp.allclose(enertot, enerexact)
+    np.testing.assert_allclose(enertot, enerexact)

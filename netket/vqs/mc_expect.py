@@ -114,7 +114,7 @@ def expect(vstate: MCMixedState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
 
 @dispatch
 def expect(vstate: MCState, Ô: ContinousOperator) -> Stats:  # noqa: F811
-    _check_hilbert(vstate.diagonal, Ô)
+    _check_hilbert(vstate, Ô)
 
     x = vstate.samples
     kernel = Ô._expect_kernel
