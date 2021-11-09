@@ -13,3 +13,6 @@
 # limitations under the License.
 
 from .metropolis_pmap import MetropolisSamplerPmap
+
+from netket.utils import _hide_submodules
+_hide_submodules(__name__)
