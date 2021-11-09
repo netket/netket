@@ -1,6 +1,6 @@
-from typing import Optional, Union
+from typing import Optional, Callable, Union, List
 
-from netket.utils.types import DType, PyTree
+from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinousOperator
@@ -12,14 +12,15 @@ import jax.numpy as jnp
 class KineticEnergy(ContinousOperator):
     r"""Returns the local kinetic energy (hbar = 1)
                 :math:`E_{kin} = -1/2 ( \sum_i \frac{1}{m_i} (\log(\psi))'^2 + (\log(\psi))'' )`
+
     Args:
-    mass: float if all masses are the same, list indicating the mass of each particle otherwise
+        mass: float if all masses are the same, list indicating the mass of each particle otherwise
     """
 
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        mass: Union[float, list],
+        mass: Union[float, List[float]],
         dtype: Optional[DType] = float,
     ):
 
@@ -32,7 +33,13 @@ class KineticEnergy(ContinousOperator):
     def dtype(self) -> DType:
         return self._dtype
 
-    def expect_kernel(self, logpsi, params, x, data):
+    @property
+    def mass(self):
+        return self._mass
+
+    def _expect_kernel(
+        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+    ):
         def logpsi_x(x):
             return logpsi(params, x)
 
@@ -48,7 +55,7 @@ class KineticEnergy(ContinousOperator):
         return -0.5 * jnp.sum(1.0 / jnp.array(data) * (dp_dx2 + dp_dx))
 
     def _pack_arguments(self) -> PyTree:
-        if isinstance(self._mass, list):
-            return self._mass
+        return self._mass
 
-        return self.hilbert.size * [self._mass]
+    def __repr__(self):
+        return f"KineticEnergy(m={self._mass})"

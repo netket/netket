@@ -174,7 +174,7 @@ def expect_and_grad(  # noqa: F811
     _check_hilbert(vstate, Ô)
 
     x = vstate.samples
-    kernel = Ô.expect_kernel
+    kernel = Ô._expect_kernel
 
     Ō, Ō_grad = _grad_expect_continuous(
         vstate._apply_fun, kernel, vstate.parameters, Ô._pack_arguments(), x

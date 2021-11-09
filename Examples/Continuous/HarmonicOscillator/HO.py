@@ -10,7 +10,7 @@ def v(x):
 
 L = 10.0
 
-hilb = nk.hilbert.Particle(N=5, L=(jnp.inf,), pbc=(False,))
+hilb = nk.hilbert.Particle(N=5, L=(jnp.inf,), pbc=False)
 
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, n_sweeps=1)
 model = nk.models.Gaussian(dtype=float)

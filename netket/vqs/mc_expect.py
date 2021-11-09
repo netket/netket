@@ -117,7 +117,7 @@ def expect(vstate: MCState, Ô: ContinousOperator) -> Stats:  # noqa: F811
     _check_hilbert(vstate.diagonal, Ô)
 
     x = vstate.samples
-    kernel = Ô.expect_kernel
+    kernel = Ô._expect_kernel
     return _expect_continuous(
         vstate.sampler.machine_pow,
         vstate._apply_fun,
