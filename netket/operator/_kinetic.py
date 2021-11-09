@@ -67,10 +67,10 @@ class KineticEnergy(ContinousOperator):
 
         dp_dx = dlogpsi_x(x) ** 2
 
-        return -0.5 * jnp.sum(1.0 / jnp.array(data) * (dp_dx2 + dp_dx))
+        return -0.5 * jnp.sum(data * (dp_dx2 + dp_dx))
 
     def _pack_arguments(self) -> PyTree:
-        return self._mass
+        return 1.0 / self._mass
 
     def __repr__(self):
         return f"KineticEnergy(m={self._mass})"
