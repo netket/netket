@@ -323,7 +323,7 @@ def expect_and_grad(
     use_covariance: Optional[bool],
     *args,
     mutable=None,
-    **kwargs
+    **kwargs,
 ):
     r"""Estimates both the gradient of the quantum expectation value of a given operator O.
 
@@ -366,4 +366,6 @@ def expect_and_grad(
     if mutable is None:
         mutable = vstate.mutable
 
-    return expect_and_grad(vstate, operator, use_covariance, *args, mutable=mutable, **kwargs)
+    return expect_and_grad(
+        vstate, operator, use_covariance, *args, mutable=mutable, **kwargs
+    )
