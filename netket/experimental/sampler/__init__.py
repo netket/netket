@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2020, 2021 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import VariationalState, VariationalMixedState, expect, expect_and_grad
-from .mc_state import MCState
-from .mc_mixed_state import MCMixedState
+from .metropolis_pmap import MetropolisSamplerPmap
 
-from . import mc_expect
-from . import mc_expect_grad
+from .metropolis_pt import (
+    MetropolisPtSampler,
+    MetropolisLocalPt,
+    MetropolisExchangePt,
+)
 
 from netket.utils import _hide_submodules
 
-# TODO: this is deprecated in favour of netket.experimental.vqs
-# eventually remove this file and import
-from . import experimental
-
-_hide_submodules(__name__, ignore=["experimental"])
+_hide_submodules(__name__)

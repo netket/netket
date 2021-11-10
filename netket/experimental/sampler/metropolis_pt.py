@@ -20,11 +20,11 @@ import jax
 from jax import numpy as jnp
 from jax.experimental import loops
 
-from netket import config
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils import struct
 
-from .metropolis import MetropolisSamplerState, MetropolisSampler
+from netket.sampler import MetropolisSamplerState, MetropolisSampler
+from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
 
 
 @struct.dataclass
@@ -101,17 +101,6 @@ class MetropolisPtSampler(MetropolisSampler):
     """The number of replicas"""
 
     def __post_init__(self):
-        if not config.FLAGS["NETKET_EXPERIMENTAL"]:
-            raise RuntimeError(
-                """
-                               Parallel Tempering samplers are under development and
-                               are known not to work.
-
-                               If you want to debug it, set the environment variable
-                               NETKET_EXPERIMENTAL=1
-                               """
-            )
-
         super().__post_init__()
         if (
             not isinstance(self.n_replicas, int)
@@ -452,8 +441,6 @@ def MetropolisLocalPt(hilbert, *args, **kwargs):
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
         dtype: The dtype of the statees sampled (default = np.float32).
     """
-    from .rules import LocalRule
-
     return MetropolisPtSampler(hilbert, LocalRule(), *args, **kwargs)
 
 
@@ -509,8 +496,6 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
           >>> print(sa)
           MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
     """
-    from .rules import ExchangeRule
-
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
     return MetropolisPtSampler(hilbert, rule, *args, **kwargs)
 
@@ -560,7 +545,5 @@ def MetropolisHamiltonianPt(hilbert, hamiltonian, *args, **kwargs):
        >>> print(sa)
        MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
     """
-    from .rules import HamiltonianRule
-
     rule = HamiltonianRule(hamiltonian)
     return MetropolisPtSampler(hilbert, rule, *args, **kwargs)

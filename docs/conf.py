@@ -231,9 +231,11 @@ def setup(app):
 
     # fix modules
     process_module_names(netket)
+    process_module_names(netket.experimental)
 
 
 import netket
+import netket.experimental
 import inspect
 
 

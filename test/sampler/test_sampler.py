@@ -19,6 +19,9 @@ from .. import common
 
 import netket as nk
 from netket.hilbert import DiscreteHilbert, Particle
+
+from netket import experimental as nkx
+
 import numpy as np
 import pytest
 from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
@@ -70,10 +73,10 @@ samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(
 #    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2)), n_chains=8
 # )
 
-samplers["MetropolisPT(Local): Spin"] = nk.sampler.MetropolisLocalPt(
+samplers["MetropolisPT(Local): Spin"] = nkx.sampler.MetropolisLocalPt(
     hi, n_chains=8, n_replicas=4
 )
-samplers["MetropolisPT(Local): Fock"] = nk.sampler.MetropolisLocalPt(
+samplers["MetropolisPT(Local): Fock"] = nkx.sampler.MetropolisLocalPt(
     hib_u, n_chains=8, n_replicas=4
 )
 
@@ -97,7 +100,7 @@ samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
     hi, move_operators=move_op
 )
 
-# samplers["MetropolisPT(Custom: Sx): Spin"] = nk.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
+# samplers["MetropolisPT(Custom: Sx): Spin"] = nkx.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
 
 samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi, n_chains=16)
 samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1, n_chains=16)
@@ -215,7 +218,7 @@ def findrng(rng):
 # Mark tests that we know are failing on correctedness
 def failing_test(sampler):
     if isinstance(sampler, nk.sampler.MetropolisSampler):
-        if isinstance(sampler, nk.sampler.MetropolisPtSampler):
+        if isinstance(sampler, nkx.sampler.MetropolisPtSampler):
             return True
 
     return False
