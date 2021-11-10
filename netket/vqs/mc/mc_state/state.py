@@ -37,22 +37,24 @@ from netket.optimizer.qgt import QGTAuto
 from netket.vqs.base import VariationalState, expect, expect_and_grad
 
 
-def compute_chain_length(n_chains, n_samples, minibatch_size=None):
+def compute_chain_length(n_chains, n_samples, chunk_size=None):
     if n_samples <= 0:
         raise ValueError("Invalid number of samples: n_samples={}".format(n_samples))
 
     chain_length = int(np.ceil(n_samples / n_chains))
 
-    if minibatch_size is not None:
+    if chunk_size is not None:
         n_chains_per_rank = n_chains // mpi.n_nodes
 
-        n_minibatches = int(
-            np.ceil((chain_length * n_chains_per_rank) / minibatch_size)
-        )
-        samples_per_rank = n_minibatches * minibatch_size
+        n_chunks = int(np.ceil((chain_length * n_chains_per_rank) / chunk_size))
+        samples_per_rank = n_chunks * chunk_size
         chain_length = int(samples_per_rank // n_chains_per_rank)
 
     return chain_length
+
+
+def _is_power_of_two(n: int) -> bool:
+    return (n != 0) and (n & (n - 1) == 0)
 
 
 @partial(jax.jit, static_argnums=0)
@@ -95,7 +97,7 @@ class MCState(VariationalState):
     _apply_fun: Callable = None
     """The function used to evaluate the model"""
 
-    _minibatch_size: Optional[int] = None
+    _chunk_size: Optional[int] = None
 
     def __init__(
         self,
@@ -284,9 +286,7 @@ class MCState(VariationalState):
 
     @n_samples.setter
     def n_samples(self, n_samples: int):
-        chain_length = compute_chain_length(
-            self.sampler.n_chains, n_samples, minibatch_size=self.minibatch_size
-        )
+        chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
         n_samples_per_node = chain_length * self.sampler.n_chains_per_rank
         n_samples = chain_length * self.sampler.n_chains
@@ -373,30 +373,58 @@ class MCState(VariationalState):
         self.n_discard_per_chain = val
 
     @property
-    def minibatch_size(self) -> int:
-        return self._minibatch_size
+    def chunk_size(self) -> int:
+        """
+        Suggested *maximum size* of the chunks used in forward and backward evaluations
+        of the Neural Network model. If your inputs are smaller than the chunk size
+        this setting is ignored.
 
-    @minibatch_size.setter
-    def minibatch_size(self, minibatch_size: int):
-        # disable minibatches if it is None
-        if minibatch_size is None:
-            self._minibatch_size = None
+        This can be used to lower the memory required to run a computation with a very
+        high number of samples or on a very large lattice. Notice that inputs and
+        outputs must still fit in memory, but the intermediate computations will now
+        require less memory.
+
+        This option comes at an increased computational cost. While this cost should
+        be negligible for large-enough chunk sizes, don't use it unless you are memory
+        bound!
+
+        This option is an hint: only some operations support chunking. If you perform
+        an operation that is not implemented with chunking support, it will fall back
+        to no chunking. To check if this happened, set the environment variable
+        `NETKET_DEBUG=1`.
+        """
+        return self._chunk_size
+
+    @chunk_size.setter
+    def chunk_size(self, chunk_size: int):
+        # disable chunks if it is None
+        if chunk_size is None:
+            self._chunk_size = None
             return
 
-        do_warn = False
+        if chunk_size <= 0:
+            raise ValueError("Chunk size must be a positive integer. ")
 
-        self._minibatch_size = minibatch_size
-
-        # force recomputation
-        old_chain_length = self._chain_length
-        self.chain_length = self.chain_length
-
-        if (do_warn or old_chain_length != self.chain_length) and mpi.rank == 0:
+        if not _is_power_of_two(chunk_size):
             warnings.warn(
-                "`minibatch_size` must be a multiple of `n_chains` and a divisor of "
-                "`chain_length`.\n"
-                f"Setting `minibatch_size={minibatch_size}, chain_length={self.chain_length} "
-                f"(n_chains_per_rank={self.sampler.n_chains_per_rank}, n_samples={self.n_samples})."
+                "For performance reasons, we suggest to use a power-of-two chunk size."
+            )
+
+        self._chunk_size = chunk_size
+
+        if chunk_size >= self.n_samples_per_rank:
+            # no problem!
+            pass
+        elif (self.n_samples_per_rank % chunk_size) != 0:
+            suggested_chain_len = compute_chain_length(
+                self.sampler.n_chains, self.n_samples, chunk_size=chunk_size
+            )
+            suggested_n_samples = self.sampler.n_chains * suggested_chain_len
+            warnings.warn(
+                f"`chunk_size={chunk_size}`>`n_samples_per_rank={self.n_samples_per_rank}`, but "
+                "`chunk_size` is not a multiple of `n_samples_per_rank` it is not a multiple of it. "
+                "This can lead to very long compile times and decreased performance. We suggest "
+                f"to set `self.n_samples_per_rank = {suggested_n_samples}` or change the chunk size.\n"
             )
 
     def reset(self):
@@ -481,7 +509,7 @@ class MCState(VariationalState):
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
-    # override to use minibatches
+    # override to use chunks
     def expect(self, Ô: AbstractOperator) -> Stats:
         r"""Estimates the quantum expectation value for a given operator O.
             In the case of a pure state $\psi$, this is $<O>= <Psi|O|Psi>/<Psi|Psi>$
@@ -493,9 +521,9 @@ class MCState(VariationalState):
         Returns:
             An estimation of the quantum expectation value <O>.
         """
-        return expect(self, Ô, self.minibatch_size)
+        return expect(self, Ô, self.chunk_size)
 
-    # override to use minibatches
+    # override to use chunks
     def expect_and_grad(
         self,
         Ô: AbstractOperator,
@@ -525,7 +553,7 @@ class MCState(VariationalState):
             mutable = self.mutable
 
         return expect_and_grad(
-            self, Ô, use_covariance, self.minibatch_size, mutable=mutable
+            self, Ô, use_covariance, self.chunk_size, mutable=mutable
         )
 
     @deprecated("Use MCState.log_value(σ) instead.")
