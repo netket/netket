@@ -211,6 +211,10 @@ class InheritanceGraph:
             if cls is abc.ABC:
                 return
 
+            # parametric classes from plum: go up one level
+            if hasattr(cls, "parametric") and cls.parametric:
+                cls = cls.__bases__[0]
+
             nodename = self.class_name(cls, parts, aliases)
             fullname = self.class_name(cls, 0, aliases)
 
@@ -224,8 +228,10 @@ class InheritanceGraph:
             except Exception:  # might raise AttributeError for strange classes
                 pass
 
+            is_abstract = inspect.isabstract(cls)
+
             baselist = []  # type: List[str]
-            all_classes[cls] = (nodename, fullname, baselist, tooltip)
+            all_classes[cls] = (nodename, fullname, baselist, tooltip, is_abstract)
 
             if fullname in top_classes:
                 return
@@ -270,7 +276,11 @@ class InheritanceGraph:
 
     def get_all_class_names(self) -> List[str]:
         """Get all of the class names involved in the graph."""
-        return [fullname for (_, fullname, _, _) in self.class_info]
+        return [fullname for (_, fullname, _, _, _) in self.class_info]
+
+    def get_isabstract_flag(self) -> List[str]:
+        """Get all of the class names involved in the graph."""
+        return [is_abstract for (_, _, _, _, is_abstract) in self.class_info]
 
     # These are the default attrs for graphviz
     default_graph_attrs = {
@@ -332,7 +342,7 @@ class InheritanceGraph:
         res.append("digraph %s {\n" % name)
         res.append(self._format_graph_attrs(g_attrs))
 
-        for name, fullname, bases, tooltip in sorted(self.class_info):
+        for name, fullname, bases, tooltip, is_abstract in sorted(self.class_info):
             # Write the node
             this_node_attrs = n_attrs.copy()
             if fullname in urls:
@@ -340,6 +350,12 @@ class InheritanceGraph:
                 this_node_attrs["target"] = '"_top"'
             if tooltip:
                 this_node_attrs["tooltip"] = tooltip
+            if is_abstract:
+                if "style" in this_node_attrs:
+                    this_node_attrs["style"] = this_node_attrs["style"][:-1]+",dashed\""
+                else:
+                    this_node_attrs["style"] = "\"dashed\""
+
             res.append(
                 '  "%s" [%s];\n' % (name, self._format_node_attrs(this_node_attrs))
             )
