@@ -37,5 +37,9 @@ op = nk.optimizer.Sgd(learning_rate=0.1)
 # Variational monte carlo driver
 gs = nk.VMC(ha, op, sa, ma, n_samples=1000)
 
+sx = 1/L*sum([nk.operator.spin.sigmax(hi,i) for i in range(L)])
+
+log = nk.logging.RuntimeLog()
+
 # Run the optimization for 300 iterations
-gs.run(n_iter=300, out="test")
+gs.run(n_iter=300, out=log, obs={"sx": sx})
