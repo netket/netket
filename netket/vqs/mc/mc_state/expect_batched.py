@@ -26,17 +26,18 @@ from .state import MCState
 # Dispatches to select what expect-kernel to use
 @dispatch
 def get_fun(vstate: MCState, Ô: Squared, batch_size: int):
-    return kernels.local_value_squared_kernel_batched
+    return kernels.local_value_squaredkernel_chunked
+
 
 @dispatch
 def get_fun(vstate: MCState, Ô: DiscreteOperator, batch_size: int):
-    return kernels.local_value_kernel_batched
+    return kernels.local_valuekernel_chunked
 
 
 # If batch_size is None, ignore it and remove it from signature so that we fall back
 # to already implemented methods
 @expect.dispatch
-def expect_nominibatch(vstate: MCState, operator: DiscreteOperator, batch_size: None):
+def expect_nochunking(vstate: MCState, operator: DiscreteOperator, batch_size: None):
     return expect(vstate, operator)
 
 
@@ -60,7 +61,7 @@ def expect_mcstate_operator_batched(
 
     local_estimator_fun = get_fun(vstate, Ô, batch_size)
 
-    return _expect_minibatches(
+    return _expect_chunking(
         vstate._apply_fun,
         local_estimator_fun,
         batch_size,
@@ -73,9 +74,8 @@ def expect_mcstate_operator_batched(
     )
 
 
-
 @partial(jax.jit, static_argnums=(0, 1, 2))
-def _expect_minibatches(
+def _expect_chunking(
     model_apply_fun: Callable,
     local_value_kernel: Callable,
     batch_size: int,

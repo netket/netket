@@ -23,7 +23,7 @@ from .state import MCState
 
 # If batch_size is None, ignore it and remove it from signature
 @expect_and_grad.dispatch(precedence=20)
-def expect_and_grad_nominibatch(
+def expect_and_grad_nochunking(
     vstate: MCState,
     operator: AbstractOperator,
     cov: Any,
@@ -83,9 +83,10 @@ def expect_and_grad(  # noqa: F811
 
     return Ō, Ō_grad
 
+
 @partial(jax.jit, static_argnums=(0, 1, 2, 3))
 def grad_expect_hermitian(
-    local_value_kernel_batched: Callable,
+    local_valuekernel_chunked: Callable,
     model_apply_fun: Callable,
     mutable: bool,
     batch_size: int,
@@ -106,7 +107,7 @@ def grad_expect_hermitian(
 
     n_samples = σ.shape[0] * mpi.n_nodes
 
-    O_loc = local_value_kernel_batched(
+    O_loc = local_valuekernel_chunked(
         model_apply_fun,
         {"params": parameters, **model_state},
         σ,

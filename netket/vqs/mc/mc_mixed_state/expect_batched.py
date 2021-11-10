@@ -25,9 +25,9 @@ from .state import MCMixedState
 # Dispatches to select what expect-kernel to use
 @dispatch
 def get_fun(vstate: MCMixedState, Ô: Squared[AbstractSuperOperator], batch_size: int):
-    return kernels.local_value_squared_kernel_batched
+    return kernels.local_value_squaredkernel_chunked
+
 
 @dispatch
 def get_fun(vstate: MCMixedState, Ô: DiscreteOperator, batch_size: int):
-    return kernels.local_value_op_op_cost_batched
-
+    return kernels.local_value_op_op_cost_chunked
