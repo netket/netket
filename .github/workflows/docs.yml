@@ -31,7 +31,7 @@ jobs:
 
     - name: Install docs dependencies and Pandoc
       run: |
-        sudo apt-get -y install pandoc
+        sudo apt-get -y install pandoc graphviz
         pip install -r docs/requirements.txt
 
     - name: Make docs

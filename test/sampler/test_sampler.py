@@ -18,7 +18,10 @@ from jax import numpy as jnp
 from .. import common
 
 import netket as nk
-from netket.hilbert import DiscreteHilbert, ContinuousBoson
+from netket.hilbert import DiscreteHilbert, Particle
+
+from netket import experimental as nkx
+
 import numpy as np
 import pytest
 from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
@@ -70,10 +73,10 @@ samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(
 #    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2)), n_chains=8
 # )
 
-samplers["MetropolisPT(Local): Spin"] = nk.sampler.MetropolisLocalPt(
+samplers["MetropolisPT(Local): Spin"] = nkx.sampler.MetropolisLocalPt(
     hi, n_chains=8, n_replicas=4
 )
-samplers["MetropolisPT(Local): Fock"] = nk.sampler.MetropolisLocalPt(
+samplers["MetropolisPT(Local): Fock"] = nkx.sampler.MetropolisLocalPt(
     hib_u, n_chains=8, n_replicas=4
 )
 
@@ -97,7 +100,7 @@ samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
     hi, move_operators=move_op
 )
 
-# samplers["MetropolisPT(Custom: Sx): Spin"] = nk.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
+# samplers["MetropolisPT(Custom: Sx): Spin"] = nkx.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
 
 samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi, n_chains=16)
 samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1, n_chains=16)
@@ -105,7 +108,7 @@ samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u, n_chains=16
 
 
 # Hilbert space and sampler for particles
-hi_particles = nk.hilbert.ContinuousBoson(N=3, L=(np.inf,), pbc=(False,))
+hi_particles = nk.hilbert.Particle(N=3, L=(np.inf,), pbc=(False,))
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
     hi_particles, sigma=1.0, n_chains=16
 )
@@ -120,7 +123,7 @@ def model_and_weights(request):
             ma = nk.models.ARNNDense(
                 hilbert=hilb, machine_pow=sampler.machine_pow, layers=3, features=5
             )
-        elif isinstance(hilb, ContinuousBoson):
+        elif isinstance(hilb, Particle):
             ma = nk.models.Gaussian()
         else:
             # Build RBM by default
@@ -195,7 +198,7 @@ def test_states_in_hilbert(sampler, model_and_weights):
             for v in sample:
                 assert v in all_states
 
-    elif isinstance(hi, ContinuousBoson):
+    elif isinstance(hi, Particle):
         ma, w = model_and_weights(hi, sampler)
 
         for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
@@ -215,7 +218,7 @@ def findrng(rng):
 # Mark tests that we know are failing on correctedness
 def failing_test(sampler):
     if isinstance(sampler, nk.sampler.MetropolisSampler):
-        if isinstance(sampler, nk.sampler.MetropolisPtSampler):
+        if isinstance(sampler, nkx.sampler.MetropolisPtSampler):
             return True
 
     return False
@@ -302,7 +305,7 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
         s, pval = combine_pvalues(pvalues, method="fisher")
         assert pval > 0.01 or np.max(pvalues) > 0.01
 
-    elif isinstance(hi, ContinuousBoson):
+    elif isinstance(hi, Particle):
         ma, w = model_and_weights(hi, sampler)
         n_samples = 5000
         n_discard = 2000

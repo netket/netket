@@ -19,10 +19,12 @@ from .mc_mixed_state import MCMixedState
 from . import mc_expect
 from . import mc_expect_grad
 
-from . import experimental
-
 from .exact import ExactState
 
 from netket.utils import _hide_submodules
+
+# TODO: this is deprecated in favour of netket.experimental.vqs
+# eventually remove this file and import
+from . import experimental
 
 _hide_submodules(__name__, ignore=["experimental"])

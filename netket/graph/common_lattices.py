@@ -65,6 +65,7 @@ def Grid(
     *,
     length: Sequence[int] = None,
     pbc: Union[bool, Sequence[bool]] = True,
+    **kwargs,
 ) -> Lattice:
     """
     Constructs a hypercubic lattice given its extent in all dimensions.
@@ -77,6 +78,8 @@ def Grid(
              This parameter can also be a list of booleans with same length as
              the parameter `length`, in which case each dimension will have
              PBC/OBC depending on the corresponding entry of `pbc`.
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
 
     Examples:
         Construct a 5x10 square lattice with periodic boundary conditions:
@@ -118,10 +121,11 @@ def Grid(
         extent=extent,
         pbc=pbc,
         point_group=lambda: _grid_point_group(extent, pbc),
+        **kwargs,
     )
 
 
-def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
+def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True, **kwargs) -> Lattice:
     r"""Constructs a hypercubic lattice with equal side length in all dimensions.
     Periodic boundary conditions can also be imposed.
 
@@ -130,6 +134,8 @@ def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
         n_dim: Dimension of the hypercube; must be at least 1.
         pbc: Whether the hypercube should have periodic boundary conditions
             (in all directions)
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
 
     Examples:
          A 10x10x10 cubic lattice with periodic boundary conditions can be
@@ -143,10 +149,10 @@ def Hypercube(length: int, n_dim: int = 1, *, pbc: bool = True) -> Lattice:
     if not isinstance(length, int) or length <= 0:
         raise TypeError("Argument `length` must be a positive integer")
     length_vector = [length] * n_dim
-    return Grid(length_vector, pbc=pbc)
+    return Grid(length_vector, pbc=pbc, **kwargs)
 
 
-def Cube(length: int, *, pbc: bool = True) -> Lattice:
+def Cube(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
     """Constructs a cubic lattice of side `length`
     Periodic boundary conditions can also be imposed
 
@@ -154,6 +160,8 @@ def Cube(length: int, *, pbc: bool = True) -> Lattice:
         length: Side length of the cube; must always be >=1
         pbc: Whether the cube should have periodic boundary conditions
             (in all directions)
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
 
     Examples:
         A 10×10×10 cubic lattice with periodic boundary conditions can be
@@ -164,10 +172,10 @@ def Cube(length: int, *, pbc: bool = True) -> Lattice:
         >>> print(g.n_nodes)
         1000
     """
-    return Hypercube(length, pbc=pbc, n_dim=3)
+    return Hypercube(length, pbc=pbc, n_dim=3, **kwargs)
 
 
-def Square(length: int, *, pbc: bool = True) -> Lattice:
+def Square(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
     """Constructs a square lattice of side `length`
     Periodic boundary conditions can also be imposed
 
@@ -175,6 +183,8 @@ def Square(length: int, *, pbc: bool = True) -> Lattice:
         length: Side length of the square; must always be >=1
         pbc: Whether the square should have periodic boundary
             conditions (in both directions)
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
 
     Examples:
         A 10x10 square lattice with periodic boundary conditions can be
@@ -185,16 +195,18 @@ def Square(length: int, *, pbc: bool = True) -> Lattice:
         >>> print(g.n_nodes)
         100
     """
-    return Hypercube(length, pbc=pbc, n_dim=2)
+    return Hypercube(length, pbc=pbc, n_dim=2, **kwargs)
 
 
-def Chain(length: int, *, pbc: bool = True) -> Lattice:
+def Chain(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
     r"""Constructs a chain of `length` sites.
     Periodic boundary conditions can also be imposed
 
     Args:
         length: Length of the chain. It must always be >=1
         pbc: Whether the chain should have periodic boundary conditions
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
 
     Examples:
         A 10 site chain with periodic boundary conditions can be
@@ -205,7 +217,7 @@ def Chain(length: int, *, pbc: bool = True) -> Lattice:
         >>> print(g.n_nodes)
         10
     """
-    return Hypercube(length, pbc=pbc, n_dim=1)
+    return Hypercube(length, pbc=pbc, n_dim=1, **kwargs)
 
 
 def BCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True) -> Lattice:

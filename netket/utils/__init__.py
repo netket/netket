@@ -26,7 +26,7 @@ from .optional_deps import tensorboard_available
 from .seed import random_seed
 
 from .deprecation import warn_deprecation, deprecated, deprecated_new_name
-from .moduletools import _hide_submodules, rename_class
+from .moduletools import _hide_submodules, rename_class, auto_export as _auto_export
 from .version_check import module_version
 
 from .model_frameworks import maybe_wrap_module

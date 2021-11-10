@@ -12,7 +12,7 @@ DEV_DEPENDENCIES = [
     "flakehell>=0.9",
 ]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]
-TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]
+EXTRA_DEPENDENCIES = ["tensorboardx>=2.0.0", "openfermion>=1.0.0"]
 BASE_DEPENDENCIES = [
     "numpy~=1.18",
     "scipy~=1.5",
@@ -20,7 +20,7 @@ BASE_DEPENDENCIES = [
     "plum-dispatch~=1.5.1",
     "numba>=0.52, <0.55",
     "python-igraph~=0.9",
-    "jax>=0.2.21, <0.2.23",
+    "jax>=0.2.21, <0.2.25",
     "jaxlib>=0.1.69",
     "flax>=0.3.5, <0.4",
     "orjson~=3.4",
@@ -34,7 +34,7 @@ setup(
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
     license="Apache 2.0",
-    summmary="Netket : Machine Learning techniques for many-body quantum systems.",
+    description="Netket : Machine Learning techniques for many-body quantum systems.",
     long_description="""NetKet is an open-source project delivering cutting-edge
          methods for the study of many-body quantum systems with artificial
          neural networks and machine learning techniques.""",
@@ -54,7 +54,7 @@ setup(
     extras_require={
         "dev": DEV_DEPENDENCIES,
         "mpi": MPI_DEPENDENCIES,
-        "tensorboard": TENSORBOARD_DEPENDENCIES,
-        "all": MPI_DEPENDENCIES + DEV_DEPENDENCIES + TENSORBOARD_DEPENDENCIES,
+        "extra": EXTRA_DEPENDENCIES,
+        "all": MPI_DEPENDENCIES + DEV_DEPENDENCIES + EXTRA_DEPENDENCIES,
     },
 )
