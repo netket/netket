@@ -22,4 +22,4 @@ from . import experimental
 
 from netket.utils import _hide_submodules
 
-_hide_submodules(__name__, ignore=["experimental"])
+_hide_submodules(__name__, ignore=["experimental"], hide_folder=["mc"])
