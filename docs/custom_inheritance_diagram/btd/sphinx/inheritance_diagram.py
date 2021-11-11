@@ -352,9 +352,11 @@ class InheritanceGraph:
                 this_node_attrs["tooltip"] = tooltip
             if is_abstract:
                 if "style" in this_node_attrs:
-                    this_node_attrs["style"] = this_node_attrs["style"][:-1]+",dashed\""
+                    this_node_attrs["style"] = (
+                        this_node_attrs["style"][:-1] + ',dashed"'
+                    )
                 else:
-                    this_node_attrs["style"] = "\"dashed\""
+                    this_node_attrs["style"] = '"dashed"'
 
             res.append(
                 '  "%s" [%s];\n' % (name, self._format_node_attrs(this_node_attrs))
