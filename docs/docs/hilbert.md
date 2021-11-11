@@ -5,12 +5,12 @@
 .. currentmodule:: netket.hilbert
 ```
 
-The [Hilbert](`netket.hilbert`) module defines the abstract Hilbert space API and some concrete implementations, such as {ref}`netket.hilbert.Spin`, {ref}`netket.hilbert.Fock` or others.
+The [Hilbert](`netket.hilbert`) module defines the abstract Hilbert space API and some concrete implementations, such as {ref}`netket.hilbert.Spin`, {ref}`netket.hilbert.Fock`.
 An `Hilbert` object represents a Hilbert space together with a particular choice of computational basis.
 They are needed to construct most other objects in NetKet, but they can also be useful to experiment and validate variational ansätze.
 
 Hilbert space objects are all sub-classes of the abstract class {ref}`netket.hilbert.AbstractHilbert`, which defines the general API respected by all implementations. 
-You can see a birds-eye of the inheritance diagram among the various kinds of Hilbert spaces included with NetKet below (you can click on the nodes in the graph to go to their API documentation page). 
+You can see a birds-eye view of the inheritance diagram among the various kinds of Hilbert spaces included with NetKet below (you can click on the nodes in the graph to go to their API documentation page). 
 Classes whose edge is dashed are abstract classes, while the others are concrete and can be instantiated.
 
 ```{eval-rst}
@@ -21,12 +21,12 @@ Classes whose edge is dashed are abstract classes, while the others are concrete
 ```
 
 {ref}`netket.hilbert.AbstractHilbert` makes very few assumptions on the structure of the resulting space and you will generally very rarely interact with it directly.
+Derived from `AbstractHilbert` are two less generic, but still abstract, types: {ref}`netket.hilbert.DiscreteHilbert`, representing Hilbert spaces where the local degrees of freedom are countable, and {ref}`netket.hilbert.ContinuousHilbert`, representing the Hilbert spaces with continuous bases, such as particles in a box.
 
-There are then two more abstract Hilbert space types: {ref}`netket.hilbert.DiscreteHilbert`, representing Hilbert spaces where the local degrees of freedom are countable, and {ref}`netket.hilbert.ContinuousHilbert`, representing the Hilbert spaces with continuous bases, such as particles in a box. 
+So far, the majority of NetKet development has focused `DiscreteHilbert` spaces which therefore have a much more developed API, while `ContinuousHilbert` is still experimental and does not yet support many operations.
 
-Those two abstract types are very different: `ContinuousHilbert` spaces are still experimental and we don't support yet many ways to manipulate them, while `DiscreteHilbert` spaces are much more developed and offer many utilities and handy functionalities.
-
-The most important class of discrete Hilbert spaces are subclasses of {ref}`netket.hilbert.HomogeneousHilbert`, which is a space where the local degrees of freedom are identical among different sites. These subclasses are {ref}`netket.hilbert.Fock`, {ref}`netket.hilbert.Spin`, and {ref}`netket.hilbert.Qubit`.
+The most important class of discrete Hilbert spaces are subclasses of {ref}`netket.hilbert.HomogeneousHilbert`, which is a tensor product of a finite number of local Hilbert spaces of the same kind, each with the same number of local degrees of freedom.
+`HomogeneousHilbert` has the concrete subclasses {ref}`netket.hilbert.Fock`, {ref}`netket.hilbert.Spin`, and {ref}`netket.hilbert.Qubit`.
 
 {ref}`netket.hilbert.TensorHilbert` represents tensor products of different homogeneous hilbert spaces, therefore it is not homogeneous. You can use it to represent composite systems such as spin-boson setups.
 
