@@ -10,7 +10,8 @@ An `Hilbert` object represents a Hilbert space together with a particular choice
 They are needed to construct most other objects in NetKet, but they can also be useful to experiment and validate variational ansätze.
 
 Hilbert space objects are all sub-classes of the abstract class {ref}`netket.hilbert.AbstractHilbert`, which defines the general API respected by all implementations. 
-You can see a birds-eye of the inheritance diagram among the various kinds of Hilbert spaces included with NetKet below (you can click on the nodes in the graph to go to their API documentation page).
+You can see a birds-eye of the inheritance diagram among the various kinds of Hilbert spaces included with NetKet below (you can click on the nodes in the graph to go to their API documentation page). 
+Classes whose edge is dashed are abstract classes, while the others are concrete and can be instantiated.
 
 ```{eval-rst}
 .. inheritance-diagram:: netket.hilbert
