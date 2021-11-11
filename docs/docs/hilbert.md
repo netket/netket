@@ -262,10 +262,10 @@ If you then want to sample this space, you'll encounter the following error:
 >>> hi.random_state(jax.random.PRNGKey(3), 3)
 Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
-  File "/home/filippovicentini/Dropbox/Ricerca/Codes/Python/netket/netket/hilbert/abstract_hilbert.py", line 84, in random_state
+  File ".../netket/hilbert/abstract_hilbert.py", line 84, in random_state
     return random.random_state(self, key, size, dtype=dtype)
   File "plum/function.py", line 537, in plum.function.Function.__call__
-  File "/home/filippovicentini/Dropbox/Ricerca/Codes/Python/netket/netket/hilbert/random/custom.py", line 25, in random_state
+  File ".../netket/hilbert/random/custom.py", line 25, in random_state
     raise NotImplementedError()
 NotImplementedError
 ```
