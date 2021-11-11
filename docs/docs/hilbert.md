@@ -269,7 +269,7 @@ Traceback (most recent call last):
 NotImplementedError
 ```
 
-This is because you did not specify how to sample the space. To do so, we must use
+This is because you did not specify how to sample the space. To do so, check the documentation on defining custom Hilbert spaces.
 
 
 ## Using Hilbert spaces with {ref}`jax.jit`ted functions
