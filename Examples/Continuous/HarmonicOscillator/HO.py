@@ -19,6 +19,7 @@ import jax.numpy as jnp
 def v(x):
     return jnp.linalg.norm(x) ** 2
 
+
 hilb = nk.hilbert.Particle(N=10, L=(jnp.inf, jnp.inf, jnp.inf), pbc=False)
 
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.1, n_chains=16, n_sweeps=1)
