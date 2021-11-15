@@ -177,7 +177,12 @@ def expect_and_grad(  # noqa: F811
     kernel = Ô._expect_kernel
 
     Ō, Ō_grad = _grad_expect_continuous(
-        vstate._apply_fun, kernel, vstate.parameters, Ô._pack_arguments(), x
+        vstate._apply_fun,
+        kernel,
+        vstate.parameters,
+        Ô._pack_arguments(),
+        vstate.model_state,
+        x,
     )
 
     return Ō, Ō_grad
@@ -408,6 +413,7 @@ def _grad_expect_continuous(
     kernel,
     parameters: PyTree,
     additional_data: PyTree,
+    model_state: PyTree,
     x: jnp.ndarray,
 ) -> Tuple[PyTree, PyTree]:
 
@@ -418,13 +424,14 @@ def _grad_expect_continuous(
     n_samples = x.shape[0] * mpi.n_nodes
 
     def logpsi(w, σ):
-        return model_apply_fun({"params": w}, σ)
+        return model_apply_fun({"params": w, **model_state}, σ)
 
     local_value_vmap = jax.vmap(
         partial(kernel, logpsi),
         in_axes=(None, 0, None),
         out_axes=0,
     )
+    # TODO: Once batching/chunking is implemented, should be made available here too.
     x = x.reshape((-1, 1, x_shape[-1]))
 
     def compute_kernel(i, x):

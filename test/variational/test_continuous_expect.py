@@ -14,22 +14,46 @@ class test(nn.Module):
         return 1.0
 
 
+class test2(nn.Module):
+    @nn.compact
+    def __call__(self, x):
+        nothing = self.param("nothing", lambda *args: jnp.ones(1))
+
+        sol = jnp.sum(nothing ** 2 * x, axis=-1)
+        return sol
+
+
 # continuous preparations
 def v1(x):
     return 1 / jnp.sqrt(2 * jnp.pi) * jnp.sum(jnp.exp(-0.5 * ((x - 2.5) ** 2)))
 
 
+def v2(x):
+    return 1 / jnp.sqrt(2 * jnp.pi) * jnp.sum(jnp.exp(-0.5 * ((x - 2.5) ** 2)), axis=-1)
+
+
 hilb = nk.hilbert.Particle(N=1, L=5, pbc=True)
 pot = nk.operator.PotentialEnergy(hilb, v1)
+kin = nk.operator.KineticEnergy(hilb, mass=1.0)
+e = pot + kin
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, n_sweeps=1)
 
 model = test()
+model2 = test2()
 vs_continuous = nk.vqs.MCState(sab, model, n_samples=10 ** 6, n_discard=2000)
+vs_continuous2 = nk.vqs.MCState(sab, model2, n_samples=10 ** 6, n_discard=2000)
 
 
 def test_expect():
+    x = vs_continuous2.samples.reshape(-1, 1)
     sol = vs_continuous.expect(pot)
+    O_stat, O_grad = vs_continuous2.expect_and_grad(e)
+    O_grad, _ = nk.jax.tree_ravel(O_grad)
+
+    # exact solution in terms of local quantities
+    O_grad_exact = 2 * jnp.dot(x.T, (v2(x) - jnp.mean(v2(x), axis=0))) / x.shape[0]
     r"""
     :math:`<V> = \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = 0.1975164 (\psi = 1)`
     """
     np.testing.assert_allclose(0.1975164, sol.mean, atol=10 ** (-3))
+    np.testing.assert_allclose(O_grad_exact, O_grad)

@@ -124,6 +124,7 @@ def expect(vstate: MCState, Ô: ContinousOperator) -> Stats:  # noqa: F811
         kernel,
         vstate.parameters,
         Ô._pack_arguments(),
+        vstate.model_state,
         x,
     )
 
@@ -170,6 +171,7 @@ def _expect_continuous(
     kernel: Callable,
     parameters: PyTree,
     additional_data: PyTree,
+    model_state: PyTree,
     x: jnp.ndarray,
 ) -> Stats:
     x_shape = x.shape
@@ -178,7 +180,7 @@ def _expect_continuous(
         x = x.reshape((-1, x_shape[-1]))
 
     def logpsi(w, x):
-        return model_apply_fun({"params": w}, x)
+        return model_apply_fun({"params": w, **model_state}, x)
 
     log_pdf = lambda w, x: machine_pow * model_apply_fun({"params": w}, x).real
 
