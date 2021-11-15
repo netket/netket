@@ -78,7 +78,6 @@ class DiscreteOperator(AbstractOperator):
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        raise NotImplementedError()
 
     def get_conn(self, x: np.ndarray):
         r"""Finds the connected elements of the Operator. Starting
