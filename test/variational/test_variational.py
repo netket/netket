@@ -19,7 +19,7 @@ from pytest import approx, raises, warns
 
 import numpy as np
 import jax
-import jax.numpy as jnp
+
 import netket as nk
 from jax.nn.initializers import normal
 
