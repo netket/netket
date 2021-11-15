@@ -27,7 +27,7 @@ class ContinousOperator(AbstractOperator):
     `ContinuousOperator` and implement its interface.
     """
 
-    def __init__(self, hilbert: AbstractHilbert, dtype: Optional[DType] = float):
+    def __init__(self, hilbert: AbstractHilbert, dtype: DType = float):
         r"""
         Constructs the continuous operator acting on the given hilbert space and
         with a certain data type.
@@ -44,6 +44,7 @@ class ContinousOperator(AbstractOperator):
     def dtype(self) -> DType:
         return self._dtype
 
+    @abc.abstractmethod
     def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
     ):
@@ -61,7 +62,6 @@ class ContinousOperator(AbstractOperator):
             x: a sample of particle positions
             data: additional data
         """
-        raise NotImplementedError  # pragma: no cover
 
     @abc.abstractmethod
     def _pack_arguments(self) -> Optional[PyTree]:
@@ -71,7 +71,6 @@ class ContinousOperator(AbstractOperator):
 
         For example for the kinetic energy this method would return the masses of the
         individual particles."""
-        pass
 
     def __add__(self, other):
         if isinstance(self, ContinousOperator) and isinstance(other, ContinousOperator):

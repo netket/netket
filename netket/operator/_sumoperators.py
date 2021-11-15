@@ -56,11 +56,7 @@ class SumOperator(ContinousOperator):
             )
         self._dtype = dtype
 
-        super().__init__(hil[0])
-
-    @property
-    def dtype(self) -> DType:
-        return self._dtype
+        super().__init__(hil[0], self._dtype)
 
     def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]

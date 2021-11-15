@@ -42,8 +42,9 @@ class PotentialEnergy(ContinousOperator):
         self._afun = afun
 
         self._dtype = dtype
-        self.coefficient = jnp.array(coefficient)
-        super().__init__(hilbert)
+
+        super().__init__(hilbert, self._dtype)
+        self.coefficient = jnp.array(coefficient, dtype=self._dtype)
 
     def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]

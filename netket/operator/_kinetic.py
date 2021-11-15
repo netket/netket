@@ -40,9 +40,9 @@ class KineticEnergy(ContinousOperator):
         """
 
         self._dtype = dtype
-        self._mass = jnp.asarray(mass, dtype=dtype)
+        super().__init__(hilbert, self._dtype)
 
-        super().__init__(hilbert)
+        self._mass = jnp.asarray(mass, dtype=self._dtype)
 
     @property
     def mass(self):
