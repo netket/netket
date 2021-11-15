@@ -33,7 +33,7 @@ model = nk.models.Gaussian(dtype=float)
 
 vs = nk.vqs.MCState(sab, model, n_samples=10 ** 5, n_discard=2000)
 
-op = nk.optimizer.Sgd(0.0)
+op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
 gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
