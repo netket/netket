@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import abc
 from typing import Optional, Callable
 
 from netket.utils.types import DType, PyTree, Array
@@ -51,8 +52,8 @@ class ContinousOperator(AbstractOperator):
         :math:`O_{loc}(x) =  \frac{\bra{x}O{\ket{\psi}}{\bra{x}\ket{\psi}}`
         This method is executed inside of a `jax.jit` block.
         Any static data from the operator itself should be captured in the method.
-        Any array should be passed through the `_pack_arguments` method in order to be
-        traced by jax, and will be passed as the `data` argument.
+        Any additional data is provided by the `_pack_arguments`-method
+        and will be passed as the `data` argument in this method (Example: masses in kinetic energy).
 
         Args:
             logpsi: variational state
@@ -60,8 +61,9 @@ class ContinousOperator(AbstractOperator):
             x: a sample of particle positions
             data: additional data
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
+    @abc.abstractmethod
     def _pack_arguments(self) -> Optional[PyTree]:
         r"""This methods should return a PyTree that will be passed as the `data` argument
         to the `_expect_kernel`. The PyTree should be composed of jax arrays or hashable
@@ -69,7 +71,7 @@ class ContinousOperator(AbstractOperator):
 
         For example for the kinetic energy this method would return the masses of the
         individual particles."""
-        raise NotImplementedError
+        pass
 
     def __add__(self, other):
         if isinstance(self, ContinousOperator) and isinstance(other, ContinousOperator):
@@ -77,7 +79,7 @@ class ContinousOperator(AbstractOperator):
 
             return SumOperator(self, other)
         else:
-            return NotImplemented
+            return NotImplemented  # pragma: no cover
 
     def __rmul__(self, other):
         if isinstance(self, ContinousOperator) and isinstance(other, float):
@@ -85,7 +87,7 @@ class ContinousOperator(AbstractOperator):
 
             return self * other
         else:
-            return NotImplemented
+            return NotImplemented  # pragma: no cover
 
     def __mul__(self, other):
         if isinstance(self, ContinousOperator) and isinstance(other, float):
@@ -93,4 +95,4 @@ class ContinousOperator(AbstractOperator):
 
             return SumOperator(self, coefficients=other)
         else:
-            return NotImplemented
+            return NotImplemented  # pragma: no cover

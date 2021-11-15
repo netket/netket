@@ -45,10 +45,6 @@ class KineticEnergy(ContinousOperator):
         super().__init__(hilbert)
 
     @property
-    def dtype(self) -> DType:
-        return self._dtype
-
-    @property
     def mass(self):
         return self._mass
 

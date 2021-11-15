@@ -12,10 +12,11 @@ def v2(x):
 
 
 hilb = netket.hilbert.Particle(N=1, L=jnp.inf, pbc=False)
-
+hilb2 = netket.hilbert.Particle(N=2, L=5.0, pbc=True)
 # potential operators
 pot1 = netket.operator.PotentialEnergy(hilb, v1)
 pot2 = netket.operator.PotentialEnergy(hilb, v2)
+pot3 = netket.operator.PotentialEnergy(hilb2, v1)
 # sum of potential operators
 pottot = pot1 + pot2
 pot10p52 = pot1 + 0.5 * pot2
@@ -41,6 +42,8 @@ def test_potential_energy():
     energy2 = pot2._expect_kernel(model1, 0.0, x, pot2._pack_arguments())
     np.testing.assert_allclose(energy1, v1(x))
     np.testing.assert_allclose(energy2, v2(x))
+    with np.testing.assert_raises(NotImplementedError):
+        pot1 + pot3
 
 
 def test_kinetic_energy():
@@ -50,6 +53,7 @@ def test_kinetic_energy():
     )
     kinen1 = jnp.sum(kinexact(x) / 20.0)
     np.testing.assert_allclose(energy1, kinen1)
+    np.testing.assert_equal("KineticEnergy(m=20.0)", repr(kin1))
 
 
 def test_sumoperator():

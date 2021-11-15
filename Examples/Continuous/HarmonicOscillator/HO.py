@@ -22,9 +22,9 @@ def v(x):
 
 L = 10.0
 
-hilb = nk.hilbert.Particle(N=5, L=(jnp.inf,), pbc=False)
+hilb = nk.hilbert.Particle(N=10, L=(jnp.inf, jnp.inf, jnp.inf), pbc=False)
 
-sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, n_sweeps=1)
+sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.1, n_chains=16, n_sweeps=1)
 model = nk.models.Gaussian(dtype=float)
 
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
@@ -35,8 +35,16 @@ model = nk.models.Gaussian(dtype=float)
 
 vs = nk.vqs.MCState(sab, model, n_samples=10 ** 5, n_discard=2000)
 
-op = nk.optimizer.Sgd(0.01)
+import flax
+
+with open(
+    r"/home/gabriel/Documents/PhD/netket/Examples/Continuous/HarmonicOscillator/HO_10_3d.mpack",
+    "rb",
+) as file:
+    vs.variables = flax.serialization.from_bytes(vs.variables, file.read())
+
+op = nk.optimizer.Sgd(0.0)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
 gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
-gs.run(n_iter=300, out="HO_10_3d")
+gs.run(n_iter=50, out="HO_10_3d_final")

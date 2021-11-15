@@ -73,3 +73,6 @@ class SumOperator(ContinousOperator):
 
     def _pack_arguments(self):
         return [self._coeff * jnp.array(op._pack_arguments()) for op in self._ops]
+
+    def __repr__(self):
+        return f"SumOperator(coefficients={self._pack_arguments()})"
