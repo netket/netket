@@ -30,6 +30,6 @@ vs_continuous = nk.vqs.MCState(sab, model, n_samples=10 ** 6, n_discard=2000)
 def test_expect():
     sol = vs_continuous.expect(pot)
     r"""
-    :math:`<V> = \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = 0.1975164 `
+    :math:`<V> = \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = 0.1975164 (\psi = 1)`
     """
     np.testing.assert_allclose(0.1975164, sol.mean, atol=10 ** (-3))
