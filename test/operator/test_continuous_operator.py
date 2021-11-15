@@ -53,6 +53,7 @@ def test_kinetic_energy():
     )
     kinen1 = jnp.sum(kinexact(x) / 20.0)
     np.testing.assert_allclose(energy1, kinen1)
+    np.testing.assert_allclose(kin1.mass * kin1._pack_arguments(), 1.)
     np.testing.assert_equal("KineticEnergy(m=20.0)", repr(kin1))
 
 
