@@ -72,6 +72,8 @@ def product(p: Translation, q: Translation):
 def _ensure_iterable(x):
     """Extracts iterables given in varargs"""
     if isinstance(x[0], Iterable):
+        if len(x) > 1:
+            raise TypeError("Either Iterable or variable argument list expected")
         return x[0]
     else:
         return x
