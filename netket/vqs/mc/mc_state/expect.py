@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Callable, Union
 from functools import partial
-from typing import Callable
 
 import numpy as np
 
@@ -66,7 +66,9 @@ def get_fun(vstate: MCState, Ô: DiscreteOperator):
 
 
 @dispatch
-def expect(vstate: MCState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
+def expect(vstate: MCState, Ô: Union[DiscreteOperator,Squared[DiscreteOperator]]) -> Stats:  # noqa: F811
+    # Standard implementation of expect for an MCState (pure) and a generic Discrete
+    # Operator
     σ, σp, mels = get_configs(vstate, Ô)
 
     local_estimator_fun = get_fun(vstate, Ô)

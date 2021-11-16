@@ -14,12 +14,27 @@
 
 from netket.utils.dispatch import parametric
 
+from ._abstract_operator import AbstractOperator
 from ._discrete_operator import DiscreteOperator
 
 
-class WrappedOperator(DiscreteOperator):
-    def get_conn_flattened(self, *args):
-        return NotImplementedError
+class WrappedOperator(AbstractOperator):
+
+    _parent: DiscreteOperator
+    """The wrapped object"""
+
+    def __init__(self, op):
+        super().__init__(op.hilbert)
+        self._parent = op
+
+    @property
+    def parent(self) -> AbstractOperator:
+        """The wrapped operator"""
+        return self._parent
+
+    @property
+    def dtype(self):
+        return self.parent.dtype
 
     def __add__(self, other):
         return self.collect() + other
@@ -39,11 +54,47 @@ class WrappedOperator(DiscreteOperator):
     def __rmul__(self, other):
         return other * self.collect()
 
+    def __matmul__(self, other):
+        # this is a base implementation of matmul 
+        if isinstance(other, AbstractOperator):
+            if self == other and self.is_hermitian:
+                from ._lazy import Squared
+
+                return Squared(self)
+            else:
+                return self._op__matmul__(other)
+        else:
+            return NotImplemented
+
+    def __rmatmul__(self, other):
+        if isinstance(other, AbstractOperator):
+            if self == other and self.is_hermitian:
+                from ._lazy import Squared
+
+                return Squared(self)
+            else:
+                return self._op__rmatmul__(other)
+        else:
+            return NotImplemented
+
     def _op__matmul__(self, other):
         return self.collect() @ other
 
     def _op__rmatmul__(self, other):
         return other @ self.collect()
+
+    def to_sparse(self):
+        if not hasattr(self.parent, "to_sparse"):
+            raise TypeError("The Transposed Operator cannot be converted to a sparse Matrix")
+        return self._process_parent_array(self.parent.to_sparse())
+
+    def to_dense(self):
+        if not hasattr(self.parent, "to_dense"):
+            raise TypeError("The Transposed Operator cannot be converted to a dense Matrix")
+        return self._process_parent_array(self.parent.to_dense())
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self.parent})"
 
 
 @parametric
@@ -51,17 +102,6 @@ class Transpose(WrappedOperator):
     """
     A wrapper lazily representing the transpose of the wrapped object.
     """
-
-    parent: DiscreteOperator
-    """The wrapped object"""
-
-    def __init__(self, op):
-        super().__init__(op.hilbert)
-        self.parent = op
-
-    @property
-    def dtype(self):
-        return self.parent.dtype
 
     def collect(self):
         return self.parent.transpose(concrete=True)
@@ -82,15 +122,9 @@ class Transpose(WrappedOperator):
     def H(self):
         return self.parent.conjugate()
 
-    def __repr__(self):
-        return "Transpose({})".format(self.parent)
-
-    def get_conn_flattened(self, *args):
-        return NotImplementedError
-
-    def to_sparse(self):
-        return self.parent.to_sparse().T
-
+    def _process_parent_array(self, op):
+        """transposes the dense/sparse parent array"""
+        return op.T
 
 @parametric
 class Adjoint(WrappedOperator):
@@ -100,10 +134,6 @@ class Adjoint(WrappedOperator):
 
     parent: DiscreteOperator
     """The wrapped object"""
-
-    def __init__(self, op):
-        super().__init__(op.hilbert)
-        self.parent = op
 
     @property
     def dtype(self):
@@ -149,8 +179,9 @@ class Adjoint(WrappedOperator):
     #
     #    return other @ self.collect()
 
-    def to_sparse(self):
-        return self.parent.to_sparse().T.conj()
+    def _process_parent_array(self, op):
+        """computes the adjoint of the dense/sparse parent array"""
+        return op.T.conj()
 
 
 @parametric
@@ -161,10 +192,6 @@ class Squared(WrappedOperator):
 
     parent: DiscreteOperator
     """The wrapped object"""
-
-    def __init__(self, op):
-        super().__init__(op.hilbert)
-        self.parent = op
 
     @property
     def dtype(self):
@@ -202,6 +229,6 @@ class Squared(WrappedOperator):
     def _op__matmul__(self, other):
         return self.collect() @ other
 
-    def to_sparse(self):
-        op = self.parent.to_sparse()
+    def _process_parent_array(self, op):
+        """computes the matrix square of the dense/sparse parent array"""
         return op.conj().T @ op
