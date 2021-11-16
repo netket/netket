@@ -270,6 +270,7 @@ def test_lattice_symmetry(i, name):
 
     # Generate little groups and their irreps
     assert len(sgb.little_group(*kvec[i])) == little_group_size[i]
+    assert len(sgb.little_group(kvec[i])) == little_group_size[i]
     irrep_from_lg = sgb.space_group_irreps(kvec[i])
     irrep_from_sg = sgb.space_group.character_table()
     for irrep in irrep_from_lg:
