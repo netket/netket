@@ -42,6 +42,7 @@ class PotentialEnergy(ContinousOperator):
         self._afun = afun
 
         self.coefficient = jnp.array(coefficient, dtype=dtype)
+
         super().__init__(hilbert, self.coefficient.dtype)
 
     def _expect_kernel(
