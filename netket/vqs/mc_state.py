@@ -288,7 +288,7 @@ class MCState(VariationalState):
     @property
     def n_samples_per_rank(self) -> int:
         """The number of samples generated on one MPI rank at every sampling step."""
-        return self._chain_length * mpi.n_nodes
+        return self._n_samples_per_node
 
     @n_samples_per_rank.setter
     def n_samples_per_rank(self, n_samples_per_rank: int) -> int:
