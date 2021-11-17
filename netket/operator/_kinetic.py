@@ -31,7 +31,7 @@ class KineticEnergy(ContinousOperator):
         self,
         hilbert: AbstractHilbert,
         mass: Union[float, List[float]],
-        dtype: Optional[DType] = float,
+        dtype: Optional[DType] = None,
     ):
         r"""Args:
         hilbert: The underlying Hilbert space on which the operator is defined
@@ -39,10 +39,9 @@ class KineticEnergy(ContinousOperator):
         dtype: Data type of the matrix elements. Defaults to `np.float64`
         """
 
-        self._dtype = dtype
-        super().__init__(hilbert, self._dtype)
+        self._mass = jnp.asarray(mass, dtype=dtype)
 
-        self._mass = jnp.asarray(mass, dtype=self._dtype)
+        super().__init__(hilbert, self._mass.dtype)
 
     @property
     def mass(self):
