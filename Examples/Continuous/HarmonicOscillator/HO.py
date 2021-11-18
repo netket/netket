@@ -1,12 +1,40 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import netket as nk
+
 import jax.numpy as jnp
 
-L = 10.0
 
-hilb = nk.hilbert.Particle(N=5, L=(jnp.inf,), pbc=(False,))
+def v(x):
+    return jnp.linalg.norm(x) ** 2
 
-sab = nk.sampler.MetropolisGaussian(hib, sigma=1.0, n_chains=16, n_sweeps=1)
-saf = nk.sampler.MetropolisGaussian(hif, sigma=1.0, n_chains=16, n_sweeps=1)
 
-print(sab.sample)
-print(saf.sample)
+hilb = nk.hilbert.Particle(N=10, L=(jnp.inf, jnp.inf, jnp.inf), pbc=False)
+
+sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.1, n_chains=16, n_sweeps=1)
+model = nk.models.Gaussian(dtype=float)
+
+ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
+pot = nk.operator.PotentialEnergy(hilb, v)
+ha = ekin + 0.5 * pot
+
+model = nk.models.Gaussian(dtype=float)
+
+vs = nk.vqs.MCState(sab, model, n_samples=10 ** 5, n_discard=2000)
+
+op = nk.optimizer.Sgd(0.01)
+sr = nk.optimizer.SR(diag_shift=0.01)
+
+gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
+gs.run(n_iter=500, out="HO_10_3d")
