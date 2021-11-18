@@ -713,7 +713,7 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
                 "in order to construct the space group"
             )
         sym = HashableArray(np.asarray(symmetries.automorphisms()))
-    elif isinstance(symmetries, (PermutationGroup, Sequence)):
+    elif isinstance(symmetries, PermutationGroup) or hasattr(symmetries, "__len__"):
         sym = HashableArray(np.asarray(symmetries))
     else:
         raise ValueError(
