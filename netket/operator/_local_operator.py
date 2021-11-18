@@ -278,9 +278,10 @@ class LocalOperator(DiscreteOperator):
     @property
     def operators(self) -> List[np.ndarray]:
         """List of the matrices of the operators encoded in this Local Operator.
-        Returns a copy.
+        Returns a copy of the operators.
         """
-        return self._operators_list()
+        operators = [op.copy().todense() for op in self._operators]
+        return operators
 
     @property
     def acting_on(self) -> List[List[int]]:
@@ -516,11 +517,6 @@ class LocalOperator(DiscreteOperator):
             acting_on.append(np.copy(self._acting_on[i, : self._acting_size[i]]))
 
         return acting_on
-
-    def _operators_list(self):
-        "A deep copy of the operators"
-        operators = [op.copy() for op in self._operators]
-        return operators
 
     def _add_operator(self, operator: Array, acting_on: List[int]):
         if not np.can_cast(operator, self.dtype, casting="same_kind"):
