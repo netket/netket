@@ -105,7 +105,7 @@ def test_deprecated_name():
     assert dir(nk.vqs) == dir(nk.variational)
 
 
-def test_n_samples_api(vstate):
+def test_n_samples_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
@@ -135,6 +135,8 @@ def test_n_samples_api(vstate):
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
+
+    assert vstate.n_samples_per_rank == vstate.n_samples // _mpi_size
 
 
 def test_deprecations(vstate):

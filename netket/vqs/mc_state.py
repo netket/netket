@@ -282,13 +282,13 @@ class MCState(VariationalState):
 
         self._n_samples = n_samples
         self._chain_length = chain_length
-        self._n_samples_per_node = n_samples_per_node
+        self._n_samples_per_rank = n_samples_per_node
         self.reset()
 
     @property
     def n_samples_per_rank(self) -> int:
         """The number of samples generated on one MPI rank at every sampling step."""
-        return self._n_samples_per_node
+        return self._n_samples_per_rank
 
     @n_samples_per_rank.setter
     def n_samples_per_rank(self, n_samples_per_rank: int) -> int:
