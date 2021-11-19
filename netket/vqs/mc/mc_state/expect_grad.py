@@ -34,7 +34,12 @@ from netket.operator import (
     ContinuousOperator,
 )
 
-from netket.vqs.mc import kernels, check_hilbert, get_configs, get_fun
+from netket.vqs.mc import (
+    kernels,
+    check_hilbert,
+    get_local_kernel_arguments,
+    get_local_kernel,
+)
 
 from .state import MCState
 
@@ -46,9 +51,9 @@ def expect_and_grad(  # noqa: F811
     use_covariance: TrueT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
-    σ, σp, mels = get_configs(vstate, Ô)
+    σ, args = get_local_kernel_arguments(vstate, Ô)
 
-    local_estimator_fun = get_fun(vstate, Ô)
+    local_estimator_fun = get_local_kernel(vstate, Ô)
 
     Ō, Ō_grad, new_model_state = grad_expect_hermitian(
         local_estimator_fun,
@@ -57,41 +62,7 @@ def expect_and_grad(  # noqa: F811
         vstate.parameters,
         vstate.model_state,
         σ,
-        σp,
-        mels,
-    )
-
-    if mutable is not False:
-        vstate.model_state = new_model_state
-
-    return Ō, Ō_grad
-
-
-# pure state, squared operator
-@dispatch.multi(
-    (MCState, Squared[DiscreteOperator], TrueT, Any),
-    (MCState, DiscreteOperator, FalseT, Any),
-)
-def expect_and_grad(
-    vstate: MCState,
-    Ô: Squared[DiscreteOperator],
-    use_covariance: Any,
-    mutable: Any,
-) -> Tuple[Stats, PyTree]:
-    σ, σp, mels = get_configs(vstate, Ô)
-
-    local_estimator_fun = get_fun(vstate, Ô)
-
-    Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
-        vstate.sampler.machine_pow,
-        vstate._apply_fun,
-        local_estimator_fun,
-        mutable,
-        vstate.parameters,
-        vstate.model_state,
-        σ,
-        σp,
-        mels,
+        args,
     )
 
     if mutable is not False:
@@ -107,19 +78,50 @@ def expect_and_grad(  # noqa: F811
     use_covariance: Any,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
-    _check_hilbert(vstate, Ô)
+    σ, args = get_local_kernel_arguments(vstate, Ô)
 
-    x = vstate.samples
-    kernel = Ô._expect_kernel
+    local_estimator_fun = get_local_kernel(vstate, Ô)
 
     Ō, Ō_grad = _grad_expect_continuous(
+        local_estimator_fun,
         vstate._apply_fun,
-        kernel,
         vstate.parameters,
-        Ô._pack_arguments(),
         vstate.model_state,
-        x,
+        σ,
+        args,
     )
+
+    return Ō, Ō_grad
+
+
+# pure state, squared operator
+@dispatch.multi(
+    (MCState, Squared[DiscreteOperator], TrueT, Any),
+    (MCState, DiscreteOperator, FalseT, Any),
+)
+def expect_and_grad(
+    vstate: MCState,
+    Ô: Squared[DiscreteOperator],
+    use_covariance: Any,
+    mutable: Any,
+) -> Tuple[Stats, PyTree]:
+    σ, args = get_local_kernel_arguments(vstate, Ô)
+
+    local_estimator_fun = get_local_kernel(vstate, Ô)
+
+    Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
+        vstate.sampler.machine_pow,
+        vstate._apply_fun,
+        local_estimator_fun,
+        mutable,
+        vstate.parameters,
+        vstate.model_state,
+        σ,
+        args,
+    )
+
+    if mutable is not False:
+        vstate.model_state = new_model_state
 
     return Ō, Ō_grad
 
@@ -132,26 +134,20 @@ def grad_expect_hermitian(
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
-    σp: jnp.ndarray,
-    mels: jnp.ndarray,
+    local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree]:
 
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    if jnp.ndim(σp) != 3:
-        σp = σp.reshape((σ.shape[0], -1, σ_shape[-1]))
-        mels = mels.reshape(σp.shape[:-1])
-
     n_samples = σ.shape[0] * mpi.n_nodes
 
-    O_loc = jax.vmap(local_value_kernel, in_axes=(None, None, 0, 0, 0), out_axes=0)(
+    O_loc = local_value_kernel(
         model_apply_fun,
         {"params": parameters, **model_state},
         σ,
-        σp,
-        mels,
+        local_value_args,
     )
 
     Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
@@ -256,12 +252,12 @@ def grad_expect_operator_kernel(
 
 @partial(jax.jit, static_argnums=(0, 1))
 def _grad_expect_continuous(
+    local_estimator_fun: Callable,
     model_apply_fun: Callable,
-    kernel,
     parameters: PyTree,
-    additional_data: PyTree,
     model_state: PyTree,
     x: jnp.ndarray,
+    additional_data: PyTree,
 ) -> Tuple[PyTree, PyTree]:
 
     x_shape = x.shape
@@ -274,7 +270,7 @@ def _grad_expect_continuous(
         return model_apply_fun({"params": w, **model_state}, σ)
 
     local_value_vmap = jax.vmap(
-        partial(kernel, logpsi),
+        partial(local_estimator_fun, logpsi),
         in_axes=(None, 0, None),
         out_axes=0,
     )
@@ -309,4 +305,4 @@ def _grad_expect_continuous(
         parameters,
     )
 
-    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)
+    return Ō, jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)

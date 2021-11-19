@@ -32,7 +32,7 @@ def check_hilbert(A: AbstractHilbert, B: AbstractHilbert):
 
 
 @dispatch.abstract
-def get_configs(vstate: Any, Ô: Any):
+def get_local_kernel_arguments(vstate: Any, Ô: Any):
     """
     Returns the samples of vstate used to compute the expectation value
     of the operator O, and the connected elements and matrix elements.
@@ -42,12 +42,15 @@ def get_configs(vstate: Any, Ô: Any):
         Ô: the operator
 
     Returns:
-        A Tuple with 3 elements (sigma, sigmap, mels)
+        A Tuple with 2 elements (sigma, args), where the first elements
+        should be the samples over which the classical expectation value
+        should be computed, while the latter is anything that can be fed
+        as input to the local_kernel.
     """
 
 
 @dispatch.abstract
-def get_fun(vstate: Any, Ô: Any):
+def get_local_kernel(vstate: Any, Ô: Any):
     """
     Returns the function computing the local estimator for the given variational
     state and operator.

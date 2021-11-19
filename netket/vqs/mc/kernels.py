@@ -17,29 +17,60 @@ This module implements some common kernels used by MCState and MCMixedState.
 """
 
 from typing import Any
+from functools import partial
 
 import jax
 from jax import numpy as jnp
 
 
-def local_value_kernel(logpsi, pars, σ, σp, mel):
+def local_value_kernel(logpsi, pars, σ, args):
     """
     local_value kernel for MCState and generic operators
     """
-    return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
+    σp, mels = args
+
+    if jnp.ndim(σp) != 3:
+        σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
+        mels = mels.reshape(σp.shape[:-1])
+
+    @partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=0)
+    def _kernel(logpsi, pars, σ, σp, mel):
+        return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
+
+    return _kernel(logpsi, pars, σ, σp, mels)
 
 
-def local_value_squared_kernel(logpsi, pars, σ, σp, mel):
+def local_value_squared_kernel(logpsi, pars, σ, args):
     """
     local_value kernel for MCState and Squared (generic) operators
     """
-    return jnp.abs(local_value_kernel(logpsi, pars, σ, σp, mel)) ** 2
+    σp, mels = args
+
+    if jnp.ndim(σp) != 3:
+        σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
+        mels = mels.reshape(σp.shape[:-1])
+
+    @partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=0)
+    def _kernel(logpsi, pars, σ, σp, mel):
+        return jnp.abs(local_value_kernel(logpsi, pars, σ, σp, mel)) ** 2
+
+    return _kernel(logpsi, pars, σ, σp, mels)
 
 
-def local_value_op_op_cost(logpsi, pars, σ, σp, mel):
+def local_value_op_op_cost(logpsi, pars, σ, args):
     """
     local_value kernel for MCMixedState and generic operators
     """
-    σ_σp = jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(σp, σ)
-    σ_σ = jnp.hstack((σ, σ))
-    return jnp.sum(mel * jnp.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
+    σp, mels = args
+
+    if jnp.ndim(σp) != 3:
+        σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
+        mels = mels.reshape(σp.shape[:-1])
+
+    @partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=0)
+    def _kernel(logpsi, pars, σ, σp, mel):
+        σ_σp = jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(σp, σ)
+        σ_σ = jnp.hstack((σ, σ))
+        return jnp.sum(mel * jnp.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
+
+    return _kernel(logpsi, pars, σ, σp, mels)

@@ -25,34 +25,41 @@ from netket.operator import (
     Squared,
 )
 
-from netket.vqs.mc import kernels, check_hilbert, get_configs, get_fun
+from netket.vqs.mc import (
+    kernels,
+    check_hilbert,
+    get_local_kernel_arguments,
+    get_local_kernel,
+)
 
 from .state import MCMixedState
 
 
 @dispatch
-def get_configs(vstate: MCMixedState, Ô: DiscreteOperator):
+def get_local_kernel_arguments(vstate: MCMixedState, Ô: DiscreteOperator):
     check_hilbert(vstate.diagonal.hilbert, Ô.hilbert)
 
     σ = vstate.diagonal.samples
     σp, mels = Ô.get_conn_padded(σ)
-    return σ, σp, mels
+    return σ, (σp, mels)
 
 
 @dispatch
-def get_fun(vstate: MCMixedState, Ô: DiscreteOperator):
+def get_local_kernel(vstate: MCMixedState, Ô: DiscreteOperator):
     return kernels.local_value_op_op_cost
 
 
 @dispatch
-def get_configs(vstate: MCMixedState, Ô: Squared[AbstractSuperOperator]):
+def get_local_kernel_arguments(
+    vstate: MCMixedState, Ô: Squared[AbstractSuperOperator]
+):
     check_hilbert(vstate.hilbert, Ô.hilbert)
 
     σ = vstate.samples
     σp, mels = Ô.parent.get_conn_padded(σ)
-    return σ, σp, mels
+    return σ, (σp, mels)
 
 
 @dispatch
-def get_fun(vstate: MCMixedState, Ô: Squared[AbstractSuperOperator]):
+def get_local_kernel(vstate: MCMixedState, Ô: Squared[AbstractSuperOperator]):
     return kernels.local_value_squared_kernel

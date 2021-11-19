@@ -36,7 +36,12 @@ from netket.operator import (
     _der_local_values_jax,
 )
 
-from netket.vqs.mc import kernels, check_hilbert, get_configs, get_fun
+from netket.vqs.mc import (
+    kernels,
+    check_hilbert,
+    get_local_kernel_arguments,
+    get_local_kernel,
+)
 from .state import MCMixedState
 
 # mixed state, squared super-operator
