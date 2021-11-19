@@ -19,8 +19,9 @@ class DiscreteOperator(AbstractOperator):
 
     def __init__(self, hilbert: DiscreteHilbert):
         if not isinstance(hilbert, DiscreteHilbert):
-            raise ValueError("A Discrete Operator can only act upon a discrete Hilbert "
-                             "space.")
+            raise ValueError(
+                "A Discrete Operator can only act upon a discrete Hilbert space."
+            )
         super().__init__(hilbert)
 
     @property

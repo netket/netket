@@ -55,7 +55,7 @@ class WrappedOperator(AbstractOperator):
         return other * self.collect()
 
     def __matmul__(self, other):
-        # this is a base implementation of matmul 
+        # this is a base implementation of matmul
         if isinstance(other, AbstractOperator):
             if self == other and self.is_hermitian:
                 from ._lazy import Squared
@@ -85,12 +85,16 @@ class WrappedOperator(AbstractOperator):
 
     def to_sparse(self):
         if not hasattr(self.parent, "to_sparse"):
-            raise TypeError("The Transposed Operator cannot be converted to a sparse Matrix")
+            raise TypeError(
+                "The Transposed Operator cannot be converted to a sparse Matrix"
+            )
         return self._process_parent_array(self.parent.to_sparse())
 
     def to_dense(self):
         if not hasattr(self.parent, "to_dense"):
-            raise TypeError("The Transposed Operator cannot be converted to a dense Matrix")
+            raise TypeError(
+                "The Transposed Operator cannot be converted to a dense Matrix"
+            )
         return self._process_parent_array(self.parent.to_dense())
 
     def __repr__(self):
@@ -125,6 +129,7 @@ class Transpose(WrappedOperator):
     def _process_parent_array(self, op):
         """transposes the dense/sparse parent array"""
         return op.T
+
 
 @parametric
 class Adjoint(WrappedOperator):
