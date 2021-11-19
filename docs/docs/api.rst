@@ -1,9 +1,9 @@
 
 .. _api:
 
-##########################
-Public API: netket package
-##########################
+##########
+Public API
+##########
 
 .. currentmodule:: netket
 
