@@ -26,6 +26,7 @@ from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
 from netket.operator import (
+    AbstractOperator,
     DiscreteOperator,
     AbstractSuperOperator,
     Squared,
@@ -81,14 +82,17 @@ def get_local_kernel_arguments(vstate: MCState, Ô: ContinuousOperator):
 
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: ContinuousOperator):
+    # TODO: this should be moved other to dispatch in order to support MCMixedState
     return Ô._expect_kernel
 
 
+# Standard implementation of expect for an MCState (pure) and a generic operator
+# The dispatch rule is not strictly needed, as everything currently implemented
+# in NetKet only defines a custom get_local_kernel_arguments and get_local_kernel
+# but if somebody wants to override behaviour for an existing operator or define
+# a completely arbitrary novel type of operator, this makes it much easier.
 @dispatch
-def expect(
-    vstate: MCState, Ô: Union[DiscreteOperator, Squared[DiscreteOperator]]
-) -> Stats:  # noqa: F811
-    # Standard implementation of expect for an MCState (pure) and a generic operator
+def expect(vstate: MCState, Ô: AbstractOperator) -> Stats:  # noqa: F811
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô)

@@ -23,54 +23,53 @@ import jax
 from jax import numpy as jnp
 
 
+def batch_discrete_kernel(kernel):
+    """
+    Batch a kernel that only works with 1 sample so that it works with a
+    batch of samples.
+
+    Works only for discrete-kernels who take two args as inputs
+    """
+
+    def vmapped_kernel(logpsi, pars, σ, args):
+        """
+        local_value kernel for MCState and generic operators
+        """
+        σp, mels = args
+
+        if jnp.ndim(σp) != 3:
+            σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
+            mels = mels.reshape(σp.shape[:-1])
+
+        vkernel = jax.vmap(kernel, in_axes=(None, None, 0, (0, 0)), out_axes=0)
+        return vkernel(logpsi, pars, σ, (σp, mels))
+
+    return vmapped_kernel
+
+
+@batch_discrete_kernel
 def local_value_kernel(logpsi, pars, σ, args):
     """
     local_value kernel for MCState and generic operators
     """
-    σp, mels = args
-
-    if jnp.ndim(σp) != 3:
-        σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
-        mels = mels.reshape(σp.shape[:-1])
-
-    @partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=0)
-    def _kernel(logpsi, pars, σ, σp, mel):
-        return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
-
-    return _kernel(logpsi, pars, σ, σp, mels)
+    σp, mel = args
+    return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
 
 
 def local_value_squared_kernel(logpsi, pars, σ, args):
     """
     local_value kernel for MCState and Squared (generic) operators
     """
-    σp, mels = args
-
-    if jnp.ndim(σp) != 3:
-        σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
-        mels = mels.reshape(σp.shape[:-1])
-
-    @partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=0)
-    def _kernel(logpsi, pars, σ, σp, mel):
-        return jnp.abs(local_value_kernel(logpsi, pars, σ, σp, mel)) ** 2
-
-    return _kernel(logpsi, pars, σ, σp, mels)
+    return jnp.abs(local_value_kernel(logpsi, pars, σ, args)) ** 2
 
 
+@batch_discrete_kernel
 def local_value_op_op_cost(logpsi, pars, σ, args):
     """
     local_value kernel for MCMixedState and generic operators
     """
-    σp, mels = args
+    σp, mel = args
 
-    if jnp.ndim(σp) != 3:
-        σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
-        mels = mels.reshape(σp.shape[:-1])
-
-    @partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=0)
-    def _kernel(logpsi, pars, σ, σp, mel):
-        σ_σp = jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(σp, σ)
-        σ_σ = jnp.hstack((σ, σ))
-        return jnp.sum(mel * jnp.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
-
-    return _kernel(logpsi, pars, σ, σp, mels)
+    σ_σp = jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(σp, σ)
+    σ_σ = jnp.hstack((σ, σ))
+    return jnp.sum(mel * jnp.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
