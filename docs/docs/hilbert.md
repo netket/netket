@@ -36,8 +36,7 @@ This is the space of density matrices and is used to work with dissipative/open 
 ## The `AbstractHilbert` interface
 
 As we mentioned before, an Hilbert object represents at the same time a choice of Hilbert space and computational basis. 
-The reason why we need to specify an Hilbert space is evident, I hope.
-The reason why we need to specify a computational basis is the following: with Variational methods we often have to perform summations (or sample) the hilbert space. For example, we often write the wavefunction as 
+The reason why we need to specify a computational basis is that with Variational methods we often have to perform summations (or sample) the hilbert space. For example, we often write the wavefunction as 
 
 $$
 |\psi\rangle = \sum_{\bf{\sigma}\in\mathcal{H}} \psi(\sigma) |\bf{\sigma}\rangle
