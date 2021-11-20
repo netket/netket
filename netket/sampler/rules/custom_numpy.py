@@ -93,15 +93,6 @@ class CustomRuleNumpy(MetropolisRule):
 
 
 @jit(nopython=True)
-def _pick_random_and_init(batch_size, move_cumulative, rnd_uniform, out):
-    for i in range(batch_size):
-        p = rnd_uniform[i]
-        out[i] = np.searchsorted(move_cumulative, p)
-
-    # return out
-
-
-@jit(nopython=True)
 def _choose_and_return(σp, x_prime, mels, sections, log_prob_corr, rnd_uniform):
     low = 0
     for i in range(σp.shape[0]):
