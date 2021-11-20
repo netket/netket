@@ -28,9 +28,6 @@ from ..metropolis import MetropolisRule
 @struct.dataclass
 class CustomRuleState:
     sections: np.ndarray
-    rand_op_n: np.ndarray
-    weight_cumsum: np.ndarray
-    max_cum_weight: float
 
 
 @struct.dataclass
@@ -65,12 +62,8 @@ class CustomRuleNumpy(MetropolisRule):
         )
 
     def init_state(rule, sampler, machine, params, key):
-        cum_weights = rule.weight_list.cumsum()
         return CustomRuleState(
             sections=np.empty(sampler.n_batches, dtype=np.int32),
-            rand_op_n=np.empty(sampler.n_batches, dtype=np.int32),
-            weight_cumsum=cum_weights,
-            max_cum_weight=cum_weights.max(),
         )
 
     def transition(rule, sampler, machine, parameters, state, rng, σ):
@@ -79,16 +72,9 @@ class CustomRuleNumpy(MetropolisRule):
         # numba does not support jitting np.random number generators
         # so we have to generate the random numbers outside the jit
         # block
-        rnd_uniform = rng.uniform(0.0, rule_state.max_cum_weight, size=σ.shape[0])
-
-        _pick_random_and_init(
-            σ.shape[0],
-            rule_state.weight_cumsum,
-            rnd_uniform=rnd_uniform,
-            out=rule_state.rand_op_n,
-        )
+        filters = rng.integers(0, len(rule.weight_list), size=σ.shape[0])
         σ_conns, mels = rule.operator.get_conn_filtered(
-            state.σ, rule_state.sections, rule_state.rand_op_n
+            state.σ, rule_state.sections, filters
         )
 
         # numba does not support jitting np.random number generators
