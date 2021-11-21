@@ -24,7 +24,13 @@ from netket import experimental as nkx
 
 import numpy as np
 import pytest
-from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
+from scipy.stats import (
+    combine_pvalues,
+    chisquare,
+    multivariate_normal,
+    kstest,
+    binomtest,
+)
 import jax
 from jax.nn.initializers import normal
 
@@ -53,6 +59,8 @@ g = nk.graph.Hypercube(length=4, n_dim=1)
 hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
+move_weights = np.array([2 ** i for i in range(hi.size)])
+move_weights = move_weights / move_weights.sum()
 
 hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
@@ -97,7 +105,10 @@ samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltoni
 )
 
 samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
-    hi, move_operators=move_op
+    hi,
+    move_operators=move_op,
+    move_weights=move_weights,
+    n_sweeps=1,
 )
 
 # samplers["MetropolisPT(Custom: Sx): Spin"] = nkx.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
@@ -408,3 +419,28 @@ def test_exact_sampler(sampler):
         assert sampler.is_exact is True
     else:
         assert sampler.is_exact is False
+
+
+def test_custom_metropolis_sampler(model_and_weights):
+    """
+    This test creates a sample provided some move operators and weights
+    for those move operators. Then, the number of times that each spin
+    is flipped is computed. This number is the number of successes in
+    a binomial test with a probability given by the weights of the move
+    operators for each spin. The pvalue of the binomial test says whether
+    or not the observed number of flips correspond to the true probability.
+    """
+    sampler = samplers["Metropolis(Custom: Sx): Spin"]
+    ma, w = model_and_weights(hi, sampler)
+    sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+    n_samples = 5000
+    samples, sampler_state = sampler.sample(
+        ma, w, state=sampler_state, chain_length=n_samples
+    )
+    samples_diffs = np.abs(np.diff(samples, axis=0)) / 2
+    number_of_flips = np.sum(np.sum(samples_diffs, axis=0), axis=0)
+    n_trials = samples_diffs.shape[0] * samples_diffs.shape[1]
+    for i, n in enumerate(number_of_flips):
+        p = 2 ** i / 15
+        pval = binomtest(int(n), n_trials, p).pvalue
+        assert pval < 0.05
