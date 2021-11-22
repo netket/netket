@@ -68,7 +68,7 @@ class CustomRuleNumpy(MetropolisRule):
         return CustomRuleState(
             sections=np.empty(sampler.n_batches, dtype=np.int32),
             rand_op_n=np.empty(sampler.n_batches, dtype=np.int32),
-            weight_cumsum=cum_weights / cum_weights[-1],
+            weight_cumsum=cum_weights,
         )
 
     def transition(rule, sampler, machine, parameters, state, rng, σ):
