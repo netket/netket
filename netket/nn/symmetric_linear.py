@@ -678,8 +678,9 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
-            nk.graph.Graph, a nk.utils.PermuationGroup, or an array that is either
-            hashable: HashableArray [n_symm, n_sites], or can be made hashable,
+            :ref:`netket.graph.Graph`, a :ref:`netket.utils.group.PermutationGroup`, or an array
+            of shape :code:`(n_symm, n_sites)`. A :ref:`netket.utils.HashableArray` may also
+            be passed.
             specifying the permutations corresponding to symmetry transformations
             of the lattice.
         point_group: The point group, from which the space group is built.
