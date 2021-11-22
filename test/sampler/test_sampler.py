@@ -447,4 +447,4 @@ def test_custom_metropolis_sampler(model_and_weights):
     for i, n in enumerate(number_of_flips):
         p = move_weights[i]
         pval = binomtest(int(n), n_trials, p).pvalue
-        assert pval < 0.05
+        assert pval > 0.01  # , str(p) + " " + str(n) + " " + str(n_trials)
