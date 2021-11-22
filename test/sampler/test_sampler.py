@@ -31,6 +31,8 @@ from scipy.stats import (
     kstest,
 )
 
+# TODO: Remove fallback. 
+# `binom_test` is deprecated in favour of `binomtest` and will be removed in SciPy 1.9
 try:
     from scipy.stats import binomtest
 except ImportError:
