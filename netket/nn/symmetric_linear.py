@@ -678,7 +678,8 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
-            nk.graph.Graph, a nk.utils.PermuationGroup, or a HashableArray [n_symm, n_sites]
+            nk.graph.Graph, a nk.utils.PermuationGroup, or an array that is either
+            hashable: HashableArray [n_symm, n_sites], or can be made hashable,
             specifying the permutations corresponding to symmetry transformations
             of the lattice.
         point_group: The point group, from which the space group is built.
@@ -712,14 +713,10 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
                 "in order to construct the space group"
             )
         sym = HashableArray(np.asarray(symmetries.automorphisms()))
-    elif isinstance(symmetries, (PermutationGroup, Array, Sequence)):
-        sym = HashableArray(np.asarray(symmetries))
     elif isinstance(symmetries, HashableArray):
         sym = symmetries
     else:
-        raise ValueError(
-            "Symmetries must be specified as a Graph, PermutationGroup or Array"
-        )
+        sym = HashableArray(np.asarray(symmetries))
 
     if mode == "fft":
         if shape is None:
