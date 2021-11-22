@@ -28,6 +28,8 @@ from ..metropolis import MetropolisRule
 @struct.dataclass
 class CustomRuleState:
     sections: np.ndarray
+    rand_op_n: np.ndarray
+    weight_cumsum: np.ndarray
 
 
 @struct.dataclass
@@ -62,8 +64,11 @@ class CustomRuleNumpy(MetropolisRule):
         )
 
     def init_state(rule, sampler, machine, params, key):
+        cum_weights = rule.weight_list.cumsum()
         return CustomRuleState(
             sections=np.empty(sampler.n_batches, dtype=np.int32),
+            rand_op_n=np.empty(sampler.n_batches, dtype=np.int32),
+            weight_cumsum=cum_weights / cum_weights[-1],
         )
 
     def transition(rule, sampler, machine, parameters, state, rng, σ):
@@ -72,9 +77,17 @@ class CustomRuleNumpy(MetropolisRule):
         # numba does not support jitting np.random number generators
         # so we have to generate the random numbers outside the jit
         # block
-        filters = rng.choice(len(rule.weight_list), size=σ.shape[0], p=rule.weight_list)
+        rnd_uniform = rng.uniform(0.0, 1.0, size=σ.shape[0])
+
+        _pick_random_and_init(
+            σ.shape[0],
+            rule_state.weight_cumsum,
+            rnd_uniform=rnd_uniform,
+            out=rule_state.rand_op_n,
+        )
+
         σ_conns, mels = rule.operator.get_conn_filtered(
-            state.σ, rule_state.sections, filters
+            state.σ, rule_state.sections, rule_state.rand_op_n
         )
 
         # numba does not support jitting np.random number generators
@@ -90,6 +103,13 @@ class CustomRuleNumpy(MetropolisRule):
             state.log_prob_corr,
             rnd_uniform,
         )
+
+
+@jit(nopython=True)
+def _pick_random_and_init(batch_size, move_cumulative, rnd_uniform, out):
+    for i in range(batch_size):
+        p = rnd_uniform[i]
+        out[i] = np.searchsorted(move_cumulative, p)
 
 
 @jit(nopython=True)
