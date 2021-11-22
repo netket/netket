@@ -29,8 +29,12 @@ from scipy.stats import (
     chisquare,
     multivariate_normal,
     kstest,
-    binomtest,
 )
+
+try:
+    from scipy.stats import binomtest
+except ImportError:
+    from scipy.stats import binom_test as binomtest
 import jax
 from jax.nn.initializers import normal
 
