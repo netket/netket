@@ -22,6 +22,7 @@
 * `operator.size`, has been deprecated. If you were using this function, please transition to `operator.hilbert.size`. [#985](https://github.com/netket/netket/pull/985)
 
 ### Internal Changes
+* The `DenseSymm` layer checks if the provided `symmetries` is a `HashableArray`. If not, it tries to make it a `HashableArray`. [#989](https://github.com/netket/netket/pull/989)
 
 ### Bug Fixes
 
