@@ -678,7 +678,7 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
-            :ref:`netket.graph.Graph`, a :ref:`netket.utils.group.PermuationGroup`, or an array
+            :ref:`netket.graph.Graph`, a :ref:`netket.utils.group.PermutationGroup`, or an array
             of shape :code:`(n_symm, n_sites)`. A :ref:`netket.utils.HashableArray` may also
             be passed.
             specifying the permutations corresponding to symmetry transformations
