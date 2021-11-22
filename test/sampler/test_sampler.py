@@ -59,7 +59,7 @@ g = nk.graph.Hypercube(length=4, n_dim=1)
 hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
-move_weights = np.array([2 ** i for i in range(hi.size)])
+move_weights = np.random.rand(hi.size)
 move_weights = move_weights / move_weights.sum()
 
 hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
@@ -441,6 +441,6 @@ def test_custom_metropolis_sampler(model_and_weights):
     number_of_flips = np.sum(np.sum(samples_diffs, axis=0), axis=0)
     n_trials = samples_diffs.shape[0] * samples_diffs.shape[1]
     for i, n in enumerate(number_of_flips):
-        p = 2 ** i / 15
+        p = move_weights[i]
         pval = binomtest(int(n), n_trials, p).pvalue
         assert pval < 0.05
