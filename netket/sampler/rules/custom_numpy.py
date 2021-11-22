@@ -108,7 +108,7 @@ class CustomRuleNumpy(MetropolisRule):
 @jit(nopython=True)
 def _pick_random_and_init(batch_size, move_cumulative, rnd_uniform, out):
     for i in range(batch_size):
-        p = rnd_uniform[i]
+        p = move_cumulative[-1] * (1 - rnd_uniform[i])
         out[i] = np.searchsorted(move_cumulative, p)
 
 
