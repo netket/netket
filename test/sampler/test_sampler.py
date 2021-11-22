@@ -442,7 +442,7 @@ def test_custom_metropolis_sampler(model_and_weights):
         ma, w, state=sampler_state, chain_length=n_samples
     )
     samples_diffs = np.abs(np.diff(samples, axis=0)) / 2
-    number_of_flips = np.sum(np.sum(samples_diffs, axis=0), axis=0)
+    number_of_flips = np.sum(samples_diffs, axis=(0, 1))
     n_trials = samples_diffs.shape[0] * samples_diffs.shape[1]
     for i, n in enumerate(number_of_flips):
         p = move_weights[i]
