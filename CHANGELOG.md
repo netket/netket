@@ -24,6 +24,7 @@
 ### Internal Changes
 
 ### Bug Fixes
+* The `DenseSymm` layer now also accepts objects of type `HashableArray` as `symmetries` argument. [#989](https://github.com/netket/netket/pull/989)
 
 
 ## NetKet 3.1 (20 October 2021)
