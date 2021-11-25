@@ -93,6 +93,7 @@ Continuous space operators
 .. autosummary::
    :toctree: _generated/hilbert
    :nosignatures:
+
    netket.operator.ContinuousOperator
    netket.operator.KineticEnergy
    netket.operator.PotentialEnergy
