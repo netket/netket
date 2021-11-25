@@ -16,13 +16,13 @@ from typing import Optional, Callable, Union, List
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
-from netket.operator import ContinousOperator
+from netket.operator import ContinuousOperator
 
 import jax
 import jax.numpy as jnp
 
 
-class KineticEnergy(ContinousOperator):
+class KineticEnergy(ContinuousOperator):
     r"""This is the kinetic energy operator (hbar = 1). The local value is given by:
     :math:`E_{kin} = -1/2 ( \sum_i \frac{1}{m_i} (\log(\psi))'^2 + (\log(\psi))'' )`
     """

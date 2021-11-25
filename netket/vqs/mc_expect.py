@@ -15,7 +15,7 @@ from netket.operator import (
     DiscreteOperator,
     AbstractSuperOperator,
     Squared,
-    ContinousOperator,
+    ContinuousOperator,
 )
 
 from .mc_state import MCState
@@ -113,7 +113,7 @@ def expect(vstate: MCMixedState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
 
 
 @dispatch
-def expect(vstate: MCState, Ô: ContinousOperator) -> Stats:  # noqa: F811
+def expect(vstate: MCState, Ô: ContinuousOperator) -> Stats:  # noqa: F811
     _check_hilbert(vstate, Ô)
 
     x = vstate.samples

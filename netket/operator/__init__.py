@@ -24,7 +24,7 @@ from ._hamiltonian import Ising, Heisenberg, BoseHubbard
 from ._abstract_super_operator import AbstractSuperOperator
 from ._local_liouvillian import LocalLiouvillian
 
-from ._continuous_operator import ContinousOperator
+from ._continuous_operator import ContinuousOperator
 from ._kinetic import KineticEnergy
 from ._potential import PotentialEnergy
 from ._sumoperators import SumOperator

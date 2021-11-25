@@ -17,12 +17,12 @@ from netket.utils.types import DType, PyTree, Array
 
 import functools
 
-from netket.operator import ContinousOperator
+from netket.operator import ContinuousOperator
 
 import jax.numpy as jnp
 
 
-class SumOperator(ContinousOperator):
+class SumOperator(ContinuousOperator):
     r"""This class implements the action of the _expect_kernel()-method of
     ContinuousOperator for a sum of ContinuousOperator objects.
     """
@@ -36,8 +36,8 @@ class SumOperator(ContinousOperator):
         r"""
         Returns the action of a sum of local operators.
         Args:
-            operators: A list of ContinousOperator objects
-            coefficients: A coefficient for each ContinousOperator object
+            operators: A list of ContinuousOperator objects
+            coefficients: A coefficient for each ContinuousOperator object
             dtype: Data type of the matrix elements. Defaults to `np.float64`
         """
 
