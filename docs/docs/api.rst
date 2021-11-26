@@ -294,6 +294,8 @@ Variational State Interface
   netket.vqs.VariationalState
   netket.vqs.MCState
   netket.vqs.MCMixedState
+  netket.vqs.get_local_kernel
+  netket.vqs.get_local_kernel_arguments
 
 
 .. _optimizer-api:
