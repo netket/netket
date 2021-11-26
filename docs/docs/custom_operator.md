@@ -195,11 +195,11 @@ def e_loc(logpsi, pars, sigma, extra_args):
   eta, mels = extra_args
   return jnp.sum(mels * jnp.exp(logpsi(pars, eta) - logpsi(pars, eta)), axis=-1)
 
-@nk.vqs._mc.get_local_kernel.dispatch
+@nk.vqs.get_local_kernel.dispatch
 def get_local_kernel(vstate: nk.vqs.MCState, op: XOperatorLean):
   return e_loc
 
-@nk.vqs._mc.get_local_kernel_arguments.dispatch
+@nk.vqs.get_local_kernel_arguments.dispatch
 def get_local_kernel_arguments(vstate: nk.vqs.MCState, op: XOperatorLean):
   sigma = vstate.sigma
   extra_args = get_conns_and_mels(sigma)
