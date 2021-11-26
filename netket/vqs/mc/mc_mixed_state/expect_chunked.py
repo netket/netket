@@ -18,16 +18,18 @@ from netket.operator import (
     Squared,
 )
 
-from netket.vqs.mc import get_fun
+from netket.vqs.mc import get_local_kernel
 
 from .state import MCMixedState
 
 # Dispatches to select what expect-kernel to use
 @dispatch
-def get_fun(vstate: MCMixedState, Ô: Squared[AbstractSuperOperator], batch_size: int):
-    return kernels.local_value_squaredkernel_chunked
+def get_local_kernel(
+    vstate: MCMixedState, Ô: Squared[AbstractSuperOperator], batch_size: int
+):
+    return kernels.local_value_squared_kernel_chunked
 
 
 @dispatch
-def get_fun(vstate: MCMixedState, Ô: DiscreteOperator, batch_size: int):
+def get_local_kernel(vstate: MCMixedState, Ô: DiscreteOperator, batch_size: int):
     return kernels.local_value_op_op_cost_chunked

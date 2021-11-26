@@ -18,4 +18,4 @@ from . import expect
 
 from . import expect_grad
 
-from . import expect_batched
+from . import expect_chunked
