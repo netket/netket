@@ -24,6 +24,7 @@ import jax.numpy as jnp
 
 import netket.jax as nkjax
 
+
 def batch_discrete_kernel(kernel):
     """
     Batch a kernel that only works with 1 sample so that it works with a
@@ -79,37 +80,45 @@ def local_value_op_op_cost(logpsi, pars, σ, args):
 ## Chunked versions of those kernels are defined below.
 
 
-def local_valuekernel_chunked(logpsi, pars, σ, σp, mel, *, chunk_size=None):
+def local_value_kernel_chunked(logpsi, pars, σ, args, *, chunk_size=None):
     """
     local_value kernel for MCState and generic operators
     """
-    logpsi_batched = nkjax.vmap_batched(
-        partial(logpsi, pars), in_axes=0, batch_size=chunk_size
+    σp, mels = args
+
+    if jnp.ndim(σp) != 3:
+        σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
+        mels = mels.reshape(σp.shape[:-1])
+
+    logpsi_chunked = nkjax.vmap_chunked(
+        partial(logpsi, pars), in_axes=0, chunk_size=chunk_size
     )
     N = σ.shape[-1]
 
-    logpsi_σ = logpsi_batched(σ.reshape((-1, N))).reshape(σ.shape[:-1] + (1,))
-    logpsi_σp = logpsi_batched(σp.reshape((-1, N))).reshape(σp.shape[:-1])
+    logpsi_σ = logpsi_chunked(σ.reshape((-1, N))).reshape(σ.shape[:-1] + (1,))
+    logpsi_σp = logpsi_chunked(σp.reshape((-1, N))).reshape(σp.shape[:-1])
 
-    return jnp.sum(mel * jnp.exp(logpsi_σp - logpsi_σ), axis=-1)
+    return jnp.sum(mels * jnp.exp(logpsi_σp - logpsi_σ), axis=-1)
 
 
-def local_value_squaredkernel_chunked(logpsi, pars, σ, σp, mel, *, chunk_size=None):
+def local_value_squared_kernel_chunked(logpsi, pars, σ, args, *, chunk_size=None):
     """
     local_value kernel for MCState and Squared (generic) operators
     """
     return (
         jnp.abs(
-            local_valuekernel_chunked(logpsi, pars, σ, σp, mel, batch_size=chunk_size)
+            local_value_kernel_chunked(logpsi, pars, σ, args, chunk_size=chunk_size)
         )
         ** 2
     )
 
 
-def local_value_op_op_cost_chunked(logpsi, pars, σ, σp, mel, *, chunk_size=None):
+def local_value_op_op_cost_chunked(logpsi, pars, σ, args, *, chunk_size=None):
     """
     local_value kernel for MCMixedState and generic operators
     """
+    σp, mel = args
+
     σ_σp = jax.vmap(
         lambda σpi, σi: jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(
             σpi, σi
@@ -119,6 +128,6 @@ def local_value_op_op_cost_chunked(logpsi, pars, σ, σp, mel, *, chunk_size=Non
     )
     σ_σ = jax.vmap(lambda σi: jnp.hstack((σi, σi)), in_axes=0)(σ)
 
-    return local_valuekernel_chunked(
-        logpsi, pars, σ_σ, σ_σp, mel, batch_size=chunk_size
+    return local_value_kernel_chunked(
+        logpsi, pars, σ_σ, σ_σp, mel, chunk_size=chunk_size
     )

@@ -410,22 +410,18 @@ class MCState(VariationalState):
                 "For performance reasons, we suggest to use a power-of-two chunk size."
             )
 
-        self._chunk_size = chunk_size
-
         if chunk_size >= self.n_samples_per_rank:
             # no problem!
             pass
         elif (self.n_samples_per_rank % chunk_size) != 0:
-            suggested_chain_len = compute_chain_length(
-                self.sampler.n_chains, self.n_samples, chunk_size=chunk_size
+            raise ValueError(
+                f"chunk_size={chunk_size}`<`n_samples_per_rank={self.n_samples_per_rank}, "
+                "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
+                "unsupported. Please change `chunk_size` so that it divides evenly the"
+                "number of samples per rank."
             )
-            suggested_n_samples = self.sampler.n_chains * suggested_chain_len
-            warnings.warn(
-                f"`chunk_size={chunk_size}`>`n_samples_per_rank={self.n_samples_per_rank}`, but "
-                "`chunk_size` is not a multiple of `n_samples_per_rank` it is not a multiple of it. "
-                "This can lead to very long compile times and decreased performance. We suggest "
-                f"to set `self.n_samples_per_rank = {suggested_n_samples}` or change the chunk size.\n"
-            )
+
+        self._chunk_size = chunk_size
 
     def reset(self):
         """

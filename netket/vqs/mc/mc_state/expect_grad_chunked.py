@@ -16,7 +16,12 @@ from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch, TrueT
 
 from netket.vqs import expect_and_grad
-from netket.vqs.mc import kernels, check_hilbert, get_configs, get_fun
+from netket.vqs.mc import (
+    kernels,
+    check_hilbert,
+    get_local_kernel,
+    get_local_kernel_arguments,
+)
 
 from .state import MCState
 
@@ -27,7 +32,7 @@ def expect_and_grad_nochunking(
     vstate: MCState,
     operator: AbstractOperator,
     cov: Any,
-    batch_size: None,
+    chunk_size: None,
     *args,
     **kwargs,
 ):
@@ -40,14 +45,14 @@ def expect_and_grad_fallback(
     vstate: MCState,
     operator: AbstractOperator,
     cov: Any,
-    batch_size: Any,
+    chunk_size: Any,
     *args,
     **kwargs,
 ):
     if config.FLAGS["NETKET_DEBUG"]:
         print(
-            "Ignoring `batch_size={batch_size}` because no implementation supporting:"
-            "batching exists."
+            "Ignoring `chunk_size={chunk_size}` because no implementation supporting:"
+            "chunking exists."
         )
 
     return expect_and_grad(vstate, operator, cov, *args, **kwargs)
@@ -58,24 +63,23 @@ def expect_and_grad(  # noqa: F811
     vstate: MCState,
     Ô: DiscreteOperator,
     use_covariance: TrueT,
-    batch_size: int,
+    chunk_size: int,
     *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
-    σ, σp, mels = get_configs(vstate, Ô)
+    σ, args = get_local_kernel_arguments(vstate, Ô)
 
-    local_estimator_fun = get_fun(vstate, Ô, batch_size)
+    local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
 
-    Ō, Ō_grad, new_model_state = grad_expect_hermitian(
+    Ō, Ō_grad, new_model_state = grad_expect_hermitian_chunked(
+        chunk_size,
         local_estimator_fun,
         vstate._apply_fun,
         mutable,
-        batch_size,
         vstate.parameters,
         vstate.model_state,
         σ,
-        σp,
-        mels,
+        args,
     )
 
     if mutable is not False:
@@ -85,35 +89,29 @@ def expect_and_grad(  # noqa: F811
 
 
 @partial(jax.jit, static_argnums=(0, 1, 2, 3))
-def grad_expect_hermitian(
-    local_valuekernel_chunked: Callable,
+def grad_expect_hermitian_chunked(
+    chunk_size: int,
+    local_value_kernel_chunked: Callable,
     model_apply_fun: Callable,
     mutable: bool,
-    batch_size: int,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
-    σp: jnp.ndarray,
-    mels: jnp.ndarray,
+    local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree]:
 
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    if jnp.ndim(σp) != 3:
-        σp = σp.reshape((σ.shape[0], -1, σ_shape[-1]))
-        mels = mels.reshape(σp.shape[:-1])
-
     n_samples = σ.shape[0] * mpi.n_nodes
 
-    O_loc = local_valuekernel_chunked(
+    O_loc = local_value_kernel_chunked(
         model_apply_fun,
         {"params": parameters, **model_state},
         σ,
-        σp,
-        mels,
-        batch_size=batch_size,
+        local_value_args,
+        chunk_size=chunk_size,
     )
 
     Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
@@ -124,20 +122,20 @@ def grad_expect_hermitian(
     # Code is a bit more complex than a standard one because we support
     # mutable state (if it's there)
     if mutable is False:
-        vjp_fun_batched = nkjax.vjp_batched(
+        vjp_fun_chunked = nkjax.vjp_chunked(
             lambda w, σ: model_apply_fun({"params": w, **model_state}, σ),
             parameters,
             σ,
             conjugate=True,
-            batch_size=batch_size,
-            batch_argnums=1,
+            chunk_size=chunk_size,
+            chunk_argnums=1,
             nondiff_argnums=1,
         )
         new_model_state = None
     else:
         raise NotImplementedError
 
-    Ō_grad = vjp_fun_batched(
+    Ō_grad = vjp_fun_chunked(
         (jnp.conjugate(O_loc) / n_samples),
     )[0]
 
