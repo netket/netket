@@ -8,6 +8,8 @@
 
 ### New features
 
+* Chunking of `MCState.expect` and `MCState.expect_and_grad` computations is now supported, which allows to bound the memory cost in exchange of a minor increase in computation time. [#918](https://github.com/netket/netket/pull/918)
+
 ### Breaking Changes
 
 ### Internal Changes
