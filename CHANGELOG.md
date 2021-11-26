@@ -4,28 +4,42 @@
 
 # Change Log
 
-## NetKet 3.2 (In development)
-
-[GitHub commits](https://github.com/netket/netket/compare/v3.0...master).
+## NetKet 3.3 (In development)
 
 ### New features
-* `Heisenberg` Hamiltonians support different coupling strengths on `Graph` edges with different colors. [#972](https://github.com/netket/netket/pull/972).
+
+### Breaking Changes
+
+### Internal Changes
+
+### Bug Fixes
+
+
+## NetKet 3.2 (26 November 2021)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.1...v3.2).
+
+### New features
 * `GraphOperator` (and `Heisenberg`) now support passing a custom mapping of graph nodes to Hilbert space sites via the new `acting_on_subspace` argument. This makes it possible to create `GraphOperator`s that act on a subset of sites, which is useful in composite Hilbert spaces. [#924](https://github.com/netket/netket/pull/924)
-
+* `PauliString` now support any hilbert space with local size 2. The hilbert space is now the optional first argument of the constructor. [#960](https://github.com/netket/netket/pull/960)
+* `PauliString` now can be multiplied and summed together, and they perform some simple algebraic simplifications on the strings they contain. They also lazily initialize their internal data structures, making them faster to construct but slightly slower the first time that their matrix elements are accessed. [#955](https://github.com/netket/netket/pull/955)
+* `PauliString`s can now be constructed starting from an `OpenFermion` operator. [#956](https://github.com/netket/netket/pull/956)
 * In addition to nearest-neighbor edges, `Lattice` can now generate edges between next-nearest and, more generally, k-nearest neighbors via the constructor argument `max_neighbor_order`. The edges can be distinguished by their `color` property (which is used, e.g., by `GraphOperator` to apply different bond operators). [#970](https://github.com/netket/netket/pull/970)
+* Operators on continuous space have now been implemented. The Kinetic operator and potential operator can both be used. [#971](https://github.com/netket/netket/pull/971)
+* `Heisenberg` Hamiltonians support different coupling strengths on `Graph` edges with different colors. [#972](https://github.com/netket/netket/pull/972).
 * The `little_group` and `space_group_irreps` methods of `SpaceGroupBuilder` take the wave vector as either varargs or iterables. [#975](https://github.com/netket/netket/pull/975)
-
 * A new `netket.experimental` submodule has been created and all experimental features have been moved there. Note that in contrast to the other `netket` submodules, `netket.experimental` is not imported by default. [#976](https://github.com/netket/netket/pull/976)
 
 ### Breaking Changes
 * Moved `nk.vqs.variables_from_***` to `nk.experimental.vqs` module. Also moved the experimental samplers to `nk.sampler.MetropolisPt` and `nk.sampler.MetropolisPmap` to `nk.experimental.sampler`. [#976](https://github.com/netket/netket/pull/976)
 * `operator.size`, has been deprecated. If you were using this function, please transition to `operator.hilbert.size`. [#985](https://github.com/netket/netket/pull/985)
 
-### Internal Changes
-
 ### Bug Fixes
+* A bug where `LocalOperator.get_conn_flattened` would read out-of-bounds memory has been fixed. It is unlikely that the bug was causing problems, but it triggered warnings when running Numba with boundscheck activated. [#966](https://github.com/netket/netket/pull/966)
+* The dependency `python-igraph` has been updated to `igraph` following the rename of the upstream project in order to work on conda. [#986](https://github.com/netket/netket/pull/986)
+* {attr}`~netket.vqs.MCState.n_samples_per_rank` was returning wrong values and has now been fixed. [#987](https://github.com/netket/netket/pull/987)
 * The `DenseSymm` layer now also accepts objects of type `HashableArray` as `symmetries` argument. [#989](https://github.com/netket/netket/pull/989)
-
+* A bug where `VMC.info()` was erroring has been fixed. [#984](https://github.com/netket/netket/pull/984)
 
 ## NetKet 3.1 (20 October 2021)
 
