@@ -65,7 +65,8 @@ class SumOperator(ContinuousOperator):
             op._expect_kernel(logpsi, params, x, data[i])
             for i, op in enumerate(self._ops)
         ]
-        return jnp.sum(jnp.array(result))
+
+        return sum(result)
 
     def _pack_arguments(self):
         return [self._coeff * jnp.array(op._pack_arguments()) for op in self._ops]

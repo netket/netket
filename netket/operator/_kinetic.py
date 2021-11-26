@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Optional, Callable, Union, List
+from functools import partial
 
 from netket.utils.types import DType, PyTree, Array
 
@@ -46,13 +47,14 @@ class KineticEnergy(ContinuousOperator):
     def mass(self):
         return self._mass
 
+    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+        self, logpsi: Callable, params: PyTree, x: Array, mass: Optional[PyTree]
     ):
         def logpsi_x(x):
             return logpsi(params, x)
 
-        dlogpsi_x = jax.grad(logpsi_x)
+        dlogpsi_x = jax.vmap(jax.grad(logpsi_x), in_axes=0)
 
         basis = jnp.eye(x.shape[0])
 
@@ -61,7 +63,7 @@ class KineticEnergy(ContinuousOperator):
 
         dp_dx = dlogpsi_x(x) ** 2
 
-        return -0.5 * jnp.sum(data * (dp_dx2 + dp_dx))
+        return -0.5 * jnp.sum(mass * (dp_dx2 + dp_dx), axis=-1)
 
     def _pack_arguments(self) -> PyTree:
         return 1.0 / self._mass

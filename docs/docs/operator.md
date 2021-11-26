@@ -1,4 +1,4 @@
-(Hilbert)=
+(Operator)=
 # The Operator module
 
 ```{eval-rst}
@@ -31,6 +31,14 @@ There are only two other operations defined on all operator types: it is possibl
 Those will usually return lazy wrappers.
 Finally, it is also possible to call {meth}`~netket.hilbert.AbstractOperator.collect` to get rid of any possible lazy wrapper.
 
+The bare-minimum requirement when defining a custom operator is to define it's hilbert space. 
+Most likely you will also want to define the `expect` and/or the `expect_and_grad` method to compute the expectation value of such operator over a certain Variational State. 
+Contrary to more standard Pythonic code, those methods are not defined as class-functions in your custom operator class, but you have to use multiple dispatch ({ref}`netket.utils.dispatch.dispatch`) to define those methods on a specific signature such as `expect(vstate: MCState, O: MyCustomOperator)`. 
+This is needed because the way you compute expectation values and/or gradients might not only change depending on the exact operator, but depends also on the type of variational state that you are working with.
+To learn more about multiple dispatch, check {ref}`this section <multiple-dispatch>`
+
+An explanation of how to define the `expect` method for custom operators is given in the {ref}`Custom Operator documentation <custom-operator>`.
+
 ## The DiscreteOperator interface
 
-Operators defined on Discrete Spaces must implement the {ref}`DiscreteOperator` interface if they wish to work 
+Operators defined on Discrete Spaces must implement the {ref}`DiscreteOperator` interface if they wish to work ou

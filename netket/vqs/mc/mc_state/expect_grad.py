@@ -269,17 +269,16 @@ def _grad_expect_continuous(
     def logpsi(w, σ):
         return model_apply_fun({"params": w, **model_state}, σ)
 
-    local_value_vmap = jax.vmap(
-        partial(local_estimator_fun, logpsi),
-        in_axes=(None, 0, None),
-        out_axes=0,
-    )
+    # local_value_vmap = jax.vmap(
+    #    partial(local_estimator_fun, logpsi),
+    #    in_axes=(None, 0, None),
+    #    out_axes=0,
+    # )
     # TODO: Once batching/chunking is implemented, should be made available here too.
     x = x.reshape((-1, 1, x_shape[-1]))
 
     def compute_kernel(i, x):
-        Oloc = local_value_vmap(parameters, x, additional_data)
-
+        Oloc = local_estimator_fun(logpsi, parameters, x, additional_data)
         return i, Oloc
 
     _, O_loc = jax.lax.scan(compute_kernel, 0, x)

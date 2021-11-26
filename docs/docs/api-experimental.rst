@@ -43,8 +43,8 @@ several CPUs, but you have to start jax with a specific environment variable.
    :nosignatures:
 
    netket.experimental.sampler.MetropolisPtSampler
-   netket.experimental.sampler..MetropolisLocalPt
-   netket.experimental.sampler..MetropolisExchangePt
+   netket.experimental.sampler.MetropolisLocalPt
+   netket.experimental.sampler.MetropolisExchangePt
 
    netket.experimental.sampler.MetropolisSamplerPmap
 
