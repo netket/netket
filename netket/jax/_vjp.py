@@ -26,7 +26,7 @@ from jax.tree_util import (
 from .utils import is_complex, tree_leaf_iscomplex, eval_shape
 
 
-# _grad_CC, _RR and _RC are the batched gradient functions for machines going
+# _grad_CC, _RR and _RC are the chunked gradient functions for machines going
 # from R -> C, R->R and R->C. Ditto for vjp
 # Thee reason why R->C is more complicated is that it splits the calculation
 # into the real and complex part in order to be more efficient.
