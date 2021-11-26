@@ -21,8 +21,8 @@
 
 ### New features
 * `GraphOperator` (and `Heisenberg`) now support passing a custom mapping of graph nodes to Hilbert space sites via the new `acting_on_subspace` argument. This makes it possible to create `GraphOperator`s that act on a subset of sites, which is useful in composite Hilbert spaces. [#924](https://github.com/netket/netket/pull/924)
-* `PauliString` now support any hilbert space with local size 2. The hilbert space is now the optional first argument of the constructor. [#960](https://github.com/netket/netket/pull/960)
-* `PauliString` now can be multiplied and summed together, and they perform some simple algebraic simplifications on the strings they contain. They also lazily initialize their internal data structures, making them faster to construct but slightly slower the first time that their matrix elements are accessed. [#955](https://github.com/netket/netket/pull/955)
+* `PauliString` now supports any Hilbert space with local size 2. The Hilbert space is now the optional first argument of the constructor. [#960](https://github.com/netket/netket/pull/960)
+* `PauliString` now can be multiplied and summed together, performing some simple algebraic simplifications on the strings they contain. They also lazily initialize their internal data structures, making them faster to construct but slightly slower the first time that their matrix elements are accessed. [#955](https://github.com/netket/netket/pull/955)
 * `PauliString`s can now be constructed starting from an `OpenFermion` operator. [#956](https://github.com/netket/netket/pull/956)
 * In addition to nearest-neighbor edges, `Lattice` can now generate edges between next-nearest and, more generally, k-nearest neighbors via the constructor argument `max_neighbor_order`. The edges can be distinguished by their `color` property (which is used, e.g., by `GraphOperator` to apply different bond operators). [#970](https://github.com/netket/netket/pull/970)
 * Operators on continuous space have now been implemented. The Kinetic operator and potential operator can both be used. [#971](https://github.com/netket/netket/pull/971)
