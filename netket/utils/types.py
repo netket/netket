@@ -37,6 +37,7 @@ Shape = Sequence[int]
 DType = Any  # this could be a real type?
 
 Array = Union[_np.ndarray, _DeviceArray, _jax.core.Tracer]
+ArrayLike = Any  # Objects that are valid inputs to (np|jnp).asarray.
 
 NNInitFunc = Callable[[PRNGKeyT, Shape, DType], Array]
 

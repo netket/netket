@@ -13,5 +13,5 @@
 # limitations under the License.
 
 
-from .runge_kutta import RungeKuttaSolver
-from .runge_kutta import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
+from .runge_kutta import RungeKuttaIntegrator
+from .runge_kutta import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45, Tsit5

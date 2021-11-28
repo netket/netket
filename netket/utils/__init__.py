@@ -24,6 +24,7 @@ from .array import HashableArray
 from .jax import get_afun_if_module, wrap_afun
 from .optional_deps import tensorboard_available
 from .seed import random_seed
+from .summation import KahanSum
 
 from .deprecation import warn_deprecation, deprecated, deprecated_new_name
 from .moduletools import _hide_submodules, rename_class, auto_export as _auto_export

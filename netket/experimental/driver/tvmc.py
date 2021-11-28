@@ -13,9 +13,8 @@
 # limitations under the License.
 
 # from functools import singledispatch
-from typing import Tuple
-from netket.experimental.dynamics.runge_kutta import RungeKuttaSolver
-from netket.utils.types import PyTree
+from functools import singledispatch
+from typing import Callable, Optional, Sequence
 
 import numpy as np
 
@@ -23,25 +22,30 @@ import flax
 import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
+from tqdm.std import tqdm
+from netket.driver.abstract_variational_driver import _to_iterable
 
-import netket.jax as nkjax
-
+import netket as nk
 from netket.driver import AbstractVariationalDriver
 from netket.driver.vmc_common import info
+from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
-from netket.optimizer import LinearOperator, SR
-from netket.vqs import VariationalState, MCState, MCMixedState
+from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
+from netket.utils import mpi
+from netket.utils.types import PyTree
+from netket.vqs import VariationalState, MCState, MCMixedState
 
-# @singledispatch
-# def dwdt(state, driver, w, t, *, stage=None):
-#     raise NotImplementedError(f"dwdt not implemented for {type(state)}")
+from netket.experimental.dynamics import RungeKuttaIntegrator
 
 
-# @dwdt.register
-def dwdt_mcstate(
-    state: MCState, driver: "TimeDependentVMC", w, t, *, stage: int = None
-):
+@singledispatch
+def dwdt(state, driver, t, w, *, stage=None):
+    raise NotImplementedError(f"dwdt not implemented for {type(state)}")
+
+
+@dwdt.register
+def dwdt_mcstate(state: MCState, driver, t, w, *, stage: int = None):
     state.parameters = driver._w_unravel(w)
     state.reset()
 
@@ -49,21 +53,20 @@ def dwdt_mcstate(
         driver.generator(t),
         use_covariance=True,
     )
-    driver._loss_grad = tree_map(lambda x: -1.0j * x, driver._loss_grad)
-
-    driver._S_intermediate = driver.qgt(driver.state)
-    if stage == 0:  # TODO: This does not work with FSAL.
-        driver._S = driver._S_intermediate
-
-    x0 = driver._dw if driver.linear_solver_restart is False else None
-    driver._dw, driver._sr_info = driver._S_intermediate.solve(
-        driver.linear_solver, driver._loss_grad, x0=x0
+    driver._loss_grad = tree_map(
+        lambda x: driver._loss_grad_factor * x, driver._loss_grad
     )
 
+    driver._qgt_intermediate = driver.qgt(driver.state)
+    if stage == 0:  # TODO: This does not work with FSAL.
+        driver._qgt = driver._qgt_intermediate
+
+    initial_dw = None if driver.linear_solver_restart else driver._dw
+    dw, _ = driver._qgt_intermediate.solve(
+        driver.linear_solver, driver._loss_grad, x0=initial_dw
+    )
+    driver._dw, _ = nk.jax.tree_ravel(dw)
     return driver._dw
-
-
-# jstep = jax.jit(ode4jax.step)
 
 
 class TimeDependentVMC(AbstractVariationalDriver):
@@ -75,10 +78,11 @@ class TimeDependentVMC(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        tspan: Tuple[float, float],
-        integrator,
-        qgt: LinearOperator,
+        integrator: Callable,
         *,
+        t0: float = 0.0,
+        propagation_type="real",
+        qgt: LinearOperator = None,
         linear_solver=None,
         linear_solver_restart: bool = False,
         # **integrator_kwargs,
@@ -107,10 +111,10 @@ class TimeDependentVMC(AbstractVariationalDriver):
                                 The two should match."""
             )
 
-        self._t0, self._tend = tspan
+        self._t0 = t0
 
         if linear_solver is None:
-            linear_solver = jax.numpy.linalg.lstsq
+            linear_solver = nk.optimizer.solver.svd
         if qgt is None:
             qgt = QGTAuto(solver=linear_solver)
 
@@ -123,14 +127,25 @@ class TimeDependentVMC(AbstractVariationalDriver):
         else:
             self._generator = operator
 
-        self.qgt = qgt  # type: SR
+        self.propagation_type = propagation_type
+        if propagation_type == "real":
+            self._loss_grad_factor = -1.0j
+        elif propagation_type == "imag":
+            self._loss_grad_factor = -1.0
+        else:
+            raise ValueError("propagation_type must be one of 'real', 'imag'")
+
+        self.qgt = qgt
         self.linear_solver = linear_solver
         self.linear_solver_restart = linear_solver_restart
 
-        self._w, self._w_unravel = nkjax.tree_ravel(self.state.parameters)
+        self._w, self._w_unravel = nk.jax.tree_ravel(self.state.parameters)
         self._dw = None  # type: PyTree
 
-        self._integrator = integrator(self._odefun, tspan, self._w)
+        self._integrator = integrator(
+            self._odefun, t0, self._w
+        )  # type: RungeKuttaIntegrator
+        self._stop_count = 0
 
     @property
     def generator(self) -> AbstractOperator:
@@ -146,7 +161,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
         """
         return self._integrator
 
-    def _odefun(self, w, t, **kwargs):
+    def _odefun(self, t, w, **kwargs):
         """
         The ODE determining the dynamics passed to scipy solvers.
 
@@ -155,49 +170,168 @@ class TimeDependentVMC(AbstractVariationalDriver):
             w: The parameters as a vector.
 
         Returns:
-            dwdt, the derivative at time t
+            dwdt: the derivative at time t
         """
-        # do a timestep
-        dw = dwdt_mcstate(self.state, self, w, t, **kwargs)
-        return flax.core.unfreeze(dw)
+        return dwdt_mcstate(self.state, self, t, w, **kwargs)
 
-    def advance(self, dt=None, n_steps=None):
+    def advance(self, T: float):
         """
-        Advance the time propagation by `n_steps` simulation steps
-        of duration `self.dt`.
+        Advance the time propagation by `T` to `self.t + T`.
 
            Args:
-               :n_steps (int): No. of steps to advance.
+               T: Length of the integration interval.
         """
-        if (dt is None and n_steps is None) or (dt is not None and n_steps is not None):
-            raise ValueError("Both specified")
+        for _ in self.iter(T):
+            pass
 
-        if n_steps is not None:
-            for _ in range(n_steps):
-                self._integrator.step()
-        elif dt is not None:
-            t_final = self.t + dt
-            while self.t <= t_final:
-                self._integrator.step()
+    def iter(self, T: float, *, tstops: Optional[Sequence[float]] = None):
+        """
+        Returns a generator which advances the time evolution in
+        steps of `step` for a total of `n_iter` times.
 
-    # def iter(self, delta_t, t_interval=None):
-    #     """
-    #     Returns a generator which advances the time evolution in
-    #     steps of `step` for a total of `n_iter` times.
+        Args:
+            T: Length of the integration interval.
+            tstops: Sequence of time points where the integrator will stop
+                and yield, regardless of internal step size. When used with fixed-step
+                (i.e., non-adaptive) integrators, all entries must be of the form
+                :math:`t + n * h` where :math:`h` is the integrator step and :math:`n`
+                a positive integer.
 
-    #     Args:
-    #         :n_iter (int): The total number of steps.
-    #         :step (int=1): The size of each step.
+        Yields:
+            The current step count.
+        """
+        t_end = self.t + T
+        if tstops is not None and (
+            np.any(np.less(tstops, self.t)) or np.any(np.greater(tstops, t_end))
+        ):
+            raise ValueError(f"All tstops must be in range [t, t + T]=[{self.t}, {T}]")
 
-    #     Yields:
-    #         :(int): The current step.
-    #     """
-    #     t_end = self.t + delta_t
-    #     while self.t < t_end:  # and self._integrator.status == "running":
-    #         t0 = self.t
-    #         yield self.t
-    #         self._step_count += 1
-    #         self._integrator = jstep(self._integrator, t_interval)
+        if tstops is not None and len(tstops) > 0:
+            tstops = np.sort(tstops)
+            always_stop = False
+        else:
+            tstops = []
+            always_stop = True
+
+        while self.t < t_end:
+            if always_stop or (
+                len(tstops) > 0
+                and (np.isclose(self.t, tstops[0]) or self.t > tstops[0])
+            ):
+                self._stop_count += 1
+                yield self.t
+                tstops = tstops[1:]
+
+            step_accepted = False
+            while not step_accepted:
+                if not always_stop and len(tstops) > 0:
+                    max_dt = tstops[0] - self.t
+                else:
+                    max_dt = None
+                step_accepted = self._integrator.step(max_dt=max_dt)
+            self._step_count += 1
+
+        # Yield one last time if the remaining tstop is at t_end
+        if (always_stop and np.isclose(self.t, t_end)) or (
+            len(tstops) > 0 and np.isclose(tstops[0], t_end)
+        ):
+            yield self.t
+
+    def run(
+        self,
+        T,
+        out=None,
+        obs=None,
+        *,
+        tstops=None,
+        show_progress=True,
+        callback=None,
+    ):
+        """
+        Executes the Monte Carlo Variational optimization, updating the weights of the network
+        stored in this driver for `n_iter` steps and dumping values of the observables `obs`
+        in the output `logger`. If no logger is specified, creates a json file at `out`,
+        overwriting files with the same prefix.
+
+        By default uses :ref:`netket.logging.JsonLog`. To know about the output format
+        check it's documentation. The logger object is also returned at the end of this function
+        so that you can inspect the results without reading the json output.
+
+        Args:
+            T: The integration time period.
+            out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
+                If this argument is a string, it will be used as output prefix for the standard JSON logger.
+            obs: An iterable containing the observables that should be computed.
+            show_progress: If true displays a progress bar (default=True)
+            callback: Callable or list of callable callback functions to be executed at each
+                stoping time.
+            tstops: A sequence of stopping times, each within the intervall :code:`[self.t0, self.t0 + T]`,
+                at which the driver will stop and perform estimation of observables, logging, and excecute
+                the callback function. By default, a stop is performed after each time step (at potentially
+                varying step size if an adaptive integrator is used).
+        """
+        if obs is None:
+            obs = {}
+
+        if callback is None:
+            callback = lambda *_args, **_kwargs: True
+
+        # Log only non-root nodes
+        if self._mynode == 0:
+            # if out is a path, create an overwriting Json Log for output
+            if isinstance(out, str):
+                loggers = (JsonLog(out, "w"),)
+            else:
+                loggers = _to_iterable(out)
+        else:
+            loggers = tuple()
+            show_progress = False
+
+        callbacks = _to_iterable(callback)
+        callback_stop = False
+
+        with tqdm(total=self.t + T, disable=not show_progress) as pbar:
+            old_step = self.step_value
+            first_step = True
+
+            for step in self.iter(T, tstops=tstops):
+                log_data = self.estimate(obs)
+
+                # if the cost-function is defined then report it in the progress bar
+                if self._loss_stats is not None:
+                    pbar.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    log_data[self._loss_name] = self._loss_stats
+
+                # Execute callbacks before loggers because they can append to log_data
+                for callback in callbacks:
+                    if not callback(step, log_data, self):
+                        callback_stop = True
+
+                for logger in loggers:
+                    logger(self.step_value, log_data, self.state)
+
+                if len(callbacks) > 0:
+                    if mpi.mpi_any(callback_stop):
+                        break
+
+                # Reset the timing of tqdm after the first step, to ignore compilation time
+                if first_step:
+                    first_step = False
+                    pbar.unpause()
+
+                # Update the progress bar
+                pbar.update(self.step_value - old_step)
+                old_step = self.step_value
+
+            # Final update so that it shows up filled.
+            pbar.update(self.step_value - old_step)
+
+        # flush at the end of the evolution so that final values are saved to
+        # file
+        for logger in loggers:
+            logger.flush(self.state)
+
+        return loggers
 
     def _log_additional_data(self, obs, step):
         obs["t"] = self.t
@@ -246,10 +380,6 @@ class TimeDependentVMC(AbstractVariationalDriver):
     @t.setter
     def t(self, t):
         self._integrator.t = jnp.array(t, dtype=self._integrator.t)
-
-    @property
-    def t_end(self):
-        return self._integrator.opts.tstops[-1]
 
     # @t_end.setter
     # def t_end(self, t_end):
