@@ -24,8 +24,6 @@ from jax.nn.initializers import normal
 
 from .. import common
 
-pytestmark = common.skipif_mpi
-
 nk.config.update("NETKET_EXPERIMENTAL", True)
 
 SEED = 2148364
@@ -38,12 +36,6 @@ RBM = partial(
 )
 RBMModPhase = partial(nk.models.RBMModPhase, hidden_bias_init=standard_init)
 
-nk.models.RBM(
-    alpha=1,
-    dtype=complex,
-    kernel_init=normal(stddev=0.1),
-    hidden_bias_init=normal(stddev=0.1),
-)
 machines["model:(R->R)"] = RBM(
     alpha=1,
     dtype=float,
@@ -77,31 +69,16 @@ for i in range(H.hilbert.size):
 
 operators["operator:(Hermitian Complex)"] = H
 
-H = H.copy()
-for i in range(H.hilbert.size):
-    H += nk.operator.spin.sigmap(H.hilbert, i)
 
-operators["operator:(Non Hermitian)"] = H
-
-
+@common.skipif_mpi
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
 def vstate(request):
     ma = request.param
-    vs = nk.vqs.ExactState(hi, ma)
 
-    return vs
-
-
-def test_deprecated_name():
-    with warns(FutureWarning):
-        nk.variational.expect
-
-    with raises(AttributeError):
-        nk.variational.accabalubba
-
-    assert dir(nk.vqs) == dir(nk.variational)
+    return nk.vqs.ExactState(hi, ma)
 
 
+@common.skipif_mpi
 def test_init_parameters(vstate):
     vstate.init_parameters(seed=SEED)
     pars = vstate.parameters
@@ -114,6 +91,7 @@ def test_init_parameters(vstate):
     jax.tree_multimap(_f, pars, pars2)
 
 
+@common.skipif_mpi
 def test_qutip_conversion(vstate):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -136,11 +114,6 @@ def test_qutip_conversion(vstate):
         pytest.param(
             op,
             id=name,
-            marks=pytest.mark.xfail(
-                reason="MUSTFIX: Non hermitian gradient is known to be wrong"
-            )
-            if not op.is_hermitian
-            else [],
         )
         for name, op in operators.items()
     ],
@@ -170,51 +143,11 @@ def central_diff_grad(func, x, eps, *args, dtype=None):
     return grad
 
 
-def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
-    assert der_log.shape == num_der_log.shape
-
-    np.testing.assert_allclose(
-        der_log.real, num_der_log.real, rtol=rel_eps, atol=abs_eps
-    )
-    np.testing.assert_allclose(
-        np.mod(der_log.imag, np.pi * 2),
-        np.mod(num_der_log.imag, np.pi * 2),
-        rtol=rel_eps,
-        atol=abs_eps,
-    )
-
-
-@pytest.mark.parametrize("L,n_iterations", [(4, 1000), (6, 2000), (8, 4000)])
-def test_heisenberg_solved_exactly(L, n_iterations, abs_eps=1.0e-3, rel_eps=1.0e-4):
-    g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
-    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
-    ha = nk.operator.Heisenberg(hilbert=hi, graph=g)
-    ma = nk.models.RBM(alpha=10, dtype=float)
-    vs = nk.vqs.ExactState(hi, ma)
-
-    op = nk.optimizer.Sgd(learning_rate=0.003)
-
-    gs = nk.driver.VMC(
-        ha,
-        op,
-        variational_state=vs,
-        preconditioner=nk.optimizer.SR(qgt=nk.optimizer.qgt.QGTJacobianPyTree),
-    )
-
-    log = nk.logging.RuntimeLog()
-    gs.run(n_iter=n_iterations, out=log)
-
-    energy_variational = vs.expect(ha)
-
-    E_gs, ket_gs = nk.exact.lanczos_ed(ha, compute_eigenvectors=True)
-
-    np.testing.assert_allclose(
-        energy_variational.mean, E_gs[0].real, atol=abs_eps, rtol=rel_eps
-    )
-
-
-@pytest.mark.parametrize("L,n_iterations,h", [(4, 1000, 1), (6, 2000, 2), (8, 4000, 3)])
-def test_TFIM_solved_exactly(L, n_iterations, h, abs_eps=1.0e-3, rel_eps=1.0e-4):
+@common.skipif_mpi
+@pytest.mark.parametrize("L,n_iterations,h", [(4, 100, 1), (6, 100, 2), (8, 100, 3)])
+def test_TFIM_energy_strictly_decreases(
+    L, n_iterations, h, abs_eps=1.0e-3, rel_eps=1.0e-4
+):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=h)
@@ -233,10 +166,7 @@ def test_TFIM_solved_exactly(L, n_iterations, h, abs_eps=1.0e-3, rel_eps=1.0e-4)
     log = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iterations, out=log)
 
-    energy_variational = vs.expect(ha)
+    energies = log.data["Energy"]["value"]
 
-    E_gs, ket_gs = nk.exact.lanczos_ed(ha, compute_eigenvectors=True)
-
-    np.testing.assert_allclose(
-        energy_variational.mean, E_gs[0].real, atol=abs_eps, rtol=rel_eps
-    )
+    for i in range(len(energies) - 1):
+        assert energies[i + 1] < energies[i]
