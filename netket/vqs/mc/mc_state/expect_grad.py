@@ -71,6 +71,7 @@ def expect_and_grad(  # noqa: F811
 
     return Ō, Ō_grad
 
+
 # pure state, squared operator
 @dispatch.multi(
     (MCState, Squared[DiscreteOperator], TrueT, Any),

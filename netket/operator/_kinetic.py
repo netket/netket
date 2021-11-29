@@ -44,7 +44,7 @@ class KineticEnergy(ContinuousOperator):
         self._mass = jnp.asarray(mass, dtype=dtype)
 
         self._is_hermitian = np.allclose(self._mass.imag, 0.0)
-        
+
         super().__init__(hilbert, self._mass.dtype)
 
     @property

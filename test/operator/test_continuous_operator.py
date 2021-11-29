@@ -5,11 +5,14 @@ import jax.numpy as jnp
 
 import netket
 
+
 def v1(x):
     return jnp.sum(jnp.exp(-(x ** 2)), axis=-1)
 
+
 def v2(x):
     return jnp.sum(2.0 * jnp.exp(-(x ** 2)))
+
 
 v2_vec = jax.vmap(v2)
 
@@ -39,7 +42,7 @@ kinexact = lambda x: -0.5 * jnp.sum((3 * x ** 2) ** 2 + 6 * x, axis=-1)
 
 
 def test_potential_energy():
-    x = jnp.zeros((1,1))
+    x = jnp.zeros((1, 1))
     energy1 = pot1._expect_kernel(model1, None, x, pot1._pack_arguments())
     energy2 = pot2._expect_kernel(model1, None, x, pot2._pack_arguments())
     np.testing.assert_allclose(energy1, v1(x))
