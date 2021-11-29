@@ -74,6 +74,16 @@ class SumOperator(ContinuousOperator):
 
         return sum(result)
 
+    def _expect_kernel_batched(
+        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+    ):
+        result = [
+            op._expect_kernel_batched(logpsi, params, x, data[i])
+            for i, op in enumerate(self._ops)
+        ]
+
+        return sum(result)
+
     def _pack_arguments(self):
         return [self._coeff * jnp.array(op._pack_arguments()) for op in self._ops]
 

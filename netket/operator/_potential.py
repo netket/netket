@@ -47,11 +47,16 @@ class PotentialEnergy(ContinuousOperator):
 
         super().__init__(hilbert, self.coefficient.dtype)
 
-    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
     def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
     ):
         return coefficient * self._afun(x)
+
+    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
+    def _expect_kernel_batched(
+        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
+    ):
+        return self._expect_kernel(logpsi, params, x, coefficient)
 
     @property
     def is_hermitian(self):

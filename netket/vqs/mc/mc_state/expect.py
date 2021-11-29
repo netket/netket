@@ -83,7 +83,7 @@ def get_local_kernel_arguments(vstate: MCState, Ô: ContinuousOperator):
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: ContinuousOperator):
     # TODO: this should be moved other to dispatch in order to support MCMixedState
-    return Ô._expect_kernel
+    return Ô._expect_kernel_batched
 
 
 # Standard implementation of expect for an MCState (pure) and a generic operator
