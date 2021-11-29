@@ -28,10 +28,15 @@ def _update_moment(updates, moments, decay, order):
 
 def _update_moment_norm(updates, moments, decay, order):
     """Compute the exponential moving average of the `order-th` moment of the norm."""
+
+    def orderth_norm(g):
+        if jnp.isrealobj(g):
+            return g ** order
+        else:
+            return (g.conj() * g).real ** (order / 2)
+
     return jax.tree_map(
-        lambda g, t: (1 - decay) * ((g.conj() * g).real ** (order / 2)) + decay * t,
-        updates,
-        moments,
+        lambda g, t: (1 - decay) * orderth_norm(g) + decay * t, updates, moments
     )
 
 
