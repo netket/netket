@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from numba import jit
 from scipy.sparse import csr_matrix as _csr_matrix
 
-from netket.hilbert import AbstractHilbert
+from netket.hilbert import DiscreteHilbert
 from netket.operator import AbstractOperator
 
 
@@ -17,7 +17,11 @@ class DiscreteOperator(AbstractOperator):
     their own class from this class
     """
 
-    def __init__(self, hilbert: AbstractHilbert):
+    def __init__(self, hilbert: DiscreteHilbert):
+        if not isinstance(hilbert, DiscreteHilbert):
+            raise ValueError(
+                "A Discrete Operator can only act upon a discrete Hilbert space."
+            )
         super().__init__(hilbert)
 
     @property
@@ -78,7 +82,6 @@ class DiscreteOperator(AbstractOperator):
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        raise NotImplementedError()
 
     def get_conn(self, x: np.ndarray):
         r"""Finds the connected elements of the Operator. Starting

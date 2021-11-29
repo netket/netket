@@ -75,7 +75,7 @@ Jax/Flax extensions
 Netket v3 API is centered around `flax <https://flax.readthedocs.io>`_, a jax library to simplify the definition and
 usage of Neural-Networks. 
 If you want to define more complex custom models, you should read Flax documentation on how to define a Linen module.
-However, you can also use :code:`jax.stax` or `haiku <https://github.com/deepmind/dm-haiku>`_.
+However, you can also use :code:`jax.example_libraries.stax` or `haiku <https://github.com/deepmind/dm-haiku>`_.
 
 Flax supports complex numbers but does not make it overly easy to work with them.
 As such, netket exports a module, `netket.nn` which re-exports the functionality in `flax.nn`, but 

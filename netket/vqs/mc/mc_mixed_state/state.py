@@ -28,13 +28,9 @@ from netket.utils import warn_deprecation
 from netket.utils.types import PyTree
 from netket.operator import AbstractOperator
 
-from .base import VariationalMixedState
-from .mc_state import MCState
+from netket.vqs import VariationalMixedState
 
-AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
-ATrainFunType = Callable[
-    [nn.Module, PyTree, jnp.ndarray, Union[bool, PyTree]], jnp.ndarray
-]
+from netket.vqs.mc import MCState
 
 
 def apply_diagonal(bare_afun, w, x, *args, **kwargs):

@@ -14,7 +14,7 @@ some examples.
 The 3 frameworks that are supported are:
 
 * `Flax Linen API <https://flax.readthedocs.io/en/latest/examples.html>`_, which is an easy-to-use framework to define complex neural networks
-* `Barebone Jax/Stax <https://jax.readthedocs.io/en/latest/jax.experimental.stax.html>`_, which is an experimental module of jax.
+* `Barebone `stax` <https://jax.readthedocs.io/en/latest/jax.example_libraries.stax.html>`_, which is an example module included with JAX.
 * `Haiku <https://github.com/deepmind/dm-haiku>`_, which is a competitor to Flax, and offers somewhat equivalent expressivity with a rather different syntax.
 
 

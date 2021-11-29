@@ -32,12 +32,7 @@ from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
-from .base import VariationalState
-
-AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
-ATrainFunType = Callable[
-    [nn.Module, PyTree, jnp.ndarray, Union[bool, PyTree]], jnp.ndarray
-]
+from netket.vqs import VariationalState
 
 
 def compute_chain_length(n_chains, n_samples):
@@ -282,13 +277,13 @@ class MCState(VariationalState):
 
         self._n_samples = n_samples
         self._chain_length = chain_length
-        self._n_samples_per_node = n_samples_per_node
+        self._n_samples_per_rank = n_samples_per_node
         self.reset()
 
     @property
     def n_samples_per_rank(self) -> int:
         """The number of samples generated on one MPI rank at every sampling step."""
-        return self._chain_length * mpi.n_nodes
+        return self._n_samples_per_rank
 
     @n_samples_per_rank.setter
     def n_samples_per_rank(self, n_samples_per_rank: int) -> int:

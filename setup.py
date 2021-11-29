@@ -19,12 +19,12 @@ BASE_DEPENDENCIES = [
     "tqdm~=4.60",
     "plum-dispatch~=1.5.1",
     "numba>=0.52, <0.55",
-    "python-igraph~=0.9",
-    "jax>=0.2.21, <0.2.25",
+    "igraph~=0.9.8",
+    "jax>=0.2.21, <0.2.26",
     "jaxlib>=0.1.69",
     "flax>=0.3.5, <0.4",
     "orjson~=3.4",
-    "optax>=0.0.2, <0.0.10",
+    "optax>=0.0.2, <0.2",
     "numba4jax>=0.0.1, <0.1",
 ]
 
