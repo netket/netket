@@ -59,6 +59,9 @@ class TensorHilbert(DiscreteHilbert):
         self._cum_sizes = np.cumsum(self._sizes)
         self._cum_indices = np.concatenate([[0], self._cum_sizes])
         self._size = sum(self._sizes)
+        self._delta_indices_i = np.array(
+            [self._cum_indices[i] for i in self._hilbert_i]
+        )
 
         # pre-compute indexing data iff the tensor space is still indexable
         if all(hi.is_indexable for hi in hilb_spaces) and _is_indexable(shape):
@@ -70,9 +73,6 @@ class TensorHilbert(DiscreteHilbert):
             )
             self._n_states = np.prod(self._ns_states)
 
-        self._delta_indices_i = np.array(
-            [self._cum_indices[i] for i in self._hilbert_i]
-        )
 
         super().__init__(shape=shape)
 
