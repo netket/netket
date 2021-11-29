@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import chex
 import jax
+from jax import numpy as jnp
 
 
 def canonicalize_dtype(dtype):
@@ -28,3 +30,18 @@ def cast_tree(tree, dtype):
         return jax.tree_map(lambda t: t.astype(dtype), tree)
     else:
         return tree
+
+
+def safe_int32_increment(count: chex.Numeric) -> chex.Numeric:
+    """Increments int32 counter by one.
+    Normally `max_int + 1` would overflow to `min_int`. This functions ensures
+    that when `max_int` is reached the counter stays at `max_int`.
+    Args:
+      count: a counter to be incremented.
+    Returns:
+      A counter incremented by 1, or max_int if the maximum precision is reached.
+    """
+    chex.assert_type(count, jnp.int32)
+    max_int32_value = jnp.iinfo(jnp.int32).max
+    one = jnp.array(1, dtype=jnp.int32)
+    return jnp.where(count < max_int32_value, count + one, max_int32_value)

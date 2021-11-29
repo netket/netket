@@ -78,7 +78,7 @@ def scale_by_adam(
         del params
         mu = _update_moment(updates, state.mu, b1, 1)
         nu = _update_moment_norm(updates, state.nu, b2, 2)
-        count_inc = optax.safe_int32_increment(state.count)
+        count_inc = utils.safe_int32_increment(state.count)
         mu_hat = utils.cast_tree(_bias_correction(mu, b1, count_inc), mu_dtype)
         nu_hat = _bias_correction(nu, b2, count_inc)
         updates = jax.tree_map(
