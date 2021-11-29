@@ -15,7 +15,9 @@
 import sys
 
 
-def _hide_submodules(module_name, *, remove_self=True, ignore=tuple()):
+def _hide_submodules(
+    module_name, *, remove_self=True, ignore=tuple(), hide_folder=tuple()
+):
     """
     Hide all submodules created by files (not folders) in module_name defined
     at module_path.
@@ -29,6 +31,12 @@ def _hide_submodules(module_name, *, remove_self=True, ignore=tuple()):
     for file in os.listdir(module_path):
         if file.endswith(".py") and not file == "__init__.py":
             mod_name = file[:-3]
+        elif file in hide_folder:
+            mod_name = file
+        else:
+            mod_name = None
+
+        if mod_name is not None:
             if (
                 hasattr(module, mod_name)
                 and mod_name[0] != "_"

@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![codecov](https://codecov.io/gh/netket/netket/branch/master/graph/badge.svg?token=gzcOlpO5lB)](https://codecov.io/gh/netket/netket)
-[![Slack](https://img.shields.io/badge/slack-chat-green.svg)](http://join.slack.com/t/mlquantum/shared_invite/zt-xlvvqy93-yVCFUuKdJhb5MMrkmtBbcw) 
+[![Slack](https://img.shields.io/badge/slack-chat-green.svg)](https://join.slack.com/t/mlquantum/shared_invite/zt-zji2v9ox-0ATP0Esc9ooN8wVxr4fVGA) 
 
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
@@ -26,7 +26,7 @@ It is a Python library built on [JAX](https://github.com/google/jax).
 ## Installation and Usage
 
 Netket supports MacOS and Linux. We reccomend to install NetKet using `pip`
-For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/website/get_started.html) section of our website.
+For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/getting_started.html) section of our website.
 
 If you wish to install the current development version of NetKet, which is the master branch of this GitHub repository, together with the additional
 dependencies, you can run the following command:
