@@ -40,14 +40,17 @@ def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):
 def get_local_kernel(vstate: MCState, Ô: DiscreteOperator, chunk_size: int):
     return kernels.local_value_kernel_chunked
 
+
 def _local_continuous_kernel(kernel, logpsi, pars, σ, args, *, chunk_size=None):
     def _kernel(σ):
         return kernel(logpsi, pars, σ, args)
+
     return nkjax.vmap_chunked(_kernel, in_axes=0, chunk_size=chunk_size)(σ)
+
 
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: ContinuousOperator, chunk_size: int):
-    return nkjax.HashablePartial(_local_continuous_kernel, Ô._expect_kernel) 
+    return nkjax.HashablePartial(_local_continuous_kernel, Ô._expect_kernel)
 
 
 # If batch_size is None, ignore it and remove it from signature so that we fall back
