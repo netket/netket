@@ -43,8 +43,8 @@ kinexact = lambda x: -0.5 * jnp.sum((3 * x ** 2) ** 2 + 6 * x, axis=-1)
 
 def test_potential_energy():
     x = jnp.zeros((1, 1))
-    energy1 = pot1._expect_kernel(model1, None, x, pot1._pack_arguments())
-    energy2 = pot2._expect_kernel(model1, None, x, pot2._pack_arguments())
+    energy1 = pot1._expect_kernel_batched(model1, None, x, pot1._pack_arguments())
+    energy2 = pot2._expect_kernel_batched(model1, None, x, pot2._pack_arguments())
     np.testing.assert_allclose(energy1, v1(x))
     np.testing.assert_allclose(energy2, v2_vec(x))
     with np.testing.assert_raises(NotImplementedError):
@@ -53,7 +53,7 @@ def test_potential_energy():
 
 def test_kinetic_energy():
     x = jnp.array([[1, 2, 3], [1, 2, 3]], dtype=float)
-    energy1 = kin1._expect_kernel(model2, 0.0, x, kin1._pack_arguments())
+    energy1 = kin1._expect_kernel_batched(model2, 0.0, x, kin1._pack_arguments())
     kinen1 = kinexact(x) / kin1.mass
     np.testing.assert_allclose(energy1, kinen1)
     np.testing.assert_allclose(kin1.mass * kin1._pack_arguments(), 1.0)
@@ -62,20 +62,24 @@ def test_kinetic_energy():
 
 def test_sumoperator():
     x = jnp.array([[1, 2, 3], [1, 2, 3]], dtype=float)
-    potenergy = pottot._expect_kernel(model2, 0.0, x, pottot._pack_arguments())
-    energy10p52 = pot10p52._expect_kernel(model2, 0.0, x, pot10p52._pack_arguments())
+    potenergy = pottot._expect_kernel_batched(model2, 0.0, x, pottot._pack_arguments())
+    energy10p52 = pot10p52._expect_kernel_batched(
+        model2, 0.0, x, pot10p52._pack_arguments()
+    )
 
     np.testing.assert_allclose(potenergy, v1(x) + v2_vec(x))
     np.testing.assert_allclose(energy10p52, v1(x) + 0.5 * v2_vec(x))
 
-    kinenergy = kintot._expect_kernel(model2, 0.0, x, kintot._pack_arguments())
+    kinenergy = kintot._expect_kernel_batched(model2, 0.0, x, kintot._pack_arguments())
     kinenergyex = kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
     np.testing.assert_allclose(kinenergy, kinenergyex)
 
-    kinen10p52 = kin10p52._expect_kernel(model2, 0.0, x, kin10p52._pack_arguments())
+    kinen10p52 = kin10p52._expect_kernel_batched(
+        model2, 0.0, x, kin10p52._pack_arguments()
+    )
     kinenergy10p52ex = kinexact(x) / kin1.mass + 0.5 * kinexact(x) / kin2.mass
     np.testing.assert_allclose(kinen10p52, kinenergy10p52ex)
 
-    enertot = etot._expect_kernel(model2, 0.0, x, etot._pack_arguments())
+    enertot = etot._expect_kernel_batched(model2, 0.0, x, etot._pack_arguments())
     enerexact = v1(x) + v2_vec(x) + kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
     np.testing.assert_allclose(enertot, enerexact)
