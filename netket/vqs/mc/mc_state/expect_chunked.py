@@ -53,7 +53,7 @@ def expect_fallback(vstate: MCState, operator: AbstractOperator, chunk_size):
     if config.FLAGS["NETKET_DEBUG"]:
         print(
             "Ignoring `chunk_size={chunk_size}` because no implementation supporting:"
-            "batching exists."
+            "chunking exists."
         )
 
     return expect(vstate, operator)

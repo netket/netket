@@ -25,11 +25,11 @@ from .state import MCMixedState
 # Dispatches to select what expect-kernel to use
 @dispatch
 def get_local_kernel(
-    vstate: MCMixedState, Ô: Squared[AbstractSuperOperator], batch_size: int
+    vstate: MCMixedState, Ô: Squared[AbstractSuperOperator], chunk_size: int
 ):
     return kernels.local_value_squared_kernel_chunked
 
 
 @dispatch
-def get_local_kernel(vstate: MCMixedState, Ô: DiscreteOperator, batch_size: int):
+def get_local_kernel(vstate: MCMixedState, Ô: DiscreteOperator, chunk_size: int):
     return kernels.local_value_op_op_cost_chunked
