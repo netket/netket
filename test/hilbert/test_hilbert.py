@@ -17,13 +17,14 @@ import netket as nk
 import numpy as np
 import pytest
 from netket.hilbert import (
-    Spin,
-    Fock,
-    CustomHilbert,
-    Qubit,
-    DoubledHilbert,
     DiscreteHilbert,
+    HomogeneousHilbert,
     Particle,
+    CustomHilbert,
+    DoubledHilbert,
+    Fock,
+    Qubit,
+    Spin,
 )
 
 import jax
@@ -56,6 +57,10 @@ hilberts["Fock"] = Fock(n_max=5, N=41)
 
 # Boson with total number
 hilberts["Fock with total number"] = Fock(n_max=3, n_particles=110, N=120)
+
+# Composite Fock
+hilberts["Fock * Fock (indexable)"] = Fock(n_max=5, N=4) * Fock(n_max=7, N=4)
+hilberts["Fock * Fock (non-indexable)"] = Fock(n_max=4, N=40) * Fock(n_max=7, N=40)
 
 # Qubit
 hilberts["Qubit"] = nk.hilbert.Qubit(100)
@@ -109,148 +114,148 @@ hilberts["ContinuousSpaceHilbert"] = nk.hilbert.Particle(
     N=5, L=(np.inf, 10.0), pbc=(False, True)
 )
 
+all_hilbert_params = [pytest.param(hi, id=name) for name, hi in hilberts.items()]
+discrete_hilbert_params = [
+    pytest.param(hi, id=name)
+    for name, hi in hilberts.items()
+    if isinstance(hi, DiscreteHilbert)
+]
+homogeneous_hilbert_params = [
+    pytest.param(hi, id=name)
+    for name, hi in hilberts.items()
+    if isinstance(hi, HomogeneousHilbert)
+]
+particle_hilbert_params = [
+    pytest.param(hi, id=name)
+    for name, hi in hilberts.items()
+    if isinstance(hi, Particle)
+]
+
 
 #
 # Tests
 #
-@pytest.mark.parametrize(
-    "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
-)
-def test_consistent_size(hi):
+@pytest.mark.parametrize("hi", homogeneous_hilbert_params)
+def test_consistent_size_homogeneous(hi: HomogeneousHilbert):
     assert hi.size > 0
-    if isinstance(hi, DiscreteHilbert):
-        assert hi.local_size > 0
-        assert len(hi.local_states) == hi.local_size
-        for state in hi.local_states:
-            assert np.isfinite(state).all()
-    elif isinstance(hi, Particle):
-        assert hi.n_particles > 0
-        assert len(hi.extent) == (hi.size // hi.n_particles)
+    assert hi.local_size > 0
+    assert len(hi.local_states) == hi.local_size
+    for state in hi.local_states:
+        assert np.isfinite(state).all()
 
 
-@pytest.mark.parametrize(
-    "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
-)
-def test_random_states(hi):
+@pytest.mark.parametrize("hi", particle_hilbert_params)
+def test_consistent_size_particle(hi: Particle):
     assert hi.size > 0
-
-    if isinstance(hi, DiscreteHilbert):
-        assert hi.local_size > 0
-        assert len(hi.local_states) == hi.local_size
-        local_states = hi.local_states
-        for i in range(100):
-            rstate = hi.random_state(jax.random.PRNGKey(i * 14))
-            for state in rstate:
-                assert state in local_states
-
-        assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
-        assert (
-            hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype
-            == np.float32
-        )
-        assert (
-            hi.random_state(jax.random.PRNGKey(13), dtype=np.complex64).dtype
-            == np.complex64
-        )
-        assert hi.random_state(jax.random.PRNGKey(13), 10).shape == (10, hi.size)
-        assert hi.random_state(jax.random.PRNGKey(13), size=10).shape == (10, hi.size)
-        # assert hi.random_state(jax.random.PRNGKey(13), size=(10,)).shape == (10, hi.size)
-        # assert hi.random_state(jax.random.PRNGKey(13), size=(10, 2)).shape == (10, 2, hi.size)
-
-    elif isinstance(hi, Particle):
-        assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
-        assert (
-            hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype
-            == np.float32
-        )
-        assert (
-            hi.random_state(jax.random.PRNGKey(13), dtype=np.complex64).dtype
-            == np.complex64
-        )
-        assert hi.random_state(jax.random.PRNGKey(13), 10).shape == (10, hi.size)
-        assert hi.random_state(jax.random.PRNGKey(13), size=10).shape == (10, hi.size)
-
-        # check that boundary conditions are fulfilled if any are given
-        state = hi.random_state(jax.random.PRNGKey(13))
-        boundary = jnp.array(hi.n_particles * hi.pbc)
-        Ls = jnp.array(hi.n_particles * hi.extent)
-        extension = jnp.where(jnp.equal(boundary, False), jnp.inf, Ls)
-
-        assert jnp.sum(
-            jnp.where(jnp.equal(boundary, True), state < extension, 0)
-        ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
+    assert hi.n_particles > 0
+    assert len(hi.extent) == (hi.size // hi.n_particles)
 
 
-@pytest.mark.parametrize(
-    "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
-)
-def test_flip_state(hi):
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_random_states_discrete(hi: DiscreteHilbert):
+    assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
+    assert hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype == np.float32
+    assert (
+        hi.random_state(jax.random.PRNGKey(13), dtype=np.complex64).dtype
+        == np.complex64
+    )
+    assert hi.random_state(jax.random.PRNGKey(13), 10).shape == (10, hi.size)
+    assert hi.random_state(jax.random.PRNGKey(13), size=10).shape == (10, hi.size)
+    # assert hi.random_state(jax.random.PRNGKey(13), size=(10,)).shape == (10, hi.size)
+    # assert hi.random_state(jax.random.PRNGKey(13), size=(10, 2)).shape == (10, 2, hi.size)
+
+
+@pytest.mark.parametrize("hi", homogeneous_hilbert_params)
+def test_random_states_homogeneous(hi: HomogeneousHilbert):
+    assert len(hi.local_states) == hi.local_size
+    local_states = hi.local_states
+    for i in range(100):
+        rstate = hi.random_state(jax.random.PRNGKey(i * 14))
+        for state in rstate:
+            assert state in local_states
+
+
+@pytest.mark.parametrize("hi", particle_hilbert_params)
+def test_random_states_particle(hi: Particle):
+    assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
+    assert hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype == np.float32
+    assert (
+        hi.random_state(jax.random.PRNGKey(13), dtype=np.complex64).dtype
+        == np.complex64
+    )
+    assert hi.random_state(jax.random.PRNGKey(13), 10).shape == (10, hi.size)
+    assert hi.random_state(jax.random.PRNGKey(13), size=10).shape == (10, hi.size)
+
+    # check that boundary conditions are fulfilled if any are given
+    state = hi.random_state(jax.random.PRNGKey(13))
+    boundary = jnp.array(hi.n_particles * hi.pbc)
+    Ls = jnp.array(hi.n_particles * hi.extent)
+    extension = jnp.where(jnp.equal(boundary, False), jnp.inf, Ls)
+
+    assert jnp.sum(
+        jnp.where(jnp.equal(boundary, True), state < extension, 0)
+    ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
+
+
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_flip_state_discrete(hi: DiscreteHilbert):
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
-    if isinstance(hi, DiscreteHilbert):
-        local_states = hi.local_states
-        states = hi.random_state(rng.next(), N_batches)
 
-        ids = jnp.asarray(
-            jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
-            dtype=int,
-        )
+    states = hi.random_state(rng.next(), N_batches)
 
-        new_states, old_vals = nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
+    ids = jnp.asarray(
+        jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
+        dtype=int,
+    )
 
-        assert new_states.shape == states.shape
+    new_states, old_vals = nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
 
-        assert np.all(np.in1d(new_states.reshape(-1), local_states))
+    assert new_states.shape == states.shape
 
-        states_np = np.asarray(states)
-        states_new_np = np.array(new_states)
+    for state in states:
+        assert all(val in hi.states_at_index(i) for i, val in enumerate(state))
 
-        for (row, col) in enumerate(ids):
-            states_new_np[row, col] = states_np[row, col]
+    states_np = np.asarray(states)
+    states_new_np = np.array(new_states)
 
-        np.testing.assert_allclose(states_np, states_new_np)
+    for (row, col) in enumerate(ids):
+        states_new_np[row, col] = states_np[row, col]
+
+    np.testing.assert_allclose(states_np, states_new_np)
 
 
-@pytest.mark.parametrize(
-    "hi", [pytest.param(hi, id=name) for name, hi in hilberts.items()]
-)
-def test_hilbert_index(hi):
-    assert hi.size > 0
-    if isinstance(hi, DiscreteHilbert):
-        assert hi.local_size > 0
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_hilbert_index_discrete(hi: DiscreteHilbert):
+    log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)
 
-        log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)
+    if hi.is_indexable:
+        local_sizes = [hi.size_at_index(i) for i in range(hi.size)]
+        assert np.sum(np.log(local_sizes)) < log_max_states
+        assert np.allclose(hi.states_to_numbers(hi.all_states()), range(hi.n_states))
 
-        if hi.is_indexable:
-            assert hi.size * np.log(hi.local_size) < log_max_states
-            assert np.allclose(
-                hi.states_to_numbers(hi.all_states()), range(hi.n_states)
-            )
+        # batched version of number to state
+        n_few = min(hi.n_states, 100)
+        few_states = np.zeros(shape=(n_few, hi.size))
+        for k in range(n_few):
+            few_states[k] = hi.numbers_to_states(k)
 
-            # batched version of number to state
-            n_few = min(hi.n_states, 100)
-            few_states = np.zeros(shape=(n_few, hi.size))
-            for k in range(n_few):
-                few_states[k] = hi.numbers_to_states(k)
+        assert np.allclose(hi.numbers_to_states(np.asarray(range(n_few))), few_states)
 
-            assert np.allclose(
-                hi.numbers_to_states(np.asarray(range(n_few))), few_states
-            )
-
-        else:
-            assert not hi.is_indexable
-
-            with pytest.raises(RuntimeError):
-                hi.n_states
-
-        # Check that a large hilbert space raises error when constructing matrices
-        g = nk.graph.Hypercube(length=100, n_dim=1)
-        op = nk.operator.Heisenberg(hilbert=Spin(s=0.5, N=g.n_nodes), graph=g)
+    else:
+        assert not hi.is_indexable
 
         with pytest.raises(RuntimeError):
-            op.to_dense()
-        with pytest.raises(RuntimeError):
-            op.to_sparse()
+            hi.n_states
+
+    # Check that a large hilbert space raises error when constructing matrices
+    g = nk.graph.Hypercube(length=100, n_dim=1)
+    op = nk.operator.Heisenberg(hilbert=Spin(s=0.5, N=g.n_nodes), graph=g)
+
+    with pytest.raises(RuntimeError):
+        op.to_dense()
+    with pytest.raises(RuntimeError):
+        op.to_sparse()
 
 
 def test_state_iteration():
@@ -273,7 +278,7 @@ def test_deprecations():
             Spin(s=0.5, graph=g, N=3)
 
 
-def test_composite_hilbert():
+def test_composite_hilbert_spin():
     hi1 = Spin(s=1 / 2, N=8)
     hi2 = Spin(s=3 / 2, N=8)
 
@@ -283,3 +288,19 @@ def test_composite_hilbert():
 
     for i in range(hi.size):
         assert hi.size_at_index(i) == 2 if i < 8 else 4
+
+
+def test_inhomogeneous_fock():
+    hi1 = Fock(n_max=7, N=40)
+    hi2 = Fock(n_max=2, N=40)
+    hi = hi1 * hi2
+
+    assert hi.size == hi1.size + hi2.size
+
+    for i in range(0, 40):
+        assert hi.size_at_index(i) == 8
+        assert hi.states_at_index(i) == list(range(8))
+
+    for i in range(40, 80):
+        assert hi.size_at_index(i) == 3
+        assert hi.states_at_index(i) == list(range(3))
