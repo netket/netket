@@ -108,6 +108,39 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
 
 
+def test_derivatives_agree():
+    err = 1e-3
+    g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    ha = nk.operator.Ising(hilbert=hi, graph=g, h=1)
+    ma = nk.models.RBM(alpha=10, dtype=float)
+    vs = nk.vqs.ExactState(hi, ma)
+
+    _, grads_exact = nk.vqs.exact.expect_and_grad(vs, ha)
+
+    # Prepare the exact estimations
+    pars_0 = vs.parameters
+    pars, unravel = nk.jax.tree_ravel(pars_0)
+    op_sparse = ha.to_sparse()
+
+    def expval_fun(par, vstate, H):
+        return _expval(unravel(par), vstate, H)
+
+    grad_finite = central_diff_grad(expval_fun, pars, 1.0e-5, vs, op_sparse)
+
+    O_grad, _ = nk.jax.tree_ravel(grads_exact)
+    same_derivatives(O_grad, grad_finite, abs_eps=err, rel_eps=err)
+
+
+###
+def _expval(par, vs, H):
+    vs.parameters = par
+    psi = vs.to_array()
+    expval = psi.conj() @ (H @ psi)
+
+    return np.real(expval)
+
+
 @pytest.mark.parametrize(
     "operator",
     [
@@ -170,3 +203,17 @@ def test_TFIM_energy_strictly_decreases(
 
     for i in range(len(energies) - 1):
         assert energies[i + 1] < energies[i]
+
+
+def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
+    assert der_log.shape == num_der_log.shape
+
+    np.testing.assert_allclose(
+        der_log.real, num_der_log.real, rtol=rel_eps, atol=abs_eps
+    )
+    np.testing.assert_allclose(
+        np.mod(der_log.imag, np.pi * 2),
+        np.mod(num_der_log.imag, np.pi * 2),
+        rtol=rel_eps,
+        atol=abs_eps,
+    )
