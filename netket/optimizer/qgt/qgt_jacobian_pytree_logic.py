@@ -110,7 +110,8 @@ def _divide_by_sqrt_n_samp(oks, samples):
 
 def _multiply_by_pdf(oks, pdf):
     """
-    multiply Oⱼₖ by pdf
+    Computes  O'ⱼ̨ₖ = Oⱼₖ pⱼ .
+    Used to multiply the log-derivatives by the probability density.
     """
 
     return jax.tree_map(

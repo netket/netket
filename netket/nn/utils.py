@@ -9,7 +9,16 @@ import jax
 
 def split_array_mpi(array):
     """
-    Splits the array between mpi theads by the first dimension
+    Splits the first dimension of the input array among mpi processes.
+    Works like `mpi.scatter`, but assumes that the input array is available and
+    identical on all ranks.
+    !!! Warn
+         The output is a numpy array.
+    Args:
+         array: A nd-array
+
+    Result:
+        A numpy array, of potentially different state on every mpi rank.
     """
 
     n_states = array.shape[0]

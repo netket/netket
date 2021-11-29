@@ -56,8 +56,6 @@ class ExactState(VariationalState):
     the parameters.
     """
 
-    # model: Any
-    # """The model"""
     model_state: Optional[PyTree]
     """An Optional PyTree encoding a mutable state of the model that is not trained."""
 
@@ -80,7 +78,7 @@ class ExactState(VariationalState):
         dtype=float,
     ):
         """
-        Constructs the MCState.
+        Constructs the ExactState.
 
         Args:
             hilbert: The Hilbert space
@@ -144,10 +142,20 @@ class ExactState(VariationalState):
         else:
             self.init(seed, dtype=dtype)
 
-        # caches
         self._states = None
+        """
+        Caches the output of `self._all_states()`.
+        """
+
         self._array = None
+        """
+        Caches the output of `self.to_array()`.
+        """
+
         self._pdf = None
+        """
+        Caches the output of `self.probability_distribution()`.
+        """
 
     def init(self, seed=None, dtype=None):
         """
@@ -214,7 +222,7 @@ class ExactState(VariationalState):
         Returns:
             nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
-        raise NotImplementedError
+        raise qgt_T(self)
 
     def to_array(self, normalize: bool = True, allgather: bool = True) -> jnp.ndarray:
 
