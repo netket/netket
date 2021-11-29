@@ -136,7 +136,7 @@ particle_hilbert_params = [
 # Tests
 #
 @pytest.mark.parametrize("hi", homogeneous_hilbert_params)
-def test_consistent_size_homogeneous(hi):
+def test_consistent_size_homogeneous(hi: HomogeneousHilbert):
     assert hi.size > 0
     assert hi.local_size > 0
     assert len(hi.local_states) == hi.local_size
@@ -145,14 +145,14 @@ def test_consistent_size_homogeneous(hi):
 
 
 @pytest.mark.parametrize("hi", particle_hilbert_params)
-def test_consistent_size_particle(hi):
+def test_consistent_size_particle(hi: Particle):
     assert hi.size > 0
     assert hi.n_particles > 0
     assert len(hi.extent) == (hi.size // hi.n_particles)
 
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
-def test_random_states_discrete(hi):
+def test_random_states_discrete(hi: DiscreteHilbert):
     assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
     assert hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype == np.float32
     assert (
@@ -166,7 +166,7 @@ def test_random_states_discrete(hi):
 
 
 @pytest.mark.parametrize("hi", homogeneous_hilbert_params)
-def test_random_states_homogeneous(hi):
+def test_random_states_homogeneous(hi: HomogeneousHilbert):
     assert len(hi.local_states) == hi.local_size
     local_states = hi.local_states
     for i in range(100):
@@ -176,7 +176,7 @@ def test_random_states_homogeneous(hi):
 
 
 @pytest.mark.parametrize("hi", particle_hilbert_params)
-def test_random_states_particle(hi):
+def test_random_states_particle(hi: Particle):
     assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
     assert hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype == np.float32
     assert (
@@ -226,7 +226,7 @@ def test_flip_state_discrete(hi: DiscreteHilbert):
 
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
-def test_hilbert_index_discrete(hi):
+def test_hilbert_index_discrete(hi: DiscreteHilbert):
     log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)
 
     if hi.is_indexable:
