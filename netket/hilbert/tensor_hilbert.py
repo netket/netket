@@ -73,7 +73,6 @@ class TensorHilbert(DiscreteHilbert):
             )
             self._n_states = np.prod(self._ns_states)
 
-
         super().__init__(shape=shape)
 
     @property

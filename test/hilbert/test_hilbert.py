@@ -197,12 +197,11 @@ def test_random_states_particle(hi):
     ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
 
 
-@pytest.mark.parametrize("hi", homogeneous_hilbert_params)
-def test_flip_state_homogeneous(hi):
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_flip_state_discrete(hi: DiscreteHilbert):
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
 
-    local_states = hi.local_states
     states = hi.random_state(rng.next(), N_batches)
 
     ids = jnp.asarray(
@@ -214,7 +213,8 @@ def test_flip_state_homogeneous(hi):
 
     assert new_states.shape == states.shape
 
-    assert np.all(np.in1d(new_states.reshape(-1), local_states))
+    for state in states:
+        assert all(val in hi.states_at_index(i) for i, val in enumerate(state))
 
     states_np = np.asarray(states)
     states_new_np = np.array(new_states)
