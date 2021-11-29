@@ -1,15 +1,17 @@
-import jax.numpy as jnp
 import numpy as np
-import netket
 
+import jax
+import jax.numpy as jnp
+
+import netket
 
 def v1(x):
     return jnp.sum(jnp.exp(-(x ** 2)), axis=-1)
 
-
 def v2(x):
-    return jnp.sum(2.0 * jnp.exp(-(x ** 2)), axis=-1)
+    return jnp.sum(2.0 * jnp.exp(-(x ** 2)))
 
+v2_vec = jax.vmap(v2)
 
 hilb = netket.hilbert.Particle(N=1, L=jnp.inf, pbc=False)
 hilb2 = netket.hilbert.Particle(N=2, L=5.0, pbc=True)
@@ -37,11 +39,11 @@ kinexact = lambda x: -0.5 * jnp.sum((3 * x ** 2) ** 2 + 6 * x, axis=-1)
 
 
 def test_potential_energy():
-    x = jnp.array([0])
-    energy1 = pot1._expect_kernel(model1, 0.0, x, pot1._pack_arguments())
-    energy2 = pot2._expect_kernel(model1, 0.0, x, pot2._pack_arguments())
+    x = jnp.zeros((1,1))
+    energy1 = pot1._expect_kernel(model1, None, x, pot1._pack_arguments())
+    energy2 = pot2._expect_kernel(model1, None, x, pot2._pack_arguments())
     np.testing.assert_allclose(energy1, v1(x))
-    np.testing.assert_allclose(energy2, v2(x))
+    np.testing.assert_allclose(energy2, v2_vec(x))
     with np.testing.assert_raises(NotImplementedError):
         pot1 + pot3
 
@@ -60,8 +62,8 @@ def test_sumoperator():
     potenergy = pottot._expect_kernel(model2, 0.0, x, pottot._pack_arguments())
     energy10p52 = pot10p52._expect_kernel(model2, 0.0, x, pot10p52._pack_arguments())
 
-    np.testing.assert_allclose(potenergy, v1(x) + v2(x))
-    np.testing.assert_allclose(energy10p52, v1(x) + 0.5 * v2(x))
+    np.testing.assert_allclose(potenergy, v1(x) + v2_vec(x))
+    np.testing.assert_allclose(energy10p52, v1(x) + 0.5 * v2_vec(x))
 
     kinenergy = kintot._expect_kernel(model2, 0.0, x, kintot._pack_arguments())
     kinenergyex = kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
@@ -72,5 +74,5 @@ def test_sumoperator():
     np.testing.assert_allclose(kinen10p52, kinenergy10p52ex)
 
     enertot = etot._expect_kernel(model2, 0.0, x, etot._pack_arguments())
-    enerexact = v1(x) + v2(x) + kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
+    enerexact = v1(x) + v2_vec(x) + kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
     np.testing.assert_allclose(enertot, enerexact)

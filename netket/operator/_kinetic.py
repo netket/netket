@@ -14,13 +14,14 @@
 from typing import Optional, Callable, Union, List
 from functools import partial
 
-from netket.utils.types import DType, PyTree, Array
-
-from netket.hilbert import AbstractHilbert
-from netket.operator import ContinuousOperator
+import numpy as np
 
 import jax
 import jax.numpy as jnp
+
+from netket.utils.types import DType, PyTree, Array
+from netket.hilbert import AbstractHilbert
+from netket.operator import ContinuousOperator
 
 
 class KineticEnergy(ContinuousOperator):
@@ -41,11 +42,18 @@ class KineticEnergy(ContinuousOperator):
         """
 
         self._mass = jnp.asarray(mass, dtype=dtype)
+
+        self._is_hermitian = np.allclose(self._mass.imag, 0.0)
+        
         super().__init__(hilbert, self._mass.dtype)
 
     @property
     def mass(self):
         return self._mass
+
+    @property
+    def is_hermitian(self):
+        return self._is_hermitian
 
     @partial(jax.vmap, in_axes=(None, None, None, 0, None))
     def _expect_kernel(
@@ -54,7 +62,7 @@ class KineticEnergy(ContinuousOperator):
         def logpsi_x(x):
             return logpsi(params, x)
 
-        dlogpsi_x = jax.vmap(jax.grad(logpsi_x), in_axes=0)
+        dlogpsi_x = jax.grad(logpsi_x)
 
         basis = jnp.eye(x.shape[0])
 
