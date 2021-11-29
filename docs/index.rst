@@ -135,6 +135,7 @@
    docs/changelog
    docs/superop
    docs/hilbert
+   docs/operator
    docs/varstate
    docs/sr
    docs/drivers
@@ -146,8 +147,9 @@
    :hidden:
 
    docs/custom_models
-   docs/custom_preconditioners
    docs/custom_expect
+   docs/custom_preconditioners
+   docs/custom_operator
 
 .. toctree::
    :maxdepth: 2

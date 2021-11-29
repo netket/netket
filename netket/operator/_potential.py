@@ -46,10 +46,9 @@ class PotentialEnergy(ContinuousOperator):
         super().__init__(hilbert, self.coefficient.dtype)
 
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
     ):
-
-        return jnp.sum(jnp.array(data) * self._afun(x))
+        return coefficient * self._afun(x)
 
     def _pack_arguments(self):
         return self.coefficient

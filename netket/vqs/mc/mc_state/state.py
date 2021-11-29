@@ -32,12 +32,7 @@ from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
-from .base import VariationalState
-
-AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
-ATrainFunType = Callable[
-    [nn.Module, PyTree, jnp.ndarray, Union[bool, PyTree]], jnp.ndarray
-]
+from netket.vqs import VariationalState
 
 
 def compute_chain_length(n_chains, n_samples):
