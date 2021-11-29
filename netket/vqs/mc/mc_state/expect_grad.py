@@ -28,6 +28,7 @@ from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch, TrueT, FalseT
 
 from netket.operator import (
+    AbstractOperator,
     DiscreteOperator,
     AbstractSuperOperator,
     Squared,
@@ -47,7 +48,7 @@ from .state import MCState
 @dispatch
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
-    Ô: DiscreteOperator,
+    Ô: AbstractOperator,
     use_covariance: TrueT,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
@@ -69,30 +70,6 @@ def expect_and_grad(  # noqa: F811
         vstate.model_state = new_model_state
 
     return Ō, Ō_grad
-
-
-@dispatch
-def expect_and_grad(  # noqa: F811
-    vstate: MCState,
-    Ô: ContinuousOperator,
-    use_covariance: Any,
-    mutable: Any,
-) -> Tuple[Stats, PyTree]:
-    σ, args = get_local_kernel_arguments(vstate, Ô)
-
-    local_estimator_fun = get_local_kernel(vstate, Ô)
-
-    Ō, Ō_grad = _grad_expect_continuous(
-        local_estimator_fun,
-        vstate._apply_fun,
-        vstate.parameters,
-        vstate.model_state,
-        σ,
-        args,
-    )
-
-    return Ō, Ō_grad
-
 
 # pure state, squared operator
 @dispatch.multi(
@@ -248,60 +225,3 @@ def grad_expect_operator_kernel(
         jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad),
         model_state,
     )
-
-
-@partial(jax.jit, static_argnums=(0, 1))
-def _grad_expect_continuous(
-    local_estimator_fun: Callable,
-    model_apply_fun: Callable,
-    parameters: PyTree,
-    model_state: PyTree,
-    x: jnp.ndarray,
-    additional_data: PyTree,
-) -> Tuple[PyTree, PyTree]:
-
-    x_shape = x.shape
-    if jnp.ndim(x) != 2:
-        x = x.reshape((-1, x_shape[-1]))
-
-    n_samples = x.shape[0] * mpi.n_nodes
-
-    def logpsi(w, σ):
-        return model_apply_fun({"params": w, **model_state}, σ)
-
-    # local_value_vmap = jax.vmap(
-    #    partial(local_estimator_fun, logpsi),
-    #    in_axes=(None, 0, None),
-    #    out_axes=0,
-    # )
-    # TODO: Once batching/chunking is implemented, should be made available here too.
-    x = x.reshape((-1, 1, x_shape[-1]))
-
-    def compute_kernel(i, x):
-        Oloc = local_estimator_fun(logpsi, parameters, x, additional_data)
-        return i, Oloc
-
-    _, O_loc = jax.lax.scan(compute_kernel, 0, x)
-    O_loc = O_loc.reshape(-1)
-
-    Ō = statistics(O_loc.reshape(x_shape[:-1]).T)
-    x = x.reshape((-1, x_shape[-1]))
-    O_loc -= Ō.mean
-
-    _, vjp_fun = nkjax.vjp(
-        lambda w: model_apply_fun({"params": w}, x),
-        parameters,
-        conjugate=False,
-    )
-
-    Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
-
-    Ō_grad = jax.tree_multimap(
-        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
-            target.dtype
-        ),
-        Ō_grad,
-        parameters,
-    )
-
-    return Ō, jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)
