@@ -9,7 +9,7 @@ from functools import partial, wraps
 from netket.utils import module_version
 
 _tree_add = partial(jax.tree_multimap, jax.lax.add)
-_tree_zeros_like = partial(jax.tree_map, lambda x: jnp.zeros(x.shape))
+_tree_zeros_like = partial(jax.tree_map, lambda x: jnp.zeros(x.shape, dtype=x.dtype))
 
 
 # TODO put it somewhere
