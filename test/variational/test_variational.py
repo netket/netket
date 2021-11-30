@@ -139,6 +139,36 @@ def test_n_samples_api(vstate, _mpi_size):
 
     assert vstate.n_samples_per_rank == vstate.n_samples // _mpi_size
 
+def test_chunk_size_api(vstate, _mpi_size):
+    assert vstate.chunk_size is None
+
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = -1
+
+    vstate.n_samples = 1008
+
+    # does not divide n_samples
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = 100
+
+    assert vstate.chunk_size is None
+
+    vstate.chunk_size = 126
+    assert vstate.chunk_size == 126
+
+    vstate.n_samples = 1008*2
+    assert vstate.chunk_size == 126
+
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = 1500
+
+
 
 def test_deprecations(vstate):
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)

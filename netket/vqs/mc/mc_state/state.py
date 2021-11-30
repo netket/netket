@@ -37,20 +37,40 @@ from netket.optimizer.qgt import QGTAuto
 from netket.vqs.base import VariationalState, expect, expect_and_grad
 
 
-def compute_chain_length(n_chains, n_samples, chunk_size=None):
+def compute_chain_length(n_chains, n_samples):
     if n_samples <= 0:
         raise ValueError("Invalid number of samples: n_samples={}".format(n_samples))
 
     chain_length = int(np.ceil(n_samples / n_chains))
 
-    if chunk_size is not None:
-        n_chains_per_rank = n_chains // mpi.n_nodes
+    n_samples_new = chain_length * n_chains
+    n_samples_per_rank_new = n_samples // mpi.n_nodes
 
-        n_chunks = int(np.ceil((chain_length * n_chains_per_rank) / chunk_size))
-        samples_per_rank = n_chunks * chunk_size
-        chain_length = int(samples_per_rank // n_chains_per_rank)
+    if n_samples_new != n_samples:
+        n_samples_per_rank = n_samples // mpi.n_nodes
+        warnings.warn(
+            f"n_samples={n_samples} ({n_samples_per_rank} per MPI rank) does not "
+            f"divide n_chains={n_chains}, increased to {n_samples_new} "
+            f"({n_samples_per_rank_new} per MPI rank)"
+        )
 
     return chain_length
+
+def check_chunk_size(n_samples, chunk_size):
+    n_samples_per_rank = n_samples // mpi.n_nodes
+
+    if chunk_size is not None:
+        if (
+            chunk_size < n_samples_per_rank
+            and n_samples_per_rank % chunk_size != 0
+        ):
+            raise ValueError(
+                f"chunk_size={chunk_size}`<`n_samples_per_rank={n_samples_per_rank}, "
+                "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
+                "unsupported. Please change `chunk_size` so that it divides evenly the"
+                "number of samples per rank or set it to `None` to disable chunking."
+            )
+
 
 
 def _is_power_of_two(n: int) -> bool:
@@ -108,6 +128,7 @@ class MCState(VariationalState):
         n_samples_per_rank: Optional[int] = None,
         n_discard: Optional[int] = None,  # deprecated
         n_discard_per_chain: Optional[int] = None,
+        chunk_size: Optional[int] = None,
         variables: Optional[PyTree] = None,
         init_fun: NNInitFunc = None,
         apply_fun: Callable = None,
@@ -230,6 +251,9 @@ class MCState(VariationalState):
 
         self.n_discard_per_chain = n_discard_per_chain
 
+        if chunk_size is None:
+            self.chunk_size = chunk_size
+
     def init(self, seed=None, dtype=None):
         """
         Initialises the variational parameters of the variational state.
@@ -286,14 +310,18 @@ class MCState(VariationalState):
 
     @n_samples.setter
     def n_samples(self, n_samples: int):
-        chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
+        chain_length = compute_chain_length(
+            self.sampler.n_chains, n_samples
+        )
 
-        n_samples_per_node = chain_length * self.sampler.n_chains_per_rank
+        n_samples_per_rank = chain_length * self.sampler.n_chains_per_rank
         n_samples = chain_length * self.sampler.n_chains
+
+        check_chunk_size(n_samples, self.chunk_size)
 
         self._n_samples = n_samples
         self._chain_length = chain_length
-        self._n_samples_per_rank = n_samples_per_node
+        self._n_samples_per_rank = n_samples_per_rank
         self.reset()
 
     @property
@@ -396,7 +424,7 @@ class MCState(VariationalState):
         return self._chunk_size
 
     @chunk_size.setter
-    def chunk_size(self, chunk_size: int):
+    def chunk_size(self, chunk_size: Optional[int]):
         # disable chunks if it is None
         if chunk_size is None:
             self._chunk_size = None
@@ -410,16 +438,7 @@ class MCState(VariationalState):
                 "For performance reasons, we suggest to use a power-of-two chunk size."
             )
 
-        if chunk_size >= self.n_samples_per_rank:
-            # no problem!
-            pass
-        elif (self.n_samples_per_rank % chunk_size) != 0:
-            raise ValueError(
-                f"chunk_size={chunk_size}`<`n_samples_per_rank={self.n_samples_per_rank}, "
-                "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
-                "unsupported. Please change `chunk_size` so that it divides evenly the"
-                "number of samples per rank."
-            )
+        check_chunk_size(self.n_samples, chunk_size)
 
         self._chunk_size = chunk_size
 
