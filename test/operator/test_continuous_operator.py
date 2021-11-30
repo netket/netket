@@ -13,6 +13,7 @@ def v1(x):
 def v2(x):
     return jnp.sum(2.0 * jnp.exp(-(x ** 2)))
 
+
 v2_vec = jax.vmap(v2)
 
 
@@ -44,7 +45,6 @@ model2 = lambda p, x: jnp.sum(x ** 3)
 kinexact = lambda x: -0.5 * jnp.sum((3 * x ** 2) ** 2 + 6 * x, axis=-1)
 
 
-
 def test_is_hermitean():
     epot = netket.operator.PotentialEnergy(hilb, v1)
     ekin = netket.operator.KineticEnergy(hilb, mass=20.0)
@@ -60,6 +60,7 @@ def test_is_hermitean():
 
     etot = epot + ekin
     assert not etot.is_hermitian
+
 
 def test_potential_energy():
     x = jnp.zeros((1, 1))
