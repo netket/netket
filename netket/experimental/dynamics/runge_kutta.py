@@ -261,6 +261,9 @@ class RungeKuttaIntegrator:
         else:
             self._do_step = self._do_step_fixed
 
+        if self.norm is None:
+            self.norm = jnp.linalg.norm
+
         if self.dt_limits is None:
             self.dt_limits = (None, 10 * self.initial_dt)
 
@@ -312,21 +315,34 @@ class RungeKuttaIntegrator:
         return self._rkstate.dt
 
 
-def RKSolver(dt, tableau, adaptive=False, norm=jnp.linalg.norm, **kwargs):
-    def make(f, t0, y0):
+class RKIntegratorConfig:
+    def __init__(self, dt, tableau, *, adaptive=False, **kwargs):
+        self.dt = dt
+        self.tableau = tableau
+        self.adaptive = adaptive
+        self.kwargs = kwargs
+
+    def __call__(self, f, t0, y0, *, norm=None):
         y0 = jnp.asarray(y0)
         return RungeKuttaIntegrator(
-            tableau,
+            self.tableau,
             f,
             t0,
             y0,
-            initial_dt=dt,
-            use_adaptive=adaptive,
+            initial_dt=self.dt,
+            use_adaptive=self.adaptive,
             norm=norm,
-            **kwargs,
+            **self.kwargs,
         )
 
-    return make
+    def __repr__(self):
+        return "{}(tableau={}, dt={}, adaptive={}{})".format(
+            "RKIntegratorConfig",
+            self.tableau.name,
+            self.dt,
+            self.adaptive,
+            f", **kwargs={self.kwargs=}" if self.kwargs else "",
+        )
 
 
 # fmt: off
@@ -339,7 +355,7 @@ bt_feuler = TableauRKExplicit(
                 c = jnp.zeros((1), dtype=dtype),
                 c_error = None,
                 )
-Euler = partial(RKSolver, tableau=bt_feuler)
+Euler = partial(RKIntegratorConfig, tableau=bt_feuler)
 
 
 bt_midpoint = TableauRKExplicit(
@@ -351,7 +367,7 @@ bt_midpoint = TableauRKExplicit(
                 c = jnp.array( [0, 1/2], dtype=dtype),
                 c_error = None,
                 )
-Midpoint = partial(RKSolver, tableau=bt_midpoint)
+Midpoint = partial(RKIntegratorConfig, tableau=bt_midpoint)
 
 
 bt_heun = TableauRKExplicit(
@@ -363,7 +379,7 @@ bt_heun = TableauRKExplicit(
                 c = jnp.array( [0, 1], dtype=dtype),
                 c_error = None,
                 )
-Heun = partial(RKSolver, tableau=bt_heun)
+Heun = partial(RKIntegratorConfig, tableau=bt_heun)
 
 bt_rk4  = TableauRKExplicit(
                 name = "rk4", 
@@ -376,7 +392,7 @@ bt_rk4  = TableauRKExplicit(
                 c = jnp.array( [0, 1/2, 1/2, 1], dtype=dtype),
                 c_error = None,
                 )
-RK4 = partial(RKSolver, tableau=bt_rk4)
+RK4 = partial(RKIntegratorConfig, tableau=bt_rk4)
 
 
 # Adaptive step:
@@ -391,7 +407,7 @@ bt_rk12  = TableauRKExplicit(
                 c = jnp.array( [0, 1], dtype=dtype),
                 c_error = None,
                 )
-RK12 = partial(RKSolver, tableau=bt_rk12)
+RK12 = partial(RKIntegratorConfig, tableau=bt_rk12)
 
 # Bogacki–Shampine coefficients
 bt_rk23  = TableauRKExplicit(
@@ -406,7 +422,7 @@ bt_rk23  = TableauRKExplicit(
                 c = jnp.array( [0, 1/2, 3/4, 1], dtype=dtype),
                 c_error = None,
                 )
-RK23 = partial(RKSolver, tableau=bt_rk23)
+RK23 = partial(RKIntegratorConfig, tableau=bt_rk23)
 
 bt_rk4_fehlberg = TableauRKExplicit(
                 name = "fehlberg", 
@@ -438,7 +454,7 @@ bt_rk4_dopri  = TableauRKExplicit(
                 c = jnp.array( [ 0,           1/5,         3/10,        4/5,      8/9,           1,         1], dtype=dtype),
                 c_error = None,
                 )
-RK45 = partial(RKSolver, tableau=bt_rk4_dopri)
+RK45 = partial(RKIntegratorConfig, tableau=bt_rk4_dopri)
 
 # Tsit5 method. Tableau entries taken from DiffEqDevTools.jl:
 # https://github.com/SciML/DiffEqDevTools.jl/blob/37fde034a03b8dcf440613a81df1483a06ea25f9/src/ode_tableaus.jl#L988-L1042
@@ -499,5 +515,5 @@ def _make_tsit5(dtype=None):
         c_error=None,
     )
 
-Tsit5 = partial(RKSolver, tableau=_make_tsit5())
+Tsit5 = partial(RKIntegratorConfig, tableau=_make_tsit5())
 # fmt: on

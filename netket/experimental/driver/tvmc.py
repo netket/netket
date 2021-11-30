@@ -36,7 +36,7 @@ from netket.utils import mpi
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState, MCState, MCMixedState
 
-from netket.experimental.dynamics import RungeKuttaIntegrator
+from netket.experimental.dynamics import RungeKuttaIntegrator, RKIntegratorConfig
 
 
 @singledispatch
@@ -78,7 +78,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        integrator: Callable,
+        integrator: RKIntegratorConfig,
         *,
         t0: float = 0.0,
         propagation_type="real",
@@ -390,7 +390,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
         return self._t0
 
     def __repr__(self):
-        return f"{type(self)}(step_count={self.step_count}, t={self.t})"
+        return f"{type(self).__name__}(step_count={self.step_count}, t={self.t})"
 
     def info(self, depth=0):
         lines = [
