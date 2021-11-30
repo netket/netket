@@ -319,6 +319,37 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in operators.items() if op.is_hermitian
+    ],
+)
+@pytest.mark.parametrize(
+"n_chunks", [1,2]
+)
+def test_expect_chunking(vstate, operator, n_chunks):
+    vstate.n_samples = 200
+    chunk_size = vstate.n_samples_per_rank // n_chunks
+
+    eval_nochunk = vstate.expect(operator)
+    vstate.chunk_size = chunk_size
+    eval_chunk = vstate.expect(operator)
+
+    jax.tree_multimap(partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk)
+
+
+    vstate.chunk_size = None
+    grad_nochunk = vstate.grad(operator)
+    vstate.chunk_size = chunk_size
+    grad_chunk = vstate.grad(operator)
+
+    jax.tree_multimap(partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk)
+
 ###
 def _expval(par, vstate, H, real=False):
     vstate.parameters = par
