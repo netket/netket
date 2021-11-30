@@ -13,15 +13,17 @@ def v1(x):
 def v2(x):
     return jnp.sum(2.0 * jnp.exp(-(x ** 2)))
 
-
 v2_vec = jax.vmap(v2)
+
 
 hilb = netket.hilbert.Particle(N=1, L=jnp.inf, pbc=False)
 hilb2 = netket.hilbert.Particle(N=2, L=5.0, pbc=True)
+
 # potential operators
 pot1 = netket.operator.PotentialEnergy(hilb, v1)
 pot2 = netket.operator.PotentialEnergy(hilb, v2)
 pot3 = netket.operator.PotentialEnergy(hilb2, v1)
+
 # sum of potential operators
 pottot = pot1 + pot2
 pot10p52 = pot1 + 0.5 * pot2
@@ -29,6 +31,7 @@ pot10p52 = pot1 + 0.5 * pot2
 # kinetic operators
 kin1 = netket.operator.KineticEnergy(hilb, mass=20.0)
 kin2 = netket.operator.KineticEnergy(hilb, mass=2.0)
+
 # sum of kinetic operators
 kintot = kin1 + kin2
 kin10p52 = kin1 + 0.5 * kin2
@@ -40,6 +43,23 @@ model1 = lambda p, x: 1.0
 model2 = lambda p, x: jnp.sum(x ** 3)
 kinexact = lambda x: -0.5 * jnp.sum((3 * x ** 2) ** 2 + 6 * x, axis=-1)
 
+
+
+def test_is_hermitean():
+    epot = netket.operator.PotentialEnergy(hilb, v1)
+    ekin = netket.operator.KineticEnergy(hilb, mass=20.0)
+    etot = epot + ekin
+
+    assert epot.is_hermitian
+    assert ekin.is_hermitian
+    assert etot.is_hermitian
+
+    ekin = netket.operator.KineticEnergy(hilb, mass=20.0j)
+    np.testing.assert_allclose(ekin.mass, 20.0j)
+    assert not ekin.is_hermitian
+
+    etot = epot + ekin
+    assert not etot.is_hermitian
 
 def test_potential_energy():
     x = jnp.zeros((1, 1))
