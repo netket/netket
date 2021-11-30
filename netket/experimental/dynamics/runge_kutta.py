@@ -223,12 +223,18 @@ def general_time_step_adaptive(
 
 
 # @partial(jax.jit, static_argnames=["step_fn", "norm_fn"])
-def general_time_step_fixed(step_fn: Callable, rk_state: RungeKuttaState):
-    next_y = step_fn(rk_state.t.value, rk_state.dt, rk_state.y)
+def general_time_step_fixed(
+    step_fn: Callable, rk_state: RungeKuttaState, max_dt: Optional[float]
+):
+    if max_dt is None:
+        actual_dt = rk_state.dt
+    else:
+        actual_dt = jnp.minimum(rk_state.dt, max_dt)
+    next_y = step_fn(rk_state.t.value, actual_dt, rk_state.y)
     return rk_state.replace(
         step_no=rk_state.step_no + 1,
         step_no_total=rk_state.step_no_total + 1,
-        t=rk_state.t + rk_state.dt,
+        t=rk_state.t + actual_dt,
         y=next_y,
         accepted=True,
     )
@@ -289,6 +295,7 @@ class RungeKuttaIntegrator:
         return general_time_step_fixed(
             lambda t, dt, y, **kw: self.tableau.step(self.f, t, dt, y, **kw),
             rk_state,
+            max_dt=max_dt,
         )
 
     def _do_step_adaptive(self, rk_state, max_dt=None):
