@@ -14,13 +14,14 @@
 from typing import Optional, Callable, Union, List
 from functools import partial
 
-from netket.utils.types import DType, PyTree, Array
-
-from netket.hilbert import AbstractHilbert
-from netket.operator import ContinuousOperator
+import numpy as np
 
 import jax
 import jax.numpy as jnp
+
+from netket.utils.types import DType, PyTree, Array
+from netket.hilbert import AbstractHilbert
+from netket.operator import ContinuousOperator
 
 
 class KineticEnergy(ContinuousOperator):
@@ -41,20 +42,26 @@ class KineticEnergy(ContinuousOperator):
         """
 
         self._mass = jnp.asarray(mass, dtype=dtype)
+
+        self._is_hermitian = np.allclose(self._mass.imag, 0.0)
+
         super().__init__(hilbert, self._mass.dtype)
 
     @property
     def mass(self):
         return self._mass
 
-    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
+    @property
+    def is_hermitian(self):
+        return self._is_hermitian
+
     def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, mass: Optional[PyTree]
     ):
         def logpsi_x(x):
             return logpsi(params, x)
 
-        dlogpsi_x = jax.vmap(jax.grad(logpsi_x), in_axes=0)
+        dlogpsi_x = jax.grad(logpsi_x)
 
         basis = jnp.eye(x.shape[0])
 
@@ -64,6 +71,12 @@ class KineticEnergy(ContinuousOperator):
         dp_dx = dlogpsi_x(x) ** 2
 
         return -0.5 * jnp.sum(mass * (dp_dx2 + dp_dx), axis=-1)
+
+    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
+    def _expect_kernel_batched(
+        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
+    ):
+        return self._expect_kernel(logpsi, params, x, coefficient)
 
     def _pack_arguments(self) -> PyTree:
         return 1.0 / self._mass
