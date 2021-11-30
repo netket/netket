@@ -16,7 +16,7 @@ from builtins import RuntimeError, next
 from ctypes import c_buffer
 import dataclasses
 from functools import partial
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
@@ -24,10 +24,34 @@ import numpy as np
 
 from netket.utils import KahanSum
 from netket.utils.struct import dataclass
-from netket.utils.types import Array
+from netket.utils.types import Array, PyTree
+from netket import jax as nkjax
 
 dtype = jnp.float64
 
+def expand_dim(tree: PyTree, sz: int):
+    """
+    creates a new pytree with same structure as input `tree`, but where very leaf
+    has an extra dimension at 0 with size `sz`.
+    """
+    def _expand(x):
+        return jnp.zeros((sz,) + x.shape, dtype=x.dtype)
+
+    return jax.tree_map(_expand, tree)
+
+def _norm(res: Union[PyTree, Array]):
+    """
+    Computes the L2 norm of the Array or PyTree intended as a flattened array
+    """
+    if isinstance(res, jnp.ndarray):
+        return jnp.sqrt(jnp.sum(jnp.abs(res) ** 2))
+    else:
+        return jnp.sqrt(
+            jax.tree_util.tree_reduce(
+                lambda x, y: x + y,
+                jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), res),
+            )
+        )
 
 @dataclass
 class TableauRKExplicit:
@@ -73,11 +97,14 @@ class TableauRKExplicit:
         """Computes the intermediate slopes k_l."""
         times = t + self.c * dt
 
-        k = jnp.zeros((y_t.shape[0], self.stages), dtype=y_t.dtype)
+        # TODO: Use FSALLast 
+
+        k = expand_dim(y_t, self.stages)
         for l in range(self.stages):
-            dy_l = jnp.sum(self.a[l, :] * k, axis=1)
-            k_l = f(times[l], y_t + dt * dy_l, stage=l)
-            k = k.at[:, l].set(k_l)
+            dy_l = jax.tree_map(lambda k: jnp.tensordot(self.a[l], k, axes=1), k)
+            y_l = jax.tree_multimap(lambda y_t, dy_l: y_t + dt * dy_l, y_t, dy_l)
+            k_l = f(times[l], y_l, stage=l)
+            k = jax.tree_multimap(lambda k, k_l: k.at[l].set(k_l), k, k_l)
 
         return k
 
@@ -92,7 +119,7 @@ class TableauRKExplicit:
         k = self._compute_slopes(f, t, dt, y_t)
 
         b = self.b[0] if self.b.ndim == 2 else self.b
-        y_tp1 = y_t + dt * jnp.sum(b * k, axis=1)
+        y_tp1 = jax.tree_multimap(lambda y_t, k: y_t + dt*jnp.tensordot(b, k, axes=1), y_t, k)
 
         return y_tp1
 
@@ -112,8 +139,9 @@ class TableauRKExplicit:
 
         k = self._compute_slopes(f, t, dt, y_t)
 
-        y_tp1 = y_t + dt * jnp.sum(self.b[0] * k, axis=1)
-        y_err = dt * jnp.sum((self.b[0] - self.b[1]) * k, axis=1)
+        y_tp1 = jax.tree_multimap(lambda y_t, k: y_t + dt*jnp.tensordot(self.b[0], k, axes=1), y_t, k)
+        db = self.b[0] - self.b[1]
+        y_err = jax.tree_map(lambda k: dt*jnp.tensordot(db, k, axes=1), k)
 
         return y_tp1, y_err
 
@@ -145,9 +173,8 @@ class RungeKuttaState:
             f", {'A' if self.accepted else 'R'}",
         )
 
-
-def scaled_error(y, y_err, atol, rtol, *, norm=jnp.linalg.norm):
-    scale = (atol + norm(y) * rtol) / y_err.shape[0]
+def scaled_error(y, y_err, atol, rtol, *, norm=_norm):
+    scale = (atol + norm(y) * rtol) / nkjax.tree_size(y_err)
     return norm(y_err) / scale
 
 
@@ -268,7 +295,7 @@ class RungeKuttaIntegrator:
             self._do_step = self._do_step_fixed
 
         if self.norm is None:
-            self.norm = jnp.linalg.norm
+            self.norm = _norm
 
         if self.dt_limits is None:
             self.dt_limits = (None, 10 * self.initial_dt)
@@ -330,7 +357,6 @@ class RKIntegratorConfig:
         self.kwargs = kwargs
 
     def __call__(self, f, t0, y0, *, norm=None):
-        y0 = jnp.asarray(y0)
         return RungeKuttaIntegrator(
             self.tableau,
             f,

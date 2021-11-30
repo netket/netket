@@ -46,7 +46,7 @@ def dwdt(state, driver, t, w, *, stage=None):
 
 @dwdt.register
 def dwdt_mcstate(state: MCState, driver, t, w, *, stage: int = None):
-    state.parameters = driver._w_unravel(w)
+    state.parameters = w
     state.reset()
 
     driver._loss_stats, driver._loss_grad = state.expect_and_grad(
@@ -62,10 +62,9 @@ def dwdt_mcstate(state: MCState, driver, t, w, *, stage: int = None):
         driver._qgt = driver._qgt_intermediate
 
     initial_dw = None if driver.linear_solver_restart else driver._dw
-    dw, _ = driver._qgt_intermediate.solve(
+    driver._dw, _ = driver._qgt_intermediate.solve(
         driver.linear_solver, driver._loss_grad, x0=initial_dw
     )
-    driver._dw, _ = nk.jax.tree_ravel(dw)
     return driver._dw
 
 
@@ -139,7 +138,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
         self.linear_solver = linear_solver
         self.linear_solver_restart = linear_solver_restart
 
-        self._w, self._w_unravel = nk.jax.tree_ravel(self.state.parameters)
+        self._w = self.state.parameters
         self._dw = None  # type: PyTree
 
         self._integrator = integrator(
@@ -324,7 +323,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
                 old_step = self.step_value
 
             # Final update so that it shows up filled.
-            pbar.update(self.step_value - old_step)
+            pbar.update(np.asarray(self.step_value - old_step))
 
         # flush at the end of the evolution so that final values are saved to
         # file
