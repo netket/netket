@@ -83,6 +83,16 @@ parameters, and will also initialize the sampler.
 When constructing a variational state you can also pass a seed, that will be used to initialize both the
 weights and the sampler. You can also pass two different seeds for the sampler and the weights.
 
+.. _warn-chunking:
+
+.. warning::
+
+    Sometimes you might be working on very large models that run on GPUs, or you might want to compute expectaion values with a very high number of samples, which might cause out-of-memory errors. To prevent this, :code:`MCState` exposes the attribute :py:attr:`~netket.vqs.MCState.chunk_size`, which controls the size of the chunks used in the forward and backward computation of expectation values. 
+
+    When this value is set, computations are not performed on huge matrices, but instead we split the inputs into smaller matrices and loop through them. In general, setting :py:attr:`~netket.vqs.MCState.chunk_size` to a low value will address the majority of memory issues, but will increase the computational cost. 
+
+    A value of at least 128 is suggested, but will geatly depend on your model. You should try to use the largest value you can for your system. Setting it to :code:`None` is equivalent to setting it to infinity.
+
 
 Using a Monte Carlo Variational State
 -------------------------------------
