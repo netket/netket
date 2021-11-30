@@ -204,7 +204,7 @@ def _rescale(centered_oks):
     return centered_oks, scale
 
 
-@partial(jax.jit, static_argnums=(0, 4, 5))
+@partial(jax.jit, static_argnames=("apply_fun", "mode", "rescale_shift", "chunk_size"))
 def prepare_centered_oks(
     apply_fun: Callable,
     params: PyTree,
@@ -212,6 +212,7 @@ def prepare_centered_oks(
     model_state: Optional[PyTree],
     mode: str,
     rescale_shift: bool,
+    chunk_size: int = None,
 ) -> PyTree:
     """
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
@@ -228,6 +229,7 @@ def prepare_centered_oks(
         model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
+        chunk_size: an int specfying the size of the chunks degradient should be computed in (default: None)
 
     Returns:
         if not rescale_shift:
@@ -280,7 +282,9 @@ def prepare_centered_oks(
         gradf_dense = jacobian_fun(f, params, σ)
         return gradf_dense
 
-    jacobians = jax.vmap(gradf_fun, in_axes=(None, 0), out_axes=0)(params, samples)
+    jacobians = nkjax.vmap_chunked(gradf_fun, in_axes=(None, 0), chunk_size=chunk_size)(
+        params, samples
+    )
 
     n_samp = samples.shape[0] * mpi.n_nodes
     centered_oks = subtract_mean(jacobians, axis=0) / np.sqrt(n_samp)

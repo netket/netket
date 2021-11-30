@@ -92,6 +92,7 @@ def QGTJacobianDense(
         vstate.model_state,
         mode,
         rescale_shift,
+        vstate.chunk_size,
     )
 
     return QGTJacobianDenseT(O=O, scale=scale, mode=mode, **kwargs)

@@ -99,6 +99,7 @@ def QGTJacobianPyTree(
         mode,
         rescale_shift,
         pdf,
+        vstate.chunk_size,
     )
 
     return QGTJacobianPyTreeT(
