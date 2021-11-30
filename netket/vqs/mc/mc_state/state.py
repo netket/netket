@@ -468,7 +468,6 @@ class MCState(VariationalState):
         else:
             if chain_length is None:
                 chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
-                check_chunks = True
 
             if self.chunk_size is not None:
                 check_chunk_size(
