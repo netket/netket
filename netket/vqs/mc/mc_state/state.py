@@ -462,10 +462,19 @@ class MCState(VariationalState):
             n_samples: The total number of samples across all MPI ranks.
             n_discard_per_chain: Number of discarded samples at the beginning of the markov chain.
         """
+
         if n_samples is None and chain_length is None:
             chain_length = self.chain_length
-        elif chain_length is None:
-            chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
+        else:
+            if chain_length is None:
+                chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
+                check_chunks = True
+
+            if self.chunk_size is not None:
+                check_chunk_size(
+                    chain_length * self.sampler.n_chains_per_rank * mpi.n_nodes,
+                    self.chunk_size,
+                )
 
         if n_discard_per_chain is None:
             n_discard_per_chain = self.n_discard_per_chain

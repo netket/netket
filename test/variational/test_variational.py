@@ -169,6 +169,13 @@ def test_chunk_size_api(vstate, _mpi_size):
     ):
         vstate.chunk_size = 1500
 
+    s = vstate.sample()
+    s = vstate.sample(n_samples=vstate.n_samples)
+    with raises(
+        ValueError,
+    ):
+        vstate.sample(n_samples=1008 + 16)
+
 
 def test_deprecations(vstate):
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
