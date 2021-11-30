@@ -1,5 +1,6 @@
 from functools import partial
 from typing import Any, Callable, Tuple
+import warnings
 
 import numpy as np
 
@@ -49,11 +50,11 @@ def expect_and_grad_fallback(
     *args,
     **kwargs,
 ):
-    if config.FLAGS["NETKET_DEBUG"]:
-        print(
-            "Ignoring `chunk_size={chunk_size}` because no implementation supporting:"
-            "chunking exists."
-        )
+    warnings.warn(
+        f"Ignoring chunk_size={chunk_size} for expect_and_grad method with signature "
+        f"({type(vstate)}, {type(operator)}) because no implementation supporting "
+        f"chunking for this signature exists."
+    )
 
     return expect_and_grad(vstate, operator, cov, *args, **kwargs)
 
@@ -61,7 +62,7 @@ def expect_and_grad_fallback(
 @dispatch
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
-    Ô: DiscreteOperator,
+    Ô: AbstractOperator,
     use_covariance: TrueT,
     chunk_size: int,
     *,

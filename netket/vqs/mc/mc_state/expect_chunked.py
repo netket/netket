@@ -1,5 +1,6 @@
 from functools import partial
 from typing import Callable
+import warnings
 
 import numpy as np
 
@@ -63,11 +64,11 @@ def expect_nochunking(vstate: MCState, operator: AbstractOperator, chunk_size: N
 # if no implementation exists for batched, fall back to unbatched methods.
 @expect.dispatch
 def expect_fallback(vstate: MCState, operator: AbstractOperator, chunk_size):
-    if config.FLAGS["NETKET_DEBUG"]:
-        print(
-            "Ignoring `chunk_size={chunk_size}` because no implementation supporting:"
-            "chunking exists."
-        )
+    warnings.warn(
+        f"Ignoring chunk_size={chunk_size} for expect_and_grad method with signature "
+        f"({type(vstate)}, {type(operator)}) because no implementation supporting "
+        f"chunking for this signature exists."
+    )
 
     return expect(vstate, operator)
 
