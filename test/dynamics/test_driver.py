@@ -45,12 +45,12 @@ integrator_params = [
     pytest.param(nkx.dynamics.Euler(dt=0.01), id="Euler(dt=0.01)"),
     pytest.param(nkx.dynamics.Heun(dt=0.01), id="Heun(dt=0.01)"),
     pytest.param(
-        nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-2),
-        id="RK23(dt=0.01, adaptive=True)",
+        nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-2, atol=1e-2),
+        id="RK23(dt=0.01, adaptive)",
     ),
     pytest.param(
-        nkx.dynamics.RK45(dt=0.01, adaptive=True, rtol=1e-3),
-        id="RK45(dt=0.01, adaptive=True)",
+        nkx.dynamics.RK45(dt=0.01, adaptive=True, rtol=1e-3, atol=1e-3),
+        id="RK45(dt=0.01, adaptive)",
     ),
 ]
 

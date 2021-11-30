@@ -14,7 +14,7 @@
 
 # from functools import singledispatch
 from functools import singledispatch
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence, Union
 
 import numpy as np
 
@@ -33,7 +33,7 @@ from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 from netket.utils import mpi
-from netket.utils.types import PyTree
+from netket.utils.types import Array, PyTree
 from netket.vqs import VariationalState, MCState, MCMixedState
 
 from netket.experimental.dynamics import RungeKuttaIntegrator, RKIntegratorConfig
@@ -57,14 +57,12 @@ def dwdt_mcstate(state: MCState, driver, t, w, *, stage: int = None):
         lambda x: driver._loss_grad_factor * x, driver._loss_grad
     )
 
-    driver._qgt_intermediate = driver.qgt(driver.state)
+    qgt = driver.qgt(driver.state)
     if stage == 0:  # TODO: This does not work with FSAL.
-        driver._qgt = driver._qgt_intermediate
+        driver._last_qgt = qgt
 
     initial_dw = None if driver.linear_solver_restart else driver._dw
-    driver._dw, _ = driver._qgt_intermediate.solve(
-        driver.linear_solver, driver._loss_grad, x0=initial_dw
-    )
+    driver._dw, _ = qgt.solve(driver.linear_solver, driver._loss_grad, x0=initial_dw)
     return driver._dw
 
 
@@ -77,30 +75,29 @@ class TimeDependentVMC(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        integrator: RKIntegratorConfig,
+        integrator_config: RKIntegratorConfig,
         *,
         t0: float = 0.0,
         propagation_type="real",
         qgt: LinearOperator = None,
         linear_solver=None,
         linear_solver_restart: bool = False,
-        # **integrator_kwargs,
+        error_norm: str = "euclidean",
     ):
         """
         Construct the time evolution driver.
 
         Args:
             operator: The generator of the dynamics (Hamiltonian for pure states,
-                Lindbladian for density operators).Optional
-            variational_state: The variational state
-            solver: the time evolution integrator (like runge kutta or euler)
+                Lindbladian for density operators).
+            variational_state: The variational state.
+            integrator_config: Configuration of the algorithm used for solving the ODE.
+            t0: initial time
             qgt: The QGT storage format.
             linear_solver: The solver for solving the linear system determining the time evolution.
             linear_solver_restart: If False (default), the last solution of the linear system
                 is used as initial value in subsequent steps.
             tspan: Specify this as (t0, tend) or the two separately
-            t0: initial time
-            tend: end time. stop integrating at this time
         """
         if variational_state.hilbert != operator.hilbert:
             raise TypeError(
@@ -122,7 +119,8 @@ class TimeDependentVMC(AbstractVariationalDriver):
         )
 
         if isinstance(operator, AbstractOperator):
-            self._generator = lambda _: operator.collect()  # type: AbstractOperator
+            operator = operator.collect()
+            self._generator = lambda _: operator
         else:
             self._generator = operator
 
@@ -140,10 +138,16 @@ class TimeDependentVMC(AbstractVariationalDriver):
 
         self._w = self.state.parameters
         self._dw = None  # type: PyTree
+        self._last_qgt = None
 
-        self._integrator = integrator(
-            self._odefun, t0, self._w
-        )  # type: RungeKuttaIntegrator
+        self.integrator_config = integrator_config
+        if error_norm == "euclidean":
+            norm = None
+        elif error_norm == "qgt":
+            norm = self._qgt_norm
+        else:
+            raise ValueError("error_norm must be one of 'euclidean', 'qgt'")
+        self._integrator = integrator_config(self._odefun, t0, self._w, norm=norm)
         self._stop_count = 0
 
     @property
@@ -402,3 +406,11 @@ class TimeDependentVMC(AbstractVariationalDriver):
             ]
         ]
         return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)
+
+    def _qgt_norm(self, x: PyTree):
+        """
+        Computes the norm induced by the QGT :math:`S`, i.e, :math:`x^\\dagger S x`.
+        """
+        y = self._last_qgt @ x
+        xc_dot_y = nk.jax.tree_dot(nk.jax.tree_conj(x), y)
+        return jnp.sqrt(jnp.real(xc_dot_y))

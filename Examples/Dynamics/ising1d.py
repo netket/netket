@@ -50,16 +50,17 @@ Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
 gs.run(n_iter=300, out="example_ising1d_GS", obs={"Sx": Sx})
 
 # Create integrator for time propagation
-integrator = nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-2)
+integrator = nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-3, atol=1e-3)
 print(integrator)
 
 ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
 te = nkx.TimeDependentVMC(
     ha1,
     variational_state=vs,
-    integrator=integrator,
+    integrator_config=integrator,
     t0=0.0,
     qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
+    error_norm="qgt",
 )
 
 log = nk.logging.JsonLog("example_ising1d_TE")
@@ -69,5 +70,5 @@ te.run(
     out=log,
     show_progress=True,
     obs={"Sx": Sx},
-    tstops=np.linspace(0.0, 1.0, 101, endpoint=True),
+    tstops=[0.10, 0.15, 0.40, 0.41, 0.45, 0.50, 0.999, 1.0],
 )

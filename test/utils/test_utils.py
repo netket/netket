@@ -61,7 +61,3 @@ def test_HashableArray(numpy):
 
     assert_equal(wa.wrapped, np.asarray(wa))
     assert wa.wrapped is not wa
-
-
-def test_kahan_summation():
-    numbers = np.arange(1000)

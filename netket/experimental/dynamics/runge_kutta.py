@@ -29,15 +29,18 @@ from netket import jax as nkjax
 
 dtype = jnp.float64
 
+
 def expand_dim(tree: PyTree, sz: int):
     """
     creates a new pytree with same structure as input `tree`, but where very leaf
     has an extra dimension at 0 with size `sz`.
     """
+
     def _expand(x):
         return jnp.zeros((sz,) + x.shape, dtype=x.dtype)
 
     return jax.tree_map(_expand, tree)
+
 
 def _norm(res: Union[PyTree, Array]):
     """
@@ -52,6 +55,7 @@ def _norm(res: Union[PyTree, Array]):
                 jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), res),
             )
         )
+
 
 @dataclass
 class TableauRKExplicit:
@@ -97,7 +101,7 @@ class TableauRKExplicit:
         """Computes the intermediate slopes k_l."""
         times = t + self.c * dt
 
-        # TODO: Use FSALLast 
+        # TODO: Use FSALLast
 
         k = expand_dim(y_t, self.stages)
         for l in range(self.stages):
@@ -119,7 +123,9 @@ class TableauRKExplicit:
         k = self._compute_slopes(f, t, dt, y_t)
 
         b = self.b[0] if self.b.ndim == 2 else self.b
-        y_tp1 = jax.tree_multimap(lambda y_t, k: y_t + dt*jnp.tensordot(b, k, axes=1), y_t, k)
+        y_tp1 = jax.tree_multimap(
+            lambda y_t, k: y_t + dt * jnp.tensordot(b, k, axes=1), y_t, k
+        )
 
         return y_tp1
 
@@ -139,9 +145,11 @@ class TableauRKExplicit:
 
         k = self._compute_slopes(f, t, dt, y_t)
 
-        y_tp1 = jax.tree_multimap(lambda y_t, k: y_t + dt*jnp.tensordot(self.b[0], k, axes=1), y_t, k)
+        y_tp1 = jax.tree_multimap(
+            lambda y_t, k: y_t + dt * jnp.tensordot(self.b[0], k, axes=1), y_t, k
+        )
         db = self.b[0] - self.b[1]
-        y_err = jax.tree_map(lambda k: dt*jnp.tensordot(db, k, axes=1), k)
+        y_err = jax.tree_map(lambda k: dt * jnp.tensordot(db, k, axes=1), k)
 
         return y_tp1, y_err
 
@@ -169,13 +177,15 @@ class RungeKuttaState:
             self.step_no_total,
             self.t.value,
             self.dt,
-            f", {self.last_norm:.2e}" if self.last_norm else "",
+            f", {self.last_norm:.2e}" if self.last_norm is not None else "",
             f", {'A' if self.accepted else 'R'}",
         )
 
-def scaled_error(y, y_err, atol, rtol, *, norm=_norm):
-    scale = (atol + norm(y) * rtol) / nkjax.tree_size(y_err)
-    return norm(y_err) / scale
+
+def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn=_norm):
+    norm_y = norm_fn(y)
+    scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nkjax.tree_size(y_err)
+    return norm_fn(y_err) / scale, norm_y
 
 
 LimitsType = Tuple[Optional[float], Optional[float]]
@@ -205,8 +215,17 @@ def general_time_step_adaptive(
         actual_dt = rk_state.dt
     else:
         actual_dt = jnp.minimum(rk_state.dt, max_dt)
+
     next_y, y_err = step_fn(rk_state.t.value, actual_dt, rk_state.y)
-    scaled_err = scaled_error(rk_state.y, y_err, atol, rtol, norm=norm_fn)
+
+    scaled_err, norm_y = scaled_error(
+        rk_state.y,
+        y_err,
+        atol,
+        rtol,
+        last_norm_y=rk_state.last_norm,
+        norm_fn=norm_fn,
+    )
 
     # Propose the next time step, but limited within [0.1 dt, 10 dt] and potential
     # global limits in dt_limits. Not used when actual_dt < rk_state.dt (i.e., the
@@ -227,6 +246,7 @@ def general_time_step_adaptive(
 
     return jax.lax.cond(
         scaled_err < 1.0,
+        # step accepted
         lambda _: rk_state.replace(
             step_no=rk_state.step_no + 1,
             step_no_total=rk_state.step_no_total + 1,
@@ -238,8 +258,10 @@ def general_time_step_adaptive(
                 lambda _: rk_state.dt,
                 None,
             ),
+            last_norm=norm_y,
             accepted=True,
         ),
+        # step rejected, repeat with lower dt
         lambda _: rk_state.replace(
             step_no_total=rk_state.step_no_total + 1,
             dt=next_dt(),
@@ -306,11 +328,21 @@ class RungeKuttaIntegrator:
             t=KahanSum(self.t0),
             y=self.y0,
             dt=self.initial_dt,
+            last_norm=0.0 if self.use_adaptive else None,
         )
 
     def step(self, max_dt=None):
         """
-        Perform one full Runge-Kutta step.
+        Perform one full Runge-Kutta step by min(self.dt, max_dt).
+
+
+        Returns:
+            A boolean indicating whether the step was sucessful or
+            was rejected by the step controller and should be retried.
+
+            Note that the step size can be adjusted by the step controller
+            in both cases, so the integrator state will have changed
+            even after a rejected step.
         """
         # print(f"RK.step (t={self.t}, {max_dt=})")
         # print(f"      => {self._rkstate}")
@@ -374,7 +406,7 @@ class RKIntegratorConfig:
             self.tableau.name,
             self.dt,
             self.adaptive,
-            f", **kwargs={self.kwargs=}" if self.kwargs else "",
+            f", **kwargs={self.kwargs}" if self.kwargs else "",
         )
 
 
