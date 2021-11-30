@@ -320,7 +320,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
                     pbar.unpause()
 
                 # Update the progress bar
-                pbar.update(self.step_value - old_step)
+                pbar.update(np.asarray(self.step_value - old_step))
                 old_step = self.step_value
 
             # Final update so that it shows up filled.

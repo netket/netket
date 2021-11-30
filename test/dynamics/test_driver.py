@@ -44,8 +44,12 @@ def _setup_system(L, *, dtype=np.float64):
 integrator_params = [
     pytest.param(nkx.dynamics.Heun(dt=0.01), id="Heun(dt=0.01)"),
     pytest.param(
-        nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-2),
+        nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-3),
         id="RK23(dt=0.01, adaptive=True)",
+    ),
+    pytest.param(
+        nkx.dynamics.RK45(dt=0.01, adaptive=True, rtol=1e-3),
+        id="RK45(dt=0.01, adaptive=True)",
     ),
 ]
 

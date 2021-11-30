@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
+from typing import Sequence
 
 from .struct import dataclass
 from .types import Scalar

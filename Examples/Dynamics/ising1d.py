@@ -14,6 +14,7 @@
 
 import netket as nk
 import netket.experimental as nkx
+import numpy as np
 
 # 1D chain
 L = 10  # 10
@@ -49,7 +50,8 @@ Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
 gs.run(n_iter=300, out="example_ising1d_GS", obs={"Sx": Sx})
 
 # Create integrator for time propagation
-integrator = nkx.dynamics.RK23(dt=0.01)
+integrator = nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-2)
+print(integrator)
 
 ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
 te = nkx.TimeDependentVMC(
@@ -67,4 +69,5 @@ te.run(
     out=log,
     show_progress=True,
     obs={"Sx": Sx},
+    tstops=np.linspace(0.0, 1.0, 101, endpoint=True),
 )

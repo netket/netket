@@ -178,21 +178,26 @@ def general_time_step_adaptive(
         actual_dt = rk_state.dt
     else:
         actual_dt = jnp.minimum(rk_state.dt, max_dt)
-    print(f"        {actual_dt=}")
     next_y, y_err = step_fn(rk_state.t.value, actual_dt, rk_state.y)
     scaled_err = scaled_error(rk_state.y, y_err, atol, rtol, norm=norm_fn)
-    next_dt = propose_time_step(
-        actual_dt,
-        scaled_err,
-        limits=(
-            jnp.maximum(0.1 * rk_state.dt, dt_limits[0])
-            if dt_limits[0]
-            else 0.1 * rk_state.dt,
-            jnp.minimum(10.0 * rk_state.dt, dt_limits[1])
-            if dt_limits[1]
-            else 10.0 * rk_state.dt,
-        ),
-    )
+
+    # Propose the next time step, but limited within [0.1 dt, 10 dt] and potential
+    # global limits in dt_limits. Not used when actual_dt < rk_state.dt (i.e., the
+    # integrator is doing a smaller step to hit a specific stop).
+    def next_dt():
+        return propose_time_step(
+            actual_dt,
+            scaled_err,
+            limits=(
+                jnp.maximum(0.1 * rk_state.dt, dt_limits[0])
+                if dt_limits[0]
+                else 0.1 * rk_state.dt,
+                jnp.minimum(10.0 * rk_state.dt, dt_limits[1])
+                if dt_limits[1]
+                else 10.0 * rk_state.dt,
+            ),
+        )
+
     return jax.lax.cond(
         scaled_err < 1.0,
         lambda _: rk_state.replace(
@@ -200,12 +205,17 @@ def general_time_step_adaptive(
             step_no_total=rk_state.step_no_total + 1,
             y=next_y,
             t=rk_state.t + actual_dt,
-            dt=next_dt,
+            dt=jax.lax.cond(
+                actual_dt == rk_state.dt,
+                lambda _: next_dt(),
+                lambda _: rk_state.dt,
+                None,
+            ),
             accepted=True,
         ),
         lambda _: rk_state.replace(
             step_no_total=rk_state.step_no_total + 1,
-            dt=next_dt,
+            dt=next_dt(),
             accepted=False,
         ),
         None,
@@ -266,10 +276,10 @@ class RungeKuttaIntegrator:
         """
         Perform one full Runge-Kutta step.
         """
-        print(f"RK.step (t={self.t}, {max_dt=})")
-        print(f"      => {self._rkstate}")
+        # print(f"RK.step (t={self.t}, {max_dt=})")
+        # print(f"      => {self._rkstate}")
         self._rkstate = self._do_step(self._rkstate, max_dt)
-        print(f"      <= {self._rkstate}")
+        # print(f"      <= {self._rkstate}")
         return self._rkstate.accepted
 
     def _do_step_fixed(self, rk_state, max_dt=None):
