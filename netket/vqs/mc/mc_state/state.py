@@ -56,21 +56,18 @@ def compute_chain_length(n_chains, n_samples):
 
     return chain_length
 
+
 def check_chunk_size(n_samples, chunk_size):
     n_samples_per_rank = n_samples // mpi.n_nodes
 
     if chunk_size is not None:
-        if (
-            chunk_size < n_samples_per_rank
-            and n_samples_per_rank % chunk_size != 0
-        ):
+        if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
             raise ValueError(
                 f"chunk_size={chunk_size}`<`n_samples_per_rank={n_samples_per_rank}, "
                 "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
                 "unsupported. Please change `chunk_size` so that it divides evenly the"
                 "number of samples per rank or set it to `None` to disable chunking."
             )
-
 
 
 def _is_power_of_two(n: int) -> bool:
@@ -310,9 +307,7 @@ class MCState(VariationalState):
 
     @n_samples.setter
     def n_samples(self, n_samples: int):
-        chain_length = compute_chain_length(
-            self.sampler.n_chains, n_samples
-        )
+        chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
         n_samples_per_rank = chain_length * self.sampler.n_chains_per_rank
         n_samples = chain_length * self.sampler.n_chains

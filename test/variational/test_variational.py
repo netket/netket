@@ -139,6 +139,7 @@ def test_n_samples_api(vstate, _mpi_size):
 
     assert vstate.n_samples_per_rank == vstate.n_samples // _mpi_size
 
+
 def test_chunk_size_api(vstate, _mpi_size):
     assert vstate.chunk_size is None
 
@@ -160,14 +161,13 @@ def test_chunk_size_api(vstate, _mpi_size):
     vstate.chunk_size = 126
     assert vstate.chunk_size == 126
 
-    vstate.n_samples = 1008*2
+    vstate.n_samples = 1008 * 2
     assert vstate.chunk_size == 126
 
     with raises(
         ValueError,
     ):
         vstate.chunk_size = 1500
-
 
 
 def test_deprecations(vstate):
@@ -326,12 +326,11 @@ def test_expect(vstate, operator):
             op,
             id=name,
         )
-        for name, op in operators.items() if op.is_hermitian
+        for name, op in operators.items()
+        if op.is_hermitian
     ],
 )
-@pytest.mark.parametrize(
-"n_chunks", [1,2]
-)
+@pytest.mark.parametrize("n_chunks", [1, 2])
 def test_expect_chunking(vstate, operator, n_chunks):
     vstate.n_samples = 200
     chunk_size = vstate.n_samples_per_rank // n_chunks
@@ -340,15 +339,19 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.chunk_size = chunk_size
     eval_chunk = vstate.expect(operator)
 
-    jax.tree_multimap(partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk)
-
+    jax.tree_multimap(
+        partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
+    )
 
     vstate.chunk_size = None
     grad_nochunk = vstate.grad(operator)
     vstate.chunk_size = chunk_size
     grad_chunk = vstate.grad(operator)
 
-    jax.tree_multimap(partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk)
+    jax.tree_multimap(
+        partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
+    )
+
 
 ###
 def _expval(par, vstate, H, real=False):
