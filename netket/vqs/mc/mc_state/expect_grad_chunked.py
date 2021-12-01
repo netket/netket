@@ -37,7 +37,7 @@ from .state import MCState
 
 
 # If batch_size is None, ignore it and remove it from signature
-@expect_and_grad
+@expect_and_grad.dispatch
 def expect_and_grad_nochunking(  # noqa: F811
     vstate: MCState,
     operator: AbstractOperator,
