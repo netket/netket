@@ -84,8 +84,6 @@ class ContinuousOperator(AbstractOperator):
 
     def __rmul__(self, other):
         if isinstance(self, ContinuousOperator) and isinstance(other, float):
-            from netket.operator import SumOperator
-
             return self * other
         else:
             return NotImplemented  # pragma: no cover
