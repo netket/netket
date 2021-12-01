@@ -248,8 +248,7 @@ class MCState(VariationalState):
 
         self.n_discard_per_chain = n_discard_per_chain
 
-        if chunk_size is None:
-            self.chunk_size = chunk_size
+        self.chunk_size = chunk_size
 
     def init(self, seed=None, dtype=None):
         """
