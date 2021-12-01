@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Union
+from typing import Callable
 from functools import partial
-
-import numpy as np
 
 import jax
 from jax import numpy as jnp
@@ -28,7 +26,6 @@ from netket.utils.dispatch import dispatch
 from netket.operator import (
     AbstractOperator,
     DiscreteOperator,
-    AbstractSuperOperator,
     Squared,
     ContinuousOperator,
 )
@@ -44,7 +41,7 @@ from .state import MCState
 
 
 @dispatch
-def get_local_kernel_arguments(vstate: MCState, Ô: Squared):
+def get_local_kernel_arguments(vstate: MCState, Ô: Squared):  # noqa: F811
     check_hilbert(vstate.hilbert, Ô.hilbert)
 
     σ = vstate.samples
@@ -53,12 +50,12 @@ def get_local_kernel_arguments(vstate: MCState, Ô: Squared):
 
 
 @dispatch
-def get_local_kernel(vstate: MCState, Ô: Squared):
+def get_local_kernel(vstate: MCState, Ô: Squared):  # noqa: F811
     return kernels.local_value_squared_kernel
 
 
 @dispatch
-def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteOperator):
+def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteOperator):  # noqa: F811
     check_hilbert(vstate.hilbert, Ô.hilbert)
 
     σ = vstate.samples
@@ -67,12 +64,12 @@ def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteOperator):
 
 
 @dispatch
-def get_local_kernel(vstate: MCState, Ô: DiscreteOperator):
+def get_local_kernel(vstate: MCState, Ô: DiscreteOperator):  # noqa: F811
     return kernels.local_value_kernel
 
 
 @dispatch
-def get_local_kernel_arguments(vstate: MCState, Ô: ContinuousOperator):
+def get_local_kernel_arguments(vstate: MCState, Ô: ContinuousOperator):  # noqa: F811
     check_hilbert(vstate.hilbert, Ô.hilbert)
 
     σ = vstate.samples
@@ -81,7 +78,7 @@ def get_local_kernel_arguments(vstate: MCState, Ô: ContinuousOperator):
 
 
 @dispatch
-def get_local_kernel(vstate: MCState, Ô: ContinuousOperator):
+def get_local_kernel(vstate: MCState, Ô: ContinuousOperator):  # noqa: F811
     # TODO: this should be moved other to dispatch in order to support MCMixedState
     return Ô._expect_kernel_batched
 

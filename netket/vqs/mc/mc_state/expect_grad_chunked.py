@@ -1,25 +1,34 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from functools import partial
 from typing import Any, Callable, Tuple
 import warnings
-
-import numpy as np
 
 import jax
 from jax import numpy as jnp
 from jax import tree_map
 
 from netket import jax as nkjax
-from netket import config
-from netket.operator import AbstractOperator, DiscreteOperator
+from netket.operator import AbstractOperator
 from netket.stats import Stats, statistics
 from netket.utils import mpi
 from netket.utils.types import PyTree
-from netket.utils.dispatch import dispatch, TrueT
+from netket.utils.dispatch import dispatch, TrueT, Bool
 
 from netket.vqs import expect_and_grad
 from netket.vqs.mc import (
-    kernels,
-    check_hilbert,
     get_local_kernel,
     get_local_kernel_arguments,
 )
@@ -28,24 +37,24 @@ from .state import MCState
 
 
 # If batch_size is None, ignore it and remove it from signature
-@expect_and_grad.dispatch(precedence=20)
-def expect_and_grad_nochunking(
+@expect_and_grad
+def expect_and_grad_nochunking(  # noqa: F811
     vstate: MCState,
     operator: AbstractOperator,
-    cov: Any,
+    use_covariance: Bool,
     chunk_size: None,
     *args,
     **kwargs,
 ):
-    return expect_and_grad(vstate, operator, cov, *args, **kwargs)
+    return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)
 
 
 # if no implementation exists for batched, run the code unbatched
 @expect_and_grad.dispatch
-def expect_and_grad_fallback(
+def expect_and_grad_fallback(  # noqa: F811
     vstate: MCState,
     operator: AbstractOperator,
-    cov: Any,
+    use_covariance: Bool,
     chunk_size: Any,
     *args,
     **kwargs,
@@ -56,7 +65,7 @@ def expect_and_grad_fallback(
         f"chunking for this signature exists."
     )
 
-    return expect_and_grad(vstate, operator, cov, *args, **kwargs)
+    return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)
 
 
 @dispatch

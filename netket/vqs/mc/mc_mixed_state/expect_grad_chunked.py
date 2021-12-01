@@ -12,29 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.utils.dispatch import dispatch
+from netket.operator import AbstractOperator
+from netket.utils.dispatch import Bool
 
-from netket.operator import (
-    AbstractSuperOperator,
-    DiscreteOperator,
-    Squared,
-)
-
-from netket.vqs.mc import kernels, get_local_kernel
+from netket.vqs import expect_and_grad
 
 from .state import MCMixedState
 
 
-# Dispatches to select what expect-kernel to use
-@dispatch
-def get_local_kernel(  # noqa: F811
-    vstate: MCMixedState, Ô: Squared[AbstractSuperOperator], chunk_size: int
+# If batch_size is None, ignore it and remove it from signature
+@expect_and_grad.dispatch
+def expect_and_grad_nochunking(
+    vstate: MCMixedState,
+    operator: AbstractOperator,
+    use_covariance: Bool,
+    chunk_size: None,
+    *args,
+    **kwargs,
 ):
-    return kernels.local_value_squared_kernel_chunked
-
-
-@dispatch
-def get_local_kernel(  # noqa: F811
-    vstate: MCMixedState, Ô: DiscreteOperator, chunk_size: int
-):
-    return kernels.local_value_op_op_cost_chunked
+    return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)

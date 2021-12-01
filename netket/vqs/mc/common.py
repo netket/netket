@@ -14,14 +14,8 @@
 
 from typing import Any
 
-import jax
-from jax import numpy as jnp
-
 from netket.hilbert import AbstractHilbert
 from netket.utils.dispatch import dispatch
-from netket.operator import AbstractOperator
-
-from netket.vqs import VariationalState
 
 
 def check_hilbert(A: AbstractHilbert, B: AbstractHilbert):

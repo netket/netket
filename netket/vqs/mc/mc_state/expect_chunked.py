@@ -1,14 +1,25 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from functools import partial
 from typing import Callable
 import warnings
-
-import numpy as np
 
 import jax
 from jax import numpy as jnp
 
 from netket import jax as nkjax
-from netket import config
 from netket.stats import Stats
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
@@ -20,25 +31,27 @@ from netket.operator import (
     Squared,
 )
 
-from netket.vqs import VariationalState, expect
+from netket.vqs import expect
 
 from netket.vqs.mc import (
     kernels,
-    check_hilbert,
     get_local_kernel,
     get_local_kernel_arguments,
 )
 
 from .state import MCState
 
+
 # Dispatches to select what expect-kernel to use
 @dispatch
-def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):
+def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):  # noqa: F811
     return kernels.local_value_squared_kernel_chunked
 
 
 @dispatch
-def get_local_kernel(vstate: MCState, Ô: DiscreteOperator, chunk_size: int):
+def get_local_kernel(  # noqa: F811
+    vstate: MCState, Ô: DiscreteOperator, chunk_size: int
+):
     return kernels.local_value_kernel_chunked
 
 
@@ -50,7 +63,9 @@ def _local_continuous_kernel(kernel, logpsi, pars, σ, args, *, chunk_size=None)
 
 
 @dispatch
-def get_local_kernel(vstate: MCState, Ô: ContinuousOperator, chunk_size: int):
+def get_local_kernel(  # noqa: F811
+    vstate: MCState, Ô: ContinuousOperator, chunk_size: int
+):
     return nkjax.HashablePartial(_local_continuous_kernel, Ô._expect_kernel)
 
 
@@ -63,7 +78,9 @@ def expect_nochunking(vstate: MCState, operator: AbstractOperator, chunk_size: N
 
 # if no implementation exists for batched, fall back to unbatched methods.
 @expect.dispatch
-def expect_fallback(vstate: MCState, operator: AbstractOperator, chunk_size):
+def expect_fallback(
+    vstate: MCState, operator: AbstractOperator, chunk_size
+):  # noqa: F811
     warnings.warn(
         f"Ignoring chunk_size={chunk_size} for expect_and_grad method with signature "
         f"({type(vstate)}, {type(operator)}) because no implementation supporting "

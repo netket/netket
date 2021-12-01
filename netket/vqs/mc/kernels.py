@@ -16,12 +16,13 @@
 This module implements some common kernels used by MCState and MCMixedState.
 """
 
-from typing import Any
+from typing import Callable, Optional
 from functools import partial
 
 import jax
 import jax.numpy as jnp
 
+from netket.utils.types import PyTree, Array
 import netket.jax as nkjax
 
 
@@ -50,7 +51,7 @@ def batch_discrete_kernel(kernel):
 
 
 @batch_discrete_kernel
-def local_value_kernel(logpsi, pars, σ, args):
+def local_value_kernel(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
     """
     local_value kernel for MCState and generic operators
     """
@@ -58,7 +59,7 @@ def local_value_kernel(logpsi, pars, σ, args):
     return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
 
 
-def local_value_squared_kernel(logpsi, pars, σ, args):
+def local_value_squared_kernel(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
     """
     local_value kernel for MCState and Squared (generic) operators
     """
@@ -66,7 +67,7 @@ def local_value_squared_kernel(logpsi, pars, σ, args):
 
 
 @batch_discrete_kernel
-def local_value_op_op_cost(logpsi, pars, σ, args):
+def local_value_op_op_cost(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
     """
     local_value kernel for MCMixedState and generic operators
     """
@@ -80,7 +81,14 @@ def local_value_op_op_cost(logpsi, pars, σ, args):
 ## Chunked versions of those kernels are defined below.
 
 
-def local_value_kernel_chunked(logpsi, pars, σ, args, *, chunk_size=None):
+def local_value_kernel_chunked(
+    logpsi: Callable,
+    pars: PyTree,
+    σ: Array,
+    args: PyTree,
+    *,
+    chunk_size: Optional[int] = None,
+):
     """
     local_value kernel for MCState and generic operators
     """
@@ -101,7 +109,14 @@ def local_value_kernel_chunked(logpsi, pars, σ, args, *, chunk_size=None):
     return jnp.sum(mels * jnp.exp(logpsi_σp - logpsi_σ), axis=-1)
 
 
-def local_value_squared_kernel_chunked(logpsi, pars, σ, args, *, chunk_size=None):
+def local_value_squared_kernel_chunked(
+    logpsi: Callable,
+    pars: PyTree,
+    σ: Array,
+    args: PyTree,
+    *,
+    chunk_size: Optional[int] = None,
+):
     """
     local_value kernel for MCState and Squared (generic) operators
     """
@@ -113,7 +128,14 @@ def local_value_squared_kernel_chunked(logpsi, pars, σ, args, *, chunk_size=Non
     )
 
 
-def local_value_op_op_cost_chunked(logpsi, pars, σ, args, *, chunk_size=None):
+def local_value_op_op_cost_chunked(
+    logpsi: Callable,
+    pars: PyTree,
+    σ: Array,
+    args: PyTree,
+    *,
+    chunk_size: Optional[int] = None,
+):
     """
     local_value kernel for MCMixedState and generic operators
     """

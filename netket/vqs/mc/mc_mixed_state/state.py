@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Callable, Union, Tuple
+from typing import Optional, Tuple
 
 import jax
 from jax import numpy as jnp
 
-from flax import linen as nn
 from flax import serialization
 
 import netket
