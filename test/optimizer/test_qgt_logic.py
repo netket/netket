@@ -276,17 +276,18 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
 @pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("jit", [True, False])
+@pytest.mark.parametrize("chunk_size", [7, None])
 @pytest.mark.parametrize(
     "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
 )
-def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype):
+def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
     mv = qgt_jacobian_pytree_logic._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
         centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_cplx
     else:
         centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_real_holo
-
+    centered_jacobian_fun = partial(centered_jacobian_fun, chunk_size=chunk_size)
     if jit:
         mv = jax.jit(mv)
         centered_jacobian_fun = jax.jit(centered_jacobian_fun, static_argnums=0)
