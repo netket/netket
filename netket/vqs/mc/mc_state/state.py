@@ -560,8 +560,8 @@ class MCState(VariationalState):
                      to implement BatchNorm. Consult
                      `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
                      for a more in-depth exaplanation).
-            is_hermitian: optional override for whever to use or not the hermitian logic. By default
-                          it's automatically detected.
+            use_covariance: whever to use the covariance formula, usually reserved for
+                hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
 
         Returns:
             An estimation of the quantum expectation value <O>.

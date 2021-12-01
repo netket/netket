@@ -24,7 +24,7 @@ from netket import jax as nkjax
 from netket.stats import Stats, statistics, mean
 from netket.utils import mpi
 from netket.utils.types import PyTree
-from netket.utils.dispatch import dispatch, TrueT
+from netket.utils.dispatch import dispatch, FalseT
 
 from netket.operator import (
     AbstractSuperOperator,
@@ -41,7 +41,7 @@ from .state import MCMixedState
 def expect_and_grad(  # noqa: F811
     vstate: MCMixedState,
     Ô: Squared[AbstractSuperOperator],
-    use_covariance: TrueT,
+    use_covariance: FalseT,
     *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:

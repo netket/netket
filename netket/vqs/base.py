@@ -25,7 +25,7 @@ import flax
 from flax.core.frozen_dict import FrozenDict
 
 import netket.jax as nkjax
-from netket.operator import AbstractOperator
+from netket.operator import AbstractOperator, Squared
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import PyTree, PRNGKeyT, NNInitFunc
 from netket.utils.dispatch import dispatch, TrueT, FalseT
@@ -202,8 +202,8 @@ class VariationalState(abc.ABC):
                 model while you train it (for example to implement BatchNorm. Consult
                 `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
                 for a more in-depth exaplanation).
-            is_hermitian: optional override for whever to use or not the hermitian
-                logic. By default it's automatically detected.
+            use_covariance: whever to use the covariance formula, usually reserved for
+                hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
 
         Returns:
             An estimation of the quantum expectation value <O>.
@@ -322,9 +322,9 @@ def expect(vstate: VariationalState, operator: AbstractOperator):
 # signatures (eg: if an users defines `expect_grad(vs: MCState, op: MyOperator, use_cov: Any)`
 # instead of `expect_grad(vs: MCState, op: MyOperator, use_cov: bool)`
 # there would be a resolution error because the signature defined by the user is stricter
-# for some arguments, but the one below here is stricter for `use_covariance` which is 
+# for some arguments, but the one below here is stricter for `use_covariance` which is
 # set to bool. Since this signature below, in the worst case, does nothing, this ensures
-# that `expect_and_grad` is more user-friendly. 
+# that `expect_and_grad` is more user-friendly.
 @dispatch(precedence=10)
 def expect_and_grad(
     vstate: VariationalState,
@@ -351,7 +351,7 @@ def expect_and_grad(
         vstate: The variational state
         Ô: the operator Ô for which we compute the expectation value and it's gradient
         use_covariance: whever to use the covariance formula, usually reserved for
-            hermitian operators.
+            hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
         mutable: Can be bool, str, or list. Specifies which collections in the model_state should
                  be treated as  mutable: bool: all/no collections are mutable. str: The name of a
                  single mutable  collection. list: A list of names of mutable collections.
@@ -370,7 +370,10 @@ def expect_and_grad(
         use_covariance = TrueT() if use_covariance else FalseT()
 
     if use_covariance is None:
-        use_covariance = TrueT() if operator.is_hermitian else FalseT()
+        if isinstance(operator, Squared):
+            use_covariance = FalseT()
+        else:
+            use_covariance = TrueT() if operator.is_hermitian else FalseT()
 
     if mutable is None:
         mutable = vstate.mutable

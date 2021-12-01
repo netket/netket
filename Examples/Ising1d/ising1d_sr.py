@@ -38,8 +38,6 @@ sr = nk.optimizer.SR(diag_shift=0.01)
 
 # Variational state
 vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
-vs.chunk_size = 128
-vs.expect(ha)
 
 # Variational monte carlo driver with a variational state
 gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)

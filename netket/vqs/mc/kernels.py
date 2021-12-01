@@ -139,7 +139,11 @@ def local_value_op_op_cost_chunked(
     """
     local_value kernel for MCMixedState and generic operators
     """
-    σp, mel = args
+    σp, mels = args
+
+    if jnp.ndim(σp) != 3:
+        σp = σp.reshape((σ.shape[0], -1, σ.shape[-1]))
+        mels = mels.reshape(σp.shape[:-1])
 
     σ_σp = jax.vmap(
         lambda σpi, σi: jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(
@@ -147,9 +151,9 @@ def local_value_op_op_cost_chunked(
         ),
         in_axes=(0, 0),
         out_axes=0,
-    )
+    )(σp, σ)
     σ_σ = jax.vmap(lambda σi: jnp.hstack((σi, σi)), in_axes=0)(σ)
 
     return local_value_kernel_chunked(
-        logpsi, pars, σ_σ, σ_σp, mel, chunk_size=chunk_size
+        logpsi, pars, σ_σ, (σ_σp, mels), chunk_size=chunk_size
     )
