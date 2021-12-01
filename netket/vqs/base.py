@@ -316,6 +316,15 @@ def expect(vstate: VariationalState, operator: AbstractOperator):
 
 
 # default dispatch where use_covariance is not specified
+# Give it an higher precedence so this is always executed first, no matter what, if there
+# is a dispatch ambiguity.
+# This is not needed, but makes the dispatch logic work fine even if the users write weak
+# signatures (eg: if an users defines `expect_grad(vs: MCState, op: MyOperator, use_cov: Any)`
+# instead of `expect_grad(vs: MCState, op: MyOperator, use_cov: bool)`
+# there would be a resolution error because the signature defined by the user is stricter
+# for some arguments, but the one below here is stricter for `use_covariance` which is 
+# set to bool. Since this signature below, in the worst case, does nothing, this ensures
+# that `expect_and_grad` is more user-friendly. 
 @dispatch(precedence=10)
 def expect_and_grad(
     vstate: VariationalState,
