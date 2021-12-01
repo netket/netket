@@ -45,6 +45,7 @@ def default_qgt_matrix(variational_state, solver=False, **kwargs):
     """
     if variational_state is an ExactState, this performs the exact summation over the whole Hilbert space and returns exact metric tensor
     """
+    from netket.vqs import ExactState
     if isinstance(variational_state, ExactState):
         return partial(QGTJacobianPyTree, **kwargs)
 
