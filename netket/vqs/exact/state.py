@@ -13,9 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable, Dict, Optional, Union
-
-import numpy as np
+from typing import Any, Callable, Dict, Optional
 
 import jax
 from jax import numpy as jnp
@@ -26,7 +24,7 @@ from flax import serialization
 from netket import jax as nkjax
 from netket import nn
 from netket.hilbert import AbstractHilbert
-from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
+from netket.utils import maybe_wrap_module, wrap_afun
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
