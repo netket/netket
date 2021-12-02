@@ -141,16 +141,6 @@ def _expval(par, vs, H):
     return np.real(expval)
 
 
-@pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
-)
 def central_diff_grad(func, x, eps, *args, dtype=None):
     if dtype is None:
         dtype = x.dtype
