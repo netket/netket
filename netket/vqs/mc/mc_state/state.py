@@ -44,7 +44,7 @@ def compute_chain_length(n_chains, n_samples):
     chain_length = int(np.ceil(n_samples / n_chains))
 
     n_samples_new = chain_length * n_chains
-    n_samples_per_rank_new = n_samples // mpi.n_nodes
+    n_samples_per_rank_new = n_samples_new // mpi.n_nodes
 
     if n_samples_new != n_samples:
         n_samples_per_rank = n_samples // mpi.n_nodes
