@@ -22,7 +22,7 @@ import jax.numpy as jnp
 
 import numpy as np
 
-from netket.stats import subtract_mean, mean, sum
+from netket.stats import subtract_mean, sum
 from netket.utils import mpi
 
 from netket.utils.types import Array, Callable, PyTree, Scalar

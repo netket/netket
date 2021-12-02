@@ -15,23 +15,15 @@
 from functools import partial, lru_cache
 from typing import Callable, Any, Tuple
 
-import numpy as np
-
 import jax
-import scipy
 from jax import numpy as jnp
-from jax import tree_map
 from netket import jax as nkjax
-from netket.stats import statistics, Stats
+from netket.stats import Stats
 from netket.utils.types import PyTree
-from netket.utils.dispatch import dispatch, TrueT, FalseT
-from netket.utils import mpi
+from netket.utils.dispatch import dispatch, TrueT
 
-from netket.operator import (
-    DiscreteOperator,
-    AbstractSuperOperator,
-    Squared,
-)
+from netket.operator import DiscreteOperator
+
 
 from .state import ExactState
 

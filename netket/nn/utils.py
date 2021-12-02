@@ -22,7 +22,6 @@ def split_array_mpi(array):
     """
 
     n_states = array.shape[0]
-    n_states_padded = int(np.ceil(n_states / mpi.n_nodes)) * mpi.n_nodes
     states_n = np.arange(n_states)
 
     # divide the hilbert space in chunks for each node

@@ -24,8 +24,6 @@ from jax.nn.initializers import normal
 
 from .. import common
 
-nk.config.update("NETKET_EXPERIMENTAL", True)
-
 SEED = 2148364
 
 machines = {}
@@ -116,7 +114,7 @@ def test_derivatives_agree():
     ma = nk.models.RBM(alpha=10, dtype=float)
     vs = nk.vqs.ExactState(hi, ma)
 
-    _, grads_exact = nk.vqs.exact.expect_and_grad(vs, ha)
+    _, grads_exact = vs.expect_and_grad(ha)
 
     # Prepare the exact estimations
     pars_0 = vs.parameters
