@@ -28,6 +28,8 @@ from ..linear_operator import LinearOperator, Uninitialized
 from .qgt_jacobian_pytree_logic import mat_vec, prepare_centered_oks
 from .qgt_jacobian_common import choose_jacobian_mode
 
+from netket.nn import split_array_mpi
+
 
 def QGTJacobianPyTree(
     vstate=None,
@@ -55,7 +57,7 @@ def QGTJacobianPyTree(
               models. holomorphic works for any function assuming it's holomorphic
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
-        rescale_shift: If True rescales the diagonal shift
+        rescale_shift: If True rescales the diagonal shift.
     """
     if vstate is None:
         return partial(
@@ -66,13 +68,23 @@ def QGTJacobianPyTree(
             **kwargs,
         )
 
+    # TODO: Find a better way to handle this case
+    from netket.vqs import ExactState
+
+    if isinstance(vstate, ExactState):
+        samples = split_array_mpi(vstate._all_states)
+        pdf = split_array_mpi(vstate.probability_distribution())
+    else:
+        samples = vstate.samples
+        pdf = None
+
     # Choose sensible default mode
     if mode is None:
         mode = choose_jacobian_mode(
             vstate._apply_fun,
             vstate.parameters,
             vstate.model_state,
-            vstate.samples,
+            samples,
             mode=mode,
             holomorphic=holomorphic,
         )
@@ -82,10 +94,11 @@ def QGTJacobianPyTree(
     O, scale = prepare_centered_oks(
         vstate._apply_fun,
         vstate.parameters,
-        vstate.samples.reshape(-1, vstate.samples.shape[-1]),
+        samples.reshape(-1, samples.shape[-1]),
         vstate.model_state,
         mode,
         rescale_shift,
+        pdf,
     )
 
     return QGTJacobianPyTreeT(
