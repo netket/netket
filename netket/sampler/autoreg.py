@@ -93,11 +93,6 @@ class ARDirectSampler(Sampler):
         """
         return True
 
-    def _init_cache(sampler, model, σ, key):
-        variables = model.init(key, σ, 0, method=model.conditional)
-        cache = variables.get("cache")
-        return cache
-
     def _init_state(sampler, model, variables, key):
         return ARDirectSamplerState(key=key)
 
@@ -146,7 +141,7 @@ class ARDirectSampler(Sampler):
 
         # Initialize `cache` before generating a batch of samples,
         # even if `variables` is not changed and `reset` is not called
-        cache = sampler._init_cache(model, σ, key_init)
+        cache = model.init_cache(variables_no_cache, σ, key_init)
         if cache:
             variables = {**variables_no_cache, "cache": cache}
         else:

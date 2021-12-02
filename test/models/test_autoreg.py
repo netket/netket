@@ -310,9 +310,11 @@ class TestARNN:
         model1 = partial_model_pair[0](hilbert, param_dtype, machine_pow)
         model2 = partial_model_pair[1](hilbert, param_dtype, machine_pow)
 
-        key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
+        key_spins, key_model, key_cache = jax.random.split(jax.random.PRNGKey(0), 3)
         spins = hilbert.random_state(key_spins, size=batch_size)
-        variables = model2.init(key_model, spins, 0, method=model2.conditional)
+        variables_no_cache = model1.init(key_model, spins)
+        cache = model2.init_cache(variables_no_cache, spins, key_cache)
+        variables = {**variables_no_cache, "cache": cache}
 
         p1 = model1.apply(variables, spins, method=model1.conditionals)
         p2 = model2.apply(variables, spins, method=model2.conditionals)

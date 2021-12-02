@@ -26,7 +26,7 @@ from netket.hilbert.homogeneous import HomogeneousHilbert
 from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
 from netket.nn.masked_linear import default_kernel_init
 from netket.nn import activation as nkactivation
-from netket.utils.types import Array, DType, NNInitFunc
+from netket.utils.types import Array, DType, NNInitFunc, PRNGKeyT, PyTree
 from netket.utils import deprecate_dtype
 
 
@@ -153,6 +153,25 @@ class AbstractARNN(nn.Module):
         log_psi = jnp.take_along_axis(log_psi, idx, axis=-1)
         log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
         return log_psi
+
+    def _init_independent_cache(self, inputs: Array) -> None:
+        self.conditional(inputs, 0)
+
+    def _init_dependent_cache(self, inputs: Array) -> None:
+        pass
+
+    def init_cache(self, variables: PyTree, inputs: Array, key: PRNGKeyT) -> PyTree:
+        variables_tmp = self.init(key, inputs, method=self._init_independent_cache)
+        cache = variables_tmp.get("cache")
+        if cache:
+            variables = {**variables, "cache": cache}
+
+        _, mutables = self.apply(
+            variables, inputs, method=self._init_dependent_cache, mutable=["cache"]
+        )
+        cache = mutables.get("cache")
+
+        return cache
 
     def reorder(self, inputs: Array, axis: int = 0) -> Array:
         """
