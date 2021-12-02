@@ -7,10 +7,13 @@
 ## NetKet 3.3 (In development)
 
 ### New features
+* `LocalOperator` now accepts sparse matrices as input operators [#919](https://github.com/netket/netket/pull/919)
 
 ### Breaking Changes
 
 ### Internal Changes
+* `LocalOperator` now handles all internal operators as sparse matrices [#919](https://github.com/netket/pull/919)
+* Custom deepcopy for `LocalOperator` to avoid building `LocalOperator` from scratch each time it is copied [#964](https://github.com/netket/pull/964)
 
 ### Bug Fixes
 
