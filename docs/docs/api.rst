@@ -292,6 +292,7 @@ Variational State Interface
   :nosignatures:
 
   netket.vqs.VariationalState
+  netket.vqs.ExactState
   netket.vqs.MCState
   netket.vqs.MCMixedState
   netket.vqs.get_local_kernel
