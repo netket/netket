@@ -69,7 +69,7 @@ def QGTJacobianPyTree(
             **kwargs,
         )
 
-    from netket.vqs.exact import ExactState
+    from netket.vqs import ExactState
 
     if isinstance(vstate, ExactState):
         samples = split_array_mpi(vstate._all_states)

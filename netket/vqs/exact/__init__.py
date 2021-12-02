@@ -1,5 +1,5 @@
-from .exact_state import ExactState
+from .state import ExactState
 
-from . import exact_expect
+from . import expect
 
-from .exact_expect import expect_and_grad
+from .expect import expect_and_grad

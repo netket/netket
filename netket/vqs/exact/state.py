@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
 from functools import partial
 from typing import Any, Callable, Dict, Optional, Union
 
@@ -222,6 +221,10 @@ class ExactState(VariationalState):
         Returns:
             nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
+
+        if type(qgt_T) != nk.optimizer.qgt.QGTJacobianPyTree:
+            raise RuntimeError("Only QGTJacobianPyTree can be passed as metric tensor to exact VQS")
+
         raise qgt_T(self)
 
     def to_array(self, normalize: bool = True, allgather: bool = True) -> jnp.ndarray:
