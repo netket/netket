@@ -24,6 +24,11 @@ from ._hamiltonian import Ising, Heisenberg, BoseHubbard
 from ._abstract_super_operator import AbstractSuperOperator
 from ._local_liouvillian import LocalLiouvillian
 
+from ._continuous_operator import ContinousOperator
+from ._kinetic import KineticEnergy
+from ._potential import PotentialEnergy
+from ._sumoperators import SumOperator
+
 from . import spin, boson
 
 # TODO: Deprecated. Remove in v3.1

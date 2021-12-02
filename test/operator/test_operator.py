@@ -33,6 +33,15 @@ operators["Graph Hamiltonian"] = nk.operator.GraphOperator(
     hi, g, site_ops=[sigmax], bond_ops=[mszsz]
 )
 
+g_sub = nk.graph.Graph(edges=edges[:7])  # edges of first eight sites
+operators["Graph Hamiltonian (on subspace)"] = nk.operator.GraphOperator(
+    hi,
+    g_sub,
+    site_ops=[sigmax],
+    bond_ops=[mszsz],
+    acting_on_subspace=8,
+)
+
 # Graph Hamiltonian with colored edges
 edges_c = [(i, j, i % 2) for i, j in edges]
 g = nk.graph.Graph(edges=edges_c)
@@ -43,6 +52,11 @@ operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
     site_ops=[sigmax],
     bond_ops=[1.0 * mszsz, 2.0 * mszsz],
     bond_ops_colors=[0, 1],
+)
+
+# Heisenberg with colored edges
+operators["Heisenberg (colored edges)"] = nk.operator.Heisenberg(
+    hi, g, J=[1, 2], sign_rule=[True, False]
 )
 
 # Custom Hamiltonian
@@ -79,10 +93,11 @@ for name, op in operators.items():
         op_special[name] = op
 
 
+@pytest.mark.parametrize("attr", ["get_conn", "get_conn_padded"])
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-def test_produce_elements_in_hilbert(op):
+def test_produce_elements_in_hilbert(op, attr):
     rng = nk.jax.PRNGSeq(0)
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
@@ -95,7 +110,7 @@ def test_produce_elements_in_hilbert(op):
     for i in range(1000):
         rstate = hi.random_state(rng.next())
 
-        rstatet, mels = op.get_conn(rstate)
+        rstatet, mels = getattr(op, attr)(rstate)
 
         assert np.all(np.isin(rstatet, local_states))
         assert len(mels) <= max_conn_size
@@ -213,6 +228,7 @@ def test_deduced_hilbert_pauli():
     op = nk.operator.PauliStrings(["XXI", "YZX", "IZX"], [0.1, 0.2, -1.4])
     assert op.hilbert.size == 3
     assert len(op.hilbert.local_states) == 2
+    assert isinstance(op.hilbert, nk.hilbert.Qubit)
     assert np.allclose(op.hilbert.local_states, (0, 1))
 
 
@@ -243,9 +259,34 @@ def test_Heisenberg():
 
         nk.operator.Heisenberg(hi, graph=g, sign_rule=True)
 
+    L = 8
+    edges = [(i, (i + 1) % L, 0) for i in range(L)] + [
+        (i, (i + 2) % L, 1) for i in range(L)
+    ]
+    hi = nk.hilbert.Spin(0.5) ** L
+    g = nk.graph.Graph(edges=edges)
+    ha1 = nk.operator.Heisenberg(hi, graph=g, J=[1, 0.5])
+    ha2 = nk.operator.Heisenberg(hi, graph=g, J=[1, 0.5], sign_rule=[True, False])
 
-def test_pauli():
-    op = nk.operator.PauliStrings(["XX", "YZ", "IZ"], [0.1, 0.2, -1.4])
+    assert gs_energy(ha1) == pytest.approx(gs_energy(ha2))
+
+
+@pytest.mark.parametrize(
+    "hilbert",
+    [
+        pytest.param(hi, id=str(hi))
+        for hi in (nk.hilbert.Spin(1 / 2, 2), nk.hilbert.Qubit(2), None)
+    ],
+)
+def test_pauli(hilbert):
+    operators = ["XX", "YZ", "IZ"]
+    weights = [0.1, 0.2, -1.4]
+
+    if hilbert is None:
+        op = nk.operator.PauliStrings(operators, weights)
+    else:
+        op = nk.operator.PauliStrings(hilbert, operators, weights)
+        assert op.hilbert == hilbert
 
     op_l = (
         0.1
@@ -262,6 +303,35 @@ def test_pauli():
     assert np.allclose(op.to_dense(), op_l.to_dense())
 
     assert op.to_sparse().shape == op_l.to_sparse().shape
+
+
+def test_pauli_trivials():
+    operators = ["XX", "YZ", "IZ"]
+    weights = [0.1, 0.2, -1.4]
+
+    # without weight
+    nk.operator.PauliStrings(operators)
+    nk.operator.PauliStrings(nk.hilbert.Qubit(2), operators)
+    nk.operator.PauliStrings(nk.hilbert.Spin(1 / 2, 2), operators)
+
+    # using keywords
+    nk.operator.PauliStrings(operators, weights)
+    nk.operator.PauliStrings(nk.hilbert.Qubit(2), operators, weights)
+    nk.operator.PauliStrings(nk.hilbert.Spin(1 / 2, 2), operators, weights)
+
+    nk.operator.PauliStrings.identity(nk.hilbert.Qubit(2))
+    nk.operator.PauliStrings.identity(nk.hilbert.Spin(1 / 2, 2))
+
+
+def test_pauli_cutoff():
+    weights = [1, -1, 1]
+    operators = ["ZI", "IZ", "XX"]
+    op = nk.operator.PauliStrings(operators, weights, cutoff=1e-8)
+    hilbert = op.hilbert
+    x = np.ones((2,)) * hilbert.local_states[0]
+    xp, mels = op.get_conn(x)
+    assert xp.shape[-1] == hilbert.size
+    assert xp.shape[-2] == 1
 
 
 def test_pauli_order():
@@ -292,3 +362,147 @@ def test_pauli_order():
     vp, mels = op.get_conn_padded(v)
     assert vp.shape[1] == 1
     assert mels.shape[1] == 1
+
+
+def test_pauli_matmul():
+    op1 = nk.operator.PauliStrings(["X"], [1])
+    op2 = nk.operator.PauliStrings(["Y", "Z"], [1, 1])
+    op_true_mm = nk.operator.PauliStrings(["Z", "Y"], [1j, -1j])
+    op_mm = op1 @ op2
+    assert np.allclose(op_mm.to_dense(), op_true_mm.to_dense())
+
+    # more extensive test
+    operators1, weights1 = ["XII", "IXY"], [1, 3]
+    op1 = nk.operator.PauliStrings(operators1, weights1)
+    operators2, weights2 = ["XZZ", "YIZ", "ZII", "IIY"], [1, 0.2, 0.3, 3.1]
+    op2 = nk.operator.PauliStrings(operators2, weights2)
+    op = op1 @ op2
+    op1_true = weights1[0] * nk.operator.spin.sigmax(op.hilbert, 0, dtype=complex)
+    op1_true += (
+        weights1[1]
+        * nk.operator.spin.sigmax(op.hilbert, 1, dtype=complex)
+        * nk.operator.spin.sigmay(op.hilbert, 2)
+    )
+    op2_true = (
+        weights2[0]
+        * nk.operator.spin.sigmax(op.hilbert, 0, dtype=complex)
+        * nk.operator.spin.sigmaz(op.hilbert, 1)
+        * nk.operator.spin.sigmaz(op.hilbert, 2)
+    )
+    op2_true += (
+        weights2[1]
+        * nk.operator.spin.sigmay(op.hilbert, 0, dtype=complex)
+        * nk.operator.spin.sigmaz(op.hilbert, 2)
+    )
+    op2_true += weights2[2] * nk.operator.spin.sigmaz(op.hilbert, 0, dtype=complex)
+    op2_true += weights2[3] * nk.operator.spin.sigmay(op.hilbert, 2, dtype=complex)
+    assert np.allclose((op1_true @ op2_true).to_dense(), op.to_dense())
+
+
+def test_pauli_add_and_multiply():
+    op1 = nk.operator.PauliStrings(["X"], [1])
+    op2 = nk.operator.PauliStrings(["X", "Y", "Z"], [-1, 1, 1])
+    op_true_add = nk.operator.PauliStrings(["Y", "Z"], [1, 1])
+    op_add = op1 + op2
+    assert np.allclose(op_add.to_dense(), op_true_add.to_dense())
+    op_true_multiply = nk.operator.PauliStrings(["X", "Y", "Z"], [-2, 2, 2])
+    op_multiply = op2 * 2  # right
+    assert np.allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
+    op_multiply = 2 * op2  # left
+    assert np.allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
+
+    op_add_cte = nk.operator.PauliStrings(["X", "Y", "Z"], [-1, 1, 1]) + 2
+    op_true_add_cte = nk.operator.PauliStrings(["X", "Y", "Z", "I"], [-1, 1, 1, 2])
+    assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
+
+
+def test_openfermion_conversion():
+    # skip test if openfermion not installed
+    pytest.importorskip("openfermion")
+    from openfermion.ops import QubitOperator
+
+    of_qubit_operator = 0.5 * QubitOperator("X0 X3") + 0.3 * QubitOperator("Z0")
+
+    # no extra info given
+    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator)
+    assert isinstance(ps, nk.operator.PauliStrings)
+    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
+    assert ps.hilbert.size == 4
+
+    # number of qubits given
+    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator, n_qubits=6)
+    assert isinstance(ps, nk.operator.PauliStrings)
+    # check default
+    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
+    assert ps.hilbert.size == 6
+
+    # with hilbert
+    hilbert = nk.hilbert.Spin(1 / 2, 6)
+    ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
+    assert ps.hilbert == hilbert
+    assert ps.hilbert.size == 6
+
+
+@pytest.mark.parametrize(
+    "hilbert",
+    [
+        pytest.param(hi, id=str(hi))
+        for hi in (nk.hilbert.Spin(1 / 2, 2), nk.hilbert.Qubit(2), None)
+    ],
+)
+def test_pauli_output(hilbert):
+    ha = nk.operator.PauliStrings(nk.hilbert.Spin(1 / 2, 2), ["IZ", "ZI"], [1.0, 1.0])
+    all_states = ha.hilbert.all_states()
+    xp, _ = ha.get_conn_padded(all_states)
+    xp = xp.reshape(-1, ha.hilbert.size)
+
+    # following will throw an error if the output is not a valid hilbert state
+    for xpi in xp:
+        assert np.any(xpi == all_states), "{} not in hilbert space {}".format(
+            xpi, ha.hilbert
+        )
+
+
+def test_pauli_dense():
+
+    for op in ("I", "X", "Y", "Z"):
+        ha1 = nk.operator.PauliStrings(nk.hilbert.Qubit(1), [op], [1])
+        ha2 = nk.operator.PauliStrings(nk.hilbert.Spin(1 / 2, 1), [op], [1])
+        assert np.allclose(ha1.to_dense(), ha2.to_dense())
+
+
+def test_pauli_zero():
+    op1 = nk.operator.PauliStrings(["IZ"], [1])
+    op2 = nk.operator.PauliStrings(["IZ"], [-1])
+    op = op1 + op2
+
+    all_states = op.hilbert.all_states()
+    _, mels = op.get_conn_padded(all_states)
+    assert np.allclose(mels, 0)
+
+
+def test_operator_on_subspace():
+    hi = nk.hilbert.Spin(1 / 2, N=3) * nk.hilbert.Qubit(N=3)
+    g = nk.graph.Chain(3, pbc=False)
+
+    h1 = nk.operator.GraphOperator(hi, g, bond_ops=[mszsz], acting_on_subspace=0)
+    assert h1.acting_on_subspace == list(range(3))
+    assert nk.exact.lanczos_ed(h1)[0] == pytest.approx(-2.0)
+
+    h2 = nk.operator.GraphOperator(hi, g, bond_ops=[mszsz], acting_on_subspace=3)
+    assert h2.acting_on_subspace == list(range(3, 6))
+    assert nk.exact.lanczos_ed(h2)[0] == pytest.approx(-2.0)
+
+    h12 = h1 + h2
+    assert sorted(h12.acting_on) == [[0, 1], [1, 2], [3, 4], [4, 5]]
+    assert nk.exact.lanczos_ed(h12)[0] == pytest.approx(-4.0)
+
+    h3 = nk.operator.GraphOperator(
+        hi, g, bond_ops=[mszsz], acting_on_subspace=[0, 2, 4]
+    )
+    assert h3.acting_on_subspace == [0, 2, 4]
+    assert nk.exact.lanczos_ed(h3)[0] == pytest.approx(-2.0)
+    assert h3.acting_on == [[0, 2], [2, 4]]
+
+    h4 = nk.operator.Heisenberg(hi, g, acting_on_subspace=0)
+    assert h4.acting_on == h1.acting_on

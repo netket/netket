@@ -1,12 +1,25 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import jax
 from jax import numpy as jnp
 
-from netket.hilbert import AbstractParticle
+from netket.hilbert import Particle
 from netket.utils.dispatch import dispatch
 
 
 @dispatch
-def random_state(hilb: AbstractParticle, key, batches: int, *, dtype):
+def random_state(hilb: Particle, key, batches: int, *, dtype):
     """Positions particles w.r.t. normal distribution,
     if no periodic boundary conditions are applied
     in a spatial dimension. Otherwise the particles are
@@ -15,7 +28,7 @@ def random_state(hilb: AbstractParticle, key, batches: int, *, dtype):
     pbc = jnp.array(hilb.n_particles * hilb.pbc)
     boundary = jnp.tile(pbc, (batches, 1))
 
-    Ls = jnp.array(hilb.n_particles * hilb.extend)
+    Ls = jnp.array(hilb.n_particles * hilb.extent)
     modulus = jnp.where(jnp.equal(pbc, False), jnp.inf, Ls)
 
     gaussian = jax.random.normal(key, shape=(batches, hilb.size))

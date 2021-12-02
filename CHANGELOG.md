@@ -4,23 +4,56 @@
 
 # Change Log
 
-## NetKet 3.1 (under development)
+## NetKet 3.2 (In development)
 
 [GitHub commits](https://github.com/netket/netket/compare/v3.0...master).
+
+### New features
+* `Heisenberg` Hamiltonians support different coupling strengths on `Graph` edges with different colors. [#972](https://github.com/netket/netket/pull/972).
+* `GraphOperator` (and `Heisenberg`) now support passing a custom mapping of graph nodes to Hilbert space sites via the new `acting_on_subspace` argument. This makes it possible to create `GraphOperator`s that act on a subset of sites, which is useful in composite Hilbert spaces. [#924](https://github.com/netket/netket/pull/924)
+
+* In addition to nearest-neighbor edges, `Lattice` can now generate edges between next-nearest and, more generally, k-nearest neighbors via the constructor argument `max_neighbor_order`. The edges can be distinguished by their `color` property (which is used, e.g., by `GraphOperator` to apply different bond operators). [#970](https://github.com/netket/netket/pull/970)
+* The `little_group` and `space_group_irreps` methods of `SpaceGroupBuilder` take the wave vector as either varargs or iterables. [#975](https://github.com/netket/netket/pull/975)
+
+* A new `netket.experimental` submodule has been created and all experimental features have been moved there. Note that in contrast to the other `netket` submodules, `netket.experimental` is not imported by default. [#976](https://github.com/netket/netket/pull/976)
+
+### Breaking Changes
+* Moved `nk.vqs.variables_from_***` to `nk.experimental.vqs` module. Also moved the experimental samplers to `nk.sampler.MetropolisPt` and `nk.sampler.MetropolisPmap` to `nk.experimental.sampler`. [#976](https://github.com/netket/netket/pull/976)
+* `operator.size`, has been deprecated. If you were using this function, please transition to `operator.hilbert.size`. [#985](https://github.com/netket/netket/pull/985)
+
+### Internal Changes
+
+### Bug Fixes
+* The `DenseSymm` layer now also accepts objects of type `HashableArray` as `symmetries` argument. [#989](https://github.com/netket/netket/pull/989)
+
+
+## NetKet 3.1 (20 October 2021)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.0...v3.1).
 
 ### New features
 * Added Conversion methods `to_qobj()` to operators and variational states, that produce QuTiP's qobjects.
 * A function `nk.nn.activation.reim` has been added that transforms a nonlinearity to act seperately on the real and imaginary parts
 * Nonlinearities `reim_selu` and `reim_relu` have been added
+* Autoregressive Neural Networks (ARNN) now have a `machine_pow` field (defaults to 2) used to change the exponent used for the normalization of the wavefunction. [#940](https://github.com/netket/netket/pull/940).
 
 ### Breaking Changes
 * The default initializer for `netket.models.GCNN` has been changed to from `jax.nn.selu` to `netket.nn.reim_selu` [#892](https://github.com/netket/netket/pull/892)
 * `netket.nn.initializers` has been deprecated in favor of `jax.nn.initializers` [#935](https://github.com/netket/netket/pull/935).
+* Subclasses of `AbstractARNN` must define the field `machine_pow` [#940](https://github.com/netket/netket/pull/940)
+* `nk.hilbert.HilbertIndex` and `nk.operator.spin.DType` are now unexported (they where never intended to be visible).  [#904](https://github.com/netket/netket/pull/904)
+* `AbstractOperator`s have been renamed `DiscreteOperator`s. `AbstractOperator`s still exist, but have almost no functionality and they are intended as the base class for more arbitrary (eg. continuous space) operators. If you have defined a custom operator inheriting from `AbstractOperator` you should change it to derive from `DiscreteOperator`. [#929](https://github.com/netket/netket/pull/929)
+
 
 ### Internal Changes
+* `PermutationGroup.product_table` now consumes less memory and is more performant. This is helpfull when working with large symmetry groups. [#884](https://github.com/netket/netket/pull/884) [#891](https://github.com/netket/netket/pull/891)
+* Added size check to `DiscreteOperator.get_conn` and throw helpful error messages if those do not match. [#927](https://github.com/netket/netket/pull/927)
+* The internal `numba4jax` module has been factored out into a standalone library, named (how original) [`numba4jax`](http://github.com/PhilipVinc/numba4jax). This library was never intended to be used by external users, but if for any reason you were using it, you should switch to the external library. [#934](https://github.com/netket/netket/pull/934)
+* `netket.jax` now includes several _batching_ utilities like `batched_vmap` and `batched_vjp`. Those can be used to build memory efficient batched code, but are considered internal, experimental and might change without warning. [#925](https://github.com/netket/netket/pull/925).
 
 
 ### Bug Fixes
+* Autoregressive networks now work with `Qubit` hilbert spaces. [#937](https://github.com/netket/netket/pull/937)
 
 
 

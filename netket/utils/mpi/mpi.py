@@ -17,6 +17,7 @@ import warnings
 from textwrap import dedent
 
 from netket.utils.config_flags import config
+from netket.utils import module_version
 
 _mpi4py_loaded = False
 _mpi4jax_loaded = False
@@ -99,23 +100,9 @@ except ImportError:
 
 
 if mpi4py_available:
-    _MIN_MPI4JAX_VERSION = "0.3.1"
+    _MIN_MPI4JAX_VERSION = (0, 3, 1)
 
-    def _get_version_tuple(verstr):
-        # drop everything after the numeric part of the version
-        allowed_chars = "0123456789."
-        for i, char in enumerate(verstr):
-            if char not in allowed_chars:
-                break
-        else:
-            i = len(verstr) + 1
-
-        verstr = verstr[:i].rstrip(".")
-        return tuple(int(v) for v in verstr.split("."))[:3]
-
-    if _get_version_tuple(mpi4jax.__version__) < _get_version_tuple(
-        _MIN_MPI4JAX_VERSION
-    ):
+    if module_version(mpi4jax) < _MIN_MPI4JAX_VERSION:
         raise ImportError(
             f"Netket is only compatible with mpi4jax >= {_MIN_MPI4JAX_VERSION} "
             f"(you have mpi4jax == {mpi4jax.__version__}). "

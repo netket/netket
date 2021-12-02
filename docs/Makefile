@@ -27,6 +27,7 @@ copy-changelog:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 clean:
-	rm -r tutorials/
-	rm -r docs/changelog.md
+	rm -rf tutorials/
+	rm -rf docs/changelog.md
+	rm -rf docs/_generated
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

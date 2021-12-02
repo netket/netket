@@ -23,7 +23,7 @@ from netket.hilbert import (
     Qubit,
     DoubledHilbert,
     DiscreteHilbert,
-    ContinuousBoson,
+    Particle,
 )
 
 import jax
@@ -105,7 +105,7 @@ hilberts["DoubledHilbert[CustomHilbert]"] = DoubledHilbert(
 
 # Continuous space
 # no pbc
-hilberts["ContinuousSpaceHilbert"] = nk.hilbert.ContinuousBoson(
+hilberts["ContinuousSpaceHilbert"] = nk.hilbert.Particle(
     N=5, L=(np.inf, 10.0), pbc=(False, True)
 )
 
@@ -123,9 +123,9 @@ def test_consistent_size(hi):
         assert len(hi.local_states) == hi.local_size
         for state in hi.local_states:
             assert np.isfinite(state).all()
-    elif isinstance(hi, ContinuousBoson):
+    elif isinstance(hi, Particle):
         assert hi.n_particles > 0
-        assert len(hi.extend) == (hi.size // hi.n_particles)
+        assert len(hi.extent) == (hi.size // hi.n_particles)
 
 
 @pytest.mark.parametrize(
@@ -157,7 +157,7 @@ def test_random_states(hi):
         # assert hi.random_state(jax.random.PRNGKey(13), size=(10,)).shape == (10, hi.size)
         # assert hi.random_state(jax.random.PRNGKey(13), size=(10, 2)).shape == (10, 2, hi.size)
 
-    elif isinstance(hi, ContinuousBoson):
+    elif isinstance(hi, Particle):
         assert hi.random_state(jax.random.PRNGKey(13)).shape == (hi.size,)
         assert (
             hi.random_state(jax.random.PRNGKey(13), dtype=np.float32).dtype
@@ -173,7 +173,7 @@ def test_random_states(hi):
         # check that boundary conditions are fulfilled if any are given
         state = hi.random_state(jax.random.PRNGKey(13))
         boundary = jnp.array(hi.n_particles * hi.pbc)
-        Ls = jnp.array(hi.n_particles * hi.extend)
+        Ls = jnp.array(hi.n_particles * hi.extent)
         extension = jnp.where(jnp.equal(boundary, False), jnp.inf, Ls)
 
         assert jnp.sum(
@@ -271,3 +271,15 @@ def test_deprecations():
     with pytest.warns(FutureWarning):
         with pytest.raises(ValueError):
             Spin(s=0.5, graph=g, N=3)
+
+
+def test_composite_hilbert():
+    hi1 = Spin(s=1 / 2, N=8)
+    hi2 = Spin(s=3 / 2, N=8)
+
+    hi = hi1 * hi2
+
+    assert hi.size == hi1.size + hi2.size
+
+    for i in range(hi.size):
+        assert hi.size_at_index(i) == 2 if i < 8 else 4

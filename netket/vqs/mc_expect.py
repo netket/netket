@@ -1,12 +1,10 @@
 from functools import partial
-from typing import Callable, Union
+from typing import Callable
 
 import numpy as np
 
 import jax
 from jax import numpy as jnp
-
-from flax import linen as nn
 
 from netket import jax as nkjax
 from netket.stats import Stats
@@ -17,15 +15,11 @@ from netket.operator import (
     DiscreteOperator,
     AbstractSuperOperator,
     Squared,
+    ContinousOperator,
 )
 
 from .mc_state import MCState
 from .mc_mixed_state import MCMixedState
-
-AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
-ATrainFunType = Callable[
-    [nn.Module, PyTree, jnp.ndarray, Union[bool, PyTree]], jnp.ndarray
-]
 
 
 def _check_hilbert(A, B):
@@ -118,6 +112,23 @@ def expect(vstate: MCMixedState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     )
 
 
+@dispatch
+def expect(vstate: MCState, Ô: ContinousOperator) -> Stats:  # noqa: F811
+    _check_hilbert(vstate, Ô)
+
+    x = vstate.samples
+    kernel = Ô._expect_kernel
+    return _expect_continuous(
+        vstate.sampler.machine_pow,
+        vstate._apply_fun,
+        kernel,
+        vstate.parameters,
+        Ô._pack_arguments(),
+        vstate.model_state,
+        x,
+    )
+
+
 @partial(jax.jit, static_argnums=(1, 2))
 def _expect(
     machine_pow: int,
@@ -148,6 +159,39 @@ def _expect(
 
     _, Ō_stats = nkjax.expect(
         log_pdf, local_value_vmap, parameters, σ, σp, mels, n_chains=σ_shape[0]
+    )
+
+    return Ō_stats
+
+
+@partial(jax.jit, static_argnums=(1, 2))
+def _expect_continuous(
+    machine_pow: int,
+    model_apply_fun: Callable,
+    kernel: Callable,
+    parameters: PyTree,
+    additional_data: PyTree,
+    model_state: PyTree,
+    x: jnp.ndarray,
+) -> Stats:
+    x_shape = x.shape
+
+    if jnp.ndim(x) != 2:
+        x = x.reshape((-1, x_shape[-1]))
+
+    def logpsi(w, x):
+        return model_apply_fun({"params": w, **model_state}, x)
+
+    log_pdf = lambda w, x: machine_pow * model_apply_fun({"params": w}, x).real
+
+    local_value_vmap = jax.vmap(
+        partial(kernel, logpsi),
+        in_axes=(None, 0, None),
+        out_axes=0,
+    )
+
+    _, Ō_stats = nkjax.expect(
+        log_pdf, local_value_vmap, parameters, x, additional_data, n_chains=x_shape[0]
     )
 
     return Ō_stats

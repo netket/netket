@@ -21,6 +21,7 @@ from netket.operator import (
     local_value_cost,
     Squared,
     _der_local_values_jax,
+    ContinousOperator,
 )
 
 from .mc_state import MCState
@@ -163,6 +164,30 @@ def expect_and_grad(  # noqa: F811
     return Ō, Ō_grad
 
 
+@dispatch
+def expect_and_grad(  # noqa: F811
+    vstate: MCState,
+    Ô: ContinousOperator,
+    use_covariance: Any,
+    mutable: Any,
+) -> Tuple[Stats, PyTree]:
+    _check_hilbert(vstate, Ô)
+
+    x = vstate.samples
+    kernel = Ô._expect_kernel
+
+    Ō, Ō_grad = _grad_expect_continuous(
+        vstate._apply_fun,
+        kernel,
+        vstate.parameters,
+        Ô._pack_arguments(),
+        vstate.model_state,
+        x,
+    )
+
+    return Ō, Ō_grad
+
+
 @partial(jax.jit, static_argnums=(0, 1))
 def grad_expect_hermitian(
     model_apply_fun: Callable,
@@ -196,20 +221,13 @@ def grad_expect_hermitian(
     # Then compute the vjp.
     # Code is a bit more complex than a standard one because we support
     # mutable state (if it's there)
-    if mutable is False:
-        _, vjp_fun = nkjax.vjp(
-            lambda w: model_apply_fun({"params": w, **model_state}, σ),
-            parameters,
-            conjugate=True,
-        )
-        new_model_state = None
-    else:
-        _, vjp_fun, new_model_state = nkjax.vjp(
-            lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
-            parameters,
-            conjugate=True,
-            has_aux=True,
-        )
+    is_mutable = mutable is not False
+    _, vjp_fun, *new_model_state = nkjax.vjp(
+        lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
+        parameters,
+        conjugate=True,
+        has_aux=is_mutable,
+    )
     Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
 
     Ō_grad = jax.tree_multimap(
@@ -219,6 +237,8 @@ def grad_expect_hermitian(
         Ō_grad,
         parameters,
     )
+
+    new_model_state = new_model_state[0] if is_mutable else None
 
     return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
 
@@ -385,3 +405,61 @@ def grad_expect_operator_Lrho2(
         LdagL_grad,
         model_state,
     )
+
+
+@partial(jax.jit, static_argnums=(0, 1))
+def _grad_expect_continuous(
+    model_apply_fun: Callable,
+    kernel,
+    parameters: PyTree,
+    additional_data: PyTree,
+    model_state: PyTree,
+    x: jnp.ndarray,
+) -> Tuple[PyTree, PyTree]:
+
+    x_shape = x.shape
+    if jnp.ndim(x) != 2:
+        x = x.reshape((-1, x_shape[-1]))
+
+    n_samples = x.shape[0] * mpi.n_nodes
+
+    def logpsi(w, σ):
+        return model_apply_fun({"params": w, **model_state}, σ)
+
+    local_value_vmap = jax.vmap(
+        partial(kernel, logpsi),
+        in_axes=(None, 0, None),
+        out_axes=0,
+    )
+    # TODO: Once batching/chunking is implemented, should be made available here too.
+    x = x.reshape((-1, 1, x_shape[-1]))
+
+    def compute_kernel(i, x):
+        Oloc = local_value_vmap(parameters, x, additional_data)
+
+        return i, Oloc
+
+    _, O_loc = jax.lax.scan(compute_kernel, 0, x)
+    O_loc = O_loc.reshape(-1)
+
+    Ō = statistics(O_loc.reshape(x_shape[:-1]).T)
+    x = x.reshape((-1, x_shape[-1]))
+    O_loc -= Ō.mean
+
+    _, vjp_fun = nkjax.vjp(
+        lambda w: model_apply_fun({"params": w}, x),
+        parameters,
+        conjugate=False,
+    )
+
+    Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
+
+    Ō_grad = jax.tree_multimap(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
+            target.dtype
+        ),
+        Ō_grad,
+        parameters,
+    )
+
+    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)

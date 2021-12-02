@@ -678,7 +678,9 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
-            nk.graph.Graph, a nk.utils.PermuationGroup, or an array [n_symm, n_sites]
+            :ref:`netket.graph.Graph`, a :ref:`netket.utils.group.PermutationGroup`, or an array
+            of shape :code:`(n_symm, n_sites)`. A :ref:`netket.utils.HashableArray` may also
+            be passed.
             specifying the permutations corresponding to symmetry transformations
             of the lattice.
         point_group: The point group, from which the space group is built.
@@ -698,7 +700,6 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.
         bias_init: Optional bias initialization function. Defaults to zero initialization.
     """
-
     if isinstance(symmetries, Lattice) and (
         point_group is not None or symmetries._point_group is not None
     ):
@@ -713,12 +714,10 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
                 "in order to construct the space group"
             )
         sym = HashableArray(np.asarray(symmetries.automorphisms()))
-    elif isinstance(symmetries, PermutationGroup) or hasattr(symmetries, "__len__"):
-        sym = HashableArray(np.asarray(symmetries))
+    elif isinstance(symmetries, HashableArray):
+        sym = symmetries
     else:
-        raise ValueError(
-            "Symmetries must be specified as a Graph, PermutationGroup or Array"
-        )
+        sym = HashableArray(np.asarray(symmetries))
 
     if mode == "fft":
         if shape is None:

@@ -22,11 +22,11 @@ import numpy as np
 
 from flax import linen as nn
 
-from netket.utils import mpi, config, struct
+from netket.utils import mpi, struct
 from netket.utils.types import PyTree
 
-from .base import SamplerState
-from .metropolis import MetropolisSamplerState, MetropolisSampler
+from netket.sampler import SamplerState
+from netket.sampler import MetropolisSamplerState, MetropolisSampler
 
 
 @struct.dataclass
@@ -68,9 +68,9 @@ class MetropolisSamplerPmap(MetropolisSampler):
 
     .. math::
 
-        A(s \rightarrow s^\prime) = \mathrm{min} \left( 1,\frac{P(s^\prime)}{P(s)} F(e^{L(s,s^\prime)}) \right) ,
+        A(s \rightarrow s^\prime) = \mathrm{min} \left( 1,\frac{P(s^\prime)}{P(s)} e^{L(s,s^\prime)} \right) ,
 
-    where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here ::math::`M(s)` is a
+    where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here :math:`M(s)` is a
     user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
     and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
 
@@ -127,21 +127,6 @@ class MetropolisSamplerPmap(MetropolisSampler):
         return args, kwargs
 
     def __post_init__(self):
-        if not config.FLAGS["NETKET_EXPERIMENTAL"]:
-            raise RuntimeError(
-                """
-                               The Pmapped Metropolis sampler is an experimental
-                               feature. We have not yet extensively investigated how it affects
-                               performance, and when it is appropriate to use it.
-
-                               The API is experimental, and might change without warnings in
-                               future NetKet releases.
-
-                               Use it at your own risk by setting the environment variable
-                               NETKET_EXPERIMENTAL=1
-                               """
-            )
-
         super().__post_init__()
 
         n_chains_per_device = self.n_chains_per_rank // len(jax.devices())
