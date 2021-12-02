@@ -88,7 +88,7 @@ class QGTOnTheFlyT(LinearOperator):
     It's a jax.Partial, so can be used as pytree_node."""
 
     _params: PyTree = Uninitialized
-    """The first input to apply_fun (parameters of the ansatz). 
+    """The first input to apply_fun (parameters of the ansatz).
     Only used as a shape placeholder."""
 
     def __matmul__(self, y):

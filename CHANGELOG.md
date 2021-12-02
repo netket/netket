@@ -4,23 +4,77 @@
 
 # Change Log
 
-## NetKet 3.1 (under development)
+## NetKet 3.3 (In development)
 
-[GitHub commits](https://github.com/netket/netket/compare/v3.0...master).
+[GitHub commits](https://github.com/netket/netket/compare/v3.2...master).
+
+### New features
+* The interface to define expectation and gradient function of arbitrary custom operators is now stable. If you want to define it for a standard operator that can be written as an average of local expectation terms, you can now define a dispatch rule for {ref}`netket.vqs.get_local_kernel_arguments` and {ref}`netket.vqs.get_local_kernel`. The old mechanism is still supported, but we encourage to use the new mechanism as it is more terse. [#954](https://github.com/netket/netket/pull/954)
+* `nk.optimizer.Adam` now supports complex parameters, and you can use `nk.optimizer.split_complex` to make optimizers process complex parameters as if they are pairs of real parameters. [#1009](https://github.com/netket/netket/pull/1009)
+
+* Chunking of `MCState.expect` and `MCState.expect_and_grad` computations is now supported, which allows to bound the memory cost in exchange of a minor increase in computation time. [#1006](https://github.com/netket/netket/pull/1006) (and discussions in [#918](https://github.com/netket/netket/pull/918) and [#830](https://github.com/netket/netket/pull/830))
+
+### Breaking Changes
+
+### Internal Changes
+* The definitions of `MCState` and `MCMixedState` have been moved to an internal module, `nk.vqs.mc` that is hidden by default. [#954](https://github.com/netket/netket/pull/954)
+
+### Bug Fixes
+* The constructor of `TensorHilbert` (which is used by the product operator `*` for inhomogeneous spaces) no longer fails when one of the component spaces is non-indexable. [#1004](https://github.com/netket/netket/pull/1004)
+
+## NetKet 3.2 (26 November 2021)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.1...v3.2).
+
+### New features
+* `GraphOperator` (and `Heisenberg`) now support passing a custom mapping of graph nodes to Hilbert space sites via the new `acting_on_subspace` argument. This makes it possible to create `GraphOperator`s that act on a subset of sites, which is useful in composite Hilbert spaces. [#924](https://github.com/netket/netket/pull/924)
+* `PauliString` now supports any Hilbert space with local size 2. The Hilbert space is now the optional first argument of the constructor. [#960](https://github.com/netket/netket/pull/960)
+* `PauliString` now can be multiplied and summed together, performing some simple algebraic simplifications on the strings they contain. They also lazily initialize their internal data structures, making them faster to construct but slightly slower the first time that their matrix elements are accessed. [#955](https://github.com/netket/netket/pull/955)
+* `PauliString`s can now be constructed starting from an `OpenFermion` operator. [#956](https://github.com/netket/netket/pull/956)
+* In addition to nearest-neighbor edges, `Lattice` can now generate edges between next-nearest and, more generally, k-nearest neighbors via the constructor argument `max_neighbor_order`. The edges can be distinguished by their `color` property (which is used, e.g., by `GraphOperator` to apply different bond operators). [#970](https://github.com/netket/netket/pull/970)
+* Two continuous-space operators (`KineticEnergy` and `PotentialEnergy`) have been implemented. [#971](https://github.com/netket/netket/pull/971)
+* `Heisenberg` Hamiltonians support different coupling strengths on `Graph` edges with different colors. [#972](https://github.com/netket/netket/pull/972).
+* The `little_group` and `space_group_irreps` methods of `SpaceGroupBuilder` take the wave vector as either varargs or iterables. [#975](https://github.com/netket/netket/pull/975)
+* A new `netket.experimental` submodule has been created and all experimental features have been moved there. Note that in contrast to the other `netket` submodules, `netket.experimental` is not imported by default. [#976](https://github.com/netket/netket/pull/976)
+
+### Breaking Changes
+* Moved `nk.vqs.variables_from_***` to `nk.experimental.vqs` module. Also moved the experimental samplers to `nk.sampler.MetropolisPt` and `nk.sampler.MetropolisPmap` to `nk.experimental.sampler`. [#976](https://github.com/netket/netket/pull/976)
+* `operator.size`, has been deprecated. If you were using this function, please transition to `operator.hilbert.size`. [#985](https://github.com/netket/netket/pull/985)
+
+### Bug Fixes
+* A bug where `LocalOperator.get_conn_flattened` would read out-of-bounds memory has been fixed. It is unlikely that the bug was causing problems, but it triggered warnings when running Numba with boundscheck activated. [#966](https://github.com/netket/netket/pull/966)
+* The dependency `python-igraph` has been updated to `igraph` following the rename of the upstream project in order to work on conda. [#986](https://github.com/netket/netket/pull/986)
+* {attr}`~netket.vqs.MCState.n_samples_per_rank` was returning wrong values and has now been fixed. [#987](https://github.com/netket/netket/pull/987)
+* The `DenseSymm` layer now also accepts objects of type `HashableArray` as `symmetries` argument. [#989](https://github.com/netket/netket/pull/989)
+* A bug where `VMC.info()` was erroring has been fixed. [#984](https://github.com/netket/netket/pull/984)
+
+## NetKet 3.1 (20 October 2021)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.0...v3.1).
 
 ### New features
 * Added Conversion methods `to_qobj()` to operators and variational states, that produce QuTiP's qobjects.
 * A function `nk.nn.activation.reim` has been added that transforms a nonlinearity to act seperately on the real and imaginary parts
 * Nonlinearities `reim_selu` and `reim_relu` have been added
+* Autoregressive Neural Networks (ARNN) now have a `machine_pow` field (defaults to 2) used to change the exponent used for the normalization of the wavefunction. [#940](https://github.com/netket/netket/pull/940).
 
 ### Breaking Changes
 * The default initializer for `netket.models.GCNN` has been changed to from `jax.nn.selu` to `netket.nn.reim_selu` [#892](https://github.com/netket/netket/pull/892)
 * `netket.nn.initializers` has been deprecated in favor of `jax.nn.initializers` [#935](https://github.com/netket/netket/pull/935).
+* Subclasses of `AbstractARNN` must define the field `machine_pow` [#940](https://github.com/netket/netket/pull/940)
+* `nk.hilbert.HilbertIndex` and `nk.operator.spin.DType` are now unexported (they where never intended to be visible).  [#904](https://github.com/netket/netket/pull/904)
+* `AbstractOperator`s have been renamed `DiscreteOperator`s. `AbstractOperator`s still exist, but have almost no functionality and they are intended as the base class for more arbitrary (eg. continuous space) operators. If you have defined a custom operator inheriting from `AbstractOperator` you should change it to derive from `DiscreteOperator`. [#929](https://github.com/netket/netket/pull/929)
+
 
 ### Internal Changes
+* `PermutationGroup.product_table` now consumes less memory and is more performant. This is helpfull when working with large symmetry groups. [#884](https://github.com/netket/netket/pull/884) [#891](https://github.com/netket/netket/pull/891)
+* Added size check to `DiscreteOperator.get_conn` and throw helpful error messages if those do not match. [#927](https://github.com/netket/netket/pull/927)
+* The internal `numba4jax` module has been factored out into a standalone library, named (how original) [`numba4jax`](http://github.com/PhilipVinc/numba4jax). This library was never intended to be used by external users, but if for any reason you were using it, you should switch to the external library. [#934](https://github.com/netket/netket/pull/934)
+* `netket.jax` now includes several _batching_ utilities like `batched_vmap` and `batched_vjp`. Those can be used to build memory efficient batched code, but are considered internal, experimental and might change without warning. [#925](https://github.com/netket/netket/pull/925).
 
 
 ### Bug Fixes
+* Autoregressive networks now work with `Qubit` hilbert spaces. [#937](https://github.com/netket/netket/pull/937)
 
 
 
@@ -74,13 +128,13 @@
 
 ### New features
 
-* The {ref}`utils.group` submodule provides utilities for geometrical and permutation groups. `Lattice` (and its specialisations like `Grid`) use these to automatically construct the space groups of lattices, as well as their character tables for generating wave functions with broken symmetry. [#724](https://github.com/netket/netket/pull/724)
+* The {ref}`netket.utils.group` submodule provides utilities for geometrical and permutation groups. `Lattice` (and its specialisations like `Grid`) use these to automatically construct the space groups of lattices, as well as their character tables for generating wave functions with broken symmetry. [#724](https://github.com/netket/netket/pull/724)
 * Autoregressive neural networks, sampler, and masked linear layers have been added to `models`, `sampler` and `nn` [#705](https://github.com/netket/netket/pull/705).
 
 
 ### Breaking Changes
 
-* The `graph.Grid` class has been removed. {ref}`graph.Grid` will now return an instance of {ref}`graph.Lattice` supporting the same API but with new functionalities related to spatial symmetries. The `color_edges` optional keyword argument has been removed without deprecation. [#724](https://github.com/netket/netket/pull/724)
+* The `netket.graph.Grid` class has been removed. {ref}`netket.graph.Grid` will now return an instance of {ref}`graph.Lattice` supporting the same API but with new functionalities related to spatial symmetries. The `color_edges` optional keyword argument has been removed without deprecation. [#724](https://github.com/netket/netket/pull/724)
 * `MCState.n_discard` has been renamed `MCState.n_discard_per_chain` and the old binding has been deprecated [#739](https://github.com/netket/netket/pull/739).
 * `nk.optimizer.qgt.QGTOnTheFly` option `centered=True` has been removed because we are now convinced the two options yielded equivalent results. `QGTOnTheFly` now always behaves as if `centered=False` [#706](https://github.com/netket/netket/pull/706).
 
@@ -88,7 +142,7 @@
 
 * `networkX` has been replaced by `igraph`, yielding a considerable speedup for some graph-related operations [#729](https://github.com/netket/netket/pull/729).
 * `netket.hilbert.random` module now uses `plum-dispatch` (through `netket.utils.dispatch`) to select the correct implementation of `random_state` and `flip_state`. This makes it easy to define new hilbert states and extend their functionality easily.  [#734](https://github.com/netket/netket/pull/734).
-* The AbstractHilbert interface is now much smaller in order to also support continuous Hilbert spaces. Any functionality specific to discrete hilbert spaces (what was previously supported) has been moved to a new abstract type `nk.hilbert.DiscreteHilbert`. Any Hilbert space previously subclassing {ref}`nk.hilbert.AbstractHilbert` should be modified to subclass {ref}`nk.hilbert.DiscreteHilbert` [#800](https://github.com/netket/netket/pull/800).
+* The AbstractHilbert interface is now much smaller in order to also support continuous Hilbert spaces. Any functionality specific to discrete hilbert spaces (what was previously supported) has been moved to a new abstract type `netket.hilbert.DiscreteHilbert`. Any Hilbert space previously subclassing {ref}`netket.hilbert.AbstractHilbert` should be modified to subclass {ref}`netket.hilbert.DiscreteHilbert` [#800](https://github.com/netket/netket/pull/800).
 
 ### Bug Fixes
 
@@ -176,13 +230,13 @@
 
 * {class}`AbstractMachine` has been removed. It's functionality is now split among the model itself, which is defined by the user and {class}`variational.MCState` for pure states or {class}`variational.MCMixedState` for mixed states.
 
-  * The model, in general is composed by two functions, or an object with two functions: an `init(rng, sample_val)` function, accepting a {ref}`jax.random.PRNGKey` object and an input, returning the parameters and the state of the model for that particular sample shape, and a {code}`apply(params, samples, **kwargs)` function, evaluating the model for the given parameters and inputs.
+  * The model, in general is composed by two functions, or an object with two functions: an `init(rng, sample_val)` function, accepting a {func}`jax.random.PRNGKey` object and an input, returning the parameters and the state of the model for that particular sample shape, and a {code}`apply(params, samples, **kwargs)` function, evaluating the model for the given parameters and inputs.
 
   * Some models (previously machines) such as the RBM (Restricted Boltzmann Machine) Machine, NDM (Neural Density Matrix) or MPS (Matrix Product State ansatz) are available in {ref}`Pre-built models`.
 
   * Machines, now called models, should be written using [Flax](https://flax.readthedocs.io/en/latest) or another jax framework.
 
-  * Serialization and deserialization functionality has now been moved to {ref}`variational.MCState`, which support the standard Flax interface through MsgPack. See [Flax docs](https://flax.readthedocs.io/en/latest/flax.serialization.html) for more information
+  * Serialization and deserialization functionality has now been moved to {ref}`netket.variational.MCState`, which support the standard Flax interface through MsgPack. See [Flax docs](https://flax.readthedocs.io/en/latest/flax.serialization.html) for more information
 
   * {code}`AbstractMachine.init_random_parameters` functionality has now been absorbed into {meth}`netket.vqs.VariationalState.init_parameters`, which however has a different syntax.
 
@@ -195,13 +249,13 @@ Also note that several keyword arguments of the samplers have changed, and new o
 
 * {ref}`Samplers <Sampler>` are now immutable (frozen) `dataclasses` (defined through `flax.struct.dataclass`) that only hold the sampling parameters. As a consequence it is no longer possible to change their settings such as `n_chains` or `n_sweeps` without creating a new sampler. If you wish to update only one parameter, it is possible to construct the new sampler with the updated value by using the `sampler.replace(parameter=new_value)` function.
 
-* {ref}`Samplers <Sampler>` are no longer stateful objects. Instead, they can construct an immutable state object {ref}`sampler.init_state`, which can be passed to sampling functions such as {ref}`sampler.sample`, which now return also the updated state. However, unless you have particular use-cases we advise you use the variational state {ref}`MCState` instead.
+* {ref}`Samplers <Sampler>` are no longer stateful objects. Instead, they can construct an immutable state object {ref}`netket.sampler.init_state`, which can be passed to sampling functions such as {ref}`netket.sampler.sample`, which now return also the updated state. However, unless you have particular use-cases we advise you use the variational state {ref}`MCState` instead.
 
-* The {ref}`Optimizer` module has been overhauled, and now only re-exports flax optim module. We advise not to use netket's optimizer but instead to use [optax](https://github.com/deepmind/optax>) .
+* The {ref}`netket.optimizer` module has been overhauled, and now only re-exports flax optim module. We advise not to use netket's optimizer but instead to use [optax](https://github.com/deepmind/optax>) .
 
-* The {ref}`SR` object now is only a set of options used to compute the SR matrix. The SR matrix, now called `quantum_geometric_tensor` can be obtained by calling {meth}`variational.MCState.quantum_geometric_tensor`. Depending on the settings, this can be a lazy object.
+* The {ref}`netket.optimizer.SR` object now is only a set of options used to compute the SR matrix. The SR matrix, now called `quantum_geometric_tensor` can be obtained by calling {meth}`variational.MCState.quantum_geometric_tensor`. Depending on the settings, this can be a lazy object.
 
-* {ref}`netket.Vmc` has been renamed to {ref}`netkt.VMC`
+* `netket.Vmc` has been renamed to {ref}`netket.VMC`
 
 * {ref}`netket.models.RBM` replaces the old {code}`RBM` machine, but has real parameters by default.
 

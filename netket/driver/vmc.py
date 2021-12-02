@@ -163,10 +163,10 @@ class VMC(AbstractVariationalDriver):
         lines = [
             "{}: {}".format(name, info(obj, depth=depth + 1))
             for name, obj in [
-                ("Hamiltonian ", self._ham),
-                ("Optimizer   ", self._optimizer),
-                ("SR solver   ", self.sr),
-                ("State       ", self.state),
+                ("Hamiltonian    ", self._ham),
+                ("Optimizer      ", self._optimizer),
+                ("Preconditioner ", self.preconditioner),
+                ("State          ", self.state),
             ]
         ]
         return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)

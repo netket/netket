@@ -23,6 +23,15 @@ max_states = np.iinfo(np.int32).max
 """int: Maximum number of states that can be indexed"""
 
 
+def _is_indexable(shape):
+    """
+    Returns whether a discrete Hilbert space of shape `shape` is
+    indexable (i.e., its total number of states is below the maximum).
+    """
+    log_max = np.log(max_states)
+    return np.sum(np.log(shape)) <= log_max
+
+
 class NoneTypeT:
     pass
 
@@ -202,10 +211,7 @@ class DiscreteHilbert(AbstractHilbert):
         """Whever the space can be indexed with an integer"""
         if not self.is_finite:
             return False
-
-        log_max = np.log(max_states)
-
-        return np.sum(np.log(self.shape)) <= log_max
+        return _is_indexable(self.shape)
 
     def __mul__(self, other: "DiscreteHilbert"):
         if self == other:

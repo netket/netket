@@ -5,8 +5,15 @@
 .. autoclass:: {{ objname }}
    :show-inheritance:
 
-
    {% if all_methods is defined and all_methods %}
+
+   .. rst-class:: class-dl-groups
+
+   Inheritance
+      .. inheritance-diagram:: {{ module }}.{{ objname }}
+         :parts: 2
+
+
    {% block init %}{%- if '__init__' in all_methods %}
 
    .. automethod:: {{ name }}.__init__

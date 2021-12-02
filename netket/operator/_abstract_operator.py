@@ -13,10 +13,9 @@
 # limitations under the License.
 
 import abc
-import numpy as np
-import jax.numpy as jnp
 
 from netket.utils.types import DType
+from netket.utils import deprecated
 
 from netket.hilbert import AbstractHilbert
 
@@ -37,7 +36,9 @@ class AbstractOperator(abc.ABC):
         r"""The hilbert space associated to this operator."""
         return self._hilbert
 
+    # TODO: eventually remove this
     @property
+    @deprecated(reason="Please use `operator.hilbert.size` instead.")
     def size(self) -> int:
         r"""The total number number of local degrees of freedom."""
         return self._hilbert.size
@@ -66,7 +67,6 @@ class AbstractOperator(abc.ABC):
     @abc.abstractmethod
     def dtype(self) -> DType:
         """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
-        raise NotImplementedError
 
     def collect(self) -> "AbstractOperator":
         """

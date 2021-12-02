@@ -1,9 +1,9 @@
 
 .. _api:
 
-##########################
-Public API: netket package
-##########################
+##########
+Public API
+##########
 
 .. currentmodule:: netket
 
@@ -20,9 +20,9 @@ Graph
 
    netket.graph.AbstractGraph
    netket.graph.Graph
+   netket.graph.Lattice
    netket.graph.Edgeless
    netket.graph.Hypercube
-   netket.graph.Lattice
    netket.graph.lattice.LatticeSite
    netket.graph.Chain
    netket.graph.Grid
@@ -38,11 +38,16 @@ Hilbert
    :nosignatures:
 
    netket.hilbert.AbstractHilbert
+   netket.hilbert.ContinuousHilbert
+   netket.hilbert.DiscreteHilbert
+   netket.hilbert.HomogeneousHilbert
    netket.hilbert.CustomHilbert
+   netket.hilbert.TensorHilbert
    netket.hilbert.DoubledHilbert
-   netket.hilbert.Fock
-   netket.hilbert.Qubit
    netket.hilbert.Spin
+   netket.hilbert.Qubit
+   netket.hilbert.Fock
+   netket.hilbert.Particle
 
 .. _operators-api:
 
@@ -68,7 +73,7 @@ Pre-defined operators
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
-   :toctree: _generated/hilbert
+   :toctree: _generated/operator
    :nosignatures:
 
    netket.operator.boson.create
@@ -80,6 +85,19 @@ Pre-defined operators
    netket.operator.spin.sigmaz
    netket.operator.spin.sigmap
    netket.operator.spin.sigmam
+
+
+Continuous space operators
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: _generated/operator
+   :nosignatures:
+
+   netket.operator.ContinuousOperator
+   netket.operator.KineticEnergy
+   netket.operator.PotentialEnergy
+   netket.operator.SumOperator
 
 .. _exact-api:
 
@@ -138,13 +156,13 @@ This is because it is not possible to implement all transition rules in Jax.
    netket.sampler.ExactSampler
    netket.sampler.MetropolisSampler
    netket.sampler.MetropolisSamplerNumpy
-   netket.sampler.MetropolisPtSampler
+   netket.experimental.sampler.MetropolisPtSampler
 
    netket.sampler.MetropolisLocal
    netket.sampler.MetropolisExchange
    netket.sampler.MetropolisHamiltonian
-   netket.sampler.MetropolisLocalPt
-   netket.sampler.MetropolisExchangePt
+   netket.experimental.sampler.MetropolisLocalPt
+   netket.experimental.sampler.MetropolisExchangePt
 
    netket.sampler.ARDirectSampler
 
@@ -276,6 +294,8 @@ Variational State Interface
   netket.vqs.VariationalState
   netket.vqs.MCState
   netket.vqs.MCMixedState
+  netket.vqs.get_local_kernel
+  netket.vqs.get_local_kernel_arguments
 
 
 .. _optimizer-api:
