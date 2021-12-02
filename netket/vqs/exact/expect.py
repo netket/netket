@@ -75,6 +75,7 @@ def expect_and_grad(
     vstate: ExactState,
     Ô: DiscreteOperator,
     use_covariance: TrueT,
+    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     _check_hilbert(vstate, Ô)
@@ -135,7 +136,7 @@ def _exp_grad(
 
     return (
         None,
-        tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad),
+        Ō_grad,
         expval_O,
         new_model_state,
     )
