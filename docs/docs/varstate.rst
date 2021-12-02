@@ -295,3 +295,15 @@ Note that this also serializes the state of the sampler.
 
         with open("parameters.mpack", 'rb') as file:
           vstate.variables = flax.serialization.from_bytes(vstate.variables, file.read())
+
+
+Uxing Exact State for Testing
+--------------------------------------
+
+Before optimization, one can wonder whether a particular NQS Ansatz is capable of expressing the ground state exactly. To check it in a small system, ine may use the :class:`~netket.vqs.exact.ExactState` state. 
+
+.. code:: python
+
+    vs = nk.vqs.ExactState(hilbert, nk.models.RBM())
+
+Optimization with `ExactState` uses exact gradient and metric tensor evaluated as full sum over the Hilbert space.
