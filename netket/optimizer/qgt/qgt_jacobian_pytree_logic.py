@@ -216,7 +216,7 @@ def prepare_centered_oks(
         model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
-        pdf: |\psi(x)|^2 if exact optimization is being used else None
+        pdf: |ψ(x)|^2 if exact optimization is being used else None
     Returns:
         if not rescale_shift:
             a pytree representing the centered jacobian of ln Ψ evaluated at the samples σ, divided by √n;
