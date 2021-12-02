@@ -43,7 +43,7 @@ def _is_dense_solver(solver: Any) -> bool:
 
 def default_qgt_matrix(variational_state, solver=False, **kwargs):
     """
-    if variational_state is an ExactState, this performs the exact summation over the whole Hilbert space and returns exact metric tensor
+       Determines default metric tensor depending on variational_state and sovler
     """
     from netket.vqs import ExactState
     if isinstance(variational_state, ExactState):
