@@ -223,7 +223,9 @@ class ExactState(VariationalState):
         """
 
         if type(qgt_T) != nk.optimizer.qgt.QGTJacobianPyTree:
-            raise RuntimeError("Only QGTJacobianPyTree can be passed as metric tensor to exact VQS")
+            raise RuntimeError(
+                "Only QGTJacobianPyTree can be passed as metric tensor to exact VQS"
+            )
 
         raise qgt_T(self)
 

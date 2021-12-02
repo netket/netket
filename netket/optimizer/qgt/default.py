@@ -43,9 +43,10 @@ def _is_dense_solver(solver: Any) -> bool:
 
 def default_qgt_matrix(variational_state, solver=False, **kwargs):
     """
-       Determines default metric tensor depending on variational_state and sovler
+    Determines default metric tensor depending on variational_state and sovler
     """
     from netket.vqs import ExactState
+
     if isinstance(variational_state, ExactState):
         return partial(QGTJacobianPyTree, **kwargs)
 
