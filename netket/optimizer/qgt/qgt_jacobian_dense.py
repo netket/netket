@@ -67,6 +67,12 @@ def QGTJacobianDense(
             **kwargs,
         )
 
+    # TODO: Find a better way to handle this case
+    from netket.vqs import ExactState
+
+    if isinstance(vstate, ExactState):
+        raise TypeError("Only QGTJacobianPyTree works with ExactState.")
+
     if mode is None:
         mode = choose_jacobian_mode(
             vstate._apply_fun,
