@@ -51,6 +51,12 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
         )
         kwargs.pop("centered")
 
+    # TODO: Find a better way to handle this case
+    from netket.vqs import ExactState
+
+    if isinstance(vstate, ExactState):
+        raise TypeError("Only QGTJacobianPyTree works with ExactState.")
+
     if jnp.ndim(vstate.samples) == 2:
         samples = vstate.samples
     else:

@@ -69,6 +69,7 @@ def QGTJacobianPyTree(
             **kwargs,
         )
 
+    # TODO: Find a better way to handle this case
     from netket.vqs import ExactState
 
     if isinstance(vstate, ExactState):
