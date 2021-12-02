@@ -58,7 +58,6 @@ def QGTJacobianPyTree(
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
         rescale_shift: If True rescales the diagonal shift.
-        pdf: |ψ(x)|^2 if exact optimization is being used else None
     """
     if vstate is None:
         return partial(

@@ -296,14 +296,9 @@ Note that this also serializes the state of the sampler.
         with open("parameters.mpack", 'rb') as file:
           vstate.variables = flax.serialization.from_bytes(vstate.variables, file.read())
 
-
-Uxing Exact State for Testing
---------------------------------------
-
-Before optimization, one can wonder whether a particular NQS Ansatz is capable of expressing the ground state exactly. To check it in a small system, ine may use the :class:`~netket.vqs.exact.ExactState` state. 
-
+Using ExactState for testing
+----------------------------
+In order to check the performance of a given model on small test systems, it is possible to use :class:`~netket.vqs.exact.ExactState` which can be used in place of :class:`~netket.vqs.MCState` and computes quantities not by stochastic sampling but by evaluation of the ansatz over the full Hilbert space basis. (Therefore, it is infeasible to use for system sizes beyond ED.)
+This can be helpful to diagnose potential errors arising from Monte Carlo sampling.
 .. code:: python
-
     vs = nk.vqs.ExactState(hilbert, nk.models.RBM())
-
-Optimization with `ExactState` uses exact gradient and metric tensor evaluated as full sum over the Hilbert space.
