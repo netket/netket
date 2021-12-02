@@ -14,4 +14,4 @@
 
 
 from .runge_kutta import RungeKuttaIntegrator, RKIntegratorConfig
-from .runge_kutta import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45, Tsit5
+from .runge_kutta import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45

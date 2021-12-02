@@ -42,17 +42,17 @@ def expand_dim(tree: PyTree, sz: int):
     return jax.tree_map(_expand, tree)
 
 
-def _norm(res: Union[PyTree, Array]):
+def euclidean_norm(x: Union[PyTree, Array]):
     """
-    Computes the L2 norm of the Array or PyTree intended as a flattened array
+    Computes the Euclidean L2 norm of the Array or PyTree intended as a flattened array
     """
-    if isinstance(res, jnp.ndarray):
-        return jnp.sqrt(jnp.sum(jnp.abs(res) ** 2))
+    if isinstance(x, jnp.ndarray):
+        return jnp.sqrt(jnp.sum(jnp.abs(x) ** 2))
     else:
         return jnp.sqrt(
             jax.tree_util.tree_reduce(
                 lambda x, y: x + y,
-                jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), res),
+                jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), x),
             )
         )
 
@@ -182,7 +182,7 @@ class RungeKuttaState:
         )
 
 
-def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn=_norm):
+def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn):
     norm_y = norm_fn(y)
     scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nkjax.tree_size(y_err)
     return norm_fn(y_err) / scale, norm_y
@@ -201,6 +201,7 @@ def propose_time_step(dt, scaled_error, limits: LimitsType):
     )
 
 
+# TODO: Allow JITing
 # @partial(jax.jit, static_argnames=["step_fn", "norm_fn"])
 def general_time_step_adaptive(
     step_fn: Callable,
@@ -271,6 +272,7 @@ def general_time_step_adaptive(
     )
 
 
+# TODO: Allow JITing
 # @partial(jax.jit, static_argnames=["step_fn", "norm_fn"])
 def general_time_step_fixed(
     step_fn: Callable, rk_state: RungeKuttaState, max_dt: Optional[float]
@@ -317,7 +319,7 @@ class RungeKuttaIntegrator:
             self._do_step = self._do_step_fixed
 
         if self.norm is None:
-            self.norm = _norm
+            self.norm = euclidean_norm
 
         if self.dt_limits is None:
             self.dt_limits = (None, 10 * self.initial_dt)
@@ -344,10 +346,7 @@ class RungeKuttaIntegrator:
             in both cases, so the integrator state will have changed
             even after a rejected step.
         """
-        # print(f"RK.step (t={self.t}, {max_dt=})")
-        # print(f"      => {self._rkstate}")
         self._rkstate = self._do_step(self._rkstate, max_dt)
-        # print(f"      <= {self._rkstate}")
         return self._rkstate.accepted
 
     def _do_step_fixed(self, rk_state, max_dt=None):
@@ -520,65 +519,4 @@ bt_rk4_dopri  = TableauRKExplicit(
                 c_error = None,
                 )
 RK45 = partial(RKIntegratorConfig, tableau=bt_rk4_dopri)
-
-# Tsit5 method. Tableau entries taken from DiffEqDevTools.jl:
-# https://github.com/SciML/DiffEqDevTools.jl/blob/37fde034a03b8dcf440613a81df1483a06ea25f9/src/ode_tableaus.jl#L988-L1042
-def _make_tsit5(dtype=None):
-    a = np.zeros((7, 7), dtype)
-    b = np.zeros((2, 7), dtype)
-    c = np.zeros((7,), dtype)
-
-    a[1, 0] = 161 / 1000
-    a[2, 0] = -.8480655492356988544426874250230774675121177393430391537369234245294192976164141156943e-2
-    a[2, 1] = .3354806554923569885444268742502307746751211773934303915373692342452941929761641411569
-    a[3, 0] = 2.897153057105493432130432594192938764924887287701866490314866693455023795137503079289
-    a[3, 1] = -6.359448489975074843148159912383825625952700647415626703305928850207288721235210244366
-    a[3, 2] = 4.362295432869581411017727318190886861027813359713760212991062156752264926097707165077
-    a[4, 0] = 5.325864828439256604428877920840511317836476253097040101202360397727981648835607691791
-    a[4, 1] = -11.74888356406282787774717033978577296188744178259862899288666928009020615663593781589
-    a[4, 2] = 7.495539342889836208304604784564358155658679161518186721010132816213648793440552049753
-    a[4, 3] = -.9249506636175524925650207933207191611349983406029535244034750452930469056411389539635e-1
-    a[5, 0] = 5.861455442946420028659251486982647890394337666164814434818157239052507339770711679748
-    a[5, 1] = -12.92096931784710929170611868178335939541780751955743459166312250439928519268343184452
-    a[5, 2] = 8.159367898576158643180400794539253485181918321135053305748355423955009222648673734986
-    a[5, 3] = -.7158497328140099722453054252582973869127213147363544882721139659546372402303777878835e-1
-    a[5, 4] = -.2826905039406838290900305721271224146717633626879770007617876201276764571291579142206e-1
-    a[6, 0] = .9646076681806522951816731316512876333711995238157997181903319145764851595234062815396e-1
-    a[6, 1] = 1 / 100
-    a[6, 2] = .4798896504144995747752495322905965199130404621990332488332634944254542060153074523509
-    a[6, 3] = 1.379008574103741893192274821856872770756462643091360525934940067397245698027561293331
-    a[6, 4] = -3.290069515436080679901047585711363850115683290894936158531296799594813811049925401677
-    a[6, 5] = 2.324710524099773982415355918398765796109060233222962411944060046314465391054716027841
-    
-    b[0, 0] = .9646076681806522951816731316512876333711995238157997181903319145764851595234062815396e-1
-    b[0, 1] = 1 / 100
-    b[0, 2] = .4798896504144995747752495322905965199130404621990332488332634944254542060153074523509
-    b[0, 3] = 1.379008574103741893192274821856872770756462643091360525934940067397245698027561293331
-    b[0, 4] = -3.290069515436080679901047585711363850115683290894936158531296799594813811049925401677
-    b[0, 5] = 2.324710524099773982415355918398765796109060233222962411944060046314465391054716027841
-    b[1, 0] = .9468075576583945807478876255758922856117527357724631226139574065785592789071067303271e-1
-    b[1, 1] = .9183565540343253096776363936645313759813746240984095238905939532922955247253608687270e-2
-    b[1, 2] = .4877705284247615707855642599631228241516691959761363774365216240304071651579571959813
-    b[1, 3] = 1.234297566930478985655109673884237654035539930748192848315425833500484878378061439761
-    b[1, 4] = -2.707712349983525454881109975059321670689605166938197378763992255714444407154902012702
-    b[1, 5] = 1.866628418170587035753719399566211498666255505244122593996591602841258328965767580089
-    b[1, 6] = 1 / 66
-
-    c[1] = 161 / 1000
-    c[2] = 327 / 1000
-    c[3] =   9 / 10
-    c[4] = 0.9800255409045096857298102862870245954942137979563024768854764293221195950761080302604
-    c[5] = 1.0
-    c[6] = 1.0
-
-    return TableauRKExplicit(
-        name="Tsit5",
-        order=(5, 4),
-        a=jnp.asarray(a),
-        b=jnp.asarray(b),
-        c=jnp.asarray(c),
-        c_error=None,
-    )
-
-Tsit5 = partial(RKIntegratorConfig, tableau=_make_tsit5())
 # fmt: on

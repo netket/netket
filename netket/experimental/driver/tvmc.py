@@ -84,29 +84,27 @@ class TimeDependentVMC(AbstractVariationalDriver):
         linear_solver_restart: bool = False,
         error_norm: str = "euclidean",
     ):
-        """
-        Construct the time evolution driver.
+        r"""
+        Initializes the time evolution driver.
 
         Args:
             operator: The generator of the dynamics (Hamiltonian for pure states,
                 Lindbladian for density operators).
             variational_state: The variational state.
             integrator_config: Configuration of the algorithm used for solving the ODE.
-            t0: initial time
-            qgt: The QGT storage format.
+            t0: Initial time.
+            propagation_type: Determines the equation of motion: "real"  for the
+                real-time Schödinger equation (SE), "imag" for the imaginary-time SE.
+            qgt: The QGT specification.
             linear_solver: The solver for solving the linear system determining the time evolution.
             linear_solver_restart: If False (default), the last solution of the linear system
                 is used as initial value in subsequent steps.
-            tspan: Specify this as (t0, tend) or the two separately
+            error_norm: Norm function used to calculate the error with adaptive integrators.
+                Can be either "euclidean" for the standard L2 vector norm :math:`x^\dagger \cdot x`
+                or "qgt", in which case the scalar product induced by the QGT :math:`S` is used
+                to compute the norm :math:`\Vert x \Vert^2_S = x^\dagger \cdot S \cdot x` as suggested
+                in PRL 125, 100503 (2020).
         """
-        if variational_state.hilbert != operator.hilbert:
-            raise TypeError(
-                f"""the variational_state has hilbert space {variational_state.hilbert}
-                                (this is normally defined by the hilbert space in the sampler), but
-                                the operator has hilbert space {operator.hilbert}.
-                                The two should match."""
-            )
-
         self._t0 = t0
 
         if linear_solver is None:
@@ -153,29 +151,16 @@ class TimeDependentVMC(AbstractVariationalDriver):
     @property
     def generator(self) -> AbstractOperator:
         """
-        The generator of the dynamics integrated by this driver.
+        The generator of the dynamics.
         """
         return self._generator
 
     @property
     def integrator(self):
         """
-        The solver used to integrate the dynamics
+        The underlying integrator which computes the time steps.
         """
         return self._integrator
-
-    def _odefun(self, t, w, **kwargs):
-        """
-        The ODE determining the dynamics passed to scipy solvers.
-
-        Args:
-            t: The current time (unused).
-            w: The parameters as a vector.
-
-        Returns:
-            dwdt: the derivative at time t
-        """
-        return dwdt_mcstate(self.state, self, t, w, **kwargs)
 
     def advance(self, T: float):
         """
@@ -194,12 +179,10 @@ class TimeDependentVMC(AbstractVariationalDriver):
 
         Args:
             T: Length of the integration interval.
-            tstops: Sequence of time points where the integrator will stop
-                and yield, regardless of internal step size. When used with fixed-step
-                (i.e., non-adaptive) integrators, all entries must be of the form
-                :math:`t + n * h` where :math:`h` is the integrator step and :math:`n`
-                a positive integer.
-
+            tstops: A sequence of stopping times, each within the intervall :code:`[self.t0, self.t0 + T]`,
+                at which this method will stop and yield. By default, a stop is performed
+                after each time step (at potentially varying step size if an adaptive
+                integrator is used).
         Yields:
             The current step count.
         """
@@ -265,13 +248,13 @@ class TimeDependentVMC(AbstractVariationalDriver):
             out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
                 If this argument is a string, it will be used as output prefix for the standard JSON logger.
             obs: An iterable containing the observables that should be computed.
-            show_progress: If true displays a progress bar (default=True)
-            callback: Callable or list of callable callback functions to be executed at each
-                stoping time.
             tstops: A sequence of stopping times, each within the intervall :code:`[self.t0, self.t0 + T]`,
                 at which the driver will stop and perform estimation of observables, logging, and excecute
                 the callback function. By default, a stop is performed after each time step (at potentially
                 varying step size if an adaptive integrator is used).
+            show_progress: If true displays a progress bar (default=True)
+            callback: Callable or list of callable callback functions to be executed at each
+                stoping time.
         """
         if obs is None:
             obs = {}
@@ -350,31 +333,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
 
     @property
     def dt(self):
-        return self._integrator.step_size
-
-    @dt.setter
-    def dt(self, _dt):
-        success = False
-        try:
-            self._integrator.step_size = _dt
-            success = True
-        except AttributeError:
-            pass
-
-        if not success:
-            try:
-                self._integrator.h_abs = _dt
-                success = True
-            except AttributeError:
-                pass
-
-        if not success:
-            if self._integrator.h_abs == self._integrator.max_step:
-                self._integrator.h_abs = _dt
-                self.max_step = _dt
-            else:
-                self._integrator.h_abs = _dt
-            success = True
+        return self._integrator.dt
 
     @property
     def t(self):
@@ -384,12 +343,11 @@ class TimeDependentVMC(AbstractVariationalDriver):
     def t(self, t):
         self._integrator.t = jnp.array(t, dtype=self._integrator.t)
 
-    # @t_end.setter
-    # def t_end(self, t_end):
-    #    self._integrator.t_bound = t_end
-
     @property
     def t0(self):
+        """
+        The initial time set when the driver was created.
+        """
         return self._t0
 
     def __repr__(self):
@@ -406,6 +364,12 @@ class TimeDependentVMC(AbstractVariationalDriver):
             ]
         ]
         return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)
+
+    def _odefun(self, t, w, **kwargs):
+        """
+        Internal method which dispatches to the actual ODE system function.
+        """
+        return dwdt_mcstate(self.state, self, t, w, **kwargs)
 
     def _qgt_norm(self, x: PyTree):
         """

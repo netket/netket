@@ -17,7 +17,7 @@ import numpy as np
 
 import scipy.integrate as sci
 
-from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK45, Tsit5
+from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
 
 explicit_fixed_step_solvers = {
     "Euler": Euler,
@@ -27,8 +27,9 @@ explicit_fixed_step_solvers = {
 }
 
 explicit_adaptive_solvers = {
+    "RK12": RK12,
+    "RK23": RK23,
     "RK45": RK45,
-    "Tsit5": Tsit5,
 }
 
 
