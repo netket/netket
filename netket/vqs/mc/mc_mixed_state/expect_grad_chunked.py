@@ -12,10 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from netket.operator import AbstractOperator
+from netket.utils.dispatch import Bool
+
+from netket.vqs import expect_and_grad
+
 from .state import MCMixedState
 
-from . import expect
 
-from . import expect_grad
-
-from . import expect_chunked
+# If batch_size is None, ignore it and remove it from signature
+@expect_and_grad.dispatch
+def expect_and_grad_nochunking(
+    vstate: MCMixedState,
+    operator: AbstractOperator,
+    use_covariance: Bool,
+    chunk_size: None,
+    *args,
+    **kwargs,
+):
+    return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)

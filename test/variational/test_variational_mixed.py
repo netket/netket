@@ -22,6 +22,8 @@ import jax
 import netket as nk
 from jax.nn.initializers import normal
 
+from netket.operator import AbstractSuperOperator
+
 from .. import common
 
 pytestmark = common.skipif_mpi
@@ -59,9 +61,10 @@ ha = nk.operator.Ising(hi, graph=g, h=1.0, dtype=complex)
 jump_ops = [nk.operator.spin.sigmam(hi, i) for i in range(L)]
 
 liouv = nk.operator.LocalLiouvillian(ha.to_local_operator(), jump_ops)
+LdagL = liouv.H @ liouv
 
 # operators["operator:(Lind)"] = liouv
-operators["operator:(Lind^2)"] = liouv.H @ liouv
+operators["operator:(Lind^2)"] = LdagL
 operators["operator:H"] = ha
 operators["operator:sigmam"] = jump_ops[0]
 
@@ -207,3 +210,50 @@ def test_expect_numpysampler_works(vstate, operator):
     vstate.sampler = sampl
     out = vstate.expect(operator)
     assert isinstance(out, nk.stats.Stats)
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in operators.items()
+        if op.is_hermitian
+    ],
+)
+@pytest.mark.parametrize("n_chunks", [1, 2])
+def test_expect_chunking(vstate, operator, n_chunks):
+    vstate.n_samples = 208
+    chunk_size = vstate.n_samples_per_rank // n_chunks
+    chunk_size_diag = vstate.diagonal.n_samples_per_rank // n_chunks
+
+    eval_nochunk = vstate.expect(operator)
+    vstate.chunk_size = chunk_size
+    vstate.diagonal.chunk_size = chunk_size_diag
+    eval_chunk = vstate.expect(operator)
+
+    jax.tree_multimap(
+        partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
+    )
+
+
+@pytest.mark.parametrize("n_chunks", [1, 2])
+def test_expect_grad_chunking(vstate, n_chunks):
+    operator = LdagL
+
+    vstate.n_samples = 208
+    chunk_size = vstate.n_samples_per_rank // n_chunks
+    chunk_size_diag = vstate.diagonal.n_samples_per_rank // n_chunks
+
+    vstate.chunk_size = None
+    vstate.diagonal.chunk_size = None
+    grad_nochunk = vstate.grad(operator)
+    vstate.chunk_size = chunk_size
+    vstate.diagonal.chunk_size = chunk_size_diag
+    grad_chunk = vstate.grad(operator)
+
+    jax.tree_multimap(
+        partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
+    )

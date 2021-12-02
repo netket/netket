@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
-from typing import Callable
-
-import numpy as np
-
 from netket.utils.dispatch import dispatch
 
 from netket.operator import (
@@ -36,7 +31,9 @@ from .state import MCMixedState
 
 
 @dispatch
-def get_local_kernel_arguments(vstate: MCMixedState, Ô: DiscreteOperator):
+def get_local_kernel_arguments(  # noqa: F811
+    vstate: MCMixedState, Ô: DiscreteOperator
+):
     check_hilbert(vstate.diagonal.hilbert, Ô.hilbert)
 
     σ = vstate.diagonal.samples
@@ -45,12 +42,12 @@ def get_local_kernel_arguments(vstate: MCMixedState, Ô: DiscreteOperator):
 
 
 @dispatch
-def get_local_kernel(vstate: MCMixedState, Ô: DiscreteOperator):
+def get_local_kernel(vstate: MCMixedState, Ô: DiscreteOperator):  # noqa: F811
     return kernels.local_value_op_op_cost
 
 
 @dispatch
-def get_local_kernel_arguments(
+def get_local_kernel_arguments(  # noqa: F811
     vstate: MCMixedState, Ô: Squared[AbstractSuperOperator]
 ):
     check_hilbert(vstate.hilbert, Ô.hilbert)
@@ -61,5 +58,7 @@ def get_local_kernel_arguments(
 
 
 @dispatch
-def get_local_kernel(vstate: MCMixedState, Ô: Squared[AbstractSuperOperator]):
+def get_local_kernel(  # noqa: F811
+    vstate: MCMixedState, Ô: Squared[AbstractSuperOperator]
+):
     return kernels.local_value_squared_kernel

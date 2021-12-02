@@ -34,4 +34,6 @@ def __getattr__(name):
 
 
 def __dir__():
+    from netket.experimental import vqs as _new_module
+
     return dir(_new_module)

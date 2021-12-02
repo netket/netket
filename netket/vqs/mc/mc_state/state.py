@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 
@@ -26,13 +26,15 @@ from flax import serialization
 
 from netket import jax as nkjax
 from netket import nn
+from netket.stats import Stats
+from netket.operator import AbstractOperator
 from netket.sampler import Sampler, SamplerState
 from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
-from netket.vqs import VariationalState
+from netket.vqs.base import VariationalState, expect, expect_and_grad
 
 
 def compute_chain_length(n_chains, n_samples):
@@ -40,7 +42,36 @@ def compute_chain_length(n_chains, n_samples):
         raise ValueError("Invalid number of samples: n_samples={}".format(n_samples))
 
     chain_length = int(np.ceil(n_samples / n_chains))
+
+    n_samples_new = chain_length * n_chains
+    n_samples_per_rank_new = n_samples // mpi.n_nodes
+
+    if n_samples_new != n_samples:
+        n_samples_per_rank = n_samples // mpi.n_nodes
+        warnings.warn(
+            f"n_samples={n_samples} ({n_samples_per_rank} per MPI rank) does not "
+            f"divide n_chains={n_chains}, increased to {n_samples_new} "
+            f"({n_samples_per_rank_new} per MPI rank)"
+        )
+
     return chain_length
+
+
+def check_chunk_size(n_samples, chunk_size):
+    n_samples_per_rank = n_samples // mpi.n_nodes
+
+    if chunk_size is not None:
+        if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
+            raise ValueError(
+                f"chunk_size={chunk_size}`<`n_samples_per_rank={n_samples_per_rank}, "
+                "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
+                "unsupported. Please change `chunk_size` so that it divides evenly the"
+                "number of samples per rank or set it to `None` to disable chunking."
+            )
+
+
+def _is_power_of_two(n: int) -> bool:
+    return (n != 0) and (n & (n - 1) == 0)
 
 
 @partial(jax.jit, static_argnums=0)
@@ -83,6 +114,8 @@ class MCState(VariationalState):
     _apply_fun: Callable = None
     """The function used to evaluate the model"""
 
+    _chunk_size: Optional[int] = None
+
     def __init__(
         self,
         sampler: Sampler,
@@ -92,6 +125,7 @@ class MCState(VariationalState):
         n_samples_per_rank: Optional[int] = None,
         n_discard: Optional[int] = None,  # deprecated
         n_discard_per_chain: Optional[int] = None,
+        chunk_size: Optional[int] = None,
         variables: Optional[PyTree] = None,
         init_fun: NNInitFunc = None,
         apply_fun: Callable = None,
@@ -214,6 +248,8 @@ class MCState(VariationalState):
 
         self.n_discard_per_chain = n_discard_per_chain
 
+        self.chunk_size = chunk_size
+
     def init(self, seed=None, dtype=None):
         """
         Initialises the variational parameters of the variational state.
@@ -272,12 +308,14 @@ class MCState(VariationalState):
     def n_samples(self, n_samples: int):
         chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
-        n_samples_per_node = chain_length * self.sampler.n_chains_per_rank
+        n_samples_per_rank = chain_length * self.sampler.n_chains_per_rank
         n_samples = chain_length * self.sampler.n_chains
+
+        check_chunk_size(n_samples, self.chunk_size)
 
         self._n_samples = n_samples
         self._chain_length = chain_length
-        self._n_samples_per_rank = n_samples_per_node
+        self._n_samples_per_rank = n_samples_per_rank
         self.reset()
 
     @property
@@ -356,6 +394,48 @@ class MCState(VariationalState):
         )
         self.n_discard_per_chain = val
 
+    @property
+    def chunk_size(self) -> int:
+        """
+        Suggested *maximum size* of the chunks used in forward and backward evaluations
+        of the Neural Network model. If your inputs are smaller than the chunk size
+        this setting is ignored.
+
+        This can be used to lower the memory required to run a computation with a very
+        high number of samples or on a very large lattice. Notice that inputs and
+        outputs must still fit in memory, but the intermediate computations will now
+        require less memory.
+
+        This option comes at an increased computational cost. While this cost should
+        be negligible for large-enough chunk sizes, don't use it unless you are memory
+        bound!
+
+        This option is an hint: only some operations support chunking. If you perform
+        an operation that is not implemented with chunking support, it will fall back
+        to no chunking. To check if this happened, set the environment variable
+        `NETKET_DEBUG=1`.
+        """
+        return self._chunk_size
+
+    @chunk_size.setter
+    def chunk_size(self, chunk_size: Optional[int]):
+        # disable chunks if it is None
+        if chunk_size is None:
+            self._chunk_size = None
+            return
+
+        if chunk_size <= 0:
+            raise ValueError("Chunk size must be a positive integer. ")
+
+        if not _is_power_of_two(chunk_size):
+            warnings.warn(
+                "For performance reasons, we suggest to use a power-of-two chunk size."
+            )
+
+        check_chunk_size(self.n_samples, chunk_size)
+
+        self._chunk_size = chunk_size
+
     def reset(self):
         """
         Resets the sampled states. This method is called automatically every time
@@ -381,10 +461,18 @@ class MCState(VariationalState):
             n_samples: The total number of samples across all MPI ranks.
             n_discard_per_chain: Number of discarded samples at the beginning of the markov chain.
         """
+
         if n_samples is None and chain_length is None:
             chain_length = self.chain_length
-        elif chain_length is None:
-            chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
+        else:
+            if chain_length is None:
+                chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
+
+            if self.chunk_size is not None:
+                check_chunk_size(
+                    chain_length * self.sampler.n_chains_per_rank * mpi.n_nodes,
+                    self.chunk_size,
+                )
 
         if n_discard_per_chain is None:
             n_discard_per_chain = self.n_discard_per_chain
@@ -438,6 +526,53 @@ class MCState(VariationalState):
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
+    # override to use chunks
+    def expect(self, Ô: AbstractOperator) -> Stats:
+        r"""Estimates the quantum expectation value for a given operator O.
+            In the case of a pure state $\psi$, this is $<O>= <Psi|O|Psi>/<Psi|Psi>$
+            otherwise for a mixed state $\rho$, this is $<O> = \Tr[\rho \hat{O}/\Tr[\rho]$.
+
+        Args:
+            Ô: the operator O.
+
+        Returns:
+            An estimation of the quantum expectation value <O>.
+        """
+        return expect(self, Ô, self.chunk_size)
+
+    # override to use chunks
+    def expect_and_grad(
+        self,
+        Ô: AbstractOperator,
+        *,
+        mutable: Optional[Any] = None,
+        use_covariance: Optional[bool] = None,
+    ) -> Tuple[Stats, PyTree]:
+        r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+
+        Args:
+            Ô: the operator Ô for which we compute the expectation value and it's gradient
+            mutable: Can be bool, str, or list. Specifies which collections in the model_state should
+                     be treated as  mutable: bool: all/no collections are mutable. str: The name of a
+                     single mutable  collection. list: A list of names of mutable collections.
+                     This is used to mutate the state of the model while you train it (for example
+                     to implement BatchNorm. Consult
+                     `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
+                     for a more in-depth exaplanation).
+            use_covariance: whever to use the covariance formula, usually reserved for
+                hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
+
+        Returns:
+            An estimation of the quantum expectation value <O>.
+            An estimation of the average gradient of the quantum expectation value <O>.
+        """
+        if mutable is None:
+            mutable = self.mutable
+
+        return expect_and_grad(
+            self, Ô, use_covariance, self.chunk_size, mutable=mutable
+        )
+
     @deprecated("Use MCState.log_value(σ) instead.")
     def evaluate(self, σ: jnp.ndarray) -> jnp.ndarray:
         """
@@ -487,8 +622,6 @@ class MCState(VariationalState):
 
 
 # serialization
-
-
 def serialize_MCState(vstate):
     state_dict = {
         "variables": serialization.to_state_dict(vstate.variables),

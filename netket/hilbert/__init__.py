@@ -15,7 +15,6 @@
 from .abstract_hilbert import AbstractHilbert
 from .discrete_hilbert import DiscreteHilbert
 from .homogeneous import HomogeneousHilbert
-from .tensor_hilbert import TensorHilbert
 
 from .continuous_hilbert import ContinuousHilbert
 

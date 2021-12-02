@@ -140,6 +140,43 @@ def test_n_samples_api(vstate, _mpi_size):
     assert vstate.n_samples_per_rank == vstate.n_samples // _mpi_size
 
 
+def test_chunk_size_api(vstate, _mpi_size):
+    assert vstate.chunk_size is None
+
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = -1
+
+    vstate.n_samples = 1008
+
+    # does not divide n_samples
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = 100
+
+    assert vstate.chunk_size is None
+
+    vstate.chunk_size = 126
+    assert vstate.chunk_size == 126
+
+    vstate.n_samples = 1008 * 2
+    assert vstate.chunk_size == 126
+
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = 1500
+
+    s = vstate.sample()
+    s = vstate.sample(n_samples=vstate.n_samples)
+    with raises(
+        ValueError,
+    ):
+        vstate.sample(n_samples=1008 + 16)
+
+
 def test_deprecations(vstate):
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
@@ -287,6 +324,40 @@ def test_expect(vstate, operator):
 
     O_grad, _ = nk.jax.tree_ravel(O_grad)
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in operators.items()
+        if op.is_hermitian
+    ],
+)
+@pytest.mark.parametrize("n_chunks", [1, 2])
+def test_expect_chunking(vstate, operator, n_chunks):
+    vstate.n_samples = 200
+    chunk_size = vstate.n_samples_per_rank // n_chunks
+
+    eval_nochunk = vstate.expect(operator)
+    vstate.chunk_size = chunk_size
+    eval_chunk = vstate.expect(operator)
+
+    jax.tree_multimap(
+        partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
+    )
+
+    vstate.chunk_size = None
+    grad_nochunk = vstate.grad(operator)
+    vstate.chunk_size = chunk_size
+    grad_chunk = vstate.grad(operator)
+
+    jax.tree_multimap(
+        partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
+    )
 
 
 ###

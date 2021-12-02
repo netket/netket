@@ -15,14 +15,12 @@
 from functools import partial
 from typing import Any, Callable, Tuple
 
-import numpy as np
-
 import jax
 from jax import numpy as jnp
 
 from netket import jax as nkjax
 from netket import config
-from netket.stats import Stats, statistics, mean
+from netket.stats import Stats, statistics
 from netket.utils import mpi
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch, TrueT, FalseT
@@ -30,14 +28,10 @@ from netket.utils.dispatch import dispatch, TrueT, FalseT
 from netket.operator import (
     AbstractOperator,
     DiscreteOperator,
-    AbstractSuperOperator,
     Squared,
-    ContinuousOperator,
 )
 
 from netket.vqs.mc import (
-    kernels,
-    check_hilbert,
     get_local_kernel_arguments,
     get_local_kernel,
 )
@@ -50,6 +44,7 @@ def expect_and_grad(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
     use_covariance: TrueT,
+    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
@@ -74,14 +69,15 @@ def expect_and_grad(  # noqa: F811
 
 # pure state, squared operator
 @dispatch.multi(
-    (MCState, Squared[DiscreteOperator], TrueT, Any),
-    (MCState, Squared[AbstractOperator], TrueT, Any),
-    (MCState, DiscreteOperator, FalseT, Any),
+    (MCState, Squared[DiscreteOperator], FalseT),
+    (MCState, Squared[AbstractOperator], FalseT),
+    (MCState, AbstractOperator, FalseT),
 )
-def expect_and_grad(
-    vstate: MCState,
-    Ô: Squared[DiscreteOperator],
-    use_covariance: Any,
+def expect_and_grad(  # noqa: F811
+    vstate,
+    Ô,
+    use_covariance,
+    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)

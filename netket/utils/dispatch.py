@@ -12,25 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from plum import dispatch, parametric, convert  # noqa: F401
+from typing import Union
 
+from plum import dispatch, parametric, convert, Val  # noqa: F401
 
-# A simple type to represent a compile-constant True/False type
-class Bool:
-    """A class representing a static True/False that can be used for dispatch."""
-
-    pass
-
-
-class TrueT(Bool):
-    """A class representing a static True value that can be used for dispatch."""
-
-    def __bool__(self):
-        return True
-
-
-class FalseT(Bool):
-    """A class representing a static False value that can be used for dispatch."""
-
-    def __bool__(self):
-        return False
+# Signature-types for True and False
+TrueT = Val[True]
+FalseT = Val[False]
+Bool = Union[TrueT, FalseT]

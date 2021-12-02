@@ -21,35 +21,28 @@ import jax
 from jax import numpy as jnp
 
 from netket import jax as nkjax
-from netket import config
 from netket.stats import Stats, statistics, mean
 from netket.utils import mpi
 from netket.utils.types import PyTree
-from netket.utils.dispatch import dispatch, TrueT, FalseT
+from netket.utils.dispatch import dispatch, FalseT
 
 from netket.operator import (
-    DiscreteOperator,
     AbstractSuperOperator,
-    local_cost_function,
-    local_value_cost,
+    # local_value_cost,
     Squared,
     _der_local_values_jax,
 )
 
-from netket.vqs.mc import (
-    kernels,
-    check_hilbert,
-    get_local_kernel_arguments,
-    get_local_kernel,
-)
 from .state import MCMixedState
+
 
 # mixed state, squared super-operator
 @dispatch
 def expect_and_grad(  # noqa: F811
     vstate: MCMixedState,
     Ô: Squared[AbstractSuperOperator],
-    use_covariance: TrueT,
+    use_covariance: FalseT,
+    *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
     Ô = Ô.parent

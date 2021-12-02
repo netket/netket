@@ -12,10 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from netket.utils.dispatch import dispatch
+
+from netket.operator import (
+    AbstractSuperOperator,
+    DiscreteOperator,
+    Squared,
+)
+
+from netket.vqs.mc import kernels, get_local_kernel
+
 from .state import MCMixedState
 
-from . import expect
 
-from . import expect_grad
+# Dispatches to select what expect-kernel to use
+@dispatch
+def get_local_kernel(  # noqa: F811
+    vstate: MCMixedState, Ô: Squared[AbstractSuperOperator], chunk_size: int
+):
+    return kernels.local_value_squared_kernel_chunked
 
-from . import expect_chunked
+
+@dispatch
+def get_local_kernel(  # noqa: F811
+    vstate: MCMixedState, Ô: DiscreteOperator, chunk_size: int
+):
+    return kernels.local_value_op_op_cost_chunked
