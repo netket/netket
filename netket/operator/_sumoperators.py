@@ -58,6 +58,12 @@ class SumOperator(ContinuousOperator):
 
         super().__init__(hil[0], self._dtype)
 
+        self._is_hermitian = all([op.is_hermitian for op in operators])
+
+    @property
+    def is_hermitian(self):
+        return self._is_hermitian
+
     def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
     ):
@@ -65,7 +71,18 @@ class SumOperator(ContinuousOperator):
             op._expect_kernel(logpsi, params, x, data[i])
             for i, op in enumerate(self._ops)
         ]
-        return jnp.sum(jnp.array(result))
+
+        return sum(result)
+
+    def _expect_kernel_batched(
+        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+    ):
+        result = [
+            op._expect_kernel_batched(logpsi, params, x, data[i])
+            for i, op in enumerate(self._ops)
+        ]
+
+        return sum(result)
 
     def _pack_arguments(self):
         return [self._coeff * jnp.array(op._pack_arguments()) for op in self._ops]

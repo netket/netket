@@ -80,7 +80,7 @@ def _expect_fwd(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args):
 # TODO: in principle, the gradient of an expectation is another expectation,
 # so it should support higher-order derivatives
 # But I don't know how to transform log_prob_fun into grad(log_prob_fun) while
-# keeping the batch dimension and without a loop through the batch dimension
+# keeping the chunk dimension and without a loop through the chunk dimension
 def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
     pars, σ, cost_args, ΔL_σ = residuals
     dL̄, dL̄_stats = dout

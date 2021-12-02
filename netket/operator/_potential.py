@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Optional, Callable
+from functools import partial
 
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinuousOperator
 
+import jax
 import jax.numpy as jnp
 
 
@@ -46,10 +48,19 @@ class PotentialEnergy(ContinuousOperator):
         super().__init__(hilbert, self.coefficient.dtype)
 
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
     ):
+        return coefficient * self._afun(x)
 
-        return jnp.sum(jnp.array(data) * self._afun(x))
+    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
+    def _expect_kernel_batched(
+        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
+    ):
+        return self._expect_kernel(logpsi, params, x, coefficient)
+
+    @property
+    def is_hermitian(self):
+        return True
 
     def _pack_arguments(self):
         return self.coefficient

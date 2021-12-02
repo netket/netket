@@ -58,11 +58,11 @@ As NetKet is a package focused on Monte Carlo calculations, we also need a way t
 This can be achieved through the method {meth}`~netket.hilbert.AbstractHilbert.random_state`. 
 
 ```{eval-rst}
-.. autofunction:: netket.hilbert.AbstractHilbert.random_state
+.. automethod:: netket.hilbert.AbstractHilbert.random_state
 
 ```
 
-`random_state` behaves similarly to {fun}`jax.random.uniform`: the first argument is a Jax PRNGKey, the second is the shape or number of resulting elements and the third is the dtype of the output (which defaults to `jnp.float32`, or single precision.
+`random_state` behaves similarly to {ref}`jax.random.uniform`: the first argument is a Jax PRNGKey, the second is the shape or number of resulting elements and the third is the dtype of the output (which defaults to `jnp.float32`, or single precision.
 The resulting basis elements will be distributed uniformly.
 
 ```{admonition} Jax PRNG

@@ -1,9 +1,9 @@
 
 .. _api:
 
-##########################
-Public API: netket package
-##########################
+##########
+Public API
+##########
 
 .. currentmodule:: netket
 
@@ -73,7 +73,7 @@ Pre-defined operators
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
-   :toctree: _generated/hilbert
+   :toctree: _generated/operator
    :nosignatures:
 
    netket.operator.boson.create
@@ -88,16 +88,16 @@ Pre-defined operators
 
 
 Continuous space operators
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
-   :toctree: _generated/hilbert
+   :toctree: _generated/operator
    :nosignatures:
 
    netket.operator.ContinuousOperator
    netket.operator.KineticEnergy
    netket.operator.PotentialEnergy
-   netkket.operator.SumOperator
+   netket.operator.SumOperator
 
 .. _exact-api:
 
@@ -156,13 +156,13 @@ This is because it is not possible to implement all transition rules in Jax.
    netket.sampler.ExactSampler
    netket.sampler.MetropolisSampler
    netket.sampler.MetropolisSamplerNumpy
-   netket.sampler.MetropolisPtSampler
+   netket.experimental.sampler.MetropolisPtSampler
 
    netket.sampler.MetropolisLocal
    netket.sampler.MetropolisExchange
    netket.sampler.MetropolisHamiltonian
-   netket.sampler.MetropolisLocalPt
-   netket.sampler.MetropolisExchangePt
+   netket.experimental.sampler.MetropolisLocalPt
+   netket.experimental.sampler.MetropolisExchangePt
 
    netket.sampler.ARDirectSampler
 
@@ -294,6 +294,8 @@ Variational State Interface
   netket.vqs.VariationalState
   netket.vqs.MCState
   netket.vqs.MCMixedState
+  netket.vqs.get_local_kernel
+  netket.vqs.get_local_kernel_arguments
 
 
 .. _optimizer-api:

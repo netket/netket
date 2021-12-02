@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Tuple, Union
+from typing import List, Sequence, Union
 from numba import jit
 
 import numpy as np
 import math
-from typing import Union, Sequence
 
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert, Fock

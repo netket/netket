@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Callable, Union, Tuple
+from typing import Optional, Tuple
 
 import jax
 from jax import numpy as jnp
 
-from flax import linen as nn
 from flax import serialization
 
 import netket
@@ -28,13 +27,9 @@ from netket.utils import warn_deprecation
 from netket.utils.types import PyTree
 from netket.operator import AbstractOperator
 
-from .base import VariationalMixedState
-from .mc_state import MCState
+from netket.vqs import VariationalMixedState
 
-AFunType = Callable[[nn.Module, PyTree, jnp.ndarray], jnp.ndarray]
-ATrainFunType = Callable[
-    [nn.Module, PyTree, jnp.ndarray, Union[bool, PyTree]], jnp.ndarray
-]
+from netket.vqs.mc import MCState
 
 
 def apply_diagonal(bare_afun, w, x, *args, **kwargs):

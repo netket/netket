@@ -26,7 +26,7 @@ It is a Python library built on [JAX](https://github.com/google/jax).
 ## Installation and Usage
 
 Netket supports MacOS and Linux. We reccomend to install NetKet using `pip`
-For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/website/get_started.html) section of our website.
+For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/getting_started.html) section of our website.
 
 If you wish to install the current development version of NetKet, which is the master branch of this GitHub repository, together with the additional
 dependencies, you can run the following command:

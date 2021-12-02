@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Optional, Callable, Union, List
+from functools import partial
 
-from netket.utils.types import DType, PyTree, Array
-
-from netket.hilbert import AbstractHilbert
-from netket.operator import ContinuousOperator
+import numpy as np
 
 import jax
 import jax.numpy as jnp
+
+from netket.utils.types import DType, PyTree, Array
+from netket.hilbert import AbstractHilbert
+from netket.operator import ContinuousOperator
 
 
 class KineticEnergy(ContinuousOperator):
@@ -40,14 +42,21 @@ class KineticEnergy(ContinuousOperator):
         """
 
         self._mass = jnp.asarray(mass, dtype=dtype)
+
+        self._is_hermitian = np.allclose(self._mass.imag, 0.0)
+
         super().__init__(hilbert, self._mass.dtype)
 
     @property
     def mass(self):
         return self._mass
 
+    @property
+    def is_hermitian(self):
+        return self._is_hermitian
+
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+        self, logpsi: Callable, params: PyTree, x: Array, mass: Optional[PyTree]
     ):
         def logpsi_x(x):
             return logpsi(params, x)
@@ -61,7 +70,13 @@ class KineticEnergy(ContinuousOperator):
 
         dp_dx = dlogpsi_x(x) ** 2
 
-        return -0.5 * jnp.sum(data * (dp_dx2 + dp_dx))
+        return -0.5 * jnp.sum(mass * (dp_dx2 + dp_dx), axis=-1)
+
+    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
+    def _expect_kernel_batched(
+        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
+    ):
+        return self._expect_kernel(logpsi, params, x, coefficient)
 
     def _pack_arguments(self) -> PyTree:
         return 1.0 / self._mass
