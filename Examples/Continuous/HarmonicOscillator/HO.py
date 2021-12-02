@@ -23,7 +23,6 @@ def v(x):
 hilb = nk.hilbert.Particle(N=10, L=(jnp.inf, jnp.inf, jnp.inf), pbc=False)
 
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.1, n_chains=16, n_sweeps=1)
-model = nk.models.Gaussian(dtype=float)
 
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
 pot = nk.operator.PotentialEnergy(hilb, v)

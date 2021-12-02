@@ -16,12 +16,12 @@ from typing import Optional, Callable
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
-from netket.operator import ContinousOperator
+from netket.operator import ContinuousOperator
 
 import jax.numpy as jnp
 
 
-class PotentialEnergy(ContinousOperator):
+class PotentialEnergy(ContinuousOperator):
     r"""Returns the local potential energy defined in afun"""
 
     def __init__(
@@ -35,7 +35,7 @@ class PotentialEnergy(ContinousOperator):
         Args:
             hilbert: The underlying Hilbert space on which the operator is defined
             afun: The potential energy as function of x
-            coefficients: A coefficient for the ContinousOperator object
+            coefficients: A coefficient for the ContinuousOperator object
             dtype: Data type of the matrix elements. Defaults to `np.float64`
         """
 

@@ -20,7 +20,7 @@ from netket.hilbert import AbstractHilbert
 from netket.operator import AbstractOperator
 
 
-class ContinousOperator(AbstractOperator):
+class ContinuousOperator(AbstractOperator):
     r"""This class is the abstract base class for operators defined on a
     continuous Hilbert space. Users interested in implementing new
     quantum Operators for continuous Hilbert spaces should subclass
@@ -73,7 +73,9 @@ class ContinousOperator(AbstractOperator):
         individual particles."""
 
     def __add__(self, other):
-        if isinstance(self, ContinousOperator) and isinstance(other, ContinousOperator):
+        if isinstance(self, ContinuousOperator) and isinstance(
+            other, ContinuousOperator
+        ):
             from netket.operator import SumOperator
 
             return SumOperator(self, other)
@@ -81,7 +83,7 @@ class ContinousOperator(AbstractOperator):
             return NotImplemented  # pragma: no cover
 
     def __rmul__(self, other):
-        if isinstance(self, ContinousOperator) and isinstance(other, float):
+        if isinstance(self, ContinuousOperator) and isinstance(other, float):
             from netket.operator import SumOperator
 
             return self * other
@@ -89,7 +91,7 @@ class ContinousOperator(AbstractOperator):
             return NotImplemented  # pragma: no cover
 
     def __mul__(self, other):
-        if isinstance(self, ContinousOperator) and isinstance(other, float):
+        if isinstance(self, ContinuousOperator) and isinstance(other, float):
             from netket.operator import SumOperator
 
             return SumOperator(self, coefficients=other)

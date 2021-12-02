@@ -21,7 +21,7 @@ from netket.operator import (
     local_value_cost,
     Squared,
     _der_local_values_jax,
-    ContinousOperator,
+    ContinuousOperator,
 )
 
 from .mc_state import MCState
@@ -167,7 +167,7 @@ def expect_and_grad(  # noqa: F811
 @dispatch
 def expect_and_grad(  # noqa: F811
     vstate: MCState,
-    Ô: ContinousOperator,
+    Ô: ContinuousOperator,
     use_covariance: Any,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
