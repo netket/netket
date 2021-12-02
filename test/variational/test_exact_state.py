@@ -126,10 +126,7 @@ def test_derivatives_agree():
     def expval_fun(par, vstate, H):
         return _expval(unravel(par), vstate, H)
 
-    grad_finite = (
-        central_diff_grad(expval_fun, pars, 1.0e-5, vs, op_sparse)
-        * nk.utils.mpi.n_nodes
-    )
+    grad_finite = central_diff_grad(expval_fun, pars, 1.0e-5, vs, op_sparse)
 
     O_grad, _ = nk.jax.tree_ravel(grads_exact)
     same_derivatives(O_grad, grad_finite, abs_eps=err, rel_eps=err)

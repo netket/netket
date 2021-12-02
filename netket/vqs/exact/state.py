@@ -221,12 +221,6 @@ class ExactState(VariationalState):
         Returns:
             nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
-
-        if type(qgt_T) != nk.optimizer.qgt.QGTJacobianPyTree:
-            raise RuntimeError(
-                "Only QGTJacobianPyTree can be passed as metric tensor to exact VQS"
-            )
-
         raise qgt_T(self)
 
     def to_array(self, normalize: bool = True, allgather: bool = True) -> jnp.ndarray:
