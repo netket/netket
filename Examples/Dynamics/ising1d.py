@@ -17,7 +17,7 @@ import netket.experimental as nkx
 import numpy as np
 
 # 1D chain
-L = 10  # 10
+L = 10
 
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
@@ -41,7 +41,7 @@ op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=1e-4)
 
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard_per_chain=50)
+gs = nk.VMC(ha, op, variational_state=vs, n_samples=1000, n_discard_per_chain=50)
 
 # Create observable
 Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
@@ -70,5 +70,5 @@ te.run(
     out=log,
     show_progress=True,
     obs={"Sx": Sx},
-    tstops=[0.10, 0.15, 0.40, 0.41, 0.45, 0.50, 0.999, 1.0],
+    tstops=np.linspace(0.0, 1.0, 101, endpoint=True),
 )
