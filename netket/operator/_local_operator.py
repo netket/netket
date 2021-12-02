@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union, List, Optional
+
 import functools
 import numbers
-from typing import Union, List, Optional, Any
-from netket.utils.types import DType, Array
+import copy
+
 from textwrap import dedent
 
 import numpy as np
@@ -23,6 +25,7 @@ import scipy.sparse as sp
 from numba import jit
 
 from netket.hilbert import AbstractHilbert, Fock
+from netket.utils.types import DType, Array
 
 from ._discrete_operator import DiscreteOperator
 from ._lazy import Transpose
@@ -739,23 +742,6 @@ class LocalOperator(DiscreteOperator):
                         x_prime[ridx, k_conn, :acting_size],
                     )
                     n_conns[ridx] += 1
-        # CODE FOR COMPARISON:
-        # op_size = operator.shape[0]
-        # assert op_size == operator.shape[1]
-        # for i in range(op_size):
-        #     diag_mels[i] = operator[i, i]
-        #     n_conns[i] = 0
-        #     for j in range(op_size):
-        #         if i != j and np.abs(operator[i, j]) > epsilon:
-        #             k_conn = n_conns[i]
-        #             mels[i, k_conn] = operator[i, j]
-        #             _number_to_state(
-        #                 j,
-        #                 hilb_size_per_site,
-        #                 local_states_per_site[:acting_size, :],
-        #                 x_prime[i, k_conn, :acting_size],
-        #             )
-        #             n_conns[i] += 1
 
     def _multiply_operator(self, op, act):
         operators = []
@@ -821,6 +807,18 @@ class LocalOperator(DiscreteOperator):
 
         return operators, acting_on
 
+    def __deepcopy__(self, memo: dict) -> "LocalOperator":
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k != "_hilbert":
+                setattr(result, k, copy.deepcopy(v, memo))
+            else:
+                setattr(result, k, v)
+                memo[id(v)] = v
+        return result
+
     def copy(self, *, dtype: Optional[DType] = None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
@@ -835,13 +833,12 @@ class LocalOperator(DiscreteOperator):
         if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
 
-        return LocalOperator(
-            hilbert=self.hilbert,
-            operators=[op.copy() for op in self._operators],
-            acting_on=self._acting_on_list(),
-            constant=self._constant,
-            dtype=dtype,
-        )
+        new = copy.deepcopy(self)
+        new._diag_mels = new._diag_mels.astype(dtype)
+        new._mels = new._mels.astype(dtype)
+        new._operators = [op.astype(dtype) for op in new._operators]
+        new._dtype = dtype
+        return new
 
     def transpose(self, *, concrete=False):
         r"""LocalOperator: Returns the tranpose of this operator."""
