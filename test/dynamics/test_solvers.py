@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import pytest
 import numpy as np
 
@@ -27,10 +28,13 @@ explicit_fixed_step_solvers = {
 }
 
 explicit_adaptive_solvers = {
-    "RK12": RK12,
     "RK23": RK23,
     "RK45": RK45,
 }
+# Only add RK12 outside CI, as it adapts to smaller steps, making
+# test_adaptive_solver take more time.
+if not os.environ["CI"] == "true":
+    explicit_adaptive_solvers["RK12"] = RK12
 
 
 @pytest.mark.parametrize("solver", explicit_fixed_step_solvers)
