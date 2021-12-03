@@ -46,13 +46,15 @@ gs = nk.VMC(ha, op, variational_state=vs, n_samples=1000, n_discard_per_chain=50
 # Create observable
 Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
 
-# Run the optimization for 300 iterations
+# Run the optimization for 300 iterations to determine the ground state, used as
+# initial state of the time-evolution
 gs.run(n_iter=300, out="example_ising1d_GS", obs={"Sx": Sx})
 
 # Create integrator for time propagation
 integrator = nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-3, atol=1e-3)
 print(integrator)
 
+# Quenched hamiltonian: this has a different transverse field than `ha`
 ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
 te = nkx.TimeDependentVMC(
     ha1,
@@ -65,6 +67,7 @@ te = nkx.TimeDependentVMC(
 
 log = nk.logging.JsonLog("example_ising1d_TE")
 
+# perform the time-evolution saving the observable Sx at every `tstop` time
 te.run(
     T=1.0,
     out=log,
