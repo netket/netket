@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import jax
+import jax.numpy as jnp
 import pytest
 import numpy as np
 
@@ -41,9 +43,18 @@ def _setup_system(L, *, dtype=np.float64):
     return ha, vs, obs
 
 
-integrator_params = [
+def _stop_after_one_step(step, *_):
+    """
+    Callback to stop the driver after the first (successful) step.
+    """
+    return step == 0
+
+
+fixed_step_integrators = [
     pytest.param(nkx.dynamics.Euler(dt=0.01), id="Euler(dt=0.01)"),
     pytest.param(nkx.dynamics.Heun(dt=0.01), id="Heun(dt=0.01)"),
+]
+adaptive_step_integrators = [
     pytest.param(
         nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-2, atol=1e-2),
         id="RK23(dt=0.01, adaptive)",
@@ -53,12 +64,58 @@ integrator_params = [
         id="RK45(dt=0.01, adaptive)",
     ),
 ]
+all_integrators = fixed_step_integrators + adaptive_step_integrators
 
 
-@pytest.mark.parametrize("integrator", integrator_params)
+def l4_norm(_, x):
+    """
+    Custom L4 error norm.
+    """
+    return (
+        jax.tree_util.tree_reduce(
+            lambda x, y: x + y,
+            jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 4), x),
+        )
+        ** (1.0 / 4.0)
+    )
+
+
+@pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
+@pytest.mark.parametrize("integrator", adaptive_step_integrators)
+@pytest.mark.parametrize("propagation_type", ["real", "imag"])
+def test_one_adaptive_step(integrator, error_norm, propagation_type):
+    ha, vstate, _ = _setup_system(L=2)
+    te = nkx.TimeDependentVMC(
+        ha,
+        vstate,
+        integrator,
+        qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
+        propagation_type=propagation_type,
+        error_norm=error_norm,
+    )
+    te.run(T=0.01, callback=_stop_after_one_step)
+    assert te.t > 0.0
+
+
+@pytest.mark.parametrize("integrator", fixed_step_integrators)
+@pytest.mark.parametrize("propagation_type", ["real", "imag"])
+def test_one_fixed_step(integrator, propagation_type):
+    ha, vstate, _ = _setup_system(L=2)
+    te = nkx.TimeDependentVMC(
+        ha,
+        vstate,
+        integrator,
+        qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
+        propagation_type=propagation_type,
+    )
+    te.run(T=0.01, callback=_stop_after_one_step)
+    assert te.t == 0.01
+
+
+@pytest.mark.parametrize("integrator", all_integrators)
 def test_stop_times(integrator):
     def make_driver():
-        ha, vstate, _ = _setup_system(L=4)
+        ha, vstate, _ = _setup_system(L=2)
         return nkx.TimeDependentVMC(
             ha,
             vstate,

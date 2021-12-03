@@ -33,7 +33,7 @@ explicit_adaptive_solvers = {
 }
 # Only add RK12 outside CI, as it adapts to smaller steps, making
 # test_adaptive_solver take more time.
-if not os.environ["CI"] == "true":
+if os.environ.get("CI", "false") != "true":
     explicit_adaptive_solvers["RK12"] = RK12
 
 
@@ -41,12 +41,12 @@ if not os.environ["CI"] == "true":
 def test_ode_solver(solver):
     if solver == "Euler":  # first order
 
-        def ode(t, x, **_):
+        def ode(_t, _x, **_):
             return 1.0
 
     else:  # quadratic function for higher-order solvers
 
-        def ode(t, x, **_):
+        def ode(t, _x, **_):
             return t
 
     solver = explicit_fixed_step_solvers[solver]
@@ -61,7 +61,7 @@ def test_ode_solver(solver):
 
     t = []
     y_t = []
-    for i in range(10):
+    for _ in range(10):
         t.append(solv.t)
         y_t.append(solv.y)
         solv.step()

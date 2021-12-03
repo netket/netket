@@ -39,11 +39,13 @@ from netket.experimental.dynamics import RKIntegratorConfig
 
 @dispatch
 def dwdt(state, driver, t, w, *, stage=None):
+    # pylint: disable=unused-argument
     raise NotImplementedError(f"dwdt not implemented for {type(state)}")
 
 
 @dispatch
 def dwdt_mcstate(state: MCState, driver, t, w, *, stage: int = None):
+    # pylint: disable=protected-access
     state.parameters = w
     state.reset()
 
@@ -150,7 +152,9 @@ class TimeDependentVMC(AbstractVariationalDriver):
         elif error_norm == "qgt":
             error_norm = self._qgt_norm
         else:
-            raise ValueError("error_norm must be a callable or one of 'euclidean', 'qgt'.")
+            raise ValueError(
+                "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum'."
+            )
         self._integrator = integrator(self._odefun, t0, self._w, norm=error_norm)
         self._stop_count = 0
 
@@ -270,8 +274,10 @@ class TimeDependentVMC(AbstractVariationalDriver):
 
         # Log only non-root nodes
         if self._mynode == 0:
+            if out is None:
+                loggers = ()
             # if out is a path, create an overwriting Json Log for output
-            if isinstance(out, str):
+            elif isinstance(out, str):
                 loggers = (JsonLog(out, "w"),)
             else:
                 loggers = _to_iterable(out)

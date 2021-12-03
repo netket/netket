@@ -440,9 +440,11 @@ class RKIntegratorConfig:
 
 
 # fmt: off
+# flake8: noqa: E123, E126, E201, E202, E221, E226, E231, E241, E251
+
 # Fixed Step methods
 bt_feuler = TableauRKExplicit(
-                name = "feuler", 
+                name = "feuler",
                 order = (1,),
                 a = jnp.zeros((1,1), dtype=dtype),
                 b = jnp.ones((1,1), dtype=dtype),
@@ -453,7 +455,7 @@ Euler = partial(RKIntegratorConfig, tableau=bt_feuler)
 
 
 bt_midpoint = TableauRKExplicit(
-                name = "midpoint", 
+                name = "midpoint",
                 order = (2,),
                 a = jnp.array([[0,   0],
                                [1/2, 0]], dtype=dtype),
@@ -465,7 +467,7 @@ Midpoint = partial(RKIntegratorConfig, tableau=bt_midpoint)
 
 
 bt_heun = TableauRKExplicit(
-                name = "heun", 
+                name = "heun",
                 order = (2,),
                 a = jnp.array([[0,   0],
                                [1,   0]], dtype=dtype),
@@ -476,7 +478,7 @@ bt_heun = TableauRKExplicit(
 Heun = partial(RKIntegratorConfig, tableau=bt_heun)
 
 bt_rk4  = TableauRKExplicit(
-                name = "rk4", 
+                name = "rk4",
                 order = (4,),
                 a = jnp.array([[0,   0,   0,   0],
                                [1/2, 0,   0,   0],
@@ -492,7 +494,7 @@ RK4 = partial(RKIntegratorConfig, tableau=bt_rk4)
 # Adaptive step:
 # Heun Euler https://en.wikipedia.org/wiki/Runge–Kutta_methods
 bt_rk12  = TableauRKExplicit(
-                name = "rk21", 
+                name = "rk21",
                 order = (2,1),
                 a = jnp.array([[0,   0],
                                [1,   0]], dtype=dtype),
@@ -505,7 +507,7 @@ RK12 = partial(RKIntegratorConfig, tableau=bt_rk12)
 
 # Bogacki–Shampine coefficients
 bt_rk23  = TableauRKExplicit(
-                name = "rk23", 
+                name = "rk23",
                 order = (2,3),
                 a = jnp.array([[0,   0,   0,   0],
                                [1/2, 0,   0,   0],
@@ -519,7 +521,7 @@ bt_rk23  = TableauRKExplicit(
 RK23 = partial(RKIntegratorConfig, tableau=bt_rk23)
 
 bt_rk4_fehlberg = TableauRKExplicit(
-                name = "fehlberg", 
+                name = "fehlberg",
                 order = (4,5),
                 a = jnp.array([[ 0,          0,          0,           0,            0,      0 ],
                               [  1/4,        0,          0,           0,            0,      0 ],
@@ -534,7 +536,7 @@ bt_rk4_fehlberg = TableauRKExplicit(
                 )
 
 bt_rk4_dopri  = TableauRKExplicit(
-                name = "dopri", 
+                name = "dopri",
                 order = (5,4),
                 a = jnp.array([[ 0,           0,           0,           0,        0,             0,         0 ],
                               [  1/5,         0,           0,           0,        0,             0,         0 ],
