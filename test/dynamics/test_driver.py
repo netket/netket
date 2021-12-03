@@ -67,6 +67,21 @@ adaptive_step_integrators = [
 all_integrators = fixed_step_integrators + adaptive_step_integrators
 
 
+@pytest.mark.parametrize("integrator", fixed_step_integrators)
+@pytest.mark.parametrize("propagation_type", ["real", "imag"])
+def test_one_fixed_step(integrator, propagation_type):
+    ha, vstate, _ = _setup_system(L=2)
+    te = nkx.TimeDependentVMC(
+        ha,
+        vstate,
+        integrator,
+        qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
+        propagation_type=propagation_type,
+    )
+    te.run(T=0.01, callback=_stop_after_one_step)
+    assert te.t == 0.01
+
+
 def l4_norm(_, x):
     """
     Custom L4 error norm.
@@ -97,19 +112,43 @@ def test_one_adaptive_step(integrator, error_norm, propagation_type):
     assert te.t > 0.0
 
 
-@pytest.mark.parametrize("integrator", fixed_step_integrators)
-@pytest.mark.parametrize("propagation_type", ["real", "imag"])
-def test_one_fixed_step(integrator, propagation_type):
-    ha, vstate, _ = _setup_system(L=2)
+@pytest.mark.parametrize("integrator", all_integrators)
+def test_one_step_lindbladian(integrator):
+    def _setup_lindbladian_system():
+        L = 3
+        hi = nk.hilbert.Spin(s=0.5) ** L
+        ha = nk.operator.LocalOperator(hi)
+        j_ops = []
+        for i in range(L):
+            ha += (0.3 / 2.0) * nk.operator.spin.sigmax(hi, i)
+            ha += (
+                (2.0 / 4.0)
+                * nk.operator.spin.sigmaz(hi, i)
+                * nk.operator.spin.sigmaz(hi, (i + 1) % L)
+            )
+            j_ops.append(nk.operator.spin.sigmam(hi, i))
+        #  Create the liouvillian
+        lind = nk.operator.LocalLiouvillian(ha, j_ops)
+
+        # Create NDM and vstate
+        ma = nk.models.NDM()
+        sa = nk.sampler.MetropolisLocal(hilbert=nk.hilbert.DoubledHilbert(hi))
+        sa_obs = nk.sampler.MetropolisLocal(hilbert=hi)
+        vstate = nk.vqs.MCMixedState(
+            sa, ma, sampler_diag=sa_obs, n_samples=1000, seed=SEED
+        )
+
+        return lind, vstate
+
+    lind, vstate = _setup_lindbladian_system()
     te = nkx.TimeDependentVMC(
-        ha,
+        lind,
         vstate,
         integrator,
-        qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
-        propagation_type=propagation_type,
+        propagation_type="real",
     )
     te.run(T=0.01, callback=_stop_after_one_step)
-    assert te.t == 0.01
+    assert te.t > 0.0
 
 
 @pytest.mark.parametrize("integrator", all_integrators)
@@ -120,7 +159,6 @@ def test_stop_times(integrator):
             ha,
             vstate,
             integrator,
-            qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
             propagation_type="imag",
         )
 

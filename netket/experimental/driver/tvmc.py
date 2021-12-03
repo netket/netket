@@ -32,7 +32,7 @@ from netket.optimizer.qgt import QGTAuto
 from netket.utils import mpi
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
-from netket.vqs import VariationalState, MCState
+from netket.vqs import VariationalState, VariationalMixedState, MCState
 
 from netket.experimental.dynamics import RKIntegratorConfig
 
@@ -128,12 +128,22 @@ class TimeDependentVMC(AbstractVariationalDriver):
             self._generator = operator
 
         self.propagation_type = propagation_type
-        if propagation_type == "real":
-            self._loss_grad_factor = -1.0j
-        elif propagation_type == "imag":
-            self._loss_grad_factor = -1.0
+        if isinstance(variational_state, VariationalMixedState):
+            # assuming Lindblad Dynamics
+            # TODO: support density-matrix imaginary time evolution
+            if propagation_type == "real":
+                self._loss_grad_factor = 1.0
+            else:
+                raise ValueError(
+                    "only real-time Lindblad evolution is supported for " "mixed states"
+                )
         else:
-            raise ValueError("propagation_type must be one of 'real', 'imag'")
+            if propagation_type == "real":
+                self._loss_grad_factor = -1.0j
+            elif propagation_type == "imag":
+                self._loss_grad_factor = -1.0
+            else:
+                raise ValueError("propagation_type must be one of 'real', 'imag'")
 
         self.qgt = qgt
         self.linear_solver = linear_solver

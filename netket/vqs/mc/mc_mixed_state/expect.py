@@ -42,6 +42,21 @@ def get_local_kernel_arguments(  # noqa: F811
 
 
 @dispatch
+def get_local_kernel_arguments(
+    vstate: MCMixedState, Ô: AbstractSuperOperator
+):  # noqa: F811
+    check_hilbert(vstate.hilbert, Ô.hilbert)
+    σ = vstate.samples
+    σp, mels = Ô.get_conn_padded(σ)
+    return σ, (σp, mels)
+
+
+@dispatch
+def get_local_kernel(vstate: MCMixedState, Ô: AbstractSuperOperator):  # noqa: F811
+    return kernels.local_value_kernel
+
+
+@dispatch
 def get_local_kernel(vstate: MCMixedState, Ô: DiscreteOperator):  # noqa: F811
     return kernels.local_value_op_op_cost
 
