@@ -53,6 +53,21 @@ def euclidean_norm(x: Union[PyTree, Array]):
         )
 
 
+def maximum_norm(x: Union[PyTree, Array]):
+    """
+    Computes the maximum norm of the Array or PyTree intended as a flattened array
+    """
+    if isinstance(x, jnp.ndarray):
+        return jnp.max(jnp.abs(x))
+    else:
+        return jnp.sqrt(
+            jax.tree_util.tree_reduce(
+                jnp.maximum,
+                jax.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
+            )
+        )
+
+
 @dataclass
 class TableauRKExplicit:
     name: str

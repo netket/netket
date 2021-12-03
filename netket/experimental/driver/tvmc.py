@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Sequence
+from functools import partial
+from typing import Callable, Optional, Sequence, Union
 
 import jax
 import jax.numpy as jnp
@@ -23,6 +24,7 @@ import netket as nk
 from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
 from netket.driver.vmc_common import info
+from netket.experimental.dynamics.runge_kutta import euclidean_norm, maximum_norm
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
@@ -78,7 +80,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
         qgt: LinearOperator = None,
         linear_solver=None,
         linear_solver_restart: bool = False,
-        error_norm: str = "euclidean",
+        error_norm: Union[str, Callable] = "euclidean",
     ):
         r"""
         Initializes the time evolution driver.
@@ -96,10 +98,15 @@ class TimeDependentVMC(AbstractVariationalDriver):
             linear_solver_restart: If False (default), the last solution of the linear system
                 is used as initial value in subsequent steps.
             error_norm: Norm function used to calculate the error with adaptive integrators.
-                Can be either "euclidean" for the standard L2 vector norm :math:`x^\dagger \cdot x`
+                Can be either "euclidean" for the standard L2 vector norm :math:`x^\dagger \cdot x`,
+                "maximum" for the maximum norm :math:`\max_i |x_i|`
                 or "qgt", in which case the scalar product induced by the QGT :math:`S` is used
                 to compute the norm :math:`\Vert x \Vert^2_S = x^\dagger \cdot S \cdot x` as suggested
                 in PRL 125, 100503 (2020).
+                Additionally, it possible to pass a custom function with signature
+                    :code:`norm(driver: TimeDependentVMC, x: PyTree) -> float`
+                which can access the driver maps its second argument, a PyTree of parameters :code:`x`,
+                to its norm.
         """
         self._t0 = t0
 
@@ -134,14 +141,17 @@ class TimeDependentVMC(AbstractVariationalDriver):
         self._dw = None  # type: PyTree
         self._last_qgt = None
 
-        self.integrator = integrator
-        if error_norm == "euclidean":
-            norm = None
+        if isinstance(error_norm, Callable):
+            error_norm = partial(error_norm, self)
+        elif error_norm == "euclidean":
+            error_norm = euclidean_norm
+        elif error_norm == "maximum":
+            error_norm = maximum_norm
         elif error_norm == "qgt":
-            norm = self._qgt_norm
+            error_norm = self._qgt_norm
         else:
-            raise ValueError("error_norm must be one of 'euclidean', 'qgt'")
-        self._integrator = integrator(self._odefun, t0, self._w, norm=norm)
+            raise ValueError("error_norm must be a callable or one of 'euclidean', 'qgt'.")
+        self._integrator = integrator(self._odefun, t0, self._w, norm=error_norm)
         self._stop_count = 0
 
     @property
