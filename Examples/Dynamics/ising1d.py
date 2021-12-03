@@ -1,11 +1,11 @@
 # Copyright 2021 The NetKet Authors - All rights reserved.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #    http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import netket as nk
-import netket.experimental as nkx
 import numpy as np
+
+import netket.experimental as nkx
 
 # 1D chain
 L = 10
@@ -34,7 +35,7 @@ ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=complex)
 sa = nk.sampler.MetropolisHamiltonian(hi, ha, n_chains=16)
 
 # Variational state
-vs = nk.vqs.MCState(sa, ma, n_samples=5000, n_discard_per_chain=100)
+vs = nk.vqs.MCState(sa, ma, n_samples=1024, n_discard_per_chain=16)
 
 # Optimizer
 op = nk.optimizer.Sgd(0.01)
@@ -59,7 +60,7 @@ ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
 te = nkx.TimeDependentVMC(
     ha1,
     variational_state=vs,
-    integrator_config=integrator,
+    integrator=integrator,
     t0=0.0,
     qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
     error_norm="qgt",

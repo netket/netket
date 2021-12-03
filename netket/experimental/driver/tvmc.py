@@ -1,4 +1,4 @@
-# Copyright 2020 The Simons Foundation, Inc. - All Rights Reserved.
+# Copyright 2020, 2021  The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,39 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# from functools import singledispatch
-from functools import singledispatch
-from typing import Callable, Optional, Sequence, Union
+from typing import Optional, Sequence
 
-import numpy as np
-
-import flax
 import jax
 import jax.numpy as jnp
-from jax.tree_util import tree_map
-from tqdm.std import tqdm
-from netket.driver.abstract_variational_driver import _to_iterable
+import numpy as np
+from tqdm import tqdm
 
 import netket as nk
 from netket.driver import AbstractVariationalDriver
+from netket.driver.abstract_variational_driver import _to_iterable
 from netket.driver.vmc_common import info
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 from netket.utils import mpi
-from netket.utils.types import Array, PyTree
-from netket.vqs import VariationalState, MCState, MCMixedState
+from netket.utils.dispatch import dispatch
+from netket.utils.types import PyTree
+from netket.vqs import VariationalState, MCState
 
-from netket.experimental.dynamics import RungeKuttaIntegrator, RKIntegratorConfig
+from netket.experimental.dynamics import RKIntegratorConfig
 
 
-@singledispatch
+@dispatch
 def dwdt(state, driver, t, w, *, stage=None):
     raise NotImplementedError(f"dwdt not implemented for {type(state)}")
 
 
-@dwdt.register
+@dispatch
 def dwdt_mcstate(state: MCState, driver, t, w, *, stage: int = None):
     state.parameters = w
     state.reset()
@@ -53,7 +49,7 @@ def dwdt_mcstate(state: MCState, driver, t, w, *, stage: int = None):
         driver.generator(t),
         use_covariance=True,
     )
-    driver._loss_grad = tree_map(
+    driver._loss_grad = jax.tree_map(
         lambda x: driver._loss_grad_factor * x, driver._loss_grad
     )
 
@@ -75,7 +71,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
         self,
         operator: AbstractOperator,
         variational_state: VariationalState,
-        integrator_config: RKIntegratorConfig,
+        integrator: RKIntegratorConfig,
         *,
         t0: float = 0.0,
         propagation_type="real",
@@ -91,7 +87,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
             operator: The generator of the dynamics (Hamiltonian for pure states,
                 Lindbladian for density operators).
             variational_state: The variational state.
-            integrator_config: Configuration of the algorithm used for solving the ODE.
+            integrator: Configuration of the algorithm used for solving the ODE.
             t0: Initial time.
             propagation_type: Determines the equation of motion: "real"  for the
                 real-time Schödinger equation (SE), "imag" for the imaginary-time SE.
@@ -138,14 +134,14 @@ class TimeDependentVMC(AbstractVariationalDriver):
         self._dw = None  # type: PyTree
         self._last_qgt = None
 
-        self.integrator_config = integrator_config
+        self.integrator = integrator
         if error_norm == "euclidean":
             norm = None
         elif error_norm == "qgt":
             norm = self._qgt_norm
         else:
             raise ValueError("error_norm must be one of 'euclidean', 'qgt'")
-        self._integrator = integrator_config(self._odefun, t0, self._w, norm=norm)
+        self._integrator = integrator(self._odefun, t0, self._w, norm=norm)
         self._stop_count = 0
 
     @property

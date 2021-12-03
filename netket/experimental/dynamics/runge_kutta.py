@@ -12,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from builtins import RuntimeError, next
-from ctypes import c_buffer
-import dataclasses
+from builtins import RuntimeError
 from functools import partial
 from typing import Callable, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 
-from netket.utils import KahanSum
+import netket as nk
 from netket.utils.struct import dataclass
 from netket.utils.types import Array, PyTree
-from netket import jax as nkjax
 
 dtype = jnp.float64
 
@@ -90,6 +86,17 @@ class TableauRKExplicit:
         of the RK scheme.
         """
         return len(self.c)
+
+    @property
+    def error_order(self):
+        """
+        Returns the order of the embedded error estimate for a tableau
+        supporting adaptive step size. Otherwise, None is returned.
+        """
+        if not self.is_adaptive:
+            return None
+        else:
+            return self.order[1]
 
     def _compute_slopes(
         self,
@@ -160,7 +167,7 @@ class RungeKuttaState:
     """Number of successful steps since the start of the iteration."""
     step_no_total: int
     """Number of steps since the start of the iteration, including rejected steps."""
-    t: KahanSum
+    t: nk.utils.KahanSum
     """Current time."""
     y: Array
     """Solution at current time."""
@@ -184,18 +191,23 @@ class RungeKuttaState:
 
 def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn):
     norm_y = norm_fn(y)
-    scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nkjax.tree_size(y_err)
+    scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nk.jax.tree_size(y_err)
     return norm_fn(y_err) / scale, norm_y
 
 
 LimitsType = Tuple[Optional[float], Optional[float]]
+SAFETY_FACTOR = 0.95
 
 
-def propose_time_step(dt, scaled_error, limits: LimitsType):
-    safety_factor = 0.95
-    err_exponent = -1.0 / 5.0
+def propose_time_step(
+    dt: float, scaled_error: float, error_order: int, limits: LimitsType
+):
+    """
+    Propose an updated dt based on the scheme suggested in Numerical Recipes, 3rd ed.
+    """
+    err_exponent = -1.0 / (1 + error_order)
     return jnp.clip(
-        dt * safety_factor * scaled_error ** err_exponent,
+        dt * SAFETY_FACTOR * scaled_error ** err_exponent,
         limits[0],
         limits[1],
     )
@@ -208,6 +220,7 @@ def general_time_step_adaptive(
     rk_state: RungeKuttaState,
     atol: float,
     rtol: float,
+    error_order: int,
     norm_fn: Callable,
     max_dt: Optional[float],
     dt_limits: LimitsType,
@@ -220,7 +233,7 @@ def general_time_step_adaptive(
     next_y, y_err = step_fn(rk_state.t.value, actual_dt, rk_state.y)
 
     scaled_err, norm_y = scaled_error(
-        rk_state.y,
+        next_y,
         y_err,
         atol,
         rtol,
@@ -228,20 +241,21 @@ def general_time_step_adaptive(
         norm_fn=norm_fn,
     )
 
-    # Propose the next time step, but limited within [0.1 dt, 10 dt] and potential
+    # Propose the next time step, but limited within [0.1 dt, 5 dt] and potential
     # global limits in dt_limits. Not used when actual_dt < rk_state.dt (i.e., the
     # integrator is doing a smaller step to hit a specific stop).
     def next_dt():
         return propose_time_step(
             actual_dt,
             scaled_err,
+            error_order,
             limits=(
                 jnp.maximum(0.1 * rk_state.dt, dt_limits[0])
                 if dt_limits[0]
                 else 0.1 * rk_state.dt,
-                jnp.minimum(10.0 * rk_state.dt, dt_limits[1])
+                jnp.minimum(5.0 * rk_state.dt, dt_limits[1])
                 if dt_limits[1]
-                else 10.0 * rk_state.dt,
+                else 5.0 * rk_state.dt,
             ),
         )
 
@@ -291,7 +305,7 @@ def general_time_step_fixed(
     )
 
 
-@dataclasses.dataclass
+@dataclass(_frozen=False)
 class RungeKuttaIntegrator:
     tableau: TableauRKExplicit
 
@@ -327,7 +341,7 @@ class RungeKuttaIntegrator:
         self._rkstate = RungeKuttaState(
             step_no=0,
             step_no_total=0,
-            t=KahanSum(self.t0),
+            t=nk.utils.KahanSum(self.t0),
             y=self.y0,
             dt=self.initial_dt,
             last_norm=0.0 if self.use_adaptive else None,
@@ -362,6 +376,7 @@ class RungeKuttaIntegrator:
             rk_state,
             atol=self.atol,
             rtol=self.rtol,
+            error_order=self.tableau.error_order,
             norm_fn=self.norm,
             max_dt=max_dt,
             dt_limits=self.dt_limits,
