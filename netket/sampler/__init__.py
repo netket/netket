@@ -17,9 +17,7 @@ from .base import (
     SamplerState,
     sampler_state,
     reset,
-    sample_next,
     sample,
-    samples,
 )
 
 from .exact import ExactSampler
@@ -32,6 +30,8 @@ from .metropolis import (
     MetropolisSamplerState,
     MetropolisHamiltonian,
     MetropolisGaussian,
+    sample_next,
+    samples,
 )
 
 from .metropolis_numpy import (

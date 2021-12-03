@@ -87,17 +87,12 @@ class ARDirectSampler(Sampler):
     def _reset(sampler, model, variables, state):
         return state
 
-    def _sample_chain(sampler, model, variables, state, chain_length):
-        return _sample_chain(sampler, model, variables, state, chain_length)
-
-    def _sample_next(sampler, model, variables, state):
-        σ, new_state = sampler._sample_chain(model, variables, state, 1)
-        σ = σ.squeeze(axis=0)
-        return new_state, σ
+    def _sample(sampler, model, variables, state, n_samples_per_rank):
+        return _sample(sampler, model, variables, state, n_samples_per_rank)
 
 
 @partial(jax.jit, static_argnums=(1, 4))
-def _sample_chain(sampler, model, variables, state, chain_length):
+def _sample(sampler, model, variables, state, n_samples_per_rank):
     if "cache" in variables:
         variables, _ = variables.pop("cache")
 
@@ -132,7 +127,7 @@ def _sample_chain(sampler, model, variables, state, chain_length):
     # We just need a buffer for `σ` before generating each sample
     # The result does not depend on the initial contents in it
     σ = jnp.zeros(
-        (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
+        (n_samples_per_rank, sampler.hilbert.size),
         dtype=sampler.dtype,
     )
 
@@ -142,7 +137,6 @@ def _sample_chain(sampler, model, variables, state, chain_length):
 
     indices = jnp.arange(sampler.hilbert.size)
     (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
-    σ = σ.reshape((chain_length, sampler.n_chains_per_rank, sampler.hilbert.size))
 
     new_state = state.replace(key=new_key)
     return σ, new_state

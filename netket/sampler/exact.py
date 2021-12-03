@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple, Callable
 from functools import partial
+from typing import Any, Optional, Tuple
 
 import jax
+from flax import linen as nn
 from jax import numpy as jnp
 from jax.experimental import host_callback as hcb
 
@@ -53,7 +54,7 @@ class ExactSampler(Sampler):
 
     def _init_state(
         sampler,
-        machine: Callable,
+        machine: nn.Module,
         parameters: PyTree,
         seed: Optional[SeedT] = None,
     ):
@@ -68,47 +69,14 @@ class ExactSampler(Sampler):
 
         return state.replace(pdf=pdf)
 
-    def _sample_next(sampler, machine, parameters, state):
-        new_rng, rng = jax.random.split(state.rng)
-        numbers = jax.random.choice(
-            rng,
-            sampler.hilbert.n_states,
-            shape=(sampler.n_chains_per_rank,),
-            replace=True,
-            p=state.pdf,
-        )
-
-        # We use a host-callback to convert integers labelling states to
-        # valid state-arrays because that code is written with numba and
-        # we have not yet converted it to jax.
-        sample = hcb.call(
-            lambda numbers: sampler.hilbert.numbers_to_states(numbers),
-            numbers,
-            result_shape=jax.ShapeDtypeStruct(
-                (sampler.n_chains_per_rank, sampler.hilbert.size), jnp.float64
-            ),
-        )
-
-        new_state = state.replace(rng=new_rng)
-        return new_state, jnp.asarray(sample, dtype=sampler.dtype)
-
-    def _sample_chain(
-        sampler,
-        machine: Callable,
-        parameters: PyTree,
-        state: SamplerState,
-        chain_length: int,
-    ) -> Tuple[jnp.ndarray, SamplerState]:
-        # Reimplement sample_chain because we can sample the whole 'chain' in one
-        # go, since it's not really a chain anyway. This will be much faster because
-        # we call into python only once.
-        return _sample_chain(sampler, machine, parameters, state, chain_length)
+    def _sample(sampler, model, variables, state, n_samples_per_rank):
+        return _sample(sampler, model, variables, state, n_samples_per_rank)
 
     def __repr__(sampler):
         return (
             "ExactSampler("
             + "\n  hilbert = {},".format(sampler.hilbert)
-            + "\n  n_chains_per_rank = {},".format(sampler.n_chains_per_rank)
+            + "\n  n_batches = {},".format(sampler.n_batches)
             + "\n  machine_power = {},".format(sampler.machine_pow)
             + "\n  dtype = {})".format(sampler.dtype)
         )
@@ -116,29 +84,33 @@ class ExactSampler(Sampler):
     def __str__(sampler):
         return (
             "ExactSampler("
-            + "n_chains_per_rank = {}, ".format(sampler.n_chains_per_rank)
+            + "n_batches = {}, ".format(sampler.n_batches)
             + "machine_power = {}, ".format(sampler.machine_pow)
             + "dtype = {})".format(sampler.dtype)
         )
 
 
 @partial(jax.jit, static_argnums=(1, 4))
-def _sample_chain(
+def _sample(
     sampler,
-    machine: Callable,
+    machine: nn.Module,
     parameters: PyTree,
     state: SamplerState,
-    chain_length: int,
+    n_samples_per_rank: int,
 ) -> Tuple[jnp.ndarray, SamplerState]:
     new_rng, rng = jax.random.split(state.rng)
     numbers = jax.random.choice(
         rng,
         sampler.hilbert.n_states,
-        shape=(chain_length * sampler.n_chains_per_rank,),
+        shape=(n_samples_per_rank,),
         replace=True,
         p=state.pdf,
     )
 
+    # We use a host-callback to convert integers labelling states to
+    # valid state-arrays because that code is written with numba and
+    # we have not yet converted it to jax.
+    #
     # For future investigators:
     # this will lead to a crash if numbers_to_state throws.
     # it throws if we feed it nans!
@@ -146,12 +118,9 @@ def _sample_chain(
         lambda numbers: sampler.hilbert.numbers_to_states(numbers),
         numbers,
         result_shape=jax.ShapeDtypeStruct(
-            (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
-            jnp.float64,
+            (n_samples_per_rank, sampler.hilbert.size), jnp.float64
         ),
     )
-    samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
-        chain_length, sampler.n_chains_per_rank, sampler.hilbert.size
-    )
+    samples = jnp.asarray(samples, dtype=sampler.dtype)
 
     return samples, state.replace(rng=new_rng)

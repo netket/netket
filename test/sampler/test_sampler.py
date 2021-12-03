@@ -58,30 +58,33 @@ hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
-samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi, n_chains=8)
-samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u, n_chains=4)
+samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
+samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u)
 
-samplers["Metropolis(Local): Spin"] = nk.sampler.MetropolisLocal(hi, n_chains=16)
+# In tests we usually set `n_samples` to a multiple of `N_CHAINS`
+N_CHAINS = 8
+
+samplers["Metropolis(Local): Spin"] = nk.sampler.MetropolisLocal(hi, n_chains=N_CHAINS)
 
 samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(
-    hi, n_chains=16
+    hi, n_chains=N_CHAINS
 )
 # samplers["MetropolisNumpy(Local): Fock"] = nk.sampler.MetropolisLocalNumpy(
-#    hib_u, n_chains=8
+#    hib_u, n_chains=N_CHAINS
 # )
 # samplers["MetropolisNumpy(Local): Doubled-Spin"] = nk.sampler.MetropolisLocalNumpy(
-#    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2)), n_chains=8
+#    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2)), n_chains=N_CHAINS
 # )
 
 samplers["MetropolisPT(Local): Spin"] = nkx.sampler.MetropolisLocalPt(
-    hi, n_chains=8, n_replicas=4
+    hi, n_chains=N_CHAINS, n_replicas=4
 )
 samplers["MetropolisPT(Local): Fock"] = nkx.sampler.MetropolisLocalPt(
-    hib_u, n_chains=8, n_replicas=4
+    hib_u, n_chains=N_CHAINS, n_replicas=4
 )
 
 samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange(
-    hib, n_chains=16, graph=g
+    hib, n_chains=N_CHAINS, graph=g
 )
 
 samplers["Metropolis(Hamiltonian,Jax): Spin"] = nk.sampler.MetropolisHamiltonian(
@@ -102,15 +105,15 @@ samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
 
 # samplers["MetropolisPT(Custom: Sx): Spin"] = nkx.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
 
-samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi, n_chains=16)
-samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1, n_chains=16)
-samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u, n_chains=16)
+samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi)
+samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1)
+samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u)
 
 
 # Hilbert space and sampler for particles
 hi_particles = nk.hilbert.Particle(N=3, L=(np.inf,), pbc=(False,))
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
-    hi_particles, sigma=1.0, n_chains=16
+    hi_particles, sigma=1.0, n_chains=N_CHAINS
 )
 
 
@@ -160,7 +163,7 @@ def sampler(request):
         pytest.skip("skipped from command-line argument")
 
 
-@pytest.fixture(params=[pytest.param(val, id=f", mpow={val}") for val in [1, 2]])
+@pytest.fixture(params=[pytest.param(val, id=f"mpow={val}") for val in [1, 2]])
 def set_pdf_power(request):
     def fun(sampler):
         cmdline_mpow = request.config.getoption("--mpow").lower()
@@ -193,8 +196,15 @@ def test_states_in_hilbert(sampler, model_and_weights):
 
         ma, w = model_and_weights(hi, sampler)
 
-        for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
-            assert sample.shape == (sampler.n_chains, hi.size)
+        if isinstance(sampler, nk.sampler.MetropolisSampler):
+            for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
+                assert sample.shape == (sampler.n_chains, hi.size)
+                for v in sample:
+                    assert v in all_states
+        else:
+            n_samples = 50
+            sample, _ = sampler.sample(ma, w, n_samples=n_samples)
+            assert sample.shape == (n_samples, hi.size)
             for v in sample:
                 assert v in all_states
 
@@ -217,9 +227,9 @@ def findrng(rng):
 
 # Mark tests that we know are failing on correctedness
 def failing_test(sampler):
-    if isinstance(sampler, nk.sampler.MetropolisSampler):
-        if isinstance(sampler, nkx.sampler.MetropolisPtSampler):
-            return True
+    # if isinstance(sampler, nk.sampler.MetropolisSampler):
+    #     if isinstance(sampler, nkx.sampler.MetropolisPtSampler):
+    #         return True
 
     return False
 
@@ -258,7 +268,8 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
 
         ma, w = model_and_weights(hi, sampler)
 
-        n_samples = max(40 * n_states, 100)
+        n_samples = max(n_states, 10) * 10 * N_CHAINS
+        n_discard = n_samples // 10
 
         ps = (
             np.absolute(nk.nn.to_array(hi, ma, w, normalize=False))
@@ -276,19 +287,30 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
 
             # Burnout phase
             samples, sampler_state = sampler.sample(
-                ma, w, state=sampler_state, chain_length=n_samples // 100
+                ma, w, state=sampler_state, n_samples=n_discard
             )
 
-            assert samples.shape == (
-                n_samples // 100,
-                sampler.n_chains,
-                hi.size,
-            )
+            if isinstance(sampler, nk.sampler.MetropolisSampler):
+                assert samples.shape == (
+                    n_discard // sampler.n_chains,
+                    sampler.n_chains,
+                    hi.size,
+                )
+            else:
+                assert samples.shape == (n_discard, hi.size)
+
             samples, sampler_state = sampler.sample(
-                ma, w, state=sampler_state, chain_length=n_samples
+                ma, w, state=sampler_state, n_samples=n_samples
             )
 
-            assert samples.shape == (n_samples, sampler.n_chains, hi.size)
+            if isinstance(sampler, nk.sampler.MetropolisSampler):
+                assert samples.shape == (
+                    n_samples // sampler.n_chains,
+                    sampler.n_chains,
+                    hi.size,
+                )
+            else:
+                assert samples.shape == (n_samples, hi.size)
 
             sttn = hi.states_to_numbers(np.asarray(samples.reshape(-1, hi.size)))
             n_s = sttn.size
@@ -307,30 +329,44 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
 
     elif isinstance(hi, Particle):
         ma, w = model_and_weights(hi, sampler)
-        n_samples = 5000
-        n_discard = 2000
+
+        n_samples = 1000 * N_CHAINS
+        n_discard = n_samples // 10
+
         n_rep = 6
         pvalues = np.zeros(n_rep)
 
         sampler_state = sampler.init_state(ma, w, seed=SAMPLER_SEED)
+
         for jrep in range(n_rep):
             sampler_state = sampler.reset(ma, w, state=sampler_state)
 
             # Burnout phase
             samples, sampler_state = sampler.sample(
-                ma, w, state=sampler_state, chain_length=n_discard
+                ma, w, state=sampler_state, n_samples=n_discard
             )
 
-            assert samples.shape == (
-                n_discard,
-                sampler.n_chains,
-                hi.size,
-            )
+            if isinstance(sampler, nk.sampler.MetropolisSampler):
+                assert samples.shape == (
+                    n_discard // sampler.n_chains,
+                    sampler.n_chains,
+                    hi.size,
+                )
+            else:
+                assert samples.shape == (n_discard, hi.size)
+
             samples, sampler_state = sampler.sample(
-                ma, w, state=sampler_state, chain_length=n_samples
+                ma, w, state=sampler_state, n_samples=n_samples
             )
 
-            assert samples.shape == (n_samples, sampler.n_chains, hi.size)
+            if isinstance(sampler, nk.sampler.MetropolisSampler):
+                assert samples.shape == (
+                    n_samples // sampler.n_chains,
+                    sampler.n_chains,
+                    hi.size,
+                )
+            else:
+                assert samples.shape == (n_samples, hi.size)
 
             samples = samples.reshape(-1, samples.shape[-1])
 
@@ -355,6 +391,12 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
 
 
 def test_throwing(model_and_weights):
+    with pytest.raises(ValueError):
+        nk.sampler.MetropolisLocal(hi, n_batches=1)
+
+    with pytest.raises(ValueError):
+        nk.sampler.MetropolisLocal(hi, n_chains=1, n_chains_per_rank=2)
+
     with pytest.raises(TypeError):
         nk.sampler.MetropolisHamiltonian(
             hi,
