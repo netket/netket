@@ -22,8 +22,6 @@ import jax
 import netket as nk
 from jax.nn.initializers import normal
 
-from netket.operator import AbstractSuperOperator
-
 from .. import common
 
 pytestmark = common.skipif_mpi
@@ -73,14 +71,14 @@ operators["operator:sigmam"] = jump_ops[0]
 def vstate(request):
     ma = request.param
 
-    sa = nk.sampler.ExactSampler(hilbert=nk.hilbert.DoubledHilbert(hi), n_chains=16)
+    sa = nk.sampler.ExactSampler(hilbert=nk.hilbert.DoubledHilbert(hi))
 
     vs = nk.vqs.MCMixedState(sa, ma, n_samples=1000, seed=SEED)
 
     return vs
 
 
-def test_n_samples_api(vstate):
+def test_n_samples_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
@@ -97,11 +95,7 @@ def test_n_samples_api(vstate):
         vstate.n_discard_per_chain = -1
 
     vstate.n_samples = 2
-    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
-
-    vstate.chain_length = 2
-    assert vstate.n_samples == 2 * vstate.sampler.n_chains
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
+    assert vstate.samples.shape == (vstate.n_samples, vstate.sampler.hilbert.size)
 
     vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
@@ -110,11 +104,30 @@ def test_n_samples_api(vstate):
     vstate.sampler = nk.sampler.MetropolisLocal(
         hilbert=nk.hilbert.DoubledHilbert(hi), n_chains=16
     )
+
+    vstate.n_samples = 2
+    assert vstate.samples.shape == (
+        1,
+        vstate.sampler.n_chains,
+        vstate.sampler.hilbert.size,
+    )
+
+    vstate.chain_length = 2
+    assert vstate.n_samples == 2 * vstate.sampler.n_chains
+    assert vstate.samples.shape == (
+        2,
+        vstate.sampler.n_chains,
+        vstate.sampler.hilbert.size,
+    )
+
+    vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
+    assert vstate.n_samples_per_rank == vstate.n_samples // _mpi_size
 
-def test_n_samples_diag_api(vstate):
+
+def test_n_samples_diag_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
@@ -128,13 +141,26 @@ def test_n_samples_diag_api(vstate):
     with raises(
         ValueError,
     ):
-        vstate.n_discard_per_chain = -1
+        vstate.n_discard_per_chain_diag = -1
 
     vstate.n_samples_diag = 2
     assert (
-        vstate.diagonal.samples.shape[0:2]
-        == (1, vstate.sampler_diag.n_chains)
-        == (1, vstate.diagonal.sampler.n_chains)
+        vstate.diagonal.samples.shape
+        == (vstate.n_samples_diag, vstate.sampler_diag.hilbert.size)
+        == (vstate.n_samples_diag, vstate.diagonal.sampler.hilbert.size)
+    )
+
+    vstate.n_samples_diag = 1000
+    vstate.n_discard_per_chain_diag = None
+    assert vstate.n_discard_per_chain_diag == vstate.diagonal.n_discard_per_chain == 0
+
+    vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+
+    vstate.n_samples_diag = 2
+    assert (
+        vstate.diagonal.samples.shape
+        == (1, vstate.sampler_diag.n_chains, vstate.sampler_diag.hilbert.size)
+        == (1, vstate.diagonal.sampler.n_chains, vstate.diagonal.sampler.hilbert.size)
     )
 
     vstate.chain_length_diag = 2
@@ -144,18 +170,20 @@ def test_n_samples_diag_api(vstate):
         == 2 * vstate.diagonal.sampler.n_chains
     )
     assert (
-        vstate.diagonal.samples.shape[0:2]
-        == (2, vstate.diagonal.sampler.n_chains)
-        == (2, vstate.sampler_diag.n_chains)
+        vstate.diagonal.samples.shape
+        == (2, vstate.sampler_diag.n_chains, vstate.sampler_diag.hilbert.size)
+        == (2, vstate.diagonal.sampler.n_chains, vstate.diagonal.sampler.hilbert.size)
     )
 
-    vstate.n_samples = 1000
-    vstate.n_discard_per_chain = None
-    assert vstate.n_discard_per_chain_diag == 0
-
-    vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+    vstate.n_samples_diag = 1000
     vstate.n_discard_per_chain_diag = None
-    assert vstate.n_discard_per_chain_diag == vstate.n_samples_diag // 10
+    assert (
+        vstate.n_discard_per_chain_diag
+        == vstate.diagonal.n_discard_per_chain
+        == vstate.n_samples_diag // 10
+    )
+
+    assert vstate.diagonal.n_samples_per_rank == vstate.n_samples_diag // _mpi_size
 
 
 def test_deprecations(vstate):

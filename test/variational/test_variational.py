@@ -89,7 +89,7 @@ operators["operator:(Non Hermitian)"] = H
 def vstate(request):
     ma = request.param
 
-    sa = nk.sampler.ExactSampler(hilbert=hi, n_chains=16)
+    sa = nk.sampler.ExactSampler(hilbert=hi)
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
@@ -123,17 +123,30 @@ def test_n_samples_api(vstate, _mpi_size):
         vstate.n_discard_per_chain = -1
 
     vstate.n_samples = 2
-    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
-
-    vstate.chain_length = 2
-    assert vstate.n_samples == 2 * vstate.sampler.n_chains
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
+    assert vstate.samples.shape == (vstate.n_samples, vstate.sampler.hilbert.size)
 
     vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == 0
 
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+
+    vstate.n_samples = 2
+    assert vstate.samples.shape == (
+        1,
+        vstate.sampler.n_chains,
+        vstate.sampler.hilbert.size,
+    )
+
+    vstate.chain_length = 2
+    assert vstate.n_samples == 2 * vstate.sampler.n_chains
+    assert vstate.samples.shape == (
+        2,
+        vstate.sampler.n_chains,
+        vstate.sampler.hilbert.size,
+    )
+
+    vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
@@ -169,8 +182,8 @@ def test_chunk_size_api(vstate, _mpi_size):
     ):
         vstate.chunk_size = 1500
 
-    s = vstate.sample()
-    s = vstate.sample(n_samples=vstate.n_samples)
+    _ = vstate.sample()
+    _ = vstate.sample(n_samples=vstate.n_samples)
     with raises(
         ValueError,
     ):
@@ -273,7 +286,7 @@ def test_qutip_conversion(vstate):
     ],
 )
 def test_expect(vstate, operator):
-    #  Use lots of samples
+    # Use lots of samples
     vstate.n_samples = 5 * 1e5
     vstate.n_discard_per_chain = 1e3
 
