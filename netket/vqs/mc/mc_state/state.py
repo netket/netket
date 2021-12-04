@@ -27,6 +27,7 @@ from netket import nn
 from netket.stats import Stats
 from netket.operator import AbstractOperator
 from netket.sampler import Sampler, SamplerState
+from netket.sampler.base import compute_n_samples, compute_n_samples_per_rank
 from netket.sampler.metropolis import compute_chain_length
 from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
 from netket.utils.types import PyTree, SeedT, NNInitFunc
@@ -77,21 +78,26 @@ class MCState(VariationalState):
     """An Optional PyTree encoding a mutable state of the model that is not trained."""
 
     _sampler: Sampler
-    """The sampler used to sample the hilbert space."""
+    """The sampler used to sample the Hilbert space."""
     sampler_state: SamplerState
-    """The current state of the sampler"""
+    """The current state of the sampler."""
 
     _n_samples: int = 0
-    """Total number of samples across all mpi processes."""
+    """Total number of samples across all chains and MPI ranks."""
+    _n_samples_per_rank: int = 0
+    """Number of samples across all chains on one MPI rank."""
+    _chain_length: Optional[int] = None
+    """Length of the Markov chain used for sampling configurations."""
     _n_discard_per_chain: int = 0
-    """Number of samples discarded at the beginning of every Monte-Carlo chain."""
+    """Number of samples discarded at the beginning of every Markov chain."""
+
     _samples: Optional[jnp.ndarray] = None
     """Cached samples obtained with the last sampling."""
 
     _init_fun: Callable = None
-    """The function used to initialise the parameters and model_state"""
+    """The function used to initialise the parameters and `model_state`."""
     _apply_fun: Callable = None
-    """The function used to evaluate the model"""
+    """The function used to evaluate the model."""
 
     _chunk_size: Optional[int] = None
 
@@ -118,12 +124,12 @@ class MCState(VariationalState):
         Constructs the MCState.
 
         Args:
-            sampler: The sampler
+            sampler: The sampler.
             model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
                 specified together with n_samples (default=None).
-            n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=0 for exact sampler,
+            n_discard_per_chain: number of discarded samples at the beginning of each Markov chain (default=0 for exact sampler,
                 and n_samples/10 for approximate sampler).
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
@@ -272,10 +278,20 @@ class MCState(VariationalState):
                 )
             )
 
+        n_samples = self.n_samples
+
         self._sampler = sampler
         self.sampler_state = self.sampler.init_state(
             self.model, self.variables, seed=self._sampler_seed
         )
+
+        # Update `n_samples`, `n_samples_per_rank`, and `chain_length` according
+        # to the type and `n_chains` of the new sampler, such that `n_samples`
+        # is not changed if possible
+        # `n_samples == 0` means that `sampler` is set for the first time
+        if n_samples > 0:
+            self.n_samples = n_samples
+
         self.reset()
 
     @property
@@ -285,16 +301,23 @@ class MCState(VariationalState):
 
     @n_samples.setter
     def n_samples(self, n_samples: int):
-        chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
-
-        n_samples_per_rank = chain_length * self.sampler.n_chains_per_rank
-        n_samples = chain_length * self.sampler.n_chains
+        if self.sampler.is_exact:
+            n_samples_per_rank = compute_n_samples_per_rank(n_samples)
+        else:
+            chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
+            n_samples = chain_length * self.sampler.n_chains
+            n_samples_per_rank = chain_length * self.sampler.n_chains_per_rank
 
         check_chunk_size(n_samples, self.chunk_size)
 
         self._n_samples = n_samples
-        self._chain_length = chain_length
         self._n_samples_per_rank = n_samples_per_rank
+
+        if self.sampler.is_exact:
+            self._chain_length = None
+        else:
+            self._chain_length = chain_length
+
         self.reset()
 
     @property
@@ -303,27 +326,33 @@ class MCState(VariationalState):
         return self._n_samples_per_rank
 
     @n_samples_per_rank.setter
-    def n_samples_per_rank(self, n_samples_per_rank: int) -> int:
+    def n_samples_per_rank(self, n_samples_per_rank: int):
         self.n_samples = n_samples_per_rank * mpi.n_nodes
 
     @property
-    def chain_length(self) -> int:
+    def chain_length(self) -> Optional[int]:
         """
-        Length of the markov chain used for sampling configurations.
+        Length of the Markov chain used for sampling configurations.
 
-        If running under MPI, the total samples will be n_nodes * chain_length * n_batches.
+        If running under MPI, the total samples will be `chain_length * n_chains_per_rank * n_nodes`.
+
+        Returns None if the sampler is exact.
         """
         return self._chain_length
 
     @chain_length.setter
     def chain_length(self, length: int):
-        self.n_samples = length * self.sampler.n_chains * mpi.n_nodes
-        self.reset()
+        if self.sampler.is_exact:
+            raise ValueError(
+                "`chain_length` should not be modified for exact samplers."
+            )
+
+        self.n_samples = length * self.sampler.n_chains
 
     @property
     def n_discard_per_chain(self) -> int:
         """
-        Number of discarded samples at the beginning of the markov chain.
+        Number of discarded samples at the beginning of the Markov chain.
         """
         return self._n_discard_per_chain
 
@@ -356,7 +385,7 @@ class MCState(VariationalState):
         """
         DEPRECATED: Use `n_discard_per_chain` instead.
 
-        Number of discarded samples at the beginning of the markov chain.
+        Number of discarded samples at the beginning of the Markov chain.
         """
         warn_deprecation(
             "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
@@ -432,26 +461,50 @@ class MCState(VariationalState):
         """
         Sample a certain number of configurations.
 
-        If one among chain_leength or n_samples is defined, that number of samples
-        are gen erated. Otherwise the value set internally is used.
+        If one among `chain_length` or `n_samples` is defined, that number of samples
+        are generated. Otherwise the value set internally is used.
 
         Args:
-            chain_length: The length of the markov chains.
+            chain_length: The length of each Markov chain. Available only if using a Metropolis sampler.
             n_samples: The total number of samples across all MPI ranks.
-            n_discard_per_chain: Number of discarded samples at the beginning of the markov chain.
-        """
+            n_discard_per_chain: Number of discarded samples at the beginning of each Markov chain.
 
-        if n_samples is None and chain_length is None:
-            chain_length = self.chain_length
+        Returns:
+            samples: The generated samples. Its shape depends on the type of the sampler.
+                For exact samplers, the shape is `(n_samples, hilbert.size)`;
+                For Metropolis samplers, the shape is `(n_chains, chain_length, hilbert.size)`.
+        """
+        if n_samples is None:
+            if chain_length is None:
+                if self.sampler.is_exact:
+                    n_samples = self.n_samples
+                else:
+                    chain_length = self.chain_length
+                    n_samples = chain_length * self.sampler.n_chains
+            else:
+                if self.sampler.is_exact:
+                    n_samples = compute_n_samples(
+                        None, chain_length, self.sampler.n_batches
+                    )
+                else:
+                    n_samples = chain_length * self.sampler.n_chains
         else:
             if chain_length is None:
-                chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
+                if self.sampler.is_exact:
+                    pass
+                else:
+                    chain_length = compute_chain_length(
+                        self.sampler.n_chains, n_samples
+                    )
+                    n_samples = chain_length * self.sampler.n_chains
+            else:
+                raise ValueError("Cannot specify both `n_samples` and `chain_length`")
 
-            if self.chunk_size is not None:
-                check_chunk_size(
-                    chain_length * self.sampler.n_chains_per_rank * mpi.n_nodes,
-                    self.chunk_size,
-                )
+        # Now `n_samples` should be an int,
+        # and `chain_length` should be an int if the sampler is not exact
+
+        if self.chunk_size is not None:
+            check_chunk_size(n_samples, self.chunk_size)
 
         if n_discard_per_chain is None:
             n_discard_per_chain = self.n_discard_per_chain
@@ -460,20 +513,29 @@ class MCState(VariationalState):
             self.model, self.variables, self.sampler_state
         )
 
-        if self.n_discard_per_chain > 0:
-            _, self.sampler_state = self.sampler.sample(
+        if self.sampler.is_exact:
+            self._samples, self.sampler_state = self.sampler.sample(
                 self.model,
                 self.variables,
                 state=self.sampler_state,
-                chain_length=n_discard_per_chain,
+                n_samples=n_samples,
+            )
+        else:
+            if self.n_discard_per_chain > 0:
+                _, self.sampler_state = self.sampler.sample_chain(
+                    self.model,
+                    self.variables,
+                    state=self.sampler_state,
+                    chain_length=n_discard_per_chain,
+                )
+
+            self._samples, self.sampler_state = self.sampler.sample_chain(
+                self.model,
+                self.variables,
+                state=self.sampler_state,
+                chain_length=chain_length,
             )
 
-        self._samples, self.sampler_state = self.sampler.sample(
-            self.model,
-            self.variables,
-            state=self.sampler_state,
-            chain_length=chain_length,
-        )
         return self._samples
 
     @property
