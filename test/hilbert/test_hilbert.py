@@ -225,6 +225,22 @@ def test_flip_state_discrete(hi: DiscreteHilbert):
     np.testing.assert_allclose(states_np, states_new_np)
 
 
+@pytest.mark.parametrize("hi", particle_hilbert_params)
+def test_flip_state_particle(hi: DiscreteHilbert):
+    rng = nk.jax.PRNGSeq(1)
+    N_batches = 20
+
+    states = hi.random_state(rng.next(), N_batches)
+
+    ids = jnp.asarray(
+        jnp.floor(hi.size * jax.random.uniform(rng.next(), shape=(N_batches,))),
+        dtype=int,
+    )
+
+    with pytest.raises(TypeError):
+        nk.hilbert.random.flip_state(hi, rng.next(), states, ids)
+
+
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_hilbert_index_discrete(hi: DiscreteHilbert):
     log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)

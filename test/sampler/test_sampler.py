@@ -401,6 +401,14 @@ def test_throwing(model_and_weights):
     with pytest.raises(ValueError):
         nk.sampler.ARDirectSampler(hi, machine_pow=1)
 
+    # MetropolisLocal should not work with continuous Hilbert spaces
+    with pytest.raises(TypeError):
+        sampler = nk.sampler.MetropolisLocal(hi_particles)
+
+        ma, w = model_and_weights(hi)
+
+        sampler.sample(ma, w, seed=SAMPLER_SEED)
+
 
 def test_exact_sampler(sampler):
     known_exact_samplers = (nk.sampler.ExactSampler, nk.sampler.ARDirectSampler)

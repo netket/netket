@@ -14,7 +14,7 @@
 import jax
 from jax import numpy as jnp
 
-from netket.hilbert import Particle
+from netket.hilbert import ContinuousHilbert, Particle
 from netket.utils.dispatch import dispatch
 
 
@@ -45,3 +45,13 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     rs = jnp.where(jnp.equal(boundary, False), gaussian, (uniform + noise) % modulus)
 
     return jnp.asarray(rs, dtype=dtype)
+
+
+@dispatch
+def flip_state_scalar(hilb: ContinuousHilbert, key, x, i):
+    raise TypeError(
+        "Flipping state is undefined for continuous Hilbert spaces. "
+        "(Maybe you tried using `MetropolisLocal` on a continuous Hilbert space? "
+        "This won't work because 'flipping' a continuous variable is not defined. "
+        "You should try a different sampler.)"
+    )
