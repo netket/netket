@@ -21,7 +21,9 @@ from jax import numpy as jnp
 from jax.experimental import host_callback as hcb
 
 from netket.nn import to_array
+from netket.sampler.metropolis import compute_n_chains_per_rank
 from netket.utils import struct
+from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, SeedT
 
 from .base import Sampler, SamplerState
@@ -47,6 +49,28 @@ class ExactSampler(Sampler):
     for large systems, where Metropolis-based sampling are instead a viable
     option.
     """
+
+    def __pre_init__(self, *args, **kwargs):
+        # TODO(Dian): Remove deprecation
+        if "n_chains_per_rank" in kwargs:
+            if "n_chains" in kwargs:
+                raise ValueError(
+                    "Cannot specify both `n_chains` and `n_chains_per_rank`"
+                )
+            else:
+                warn_deprecation(
+                    "`n_chains` and `n_chains_per_rank` are deprecated for exact samplers"
+                )
+                kwargs["n_batches"] = kwargs.pop("n_chains_per_rank")
+        else:
+            if "n_chains" in kwargs:
+                warn_deprecation(
+                    "`n_chains` and `n_chains_per_rank` are deprecated for exact samplers"
+                )
+                n_chains = kwargs.pop("n_chains")
+                kwargs["n_batches"] = compute_n_chains_per_rank(n_chains)
+
+        return super().__pre_init__(*args, **kwargs)
 
     @property
     def is_exact(sampler):

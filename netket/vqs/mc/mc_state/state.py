@@ -16,8 +16,6 @@ import warnings
 from functools import partial
 from typing import Any, Callable, Dict, Optional, Tuple
 
-import numpy as np
-
 import jax
 from jax import numpy as jnp
 
@@ -29,32 +27,13 @@ from netket import nn
 from netket.stats import Stats
 from netket.operator import AbstractOperator
 from netket.sampler import Sampler, SamplerState
+from netket.sampler.metropolis import compute_chain_length
 from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
 from netket.vqs.base import VariationalState, expect, expect_and_grad
-
-
-def compute_chain_length(n_chains, n_samples):
-    if n_samples <= 0:
-        raise ValueError("Invalid number of samples: n_samples={}".format(n_samples))
-
-    chain_length = int(np.ceil(n_samples / n_chains))
-
-    n_samples_new = chain_length * n_chains
-    n_samples_per_rank_new = n_samples_new // mpi.n_nodes
-
-    if n_samples_new != n_samples:
-        n_samples_per_rank = n_samples // mpi.n_nodes
-        warnings.warn(
-            f"n_samples={n_samples} ({n_samples_per_rank} per MPI rank) does not "
-            f"divide n_chains={n_chains}, increased to {n_samples_new} "
-            f"({n_samples_per_rank_new} per MPI rank)"
-        )
-
-    return chain_length
 
 
 def check_chunk_size(n_samples, chunk_size):
@@ -64,8 +43,8 @@ def check_chunk_size(n_samples, chunk_size):
         if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
             raise ValueError(
                 f"chunk_size={chunk_size}`<`n_samples_per_rank={n_samples_per_rank}, "
-                "chunk_size is not an integer fraction of `n_samples_per rank`. This is"
-                "unsupported. Please change `chunk_size` so that it divides evenly the"
+                "chunk_size is not an integer fraction of `n_samples_per_rank`. This is "
+                "unsupported. Please change `chunk_size` so that it divides evenly the "
                 "number of samples per rank or set it to `None` to disable chunking."
             )
 

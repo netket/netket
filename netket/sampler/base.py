@@ -22,11 +22,61 @@ from jax import numpy as jnp
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.utils import mpi, get_afun_if_module, wrap_afun
+from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
 from netket.utils import struct, numbers
 
 fancy = []
+
+
+def autodoc(clz):
+    pass
+
+
+# TODO(Dian): Remove deprecation
+def compute_n_samples(
+    n_samples: Optional[int], chain_length: Optional[int], n_batches: Optional[int]
+) -> int:
+    if n_samples is None:
+        if chain_length is None:
+            # Default value
+            n_samples = 1
+        else:
+            warn_deprecation(
+                "`chain_length` is deprecated. Please specify `n_samples`."
+            )
+            if n_batches is None:
+                raise ValueError(
+                    "Cannot specify `chain_length` when `sampler.n_batches` "
+                    "(`sampler.n_chains_per_rank`) is not specified"
+                )
+            else:
+                n_samples = chain_length * n_batches * mpi.n_nodes
+    else:
+        if chain_length is not None:
+            raise ValueError("Cannot specify both `n_samples` and `chain_length`")
+    return n_samples
+
+
+def compute_n_samples_per_rank(n_samples):
+    if n_samples <= 0:
+        raise ValueError(f"Invalid number of samples: n_samples={n_samples}")
+
+    n_samples_per_rank = int(np.ceil(n_samples / mpi.n_nodes))
+
+    if mpi.n_nodes > 1 and mpi.rank == 0:
+        if n_samples_per_rank * mpi.n_nodes != n_samples:
+            import warnings
+
+            warnings.warn(
+                f"Using {n_samples_per_rank} samples per rank among {mpi.n_nodes} ranks "
+                f"(total={n_samples_per_rank * mpi.n_nodes} instead of n_samples={n_samples}). "
+                "To silence this warning, use `n_samples` that is a multiple of the number of MPI ranks.",
+                category=UserWarning,
+            )
+
+    return n_samples_per_rank
 
 
 @struct.dataclass
@@ -35,10 +85,6 @@ class SamplerState:
     Base class holding the state of a sampler.
     """
 
-    pass
-
-
-def autodoc(clz):
     pass
 
 
@@ -56,7 +102,7 @@ class Sampler(abc.ABC):
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
     """The Hilbert space to sample."""
     _n_batches: Optional[int] = None
-    """The batch size of the sampling on every MPI rank. Not implemented yet."""
+    """The batch size of the sampling on every MPI rank."""
     machine_pow: int = struct.field(default=2)
     """The power to which the machine should be exponentiated to generate the pdf."""
     dtype: DType = struct.field(pytree_node=False, default=np.float64)
@@ -69,8 +115,9 @@ class Sampler(abc.ABC):
         Args:
             hilbert: The Hilbert space to sample.
             n_batches: The batch size of the sampling on every MPI rank (default = None).
-                Not implemented yet.
                 If not specified, all the samples will be generated in a batch.
+                Currently batched sampling is not implemented, and `n_batches` is used only to store `n_chains_per_rank`
+                for backward compatibility.
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
         """
@@ -97,9 +144,12 @@ class Sampler(abc.ABC):
     @property
     def n_batches(self) -> Optional[int]:
         """
-        The batch size of the sampling on every MPI rank. Not implemented yet.
+        The batch size of the sampling on every MPI rank.
 
         If not specified, all the samples will be generated in a batch.
+
+        Currently batched sampling is not implemented, and `n_batches` is used only to store `n_chains_per_rank`
+        for backward compatibility.
         """
         return self._n_batches
 
@@ -199,7 +249,8 @@ class Sampler(abc.ABC):
         parameters: PyTree,
         *,
         state: Optional[SamplerState] = None,
-        n_samples: int = 1,
+        n_samples: Optional[int] = None,
+        chain_length: Optional[int] = None,
     ) -> Tuple[jnp.ndarray, SamplerState]:
         """
         Generate samples.
@@ -214,23 +265,14 @@ class Sampler(abc.ABC):
         Returns:
             σ: The generated samples. Its shape depends on the type of the sampler.
                 For exact samplers, the shape is `(n_samples, hilbert.size)`;
-                For Markov chain samplers, the shape is `(n_chains, chain_length, hilbert.size)`.
+                For Metropolis samplers, the shape is `(n_chains, chain_length, hilbert.size)`.
             state: The new state of the sampler.
         """
+        n_samples = compute_n_samples(n_samples, chain_length, sampler.n_batches)
+        n_samples_per_rank = compute_n_samples_per_rank(n_samples)
+
         if state is None:
             state = sampler.reset(machine, parameters, state)
-
-        n_samples_per_rank = max(int(np.ceil(n_samples / mpi.n_nodes)), 1)
-        if mpi.n_nodes > 1 and mpi.rank == 0:
-            if n_samples_per_rank * mpi.n_nodes != n_samples:
-                import warnings
-
-                warnings.warn(
-                    f"Using {n_samples_per_rank} samples per rank among {mpi.n_nodes} ranks "
-                    f"(total={n_samples_per_rank * mpi.n_nodes} instead of n_samples={n_samples}). "
-                    "To silence this warning, use `n_samples` that is a multiple of the number of MPI ranks.",
-                    category=UserWarning,
-                )
 
         return sampler._sample(
             wrap_afun(machine), parameters, state, n_samples_per_rank
@@ -333,7 +375,8 @@ def sample(
     parameters: PyTree,
     *,
     state: Optional[SamplerState] = None,
-    n_samples: int = 1,
+    n_samples: Optional[int] = None,
+    chain_length: Optional[int] = None,
 ) -> Tuple[jnp.ndarray, SamplerState]:
     """
     Generate samples.
@@ -349,7 +392,7 @@ def sample(
     Returns:
         σ: The generated samples. Its shape depends on the type of the sampler.
             For exact samplers, the shape is `(n_samples, hilbert.size)`;
-            For Markov chain samplers, the shape is `(n_chains, chain_length, hilbert.size)`.
+            For Metropolis samplers, the shape is `(n_chains, chain_length, hilbert.size)`.
         state: The new state of the sampler.
     """
     return sampler.sample(machine, parameters, state, n_samples)

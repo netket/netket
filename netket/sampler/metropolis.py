@@ -29,7 +29,48 @@ from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
 
-from .base import Sampler, SamplerState
+from .base import Sampler, SamplerState, compute_n_samples
+
+
+def compute_n_chains_per_rank(n_chains):
+    if n_chains <= 0:
+        raise ValueError(f"Invalid number of chains: n_chains={n_chains}")
+
+    n_chains_per_rank = int(np.ceil(n_chains / mpi.n_nodes))
+
+    if mpi.n_nodes > 1 and mpi.rank == 0:
+        if n_chains_per_rank * mpi.n_nodes != n_chains:
+            import warnings
+
+            warnings.warn(
+                f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks "
+                f"(total={n_chains_per_rank * mpi.n_nodes} instead of n_chains={n_chains}). "
+                "To directly control the number of chains on every rank, specify "
+                "`n_chains_per_rank` when constructing the sampler. "
+                "To silence this warning, use `n_chains` that is a multiple of the number of MPI ranks.",
+                category=UserWarning,
+            )
+
+    return n_chains_per_rank
+
+
+def compute_chain_length(n_chains, n_samples):
+    if n_samples <= 0:
+        raise ValueError(f"Invalid number of samples: n_samples={n_samples}")
+
+    chain_length = int(np.ceil(n_samples / n_chains))
+
+    if chain_length * n_chains != n_samples:
+        import warnings
+
+        warnings.warn(
+            f"Using {chain_length} samples per chain among {n_chains} chains "
+            f"(total={chain_length * n_chains} instead of n_samples={n_samples}). "
+            "To silence this warning, use `n_samples` that is a multiple of the number of chains.",
+            category=UserWarning,
+        )
+
+    return chain_length
 
 
 @struct.dataclass
@@ -254,28 +295,13 @@ class MetropolisSampler(Sampler):
                     "Cannot specify both `n_chains` and `n_chains_per_rank`"
                 )
         else:
-            # DEFAULT VALUE
             if "n_chains" in kwargs:
                 n_chains = kwargs.pop("n_chains")
             else:
+                # Default value
                 n_chains = 16
 
-            n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
-            if mpi.n_nodes > 1 and mpi.rank == 0:
-                if n_chains_per_rank * mpi.n_nodes != n_chains:
-                    import warnings
-
-                    warnings.warn(
-                        f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks "
-                        f"(total={n_chains_per_rank * mpi.n_nodes} instead of n_chains={n_chains}). "
-                        f"To directly control the number of chains on every rank, specify "
-                        f"`n_chains_per_rank` when constructing the sampler. "
-                        f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
-                        f"that is a multiple of the number of MPI ranks.",
-                        category=UserWarning,
-                    )
-
-            kwargs["n_chains_per_rank"] = n_chains_per_rank
+            kwargs["n_chains_per_rank"] = compute_n_chains_per_rank(n_chains)
 
         # deprecation warnings
         if "reset_chain" in kwargs:
@@ -323,7 +349,8 @@ class MetropolisSampler(Sampler):
         parameters: PyTree,
         *,
         state: Optional[SamplerState] = None,
-        n_samples: int = 1,
+        n_samples: Optional[int] = None,
+        chain_length: Optional[int] = None,
     ) -> Tuple[jnp.ndarray, SamplerState]:
         """
         Generate samples.
@@ -338,22 +365,20 @@ class MetropolisSampler(Sampler):
         Returns:
             σ: The generated samples. Its shape depends on the type of the sampler.
                 For exact samplers, the shape is `(n_samples, hilbert.size)`;
-                For Markov chain samplers, the shape is `(n_chains, chain_length, hilbert.size)`.
+                For Metropolis samplers, the shape is `(n_chains, chain_length, hilbert.size)`.
             state: The new state of the sampler.
         """
+        if chain_length is not None:
+            warn_deprecation(
+                "`chain_length` is deprecated in `MetropolisSampler.sample`. "
+                "If you want to specify `chain_length`, please use `MetropolisSampler.sample_chain`."
+            )
+
+        n_samples = compute_n_samples(n_samples, chain_length, sampler.n_batches)
+        chain_length = compute_chain_length(sampler.n_chains, n_samples)
+
         if state is None:
             state = sampler.reset(machine, parameters, state)
-
-        chain_length = max(int(np.ceil(n_samples / sampler.n_chains)), 1)
-        if chain_length * sampler.n_chains != n_samples:
-            import warnings
-
-            warnings.warn(
-                f"Using {chain_length} samples per chain among {sampler.n_chains} chains "
-                f"(total={chain_length * sampler.n_chains} instead of n_samples={n_samples}). "
-                "To silence this warning, use `n_samples` that is a multiple of the number of chains.",
-                category=UserWarning,
-            )
 
         return sampler._sample_chain(
             wrap_afun(machine), parameters, state, chain_length
