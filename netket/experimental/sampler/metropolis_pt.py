@@ -380,30 +380,6 @@ class MetropolisPtSampler(MetropolisSampler):
 
         return new_state, new_state.σ[new_state.beta_0_index + offsets, :]
 
-    def __repr__(sampler):
-        return (
-            "MetropolisPTSampler("
-            + "\n  hilbert = {},".format(sampler.hilbert)
-            + "\n  rule = {},".format(sampler.rule)
-            + "\n  n_chains = {},".format(sampler.n_chains)
-            + "\n  machine_power = {},".format(sampler.machine_pow)
-            + "\n  reset_chain = {},".format(sampler.reset_chain)
-            + "\n  n_sweeps = {},".format(sampler.n_sweeps)
-            + "\n  dtype = {},".format(sampler.dtype)
-            + ")"
-        )
-
-    def __str__(sampler):
-        return (
-            "MetropolisPTSampler("
-            + "rule = {}, ".format(sampler.rule)
-            + "n_chains = {}, ".format(sampler.n_chains)
-            + "machine_power = {}, ".format(sampler.machine_pow)
-            + "reset_chain = {}, ".format(sampler.reset_chain)
-            + "n_sweeps = {}, ".format(sampler.n_sweeps)
-            + "dtype = {})".format(sampler.dtype)
-        )
-
 
 def MetropolisLocalPt(hilbert, *args, **kwargs):
     r"""

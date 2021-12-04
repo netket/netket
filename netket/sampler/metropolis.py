@@ -640,11 +640,8 @@ def samples(
         state: The current state of the sampler. If not specified, then initialize and reset it.
         chain_length: The length of the chains (default = 1).
     """
-    if state is None:
-        state = sampler.reset(machine, parameters, state)
-
     for i in range(chain_length):
-        samples, state = sampler._sample_chain(machine, parameters, state, 1)
+        samples, state = sampler.sample_chain(machine, parameters, state, 1)
         yield samples[0, :, :]
 
 
