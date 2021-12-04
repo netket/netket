@@ -93,6 +93,9 @@ class ARDirectSampler(Sampler):
 
 @partial(jax.jit, static_argnums=(1, 4))
 def _sample(sampler, model, variables, state, n_samples_per_rank):
+    """
+    Internal method used for jitting calls.
+    """
     if "cache" in variables:
         variables, _ = variables.pop("cache")
 

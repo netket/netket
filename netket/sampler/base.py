@@ -237,7 +237,7 @@ class Sampler(abc.ABC):
         )
 
     @abc.abstractmethod
-    def _init_state(sampler, machine, parameters, seed) -> SamplerState:
+    def _init_state(sampler, machine, parameters, seed):
         """
         Implementation of `init_state` for subclasses of `Sampler`.
 
@@ -309,7 +309,7 @@ def reset(
     machine: Union[Callable, nn.Module],
     parameters: PyTree,
     state: Optional[SamplerState] = None,
-):
+) -> SamplerState:
     """
     Resets the state of the sampler. To be used every time the parameters are changed.
 
@@ -324,7 +324,7 @@ def reset(
     Returns:
         A valid sampler state.
     """
-    sampler.reset(machine, parameters, state)
+    return sampler.reset(machine, parameters, state)
 
 
 def sample(

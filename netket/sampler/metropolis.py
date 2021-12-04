@@ -377,14 +377,43 @@ class MetropolisSampler(Sampler):
         Returns:
             state: The new state of the sampler.
             σ: The next batch of samples.
-        """
-        # Note: the return order is inverted wrt `.sample` because when called inside of
-        # a scan function the first returned argument should be the state.
 
+        Note:
+            The return order is inverted wrt `sample` because when called inside of
+            a scan function the first returned argument should be the state.
+        """
         if state is None:
             state = sampler.reset(machine, parameters, state)
 
         return sampler._sample_next(wrap_afun(machine), parameters, state)
+
+    def sample_chain(
+        sampler,
+        machine: Union[Callable, nn.Module],
+        parameters: PyTree,
+        state: Optional[SamplerState] = None,
+        chain_length: int = 1,
+    ) -> Tuple[jnp.ndarray, SamplerState]:
+        """
+        Samples `chain_length` batches of samples along the chains.
+
+        Arguments:
+            machine: A Flax module or Callable with the forward pass of the log-pdf.
+                If it's a Callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+            parameters: The PyTree of parameters of the model.
+            state: The current state of the sampler. If not specified, then initialize and reset it.
+            chain_length: The length of the chains (default = 1).
+
+        Returns:
+            σ: The batches of samples along the chains.
+            state: The new state of the sampler.
+        """
+        if state is None:
+            state = sampler.reset(machine, parameters, state)
+
+        return sampler._sample_chain(
+            wrap_afun(machine), parameters, state, chain_length
+        )
 
     def _init_state(sampler, machine, params, key):
         key_state, key_rule = jax.random.split(key, 2)
@@ -423,6 +452,12 @@ class MetropolisSampler(Sampler):
         raise NotImplementedError
 
     def _sample_next(sampler, machine, parameters, state):
+        """
+        Implementation of `sample_next` for subclasses of `MetropolisSampler`.
+
+        If you sub-class `MetropolisSampler`, you should override `_sample_next` and not `sample_next`
+        itself, because `sample_next` contains some common logic.
+        """
         new_rng, rng = jax.random.split(state.rng)
 
         with loops.Scope() as s:
@@ -478,22 +513,15 @@ class MetropolisSampler(Sampler):
         chain_length: int,
     ) -> Tuple[jnp.ndarray, SamplerState]:
         """
-        Samples `chain_length` elements along the chains.
+        Implementation of `sample_chain` for subclasses of `MetropolisSampler`.
 
-        In general this should not be overridden unless you want to modify the logic by which
-        the whole sampling is performed.
+        If you sub-class `MetropolisSampler`, you should override `_sample_chain` and not `sample_chain`
+        itself, because `sample_chain` contains some common logic.
+
+        In general should be overridden only if you want to modify the logic by which
+        the sampling of a chain is performed. Otherwise, override `_sample_next` instead.
 
         If using Jax, this function should be jitted.
-
-        Arguments:
-            machine: A Flax module with the forward pass of the log-pdf.
-            parameters: The PyTree of parameters of the model.
-            state: The current state of the sampler.
-            chain_length: The length of the chains.
-
-        Returns:
-            σ: The next batch of samples.
-            state: The new state of the sampler.
         """
         return _sample_chain(sampler, machine, parameters, state, chain_length)
 
@@ -545,6 +573,31 @@ def sample_next(
     return sampler.sample_next(machine, parameters, state)
 
 
+def sample_chain(
+    sampler: MetropolisSampler,
+    machine: Union[Callable, nn.Module],
+    parameters: PyTree,
+    state: Optional[SamplerState] = None,
+    chain_length: int = 1,
+) -> Tuple[jnp.ndarray, SamplerState]:
+    """
+    Samples `chain_length` batches of samples along the chains.
+
+    Arguments:
+        sampler: The Metropolis sampler.
+        machine: A Flax module or Callable with the forward pass of the log-pdf.
+            If it's a Callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+        parameters: The PyTree of parameters of the model.
+        state: The current state of the sampler. If not specified, then initialize and reset it.
+        chain_length: The length of the chains (default = 1).
+
+    Returns:
+        σ: The batches of samples along the chains.
+        state: The new state of the sampler.
+    """
+    return sampler.sample_chain(machine, parameters, state, chain_length)
+
+
 @partial(jax.jit, static_argnums=(1, 4))
 def _sample_chain(
     sampler: MetropolisSampler,
@@ -554,20 +607,7 @@ def _sample_chain(
     chain_length: int,
 ) -> Tuple[jnp.ndarray, SamplerState]:
     """
-    Samples `chain_length` elements along the chains.
-
     Internal method used for jitting calls.
-
-    Arguments:
-        sampler: The Metropolis sampler.
-        machine: A Flax module with the forward pass of the log-pdf.
-        parameters: The PyTree of parameters of the model.
-        state: The current state of the sampler.
-        chain_length: The length of the chains.
-
-    Returns:
-        σ: The next batch of samples.
-        state: The new state of the sampler.
     """
     _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
 

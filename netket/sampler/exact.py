@@ -92,12 +92,15 @@ class ExactSampler(Sampler):
 
 @partial(jax.jit, static_argnums=(1, 4))
 def _sample(
-    sampler,
+    sampler: ExactSampler,
     machine: nn.Module,
     parameters: PyTree,
     state: SamplerState,
     n_samples_per_rank: int,
 ) -> Tuple[jnp.ndarray, SamplerState]:
+    """
+    Internal method used for jitting calls.
+    """
     new_rng, rng = jax.random.split(state.rng)
     numbers = jax.random.choice(
         rng,
