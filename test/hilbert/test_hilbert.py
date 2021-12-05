@@ -226,7 +226,7 @@ def test_flip_state_discrete(hi: DiscreteHilbert):
 
 
 @pytest.mark.parametrize("hi", particle_hilbert_params)
-def test_flip_state_particle(hi: DiscreteHilbert):
+def test_flip_state_particle(hi: Particle):
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
 
