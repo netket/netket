@@ -94,8 +94,8 @@ def test_n_samples_api(vstate):
     ):
         vstate.n_discard_per_chain = -1
 
-    vstate.n_samples = 2
-    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
+    vstate.n_samples = 3
+    assert vstate.samples.shape[0:2] == (3, vstate.sampler.n_chains)
 
     vstate.chain_length = 2
     assert vstate.n_samples == 2 * vstate.sampler.n_chains
