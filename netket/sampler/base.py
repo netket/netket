@@ -261,6 +261,7 @@ class Sampler(abc.ABC):
             sampler, machine, parameters, state=state, chain_length=chain_length
         )
 
+    @abc.abstractmethod
     def _sample_chain(
         sampler,
         machine: Union[Callable, nn.Module],
@@ -287,7 +288,6 @@ class Sampler(abc.ABC):
             σ: The next batch of samples.
             state: The new state of the sampler
         """
-        raise NotImplementedError
 
     @abc.abstractmethod
     def _init_state(sampler, machine, params, seed) -> SamplerState:
@@ -297,7 +297,6 @@ class Sampler(abc.ABC):
         If you sub-class Sampler, you should define this and not init_state
         itself, because init_state contains some common logic.
         """
-        raise NotImplementedError("init_state Not Implemented")
 
     @abc.abstractmethod
     def _reset(sampler, machine, parameters, state):
@@ -307,7 +306,6 @@ class Sampler(abc.ABC):
         If you sub-class Sampler, you should define _reset and not reset
         itself, because reset contains some common logic.
         """
-        raise NotImplementedError("reset Not Implemented")
 
 
 def sampler_state(

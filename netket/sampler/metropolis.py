@@ -273,6 +273,9 @@ class MetropolisSampler(Sampler):
         """
         Samples the next state in the markov chain.
 
+        If you subclass `MetropolisSampler`, you should not override this but override `_sample_next`
+        instead, because this contains some common logic.
+
         Args:
             machine: a Flax module or callable apply function with the forward pass of the log-pdf.
             parameters: The PyTree of parameters of the model.
@@ -324,6 +327,12 @@ class MetropolisSampler(Sampler):
         )
 
     def _sample_next(sampler, machine, parameters, state):
+        """
+        Implementation of `sample_next` for subclasses of `MetropolisSampler`.
+
+        If you subclass `MetropolisSampler`, you should override this and not `sample_next`
+        itself, because `sample_next` contains some common logic.
+        """
         new_rng, rng = jax.random.split(state.rng)
 
         with loops.Scope() as s:
