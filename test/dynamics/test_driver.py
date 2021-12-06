@@ -71,7 +71,7 @@ all_integrators = fixed_step_integrators + adaptive_step_integrators
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
 def test_one_fixed_step(integrator, propagation_type):
     ha, vstate, _ = _setup_system(L=2)
-    te = nkx.TimeDependentVMC(
+    te = nkx.TDVP(
         ha,
         vstate,
         integrator,
@@ -100,7 +100,7 @@ def l4_norm(_, x):
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
 def test_one_adaptive_step(integrator, error_norm, propagation_type):
     ha, vstate, _ = _setup_system(L=2)
-    te = nkx.TimeDependentVMC(
+    te = nkx.TDVP(
         ha,
         vstate,
         integrator,
@@ -141,7 +141,7 @@ def test_one_step_lindbladian(integrator):
         return lind, vstate
 
     lind, vstate = _setup_lindbladian_system()
-    te = nkx.TimeDependentVMC(
+    te = nkx.TDVP(
         lind,
         vstate,
         integrator,
@@ -155,7 +155,7 @@ def test_one_step_lindbladian(integrator):
 def test_stop_times(integrator):
     def make_driver():
         ha, vstate, _ = _setup_system(L=2)
-        return nkx.TimeDependentVMC(
+        return nkx.TDVP(
             ha,
             vstate,
             integrator,
@@ -201,17 +201,17 @@ def test_stop_times(integrator):
 
 def test_repr_and_info():
     ha, vstate, _ = _setup_system(L=2)
-    driver = nkx.TimeDependentVMC(
+    driver = nkx.TDVP(
         ha,
         vstate,
         nkx.dynamics.RK23(dt=0.01),
     )
     print(str(driver))
-    assert "TimeDependentVMC" in str(driver)
+    assert "TDVP" in str(driver)
 
     info = driver.info()
     print(info)
-    assert "TimeDependentVMC" in info
+    assert "TDVP" in info
     assert "generator" in info
     assert "integrator" in info
     assert "rk23" in info

@@ -66,9 +66,11 @@ def dwdt_mcstate(state: MCState, driver, t, w, *, stage: int = None):
     return driver._dw
 
 
-class TimeDependentVMC(AbstractVariationalDriver):
+class TDVP(AbstractVariationalDriver):
     """
-    Variational Time evolution using the time-dependent Variational Monte Carlo (t-VMC).
+    Variational time evolution based on the time-dependent variational principle which,
+    when used with Monte Carlo sampling via :ref:`~netket.vqs.MCState`, is the time-dependent VMC
+    (t-VMC) method.
     """
 
     def __init__(
@@ -106,7 +108,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
                 to compute the norm :math:`\Vert x \Vert^2_S = x^\dagger \cdot S \cdot x` as suggested
                 in PRL 125, 100503 (2020).
                 Additionally, it possible to pass a custom function with signature
-                    :code:`norm(driver: TimeDependentVMC, x: PyTree) -> float`
+                    :code:`norm(driver: TDVP, x: PyTree) -> float`
                 which can access the driver maps its second argument, a PyTree of parameters :code:`x`,
                 to its norm.
         """
@@ -248,10 +250,7 @@ class TimeDependentVMC(AbstractVariationalDriver):
         callback=None,
     ):
         """
-        Executes the Monte Carlo Variational optimization, updating the weights of the network
-        stored in this driver for `n_iter` steps and dumping values of the observables `obs`
-        in the output `logger`. If no logger is specified, creates a json file at `out`,
-        overwriting files with the same prefix.
+        Runs the time evolution.
 
         By default uses :ref:`netket.logging.JsonLog`. To know about the output format
         check it's documentation. The logger object is also returned at the end of this function

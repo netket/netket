@@ -57,7 +57,7 @@ print(integrator)
 
 # Quenched hamiltonian: this has a different transverse field than `ha`
 ha1 = nk.operator.Ising(hilbert=hi, graph=g, h=0.5)
-te = nkx.TimeDependentVMC(
+te = nkx.TDVP(
     ha1,
     variational_state=vs,
     integrator=integrator,
