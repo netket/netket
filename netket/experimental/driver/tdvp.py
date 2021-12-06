@@ -94,7 +94,7 @@ class TDVP(AbstractVariationalDriver):
                 Lindbladian for density operators).
             variational_state: The variational state.
             integrator: Configuration of the algorithm used for solving the ODE.
-            t0: Initial time.
+            t0: Initial time at the start of the time evolution.
             propagation_type: Determines the equation of motion: "real"  for the
                 real-time Schödinger equation (SE), "imag" for the imaginary-time SE.
             qgt: The QGT specification.
@@ -356,10 +356,12 @@ class TDVP(AbstractVariationalDriver):
 
     @property
     def dt(self):
+        """Current time step."""
         return self._integrator.dt
 
     @property
     def t(self):
+        """Current time."""
         return self._integrator.t
 
     @t.setter

@@ -87,7 +87,6 @@ driver above.
   :toctree: _generated/experimental/dynamics
   :nosignatures:
 
-
   nkx.dynamics.Euler
   nkx.dynamics.Heun
   nkx.dynamics.Midpoint
@@ -95,3 +94,4 @@ driver above.
   nkx.dynamics.RK23
   nkx.dynamics.RK4
   nkx.dynamics.RK45
+  
