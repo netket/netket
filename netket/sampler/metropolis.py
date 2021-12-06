@@ -410,6 +410,9 @@ class MetropolisSampler(Sampler):
         )
 
 
+@deprecated(
+    "The module function `sample_next` is deprecated in favor of the class method `sample_next`."
+)
 def sample_next(
     sampler: Sampler,
     machine: Union[Callable, nn.Module],

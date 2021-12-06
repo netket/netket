@@ -23,6 +23,7 @@ from jax import numpy as jnp
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.utils import mpi, get_afun_if_module, wrap_afun
+from netket.utils.deprecation import deprecated
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
 from netket.utils import struct, numbers
@@ -228,7 +229,7 @@ class Sampler(abc.ABC):
             A valid sampler state.
         """
         if state is None:
-            state = sampler_state(sampler, machine, parameters)
+            state = sampler.init_state(machine, parameters)
 
         return sampler._reset(wrap_afun(machine), parameters, state)
 
@@ -255,10 +256,40 @@ class Sampler(abc.ABC):
             σ: The next batch of samples.
             state: The new state of the sampler
         """
+        if state is None:
+            state = sampler.reset(machine, parameters)
 
-        return sample(
-            sampler, machine, parameters, state=state, chain_length=chain_length
+        return sampler._sample_chain(
+            wrap_afun(machine), parameters, state, chain_length
         )
+
+    def samples(
+        sampler,
+        machine: Union[Callable, nn.Module],
+        parameters: PyTree,
+        *,
+        state: Optional[SamplerState] = None,
+        chain_length: int = 1,
+    ) -> Iterator[jnp.ndarray]:
+        """
+        Returns a generator sampling chain_length elements along the chains.
+
+        Arguments:
+            sampler: The Monte Carlo sampler.
+            machine: The model or Callable to sample from (if it's a function it should have
+                the signature :code:`f(parameters, σ) -> jnp.ndarray`).
+            parameters: The PyTree of parameters of the model.
+            state: current state of the sampler. If None, then initialises it.
+            chain_length: (default=1), the length of the chains.
+        """
+        if state is None:
+            state = sampler.reset(machine, parameters)
+
+        machine = wrap_afun(machine)
+
+        for i in range(chain_length):
+            samples, state = sampler._sample_chain(machine, parameters, state, 1)
+            yield samples[0, :, :]
 
     @abc.abstractmethod
     def _sample_chain(
@@ -307,8 +338,14 @@ class Sampler(abc.ABC):
         """
 
 
+@deprecated(
+    "The module function `sampler_state` is deprecated in favor of the class method `init_state`."
+)
 def sampler_state(
-    sampler: Sampler, machine: Union[Callable, nn.Module], parameters: PyTree
+    sampler: Sampler,
+    machine: Union[Callable, nn.Module],
+    parameters: PyTree,
+    seed: Optional[SeedT] = None,
 ) -> SamplerState:
     """
     Creates the structure holding the state of the sampler.
@@ -333,9 +370,12 @@ def sampler_state(
         The structure holding the state of the sampler. In general you should not expect
         it to be in a valid state, and should reset it before use.
     """
-    return sampler.init_state(machine, parameters)
+    return sampler.init_state(machine, parameters, seed)
 
 
+@deprecated(
+    "The module function `reset` is deprecated in favor of the class method `reset`."
+)
 def reset(
     sampler: Sampler,
     machine: Union[Callable, nn.Module],
@@ -355,9 +395,12 @@ def reset(
     Returns:
         A valid sampler state.
     """
-    sampler.reset(machine, parameters, state)
+    return sampler.reset(machine, parameters, state)
 
 
+@deprecated(
+    "The module function `sample` is deprecated in favor of the class method `sample`."
+)
 def sample(
     sampler: Sampler,
     machine: Union[Callable, nn.Module],
@@ -381,12 +424,12 @@ def sample(
         σ: The next batch of samples.
         state: The new state of the sampler
     """
-    if state is None:
-        state = sampler.reset(machine, parameters, state)
-
-    return sampler._sample_chain(machine, parameters, state, chain_length)
+    return sampler.sample(machine, parameters, state=state, chain_length=chain_length)
 
 
+@deprecated(
+    "The module function `samples` is deprecated in favor of the class method `samples`."
+)
 def samples(
     sampler: Sampler,
     machine: Union[Callable, nn.Module],
@@ -394,7 +437,7 @@ def samples(
     *,
     state: Optional[SamplerState] = None,
     chain_length: int = 1,
-) -> Iterator[np.ndarray]:
+) -> Iterator[jnp.ndarray]:
     """
     Returns a generator sampling chain_length elements along the chains.
 
@@ -406,9 +449,6 @@ def samples(
         state: current state of the sampler. If None, then initialises it.
         chain_length: (default=1), the length of the chains.
     """
-    if state is None:
-        state = sampler.reset(machine, parameters, state)
-
-    for i in range(chain_length):
-        samples, state = sampler._sample_chain(machine, parameters, state, 1)
-        yield samples[0, :, :]
+    yield from sampler.samples(
+        machine, parameters, state=state, chain_length=chain_length
+    )
