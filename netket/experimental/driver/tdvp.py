@@ -44,7 +44,7 @@ def dwdt(state, driver, t, w, *, stage=None):
 
 
 @dispatch
-def dwdt_mcstate(state: MCState, driver, t, w, *, stage: int = None):
+def dwdt(state: MCState, driver, t, w, *, stage: int = None):
     # pylint: disable=protected-access
     state.parameters = w
     state.reset()
@@ -123,11 +123,11 @@ class TDVP(AbstractVariationalDriver):
             variational_state, optimizer=None, minimized_quantity_name="Generator"
         )
 
+        self._generator_repr = repr(operator)
         if isinstance(operator, AbstractOperator):
-            self.generator = operator.collect()
-            self._generator = lambda _: self.generator
+            op = operator.collect()
+            self._generator = lambda _: op
         else:
-            self.generator = operator
             self._generator = operator
 
         self.propagation_type = propagation_type
@@ -177,6 +177,14 @@ class TDVP(AbstractVariationalDriver):
         The underlying integrator which computes the time steps.
         """
         return self._integrator
+
+    @property
+    def generator(self) -> Callable:
+        """
+        The generator of the dynamics as a function with signature
+            generator(t: float) -> AbstractOperator
+        """
+        return self._generator
 
     def advance(self, T: float):
         """
@@ -372,7 +380,7 @@ class TDVP(AbstractVariationalDriver):
         lines = [
             "{}: {}".format(name, info(obj, depth=depth + 1))
             for name, obj in [
-                ("generator     ", self.generator),
+                ("generator     ", self._generator_repr),
                 ("integrator    ", self._integrator),
                 ("linear solver ", self.linear_solver),
                 ("state         ", self.state),
@@ -384,7 +392,7 @@ class TDVP(AbstractVariationalDriver):
         """
         Internal method which dispatches to the actual ODE system function.
         """
-        return dwdt_mcstate(self.state, self, t, w, **kwargs)
+        return dwdt(self.state, self, t, w, **kwargs)
 
     def _qgt_norm(self, x: PyTree):
         """
