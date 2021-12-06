@@ -168,7 +168,7 @@ def test_vmc_same(partial_model_pair, hilbert, dtype, machine_pow, skip):
     model1 = partial_model_pair[0](hilbert, dtype, machine_pow)
     model2 = partial_model_pair[1](hilbert, dtype, machine_pow)
 
-    sampler1 = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
+    sampler1 = nk.sampler.ARDirectSampler(hilbert)
     vstate1 = nk.vqs.MCState(sampler1, model1, n_samples=6, seed=123, sampler_seed=456)
     assert vstate1.n_discard_per_chain == 0
     samples1 = vstate1.sample()
@@ -180,7 +180,7 @@ def test_vmc_same(partial_model_pair, hilbert, dtype, machine_pow, skip):
     vmc1.run(n_iter=3)
     samples_trained1 = vstate1.sample()
 
-    sampler2 = nk.sampler.ARDirectSampler(hilbert, n_chains=3)
+    sampler2 = nk.sampler.ARDirectSampler(hilbert)
     vstate2 = nk.vqs.MCState(sampler2, model2, n_samples=6, seed=123, sampler_seed=456)
     samples2 = vstate2.sample()
 

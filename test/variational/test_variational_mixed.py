@@ -22,8 +22,6 @@ import jax
 import netket as nk
 from jax.nn.initializers import normal
 
-from netket.operator import AbstractSuperOperator
-
 from .. import common
 
 pytestmark = common.skipif_mpi
@@ -73,7 +71,7 @@ operators["operator:sigmam"] = jump_ops[0]
 def vstate(request):
     ma = request.param
 
-    sa = nk.sampler.ExactSampler(hilbert=nk.hilbert.DoubledHilbert(hi), n_chains=16)
+    sa = nk.sampler.ExactSampler(hilbert=nk.hilbert.DoubledHilbert(hi))
 
     vs = nk.vqs.MCMixedState(sa, ma, n_samples=1000, seed=SEED)
 

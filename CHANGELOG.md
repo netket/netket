@@ -19,6 +19,7 @@
 
 ### Breaking Changes
 * The method `sample_next` in `Sampler` and exact samplers (`ExactSampler` and `ARDirectSampler`) is removed, and it is only defined in `MetropolisSampler`. The module function `nk.sampler.sample_next` also only works with `MetropolisSampler`. For exact samplers, please use the method `sample` instead. [#1016](https://github.com/netket/netket/pull/1016)
+* The default value of `n_chains_per_rank` in `Sampler` and exact samplers is changed to 1, and specifying `n_chains` or `n_chains_per_rank` when constructing them is deprecated. Please change `chain_length` when calling `sample`. For `MetropolisSampler`, the default value `n_chains = 16` (across all ranks) is unchanged. [#1017](https://github.com/netket/netket/pull/1017)
 
 ### Internal Changes
 * The definitions of `MCState` and `MCMixedState` have been moved to an internal module, `nk.vqs.mc` that is hidden by default. [#954](https://github.com/netket/netket/pull/954)
