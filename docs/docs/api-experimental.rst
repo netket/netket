@@ -87,11 +87,11 @@ driver above.
   :toctree: _generated/experimental/dynamics
   :nosignatures:
 
-  nkx.dynamics.Euler
-  nkx.dynamics.Heun
-  nkx.dynamics.Midpoint
-  nkx.dynamics.RK12
-  nkx.dynamics.RK23
-  nkx.dynamics.RK4
-  nkx.dynamics.RK45
+  netket.experimental.dynamics.Euler
+  netket.experimental.dynamics.Heun
+  netket.experimental.dynamics.Midpoint
+  netket.experimental.dynamics.RK12
+  netket.experimental.dynamics.RK23
+  netket.experimental.dynamics.RK4
+  netket.experimental.dynamics.RK45
   
