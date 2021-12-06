@@ -174,11 +174,13 @@ def test_random_states_homogeneous(hi: HomogeneousHilbert):
         for state in rstate:
             assert state in local_states
 
+
 def test_random_states_fock_infinite():
     hi = Fock(N=2)
     rstate = hi.random_state(jax.random.PRNGKey(14), 20)
     assert np.all(rstate >= 0)
-    assert rstate.shape == (20,2)
+    assert rstate.shape == (20, 2)
+
 
 @pytest.mark.parametrize("hi", particle_hilbert_params)
 def test_random_states_particle(hi: Particle):
@@ -262,7 +264,7 @@ def test_flip_state_fock_infinite():
 
     assert new_states.shape == states.shape
 
-    assert np.all(states>=0)
+    assert np.all(states >= 0)
 
     states_np = np.asarray(states)
     states_new_np = np.array(new_states)
@@ -271,6 +273,7 @@ def test_flip_state_fock_infinite():
         states_new_np[row, col] = states_np[row, col]
 
     np.testing.assert_allclose(states_np, states_new_np)
+
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_hilbert_index_discrete(hi: DiscreteHilbert):

@@ -29,6 +29,7 @@ It is `maxvalue(np.int64)-1` because we use N+1 in several formulas
 and it would overflow.
 """
 
+
 @jit(nopython=True)
 def _sum_constraint(x, n_particles):
     return np.sum(x, axis=1) == n_particles
