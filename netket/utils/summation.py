@@ -28,13 +28,6 @@ class KahanSum:
     value: Scalar
     compensator: Scalar = 0.0
 
-    def tree_flatten(self):
-        return (self.value, self.compensator), None
-
-    @classmethod
-    def tree_unflatten(cls, _, children):
-        return cls(*children)
-
     def __add__(self, other: Scalar):
         delta = other - self.compensator
         new_value = self.value + delta

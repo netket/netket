@@ -122,9 +122,10 @@ class TimeDependentVMC(AbstractVariationalDriver):
         )
 
         if isinstance(operator, AbstractOperator):
-            operator = operator.collect()
-            self._generator = lambda _: operator
+            self.generator = operator.collect()
+            self._generator = lambda _: self.generator
         else:
+            self.generator = operator
             self._generator = operator
 
         self.propagation_type = propagation_type
@@ -167,13 +168,6 @@ class TimeDependentVMC(AbstractVariationalDriver):
             )
         self._integrator = integrator(self._odefun, t0, self._w, norm=error_norm)
         self._stop_count = 0
-
-    @property
-    def generator(self) -> AbstractOperator:
-        """
-        The generator of the dynamics.
-        """
-        return self._generator
 
     @property
     def integrator(self):
@@ -379,10 +373,10 @@ class TimeDependentVMC(AbstractVariationalDriver):
         lines = [
             "{}: {}".format(name, info(obj, depth=depth + 1))
             for name, obj in [
-                ("generator     ", self._generator),
+                ("generator     ", self.generator),
                 ("integrator    ", self._integrator),
                 ("linear solver ", self.linear_solver),
-                ("State         ", self.state),
+                ("state         ", self.state),
             ]
         ]
         return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)

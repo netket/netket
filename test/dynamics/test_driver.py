@@ -197,3 +197,21 @@ def test_stop_times(integrator):
         assert t == driver.step_value
         ts.append(t)
     np.testing.assert_allclose(ts, tstops)
+
+
+def test_repr_and_info():
+    ha, vstate, _ = _setup_system(L=2)
+    driver = nkx.TimeDependentVMC(
+        ha,
+        vstate,
+        nkx.dynamics.RK23(dt=0.01),
+    )
+    print(str(driver))
+    assert "TimeDependentVMC" in str(driver)
+
+    info = driver.info()
+    print(info)
+    assert "TimeDependentVMC" in info
+    assert "generator" in info
+    assert "integrator" in info
+    assert "rk23" in info
