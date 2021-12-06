@@ -12,14 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ["driver", "dynamics", "sampler", "vqs", "TDVP"]
 
-from . import driver
-from . import dynamics
-from . import sampler
-from . import vqs
+__all__ = [
+    "RungeKuttaIntegrator",
+    "RKIntegratorConfig",
+    "Euler",
+    "Heun",
+    "Midpoint",
+    "RK4",
+    "RK12",
+    "RK23",
+    "RK45",
+]
 
-from .driver import TDVP
+from .runge_kutta import RungeKuttaIntegrator, RKIntegratorConfig
+from .runge_kutta import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
 
 from netket.utils import _hide_submodules
 

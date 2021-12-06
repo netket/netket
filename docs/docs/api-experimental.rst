@@ -62,3 +62,36 @@ Variational State Interface
   netket.experimental.vqs.variables_from_file
   netket.experimental.vqs.variables_from_tar
 
+
+Time Evolution Driver
+---------------------
+
+.. currentmodule:: netket
+
+.. autosummary::
+  :toctree: _generated/experimental/dynamics
+  :nosignatures:
+
+  netket.experimental.driver.TDVP
+
+
+ODE Integrators
+~~~~~~~~~~~~~~~
+
+This is a collection of ODE integrators that can be used with the TDVP 
+driver above.
+
+.. currentmodule:: netket
+
+.. autosummary::
+  :toctree: _generated/experimental/dynamics
+  :nosignatures:
+
+  netket.experimental.dynamics.Euler
+  netket.experimental.dynamics.Heun
+  netket.experimental.dynamics.Midpoint
+  netket.experimental.dynamics.RK12
+  netket.experimental.dynamics.RK23
+  netket.experimental.dynamics.RK4
+  netket.experimental.dynamics.RK45
+  

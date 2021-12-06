@@ -20,6 +20,7 @@ from numpy.testing import assert_equal
 
 from netket.jax import PRNGKey, PRNGSeq
 from netket.utils import HashableArray
+from netket.utils.summation import KahanSum
 
 from .. import common
 
@@ -61,3 +62,15 @@ def test_HashableArray(numpy):
 
     assert_equal(wa.wrapped, np.asarray(wa))
     assert wa.wrapped is not wa
+
+
+def test_Kahan_sum():
+    ksum1 = KahanSum(0.0)
+    ksum2 = KahanSum(0.0)
+    vals = 0.01 * np.ones(500)
+    for val in vals:
+        ksum1 += val
+        ksum2 = ksum2 + val
+
+    assert ksum1.value == pytest.approx(5.0, rel=1e-15, abs=1e-15)
+    assert ksum2.value == pytest.approx(5.0, rel=1e-15, abs=1e-15)

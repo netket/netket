@@ -12,15 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ["driver", "dynamics", "sampler", "vqs", "TDVP"]
+from .struct import dataclass
+from .types import Scalar
 
-from . import driver
-from . import dynamics
-from . import sampler
-from . import vqs
 
-from .driver import TDVP
+@dataclass
+class KahanSum:
+    """
+    Accumulator implementing Kahan summation [1], which reduces
+    the effect of accumulated floating-point error.
 
-from netket.utils import _hide_submodules
+    [1] https://en.wikipedia.org/wiki/Kahan_summation_algorithm
+    """
 
-_hide_submodules(__name__)
+    value: Scalar
+    compensator: Scalar = 0.0
+
+    def __add__(self, other: Scalar):
+        delta = other - self.compensator
+        new_value = self.value + delta
+        new_compensator = (new_value - self.value) - delta
+        return KahanSum(new_value, new_compensator)
