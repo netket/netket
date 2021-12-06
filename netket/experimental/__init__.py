@@ -20,3 +20,7 @@ from . import sampler
 from . import vqs
 
 from .driver import TDVP
+
+from netket.utils import _hide_submodules
+
+_hide_submodules(__name__)

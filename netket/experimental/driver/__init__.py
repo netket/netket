@@ -13,3 +13,7 @@
 # limitations under the License.
 
 from .tdvp import TDVP
+
+from netket.utils import _hide_submodules
+
+_hide_submodules(__name__)

@@ -27,3 +27,7 @@ __all__ = [
 
 from .runge_kutta import RungeKuttaIntegrator, RKIntegratorConfig
 from .runge_kutta import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
+
+from netket.utils import _hide_submodules
+
+_hide_submodules(__name__)
