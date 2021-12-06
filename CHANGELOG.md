@@ -16,6 +16,7 @@
 * A new variational state that performs exact summation over the whole Hilbert space has been added. It can be constructed with {ref}`nk.vqs.ExactState` and supports the same Jax neural networks as {ref}`nk.vqs.MCState`. [#953](https://github.com/netket/netket/pull/953)
 
 ### Breaking Changes
+* The method `sample_next` in `Sampler` and exact samplers (`ExactSampler` and `ARDirectSampler`) is removed, and it is only defined in `MetropolisSampler`. The module function `nk.sampler.sample_next` also only works with `MetropolisSampler`. For exact samplers, please use the method `sample` instead. [#1016](https://github.com/netket/netket/pull/1016)
 
 ### Internal Changes
 * The definitions of `MCState` and `MCMixedState` have been moved to an internal module, `nk.vqs.mc` that is hidden by default. [#954](https://github.com/netket/netket/pull/954)

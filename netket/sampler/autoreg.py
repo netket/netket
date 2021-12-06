@@ -90,11 +90,6 @@ class ARDirectSampler(Sampler):
     def _sample_chain(sampler, model, variables, state, chain_length):
         return _sample_chain(sampler, model, variables, state, chain_length)
 
-    def _sample_next(sampler, model, variables, state):
-        σ, new_state = sampler._sample_chain(model, variables, state, 1)
-        σ = σ.squeeze(axis=0)
-        return new_state, σ
-
 
 @partial(jax.jit, static_argnums=(1, 4))
 def _sample_chain(sampler, model, variables, state, chain_length):
