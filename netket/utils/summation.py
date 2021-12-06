@@ -33,9 +33,3 @@ class KahanSum:
         new_value = self.value + delta
         new_compensator = (new_value - self.value) - delta
         return KahanSum(new_value, new_compensator)
-
-    def __radd__(self, other: Scalar):
-        delta = other - self.compensator
-        new_value = self.value + delta
-        self.compensator = (new_value - self.value) - delta
-        self.value = new_value

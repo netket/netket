@@ -65,12 +65,10 @@ def test_HashableArray(numpy):
 
 
 def test_Kahan_sum():
-    sum = 0.0
     ksum1 = KahanSum(0.0)
     ksum2 = KahanSum(0.0)
     vals = 0.01 * np.ones(500)
     for val in vals:
-        sum += val
         ksum1 += val
         ksum2 = ksum2 + val
 
