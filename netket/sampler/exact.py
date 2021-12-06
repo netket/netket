@@ -68,30 +68,6 @@ class ExactSampler(Sampler):
 
         return state.replace(pdf=pdf)
 
-    def _sample_next(sampler, machine, parameters, state):
-        new_rng, rng = jax.random.split(state.rng)
-        numbers = jax.random.choice(
-            rng,
-            sampler.hilbert.n_states,
-            shape=(sampler.n_chains_per_rank,),
-            replace=True,
-            p=state.pdf,
-        )
-
-        # We use a host-callback to convert integers labelling states to
-        # valid state-arrays because that code is written with numba and
-        # we have not yet converted it to jax.
-        sample = hcb.call(
-            lambda numbers: sampler.hilbert.numbers_to_states(numbers),
-            numbers,
-            result_shape=jax.ShapeDtypeStruct(
-                (sampler.n_chains_per_rank, sampler.hilbert.size), jnp.float64
-            ),
-        )
-
-        new_state = state.replace(rng=new_rng)
-        return new_state, jnp.asarray(sample, dtype=sampler.dtype)
-
     def _sample_chain(
         sampler,
         machine: Callable,
@@ -139,6 +115,10 @@ def _sample_chain(
         p=state.pdf,
     )
 
+    # We use a host-callback to convert integers labelling states to
+    # valid state-arrays because that code is written with numba and
+    # we have not yet converted it to jax.
+    #
     # For future investigators:
     # this will lead to a crash if numbers_to_state throws.
     # it throws if we feed it nans!

@@ -17,7 +17,6 @@ from .base import (
     SamplerState,
     sampler_state,
     reset,
-    sample_next,
     sample,
     samples,
 )
@@ -32,6 +31,7 @@ from .metropolis import (
     MetropolisSamplerState,
     MetropolisHamiltonian,
     MetropolisGaussian,
+    sample_next,
 )
 
 from .metropolis_numpy import (

@@ -14,9 +14,7 @@
 
 import abc
 from typing import Optional, Union, Tuple, Callable, Iterator
-from functools import partial
 
-import jax
 import numpy as np
 
 from flax import linen as nn
@@ -235,33 +233,6 @@ class Sampler(abc.ABC):
 
         return sampler._reset(wrap_afun(machine), parameters, state)
 
-    def sample_next(
-        sampler,
-        machine: Union[Callable, nn.Module],
-        parameters: PyTree,
-        state: Optional[SamplerState] = None,
-    ) -> Tuple[jnp.ndarray, SamplerState]:
-        """
-        Samples the next state in the markov chain.
-
-        Args:
-            machine: a Flax module or callable apply function with the forward pass of the log-pdf.
-            parameters: The PyTree of parameters of the model.
-            state: The current state of the sampler. If it's not provided, it will be constructed
-                by calling :code:`sampler.reset(machine, parameters)` with a random seed.
-
-        Returns:
-            state: The new state of the sampler
-            σ: The next batch of samples.
-        """
-        # Note: the return order is inverted wrt `.sample` because when called inside of
-        # a scan function the first returned argument should be the state.
-
-        if state is None:
-            state = sampler_state(sampler, machine, parameters)
-
-        return sampler._sample_next(wrap_afun(machine), parameters, state)
-
     def sample(
         sampler,
         machine: Union[Callable, nn.Module],
@@ -316,7 +287,7 @@ class Sampler(abc.ABC):
             σ: The next batch of samples.
             state: The new state of the sampler
         """
-        return _sample_chain(sampler, machine, parameters, state, chain_length)
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _init_state(sampler, machine, params, seed) -> SamplerState:
@@ -337,16 +308,6 @@ class Sampler(abc.ABC):
         itself, because reset contains some common logic.
         """
         raise NotImplementedError("reset Not Implemented")
-
-    @abc.abstractmethod
-    def _sample_next(sampler, machine, parameters, state=None):
-        """
-        Implementation of sample_next for subclasses of Sampler.
-
-        If you sub-class Sampler, you should define _sample_next and not sample_next
-        itself, because reset contains some common logic.
-        """
-        raise NotImplementedError("sample_next Not Implemented")
 
 
 def sampler_state(
@@ -400,29 +361,6 @@ def reset(
     sampler.reset(machine, parameters, state)
 
 
-def sample_next(
-    sampler: Sampler,
-    machine: Union[Callable, nn.Module],
-    parameters: PyTree,
-    state: Optional[SamplerState] = None,
-) -> Tuple[jnp.ndarray, SamplerState]:
-    """
-    Samples the next state in the markov chain.
-
-    Args:
-        sampler: The Monte Carlo sampler.
-        machine: a Flax module or callable with the forward pass of the log-pdf.
-        parameters: The PyTree of parameters of the model.
-        state: The current state of the sampler. If it's not provided, it will be constructed
-            by calling :code:`sampler.reset(machine, parameters)` with a random seed.
-
-    Returns:
-        state: The new state of the sampler
-        σ: The next batch of samples.
-    """
-    return sampler.sample_next(machine, parameters, state)
-
-
 def sample(
     sampler: Sampler,
     machine: Union[Callable, nn.Module],
@@ -450,43 +388,6 @@ def sample(
         state = sampler.reset(machine, parameters, state)
 
     return sampler._sample_chain(machine, parameters, state, chain_length)
-
-
-@partial(jax.jit, static_argnums=(1, 4))
-def _sample_chain(
-    sampler,
-    machine: Union[Callable, nn.Module],
-    parameters: PyTree,
-    state: SamplerState,
-    chain_length: int,
-) -> Tuple[jnp.ndarray, SamplerState]:
-    """
-    Samples chain_length elements along the chains.
-
-    Internal method used for jitting calls
-
-    Arguments:
-        sampler: The Monte Carlo sampler.
-        machine: The model or Callable to sample from (if it's a function it should have
-            the signature :code:`f(parameters, σ) -> jnp.ndarray`).
-        parameters: The PyTree of parameters of the model.
-        state: current state of the sampler. If None, then initialises it.
-        chain_length: (default=1), the length of the chains.
-
-    Returns:
-        σ: The next batch of samples.
-        state: The new state of the sampler
-    """
-    _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
-
-    state, samples = jax.lax.scan(
-        _sample_next,
-        state,
-        xs=None,
-        length=chain_length,
-    )
-
-    return samples, state
 
 
 def samples(

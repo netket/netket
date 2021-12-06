@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Callable, Tuple
+from functools import partial
+from typing import Any, Callable, Optional, Tuple, Union
 
 import jax
+from flax import linen as nn
 from jax import numpy as jnp
 from jax.experimental import loops
 
 from netket.hilbert import ContinuousHilbert
 
-from netket.utils import mpi
+from netket.utils import mpi, wrap_afun
 from netket.utils.types import PyTree, PRNGKeyT
 
 from netket.utils.deprecation import deprecated, warn_deprecation
@@ -262,6 +264,33 @@ class MetropolisSampler(Sampler):
         if self.n_sweeps is None:
             object.__setattr__(self, "n_sweeps", self.hilbert.size)
 
+    def sample_next(
+        sampler,
+        machine: Union[Callable, nn.Module],
+        parameters: PyTree,
+        state: Optional[SamplerState] = None,
+    ) -> Tuple[jnp.ndarray, SamplerState]:
+        """
+        Samples the next state in the markov chain.
+
+        Args:
+            machine: a Flax module or callable apply function with the forward pass of the log-pdf.
+            parameters: The PyTree of parameters of the model.
+            state: The current state of the sampler. If it's not provided, it will be constructed
+                by calling :code:`sampler.reset(machine, parameters)` with a random seed.
+
+        Returns:
+            state: The new state of the sampler
+            σ: The next batch of samples.
+        """
+        # Note: the return order is inverted wrt `.sample` because when called inside of
+        # a scan function the first returned argument should be the state.
+
+        if state is None:
+            state = sampler.reset(machine, parameters)
+
+        return sampler._sample_next(wrap_afun(machine), parameters, state)
+
     def _init_state(sampler, machine, params, key):
         key_state, key_rule = jax.random.split(key, 2)
         rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
@@ -342,6 +371,9 @@ class MetropolisSampler(Sampler):
 
         return new_state, new_state.σ
 
+    def _sample_chain(sampler, machine, parameters, state, chain_length):
+        return _sample_chain(sampler, machine, parameters, state, chain_length)
+
     def __repr__(sampler):
         return (
             f"{type(sampler).__name__}("
@@ -364,6 +396,66 @@ class MetropolisSampler(Sampler):
             + "n_sweeps = {}, ".format(sampler.n_sweeps)
             + "dtype = {})".format(sampler.dtype)
         )
+
+
+def sample_next(
+    sampler: Sampler,
+    machine: Union[Callable, nn.Module],
+    parameters: PyTree,
+    state: Optional[SamplerState] = None,
+) -> Tuple[jnp.ndarray, SamplerState]:
+    """
+    Samples the next state in the markov chain.
+
+    Args:
+        sampler: The Monte Carlo sampler.
+        machine: a Flax module or callable with the forward pass of the log-pdf.
+        parameters: The PyTree of parameters of the model.
+        state: The current state of the sampler. If it's not provided, it will be constructed
+            by calling :code:`sampler.reset(machine, parameters)` with a random seed.
+
+    Returns:
+        state: The new state of the sampler
+        σ: The next batch of samples.
+    """
+    return sampler.sample_next(machine, parameters, state)
+
+
+@partial(jax.jit, static_argnums=(1, 4))
+def _sample_chain(
+    sampler,
+    machine: Union[Callable, nn.Module],
+    parameters: PyTree,
+    state: SamplerState,
+    chain_length: int,
+) -> Tuple[jnp.ndarray, SamplerState]:
+    """
+    Samples chain_length elements along the chains.
+
+    Internal method used for jitting calls
+
+    Arguments:
+        sampler: The Monte Carlo sampler.
+        machine: The model or Callable to sample from (if it's a function it should have
+            the signature :code:`f(parameters, σ) -> jnp.ndarray`).
+        parameters: The PyTree of parameters of the model.
+        state: current state of the sampler. If None, then initialises it.
+        chain_length: (default=1), the length of the chains.
+
+    Returns:
+        σ: The next batch of samples.
+        state: The new state of the sampler
+    """
+    _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
+
+    state, samples = jax.lax.scan(
+        _sample_next,
+        state,
+        xs=None,
+        length=chain_length,
+    )
+
+    return samples, state
 
 
 def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
