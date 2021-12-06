@@ -128,11 +128,11 @@ def test_n_samples_diag_api(vstate):
     ):
         vstate.n_discard_per_chain = -1
 
-    vstate.n_samples_diag = 2
+    vstate.n_samples_diag = 3
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (1, vstate.sampler_diag.n_chains)
-        == (1, vstate.diagonal.sampler.n_chains)
+        == (3, vstate.sampler_diag.n_chains)
+        == (3, vstate.diagonal.sampler.n_chains)
     )
 
     vstate.chain_length_diag = 2
