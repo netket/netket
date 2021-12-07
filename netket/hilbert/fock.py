@@ -22,6 +22,13 @@ from netket.graph import AbstractGraph
 from .homogeneous import HomogeneousHilbert
 from ._deprecations import graph_to_N_depwarn
 
+FOCK_MAX = np.iinfo(np.intp).max - 1
+"""
+Maximum number of particles in the fock space.
+It is `maxvalue(np.int64)-1` because we use N+1 in several formulas
+and it would overflow.
+"""
+
 
 @jit(nopython=True)
 def _sum_constraint(x, n_particles):
@@ -90,8 +97,7 @@ class Fock(HomogeneousHilbert):
             # assert self._n_max > 0
             local_states = np.arange(self._n_max + 1)
         else:
-            max_ind = np.iinfo(np.intp).max
-            self._n_max = max_ind
+            self._n_max = FOCK_MAX
             local_states = None
 
         super().__init__(local_states, N, constraints)
@@ -152,7 +158,7 @@ class Fock(HomogeneousHilbert):
             if self._n_particles is not None
             else ""
         )
-        nmax = self._n_max if self._n_max < np.iinfo(np.intp).max else "INT_MAX"
+        nmax = self._n_max if self._n_max < FOCK_MAX else "FOCK_MAX"
         return "Fock(n_max={}{}, N={})".format(nmax, n_particles, self._size)
 
     @property
