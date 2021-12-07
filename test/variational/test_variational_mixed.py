@@ -271,6 +271,8 @@ def test_qutip_conversion(vstate):
     assert q_obj.dims[0] == list(vstate.hilbert_physical.shape)
     assert q_obj.dims[1] == list(vstate.hilbert_physical.shape)
 
-    assert q_obj.shape == (vstate.hilbert_physical.n_states, vstate.hilbert_physical.n_states)
+    assert q_obj.shape == (
+        vstate.hilbert_physical.n_states,
+        vstate.hilbert_physical.n_states,
+    )
     np.testing.assert_allclose(q_obj.data.todense(), rho)
-
