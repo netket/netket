@@ -72,6 +72,7 @@ except ImportError:
             "OMPI_COMM_WORLD_SIZE",
             "I_MPI_HYDRA_HOST_FILE",
             "MPI_LOCALRANKID",
+            "MPI_LOCALNRANKS",
         ]
         for varname in _MPI_ENV_VARIABLES:
             if varname in os.environ:
@@ -97,7 +98,6 @@ except ImportError:
                     """
                     )
                 )
-
 
 if mpi4py_available:
     _MIN_MPI4JAX_VERSION = (0, 3, 1)
