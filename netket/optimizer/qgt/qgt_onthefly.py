@@ -23,7 +23,7 @@ import netket.jax as nkjax
 from netket.utils.types import PyTree
 from netket.utils import warn_deprecation
 
-from .qgt_onthefly_logic import mat_vec_factory
+from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
 
 from ..linear_operator import LinearOperator, Uninitialized
 
@@ -62,16 +62,27 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
     else:
         samples = vstate.samples.reshape((-1, vstate.samples.shape[-1]))
 
-    mat_vec = mat_vec_factory(
+    chunk_size = vstate.chunk_size
+    n_samples = samples.shape[0]
+
+    if chunk_size is None or chunk_size >= n_samples:
+        mv_factory = mat_vec_factory
+        chunking = False
+    else:
+        samples, _ = nkjax.chunk(samples, chunk_size)
+        mv_factory = mat_vec_chunked_factory
+        chunking = True
+
+    mat_vec = mv_factory(
         forward_fn=vstate._apply_fun,
         params=vstate.parameters,
         model_state=vstate.model_state,
         samples=samples,
     )
-
     return QGTOnTheFlyT(
         _mat_vec=mat_vec,
         _params=vstate.parameters,
+        _chunking=chunking,
         **kwargs,
     )
 
@@ -96,6 +107,9 @@ class QGTOnTheFlyT(LinearOperator):
     _params: PyTree = Uninitialized
     """The first input to apply_fun (parameters of the ansatz).
     Only used as a shape placeholder."""
+
+    _chunking: bool = struct.field(pytree_node=False, default=False)
+    """Wether the implementation with chunks is used which currently does not support vmapping over it"""
 
     def __matmul__(self, y):
         return onthefly_mat_treevec(self, y)
@@ -128,7 +142,7 @@ def onthefly_mat_treevec(
     # if hasa ndim it's an array and not a pytree
     if hasattr(vec, "ndim"):
         if not vec.ndim == 1:
-            raise ValueError("Unsupported mat-vec for batches of vectors")
+            raise ValueError("Unsupported mat-vec for chunks of vectors")
         # If the input is a vector
         if not nkjax.tree_size(S._params) == vec.size:
             raise ValueError(
@@ -178,7 +192,14 @@ def _to_dense(self: QGTOnTheFlyT) -> jnp.ndarray:
     """
     Npars = nkjax.tree_size(self._params)
     I = jax.numpy.eye(Npars)
-    out = jax.vmap(lambda x: self @ x, in_axes=0)(I)
+
+    if self._chunking:
+        # the linear_call in mat_vec_chunked does currently not have a jax batching rule,
+        # so it cannot be vmapped but we can use scan
+        # which is better for reducing the memory consumption anyway
+        _, out = jax.lax.scan(lambda _, x: (None, self @ x), None, I)
+    else:
+        out = jax.vmap(lambda x: self @ x, in_axes=0)(I)
 
     if nkjax.is_complex(out):
         out = out.T

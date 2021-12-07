@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from typing import Optional
-from functools import partial, wraps
-from netket.jax import compose
+from functools import partial
+from netket.jax import compose, vmap_chunked
 
 import jax
 import jax.flatten_util
@@ -50,8 +50,9 @@ def tree_subtract_mean(oks: PyTree) -> PyTree:
     return jax.tree_map(partial(subtract_mean, axis=0), oks)  # MPI
 
 
-@partial(jax.vmap, in_axes=(None, None, 0))
-def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
+def jacobian_real_holo(
+    forward_fn: Callable, params: PyTree, samples: Array, chunk_size: int = None
+) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→R or holomorphic C→C, so single grad is enough
 
@@ -63,14 +64,23 @@ def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> 
     Returns:
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
-    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
-    res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-    return res
+
+    def _jacobian_real_holo(forward_fn, params, samples):
+        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
+        res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+        return res
+
+    return vmap_chunked(
+        _jacobian_real_holo, in_axes=(None, None, 0), chunk_size=chunk_size
+    )(forward_fn, params, samples)
 
 
-@partial(jax.vmap, in_axes=(None, None, 0, None))
-def _jacobian_cplx(
-    forward_fn: Callable, params: PyTree, samples: Array, _build_fn: Callable
+def jacobian_cplx(
+    forward_fn: Callable,
+    params: PyTree,
+    samples: Array,
+    chunk_size: int = None,
+    _build_fn: Callable = partial(jax.tree_multimap, jax.lax.complex),
 ) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→C, backpropagates 1 and -1j
@@ -83,17 +93,16 @@ def _jacobian_cplx(
     Returns:
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
-    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
-    gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-    gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
-    return _build_fn(gr, gi)
 
+    def _jacobian_cplx(forward_fn, params, samples, _build_fn):
+        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
+        gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+        gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
+        return _build_fn(gr, gi)
 
-@partial(wraps(_jacobian_cplx))
-def jacobian_cplx(
-    forward_fn, params, samples, _build_fn=partial(jax.tree_multimap, jax.lax.complex)
-):
-    return _jacobian_cplx(forward_fn, params, samples, _build_fn)
+    return vmap_chunked(
+        _jacobian_cplx, in_axes=(None, None, 0, None), chunk_size=chunk_size
+    )(forward_fn, params, samples, _build_fn)
 
 
 centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
@@ -191,7 +200,7 @@ def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
 # here the other modes are converted
 
 
-@partial(jax.jit, static_argnums=(0, 4, 5))
+@partial(jax.jit, static_argnames=("apply_fun", "mode", "rescale_shift", "chunk_size"))
 def prepare_centered_oks(
     apply_fun: Callable,
     params: PyTree,
@@ -200,6 +209,7 @@ def prepare_centered_oks(
     mode: str,
     rescale_shift: bool,
     pdf=None,
+    chunk_size: int = None,
 ) -> PyTree:
     """
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
@@ -217,6 +227,8 @@ def prepare_centered_oks(
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
         pdf: |ψ(x)|^2 if exact optimization is being used else None
+        chunk_size: an int specfying the size of the chunks the gradient should be computed in (default: None)
+
     Returns:
         if not rescale_shift:
             a pytree representing the centered jacobian of ln Ψ evaluated at the samples σ, divided by √n;
@@ -275,6 +287,7 @@ def prepare_centered_oks(
                 f,
                 params,
                 samples,
+                chunk_size=chunk_size,
             ),
             samples,
         )

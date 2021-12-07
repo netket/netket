@@ -91,6 +91,11 @@ def QGTJacobianPyTree(
     elif holomorphic is not None:
         raise ValueError("Cannot specify both `mode` and `holomorphic`.")
 
+    if hasattr(vstate, "chunk_size"):
+        chunk_size = vstate.chunk_size
+    else:
+        chunk_size = None
+
     O, scale = prepare_centered_oks(
         vstate._apply_fun,
         vstate.parameters,
@@ -99,6 +104,7 @@ def QGTJacobianPyTree(
         mode,
         rescale_shift,
         pdf,
+        chunk_size,
     )
 
     return QGTJacobianPyTreeT(
