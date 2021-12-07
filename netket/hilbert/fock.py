@@ -158,7 +158,7 @@ class Fock(HomogeneousHilbert):
             if self._n_particles is not None
             else ""
         )
-        nmax = self._n_max if self._n_max < FOCK_MAX else "INT_MAX"
+        nmax = self._n_max if self._n_max < FOCK_MAX else "FOCK_MAX"
         return "Fock(n_max={}{}, N={})".format(nmax, n_particles, self._size)
 
     @property
