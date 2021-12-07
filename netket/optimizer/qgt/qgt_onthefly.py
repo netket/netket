@@ -67,9 +67,11 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
 
     if chunk_size is None or chunk_size >= n_samples:
         mv_factory = mat_vec_factory
+        chunking = False
     else:
         samples, _ = nkjax.chunk(samples, chunk_size)
         mv_factory = mat_vec_chunked_factory
+        chunking = True
 
     mat_vec = mv_factory(
         forward_fn=vstate._apply_fun,
@@ -80,6 +82,7 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
     return QGTOnTheFlyT(
         _mat_vec=mat_vec,
         _params=vstate.parameters,
+        _chunking=chunking,
         **kwargs,
     )
 
@@ -104,6 +107,9 @@ class QGTOnTheFlyT(LinearOperator):
     _params: PyTree = Uninitialized
     """The first input to apply_fun (parameters of the ansatz).
     Only used as a shape placeholder."""
+
+    _chunking: bool = struct.field(pytree_node=False, default=False)
+    """Wether the implementation with chunks is used which currently does not support vmapping over it"""
 
     def __matmul__(self, y):
         return onthefly_mat_treevec(self, y)
@@ -186,7 +192,14 @@ def _to_dense(self: QGTOnTheFlyT) -> jnp.ndarray:
     """
     Npars = nkjax.tree_size(self._params)
     I = jax.numpy.eye(Npars)
-    _, out = jax.lax.scan(lambda _, x: (None, self @ x), None, I)
+
+    if self._chunking:
+        # the linear_call in mat_vec_chunked does currently not have a jax batching rule,
+        # so it cannot be vmapped but we can use scan
+        # which is better for reducing the memory consumption anyway
+        _, out = jax.lax.scan(lambda _, x: (None, self @ x), None, I)
+    else:
+        out = jax.vmap(lambda x: self @ x, in_axes=0)(I)
 
     if nkjax.is_complex(out):
         out = out.T
