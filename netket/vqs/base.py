@@ -286,7 +286,7 @@ class VariationalMixedState(VariationalState):
         """
         from qutip import Qobj
 
-        q_dims = [list(self.hilbert.shape), list(self.hilbert.shape)]
+        q_dims = [list(self.hilbert_physical.shape), list(self.hilbert_physical.shape)]
         return Qobj(np.asarray(self.to_matrix()), dims=q_dims)
 
 

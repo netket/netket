@@ -257,3 +257,22 @@ def test_expect_grad_chunking(vstate, n_chunks):
     jax.tree_multimap(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )
+
+
+def test_qutip_conversion(vstate):
+    # skip test if qutip not installed
+    pytest.importorskip("qutip")
+
+    rho = vstate.to_matrix()
+    q_obj = vstate.to_qobj()
+
+    assert q_obj.type == "oper"
+    assert len(q_obj.dims) == 2
+    assert q_obj.dims[0] == list(vstate.hilbert_physical.shape)
+    assert q_obj.dims[1] == list(vstate.hilbert_physical.shape)
+
+    assert q_obj.shape == (
+        vstate.hilbert_physical.n_states,
+        vstate.hilbert_physical.n_states,
+    )
+    np.testing.assert_allclose(q_obj.data.todense(), rho)
