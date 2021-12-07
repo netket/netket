@@ -238,7 +238,7 @@ class MetropolisSampler(Sampler):
             dtype: The dtype of the statees sampled (default = np.float32).
         """
         if "n_chains" not in kwargs and "n_chains_per_rank" not in kwargs:
-            kwargs["n_chains"] = 16
+            kwargs["n_chains_per_rank"] = 16
 
         # process arguments in the base
         args, kwargs = super().__pre_init__(hilbert=hilbert, **kwargs)

@@ -411,4 +411,4 @@ def test_exact_sampler(sampler):
         assert sampler.n_chains_per_rank == 1
     else:
         assert sampler.is_exact is False
-        assert sampler.n_chains == 16
+        assert sampler.n_chains_per_rank == 16
