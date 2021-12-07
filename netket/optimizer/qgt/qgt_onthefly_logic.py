@@ -65,7 +65,7 @@ def mat_vec_factory(forward_fn, params, model_state, samples):
 
 
 # -------------------------------------------------------------------------------
-
+# Methods below are needed for the chunked version of QGTOnTheFly
 
 @partial(scanmap, scan_fun=scan_append, argnums=2)
 def O_jvp(forward_fn, params, samples, v):
