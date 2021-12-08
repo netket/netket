@@ -64,10 +64,11 @@ class CustomRuleNumpy(MetropolisRule):
         )
 
     def init_state(rule, sampler, machine, params, key):
+        cum_weights = rule.weight_list.cumsum()
         return CustomRuleState(
             sections=np.empty(sampler.n_batches, dtype=np.int32),
             rand_op_n=np.empty(sampler.n_batches, dtype=np.int32),
-            weight_cumsum=rule.weight_list.cumsum(),
+            weight_cumsum=cum_weights,
         )
 
     def transition(rule, sampler, machine, parameters, state, rng, σ):
@@ -107,10 +108,8 @@ class CustomRuleNumpy(MetropolisRule):
 @jit(nopython=True)
 def _pick_random_and_init(batch_size, move_cumulative, rnd_uniform, out):
     for i in range(batch_size):
-        p = rnd_uniform[i]
+        p = move_cumulative[-1] * (1 - rnd_uniform[i])
         out[i] = np.searchsorted(move_cumulative, p)
-
-    # return out
 
 
 @jit(nopython=True)
