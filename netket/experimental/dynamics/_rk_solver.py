@@ -54,8 +54,8 @@ class SolverFlags(IntFlag):
 def set_flag_jax(condition, flags, flag):
     return jax.lax.cond(
         condition,
-        lambda x: x,
         lambda x: x | flag,
+        lambda x: x,
         flags,
     )
 
@@ -194,7 +194,7 @@ def general_time_step_adaptive(
     )
 
     # check if next dt is NaN
-    flags = set_flag_jax(not jnp.isfinite(next_dt), flags, SolverFlags.ERROR_INVALID_DT)
+    flags = set_flag_jax(~jnp.isfinite(next_dt), flags, SolverFlags.ERROR_INVALID_DT)
 
     # check if we are at lower bound for dt
     if dt_limits[0] is not None:
