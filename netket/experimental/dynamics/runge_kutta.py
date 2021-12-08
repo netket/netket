@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from builtins import RuntimeError
+# TODO: aenum could be replaced by (standard library) enum  in Python 3.11
+from aenum import IntFlag, auto
 from functools import partial
 from typing import Callable, Optional, Tuple, Union
 
@@ -25,6 +26,38 @@ from netket.utils.struct import dataclass
 from netket.utils.types import Array, PyTree
 
 dtype = jnp.float64
+
+
+class SolverFlags(IntFlag):
+    NONE = 0
+    INFO_STEP_ACCEPTED = auto()
+    WARN_MIN_DT = auto()
+    WARN_MAX_DT = auto()
+    ERROR_INVALID_DT = auto()
+
+    WARNINGS_FLAGS = WARN_MIN_DT | WARN_MAX_DT
+    ERROR_FLAGS = ERROR_INVALID_DT
+
+    @classmethod
+    def _message(cls, flag):
+        return {
+            cls.INFO_STEP_ACCEPTED: "Step accepted",
+            cls.WARN_MIN_DT: "dt reached lower bound",
+            cls.WARN_MAX_DT: "dt reached upper bound",
+            cls.ERROR_INVALID_DT: "Invalid value of dt",
+        }.get(flag, "UNKNOWN FLAG")
+
+    def message(self):
+        return ", ".join(self._message(flag) for flag in list(self))
+
+
+def set_flag_jax(condition, flags, flag):
+    return jax.lax.cond(
+        condition,
+        lambda x: x,
+        lambda x: x | flag,
+        flags,
+    )
 
 
 def expand_dim(tree: PyTree, sz: int):
@@ -191,8 +224,8 @@ class RungeKuttaState:
     """Current step size."""
     last_norm: Optional[float] = None
     """Solution norm at previous time step."""
-    accepted: bool = True
-    """Whether the last RK step was accepted or should be repeated."""
+    flags: SolverFlags = SolverFlags.INFO_STEP_ACCEPTED
+    """Flags containing information on the solver state."""
 
     def __repr__(self):
         return "RKState(step_no(total)={}({}), t={}, dt={:.2e}{}{})".format(
@@ -203,6 +236,10 @@ class RungeKuttaState:
             f", {self.last_norm:.2e}" if self.last_norm is not None else "",
             f", {'A' if self.accepted else 'R'}",
         )
+
+    @property
+    def accepted(self):
+        return SolverFlags.INFO_STEP_ACCEPTED & self.flags != 0
 
 
 def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn):
@@ -241,6 +278,8 @@ def general_time_step_adaptive(
     max_dt: Optional[float],
     dt_limits: LimitsType,
 ):
+    flags = SolverFlags(0)
+
     if max_dt is None:
         actual_dt = rk_state.dt
     else:
@@ -260,27 +299,40 @@ def general_time_step_adaptive(
     # Propose the next time step, but limited within [0.1 dt, 5 dt] and potential
     # global limits in dt_limits. Not used when actual_dt < rk_state.dt (i.e., the
     # integrator is doing a smaller step to hit a specific stop).
-    def next_dt():
-        return propose_time_step(
-            actual_dt,
-            scaled_err,
-            error_order,
-            limits=(
-                jnp.maximum(0.1 * rk_state.dt, dt_limits[0])
-                if dt_limits[0]
-                else 0.1 * rk_state.dt,
-                jnp.minimum(5.0 * rk_state.dt, dt_limits[1])
-                if dt_limits[1]
-                else 5.0 * rk_state.dt,
-            ),
-        )
+    next_dt = propose_time_step(
+        actual_dt,
+        scaled_err,
+        error_order,
+        limits=(
+            jnp.maximum(0.1 * rk_state.dt, dt_limits[0])
+            if dt_limits[0]
+            else 0.1 * rk_state.dt,
+            jnp.minimum(5.0 * rk_state.dt, dt_limits[1])
+            if dt_limits[1]
+            else 5.0 * rk_state.dt,
+        ),
+    )
 
+    # check if next dt is NaN
+    flags = set_flag_jax(not jnp.isfinite(next_dt), flags, SolverFlags.ERROR_INVALID_DT)
+
+    # check if we are at lower bound for dt
+    if dt_limits[0] is not None:
+        is_at_min_dt = jnp.isclose(next_dt, dt_limits[0])
+        flags = set_flag_jax(is_at_min_dt, flags, SolverFlags.WARN_MIN_DT)
+    else:
+        is_at_min_dt = False
+    if dt_limits[1] is not None:
+        is_at_max_dt = jnp.isclose(next_dt, dt_limits[1])
+        flags = set_flag_jax(is_at_max_dt, flags, SolverFlags.WARN_MAX_DT)
+
+    # accept if error is within tolerances or we are already at the minimal step
+    accept_step = scaled_err < 1.0 or is_at_min_dt
     # accept the time step iff it is accepted by all MPI processes
-    accept_step = scaled_err < 1.0
     accept_step, _ = mpi_all_jax(accept_step)
 
     return jax.lax.cond(
-        accept_step,
+        accept_step or is_at_min_dt,
         # step accepted
         lambda _: rk_state.replace(
             step_no=rk_state.step_no + 1,
@@ -289,18 +341,18 @@ def general_time_step_adaptive(
             t=rk_state.t + actual_dt,
             dt=jax.lax.cond(
                 actual_dt == rk_state.dt,
-                lambda _: next_dt(),
+                lambda _: next_dt,
                 lambda _: rk_state.dt,
                 None,
             ),
             last_norm=norm_y,
-            accepted=True,
+            flags=flags | SolverFlags.INFO_STEP_ACCEPTED,
         ),
         # step rejected, repeat with lower dt
         lambda _: rk_state.replace(
             step_no_total=rk_state.step_no_total + 1,
-            dt=next_dt(),
-            accepted=False,
+            dt=next_dt,
+            flags=flags,
         ),
         None,
     )
@@ -321,7 +373,7 @@ def general_time_step_fixed(
         step_no_total=rk_state.step_no_total + 1,
         t=rk_state.t + actual_dt,
         y=next_y,
-        accepted=True,
+        flags=SolverFlags.INFO_STEP_ACCEPTED,
     )
 
 
@@ -365,6 +417,7 @@ class RungeKuttaIntegrator:
             y=self.y0,
             dt=self.initial_dt,
             last_norm=0.0 if self.use_adaptive else None,
+            flags=SolverFlags(0),
         )
 
     def step(self, max_dt=None):
@@ -413,6 +466,17 @@ class RungeKuttaIntegrator:
     @property
     def dt(self):
         return self._rkstate.dt
+
+    def _get_solver_flags(self, intersect=SolverFlags.NONE):
+        return SolverFlags(int(self._rkstate.flags) & intersect)
+
+    @property
+    def errors(self):
+        return self._get_solver_flags(SolverFlags.ERROR_FLAGS)
+
+    @property
+    def warnings(self):
+        return self._get_solver_flags(SolverFlags.WARNINGS_FLAGS)
 
 
 class RKIntegratorConfig:

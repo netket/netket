@@ -14,6 +14,7 @@
 
 from functools import partial
 from typing import Callable, Optional, Sequence, Union
+import warnings
 
 import jax
 import jax.numpy as jnp
@@ -239,6 +240,15 @@ class TDVP(AbstractVariationalDriver):
                 else:
                     max_dt = None
                 step_accepted = self._integrator.step(max_dt=max_dt)
+                if self._integrator.errors:
+                    raise RuntimeError(
+                        f"RK solver: {self._integrator.errors.message()}"
+                    )
+                elif self._integrator.warnings:
+                    warnings.warn(
+                        f"RK solver: {self._integrator.warnings.message()}",
+                        UserWarning,
+                    )
             self._step_count += 1
 
         # Yield one last time if the remaining tstop is at t_end

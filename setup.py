@@ -26,6 +26,7 @@ BASE_DEPENDENCIES = [
     "orjson~=3.4",
     "optax>=0.0.2, <0.2",
     "numba4jax>=0.0.1, <0.1",
+    "aenum>=3.1.5, <3.2"
 ]
 
 setup(
