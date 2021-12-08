@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import pytest
@@ -146,6 +148,7 @@ def test_one_step_lindbladian(integrator):
         vstate,
         integrator,
         propagation_type="real",
+        linear_solver=partial(nk.optimizer.solver.svd, rcond=1e-3),
     )
     te.run(T=0.01, callback=_stop_after_one_step)
     assert te.t > 0.0
