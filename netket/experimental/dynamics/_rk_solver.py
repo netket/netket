@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO: aenum could be replaced by (standard library) enum  in Python 3.11
-from aenum import IntFlag, auto
+from enum import IntFlag, auto
 from functools import partial
 from typing import Callable, Optional, Tuple, Union
 
@@ -38,17 +37,16 @@ class SolverFlags(IntFlag):
     WARNINGS_FLAGS = WARN_MIN_DT | WARN_MAX_DT
     ERROR_FLAGS = ERROR_INVALID_DT
 
-    @classmethod
-    def _message(cls, flag):
-        return {
-            cls.INFO_STEP_ACCEPTED: "Step accepted",
-            cls.WARN_MIN_DT: "dt reached lower bound",
-            cls.WARN_MAX_DT: "dt reached upper bound",
-            cls.ERROR_INVALID_DT: "Invalid value of dt",
-        }.get(flag, "UNKNOWN FLAG")
+    __MESSAGES__ = {
+        INFO_STEP_ACCEPTED: "Step accepted",
+        WARN_MIN_DT: "dt reached lower bound",
+        WARN_MAX_DT: "dt reached upper bound",
+        ERROR_INVALID_DT: "Invalid value of dt",
+    }
 
     def message(self):
-        return ", ".join(self._message(flag) for flag in list(self))
+        msg = self.__MESSAGES__
+        return ", ".join(msg[flag] for flag in msg.keys() if flag & self != 0)
 
 
 def set_flag_jax(condition, flags, flag):
