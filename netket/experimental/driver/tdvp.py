@@ -25,7 +25,6 @@ import netket as nk
 from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
 from netket.driver.vmc_common import info
-from netket.experimental.dynamics.runge_kutta import euclidean_norm, maximum_norm
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
@@ -36,6 +35,7 @@ from netket.utils.types import PyTree
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 
 from netket.experimental.dynamics import RKIntegratorConfig
+from netket.experimental.dynamics._rk_solver import euclidean_norm, maximum_norm
 
 
 @dispatch

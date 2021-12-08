@@ -25,7 +25,7 @@ from netket.utils.mpi.primitives import mpi_all_jax
 from netket.utils.struct import dataclass
 from netket.utils.types import Array, PyTree
 
-dtype = jnp.float64
+from . import _rk_tableau
 
 
 class SolverFlags(IntFlag):
@@ -60,18 +60,6 @@ def set_flag_jax(condition, flags, flag):
     )
 
 
-def expand_dim(tree: PyTree, sz: int):
-    """
-    creates a new pytree with same structure as input `tree`, but where very leaf
-    has an extra dimension at 0 with size `sz`.
-    """
-
-    def _expand(x):
-        return jnp.zeros((sz,) + x.shape, dtype=x.dtype)
-
-    return jax.tree_map(_expand, tree)
-
-
 def euclidean_norm(x: Union[PyTree, Array]):
     """
     Computes the Euclidean L2 norm of the Array or PyTree intended as a flattened array
@@ -100,114 +88,6 @@ def maximum_norm(x: Union[PyTree, Array]):
                 jax.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
             )
         )
-
-
-@dataclass
-class TableauRKExplicit:
-    name: str
-    """The name of the RK Tableau."""
-    order: Tuple[int, int]
-    """The order of the tableau"""
-    a: jax.numpy.ndarray
-    b: jax.numpy.ndarray
-    c: jax.numpy.ndarray
-    c_error: Optional[jax.numpy.ndarray]
-    """Coefficients for error estimation."""
-
-    @property
-    def is_explicit(self):
-        jnp.allclose(self.a, jnp.tril(self.a))  # check if lower triangular
-
-    @property
-    def is_adaptive(self):
-        return self.b.ndim == 2
-
-    @property
-    def is_fsal(self):
-        """Returns True if the first iteration is the same as last."""
-        # TODO: this is not yet supported
-        return False
-
-    @property
-    def stages(self):
-        """
-        Number of stages (equal to the number of evaluations of the ode function)
-        of the RK scheme.
-        """
-        return len(self.c)
-
-    @property
-    def error_order(self):
-        """
-        Returns the order of the embedded error estimate for a tableau
-        supporting adaptive step size. Otherwise, None is returned.
-        """
-        if not self.is_adaptive:
-            return None
-        else:
-            return self.order[1]
-
-    def _compute_slopes(
-        self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
-    ):
-        """Computes the intermediate slopes k_l."""
-        times = t + self.c * dt
-
-        # TODO: Use FSALLast
-
-        k = expand_dim(y_t, self.stages)
-        for l in range(self.stages):
-            dy_l = jax.tree_map(lambda k: jnp.tensordot(self.a[l], k, axes=1), k)
-            y_l = jax.tree_multimap(lambda y_t, dy_l: y_t + dt * dy_l, y_t, dy_l)
-            k_l = f(times[l], y_l, stage=l)
-            k = jax.tree_multimap(lambda k, k_l: k.at[l].set(k_l), k, k_l)
-
-        return k
-
-    def step(
-        self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
-    ):
-        """Perform one fixed-size RK step from `t` to `t + dt`."""
-        k = self._compute_slopes(f, t, dt, y_t)
-
-        b = self.b[0] if self.b.ndim == 2 else self.b
-        y_tp1 = jax.tree_multimap(
-            lambda y_t, k: y_t + dt * jnp.tensordot(b, k, axes=1), y_t, k
-        )
-
-        return y_tp1
-
-    def step_with_error(
-        self,
-        f: Callable,
-        t: float,
-        dt: float,
-        y_t: Array,
-    ):
-        """
-        Perform one fixed-size RK step from `t` to `t + dt` and additionally return the
-        error vector provided by the adaptive solver.
-        """
-        if not self.is_adaptive:
-            raise RuntimeError(f"{self} is not adaptive")
-
-        k = self._compute_slopes(f, t, dt, y_t)
-
-        y_tp1 = jax.tree_multimap(
-            lambda y_t, k: y_t + dt * jnp.tensordot(self.b[0], k, axes=1), y_t, k
-        )
-        db = self.b[0] - self.b[1]
-        y_err = jax.tree_map(lambda k: dt * jnp.tensordot(db, k, axes=1), k)
-
-        return y_tp1, y_err
 
 
 @dataclass
@@ -379,7 +259,7 @@ def general_time_step_fixed(
 
 @dataclass(_frozen=False)
 class RungeKuttaIntegrator:
-    tableau: TableauRKExplicit
+    tableau: _rk_tableau.TableauRKExplicit
 
     f: Callable
     t0: float
@@ -508,116 +388,12 @@ class RKIntegratorConfig:
         )
 
 
-# fmt: off
-# flake8: noqa: E123, E126, E201, E202, E221, E226, E231, E241, E251
+# Solvers with preset tableaus
 
-# Fixed Step methods
-bt_feuler = TableauRKExplicit(
-                name = "feuler",
-                order = (1,),
-                a = jnp.zeros((1,1), dtype=dtype),
-                b = jnp.ones((1,1), dtype=dtype),
-                c = jnp.zeros((1), dtype=dtype),
-                c_error = None,
-                )
-Euler = partial(RKIntegratorConfig, tableau=bt_feuler)
-
-
-bt_midpoint = TableauRKExplicit(
-                name = "midpoint",
-                order = (2,),
-                a = jnp.array([[0,   0],
-                               [1/2, 0]], dtype=dtype),
-                b = jnp.array( [0,   1], dtype=dtype),
-                c = jnp.array( [0, 1/2], dtype=dtype),
-                c_error = None,
-                )
-Midpoint = partial(RKIntegratorConfig, tableau=bt_midpoint)
-
-
-bt_heun = TableauRKExplicit(
-                name = "heun",
-                order = (2,),
-                a = jnp.array([[0,   0],
-                               [1,   0]], dtype=dtype),
-                b = jnp.array( [1/2, 1/2], dtype=dtype),
-                c = jnp.array( [0, 1], dtype=dtype),
-                c_error = None,
-                )
-Heun = partial(RKIntegratorConfig, tableau=bt_heun)
-
-bt_rk4  = TableauRKExplicit(
-                name = "rk4",
-                order = (4,),
-                a = jnp.array([[0,   0,   0,   0],
-                               [1/2, 0,   0,   0],
-                               [0,   1/2, 0,   0],
-                               [0,   0,   1,   1]], dtype=dtype),
-                b = jnp.array( [1/6,  1/3,  1/3,  1/6], dtype=dtype),
-                c = jnp.array( [0, 1/2, 1/2, 1], dtype=dtype),
-                c_error = None,
-                )
-RK4 = partial(RKIntegratorConfig, tableau=bt_rk4)
-
-
-# Adaptive step:
-# Heun Euler https://en.wikipedia.org/wiki/Runge–Kutta_methods
-bt_rk12  = TableauRKExplicit(
-                name = "rk21",
-                order = (2,1),
-                a = jnp.array([[0,   0],
-                               [1,   0]], dtype=dtype),
-                b = jnp.array([[1/2, 1/2],
-                               [1,   0]], dtype=dtype),
-                c = jnp.array( [0, 1], dtype=dtype),
-                c_error = None,
-                )
-RK12 = partial(RKIntegratorConfig, tableau=bt_rk12)
-
-# Bogacki–Shampine coefficients
-bt_rk23  = TableauRKExplicit(
-                name = "rk23",
-                order = (2,3),
-                a = jnp.array([[0,   0,   0,   0],
-                               [1/2, 0,   0,   0],
-                               [0,   3/4, 0,   0],
-                               [2/9, 1/3, 4/9, 0]], dtype=dtype),
-                b = jnp.array([[7/24,1/4, 1/3, 1/8],
-                               [2/9, 1/3, 4/9, 0]], dtype=dtype),
-                c = jnp.array( [0, 1/2, 3/4, 1], dtype=dtype),
-                c_error = None,
-                )
-RK23 = partial(RKIntegratorConfig, tableau=bt_rk23)
-
-bt_rk4_fehlberg = TableauRKExplicit(
-                name = "fehlberg",
-                order = (4,5),
-                a = jnp.array([[ 0,          0,          0,           0,            0,      0 ],
-                              [  1/4,        0,          0,           0,            0,      0 ],
-                              [  3/32,       9/32,       0,           0,            0,      0 ],
-                              [  1932/2197,  -7200/2197, 7296/2197,   0,            0,      0 ],
-                              [  439/216,    -8,         3680/513,    -845/4104,    0,      0 ],
-                              [  -8/27,      2,          -3544/2565,  1859/4104,    11/40,  0 ]], dtype=dtype),
-                b = jnp.array([[ 25/216,     0,          1408/2565,   2197/4104,    -1/5,   0 ],
-                               [ 16/135,     0,          6656/12825,  28561/56430,  -9/50,  2/55]], dtype=dtype),
-                c = jnp.array( [  0,         1/4,        3/8,         12/13,        1,      1/2], dtype=dtype),
-                c_error = None,
-                )
-
-bt_rk4_dopri  = TableauRKExplicit(
-                name = "dopri",
-                order = (5,4),
-                a = jnp.array([[ 0,           0,           0,           0,        0,             0,         0 ],
-                              [  1/5,         0,           0,           0,        0,             0,         0 ],
-                              [  3/40,        9/40,        0,           0,        0,             0,         0 ],
-                              [  44/45,       -56/15,      32/9,        0,        0,             0,         0 ],
-                              [  19372/6561,  -25360/2187, 64448/6561,  -212/729, 0,             0,         0 ],
-                              [  9017/3168,   -355/33,     46732/5247,  49/176,   -5103/18656,   0,         0 ],
-                              [  35/384,      0,           500/1113,    125/192,  -2187/6784,    11/84,     0 ]], dtype=dtype),
-                b = jnp.array([[ 35/384,      0,           500/1113,    125/192,  -2187/6784,    11/84,     0 ],
-                               [ 5179/57600,  0,           7571/16695,  393/640,  -92097/339200, 187/2100,  1/40 ]], dtype=dtype),
-                c = jnp.array( [ 0,           1/5,         3/10,        4/5,      8/9,           1,         1], dtype=dtype),
-                c_error = None,
-                )
-RK45 = partial(RKIntegratorConfig, tableau=bt_rk4_dopri)
-# fmt: on
+Euler = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_feuler)
+Midpoint = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_midpoint)
+Heun = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_heun)
+RK4 = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_rk4)
+RK12 = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_rk12)
+RK23 = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_rk23)
+RK45 = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_rk4_dopri)
