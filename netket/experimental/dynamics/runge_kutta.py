@@ -20,6 +20,7 @@ import jax
 import jax.numpy as jnp
 
 import netket as nk
+from netket.utils.mpi.primitives import mpi_all_jax
 from netket.utils.struct import dataclass
 from netket.utils.types import Array, PyTree
 
@@ -274,8 +275,12 @@ def general_time_step_adaptive(
             ),
         )
 
+    # accept the time step iff it is accepted by all MPI processes
+    accept_step = scaled_err < 1.0
+    accept_step, _ = mpi_all_jax(accept_step)
+
     return jax.lax.cond(
-        scaled_err < 1.0,
+        accept_step,
         # step accepted
         lambda _: rk_state.replace(
             step_no=rk_state.step_no + 1,
