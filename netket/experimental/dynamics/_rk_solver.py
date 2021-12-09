@@ -358,6 +358,9 @@ class RungeKuttaIntegrator:
         return self._rkstate.dt
 
     def _get_solver_flags(self, intersect=SolverFlags.NONE) -> SolverFlags:
+        """Returns the currently set flags of the solver, intersected with `intersect`."""
+        # _rkstate.flags is turned into an int-valued DeviceArray by JAX,
+        # so we convert it back.
         return SolverFlags(int(self._rkstate.flags) & intersect)
 
     @property
