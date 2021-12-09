@@ -113,8 +113,12 @@ def info():
         print("# MPI4JAX")
         import mpi4jax
 
-        if hasattr(mpi4jax._src.xla_bridge, "HAS_GPU_EXT"):
-            printfmt("HAS_GPU_EXT", mpi4jax._src.xla_bridge.HAS_GPU_EXT, indent=1)
+        if hasattr(mpi4jax, "has_cuda_support"):
+            printfmt("HAS_GPU_EXT", mpi4jax.has_cuda_support, indent=1)
+        else:
+            if hasattr(mpi4jax._src, "xla_bridge"):
+                if hasattr(mpi4jax._src.xla_bridge, "HAS_GPU_EXT"):
+                    printfmt("HAS_GPU_EXT", mpi4jax._src.xla_bridge.HAS_GPU_EXT, indent=1)
         print()
 
     if is_available("mpi4py"):
