@@ -136,9 +136,16 @@ class MetropolisSamplerState(SamplerState):
     """State of the random number generator (key, in jax terms)."""
     rule_state: Optional[Any]
     """Optional state of a transition rule."""
-    n_steps_proc: int = 0
+
+    # those are initialised to 0. We want to initialise them to zero arrays because they can
+    # be passed to jax jitted functions that require type invariance to avoid recompilation
+    n_steps_proc: int = struct.field(
+        default_factory=lambda: jnp.zeros((), dtype=jnp.int64)
+    )
     """Number of moves performed along the chains in this process since the last reset."""
-    n_accepted_proc: int = 0
+    n_accepted_proc: int = struct.field(
+        default_factory=lambda: jnp.zeros((), dtype=jnp.int64)
+    )
     """Number of accepted transitions among the chains in this process since the last reset."""
 
     @property
