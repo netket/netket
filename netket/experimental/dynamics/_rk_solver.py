@@ -21,10 +21,10 @@ import jax.numpy as jnp
 
 import netket as nk
 from netket.utils.mpi.primitives import mpi_all_jax
-from netket.utils.struct import dataclass
+from netket.utils.struct import dataclass, field
 from netket.utils.types import Array, PyTree
 
-from . import _rk_tableau
+from . import _rk_tableau as rkt
 
 
 class SolverFlags(IntFlag):
@@ -156,14 +156,13 @@ def propose_time_step(
     )
 
 
-# TODO: Allow JITing
-# @partial(jax.jit, static_argnames=["step_fn", "norm_fn"])
+# @partial(jax.jit, static_argnames=["f", "norm_fn", "dt_limits"])
 def general_time_step_adaptive(
-    step_fn: Callable,
+    tableau: rkt.TableauRKExplicit,
+    f: Callable,
     rk_state: RungeKuttaState,
     atol: float,
     rtol: float,
-    error_order: int,
     norm_fn: Callable,
     max_dt: Optional[float],
     dt_limits: LimitsType,
@@ -175,10 +174,10 @@ def general_time_step_adaptive(
     else:
         actual_dt = jnp.minimum(rk_state.dt, max_dt)
 
-    next_y, y_err = step_fn(rk_state.t.value, actual_dt, rk_state.y)
+    y_tp1, y_err = tableau.step_with_error(f, rk_state.t.value, actual_dt, rk_state.y)
 
     scaled_err, norm_y = scaled_error(
-        next_y,
+        y_tp1,
         y_err,
         atol,
         rtol,
@@ -192,7 +191,7 @@ def general_time_step_adaptive(
     next_dt = propose_time_step(
         actual_dt,
         scaled_err,
-        error_order,
+        tableau.error_order,
         limits=(
             jnp.maximum(0.1 * rk_state.dt, dt_limits[0])
             if dt_limits[0]
@@ -217,17 +216,17 @@ def general_time_step_adaptive(
         flags = set_flag_jax(is_at_max_dt, flags, SolverFlags.WARN_MAX_DT)
 
     # accept if error is within tolerances or we are already at the minimal step
-    accept_step = scaled_err < 1.0 or is_at_min_dt
+    accept_step = jnp.logical_or(scaled_err < 1.0, is_at_min_dt)
     # accept the time step iff it is accepted by all MPI processes
     accept_step, _ = mpi_all_jax(accept_step)
 
     return jax.lax.cond(
-        accept_step or is_at_min_dt,
+        accept_step,
         # step accepted
         lambda _: rk_state.replace(
             step_no=rk_state.step_no + 1,
             step_no_total=rk_state.step_no_total + 1,
-            y=next_y,
+            y=y_tp1,
             t=rk_state.t + actual_dt,
             dt=jax.lax.cond(
                 actual_dt == rk_state.dt,
@@ -248,32 +247,36 @@ def general_time_step_adaptive(
     )
 
 
-# TODO: Allow JITing
-# @partial(jax.jit, static_argnames=["step_fn", "norm_fn"])
+# @partial(jax.jit, static_argnames=["f"])
 def general_time_step_fixed(
-    step_fn: Callable, rk_state: RungeKuttaState, max_dt: Optional[float]
+    tableau: rkt.TableauRKExplicit,
+    f: Callable,
+    rk_state: RungeKuttaState,
+    max_dt: Optional[float],
 ):
     if max_dt is None:
         actual_dt = rk_state.dt
     else:
         actual_dt = jnp.minimum(rk_state.dt, max_dt)
-    next_y = step_fn(rk_state.t.value, actual_dt, rk_state.y)
+
+    y_tp1 = tableau.step(f, rk_state.t.value, actual_dt, rk_state.y)
+
     return rk_state.replace(
         step_no=rk_state.step_no + 1,
         step_no_total=rk_state.step_no_total + 1,
         t=rk_state.t + actual_dt,
-        y=next_y,
+        y=y_tp1,
         flags=SolverFlags.INFO_STEP_ACCEPTED,
     )
 
 
 @dataclass(_frozen=False)
 class RungeKuttaIntegrator:
-    tableau: _rk_tableau.TableauRKExplicit
+    tableau: rkt.NamedTableau
 
-    f: Callable
+    f: Callable = field(repr=False)
     t0: float
-    y0: Array
+    y0: Array = field(repr=False)
 
     initial_dt: float
 
@@ -285,7 +288,7 @@ class RungeKuttaIntegrator:
     dt_limits: Optional[LimitsType] = None
 
     def __post_init__(self):
-        if self.use_adaptive and not self.tableau.is_adaptive:
+        if self.use_adaptive and not self.tableau.data.is_adaptive:
             raise RuntimeError(
                 f"Solver {self.tableau} does not support adaptive step size"
             )
@@ -328,18 +331,19 @@ class RungeKuttaIntegrator:
 
     def _do_step_fixed(self, rk_state, max_dt=None):
         return general_time_step_fixed(
-            lambda t, dt, y, **kw: self.tableau.step(self.f, t, dt, y, **kw),
+            self.tableau.data,
+            self.f,
             rk_state,
             max_dt=max_dt,
         )
 
     def _do_step_adaptive(self, rk_state, max_dt=None):
         return general_time_step_adaptive(
-            lambda t, dt, y, **kw: self.tableau.step_with_error(self.f, t, dt, y, **kw),
+            self.tableau.data,
+            self.f,
             rk_state,
             atol=self.atol,
             rtol=self.rtol,
-            error_order=self.tableau.error_order,
             norm_fn=self.norm,
             max_dt=max_dt,
             dt_limits=self.dt_limits,
@@ -396,7 +400,7 @@ class RKIntegratorConfig:
     def __repr__(self):
         return "{}(tableau={}, dt={}, adaptive={}{})".format(
             "RKIntegratorConfig",
-            self.tableau.name,
+            self.tableau,
             self.dt,
             self.adaptive,
             f", **kwargs={self.kwargs}" if self.kwargs else "",
@@ -405,10 +409,10 @@ class RKIntegratorConfig:
 
 # Solvers with preset tableaus
 
-Euler = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_feuler)
-Midpoint = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_midpoint)
-Heun = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_heun)
-RK4 = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_rk4)
-RK12 = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_rk12)
-RK23 = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_rk23)
-RK45 = partial(RKIntegratorConfig, tableau=_rk_tableau.bt_rk4_dopri)
+Euler = partial(RKIntegratorConfig, tableau=rkt.bt_feuler)
+Midpoint = partial(RKIntegratorConfig, tableau=rkt.bt_midpoint)
+Heun = partial(RKIntegratorConfig, tableau=rkt.bt_heun)
+RK4 = partial(RKIntegratorConfig, tableau=rkt.bt_rk4)
+RK12 = partial(RKIntegratorConfig, tableau=rkt.bt_rk12)
+RK23 = partial(RKIntegratorConfig, tableau=rkt.bt_rk23)
+RK45 = partial(RKIntegratorConfig, tableau=rkt.bt_rk4_dopri)
