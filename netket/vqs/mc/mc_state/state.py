@@ -98,21 +98,26 @@ class MCState(VariationalState):
     """An Optional PyTree encoding a mutable state of the model that is not trained."""
 
     _sampler: Sampler
-    """The sampler used to sample the hilbert space."""
+    """The sampler used to sample the Hilbert space."""
     sampler_state: SamplerState
-    """The current state of the sampler"""
+    """The current state of the sampler."""
 
     _n_samples: int = 0
-    """Total number of samples across all mpi processes."""
+    """Total number of samples across all chains and MPI processes."""
+    _n_samples_per_rank: int = 0
+    """Number of samples across all chains on one MPI process."""
+    _chain_length: int = 0
+    """Length of the Markov chain used for sampling configurations."""
     _n_discard_per_chain: int = 0
-    """Number of samples discarded at the beginning of every Monte-Carlo chain."""
+    """Number of samples discarded at the beginning of every Markov chain."""
+
     _samples: Optional[jnp.ndarray] = None
     """Cached samples obtained with the last sampling."""
 
     _init_fun: Callable = None
-    """The function used to initialise the parameters and model_state"""
+    """The function used to initialise the parameters and model_state."""
     _apply_fun: Callable = None
-    """The function used to evaluate the model"""
+    """The function used to evaluate the model."""
 
     _chunk_size: Optional[int] = None
 
@@ -297,6 +302,17 @@ class MCState(VariationalState):
         self.sampler_state = self.sampler.init_state(
             self.model, self.variables, seed=self._sampler_seed
         )
+
+        # Update `n_samples`, `n_samples_per_rank`, and `chain_length` according
+        # to the new `sampler.n_chains`.
+        # If `n_samples` is divisible by the new `sampler.n_chains`, it will be
+        # unchanged; otherwise it will be rounded up.
+        # If the new `n_samples_per_rank` is not divisible by `chunk_size`, a
+        # `ValueError` will be raised.
+        # `self.n_samples == 0` means that this `MCState` is being constructed.
+        if self.n_samples > 0:
+            self.n_samples = self.n_samples
+
         self.reset()
 
     @property
@@ -324,7 +340,7 @@ class MCState(VariationalState):
         return self._n_samples_per_rank
 
     @n_samples_per_rank.setter
-    def n_samples_per_rank(self, n_samples_per_rank: int) -> int:
+    def n_samples_per_rank(self, n_samples_per_rank: int):
         self.n_samples = n_samples_per_rank * mpi.n_nodes
 
     @property
@@ -338,8 +354,7 @@ class MCState(VariationalState):
 
     @chain_length.setter
     def chain_length(self, length: int):
-        self.n_samples = length * self.sampler.n_chains * mpi.n_nodes
-        self.reset()
+        self.n_samples = length * self.sampler.n_chains
 
     @property
     def n_discard_per_chain(self) -> int:

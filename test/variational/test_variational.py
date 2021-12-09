@@ -122,6 +122,7 @@ def test_n_samples_api(vstate, _mpi_size):
     ):
         vstate.n_discard_per_chain = -1
 
+    # Tests for `ExactSampler` with `n_chains == 1`
     vstate.n_samples = 3
     assert vstate.samples.shape[0:2] == (3, vstate.sampler.n_chains)
 
@@ -133,11 +134,24 @@ def test_n_samples_api(vstate, _mpi_size):
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == 0
 
+    # Tests for `MetropolisLocal` with `n_chains > 1`
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+    # `n_samples` is rounded up
+    assert vstate.n_samples == 1008
+    assert vstate.chain_length == 63
+
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
     assert vstate.n_samples_per_rank == vstate.n_samples // _mpi_size
+
+    vstate.n_samples = 3
+    # `n_samples` is rounded up
+    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
+
+    vstate.chain_length = 2
+    assert vstate.n_samples == 2 * vstate.sampler.n_chains
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
 
 
 def test_chunk_size_api(vstate, _mpi_size):
