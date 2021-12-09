@@ -28,6 +28,10 @@ from . import _rk_tableau
 
 
 class SolverFlags(IntFlag):
+    """
+    Enumc class containing flags for signaling solver information from within `jax.jit`ed code.
+    """
+
     NONE = 0
     INFO_STEP_ACCEPTED = auto()
     WARN_MIN_DT = auto()
@@ -44,12 +48,19 @@ class SolverFlags(IntFlag):
         ERROR_INVALID_DT: "Invalid value of dt",
     }
 
-    def message(self):
+    def message(self) -> str:
+        """Returns a string with a description of the currently set flags."""
         msg = self.__MESSAGES__
         return ", ".join(msg[flag] for flag in msg.keys() if flag & self != 0)
 
 
 def set_flag_jax(condition, flags, flag):
+    """
+    If `condition` is true, `flags` is updated by setting `flag` to 1.
+    This is equivalent to the following code, but compatible with jax.jit:
+        if condition:
+            flags |= flag
+    """
     return jax.lax.cond(
         condition,
         lambda x: x | flag,
@@ -127,7 +138,7 @@ def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn):
 
 
 LimitsType = Tuple[Optional[float], Optional[float]]
-SAFETY_FACTOR = 0.95
+"""Type of the dt limits field, having independently optional upper and lower bounds."""
 
 
 def propose_time_step(
@@ -136,6 +147,7 @@ def propose_time_step(
     """
     Propose an updated dt based on the scheme suggested in Numerical Recipes, 3rd ed.
     """
+    SAFETY_FACTOR = 0.95
     err_exponent = -1.0 / (1 + error_order)
     return jnp.clip(
         dt * SAFETY_FACTOR * scaled_error ** err_exponent,
@@ -345,15 +357,17 @@ class RungeKuttaIntegrator:
     def dt(self):
         return self._rkstate.dt
 
-    def _get_solver_flags(self, intersect=SolverFlags.NONE):
+    def _get_solver_flags(self, intersect=SolverFlags.NONE) -> SolverFlags:
         return SolverFlags(int(self._rkstate.flags) & intersect)
 
     @property
-    def errors(self):
+    def errors(self) -> SolverFlags:
+        """Returns the currently set error flags of the solver."""
         return self._get_solver_flags(SolverFlags.ERROR_FLAGS)
 
     @property
-    def warnings(self):
+    def warnings(self) -> SolverFlags:
+        """Returns the currently set warning flags of the solver."""
         return self._get_solver_flags(SolverFlags.WARNINGS_FLAGS)
 
 
