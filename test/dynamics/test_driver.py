@@ -151,6 +151,18 @@ def test_one_step_lindbladian(integrator):
     assert te.t > 0.0
 
 
+def test_dt_bounds():
+    ha, vstate, _ = _setup_system(L=2, dtype=np.complex128)
+    te = nkx.TDVP(
+        ha,
+        vstate,
+        nkx.dynamics.RK23(dt=0.1, adaptive=True, dt_limits=(1e-2, None)),
+        propagation_type="real",
+    )
+    with pytest.warns(UserWarning, match="RK solver: dt reached lower bound"):
+        te.run(T=0.1, callback=_stop_after_one_step)
+
+
 @pytest.mark.parametrize("integrator", all_integrators)
 def test_stop_times(integrator):
     def make_driver():

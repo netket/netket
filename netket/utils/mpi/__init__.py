@@ -22,12 +22,21 @@ from .mpi import (
     rank,
 )
 
-from .primitives import mpi_sum, mpi_mean, mpi_any, mpi_bcast, mpi_allgather, mpi_max
 from .primitives import (
-    mpi_sum_jax,
-    mpi_mean_jax,
+    mpi_all,
+    mpi_allgather,
+    mpi_any,
+    mpi_bcast,
+    mpi_max,
+    mpi_mean,
+    mpi_sum,
+)
+from .primitives import (
+    mpi_all_jax,
+    mpi_allgather_jax,
     mpi_any_jax,
     mpi_bcast_jax,
-    mpi_allgather_jax,
     mpi_max_jax,
+    mpi_mean_jax,
+    mpi_sum_jax,
 )
