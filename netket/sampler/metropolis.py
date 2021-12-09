@@ -141,7 +141,7 @@ class MetropolisSamplerState(SamplerState):
     # be passed to jax jitted functions that require type invariance to avoid recompilation
     n_steps_proc: int = struct.field(default_factory=lambda: jnp.zeros((), dtype=jnp.int64))
     """Number of moves performed along the chains in this process since the last reset."""
-    n_accepted_proc: int = struct.field(default_factory=lambda: jnp.zero((), dtype=jnp.int64))
+    n_accepted_proc: int = struct.field(default_factory=lambda: jnp.zeros((), dtype=jnp.int64))
     """Number of accepted transitions among the chains in this process since the last reset."""
 
     @property
