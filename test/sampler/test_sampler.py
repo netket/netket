@@ -187,7 +187,7 @@ def test_states_in_hilbert(sampler, model_and_weights):
 
         ma, w = model_and_weights(hi, sampler)
 
-        for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
+        for sample in sampler.samples(ma, w, chain_length=50):
             assert sample.shape == (sampler.n_chains, hi.size)
             for v in sample:
                 assert v in all_states
@@ -195,7 +195,7 @@ def test_states_in_hilbert(sampler, model_and_weights):
     elif isinstance(hi, Particle):
         ma, w = model_and_weights(hi, sampler)
 
-        for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
+        for sample in sampler.samples(ma, w, chain_length=50):
             assert sample.shape == (sampler.n_chains, hi.size)
 
     # if hasattr(sa, "acceptance"):
