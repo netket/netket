@@ -18,6 +18,7 @@ import warnings
 
 import jax
 import jax.numpy as jnp
+import jax.experimental.host_callback as hcb
 import numpy as np
 from tqdm import tqdm
 
@@ -25,6 +26,7 @@ import netket as nk
 from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
 from netket.driver.vmc_common import info
+from netket.jax import HashablePartial
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
@@ -36,35 +38,6 @@ from netket.vqs import VariationalState, VariationalMixedState, MCState
 
 from netket.experimental.dynamics import RKIntegratorConfig
 from netket.experimental.dynamics._rk_solver import euclidean_norm, maximum_norm
-
-
-@dispatch
-def dwdt(state, driver, t, w, *, stage=None):
-    # pylint: disable=unused-argument
-    raise NotImplementedError(f"dwdt not implemented for {type(state)}")
-
-
-@dispatch
-def dwdt(state: MCState, driver, t, w, *, stage: int = None):
-    # pylint: disable=protected-access
-    state.parameters = w
-    state.reset()
-
-    driver._loss_stats, driver._loss_grad = state.expect_and_grad(
-        driver.generator(t),
-        use_covariance=True,
-    )
-    driver._loss_grad = jax.tree_map(
-        lambda x: driver._loss_grad_factor * x, driver._loss_grad
-    )
-
-    qgt = driver.qgt(driver.state)
-    if stage == 0:  # TODO: This does not work with FSAL.
-        driver._last_qgt = qgt
-
-    initial_dw = None if driver.linear_solver_restart else driver._dw
-    driver._dw, _ = qgt.solve(driver.linear_solver, driver._loss_grad, x0=initial_dw)
-    return driver._dw
 
 
 class TDVP(AbstractVariationalDriver):
@@ -109,9 +82,9 @@ class TDVP(AbstractVariationalDriver):
                 to compute the norm :math:`\Vert x \Vert^2_S = x^\dagger \cdot S \cdot x` as suggested
                 in PRL 125, 100503 (2020).
                 Additionally, it possible to pass a custom function with signature
-                    :code:`norm(driver: TDVP, x: PyTree) -> float`
-                which can access the driver maps its second argument, a PyTree of parameters :code:`x`,
-                to its norm.
+                :code:`norm(x: PyTree) -> float`
+                which maps a PyTree of parameters :code:`x` to the corresponding norm.
+                Note that norm is used in jax.jit-compiled code.
         """
         self._t0 = t0
 
@@ -153,23 +126,36 @@ class TDVP(AbstractVariationalDriver):
         self.linear_solver = linear_solver
         self.linear_solver_restart = linear_solver_restart
 
-        self._w = self.state.parameters
         self._dw = None  # type: PyTree
         self._last_qgt = None
 
         if isinstance(error_norm, Callable):
-            error_norm = partial(error_norm, self)
+            pass
         elif error_norm == "euclidean":
             error_norm = euclidean_norm
         elif error_norm == "maximum":
             error_norm = maximum_norm
         elif error_norm == "qgt":
-            error_norm = self._qgt_norm
+            w = self.state.parameters
+            norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
+            # QGT norm is called via host callback since it accesses the driver
+            error_norm = lambda x: hcb.call(
+                HashablePartial(qgt_norm, self),
+                x,
+                result_shape=jax.ShapeDtypeStruct((), norm_dtype),
+            )
         else:
             raise ValueError(
                 "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum'."
             )
-        self._integrator = integrator(self._odefun, t0, self._w, norm=error_norm)
+
+        self._odefun = HashablePartial(odefun_host_callback, self.state, self)
+        self._integrator = integrator(
+            self._odefun,
+            t0,
+            self.state.parameters,
+            norm=error_norm,
+        )
         self._stop_count = 0
 
     @property
@@ -400,16 +386,86 @@ class TDVP(AbstractVariationalDriver):
         ]
         return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)
 
-    def _odefun(self, t, w, **kwargs):
-        """
-        Internal method which dispatches to the actual ODE system function.
-        """
-        return dwdt(self.state, self, t, w, **kwargs)
+    def ode(self, t=None, w=None):
+        r"""
+        Evaluates the TDVP equation of motion
 
-    def _qgt_norm(self, x: PyTree):
+        .. math::
+
+            G(w) \dot w = \gamma F(w, t)
+
+        where :math:`G(w)` is the QGT, :math:`F(w, t)` the gradient of :code:`self.generator`
+        and :math:`\gamma` one of
+        :math:`\gamma = -1` (imaginary-time dynamics for :code:`MCState`),
+        :math:`\gamma = -i` (real-time dynamics for :code:`MCState`), or
+        :math:`\gamma = 1` (real-time dynamics for :code:`MCMixedState`).
+
+        Args:
+            t: Time (defaults to :code:`self.t`).
+            w: Variational parameters (defaults to :code:`self.state.parameters`).
+
+        Returns:
+            The time-derivative :math:`\dot w`.
         """
-        Computes the norm induced by the QGT :math:`S`, i.e, :math:`x^\\dagger S x`.
-        """
-        y = self._last_qgt @ x
-        xc_dot_y = nk.jax.tree_dot(nk.jax.tree_conj(x), y)
-        return jnp.sqrt(jnp.real(xc_dot_y))
+        if t is None:
+            t = self.t
+        if w is None:
+            w = self.state.parameters
+        return self._odefun(t, w)
+
+
+def qgt_norm(driver: TDVP, x: PyTree):
+    """
+    Computes the norm induced by the QGT :math:`S`, i.e, :math:`x^\\dagger S x`.
+    """
+    y = driver._last_qgt @ x  # pylint: disable=protected-access
+    xc_dot_y = nk.jax.tree_dot(nk.jax.tree_conj(x), y)
+    return jnp.sqrt(jnp.real(xc_dot_y))
+
+
+@dispatch
+def odefun(state, driver, t, w, **kwargs):
+    # pylint: disable=unused-argument
+    raise NotImplementedError(f"odefun not implemented for {type(state)}")
+
+
+@dispatch
+def odefun(state: MCState, driver: TDVP, t, w, *, stage=0):
+    # pylint: disable=protected-access
+
+    state.parameters = w
+    state.reset()
+
+    driver._loss_stats, driver._loss_grad = state.expect_and_grad(
+        driver.generator(t),
+        use_covariance=True,
+    )
+    driver._loss_grad = jax.tree_map(
+        lambda x: driver._loss_grad_factor * x, driver._loss_grad
+    )
+
+    qgt = driver.qgt(driver.state)
+    if stage == 0:  # TODO: This does not work with FSAL.
+        driver._last_qgt = qgt
+
+    initial_dw = None if driver.linear_solver_restart else driver._dw
+    driver._dw, _ = qgt.solve(driver.linear_solver, driver._loss_grad, x0=initial_dw)
+    return driver._dw
+
+
+def odefun_host_callback(state, driver, *args, **kwargs):
+    """
+    Calls odefun through a host callback in order to make the rest of the
+    ODE solver jit-able.
+    """
+    result_shape = jax.tree_map(
+        lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
+        state.parameters,
+    )
+
+    return hcb.call(
+        lambda args_and_kw: odefun(state, driver, *args_and_kw[0], **args_and_kw[1]),
+        # pack args and kwargs together, since host_callback passes a single argument:
+        (args, kwargs),
+        result_shape=result_shape,
+    )

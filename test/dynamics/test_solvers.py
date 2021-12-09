@@ -28,13 +28,10 @@ explicit_fixed_step_solvers = {
 }
 
 explicit_adaptive_solvers = {
+    "RK12": RK12,
     "RK23": RK23,
     "RK45": RK45,
 }
-# Only add RK12 outside CI, as it adapts to smaller steps, making
-# test_adaptive_solver take more time.
-if os.environ.get("CI", "false") != "true":
-    explicit_adaptive_solvers["RK12"] = RK12
 
 
 @pytest.mark.parametrize("solver", explicit_fixed_step_solvers)
