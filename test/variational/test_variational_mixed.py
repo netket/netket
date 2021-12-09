@@ -22,8 +22,6 @@ import jax
 import netket as nk
 from jax.nn.initializers import normal
 
-from netket.operator import AbstractSuperOperator
-
 from .. import common
 
 pytestmark = common.skipif_mpi
@@ -73,7 +71,7 @@ operators["operator:sigmam"] = jump_ops[0]
 def vstate(request):
     ma = request.param
 
-    sa = nk.sampler.ExactSampler(hilbert=nk.hilbert.DoubledHilbert(hi), n_chains=16)
+    sa = nk.sampler.ExactSampler(hilbert=nk.hilbert.DoubledHilbert(hi))
 
     vs = nk.vqs.MCMixedState(sa, ma, n_samples=1000, seed=SEED)
 
@@ -96,8 +94,8 @@ def test_n_samples_api(vstate):
     ):
         vstate.n_discard_per_chain = -1
 
-    vstate.n_samples = 2
-    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
+    vstate.n_samples = 3
+    assert vstate.samples.shape[0:2] == (3, vstate.sampler.n_chains)
 
     vstate.chain_length = 2
     assert vstate.n_samples == 2 * vstate.sampler.n_chains
@@ -130,11 +128,11 @@ def test_n_samples_diag_api(vstate):
     ):
         vstate.n_discard_per_chain = -1
 
-    vstate.n_samples_diag = 2
+    vstate.n_samples_diag = 3
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (1, vstate.sampler_diag.n_chains)
-        == (1, vstate.diagonal.sampler.n_chains)
+        == (3, vstate.sampler_diag.n_chains)
+        == (3, vstate.diagonal.sampler.n_chains)
     )
 
     vstate.chain_length_diag = 2

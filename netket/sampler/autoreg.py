@@ -19,6 +19,7 @@ from jax import numpy as jnp
 
 from netket.sampler import Sampler, SamplerState
 from netket.utils import struct
+from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PRNGKeyT
 
 
@@ -59,6 +60,14 @@ class ARDirectSampler(Sampler):
 
     `ARDirectSampler.machine_pow` has no effect. Please set the model's `machine_pow` instead.
     """
+
+    def __pre_init__(self, *args, **kwargs):
+        if "n_chains" in kwargs or "n_chains_per_rank" in kwargs:
+            warn_deprecation(
+                "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
+            )
+
+        return super().__pre_init__(*args, **kwargs)
 
     def __post_init__(self):
         super().__post_init__()

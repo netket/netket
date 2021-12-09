@@ -87,25 +87,24 @@ class Sampler(abc.ABC):
                     "Cannot specify both `n_chains` and `n_chains_per_rank`"
                 )
         else:
-
-            # DEFAULT VALUE
             if n_chains is None:
-                n_chains = 16
+                # Default value
+                n_chains_per_rank = 1
+            else:
+                n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
+                if mpi.n_nodes > 1 and mpi.rank == 0:
+                    if n_chains_per_rank * mpi.n_nodes != n_chains:
+                        import warnings
 
-            n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
-            if mpi.n_nodes > 1 and mpi.rank == 0:
-                if n_chains_per_rank * mpi.n_nodes != n_chains:
-                    import warnings
-
-                    warnings.warn(
-                        f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks (total="
-                        f"{n_chains_per_rank*mpi.n_nodes} instead of n_chains={n_chains})."
-                        f"To directly control the number of chains on every rank, specify "
-                        f"`n_chains_per_rank` when constructing the sampler. "
-                        f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
-                        f"that is a multiple of the number of mpi ranks.",
-                        category=UserWarning,
-                    )
+                        warnings.warn(
+                            f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks (total="
+                            f"{n_chains_per_rank*mpi.n_nodes} instead of n_chains={n_chains})."
+                            f"To directly control the number of chains on every rank, specify "
+                            f"`n_chains_per_rank` when constructing the sampler. "
+                            f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
+                            f"that is a multiple of the number of mpi ranks.",
+                            category=UserWarning,
+                        )
 
             kwargs["n_chains_per_rank"] = n_chains_per_rank
 

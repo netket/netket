@@ -58,30 +58,24 @@ hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
-samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi, n_chains=8)
-samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u, n_chains=4)
+samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
+samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u)
 
-samplers["Metropolis(Local): Spin"] = nk.sampler.MetropolisLocal(hi, n_chains=16)
+samplers["Metropolis(Local): Spin"] = nk.sampler.MetropolisLocal(hi)
 
-samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(
-    hi, n_chains=16
-)
-# samplers["MetropolisNumpy(Local): Fock"] = nk.sampler.MetropolisLocalNumpy(
-#    hib_u, n_chains=8
-# )
+samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(hi)
+# samplers["MetropolisNumpy(Local): Fock"] = nk.sampler.MetropolisLocalNumpy(hib_u)
 # samplers["MetropolisNumpy(Local): Doubled-Spin"] = nk.sampler.MetropolisLocalNumpy(
-#    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2)), n_chains=8
+#    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2))
 # )
 
-samplers["MetropolisPT(Local): Spin"] = nkx.sampler.MetropolisLocalPt(
-    hi, n_chains=8, n_replicas=4
-)
+samplers["MetropolisPT(Local): Spin"] = nkx.sampler.MetropolisLocalPt(hi, n_replicas=4)
 samplers["MetropolisPT(Local): Fock"] = nkx.sampler.MetropolisLocalPt(
-    hib_u, n_chains=8, n_replicas=4
+    hib_u, n_replicas=4
 )
 
 samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange(
-    hib, n_chains=16, graph=g
+    hib, graph=g
 )
 
 samplers["Metropolis(Hamiltonian,Jax): Spin"] = nk.sampler.MetropolisHamiltonian(
@@ -102,15 +96,15 @@ samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
 
 # samplers["MetropolisPT(Custom: Sx): Spin"] = nkx.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
 
-samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi, n_chains=16)
-samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1, n_chains=16)
-samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u, n_chains=16)
+samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi)
+samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1)
+samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u)
 
 
 # Hilbert space and sampler for particles
 hi_particles = nk.hilbert.Particle(N=3, L=(np.inf,), pbc=(False,))
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
-    hi_particles, sigma=1.0, n_chains=16
+    hi_particles, sigma=1.0
 )
 
 
@@ -414,5 +408,7 @@ def test_exact_sampler(sampler):
     known_exact_samplers = (nk.sampler.ExactSampler, nk.sampler.ARDirectSampler)
     if isinstance(sampler, known_exact_samplers):
         assert sampler.is_exact is True
+        assert sampler.n_chains_per_rank == 1
     else:
         assert sampler.is_exact is False
+        assert sampler.n_chains_per_rank == 16

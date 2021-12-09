@@ -89,7 +89,7 @@ operators["operator:(Non Hermitian)"] = H
 def vstate(request):
     ma = request.param
 
-    sa = nk.sampler.ExactSampler(hilbert=hi, n_chains=16)
+    sa = nk.sampler.ExactSampler(hilbert=hi)
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
@@ -122,8 +122,8 @@ def test_n_samples_api(vstate, _mpi_size):
     ):
         vstate.n_discard_per_chain = -1
 
-    vstate.n_samples = 2
-    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
+    vstate.n_samples = 3
+    assert vstate.samples.shape[0:2] == (3, vstate.sampler.n_chains)
 
     vstate.chain_length = 2
     assert vstate.n_samples == 2 * vstate.sampler.n_chains
@@ -169,8 +169,8 @@ def test_chunk_size_api(vstate, _mpi_size):
     ):
         vstate.chunk_size = 1500
 
-    s = vstate.sample()
-    s = vstate.sample(n_samples=vstate.n_samples)
+    _ = vstate.sample()
+    _ = vstate.sample(n_samples=vstate.n_samples)
     with raises(
         ValueError,
     ):

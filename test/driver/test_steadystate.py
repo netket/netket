@@ -36,7 +36,7 @@ def _setup_ss(dtype=np.float32, sr=True):
     hi, lind = _setup_system()
 
     ma = nk.models.NDM()
-    # sa = nk.sampler.ExactSampler(hilbert=nk.hilbert.DoubledHilber(hi), n_chains=16)
+    # sa = nk.sampler.ExactSampler(hilbert=nk.hilbert.DoubledHilber(hi))
 
     sa = nk.sampler.MetropolisLocal(hilbert=nk.hilbert.DoubledHilbert(hi))
     sa_obs = nk.sampler.MetropolisLocal(hilbert=hi)
