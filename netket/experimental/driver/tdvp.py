@@ -76,10 +76,10 @@ class TDVP(AbstractVariationalDriver):
             linear_solver_restart: If False (default), the last solution of the linear system
                 is used as initial value in subsequent steps.
             error_norm: Norm function used to calculate the error with adaptive integrators.
-                Can be either "euclidean" for the standard L2 vector norm :math:`x^\dagger \cdot x`,
-                "maximum" for the maximum norm :math:`\max_i |x_i|`
+                Can be either "euclidean" for the standard L2 vector norm :math:`w^\dagger w`,
+                "maximum" for the maximum norm :math:`\max_i |w_i|`
                 or "qgt", in which case the scalar product induced by the QGT :math:`S` is used
-                to compute the norm :math:`\Vert x \Vert^2_S = x^\dagger \cdot S \cdot x` as suggested
+                to compute the norm :math:`\Vert w \Vert^2_S = w^\dagger S w` as suggested
                 in PRL 125, 100503 (2020).
                 Additionally, it possible to pass a custom function with signature
                 :code:`norm(x: PyTree) -> float`
@@ -156,6 +156,7 @@ class TDVP(AbstractVariationalDriver):
             self.state.parameters,
             norm=error_norm,
         )
+
         self._stop_count = 0
 
     @property
@@ -175,18 +176,18 @@ class TDVP(AbstractVariationalDriver):
 
     def advance(self, T: float):
         """
-        Advance the time propagation by `T` to `self.t + T`.
+        Advance the time propagation by :code:`T` to :code:`self.t + T`.
 
-           Args:
-               T: Length of the integration interval.
+        Args:
+            T: Length of the integration interval.
         """
         for _ in self.iter(T):
             pass
 
     def iter(self, T: float, *, tstops: Optional[Sequence[float]] = None):
         """
-        Returns a generator which advances the time evolution in
-        steps of `step` for a total of `n_iter` times.
+        Returns a generator which advances the time evolution for an interval
+        of length :code:`T`, stopping at :code:`tstops`.
 
         Args:
             T: Length of the integration interval.

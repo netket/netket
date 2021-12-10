@@ -410,9 +410,16 @@ class RKIntegratorConfig:
 # Solvers with preset tableaus
 
 Euler = partial(RKIntegratorConfig, tableau=rkt.bt_feuler)
+"""First-order Euler solver"""
 Midpoint = partial(RKIntegratorConfig, tableau=rkt.bt_midpoint)
+"""Second-order midpoint method solver"""
 Heun = partial(RKIntegratorConfig, tableau=rkt.bt_heun)
+"""Second-order Heun solver"""
 RK4 = partial(RKIntegratorConfig, tableau=rkt.bt_rk4)
+"""Fourth-order Runge-Kutta solver"""
 RK12 = partial(RKIntegratorConfig, tableau=rkt.bt_rk12)
+"""Heun-Euler solver (adaptive)"""
 RK23 = partial(RKIntegratorConfig, tableau=rkt.bt_rk23)
+"""Bogacki–Shampine method solver (adaptive)"""
 RK45 = partial(RKIntegratorConfig, tableau=rkt.bt_rk4_dopri)
+"""Dormand-Prince (dopri) method solver (adaptive)"""

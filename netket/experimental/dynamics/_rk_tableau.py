@@ -37,6 +37,28 @@ def expand_dim(tree: PyTree, sz: int):
 
 @dataclass
 class TableauRKExplicit:
+    r"""
+    Class representing the Butcher tableau of an explicit Runge-Kutta method [1,2],
+    which, given the ODE dy/dt = F(t, y), updates the solution as
+
+    .. math::
+        y_{t+dt} = y_t + \sum_l b_l k_l
+
+    with the intermediate slopes
+
+    .. math::
+        k_l = F(t + c_l dt, y_t + \sum_{m < l} a_{lm} k_m).
+
+    If :code:`self.is_adaptive`, the tableau also contains the coefficients :math:`b'_l`
+    which can be used to estimate the local truncation error by the formula
+
+    .. math::
+        y_{\mathrm{err}} = \sum_l (b_l - b'_l) k_l.
+
+    [1] https://en.wikipedia.org/w/index.php?title=Runge%E2%80%93Kutta_methods&oldid=1055669759
+    [2] J. Stoer and R. Bulirsch, Introduction to Numerical Analysis, Springer NY (2002).
+    """
+
     order: Tuple[int, int]
     """The order of the tableau"""
     a: jax.numpy.ndarray
