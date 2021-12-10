@@ -156,7 +156,7 @@ def propose_time_step(
     )
 
 
-# @partial(jax.jit, static_argnames=["f", "norm_fn", "dt_limits"])
+@partial(jax.jit, static_argnames=["f", "norm_fn", "dt_limits"])
 def general_time_step_adaptive(
     tableau: rkt.TableauRKExplicit,
     f: Callable,
@@ -247,7 +247,7 @@ def general_time_step_adaptive(
     )
 
 
-# @partial(jax.jit, static_argnames=["f"])
+@partial(jax.jit, static_argnames=["f"])
 def general_time_step_fixed(
     tableau: rkt.TableauRKExplicit,
     f: Callable,
