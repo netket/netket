@@ -90,8 +90,8 @@ driver above.
 
 ```{eval-rst}
 .. autosummary::
-  :toctree: _generated/experimental/dynamics
-  :nosignatures:
+   :toctree: _generated/experimental/dynamics
+   :nosignatures:
 
   netket.experimental.dynamics.Euler
   netket.experimental.dynamics.Heun
