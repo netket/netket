@@ -115,6 +115,11 @@ def test_n_samples_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
+        vstate.n_samples_per_rank = -1
+
+    with raises(
+        ValueError,
+    ):
         vstate.chain_length = -2
 
     with raises(
@@ -122,15 +127,24 @@ def test_n_samples_api(vstate, _mpi_size):
     ):
         vstate.n_discard_per_chain = -1
 
+    def check_consistent():
+        assert vstate.n_samples == vstate.n_samples_per_rank * _mpi_size
+        assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
+
     # Tests for `ExactSampler` with `n_chains == 1`
     vstate.n_samples = 3
+    check_consistent()
     assert vstate.samples.shape[0:2] == (
         int(np.ceil(3 / _mpi_size)),
         vstate.sampler.n_chains_per_rank,
     )
 
+    vstate.n_samples_per_rank = 4
+    check_consistent()
+    assert vstate.samples.shape[0:2] == (4, vstate.sampler.n_chains_per_rank)
+
     vstate.chain_length = 2
-    assert vstate.n_samples == 2 * vstate.sampler.n_chains
+    check_consistent()
     assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
 
     vstate.n_samples = 1000
@@ -142,18 +156,23 @@ def test_n_samples_api(vstate, _mpi_size):
     # `n_samples` is rounded up
     assert vstate.n_samples == 1008
     assert vstate.chain_length == 63
+    check_consistent()
 
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
-    assert vstate.n_samples_per_rank == vstate.n_samples // _mpi_size
-
     vstate.n_samples = 3
+    check_consistent()
     # `n_samples` is rounded up
     assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains_per_rank)
 
+    vstate.n_samples_per_rank = 16 // _mpi_size + 1
+    check_consistent()
+    # `n_samples` is rounded up
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
+
     vstate.chain_length = 2
-    assert vstate.n_samples == 2 * vstate.sampler.n_chains
+    check_consistent()
     assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
 
 
