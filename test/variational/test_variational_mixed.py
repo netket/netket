@@ -96,11 +96,14 @@ def test_n_samples_api(vstate, _mpi_size):
 
     # Tests for `ExactSampler` with `n_chains == 1`
     vstate.n_samples = 3
-    assert vstate.samples.shape[0:2] == (3, vstate.sampler.n_chains)
+    assert vstate.samples.shape[0:2] == (
+        int(np.ceil(3 / _mpi_size)),
+        vstate.sampler.n_chains_per_rank,
+    )
 
     vstate.chain_length = 2
     assert vstate.n_samples == 2 * vstate.sampler.n_chains
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
 
     vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
@@ -119,11 +122,11 @@ def test_n_samples_api(vstate, _mpi_size):
     assert vstate.n_samples_per_rank == vstate.n_samples // _mpi_size
 
     vstate.n_samples = 3
-    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
+    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains_per_rank)
 
     vstate.chain_length = 2
     assert vstate.n_samples == 2 * vstate.sampler.n_chains
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
 
 
 def test_n_samples_diag_api(vstate, _mpi_size):
@@ -146,8 +149,8 @@ def test_n_samples_diag_api(vstate, _mpi_size):
     vstate.n_samples_diag = 3
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (3, vstate.sampler_diag.n_chains)
-        == (3, vstate.diagonal.sampler.n_chains)
+        == (int(np.ceil(3 / _mpi_size)), vstate.sampler_diag.n_chains_per_rank)
+        == (int(np.ceil(3 / _mpi_size)), vstate.diagonal.sampler.n_chains_per_rank)
     )
 
     vstate.chain_length_diag = 2
@@ -158,8 +161,8 @@ def test_n_samples_diag_api(vstate, _mpi_size):
     )
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (2, vstate.sampler_diag.n_chains)
-        == (2, vstate.diagonal.sampler.n_chains)
+        == (2, vstate.sampler_diag.n_chains_per_rank)
+        == (2, vstate.diagonal.sampler.n_chains_per_rank)
     )
 
     vstate.n_samples_diag = 1000
@@ -185,8 +188,8 @@ def test_n_samples_diag_api(vstate, _mpi_size):
     # `n_samples_diag` is rounded up
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (1, vstate.sampler_diag.n_chains)
-        == (1, vstate.diagonal.sampler.n_chains)
+        == (1, vstate.sampler_diag.n_chains_per_rank)
+        == (1, vstate.diagonal.sampler.n_chains_per_rank)
     )
 
     vstate.chain_length_diag = 2
@@ -197,8 +200,8 @@ def test_n_samples_diag_api(vstate, _mpi_size):
     )
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (2, vstate.sampler_diag.n_chains)
-        == (2, vstate.diagonal.sampler.n_chains)
+        == (2, vstate.sampler_diag.n_chains_per_rank)
+        == (2, vstate.diagonal.sampler.n_chains_per_rank)
     )
 
 
