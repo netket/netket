@@ -9,7 +9,7 @@ lattice = nk.graph.Square(L, max_neighbor_order=2)
 hi = nk.hilbert.Spin(s=1 / 2, total_sz=0, N=lattice.n_nodes)
 # Heisenberg with coupling J=1.0 for nearest neighbors
 # and J=0.5 for next-nearest neighbors
-H = nk.operator.Heisenberg(hilbert=hi, graph=lattice, J=[1.0, 0.5], sign_rule=False)
+H = nk.operator.Heisenberg(hilbert=hi, graph=lattice, J=[1.0, 0.5])
 
 # Find an approximate ground state
 machine = nk.models.GCNN(
@@ -59,6 +59,7 @@ vstate = nk.vqs.MCState(
     n_discard_per_chain=0,
     chunk_size=4096,
 )
+# Reuse parameters converged for the ground state as a good initial guess
 vstate.parameters = saved_params
 gs = nk.driver.VMC(H, opt, variational_state=vstate, preconditioner=sr)
 gs.run(n_iter=50, out="excited_state")
