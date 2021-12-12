@@ -70,6 +70,8 @@ class GCNN_FFT(nn.Module):
     all layers will have the same number of features."""
     characters: HashableArray
     """Array specifying the characters of the desired symmetry representation"""
+    in_features: int = 1
+    """Number of input features, defaults to 1."""
     dtype: Any = float
     """The dtype of the weights."""
     activation: Any = reim_selu
@@ -94,7 +96,8 @@ class GCNN_FFT(nn.Module):
         self.dense_symm = DenseSymmFFT(
             space_group=self.symmetries,
             shape=self.shape,
-            features=self.features[0],
+            out_features=self.features[0],
+            in_features=self.in_features,
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
@@ -177,6 +180,8 @@ class GCNN_Irrep(nn.Module):
     all layers will have the same number of features."""
     characters: HashableArray
     """Array specifying the characters of the desired symmetry representation"""
+    in_features: int = 1
+    """Number of input features, defaults to 1."""
     dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = reim_selu
@@ -200,7 +205,8 @@ class GCNN_Irrep(nn.Module):
 
         self.dense_symm = DenseSymmMatrix(
             symmetries=self.symmetries,
-            features=self.features[0],
+            out_features=self.features[0],
+            in_features=self.in_features,
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
@@ -269,6 +275,8 @@ class GCNN_Parity_FFT(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     parity: int
     """Integer specifying the eigenvalue with respect to parity"""
+    in_features: int = 1
+    """Number of input features, defaults to 1."""
     dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = reim_selu
@@ -293,7 +301,8 @@ class GCNN_Parity_FFT(nn.Module):
         self.dense_symm = DenseSymmFFT(
             space_group=self.symmetries,
             shape=self.shape,
-            features=self.features[0],
+            out_features=self.features[0],
+            in_features=self.in_features,
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
@@ -322,7 +331,8 @@ class GCNN_Parity_FFT(nn.Module):
                 shape=self.shape,
                 in_features=self.features[layer],
                 out_features=self.features[layer + 1],
-                use_bias=self.use_bias,
+                # this would bias the same outputs as self.equivariant
+                use_bias=False,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
@@ -423,6 +433,8 @@ class GCNN_Parity_Irrep(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     parity: int
     """Integer specifying the eigenvalue with respect to parity"""
+    in_features: int = 1
+    """Number of input features, defaults to 1."""
     dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = reim_selu
@@ -446,7 +458,8 @@ class GCNN_Parity_Irrep(nn.Module):
 
         self.dense_symm = DenseSymmMatrix(
             symmetries=self.symmetries,
-            features=self.features[0],
+            out_features=self.features[0],
+            in_features=self.in_features,
             dtype=self.dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
@@ -473,7 +486,8 @@ class GCNN_Parity_Irrep(nn.Module):
                 irreps=self.irreps,
                 in_features=self.features[layer],
                 out_features=self.features[layer + 1],
-                use_bias=self.use_bias,
+                # this would bias the same outputs as self.equivariant
+                use_bias=False,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
@@ -575,6 +589,7 @@ def GCNN(
         layers: Number of layers (not including sum layer over output).
         features: Number of features in each layer starting from the input. If a single
             number is given, all layers will have the same number of features.
+        in_features: Number of input features, defaults to 1.
         characters: Array specifying the characters of the desired symmetry representation
         parity: Optional argument with value +/-1 that specifies the eigenvalue
             with respect to parity (only use on two level systems).

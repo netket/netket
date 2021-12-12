@@ -73,32 +73,6 @@ def unit_normal_scaling(key, shape, dtype):
     )
 
 
-def _symmetrizer_col(perms, features):
-    r"""
-    Creates the mapping from symmetry-reduced kernel w to full kernel W, s.t.
-        W[ij] = S[ij][kl] w[kl]
-    where [ij] ∈ [0,...,n_sites×n_hidden) and [kl] ∈ [0,...,n_sites×features).
-    For each [ij] there is only one [kl] such that S[ij][kl] is non-zero, in which
-    case S[ij][kl] == 1. Thus, this method only returns the array of indices `col`
-    of shape (n_sites×n_hidden,) satisfying
-        W[ij] = w[col[ij]]  <=>  W = w[col].
-
-    See test/models/test_nn.py:test_symmetrizer for how this relates to the
-    matrix form of the symmetrizer.
-    """
-    n_symm, n_sites = perms.shape
-    n_hidden = features * n_symm
-
-    ij = np.arange(n_sites * n_hidden)
-    i, j = np.unravel_index(ij, (n_sites, n_hidden))
-
-    k = perms[j % n_symm, i]
-    l = np.floor_divide(j, n_symm)
-    kl = np.ravel_multi_index((k, l), (n_sites, features))
-
-    return kl
-
-
 class DenseSymmMatrix(Module):
     r"""Implements a symmetrized linear transformation over a permutation group
     using matrix multiplication."""
@@ -107,8 +81,10 @@ class DenseSymmMatrix(Module):
     """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
         Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    features: int
+    out_features: int
     """The number of symmetry-reduced features. The full output size is len(symmetries) * features."""
+    in_features: int = 1
+    """The number of input features. The full input size is n_sites * in_features."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
@@ -125,25 +101,23 @@ class DenseSymmMatrix(Module):
 
     def setup(self):
         # pylint: disable=attribute-defined-outside-init
-        perms = np.asarray(self.symmetries)
-        self.n_symm, self.n_sites = perms.shape
-        self.n_hidden = self.features * self.n_symm
-
-        self.symm_cols = jnp.asarray(_symmetrizer_col(perms, self.features))
+        self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
 
     def full_kernel(self, kernel):
         """
-        Converts the symmetry-reduced kernel of shape (n_sites, features) to
-        the full Dense kernel of shape (n_sites, features * n_symm).
+        Converts the symmetry-reduced kernel of shape (out_features, in_features, n_sites) to
+        the full dense kernel of shape (in_features*n_sites, out_features*n_symm).
         """
-        kernel = kernel.transpose(1, 0).reshape(-1)
-        result = kernel[self.symm_cols]
-        return result.reshape(self.n_sites, -1)
+        result = jnp.take(kernel, jnp.asarray(self.symmetries), 2)
+        result = result.transpose(1, 3, 0, 2).reshape(
+            self.n_sites * self.in_features, self.n_symm * self.out_features
+        )
+        return result
 
     def full_bias(self, bias):
         """
-        Convert symmetry-reduced bias of shape (features,) to the full bias of
-        shape (n_symm * features,).
+        Convert symmetry-reduced bias of shape (out_features,) to the full bias of
+        shape (1, out_features, 1).
         """
         return jnp.expand_dims(bias, (0, 2))
 
@@ -159,6 +133,8 @@ class DenseSymmMatrix(Module):
         """
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
+        # flatten the input feature dimension into the n_sites dimension if necessary
+        x = x.reshape(x.shape[0], -1)
 
         # generate the default kernel init if necessary
         kernel_init = (
@@ -167,13 +143,16 @@ class DenseSymmMatrix(Module):
             else self.kernel_init
         )
         kernel = self.param(
-            "kernel", kernel_init, (self.features, self.n_sites), self.dtype
+            "kernel",
+            kernel_init,
+            (self.out_features, self.in_features, self.n_sites),
+            self.dtype,
         )
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, 0)
+            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.full_kernel(kernel).reshape(-1, self.features, self.n_symm)
+        kernel = self.full_kernel(kernel).reshape(-1, self.out_features, self.n_symm)
         kernel = jnp.asarray(kernel, dtype)
 
         x = lax.dot_general(
@@ -183,10 +162,8 @@ class DenseSymmMatrix(Module):
             precision=self.precision,
         )
 
-        x = x.reshape(-1, self.features, self.n_symm)
-
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
             bias = jnp.asarray(self.full_bias(bias), dtype)
             x += bias
 
@@ -198,10 +175,12 @@ class DenseSymmFFT(Module):
 
     space_group: HashableArray
     """Array that lists the space group as permutations"""
-    features: int
-    """The number of input features; must be the second dimension of the input."""
+    out_features: int
+    """The number of output features; must be the second dimension of the input."""
     shape: Tuple
     """Tuple that corresponds to shape of lattice"""
+    in_features: int = 1
+    """The number of input features; if used, must be the second dimension of the input."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
@@ -219,14 +198,14 @@ class DenseSymmFFT(Module):
         sg = np.asarray(self.space_group)
 
         self.n_cells = np.product(np.asarray(self.shape))
-        self.n_symm = len(sg) // self.n_cells
+        self.n_point = len(sg) // self.n_cells
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
         self.mapping = (
             sg[:, : self.sites_per_cell]
-            .reshape(self.n_cells, self.n_symm, self.sites_per_cell)
+            .reshape(self.n_cells, self.n_point, self.sites_per_cell)
             .transpose(1, 2, 0)
-            .reshape(self.n_symm, self.sites_per_cell, *self.shape)
+            .reshape(self.n_point, self.sites_per_cell, *self.shape)
         )
 
     def make_kernel(self, kernel):
@@ -242,41 +221,44 @@ class DenseSymmFFT(Module):
 
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
+        # Add an input feature dimension if necessary
+        if x.ndim == 2:
+            x = jnp.expand_dims(x, 1)
 
-        x = (
-            x.reshape(-1, self.n_cells, self.sites_per_cell)
-            .transpose(0, 2, 1)
-            .reshape(-1, self.sites_per_cell, *self.shape)
-        )
+        x = x.reshape(*x.shape[:-1], self.n_cells, self.sites_per_cell)
+        x = x.transpose(0, 1, 3, 2)
+        x = x.reshape(*x.shape[:-1], *self.shape)
 
         # generate the default kernel init if necessary
         kernel_init = (
-            get_default_densesymm_init(self.n_cells * self.sites_per_cell)
+            get_default_densesymm_init(
+                self.n_cells * self.sites_per_cell * self.in_features
+            )
             if self.kernel_init is default_densesymm_initializer
             else self.kernel_init
         )
         kernel = self.param(
             "kernel",
             kernel_init,
-            (self.features, self.n_cells * self.sites_per_cell),
+            (self.out_features, self.in_features, self.n_cells * self.sites_per_cell),
             self.dtype,
         )
 
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, 0)
+            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
         kernel = self.make_kernel(kernel)
 
-        x = jnp.fft.fftn(x, s=self.shape).reshape(*x.shape[:2], self.n_cells)
+        x = jnp.fft.fftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
 
         kernel = jnp.fft.fftn(kernel, s=self.shape).reshape(
-            *kernel.shape[:3], self.n_cells
+            *kernel.shape[:4], self.n_cells
         )
 
         x = lax.dot_general(
-            x, kernel, (((1,), (2,)), ((2,), (3,))), precision=self.precision
+            x, kernel, (((1, 2), (1, 3)), ((3,), (4,))), precision=self.precision
         )
         x = x.transpose(1, 2, 3, 0)
         x = x.reshape(*x.shape[:3], *self.shape)
@@ -285,7 +267,7 @@ class DenseSymmFFT(Module):
         x = x.transpose(0, 1, 3, 2).reshape(*x.shape[:2], -1)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
             x += jnp.expand_dims(bias, (0, 2))
 
@@ -611,11 +593,7 @@ class DenseEquivariantMatrix(Module):
         the full Dense kernel of shape (n_sites, features * n_symm).
         """
 
-        result = jnp.take(kernel, jnp.asarray(self.product_table).ravel(), 2)
-
-        result = result.reshape(
-            self.out_features, self.in_features, self.n_symm, self.n_symm
-        )
+        result = jnp.take(kernel, jnp.asarray(self.product_table), 2)
         result = result.transpose(1, 2, 0, 3).reshape(
             self.n_symm * self.in_features, -1
         )
@@ -689,8 +667,10 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
             transform, matrix multiplication, or to choose a sensible default
             based on the symmetry group.
         shape: A tuple specifying the dimensions of the translation group.
-        features: The number of symmetry-reduced features. The full output size
-            is [n_symm,features].
+        out_features: The number of symmetry-reduced features. The full output size
+            is [n_symm,out_features].
+        in_features: The number of input features. The full input size is
+            [n_sites,in_features].
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
             that can be used to give the kernel a particular shape.
