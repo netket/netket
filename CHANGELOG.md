@@ -22,7 +22,9 @@
 * The method `sample_next` in `Sampler` and exact samplers (`ExactSampler` and `ARDirectSampler`) is removed, and it is only defined in `MetropolisSampler`. The module function `nk.sampler.sample_next` also only works with `MetropolisSampler`. For exact samplers, please use the method `sample` instead. [#1016](https://github.com/netket/netket/pull/1016)
 * The default value of `n_chains_per_rank` in `Sampler` and exact samplers is changed to 1, and specifying `n_chains` or `n_chains_per_rank` when constructing them is deprecated. Please change `chain_length` when calling `sample`. For `MetropolisSampler`, the default value is changed from `n_chains = 16` (across all ranks) to `n_chains_per_rank = 16`. [#1017](https://github.com/netket/netket/pull/1017)
 * The method `Sampler.samples` is added to return a generator of samples. The module functions `nk.sampler.sampler_state`, `reset`, `sample`, `samples`, and `sample_next` are deprecated in favor of the corresponding class methods. [#1025](https://github.com/netket/netket/pull/1025)
-* Duplicated biases in `GCNN_Parity` are removed. Parameters saved earlier can no longer be used directly. [#1030](https://github.com/netket/netket/pull/1030)
+* Duplicated biases in `GCNN_Parity` are removed. Parameters saved from earlier implementations can no longer be used directly. [#1030](https://github.com/netket/netket/pull/1030)
+* Kernels of `DenseSymm` are now three-dimensional, not two-dimensional. Parameters saved from earlier implementations can no longer be used directly. [#1030](https://github.com/netket/netket/pull/1030)
+* Kwarg `features` of `DenseSymm` is deprecated in favour of `out_features`. [#1030](https://github.com/netket/netket/pull/1030)
 
 ### Internal Changes
 * The definitions of `MCState` and `MCMixedState` have been moved to an internal module, `nk.vqs.mc` that is hidden by default. [#954](https://github.com/netket/netket/pull/954)

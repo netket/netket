@@ -649,7 +649,9 @@ class DenseEquivariantMatrix(Module):
         return x
 
 
-def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
+def DenseSymm(
+    symmetries, point_group=None, mode="auto", shape=None, features=None, **kwargs
+):
     r"""
     Implements a projection onto a symmetry group. The output will be
     equivariant with respect to the symmetry operations in the group and can
@@ -685,6 +687,21 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.
         bias_init: Optional bias initialization function. Defaults to zero initialization.
     """
+    # deprecation of features
+    if features is not None:
+        if "out_features" in kwargs:
+            raise ValueError(
+                "features is deprecated in favour of out_features kwarg. You should not pass both."
+            )
+        else:
+            kwargs["out_features"] = features
+            warn_deprecation(
+                (
+                    "The `features` keyword argument is deprecated in favour of `out_features`."
+                    "Please update your code to `DenseSymm(.., out_features=your_features)`"
+                )
+            )
+
     if isinstance(symmetries, Lattice) and (
         point_group is not None or symmetries._point_group is not None
     ):
