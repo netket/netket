@@ -51,7 +51,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
         ma = nk.nn.DenseSymm(
             symmetries=perms,
             mode=mode,
-            features=8,
+            out_features=8,
             use_bias=use_bias,
             bias_init=uniform(),
         )
@@ -60,7 +60,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
             symmetries=perms,
             shape=tuple(g.extent),
             mode=mode,
-            features=8,
+            out_features=8,
             use_bias=use_bias,
             bias_init=uniform(),
         )
@@ -70,7 +70,43 @@ def test_DenseSymm(symmetries, use_bias, mode):
     v = hi.random_state(rng.next(), 3)
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
     for val in vals:
-        assert jnp.allclose(jnp.sum(val, -1), jnp.sum(vals[0], -1))
+        assert jnp.allclose(jnp.sort(val, -1), jnp.sort(vals[0], -1))
+
+
+@pytest.mark.parametrize("symmetries", ["trans", "space_group"])
+@pytest.mark.parametrize("use_bias", [True, False])
+@pytest.mark.parametrize("mode", ["fft", "matrix"])
+def test_DenseSymm_infeatures(symmetries, use_bias, mode):
+    rng = nk.jax.PRNGSeq(0)
+
+    g, hi, perms = _setup_symm(symmetries, N=8)
+
+    if mode == "matrix":
+        ma = nk.nn.DenseSymm(
+            symmetries=perms,
+            mode=mode,
+            in_features=2,
+            out_features=8,
+            use_bias=use_bias,
+            bias_init=uniform(),
+        )
+    else:
+        ma = nk.nn.DenseSymm(
+            symmetries=perms,
+            shape=tuple(g.extent),
+            mode=mode,
+            in_features=2,
+            out_features=8,
+            use_bias=use_bias,
+            bias_init=uniform(),
+        )
+
+    pars = ma.init(rng.next(), hi.random_state(rng.next(), 2).reshape(1, 2, -1))
+
+    v = hi.random_state(rng.next(), 6).reshape(3, 2, -1)
+    vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
+    for val in vals:
+        assert jnp.allclose(jnp.sort(val, -1), jnp.sort(vals[0], -1))
 
 
 @pytest.mark.parametrize("mode", ["fft", "matrix", "irreps"])
@@ -214,18 +250,48 @@ def test_modes_DenseSymm(lattice, symmetries):
     ma_fft = nk.nn.DenseSymm(
         symmetries=perms,
         mode="fft",
-        features=4,
+        out_features=4,
         shape=tuple(g.extent),
         bias_init=uniform(),
     )
     ma_matrix = nk.nn.DenseSymm(
         symmetries=perms,
         mode="matrix",
-        features=4,
+        out_features=4,
         bias_init=uniform(),
     )
 
     dum_input = np.random.normal(0, 1, [1, g.n_nodes])
+    pars = ma_fft.init(rng.next(), dum_input)
+    _ = ma_matrix.init(rng.next(), dum_input)
+
+    assert jnp.allclose(ma_fft.apply(pars, dum_input), ma_matrix.apply(pars, dum_input))
+
+
+@pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
+@pytest.mark.parametrize("symmetries", ["trans", "space_group"])
+def test_modes_DenseSymm_infeatures(lattice, symmetries):
+
+    rng = nk.jax.PRNGSeq(0)
+    g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
+
+    ma_fft = nk.nn.DenseSymm(
+        symmetries=perms,
+        mode="fft",
+        in_features=3,
+        out_features=4,
+        shape=tuple(g.extent),
+        bias_init=uniform(),
+    )
+    ma_matrix = nk.nn.DenseSymm(
+        symmetries=perms,
+        mode="matrix",
+        in_features=3,
+        out_features=4,
+        bias_init=uniform(),
+    )
+
+    dum_input = np.random.normal(0, 1, [1, 3, g.n_nodes])
     pars = ma_fft.init(rng.next(), dum_input)
     _ = ma_matrix.init(rng.next(), dum_input)
 
@@ -275,6 +341,7 @@ def test_modes_DenseEquivariant(lattice, symmetries):
     assert jnp.allclose(fft_out, matrix_out)
 
 
+"""
 @pytest.mark.parametrize("symmetries", ["trans", "space_group"])
 @pytest.mark.parametrize("features", [1, 2, 5])
 def test_symmetrizer(symmetries, features):
@@ -306,3 +373,4 @@ def test_symmetrizer(symmetries, features):
     assert np.all(symmetrizer.row == np.arange(symmetrizer.shape[0]))
     assert np.all(symmetrizer.data == 1.0)
     assert np.all(symmetrizer.col == _symmetrizer_col(np.asarray(perms), features))
+"""
