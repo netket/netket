@@ -324,12 +324,7 @@ class MCState(VariationalState):
     @n_samples.setter
     def n_samples(self, n_samples: int):
         chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
-
-        n_samples = chain_length * self.sampler.n_chains
-        check_chunk_size(n_samples, self.chunk_size)
-
-        self._chain_length = chain_length
-        self.reset()
+        self.chain_length = chain_length
 
     @property
     def n_samples_per_rank(self) -> int:
@@ -351,7 +346,14 @@ class MCState(VariationalState):
 
     @chain_length.setter
     def chain_length(self, chain_length: int):
-        self.n_samples = chain_length * self.sampler.n_chains
+        if chain_length <= 0:
+            raise ValueError(f"Invalid chain length: chain_length={chain_length}")
+
+        n_samples = chain_length * self.sampler.n_chains
+        check_chunk_size(n_samples, self.chunk_size)
+
+        self._chain_length = chain_length
+        self.reset()
 
     @property
     def n_discard_per_chain(self) -> int:
