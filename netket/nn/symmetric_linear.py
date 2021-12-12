@@ -133,8 +133,11 @@ class DenseSymmMatrix(Module):
         """
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
-        # flatten the input feature dimension into the n_sites dimension if necessary
-        x = x.reshape(x.shape[0], -1)
+        # ensure input dimensions (batch, in_features*n_sites)
+        if x.ndim == 1:
+            x = jnp.expand_dims(x, 0)
+        else:
+            x = x.reshape(x.shape[0], -1)
 
         # generate the default kernel init if necessary
         kernel_init = (
@@ -221,8 +224,10 @@ class DenseSymmFFT(Module):
 
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
-        # Add an input feature dimension if necessary
-        if x.ndim == 2:
+        # Add batch and input-feature dimensions as necessary
+        if x.ndim == 1:
+            x = jnp.expand_dims(x, (0, 1))
+        elif x.ndim == 2:
             x = jnp.expand_dims(x, 1)
 
         x = x.reshape(*x.shape[:-1], self.n_cells, self.sites_per_cell)

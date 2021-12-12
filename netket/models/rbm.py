@@ -233,7 +233,7 @@ class RBMSymm(nn.Module):
             name="Dense",
             mode="matrix",
             symmetries=self.symmetries,
-            features=self.features,
+            out_features=self.features,
             dtype=self.dtype,
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
