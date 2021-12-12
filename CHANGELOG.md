@@ -31,6 +31,7 @@
 * The constructor of `TensorHilbert` (which is used by the product operator `*` for inhomogeneous spaces) no longer fails when one of the component spaces is non-indexable. [#1004](https://github.com/netket/netket/pull/1004)
 * The {ref}`nk.hilbert.random.flip_state` method used by `MetropolisLocal` now throws an error when called on a {ref}`nk.hilbert.ContinuousHilbert` hilbert space instead of entering an endless loop. [#1014](https://github.com/netket/netket/pull/1014)
 * Fixed bug in conversion to qutip for `MCMixedState`, where the resulting shape (hilbert space size) was wrong. [#1020](https://github.com/netket/netket/pull/1020)
+* Setting `MCState.sampler` now recomputes `MCState.chain_length` according to `MCState.n_samples` and the new `sampler.n_chains`. [#1028](https://github.com/netket/netket/pull/1028)
 
 
 ## NetKet 3.2 (26 November 2021)
