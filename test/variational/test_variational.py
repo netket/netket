@@ -154,7 +154,7 @@ def test_n_samples_api(vstate, _mpi_size):
     check_consistent(vstate, _mpi_size)
 
     vstate.n_discard_per_chain = None
-    assert vstate.n_discard_per_chain == vstate.n_samples // 10
+    assert vstate.n_discard_per_chain == vstate.chain_length // 10
 
     vstate.n_samples = 3
     check_consistent(vstate, _mpi_size)

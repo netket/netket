@@ -146,7 +146,7 @@ class MCState(VariationalState):
             n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
                 specified together with n_samples (default=None).
             n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=0 for exact sampler,
-                and n_samples/10 for approximate sampler).
+                and 1/10 of the chain length for approximate sampler).
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
@@ -382,7 +382,7 @@ class MCState(VariationalState):
         self._n_discard_per_chain = (
             int(n_discard_per_chain)
             if n_discard_per_chain is not None
-            else self.n_samples // 10
+            else self.chain_length // 10
         )
 
     # TODO: deprecate
