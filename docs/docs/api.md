@@ -1,18 +1,17 @@
+(api)=
 
-.. _api:
+# Public API
 
-##########
-Public API
-##########
-
+```{eval-rst}
 .. currentmodule:: netket
 
+```
 
-.. _graph-api:
+(graph-api)=
 
-Graph
------
+## Graph
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/graph
    :template: class
@@ -26,12 +25,13 @@ Graph
    netket.graph.lattice.LatticeSite
    netket.graph.Chain
    netket.graph.Grid
+```
 
-.. _hilbert-api:
+(hilbert-api)=
 
-Hilbert
--------
+## Hilbert
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/hilbert
    :template: class
@@ -48,12 +48,13 @@ Hilbert
    netket.hilbert.Qubit
    netket.hilbert.Fock
    netket.hilbert.Particle
+```
 
-.. _operators-api:
+(operators-api)=
 
-Operators
----------
+## Operators
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/operator
    :nosignatures:
@@ -68,10 +69,11 @@ Operators
    netket.operator.PauliStrings
    netket.operator.LocalLiouvillian
 
+```
 
-Pre-defined operators
-~~~~~~~~~~~~~~~~~~~~~
+### Pre-defined operators
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/operator
    :nosignatures:
@@ -86,10 +88,11 @@ Pre-defined operators
    netket.operator.spin.sigmap
    netket.operator.spin.sigmam
 
+```
 
-Continuous space operators
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+### Continuous space operators
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/operator
    :nosignatures:
@@ -98,12 +101,13 @@ Continuous space operators
    netket.operator.KineticEnergy
    netket.operator.PotentialEnergy
    netket.operator.SumOperator
+```
 
-.. _exact-api:
+(exact-api)=
 
-Exact solvers
--------------
+## Exact solvers
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/exact
    :nosignatures:
@@ -111,17 +115,17 @@ Exact solvers
    netket.exact.full_ed
    netket.exact.lanczos_ed
    netket.exact.steady_state
+```
 
-.. _sampler-api:
+(sampler-api)=
 
-Sampler
--------
+## Sampler
 
-Generic API
-~~~~~~~~~~~
+### Generic API
 
 Those functions can be used to interact with samplers
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/samplers
 
@@ -130,13 +134,13 @@ Those functions can be used to interact with samplers
    netket.sampler.sample_next
    netket.sampler.sample
    netket.sampler.samples
+```
 
-List of Samplers
-~~~~~~~~~~~~~~~~
+### List of Samplers
 
 This is a list of all available samplers.
 Please note that samplers with `Numpy` in their name are implemented in
-Numpy and not in pure jax, and they will convert from numpy<->jax at every
+Numpy and not in pure jax, and they will convert from numpy\<->jax at every
 sampling step the state.
 If you are using GPUs, this conversion can be very costly. On CPUs, while the
 conversion is cheap, the dispatch cost of jax is considerate for small systems.
@@ -146,7 +150,7 @@ have a much higher overhead for small to moderate (for GPUs) system sizes.
 
 This is because it is not possible to implement all transition rules in Jax.
 
-
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/samplers
    :template: class
@@ -165,14 +169,15 @@ This is because it is not possible to implement all transition rules in Jax.
    netket.experimental.sampler.MetropolisExchangePt
 
    netket.sampler.ARDirectSampler
+```
 
-Transition Rules
-~~~~~~~~~~~~~~~~
+### Transition Rules
 
 Those are the transition rules that can be used with the Metropolis
 Sampler. Rules with `Numpy` in their name can only be used with
-:class:`netket.sampler.MetropolisSamplerNumpy`.
+{class}`netket.sampler.MetropolisSamplerNumpy`.
 
+```{eval-rst}
 .. autosummary::
   :toctree: _generated/samplers
 
@@ -183,26 +188,28 @@ Sampler. Rules with `Numpy` in their name can only be used with
   netket.sampler.rules.HamiltonianRuleNumpy
   netket.sampler.rules.CustomRuleNumpy
 
+```
 
-Internal State
-~~~~~~~~~~~~~~
+### Internal State
 
 Those structure hold the state of the sampler.
 
+```{eval-rst}
 .. autosummary::
   :toctree: _generated/samplers
 
   netket.sampler.SamplerState
   netket.sampler.MetropolisSamplerState
+```
 
-.. _Models:
+(models)=
 
-Pre-built models
-----------------
+## Pre-built models
 
 This sub-module contains several pre-built models to be used as
 neural quantum states.
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/models
    :template: flax_model
@@ -223,22 +230,24 @@ neural quantum states.
    netket.models.FastARNNConv1D
    netket.models.FastARNNConv2D
 
+```
 
-Model tools
-----------------
+## Model tools
 
-This sub-module wraps and re-exports `flax.nn <https://flax.readthedocs.io/en/latest/flax.linen.html>`_.
-Read more about the design goal of this module in their `README <https://github.com/google/flax/blob/master/flax/linen/README.md>`_
+This sub-module wraps and re-exports [flax.nn](https://flax.readthedocs.io/en/latest/flax.linen.html).
+Read more about the design goal of this module in their [README](https://github.com/google/flax/blob/master/flax/linen/README.md)
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/nn
    :nosignatures:
 
    netket.nn.Module
+```
 
-Linear Modules
-~~~~~~~~~~~~~~
+### Linear Modules
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/nn
    :nosignatures:
@@ -254,12 +263,15 @@ Linear Modules
    netket.nn.MaskedConv1D
    netket.nn.MaskedConv2D
 
+```
 
-Activation functions
-~~~~~~~~~~~~~~~~~~~~
+### Activation functions
 
+```{eval-rst}
 .. currentmodule:: netket.nn
+```
 
+```{eval-rst}
 .. autosummary::
   :toctree: _generated/nn
 
@@ -279,14 +291,17 @@ Activation functions
     reim_relu
     reim_selu
 
+```
 
-.. _variational-api:
+(variational-api)=
 
-Variational State Interface
----------------------------
+## Variational State Interface
 
+```{eval-rst}
 .. currentmodule:: netket
+```
 
+```{eval-rst}
 .. autosummary::
   :toctree: _generated/variational
   :nosignatures:
@@ -298,37 +313,38 @@ Variational State Interface
   netket.vqs.get_local_kernel
   netket.vqs.get_local_kernel_arguments
 
+```
 
-.. _optimizer-api:
+(optimizer-api)=
 
-Optimizer Module
-----------------
+## Optimizer Module
 
+```{eval-rst}
 .. currentmodule:: netket
+```
 
 This module provides some optimisers,
-implementations of the {ref}`Quantum Geometric Tensor <QGT_and_SR>` and preconditioners such
+implementations of the \{ref}\`Quantum Geometric Tensor \<QGT_and_SR>\` and preconditioners such
 as SR.
 
+### Optimizers
 
-Optimizers
-~~~~~~~~~~
-
-Optimizers in NetKet are simple wrappers of `optax <https://github.com/deepmind/optax>`_
+Optimizers in NetKet are simple wrappers of [optax](https://github.com/deepmind/optax)
 optimizers. If you want to write a custom optimizer or use more advanced ones, we suggest
 you have a look at optax documentation.
 
 Check it out for up-to-date informations on available optimisers.
 
-.. warning::
+:::{warning}
+Even if optimisers in `netket.optimizer` are optax optimisers, they have slightly different
+names (they are capitalised) and the argument names have been rearranged and renamed.
+This was chosen in order not to break our API from previous versions
 
-  Even if optimisers in `netket.optimizer` are optax optimisers, they have slightly different
-  names (they are capitalised) and the argument names have been rearranged and renamed.
-  This was chosen in order not to break our API from previous versions
+In general, we advise you to directly use optax, as it is much more powerful, provides more
+optimisers, and it's extremely easy to use step-dependent schedulers.
+:::
 
-  In general, we advise you to directly use optax, as it is much more powerful, provides more
-  optimisers, and it's extremely easy to use step-dependent schedulers.
-
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/optim
    :nosignatures:
@@ -339,24 +355,26 @@ Check it out for up-to-date informations on available optimisers.
    netket.optimizer.Momentum
    netket.optimizer.RmsProp
 
+```
 
-Preconditioners
-~~~~~~~~~~~~~~~
+### Preconditioners
 
 This module also provides an implemnetation of the Stochastic Reconfiguration/Natural
 gradient preconditioner.
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/optim
    :nosignatures:
 
    netket.optimizer.SR
+```
 
-Quantum Geometric Tensor
-~~~~~~~~~~~~~~~~~~~~~~~~
+### Quantum Geometric Tensor
 
 It also provides the following implementation of the quantum geometric tensor:
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/optim
    :nosignatures:
@@ -365,12 +383,13 @@ It also provides the following implementation of the quantum geometric tensor:
    netket.optimizer.qgt.QGTOnTheFly
    netket.optimizer.qgt.QGTJacobianPyTree
    netket.optimizer.qgt.QGTJacobianDense
+```
 
-Dense solvers
-~~~~~~~~~~~~~
+### Dense solvers
 
 And the following dense solvers for Stochastic Reconfiguration:
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/optim
    :nosignatures:
@@ -379,14 +398,15 @@ And the following dense solvers for Stochastic Reconfiguration:
    netket.optimizer.solver.cholesky
    netket.optimizer.solver.LU
    netket.optimizer.solver.solve
+```
 
-.. _drivers-api:
+(drivers-api)=
 
-Optimization drivers
----------------------
+## Optimization drivers
 
 Those are the optimization drivers already implmented in Netket:
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/driver
    :nosignatures:
@@ -395,14 +415,15 @@ Those are the optimization drivers already implmented in Netket:
    netket.driver.VMC
    netket.driver.SteadyState
 
+```
 
-.. _logging-api:
+(logging-api)=
 
-Logging output
---------------
+## Logging output
 
 Those are the loggers that can be used with the optimization drivers.
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/driver
    :nosignatures:
@@ -412,31 +433,33 @@ Those are the loggers that can be used with the optimization drivers.
    netket.logging.StateLog
    netket.logging.TensorBoardLog
 
+```
 
-.. _utils-api:
+(utils-api)=
 
-Utils
------
+## Utils
 
 Utility functions and classes.
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/utils
    :nosignatures:
 
    netket.utils.HashableArray
+```
 
-.. _callbacks-api:
+(callbacks-api)=
 
-Callbacks
---------------
+## Callbacks
 
 Those callbacks can be used with the optimisation drivers.
 
+```{eval-rst}
 .. autosummary::
    :toctree: _generated/callbacks
    :nosignatures:
 
    netket.callbacks.EarlyStopping
    netket.callbacks.Timeout
-
+```
