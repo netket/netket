@@ -21,7 +21,8 @@ from . import types
 from . import float
 
 from .array import HashableArray
-from .jax import get_afun_if_module, wrap_afun
+from .partial import HashablePartial
+from .jax import get_afun_if_module, wrap_afun, wrap_to_support_scalar
 from .optional_deps import tensorboard_available
 from .seed import random_seed
 from .summation import KahanSum

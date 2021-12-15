@@ -74,3 +74,28 @@ def test_Kahan_sum():
 
     assert ksum1.value == pytest.approx(5.0, rel=1e-15, abs=1e-15)
     assert ksum2.value == pytest.approx(5.0, rel=1e-15, abs=1e-15)
+
+
+def test_batching_wrapper():
+    from netket.utils import wrap_to_support_scalar
+
+    def applyfun(pars, x):
+        # this assert fails if the wrapper is not working
+        assert x.ndim > 1
+        return x.sum(axis=-1)
+
+    # check same hash
+    assert hash(wrap_to_support_scalar(applyfun)) == hash(
+        wrap_to_support_scalar(applyfun)
+    )
+
+    afun = wrap_to_support_scalar(applyfun)
+
+    x = jnp.ones(5)
+    xb = jnp.ones((1, 5))
+    res = afun(None, x)
+    assert res.shape == ()
+    assert res == jnp.sum(x, axis=-1)
+    res = afun(None, xb)
+    assert res.shape == (1,)
+    assert res == jnp.sum(x, axis=-1)

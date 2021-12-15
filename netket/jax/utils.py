@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-
 from functools import partial, reduce
 from typing import Optional, Tuple, Callable
 
@@ -266,61 +264,6 @@ def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
     return _tree_to_real(pytree), partial(
         _tree_reassemble_complex, target=pytree, fun=_tree_to_real
     )
-
-
-class HashablePartial(partial):
-    """
-    A class behaving like functools.partial, but that retains it's hash
-    if it's created with a lexically equivalent (the same) function and
-    with the same partially applied arguments and keywords.
-
-    It also stores the computed hash for faster hashing.
-    """
-
-    # TODO remove when dropping support for Python < 3.10
-    def __new__(cls, func, *args, **keywords):
-        # In Python 3.10+ if func is itself a functools.partial instance,
-        # functools.partial.__new__ would merge the arguments of this HashablePartial
-        # instance with the arguments of the func
-        # Pre 3.10 this does not happen, so here we emulate this behaviour recursively
-        # This is necessary since functools.partial objects do not have a __code__
-        # property which we use for the hash
-        if sys.version_info < (3, 10):
-            while isinstance(func, partial):
-                original_func = func
-                func = original_func.func
-                args = original_func.args + args
-                keywords = {**original_func.keywords, **keywords}
-        return super(HashablePartial, cls).__new__(cls, func, *args, **keywords)
-
-    def __init__(self, *args, **kwargs):
-        self._hash = None
-
-    def __eq__(self, other):
-        return (
-            type(other) is HashablePartial
-            and self.func.__code__ == other.func.__code__
-            and self.args == other.args
-            and self.keywords == other.keywords
-        )
-
-    def __hash__(self):
-        if self._hash is None:
-            self._hash = hash(
-                (self.func.__code__, self.args, frozenset(self.keywords.items()))
-            )
-
-        return self._hash
-
-    def __repr__(self):
-        return f"<hashable partial {self.func.__name__} with args={self.args} and kwargs={self.keywords}, hash={hash(self)}>"
-
-
-# jax.tree_util.register_pytree_node(
-#    HashablePartial,
-#    lambda partial_: ((), (partial_.func, partial_.args, partial_.keywords)),
-#    lambda args, _: StaticPartial(args[0], *args[1], **args[2]),
-# )
 
 
 def compose(*funcs):
