@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from netket.utils import HashablePartial
+
 from .utils import (
     tree_ravel,
     is_complex,
@@ -29,7 +31,6 @@ from .utils import (
     tree_axpy,
     tree_to_real,
     compose,
-    HashablePartial,
     mpi_split,
     PRNGKey,
     PRNGSeq,

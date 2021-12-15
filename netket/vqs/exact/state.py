@@ -24,7 +24,7 @@ from flax import serialization
 from netket import jax as nkjax
 from netket import nn
 from netket.hilbert import AbstractHilbert
-from netket.utils import maybe_wrap_module, wrap_afun
+from netket.utils import maybe_wrap_module, wrap_afun, wrap_to_support_scalar
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -109,12 +109,14 @@ class ExactState(VariationalState):
             self._init_fun = nkjax.HashablePartial(
                 lambda model, *args, **kwargs: model.init(*args, **kwargs), model
             )
-            self._apply_fun = nkjax.HashablePartial(
-                lambda model, *args, **kwargs: model.apply(*args, **kwargs), model
+            self._apply_fun = wrap_to_support_scalar(
+                nkjax.HashablePartial(
+                    lambda model, *args, **kwargs: model.apply(*args, **kwargs), model
+                )
             )
 
         elif apply_fun is not None:
-            self._apply_fun = apply_fun
+            self._apply_fun = wrap_to_support_scalar(apply_fun)
 
             if init_fun is not None:
                 self._init_fun = init_fun

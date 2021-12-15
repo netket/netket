@@ -14,6 +14,9 @@
 
 from typing import Callable
 
+import jax.numpy as jnp
+
+from .partial import HashablePartial
 from . import struct
 
 
@@ -44,3 +47,34 @@ def wrap_afun(mod_or_fun):
         return mod_or_fun
     else:
         return WrappedApplyFun(mod_or_fun)
+
+
+def wrap_to_support_scalar(fun):
+    """
+    Wraps the flax-compatible apply function, assuming that the state input is the
+    second argument, so that it always calls the wrapped function with a tensor with at
+    least 2 dimensions.
+
+    If the input was 1-dimensional, returns a scalar instead of a vector with 1 element.
+
+    DEVNOTE: This function is used because some parts of NetKet make use of the fact
+    that when we call the logψ with a single bitstring, we get a scalar out. This is
+    useful when calling `jax.grad(logψ)`.
+    This also makes sure that users only need to write networks that work on batches,
+    and not necessarily on scalars.
+
+    Args:
+        fun: A flax-compatible function.
+
+    Returns:
+        A wrapped function, returned as an `HashablePartial` in order not to retrigger
+        compilation.
+    """
+
+    def maybe_scalar_fun(apply_fun, pars, x, *args, **kwargs):
+        xb = jnp.atleast_2d(x)
+        res = apply_fun(pars, xb, *args, **kwargs)
+        res = res.reshape(()) if x.ndim == 1 else res
+        return res
+
+    return HashablePartial(maybe_scalar_fun, fun)

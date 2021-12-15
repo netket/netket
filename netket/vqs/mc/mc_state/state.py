@@ -29,7 +29,14 @@ from netket import nn
 from netket.stats import Stats
 from netket.operator import AbstractOperator
 from netket.sampler import Sampler, SamplerState
-from netket.utils import maybe_wrap_module, deprecated, warn_deprecation, mpi, wrap_afun
+from netket.utils import (
+    maybe_wrap_module,
+    deprecated,
+    warn_deprecation,
+    mpi,
+    wrap_afun,
+    wrap_to_support_scalar,
+)
 from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -179,12 +186,15 @@ class MCState(VariationalState):
             self._init_fun = nkjax.HashablePartial(
                 lambda model, *args, **kwargs: model.init(*args, **kwargs), model
             )
-            self._apply_fun = nkjax.HashablePartial(
-                lambda model, *args, **kwargs: model.apply(*args, **kwargs), model
+            self._apply_fun = wrap_to_support_scalar(
+                nkjax.HashablePartial(
+                    lambda model, pars, x, **kwargs: model.apply(pars, x, **kwargs),
+                    model,
+                )
             )
 
         elif apply_fun is not None:
-            self._apply_fun = apply_fun
+            self._apply_fun = wrap_to_support_scalar(apply_fun)
 
             if init_fun is not None:
                 self._init_fun = init_fun
