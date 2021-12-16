@@ -277,6 +277,10 @@ class GCNN_Parity_FFT(nn.Module):
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
+    extra_bias: bool = False
+    """Deprecated. If True, uses bias in parity-flip layers too. Required for using
+    parameters saved before PR#1030, but hinders performance. 
+    See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
     kernel_init: NNInitFunc = unit_normal_scaling
@@ -285,6 +289,15 @@ class GCNN_Parity_FFT(nn.Module):
     """Initializer for the hidden bias."""
 
     def setup(self):
+        # deprecate extra_bias
+        if self.extra_bias:
+            warn_deprecation(
+                (
+                    "`extra_bias` is detrimental for performance and is deprecated."
+                    "Please switch to the default `extra_bias=False`. Previously saved"
+                    "parameters can be migrated using `nk.models.update_GCNN_parity`."
+                )
+            )
 
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
@@ -319,7 +332,7 @@ class GCNN_Parity_FFT(nn.Module):
                 shape=self.shape,
                 out_features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
-                use_bias=False,
+                use_bias=self.extra_bias,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
@@ -430,6 +443,10 @@ class GCNN_Parity_Irrep(nn.Module):
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
+    extra_bias: bool = False
+    """Deprecated. If True, uses bias in parity-flip layers too. Required for using
+    parameters saved before PR#1030, but hinders performance. 
+    See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
     kernel_init: NNInitFunc = unit_normal_scaling
@@ -438,6 +455,15 @@ class GCNN_Parity_Irrep(nn.Module):
     """Initializer for the hidden bias."""
 
     def setup(self):
+        # deprecate extra_bias
+        if self.extra_bias:
+            warn_deprecation(
+                (
+                    "`extra_bias` is detrimental for performance and is deprecated."
+                    "Please switch to the default `extra_bias=False`. Previously saved"
+                    "parameters can be migrated using `nk.models.update_GCNN_parity`."
+                )
+            )
 
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
@@ -469,7 +495,7 @@ class GCNN_Parity_Irrep(nn.Module):
                 irreps=self.irreps,
                 out_features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
-                use_bias=False,
+                use_bias=self.extra_bias,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
