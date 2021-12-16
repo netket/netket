@@ -24,8 +24,6 @@ from jax.nn.initializers import normal
 
 from .. import common
 
-pytestmark = common.skipif_mpi
-
 nk.config.update("NETKET_EXPERIMENTAL", True)
 
 SEED = 2148364
@@ -78,11 +76,16 @@ def vstate(request):
     return vs
 
 
-def test_n_samples_api(vstate):
+def test_n_samples_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
         vstate.n_samples = -1
+
+    with raises(
+        ValueError,
+    ):
+        vstate.n_samples_per_rank = -1
 
     with raises(
         ValueError,
@@ -94,25 +97,54 @@ def test_n_samples_api(vstate):
     ):
         vstate.n_discard_per_chain = -1
 
+    # Tests for `ExactSampler` with `n_chains == 1`
     vstate.n_samples = 3
-    assert vstate.samples.shape[0:2] == (3, vstate.sampler.n_chains)
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (
+        int(np.ceil(3 / _mpi_size)),
+        vstate.sampler.n_chains_per_rank,
+    )
+
+    vstate.n_samples_per_rank = 4
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (4, vstate.sampler.n_chains_per_rank)
 
     vstate.chain_length = 2
-    assert vstate.n_samples == 2 * vstate.sampler.n_chains
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
 
     vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == 0
 
+    # Tests for `MetropolisLocal` with `n_chains > 1`
     vstate.sampler = nk.sampler.MetropolisLocal(
         hilbert=nk.hilbert.DoubledHilbert(hi), n_chains=16
     )
+    # `n_samples` is rounded up
+    assert vstate.n_samples == 1008
+    assert vstate.chain_length == 63
+    check_consistent(vstate, _mpi_size)
+
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
+    vstate.n_samples = 3
+    check_consistent(vstate, _mpi_size)
+    # `n_samples` is rounded up
+    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains_per_rank)
 
-def test_n_samples_diag_api(vstate):
+    vstate.n_samples_per_rank = 16 // _mpi_size + 1
+    check_consistent(vstate, _mpi_size)
+    # `n_samples` is rounded up
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
+
+    vstate.chain_length = 2
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
+
+
+def test_n_samples_diag_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
@@ -126,36 +158,67 @@ def test_n_samples_diag_api(vstate):
     with raises(
         ValueError,
     ):
-        vstate.n_discard_per_chain = -1
+        vstate.n_discard_per_chain_diag = -1
 
+    # Tests for `ExactSampler` with `n_chains == 1`
     vstate.n_samples_diag = 3
+    check_consistent_diag(vstate)
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (3, vstate.sampler_diag.n_chains)
-        == (3, vstate.diagonal.sampler.n_chains)
+        == (int(np.ceil(3 / _mpi_size)), vstate.sampler_diag.n_chains_per_rank)
+        == (int(np.ceil(3 / _mpi_size)), vstate.diagonal.sampler.n_chains_per_rank)
     )
 
     vstate.chain_length_diag = 2
+    check_consistent_diag(vstate)
+    assert (
+        vstate.diagonal.samples.shape[0:2]
+        == (2, vstate.sampler_diag.n_chains_per_rank)
+        == (2, vstate.diagonal.sampler.n_chains_per_rank)
+    )
+
+    vstate.n_samples_diag = 1000
+    vstate.n_discard_per_chain_diag = None
+    assert vstate.n_discard_per_chain_diag == vstate.diagonal.n_discard_per_chain == 0
+
+    # Tests for `MetropolisLocal` with `n_chains > 1`
+    vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+    # `n_samples_diag` is rounded up
+    assert vstate.n_samples_diag == vstate.diagonal.n_samples == 1008
+    assert vstate.chain_length_diag == vstate.diagonal.chain_length == 63
+    check_consistent_diag(vstate)
+
+    vstate.n_discard_per_chain_diag = None
+    assert (
+        vstate.n_discard_per_chain_diag
+        == vstate.diagonal.n_discard_per_chain
+        == vstate.n_samples_diag // 10
+    )
+
+    vstate.n_samples_diag = 3
+    check_consistent_diag(vstate)
+    # `n_samples_diag` is rounded up
+    assert (
+        vstate.diagonal.samples.shape[0:2]
+        == (1, vstate.sampler_diag.n_chains_per_rank)
+        == (1, vstate.diagonal.sampler.n_chains_per_rank)
+    )
+
+    vstate.chain_length_diag = 2
+    check_consistent_diag(vstate)
     assert (
         vstate.n_samples_diag
-        == 2 * vstate.sampler_diag.n_chains
-        == 2 * vstate.diagonal.sampler.n_chains
+        == vstate.chain_length_diag * vstate.sampler_diag.n_chains
+        == vstate.diagonal.chain_length * vstate.diagonal.sampler.n_chains
     )
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (2, vstate.diagonal.sampler.n_chains)
-        == (2, vstate.sampler_diag.n_chains)
+        == (2, vstate.sampler_diag.n_chains_per_rank)
+        == (2, vstate.diagonal.sampler.n_chains_per_rank)
     )
 
-    vstate.n_samples = 1000
-    vstate.n_discard_per_chain = None
-    assert vstate.n_discard_per_chain_diag == 0
 
-    vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
-    vstate.n_discard_per_chain_diag = None
-    assert vstate.n_discard_per_chain_diag == vstate.n_samples_diag // 10
-
-
+@common.skipif_mpi
 def test_deprecations(vstate):
     vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
@@ -171,6 +234,7 @@ def test_deprecations(vstate):
     assert vstate.n_discard_per_chain_diag == 10
 
 
+@common.skipif_mpi
 def test_serialization(vstate):
     from flax import serialization
 
@@ -193,6 +257,7 @@ def test_serialization(vstate):
     assert vstate.n_discard_per_chain_diag == vstate_new.n_discard_per_chain_diag
 
 
+@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -210,6 +275,7 @@ def test_expect_numpysampler_works(vstate, operator):
     assert isinstance(out, nk.stats.Stats)
 
 
+@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -237,6 +303,7 @@ def test_expect_chunking(vstate, operator, n_chunks):
     )
 
 
+@common.skipif_mpi
 @pytest.mark.parametrize("n_chunks", [1, 2])
 def test_expect_grad_chunking(vstate, n_chunks):
     operator = LdagL
@@ -257,6 +324,7 @@ def test_expect_grad_chunking(vstate, n_chunks):
     )
 
 
+@common.skipif_mpi
 def test_qutip_conversion(vstate):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -274,3 +342,20 @@ def test_qutip_conversion(vstate):
         vstate.hilbert_physical.n_states,
     )
     np.testing.assert_allclose(q_obj.data.todense(), rho)
+
+
+###
+
+
+def check_consistent(vstate, mpi_size):
+    assert vstate.n_samples == vstate.n_samples_per_rank * mpi_size
+    assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
+
+
+# There is no `MCMixedState.n_samples_diag_per_rank`, so we don't need MPI here
+def check_consistent_diag(vstate):
+    assert (
+        vstate.n_samples_diag
+        == vstate.chain_length_diag * vstate.sampler_diag.n_chains
+        == vstate.diagonal.chain_length * vstate.diagonal.sampler.n_chains
+    )

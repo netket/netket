@@ -25,8 +25,6 @@ from jax.nn.initializers import normal
 
 from .. import common
 
-pytestmark = common.skipif_mpi
-
 nk.config.update("NETKET_EXPERIMENTAL", True)
 
 SEED = 2148364
@@ -96,6 +94,7 @@ def vstate(request):
     return vs
 
 
+@common.skipif_mpi
 def test_deprecated_name():
     with warns(FutureWarning):
         nk.variational.expect
@@ -115,6 +114,11 @@ def test_n_samples_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
+        vstate.n_samples_per_rank = -1
+
+    with raises(
+        ValueError,
+    ):
         vstate.chain_length = -2
 
     with raises(
@@ -122,24 +126,52 @@ def test_n_samples_api(vstate, _mpi_size):
     ):
         vstate.n_discard_per_chain = -1
 
+    # Tests for `ExactSampler` with `n_chains == 1`
     vstate.n_samples = 3
-    assert vstate.samples.shape[0:2] == (3, vstate.sampler.n_chains)
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (
+        int(np.ceil(3 / _mpi_size)),
+        vstate.sampler.n_chains_per_rank,
+    )
+
+    vstate.n_samples_per_rank = 4
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (4, vstate.sampler.n_chains_per_rank)
 
     vstate.chain_length = 2
-    assert vstate.n_samples == 2 * vstate.sampler.n_chains
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
 
     vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == 0
 
+    # Tests for `MetropolisLocal` with `n_chains > 1`
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+    # `n_samples` is rounded up
+    assert vstate.n_samples == 1008
+    assert vstate.chain_length == 63
+    check_consistent(vstate, _mpi_size)
+
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
-    assert vstate.n_samples_per_rank == vstate.n_samples // _mpi_size
+    vstate.n_samples = 3
+    check_consistent(vstate, _mpi_size)
+    # `n_samples` is rounded up
+    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains_per_rank)
+
+    vstate.n_samples_per_rank = 16 // _mpi_size + 1
+    check_consistent(vstate, _mpi_size)
+    # `n_samples` is rounded up
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
+
+    vstate.chain_length = 2
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
 
 
+@common.skipif_mpi
 def test_chunk_size_api(vstate, _mpi_size):
     assert vstate.chunk_size is None
 
@@ -177,6 +209,7 @@ def test_chunk_size_api(vstate, _mpi_size):
         vstate.sample(n_samples=1008 + 16)
 
 
+@common.skipif_mpi
 def test_deprecations(vstate):
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
@@ -192,6 +225,7 @@ def test_deprecations(vstate):
     assert vstate.n_discard_per_chain == 10
 
 
+@common.skipif_mpi
 def test_serialization(vstate):
     from flax import serialization
 
@@ -212,6 +246,7 @@ def test_serialization(vstate):
     assert vstate.n_discard_per_chain == old_ndiscard
 
 
+@common.skipif_mpi
 def test_init_parameters(vstate):
     vstate.init_parameters(seed=SEED)
     pars = vstate.parameters
@@ -224,6 +259,7 @@ def test_init_parameters(vstate):
     jax.tree_multimap(_f, pars, pars2)
 
 
+@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -241,6 +277,7 @@ def test_expect_numpysampler_works(vstate, operator):
     assert isinstance(out, nk.stats.Stats)
 
 
+@common.skipif_mpi
 def test_qutip_conversion(vstate):
     # skip test if qutip not installed
     pytest.importorskip("qutip")
@@ -257,6 +294,7 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
 
 
+@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -326,6 +364,7 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
+@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -361,6 +400,8 @@ def test_expect_chunking(vstate, operator, n_chunks):
 
 
 ###
+
+
 def _expval(par, vstate, H, real=False):
     vstate.parameters = par
     psi = vstate.to_array()
@@ -408,3 +449,8 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
         rtol=rel_eps,
         atol=abs_eps,
     )
+
+
+def check_consistent(vstate, mpi_size):
+    assert vstate.n_samples == vstate.n_samples_per_rank * mpi_size
+    assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains

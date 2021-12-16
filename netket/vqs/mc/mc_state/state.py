@@ -98,21 +98,22 @@ class MCState(VariationalState):
     """An Optional PyTree encoding a mutable state of the model that is not trained."""
 
     _sampler: Sampler
-    """The sampler used to sample the hilbert space."""
+    """The sampler used to sample the Hilbert space."""
     sampler_state: SamplerState
-    """The current state of the sampler"""
+    """The current state of the sampler."""
 
-    _n_samples: int = 0
-    """Total number of samples across all mpi processes."""
+    _chain_length: int = 0
+    """Length of the Markov chain used for sampling configurations."""
     _n_discard_per_chain: int = 0
-    """Number of samples discarded at the beginning of every Monte-Carlo chain."""
+    """Number of samples discarded at the beginning of every Markov chain."""
+
     _samples: Optional[jnp.ndarray] = None
     """Cached samples obtained with the last sampling."""
 
     _init_fun: Callable = None
-    """The function used to initialise the parameters and model_state"""
+    """The function used to initialise the parameters and model_state."""
     _apply_fun: Callable = None
-    """The function used to evaluate the model"""
+    """The function used to evaluate the model."""
 
     _chunk_size: Optional[int] = None
 
@@ -293,38 +294,45 @@ class MCState(VariationalState):
                 )
             )
 
+        # Save the old `n_samples` before the new `sampler` is set.
+        # `_chain_length == 0` means that this `MCState` is being constructed.
+        if self._chain_length > 0:
+            n_samples_old = self.n_samples
+
         self._sampler = sampler
         self.sampler_state = self.sampler.init_state(
             self.model, self.variables, seed=self._sampler_seed
         )
+
+        # Update `n_samples`, `n_samples_per_rank`, and `chain_length` according
+        # to the new `sampler.n_chains`.
+        # If `n_samples` is divisible by the new `sampler.n_chains`, it will be
+        # unchanged; otherwise it will be rounded up.
+        # If the new `n_samples_per_rank` is not divisible by `chunk_size`, a
+        # `ValueError` will be raised.
+        # `_chain_length == 0` means that this `MCState` is being constructed.
+        if self._chain_length > 0:
+            self.n_samples = n_samples_old
+
         self.reset()
 
     @property
     def n_samples(self) -> int:
         """The total number of samples generated at every sampling step."""
-        return self._n_samples
+        return self.chain_length * self.sampler.n_chains
 
     @n_samples.setter
     def n_samples(self, n_samples: int):
         chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
-
-        n_samples_per_rank = chain_length * self.sampler.n_chains_per_rank
-        n_samples = chain_length * self.sampler.n_chains
-
-        check_chunk_size(n_samples, self.chunk_size)
-
-        self._n_samples = n_samples
-        self._chain_length = chain_length
-        self._n_samples_per_rank = n_samples_per_rank
-        self.reset()
+        self.chain_length = chain_length
 
     @property
     def n_samples_per_rank(self) -> int:
         """The number of samples generated on one MPI rank at every sampling step."""
-        return self._n_samples_per_rank
+        return self.chain_length * self.sampler.n_chains_per_rank
 
     @n_samples_per_rank.setter
-    def n_samples_per_rank(self, n_samples_per_rank: int) -> int:
+    def n_samples_per_rank(self, n_samples_per_rank: int):
         self.n_samples = n_samples_per_rank * mpi.n_nodes
 
     @property
@@ -337,8 +345,14 @@ class MCState(VariationalState):
         return self._chain_length
 
     @chain_length.setter
-    def chain_length(self, length: int):
-        self.n_samples = length * self.sampler.n_chains * mpi.n_nodes
+    def chain_length(self, chain_length: int):
+        if chain_length <= 0:
+            raise ValueError(f"Invalid chain length: chain_length={chain_length}")
+
+        n_samples = chain_length * self.sampler.n_chains
+        check_chunk_size(n_samples, self.chunk_size)
+
+        self._chain_length = chain_length
         self.reset()
 
     @property
@@ -469,10 +483,7 @@ class MCState(VariationalState):
                 chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
             if self.chunk_size is not None:
-                check_chunk_size(
-                    chain_length * self.sampler.n_chains_per_rank * mpi.n_nodes,
-                    self.chunk_size,
-                )
+                check_chunk_size(chain_length * self.sampler.n_chains, self.chunk_size)
 
         if n_discard_per_chain is None:
             n_discard_per_chain = self.n_discard_per_chain
