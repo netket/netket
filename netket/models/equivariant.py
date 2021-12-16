@@ -23,7 +23,7 @@ from flax import linen as nn
 from jax.nn.initializers import zeros
 from jax.scipy.special import logsumexp
 
-from netket.utils import HashableArray
+from netket.utils import HashableArray, warn_deprecation
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
@@ -293,8 +293,8 @@ class GCNN_Parity_FFT(nn.Module):
         if self.extra_bias:
             warn_deprecation(
                 (
-                    "`extra_bias` is detrimental for performance and is deprecated."
-                    "Please switch to the default `extra_bias=False`. Previously saved"
+                    "`extra_bias` is detrimental for performance and is deprecated. "
+                    "Please switch to the default `extra_bias=False`. Previously saved "
                     "parameters can be migrated using `nk.models.update_GCNN_parity`."
                 )
             )
@@ -332,7 +332,7 @@ class GCNN_Parity_FFT(nn.Module):
                 shape=self.shape,
                 out_features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
-                use_bias=self.extra_bias,
+                use_bias=self.extra_bias and self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
@@ -459,8 +459,8 @@ class GCNN_Parity_Irrep(nn.Module):
         if self.extra_bias:
             warn_deprecation(
                 (
-                    "`extra_bias` is detrimental for performance and is deprecated."
-                    "Please switch to the default `extra_bias=False`. Previously saved"
+                    "`extra_bias` is detrimental for performance and is deprecated. "
+                    "Please switch to the default `extra_bias=False`. Previously saved "
                     "parameters can be migrated using `nk.models.update_GCNN_parity`."
                 )
             )
@@ -495,7 +495,7 @@ class GCNN_Parity_Irrep(nn.Module):
                 irreps=self.irreps,
                 out_features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
-                use_bias=self.extra_bias,
+                use_bias=self.extra_bias and self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,

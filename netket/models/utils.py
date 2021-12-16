@@ -11,6 +11,7 @@ def update_GCNN_parity(params):
     """
     # unfreeze just in case, doesn't break with a plain dict
     params = flatten_dict(unfreeze(params))
+    to_remove = []
     for path in params:
         if (
             len(path) > 1
@@ -23,5 +24,7 @@ def update_GCNN_parity(params):
                 path[-1],
             )
             params[alt_path] = params[alt_path] + params[path]
-            del params[path]
+            to_remove.append(path)
+    for path in to_remove:
+        del params[path]
     return unflatten_dict(params)
