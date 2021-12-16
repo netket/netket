@@ -207,14 +207,19 @@ class DenseSymmFFT(Module):
         self.n_point = len(sg) // self.n_cells
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
+        # maps (n_sites) dimension of kernels to (sites_per_cell, n_point, *shape)
+        # as used in FFT-based group convolution
         self.mapping = (
             sg[:, : self.sites_per_cell]
             .reshape(self.n_cells, self.n_point, self.sites_per_cell)
-            .transpose(1, 2, 0)
-            .reshape(self.n_point, self.sites_per_cell, *self.shape)
+            .transpose(2, 1, 0)
+            .reshape(self.sites_per_cell, self.n_point, *self.shape)
         )
 
     def make_kernel(self, kernel):
+        """Converts the convolutional kernel of shape (out_features, in_features, n_sites)
+        to the expanded kernel of shape (out_features, in_features, sites_per_cell,
+        n_point, *shape) used in FFT-based group convolutions."""
         kernel = kernel[..., self.mapping]
 
         return kernel
@@ -268,7 +273,7 @@ class DenseSymmFFT(Module):
         )
 
         x = lax.dot_general(
-            x, kernel, (((1, 2), (1, 3)), ((3,), (4,))), precision=self.precision
+            x, kernel, (((1, 2), (1, 2)), ((3,), (4,))), precision=self.precision
         )
         x = x.transpose(1, 2, 3, 0)
         x = x.reshape(*x.shape[:3], *self.shape)
@@ -321,6 +326,8 @@ class DenseEquivariantFFT(Module):
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
 
+        # maps (n_sites) dimension of kernels to (n_point, n_point, *shape)
+        # as used in FFT-based group convolution
         self.mapping = (
             pt[: self.n_point]
             .reshape(self.n_point, self.n_cells, self.n_point)
@@ -329,6 +336,9 @@ class DenseEquivariantFFT(Module):
         )
 
     def make_kernel(self, kernel):
+        """Converts the convolutional kernel of shape (out_features, in_features, n_symm)
+        to the expanded kernel of shape (out_features, in_features, n_point(in),
+        n_point(out), *shape) used in FFT-based group convolutions."""
         kernel = kernel[..., self.mapping]
 
         return kernel
