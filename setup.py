@@ -25,7 +25,7 @@ BASE_DEPENDENCIES = [
     "flax>=0.3.5, <0.4",
     "orjson~=3.4",
     "optax>=0.0.2, <0.2",
-    "numba4jax>=0.0.4, <0.1",
+    "numba4jax>=0.0.3, <0.1",
 ]
 
 setup(
