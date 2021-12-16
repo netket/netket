@@ -22,9 +22,9 @@
 * The method `sample_next` in `Sampler` and exact samplers (`ExactSampler` and `ARDirectSampler`) is removed, and it is only defined in `MetropolisSampler`. The module function `nk.sampler.sample_next` also only works with `MetropolisSampler`. For exact samplers, please use the method `sample` instead. [#1016](https://github.com/netket/netket/pull/1016)
 * The default value of `n_chains_per_rank` in `Sampler` and exact samplers is changed to 1, and specifying `n_chains` or `n_chains_per_rank` when constructing them is deprecated. Please change `chain_length` when calling `sample`. For `MetropolisSampler`, the default value is changed from `n_chains = 16` (across all ranks) to `n_chains_per_rank = 16`. [#1017](https://github.com/netket/netket/pull/1017)
 * The method `Sampler.samples` is added to return a generator of samples. The module functions `nk.sampler.sampler_state`, `reset`, `sample`, `samples`, and `sample_next` are deprecated in favor of the corresponding class methods. [#1025](https://github.com/netket/netket/pull/1025)
-* Duplicated biases in `GCNN_Parity` are removed. Parameters saved from earlier implementations can no longer be used directly. [#1030](https://github.com/netket/netket/pull/1030)
-* Kernels of `DenseSymm` are now three-dimensional, not two-dimensional. Parameters saved from earlier implementations can no longer be used directly. [#1030](https://github.com/netket/netket/pull/1030)
-* Kwarg `in_features` of `DenseEquivariant` is deprecated; input features are inferred from the input. [#1030](https://github.com/netket/netket/pull/1030)
+* `GCNN_Parity` allowed biasing both the parity-preserving and the parity-flip equivariant layers. These enter into the network output the same way, so having both is redundant and makes QGTs unstable. The biases of the parity-flip layers are now removed. The previous behaviour can be restored using the deprecated `extra_bias` switch; we only recommend this for loading previously saved parameters. Such parameters can be transformed to work with the new default using `nk.models.update_GCNN_parity`. [#1030](https://github.com/netket/netket/pull/1030)
+* Kernels of `DenseSymm` are now three-dimensional, not two-dimensional. Parameters saved from earlier implementations can be transformed to the new convention using `nk.nn.update_dense_symm`. [#1030](https://github.com/netket/netket/pull/1030)
+* Kwarg `in_features` of `DenseEquivariant` is deprecated; the number of input features are inferred from the input. [#1030](https://github.com/netket/netket/pull/1030)
 
 ### Internal Changes
 * The definitions of `MCState` and `MCMixedState` have been moved to an internal module, `nk.vqs.mc` that is hidden by default. [#954](https://github.com/netket/netket/pull/954)
@@ -36,6 +36,7 @@
 * The {ref}`nk.hilbert.random.flip_state` method used by `MetropolisLocal` now throws an error when called on a {ref}`nk.hilbert.ContinuousHilbert` hilbert space instead of entering an endless loop. [#1014](https://github.com/netket/netket/pull/1014)
 * Fixed bug in conversion to qutip for `MCMixedState`, where the resulting shape (hilbert space size) was wrong. [#1020](https://github.com/netket/netket/pull/1020)
 * Setting `MCState.sampler` now recomputes `MCState.chain_length` according to `MCState.n_samples` and the new `sampler.n_chains`. [#1028](https://github.com/netket/netket/pull/1028)
+* `GCNN_Parity` allowed biasing both the parity-preserving and the parity-flip equivariant layers. These enter into the network output the same way, so having both is redundant and makes QGTs unstable. The biases of the parity-flip layers are now removed. [#1030](https://github.com/netket/netket/pull/1030)
 
 
 ## NetKet 3.2 (26 November 2021)
