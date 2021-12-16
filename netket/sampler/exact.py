@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple, Callable
+from typing import Any, Optional, Tuple
 from functools import partial
 
 import jax
+from flax import linen as nn
 from jax import numpy as jnp
 from jax.experimental import host_callback as hcb
 
@@ -49,6 +50,14 @@ class ExactSampler(Sampler):
     """
 
     def __pre_init__(self, *args, **kwargs):
+        """
+        Construct an exact sampler.
+
+        Args:
+            hilbert: The Hilbert space to sample.
+            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+            dtype: The dtype of the states sampled (default = np.float64).
+        """
         if "n_chains" in kwargs or "n_chains_per_rank" in kwargs:
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
@@ -62,7 +71,7 @@ class ExactSampler(Sampler):
 
     def _init_state(
         sampler,
-        machine: Callable,
+        machine: nn.Module,
         parameters: PyTree,
         seed: Optional[SeedT] = None,
     ):
@@ -79,7 +88,7 @@ class ExactSampler(Sampler):
 
     def _sample_chain(
         sampler,
-        machine: Callable,
+        machine: nn.Module,
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
@@ -109,12 +118,15 @@ class ExactSampler(Sampler):
 
 @partial(jax.jit, static_argnums=(1, 4))
 def _sample_chain(
-    sampler,
-    machine: Callable,
+    sampler: ExactSampler,
+    machine: nn.Module,
     parameters: PyTree,
     state: SamplerState,
     chain_length: int,
 ) -> Tuple[jnp.ndarray, SamplerState]:
+    """
+    Internal method used for jitting calls.
+    """
     new_rng, rng = jax.random.split(state.rng)
     numbers = jax.random.choice(
         rng,

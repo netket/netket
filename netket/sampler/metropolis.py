@@ -34,39 +34,40 @@ from .base import Sampler, SamplerState
 @struct.dataclass
 class MetropolisRule:
     """
-    Base class for Transition rules of Metropolis, such as Local, Exchange, Hamiltonian
+    Base class for transition rules of Metropolis, such as Local, Exchange, Hamiltonian
     and several others.
     """
 
     def init_state(
         rule,
-        sampler: Sampler,
-        machine: Callable,
+        sampler: "MetropolisSampler",
+        machine: nn.Module,
         params: PyTree,
         key: PRNGKeyT,
     ) -> Optional[Any]:
         """
-        Initialises the optional internal state of the Metropolis Sampler Transition
-        Rule.
+        Initialises the optional internal state of the Metropolis sampler transition
+        rule.
 
         The provided key is unique and does not need to be splitted.
-        It should return an immutable datastructure.
+
+        It should return an immutable data structure.
 
         Arguments:
-            sampler: The Metropolis sampler
-            machine: The forward evaluation function of the model, accepting PyTrees of parameters and inputs.
-            params: The dict of variables needed to evaluate the model.
-            key: A Jax PRNGKey rng state.
+            sampler: The Metropolis sampler.
+            machine: A Flax module with the forward pass of the log-pdf.
+            params: The PyTree of parameters of the model.
+            key: A Jax PRNGKey.
 
         Returns:
-            An Optional State.
+            An optional state.
         """
         return None
 
     def reset(
         rule,
-        sampler: Sampler,
-        machine: Callable,
+        sampler: "MetropolisSampler",
+        machine: nn.Module,
         params: PyTree,
         sampler_state: SamplerState,
     ) -> Optional[Any]:
@@ -74,33 +75,32 @@ class MetropolisRule:
         Resets the internal state of the Metropolis Sampler Transition Rule.
 
         Arguments:
-            sampler: The Metropolis sampler
-            machine: The forward evaluation function of the model, accepting PyTrees of parameters and inputs.
-            params: The dict of variables needed to evaluate the model.
+            sampler: The Metropolis sampler.
+            machine: A Flax module with the forward pass of the log-pdf.
+            params: The PyTree of parameters of the model.
             sampler_state: The current state of the sampler. Should not modify it.
 
         Returns:
-           A new, resetted, state of the rule. This returns the same type of :py:meth:`sampler_state.rule_state` and might be None.
-
+           A new, resetted, state of the rule. This returns the same type of :py:meth:`sampler_state.rule_state` and might be `None`.
         """
         return sampler_state.rule_state
 
     def transition(
         rule,
-        sampler: Sampler,
-        machine: Callable,
+        sampler: "MetropolisSampler",
+        machine: nn.Module,
         parameters: PyTree,
         state: SamplerState,
         key: PRNGKeyT,
         σ: jnp.ndarray,
     ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
 
-        raise NotImplementedError("error")
+        raise NotImplementedError
 
     def random_state(
         rule,
-        sampler: Sampler,
-        machine: Callable,
+        sampler: "MetropolisSampler",
+        machine: nn.Module,
         parameters: PyTree,
         state: SamplerState,
         key: PRNGKeyT,
@@ -111,11 +111,11 @@ class MetropolisRule:
         By default this calls :func:`netket.hilbert.random.random_state`.
 
         Arguments:
-            sampler: the sampler
-            machine: the function to evaluate the model
-            parameters: the parameters of the model
-            state: the current sampler state
-            key: the PRNGKey to use to generate the random state
+            sampler: The Metropolis sampler.
+            machine: A Flax module with the forward pass of the log-pdf.
+            parameters: The PyTree of parameters of the model.
+            state: The current state of the sampler. Should not modify it.
+            key: The PRNGKey to use to generate the random state.
         """
         return sampler.hilbert.random_state(
             key, size=sampler.n_batches, dtype=sampler.dtype
@@ -125,17 +125,18 @@ class MetropolisRule:
 @struct.dataclass
 class MetropolisSamplerState(SamplerState):
     """
-    State for a metropolis sampler.
-    Contains the current configuration, the rng state and the (optional)
+    State for a Metropolis sampler.
+
+    Contains the current configuration, the RNG state and the (optional)
     state of the transition rule.
     """
 
     σ: jnp.ndarray
-    """Current batch of configurations in the markov chain."""
+    """Current batch of configurations in the Markov chain."""
     rng: jnp.ndarray
     """State of the random number generator (key, in jax terms)."""
     rule_state: Optional[Any]
-    """Optional state of a transition rule."""
+    """Optional state of the transition rule."""
 
     # those are initialised to 0. We want to initialise them to zero arrays because they can
     # be passed to jax jitted functions that require type invariance to avoid recompilation
@@ -205,7 +206,7 @@ class MetropolisSamplerState(SamplerState):
 @struct.dataclass
 class MetropolisSampler(Sampler):
     r"""
-    Metropolis-Hastings sampler for an Hilbert space according to a specific transition rule.
+    Metropolis-Hastings sampler for a Hilbert space according to a specific transition rule.
 
     The transition rule is used to generate a proposed state :math:`s^\prime`, starting from the
     current state :math:`s`. The move is accepted with probability
@@ -214,7 +215,7 @@ class MetropolisSampler(Sampler):
 
         A(s \rightarrow s^\prime) = \mathrm{min} \left( 1,\frac{P(s^\prime)}{P(s)} e^{L(s,s^\prime)} \right) ,
 
-    where the probability being sampled from is :math:`P(s)=|M(s)|^p. Here :math:`M(s)` is a
+    where the probability being sampled from is :math:`P(s)=|M(s)|^p`. Here :math:`M(s)` is a
     user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
     and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
 
@@ -222,27 +223,27 @@ class MetropolisSampler(Sampler):
     """
 
     rule: MetropolisRule = None
-    """The metropolis transition rule."""
+    """The Metropolis transition rule."""
     n_sweeps: int = struct.field(pytree_node=False, default=None)
-    """Number of sweeps for each step along the chain. Defaults to number of sites in hilbert space."""
+    """Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
-    """If True resets the chain state when reset is called (every new sampling)."""
+    """If True, resets the chain state when `reset` is called on every new sampling."""
 
     def __pre_init__(self, hilbert, rule, **kwargs):
-        r"""
+        """
         Constructs a Metropolis Sampler.
 
         Args:
-            hilbert: The hilbert space to sample
+            hilbert: The Hilbert space to sample.
             rule: A `MetropolisRule` to generate random transitions from a given state as
                     well as uniform random states.
-            n_sweeps: The number of exchanges that compose a single sweep.
-                    If None, sweep_size is equal to the number of degrees of freedom being sampled
-                    (the size of the input vector s to the machine).
-            reset_chains: If False the state configuration is not resetted when reset() is called.
-            n_chains: The number of Markov Chain to be run in parallel on a single process.
+            n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
+            n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+            n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+                    This is equivalent to subsampling the Markov chain.
+            reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-            dtype: The dtype of the statees sampled (default = np.float32).
+            dtype: The dtype of the states sampled (default = np.float64).
         """
         if "n_chains" not in kwargs and "n_chains_per_rank" not in kwargs:
             kwargs["n_chains_per_rank"] = 16
@@ -270,7 +271,7 @@ class MetropolisSampler(Sampler):
         if not isinstance(self.reset_chains, bool):
             raise TypeError("reset_chains must be a boolean.")
 
-        #  Default value of n_sweeps
+        # Default value of n_sweeps
         if self.n_sweeps is None:
             object.__setattr__(self, "n_sweeps", self.hilbert.size)
 
@@ -279,26 +280,24 @@ class MetropolisSampler(Sampler):
         machine: Union[Callable, nn.Module],
         parameters: PyTree,
         state: Optional[SamplerState] = None,
-    ) -> Tuple[jnp.ndarray, SamplerState]:
+    ) -> Tuple[SamplerState, jnp.ndarray]:
         """
-        Samples the next state in the markov chain.
-
-        If you subclass `MetropolisSampler`, you should not override this but override `_sample_next`
-        instead, because this contains some common logic.
+        Samples the next state in the Markov chain.
 
         Args:
-            machine: a Flax module or callable apply function with the forward pass of the log-pdf.
+            machine: A Flax module or callable with the forward pass of the log-pdf.
+                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
             parameters: The PyTree of parameters of the model.
-            state: The current state of the sampler. If it's not provided, it will be constructed
-                by calling :code:`sampler.reset(machine, parameters)` with a random seed.
+            state: The current state of the sampler. If not specified, then initialize and reset it.
 
         Returns:
-            state: The new state of the sampler
+            state: The new state of the sampler.
             σ: The next batch of samples.
-        """
-        # Note: the return order is inverted wrt `.sample` because when called inside of
-        # a scan function the first returned argument should be the state.
 
+        Note:
+            The return order is inverted wrt `sample` because when called inside of
+            a scan function the first returned argument should be the state.
+        """
         if state is None:
             state = sampler.reset(machine, parameters)
 
@@ -399,9 +398,9 @@ class MetropolisSampler(Sampler):
             + "\n  hilbert = {},".format(sampler.hilbert)
             + "\n  rule = {},".format(sampler.rule)
             + "\n  n_chains = {},".format(sampler.n_chains)
-            + "\n  machine_power = {},".format(sampler.machine_pow)
-            + "\n  reset_chains = {},".format(sampler.reset_chains)
             + "\n  n_sweeps = {},".format(sampler.n_sweeps)
+            + "\n  reset_chains = {},".format(sampler.reset_chains)
+            + "\n  machine_power = {},".format(sampler.machine_pow)
             + "\n  dtype = {}".format(sampler.dtype)
             + ")"
         )
@@ -411,8 +410,9 @@ class MetropolisSampler(Sampler):
             f"{type(sampler).__name__}("
             + "rule = {}, ".format(sampler.rule)
             + "n_chains = {}, ".format(sampler.n_chains)
-            + "machine_power = {}, ".format(sampler.machine_pow)
             + "n_sweeps = {}, ".format(sampler.n_sweeps)
+            + "reset_chains = {}, ".format(sampler.reset_chains)
+            + "machine_power = {}, ".format(sampler.machine_pow)
             + "dtype = {})".format(sampler.dtype)
         )
 
@@ -421,23 +421,23 @@ class MetropolisSampler(Sampler):
     "The module function `sample_next` is deprecated in favor of the class method `sample_next`."
 )
 def sample_next(
-    sampler: Sampler,
+    sampler: MetropolisSampler,
     machine: Union[Callable, nn.Module],
     parameters: PyTree,
     state: Optional[SamplerState] = None,
-) -> Tuple[jnp.ndarray, SamplerState]:
+) -> Tuple[SamplerState, jnp.ndarray]:
     """
-    Samples the next state in the markov chain.
+    Samples the next state in the Markov chain.
 
     Args:
-        sampler: The Monte Carlo sampler.
-        machine: a Flax module or callable with the forward pass of the log-pdf.
+        sampler: The Metropolis sampler.
+        machine: A Flax module or callable with the forward pass of the log-pdf.
+            If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
         parameters: The PyTree of parameters of the model.
-        state: The current state of the sampler. If it's not provided, it will be constructed
-            by calling :code:`sampler.reset(machine, parameters)` with a random seed.
+        state: The current state of the sampler. If not specified, then initialize and reset it.
 
     Returns:
-        state: The new state of the sampler
+        state: The new state of the sampler.
         σ: The next batch of samples.
     """
     return sampler.sample_next(machine, parameters, state)
@@ -445,24 +445,23 @@ def sample_next(
 
 @partial(jax.jit, static_argnums=(1, 4))
 def _sample_chain(
-    sampler,
-    machine: Union[Callable, nn.Module],
+    sampler: MetropolisSampler,
+    machine: nn.Module,
     parameters: PyTree,
     state: SamplerState,
     chain_length: int,
 ) -> Tuple[jnp.ndarray, SamplerState]:
     """
-    Samples chain_length elements along the chains.
+    Samples `chain_length` batches of samples along the chains.
 
-    Internal method used for jitting calls
+    Internal method used for jitting calls.
 
     Arguments:
         sampler: The Monte Carlo sampler.
-        machine: The model or Callable to sample from (if it's a function it should have
-            the signature :code:`f(parameters, σ) -> jnp.ndarray`).
+        machine: A Flax module with the forward pass of the log-pdf.
         parameters: The PyTree of parameters of the model.
-        state: current state of the sampler. If None, then initialises it.
-        chain_length: (default=1), the length of the chains.
+        state: The current state of the sampler.
+        chain_length: The length of the chains.
 
     Returns:
         σ: The next batch of samples.
@@ -506,14 +505,14 @@ def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
     and :math:`n_{\mathrm{max}}` except the current :math:`s_i`.
 
     Args:
-        hilbert: The hilbert space to sample
-        n_chains: The number of Markov Chain to be run in parallel on a single process.
-        n_sweeps: The number of exchanges that compose a single sweep.
-                If None, sweep_size is equal to the number of degrees of freedom being sampled
-                (the size of the input vector s to the machine).
-        n_chains: The number of batches of the states to sample (default = 8)
+        hilbert: The Hilbert space to sample.
+        n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
+        n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+                This is equivalent to subsampling the Markov chain.
+        reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-        dtype: The dtype of the statees sampled (default = np.float32).
+        dtype: The dtype of the states sampled (default = np.float64).
     """
     from .rules import LocalRule
 
@@ -539,7 +538,6 @@ def MetropolisExchange(
 
     2. The sites are exchanged, i.e. :math:`s^\prime_i = s_j` and :math:`s^\prime_j = s_i`.
 
-
     Notice that this sampling method generates random permutations of the quantum
     numbers, thus global quantities such as the sum of the local quantum numbers
     are conserved during the sampling.
@@ -548,16 +546,15 @@ def MetropolisExchange(
     otherwise the sampling would be strongly not ergodic.
 
     Args:
-        hilbert: The hilbert space to sample
+        hilbert: The Hilbert space to sample.
         d_max: The maximum graph distance allowed for exchanges.
-        n_chains: The number of Markov Chain to be run in parallel on a single process.
-        n_sweeps: The number of exchanges that compose a single sweep.
-                If None, sweep_size is equal to the number of degrees of freedom being sampled
-                (the size of the input vector s to the machine).
-        n_batches: The number of batches of the states to sample (default = 8)
+        n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
+        n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+                This is equivalent to subsampling the Markov chain.
+        reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-        dtype: The dtype of the statees sampled (default = np.float32).
-
+        dtype: The dtype of the states sampled (default = np.float64).
 
     Examples:
           Sampling from a RBM machine in a 1D lattice of spin 1/2, using
@@ -571,7 +568,7 @@ def MetropolisExchange(
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = nk.sampler.MetropolisExchange(hi, graph=g)
           >>> print(sa)
-          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
+          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, n_sweeps = 100, reset_chains = False, machine_power = 2, dtype = <class 'numpy.float64'>)
     """
     from .rules import ExchangeRule
 
@@ -599,15 +596,15 @@ def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSa
     you should use :class:`netket.sampler.MetropolisHamiltonianNumpy`
 
     Args:
-       machine: A machine :math:`\Psi(s)` used for the sampling.
-                The probability distribution being sampled
-                from is :math:`F(\Psi(s))`, where the function
-                :math:`F(X)`, is arbitrary, by default :math:`F(X)=|X|^2`.
-       hamiltonian: The operator used to perform off-diagonal transition.
-       n_chains: The number of Markov Chain to be run in parallel on a single process.
-       sweep_size: The number of exchanges that compose a single sweep.
-                   If None, sweep_size is equal to the number of degrees of freedom (n_visible).
-
+        hilbert: The Hilbert space to sample.
+        hamiltonian: The operator used to perform off-diagonal transition.
+        n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
+        n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+                This is equivalent to subsampling the Markov chain.
+        reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
+        machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+        dtype: The dtype of the states sampled (default = np.float64).
 
     Examples:
        Sampling from a RBM machine in a 1D lattice of spin 1/2
@@ -623,7 +620,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSa
        >>> # Construct a MetropolisHamiltonian Sampler
        >>> sa = nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
+       MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, n_sweeps = 100, reset_chains = False, machine_power = 2, dtype = <class 'numpy.float64'>)
     """
     from .rules import HamiltonianRule
 
@@ -632,16 +629,20 @@ def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSa
 
 
 def MetropolisGaussian(hilbert, sigma=1.0, *args, **kwargs) -> MetropolisSampler:
-    r"""This sampler acts on all particle positions simultaneously
+    """This sampler acts on all particle positions simultaneously
     and proposes a new state according to a Gaussian distribution
-    with width sigma.
+    with width `sigma`.
 
     Args:
-       hilber: The continuous Hilbert space
-       sigma: The width of the Gaussian proposal distribution (default: 1.0)
-       n_chains: The number of Markov Chain to be run in parallel on a single process.
-       sweep_size: The number of exchanges that compose a single sweep.
-                   If None, sweep_size is equal to the number of degrees of freedom (n_visible).
+        hilbert: The continuous Hilbert space to sample.
+        sigma: The width of the Gaussian proposal distribution (default = 1.0).
+        n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
+        n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+                This is equivalent to subsampling the Markov chain.
+        reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
+        machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+        dtype: The dtype of the states sampled (default = np.float64).
     """
     if not isinstance(hilbert, ContinuousHilbert):
         raise ValueError("This sampler only works for Continuous Hilbert spaces.")
