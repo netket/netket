@@ -211,10 +211,6 @@ def findrng(rng):
 
 # Mark tests that we know are failing on correctedness
 def failing_test(sampler):
-    if isinstance(sampler, nk.sampler.MetropolisSampler):
-        if isinstance(sampler, nkx.sampler.MetropolisPtSampler):
-            return True
-
     return False
 
 
