@@ -157,16 +157,16 @@ class Sampler(abc.ABC):
         """
         Returns a closure with the log-pdf function encoded by this sampler.
 
-        Note:
-            The result is returned as a `HashablePartial` so that the closure
-            does not trigger recompilation.
-
         Args:
             model: A Flax module or callable with the forward pass of the log-pdf.
                 If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
 
         Returns:
             The log-probability density function.
+
+        Note:
+            The result is returned as a `HashablePartial` so that the closure
+            does not trigger recompilation.
         """
         apply_fun = get_afun_if_module(model)
         log_pdf = HashablePartial(
