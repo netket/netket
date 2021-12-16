@@ -49,7 +49,7 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
 
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),
-        nk.optim.Sgd(0.1),
+        nk.optimizer.Sgd(0.1),
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
@@ -83,7 +83,7 @@ def test_gcnn(parity, symmetries, lattice, mode):
 
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),
-        nk.optim.Sgd(0.1),
+        nk.optimizer.Sgd(0.1),
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
@@ -249,7 +249,7 @@ def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
 
     vmc = nk.VMC(
         nk.operator.BoseHubbard(hi, g, U=1.0),
-        nk.optim.Sgd(0.1),
+        nk.optimizer.Sgd(0.1),
         nk.sampler.MetropolisLocal(hi),
         ma,
     )

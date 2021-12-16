@@ -14,7 +14,7 @@
 * Chunking of `MCState.expect` and `MCState.expect_and_grad` computations is now supported, which allows to bound the memory cost in exchange of a minor increase in computation time. [#1006](https://github.com/netket/netket/pull/1006) (and discussions in [#918](https://github.com/netket/netket/pull/918) and [#830](https://github.com/netket/netket/pull/830))
 * {ref}`nk.operator.LocalOperator` now accepts sparse matrices as input operators [#919](https://github.com/netket/netket/pull/919)
 * A new variational state that performs exact summation over the whole Hilbert space has been added. It can be constructed with {ref}`nk.vqs.ExactState` and supports the same Jax neural networks as {ref}`nk.vqs.MCState`. [#953](https://github.com/netket/netket/pull/953)
-* `DenseSymm` allows multiple input features. Their number is controlled by the `in_features` parameter, which defaults to 1. [#1030](https://github.com/netket/netket/pull/1030)
+* `DenseSymm` allows multiple input features. [#1030](https://github.com/netket/netket/pull/1030)
 * [Experimental] A new time-evolution driver  {ref}`nk.experimental.TDVP` using the time-dependent variational principle (TDVP) has been added. It works with time-independent and time-dependent Hamiltonians and Liouvillians. [#1012](https://github.com/netket/netket/pull/1012)
 * [Experimental] A set of JAX-compatible Runge-Kutta ODE integrators has been added for use together with the new TDVP driver. [#1012](https://github.com/netket/netket/pull/1012)
 
@@ -24,7 +24,7 @@
 * The method `Sampler.samples` is added to return a generator of samples. The module functions `nk.sampler.sampler_state`, `reset`, `sample`, `samples`, and `sample_next` are deprecated in favor of the corresponding class methods. [#1025](https://github.com/netket/netket/pull/1025)
 * Duplicated biases in `GCNN_Parity` are removed. Parameters saved from earlier implementations can no longer be used directly. [#1030](https://github.com/netket/netket/pull/1030)
 * Kernels of `DenseSymm` are now three-dimensional, not two-dimensional. Parameters saved from earlier implementations can no longer be used directly. [#1030](https://github.com/netket/netket/pull/1030)
-* Kwarg `features` of `DenseSymm` is deprecated in favour of `out_features`. [#1030](https://github.com/netket/netket/pull/1030)
+* Kwarg `in_features` of `DenseEquivariant` is deprecated; input features are inferred from the input. [#1030](https://github.com/netket/netket/pull/1030)
 
 ### Internal Changes
 * The definitions of `MCState` and `MCMixedState` have been moved to an internal module, `nk.vqs.mc` that is hidden by default. [#954](https://github.com/netket/netket/pull/954)

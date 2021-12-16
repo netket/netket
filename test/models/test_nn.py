@@ -51,7 +51,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
         ma = nk.nn.DenseSymm(
             symmetries=perms,
             mode=mode,
-            out_features=8,
+            features=8,
             use_bias=use_bias,
             bias_init=uniform(),
         )
@@ -60,7 +60,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
             symmetries=perms,
             shape=tuple(g.extent),
             mode=mode,
-            out_features=8,
+            features=8,
             use_bias=use_bias,
             bias_init=uniform(),
         )
@@ -85,8 +85,7 @@ def test_DenseSymm_infeatures(symmetries, use_bias, mode):
         ma = nk.nn.DenseSymm(
             symmetries=perms,
             mode=mode,
-            in_features=2,
-            out_features=8,
+            features=8,
             use_bias=use_bias,
             bias_init=uniform(),
         )
@@ -95,8 +94,7 @@ def test_DenseSymm_infeatures(symmetries, use_bias, mode):
             symmetries=perms,
             shape=tuple(g.extent),
             mode=mode,
-            in_features=2,
-            out_features=8,
+            features=8,
             use_bias=use_bias,
             bias_init=uniform(),
         )
@@ -123,7 +121,6 @@ def test_DenseEquivariant_creation(mode):
         lambda: nk.nn.DenseEquivariant(
             symmetries=g,
             mode=mode,
-            in_features=4,
             out_features=4,
         )
     )
@@ -134,7 +131,6 @@ def test_DenseEquivariant_creation(mode):
             lambda: nk.nn.DenseEquivariant(
                 symmetries=space_group,
                 mode=mode,
-                in_features=4,
                 out_features=4,
             )
         )
@@ -144,7 +140,6 @@ def test_DenseEquivariant_creation(mode):
                 symmetries=space_group,
                 shape=tuple(g.extent),
                 mode=mode,
-                in_features=4,
                 out_features=4,
             )
         )
@@ -155,7 +150,6 @@ def test_DenseEquivariant_creation(mode):
             lambda: nk.nn.DenseEquivariant(
                 symmetries=space_group.irrep_matrices(),
                 mode=mode,
-                in_features=4,
                 out_features=4,
             )
         )
@@ -165,7 +159,6 @@ def test_DenseEquivariant_creation(mode):
                 symmetries=space_group.product_table,
                 mode=mode,
                 shape=(8,),
-                in_features=4,
                 out_features=4,
             )
         )
@@ -174,7 +167,6 @@ def test_DenseEquivariant_creation(mode):
             lambda: nk.nn.DenseEquivariant(
                 symmetries=space_group.product_table,
                 mode=mode,
-                in_features=4,
                 out_features=4,
             )
         )
@@ -202,7 +194,6 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
         ma = nk.nn.DenseEquivariant(
             symmetries=perms,
             mode=mode,
-            in_features=1,
             out_features=1,
             mask=mask,
             use_bias=use_bias,
@@ -213,7 +204,6 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
             symmetries=pt,
             shape=tuple(g.extent),
             mode=mode,
-            in_features=1,
             out_features=1,
             mask=mask,
             use_bias=use_bias,
@@ -250,14 +240,14 @@ def test_modes_DenseSymm(lattice, symmetries):
     ma_fft = nk.nn.DenseSymm(
         symmetries=perms,
         mode="fft",
-        out_features=4,
+        features=4,
         shape=tuple(g.extent),
         bias_init=uniform(),
     )
     ma_matrix = nk.nn.DenseSymm(
         symmetries=perms,
         mode="matrix",
-        out_features=4,
+        features=4,
         bias_init=uniform(),
     )
 
@@ -278,16 +268,14 @@ def test_modes_DenseSymm_infeatures(lattice, symmetries):
     ma_fft = nk.nn.DenseSymm(
         symmetries=perms,
         mode="fft",
-        in_features=3,
-        out_features=4,
+        features=4,
         shape=tuple(g.extent),
         bias_init=uniform(),
     )
     ma_matrix = nk.nn.DenseSymm(
         symmetries=perms,
         mode="matrix",
-        in_features=3,
-        out_features=4,
+        features=4,
         bias_init=uniform(),
     )
 
@@ -308,7 +296,6 @@ def test_modes_DenseEquivariant(lattice, symmetries):
     ma_fft = nk.nn.DenseEquivariant(
         symmetries=perms,
         mode="fft",
-        in_features=1,
         out_features=1,
         shape=tuple(g.extent),
         bias_init=uniform(),
@@ -316,14 +303,12 @@ def test_modes_DenseEquivariant(lattice, symmetries):
     ma_irreps = nk.nn.DenseEquivariant(
         symmetries=perms,
         mode="irreps",
-        in_features=1,
         out_features=1,
         bias_init=uniform(),
     )
     ma_matrix = nk.nn.DenseEquivariant(
         symmetries=perms,
         mode="matrix",
-        in_features=1,
         out_features=1,
         bias_init=uniform(),
     )
@@ -339,38 +324,3 @@ def test_modes_DenseEquivariant(lattice, symmetries):
 
     assert jnp.allclose(fft_out, irreps_out)
     assert jnp.allclose(fft_out, matrix_out)
-
-
-"""
-@pytest.mark.parametrize("symmetries", ["trans", "space_group"])
-@pytest.mark.parametrize("features", [1, 2, 5])
-def test_symmetrizer(symmetries, features):
-    from netket.nn.symmetric_linear import _symmetrizer_col
-
-    _, _, perms = _setup_symm(symmetries, N=8)
-
-    n_symm, n_sites = perms.shape
-    n_hidden = features * n_symm
-
-    # symmetrization tensor entries
-    def symmetrizer_ijkl(i, j, k, l):
-        jsymm = np.floor_divide(j, n_symm)
-        cond_k = k == np.asarray(perms)[j % n_symm, i]
-        cond_l = l == jsymm
-        return np.asarray(np.logical_and(cond_k, cond_l), dtype=int)
-
-    symmetrizer = np.asarray(
-        np.fromfunction(
-            symmetrizer_ijkl,
-            shape=(n_sites, n_hidden, n_sites, features),
-            dtype=np.intp,
-        ),
-    ).reshape(-1, features * n_sites)
-    symmetrizer = scipy.sparse.coo_matrix(symmetrizer)
-
-    # Of the COO matrix attributes, rows is just a range [0, ..., n_rows)
-    # and data is [1., ..., 1.]. Only cols is non-trivial.
-    assert np.all(symmetrizer.row == np.arange(symmetrizer.shape[0]))
-    assert np.all(symmetrizer.data == 1.0)
-    assert np.all(symmetrizer.col == _symmetrizer_col(np.asarray(perms), features))
-"""
