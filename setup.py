@@ -20,12 +20,12 @@ BASE_DEPENDENCIES = [
     "plum-dispatch~=1.5.1",
     "numba>=0.52, <0.55",
     "igraph~=0.9.8",
-    "jax>=0.2.21, <0.2.27",
+    "jax>=0.2.23, <0.2.27",
     "jaxlib>=0.1.69",
     "flax>=0.3.5, <0.4",
     "orjson~=3.4",
     "optax>=0.0.2, <0.2",
-    "numba4jax>=0.0.1, <0.1",
+    "numba4jax>=0.0.3, <0.1",
 ]
 
 setup(
