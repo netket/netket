@@ -568,9 +568,15 @@ class LocalOperator(DiscreteOperator):
             operator_row_index, operator_column_index = self._operators[
                 support_i
             ].nonzero()
-            operator_data = np.asarray(
-                self._operators[support_i][operator_row_index, operator_column_index]
-            ).squeeze(axis=0)
+            if len(operator_row_index) > 0:
+                operator_data = np.asarray(
+                    self._operators[support_i][
+                        operator_row_index, operator_column_index
+                    ]
+                ).squeeze(axis=0)
+            else:
+                operator_data = np.array([], dtype=self._operators[support_i].dtype)
+
             self._append_matrix(
                 operator_data,
                 operator_row_index,
@@ -688,9 +694,12 @@ class LocalOperator(DiscreteOperator):
         )
 
         operator_row_index, operator_column_index = operator.nonzero()
-        operator_data = np.asarray(
-            operator[operator_row_index, operator_column_index]
-        ).squeeze(axis=0)
+        if operator.nnz > 0:
+            operator_data = np.asarray(
+                operator[operator_row_index, operator_column_index]
+            ).squeeze(axis=0)
+        else:
+            operator_data = np.array([], dtype=operator.dtype)
         self._append_matrix(
             operator_data,
             operator_row_index,
@@ -726,6 +735,12 @@ class LocalOperator(DiscreteOperator):
     ):
         n_conns[:operator_size] = 0
         diag_mels[:operator_size] = 0
+        mels[:operator_size] = 0
+
+        # bail out early if the operator is empty
+        if len(operator_row_index) == 0:
+            return
+
         for element, ridx, cidx in zip(
             operator_data, operator_row_index, operator_column_index
         ):
