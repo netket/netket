@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numbers
 from typing import Union, List, Optional
-from netket.utils.types import DType, Array
+
+import functools
+import numbers
+import copy
+
 from textwrap import dedent
 
 import numpy as np
 from numba import jit
 
 from netket.hilbert import AbstractHilbert, Fock
+from netket.utils.types import DType, Array
 
 from ._discrete_operator import DiscreteOperator
 from ._lazy import Transpose
@@ -770,7 +774,19 @@ class LocalOperator(DiscreteOperator):
 
         return operators, acting_on
 
-    def copy(self, *, dtype: Optional = None):
+    def __deepcopy__(self, memo: dict) -> "LocalOperator":
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k != "_hilbert":
+                setattr(result, k, copy.deepcopy(v, memo))
+            else:
+                setattr(result, k, v)
+                memo[id(v)] = v
+        return result
+
+    def copy(self, *, dtype: Optional[DType] = None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
 
@@ -784,13 +800,12 @@ class LocalOperator(DiscreteOperator):
         if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
 
-        return LocalOperator(
-            hilbert=self.hilbert,
-            operators=[np.copy(op) for op in self._operators],
-            acting_on=self._acting_on_list(),
-            constant=self._constant,
-            dtype=dtype,
-        )
+        new = copy.deepcopy(self)
+        new._diag_mels = new._diag_mels.astype(dtype)
+        new._mels = new._mels.astype(dtype)
+        new._operators = [op.astype(dtype) for op in new._operators]
+        new._dtype = dtype
+        return new
 
     def transpose(self, *, concrete=False):
         r"""LocalOperator: Returns the tranpose of this operator."""
