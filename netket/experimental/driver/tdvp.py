@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
 from typing import Callable, Optional, Sequence, Union
 import warnings
 
@@ -431,7 +430,7 @@ def odefun(state, driver, t, w, **kwargs):
 
 
 @dispatch
-def odefun(state: MCState, driver: TDVP, t, w, *, stage=0):
+def odefun(state: MCState, driver: TDVP, t, w, *, stage=0):  # noqa: F811
     # pylint: disable=protected-access
 
     state.parameters = w

@@ -42,7 +42,7 @@ def get_local_kernel_arguments(  # noqa: F811
 
 
 @dispatch
-def get_local_kernel_arguments(
+def get_local_kernel_arguments(  # noqa: F811
     vstate: MCMixedState, Ô: AbstractSuperOperator
 ):  # noqa: F811
     check_hilbert(vstate.hilbert, Ô.hilbert)
