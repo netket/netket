@@ -256,8 +256,8 @@ class LocalOperator(DiscreteOperator):
         # If we asked for a specific dtype, enforce it.
         if dtype is None:
             dtype = functools.reduce(
-                 lambda dt, op: np.promote_types(dt, op.dtype), operators, np.float32
-             )
+                lambda dt, op: np.promote_types(dt, op.dtype), operators, np.float32
+            )
 
         self._dtype = dtype
         self._init_zero()
@@ -297,9 +297,14 @@ class LocalOperator(DiscreteOperator):
         return self._size
 
     @property
+    # A way to cache the property depending on modifications of self._operators is described here:
+    # https://stackoverflow.com/questions/48262273/python-bookkeeping-dependencies-in-cached-attributes-that-might-change
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
-        return self._is_hermitian
+        # TODO: (VolodyaCO) I guess that if we have an operator with diagonal elements equal to 1j*C+Y, some complex constant, and
+        # self._constant=-1j*C, then the actual diagonal would be Y. How do we check hermiticity taking into account the diagonal
+        # elements as well as the self._constant? For the moment I just check hermiticity of the added constant, which must be real.
+        return np.all(self._is_hermitian_op) and np.isreal(self._constant)
 
     @property
     def mel_cutoff(self) -> float:
@@ -388,8 +393,9 @@ class LocalOperator(DiscreteOperator):
         op._mels *= other
         op._constant *= other
 
-        for _op in op._operators:
+        for i, _op in enumerate(op._operators):
             _op *= other
+            op._is_hermitian_op[i] = is_hermitian(_op)
 
         op._nonzero_diagonal = has_nonzero_diagonal(op)
 
@@ -410,8 +416,9 @@ class LocalOperator(DiscreteOperator):
         self._mels *= other
         self._constant *= other
 
-        for _op in self._operators:
+        for i, _op in enumerate(self._operators):
             _op *= other
+            self._is_hermitian_op[i] = is_hermitian(_op)
 
         self._nonzero_diagonal = has_nonzero_diagonal(self)
 
@@ -496,7 +503,9 @@ class LocalOperator(DiscreteOperator):
         self._local_states = np.zeros((0, 0, 0), dtype=np.float64)
 
         self._basis = np.zeros((0, 0), dtype=np.int64)
-        self._is_hermitian = True
+
+        # Array saving whether each operator is hermitian (plus one component to keep if self._constant is also hermitian).
+        self._is_hermitian_op = np.zeros((self._n_operators,), dtype=bool)
 
     def _acting_on_list(self):
         acting_on = []
@@ -546,6 +555,7 @@ class LocalOperator(DiscreteOperator):
             dim = min(operator.shape[0], self._operators[support_i].shape[0])
             _opv = self._operators[support_i][:dim, :dim]
             _opv += operator[:dim, :dim]
+            self._is_hermitian_op[support_i] = is_hermitian(self._operators[support_i])
 
             n_local_states_per_site = np.asarray(
                 [self.hilbert.size_at_index(i) for i in acting_on]
@@ -562,12 +572,6 @@ class LocalOperator(DiscreteOperator):
                 self.mel_cutoff,
                 n_local_states_per_site,
             )
-
-            isherm = True
-            for op in self._operators:
-                isherm = isherm and is_hermitian(op)
-
-            self._is_hermitian = isherm
             self._nonzero_diagonal = has_nonzero_diagonal(self)
         else:
             self.__add_new_operator__(operator, acting_on)
@@ -664,6 +668,12 @@ class LocalOperator(DiscreteOperator):
         if acting_on.max() + 1 >= self._size:
             self._size = acting_on.max() + 1
 
+        self._is_hermitian_op = resize(
+            self._is_hermitian_op,
+            shape=(self.n_operators,),
+            init=is_hermitian(operator),
+        )
+
         self._append_matrix(
             operator,
             self._diag_mels[-1],
@@ -675,12 +685,6 @@ class LocalOperator(DiscreteOperator):
             self.mel_cutoff,
             n_local_states_per_site,
         )
-
-        isherm = True
-        for op in self._operators:
-            isherm = isherm and is_hermitian(op)
-
-        self._is_hermitian = isherm
 
         self._nonzero_diagonal = has_nonzero_diagonal(self)
 
@@ -726,11 +730,11 @@ class LocalOperator(DiscreteOperator):
 
             if act.size == act_i.size and np.array_equal(act, act_i):
                 # non-interesecting with same support
-                operators.append(np.copy(np.matmul(self._operators[i], op)))
+                operators.append(self._operators[i] @ op)
                 acting_on.append(act_i.tolist())
             elif inters.size == 0:
                 # disjoint supports
-                operators.append(np.copy(np.kron(self._operators[i], op)))
+                operators.append(np.kron(self._operators[i], op))
                 acting_on.append(act_i.tolist() + act.tolist())
             else:
                 _act = list(act)
@@ -767,7 +771,7 @@ class LocalOperator(DiscreteOperator):
 
                 if len(_act) == len(_act_i) and np.array_equal(_act, _act_i):
                     # non-interesecting with same support
-                    operators.append(np.matmul(_op_i, _op))
+                    operators.append(_op_i @ _op)
                     acting_on.append(_act_i)
                 else:
                     raise ValueError("Something failed")
