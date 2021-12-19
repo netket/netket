@@ -158,7 +158,7 @@ def _reorder_kronecker_product(hi, mat, acting_on):
     state_to_number to perform the re-ordering.
     """
     acting_on_sorted = np.sort(acting_on)
-    if np.all(acting_on_sorted == acting_on):
+    if np.array_equal(acting_on_sorted, acting_on):
         return mat, acting_on
 
     # could write custom binary <-> int logic instead of using Fock...
@@ -546,7 +546,7 @@ class LocalOperator(DiscreteOperator):
         # find overlapping support
         support_i = None
         for (i, support) in enumerate(self._acting_on_list()):
-            if np.all(acting_on == support):
+            if np.array_equal(acting_on, support):
                 support_i = i
                 break
 
