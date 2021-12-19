@@ -18,9 +18,8 @@ import jax
 import jax.numpy as jnp
 from jax.nn.initializers import uniform
 
-from .test_nn import _setup_symm
-
 import pytest
+
 
 def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
     g = lattice(N)
@@ -40,7 +39,7 @@ def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
 @pytest.mark.parametrize("mode", ["fft", "irreps"])
-def test_gcnn(parity, symmetries, lattice, mode):
+def test_gcnn_equivariance(parity, symmetries, lattice, mode):
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
     ma = nk.models.GCNN(
@@ -61,12 +60,30 @@ def test_gcnn(parity, symmetries, lattice, mode):
     for val in vals:
         assert jnp.allclose(val, vals[0])
 
+
+@pytest.mark.parametrize("mode", ["fft", "irreps"])
+def test_gcnn(mode):
+    lattice = nk.graph.Chain
+    symmetries = "trans"
+    parity = True
+    g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
+
+    ma = nk.models.GCNN(
+        symmetries=perms,
+        mode=mode,
+        shape=tuple(g.extent),
+        layers=2,
+        features=2,
+        parity=parity,
+        bias_init=uniform(),
+    )
+
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),
         nk.optimizer.Sgd(0.1),
         nk.sampler.MetropolisLocal(hi, n_chains=2, n_sweeps=2),
         ma,
-        n_samples=8
+        n_samples=8,
     )
     vmc.advance(1)
 
