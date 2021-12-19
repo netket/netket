@@ -22,6 +22,7 @@ import numpy as np
 import jax
 from jax.nn.initializers import normal, zeros, lecun_normal, variance_scaling
 
+from netket.utils import warn_deprecation
 from netket.nn.initializers import _complex_truncated_normal
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
@@ -72,6 +73,14 @@ def unit_normal_scaling(key, shape, dtype):
         jnp.prod(jnp.asarray(shape[1:]))
     )
 
+
+def symm_input_warning(x, new_x):
+    warn_deprecation(
+        (f"{x.ndim}-dimensional input to DenseSymm layer is deprecated.\n"
+         f"Input shape {x.shape} has been reshaped to {new_x.shape}, where "
+          "the new intermediate dimension encodes different input channels.\n"
+          "Please provide a 3-dimensional input.\nThis warning will become an"
+          "error in the future."))
 
 class DenseSymmMatrix(Module):
     r"""Implements a symmetrized linear transformation over a permutation group
@@ -130,10 +139,14 @@ class DenseSymmMatrix(Module):
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
         # infer in_features and ensure input dimensions (batch, in_features,n_sites)
-        if x.ndim == 1:
-            x = jnp.expand_dims(x, (0,1))
-        elif x.ndim == 2:
-            x = jnp.expand_dims(x, 1)
+
+        if x.ndim < 3:
+            if x.ndim == 1:
+                x_new = jnp.expand_dims(x, (0,1))
+            elif x.ndim == 2:
+                x_new = jnp.expand_dims(x, 1)
+            symm_input_warning(x, x_new)
+            x = x_new
 
         in_features = x.shape[1]
 
@@ -227,15 +240,16 @@ class DenseSymmFFT(Module):
 
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
-        # Infer in_features and add batch and in_feature dimensions as necessary
-        if x.ndim == 1:
-            in_features = 1
-            x = jnp.expand_dims(x, (0, 1))
-        elif x.ndim == 2:
-            in_features = 1
-            x = jnp.expand_dims(x, 1)
-        else:
-            in_features = x.shape[-2]
+        # infer in_features and ensure input dimensions (batch, in_features,n_sites)
+        if x.ndim < 3:
+            if x.ndim == 1:
+                x_new = jnp.expand_dims(x, (0,1))
+            elif x.ndim == 2:
+                x_new = jnp.expand_dims(x, 1)
+            symm_input_warning(x, x_new)
+            x = x_new
+
+        in_features = x.shape[1]
 
         x = x.reshape(*x.shape[:-1], self.n_cells, self.sites_per_cell)
         x = x.transpose(0, 1, 3, 2)
