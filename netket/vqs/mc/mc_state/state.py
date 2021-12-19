@@ -213,7 +213,9 @@ class MCState(VariationalState):
 
         # default argument for n_samples/n_samples_per_rank
         if n_samples is None and n_samples_per_rank is None:
-            n_samples = 1000
+            # get the first multiple of sampler.n_chains above 1000 to avoid
+            # printing a warning on construction
+            n_samples = int(np.ceil(1000/sampler.n_chains)*sampler.n_chains)
         elif n_samples is not None and n_samples_per_rank is not None:
             raise ValueError(
                 "Only one argument between `n_samples` and `n_samples_per_rank`"
