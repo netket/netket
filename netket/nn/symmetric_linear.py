@@ -174,9 +174,9 @@ class DenseSymmMatrix(Module):
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
 
             # Convert symmetry-reduced bias of shape (features,) to the full bias of
-            # shape (1, features, 1).
-            bias = jnp.expand_dims(bias, (0, 2))
-            bias = jnp.asarray(self.full_bias(bias), dtype)
+            # shape (..., features, 1).
+            bias = jnp.expand_dims(bias, 1)
+            bias = jnp.asarray(bias, dtype)
 
             x += bias
 
@@ -221,14 +221,6 @@ class DenseSymmFFT(Module):
             .reshape(self.sites_per_cell, self.n_point, *self.shape)
         )
 
-    def make_kernel(self, kernel):
-        """Converts the convolutional kernel of shape (features, in_features, n_sites)
-        to the expanded kernel of shape (features, in_features, sites_per_cell,
-        n_point, *shape) used in FFT-based group convolutions."""
-        kernel = kernel[..., self.mapping]
-
-        return kernel
-
     @compact
     def __call__(self, x: Array) -> Array:
         """Applies the equivariant transform to the inputs along the last two
@@ -272,7 +264,10 @@ class DenseSymmFFT(Module):
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.make_kernel(kernel)
+        # Converts the convolutional kernel of shape (features, in_features, n_sites)
+        # to the expanded kernel of shape (features, in_features, sites_per_cell,
+        # n_point, *shape) used in FFT-based group convolutions.
+        kernel = kernel[..., self.mapping]
 
         x = jnp.fft.fftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
 
@@ -345,14 +340,6 @@ class DenseEquivariantFFT(Module):
             .reshape(self.n_point, self.n_point, *self.shape)
         )
 
-    def make_kernel(self, kernel):
-        """Converts the convolutional kernel of shape (features, in_features, n_symm)
-        to the expanded kernel of shape (features, in_features, n_point(in),
-        n_point(out), *shape) used in FFT-based group convolutions."""
-        kernel = kernel[..., self.mapping]
-
-        return kernel
-
     @compact
     def __call__(self, x: Array) -> Array:
         """Applies the equivariant transform to the inputs along the last two
@@ -383,7 +370,10 @@ class DenseEquivariantFFT(Module):
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.make_kernel(kernel)
+        # Convert the convolutional kernel of shape (features, in_features, n_symm)
+        # to the expanded kernel of shape (features, in_features, n_point(in),
+        # n_point(out), *shape) used in FFT-based group convolutions
+        kernel = kernel[..., self.mapping]
 
         x = jnp.fft.fftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
 
