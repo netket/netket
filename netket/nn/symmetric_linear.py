@@ -103,17 +103,12 @@ class DenseSymmMatrix(Module):
 
     def full_kernel(self, kernel):
         """
-        Converts the convolutional kernel of shape (out_features, in_features, n_sites)
-        to a full dense kernel of shape (in_features*n_sites, out_features*n_symm).
+        Converts the convolutional kernel of shape (self.features, in_features, n_sites)
+        to a full dense kernel of shape (self.features, in_features, n_symm, n_sites).
         """
         in_features = kernel.shape[1]
         # result[out, in, g, r] == kernel[out, in, g^{-1}r]
-        result = jnp.take(kernel, jnp.asarray(self.symmetries), 2)
-        # collate input dimensions [in, r] and output dimensions [out, g]
-        result = result.transpose(1, 3, 0, 2).reshape(
-            self.n_sites * in_features, self.n_symm * self.features
-        )
-        return result
+        return jnp.take(kernel, jnp.asarray(self.symmetries), 2)
 
     def full_bias(self, bias):
         """
@@ -134,15 +129,13 @@ class DenseSymmMatrix(Module):
         """
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
-        # infer in_features and ensure input dimensions (batch, in_features*n_sites)
+        # infer in_features and ensure input dimensions (batch, in_features,n_sites)
         if x.ndim == 1:
-            x = jnp.expand_dims(x, 0)
-            in_features = 1
+            x = jnp.expand_dims(x, (0,1))
         elif x.ndim == 2:
-            in_features = 1
-        else:
-            in_features = x.shape[-2]
-            x = x.reshape(x.shape[0], -1)
+            x = jnp.expand_dims(x, 1)
+
+        in_features = x.shape[1]
 
         # generate the default kernel init if necessary
         kernel_init = (
@@ -160,13 +153,15 @@ class DenseSymmMatrix(Module):
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.full_kernel(kernel).reshape(-1, self.features, self.n_symm)
+        kernel = self.full_kernel(kernel)
         kernel = jnp.asarray(kernel, dtype)
 
+        # x is      (batches,       in_featuers,         n_sites)
+        # kernel is (self.features, in_features, n_symm, n_sites)
         x = lax.dot_general(
             x,
             kernel,
-            (((x.ndim - 1,), (0,)), ((), ())),
+            (((x.ndim - 2, x.ndim - 1,), (1,3,)), ((), ())),
             precision=self.precision,
         )
 
@@ -272,6 +267,8 @@ class DenseSymmFFT(Module):
             *kernel.shape[:4], self.n_cells
         )
 
+        # TODO: the batch ordering should be revised: batch dimensions should
+        # be leading
         x = lax.dot_general(
             x, kernel, (((1, 2), (1, 2)), ((3,), (4,))), precision=self.precision
         )
