@@ -49,41 +49,7 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
 
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),
-        nk.optim.Sgd(0.1),
-        nk.sampler.MetropolisLocal(hi),
-        ma,
-    )
-    vmc.advance(1)
-
-
-@pytest.mark.parametrize("parity", [True, False])
-@pytest.mark.parametrize("symmetries", ["trans", "autom"])
-@pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
-@pytest.mark.parametrize("mode", ["fft", "irreps"])
-def test_gcnn(parity, symmetries, lattice, mode):
-    g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
-
-    ma = nk.models.GCNN(
-        symmetries=perms,
-        mode=mode,
-        shape=tuple(g.extent),
-        layers=2,
-        features=2,
-        parity=parity,
-        bias_init=uniform(),
-    )
-
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
-
-    v = hi.random_state(jax.random.PRNGKey(0), 3)
-    vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
-
-    for val in vals:
-        assert jnp.allclose(val, vals[0])
-
-    vmc = nk.VMC(
-        nk.operator.Ising(hi, g, h=1.0),
-        nk.optim.Sgd(0.1),
+        nk.optimizer.Sgd(0.1),
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
@@ -123,112 +89,6 @@ def test_RBMSymm_creation():
         )
 
 
-@pytest.mark.parametrize("mode", ["fft", "irreps"])
-def test_GCNN_creation(mode):
-
-    g = nk.graph.Chain(8)
-    space_group = g.space_group()
-    hi = nk.hilbert.Spin(1 / 2, N=8)
-
-    def check_init(creator):
-        ma = creator()
-        _ = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(0))
-
-    perms = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]]
-
-    # Init with graph
-    check_init(
-        lambda: nk.models.GCNN(
-            symmetries=g,
-            mode=mode,
-            layers=2,
-            features=4,
-        )
-    )
-
-    # init with space_group
-    if mode == "irreps":
-        check_init(
-            lambda: nk.models.GCNN(
-                symmetries=space_group,
-                mode=mode,
-                layers=2,
-                features=4,
-            )
-        )
-    else:
-        check_init(
-            lambda: nk.models.GCNN(
-                symmetries=space_group,
-                shape=tuple(g.extent),
-                mode=mode,
-                layers=2,
-                features=4,
-            )
-        )
-
-    # init with arrays for sym and product_table
-    if mode == "irreps":
-        check_init(
-            lambda: nk.models.GCNN(
-                symmetries=np.asarray(space_group),
-                irreps=space_group.irrep_matrices(),
-                layers=2,
-                features=4,
-            )
-        )
-    else:
-        check_init(
-            lambda: nk.models.GCNN(
-                symmetries=np.asarray(space_group),
-                product_table=space_group.product_table,
-                shape=(8,),
-                layers=2,
-                features=4,
-            )
-        )
-
-    # forget irreps/product table
-    with pytest.raises(ValueError):
-        check_init(
-            lambda: nk.models.GCNN(
-                symmetries=perms[0],
-                layers=2,
-                features=4,
-            )
-        )
-
-    # need to specify shape
-    if mode == "fft":
-        with pytest.raises(TypeError):
-            check_init(
-                lambda: nk.models.GCNN(
-                    symmetries=perms,
-                    product_table=np.arange(4).reshape(2, 2),
-                    layers=2,
-                    features=4,
-                )
-            )
-
-    # character table
-    check_init(
-        lambda: nk.models.GCNN(
-            symmetries=g,
-            mode=mode,
-            layers=2,
-            features=4,
-            characters=np.ones([len(np.asarray(space_group))]),
-        )
-    )
-
-    # equal amplitudes
-    check_init(
-        lambda: nk.models.GCNN(
-            symmetries=g, mode=mode, layers=2, features=4, equal_amplitudes=True
-        )
-    )
-
-
 @pytest.mark.parametrize("use_hidden_bias", [True, False])
 @pytest.mark.parametrize("use_visible_bias", [True, False])
 def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
@@ -249,7 +109,7 @@ def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
 
     vmc = nk.VMC(
         nk.operator.BoseHubbard(hi, g, U=1.0),
-        nk.optim.Sgd(0.1),
+        nk.optimizer.Sgd(0.1),
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
