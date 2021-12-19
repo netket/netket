@@ -548,7 +548,7 @@ class LocalOperator(DiscreteOperator):
         # find overlapping support
         support_i = None
         for (i, support) in enumerate(self._acting_on_list()):
-            if np.all(acting_on == support):
+            if np.array_equal(acting_on, support):
                 support_i = i
                 break
 
