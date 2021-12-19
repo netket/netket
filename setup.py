@@ -15,7 +15,7 @@ MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]
 EXTRA_DEPENDENCIES = ["tensorboardx>=2.0.0", "openfermion>=1.0.0"]
 BASE_DEPENDENCIES = [
     "numpy~=1.18",
-    "scipy~=1.5",
+    "scipy>=1.5.3, <2",
     "tqdm~=4.60",
     "plum-dispatch~=1.5.1",
     "numba>=0.52, <0.55",
