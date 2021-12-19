@@ -380,12 +380,9 @@ def test_qutip_conversion():
 
 def test_notsharing():
     # This test will fail if operators alias some underlying arrays upon copy().
-    a = nk.operator.spin.sigmax(nk.hilbert.Spin(0.5, 2), 0) * nk.operator.spin.sigmax(
-        nk.hilbert.Spin(0.5, 2), 1, dtype=complex
-    )
-    b = nk.operator.spin.sigmay(nk.hilbert.Spin(0.5, 2), 0) * nk.operator.spin.sigmaz(
-        nk.hilbert.Spin(0.5, 2), 1
-    )
+    hi = nk.hilbert.Spin(0.5, 2)
+    a = nk.operator.spin.sigmax(hi, 0) * nk.operator.spin.sigmax(hi, 1, dtype=complex)
+    b = nk.operator.spin.sigmay(hi, 0) * nk.operator.spin.sigmaz(hi, 1)
     delta = b - a
 
     a_orig = a.to_dense()
