@@ -2,9 +2,10 @@ from flax.traverse_util import flatten_dict, unflatten_dict
 from flax.core import unfreeze
 
 
+# TODO(19-dec-2021): Deprecate: eventually remove this
 def update_GCNN_parity(params):
     """Adds biases of parity-flip layers to the corresponding no-flip layers.
-    Corrects for changes in GCNN_parity due to PR #1030.
+    Corrects for changes in GCNN_parity due to PR #1030 in NetKet 3.3.
 
     Args:
         params: a parameter pytree

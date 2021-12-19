@@ -76,11 +76,15 @@ def unit_normal_scaling(key, shape, dtype):
 
 def symm_input_warning(x, new_x):
     warn_deprecation(
-        (f"{x.ndim}-dimensional input to DenseSymm layer is deprecated.\n"
-         f"Input shape {x.shape} has been reshaped to {new_x.shape}, where "
-          "the new intermediate dimension encodes different input channels.\n"
-          "Please provide a 3-dimensional input.\nThis warning will become an"
-          "error in the future."))
+        (
+            f"{x.ndim}-dimensional input to DenseSymm layer is deprecated.\n"
+            f"Input shape {x.shape} has been reshaped to {new_x.shape}, where "
+            "the new intermediate dimension encodes different input channels.\n"
+            "Please provide a 3-dimensional input.\nThis warning will become an"
+            "error in the future."
+        )
+    )
+
 
 class DenseSymmMatrix(Module):
     r"""Implements a symmetrized linear transformation over a permutation group
@@ -140,9 +144,10 @@ class DenseSymmMatrix(Module):
         x = jnp.asarray(x, dtype)
         # infer in_features and ensure input dimensions (batch, in_features,n_sites)
 
+        # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
         if x.ndim < 3:
             if x.ndim == 1:
-                x_new = jnp.expand_dims(x, (0,1))
+                x_new = jnp.expand_dims(x, (0, 1))
             elif x.ndim == 2:
                 x_new = jnp.expand_dims(x, 1)
             symm_input_warning(x, x_new)
@@ -174,7 +179,19 @@ class DenseSymmMatrix(Module):
         x = lax.dot_general(
             x,
             kernel,
-            (((x.ndim - 2, x.ndim - 1,), (1,3,)), ((), ())),
+            (
+                (
+                    (
+                        x.ndim - 2,
+                        x.ndim - 1,
+                    ),
+                    (
+                        1,
+                        3,
+                    ),
+                ),
+                ((), ()),
+            ),
             precision=self.precision,
         )
 
@@ -240,10 +257,12 @@ class DenseSymmFFT(Module):
 
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
+
+        # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
         # infer in_features and ensure input dimensions (batch, in_features,n_sites)
         if x.ndim < 3:
             if x.ndim == 1:
-                x_new = jnp.expand_dims(x, (0,1))
+                x_new = jnp.expand_dims(x, (0, 1))
             elif x.ndim == 2:
                 x_new = jnp.expand_dims(x, 1)
             symm_input_warning(x, x_new)

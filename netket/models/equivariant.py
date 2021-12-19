@@ -289,7 +289,8 @@ class GCNN_Parity_FFT(nn.Module):
     """Initializer for the hidden bias."""
 
     def setup(self):
-        # deprecate extra_bias
+        # TODO: evenutally remove this warning
+        # supports a deprecated attribute
         if self.extra_bias:
             warn_deprecation(
                 (
@@ -455,7 +456,8 @@ class GCNN_Parity_Irrep(nn.Module):
     """Initializer for the hidden bias."""
 
     def setup(self):
-        # deprecate extra_bias
+        # TODO: evenutally remove this warning
+        # supports a deprecated attribute
         if self.extra_bias:
             warn_deprecation(
                 (
