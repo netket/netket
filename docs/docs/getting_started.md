@@ -22,7 +22,7 @@ look at the instructions on [jax repository](https://github.com/google/jax#pip-i
 of writing, this means you should run the following command:
 
 ```bash
-pip install --upgrade "jax[cuda111]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 ```
 
 Where the jaxlib version must correspond to the version of the existing CUDA installation you want to use. Refer to jax
@@ -40,11 +40,24 @@ If you want to use MPI, you will need to have a working MPI compiler. You can in
 dependencies necessary to run with MPI with the following command:
 
 ```bash
-pip install netket[mpi]
+pip install "netket[mpi]"
 ```
 
 Subsequently, NetKet will exploit MPI-level parallelism for the Monte-Carlo sampling.
 See {ref}`this block <warn-mpi-sampling>` to understand how NetKet behaves under MPI.
+
+### Apple M1 (ARM)
+
+NetKet works natively on Apple M1 Arm computers. 
+At the moment it is not possible to install it with `pip` on those machines because one of our dependencies, `Numba`, is not available yet. 
+However, assuming you have conda installed, you can run the following command:
+
+```
+conda install -c conda-forge netket
+```
+
+This will also install the set of MPI-related dependencies.
+
 
 ## Introduction
 
