@@ -129,15 +129,10 @@ def _choose_and_return(σp, x_prime, mels, sections, log_prob_corr, rnd_uniform)
     log_prob_corr.fill(0.0)
 
 
-def _sparse_allclose(a, b, rtol=1e-05, atol=1e-08):
-    c = np.abs(a - b) - rtol * np.abs(b)
-    return c.max() <= atol
-
-
 def _check_operators(operators):
     for op in operators:
         assert op.imag.max() < 1.0e-10
         assert op.min() >= 0
         assert np.allclose(op.sum(axis=0), 1.0)
         assert np.allclose(op.sum(axis=1), 1.0)
-        assert _sparse_allclose(op, op.T)
+        assert np.allclose(op, op.T)

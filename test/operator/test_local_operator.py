@@ -318,9 +318,7 @@ def test_copy():
         assert op_copy is not op
         for o1, o2 in zip(op._operators, op_copy._operators):
             assert o1 is not o2
-            # Since operators might actually be sparse, accessing the dense data can be achieved by the .A attribute
-            # This also works for initially dense arrays.
-            assert np.all(o1.A == o2.A)
+            assert np.all(o1 == o2)
         same_matrices(op, op_copy)
 
 
@@ -328,26 +326,6 @@ def test_raises_unsorted_hilbert():
     hi = nk.hilbert.CustomHilbert([-1, 1, 0], N=3)
     with pytest.raises(ValueError):
         nk.operator.LocalOperator(hi)
-
-
-def test_type_promotion():
-    hi = nk.hilbert.Qubit(1)
-    real_op = nk.operator.spin.sigmax(hi, 0, dtype=float)
-    complex_mat = nk.operator.spin.sigmay(hi, 0, dtype=complex).to_dense()
-    promoted_op = real_op + nk.operator.LocalOperator(hi, complex_mat, acting_on=[0])
-    assert promoted_op.dtype == np.complex128
-
-
-def test_is_hermitian():
-    for op in herm_operators.values():
-        assert op.is_hermitian == True
-
-    for (op, oph) in generic_operators.values():
-        assert op.is_hermitian == False
-        assert oph.is_hermitian == False
-
-    for op in herm_operators.values():
-        assert (1j * op).is_hermitian == False
 
 
 def test_qutip_conversion():
