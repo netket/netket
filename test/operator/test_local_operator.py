@@ -376,3 +376,18 @@ def test_qutip_conversion():
 
     assert q_obj.shape == (op.hilbert.n_states, op.hilbert.n_states)
     np.testing.assert_allclose(q_obj.data.todense(), op.to_dense())
+
+
+def test_notsharing():
+    # This test will fail if operators alias some underlying arrays upon copy().
+    hi = nk.hilbert.Spin(0.5, 2)
+    a = nk.operator.spin.sigmax(hi, 0) * nk.operator.spin.sigmax(hi, 1, dtype=complex)
+    b = nk.operator.spin.sigmay(hi, 0) * nk.operator.spin.sigmaz(hi, 1)
+    delta = b - a
+
+    a_orig = a.to_dense()
+    a_copy = a.copy()
+    a_copy += delta
+
+    np.testing.assert_allclose(a_orig, a.to_dense())
+    np.testing.assert_allclose(a_copy.to_dense(), b.to_dense())
