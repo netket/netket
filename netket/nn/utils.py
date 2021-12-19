@@ -121,6 +121,7 @@ def to_matrix(hilbert, machine, params, normalize=True):
     return rho
 
 
+# TODO: Deprecate: remove
 def update_dense_symm(params, names=["dense_symm", "Dense"]):
     """Updates DenseSymm kernels in pre-PR#1030 parameter pytrees to the new
     3D convention.

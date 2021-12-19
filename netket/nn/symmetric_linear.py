@@ -74,12 +74,12 @@ def unit_normal_scaling(key, shape, dtype):
     )
 
 
-def symm_input_warning(x, new_x):
+def symm_input_warning(x, new_x, name):
     warn_deprecation(
         (
-            f"{x.ndim}-dimensional input to DenseSymm layer is deprecated.\n"
+            f"{x.ndim}-dimensional input to {name} layer is deprecated.\n"
             f"Input shape {x.shape} has been reshaped to {new_x.shape}, where "
-            "the new intermediate dimension encodes different input channels.\n"
+            "the middle dimension encodes different input channels.\n"
             "Please provide a 3-dimensional input.\nThis warning will become an"
             "error in the future."
         )
@@ -125,8 +125,8 @@ class DenseSymmMatrix(Module):
 
     def full_bias(self, bias):
         """
-        Convert symmetry-reduced bias of shape (out_features,) to the full bias of
-        shape (1, out_features, 1).
+        Convert symmetry-reduced bias of shape (features,) to the full bias of
+        shape (1, features, 1).
         """
         return jnp.expand_dims(bias, (0, 2))
 
@@ -150,7 +150,7 @@ class DenseSymmMatrix(Module):
                 x_new = jnp.expand_dims(x, (0, 1))
             elif x.ndim == 2:
                 x_new = jnp.expand_dims(x, 1)
-            symm_input_warning(x, x_new)
+            symm_input_warning(x, x_new, "DenseSymm")
             x = x_new
 
         in_features = x.shape[1]
@@ -242,8 +242,8 @@ class DenseSymmFFT(Module):
         )
 
     def make_kernel(self, kernel):
-        """Converts the convolutional kernel of shape (out_features, in_features, n_sites)
-        to the expanded kernel of shape (out_features, in_features, sites_per_cell,
+        """Converts the convolutional kernel of shape (features, in_features, n_sites)
+        to the expanded kernel of shape (features, in_features, sites_per_cell,
         n_point, *shape) used in FFT-based group convolutions."""
         kernel = kernel[..., self.mapping]
 
@@ -265,7 +265,7 @@ class DenseSymmFFT(Module):
                 x_new = jnp.expand_dims(x, (0, 1))
             elif x.ndim == 2:
                 x_new = jnp.expand_dims(x, 1)
-            symm_input_warning(x, x_new)
+            symm_input_warning(x, x_new, "DenseSymm")
             x = x_new
 
         in_features = x.shape[1]
@@ -697,9 +697,12 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
     equivariant with respect to the symmetry operations in the group and can
     be averaged to produce an invariant model.
 
+    This layer maps an input of shape `(..., in_features, n_sites)` to an
+    output of shape `(..., features, num_symm)`.
+
     Note: The output shape has changed to seperate the feature and symmetry
     dimensions. The previous shape was [num_samples, num_symm*features] and
-    the new shape is [num_samples, num_symm, features]
+    the new shape is [num_samples, features, num_symm]
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
