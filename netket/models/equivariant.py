@@ -279,7 +279,7 @@ class GCNN_Parity_FFT(nn.Module):
     """if True uses a bias in all layers."""
     extra_bias: bool = False
     """Deprecated. If True, uses bias in parity-flip layers too. Required for using
-    parameters saved before PR#1030, but hinders performance. 
+    parameters saved before PR#1030, but hinders performance.
     See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
@@ -446,7 +446,7 @@ class GCNN_Parity_Irrep(nn.Module):
     """if True uses a bias in all layers."""
     extra_bias: bool = False
     """Deprecated. If True, uses bias in parity-flip layers too. Required for using
-    parameters saved before PR#1030, but hinders performance. 
+    parameters saved before PR#1030, but hinders performance.
     See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""

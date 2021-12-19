@@ -114,22 +114,6 @@ class DenseSymmMatrix(Module):
         # pylint: disable=attribute-defined-outside-init
         self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
 
-    def full_kernel(self, kernel):
-        """
-        Converts the convolutional kernel of shape (self.features, in_features, n_sites)
-        to a full dense kernel of shape (self.features, in_features, n_symm, n_sites).
-        """
-        in_features = kernel.shape[1]
-        # result[out, in, g, r] == kernel[out, in, g^{-1}r]
-        return jnp.take(kernel, jnp.asarray(self.symmetries), 2)
-
-    def full_bias(self, bias):
-        """
-        Convert symmetry-reduced bias of shape (features,) to the full bias of
-        shape (1, features, 1).
-        """
-        return jnp.expand_dims(bias, (0, 2))
-
     @compact
     def __call__(self, x: Array) -> Array:
         """Applies the symmetrized linear transformation to the inputs along the last dimension.
@@ -171,7 +155,10 @@ class DenseSymmMatrix(Module):
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.full_kernel(kernel)
+        # Converts the convolutional kernel of shape (self.features, in_features, n_sites)
+        # to a full dense kernel of shape (self.features, in_features, n_symm, n_sites).
+        # result[out, in, g, r] == kernel[out, in, g^{-1}r]
+        kernel = jnp.take(kernel, jnp.asarray(self.symmetries), 2)
         kernel = jnp.asarray(kernel, dtype)
 
         # x is      (batches,       in_featuers,         n_sites)
@@ -197,7 +184,12 @@ class DenseSymmMatrix(Module):
 
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+
+            # Convert symmetry-reduced bias of shape (features,) to the full bias of
+            # shape (1, features, 1).
+            bias = jnp.expand_dims(bias, (0, 2))
             bias = jnp.asarray(self.full_bias(bias), dtype)
+
             x += bias
 
         return x

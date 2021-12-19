@@ -46,12 +46,8 @@ for L in [2, 4, 6, 8, 10]:
         shape=graph.extent,
         features=4,
     )
-    ma_irreps = DenseEquivariant(
-        symmetries=irreps, mode="irreps", features=4
-    )
-    ma_matrix = DenseEquivariant(
-        symmetries=product_table, mode="matrix", features=4
-    )
+    ma_irreps = DenseEquivariant(symmetries=irreps, mode="irreps", features=4)
+    ma_matrix = DenseEquivariant(symmetries=product_table, mode="matrix", features=4)
 
     dum_input = np.random.normal(0, 1, [1000, 4, len(sg)])
 
