@@ -75,7 +75,7 @@ def test_vmc_construction_vstate():
 
     op = nk.optimizer.Sgd(learning_rate=0.05)
 
-    driver = nk.Vmc(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)
+    driver = nk.VMC(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)
 
     driver.run(1)
 

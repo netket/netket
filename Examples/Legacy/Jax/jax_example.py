@@ -21,8 +21,8 @@ op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
 
 # Create the optimization driver
-gs = nk.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=None, n_discard=100
+gs = nk.VMC(
+    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=None, n_discard_per_chain=100
 )
 
 # The first iteration is slower because of start-up jit times

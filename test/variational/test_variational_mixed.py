@@ -227,9 +227,9 @@ def test_deprecations(vstate):
         vstate.n_discard_diag = 10
 
     with pytest.warns(FutureWarning):
-        vstate.n_discard_diag
+        assert vstate.n_discard_diag == 10
 
-    vstate.n_discard_diag = 10
+    vstate.n_discard_per_chain_diag = 10
     assert vstate.n_discard_diag == 10
     assert vstate.n_discard_per_chain_diag == 10
 

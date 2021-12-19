@@ -45,12 +45,12 @@ sr = nk.optimizer.SR(ma, diag_shift=0.1)
 es = nk.callbacks.EarlyStopping(patience=10)
 
 # Variational Monte Carlo
-gs = nk.Vmc(
+gs = nk.VMC(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,
     n_samples=1000,
-    n_discard=2,
+    n_discard_per_chain=2,
     sr=sr,
 )
 
