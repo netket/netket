@@ -14,6 +14,7 @@
 
 import netket as nk
 
+import jax
 import jax.numpy as jnp
 import jax.random as random
 import numpy as np
@@ -65,9 +66,9 @@ def test_DenseSymm(symmetries, use_bias, mode):
             bias_init=uniform(),
         )
 
-    pars = ma.init(rng.next(), hi.random_state(rng.next(), 1))
+    pars = ma.init(rng.next(), hi.random_state(rng.next(), (2, 1)))
 
-    v = hi.random_state(rng.next(), 3)
+    v = hi.random_state(rng.next(), (3, 1))
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
     for val in vals:
         assert jnp.allclose(jnp.sort(val, -1), jnp.sort(vals[0], -1))
@@ -210,7 +211,8 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
             bias_init=uniform(),
         )
 
-    pars = ma.init(rng.next(), np.random.normal(0, 1, [1, 1, n_symm]))
+    dum_input = jax.random.normal(rng.next(), (1, 1, n_symm))
+    pars = ma.init(rng.next(), dum_input)
 
     # inv_pt computes chosen_op = gh^-1 instead of g^-1h
     chosen_op = np.random.randint(n_symm)
@@ -251,11 +253,23 @@ def test_modes_DenseSymm(lattice, symmetries):
         bias_init=uniform(),
     )
 
-    dum_input = np.random.normal(0, 1, [1, g.n_nodes])
+    dum_input = jax.random.normal(rng.next(), (3, 1, g.n_nodes))
+
     pars = ma_fft.init(rng.next(), dum_input)
     _ = ma_matrix.init(rng.next(), dum_input)
 
     assert jnp.allclose(ma_fft.apply(pars, dum_input), ma_matrix.apply(pars, dum_input))
+
+    # Test Deprecation warning
+    dum_input_nofeatures = dum_input.reshape((dum_input.shape[0], dum_input.shape[2]))
+    with pytest.warns(FutureWarning):
+        assert jnp.allclose(
+            ma_fft.apply(pars, dum_input), ma_fft.apply(pars, dum_input_nofeatures)
+        )
+        assert jnp.allclose(
+            ma_matrix.apply(pars, dum_input),
+            ma_matrix.apply(pars, dum_input_nofeatures),
+        )
 
 
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
@@ -279,7 +293,7 @@ def test_modes_DenseSymm_infeatures(lattice, symmetries):
         bias_init=uniform(),
     )
 
-    dum_input = np.random.normal(0, 1, [1, 3, g.n_nodes])
+    dum_input = jax.random.normal(rng.next(), (1, 3, g.n_nodes))
     pars = ma_fft.init(rng.next(), dum_input)
     _ = ma_matrix.init(rng.next(), dum_input)
 
@@ -313,7 +327,7 @@ def test_modes_DenseEquivariant(lattice, symmetries):
         bias_init=uniform(),
     )
 
-    dum_input = np.random.normal(0, 1, [1, 1, len(perms)])
+    dum_input = jax.random.normal(rng.next(), (1, 1, len(perms)))
     pars = ma_fft.init(rng.next(), dum_input)
     _ = ma_irreps.init(rng.next(), dum_input)
     _ = ma_matrix.init(rng.next(), dum_input)
@@ -329,10 +343,11 @@ def test_modes_DenseEquivariant(lattice, symmetries):
 def test_deprecated_inout_features_DenseEquivariant():
     perms = nk.graph.Chain(3).translation_group()
 
-    with pytest.raises(ValueError):
-        ma_irreps = nk.nn.DenseEquivariant(
-            symmetries=perms, mode="irreps", out_features=1, features=2
-        )
+    with pytest.warns(FutureWarning):
+        with pytest.raises(ValueError):
+            ma_irreps = nk.nn.DenseEquivariant(
+                symmetries=perms, mode="irreps", out_features=1, features=2
+            )
 
     with pytest.warns(FutureWarning):
         ma_irreps = nk.nn.DenseEquivariant(

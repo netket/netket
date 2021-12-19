@@ -22,6 +22,19 @@ from .test_nn import _setup_symm
 
 import pytest
 
+def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
+    g = lattice(N)
+    hi = nk.hilbert.Spin(1 / 2, g.n_nodes)
+
+    if symmetries == "trans":
+        # Only translations, N_symm = N_sites
+        perms = g.translation_group()
+    else:
+        # All chain automorphisms, N_symm = 2 N_sites
+        perms = g.space_group()
+
+    return g, hi, perms
+
 
 @pytest.mark.parametrize("parity", [True, False])
 @pytest.mark.parametrize("symmetries", ["trans", "autom"])
@@ -51,8 +64,9 @@ def test_gcnn(parity, symmetries, lattice, mode):
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),
         nk.optimizer.Sgd(0.1),
-        nk.sampler.MetropolisLocal(hi),
+        nk.sampler.MetropolisLocal(hi, n_chains=2, n_sweeps=2),
         ma,
+        n_samples=8
     )
     vmc.advance(1)
 
@@ -66,7 +80,7 @@ def test_GCNN_creation(mode):
 
     def check_init(creator):
         ma = creator()
-        _ = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(0))
+        _ = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(np.arange(2)))
 
     perms = [[0, 1, 2, 3, 4, 5, 6, 7], [7, 6, 5, 4, 3, 2, 1, 0]]
 

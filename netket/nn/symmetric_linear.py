@@ -80,7 +80,7 @@ def symm_input_warning(x_shape, new_x_shape, name):
             f"{len(x_shape)}-dimensional input to {name} layer is deprecated.\n"
             f"Input shape {x_shape} has been reshaped to {new_x_shape}, where "
             "the middle dimension encodes different input channels.\n"
-            "Please provide a 3-dimensional input.\nThis warning will become an"
+            "Please provide a 3-dimensional input.\nThis warning will become an "
             "error in the future."
         )
     )
