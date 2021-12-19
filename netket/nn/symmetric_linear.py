@@ -74,11 +74,11 @@ def unit_normal_scaling(key, shape, dtype):
     )
 
 
-def symm_input_warning(x, new_x, name):
+def symm_input_warning(x_shape, new_x_shape, name):
     warn_deprecation(
         (
-            f"{x.ndim}-dimensional input to {name} layer is deprecated.\n"
-            f"Input shape {x.shape} has been reshaped to {new_x.shape}, where "
+            f"{len(x_shape)}-dimensional input to {name} layer is deprecated.\n"
+            f"Input shape {x_shape} has been reshaped to {new_x_shape}, where "
             "the middle dimension encodes different input channels.\n"
             "Please provide a 3-dimensional input.\nThis warning will become an"
             "error in the future."
@@ -130,12 +130,12 @@ class DenseSymmMatrix(Module):
 
         # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
         if x.ndim < 3:
+            old_shape = x.shape
             if x.ndim == 1:
-                x_new = jnp.expand_dims(x, (0, 1))
+                x = jnp.expand_dims(x, (0, 1))
             elif x.ndim == 2:
-                x_new = jnp.expand_dims(x, 1)
-            symm_input_warning(x, x_new, "DenseSymm")
-            x = x_new
+                x = jnp.expand_dims(x, 1)
+            symm_input_warning(old_shape, x.shape, "DenseSymm")
 
         in_features = x.shape[1]
 
@@ -253,12 +253,12 @@ class DenseSymmFFT(Module):
         # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
         # infer in_features and ensure input dimensions (batch, in_features,n_sites)
         if x.ndim < 3:
+            old_shape = x.shape
             if x.ndim == 1:
-                x_new = jnp.expand_dims(x, (0, 1))
+                x = jnp.expand_dims(x, (0, 1))
             elif x.ndim == 2:
-                x_new = jnp.expand_dims(x, 1)
-            symm_input_warning(x, x_new, "DenseSymm")
-            x = x_new
+                x = jnp.expand_dims(x, 1)
+            symm_input_warning(old_shape, x.shape, "DenseSymm")
 
         in_features = x.shape[1]
 
