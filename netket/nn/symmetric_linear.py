@@ -600,21 +600,6 @@ class DenseEquivariantMatrix(Module):
 
         self.n_symm = np.asarray(self.product_table).shape[0]
 
-    def full_kernel(self, kernel):
-        """
-        Converts the convolutional kernel of shape (features, in_features, n_symm)
-        to a full dense kernel of shape (in_features*n_symm, features*n_symm).
-        """
-        in_features = kernel.shape[1]
-        # result[out, in, g, h] == kernel[out, in, g^{-1}h]
-        result = jnp.take(kernel, jnp.asarray(self.product_table), 2)
-        # collate input dimensions [in, g] and output dimensions [out, h]
-        result = result.transpose(1, 2, 0, 3).reshape(
-            self.n_symm * in_features, self.n_symm * self.features
-        )
-
-        return result
-
     @compact
     def __call__(self, x: Array) -> Array:
         """Applies the equivariant transform to the inputs along the last dimension.
@@ -628,8 +613,6 @@ class DenseEquivariantMatrix(Module):
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
 
-        x = x.reshape(-1, x.shape[1] * x.shape[2])
-
         kernel = self.param(
             "kernel",
             self.kernel_init,
@@ -642,13 +625,17 @@ class DenseEquivariantMatrix(Module):
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.full_kernel(kernel)
+        # Converts the convolutional kernel of shape (features, in_features, n_symm)
+        # to a full dense kernel of shape (features, in_features, n_symm, n_symm)
+        # result[out, in, g, h] == kernel[out, in, g^{-1}h]
+        # input dimensions are [in, g], output dimensions are [out, h]
+        kernel = jnp.take(kernel, jnp.asarray(self.product_table), 2)
         kernel = jnp.asarray(kernel, dtype)
 
         x = lax.dot_general(
             x,
             kernel,
-            (((x.ndim - 1,), (0,)), ((), ())),
+            (((x.ndim - 2, x.ndim - 1), (1, 2)), ((), ())),
             precision=self.precision,
         )
 
@@ -656,7 +643,7 @@ class DenseEquivariantMatrix(Module):
 
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            x += jnp.expand_dims(bias, (0, 2))
+            x += jnp.expand_dims(bias, 1)
 
         return x
 
