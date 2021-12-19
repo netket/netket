@@ -166,19 +166,7 @@ class DenseSymmMatrix(Module):
         x = lax.dot_general(
             x,
             kernel,
-            (
-                (
-                    (
-                        x.ndim - 2,
-                        x.ndim - 1,
-                    ),
-                    (
-                        1,
-                        3,
-                    ),
-                ),
-                ((), ()),
-            ),
+            (((x.ndim - 2, x.ndim - 1), (1, 3)), ((), ())),
             precision=self.precision,
         )
 
