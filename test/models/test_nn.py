@@ -121,7 +121,7 @@ def test_DenseEquivariant_creation(mode):
         lambda: nk.nn.DenseEquivariant(
             symmetries=g,
             mode=mode,
-            out_features=4,
+            features=4,
         )
     )
 
@@ -131,7 +131,7 @@ def test_DenseEquivariant_creation(mode):
             lambda: nk.nn.DenseEquivariant(
                 symmetries=space_group,
                 mode=mode,
-                out_features=4,
+                features=4,
             )
         )
     else:
@@ -140,7 +140,7 @@ def test_DenseEquivariant_creation(mode):
                 symmetries=space_group,
                 shape=tuple(g.extent),
                 mode=mode,
-                out_features=4,
+                features=4,
             )
         )
 
@@ -150,7 +150,7 @@ def test_DenseEquivariant_creation(mode):
             lambda: nk.nn.DenseEquivariant(
                 symmetries=space_group.irrep_matrices(),
                 mode=mode,
-                out_features=4,
+                features=4,
             )
         )
     elif mode == "fft":
@@ -159,7 +159,7 @@ def test_DenseEquivariant_creation(mode):
                 symmetries=space_group.product_table,
                 mode=mode,
                 shape=(8,),
-                out_features=4,
+                features=4,
             )
         )
     else:
@@ -167,7 +167,7 @@ def test_DenseEquivariant_creation(mode):
             lambda: nk.nn.DenseEquivariant(
                 symmetries=space_group.product_table,
                 mode=mode,
-                out_features=4,
+                features=4,
             )
         )
 
@@ -194,7 +194,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
         ma = nk.nn.DenseEquivariant(
             symmetries=perms,
             mode=mode,
-            out_features=1,
+            features=1,
             mask=mask,
             use_bias=use_bias,
             bias_init=uniform(),
@@ -204,7 +204,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
             symmetries=pt,
             shape=tuple(g.extent),
             mode=mode,
-            out_features=1,
+            features=1,
             mask=mask,
             use_bias=use_bias,
             bias_init=uniform(),
@@ -296,20 +296,20 @@ def test_modes_DenseEquivariant(lattice, symmetries):
     ma_fft = nk.nn.DenseEquivariant(
         symmetries=perms,
         mode="fft",
-        out_features=1,
+        features=1,
         shape=tuple(g.extent),
         bias_init=uniform(),
     )
     ma_irreps = nk.nn.DenseEquivariant(
         symmetries=perms,
         mode="irreps",
-        out_features=1,
+        features=1,
         bias_init=uniform(),
     )
     ma_matrix = nk.nn.DenseEquivariant(
         symmetries=perms,
         mode="matrix",
-        out_features=1,
+        features=1,
         bias_init=uniform(),
     )
 
@@ -324,3 +324,24 @@ def test_modes_DenseEquivariant(lattice, symmetries):
 
     assert jnp.allclose(fft_out, irreps_out)
     assert jnp.allclose(fft_out, matrix_out)
+
+
+def test_deprecated_inout_features_DenseEquivariant():
+    perms = nk.graph.Chain(3).translation_group()
+
+    with pytest.raises(ValueError):
+        ma_irreps = nk.nn.DenseEquivariant(
+            symmetries=perms, mode="irreps", out_features=1, features=2
+        )
+
+    with pytest.warns(FutureWarning):
+        ma_irreps = nk.nn.DenseEquivariant(
+            symmetries=perms,
+            mode="irreps",
+            out_features=1,
+        )
+
+    with pytest.warns(FutureWarning):
+        ma_irreps = nk.nn.DenseEquivariant(
+            symmetries=perms, mode="irreps", in_features=3, features=1
+        )

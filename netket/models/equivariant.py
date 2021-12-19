@@ -106,7 +106,7 @@ class GCNN_FFT(nn.Module):
             DenseEquivariantFFT(
                 product_table=self.product_table,
                 shape=self.shape,
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -142,7 +142,7 @@ class GCNN_Irrep(nn.Module):
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
-    eeturns a feature map of shape [batch_size, out_features, n_symm].
+    eeturns a feature map of shape [batch_size, features, n_symm].
     The input and the output are related by
 
     .. math ::
@@ -210,7 +210,7 @@ class GCNN_Irrep(nn.Module):
         self.equivariant_layers = [
             DenseEquivariantIrrep(
                 irreps=self.irreps,
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -317,7 +317,7 @@ class GCNN_Parity_FFT(nn.Module):
             DenseEquivariantFFT(
                 product_table=self.product_table,
                 shape=self.shape,
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -331,7 +331,7 @@ class GCNN_Parity_FFT(nn.Module):
             DenseEquivariantFFT(
                 product_table=self.product_table,
                 shape=self.shape,
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
                 use_bias=self.extra_bias and self.use_bias,
                 dtype=self.dtype,
@@ -395,7 +395,7 @@ class GCNN_Parity_Irrep(nn.Module):
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
-    eeturns a feature map of shape [batch_size, out_features, n_symm].
+    eeturns a feature map of shape [batch_size, features, n_symm].
     The input and the output are related by
 
     .. math ::
@@ -482,7 +482,7 @@ class GCNN_Parity_Irrep(nn.Module):
         self.equivariant_layers = [
             DenseEquivariantIrrep(
                 irreps=self.irreps,
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -495,7 +495,7 @@ class GCNN_Parity_Irrep(nn.Module):
         self.equivariant_layers_flip = [
             DenseEquivariantIrrep(
                 irreps=self.irreps,
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
                 use_bias=self.extra_bias and self.use_bias,
                 dtype=self.dtype,
