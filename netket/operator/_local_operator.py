@@ -255,9 +255,9 @@ class LocalOperator(DiscreteOperator):
 
         # If we asked for a specific dtype, enforce it.
         if dtype is None:
-            dtype = np.promote_types(operators[0].dtype, np.float32)
-            for op in operators[1:]:
-                np.promote_types(dtype, op.dtype)
+            dtype = functools.reduce(
+                 lambda dt, op: np.promote_types(dt, op.dtype), operators, np.float32
+             )
 
         self._dtype = dtype
         self._init_zero()
