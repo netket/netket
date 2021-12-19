@@ -338,16 +338,6 @@ def test_type_promotion():
     assert promoted_op.dtype == np.complex128
 
 
-def test_empty_after_sum():
-    a = nk.operator.spin.sigmaz(nk.hilbert.Spin(0.5), 0)
-    zero_op = a - a
-    np.testing.assert_allclose(zero_op.to_dense(), 0.0)
-
-    a = nk.operator.spin.sigmay(nk.hilbert.Spin(0.5), 0)
-    zero_op = a - a
-    np.testing.assert_allclose(zero_op.to_dense(), 0.0)
-
-
 def test_is_hermitian():
     for op in herm_operators.values():
         assert op.is_hermitian == True
