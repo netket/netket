@@ -12,14 +12,14 @@ def test_mps(diag):
     ma = nk.models.MPSPeriodic(hilbert=hi, graph=g, bond_dim=2, diag=diag)
     sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
-    vs = nk.vqs.MCState(sa, ma, n_samples=1000)
+    vs = nk.vqs.MCState(sa, ma)
 
     ha = nk.operator.Ising(hi, graph=g, h=1.0)
     op = nk.optimizer.Sgd(learning_rate=0.05)
 
-    driver = nk.Vmc(ha, op, variational_state=vs)
+    driver = nk.VMC(ha, op, variational_state=vs)
 
-    driver.run(3)
+    driver.run(1)
 
 
 def test_mps_nonchain():
@@ -31,4 +31,4 @@ def test_mps_nonchain():
     ):
         ma = nk.models.MPSPeriodic(hi, g, bond_dim=2)
         sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
-        _ = nk.vqs.MCState(sa, ma, n_samples=1000)
+        _ = nk.vqs.MCState(sa, ma)

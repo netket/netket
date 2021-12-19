@@ -218,11 +218,13 @@ def test_deprecations(vstate):
         vstate.n_discard = 10
 
     with pytest.warns(FutureWarning):
-        vstate.n_discard
+        assert vstate.n_discard == 10
 
-    vstate.n_discard = 10
-    assert vstate.n_discard == 10
     assert vstate.n_discard_per_chain == 10
+
+    with pytest.warns(FutureWarning):
+        vstate.n_discard_per_chain = 100
+        assert vstate.n_discard == 100
 
 
 @common.skipif_mpi

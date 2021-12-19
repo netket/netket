@@ -221,16 +221,16 @@ def test_n_samples_diag_api(vstate, _mpi_size):
 @common.skipif_mpi
 def test_deprecations(vstate):
     vstate.sampler_diag = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
-
-    # deprecation
-    with pytest.warns(FutureWarning):
-        vstate.n_discard_diag = 10
+    vstate.n_discard_per_chain_diag = 10
 
     with pytest.warns(FutureWarning):
         assert vstate.n_discard_diag == 10
 
-    vstate.n_discard_per_chain_diag = 10
-    assert vstate.n_discard_diag == 10
+    # deprecation
+    with pytest.warns(FutureWarning):
+        vstate.n_discard_diag = 10
+        assert vstate.n_discard_diag == 10
+
     assert vstate.n_discard_per_chain_diag == 10
 
 
