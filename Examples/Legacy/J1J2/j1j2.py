@@ -66,7 +66,12 @@ sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Variational Monte Carlo
 gs = nk.VMC(
-    hamiltonian=op, sampler=sa, optimizer=opt, sr=sr, n_samples=4000, n_discard_per_chain=5
+    hamiltonian=op,
+    sampler=sa,
+    optimizer=opt,
+    sr=sr,
+    n_samples=4000,
+    n_discard_per_chain=5,
 )
 
 vmc.run(n_iter=300, out="test")
