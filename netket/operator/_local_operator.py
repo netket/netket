@@ -21,7 +21,6 @@ import copy
 from textwrap import dedent
 
 import numpy as np
-import scipy.sparse as sp
 from numba import jit
 
 from netket.hilbert import AbstractHilbert, Fock
@@ -48,10 +47,8 @@ def _number_to_state(number, hilbert_size_per_site, local_states_per_site, out):
     return out
 
 
-# TODO jit this. But scipy matrices are not jit-friendly so a solution must be found
-def is_hermitian(a: sp.csr_matrix, rtol=1e-05, atol=1e-08) -> bool:
-    c = np.abs(a - a.conj().T) - rtol * np.abs(a)
-    return c.max() <= atol
+def is_hermitian(a: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
+    return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
 
 
 def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> DType:
@@ -254,10 +251,7 @@ class LocalOperator(DiscreteOperator):
             operators = [operators]
             acting_on = [acting_on]
 
-        operators = [
-            operator if isinstance(operator, sp.csr_matrix) else sp.csr_matrix(operator)
-            for operator in operators
-        ]
+        operators = [np.asarray(operator) for operator in operators]
 
         # If we asked for a specific dtype, enforce it.
         if dtype is None:
@@ -281,10 +275,9 @@ class LocalOperator(DiscreteOperator):
     @property
     def operators(self) -> List[np.ndarray]:
         """List of the matrices of the operators encoded in this Local Operator.
-        Returns a copy of the operators.
+        Returns a copy.
         """
-        operators = [op.copy().todense() for op in self._operators]
-        return operators
+        return self._operators_list()
 
     @property
     def acting_on(self) -> List[List[int]]:
@@ -521,12 +514,17 @@ class LocalOperator(DiscreteOperator):
 
         return acting_on
 
+    def _operators_list(self):
+        "A deep copy of the operators"
+        operators = [np.copy(op) for op in self._operators]
+        return operators
+
     def _add_operator(self, operator: Array, acting_on: List[int]):
         if not np.can_cast(operator, self.dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast type {operator.dtype} to {self.dtype}")
 
         acting_on = np.asarray(acting_on, dtype=np.intp)
-        operator = sp.csr_matrix(operator, dtype=self.dtype)
+        operator = np.asarray(operator, dtype=self.dtype)
 
         if np.unique(acting_on).size != acting_on.size:
             raise ValueError("acting_on contains repeated entries.")
@@ -537,7 +535,7 @@ class LocalOperator(DiscreteOperator):
         if operator.ndim != 2:
             raise ValueError("The operator should be a matrix")
 
-        if np.all(np.abs(operator.data) < self.mel_cutoff):
+        if np.all(np.abs(operator) < self.mel_cutoff):
             return
 
         # re-sort the operator
@@ -555,33 +553,16 @@ class LocalOperator(DiscreteOperator):
         # If overlapping support, add the local operators themselves
         if support_i is not None:
             dim = min(operator.shape[0], self._operators[support_i].shape[0])
-            self._operators[support_i][:dim, :dim] += operator[:dim, :dim]
+            _opv = self._operators[support_i][:dim, :dim]
+            _opv += operator[:dim, :dim]
             self._is_hermitian_op[support_i] = is_hermitian(self._operators[support_i])
 
             n_local_states_per_site = np.asarray(
                 [self.hilbert.size_at_index(i) for i in acting_on]
             )
-            assert (
-                self._operators[support_i].shape[0]
-                == self._operators[support_i].shape[1]
-            )
-            operator_row_index, operator_column_index = self._operators[
-                support_i
-            ].nonzero()
-            if len(operator_row_index) > 0:
-                operator_data = np.asarray(
-                    self._operators[support_i][
-                        operator_row_index, operator_column_index
-                    ]
-                ).squeeze(axis=0)
-            else:
-                operator_data = np.array([], dtype=self._operators[support_i].dtype)
 
             self._append_matrix(
-                operator_data,
-                operator_row_index,
-                operator_column_index,
-                self._operators[support_i].shape[0],
+                self._operators[support_i],
                 self._diag_mels[support_i],
                 self._mels[support_i],
                 self._x_prime[support_i],
@@ -595,7 +576,7 @@ class LocalOperator(DiscreteOperator):
         else:
             self.__add_new_operator__(operator, acting_on)
 
-    def __add_new_operator__(self, operator: sp.csr_matrix, acting_on: np.ndarray):
+    def __add_new_operator__(self, operator: np.ndarray, acting_on: np.ndarray):
         # Else, we must add a completely new operator
         self._n_operators += 1
         self._operators.append(operator)
@@ -693,18 +674,8 @@ class LocalOperator(DiscreteOperator):
             init=is_hermitian(operator),
         )
 
-        operator_row_index, operator_column_index = operator.nonzero()
-        if operator.nnz > 0:
-            operator_data = np.asarray(
-                operator[operator_row_index, operator_column_index]
-            ).squeeze(axis=0)
-        else:
-            operator_data = np.array([], dtype=operator.dtype)
         self._append_matrix(
-            operator_data,
-            operator_row_index,
-            operator_column_index,
-            operator.shape[0],
+            operator,
             self._diag_mels[-1],
             self._mels[-1],
             self._x_prime[-1],
@@ -720,10 +691,7 @@ class LocalOperator(DiscreteOperator):
     @staticmethod
     @jit(nopython=True)
     def _append_matrix(
-        operator_data,
-        operator_row_index,
-        operator_column_index,
-        operator_size,
+        operator,
         diag_mels,
         mels,
         x_prime,
@@ -733,30 +701,22 @@ class LocalOperator(DiscreteOperator):
         epsilon,
         hilb_size_per_site,
     ):
-        n_conns[:operator_size] = 0
-        diag_mels[:operator_size] = 0
-        mels[:operator_size] = 0
-
-        # bail out early if the operator is empty
-        if len(operator_row_index) == 0:
-            return
-
-        for element, ridx, cidx in zip(
-            operator_data, operator_row_index, operator_column_index
-        ):
-            if ridx == cidx:
-                diag_mels[ridx] = element
-            else:
-                if abs(element) > epsilon:
-                    k_conn = n_conns[ridx]
-                    mels[ridx, k_conn] = element
+        op_size = operator.shape[0]
+        assert op_size == operator.shape[1]
+        for i in range(op_size):
+            diag_mels[i] = operator[i, i]
+            n_conns[i] = 0
+            for j in range(op_size):
+                if i != j and np.abs(operator[i, j]) > epsilon:
+                    k_conn = n_conns[i]
+                    mels[i, k_conn] = operator[i, j]
                     _number_to_state(
-                        cidx,
+                        j,
                         hilb_size_per_site,
                         local_states_per_site[:acting_size, :],
-                        x_prime[ridx, k_conn, :acting_size],
+                        x_prime[i, k_conn, :acting_size],
                     )
-                    n_conns[ridx] += 1
+                    n_conns[i] += 1
 
     def _multiply_operator(self, op, act):
         operators = []
@@ -774,7 +734,7 @@ class LocalOperator(DiscreteOperator):
                 acting_on.append(act_i.tolist())
             elif inters.size == 0:
                 # disjoint supports
-                operators.append(sp.kron(self._operators[i], op, format="csr"))
+                operators.append(np.kron(self._operators[i], op))
                 acting_on.append(act_i.tolist() + act.tolist())
             else:
                 _act = list(act)
@@ -786,28 +746,24 @@ class LocalOperator(DiscreteOperator):
                 actmin = min(act)
                 for site in act_i:
                     if site not in act:
-                        I = sp.eye(
-                            self.hilbert.shape[site], dtype=self.dtype, format="csr"
-                        )
+                        I = np.eye(self.hilbert.shape[site], dtype=self.dtype)
                         if site < actmin:
                             _act = [site] + _act
-                            _op = sp.kron(I, _op, format="csr")
+                            _op = np.kron(I, _op)
                         else:  #  site > actmax
                             _act = _act + [site]
-                            _op = sp.kron(_op, I, format="csr")
+                            _op = np.kron(_op, I)
 
                 act_i_min = min(act_i)
                 for site in act:
                     if site not in act_i:
-                        I = sp.eye(
-                            self.hilbert.shape[site], dtype=self.dtype, format="csr"
-                        )
+                        I = np.eye(self.hilbert.shape[site], dtype=self.dtype)
                         if site < act_i_min:
                             _act_i = [site] + _act_i
-                            _op_i = sp.kron(I, _op_i, format="csr")
+                            _op_i = np.kron(I, _op_i)
                         else:  #  site > actmax
                             _act_i = _act_i + [site]
-                            _op_i = sp.kron(_op_i, I, format="csr")
+                            _op_i = np.kron(_op_i, I)
 
                 # reorder
                 _op, _act = _reorder_kronecker_product(self.hilbert, _op, _act)
@@ -859,7 +815,7 @@ class LocalOperator(DiscreteOperator):
         r"""LocalOperator: Returns the tranpose of this operator."""
         if concrete:
 
-            new_ops = [op.copy().transpose() for op in self._operators]
+            new_ops = [np.copy(ops.transpose()) for ops in self._operators]
 
             return LocalOperator(
                 hilbert=self.hilbert,
@@ -872,7 +828,7 @@ class LocalOperator(DiscreteOperator):
 
     def conjugate(self, *, concrete=False):
         r"""LocalOperator: Returns the complex conjugate of this operator."""
-        new_ops = [op.copy().conjugate() for op in self._operators]
+        new_ops = [np.copy(ops).conjugate() for ops in self._operators]
 
         return LocalOperator(
             hilbert=self.hilbert,
@@ -886,9 +842,9 @@ class LocalOperator(DiscreteOperator):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         max_size = self.n_operators if self._nonzero_diagonal else 0
         for op in self._operators:
-            nnz_rows = (abs(op) > self.mel_cutoff).getnnz(axis=1) - np.where(
-                np.abs(op.diagonal()) > 0, 1, 0
-            )
+            nnz_mat = np.abs(op) > self.mel_cutoff
+            nnz_mat[np.diag_indices(nnz_mat.shape[0])] = False
+            nnz_rows = np.sum(nnz_mat, axis=1)
             max_size += np.max(nnz_rows)
 
         return max_size

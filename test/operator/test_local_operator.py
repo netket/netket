@@ -318,9 +318,7 @@ def test_copy():
         assert op_copy is not op
         for o1, o2 in zip(op._operators, op_copy._operators):
             assert o1 is not o2
-            # Since operators might actually be sparse, accessing the dense data can be achieved by the .A attribute
-            # This also works for initially dense arrays.
-            assert np.all(o1.A == o2.A)
+            assert np.all(o1 == o2)
         same_matrices(op, op_copy)
 
 
