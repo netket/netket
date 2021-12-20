@@ -4,9 +4,23 @@
 
 # Change Log
 
-## NetKet 3.3 (In development)
+## NetKet 3.4 (⚙️ In development)
 
-[GitHub commits](https://github.com/netket/netket/compare/v3.2...master).
+[GitHub commits](https://github.com/netket/netket/compare/v3.3...master).
+
+### New features
+
+
+### Breaking Changes
+
+
+### Bug Fixes
+
+
+
+## NetKet 3.3 (🎁 20 December 2021)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.2...v3.3).
 
 ### New features
 * The interface to define expectation and gradient function of arbitrary custom operators is now stable. If you want to define it for a standard operator that can be written as an average of local expectation terms, you can now define a dispatch rule for {ref}`netket.vqs.get_local_kernel_arguments` and {ref}`netket.vqs.get_local_kernel`. The old mechanism is still supported, but we encourage to use the new mechanism as it is more terse. [#954](https://github.com/netket/netket/pull/954)
@@ -21,10 +35,10 @@
 * The method `sample_next` in `Sampler` and exact samplers (`ExactSampler` and `ARDirectSampler`) is removed, and it is only defined in `MetropolisSampler`. The module function `nk.sampler.sample_next` also only works with `MetropolisSampler`. For exact samplers, please use the method `sample` instead. [#1016](https://github.com/netket/netket/pull/1016)
 * The default value of `n_chains_per_rank` in `Sampler` and exact samplers is changed to 1, and specifying `n_chains` or `n_chains_per_rank` when constructing them is deprecated. Please change `chain_length` when calling `sample`. For `MetropolisSampler`, the default value is changed from `n_chains = 16` (across all ranks) to `n_chains_per_rank = 16`. [#1017](https://github.com/netket/netket/pull/1017)
 * `GCNN_Parity` allowed biasing both the parity-preserving and the parity-flip equivariant layers. These enter into the network output the same way, so having both is redundant and makes QGTs unstable. The biases of the parity-flip layers are now removed. The previous behaviour can be restored using the deprecated `extra_bias` switch; we only recommend this for loading previously saved parameters. Such parameters can be transformed to work with the new default using `nk.models.update_GCNN_parity`. [#1030](https://github.com/netket/netket/pull/1030)
+* Kernels of `DenseSymm` are now three-dimensional, not two-dimensional. Parameters saved from earlier implementations can be transformed to the new convention using `nk.nn.update_dense_symm`. [#1030](https://github.com/netket/netket/pull/1030)
 
 ### Deprecations
 * The method `Sampler.samples` is added to return a generator of samples. The module functions `nk.sampler.sampler_state`, `reset`, `sample`, `samples`, and `sample_next` are deprecated in favor of the corresponding class methods. [#1025](https://github.com/netket/netket/pull/1025)
-* Kernels of `DenseSymm` are now three-dimensional, not two-dimensional. Parameters saved from earlier implementations can be transformed to the new convention using `nk.nn.update_dense_symm`. [#1030](https://github.com/netket/netket/pull/1030)
 * Kwarg `in_features` of `DenseEquivariant` is deprecated; the number of input features are inferred from the input. [#1030](https://github.com/netket/netket/pull/1030)
 * Kwarg `out_features` of `DenseEquivariant` is deprecated in favour of `features`. [#1030](https://github.com/netket/netket/pull/1030)
 

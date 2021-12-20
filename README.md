@@ -25,32 +25,42 @@ It is a Python library built on [JAX](https://github.com/google/jax).
 
 ## Installation and Usage
 
-Netket supports MacOS and Linux. We reccomend to install NetKet using `pip`
-For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/getting_started.html) section of our website.
+Netket runs on MacOS and Linux. We reccomend to install NetKet using `pip`, but it can also be installed with
+`conda`.
+For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/docs/getting_started.html) section of our website or run the following command (Apple M1 users, follow that link for more instructions):
 
-If you wish to install the current development version of NetKet, which is the master branch of this GitHub repository, together with the additional
-dependencies, you can run the following command:
+```
+pip install --upgrade netket
+```
+
+If you wish to install the current development version of NetKet, which is the master branch of this GitHub repository, together with the additional dependencies, you can run the following command:
 
 ```
 pip install 'git+https://github.com/netket/netket.git#egg=netket[all]'
 ```
 
-You can also install the MPI-related dependencies by using `[dev,mpi]` between the square brackets.
+To speed-up NetKet-computations, even on a single machine, you
+can install the MPI-related dependencies by using `[mpi]` between square brackets.
+
+```
+pip install --upgrade "netket[mpi]"
+```
+
 We recommend to install NetKet with all it's extra dependencies, which are documented below.
 However, if you do not have a working MPI compiler in your PATH this installation will most likely fail because
 it will attempt to install `mpi4py`, which enables MPI support in netket.
 
 The latest release of NetKet is always available on PyPi and can be installed with `pip`. 
-NetKet is also available on conda-forge, however the version available through `conda install` often lags behind the `pip` version. 
-However, you can still install NetKet with pip inside conda environments.
+NetKet is also available on conda-forge, however the version available through `conda install` 
+can be slightly out of date compared to PyPi.
 To check what is the latest version released on both distributions you can inspect the badges at the top of this readme.
 
 ### Extra dependencies
 When installing netket with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
- - '[dev]': installs development-related dependencies such as black, pytest and testing dependencies
- - '[mpi]': Installs `mpi4py` to enable multi-process parallelism. Requires a working MPI compiler in your path
- - '[extra]': Installs `tensorboardx` to enable logging to tensorboard, and openfermion to convert the QubitOperators.
- - '[all]': Installs all extra dependencies
+ - `"[dev]"`: installs development-related dependencies such as black, pytest and testing dependencies
+ - `"[mpi]"`: Installs `mpi4py` to enable multi-process parallelism. Requires a working MPI compiler in your path
+ - `"[extra]"`: Installs `tensorboardx` to enable logging to tensorboard, and openfermion to convert the QubitOperators.
+ - `"[all]"`: Installs all extra dependencies
 
 ### MPI Support
 To enable MPI support you must install [mpi4jax](https://github.com/PhilipVinc/mpi4jax). Please note that we advise to install mpi4jax  with the same tool (conda or pip) with which you install it's dependency `mpi4py`.
