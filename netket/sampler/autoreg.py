@@ -71,7 +71,6 @@ class ARDirectSampler(Sampler):
             `ARDirectSampler.machine_pow` has no effect. Please set the model's `machine_pow` instead.
         """
         if "n_chains" in kwargs or "n_chains_per_rank" in kwargs:
-            p*88
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
             )

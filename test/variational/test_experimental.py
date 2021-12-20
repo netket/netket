@@ -63,9 +63,7 @@ def test_variables_from_file(vstate, tmp_path):
             vstate.sampler, vstate.model, n_samples=10, seed=SEED + 100
         )
 
-        vstate2.variables = nkx.vqs.variables_from_file(
-            name, vstate2.variables
-        )
+        vstate2.variables = nkx.vqs.variables_from_file(name, vstate2.variables)
 
         # check
         jax.tree_multimap(
@@ -88,9 +86,7 @@ def test_variables_from_tar(vstate, tmp_path):
         )
 
         for j in [0, 3, 8]:
-            vstate2.variables = nkx.vqs.variables_from_tar(
-                name, vstate2.variables, j
-            )
+            vstate2.variables = nkx.vqs.variables_from_tar(name, vstate2.variables, j)
 
             # check
             jax.tree_multimap(
