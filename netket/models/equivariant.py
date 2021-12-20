@@ -33,17 +33,12 @@ from netket.nn.symmetric_linear import (
     DenseSymmFFT,
     DenseEquivariantFFT,
     DenseEquivariantIrrep,
+    default_gcnn_initializer,
 )
 
 
 def identity(x):
     return x
-
-
-def unit_normal_scaling(key, shape, dtype):
-    return jax.random.normal(key, shape, dtype) / jnp.sqrt(
-        jnp.prod(jnp.asarray(shape[1:]))
-    )
 
 
 class GCNN_FFT(nn.Module):
@@ -82,10 +77,10 @@ class GCNN_FFT(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix."""
+    kernel_init: NNInitFunc = default_gcnn_initializer
+    """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the hidden bias."""
+    """Initializer for the biases of all layers."""
 
     def setup(self):
 
@@ -189,10 +184,10 @@ class GCNN_Irrep(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix."""
+    kernel_init: NNInitFunc = default_gcnn_initializer
+    """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the hidden bias."""
+    """Initializer for the biases of all layers."""
 
     def setup(self):
 
@@ -285,10 +280,10 @@ class GCNN_Parity_FFT(nn.Module):
     See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix."""
+    kernel_init: NNInitFunc = default_gcnn_initializer
+    """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the hidden bias."""
+    """Initializer for the biases of all layers."""
 
     def setup(self):
         # TODO: evenutally remove this warning
@@ -453,10 +448,10 @@ class GCNN_Parity_Irrep(nn.Module):
     See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix."""
+    kernel_init: NNInitFunc = default_gcnn_initializer
+    """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the hidden bias."""
+    """Initializer for the biases of all layers."""
 
     def setup(self):
         # TODO: evenutally remove this warning
@@ -613,8 +608,8 @@ def GCNN(
             by setting Re[psi] = 0.
         use_bias: If True uses a bias in all layers.
         precision: Numerical precision of the computation see `jax.lax.Precision`for details.
-        kernel_init: Initializer for the Dense layer matrix.
-        bias_init: Initializer for the hidden bias.
+        kernel_init: Initializer for the kernels of all layers.
+        bias_init: Initializer for the biases of all layers.
     """
 
     if isinstance(symmetries, Lattice) and (
