@@ -187,7 +187,8 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
     n_symm = np.asarray(perms).shape[0]
 
     if mask:
-        mask = np.random.randint(0, 2, [n_symm])
+        mask = np.zeros(n_symm)
+        mask[np.random.choice(n_symm, n_symm // 2, replace=False)] = 1
     else:
         mask = np.ones([n_symm])
 

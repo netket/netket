@@ -73,6 +73,10 @@ class DenseSymmMatrix(Module):
     def setup(self):
         # pylint: disable=attribute-defined-outside-init
         self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
+        if self.mask is not None:
+            self.scaled_mask = (
+                self.mask / jnp.linalg.norm(self.mask) * self.n_sites ** 0.5
+            )
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -107,7 +111,7 @@ class DenseSymmMatrix(Module):
         )
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         # Converts the convolutional kernel of shape (self.features, in_features, n_sites)
         # to a full dense kernel of shape (self.features, in_features, n_symm, n_sites).
@@ -166,6 +170,11 @@ class DenseSymmFFT(Module):
         self.n_point = len(sg) // self.n_cells
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
+        if self.mask is not None:
+            self.scaled_mask = (
+                self.mask / jnp.linalg.norm(self.mask) * sg.shape[1] ** 0.5
+            )
+
         # maps (n_sites) dimension of kernels to (sites_per_cell, n_point, *shape)
         # as used in FFT-based group convolution
         self.mapping = (
@@ -210,7 +219,7 @@ class DenseSymmFFT(Module):
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         # Converts the convolutional kernel of shape (features, in_features, n_sites)
         # to the expanded kernel of shape (features, in_features, sites_per_cell,
@@ -278,6 +287,8 @@ class DenseEquivariantFFT(Module):
 
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
+        if self.mask is not None:
+            self.scaled_mask = self.mask / jnp.linalg.norm(self.mask) * len(pt) ** 0.5
 
         # maps (n_sites) dimension of kernels to (n_point, n_point, *shape)
         # as used in FFT-based group convolution
@@ -312,7 +323,7 @@ class DenseEquivariantFFT(Module):
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         # Convert the convolutional kernel of shape (features, in_features, n_symm)
         # to the expanded kernel of shape (features, in_features, n_point(in),
@@ -395,6 +406,11 @@ class DenseEquivariantIrrep(Module):
 
     def setup(self):
         self.n_symm = self.irreps[0].shape[0]
+        if self.mask is not None:
+            self.scaled_mask = (
+                self.mask / jnp.linalg.norm(self.mask) * self.n_symm ** 0.5
+            )
+
         self.forward = jnp.concatenate(
             [jnp.asarray(irrep).reshape(self.n_symm, -1) for irrep in self.irreps],
             axis=1,
@@ -490,7 +506,7 @@ class DenseEquivariantIrrep(Module):
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         kernel = self.forward_ft(kernel)
 
@@ -541,8 +557,11 @@ class DenseEquivariantMatrix(Module):
     """Initializer for the bias. Defaults to zero initialization."""
 
     def setup(self):
-
         self.n_symm = np.asarray(self.product_table).shape[0]
+        if self.mask is not None:
+            self.scaled_mask = (
+                self.mask / jnp.linalg.norm(self.mask) * self.n_symm ** 0.5
+            )
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -567,7 +586,7 @@ class DenseEquivariantMatrix(Module):
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         # Converts the convolutional kernel of shape (features, in_features, n_symm)
         # to a full dense kernel of shape (features, in_features, n_symm, n_symm)
