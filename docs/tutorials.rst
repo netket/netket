@@ -43,3 +43,10 @@
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     Learn about group convolutional neural networks and how to implement them in NetKet.
+
+    ---
+
+    :doc:`Using NetKets symmetry interface to find excited states <tutorials/NetKetSymmetryInterface>`
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    Learn about how to build models that transform under a representation of a discrete symmetry group.
