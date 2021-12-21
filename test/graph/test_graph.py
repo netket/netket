@@ -125,6 +125,10 @@ little_group_size = [2] + [6] * 3 + [8] * 5
 
 little_group_irreps = [2] + [3] * 3 + [5] * 5
 
+def test_next_neighbors():
+    graph1 = nk.graph.Honeycomb(extent=[3,3],max_neighbor_order=2)
+    graph2 = nk.graph.Honeycomb(extent=[3,3],max_neighbor_order=1)
+    assert graph1.n_edges == 3*graph2.n_edges
 
 @pytest.mark.parametrize("i,name", list(enumerate(symmetric_graph_names)))
 def test_lattice_graphs(i, name):
