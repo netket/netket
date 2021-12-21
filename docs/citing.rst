@@ -35,7 +35,7 @@ Below are BibTeX entries for both papers:
     archivePrefix={arXiv},
     primaryClass={quant-ph},
     url={https://arxiv.org/abs/2112.10526}
-}
+  }
 
 .. code-block:: bibtex
 
