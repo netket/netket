@@ -220,7 +220,9 @@ def Chain(length: int, *, pbc: bool = True, **kwargs) -> Lattice:
     return Hypercube(length, pbc=pbc, n_dim=1, **kwargs)
 
 
-def BCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True,**kwargs) -> Lattice:
+def BCC(
+    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
+) -> Lattice:
     """Constructs a BCC lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed
     Sites are returned at the Bravais lattice points.
@@ -245,10 +247,14 @@ def BCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True,**kwar
     basis = [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]]
     # determine if full point group is realised by the simulation box
     point_group = cubic.Oh() if np.all(pbc) and len(set(extent)) == 1 else None
-    return Lattice(basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group,**kwargs)
+    return Lattice(
+        basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group, **kwargs
+    )
 
 
-def FCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True,**kwargs) -> Lattice:
+def FCC(
+    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
+) -> Lattice:
     """Constructs an FCC lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed
     Sites are returned at the Bravais lattice points.
@@ -273,11 +279,13 @@ def FCC(extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True,**kwar
     basis = [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]]
     # determine if full point group is realised by the simulation box
     point_group = cubic.Oh() if np.all(pbc) and len(set(extent)) == 1 else None
-    return Lattice(basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group,**kwargs)
+    return Lattice(
+        basis_vectors=basis, extent=extent, pbc=pbc, point_group=point_group, **kwargs
+    )
 
 
 def Diamond(
-    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True,**kwargs
+    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
 ) -> Lattice:
     """Constructs a diamond lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
@@ -312,12 +320,12 @@ def Diamond(
         extent=extent,
         pbc=pbc,
         point_group=point_group,
-        **kwargs
+        **kwargs,
     )
 
 
 def Pyrochlore(
-    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True,**kwargs
+    extent: Sequence[int], *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
 ) -> Lattice:
     """Constructs a pyrochlore lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
@@ -352,12 +360,12 @@ def Pyrochlore(
         extent=extent,
         pbc=pbc,
         point_group=point_group,
-        **kwargs
+        **kwargs,
     )
 
 
 def _hexagonal_general(
-    extent, *, site_offsets=None, pbc: Union[bool, Sequence[bool]] = True,**kwargs
+    extent, *, site_offsets=None, pbc: Union[bool, Sequence[bool]] = True, **kwargs
 ) -> Lattice:
     basis = [[1, 0], [0.5, 0.75 ** 0.5]]
     # determine if full point group is realised by the simulation box
@@ -372,7 +380,7 @@ def _hexagonal_general(
     )
 
 
-def Triangular(extent, *, pbc: Union[bool, Sequence[bool]] = True,**kwargs) -> Lattice:
+def Triangular(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> Lattice:
     r"""Constructs a triangular lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed
     Sites are returned at the Bravais lattice points.
@@ -394,10 +402,10 @@ def Triangular(extent, *, pbc: Union[bool, Sequence[bool]] = True,**kwargs) -> L
         >>> print(g.n_nodes)
         9
     """
-    return _hexagonal_general(extent, site_offsets=None, pbc=pbc,**kwargs)
+    return _hexagonal_general(extent, site_offsets=None, pbc=pbc, **kwargs)
 
 
-def Honeycomb(extent, *, pbc: Union[bool, Sequence[bool]] = True,**kwargs) -> Lattice:
+def Honeycomb(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> Lattice:
     r"""Constructs a honeycomb lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
     Sites are returned at the 2b Wyckoff positions.
@@ -420,11 +428,14 @@ def Honeycomb(extent, *, pbc: Union[bool, Sequence[bool]] = True,**kwargs) -> La
         18
     """
     return _hexagonal_general(
-        extent, site_offsets=[[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]], pbc=pbc, **kwargs
+        extent,
+        site_offsets=[[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]],
+        pbc=pbc,
+        **kwargs,
     )
 
 
-def Kagome(extent, *, pbc: Union[bool, Sequence[bool]] = True,**kwargs) -> Lattice:
+def Kagome(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> Lattice:
     r"""Constructs a kagome lattice of a given spatial extent.
     Periodic boundary conditions can also be imposed.
     Sites are returned at the 3c Wyckoff positions.
