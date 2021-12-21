@@ -29,7 +29,7 @@
     .. raw:: html
 
       <div class="btn-group">
-        <a class="btn btn-primary btn-lg" href="https://www.sciencedirect.com/science/article/pii/S2352711019300974" role="button">Paper</a>
+        <a class="btn btn-primary btn-lg" href="https://arxiv.org/abs/2112.10526" role="button">Paper</a>
         <div class="btn-group">
           <a class="btn btn-info btn-lg" href="getting_started.html" role="button">pip install netket</a>
         </div>
