@@ -19,12 +19,12 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.nn.initializers import normal
+
 from netket.utils import HashableArray
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
-
 from netket import nn as nknn
-from netket.nn.initializers import normal
 
 default_kernel_init = normal(stddev=0.01)
 
@@ -229,6 +229,7 @@ class RBMSymm(nn.Module):
 
     @nn.compact
     def __call__(self, x_in):
+        x = jnp.expand_dims(x_in, -2)
         x = nknn.DenseSymm(
             name="Dense",
             mode="matrix",
@@ -239,7 +240,7 @@ class RBMSymm(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
             precision=self.precision,
-        )(x_in)
+        )(x)
         x = self.activation(x)
 
         x = x.reshape(-1, self.features * self.n_symm)

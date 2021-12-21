@@ -19,6 +19,7 @@ from jax import numpy as jnp
 
 from netket.sampler import Sampler, SamplerState
 from netket.utils import struct
+from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PRNGKeyT
 
 
@@ -54,7 +55,36 @@ class ARDirectSamplerState(SamplerState):
 
 @struct.dataclass
 class ARDirectSampler(Sampler):
-    """Direct sampler for autoregressive neural networks."""
+    """
+    Direct sampler for autoregressive neural networks.
+    """
+
+    def __pre_init__(self, *args, **kwargs):
+        """
+        Construct an autoregressive direct sampler.
+
+        Args:
+            hilbert: The Hilbert space to sample.
+            dtype: The dtype of the states sampled (default = np.float64).
+
+        Note:
+            `ARDirectSampler.machine_pow` has no effect. Please set the model's `machine_pow` instead.
+        """
+        if "n_chains" in kwargs or "n_chains_per_rank" in kwargs:
+            warn_deprecation(
+                "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
+            )
+
+        return super().__pre_init__(*args, **kwargs)
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # self.machine_pow may be traced in jit
+        if isinstance(self.machine_pow, int) and self.machine_pow != 2:
+            raise ValueError(
+                "ARDirectSampler.machine_pow should not be used. Modify the model `machine_pow` directly."
+            )
 
     @property
     def is_exact(sampler):
@@ -77,14 +107,12 @@ class ARDirectSampler(Sampler):
     def _sample_chain(sampler, model, variables, state, chain_length):
         return _sample_chain(sampler, model, variables, state, chain_length)
 
-    def _sample_next(sampler, model, variables, state):
-        σ, new_state = sampler._sample_chain(model, variables, state, 1)
-        σ = σ.squeeze(axis=0)
-        return new_state, σ
-
 
 @partial(jax.jit, static_argnums=(1, 4))
 def _sample_chain(sampler, model, variables, state, chain_length):
+    """
+    Internal method used for jitting calls.
+    """
     if "cache" in variables:
         variables, _ = variables.pop("cache")
 

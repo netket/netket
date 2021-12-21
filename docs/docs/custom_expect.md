@@ -1,4 +1,4 @@
-# Overriding behaviour and defining custom operators
+# Overriding defaults in NetKet
 
 ```{currentmodule} netket
 ```
@@ -12,7 +12,7 @@ the default, and you're all set.
 This is also valid if you want to define a custom object, such as a custom 
 hilbert space or operator. 
 
-
+(multiple-dispatch)=
 ## NetKet Architecture: Multiple Dispatch
 
 Some parts of NetKet rely on multiple-dispatch in order to select the right implementation
@@ -75,33 +75,3 @@ Of course, to make everything _really_ work, it would be best to have `CrazyOper
 subclass `AbstractOperator`, but that is not needed if you are carefull enough.
 
 The types that determine the dispatch are picked up by the type hints.
-
-
-## Defining custom implementations for expectation values
-
-```{eval-rst}
-.. autofunction:: netket.vqs.expect
-```
-
-If you want to overload the default behaviour, or define those operations for 
-your custom types, you must define dispatch rules for the two methods listed above.
-
-The first, `expect`, is used when you call `VariationalState.expect`, while the latter
-is used when computing the expectation value and the gradient.
-
-You should be carefull in returning the right signature: `expect` takes as input the
-variational state and operator and must return a number or a `nk.stats.Stats` object
-with statistical information about it.
-
-```{eval-rst}
-.. autofunction:: netket.vqs.expect_and_grad
-```
-
-`expect_and_grad` has a more complex signature, and must return a tuple where the first
-object is the same as `expect` and the latter is the gradient stored into a PyTree.
-
-The `use_covariance` argument signals whever you should be using the covariance formula or
-not. This argument is a `True/False` bool-like object that can be dispatched upon using
-the types `netket.utils.dispatch.TrueT` and `netket.utils.dispatch.FalseT`.
-By default, all hermitian operators will use the covariance formula.
-You can chose to ignore this argument.

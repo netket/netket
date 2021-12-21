@@ -19,12 +19,12 @@ from typing import Any, Callable, Iterable, Tuple, Union
 import jax
 from flax import linen as nn
 from jax import numpy as jnp
+from jax.nn.initializers import zeros
 from plum import dispatch
 
-from netket.hilbert import Fock, Spin
+from netket.hilbert import Fock, Qubit, Spin
 from netket.hilbert.homogeneous import HomogeneousHilbert
 from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
-from netket.nn.initializers import zeros
 from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc
 
@@ -33,13 +33,18 @@ class AbstractARNN(nn.Module):
     """
     Base class for autoregressive neural networks.
 
-    Subclasses must implement `__call__` and `conditionals`.
+    Subclasses must implement the methods `__call__` and `conditionals`.
     They can also override `_conditional` to implement the caching for fast autoregressive sampling.
     See :ref:`netket.nn.FastARNNConv1D` for example.
+
+    They must also implement the field `machine_pow`,
+    which specifies the exponent to normalize the outputs of `__call__`.
     """
 
     hilbert: HomogeneousHilbert
     """the Hilbert space. Only homogeneous unconstrained Hilbert spaces are supported."""
+
+    # machine_pow: int = 2 Must be defined on subclasses
 
     def __post_init__(self):
         super().__post_init__()
@@ -112,6 +117,8 @@ class ARNNDense(AbstractARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         if isinstance(self.features, int):
@@ -165,6 +172,8 @@ class ARNNConv1D(AbstractARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         if isinstance(self.features, int):
@@ -221,6 +230,8 @@ class ARNNConv2D(AbstractARNN):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         self.L = int(sqrt(self.hilbert.size))
@@ -255,12 +266,12 @@ class ARNNConv2D(AbstractARNN):
         return _call(self, inputs)
 
 
-def l2_normalize(log_psi: Array) -> Array:
+def _normalize(log_psi: Array, machine_pow: int) -> Array:
     """
     Normalizes log_psi to have L2-norm 1 along the last axis.
     """
-    return log_psi - 1 / 2 * jax.scipy.special.logsumexp(
-        2 * log_psi.real, axis=-1, keepdims=True
+    return log_psi - 1 / machine_pow * jax.scipy.special.logsumexp(
+        machine_pow * log_psi.real, axis=-1, keepdims=True
     )
 
 
@@ -279,7 +290,7 @@ def _conditionals_log_psi(model: AbstractARNN, inputs: Array) -> Array:
         x = model._layers[i](x)
 
     x = x.reshape((x.shape[0], -1, x.shape[-1]))
-    log_psi = l2_normalize(x)
+    log_psi = _normalize(x, model.machine_pow)
     return log_psi
 
 
@@ -293,7 +304,7 @@ def _conditionals(model: AbstractARNN, inputs: Array) -> Array:
 
     log_psi = _conditionals_log_psi(model, inputs)
 
-    p = jnp.exp(2 * log_psi.real)
+    p = jnp.exp(model.machine_pow * log_psi.real)
     return p
 
 
@@ -331,7 +342,9 @@ def _local_states_to_numbers(hilbert: Spin, x: Array) -> Array:  # noqa: F811
 
 
 @dispatch
-def _local_states_to_numbers(hilbert: Fock, x: Array) -> Array:  # noqa: F811
+def _local_states_to_numbers(  # noqa: F811
+    hilbert: Union[Fock, Qubit], x: Array
+) -> Array:
     numbers = jnp.asarray(x, jnp.int32)
     return numbers
 

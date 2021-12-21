@@ -326,3 +326,66 @@ def test_raises_unsorted_hilbert():
     hi = nk.hilbert.CustomHilbert([-1, 1, 0], N=3)
     with pytest.raises(ValueError):
         nk.operator.LocalOperator(hi)
+
+
+def test_type_promotion():
+    hi = nk.hilbert.Qubit(1)
+    real_op = nk.operator.spin.sigmax(hi, 0, dtype=float)
+    complex_mat = nk.operator.spin.sigmay(hi, 0, dtype=complex).to_dense()
+    promoted_op = real_op + nk.operator.LocalOperator(hi, complex_mat, acting_on=[0])
+    assert promoted_op.dtype == np.complex128
+
+
+def test_empty_after_sum():
+    a = nk.operator.spin.sigmaz(nk.hilbert.Spin(0.5), 0)
+    zero_op = a - a
+    np.testing.assert_allclose(zero_op.to_dense(), 0.0)
+
+    a = nk.operator.spin.sigmay(nk.hilbert.Spin(0.5), 0)
+    zero_op = a - a
+    np.testing.assert_allclose(zero_op.to_dense(), 0.0)
+
+
+def test_is_hermitian():
+    for op in herm_operators.values():
+        assert op.is_hermitian == True
+
+    for (op, oph) in generic_operators.values():
+        assert op.is_hermitian == False
+        assert oph.is_hermitian == False
+
+    for op in herm_operators.values():
+        assert (1j * op).is_hermitian == False
+
+
+def test_qutip_conversion():
+    # skip test if qutip not installed
+    pytest.importorskip("qutip")
+
+    hi = nk.hilbert.Spin(s=1 / 2, N=2)
+    op = nk.operator.spin.sigmax(hi, 0)
+
+    q_obj = op.to_qobj()
+
+    assert q_obj.type == "oper"
+    assert len(q_obj.dims) == 2
+    assert q_obj.dims[0] == list(op.hilbert.shape)
+    assert q_obj.dims[1] == list(op.hilbert.shape)
+
+    assert q_obj.shape == (op.hilbert.n_states, op.hilbert.n_states)
+    np.testing.assert_allclose(q_obj.data.todense(), op.to_dense())
+
+
+def test_notsharing():
+    # This test will fail if operators alias some underlying arrays upon copy().
+    hi = nk.hilbert.Spin(0.5, 2)
+    a = nk.operator.spin.sigmax(hi, 0) * nk.operator.spin.sigmax(hi, 1, dtype=complex)
+    b = nk.operator.spin.sigmay(hi, 0) * nk.operator.spin.sigmaz(hi, 1)
+    delta = b - a
+
+    a_orig = a.to_dense()
+    a_copy = a.copy()
+    a_copy += delta
+
+    np.testing.assert_allclose(a_orig, a.to_dense())
+    np.testing.assert_allclose(a_copy.to_dense(), b.to_dense())

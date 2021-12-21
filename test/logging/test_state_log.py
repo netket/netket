@@ -4,6 +4,7 @@ import tarfile
 import glob
 
 import netket as nk
+from jax.nn.initializers import normal
 
 from .. import common
 
@@ -18,8 +19,8 @@ def vstate(request):
     ma = nk.models.RBM(
         alpha=1,
         dtype=float,
-        hidden_bias_init=nk.nn.initializers.normal(),
-        visible_bias_init=nk.nn.initializers.normal(),
+        hidden_bias_init=normal(),
+        visible_bias_init=normal(),
     )
 
     return nk.vqs.MCState(

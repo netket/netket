@@ -203,16 +203,24 @@ def test_reassemble_complex(e):
 
 
 @pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [25, 1024])
+@pytest.mark.parametrize("n_samp", [24, 1024])
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
-def test_matvec(e, jit):
+@pytest.mark.parametrize("chunk_size", [8, None])
+def test_matvec(e, jit, chunk_size):
     diag_shift = 0.01
 
     def f(params_model_state, x):
         return e.f(params_model_state["params"], x)
 
-    mv = qgt_onthefly_logic.mat_vec_factory(f, e.params, {}, e.samples)
+    if chunk_size is None:
+        mat_vec_factory = qgt_onthefly_logic.mat_vec_factory
+        samples = e.samples
+    else:
+        mat_vec_factory = qgt_onthefly_logic.mat_vec_chunked_factory
+        samples = e.samples.reshape((-1, chunk_size) + e.samples.shape[1:])
+
+    mv = mat_vec_factory(f, e.params, {}, samples)
     if jit:
         mv = jax.jit(mv)
     actual = mv(e.v, diag_shift)
@@ -223,14 +231,22 @@ def test_matvec(e, jit):
 
 
 @pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [25, 1024])
+@pytest.mark.parametrize("n_samp", [24, 1024])
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
-def test_matvec_linear_transpose(e, jit):
+@pytest.mark.parametrize("chunk_size", [8, None])
+def test_matvec_linear_transpose(e, jit, chunk_size):
     def f(params_model_state, x):
         return e.f(params_model_state["params"], x)
 
-    mv = qgt_onthefly_logic.mat_vec_factory(f, e.params, {}, e.samples)
+    if chunk_size is None:
+        mat_vec_factory = qgt_onthefly_logic.mat_vec_factory
+        samples = e.samples
+    else:
+        mat_vec_factory = qgt_onthefly_logic.mat_vec_chunked_factory
+        samples = e.samples.reshape((-1, chunk_size) + e.samples.shape[1:])
+
+    mv = mat_vec_factory(f, e.params, {}, samples)
 
     def mvt(v, w):
         (res,) = jax.linear_transpose(lambda v_: mv(v_, 0.0), v)(w)
@@ -260,17 +276,18 @@ def test_matvec_linear_transpose(e, jit):
 @pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize("jit", [True, False])
+@pytest.mark.parametrize("chunk_size", [7, None])
 @pytest.mark.parametrize(
     "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
 )
-def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype):
+def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
     mv = qgt_jacobian_pytree_logic._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
         centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_cplx
     else:
         centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_real_holo
-
+    centered_jacobian_fun = partial(centered_jacobian_fun, chunk_size=chunk_size)
     if jit:
         mv = jax.jit(mv)
         centered_jacobian_fun = jax.jit(centered_jacobian_fun, static_argnums=0)

@@ -35,6 +35,8 @@ from .activation import (
     log_cosh,
     log_sinh,
     log_tanh,
+    reim_selu,
+    reim_relu,
 )
 from flax.linen import (
     MultiHeadDotProductAttention,
@@ -64,4 +66,4 @@ from .initializers import zeros, ones
 
 from flax.linen import Embed
 
-from .utils import to_array, to_matrix
+from .utils import to_array, to_matrix, split_array_mpi, update_dense_symm

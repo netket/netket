@@ -19,12 +19,11 @@ from pytest import approx, raises, warns
 
 import numpy as np
 import jax
+
 import netket as nk
-import flax
+from jax.nn.initializers import normal
 
 from .. import common
-
-pytestmark = common.skipif_mpi
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
 
@@ -32,7 +31,7 @@ SEED = 2148364
 
 machines = {}
 
-standard_init = flax.linen.initializers.normal()
+standard_init = normal()
 RBM = partial(
     nk.models.RBM, hidden_bias_init=standard_init, visible_bias_init=standard_init
 )
@@ -41,26 +40,26 @@ RBMModPhase = partial(nk.models.RBMModPhase, hidden_bias_init=standard_init)
 nk.models.RBM(
     alpha=1,
     dtype=complex,
-    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-    hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+    kernel_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(R->R)"] = RBM(
     alpha=1,
     dtype=float,
-    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-    hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+    kernel_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(R->C)"] = RBMModPhase(
     alpha=1,
     dtype=float,
-    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-    hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+    kernel_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(C->C)"] = RBM(
     alpha=1,
     dtype=complex,
-    kernel_init=nk.nn.initializers.normal(stddev=0.1),
-    hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+    kernel_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
 )
 
 operators = {}
@@ -88,13 +87,14 @@ operators["operator:(Non Hermitian)"] = H
 def vstate(request):
     ma = request.param
 
-    sa = nk.sampler.ExactSampler(hilbert=hi, n_chains=16)
+    sa = nk.sampler.ExactSampler(hilbert=hi)
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
     return vs
 
 
+@common.skipif_mpi
 def test_deprecated_name():
     with warns(FutureWarning):
         nk.variational.expect
@@ -105,11 +105,16 @@ def test_deprecated_name():
     assert dir(nk.vqs) == dir(nk.variational)
 
 
-def test_n_samples_api(vstate):
+def test_n_samples_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
         vstate.n_samples = -1
+
+    with raises(
+        ValueError,
+    ):
+        vstate.n_samples_per_rank = -1
 
     with raises(
         ValueError,
@@ -121,22 +126,90 @@ def test_n_samples_api(vstate):
     ):
         vstate.n_discard_per_chain = -1
 
-    vstate.n_samples = 2
-    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains)
+    # Tests for `ExactSampler` with `n_chains == 1`
+    vstate.n_samples = 3
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (
+        int(np.ceil(3 / _mpi_size)),
+        vstate.sampler.n_chains_per_rank,
+    )
+
+    vstate.n_samples_per_rank = 4
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (4, vstate.sampler.n_chains_per_rank)
 
     vstate.chain_length = 2
-    assert vstate.n_samples == 2 * vstate.sampler.n_chains
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains)
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
 
     vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == 0
 
+    # Tests for `MetropolisLocal` with `n_chains > 1`
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+    # `n_samples` is rounded up
+    assert vstate.n_samples == 1008
+    assert vstate.chain_length == 63
+    check_consistent(vstate, _mpi_size)
+
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
+    vstate.n_samples = 3
+    check_consistent(vstate, _mpi_size)
+    # `n_samples` is rounded up
+    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains_per_rank)
 
+    vstate.n_samples_per_rank = 16 // _mpi_size + 1
+    check_consistent(vstate, _mpi_size)
+    # `n_samples` is rounded up
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
+
+    vstate.chain_length = 2
+    check_consistent(vstate, _mpi_size)
+    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
+
+
+@common.skipif_mpi
+def test_chunk_size_api(vstate, _mpi_size):
+    assert vstate.chunk_size is None
+
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = -1
+
+    vstate.n_samples = 1008
+
+    # does not divide n_samples
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = 100
+
+    assert vstate.chunk_size is None
+
+    vstate.chunk_size = 126
+    assert vstate.chunk_size == 126
+
+    vstate.n_samples = 1008 * 2
+    assert vstate.chunk_size == 126
+
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = 1500
+
+    _ = vstate.sample()
+    _ = vstate.sample(n_samples=vstate.n_samples)
+    with raises(
+        ValueError,
+    ):
+        vstate.sample(n_samples=1008 + 16)
+
+
+@common.skipif_mpi
 def test_deprecations(vstate):
     vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
 
@@ -152,6 +225,7 @@ def test_deprecations(vstate):
     assert vstate.n_discard_per_chain == 10
 
 
+@common.skipif_mpi
 def test_serialization(vstate):
     from flax import serialization
 
@@ -172,10 +246,11 @@ def test_serialization(vstate):
     assert vstate.n_discard_per_chain == old_ndiscard
 
 
+@common.skipif_mpi
 def test_init_parameters(vstate):
     vstate.init_parameters(seed=SEED)
     pars = vstate.parameters
-    vstate.init_parameters(nk.nn.initializers.normal(stddev=0.01), seed=SEED)
+    vstate.init_parameters(normal(stddev=0.01), seed=SEED)
     pars2 = vstate.parameters
 
     def _f(x, y):
@@ -184,6 +259,7 @@ def test_init_parameters(vstate):
     jax.tree_multimap(_f, pars, pars2)
 
 
+@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -201,6 +277,24 @@ def test_expect_numpysampler_works(vstate, operator):
     assert isinstance(out, nk.stats.Stats)
 
 
+@common.skipif_mpi
+def test_qutip_conversion(vstate):
+    # skip test if qutip not installed
+    pytest.importorskip("qutip")
+
+    ket = vstate.to_array()
+    q_obj = vstate.to_qobj()
+
+    assert q_obj.type == "ket"
+    assert len(q_obj.dims) == 2
+    assert q_obj.dims[0] == list(vstate.hilbert.shape)
+    assert q_obj.dims[1] == [1 for i in range(vstate.hilbert.size)]
+
+    assert q_obj.shape == (vstate.hilbert.n_states, 1)
+    np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
+
+
+@common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",
     [
@@ -270,7 +364,44 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
+@common.skipif_mpi
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in operators.items()
+        if op.is_hermitian
+    ],
+)
+@pytest.mark.parametrize("n_chunks", [1, 2])
+def test_expect_chunking(vstate, operator, n_chunks):
+    vstate.n_samples = 200
+    chunk_size = vstate.n_samples_per_rank // n_chunks
+
+    eval_nochunk = vstate.expect(operator)
+    vstate.chunk_size = chunk_size
+    eval_chunk = vstate.expect(operator)
+
+    jax.tree_multimap(
+        partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
+    )
+
+    vstate.chunk_size = None
+    grad_nochunk = vstate.grad(operator)
+    vstate.chunk_size = chunk_size
+    grad_chunk = vstate.grad(operator)
+
+    jax.tree_multimap(
+        partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
+    )
+
+
 ###
+
+
 def _expval(par, vstate, H, real=False):
     vstate.parameters = par
     psi = vstate.to_array()
@@ -318,3 +449,8 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
         rtol=rel_eps,
         atol=abs_eps,
     )
+
+
+def check_consistent(vstate, mpi_size):
+    assert vstate.n_samples == vstate.n_samples_per_rank * mpi_size
+    assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains

@@ -20,14 +20,14 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.nn.initializers import zeros
+from jax.scipy.special import logsumexp
 
-from netket.utils import HashableArray
+from netket.utils import HashableArray, warn_deprecation
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
-from jax.scipy.special import logsumexp
-
-from netket.nn.initializers import zeros
+from netket.nn.activation import reim_selu
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
     DenseSymmFFT,
@@ -72,7 +72,7 @@ class GCNN_FFT(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     dtype: Any = float
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output. Defaults to the identity."""
@@ -106,8 +106,7 @@ class GCNN_FFT(nn.Module):
             DenseEquivariantFFT(
                 product_table=self.product_table,
                 shape=self.shape,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -119,6 +118,7 @@ class GCNN_FFT(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        x = jnp.expand_dims(x, -2)  # add a feature dimension
         x = self.dense_symm(x)
 
         for layer in range(self.layers - 1):
@@ -143,7 +143,7 @@ class GCNN_Irrep(nn.Module):
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
-    eeturns a feature map of shape [batch_size, out_features, n_symm].
+    eeturns a feature map of shape [batch_size, features, n_symm].
     The input and the output are related by
 
     .. math ::
@@ -179,7 +179,7 @@ class GCNN_Irrep(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
@@ -211,8 +211,7 @@ class GCNN_Irrep(nn.Module):
         self.equivariant_layers = [
             DenseEquivariantIrrep(
                 irreps=self.irreps,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -224,6 +223,7 @@ class GCNN_Irrep(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        x = jnp.expand_dims(x, -2)  # add a feature dimension
         x = self.dense_symm(x)
 
         for layer in range(self.layers - 1):
@@ -271,7 +271,7 @@ class GCNN_Parity_FFT(nn.Module):
     """Integer specifying the eigenvalue with respect to parity"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
@@ -279,6 +279,10 @@ class GCNN_Parity_FFT(nn.Module):
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
+    extra_bias: bool = False
+    """Deprecated. If True, uses bias in parity-flip layers too. Required for using
+    parameters saved before PR#1030, but hinders performance.
+    See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
     kernel_init: NNInitFunc = unit_normal_scaling
@@ -287,6 +291,16 @@ class GCNN_Parity_FFT(nn.Module):
     """Initializer for the hidden bias."""
 
     def setup(self):
+        # TODO: evenutally remove this warning
+        # supports a deprecated attribute
+        if self.extra_bias:
+            warn_deprecation(
+                (
+                    "`extra_bias` is detrimental for performance and is deprecated. "
+                    "Please switch to the default `extra_bias=False`. Previously saved "
+                    "parameters can be migrated using `nk.models.update_GCNN_parity`."
+                )
+            )
 
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
@@ -305,8 +319,7 @@ class GCNN_Parity_FFT(nn.Module):
             DenseEquivariantFFT(
                 product_table=self.product_table,
                 shape=self.shape,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -320,9 +333,9 @@ class GCNN_Parity_FFT(nn.Module):
             DenseEquivariantFFT(
                 product_table=self.product_table,
                 shape=self.shape,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
-                use_bias=self.use_bias,
+                features=self.features[layer + 1],
+                # this would bias the same outputs as self.equivariant
+                use_bias=self.extra_bias and self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
@@ -333,6 +346,7 @@ class GCNN_Parity_FFT(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        x = jnp.expand_dims(x, -2)  # add a feature dimension
 
         x_flip = self.dense_symm(-1 * x)
         x = self.dense_symm(x)
@@ -384,7 +398,7 @@ class GCNN_Parity_Irrep(nn.Module):
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
-    eeturns a feature map of shape [batch_size, out_features, n_symm].
+    eeturns a feature map of shape [batch_size, features, n_symm].
     The input and the output are related by
 
     .. math ::
@@ -425,7 +439,7 @@ class GCNN_Parity_Irrep(nn.Module):
     """Integer specifying the eigenvalue with respect to parity"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
@@ -433,6 +447,10 @@ class GCNN_Parity_Irrep(nn.Module):
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
+    extra_bias: bool = False
+    """Deprecated. If True, uses bias in parity-flip layers too. Required for using
+    parameters saved before PR#1030, but hinders performance.
+    See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
     kernel_init: NNInitFunc = unit_normal_scaling
@@ -441,6 +459,16 @@ class GCNN_Parity_Irrep(nn.Module):
     """Initializer for the hidden bias."""
 
     def setup(self):
+        # TODO: evenutally remove this warning
+        # supports a deprecated attribute
+        if self.extra_bias:
+            warn_deprecation(
+                (
+                    "`extra_bias` is detrimental for performance and is deprecated. "
+                    "Please switch to the default `extra_bias=False`. Previously saved "
+                    "parameters can be migrated using `nk.models.update_GCNN_parity`."
+                )
+            )
 
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
@@ -457,8 +485,7 @@ class GCNN_Parity_Irrep(nn.Module):
         self.equivariant_layers = [
             DenseEquivariantIrrep(
                 irreps=self.irreps,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -471,9 +498,9 @@ class GCNN_Parity_Irrep(nn.Module):
         self.equivariant_layers_flip = [
             DenseEquivariantIrrep(
                 irreps=self.irreps,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
-                use_bias=self.use_bias,
+                features=self.features[layer + 1],
+                # this would bias the same outputs as self.equivariant
+                use_bias=self.extra_bias and self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
@@ -484,6 +511,7 @@ class GCNN_Parity_Irrep(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        x = jnp.expand_dims(x, -2)  # add a feature dimension
 
         x_flip = self.dense_symm(-1 * x)
         x = self.dense_symm(x)

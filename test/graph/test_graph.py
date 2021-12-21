@@ -119,7 +119,7 @@ coordination_number = [4, 6, 3, 4, 6, 8, 12, 4, 6]
 
 dimension = [2, 2, 2, 2, 3, 3, 3, 3, 3]
 
-kvec = [[2 * pi / 3, 0]] + [[4 * pi / 3, 0]] * 3 + [[4 * pi / 3, 0, 0]] * 5
+kvec = [(2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 3 + [(4 * pi / 3, 0, 0)] * 5
 
 little_group_size = [2] + [6] * 3 + [8] * 5
 
@@ -134,20 +134,12 @@ def test_lattice_graphs(i, name):
     assert graph.n_edges == graph.n_nodes * coordination_number[i] // 2
 
 
-# netket#743 : multiple edges and self-loops in lattice
-@pytest.mark.parametrize(
-    "size,n_nodes,n_edges",
-    zip(
-        [[1], [2, 1], [3, 2]],
-        [1, 2, 6],
-        [0, 1, 9],
-    ),
-)
-def test_no_redundant_edges(size, n_nodes, n_edges):
-    g = Grid(size)
+# netket#743 : multiple edges
+def test_no_redundant_edges():
+    g = Grid([3, 2])
     print(g.edges())
-    assert g.n_nodes == n_nodes
-    assert g.n_edges == n_edges
+    assert g.n_nodes == 6
+    assert g.n_edges == 9
 
 
 @pytest.mark.parametrize("g", graphs + symmetric_graphs)
@@ -277,6 +269,7 @@ def test_lattice_symmetry(i, name):
     assert sgb.little_group(np.zeros(dimension[i])) == sgb.point_group_
 
     # Generate little groups and their irreps
+    assert len(sgb.little_group(*kvec[i])) == little_group_size[i]
     assert len(sgb.little_group(kvec[i])) == little_group_size[i]
     irrep_from_lg = sgb.space_group_irreps(kvec[i])
     irrep_from_sg = sgb.space_group.character_table()
@@ -304,6 +297,18 @@ def test_graph_wrong():
 
     with pytest.raises(ValueError):
         nk.graph.Graph([1, 2, 3], [1, 2, 3])
+
+    with pytest.raises(TypeError):
+        nk.graph.Hypercube([5])
+
+    with pytest.raises(TypeError):
+        nk.graph.Cube([5])
+
+    with pytest.raises(TypeError):
+        nk.graph.Square([5])
+
+    with pytest.raises(TypeError):
+        nk.graph.Chain([5])
 
 
 def test_edges_are_correct():
@@ -730,3 +735,32 @@ def test_graph_conversions():
 def test_edge_colors():
     for g in graphs:
         assert all(isinstance(c, int) for c in g.edge_colors)
+
+
+def test_lattice_k_neighbors():
+    l0 = nk.graph.Chain(8, max_neighbor_order=1)
+    l1 = nk.graph.Chain(8, max_neighbor_order=2)
+    l2 = nk.graph.Chain(8, max_neighbor_order=3)
+
+    colors = set(c for *_, c in l1.edges(return_color=True))
+    assert colors == {0, 1}
+    colors = set(c for *_, c in l2.edges(return_color=True))
+    assert colors == {0, 1, 2}
+
+    assert set(l0.edges()) == set(l1.edges(filter_color=0))
+    assert set(l0.edges()) == set(l2.edges(filter_color=0))
+    assert set(l1.edges(filter_color=1)) == set(l2.edges(filter_color=1))
+
+    assert l0.n_edges < l1.n_edges < l2.n_edges
+
+    with pytest.raises(RuntimeError, match="Lattice contains self-referential edge"):
+        nk.graph.Chain(length=3, max_neighbor_order=3)
+
+    for k in range(1, 11):
+        assert nk.graph.Chain(100, max_neighbor_order=k).n_edges == 100 * k
+
+    assert nk.graph.Square(10, pbc=True, max_neighbor_order=2).n_edges == 400
+
+    g = nk.graph.Square(10, pbc=True, max_neighbor_order=2)
+    assert len(g.edges(filter_color=0)) == 200
+    assert len(g.edges(filter_color=1)) == 200

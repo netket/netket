@@ -25,7 +25,7 @@ write_to = "netket/_version.py"
 
 [tool.black]
 line-length = 88
-target-version = ['py36', 'py37', 'py38']
+target-version = ['py37', 'py38', 'py39']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -50,7 +50,7 @@ command_line = "-m pytest --verbose test"
 source = ["netket"]
 
 [tool.pytest.ini_options]
-addopts = "--color=yes --verbose --durations=0 -n auto"
+addopts = "--color=yes --verbose --durations=100 -n auto"
 doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER"
 filterwarnings = [
     "ignore::UserWarning",

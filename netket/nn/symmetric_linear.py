@@ -20,14 +20,10 @@ from jax import lax
 import jax.numpy as jnp
 import numpy as np
 import jax
+from jax.nn.initializers import normal, zeros, lecun_normal, variance_scaling
 
-from netket.nn.initializers import (
-    normal,
-    zeros,
-    lecun_normal,
-    variance_scaling,
-    _complex_truncated_normal,
-)
+from netket.utils import warn_deprecation
+from netket.nn.initializers import _complex_truncated_normal
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
 from netket.utils.group import PermutationGroup
@@ -78,30 +74,16 @@ def unit_normal_scaling(key, shape, dtype):
     )
 
 
-def _symmetrizer_col(perms, features):
-    r"""
-    Creates the mapping from symmetry-reduced kernel w to full kernel W, s.t.
-        W[ij] = S[ij][kl] w[kl]
-    where [ij] ∈ [0,...,n_sites×n_hidden) and [kl] ∈ [0,...,n_sites×features).
-    For each [ij] there is only one [kl] such that S[ij][kl] is non-zero, in which
-    case S[ij][kl] == 1. Thus, this method only returns the array of indices `col`
-    of shape (n_sites×n_hidden,) satisfying
-        W[ij] = w[col[ij]]  <=>  W = w[col].
-
-    See test/models/test_nn.py:test_symmetrizer for how this relates to the
-    matrix form of the symmetrizer.
-    """
-    n_symm, n_sites = perms.shape
-    n_hidden = features * n_symm
-
-    ij = np.arange(n_sites * n_hidden)
-    i, j = np.unravel_index(ij, (n_sites, n_hidden))
-
-    k = perms[j % n_symm, i]
-    l = np.floor_divide(j, n_symm)
-    kl = np.ravel_multi_index((k, l), (n_sites, features))
-
-    return kl
+def symm_input_warning(x_shape, new_x_shape, name):
+    warn_deprecation(
+        (
+            f"{len(x_shape)}-dimensional input to {name} layer is deprecated.\n"
+            f"Input shape {x_shape} has been reshaped to {new_x_shape}, where "
+            "the middle dimension encodes different input channels.\n"
+            "Please provide a 3-dimensional input.\nThis warning will become an "
+            "error in the future."
+        )
+    )
 
 
 class DenseSymmMatrix(Module):
@@ -113,7 +95,7 @@ class DenseSymmMatrix(Module):
         Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
     features: int
-    """The number of symmetry-reduced features. The full output size is len(symmetries) * features."""
+    """The number of output features. Will be the second dimension of the output."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
@@ -130,27 +112,7 @@ class DenseSymmMatrix(Module):
 
     def setup(self):
         # pylint: disable=attribute-defined-outside-init
-        perms = np.asarray(self.symmetries)
-        self.n_symm, self.n_sites = perms.shape
-        self.n_hidden = self.features * self.n_symm
-
-        self.symm_cols = jnp.asarray(_symmetrizer_col(perms, self.features))
-
-    def full_kernel(self, kernel):
-        """
-        Converts the symmetry-reduced kernel of shape (n_sites, features) to
-        the full Dense kernel of shape (n_sites, features * n_symm).
-        """
-        kernel = kernel.transpose(1, 0).reshape(-1)
-        result = kernel[self.symm_cols]
-        return result.reshape(self.n_sites, -1)
-
-    def full_bias(self, bias):
-        """
-        Convert symmetry-reduced bias of shape (features,) to the full bias of
-        shape (n_symm * features,).
-        """
-        return jnp.expand_dims(bias, (0, 2))
+        self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -164,6 +126,18 @@ class DenseSymmMatrix(Module):
         """
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
+        # infer in_features and ensure input dimensions (batch, in_features,n_sites)
+
+        # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
+        if x.ndim < 3:
+            old_shape = x.shape
+            if x.ndim == 1:
+                x = jnp.expand_dims(x, (0, 1))
+            elif x.ndim == 2:
+                x = jnp.expand_dims(x, 1)
+            symm_input_warning(old_shape, x.shape, "DenseSymm")
+
+        in_features = x.shape[1]
 
         # generate the default kernel init if necessary
         kernel_init = (
@@ -172,27 +146,38 @@ class DenseSymmMatrix(Module):
             else self.kernel_init
         )
         kernel = self.param(
-            "kernel", kernel_init, (self.features, self.n_sites), self.dtype
+            "kernel",
+            kernel_init,
+            (self.features, in_features, self.n_sites),
+            self.dtype,
         )
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, 0)
+            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.full_kernel(kernel).reshape(-1, self.features, self.n_symm)
+        # Converts the convolutional kernel of shape (self.features, in_features, n_sites)
+        # to a full dense kernel of shape (self.features, in_features, n_symm, n_sites).
+        # result[out, in, g, r] == kernel[out, in, g^{-1}r]
+        kernel = jnp.take(kernel, jnp.asarray(self.symmetries), 2)
         kernel = jnp.asarray(kernel, dtype)
 
+        # x is      (batches,       in_featuers,         n_sites)
+        # kernel is (self.features, in_features, n_symm, n_sites)
         x = lax.dot_general(
             x,
             kernel,
-            (((x.ndim - 1,), (0,)), ((), ())),
+            (((x.ndim - 2, x.ndim - 1), (1, 3)), ((), ())),
             precision=self.precision,
         )
 
-        x = x.reshape(-1, self.features, self.n_symm)
-
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(self.full_bias(bias), dtype)
+
+            # Convert symmetry-reduced bias of shape (features,) to the full bias of
+            # shape (..., features, 1).
+            bias = jnp.expand_dims(bias, 1)
+            bias = jnp.asarray(bias, dtype)
+
             x += bias
 
         return x
@@ -204,7 +189,7 @@ class DenseSymmFFT(Module):
     space_group: HashableArray
     """Array that lists the space group as permutations"""
     features: int
-    """The number of input features; must be the second dimension of the input."""
+    """The number of output features. Will be the second dimension of the output."""
     shape: Tuple
     """Tuple that corresponds to shape of lattice"""
     use_bias: bool = True
@@ -224,20 +209,17 @@ class DenseSymmFFT(Module):
         sg = np.asarray(self.space_group)
 
         self.n_cells = np.product(np.asarray(self.shape))
-        self.n_symm = len(sg) // self.n_cells
+        self.n_point = len(sg) // self.n_cells
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
+        # maps (n_sites) dimension of kernels to (sites_per_cell, n_point, *shape)
+        # as used in FFT-based group convolution
         self.mapping = (
             sg[:, : self.sites_per_cell]
-            .reshape(self.n_cells, self.n_symm, self.sites_per_cell)
-            .transpose(1, 2, 0)
-            .reshape(self.n_symm, self.sites_per_cell, *self.shape)
+            .reshape(self.n_cells, self.n_point, self.sites_per_cell)
+            .transpose(2, 1, 0)
+            .reshape(self.sites_per_cell, self.n_point, *self.shape)
         )
-
-    def make_kernel(self, kernel):
-        kernel = kernel[..., self.mapping]
-
-        return kernel
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -248,40 +230,55 @@ class DenseSymmFFT(Module):
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
 
-        x = (
-            x.reshape(-1, self.n_cells, self.sites_per_cell)
-            .transpose(0, 2, 1)
-            .reshape(-1, self.sites_per_cell, *self.shape)
-        )
+        # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
+        # infer in_features and ensure input dimensions (batch, in_features,n_sites)
+        if x.ndim < 3:
+            old_shape = x.shape
+            if x.ndim == 1:
+                x = jnp.expand_dims(x, (0, 1))
+            elif x.ndim == 2:
+                x = jnp.expand_dims(x, 1)
+            symm_input_warning(old_shape, x.shape, "DenseSymm")
+
+        in_features = x.shape[1]
+
+        x = x.reshape(*x.shape[:-1], self.n_cells, self.sites_per_cell)
+        x = x.transpose(0, 1, 3, 2)
+        x = x.reshape(*x.shape[:-1], *self.shape)
 
         # generate the default kernel init if necessary
         kernel_init = (
-            get_default_densesymm_init(self.n_cells * self.sites_per_cell)
+            get_default_densesymm_init(self.n_cells * self.sites_per_cell * in_features)
             if self.kernel_init is default_densesymm_initializer
             else self.kernel_init
         )
         kernel = self.param(
             "kernel",
             kernel_init,
-            (self.features, self.n_cells * self.sites_per_cell),
+            (self.features, in_features, self.n_cells * self.sites_per_cell),
             self.dtype,
         )
 
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, 0)
+            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.make_kernel(kernel)
+        # Converts the convolutional kernel of shape (features, in_features, n_sites)
+        # to the expanded kernel of shape (features, in_features, sites_per_cell,
+        # n_point, *shape) used in FFT-based group convolutions.
+        kernel = kernel[..., self.mapping]
 
-        x = jnp.fft.fftn(x, s=self.shape).reshape(*x.shape[:2], self.n_cells)
+        x = jnp.fft.fftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
 
         kernel = jnp.fft.fftn(kernel, s=self.shape).reshape(
-            *kernel.shape[:3], self.n_cells
+            *kernel.shape[:4], self.n_cells
         )
 
+        # TODO: the batch ordering should be revised: batch dimensions should
+        # be leading
         x = lax.dot_general(
-            x, kernel, (((1,), (2,)), ((2,), (3,))), precision=self.precision
+            x, kernel, (((1, 2), (1, 2)), ((3,), (4,))), precision=self.precision
         )
         x = x.transpose(1, 2, 3, 0)
         x = x.reshape(*x.shape[:3], *self.shape)
@@ -309,10 +306,8 @@ class DenseEquivariantFFT(Module):
 
     product_table: HashableArray
     """ product table for space group"""
-    in_features: int
-    """The number of input features; must be the second dimension of the input."""
-    out_features: int
-    """The number of input features; must be the second dimension of the input."""
+    features: int
+    """The number of output features. Will be the second dimension of the output."""
     shape: Tuple
     """Tuple that corresponds to shape of lattice"""
     use_bias: bool = True
@@ -336,6 +331,8 @@ class DenseEquivariantFFT(Module):
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
 
+        # maps (n_sites) dimension of kernels to (n_point, n_point, *shape)
+        # as used in FFT-based group convolution
         self.mapping = (
             pt[: self.n_point]
             .reshape(self.n_point, self.n_cells, self.n_point)
@@ -343,16 +340,12 @@ class DenseEquivariantFFT(Module):
             .reshape(self.n_point, self.n_point, *self.shape)
         )
 
-    def make_kernel(self, kernel):
-        kernel = kernel[..., self.mapping]
-
-        return kernel
-
     @compact
     def __call__(self, x: Array) -> Array:
         """Applies the equivariant transform to the inputs along the last two
         dimensions (-2: features, -1: group elements)
         """
+        in_features = x.shape[-2]
 
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
@@ -365,8 +358,8 @@ class DenseEquivariantFFT(Module):
             "kernel",
             self.kernel_init,
             (
-                self.out_features,
-                self.in_features,
+                self.features,
+                in_features,
                 self.n_point * self.n_cells,
             ),
             self.dtype,
@@ -377,7 +370,10 @@ class DenseEquivariantFFT(Module):
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.make_kernel(kernel)
+        # Convert the convolutional kernel of shape (features, in_features, n_symm)
+        # to the expanded kernel of shape (features, in_features, n_point(in),
+        # n_point(out), *shape) used in FFT-based group convolutions
+        kernel = kernel[..., self.mapping]
 
         x = jnp.fft.fftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
 
@@ -396,7 +392,7 @@ class DenseEquivariantFFT(Module):
         x = x.reshape(*x.shape[:2], -1)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
             x += jnp.expand_dims(bias, (0, 2))
 
@@ -411,7 +407,7 @@ class DenseEquivariantIrrep(Module):
     representations of the group.
 
     Acts on a feature map of shape [batch_size, in_features, n_symm] and
-    eeturns a feature map of shape [batch_size, out_features, n_symm].
+    eeturns a feature map of shape [batch_size, features, n_symm].
     The input and the output are related by
 
     .. math ::
@@ -436,10 +432,8 @@ class DenseEquivariantIrrep(Module):
     """Irrep matrices of the symmetry group. Each element of the list is an
     array of shape [n_symm, d, d]; irreps[i][j] is the representation of the
     jth group element in irrep #i."""
-    in_features: int
-    """The number of input features; must be the second dimension of the input."""
-    out_features: int
-    """The number of output features; returned as the second dimension of the output."""
+    features: int
+    """The number of output features. Will be the second dimension of the output."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
@@ -535,6 +529,7 @@ class DenseEquivariantIrrep(Module):
         """Applies the equivariant transform to the inputs along the last two
         dimensions (-2: features, -1: group elements)
         """
+        in_features = x.shape[-2]
 
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
@@ -544,7 +539,7 @@ class DenseEquivariantIrrep(Module):
         kernel = self.param(
             "kernel",
             self.kernel_init,
-            (self.out_features, self.in_features, self.n_symm),
+            (self.features, in_features, self.n_symm),
             self.dtype,
         )
 
@@ -565,7 +560,7 @@ class DenseEquivariantIrrep(Module):
         x = self.inverse_ft(x)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             bias = jnp.asarray(bias, dtype)
 
             x += jnp.expand_dims(bias, (0, 2))
@@ -584,12 +579,9 @@ class DenseEquivariantMatrix(Module):
     """Flattened product table generated by PermutationGroup.produt_table().ravel()
     that specifies the product of the group with its involution, or the
     PermutationGroup object itself"""
-    in_features: int
-    """The number of symmetry-reduced input features. The full input size
-    is n_symm*in_features."""
-    out_features: int
+    features: int
     """The number of symmetry-reduced output features. The full output size
-    is n_symm*out_features."""
+    is n_symm*features."""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
@@ -608,25 +600,6 @@ class DenseEquivariantMatrix(Module):
 
         self.n_symm = np.asarray(self.product_table).shape[0]
 
-        self.stdev = 1.0 / np.sqrt(self.in_features * self.n_symm)
-
-    def full_kernel(self, kernel):
-        """
-        Converts the symmetry-reduced kernel of shape (n_sites, features) to
-        the full Dense kernel of shape (n_sites, features * n_symm).
-        """
-
-        result = jnp.take(kernel, jnp.asarray(self.product_table).ravel(), 2)
-
-        result = result.reshape(
-            self.out_features, self.in_features, self.n_symm, self.n_symm
-        )
-        result = result.transpose(1, 2, 0, 3).reshape(
-            self.n_symm * self.in_features, -1
-        )
-
-        return result
-
     @compact
     def __call__(self, x: Array) -> Array:
         """Applies the equivariant transform to the inputs along the last dimension.
@@ -635,15 +608,15 @@ class DenseEquivariantMatrix(Module):
         Returns:
           The transformed input.
         """
+        in_features = x.shape[-2]
+
         dtype = jnp.promote_types(x.dtype, self.dtype)
         x = jnp.asarray(x, dtype)
-
-        x = x.reshape(-1, x.shape[1] * x.shape[2])
 
         kernel = self.param(
             "kernel",
             self.kernel_init,
-            (self.out_features, self.in_features, self.n_symm),
+            (self.features, in_features, self.n_symm),
             self.dtype,
         )
 
@@ -652,21 +625,25 @@ class DenseEquivariantMatrix(Module):
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
 
-        kernel = self.full_kernel(kernel)
+        # Converts the convolutional kernel of shape (features, in_features, n_symm)
+        # to a full dense kernel of shape (features, in_features, n_symm, n_symm)
+        # result[out, in, g, h] == kernel[out, in, g^{-1}h]
+        # input dimensions are [in, g], output dimensions are [out, h]
+        kernel = jnp.take(kernel, jnp.asarray(self.product_table), 2)
         kernel = jnp.asarray(kernel, dtype)
 
         x = lax.dot_general(
             x,
             kernel,
-            (((x.ndim - 1,), (0,)), ((), ())),
+            (((x.ndim - 2, x.ndim - 1), (1, 2)), ((), ())),
             precision=self.precision,
         )
 
-        x = x.reshape(-1, self.out_features, self.n_symm)
+        x = x.reshape(-1, self.features, self.n_symm)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
-            x += jnp.expand_dims(bias, (0, 2))
+            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
+            x += jnp.expand_dims(bias, 1)
 
         return x
 
@@ -677,13 +654,18 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
     equivariant with respect to the symmetry operations in the group and can
     be averaged to produce an invariant model.
 
+    This layer maps an input of shape `(..., in_features, n_sites)` to an
+    output of shape `(..., features, num_symm)`.
+
     Note: The output shape has changed to seperate the feature and symmetry
     dimensions. The previous shape was [num_samples, num_symm*features] and
-    the new shape is [num_samples, num_symm, features]
+    the new shape is [num_samples, features, num_symm]
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
-            nk.graph.Graph, a nk.utils.PermuationGroup, or an array [n_symm, n_sites]
+            :ref:`netket.graph.Graph`, a :ref:`netket.utils.group.PermutationGroup`, or an array
+            of shape :code:`(n_symm, n_sites)`. A :ref:`netket.utils.HashableArray` may also
+            be passed.
             specifying the permutations corresponding to symmetry transformations
             of the lattice.
         point_group: The point group, from which the space group is built.
@@ -692,8 +674,8 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
             transform, matrix multiplication, or to choose a sensible default
             based on the symmetry group.
         shape: A tuple specifying the dimensions of the translation group.
-        features: The number of symmetry-reduced features. The full output size
-            is [n_symm,features].
+        features: The number of output features. The full output shape
+            is [n_batch,features,n_symm].
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
             that can be used to give the kernel a particular shape.
@@ -703,7 +685,6 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.
         bias_init: Optional bias initialization function. Defaults to zero initialization.
     """
-
     if isinstance(symmetries, Lattice) and (
         point_group is not None or symmetries._point_group is not None
     ):
@@ -718,12 +699,10 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
                 "in order to construct the space group"
             )
         sym = HashableArray(np.asarray(symmetries.automorphisms()))
-    elif isinstance(symmetries, PermutationGroup) or hasattr(symmetries, "__len__"):
-        sym = HashableArray(np.asarray(symmetries))
+    elif isinstance(symmetries, HashableArray):
+        sym = symmetries
     else:
-        raise ValueError(
-            "Symmetries must be specified as a Graph, PermutationGroup or Array"
-        )
+        sym = HashableArray(np.asarray(symmetries))
 
     if mode == "fft":
         if shape is None:
@@ -742,11 +721,19 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
         )
 
 
-def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kwargs):
+def DenseEquivariant(
+    symmetries,
+    features: int = None,
+    mode="auto",
+    shape=None,
+    point_group=None,
+    in_features=None,
+    **kwargs,
+):
     r"""A group convolution operation that is equivariant over a symmetry group.
 
     Acts on a feature map of symmetry poses of shape [num_samples, in_features, num_symm]
-    and returns a feature  map of poses of shape [num_samples, out_features, num_symm]
+    and returns a feature  map of poses of shape [num_samples, features, num_symm]
 
     G-convolutions are described in ` Cohen et. {\it al} <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
     and applied to quantum many-body problems in ` Roth et. {\it al} <https://arxiv.org/pdf/2104.05085.pdf>`_
@@ -760,6 +747,9 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
     Group elements that differ by the same symmetry operation (i.e. :math:`g = xh`
     and :math:`g' = xh'`) are connected by the same filter.
 
+    This layer maps an input of shape `(..., in_features, n_sites)` to an
+    output of shape `(..., features, num_symm)`.
+
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
             nk.graph.Graph, an nk.utils.PermuationGroup, a list of irreducible
@@ -770,10 +760,8 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
             fourier transform over the translation group, a fourier transform using
             the irreducible representations or by constructing the full kernel matrix.
         shape: A tuple specifying the dimensions of the translation group.
-        in_features: The number of symmetry-reduced features. The full input size
-            is n_symm*in_features.
-        out_features: The number of symmetry-reduced features. The full output size
-            is n_symm*out_features.
+        features: The number of output features. The full output shape
+            is [n_batch,features,n_symm].
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
             that can be used to give the kernel a particular shape.
@@ -783,6 +771,29 @@ def DenseEquivariant(symmetries, mode="auto", shape=None, point_group=None, **kw
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.
         bias_init: Optional bias initialization function. Defaults to zero initialization.
     """
+    # deprecate in_features
+    if in_features is not None:
+        warn_deprecation(
+            (
+                "`in_features` is now automatically detected from the input and deprecated."
+                "Please remove it when calling `DenseEquivariant`."
+            )
+        )
+    if "out_features" in kwargs:
+        warn_deprecation(
+            "`out_features` has been renamed to `features` and the old name is "
+            "now deprecated. Please update your code."
+        )
+        if features is not None:
+            raise ValueError(
+                "You must only specify `features`. `out_features` is deprecated."
+            )
+        features = kwargs.pop("out_features")
+
+    if features is None:
+        raise ValueError("`features` not specified (the number of output features).")
+
+    kwargs["features"] = features
 
     if isinstance(symmetries, Lattice) and (
         point_group is not None or symmetries._point_group is not None

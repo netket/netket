@@ -18,8 +18,8 @@ import flax
 from flax import linen as nn
 from jax import lax
 from jax import numpy as jnp
+from jax.nn.initializers import zeros
 
-from netket.nn.initializers import zeros
 from netket.nn.masked_linear import (
     MaskedConv1D,
     MaskedConv2D,

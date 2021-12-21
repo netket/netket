@@ -16,15 +16,29 @@ from typing import Optional, List, Union
 
 import numpy as np
 
-from .discrete_hilbert import DiscreteHilbert
+from .discrete_hilbert import DiscreteHilbert, _is_indexable
 
 
 # TODO: Make parametric class
 class TensorHilbert(DiscreteHilbert):
-    r"""Tensor product of several lattice sub-spaces.
+    r"""Tensor product of several Discrete sub-spaces, representing the space
 
-    In general you should not need to construcct this objecct directly, but
-    rather may get it when multiplying hilbert spaces.
+    In general you should not construct this object directly, but you should
+    simply multiply different hilbert spaces together. In this case, Python's
+    `*` operator will be interpreted as a tensor product.
+
+    This Hilbert can be used as a replacement anywhere a Uniform Hilbert space
+    is not required.
+
+    Examples:
+        Couple a bosonic mode with spins
+
+        >>> from netket.hilbert import Spin, Fock
+        >>> Fock(3)*Spin(0.5, 5)
+        Fock(n_max=3, N=1)*Spin(s=1/2, N=5)
+        >>> type(_)
+        <class 'netket.hilbert.tensor_hilbert.TensorHilbert'>
+
     """
 
     def __init__(self, *hilb_spaces: DiscreteHilbert):
@@ -41,23 +55,24 @@ class TensorHilbert(DiscreteHilbert):
         )
 
         self._sizes = tuple([hi.size for hi in hilb_spaces])
+        shape = np.concatenate([hi.shape for hi in hilb_spaces])
         self._cum_sizes = np.cumsum(self._sizes)
         self._cum_indices = np.concatenate([[0], self._cum_sizes])
         self._size = sum(self._sizes)
-
-        self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
-        self._ns_states_r = np.flip(self._ns_states)
-        self._cum_ns_states = np.concatenate([[0], np.cumprod(self._ns_states)])
-        self._cum_ns_states_r = np.flip(
-            np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
-        )
-        self._n_states = np.prod(self._ns_states)
-
         self._delta_indices_i = np.array(
             [self._cum_indices[i] for i in self._hilbert_i]
         )
 
-        shape = np.concatenate([hi.shape for hi in hilb_spaces])
+        # pre-compute indexing data iff the tensor space is still indexable
+        if all(hi.is_indexable for hi in hilb_spaces) and _is_indexable(shape):
+            self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
+            self._ns_states_r = np.flip(self._ns_states)
+            self._cum_ns_states = np.concatenate([[0], np.cumprod(self._ns_states)])
+            self._cum_ns_states_r = np.flip(
+                np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
+            )
+            self._n_states = np.prod(self._ns_states)
+
         super().__init__(shape=shape)
 
     @property
@@ -89,6 +104,8 @@ class TensorHilbert(DiscreteHilbert):
 
     @property
     def n_states(self) -> int:
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
         return self._n_states
 
     def _numbers_to_states(self, numbers, out):

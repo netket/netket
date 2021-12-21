@@ -12,17 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numbers
 from typing import Union, List, Optional
-from netket.utils.types import DType, Array
+
+import functools
+import numbers
+import copy
+
 from textwrap import dedent
 
 import numpy as np
 from numba import jit
 
 from netket.hilbert import AbstractHilbert, Fock
+from netket.utils.types import DType, Array
 
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 from ._lazy import Transpose
 
 
@@ -50,7 +54,7 @@ def is_hermitian(a: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
 def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> DType:
     if isinstance(obj, numbers.Number):
         return type(obj)
-    elif isinstance(obj, AbstractOperator):
+    elif isinstance(obj, DiscreteOperator):
         return obj.dtype
     elif isinstance(obj, np.ndarray):
         return obj.dtype
@@ -154,7 +158,7 @@ def _reorder_kronecker_product(hi, mat, acting_on):
     state_to_number to perform the re-ordering.
     """
     acting_on_sorted = np.sort(acting_on)
-    if np.all(acting_on_sorted == acting_on):
+    if np.array_equal(acting_on_sorted, acting_on):
         return mat, acting_on
 
     # could write custom binary <-> int logic instead of using Fock...
@@ -189,7 +193,7 @@ def _reorder_kronecker_product(hi, mat, acting_on):
     return mat_sorted, acting_on_sorted
 
 
-class LocalOperator(AbstractOperator):
+class LocalOperator(DiscreteOperator):
     """A custom local operator. This is a sum of an arbitrary number of operators
     acting locally on a limited set of k quantum numbers (i.e. k-local,
     in the quantum information sense).
@@ -251,9 +255,9 @@ class LocalOperator(AbstractOperator):
 
         # If we asked for a specific dtype, enforce it.
         if dtype is None:
-            dtype = np.promote_types(operators[0].dtype, np.float32)
-            for op in operators[1:]:
-                np.promote_types(dtype, op.dtype)
+            dtype = functools.reduce(
+                lambda dt, op: np.promote_types(dt, op.dtype), operators, np.float32
+            )
 
         self._dtype = dtype
         self._init_zero()
@@ -293,9 +297,14 @@ class LocalOperator(AbstractOperator):
         return self._size
 
     @property
+    # A way to cache the property depending on modifications of self._operators is described here:
+    # https://stackoverflow.com/questions/48262273/python-bookkeeping-dependencies-in-cached-attributes-that-might-change
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
-        return self._is_hermitian
+        # TODO: (VolodyaCO) I guess that if we have an operator with diagonal elements equal to 1j*C+Y, some complex constant, and
+        # self._constant=-1j*C, then the actual diagonal would be Y. How do we check hermiticity taking into account the diagonal
+        # elements as well as the self._constant? For the moment I just check hermiticity of the added constant, which must be real.
+        return np.all(self._is_hermitian_op) and np.isreal(self._constant)
 
     @property
     def mel_cutoff(self) -> float:
@@ -372,7 +381,7 @@ class LocalOperator(AbstractOperator):
         return -1 * self
 
     def __mul__(self, other):
-        if isinstance(other, AbstractOperator):
+        if isinstance(other, DiscreteOperator):
             op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
             return op.__imatmul__(other)
         elif not isinstance(other, numbers.Number):
@@ -384,15 +393,16 @@ class LocalOperator(AbstractOperator):
         op._mels *= other
         op._constant *= other
 
-        for _op in op._operators:
+        for i, _op in enumerate(op._operators):
             _op *= other
+            op._is_hermitian_op[i] = is_hermitian(_op)
 
         op._nonzero_diagonal = has_nonzero_diagonal(op)
 
         return op
 
     def __imul__(self, other):
-        if isinstance(other, AbstractOperator):
+        if isinstance(other, DiscreteOperator):
             return self.__imatmul__(other)
         elif not isinstance(other, numbers.Number):
             return NotImplemented
@@ -406,8 +416,9 @@ class LocalOperator(AbstractOperator):
         self._mels *= other
         self._constant *= other
 
-        for _op in self._operators:
+        for i, _op in enumerate(self._operators):
             _op *= other
+            self._is_hermitian_op[i] = is_hermitian(_op)
 
         self._nonzero_diagonal = has_nonzero_diagonal(self)
 
@@ -492,7 +503,9 @@ class LocalOperator(AbstractOperator):
         self._local_states = np.zeros((0, 0, 0), dtype=np.float64)
 
         self._basis = np.zeros((0, 0), dtype=np.int64)
-        self._is_hermitian = True
+
+        # Array saving whether each operator is hermitian (plus one component to keep if self._constant is also hermitian).
+        self._is_hermitian_op = np.zeros((self._n_operators,), dtype=bool)
 
     def _acting_on_list(self):
         acting_on = []
@@ -533,7 +546,7 @@ class LocalOperator(AbstractOperator):
         # find overlapping support
         support_i = None
         for (i, support) in enumerate(self._acting_on_list()):
-            if np.all(acting_on == support):
+            if np.array_equal(acting_on, support):
                 support_i = i
                 break
 
@@ -542,6 +555,7 @@ class LocalOperator(AbstractOperator):
             dim = min(operator.shape[0], self._operators[support_i].shape[0])
             _opv = self._operators[support_i][:dim, :dim]
             _opv += operator[:dim, :dim]
+            self._is_hermitian_op[support_i] = is_hermitian(self._operators[support_i])
 
             n_local_states_per_site = np.asarray(
                 [self.hilbert.size_at_index(i) for i in acting_on]
@@ -558,12 +572,6 @@ class LocalOperator(AbstractOperator):
                 self.mel_cutoff,
                 n_local_states_per_site,
             )
-
-            isherm = True
-            for op in self._operators:
-                isherm = isherm and is_hermitian(op)
-
-            self._is_hermitian = isherm
             self._nonzero_diagonal = has_nonzero_diagonal(self)
         else:
             self.__add_new_operator__(operator, acting_on)
@@ -660,6 +668,12 @@ class LocalOperator(AbstractOperator):
         if acting_on.max() + 1 >= self._size:
             self._size = acting_on.max() + 1
 
+        self._is_hermitian_op = resize(
+            self._is_hermitian_op,
+            shape=(self.n_operators,),
+            init=is_hermitian(operator),
+        )
+
         self._append_matrix(
             operator,
             self._diag_mels[-1],
@@ -671,12 +685,6 @@ class LocalOperator(AbstractOperator):
             self.mel_cutoff,
             n_local_states_per_site,
         )
-
-        isherm = True
-        for op in self._operators:
-            isherm = isherm and is_hermitian(op)
-
-        self._is_hermitian = isherm
 
         self._nonzero_diagonal = has_nonzero_diagonal(self)
 
@@ -722,11 +730,11 @@ class LocalOperator(AbstractOperator):
 
             if act.size == act_i.size and np.array_equal(act, act_i):
                 # non-interesecting with same support
-                operators.append(np.copy(np.matmul(self._operators[i], op)))
+                operators.append(self._operators[i] @ op)
                 acting_on.append(act_i.tolist())
             elif inters.size == 0:
                 # disjoint supports
-                operators.append(np.copy(np.kron(self._operators[i], op)))
+                operators.append(np.kron(self._operators[i], op))
                 acting_on.append(act_i.tolist() + act.tolist())
             else:
                 _act = list(act)
@@ -763,14 +771,26 @@ class LocalOperator(AbstractOperator):
 
                 if len(_act) == len(_act_i) and np.array_equal(_act, _act_i):
                     # non-interesecting with same support
-                    operators.append(np.matmul(_op_i, _op))
+                    operators.append(_op_i @ _op)
                     acting_on.append(_act_i)
                 else:
                     raise ValueError("Something failed")
 
         return operators, acting_on
 
-    def copy(self, *, dtype: Optional = None):
+    def __deepcopy__(self, memo: dict) -> "LocalOperator":
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k != "_hilbert":
+                setattr(result, k, copy.deepcopy(v, memo))
+            else:
+                setattr(result, k, v)
+                memo[id(v)] = v
+        return result
+
+    def copy(self, *, dtype: Optional[DType] = None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
 
@@ -784,13 +804,12 @@ class LocalOperator(AbstractOperator):
         if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
 
-        return LocalOperator(
-            hilbert=self.hilbert,
-            operators=[np.copy(op) for op in self._operators],
-            acting_on=self._acting_on_list(),
-            constant=self._constant,
-            dtype=dtype,
-        )
+        new = copy.deepcopy(self)
+        new._diag_mels = new._diag_mels.astype(dtype)
+        new._mels = new._mels.astype(dtype)
+        new._operators = [op.astype(dtype) for op in new._operators]
+        new._dtype = dtype
+        return new
 
     def transpose(self, *, concrete=False):
         r"""LocalOperator: Returns the tranpose of this operator."""
@@ -976,12 +995,9 @@ class LocalOperator(AbstractOperator):
                 c += 1
 
             for i in range(n_operators):
+                if nonzero_diagonal:
+                    mels[c_diag] += diag_mels[i, xs_n[b, i]]
 
-                # Diagonal part
-                #  If nonzero_diagonal, this goes to c_diag = 0 ....
-                # if zero_diagonal this just sets the last element to 0
-                # so it's not worth it skipping it
-                mels[c_diag] += diag_mels[i, xs_n[b, i]]
                 n_conn_i = n_conns[i, xs_n[b, i]]
 
                 if n_conn_i > 0:

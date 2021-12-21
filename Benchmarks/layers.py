@@ -44,15 +44,10 @@ for L in [2, 4, 6, 8, 10]:
         symmetries=product_table,
         mode="fft",
         shape=graph.extent,
-        in_features=4,
-        out_features=4,
+        features=4,
     )
-    ma_irreps = DenseEquivariant(
-        symmetries=irreps, mode="irreps", in_features=4, out_features=4
-    )
-    ma_matrix = DenseEquivariant(
-        symmetries=product_table, mode="matrix", in_features=4, out_features=4
-    )
+    ma_irreps = DenseEquivariant(symmetries=irreps, mode="irreps", features=4)
+    ma_matrix = DenseEquivariant(symmetries=product_table, mode="matrix", features=4)
 
     dum_input = np.random.normal(0, 1, [1000, 4, len(sg)])
 

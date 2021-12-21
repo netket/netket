@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 from netket.hilbert import DoubledHilbert, AbstractHilbert
 
 
-class AbstractSuperOperator(AbstractOperator):
+class AbstractSuperOperator(DiscreteOperator):
     """
     Generic base class for super-operators acting on the tensor product (DoubledHilbert)
     space ℋ⊗ℋ, where ℋ is the physical space.
@@ -39,3 +39,6 @@ class AbstractSuperOperator(AbstractOperator):
     def hilbert_physical(self) -> AbstractHilbert:
         """The physical hilbert space on which this super-operator acts."""
         return self.hilbert.physical
+
+    def to_qobj(self) -> "qutip.Qobj":  # noqa: F821
+        raise NotImplementedError("Superoperator to Qobj not yet implemented")

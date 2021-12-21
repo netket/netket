@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from typing import Optional
-from functools import partial, wraps
-from netket.jax import compose
+from functools import partial
+from netket.jax import compose, vmap_chunked
 
 import jax
 import jax.flatten_util
@@ -22,7 +22,7 @@ import jax.numpy as jnp
 
 import numpy as np
 
-from netket.stats import subtract_mean
+from netket.stats import subtract_mean, sum
 from netket.utils import mpi
 
 from netket.utils.types import Array, Callable, PyTree, Scalar
@@ -50,8 +50,9 @@ def tree_subtract_mean(oks: PyTree) -> PyTree:
     return jax.tree_map(partial(subtract_mean, axis=0), oks)  # MPI
 
 
-@partial(jax.vmap, in_axes=(None, None, 0))
-def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
+def jacobian_real_holo(
+    forward_fn: Callable, params: PyTree, samples: Array, chunk_size: int = None
+) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→R or holomorphic C→C, so single grad is enough
 
@@ -63,14 +64,23 @@ def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> 
     Returns:
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
-    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
-    res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-    return res
+
+    def _jacobian_real_holo(forward_fn, params, samples):
+        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
+        res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+        return res
+
+    return vmap_chunked(
+        _jacobian_real_holo, in_axes=(None, None, 0), chunk_size=chunk_size
+    )(forward_fn, params, samples)
 
 
-@partial(jax.vmap, in_axes=(None, None, 0, None))
-def _jacobian_cplx(
-    forward_fn: Callable, params: PyTree, samples: Array, _build_fn: Callable
+def jacobian_cplx(
+    forward_fn: Callable,
+    params: PyTree,
+    samples: Array,
+    chunk_size: int = None,
+    _build_fn: Callable = partial(jax.tree_multimap, jax.lax.complex),
 ) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→C, backpropagates 1 and -1j
@@ -83,17 +93,16 @@ def _jacobian_cplx(
     Returns:
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
-    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
-    gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-    gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
-    return _build_fn(gr, gi)
 
+    def _jacobian_cplx(forward_fn, params, samples, _build_fn):
+        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
+        gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+        gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
+        return _build_fn(gr, gi)
 
-@partial(wraps(_jacobian_cplx))
-def jacobian_cplx(
-    forward_fn, params, samples, _build_fn=partial(jax.tree_multimap, jax.lax.complex)
-):
-    return _jacobian_cplx(forward_fn, params, samples, _build_fn)
+    return vmap_chunked(
+        _jacobian_cplx, in_axes=(None, None, 0, None), chunk_size=chunk_size
+    )(forward_fn, params, samples, _build_fn)
 
 
 centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
@@ -106,6 +115,18 @@ def _divide_by_sqrt_n_samp(oks, samples):
     """
     n_samp = samples.shape[0] * mpi.n_nodes  # MPI
     return jax.tree_map(lambda x: x / np.sqrt(n_samp), oks)
+
+
+def _multiply_by_pdf(oks, pdf):
+    """
+    Computes  O'ⱼ̨ₖ = Oⱼₖ pⱼ .
+    Used to multiply the log-derivatives by the probability density.
+    """
+
+    return jax.tree_map(
+        lambda x: jax.lax.broadcast_in_dim(pdf, x.shape, (0,)) * x,
+        oks,
+    )
 
 
 def stack_jacobian(centered_oks: PyTree) -> PyTree:
@@ -179,7 +200,7 @@ def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
 # here the other modes are converted
 
 
-@partial(jax.jit, static_argnums=(0, 4, 5))
+@partial(jax.jit, static_argnames=("apply_fun", "mode", "rescale_shift", "chunk_size"))
 def prepare_centered_oks(
     apply_fun: Callable,
     params: PyTree,
@@ -187,6 +208,8 @@ def prepare_centered_oks(
     model_state: Optional[PyTree],
     mode: str,
     rescale_shift: bool,
+    pdf=None,
+    chunk_size: int = None,
 ) -> PyTree:
     """
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
@@ -203,6 +226,8 @@ def prepare_centered_oks(
         model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
+        pdf: |ψ(x)|^2 if exact optimization is being used else None
+        chunk_size: an int specfying the size of the chunks the gradient should be computed in (default: None)
 
     Returns:
         if not rescale_shift:
@@ -223,6 +248,7 @@ def prepare_centered_oks(
     if mode == "real":
         split_complex_params = True  # convert C→R and R&C→R to R→R
         centered_jacobian_fun = centered_jacobian_real_holo
+        jacobian_fun = jacobian_real_holo
     elif mode == "complex":
         split_complex_params = True  # convert C→C and R&C→C to R→C
         # centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
@@ -233,9 +259,11 @@ def prepare_centered_oks(
             stack_jacobian_tuple,
             partial(centered_jacobian_cplx, _build_fn=lambda *x: x),
         )
+        jacobian_fun = jacobian_cplx
     elif mode == "holomorphic":
         split_complex_params = False
         centered_jacobian_fun = centered_jacobian_real_holo
+        jacobian_fun = jacobian_real_holo
     else:
         raise NotImplementedError(
             'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
@@ -253,14 +281,22 @@ def prepare_centered_oks(
     else:
         f = forward_fn
 
-    centered_oks = _divide_by_sqrt_n_samp(
-        centered_jacobian_fun(
-            f,
-            params,
+    if pdf is None:
+        centered_oks = _divide_by_sqrt_n_samp(
+            centered_jacobian_fun(
+                f,
+                params,
+                samples,
+                chunk_size=chunk_size,
+            ),
             samples,
-        ),
-        samples,
-    )
+        )
+    else:
+        oks = jacobian_fun(f, params, samples)
+        oks_mean = jax.tree_map(partial(sum, axis=0), _multiply_by_pdf(oks, pdf))
+        centered_oks = jax.tree_multimap(lambda x, y: x - y, oks, oks_mean)
+
+        centered_oks = _multiply_by_pdf(centered_oks, jnp.sqrt(pdf))
     if rescale_shift:
         return _rescale(centered_oks)
     else:

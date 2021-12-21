@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from netket.utils import HashablePartial
+
 from .utils import (
     tree_ravel,
     is_complex,
@@ -29,7 +31,6 @@ from .utils import (
     tree_axpy,
     tree_to_real,
     compose,
-    HashablePartial,
     mpi_split,
     PRNGKey,
     PRNGSeq,
@@ -40,7 +41,10 @@ from ._grad import grad, value_and_grad
 
 from ._expect import expect
 
-from .numba4jax import numba_to_jax, njit4jax
+from ._chunk_utils import chunk, unchunk
+from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap
+from ._vjp_chunked import vjp_chunked
+from ._vmap_chunked import vmap_chunked
 
 from netket.utils import _hide_submodules
 

@@ -20,6 +20,7 @@ from .gaussian import Gaussian
 from .ndm import NDM
 from .autoreg import AbstractARNN, ARNNDense, ARNNConv1D, ARNNConv2D
 from .fast_autoreg import FastARNNDense, FastARNNConv1D, FastARNNConv2D
+from .utils import update_GCNN_parity
 
 from netket.utils import _hide_submodules
 

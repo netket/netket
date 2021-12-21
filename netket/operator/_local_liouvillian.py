@@ -21,7 +21,7 @@ from numba.typed import List
 
 from scipy.sparse.linalg import LinearOperator
 
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 from ._abstract_super_operator import AbstractSuperOperator
 
@@ -63,8 +63,8 @@ class LocalLiouvillian(AbstractSuperOperator):
 
     def __init__(
         self,
-        ham: AbstractOperator,
-        jump_ops: PyList[AbstractOperator] = [],
+        ham: DiscreteOperator,
+        jump_ops: PyList[DiscreteOperator] = [],
         dtype=complex,
     ):
         super().__init__(ham.hilbert)
@@ -441,3 +441,15 @@ class LocalLiouvillian(AbstractSuperOperator):
         L = LinearOperator((op_size, op_size), matvec=matvec, dtype=iHnh.dtype)
 
         return L
+
+    def to_qobj(self) -> "qutip.liouvillian":  # noqa: F821
+        r"""Convert the operator to a qutip's liouvillian Qobj.
+
+        Returns:
+            A `qutip.liouvillian` object.
+        """
+        from qutip import liouvillian
+
+        return liouvillian(
+            self.hamiltonian.to_qobj(), [op.to_qobj() for op in self.jump_operators]
+        )

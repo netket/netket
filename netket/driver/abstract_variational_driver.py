@@ -139,7 +139,8 @@ class AbstractVariationalDriver(abc.ABC):
     @optimizer.setter
     def optimizer(self, optimizer):
         self._optimizer = optimizer
-        self._optimizer_state = optimizer.init(self.state.parameters)
+        if optimizer is not None:
+            self._optimizer_state = optimizer.init(self.state.parameters)
 
     @property
     def step_count(self):
