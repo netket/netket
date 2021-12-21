@@ -235,6 +235,9 @@ def BCC(
              This parameter can also be a list of booleans with same length as
              the parameter `length`, in which case each dimension will have
              PBC/OBC depending on the corresponding entry of `pbc`.
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
+
 
     Example:
         Construct a BCC lattice with 3×3×3 primitive unit cells:
@@ -267,6 +270,9 @@ def FCC(
              This parameter can also be a list of booleans with same length as
              the parameter `length`, in which case each dimension will have
              PBC/OBC depending on the corresponding entry of `pbc`.
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
+
 
     Example:
         Construct an FCC lattice with 3×3×3 primitive unit cells:
@@ -301,6 +307,9 @@ def Diamond(
              This parameter can also be a list of booleans with same length as
              the parameter `length`, in which case each dimension will have
              PBC/OBC depending on the corresponding entry of `pbc`.
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
+
 
     Example:
         Construct a diamond lattice with 3×3×3 primitive unit cells:
@@ -341,6 +350,9 @@ def Pyrochlore(
             This parameter can also be a list of booleans with same length as
             the parameter `length`, in which case each dimension will have
             PBC/OBC depending on the corresponding entry of `pbc`.
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
+
 
     Example:
         Construct a pyrochlore lattice with 3×3×3 primitive unit cells:
@@ -393,6 +405,9 @@ def Triangular(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> 
              This parameter can also be a list of booleans with same length as
              the parameter `length`, in which case each dimension will have
              PBC/OBC depending on the corresponding entry of `pbc`.
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
+
 
     Example:
         Construct a triangular lattice with 3 × 3 unit cells:
@@ -418,6 +433,9 @@ def Honeycomb(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> L
              This parameter can also be a list of booleans with same length as
              the parameter `length`, in which case each dimension will have
              PBC/OBC depending on the corresponding entry of `pbc`.
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
+
 
     Example:
         Construct a honeycomb lattice with 3 × 3 unit cells:
@@ -448,6 +466,9 @@ def Kagome(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> Latt
              This parameter can also be a list of booleans with same length as
              the parameter `length`, in which case each dimension will have
              PBC/OBC depending on the corresponding entry of `pbc`.
+        kwargs: Additional keyword arguments are passed on to the constructor of
+            :ref:`netket.graph.Lattice`.
+
 
     Example:
         Construct a kagome lattice with 3 × 3 unit cells:
