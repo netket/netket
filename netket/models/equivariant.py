@@ -113,7 +113,8 @@ class GCNN_FFT(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        x = jnp.expand_dims(x, -2)  # add a feature dimension
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)  # add a feature dimension
         x = self.dense_symm(x)
 
         for layer in range(self.layers - 1):
@@ -218,7 +219,8 @@ class GCNN_Irrep(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        x = jnp.expand_dims(x, -2)  # add a feature dimension
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)  # add a feature dimension
         x = self.dense_symm(x)
 
         for layer in range(self.layers - 1):
@@ -341,7 +343,8 @@ class GCNN_Parity_FFT(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        x = jnp.expand_dims(x, -2)  # add a feature dimension
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)  # add a feature dimension
 
         x_flip = self.dense_symm(-1 * x)
         x = self.dense_symm(x)
@@ -506,7 +509,8 @@ class GCNN_Parity_Irrep(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        x = jnp.expand_dims(x, -2)  # add a feature dimension
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)  # add a feature dimension
 
         x_flip = self.dense_symm(-1 * x)
         x = self.dense_symm(x)

@@ -229,7 +229,9 @@ class RBMSymm(nn.Module):
 
     @nn.compact
     def __call__(self, x_in):
-        x = jnp.expand_dims(x_in, -2)
+        x = x_in
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)
         x = nknn.DenseSymm(
             name="Dense",
             mode="matrix",
