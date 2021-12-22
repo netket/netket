@@ -1,0 +1,13 @@
+:root {
+    --pst-color-navbar-link: 255, 255, 255;
+    --pst-color-navbar-link-hover: 24, 188, 156;
+    --pst-color-navbar-link-active: 24, 188, 156;
+}
+
+#navbar-main {
+    background-color: #2f4858 !important;
+}
+
+.navbar .fa-external-link-alt {
+    visibility: hidden !important;
+}

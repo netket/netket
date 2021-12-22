@@ -1,5 +1,5 @@
-NetKet reference documentation
-==============================
+Documentation
+=============
 
 JAX is Autograd_ and XLA_, brought together for high-performance numerical computing and machine learning research.
 It provides composable transformations of Python+NumPy programs: differentiate, vectorize,

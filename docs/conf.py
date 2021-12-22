@@ -86,6 +86,12 @@ html_theme = "pydata_sphinx_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+
+html_css_files = [
+    "css/custom.css",
+]
+
+
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
@@ -104,20 +110,23 @@ html_logo = "_static/logonav.png"
 # theme further.
 html_theme_options = {
     "logo_link": "index",
-
-    "external_links": [
-        {"url": "https://pandas.pydata.org/pandas-docs/stable/", "name": "Pandas Docs"}
-    ],
-    #"navbar_start": ["navbar-logo"],
-    #"navbar_center": ["navbar-nav"],
+    # "navbar_start": ["navbar-logo"],
+    # "navbar_center": ["navbar-nav"],
     "navbar_end": ["navbar-icon-links"],
-
-    "github_url": "https://github.com/pydata/pydata-sphinx-theme",
-    "twitter_url": "https://twitter.com/pandas_dev",
-
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/netket/netket",
+            "icon": "fab fa-github",
+        },
+        {
+            "name": "Twitter",
+            "url": "https://twitter.com/NetKetOrg",
+            "icon": "fab fa-twitter",
+        },
+    ],
     "show_toc_level": 1,
     "show_nav_level": 2,
-
     # Fix navigation bar to top of page?
     # Values: "true" (default) or "false"
     "navbar_fixed_top": "true",
@@ -125,7 +134,6 @@ html_theme_options = {
     # Options are "nav" (default), "footer" or anything else to exclude.
     "source_link_position": "none",
 }
-
 
 
 # do not show __init__ if it does not have a docstring
