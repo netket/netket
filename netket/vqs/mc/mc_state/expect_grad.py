@@ -85,9 +85,9 @@ def expect_and_grad(  # noqa: F811
     local_estimator_fun = get_local_kernel(vstate, Ô)
 
     Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
-        vstate.sampler.machine_pow,
-        vstate._apply_fun,
         local_estimator_fun,
+        vstate._apply_fun,
+        vstate.sampler.machine_pow,
         mutable,
         vstate.parameters,
         vstate.model_state,
@@ -154,17 +154,16 @@ def grad_expect_hermitian(
     return Ō, jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
 
 
-@partial(jax.jit, static_argnums=(1, 2, 3))
+@partial(jax.jit, static_argnums=(0, 1, 2, 3))
 def grad_expect_operator_kernel(
-    machine_pow: int,
+    local_value_kernel: Callable,
     model_apply_fun: Callable,
-    local_kernel: Callable,
+    machine_pow: int,
     mutable: bool,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
-    σp: jnp.ndarray,
-    mels: jnp.ndarray,
+    local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree, Stats]:
 
     if not config.FLAGS["NETKET_EXPERIMENTAL"]:
@@ -183,43 +182,33 @@ def grad_expect_operator_kernel(
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    if jnp.ndim(σp) != 3:
-        σp = σp.reshape((σ.shape[0], -1, σ_shape[-1]))
-        mels = mels.reshape(σp.shape[:-1])
+    is_mutable = mutable is not False
 
-    has_aux = mutable is not False
-    # if not has_aux:
-    #    out_axes = (0, 0)
-    # else:
-    #    out_axes = (0, 0, 0)
-
-    if not has_aux:
-        logpsi = lambda w, σ: model_apply_fun({"params": w, **model_state}, σ)
-    else:
-        # TODO: output the mutable state
-        logpsi = lambda w, σ: model_apply_fun(
-            {"params": w, **model_state}, σ, mutable=mutable
-        )[0]
+    logpsi = lambda w, σ: model_apply_fun(
+        {"params": w, **model_state}, σ, mutable=mutable
+    )
 
     log_pdf = (
         lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
     )
 
-    def expect_closure(*args):
-        local_kernel_vmap = jax.vmap(
-            partial(local_kernel, logpsi), in_axes=(None, 0, 0, 0), out_axes=0
+    def expect_closure_pars(pars):
+        return nkjax.expect(
+            log_pdf,
+            partial(local_value_kernel, logpsi),
+            pars,
+            σ,
+            local_value_args,
+            n_chains=σ_shape[0],
         )
 
-        return nkjax.expect(log_pdf, local_kernel_vmap, *args, n_chains=σ_shape[0])
-
-    def expect_closure_pars(pars):
-        return expect_closure(pars, σ, σp, mels)
-
     Ō, Ō_pb, Ō_stats = nkjax.vjp(expect_closure_pars, parameters, has_aux=True)
-    Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))
+    Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))[0]
+
+    new_model_state = new_model_state[0] if is_mutable else None
 
     return (
         Ō_stats,
         jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad),
-        model_state,
+        new_model_state,
     )
