@@ -183,11 +183,9 @@ def grad_expect_operator_kernel(
         σ = σ.reshape((-1, σ_shape[-1]))
 
     is_mutable = mutable is not False
-
     logpsi = lambda w, σ: model_apply_fun(
         {"params": w, **model_state}, σ, mutable=mutable
     )
-
     log_pdf = (
         lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
     )
@@ -205,7 +203,12 @@ def grad_expect_operator_kernel(
     Ō, Ō_pb, Ō_stats = nkjax.vjp(expect_closure_pars, parameters, has_aux=True)
     Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))[0]
 
-    new_model_state = new_model_state[0] if is_mutable else None
+    if is_mutable:
+        raise NotImplementedError(
+            "gradient of non-hermitian operators over mutable models "
+            "is not yet implemented."
+        )
+    new_model_state = None
 
     return (
         Ō_stats,
