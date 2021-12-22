@@ -10,5 +10,6 @@ sphinx_reredirects
 nbsphinx==0.8.7
 jaxlib>=0.1.59
 sphinx_panels>=0.5.2
+pydata-sphinx-theme==0.7.2
 -e .
 -e docs/custom_inheritance_diagram

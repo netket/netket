@@ -79,25 +79,12 @@ mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "bootstrap"
-html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
+html_theme = "pydata_sphinx_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-
-# html_js_files = ["https://kit.fontawesome.com/7c145f31db.js"]
-html_css_files = [
-    "jumbo-style.css",
-    "css/all.min.css",
-    "css/custom.css",
-    "css/rtd_theme.css",
-]
-
-html_js_files = [
-    "js/rtd_theme.js",
-]
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
@@ -116,87 +103,29 @@ html_logo = "_static/logonav.png"
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.
 html_theme_options = {
-    # Navigation bar title. (Default: ``project`` value)
-    "navbar_title": "NetKet",
-    # Tab name for entire site. (Default: "Site")
-    "navbar_site_name": "Site",
-    # A list of tuples containing pages or urls to link to.
-    # Valid tuples should be in the following forms:
-    #    (name, page)                 # a link to a page
-    #    (name, "/aa/bb", 1)          # a link to an arbitrary relative url
-    #    (name, "http://example.com", True) # arbitrary absolute url
-    # Note the "1" or "True" value above as the third argument to indicate
-    # an arbitrary url.
-    "navbar_links": [
-        ("Get Started", "getting_started"),
-        ("Documentation", "docs/getting_started"),
-        ("Tutorials", "tutorials"),
-        ("Citing NetKet", "citing"),
-        ("About", "about"),
-        (
-            '<i class="fab fa-github" aria-hidden="true"></i>',
-            "https://github.com/netket/netket",
-            True,
-        ),
-        (
-            '<i class="fab fa-twitter" aria-hidden="true"></i>',
-            "https://twitter.com/NetKetOrg",
-            True,
-        ),
+    "logo_link": "index",
+
+    "external_links": [
+        {"url": "https://pandas.pydata.org/pandas-docs/stable/", "name": "Pandas Docs"}
     ],
-    # Render the next and previous page links in navbar. (Default: true)
-    "navbar_sidebarrel": False,
-    # Render the current pages TOC in the navbar. (Default: true)
-    "navbar_pagenav": False,
-    # Tab name for the current pages TOC. (Default: "Page")
-    "navbar_pagenav_name": "Page",
-    # Global TOC depth for "site" navbar tab. (Default: 1)
-    # Switching to -1 shows all levels.
-    "globaltoc_depth": 10,
-    # Include hidden TOCs in Site navbar?
-    #
-    # Note: If this is "false", you cannot have mixed ``:hidden:`` and
-    # non-hidden ``toctree`` directives in the same page, or else the build
-    # will break.
-    #
-    # Values: "true" (default) or "false"
-    "globaltoc_includehidden": "false",
-    # HTML navbar class (Default: "navbar") to attach to <div> element.
-    # For black navbar, do "navbar navbar-inverse"
-    "navbar_class": "navbar",
+    #"navbar_start": ["navbar-logo"],
+    #"navbar_center": ["navbar-nav"],
+    "navbar_end": ["navbar-icon-links"],
+
+    "github_url": "https://github.com/pydata/pydata-sphinx-theme",
+    "twitter_url": "https://twitter.com/pandas_dev",
+
+    "show_toc_level": 1,
+    "show_nav_level": 2,
+
     # Fix navigation bar to top of page?
     # Values: "true" (default) or "false"
     "navbar_fixed_top": "true",
     # Location of link to source.
     # Options are "nav" (default), "footer" or anything else to exclude.
     "source_link_position": "none",
-    # Bootswatch (http://bootswatch.com/) theme.
-    #
-    # Options are nothing (default) or the name of a valid theme
-    # such as "cosmo" or "sandstone".
-    #
-    # The set of valid themes depend on the version of Bootstrap
-    # that's used (the next config option).
-    #
-    # Currently, the supported themes are:
-    # - Bootstrap 2: https://bootswatch.com/2
-    # - Bootstrap 3: https://bootswatch.com/3
-    "bootswatch_theme": "flatly",
-    # Choose Bootstrap version.
-    # Values: "3" (default) or "2" (in quotes)
-    "bootstrap_version": "3",
 }
 
-html_sidebars = {
-    "docs/*": ["custom_localtoc.html"],
-    "docs/_generated/**/*": ["custom_localtoc.html"],
-    "modules/*": ["custom_localtoc.html"],
-}
-
-## redirects
-redirects = {
-    "documentation": "docs/getting_started.html",
-}
 
 
 # do not show __init__ if it does not have a docstring
