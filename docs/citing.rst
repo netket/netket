@@ -12,7 +12,7 @@ NetKet
 ------
 
 If you find the NetKet project useful for your research, please consider citing our relevant software papers
-in order to help us to continue devoting time and ressources to NetKet development.
+in order to help us to continue devoting time and resources to NetKet development.
 
 The current version of NetKet 3.x is described in our recent preprint `arXiv:2112.10526 <https://arxiv.org/abs/2112.10526>`_.
 
