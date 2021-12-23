@@ -33,8 +33,11 @@ from netket.nn.symmetric_linear import (
     DenseSymmFFT,
     DenseEquivariantFFT,
     DenseEquivariantIrrep,
-    default_gcnn_initializer,
 )
+
+# Same as netket.nn.symmetric_linear.default_equivariant_initializer
+# All GCNN layers have kernels of shape [out_features, in_features, n_symm]
+default_gcnn_initializer = lecun_normal(in_axis=1, out_axis=0)
 
 
 def identity(x):

@@ -31,7 +31,12 @@ from netket.graph import Graph, Lattice
 import warnings
 
 # All layers defined here have kernels of shape [out_features, in_features, n_symm]
-default_gcnn_initializer = lecun_normal(in_axis=1, out_axis=0)
+default_equivariant_initializer = lecun_normal(in_axis=1, out_axis=0)
+
+
+def _normalise_mask(mask, new_norm):
+    mask = jnp.asarray(mask)
+    return mask / jnp.linalg.norm(mask) * new_norm ** 0.5
 
 
 def symm_input_warning(x_shape, new_x_shape, name):
@@ -65,7 +70,7 @@ class DenseSymmMatrix(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = default_gcnn_initializer
+    kernel_init: NNInitFunc = default_equivariant_initializer
     """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization."""
@@ -74,9 +79,7 @@ class DenseSymmMatrix(Module):
         # pylint: disable=attribute-defined-outside-init
         self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
         if self.mask is not None:
-            self.scaled_mask = (
-                self.mask / jnp.linalg.norm(self.mask) * self.n_sites ** 0.5
-            )
+            self.scaled_mask = _normalise_mask(self.mask, self.n_sites)
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -158,7 +161,7 @@ class DenseSymmFFT(Module):
     """The dtype of the weights."""
     precision: Any = None
 
-    kernel_init: NNInitFunc = default_gcnn_initializer
+    kernel_init: NNInitFunc = default_equivariant_initializer
     """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization."""
@@ -171,9 +174,7 @@ class DenseSymmFFT(Module):
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
         if self.mask is not None:
-            self.scaled_mask = (
-                self.mask / jnp.linalg.norm(self.mask) * sg.shape[1] ** 0.5
-            )
+            self.scaled_mask = _normalise_mask(self.mask, sg.shape[1])
 
         # maps (n_sites) dimension of kernels to (sites_per_cell, n_point, *shape)
         # as used in FFT-based group convolution
@@ -276,7 +277,7 @@ class DenseEquivariantFFT(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = default_gcnn_initializer
+    kernel_init: NNInitFunc = default_equivariant_initializer
     """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization."""
@@ -288,7 +289,7 @@ class DenseEquivariantFFT(Module):
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
         if self.mask is not None:
-            self.scaled_mask = self.mask / jnp.linalg.norm(self.mask) * len(pt) ** 0.5
+            self.scaled_mask = _normalise_mask(self.mask, len(pt))
 
         # maps (n_sites) dimension of kernels to (n_point, n_point, *shape)
         # as used in FFT-based group convolution
@@ -399,7 +400,7 @@ class DenseEquivariantIrrep(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = default_gcnn_initializer
+    kernel_init: NNInitFunc = default_equivariant_initializer
     """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization."""
@@ -407,9 +408,7 @@ class DenseEquivariantIrrep(Module):
     def setup(self):
         self.n_symm = self.irreps[0].shape[0]
         if self.mask is not None:
-            self.scaled_mask = (
-                self.mask / jnp.linalg.norm(self.mask) * self.n_symm ** 0.5
-            )
+            self.scaled_mask = _normalise_mask(self.mask, self.n_symm)
 
         self.forward = jnp.concatenate(
             [jnp.asarray(irrep).reshape(self.n_symm, -1) for irrep in self.irreps],
@@ -551,7 +550,7 @@ class DenseEquivariantMatrix(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = default_gcnn_initializer
+    kernel_init: NNInitFunc = default_equivariant_initializer
     """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
     """Initializer for the bias. Defaults to zero initialization."""
@@ -559,9 +558,7 @@ class DenseEquivariantMatrix(Module):
     def setup(self):
         self.n_symm = np.asarray(self.product_table).shape[0]
         if self.mask is not None:
-            self.scaled_mask = (
-                self.mask / jnp.linalg.norm(self.mask) * self.n_symm ** 0.5
-            )
+            self.scaled_mask = _normalise_mask(self.mask, self.n_symm)
 
     @compact
     def __call__(self, x: Array) -> Array:
