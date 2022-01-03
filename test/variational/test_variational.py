@@ -364,6 +364,13 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
+# Have a different test because the above is marked as xfail.
+# This only checks that the code runs.
+def test_expect_grad_nonhermitian_works(vstate):
+    op = nk.operator.spin.sigmap(vstate.hilbert, 0)
+    O_stat, O_grad = vstate.expect_and_grad(op)
+
+
 @common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",

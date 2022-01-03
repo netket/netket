@@ -16,6 +16,7 @@
 
 ### Bug Fixes
 * Initialisation of all implementations of `DenseSymm`, `DenseEquivariant`, `GCNN` now defaults to truncated normals with Lecun variance scaling. For layers without masking, there should be no noticeable change in behaviour. For masked layers, the same variance scaling now works correctly. [#1045](https://github.com/netket/netket/pull/1045)
+* Fix bug that prevented gradients of non-hermitian operators to be computed. The feature is still marked as experimental but will now run (we do not guarantee that results are correct). [#1045](https://github.com/netket/netket/pull/1045)
 
 
 ## NetKet 3.3 (🎁 20 December 2021)
