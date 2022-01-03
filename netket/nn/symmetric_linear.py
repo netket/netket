@@ -20,10 +20,9 @@ from jax import lax
 import jax.numpy as jnp
 import numpy as np
 import jax
-from jax.nn.initializers import normal, zeros, lecun_normal, variance_scaling
+from jax.nn.initializers import zeros, lecun_normal
 
 from netket.utils import warn_deprecation
-from netket.nn.initializers import _complex_truncated_normal
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
 from netket.utils.group import PermutationGroup
@@ -31,47 +30,13 @@ from typing import Sequence
 from netket.graph import Graph, Lattice
 import warnings
 
-
-class _default_densesymm_initializer:
-    pass
-
-
-default_densesymm_initializer = _default_densesymm_initializer()
-"""
-Sentinel value to signal the default densesymm initializer.
-"""
+# All layers defined here have kernels of shape [out_features, in_features, n_symm]
+default_equivariant_initializer = lecun_normal(in_axis=1, out_axis=0)
 
 
-def get_default_densesymm_init(real_input_size, *, scale=1):
-    """
-    Returns a kernel init equivalent to lecun_normal but
-    whose scale depends on the number of physical degrees of freedom of the
-    layer.
-
-    This is the correct initialization to have in order to guarantee variance
-    1 of every output channel.
-    """
-
-    def init(key, shape, dtype):
-        shape = jax.core.as_named_shape(shape)
-
-        variance = jnp.array(scale / real_input_size, dtype=dtype)
-
-        if jnp.issubdtype(dtype, jnp.floating):
-            # constant is stddev of standard normal truncated to (-2, 2)
-            stddev = jnp.sqrt(variance) / 0.87962566103423978
-            return jax.random.truncated_normal(key, -2, 2, shape, dtype) * stddev
-        else:
-            stddev = jnp.sqrt(variance) / 0.95311164380491208
-            return _complex_truncated_normal(key, 2, shape, dtype) * stddev
-
-    return init
-
-
-def unit_normal_scaling(key, shape, dtype):
-    return jax.random.normal(key, shape, dtype) / jnp.sqrt(
-        jnp.prod(jnp.asarray(shape[1:]))
-    )
+def _normalise_mask(mask, new_norm):
+    mask = jnp.asarray(mask)
+    return mask / jnp.linalg.norm(mask) * new_norm ** 0.5
 
 
 def symm_input_warning(x_shape, new_x_shape, name):
@@ -105,14 +70,16 @@ class DenseSymmMatrix(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = default_densesymm_initializer
-    """Initializer for the Dense layer matrix. Defaults to variance scaling"""
+    kernel_init: NNInitFunc = default_equivariant_initializer
+    """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the bias. Defaults to zero initialization"""
+    """Initializer for the bias. Defaults to zero initialization."""
 
     def setup(self):
         # pylint: disable=attribute-defined-outside-init
         self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
+        if self.mask is not None:
+            self.scaled_mask = _normalise_mask(self.mask, self.n_sites)
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -139,21 +106,15 @@ class DenseSymmMatrix(Module):
 
         in_features = x.shape[1]
 
-        # generate the default kernel init if necessary
-        kernel_init = (
-            get_default_densesymm_init(x.shape[-1])
-            if self.kernel_init is default_densesymm_initializer
-            else self.kernel_init
-        )
         kernel = self.param(
             "kernel",
-            kernel_init,
+            self.kernel_init,
             (self.features, in_features, self.n_sites),
             self.dtype,
         )
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         # Converts the convolutional kernel of shape (self.features, in_features, n_sites)
         # to a full dense kernel of shape (self.features, in_features, n_symm, n_sites).
@@ -200,10 +161,10 @@ class DenseSymmFFT(Module):
     """The dtype of the weights."""
     precision: Any = None
 
-    kernel_init: NNInitFunc = lecun_normal()
-    """Initializer for the Dense layer matrix. Defaults to variance scaling"""
+    kernel_init: NNInitFunc = default_equivariant_initializer
+    """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the bias. Defaults to zero initialization"""
+    """Initializer for the bias. Defaults to zero initialization."""
 
     def setup(self):
         sg = np.asarray(self.space_group)
@@ -211,6 +172,9 @@ class DenseSymmFFT(Module):
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(sg) // self.n_cells
         self.sites_per_cell = sg.shape[1] // self.n_cells
+
+        if self.mask is not None:
+            self.scaled_mask = _normalise_mask(self.mask, sg.shape[1])
 
         # maps (n_sites) dimension of kernels to (sites_per_cell, n_point, *shape)
         # as used in FFT-based group convolution
@@ -246,15 +210,9 @@ class DenseSymmFFT(Module):
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
-        # generate the default kernel init if necessary
-        kernel_init = (
-            get_default_densesymm_init(self.n_cells * self.sites_per_cell * in_features)
-            if self.kernel_init is default_densesymm_initializer
-            else self.kernel_init
-        )
         kernel = self.param(
             "kernel",
-            kernel_init,
+            self.kernel_init,
             (self.features, in_features, self.n_cells * self.sites_per_cell),
             self.dtype,
         )
@@ -262,7 +220,7 @@ class DenseSymmFFT(Module):
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         # Converts the convolutional kernel of shape (features, in_features, n_sites)
         # to the expanded kernel of shape (features, in_features, sites_per_cell,
@@ -319,10 +277,10 @@ class DenseEquivariantFFT(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix. Defaults to variance scaling"""
+    kernel_init: NNInitFunc = default_equivariant_initializer
+    """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the bias. Defaults to zero initialization"""
+    """Initializer for the bias. Defaults to zero initialization."""
 
     def setup(self):
 
@@ -330,6 +288,8 @@ class DenseEquivariantFFT(Module):
 
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
+        if self.mask is not None:
+            self.scaled_mask = _normalise_mask(self.mask, len(pt))
 
         # maps (n_sites) dimension of kernels to (n_point, n_point, *shape)
         # as used in FFT-based group convolution
@@ -357,18 +317,14 @@ class DenseEquivariantFFT(Module):
         kernel = self.param(
             "kernel",
             self.kernel_init,
-            (
-                self.features,
-                in_features,
-                self.n_point * self.n_cells,
-            ),
+            (self.features, in_features, self.n_point * self.n_cells),
             self.dtype,
         )
 
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         # Convert the convolutional kernel of shape (features, in_features, n_symm)
         # to the expanded kernel of shape (features, in_features, n_point(in),
@@ -444,13 +400,16 @@ class DenseEquivariantIrrep(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix. Defaults to variance scaling"""
+    kernel_init: NNInitFunc = default_equivariant_initializer
+    """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the bias. Defaults to zero initialization"""
+    """Initializer for the bias. Defaults to zero initialization."""
 
     def setup(self):
         self.n_symm = self.irreps[0].shape[0]
+        if self.mask is not None:
+            self.scaled_mask = _normalise_mask(self.mask, self.n_symm)
+
         self.forward = jnp.concatenate(
             [jnp.asarray(irrep).reshape(self.n_symm, -1) for irrep in self.irreps],
             axis=1,
@@ -546,7 +505,7 @@ class DenseEquivariantIrrep(Module):
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         kernel = self.forward_ft(kernel)
 
@@ -591,14 +550,15 @@ class DenseEquivariantMatrix(Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix. Defaults to variance scaling"""
+    kernel_init: NNInitFunc = default_equivariant_initializer
+    """Initializer for the kernel. Defaults to Lecun normal."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the bias. Defaults to zero initialization"""
+    """Initializer for the bias. Defaults to zero initialization."""
 
     def setup(self):
-
         self.n_symm = np.asarray(self.product_table).shape[0]
+        if self.mask is not None:
+            self.scaled_mask = _normalise_mask(self.mask, self.n_symm)
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -623,7 +583,7 @@ class DenseEquivariantMatrix(Module):
         kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
 
         # Converts the convolutional kernel of shape (features, in_features, n_symm)
         # to a full dense kernel of shape (features, in_features, n_symm, n_symm)
