@@ -179,7 +179,7 @@ class NamedTableau:
 bt_feuler = TableauRKExplicit(
                 order = (1,),
                 a = jnp.zeros((1,1), dtype=default_dtype),
-                b = jnp.ones((1,1), dtype=default_dtype),
+                b = jnp.ones((1,), dtype=default_dtype),
                 c = jnp.zeros((1), dtype=default_dtype),
                 c_error = None,
                 )
@@ -213,7 +213,7 @@ bt_rk4  = TableauRKExplicit(
                 a = jnp.array([[0,   0,   0,   0],
                                [1/2, 0,   0,   0],
                                [0,   1/2, 0,   0],
-                               [0,   0,   1,   1]], dtype=default_dtype),
+                               [0,   0,   1,   0]], dtype=default_dtype),
                 b = jnp.array( [1/6,  1/3,  1/3,  1/6], dtype=default_dtype),
                 c = jnp.array( [0, 1/2, 1/2, 1], dtype=default_dtype),
                 c_error = None,
