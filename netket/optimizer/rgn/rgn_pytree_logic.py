@@ -56,7 +56,6 @@ def tree_mean(oks: PyTree) -> PyTree:
     """
     return jax.tree_map(partial(mean, axis=0), oks)
 
-
 def jacobian_real_holo(
     forward_fn: Callable, params: PyTree, samples: Array, chunk_size: int = None
 ) -> PyTree:
@@ -111,19 +110,11 @@ def jacobian_cplx(
         _jacobian_cplx, in_axes=(None, None, 0, None), chunk_size=chunk_size
     )(forward_fn, params, samples, _build_fn)
 
-
 centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
 centered_jacobian_cplx = compose(tree_subtract_mean, jacobian_cplx)
-avg_jacobian_real_holo = compose(tree_mean, jacobian_real_holo)
-
 
 def rhessian_real_holo(
-    forward_fn: Callable,
-    params: PyTree,
-    samples: Array,
-    connected_samples: Array,
-    matrix_elements: Array,
-    chunk_size: int = None,
+    forward_fn: Callable, params: PyTree, samples: Array, connected_samples: Array, matrix_elements: Array, chunk_size: int = None
 ) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→R or holomorphic C→C, so single grad is enough
@@ -139,16 +130,14 @@ def rhessian_real_holo(
 
     def _rhessian_real_holo(logpsi, params, σ, σp, mels):
         y, vjp_fun = jax.vjp(logpsi, params, σp)
-        scale = mels * jnp.exp(logpsi(params, σp) - logpsi(params, σ))
+        scale = mels*jnp.exp(logpsi(params,σp) - logpsi(params,σ))
         res, _ = vjp_fun(scale)
         return res
 
     return vmap_chunked(
-        _rhessian_real_holo, in_axes=(None, None, 0, 0, 0), chunk_size=chunk_size
-    )(forward_fn, params, samples, connected_samples, matrix_elements)
+        _rhessian_real_holo, in_axes=(None, None, 0,0,0), chunk_size=chunk_size
+    )(forward_fn, params, samples,connected_samples,matrix_elements)
 
-
-centered_rhessian_real_holo = compose(tree_subtract_mean, rhessian_real_holo)
 
 
 def _divide_by_sqrt_n_samp(oks, samples):
@@ -227,6 +216,7 @@ def _vjp(oks: PyTree, w: Array) -> PyTree:
     """
     res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
     return jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
+
 
 
 # ==============================================================================
@@ -336,29 +326,33 @@ def prepare_centered_oks(
     else:
         return centered_oks, None
 
-
-def mat_vec(
-    v: PyTree,
-    oks: PyTree,
-    rhes: PyTree,
-    mean_grad: PyTree,
-    eps: float,
-    en: float,
-    diag_shift: float,
+def avg_jacobian_real_holo(
+    forward_fn: Callable, params: PyTree, samples: Array, chunk_size: int = None
 ) -> PyTree:
+
+    jac = jacobian_real_holo(forward_fn,params,samples,chunk_size)
+
+    return tree_mean(_divide_by_sqrt_n_samp(jac,samples))
+
+@partial(jax.jit, static_argnames=("forward_fn", "chunk_size"))
+def centered_rhessian_real_holo(
+    forward_fn: Callable, params: PyTree, samples: Array, connected_samples: Array, matrix_elements: Array, chunk_size: int = None
+) -> PyTree:
+
+    rhes = rhessian_real_holo(forward_fn,params,samples,connected_samples,matrix_elements,chunk_size)
+
+    return tree_subtract_mean(_divide_by_sqrt_n_samp(rhes,samples))
+
+def mat_vec(v: PyTree, oks: PyTree, rhes: PyTree, mean_grad: PyTree, eps: float, en: float, diag_shift: float) -> PyTree:
     """
     Compute ⟨O† O⟩v = ∑ₗ ⟨Oₖᴴ Oₗ⟩ vₗ
     """
     res = tree_conj(_vjp(oks, _jvp(rhes, v).conjugate()))
-    res2 = tree_conj(jax.tree_map(lambda x: _jvp(mean_grad, v) * x, v))
+    res2 = tree_conj(jax.tree_map(lambda x: _jvp(mean_grad, v)*x,v))
     res3 = tree_conj(_vjp(oks, _jvp(oks, v).conjugate()))
 
-    res = jax.tree_multimap(
-        lambda w, x, y, z: x - y - (en - 1 / eps) * z + 1 / eps * diag_shift * w,
-        v,
-        res,
-        res2,
-        res3,
-    )
+    res = jax.tree_multimap(lambda w,x,y,z: w - x - en*y + (1/eps)*(y + diag_shift*z),res,res2,res3,v)
 
     return tree_cast(res, v)
+
+
