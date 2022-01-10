@@ -15,7 +15,7 @@
 from . import qgt, solver
 
 from .sr import SR
-from .RGN import RGN
+from .rgn import RGN
 
 from .linear_operator import LinearOperator
 from .preconditioner import (
