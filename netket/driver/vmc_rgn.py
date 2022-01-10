@@ -17,7 +17,7 @@ import jax.numpy as jnp
 
 from textwrap import dedent
 
-from netket.utils.types import PyTree
+from netket.utils.types import PyTree, Array
 from netket.operator import AbstractOperator
 from netket.stats import Stats
 from netket.vqs import MCState
@@ -26,7 +26,7 @@ from netket.optimizer import (
     PreconditionerT,
 )
 from netket.utils import warn_deprecation
-
+from netket.optimizer import Sgd
 
 from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
@@ -41,8 +41,8 @@ class VMC_RGN(AbstractVariationalDriver):
     def __init__(
         self,
         hamiltonian: AbstractOperator,
-        optimizer,
-        *args,
+        schedule: Array,
+        optimizer=Sgd(learning_rate=1),
         variational_state=None,
         preconditioner: PreconditionerT = None,
         sr: PreconditionerT = None,
@@ -62,6 +62,7 @@ class VMC_RGN(AbstractVariationalDriver):
                 included with NetKet is Stochastic Reconfiguration. By default, no
                 preconditioner is used and the bare gradient is passed to the optimizer.
         """
+
         if variational_state is None:
             variational_state = MCState(*args, **kwargs)
 
@@ -117,14 +118,9 @@ class VMC_RGN(AbstractVariationalDriver):
         self._dp = None  # type: PyTree
         self._S = None
         self._sr_info = None
+        self.schedule = schedule
 
     def _forward_and_backward(self):
-        """
-        Performs a number of VMC optimization steps.
-
-        Args:
-            n_steps (int): Number of steps to perform.
-        """
 
         self.state.reset()
 
@@ -133,12 +129,17 @@ class VMC_RGN(AbstractVariationalDriver):
 
         # if it's the identity it does
         # self._dp = self._loss_grad
-        lr = self.optimizer.learning_rate
-        self._dp = self.preconditioner(self.state, self._loss_grad,self._ham,self._loss_stats.mean,lr)
+        self._dp = self.preconditioner(
+            self.state,
+            self._loss_grad,
+            self._ham,
+            self._loss_stats.mean,
+            self.schedule[self.step_count],
+        )
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = jax.tree_multimap(
-            lambda x, target: (x/lr if jnp.iscomplexobj(target) else x.real/lr),
+            lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
             self._dp,
             self.state.parameters,
         )

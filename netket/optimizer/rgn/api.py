@@ -16,6 +16,9 @@ from functools import partial
 from collections import namedtuple
 
 from netket.utils.numbers import is_scalar
+from netket.vqs import VariationalState
+from netket.utils.types import PyTree
+from netket.operator import AbstractOperator
 
 import jax
 
@@ -28,7 +31,14 @@ default_iterative = "cg"
 
 
 class RGN(LinearPreconditioner):
-    def __call__(self, vstate: VariationalState, gradient: PyTree, Ô: AbstractOperator, energy: float, epsilon: float) -> PyTree:
+    def __call__(
+        self,
+        vstate: VariationalState,
+        gradient: PyTree,
+        Ô: AbstractOperator,
+        energy: float,
+        epsilon: float,
+    ) -> PyTree:
 
         self._lhs = self.lhs_constructor(vstate, Ô, energy, epsilon)
 
@@ -36,6 +46,7 @@ class RGN(LinearPreconditioner):
         self.x0, self.info = self._lhs.solve(self.solver, gradient, x0=x0)
 
         return self.x0
+
 
 # This will become the future implementation once legacy and semi-legacy
 # bejaviour is removed
