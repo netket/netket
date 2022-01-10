@@ -25,12 +25,7 @@ import netket.jax as nkjax
 
 from ..linear_operator import LinearOperator, Uninitialized
 
-from .rgn_pytree_logic import (
-    mat_vec,
-    prepare_centered_oks,
-    centered_rhessian_real_holo,
-    avg_jacobian_real_holo,
-)
+from .rgn_pytree_logic import mat_vec, prepare_centered_oks, centered_rhessian_real_holo, avg_jacobian_real_holo
 
 from netket.nn import split_array_mpi
 
@@ -109,35 +104,15 @@ def RGNPyTree(
 
     con_samples = con_samples.squeeze()
     mels = mels.squeeze()
-
+    
     def forward_fn(W, σ):
         return vstate._apply_fun({"params": W, **vstate.model_state}, σ)
 
-    rhes = centered_rhessian_real_holo(
-        forward_fn,
-        vstate.parameters,
-        samples.transpose(1, 0, 2),
-        con_samples,
-        mels,
-        chunk_size,
-    )
-    avg_grad = avg_jacobian_real_holo(
-        forward_fn,
-        vstate.parameters,
-        samples.reshape(-1, samples.shape[-1]),
-        chunk_size,
-    )
+    rhes = centered_rhessian_real_holo(forward_fn,vstate.parameters,samples.transpose(1,0,2),con_samples,mels,chunk_size)    
+    avg_grad = avg_jacobian_real_holo(forward_fn,vstate.parameters,samples.reshape(-1, samples.shape[-1]),chunk_size)
 
     return RGNPyTreeT(
-        O=O,
-        rhes=rhes,
-        avg_grad=avg_grad,
-        en=energy,
-        eps=epsilon,
-        scale=scale,
-        params=vstate.parameters,
-        mode=mode,
-        **kwargs,
+        O=O, rhes=rhes, avg_grad=avg_grad, en=energy, eps=epsilon, scale=scale, params=vstate.parameters, mode=mode, **kwargs
     )
 
 
@@ -231,7 +206,9 @@ class RGNPyTreeT(LinearOperator):
 
 
 @jax.jit
-def _matmul(self: RGNPyTreeT, vec: Union[PyTree, Array]) -> Union[PyTree, Array]:
+def _matmul(
+    self: RGNPyTreeT, vec: Union[PyTree, Array]
+) -> Union[PyTree, Array]:
     # Turn vector RHS into PyTree
     if hasattr(vec, "ndim"):
         _, unravel = nkjax.tree_ravel(self.params)
@@ -248,9 +225,7 @@ def _matmul(self: RGNPyTreeT, vec: Union[PyTree, Array]) -> Union[PyTree, Array]
     if self.scale is not None:
         vec = jax.tree_multimap(jnp.multiply, vec, self.scale)
 
-    result = mat_vec(
-        vec, self.O, self.rhes, self.avg_grad, self.eps, self.en, self.diag_shift
-    )
+    result = mat_vec(vec, self.O, self.rhes, self.avg_grad, self.eps,self.en,self.diag_shift)
 
     if self.scale is not None:
         result = jax.tree_multimap(jnp.multiply, result, self.scale)
