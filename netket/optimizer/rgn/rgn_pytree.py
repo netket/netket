@@ -25,7 +25,12 @@ import netket.jax as nkjax
 
 from ..linear_operator import LinearOperator, Uninitialized
 
-from .rgn_pytree_logic import mat_vec, prepare_centered_oks, centered_rhessian_real_holo, avg_jacobian_real_holo
+from .rgn_pytree_logic import (
+    mat_vec,
+    prepare_centered_oks,
+    centered_rhessian_real_holo,
+    avg_jacobian_real_holo,
+)
 
 from netket.nn import split_array_mpi
 
@@ -34,7 +39,7 @@ def RGNPyTree(
     vstate,
     operator,
     energy,
-    epsilon
+    epsilon,
     *,
     mode: str = None,
     holomorphic: bool = None,
@@ -82,16 +87,7 @@ def RGNPyTree(
 
     # Choose sensible default mode
     if mode is None:
-        mode = choose_jacobian_mode(
-            vstate._apply_fun,
-            vstate.parameters,
-            vstate.model_state,
-            samples,
-            mode=mode,
-            holomorphic=holomorphic,
-        )
-    elif holomorphic is not None:
-        raise ValueError("Cannot specify both `mode` and `holomorphic`.")
+        mode = "holomorphic"
 
     if hasattr(vstate, "chunk_size"):
         chunk_size = vstate.chunk_size
@@ -109,13 +105,39 @@ def RGNPyTree(
         chunk_size,
     )
 
-    con_samples, mels = operator.parent.get_conn_padded(samples)
+    con_samples, mels = operator.get_conn_padded(samples)
 
-    rhes = centered_rhessian_real_holo(vstate._apply_fun,vstate.parameters,samples,con_samples,mels,chunk_size)
-    avg_grad = avg_jacobian_real_holo(vstate._apply_fun,vstate.parameters,samples,chunk_size)
+    con_samples = con_samples.squeeze()
+    mels = mels.squeeze()
+
+    def forward_fn(W, σ):
+        return vstate._apply_fun({"params": W, **vstate.model_state}, σ)
+
+    rhes = centered_rhessian_real_holo(
+        forward_fn,
+        vstate.parameters,
+        samples.transpose(1, 0, 2),
+        con_samples,
+        mels,
+        chunk_size,
+    )
+    avg_grad = avg_jacobian_real_holo(
+        forward_fn,
+        vstate.parameters,
+        samples.reshape(-1, samples.shape[-1]),
+        chunk_size,
+    )
 
     return RGNPyTreeT(
-        O=O, rhes=rhes, avg_grad=avg_grad, en=energy, eps=epsilon, scale=scale, params=vstate.parameters, mode=mode, **kwargs
+        O=O,
+        rhes=rhes,
+        avg_grad=avg_grad,
+        en=energy,
+        eps=epsilon,
+        scale=scale,
+        params=vstate.parameters,
+        mode=mode,
+        **kwargs,
     )
 
 
@@ -209,9 +231,7 @@ class RGNPyTreeT(LinearOperator):
 
 
 @jax.jit
-def _matmul(
-    self: QGTJacobianPyTreeT, vec: Union[PyTree, Array]
-) -> Union[PyTree, Array]:
+def _matmul(self: RGNPyTreeT, vec: Union[PyTree, Array]) -> Union[PyTree, Array]:
     # Turn vector RHS into PyTree
     if hasattr(vec, "ndim"):
         _, unravel = nkjax.tree_ravel(self.params)
@@ -228,7 +248,9 @@ def _matmul(
     if self.scale is not None:
         vec = jax.tree_multimap(jnp.multiply, vec, self.scale)
 
-    result = mat_vec(vec, self.O, self.rhes, self.mean_grad, self.eps,self.en,self.diag_shift)
+    result = mat_vec(
+        vec, self.O, self.rhes, self.avg_grad, self.eps, self.en, self.diag_shift
+    )
 
     if self.scale is not None:
         result = jax.tree_multimap(jnp.multiply, result, self.scale)
@@ -246,7 +268,7 @@ def _matmul(
 
 @jax.jit
 def _solve(
-    self: QGTJacobianPyTreeT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
+    self: RGNPyTreeT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
 ) -> PyTree:
     # Real-imaginary split RHS in R→R and R→C modes
     if self.mode != "holomorphic":
@@ -276,6 +298,6 @@ def _solve(
 
 
 @jax.jit
-def _to_dense(self: QGTJacobianPyTreeT) -> jnp.ndarray:
+def _to_dense(self: RGNPyTreeT) -> jnp.ndarray:
 
     raise NotImplementedError
