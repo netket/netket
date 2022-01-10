@@ -25,6 +25,7 @@ import netket.jax as nkjax
 
 from ..linear_operator import LinearOperator, Uninitialized
 
+from .common import check_valid_vector_type
 from .qgt_jacobian_pytree_logic import mat_vec, prepare_centered_oks
 from .qgt_jacobian_common import choose_jacobian_mode
 
@@ -199,6 +200,8 @@ def _matmul(
     else:
         ravel = False
 
+    check_valid_vector_type(self.params, vec)
+
     # Real-imaginary split RHS in R→R and R→C modes
     reassemble = None
     if self.mode != "holomorphic" and not self._in_solve:
@@ -227,6 +230,9 @@ def _matmul(
 def _solve(
     self: QGTJacobianPyTreeT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
 ) -> PyTree:
+
+    check_valid_vector_type(self.params, y)
+
     # Real-imaginary split RHS in R→R and R→C modes
     if self.mode != "holomorphic":
         y, reassemble = nkjax.tree_to_real(y)
