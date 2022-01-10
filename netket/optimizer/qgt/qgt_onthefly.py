@@ -14,6 +14,7 @@
 
 from typing import Callable, Optional, Union
 from functools import partial
+from textwrap import dedent
 
 import jax
 from jax import numpy as jnp
@@ -23,6 +24,7 @@ import netket.jax as nkjax
 from netket.utils.types import PyTree
 from netket.utils import warn_deprecation
 
+from .common import check_valid_vector_type
 from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
 
 from ..linear_operator import LinearOperator, Uninitialized
@@ -157,6 +159,8 @@ def onthefly_mat_treevec(
     else:
         ravel_result = False
 
+    check_valid_vector_type(S._params, vec)
+
     vec = nkjax.tree_cast(vec, S._params)
 
     res = S._mat_vec(vec, S.diag_shift)
@@ -171,6 +175,8 @@ def onthefly_mat_treevec(
 def _solve(
     self: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs
 ) -> PyTree:
+
+    check_valid_vector_type(self._params, y)
 
     y = nkjax.tree_cast(y, self._params)
 
