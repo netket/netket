@@ -18,8 +18,7 @@
 * Initialisation of all implementations of `DenseSymm`, `DenseEquivariant`, `GCNN` now defaults to truncated normals with Lecun variance scaling. For layers without masking, there should be no noticeable change in behaviour. For masked layers, the same variance scaling now works correctly. [#1045](https://github.com/netket/netket/pull/1045)
 * Fix bug that prevented gradients of non-hermitian operators to be computed. The feature is still marked as experimental but will now run (we do not guarantee that results are correct). [#1053](https://github.com/netket/netket/pull/1053)
 * Common lattice constructors such as `Honeycomb` now accepts the same keyword arguments as `Lattice`. [#1046](https://github.com/netket/netket/pull/1046)
-* A typo in the diagonal of the RK4 Butcher Tableau has been fixed. This typo did not cause any numerical error, but the tableau was wrong nethertheless. [#1057](https://github.com/netket/netket/pull/1057)
-* Throw error when multiplying a `QGTOnTheFly` representing the real part of the QGT (showing up when the ansatz has real parameters) with a complex vector. Previously the result would be wrong, as the imaginary part [was casted away](https://github.com/netket/netket/issues/789#issuecomment-871145119). [#885](https://github.com/netket/netket/pull/885) 
+* Multiplying a `QGTOnTheFly` representing the real part of the QGT (showing up when the ansatz has real parameters) with a complex vector now throws an error. Previously the result would be wrong, as the imaginary part [was casted away](https://github.com/netket/netket/issues/789#issuecomment-871145119). [#885](https://github.com/netket/netket/pull/885) 
 
 
 ## NetKet 3.3 (🎁 20 December 2021)
