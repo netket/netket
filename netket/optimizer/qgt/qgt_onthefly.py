@@ -14,7 +14,6 @@
 
 from typing import Callable, Optional, Union
 from functools import partial
-from textwrap import dedent
 
 import jax
 from jax import numpy as jnp

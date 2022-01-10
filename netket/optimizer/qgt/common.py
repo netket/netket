@@ -33,7 +33,7 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
                 dedent(
                     """
                     Cannot multiply the (real part of the) QGT by a complex vector.
-                    You should either take the real part of the vector, or perform 
+                    You should either take the real part of the vector, or perform
                     the multiplication against the real and imaginary part of the
                     vector separately and then recomposing the two.
                     """
