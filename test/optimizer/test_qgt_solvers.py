@@ -27,7 +27,7 @@ from .. import common  # noqa: F401
 
 QGT_types = {}
 QGT_types["QGTOnTheFly"] = nk.optimizer.qgt.QGTOnTheFly
-QGT_types["QGTJacobianDense"] = nk.optimizer.qgt.QGTJacobianDense
+#QGT_types["QGTJacobianDense"] = nk.optimizer.qgt.QGTJacobianDense
 QGT_types["QGTJacobianPyTree"] = nk.optimizer.qgt.QGTJacobianPyTree
 
 QGT_objects = {}
@@ -97,5 +97,5 @@ def test_qgt_throws(SType):
     S = vs.quantum_geometric_tensor(SType)
     g_cmplx = jax.tree_map(lambda x: x + x * 0.1j, vs.parameters)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="Cannot multiply the"):
         S @ g_cmplx

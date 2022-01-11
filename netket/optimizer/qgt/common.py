@@ -28,7 +28,16 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
     """
 
     def check(x, target):
-        if jnp.iscomplexobj(target) and not jnp.iscomplexobj(x):
+        print(f"x={x}  target={target}")
+        par_iscomplex = jnp.iscomplexobj(x)
+
+        # Account for split real-imaginary part in Jacobian*** methods
+        if isinstance(target, tuple):
+            vec_iscomplex = True if len(target) == 2 else False
+        else:
+            vec_iscomplex = jnp.iscomplexobj(target)
+            
+        if not par_iscomplex and vec_iscomplex:
             raise TypeError(
                 dedent(
                     """

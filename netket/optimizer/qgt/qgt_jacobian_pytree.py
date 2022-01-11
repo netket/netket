@@ -200,12 +200,12 @@ def _matmul(
     else:
         ravel = False
 
-    check_valid_vector_type(self.params, vec)
-
     # Real-imaginary split RHS in R→R and R→C modes
     reassemble = None
     if self.mode != "holomorphic" and not self._in_solve:
         vec, reassemble = nkjax.tree_to_real(vec)
+
+    check_valid_vector_type(self.params, vec)
 
     if self.scale is not None:
         vec = jax.tree_multimap(jnp.multiply, vec, self.scale)
@@ -231,11 +231,11 @@ def _solve(
     self: QGTJacobianPyTreeT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
 ) -> PyTree:
 
-    check_valid_vector_type(self.params, y)
-
     # Real-imaginary split RHS in R→R and R→C modes
     if self.mode != "holomorphic":
         y, reassemble = nkjax.tree_to_real(y)
+
+    check_valid_vector_type(self.params, y)
 
     if self.scale is not None:
         y = jax.tree_multimap(jnp.divide, y, self.scale)
