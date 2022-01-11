@@ -4,7 +4,7 @@
 
 # Change Log
 
-## NetKet 3.3.2 (⚙️ In development)
+## NetKet 3.4 (⚙️ In development)
 
 [GitHub commits](https://github.com/netket/netket/compare/v3.3...master).
 
