@@ -36,7 +36,7 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
             vec_iscomplex = True if len(target) == 2 else False
         else:
             vec_iscomplex = jnp.iscomplexobj(target)
-            
+
         if not par_iscomplex and vec_iscomplex:
             raise TypeError(
                 dedent(
