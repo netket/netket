@@ -15,6 +15,7 @@
 from typing import Optional
 from functools import partial
 from netket.jax import compose, vmap_chunked
+from netket.stats import stats
 
 import jax
 import jax.flatten_util
@@ -55,90 +56,6 @@ def tree_mean(oks: PyTree) -> PyTree:
     subtract the mean with MPI along axis 0 of every leaf
     """
     return jax.tree_map(partial(mean, axis=0), oks)
-
-def jacobian_real_holo(
-    forward_fn: Callable, params: PyTree, samples: Array, chunk_size: int = None
-) -> PyTree:
-    """Calculates Jacobian entries by vmapping grad.
-    Assumes the function is R→R or holomorphic C→C, so single grad is enough
-
-    Args:
-        forward_fn: the log wavefunction ln Ψ
-        params : a pytree of parameters p
-        samples : an array of n samples σ
-
-    Returns:
-        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
-    """
-
-    def _jacobian_real_holo(forward_fn, params, samples):
-        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
-        res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-        return res
-
-    return vmap_chunked(
-        _jacobian_real_holo, in_axes=(None, None, 0), chunk_size=chunk_size
-    )(forward_fn, params, samples)
-
-
-def jacobian_cplx(
-    forward_fn: Callable,
-    params: PyTree,
-    samples: Array,
-    chunk_size: int = None,
-    _build_fn: Callable = partial(jax.tree_multimap, jax.lax.complex),
-) -> PyTree:
-    """Calculates Jacobian entries by vmapping grad.
-    Assumes the function is R→C, backpropagates 1 and -1j
-
-    Args:
-        forward_fn: the log wavefunction ln Ψ
-        params : a pytree of parameters p
-        samples : an array of n samples σ
-
-    Returns:
-        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
-    """
-
-    def _jacobian_cplx(forward_fn, params, samples, _build_fn):
-        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
-        gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-        gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
-        return _build_fn(gr, gi)
-
-    return vmap_chunked(
-        _jacobian_cplx, in_axes=(None, None, 0, None), chunk_size=chunk_size
-    )(forward_fn, params, samples, _build_fn)
-
-centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
-centered_jacobian_cplx = compose(tree_subtract_mean, jacobian_cplx)
-
-def rhessian_real_holo(
-    forward_fn: Callable, params: PyTree, samples: Array, connected_samples: Array, matrix_elements: Array, chunk_size: int = None
-) -> PyTree:
-    """Calculates Jacobian entries by vmapping grad.
-    Assumes the function is R→R or holomorphic C→C, so single grad is enough
-
-    Args:
-        forward_fn: the log wavefunction ln Ψ
-        params : a pytree of parameters p
-        samples : an array of n samples σ
-
-    Returns:
-        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
-    """
-
-    def _rhessian_real_holo(logpsi, params, σ, σp, mels):
-        y, vjp_fun = jax.vjp(logpsi, params, σp)
-        scale = mels*jnp.exp(logpsi(params,σp) - logpsi(params,σ))
-        res, _ = vjp_fun(scale)
-        return res
-
-    return vmap_chunked(
-        _rhessian_real_holo, in_axes=(None, None, 0,0,0), chunk_size=chunk_size
-    )(forward_fn, params, samples,connected_samples,matrix_elements)
-
-
 
 def _divide_by_sqrt_n_samp(oks, samples):
     """
@@ -215,24 +132,78 @@ def _vjp(oks: PyTree, w: Array) -> PyTree:
     Compute the vector-matrix product between the vector w and the pytree jacobian oks
     """
     res = jax.tree_map(partial(jnp.tensordot, w, axes=1), oks)
-    return jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
+    return jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  
 
-
-
-# ==============================================================================
-# the logic above only works for R→R, R→C and holomorphic C→C
-# here the other modes are converted
-
-
-@partial(jax.jit, static_argnames=("apply_fun", "mode", "rescale_shift", "chunk_size"))
-def prepare_centered_oks(
-    apply_fun: Callable,
+def jacobian_real_holo(
+    forward_fn: Callable,
     params: PyTree,
     samples: Array,
-    model_state: Optional[PyTree],
+    chunk_size: int = None,
+) -> PyTree:
+    """Calculates Jacobian entries by vmapping grad.
+    Assumes the function is R→C, backpropagates 1 and -1j
+
+    Args:
+        forward_fn: the log wavefunction ln Ψ
+        params : a pytree of parameters p
+        samples : an array of n samples σ
+
+    Returns:
+        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
+    """
+
+    def _jacobian_real_holo(forward_fn, params, samples):
+        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
+        res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+        return res
+
+    return vmap_chunked(
+        _jacobian_real_holo, in_axes=(None, None, 0), chunk_size=chunk_size
+    )(forward_fn, params, samples)
+
+
+    return vmap_chunked(
+        _jacobian_cplx, in_axes=(None, None, 0, None), chunk_size=chunk_size
+    )(forward_fn, params, samples, _build_fn)
+
+def jacobian_cplx(
+    forward_fn: Callable,
+    params: PyTree,
+    samples: Array,
+    chunk_size: int = None,
+    _build_fn: Callable = partial(jax.tree_multimap, jax.lax.complex),
+) -> PyTree:
+    """Calculates Jacobian entries by vmapping grad.
+    Assumes the function is R→C, backpropagates 1 and -1j
+
+    Args:
+        forward_fn: the log wavefunction ln Ψ
+        params : a pytree of parameters p
+        samples : an array of n samples σ
+
+    Returns:
+        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
+    """
+
+    def _jacobian_cplx(forward_fn, params, samples, _build_fn):
+        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
+        gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+        gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
+        return _build_fn(gr, gi)
+
+    return vmap_chunked(
+        _jacobian_cplx, in_axes=(None, None, 0, None), chunk_size=chunk_size
+    )(forward_fn, params, samples, _build_fn)
+
+centered_jacobian_real_holo = compose(tree_subtract_mean, jacobian_real_holo)
+centered_jacobian_cplx = compose(tree_subtract_mean, jacobian_cplx)
+
+@partial(jax.jit, static_argnames=("forward_fn", "mode", "chunk_size"))
+def centered_jacobian_and_mean(
+    forward_fn: Callable,
+    params: PyTree,
+    samples: Array,
     mode: str,
-    rescale_shift: bool,
-    pdf=None,
     chunk_size: int = None,
 ) -> PyTree:
     """
@@ -266,12 +237,9 @@ def prepare_centered_oks(
     samples = samples.reshape((-1, samples.shape[-1]))
 
     # pre-apply the model state
-    def forward_fn(W, σ):
-        return apply_fun({"params": W, **model_state}, σ)
 
     if mode == "real":
         split_complex_params = True  # convert C→R and R&C→R to R→R
-        centered_jacobian_fun = centered_jacobian_real_holo
         jacobian_fun = jacobian_real_holo
     elif mode == "complex":
         split_complex_params = True  # convert C→C and R&C→C to R→C
@@ -279,14 +247,12 @@ def prepare_centered_oks(
 
         # avoid converting to complex and then back
         # by passing around the oks as a tuple of two pytrees representing the real and imag parts
-        centered_jacobian_fun = compose(
+        jacobian_fun = compose(
             stack_jacobian_tuple,
-            partial(centered_jacobian_cplx, _build_fn=lambda *x: x),
+            partial(jacobian_cplx, _build_fn=lambda *x: x),
         )
-        jacobian_fun = jacobian_cplx
     elif mode == "holomorphic":
         split_complex_params = False
-        centered_jacobian_fun = centered_jacobian_real_holo
         jacobian_fun = jacobian_real_holo
     else:
         raise NotImplementedError(
@@ -305,53 +271,127 @@ def prepare_centered_oks(
     else:
         f = forward_fn
 
-    if pdf is None:
-        centered_oks = _divide_by_sqrt_n_samp(
-            centered_jacobian_fun(
-                f,
-                params,
-                samples,
-                chunk_size=chunk_size,
-            ),
+    oks = _divide_by_sqrt_n_samp(
+        jacobian_fun(
+            f,
+            params,
             samples,
-        )
-    else:
-        oks = jacobian_fun(f, params, samples)
-        oks_mean = jax.tree_map(partial(sum, axis=0), _multiply_by_pdf(oks, pdf))
-        centered_oks = jax.tree_multimap(lambda x, y: x - y, oks, oks_mean)
+            chunk_size=chunk_size,
+        ),
+        samples,
+    )
 
-        centered_oks = _multiply_by_pdf(centered_oks, jnp.sqrt(pdf))
-    if rescale_shift:
-        return _rescale(centered_oks)
-    else:
-        return centered_oks, None
+    return tree_subtract_mean(oks), tree_mean(oks)
 
-def avg_jacobian_real_holo(
-    forward_fn: Callable, params: PyTree, samples: Array, chunk_size: int = None
-) -> PyTree:
 
-    jac = jacobian_real_holo(forward_fn,params,samples,chunk_size)
-
-    return tree_mean(_divide_by_sqrt_n_samp(jac,samples))
-
-@partial(jax.jit, static_argnames=("forward_fn", "chunk_size"))
-def centered_rhessian_real_holo(
+def en_and_rhessian_real_holo(
     forward_fn: Callable, params: PyTree, samples: Array, connected_samples: Array, matrix_elements: Array, chunk_size: int = None
-) -> PyTree:
+) -> [Array, PyTree]:
+    """Calculates the energy and one of the terms in the right hand side of the hessian
 
-    rhes = rhessian_real_holo(forward_fn,params,samples,connected_samples,matrix_elements,chunk_size)
+    Args:
+        forward_fn: a function that generates the log wavefunction ln Ψ
+        params : a pytree of parameters p 
+        samples : an array of n samples σ of shape [n_samples,hilbert_size]
+        connected_samples: an array of samples connected by the Hamiltonian of shape [n_samples,max_connected,hilbert_size]
+        mels: matrix elements with respected to connected samples of shape [n_samples,max_connected] 
 
-    return tree_subtract_mean(_divide_by_sqrt_n_samp(rhes,samples))
+    Returns:
+        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
+    """
+
+
+    def _en_and_rhessian_real_holo(logpsi, params, σ, σp, mels):
+        def E_loc(params):
+            return mels*jnp.exp(logpsi(params,σp) - jax.lax.stop_gradient(single_sample(logpsi)(params,σ)))
+        eloc, vjpfun = jax.vjp(E_loc, params)
+        
+        return eloc, vjp_fun(np.array(1.0, dtype=jnp.result_type(eloc)))
+
+    return vmap_chunked(
+        _en_and_rhessian_real_holo, in_axes=(None, None, 0,0,0), chunk_size=chunk_size
+    )(f, params, samples,connected_samples,matrix_elements)
+
+def en_and_rhessian_cplx(
+    forward_fn: Callable, params: PyTree, samples: Array, connected_samples: Array, matrix_elements: Array, chunk_size: int = None,_build_fn: Callable = partial(jax.tree_multimap, jax.lax.complex),
+) -> [Array, PyTree]:
+    """Calculates the energy and one of the terms in the right hand side of the hessian
+
+    Args:
+        forward_fn: a function that generates the log wavefunction ln Ψ
+        params : a pytree of parameters p 
+        samples : an array of n samples σ of shape [n_samples,hilbert_size]
+        connected_samples: an array of samples connected by the Hamiltonian of shape [n_samples,max_connected,hilbert_size]
+        mels: matrix elements with respected to connected samples of shape [n_samples,max_connected] 
+
+    Returns:
+        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
+    """
+
+
+    def _en_and_rhessian_cplx(logpsi, params, σ, σp, mels):
+        def E_loc(params):
+            return mels*jnp.exp(logpsi(params,σp) - jax.lax.stop_gradient(single_sample(logpsi)(params,σ)))
+        eloc, vjpfun = jax.vjp(E_loc, params)
+        
+        return eloc, _build_fn(vjp_fun(np.array(1.0, dtype=jnp.result_type(eloc))),vjp_fun(np.array(-1.0j, dtype=jnp.result_type(eloc))))
+
+    return vmap_chunked(
+        _en_and_rhessian_cplx, in_axes=(None, None, 0,0,0), chunk_size=chunk_size
+    )(f, params, samples,connected_samples,matrix_elements)
+
+def en_grad_and_rhessian(
+    forward_fn: Callable, params: PyTree, samples: Array, connected_samples: Array, matrix_elements: Array,  mode: str, chunk_size: int = None,
+) -> Tuple[Stats, PyTree, PyTree]:
+
+    n_samples = σ.shape[0] * mpi.n_nodes
+
+    if mode == "real" or "complex":
+        # doesn't do anything if the params are already real
+        params, reassemble = tree_to_real(params)
+
+        def f(W, σ):
+            return forward_fn(reassemble(W), σ)
+
+    elif mode == "holomorphic":
+        f = forward_fn
+    else:
+        raise NotImplementedError(
+            'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
+                mode
+            )
+        )
+
+    if mode == "holomorphic" or "real": 
+        eloc, rhessian = en_and_rhessian_real_holo(f,params,samples,connected_samples,matrix_elements,chunk_size)
+    else:
+        eloc, rhessian = en_and_rhessian_cplx(f,params,samples,connected_samples,matrix_elements,chunk_size, _build_fn=lambda x: stack_jacobian_tuple(x))
+
+
+    rhessian = tree_subtract_mean(_divide_by_sqrt_n_samp(rhessian,samples))
+
+    E = statistics(eloc.reshape(σ_shape[:-1]).T)
+
+    eloc -= E.mean
+
+    vjpfun = jax.vjp(forward_fn, params)
+
+    grad = vjp_fun(jnp.conjugate(eloc)/n_samples)[0]
+
+    return E, grad, rhessian 
+
 
 def mat_vec(v: PyTree, oks: PyTree, rhes: PyTree, mean_grad: PyTree, eps: float, en: float, diag_shift: float) -> PyTree:
     """
     Compute ⟨O† O⟩v = ∑ₗ ⟨Oₖᴴ Oₗ⟩ vₗ
     """
+
+    rhes = tree_axpy(1/eps-en,oks,rhes)
+
     res = tree_conj(_vjp(oks, _jvp(rhes, v).conjugate()))
     res2 = tree_conj(jax.tree_map(lambda x: _jvp(mean_grad, v)*x,v))
-    res3 = tree_conj(_vjp(oks, _jvp(oks, v).conjugate()))
 
-    res = jax.tree_multimap(lambda w,x,y,z: w - x - en*y + (1/eps)*(y + diag_shift*z),res,res2,res3,v)
+    res = jax.tree_multimap(lambda x,y,z: x - y + diag_shift*z,res,res2,v)
 
     return tree_cast(res, v)
 
