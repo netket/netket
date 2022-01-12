@@ -560,6 +560,25 @@ class DenseEquivariantMatrix(Module):
         if self.mask is not None:
             self.scaled_mask = _normalise_mask(self.mask, self.n_symm)
 
+        self.stdev = 1.0 / np.sqrt(self.in_features * self.n_symm)
+
+    def full_kernel(self, kernel):
+        """
+        Converts the symmetry-reduced kernel of shape (n_sites, features) to
+        the full Dense kernel of shape (n_sites, features * n_symm).
+        """
+
+        result = jnp.take(kernel, jnp.asarray(self.product_table).ravel(), 2)
+
+        result = result.reshape(
+            self.out_features, self.in_features, self.n_symm, self.n_symm
+        )
+        result = result.transpose(1, 2, 0, 3).reshape(
+            self.n_symm * self.in_features, -1
+        )
+
+        return result
+
     @compact
     def __call__(self, x: Array) -> Array:
         """Applies the equivariant transform to the inputs along the last dimension.
@@ -604,6 +623,8 @@ class DenseEquivariantMatrix(Module):
         if self.use_bias:
             bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             x += jnp.expand_dims(bias, 1)
+            bias = self.param("bias", self.bias_init, (self.out_features,), self.dtype)
+            x += jnp.expand_dims(bias, (0, 2))
 
         return x
 
