@@ -22,10 +22,8 @@ from netket.operator import AbstractOperator
 
 import jax
 
-from .rgn_pytree import RGNPyTree
-from netket.operator.preconditioner import LinearPreconditioner
-from ..optimizer.rgn.model_and_operator_statistics import 
-
+from .hessian_plus_qgt_pytree import Hessian_Plus_QGT_PyTree
+from netket.optimizer.preconditioner import LinearPreconditioner
 
 Preconditioner = namedtuple("Preconditioner", ["object", "solver"])
 
@@ -33,18 +31,9 @@ default_iterative = "cg"
 
 
 class RGN(LinearPreconditioner):
-    def __call__(
-        self,
-        jac: PyTree,
-        jac_mean: PyTree,
-        rhes: PyTree,
-        grad: PyTree,
-        energy: float,
-        epsilon: float,
-        diag_shift:float,
-    ) -> PyTree:
+    def __call__(self, gradient: PyTree) -> PyTree:
 
-        self._lhs = self.lhs_constructor(jac, jac_mean, rhes, grad, energy, epsilon, diag_shift)
+        self._lhs = self.lhs_constructor()
 
         x0 = self.x0 if self.solver_restart else None
         self.x0, self.info = self._lhs.solve(self.solver, gradient, x0=x0)
@@ -55,6 +44,7 @@ class RGN(LinearPreconditioner):
 def _RGN(
     solver=None,
     solver_restart: bool = False,
+    *args,
     **kwargs,
 ):
     """
@@ -85,7 +75,7 @@ def _RGN(
         solver = jax.scipy.sparse.linalg.cg
 
     return RGN(
-        partial(RGNPyTree, **kwargs),
+        partial(Hessian_Plus_QGT_PyTree, *args, **kwargs),
         solver=solver,
         solver_restart=solver_restart,
     )

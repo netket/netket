@@ -30,9 +30,13 @@ from netket.optimizer import Sgd
 
 from netket.driver import VMC
 
-from ..optimizer.rgn.model_and_operator_statistics import centered_jacobian_and_mean, en_grad_and_rhessian
+from ..optimizer.rgn.model_and_operator_statistics import (
+    centered_jacobian_and_mean,
+    en_grad_and_rhessian,
+)
 from netket.optimizer.qgt.qgt_jacobian_common import _choose_jacobian_mode
-from ..optimizer.rgn.hessian_plus_qgt_pytree import Hessian_Plus_QGT_PyTree 
+from ..optimizer.rgn import RGN
+
 
 class VMC_RGN(VMC):
     """
@@ -42,16 +46,11 @@ class VMC_RGN(VMC):
     # TODO docstring
     def __init__(
         self,
-        hamiltonian: AbstractOperator,
         eps_schedule: Callable,
         diag_shift_schedule: Callable,
-        mode: str = None,
+        mode: str,
         chunk_size: int = None,
-        optimizer=Sgd(learning_rate=1),
-        variational_state=None,
-        preconditioner: PreconditionerT = None,
-        sr: PreconditionerT = None,
-        sr_restart: bool = None,
+        *args,
         **kwargs,
     ):
         """
@@ -63,7 +62,7 @@ class VMC_RGN(VMC):
                 bare energy gradient. In this case the bare gradient is already scaled
                 so use SGD with a learning rate 1 for best performance
             eps_schedule: function that takes the time step and returns a value for epsilon
-            diag_shift_schedule: function that takes the time step and returns a value for 
+            diag_shift_schedule: function that takes the time step and returns a value for
             the diagonal shift
             preconditioner: Determines which preconditioner to use for the loss gradient.
                 This must be a tuple of `(object, solver)` as documented in the section
@@ -73,36 +72,56 @@ class VMC_RGN(VMC):
         """
 
         super().__init__(*args, **kwargs)
+
         self.eps_schedule = eps_schedule
         self.diag_shift_schedule = diag_shift_schedule
         self.mode = mode
+        self.chunk_size = chunk_size
 
     def _forward_and_backward(self):
 
         self.state.reset()
 
-        con_samples, mels = hamiltonian.get_conn_padded(self.state.samples)
+        con_samples, mels = self._ham.get_conn_padded(self.state.samples)
         con_samples = con_samples.squeeze()
         mels = mels.squeeze()
-    
+
         def forward_fn(W, σ):
             return self.state._apply_fun({"params": W, **self.state.model_state}, σ)
 
-        jac, jac_mean = centered_jacobian_and_mean(forward_fn,self.state.parameters,self.state.samples,self.mode,self.chunk_size)
-        en, grad, rhessian = en_grad_and_rhessian(forward_fn,self.state.parameters,self.state.samples,con_samples,mels,self.mode,self.chunk_size)
+        jac, jac_mean = centered_jacobian_and_mean(
+            forward_fn,
+            self.state.parameters,
+            self.state.samples.squeeze(),
+            self.mode,
+            self.chunk_size,
+        )
+        en, grad, rhessian = en_grad_and_rhessian(
+            forward_fn,
+            self.state.parameters,
+            self.state.samples.squeeze(),
+            con_samples,
+            mels,
+            self.mode,
+            self.chunk_size,
+        )
 
         eps = self.eps_schedule(self.step_count)
         diag_shift = self.diag_shift_schedule(self.step_count)
 
-        self._dp = Hessian_Plus_QGT_PyTree(
-            jac,
-            jac_mean,
-            rhessian,
-            grad,
-            en,
-            eps,
-            diag_shift
+        preconditioner = RGN(
+            jac=jac,
+            jac_mean=jac_mean,
+            rhes=rhessian,
+            grad=grad,
+            energy=en,
+            eps=eps,
+            diag_shift=diag_shift,
+            mode=self.mode,
+            params=self.state.parameters,
         )
+
+        self._dp = preconditioner(grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = jax.tree_multimap(
@@ -112,5 +131,3 @@ class VMC_RGN(VMC):
         )
 
         return self._dp
-
-

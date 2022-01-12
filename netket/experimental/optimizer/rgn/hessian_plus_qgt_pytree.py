@@ -30,7 +30,7 @@ from netket.nn import split_array_mpi
 
 
 @struct.dataclass
-class RGNPyTree(LinearOperator):
+class Hessian_Plus_QGT_PyTree(LinearOperator):
     """
     Semi-lazy representation of an S Matrix behaving like a linear operator.
 
@@ -56,7 +56,6 @@ class RGNPyTree(LinearOperator):
     grad: PyTree = Uninitialized
     """gradient of the energy with respect to the parameters"""
 
-
     energy: float = Uninitialized
     """energy of the variational state"""
 
@@ -68,7 +67,6 @@ class RGNPyTree(LinearOperator):
 
     params: PyTree = Uninitialized
     """Parameters of the network. Its only purpose is to represent its own shape when scale is None"""
-
 
     _in_solve: bool = struct.field(pytree_node=False, default=False)
     """Internal flag used to signal that we are inside the _solve method and matmul should
@@ -111,7 +109,7 @@ class RGNPyTree(LinearOperator):
 
 @jax.jit
 def _matmul(
-    self: RGNPyTreeT, vec: Union[PyTree, Array]
+    self: Hessian_Plus_QGT_PyTree, vec: Union[PyTree, Array]
 ) -> Union[PyTree, Array]:
     # Turn vector RHS into PyTree
     if hasattr(vec, "ndim"):
@@ -129,7 +127,9 @@ def _matmul(
     if self.scale is not None:
         vec = jax.tree_multimap(jnp.multiply, vec, self.scale)
 
-    result = mat_vec(vec, self.jac, self.rhes, self.jac_mean, self.eps,self.en,self.diag_shift)
+    result = mat_vec(
+        vec, self.jac, self.rhes, self.jac_mean, self.eps, self.en, self.diag_shift
+    )
 
     if self.scale is not None:
         result = jax.tree_multimap(jnp.multiply, result, self.scale)
@@ -147,7 +147,7 @@ def _matmul(
 
 @jax.jit
 def _solve(
-    self: RGNPyTreeT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
+    self: Hessian_Plus_QGT_PyTree, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
 ) -> PyTree:
     # Real-imaginary split RHS in R→R and R→C modes
     if self.mode != "holomorphic":
@@ -177,6 +177,6 @@ def _solve(
 
 
 @jax.jit
-def _to_dense(self: RGNPyTreeT) -> jnp.ndarray:
+def _to_dense(self: Hessian_Plus_QGT_PyTree) -> jnp.ndarray:
 
     raise NotImplementedError

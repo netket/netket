@@ -15,6 +15,6 @@
 from .tdvp import TDVP
 
 from netket.utils import _hide_submodules
-from vmc_rgn import VMC_RGN
+from .vmc_rgn import VMC_RGN
 
 _hide_submodules(__name__)
