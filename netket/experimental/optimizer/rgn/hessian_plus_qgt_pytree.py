@@ -23,101 +23,14 @@ from netket.utils.types import PyTree, Array
 from netket.utils import mpi
 import netket.jax as nkjax
 
-from ..linear_operator import LinearOperator, Uninitialized
-
-from .rgn_pytree_logic import mat_vec, prepare_centered_oks, centered_rhessian_real_holo, avg_jacobian_real_holo
+from netket.optimizer.linear_operator import LinearOperator, Uninitialized
+from .model_and_operator_statistics import mat_vec
 
 from netket.nn import split_array_mpi
 
 
-def RGNPyTree(
-    vstate,
-    operator,
-    energy,
-    epsilon,
-    *,
-    mode: str = None,
-    holomorphic: bool = None,
-    rescale_shift=False,
-    **kwargs,
-) -> "RGNPyTreeT":
-    """
-    Semi-lazy representation of an S Matrix where the Jacobian O_k is precomputed
-    and stored as a PyTree.
-
-    The matrix of gradients O is computed on initialisation, but not S,
-    which can be computed by calling :code:`to_dense`.
-    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
-    the field `sr`.
-
-    Args:
-        vstate: The variational state
-        mode: "real", "complex" or "holomorphic": specifies the implementation
-              used to compute the jacobian. "real" discards the imaginary part
-              of the output of the model. "complex" splits the real and imaginary
-              part of the parameters and output. It works also for non holomorphic
-              models. holomorphic works for any function assuming it's holomorphic
-              or real valued.
-        holomorphic: a flag to indicate that the function is holomorphic.
-        rescale_shift: If True rescales the diagonal shift.
-    """
-    if vstate is None:
-        return partial(
-            RGNPyTreeT,
-            mode=mode,
-            holomorphic=holomorphic,
-            rescale_shift=rescale_shift,
-            **kwargs,
-        )
-
-    # TODO: Find a better way to handle this case
-    from netket.vqs import ExactState
-
-    if isinstance(vstate, ExactState):
-        samples = split_array_mpi(vstate._all_states)
-        pdf = split_array_mpi(vstate.probability_distribution())
-    else:
-        samples = vstate.samples
-        pdf = None
-
-    # Choose sensible default mode
-    if mode is None:
-        mode = "holomorphic"
-
-    if hasattr(vstate, "chunk_size"):
-        chunk_size = vstate.chunk_size
-    else:
-        chunk_size = None
-
-    O, scale = prepare_centered_oks(
-        vstate._apply_fun,
-        vstate.parameters,
-        samples.reshape(-1, samples.shape[-1]),
-        vstate.model_state,
-        mode,
-        rescale_shift,
-        pdf,
-        chunk_size,
-    )
-
-    con_samples, mels = operator.get_conn_padded(samples)
-
-    con_samples = con_samples.squeeze()
-    mels = mels.squeeze()
-    
-    def forward_fn(W, σ):
-        return vstate._apply_fun({"params": W, **vstate.model_state}, σ)
-
-    rhes = centered_rhessian_real_holo(forward_fn,vstate.parameters,samples.transpose(1,0,2),con_samples,mels,chunk_size)    
-    avg_grad = avg_jacobian_real_holo(forward_fn,vstate.parameters,samples.reshape(-1, samples.shape[-1]),chunk_size)
-
-    return RGNPyTreeT(
-        O=O, rhes=rhes, avg_grad=avg_grad, en=energy, eps=epsilon, scale=scale, params=vstate.parameters, mode=mode, **kwargs
-    )
-
-
 @struct.dataclass
-class RGNPyTreeT(LinearOperator):
+class RGNPyTree(LinearOperator):
     """
     Semi-lazy representation of an S Matrix behaving like a linear operator.
 
@@ -127,44 +40,35 @@ class RGNPyTreeT(LinearOperator):
     the field `sr`.
     """
 
-    O: PyTree = Uninitialized
+    jac: PyTree = Uninitialized
     """Centred gradients ΔO_ij = O_ij - <O_j> of the neural network, where
     O_ij = ∂log ψ(σ_i)/∂p_j, for all samples σ_i at given values of the parameters p_j
     Divided through with sqrt(#samples) to normalise S matrix
     If scale is not None, O_ij for is normalised to unit norm for each parameter j
     """
 
+    jac_mean: PyTree = Uninitialized
+    """Average of the jacobian needed for the matvec"""
+
     rhes: PyTree = Uninitialized
-    """Right hand side of the hessian to compute the first term in the RGN expansion
-    """
+    """Right hand side of the hessian to compute the first term in the RGN expansion"""
 
-    avg_grad: PyTree = Uninitialized
-    """Average of the jacobian needed for the matvec
-    """
+    grad: PyTree = Uninitialized
+    """gradient of the energy with respect to the parameters"""
 
-    en: float = Uninitialized
+
+    energy: float = Uninitialized
     """energy of the variational state"""
 
     eps: float = Uninitialized
     """scale of the qgt contribution relative to the Hessian"""
 
-    scale: Optional[PyTree] = None
-    """If not None, contains 2-norm of each column of the gradient matrix,
-    i.e., the sqrt of the diagonal elements of the S matrix
-    """
+    diag_shift: float = Uninitialized
+    """diagonal shift applied to the full matrix"""
 
     params: PyTree = Uninitialized
     """Parameters of the network. Its only purpose is to represent its own shape when scale is None"""
 
-    mode: str = struct.field(pytree_node=False, default=Uninitialized)
-    """Differentiation mode:
-        - "real": for real-valued R->R and C->R ansatze, splits the complex inputs
-                  into real and imaginary part.
-        - "complex": for complex-valued R->C and C->C ansatze, splits the complex
-                  inputs and outputs into real and imaginary part
-        - "holomorphic": for any ansatze. Does not split complex values.
-        - "auto": autoselect real or complex.
-    """
 
     _in_solve: bool = struct.field(pytree_node=False, default=False)
     """Internal flag used to signal that we are inside the _solve method and matmul should
@@ -225,7 +129,7 @@ def _matmul(
     if self.scale is not None:
         vec = jax.tree_multimap(jnp.multiply, vec, self.scale)
 
-    result = mat_vec(vec, self.O, self.rhes, self.avg_grad, self.eps,self.en,self.diag_shift)
+    result = mat_vec(vec, self.jac, self.rhes, self.jac_mean, self.eps,self.en,self.diag_shift)
 
     if self.scale is not None:
         result = jax.tree_multimap(jnp.multiply, result, self.scale)
