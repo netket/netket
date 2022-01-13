@@ -74,7 +74,12 @@ def wrap_to_support_scalar(fun):
     def maybe_scalar_fun(apply_fun, pars, x, *args, **kwargs):
         xb = jnp.atleast_2d(x)
         res = apply_fun(pars, xb, *args, **kwargs)
-        res = res.reshape(()) if x.ndim == 1 else res
+        if isinstance(res, tuple):
+            res_val = res[0]
+            res_val = res_val.reshape(()) if x.ndim == 1 else res_val
+            res = (res_val, res[1])
+        else:
+            res = res.reshape(()) if x.ndim == 1 else res
         return res
 
     return HashablePartial(maybe_scalar_fun, fun)
