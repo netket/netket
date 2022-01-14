@@ -155,8 +155,8 @@ def central_diff_grad(func, x, eps, *args, dtype=None):
             grad_i = 0.5 * (func(x + 1j * epsd, *args) - func(x - 1j * epsd, *args))
             grad[i] = 0.5 * grad_r + 0.5j * grad_i
         else:
-            grad_i = 0.0
-            grad[i] = 0.5 * grad_r
+            #grad_i = 0.0
+            grad[i] = grad_r
 
         assert not np.isnan(grad[i])
         grad[i] /= eps
