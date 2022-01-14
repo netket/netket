@@ -12,10 +12,11 @@
 
 
 ### Breaking Changes
+* The gradient for models with real-parameter is now multiplied by 2. If your model had real parameters you might need to change the learning rate and halve it. [#1069](https://github.com/netket/netket/pull/1069)
 
 ### Bug Fixes
-Allow `LazyOperator@densevector` for operators such as lazy `Adjoint`, `Transpose` and `Squared`. [#1068](https://github.com/netket/netket/pull/1068) 
-
+* Allow `LazyOperator@densevector` for operators such as lazy `Adjoint`, `Transpose` and `Squared`. [#1068](https://github.com/netket/netket/pull/1068) 
+* The gradient obtained with `VarState.expect_and_grad` for models with real-parameters was off by a factor of $ 1/2 $ from the correct value. This has now been corrected. As a consequence, the correct gradient for real-parameter models is equal to the old times 2. If your model had real parameters you might need to change the learning rate and halve it. [#1069](https://github.com/netket/netket/pull/1069)
 
 ## NetKet 3.3.1 (🐛 Bug Fixes)
 
