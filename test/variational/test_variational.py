@@ -253,8 +253,10 @@ def test_constructor():
     model = nk.models.RBM()
     vs_good = nk.vqs.MCState(sampler, model)
 
-    vs = nk.vqs.MCState(sampler, model, n_samples_per_rank=sampler.n_chains_per_rank*2)
-    assert vs.n_samples_per_rank == sampler.n_chains_per_rank*2
+    vs = nk.vqs.MCState(
+        sampler, model, n_samples_per_rank=sampler.n_chains_per_rank * 2
+    )
+    assert vs.n_samples_per_rank == sampler.n_chains_per_rank * 2
 
     with pytest.raises(ValueError, match="Only one argument between"):
         vs = nk.vqs.MCState(sampler, model, n_samples=100, n_samples_per_rank=100)
@@ -271,8 +273,6 @@ def test_constructor():
 
     with pytest.raises(ValueError, match="you must pass a valid init_fun."):
         vs = nk.vqs.MCState(sampler, apply_fun=model.apply)
-
-
 
 
 @common.skipif_mpi
