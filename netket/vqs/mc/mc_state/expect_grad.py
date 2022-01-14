@@ -142,7 +142,7 @@ def grad_expect_hermitian(
     Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
 
     Ō_grad = jax.tree_multimap(
-        lambda x, target: (x if jnp.iscomplexobj(target) else 2*x.real).astype(
+        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
             target.dtype
         ),
         Ō_grad,
