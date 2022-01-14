@@ -106,6 +106,9 @@ def test_deprecated_name():
 
 
 def test_n_samples_api(vstate, _mpi_size):
+    with raises(TypeError, match="should be a subtype"):
+        vstate.sampler = 1
+
     with raises(
         ValueError,
     ):
@@ -218,11 +221,58 @@ def test_deprecations(vstate):
         vstate.n_discard = 10
 
     with pytest.warns(FutureWarning):
-        vstate.n_discard
+        assert vstate.n_discard == 10
 
-    vstate.n_discard = 10
-    assert vstate.n_discard == 10
     assert vstate.n_discard_per_chain == 10
+
+    with pytest.warns(FutureWarning):
+        vstate.n_discard_per_chain = 100
+        assert vstate.n_discard == 100
+
+    x = vstate.hilbert.numbers_to_states(1)
+    with pytest.warns(FutureWarning, match="MCState.log_value"):
+        np.testing.assert_equal(vstate.evaluate(x), vstate.log_value(x))
+
+
+@common.skipif_mpi
+def test_deprecations_constructor():
+    sampler = nk.sampler.MetropolisLocal(hilbert=hi)
+    model = nk.models.RBM()
+
+    with pytest.warns(FutureWarning):
+        vs = nk.vqs.MCState(sampler, model, n_discard=10)
+        assert vs.n_discard_per_chain == 10
+
+    with pytest.raises(ValueError, match="Specify only"):
+        vs = nk.vqs.MCState(sampler, model, n_discard=10, n_discard_per_chain=10)
+
+
+@common.skipif_mpi
+def test_constructor():
+    sampler = nk.sampler.MetropolisLocal(hilbert=hi)
+    model = nk.models.RBM()
+    vs_good = nk.vqs.MCState(sampler, model)
+
+    vs = nk.vqs.MCState(
+        sampler, model, n_samples_per_rank=sampler.n_chains_per_rank * 2
+    )
+    assert vs.n_samples_per_rank == sampler.n_chains_per_rank * 2
+
+    with pytest.raises(ValueError, match="Only one argument between"):
+        vs = nk.vqs.MCState(sampler, model, n_samples=100, n_samples_per_rank=100)
+
+    with pytest.raises(ValueError, match="Must either pass the model or apply_fun"):
+        vs = nk.vqs.MCState(sampler)
+
+    # test init with parameters and variables
+    vs = nk.vqs.MCState(sampler, apply_fun=model.apply, init_fun=model.init)
+
+    vs = nk.vqs.MCState(sampler, apply_fun=model.apply, variables=vs_good.variables)
+    with pytest.raises(RuntimeError, match="you did not supply a valid init_function"):
+        vs.init()
+
+    with pytest.raises(ValueError, match="you must pass a valid init_fun."):
+        vs = nk.vqs.MCState(sampler, apply_fun=model.apply)
 
 
 @common.skipif_mpi

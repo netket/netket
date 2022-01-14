@@ -23,6 +23,8 @@ from jax.nn.initializers import normal
 import tarfile
 from io import BytesIO
 
+from netket import experimental as nkx
+
 import netket as nk
 
 from .. import common
@@ -61,9 +63,7 @@ def test_variables_from_file(vstate, tmp_path):
             vstate.sampler, vstate.model, n_samples=10, seed=SEED + 100
         )
 
-        vstate2.variables = nk.vqs.experimental.variables_from_file(
-            name, vstate2.variables
-        )
+        vstate2.variables = nkx.vqs.variables_from_file(name, vstate2.variables)
 
         # check
         jax.tree_multimap(
@@ -86,9 +86,7 @@ def test_variables_from_tar(vstate, tmp_path):
         )
 
         for j in [0, 3, 8]:
-            vstate2.variables = nk.vqs.experimental.variables_from_tar(
-                name, vstate2.variables, j
-            )
+            vstate2.variables = nkx.vqs.variables_from_tar(name, vstate2.variables, j)
 
             # check
             jax.tree_multimap(
@@ -96,7 +94,15 @@ def test_variables_from_tar(vstate, tmp_path):
             )
 
         with pytest.raises(KeyError):
-            nk.vqs.experimental.variables_from_tar(name, vstate2.variables, 15)
+            nkx.vqs.variables_from_tar(name, vstate2.variables, 15)
+
+
+def test_deprecated_names():
+    with pytest.warns(FutureWarning):
+        assert nkx.vqs.variables_from_file == nk.vqs.experimental.variables_from_file
+
+    with pytest.warns(FutureWarning):
+        assert nkx.vqs.variables_from_tar == nk.vqs.experimental.variables_from_tar
 
 
 def save_binary_to_tar(tar_file, byte_data, name):

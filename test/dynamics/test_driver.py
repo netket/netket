@@ -31,7 +31,7 @@ def _setup_system(L, *, dtype=np.complex128):
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
     ma = nk.models.RBM(alpha=1, dtype=dtype)
-    sa = nk.sampler.ExactSampler(hilbert=hi, n_chains=16)
+    sa = nk.sampler.ExactSampler(hilbert=hi)
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
