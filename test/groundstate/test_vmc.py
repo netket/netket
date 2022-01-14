@@ -236,3 +236,11 @@ def test_vmc_sr_legacy_api():
         driver = nk.VMC(
             ha, op, variational_state=vs, sr=sr_config, preconditioner=sr_config
         )
+
+
+def test_deprecated_vmc_name():
+    ha, sx, ma, sa, driver = _setup_vmc()
+    op = nk.optimizer.Sgd(learning_rate=0.05)
+
+    with pytest.warns(FutureWarning):
+        driver = nk.Vmc(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)
