@@ -71,6 +71,9 @@ hi = nk.hilbert.Spin(s=0.5, N=L)
 H = nk.operator.Ising(hi, graph=g, h=1.0)
 operators["operator:(Hermitian Real)"] = H
 
+H2 = H @ H
+operators["operator:(Hermitian Real Squared)"] = H2
+
 H = nk.operator.Ising(hi, graph=g, h=1.0)
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmay(H.hilbert, i)
@@ -403,9 +406,6 @@ def test_expect(vstate, operator):
     # Compute the expval and gradient with exact formula
     O_exact = expval_fun(pars, vstate, op_sparse)
     grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
-
-    if not operator.is_hermitian:
-        grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
 
     # check the expectation values
     err = 5 * O_stat.error_of_mean
