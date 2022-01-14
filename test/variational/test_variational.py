@@ -248,10 +248,13 @@ def test_deprecations_constructor():
 
 
 @common.skipif_mpi
-def test_constructor_error():
+def test_constructor():
     sampler = nk.sampler.MetropolisLocal(hilbert=hi)
     model = nk.models.RBM()
     vs_good = nk.vqs.MCState(sampler, model)
+
+    vs = nk.vqs.MCState(sampler, model, n_samples_per_rank=sampler.n_chains_per_rank*2)
+    assert vs.n_samples_per_rank == sampler.n_chains_per_rank*2
 
     with pytest.raises(ValueError, match="Only one argument between"):
         vs = nk.vqs.MCState(sampler, model, n_samples=100, n_samples_per_rank=100)
@@ -260,11 +263,16 @@ def test_constructor_error():
         vs = nk.vqs.MCState(sampler)
 
     # test init with parameters and variables
-    vs = nk.vqs.MCState(sampler, apply_fun=model.apply, variables=vs_good.variables)
     vs = nk.vqs.MCState(sampler, apply_fun=model.apply, init_fun=model.init)
+
+    vs = nk.vqs.MCState(sampler, apply_fun=model.apply, variables=vs_good.variables)
+    with pytest.raises(RuntimeError, match="you did not supply a valid init_function"):
+        vs.init()
 
     with pytest.raises(ValueError, match="you must pass a valid init_fun."):
         vs = nk.vqs.MCState(sampler, apply_fun=model.apply)
+
+
 
 
 @common.skipif_mpi
