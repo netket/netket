@@ -22,7 +22,7 @@ hi = nk.hilbert.Fock(n_max=3, n_particles=6, N=g.n_nodes)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
 
 # Graph Hamiltonian
-N = 20
+N = 10
 sigmax = np.asarray([[0, 1], [1, 0]])
 mszsz = np.asarray([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
 edges = [[i, i + 1] for i in range(N - 1)] + [[N - 1, 0]]
@@ -33,13 +33,13 @@ operators["Graph Hamiltonian"] = nk.operator.GraphOperator(
     hi, g, site_ops=[sigmax], bond_ops=[mszsz]
 )
 
-g_sub = nk.graph.Graph(edges=edges[:7])  # edges of first eight sites
+g_sub = nk.graph.Graph(edges=edges[:3])  # edges of first four sites
 operators["Graph Hamiltonian (on subspace)"] = nk.operator.GraphOperator(
     hi,
     g_sub,
     site_ops=[sigmax],
     bond_ops=[mszsz],
-    acting_on_subspace=8,
+    acting_on_subspace=4,
 )
 
 # Graph Hamiltonian with colored edges
