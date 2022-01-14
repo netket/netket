@@ -200,8 +200,18 @@ def grad_expect_operator_kernel(
             n_chains=σ_shape[0],
         )
 
-    Ō, Ō_pb, Ō_stats = nkjax.vjp(expect_closure_pars, parameters, has_aux=True)
+    Ō, Ō_pb, Ō_stats = nkjax.vjp(
+        expect_closure_pars, parameters, has_aux=True, conjugate=True
+    )
     Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))[0]
+
+    # This term below is needed otherwise it does not match the value obtained by
+    # (ha@ha).collect(). I'm unsure of why it is needed.
+    Ō_pars_grad = jax.tree_multimap(
+        lambda x, target: x / 2 if jnp.iscomplexobj(target) else x,
+        Ō_pars_grad,
+        parameters,
+    )
 
     if is_mutable:
         raise NotImplementedError(
