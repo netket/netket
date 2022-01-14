@@ -106,22 +106,23 @@ def test_local_operator_transpose_conjugation():
         math_h = oph.transpose().conjugate().to_dense()
         same_matrices(math_h, mat)
 
+
 def test_lazy_operator_matdensevec():
     sz0 = nk.operator.spin.sigmaz(hi, 0)
     v_np = np.random.rand(hi.n_states)
     v_jx = jax.numpy.asarray(v_np)
 
     sz0_t = sz0.transpose()
-    same_matrices(sz0_t@v_np, sz0_t.to_dense()@v_np)
-    same_matrices(sz0_t@v_jx, sz0_t.to_dense()@v_jx)
+    same_matrices(sz0_t @ v_np, sz0_t.to_dense() @ v_np)
+    same_matrices(sz0_t @ v_jx, sz0_t.to_dense() @ v_jx)
 
     sz0_h = sz0.transpose().conjugate()
-    same_matrices(sz0_h@v_np, sz0_h.to_dense()@v_np)
-    same_matrices(sz0_h@v_jx, sz0_h.to_dense()@v_jx)
+    same_matrices(sz0_h @ v_np, sz0_h.to_dense() @ v_np)
+    same_matrices(sz0_h @ v_jx, sz0_h.to_dense() @ v_jx)
 
-    sz0_2 = sz0_h@sz0
-    same_matrices(sz0_2@v_np, sz0_2.to_dense()@v_np)
-    same_matrices(sz0_2@v_jx, sz0_2.to_dense()@v_jx)
+    sz0_2 = sz0_h @ sz0
+    same_matrices(sz0_2 @ v_np, sz0_2.to_dense() @ v_np)
+    same_matrices(sz0_2 @ v_jx, sz0_2.to_dense() @ v_jx)
 
 
 def test_local_operator_add():
