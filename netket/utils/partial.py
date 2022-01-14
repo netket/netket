@@ -34,12 +34,14 @@ class HashablePartial(partial):
         # Pre 3.10 this does not happen, so here we emulate this behaviour recursively
         # This is necessary since functools.partial objects do not have a __code__
         # property which we use for the hash
-        if sys.version_info < (3, 10):
-            while isinstance(func, partial):
-                original_func = func
-                func = original_func.func
-                args = original_func.args + args
-                keywords = {**original_func.keywords, **keywords}
+        # For python 3.10+ we still need to take care of merging with another HashablePartial
+        while isinstance(
+            func, partial if sys.version_info < (3, 10) else HashablePartial
+        ):
+            original_func = func
+            func = original_func.func
+            args = original_func.args + args
+            keywords = {**original_func.keywords, **keywords}
         return super(HashablePartial, cls).__new__(cls, func, *args, **keywords)
 
     def __init__(self, *args, **kwargs):

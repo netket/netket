@@ -9,6 +9,7 @@
 [GitHub commits](https://github.com/netket/netket/compare/v3.3...master).
 
 ### New features
+* Support for Python 3.10 [#952](https://github.com/netket/netket/pull/952).
 
 
 ### Breaking Changes
