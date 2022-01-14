@@ -56,4 +56,4 @@ def test_expect():
     :math:`<\nabla V> = \nabla_p \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = -0.140256 (\psi = \exp(p^2 x))`
     """
     np.testing.assert_allclose(0.1975164, sol.mean, atol=10 ** (-3))
-    np.testing.assert_allclose(-0.140256, 2 * O_grad, atol=10 ** (-3))
+    np.testing.assert_allclose(-0.140256, O_grad, atol=10 ** (-3))

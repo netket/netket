@@ -28,7 +28,6 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
     """
 
     def check(x, target):
-        print(f"x={x}  target={target}")
         par_iscomplex = jnp.iscomplexobj(x)
 
         # Account for split real-imaginary part in Jacobian*** methods
