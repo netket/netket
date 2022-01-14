@@ -13,6 +13,9 @@
 
 ### Breaking Changes
 
+### Bug Fixes
+Allow `LazyOperator@densevector` for operators such as lazy `Adjoint`, `Transpose` and `Squared`. [#1068](https://github.com/netket/netket/pull/1068) 
+
 
 ## NetKet 3.3.1 (🐛 Bug Fixes)
 
