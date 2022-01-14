@@ -45,6 +45,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
 
     return ha, sx, vs, sa, driver
 
+
 def test_estimate():
     ha, *_, driver = _setup_vmc()
     driver.estimate(ha)
