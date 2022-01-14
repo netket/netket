@@ -25,7 +25,7 @@ op = nk.optimizer.jax.Wrap(ma, Adam(0.01))
 sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Create the optimization driver
-gs = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr)
+gs = nk.VMC(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr)
 
 # The first iteration is slower because of start-up jit times
 gs.run(out="test", n_iter=1)

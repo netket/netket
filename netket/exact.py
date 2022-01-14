@@ -115,7 +115,7 @@ def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
         return eigvalsh(dense_op)
 
 
-def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
+def steady_state(lindblad, *, sparse=True, method="ed", rho0=None, **kwargs):
     r"""Computes the numerically exact steady-state of a lindblad master equation.
     The computation is performed either through the exact diagonalization of the
     hermitian :math:`L^\dagger L` matrix, or by means of an iterative solver (bicgstabl)
@@ -148,9 +148,6 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
     Returns:
         The steady-state density matrix.
     """
-    if sparse is None:
-        sparse = True
-
     M = lindblad.hilbert.physical.n_states
 
     if method == "ed":

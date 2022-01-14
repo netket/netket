@@ -29,7 +29,7 @@ def test_Jastrow(dtype):
 
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),
-        nk.optim.Sgd(0.1),
+        nk.optimizer.Sgd(0.1),
         nk.sampler.MetropolisLocal(hi),
         ma,
     )

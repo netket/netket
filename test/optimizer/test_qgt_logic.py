@@ -87,6 +87,17 @@ def tree_random_normal_like(rng_key, target):
     )
 
 
+def astype_unsafe(x, dtype):
+    """
+    this function is equivalent to x.astype(dtype) but
+    does not raise a complexwarning, which we treat as an error
+    in our tests
+    """
+    if not nkjax.is_complex_dtype(dtype):
+        x = x.real
+    return x.astype(dtype)
+
+
 class Example:
     def f_real_flat(self, p, samples):
         return self.f(reassemble_complex(p, target=self.params), samples)
@@ -118,7 +129,10 @@ class Example:
         if pardtype is None:  # mixed precision as above
             pass
         else:
-            self.target = jax.tree_map(lambda x: x.astype(pardtype), self.target)
+            self.target = jax.tree_map(
+                lambda x: astype_unsafe(x, pardtype),
+                self.target,
+            )
 
         k = jax.random.PRNGKey(seed)
         k1, k2, k3, k4, k5 = jax.random.split(k, 5)
@@ -135,27 +149,29 @@ class Example:
 
             @partial(jax.vmap, in_axes=(None, 0))
             def f(params, x):
-                return (
+                return astype_unsafe(
                     params["a"][0][0][0] * x[0]
                     + params["b"] * x[1]
                     + params["c"] * (x[0] * x[1])
                     + jnp.sin(x[1] * params["a"][0][1][0])
                     * jnp.cos(x[0] * params["b"] + 1j)
-                    * params["c"]
-                ).astype(self.dtype)
+                    * params["c"],
+                    self.dtype,
+                )
 
         else:
 
             @partial(jax.vmap, in_axes=(None, 0))
             def f(params, x):
-                return (
+                return astype_unsafe(
                     params["a"][0][0][0].conjugate() * x[0]
                     + params["b"] * x[1]
                     + params["c"] * (x[0] * x[1])
                     + jnp.sin(x[1] * params["a"][0][1][0])
                     * jnp.cos(x[0] * params["b"].conjugate() + 1j)
-                    * params["c"].conjugate()
-                ).astype(self.dtype)
+                    * params["c"].conjugate(),
+                    self.dtype,
+                )
 
         self.f = f
 

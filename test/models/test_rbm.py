@@ -37,7 +37,7 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
         hidden_bias_init=uniform(),
         visible_bias_init=uniform(),
     )
-    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey()))
+    pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
 
     print(pars)
 
@@ -61,7 +61,7 @@ def test_RBMSymm_creation():
 
     def check_init(creator):
         ma = creator()
-        _ = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(0))
+        _ = ma.init(nk.jax.PRNGKey(0), hi.numbers_to_states(np.arange(3)))
 
     perms = [[0, 1, 2, 3, 4, 5, 6, 7]]
 

@@ -16,7 +16,7 @@ def _vmc(n_iter=20):
 
     op = nk.optimizer.Sgd(learning_rate=0.1)
 
-    return nk.Vmc(hamiltonian=ha, variational_state=vs, optimizer=op)
+    return nk.VMC(hamiltonian=ha, variational_state=vs, optimizer=op)
 
 
 def test_earlystopping_with_patience():

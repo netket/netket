@@ -58,7 +58,6 @@ filterwarnings = [
     "ignore:the imp module is deprecated in favour of importlib.*:DeprecationWarning",
     "ignore:`np.long`",
     "ignore:`np.int` is a deprecated alias for the builtin `int`",
-    "ignore:Call to deprecated function 'Boson'",
     "ignore::DeprecationWarning:tensorboardX",
 ]
 testpaths = [

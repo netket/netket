@@ -209,7 +209,7 @@ class Ising(SpecialHamiltonian):
     @property
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        return self.size + 1
+        return self.hilbert.size + 1
 
     def copy(self):
         graph = Graph(edges=[list(edge) for edge in self.edges])

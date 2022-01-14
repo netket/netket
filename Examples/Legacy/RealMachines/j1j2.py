@@ -62,7 +62,7 @@ sa = nk.sampler.MetropolisExchange(machine=ma, graph=g.n_nodes)
 opt = nk.optimizer.Sgd(learning_rate=0.01)
 
 # Variational Monte Carlo
-gs = nk.variational.Vmc(
+gs = nk.variational.VMC(
     hamiltonian=op, sampler=sa, optimizer=opt, n_samples=1000, method="Sr"
 )
 
