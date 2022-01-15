@@ -34,39 +34,40 @@ __all__ = [
     "sampler",
     "stats",
     "utils",
-    "variational",
+    "vqs",
     "nn",
 ]
 
-from . import legacy
+from . import jax
+from . import stats
+
+from . import graph
+from . import hilbert
+
+from . import nn
 
 from . import (
-    hilbert,
     exact,
     callbacks,
-    graph,
     logging,
     operator,
-    optimizer,
     models,
     sampler,
-    jax,
-    nn,
-    stats,
-    variational,
+    vqs,
+    optimizer,
 )
+
 
 # Main applications
 from .driver import VMC
 from .driver import SteadyState
 
-# from .drivers import Qsr
 
-
+# Deprecations
 @_deprecated("VMC")
 def Vmc(*args, **kwarags):
     return VMC(*args, **kwarags)
 
 
-# deprecations
-optim = optimizer
+from . import variational
+from . import optim

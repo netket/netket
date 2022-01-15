@@ -16,16 +16,13 @@ import abc
 import numbers
 from functools import partial
 
-import numpy as np
-
 from tqdm import tqdm
-import warnings
 
 import jax
 from jax.tree_util import tree_map
 
 from netket.logging import JsonLog
-from netket.utils import node_number, n_nodes
+from netket.utils import mpi
 
 
 def _to_iterable(maybe_iterable):
@@ -60,8 +57,8 @@ class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, variational_state, optimizer, minimized_quantity_name=""):
-        self._mynode = node_number
-        self._mpi_nodes = n_nodes
+        self._mynode = mpi.node_number
+        self._mpi_nodes = mpi.n_nodes
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
         self._step_count = 0
@@ -69,7 +66,7 @@ class AbstractVariationalDriver(abc.ABC):
         self._variational_state = variational_state
         self.optimizer = optimizer
 
-    def _forward_and_backward(self):
+    def _forward_and_backward(self):  # pragma: no cover
         """
         Performs the forward and backward pass at the same time.
         Concrete drivers should either override this method, or override individually
@@ -88,7 +85,7 @@ class AbstractVariationalDriver(abc.ABC):
         Concrete should either implement _forward and _backward or the joint method
         _forward_and_backward.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def _backward(self):
         """
@@ -96,7 +93,7 @@ class AbstractVariationalDriver(abc.ABC):
         Concrete should either implement _forward and _backward or the joint method
         _forward_and_backward.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def _estimate_stats(self, observable):
         """
@@ -115,7 +112,7 @@ class AbstractVariationalDriver(abc.ABC):
         count is set to 0.
         """
         self.state.reset()
-        self.step_count = 0
+        self._step_count = 0
         pass
 
     @abc.abstractmethod
@@ -123,7 +120,7 @@ class AbstractVariationalDriver(abc.ABC):
         """
         Returns an info string used to print information to screen about this driver.
         """
-        pass
+        pass  # pragma: no cover
 
     @property
     def state(self):
@@ -134,12 +131,16 @@ class AbstractVariationalDriver(abc.ABC):
 
     @property
     def optimizer(self):
+        """
+        The optimizer used to update the parameters at every iteration.
+        """
         return self._optimizer
 
     @optimizer.setter
     def optimizer(self, optimizer):
         self._optimizer = optimizer
-        self._optimizer_state = optimizer.init(self.state.parameters)
+        if optimizer is not None:
+            self._optimizer_state = optimizer.init(self.state.parameters)
 
     @property
     def step_count(self):
@@ -197,7 +198,7 @@ class AbstractVariationalDriver(abc.ABC):
         in the output `logger`. If no logger is specified, creates a json file at `out`,
         overwriting files with the same prefix.
 
-        By default uses :ref:`netket.logging.JsonLogger`. To know about the output format
+        By default uses :ref:`netket.logging.JsonLog`. To know about the output format
         check it's documentation. The logger object is also returned at the end of this function
         so that you can inspect the results without reading the json output.
 
@@ -244,20 +245,20 @@ class AbstractVariationalDriver(abc.ABC):
         callbacks = _to_iterable(callback)
         callback_stop = False
 
-        with tqdm(
-            self.iter(n_iter, step_size), total=n_iter, disable=not show_progress
-        ) as itr:
+        with tqdm(total=n_iter, disable=not show_progress) as pbar:
+            old_step = self.step_count
             first_step = True
 
-            for step in itr:
+            for step in self.iter(n_iter, step_size):
 
                 log_data = self.estimate(obs)
 
                 # if the cost-function is defined then report it in the progress bar
                 if self._loss_stats is not None:
-                    itr.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    pbar.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
                     log_data[self._loss_name] = self._loss_stats
 
+                # Execute callbacks before loggers because they can append to log_data
                 for callback in callbacks:
                     if not callback(step, log_data, self):
                         callback_stop = True
@@ -265,13 +266,21 @@ class AbstractVariationalDriver(abc.ABC):
                 for logger in loggers:
                     logger(self.step_count, log_data, self.state)
 
-                if callback_stop:
-                    break
+                if len(callbacks) > 0:
+                    if mpi.mpi_any(callback_stop):
+                        break
 
                 # Reset the timing of tqdm after the first step, to ignore compilation time
                 if first_step:
                     first_step = False
-                    itr.unpause()
+                    pbar.unpause()
+
+                # Update the progress bar
+                pbar.update(self.step_count - old_step)
+                old_step = self.step_count
+
+            # Final update so that it shows up filled.
+            pbar.update(self.step_count - old_step)
 
         # flush at the end of the evolution so that final values are saved to
         # file

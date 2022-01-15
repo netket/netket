@@ -12,46 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json as _json
-from os import path as _path
-from netket.legacy.vmc_common import tree_map as _tree_map
-from netket.stats.mc_stats import Stats
+from numbers import Number
+
+from netket.utils import deprecated
 
 
 def tree_log(tree, root, data):
     """
     Maps all elements in tree, recursively calling tree_log with a new root string,
     and when it reaches leaves pushes (string, leave) tuples to data.
+
+    Args:
+        tree: a pytree where the leaf nodes contain data
+        root: the root of the tags used to log to tensorboard
+        data: a container modified in place
+
     """
     if tree is None:
-        return data
+        return
     elif isinstance(tree, list):
-        tmp = [
-            tree_log(val, root + "/{}".format(i), data) for (i, val) in enumerate(tree)
-        ]
-        return data
+        for (i, val) in enumerate(tree):
+            tree_log(val, root + f"/{i}", data)
+
     elif isinstance(tree, list) and hasattr(tree, "_fields"):
-        tmp = [
-            tree_log(getattr(tree, key), root + "/{}".format(key), data)
-            for key in tree._fields
-        ]
-        return data
+        for key in tree._fields:
+            tree_log(getattr(tree, key), root + f"/{key}", data)
+
     elif isinstance(tree, tuple):
-        tmp = tuple(
-            tree_log(val, root + "/{}".format(i), data) for (i, val) in enumerate(tree)
-        )
-        return data
+        for (i, val) in enumerate(tree):
+            tree_log(val, root + f"/{i}", data)
+
     elif isinstance(tree, dict):
-        return {
-            key: tree_log(value, root + "/{}".format(key), data)
-            for key, value in tree.items()
-        }
+        for key, value in tree.items():
+            tree_log(value, root + f"/{key}", data)  # noqa: F722
+
+    elif hasattr(tree, "to_compound"):
+        tree_log(tree.to_compound()[1], root, data)  # noqa: F722
+
+    elif hasattr(tree, "to_dict"):
+        tree_log(tree.to_dict(), root, data)  # noqa: F722
+
+    elif isinstance(tree, complex):
+        tree_log(tree.real, root + "/re", data)  # noqa: F722
+        tree_log(tree.imag, root + "/im", data)  # noqa: F722
+
     else:
         data.append((root, tree))
-        return data
 
 
-class TBLog:
+class TensorBoardLog:
     """
     Creates a tensorboard logger using tensorboardX's summarywriter.
     Refer to its documentation for further details
@@ -82,19 +91,21 @@ class TBLog:
           the logdir directory. More details on filename construction in
           tensorboard.summary.writer.event_file_writer.EventFileWriter.
         write_to_disk (boolean):
-          If pass `False`, TBLog will not write to disk.
+          If pass `False`, TensorBoardLog will not write to disk.
     Examples:
         Logging optimisation to tensorboard.
 
+        >>> import pytest; pytest.skip("skip automated test of this docstring")
+        >>>
         >>> import netket as nk
         >>> # create a summary writer with automatically generated folder name.
-        >>> writer = nk.logging.TBLog()
+        >>> writer = nk.logging.TensorBoardLog()
         >>> # folder location: runs/May04_22-14-54_s-MacBook-Pro.local/
         >>> # create a summary writer using the specified folder name.
-        >>> writer = nk.logging.TBLog("my_experiment")
+        >>> writer = nk.logging.TensorBoardLog("my_experiment")
         >>> # folder location: my_experiment
         >>> # create a summary writer with comment appended.
-        >>> writer = nk.logging.TBLog(comment="LR_0.1_BATCH_16")
+        >>> writer = nk.logging.TensorBoardLog(comment="LR_0.1_BATCH_16")
         >>> # folder location: runs/May04_22-14-54_s-MacBook-Pro.localLR_0.1_BATCH_16/
     """
 
@@ -115,13 +126,7 @@ class TBLog:
         tree_log(item, "", data)
 
         for key, val in data:
-            if isinstance(val, Stats):
-                val = val.mean
-
-            if isinstance(val, complex):
-                self._writer.add_scalar(key[1:] + "/re", val.real, step)
-                self._writer.add_scalar(key[1:] + "/im", val.imag, step)
-            else:
+            if isinstance(val, Number):
                 self._writer.add_scalar(key[1:], val, step)
 
         self._writer.flush()
@@ -130,7 +135,7 @@ class TBLog:
     def _flush_log(self):
         self._writer.flush()
 
-    def _flush_params(self, machine):
+    def _flush_params(self, _):
         return None
 
     def flush(self, machine=None):
@@ -143,3 +148,12 @@ class TBLog:
 
         if machine is not None:
             self._flush_params(machine)
+
+
+# TODO: deprecate in 3.1
+@deprecated(
+    "TBLog has been renamed to `TensorBoardLog` and will be removed in the next"
+    "minor release. Please update your usages."
+)
+def TBLog(*args, **kwargs):
+    return TensorBoardLog(*args, **kwargs)

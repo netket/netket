@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.hilbert import AbstractHilbert
-from numpy.typing import DTypeLike
+from netket.utils.types import DType as _DType
+
+from netket.hilbert import AbstractHilbert as _AbstractHilbert
 
 from ._local_operator import LocalOperator as _LocalOperator
 
 
 def sigmax(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^x` operator acting on the `site`-th of the Hilbert
@@ -43,7 +44,7 @@ def sigmax(
 
 
 def sigmay(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = complex
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = complex
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^y` operator acting on the `site`-th of the Hilbert
@@ -67,7 +68,7 @@ def sigmay(
 
 
 def sigmaz(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^z` operator acting on the `site`-th of the Hilbert
@@ -91,10 +92,10 @@ def sigmaz(
 
 
 def sigmam(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
-    Builds the :math:`\\sigma^{-} = \\sigma^x - i \\sigma^y` operator acting on the
+    Builds the :math:`\\sigma^{-} = \\frac{1}{2}(\\sigma^x - i \\sigma^y)` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Spin space of local dimension M, it is considered
@@ -116,10 +117,10 @@ def sigmam(
 
 
 def sigmap(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
-    Builds the :math:`\\sigma^{+} = \\sigma^x + i \\sigma^y` operator acting on the
+    Builds the :math:`\\sigma^{+} = \\frac{1}{2}(\\sigma^x + i \\sigma^y)` operator acting on the
     `site`-th of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Spin space of local dimension M, it is considered
@@ -138,7 +139,3 @@ def sigmap(
     D = np.array([np.sqrt(S2 - m * (m + 1)) for m in np.arange(S - 1, -(S + 1), -1)])
     mat = np.diag(D, 1)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
-
-
-# clean up the module
-del AbstractHilbert

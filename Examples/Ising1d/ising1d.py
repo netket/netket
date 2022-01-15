@@ -29,7 +29,7 @@ ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
+sa = nk.sampler.MetropolisLocal(hi, n_chains=16, reset_chains=False)
 
 # Optimizer
 op = nk.optimizer.Sgd(learning_rate=0.1)

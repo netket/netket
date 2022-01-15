@@ -22,8 +22,10 @@ from flax import struct
 import jax
 from jax import numpy as jnp
 
-from numba import jit
 import numpy as np
+
+from netket import jax as nkjax
+
 from . import mean as _mean
 from . import var as _var
 from . import total_size as _total_size
@@ -71,16 +73,6 @@ class Stats:
     def to_compound(self):
         return "Mean", self.to_dict()
 
-    # Remove this method once we remove legacy.
-    def to_json(self):
-        jsd = {}
-        jsd["Mean"] = float(self.mean.real)
-        jsd["Variance"] = float(self.variance)
-        jsd["Sigma"] = float(self.error_of_mean)
-        jsd["R_hat"] = float(self.R_hat)
-        jsd["TauCorr"] = float(self.tau_corr)
-        return jsd
-
     def __repr__(self):
         mean, err, var = _format_decimal(self.mean, self.error_of_mean, self.variance)
         if not math.isnan(self.R_hat):
@@ -108,7 +100,6 @@ class Stats:
 
 
 def _get_blocks(data, block_size):
-    n_chains = data.shape[0]
     chain_length = data.shape[1]
 
     n_blocks = int(np.floor(chain_length / float(block_size)))
@@ -137,6 +128,7 @@ def statistics(data, batch_size=32):
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
     also for other type of time series.
+    Assumes same shape on all MPI processes.
 
     Args:
         data (vector or matrix): The input data. It can be real or complex valued.
@@ -184,7 +176,8 @@ def _statistics(data, batch_size):
     batch_good = (tau_batch < 6 * data.shape[1]) * (n_batches >= batch_size)
     block_good = (tau_block < 6 * l_block) * (n_blocks >= batch_size)
 
-    stat_dtype = jax.dtypes.dtype_real(data.dtype)
+    stat_dtype = nkjax.dtype_real(data.dtype)
+
     # if batch_good:
     #    error_of_mean = jnp.sqrt(batch_var / n_batches)
     #    tau_corr = jnp.max(0, tau_batch)
@@ -195,6 +188,7 @@ def _statistics(data, batch_size):
     #    error_of_mean = jnp.nan
     #    tau_corr = jnp.nan
     # jax style
+
     def batch_good_err(args):
         batch_var, tau_batch, *_ = args
         error_of_mean = jnp.sqrt(batch_var / n_batches)

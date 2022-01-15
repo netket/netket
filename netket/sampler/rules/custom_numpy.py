@@ -13,14 +13,12 @@
 # limitations under the License.
 
 from typing import Any
-import math
 
 from numba import jit
 
 import numpy as np
 from flax import struct
 
-from netket.legacy import random as _random
 from netket.operator import AbstractOperator
 
 
@@ -36,27 +34,29 @@ class CustomRuleState:
 
 @struct.dataclass
 class CustomRuleNumpy(MetropolisRule):
-    Ô: Any = struct.field(pytree_node=False)
+    operator: Any = struct.field(pytree_node=False)
     weight_list: Any = struct.field(pytree_node=False, default=None)
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
-        if not isinstance(self.Ô, AbstractOperator):
+        if not isinstance(self.operator, AbstractOperator):
             raise TypeError(
-                "Argument to HamiltonianRuleNumpy must be a valid operator.".format(
-                    type(operator)
-                )
+                "Argument to CustomRuleNumpy must be a valid operator, "
+                f"but operator is a {type(self.operator)}."
             )
-        _check_operators(self.Ô.operators)
+
+        _check_operators(self.operator.operators)
 
         if self.weight_list is not None:
-            if self.weight_list.shape != (self.Ô.n_operators,):
+            if self.weight_list.shape != (self.operator.n_operators,):
                 raise ValueError("move_weights have the wrong shape")
             if self.weight_list.min() < 0:
                 raise ValueError("move_weights must be positive")
         else:
             object.__setattr__(
-                self, "weight_list", np.ones(self.Ô.n_operators, dtype=np.float32)
+                self,
+                "weight_list",
+                np.ones(self.operator.n_operators, dtype=np.float32),
             )
 
         object.__setattr__(
@@ -73,35 +73,51 @@ class CustomRuleNumpy(MetropolisRule):
     def transition(rule, sampler, machine, parameters, state, rng, σ):
         rule_state = state.rule_state
 
+        # numba does not support jitting np.random number generators
+        # so we have to generate the random numbers outside the jit
+        # block
+        rnd_uniform = rng.uniform(0.0, 1.0, size=σ.shape[0])
+
         _pick_random_and_init(
             σ.shape[0],
             rule_state.weight_cumsum,
+            rnd_uniform=rnd_uniform,
             out=rule_state.rand_op_n,
         )
 
-        σ_conns, mels = rule.Ô.get_conn_filtered(
+        σ_conns, mels = rule.operator.get_conn_filtered(
             state.σ, rule_state.sections, rule_state.rand_op_n
         )
 
+        # numba does not support jitting np.random number generators
+        # so we have to generate the random numbers outside the jit
+        # block
+        rnd_uniform = rng.uniform(0.0, 1.0, size=state.σ1.shape[0])
+
         _choose_and_return(
-            state.σ1, σ_conns, mels, rule_state.sections, state.log_prob_corr
+            state.σ1,
+            σ_conns,
+            mels,
+            rule_state.sections,
+            state.log_prob_corr,
+            rnd_uniform,
         )
 
 
 @jit(nopython=True)
-def _pick_random_and_init(batch_size, move_cumulative, out):
+def _pick_random_and_init(batch_size, move_cumulative, rnd_uniform, out):
     for i in range(batch_size):
-        p = _random.uniform()
+        p = rnd_uniform[i]
         out[i] = np.searchsorted(move_cumulative, p)
 
     # return out
 
 
 @jit(nopython=True)
-def _choose_and_return(σp, x_prime, mels, sections, log_prob_corr):
+def _choose_and_return(σp, x_prime, mels, sections, log_prob_corr, rnd_uniform):
     low = 0
     for i in range(σp.shape[0]):
-        p = _random.uniform()
+        p = rnd_uniform[i]
         exit_state = 0
         cumulative_prob = mels[low].real
         while p > cumulative_prob:

@@ -8,4 +8,3 @@ prune Notes
 prune Tutorials
 
 exclude codecov.yml
-exclude postBuild

@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-import numpy as np
-import jax
 
 # 1D Lattice
 L = 20
@@ -30,7 +28,7 @@ ha = nk.operator.Heisenberg(hilbert=hi, graph=g)
 
 # RBM Spin Machine
 ma = nk.models.RBMSymm(
-    permutations=g.periodic_translations(),
+    symmetries=g.translation_group(),
     alpha=4,
     use_visible_bias=False,
     use_hidden_bias=True,
@@ -41,15 +39,17 @@ ma = nk.models.RBMSymm(
 sa = nk.sampler.MetropolisExchange(hi, graph=g, n_chains=16)
 
 # Optimizer
-op = nk.optim.Sgd(learning_rate=0.01)
-sr = nk.optim.SR(0.1)
+op = nk.optimizer.Sgd(learning_rate=0.01)
+sr = nk.optimizer.SR(diag_shift=0.1)
+
+# Variational State
+vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
 
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, sa, ma, n_samples=1000, n_discard=100, sr=sr)
+gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
 
 # Print parameter structure
 print(f"# variational parameters: {gs.state.n_parameters}")
-
 
 # Run the optimization for 300 iterations
 gs.run(n_iter=300, out="test")

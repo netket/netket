@@ -30,7 +30,7 @@ ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # The variational state
-vs = nk.variational.MCState(sa, ma, n_samples=1000, n_discard=100)
+vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
 vs.init_parameters(nk.nn.initializers.normal(stddev=0.01), seed=1234)
 
 # Optimizer
@@ -40,7 +40,7 @@ op = nk.optimizer.Sgd(learning_rate=0.1)
 sr = nk.optimizer.SR(diag_shift=0.1)
 
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, variational_state=vs, sr=sr)
+gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
 
 # Create a JSON output file, and overwrite if file exists
 logger = nk.logging.JsonLog("test", "w")

@@ -15,7 +15,6 @@
 from typing import Optional, List, Any
 
 import jax
-import flax
 import numpy as np
 
 from jax import numpy as jnp
@@ -27,7 +26,7 @@ from ..metropolis import MetropolisRule
 
 @struct.dataclass
 class ExchangeRule_(MetropolisRule):
-    """
+    r"""
     A Rule exchanging the state on a random couple of sites, chosen from a list of
     possible couples (clusters).
 
@@ -57,7 +56,6 @@ class ExchangeRule_(MetropolisRule):
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
         n_chains = σ.shape[0]
-        hilb = sampler.hilbert
 
         # pick a random cluster
         cluster_id = jax.random.randint(
@@ -69,8 +67,8 @@ class ExchangeRule_(MetropolisRule):
             si = rule.clusters[cluster, 0]
             sj = rule.clusters[cluster, 1]
 
-            σp = jax.ops.index_update(σ, si, σ[sj])
-            return jax.ops.index_update(σp, sj, σ[si])
+            σp = σ.at[si].set(σ[sj])
+            return σp.at[sj].set(σ[si])
 
         return (
             jax.vmap(scalar_update_fun, in_axes=(0, 0), out_axes=0)(σ, cluster_id),
@@ -104,29 +102,29 @@ def ExchangeRule(
     graph: Optional[AbstractGraph] = None,
     d_max: int = 1,
 ):
-    """
+    r"""
     A Rule exchanging the state on a random couple of sites, chosen from a list of
     possible couples (clusters).
 
     This rule acts on two local degree of freedom :math:`s_i` and :math:`s_j`,
-    and proposes a new state: :math:`s_1 \\dots s^\\prime_i \\dots s^\\prime_j \\dots s_N`,
-    where in general :math:`s^\\prime_i \\neq s_i` and :math:`s^\\prime_j \\neq s_j`.
+    and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s^\prime_j \dots s_N`,
+    where in general :math:`s^\prime_i \neq s_i` and :math:`s^\prime_j \neq s_j`.
     The sites :math:`i` and :math:`j` are also chosen to be within a maximum graph
-    distance of :math:`d_{\\mathrm{max}}`.
+    distance of :math:`d_{\mathrm{max}}`.
 
     The transition probability associated to this sampler can
     be decomposed into two steps:
 
-    1. A pair of indices :math:`i,j = 1\\dots N`, and such
-       that :math:`\\mathrm{dist}(i,j) \\leq d_{\\mathrm{max}}`,
+    1. A pair of indices :math:`i,j = 1\dots N`, and such
+       that :math:`\mathrm{dist}(i,j) \leq d_{\mathrm{max}}`,
        is chosen with uniform probability.
-    2. The sites are exchanged, i.e. :math:`s^\\prime_i = s_j` and :math:`s^\\prime_j = s_i`.
+    2. The sites are exchanged, i.e. :math:`s^\prime_i = s_j` and :math:`s^\prime_j = s_i`.
 
     Notice that this sampling method generates random permutations of the quantum
     numbers, thus global quantities such as the sum of the local quantum numbers
     are conserved during the sampling.
     This scheme should be used then only when sampling in a
-    region where :math:`\\sum_i s_i = \\mathrm{constant}` is needed,
+    region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
     otherwise the sampling would be strongly not ergodic.
 
     Args:

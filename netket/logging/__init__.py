@@ -14,9 +14,9 @@
 
 from .runtime_log import RuntimeLog
 from .json_log import JsonLog
-from .tensorboard import TBLog
+from .state_log import StateLog
+from .tensorboard import TensorBoardLog, TBLog
 
-from .json_log_old import JsonLog as JsonLogOld
 from netket.utils import tensorboard_available as _tensorboard_available
 
 

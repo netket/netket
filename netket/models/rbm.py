@@ -12,20 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional, Tuple, Any, Callable, Iterable
+from typing import Union, Any
 
 import numpy as np
 
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.nn.initializers import normal
 
-from netket.hilbert import AbstractHilbert
-from netket.graph import AbstractGraph
-from netket.utils.types import PRNGKey, Shape, Dtype, Array, NNInitFunc
-
+from netket.utils import HashableArray
+from netket.utils.types import NNInitFunc
+from netket.utils.group import PermutationGroup
 from netket import nn as nknn
-from netket.nn.initializers import lecun_normal, variance_scaling, zeros, normal
 
 default_kernel_init = normal(stddev=0.01)
 
@@ -37,7 +36,7 @@ class RBM(nn.Module):
 
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.logcosh
+    activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -97,7 +96,7 @@ class RBMModPhase(nn.Module):
 
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.logcosh
+    activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -150,7 +149,7 @@ class RBMMultiVal(nn.Module):
     """The number of classes in the one-hot encoding"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.logcosh
+    activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -195,11 +194,13 @@ class RBMMultiVal(nn.Module):
 class RBMSymm(nn.Module):
     """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
 
-    permutations: Callable[[], Array]
-    """See documentation of :ref:`netket.nn.DenseSymm`."""
+    symmetries: Union[HashableArray, PermutationGroup]
+    """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
+    Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
+    """
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = nknn.logcosh
+    activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
     alpha: Union[float, int] = 1
     """feature density. Number of features equal to alpha * input.shape[-1]"""
@@ -218,7 +219,7 @@ class RBMSymm(nn.Module):
     """Initializer for the visible bias."""
 
     def setup(self):
-        self.n_symm, self.n_sites = self.permutations().shape
+        self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
         self.features = int(self.alpha * self.n_sites / self.n_symm)
         if self.alpha > 0 and self.features == 0:
             raise ValueError(
@@ -228,17 +229,23 @@ class RBMSymm(nn.Module):
 
     @nn.compact
     def __call__(self, x_in):
+        x = x_in
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)
         x = nknn.DenseSymm(
             name="Dense",
-            permutations=self.permutations,
+            mode="matrix",
+            symmetries=self.symmetries,
             features=self.features,
             dtype=self.dtype,
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
             precision=self.precision,
-        )(x_in)
+        )(x)
         x = self.activation(x)
+
+        x = x.reshape(-1, self.features * self.n_symm)
         x = jnp.sum(x, axis=-1)
 
         if self.use_visible_bias:
@@ -249,35 +256,3 @@ class RBMSymm(nn.Module):
             return x + out_bias
         else:
             return x
-
-
-def create_RBMSymm(
-    permutations: Union[Callable[[], Array], AbstractGraph, Array], *args, **kwargs
-):
-    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally.
-
-    Attributes:
-        permutations: See documentation of :func:`~netket.nn.create_DenseSymm`.
-        dtype: The dtype of the weights.
-        activation: The nonlinear activation function.
-        alpha: Feature density. Number of features equal to alpha * input.shape[-1]
-        use_hidden_bias: if True uses a bias in the dense layer (hidden layer bias).
-        use_visible_bias: if True adds a bias to the input not passed through the nonlinear layer.
-        percision: numerical precision of the computation see `jax.lax.Precision`for details.
-        kernel_init: Initializer for the Dense layer matrix.
-        hidden_bias_init: Initializer for the hidden bias.
-        visible_bias_init: Initializer for the visible bias.
-    """
-    if isinstance(permutations, Callable):
-        perm_fn = permutations
-    elif isinstance(permutations, AbstractGraph):
-        perm_fn = lambda: jnp.asarray(permutations.automorphisms())
-    else:
-        permutations = jnp.asarray(permutations)
-        if not permutations.ndim == 2:
-            raise ValueError(
-                "permutations must be an array of shape (#permutations, #sites)."
-            )
-        perm_fn = lambda: permutations
-
-    return RBMSymm(permutations=perm_fn, *args, **kwargs)

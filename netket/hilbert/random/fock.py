@@ -12,20 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List
-
 import jax
 import numpy as np
 from jax import numpy as jnp
 
-# from numba import jit
-
 from netket.hilbert import Fock
+from netket.utils.dispatch import dispatch
 
-from .base import register_flip_state_impl, register_random_state_impl
 
-
-def random_state_batch_fock_impl(hilb: Fock, key, batches, dtype):
+@dispatch
+def random_state(hilb: Fock, key, batches: int, *, dtype=np.float32):
     shape = (batches, hilb.size)
 
     # If unconstrained space, use fast sampling
@@ -36,10 +32,8 @@ def random_state_batch_fock_impl(hilb: Fock, key, batches, dtype):
     else:
         from jax.experimental import host_callback as hcb
 
-        cb = lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype)
-
         state = hcb.call(
-            cb,
+            lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype),
             key,
             result_shape=jax.ShapeDtypeStruct(shape, dtype),
         )
@@ -67,8 +61,8 @@ def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
     return out
 
 
-## flips
-def flip_state_scalar_fock(hilb: Fock, key, σ, idx):
+@dispatch
+def flip_state_scalar(hilb: Fock, key, σ, idx):
     if hilb._n_max == 0:
         return σ, σ[idx]
 
@@ -79,8 +73,4 @@ def flip_state_scalar_fock(hilb: Fock, key, σ, idx):
     σi_new = jax.numpy.floor(r * (n_states - 1))
     σi_new = σi_new + (σi_new >= σi_old)
 
-    return jax.ops.index_update(σ, idx, σi_new), σi_old
-
-
-register_random_state_impl(Fock, batch=random_state_batch_fock_impl)
-register_flip_state_impl(Fock, scalar=flip_state_scalar_fock)
+    return σ.at[idx].set(σi_new), σi_old

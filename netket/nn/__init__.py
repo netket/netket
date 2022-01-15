@@ -32,9 +32,11 @@ from .activation import (
     tanh,
     cosh,
     sinh,
-    logcosh,
-    logsinh,
-    logtanh,
+    log_cosh,
+    log_sinh,
+    log_tanh,
+    reim_selu,
+    reim_relu,
 )
 from flax.linen import (
     MultiHeadDotProductAttention,
@@ -49,9 +51,14 @@ from .linear import (
     ConvTranspose,
     Dense,
     DenseGeneral,
-    DenseSymm,
-    create_DenseSymm,
 )
+from .symmetric_linear import (
+    DenseSymm,
+    DenseEquivariant,
+)
+from .masked_linear import MaskedDense1D, MaskedConv1D, MaskedConv2D
+from .fast_masked_linear import FastMaskedDense1D, FastMaskedConv1D, FastMaskedConv2D
+
 from .module import Module
 from flax.linen.module import compact, enable_named_call, disable_named_call, Variable
 
@@ -59,50 +66,4 @@ from .initializers import zeros, ones
 
 from flax.linen import Embed
 
-from flax.linen import compact
-
-
-def to_array(hilbert, machine, params, normalize=True):
-    import numpy as np
-    from jax import numpy as jnp
-    from netket.utils import get_afun_if_module
-
-    machine = get_afun_if_module(machine)
-
-    if hilbert.is_indexable:
-        xs = hilbert.all_states()
-        psi = machine(params, xs)
-        logmax = psi.real.max()
-        psi = jnp.exp(psi - logmax)
-
-        if normalize:
-            norm = jnp.linalg.norm(psi)
-            psi /= norm
-
-        return psi
-    else:
-        raise RuntimeError("The hilbert space is not indexable")
-
-
-def to_matrix(hilbert, machine, params, normalize=True):
-    import numpy as np
-    from jax import numpy as jnp
-    from netket.utils import get_afun_if_module
-
-    machine = get_afun_if_module(machine)
-
-    if hilbert.is_indexable:
-        xs = hilbert.all_states()
-        psi = machine(params, xs)
-        logmax = psi.real.max()
-        psi = jnp.exp(psi - logmax)
-
-        L = hilbert.physical.n_states
-        rho = psi.reshape((L, L))
-        if normalize:
-            trace = jnp.trace(rho)
-            rho /= trace
-
-        return rho
-    else:
-        raise RuntimeError("The hilbert space is not indexable")
+from .utils import to_array, to_matrix, split_array_mpi, update_dense_symm

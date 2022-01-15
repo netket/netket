@@ -13,10 +13,22 @@
 # limitations under the License.
 
 from .abstract_graph import AbstractGraph
-
-from .graph import *
-from .grid import *
+from .graph import Graph, Edgeless, DoubledGraph, disjoint_union
 from .lattice import Lattice
+from .common_lattices import (
+    Grid,
+    Hypercube,
+    Cube,
+    Square,
+    Chain,
+    BCC,
+    FCC,
+    Diamond,
+    Pyrochlore,
+    Triangular,
+    Honeycomb,
+    Kagome,
+)
 
 from netket.utils import _hide_submodules
 

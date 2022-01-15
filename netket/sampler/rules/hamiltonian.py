@@ -12,21 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
-import flax
-import numpy as np
-
-from jax import numpy as jnp
-from jax.experimental import host_callback as hcb
-from flax import struct
-from numba import jit
-
 import math
 
-from typing import Any
+import jax
+import numpy as np
+
+from flax import struct
+from numba import jit
+from numba4jax import njit4jax
 
 from netket.operator import AbstractOperator
-from netket.jax import numba_to_jax, njit4jax
 
 from ..metropolis import MetropolisRule
 
@@ -39,34 +34,39 @@ class HamiltonianRule(MetropolisRule):
     In this case, the transition matrix is taken to be:
 
     .. math::
+
        T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
 
     This rule only works on CPU! If you want to use it on GPU, you
     must use the numpy variant :class:`netket.sampler.rules.HamiltonianRuleNumpy`
-    together with the numpy metropolis sampler
-    :class:`netket.sampler.MetropolisSamplerNumpy`.
-
-    Attributes:
-        Ô: The (hermitian) operator giving the transition amplitudes.
-
+    together with the numpy metropolis sampler :class:`netket.sampler.MetropolisSamplerNumpy`.
     """
 
-    Ô: AbstractOperator = struct.field(pytree_node=False)
+    operator: AbstractOperator = struct.field(pytree_node=False)
+    """The (hermitian) operator giving the transition amplitudes."""
+
+    def init_state(rule, sampler, machine, params, key):
+        if sampler.hilbert != rule.operator.hilbert:
+            raise ValueError(
+                f"""
+            The hilbert space of the sampler ({sampler.hilbert}) and the hilbert space
+            of the operator ({rule.operator.hilbert}) for HamiltonianRule must be the same.
+            """
+            )
+        return super().init_state(sampler, machine, params, key)
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
-        if not isinstance(self.Ô, AbstractOperator):
+        if not isinstance(self.operator, AbstractOperator):
             raise TypeError(
-                "Argument to HamiltonianRule must be a valid operator.".format(
-                    type(self.Ô)
-                )
+                "Argument to HamiltonianRule must be a valid operator, "
+                f"but operator is a {type(self.operator)}."
             )
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
 
-        hilbert = sampler.hilbert
-        get_conn_flattened = rule.Ô._get_conn_flattened_closure()
-        n_conn_from_sections = rule.Ô._n_conn_from_sections
+        get_conn_flattened = rule.operator._get_conn_flattened_closure()
+        n_conn_from_sections = rule.operator._n_conn_from_sections
 
         @njit4jax(
             (
@@ -103,7 +103,7 @@ class HamiltonianRule(MetropolisRule):
         return σp, log_prob_correction
 
     def __repr__(self):
-        return f"HamiltonianRule({self.Ô})"
+        return f"HamiltonianRule({self.operator})"
 
 
 @jit(nopython=True)

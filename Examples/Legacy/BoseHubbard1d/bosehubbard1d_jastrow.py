@@ -18,7 +18,7 @@ from netket import legacy as nk
 g = nk.graph.Hypercube(length=12, n_dim=1, pbc=True)
 
 # Boson Hilbert Space
-hi = nk.hilbert.Boson(N=g.n_nodes, n_max=3, n_bosons=12)
+hi = nk.hilbert.Fock(N=g.n_nodes, n_max=3, n_bosons=12)
 
 # Bose Hubbard Hamiltonian
 ha = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
@@ -34,7 +34,7 @@ sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
 # Variational Monte Carlo
-vmc = nk.variational.Vmc(
+vmc = nk.variational.VMC(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,

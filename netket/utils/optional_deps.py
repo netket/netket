@@ -13,24 +13,8 @@
 # limitations under the License.
 
 try:
-    import torch  # type: ignore
-
-    torch_available = True
-except ImportError:
-    torch_available = False
-
-
-try:
-    import tensorboardX  # type: ignore
+    import tensorboardX  # noqa
 
     tensorboard_available = True
 except ImportError:
     tensorboard_available = False
-
-
-try:
-    import backpack  # type: ignore
-
-    backpack_available = True
-except ImportError:
-    backpack_available = False

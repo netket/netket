@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
 from .base import ModuleFramework, framework
 
 
@@ -42,5 +44,5 @@ class FlaxFramework(ModuleFramework):
         return variables
 
     @staticmethod
-    def unwrap_params(params):
-        return params
+    def unwrap_params(wrapped_variables):
+        return wrapped_variables

@@ -12,11 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
-from jax import numpy as jnp
+from jax.nn import initializers
+from netket.utils.deprecation import deprecated
 
-from functools import partial
 
-from flax.linen.initializers import *
-
-lecun_complex = partial(variance_scaling, 1.0, "fan_in", "normal", dtype=jnp.complex64)
+_func_names = [
+    "glorot_normal",
+    "glorot_uniform",
+    "he_normal",
+    "he_uniform",
+    "kaiming_normal",
+    "kaiming_uniform",
+    "lecun_normal",
+    "lecun_uniform",
+    "normal",
+    "ones",
+    "orthogonal",
+    "delta_orthogonal",
+    "uniform",
+    "variance_scaling",
+    "xavier_normal",
+    "xavier_uniform",
+    "zeros",
+]
+_msg = "`netket.nn.initializers` is deprecated. Use `jax.nn.initializers` instead."
+for func_name in _func_names:
+    locals()[func_name] = deprecated(_msg, func_name)(getattr(initializers, func_name))

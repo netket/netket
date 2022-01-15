@@ -1,13 +1,14 @@
-Sphinx>=3.5.2
+Sphinx==3.5.4
 sphinx-autodoc-typehints>=1.11.1
 sphinx-bootstrap-theme>=0.7.1
 sphinx-markdown-parser>=0.2.4
 sphinxcontrib-fulltoc>=1.2.0
 sphinxcontrib-jsmath>=1.0.1
 sphinxcontrib-napoleon>=0.7
-recommonmark>=0.7 
+myst-parser>=0.13.7
 sphinx_reredirects
-nbsphinx>=0.8
--e .
+nbsphinx==0.8.7
 jaxlib>=0.1.59
 sphinx_panels>=0.5.2
+-e .
+-e docs/custom_inheritance_diagram

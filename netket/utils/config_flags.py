@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from textwrap import dedent
 
 
 def bool_env(varname: str, default: bool) -> bool:
@@ -55,9 +56,6 @@ class ReadOnlyDict:
     def __getitem__(self, key):
         return self._data[key]
 
-        # def __contains__(self, key)
-        key in self._data
-
 
 class Config:
     def __init__(self):
@@ -67,7 +65,7 @@ class Config:
 
         self._readonly = ReadOnlyDict(self._values)
 
-    def define(self, name, type, default, *, help, runtime=False):
+    def define(self, name, type, default, *, help, runtime=False):  # noqa: W0613
         """
         Defines a new flag
         """
@@ -112,5 +110,18 @@ config.define(
     bool,
     default=False,
     help="Enable experimental features.",
+    runtime=False,
+)
+
+config.define(
+    "NETKET_MPI_WARNING",
+    bool,
+    default=True,
+    help=dedent(
+        """
+        Raise a warning when running python under MPI
+        without mpi4py and other mpi dependencies installed.
+        """
+    ),
     runtime=False,
 )

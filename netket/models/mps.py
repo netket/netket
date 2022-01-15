@@ -12,22 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional, Tuple, Any, Callable, Iterable
+from typing import Any
+import warnings
 
-import numpy as np
-
+import igraph as ig
+from flax import linen as nn
 import jax
 from jax import numpy as jnp
-from flax import linen as nn
+import numpy as np
+from jax.nn.initializers import normal
 
-from netket import nn as nknn
-from netket.nn.initializers import lecun_normal, variance_scaling, zeros
-
+from netket.graph import AbstractGraph, Chain
 from netket.hilbert import AbstractHilbert
-from netket.graph import AbstractGraph
-from netket.utils.types import PRNGKey, Shape, Dtype, Array, NNInitFunc
-
-default_kernel_init = lecun_normal()
+from netket.utils.types import NNInitFunc
 
 
 class MPSPeriodic(nn.Module):
@@ -41,31 +38,30 @@ class MPSPeriodic(nn.Module):
 
     for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_1]` is a matrix
     of dimension (bdim,bdim), depending on the value of the local quantum number :math:`s_i`.
-
-    Attributes:
-        hilbert: Hilbert space on which the state is defined.
-        graph: The graph on which the system is defined.
-        bond_dim: Virtual dimension of the MPS tensors.
-        diag: Whether or not to use diagonal matrices in the MPS tensors.
-        symperiod: Periodicity in the chain of MPS tensors. The chain of
-            MPS tensors is constructed as a sequence of identical unit cells
-            consisting of symperiod tensors. if None, symperiod equals the
-            number of physical degrees of freedom.
-            default=None
-        kernel_init: the initializer for the MPS weights.
-        dtype: complex or float, whether the variational parameters of the MPS
-            are real or complex. default=complex
     """
 
     hilbert: AbstractHilbert
+    """Hilbert space on which the state is defined."""
     graph: AbstractGraph
+    """The graph on which the system is defined."""
     bond_dim: int
+    """Virtual dimension of the MPS tensors."""
     diag: bool = False
+    """Whether or not to use diagonal matrices in the MPS tensors."""
     symperiod: bool = None
-    kernel_init: NNInitFunc = jax.nn.initializers.normal(
+    """
+    Periodicity in the chain of MPS tensors.
+
+    The chain of MPS tensors is constructed as a sequence of identical
+    unit cells consisting of symperiod tensors. if None, symperiod equals the
+    number of physical degrees of freedom.
+    """
+    kernel_init: NNInitFunc = normal(
         stddev=0.01
     )  # default standard deviation equals 1e-2
+    """the initializer for the MPS weights."""
     dtype: Any = np.complex64
+    """complex or float, whether the variational parameters of the MPS are real or complex."""
 
     def setup(self):
         L = self.hilbert.size
@@ -86,18 +82,11 @@ class MPSPeriodic(nn.Module):
         self._loc_vals_bias = jnp.min(local_states)
 
         # check whether graph is periodic chain
-        import networkx as _nx
-
-        edges = self.graph.edges()
-        G = _nx.Graph()
-        G.add_edges_from(edges)
-
-        G_chain = _nx.Graph()
-        G_chain.add_edges_from([(i, (i + 1) % L) for i in range(L)])
-
-        if not _nx.algorithms.is_isomorphic(G, G_chain):
-            print(
-                "Warning: graph is not isomorphic to chain with periodic boundary conditions"
+        chain_graph = Chain(self.graph.n_edges).to_igraph()
+        if not ig.Graph(edges=self.graph.edges()).isomorphic(chain_graph):
+            warnings.warn(
+                "Warning: graph is not isomorphic to chain with periodic boundary conditions",
+                UserWarning,
             )
 
         # determine shape of unit cell

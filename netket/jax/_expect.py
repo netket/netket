@@ -14,18 +14,16 @@
 
 # The score function (REINFORCE) gradient estimator of an expectation
 
-from typing import Union, Callable, Tuple, Any
+from typing import Callable, Tuple
 from functools import partial
 
 import jax
 from jax import numpy as jnp
 
 from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
+from netket.utils.types import PyTree
 
-from ._grad import grad
 from ._vjp import vjp as nkvjp
-
-PyTree = Any
 
 
 def expect(
@@ -82,7 +80,7 @@ def _expect_fwd(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args):
 # TODO: in principle, the gradient of an expectation is another expectation,
 # so it should support higher-order derivatives
 # But I don't know how to transform log_prob_fun into grad(log_prob_fun) while
-# keeping the batch dimension and without a loop through the batch dimension
+# keeping the chunk dimension and without a loop through the chunk dimension
 def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
     pars, σ, cost_args, ΔL_σ = residuals
     dL̄, dL̄_stats = dout

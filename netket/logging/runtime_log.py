@@ -12,16 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dataclasses
-from functools import partial
-
-from os import path as _path
-
-from flax import serialization
-
-from jax.tree_util import tree_map
-
-from netket.utils import History, accum_histories_in_tree
+from netket.utils import accum_histories_in_tree
 
 
 class RuntimeLog:

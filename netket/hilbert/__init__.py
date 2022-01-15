@@ -13,12 +13,17 @@
 # limitations under the License.
 
 from .abstract_hilbert import AbstractHilbert
+from .discrete_hilbert import DiscreteHilbert
+from .homogeneous import HomogeneousHilbert
+
+from .continuous_hilbert import ContinuousHilbert
+
 from .custom_hilbert import CustomHilbert
 from .doubled_hilbert import DoubledHilbert
 from .spin import Spin
-from .fock import Fock, Boson
+from .fock import Fock
 from .qubit import Qubit
-from .hilbert_index import HilbertIndex
+from .particle import Particle
 
 from .tensor_hilbert import TensorHilbert
 

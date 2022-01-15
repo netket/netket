@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import flax
+import sys
+import inspect
+
 from flax.core import freeze
 
 from .base import ModuleFramework, framework
+
 
 # expose jax-stax as a flax module
 class JaxWrapper:
@@ -27,7 +30,15 @@ class JaxWrapper:
         _, variables = self.ifun(keys["params"], inpt.shape)
         return freeze({"params": variables})
 
-    def apply(self, variables, *args, rngs=None, method=None, mutable=False, **kwargs):
+    def apply(
+        self,
+        variables,
+        *args,
+        rngs=None,  # noqa: W0613
+        method=None,  # noqa: W0613
+        mutable=False,
+        **kwargs,
+    ):
         if mutable is not False:
             raise ValueError("A wrapped jax module cannot be mutable")
 
@@ -51,14 +62,13 @@ class JaxFramework(ModuleFramework):
     @staticmethod
     def is_my_module(module) -> bool:
         # this will only get callede if the module is loaded
-        import jax, inspect
 
         # jax modules are tuples
         if isinstance(module, tuple):
-            #  with two elements
+            # with two elements
             if len(module) == 2:
                 ifun, afun = module
-                #  and both are functions
+                # and both are functions
                 if callable(ifun) and callable(afun):
                     ifun_signature = inspect.getfullargspec(ifun)
                     afun_signature = inspect.getfullargspec(afun)
@@ -78,5 +88,5 @@ class JaxFramework(ModuleFramework):
         return freeze({"params": variables})
 
     @staticmethod
-    def unwrap_params(variables):
-        return variables["params"]
+    def unwrap_params(wrapped_variables):
+        return wrapped_variables["params"]

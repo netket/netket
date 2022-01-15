@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .api import SR
+from .api import build_SR as SR
 
-from .sr_onthefly import LazySMatrix, SRLazyCG, SRLazyGMRES
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from .deprecations import SRLazyCG, SRLazyGMRES

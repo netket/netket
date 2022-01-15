@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numbers
 from typing import List as PyList
 
 import numpy as np
@@ -22,7 +21,7 @@ from numba.typed import List
 
 from scipy.sparse.linalg import LinearOperator
 
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 from ._abstract_super_operator import AbstractSuperOperator
 
@@ -32,7 +31,7 @@ class LocalLiouvillian(AbstractSuperOperator):
     LocalLiouvillian super-operator, acting on the DoubledHilbert (tensor product) space
     ℋ⊗ℋ.
 
-    Internally it uses :ref:`nk.operator.LocalOperator` everywhere.
+    Internally it uses :ref:`netket.operator.LocalOperator` everywhere.
 
 
     The Liouvillian is defined according to the definition:
@@ -58,14 +57,14 @@ class LocalLiouvillian(AbstractSuperOperator):
 
     .. math ::
 
-        \\mathcal{L} = -i \\hat{H}\\hat{\\rho} +i\\hat{\\rho}\\hat{H}^\\dagger + \\sum_i \\hat{L}_i\\hat{\\rho}\\hat{L}_i^\\dagger
+        \\mathcal{L} = -i \\hat{H}_{nh}\\hat{\\rho} +i\\hat{\\rho}\\hat{H}_{nh}^\\dagger + \\sum_i \\hat{L}_i\\hat{\\rho}\\hat{L}_i^\\dagger
 
     """
 
     def __init__(
         self,
-        ham: AbstractOperator,
-        jump_ops: PyList[AbstractOperator] = [],
+        ham: DiscreteOperator,
+        jump_ops: PyList[DiscreteOperator] = [],
         dtype=complex,
     ):
         super().__init__(ham.hilbert)
@@ -73,7 +72,6 @@ class LocalLiouvillian(AbstractSuperOperator):
         self._H = ham
         self._jump_ops = [op.copy(dtype=dtype) for op in jump_ops]  # to accept dicts
         self._Hnh = ham
-        self._Hnh_dag = ham.H
         self._max_dissipator_conn_size = 0
         self._max_conn_size = 0
 
@@ -104,22 +102,22 @@ class LocalLiouvillian(AbstractSuperOperator):
         """The list of local operators in this Liouvillian"""
         return self._jump_ops
 
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        return self._max_conn_size
+
     def _compute_hnh(self):
         # There is no i here because it's inserted in the kernel
         Hnh = 1.0 * self._H
-        max_conn_size = 0
+        self._max_dissipator_conn_size = 0
         for L in self._jump_ops:
             Hnh = Hnh - 0.5j * L.conjugate().transpose() @ L
-            max_conn_size += (L.n_operators * L._max_op_size) ** 2
-
-        self._max_dissipator_conn_size = max_conn_size
+            self._max_dissipator_conn_size += L.max_conn_size ** 2
 
         self._Hnh = Hnh.collect()
-        self._Hnh_dag = Hnh.H.collect()
 
-        max_conn_size = (
-            self._max_dissipator_conn_size + Hnh.n_operators * Hnh._max_op_size
-        )
+        max_conn_size = self._max_dissipator_conn_size + 2 * Hnh.max_conn_size
         self._max_conn_size = max_conn_size
         self._xprime = np.empty((max_conn_size, self.hilbert.size))
         self._xr_prime = np.empty((max_conn_size, self.hilbert.physical.size))
@@ -149,16 +147,16 @@ class LocalLiouvillian(AbstractSuperOperator):
         xr, xc = x[0:n_sites], x[n_sites : 2 * n_sites]
         i = 0
 
-        xrp, mel_r = self._Hnh_dag.get_conn(xr)
+        xrp, mel_r = self._Hnh.get_conn(xr)
         self._xrv[i : i + len(mel_r), :] = xrp
         self._xcv[i : i + len(mel_r), :] = xc
-        self._mels[i : i + len(mel_r)] = mel_r * 1j
+        self._mels[i : i + len(mel_r)] = -1j * mel_r
         i = i + len(mel_r)
 
         xcp, mel_c = self._Hnh.get_conn(xc)
         self._xrv[i : i + len(mel_c), :] = xr
         self._xcv[i : i + len(mel_c), :] = xcp
-        self._mels[i : i + len(mel_r)] = mel_c * (-1j)
+        self._mels[i : i + len(mel_r)] = 1j * np.conj(mel_c)
         i = i + len(mel_c)
 
         for L in self._jump_ops:
@@ -171,7 +169,7 @@ class LocalLiouvillian(AbstractSuperOperator):
             for r in range(nr):
                 self._xrv[i : i + nc, :] = L_xrp[r, :]
                 self._xcv[i : i + nc, :] = L_xcp
-                self._mels[i : i + nc] = np.conj(L_mel_r[r]) * L_mel_c
+                self._mels[i : i + nc] = L_mel_r[r] * np.conj(L_mel_c)
                 i = i + nc
 
         return np.copy(self._xprime[0:i, :]), np.copy(self._mels[0:i])
@@ -192,7 +190,7 @@ class LocalLiouvillian(AbstractSuperOperator):
         # Compute all flattened connections of each term
         sections_r = np.empty(batch_size, dtype=np.int64)
         sections_c = np.empty(batch_size, dtype=np.int64)
-        xr_prime, mels_r = self._Hnh_dag.get_conn_flattened(xr, sections_r)
+        xr_prime, mels_r = self._Hnh.get_conn_flattened(xr, sections_r)
         xc_prime, mels_c = self._Hnh.get_conn_flattened(xc, sections_c)
 
         if pad:
@@ -244,7 +242,7 @@ class LocalLiouvillian(AbstractSuperOperator):
                 max_conns_Lrc += max_lr * max_lc
 
         # compose everything again
-        if self._xprime.shape[0] < self._max_conn_size * batch_size:
+        if self._xprime_f.shape[0] < self._max_conn_size * batch_size:
             # refcheck=False because otherwise this errors when testing
             self._xprime_f.resize(
                 self._max_conn_size * batch_size, self.hilbert.size, refcheck=False
@@ -263,8 +261,8 @@ class LocalLiouvillian(AbstractSuperOperator):
             self._xprime_f,
             self._mels_f,
             sections,
-            xr,
-            xc,
+            np.asarray(xr),
+            np.asarray(xc),
             sections_r,
             sections_c,
             xr_prime,
@@ -308,7 +306,6 @@ class LocalLiouvillian(AbstractSuperOperator):
         N,
         pad,
     ):
-        sec = 0
         off = 0
 
         n_hr_i = 0
@@ -323,7 +320,7 @@ class LocalLiouvillian(AbstractSuperOperator):
             n_hr = n_hr_f - n_hr_i
             xs[off : off + n_hr, 0:N] = xr_prime[n_hr_i:n_hr_f, :]
             xs[off : off + n_hr, N : 2 * N] = xc[i, :]
-            mels[off : off + n_hr] = 1j * mels_r[n_hr_i:n_hr_f]
+            mels[off : off + n_hr] = -1j * mels_r[n_hr_i:n_hr_f]
             off += n_hr
             n_hr_i = n_hr_f
 
@@ -331,7 +328,7 @@ class LocalLiouvillian(AbstractSuperOperator):
             n_hc = n_hc_f - n_hc_i
             xs[off : off + n_hc, N : 2 * N] = xc_prime[n_hc_i:n_hc_f, :]
             xs[off : off + n_hc, 0:N] = xr[i, :]
-            mels[off : off + n_hc] = -1j * mels_c[n_hc_i:n_hc_f]
+            mels[off : off + n_hc] = 1j * np.conj(mels_c[n_hc_i:n_hc_f])
             off += n_hc
             n_hc_i = n_hc_f
 
@@ -349,8 +346,8 @@ class LocalLiouvillian(AbstractSuperOperator):
                 for r in range(n_Lr):
                     xs[off : off + n_Lc, 0:N] = L_xrp[n_Lr_i + r, :]
                     xs[off : off + n_Lc, N : 2 * N] = L_xcp[n_Lc_i:n_Lc_f, :]
-                    mels[off : off + n_Lc] = (
-                        np.conj(L_mel_r[n_Lr_i + r]) * L_mel_c[n_Lc_i:n_Lc_f]
+                    mels[off : off + n_Lc] = L_mel_r[n_Lr_i + r] * np.conj(
+                        L_mel_c[n_Lc_i:n_Lc_f]
                     )
                     off = off + n_Lc
 
@@ -409,7 +406,7 @@ class LocalLiouvillian(AbstractSuperOperator):
 
                 drho = np.zeros((M, M), dtype=rho.dtype)
 
-                drho += rho @ iHnh + iHnh.conj().T @ rho
+                drho += iHnh @ rho + rho @ iHnh.conj().T
                 for J, J_c in zip(J_ops, J_ops_c):
                     drho += (J @ rho) @ J_c
 
@@ -434,7 +431,7 @@ class LocalLiouvillian(AbstractSuperOperator):
                 out = np.zeros((M ** 2 + 1), dtype=rho.dtype)
                 drho = out[:-1].reshape((M, M))
 
-                drho += rho @ iHnh + iHnh.conj().T @ rho
+                drho += iHnh @ rho + rho @ iHnh.conj().T
                 for J, J_c in zip(J_ops, J_ops_c):
                     drho += (J @ rho) @ J_c
 
@@ -444,3 +441,15 @@ class LocalLiouvillian(AbstractSuperOperator):
         L = LinearOperator((op_size, op_size), matvec=matvec, dtype=iHnh.dtype)
 
         return L
+
+    def to_qobj(self) -> "qutip.liouvillian":  # noqa: F821
+        r"""Convert the operator to a qutip's liouvillian Qobj.
+
+        Returns:
+            A `qutip.liouvillian` object.
+        """
+        from qutip import liouvillian
+
+        return liouvillian(
+            self.hamiltonian.to_qobj(), [op.to_qobj() for op in self.jump_operators]
+        )

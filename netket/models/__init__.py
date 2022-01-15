@@ -12,11 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .rbm import RBM, RBMModPhase, RBMMultiVal, create_RBMSymm as RBMSymm
+from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm
+from .equivariant import GCNN
 from .jastrow import Jastrow
 from .mps import MPSPeriodic
-
+from .gaussian import Gaussian
 from .ndm import NDM
+from .autoreg import AbstractARNN, ARNNDense, ARNNConv1D, ARNNConv2D
+from .fast_autoreg import FastARNNDense, FastARNNConv1D, FastARNNConv2D
+from .utils import update_GCNN_parity
 
 from netket.utils import _hide_submodules
 

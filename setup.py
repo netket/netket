@@ -4,24 +4,28 @@ DEV_DEPENDENCIES = [
     "pytest>=6",
     "pytest-xdist>=2",
     "coverage>=5",
-    "pytest-cov>= 2.10.1",
-    "python-igraph",
+    "pytest-cov>=2.10.1",
+    "networkx~=2.4",
+    "flaky>=3.7",
     "pre-commit",
-    "black==20.8b1",
+    "black==21.6b0",
+    "flakehell>=0.9",
 ]
-MPI_DEPENDENCIES = ["mpi4py>=3.0.1", "mpi4jax>=0.2.11"]
-TENSORBOARD_DEPENDENCIES = ["tensorboardx>=2.0.0"]
+MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]
+EXTRA_DEPENDENCIES = ["tensorboardx>=2.0.0", "openfermion>=1.0.0"]
 BASE_DEPENDENCIES = [
-    "numpy>=1.20",
-    "scipy>=1.5.2",
-    "tqdm>=4.56.2",
-    "numba>=0.52.0",
-    "networkx>=2.4",
-    "jax>=0.2.9",
-    "jaxlib>=0.1.57",
-    "flax>=0.3.0",
-    "orjson>=3.4",
-    "optax>=0.0.2",
+    "numpy~=1.18",
+    "scipy>=1.5.3, <2",
+    "tqdm~=4.60",
+    "plum-dispatch~=1.5.1",
+    "numba>=0.52, <0.56",
+    "igraph~=0.9.8",
+    "jax>=0.2.23, <0.2.27",
+    "jaxlib>=0.1.69",
+    "flax>=0.3.5, <0.4",
+    "orjson~=3.4",
+    "optax>=0.0.2, <0.2",
+    "numba4jax>=0.0.3, <0.1",
 ]
 
 setup(
@@ -30,7 +34,7 @@ setup(
     url="http://github.com/netket/netket",
     author_email="netket@netket.org",
     license="Apache 2.0",
-    summmary="Netket : Machine Learning techniques for many-body quantum systems.",
+    description="Netket : Machine Learning techniques for many-body quantum systems.",
     long_description="""NetKet is an open-source project delivering cutting-edge
          methods for the study of many-body quantum systems with artificial
          neural networks and machine learning techniques.""",
@@ -50,7 +54,7 @@ setup(
     extras_require={
         "dev": DEV_DEPENDENCIES,
         "mpi": MPI_DEPENDENCIES,
-        "tensorboard": TENSORBOARD_DEPENDENCIES,
-        "all": MPI_DEPENDENCIES + DEV_DEPENDENCIES + TENSORBOARD_DEPENDENCIES,
+        "extra": EXTRA_DEPENDENCIES,
+        "all": MPI_DEPENDENCIES + DEV_DEPENDENCIES + EXTRA_DEPENDENCIES,
     },
 )

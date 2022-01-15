@@ -12,17 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Tuple, Optional, Union, Iterable
+from typing import List, Optional, Union
 
-import jax
-from jax import numpy as jnp
 import numpy as np
 from numba import jit
 
 from netket.graph import AbstractGraph
 
-from .custom_hilbert import CustomHilbert
+from .homogeneous import HomogeneousHilbert
 from ._deprecations import graph_to_N_depwarn
+
+FOCK_MAX = np.iinfo(np.intp).max - 1
+"""
+Maximum number of particles in the fock space.
+It is `maxvalue(np.int64)-1` because we use N+1 in several formulas
+and it would overflow.
+"""
 
 
 @jit(nopython=True)
@@ -30,7 +35,7 @@ def _sum_constraint(x, n_particles):
     return np.sum(x, axis=1) == n_particles
 
 
-class Fock(CustomHilbert):
+class Fock(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local fock basis."""
 
     def __init__(
@@ -45,20 +50,23 @@ class Fock(CustomHilbert):
         and total number of bosons.
 
         Args:
-          n_max: Maximum occupation for a site (inclusive). If None, the local occupation
-            number is unbounded.
+          n_max: Maximum occupation for a site (inclusive). If None, the local
+            occupation number is unbounded.
           N: number of bosonic modes (default = 1)
           n_particles: Constraint for the number of particles. If None, no constraint
             is imposed.
-          graph: (Deprecated, pleaese use `N`) A graph, from which the number of nodes is extracted.
+          graph: (Deprecated, pleaese use `N`) A graph, from which the number of nodes
+            is extracted.
 
         Examples:
            Simple boson hilbert space.
 
-           >>> from netket.hilbert import Boson
-           >>> hi = Boson(n_max=5, n_particles=11, N=3)
+           >>> from netket.hilbert import Fock
+           >>> hi = Fock(n_max=5, n_particles=11, N=3)
            >>> print(hi.size)
            3
+           >>> print(hi.n_states)
+           15
         """
         N = graph_to_N_depwarn(N=N, graph=graph)
 
@@ -89,11 +97,8 @@ class Fock(CustomHilbert):
             # assert self._n_max > 0
             local_states = np.arange(self._n_max + 1)
         else:
-            max_ind = np.iinfo(np.intp).max
-            self._n_max = max_ind
+            self._n_max = FOCK_MAX
             local_states = None
-
-        self._hilbert_index = None
 
         super().__init__(local_states, N, constraints)
 
@@ -153,71 +158,9 @@ class Fock(CustomHilbert):
             if self._n_particles is not None
             else ""
         )
-        nmax = self._n_max if self._n_max < np.iinfo(np.intp).max else "INT_MAX"
+        nmax = self._n_max if self._n_max < FOCK_MAX else "FOCK_MAX"
         return "Fock(n_max={}{}, N={})".format(nmax, n_particles, self._size)
 
     @property
     def _attrs(self):
         return (self.size, self._n_max, self._constraint_fn)
-
-    def _random_state_with_constraint_legacy(self, out, rgen, n_max):
-        sites = list(range(self.size))
-
-        out.fill(0.0)
-        ss = self.size
-
-        for i in range(self.n_particles):
-            s = rgen.integers(0, ss, size=())
-
-            out[sites[s]] += 1
-
-            if out[sites[s]] == n_max:
-                sites.pop(s)
-                ss -= 1
-
-    def _random_state_legacy(self, size=None, *, out=None, rgen=None):
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self._size) if size is not None else (self._size,)
-
-        if out is None:
-            out = np.empty(shape=shape)
-
-        if rgen is None:
-            rgen = np.random.default_rng()
-
-        if self.n_particles is None:
-            out[:] = rgen.integers(0, self.n_max, size=shape)
-        else:
-            if size is not None:
-                out_r = out.reshape(-1, self._size)
-                for b in range(out_r.shape[0]):
-                    self._random_state_with_constraint_legacy(
-                        out_r[b], rgen, self.n_max
-                    )
-            else:
-                self._random_state_with_constraint_legacy(out, rgen, self.n_max)
-
-        return out
-
-
-from netket.utils import deprecated
-
-
-@deprecated(
-    """
-Boson has been replaced by Fock. Please use fock, which has
-the same semantics except for n_bosons which was replaced by
-n_particles.
-
-You should update your code because it will break in a future
-version.
-"""
-)
-def Boson(
-    n_max: Optional[int] = None,
-    N: int = 1,
-    n_bosons: Optional[int] = None,
-    graph: Optional[AbstractGraph] = None,
-) -> Fock:
-    return Fock(n_max, N, n_bosons, graph)

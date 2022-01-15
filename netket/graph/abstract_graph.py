@@ -13,8 +13,12 @@
 # limitations under the License.
 
 import abc
+from typing import List, Iterator, Sequence, Tuple, Union, Optional
 
-from typing import List, Generator, Iterator, Tuple
+
+Edge = Tuple[int, int]
+ColoredEdge = Tuple[int, int, int]
+EdgeSequence = Union[Sequence[Edge], Sequence[ColoredEdge]]
 
 
 class AbstractGraph(abc.ABC):
@@ -31,8 +35,27 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def edges(self) -> Iterator[Tuple[int, int]]:
-        r"""Iterator over the edges of the graph"""
+    def edges(
+        self, return_color: bool = False, filter_color: Optional[int] = None
+    ) -> EdgeSequence:
+        r"""Returns the sequence of edges of the graph.
+
+        Arguments:
+            return_color: If :code:`True`, return edges with added color information.
+            filter_color: If set, return only edges of the given color.
+
+        Returns:
+            A sequence of edges as tuples :code:`(i, j)` or, if `return_color` is
+            passed, a sequence of tuples :code:`(i, j, c)` with :code:`c` indicating
+            the color of the respective edge.
+        """
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def edge_colors(self) -> Sequence[int]:
+        r"""Sequence of edge colors, in the order of the edges returned by
+        :code:`self.edges`."""
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -43,12 +66,13 @@ class AbstractGraph(abc.ABC):
     @abc.abstractmethod
     def distances(self) -> List[List]:
         r"""List containing the distances between the nodes.
-        The fact that some node may not be reachable from another is represented by -1"""
+        The distance between unconnected nodes (no path exists between them) is set to -1
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def automorphisms(self) -> List[List]:
-        r"""List containing the automorphisms of the graph"""
+    def automorphisms(self):
+        r"""Symmetry group containing the automorphisms of the graph"""
         raise NotImplementedError
 
     @property

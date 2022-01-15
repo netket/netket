@@ -14,6 +14,7 @@
 
 from ._abstract_operator import AbstractOperator
 
+from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 from ._graph_operator import GraphOperator
 from ._pauli_strings import PauliStrings
@@ -23,11 +24,14 @@ from ._hamiltonian import Ising, Heisenberg, BoseHubbard
 from ._abstract_super_operator import AbstractSuperOperator
 from ._local_liouvillian import LocalLiouvillian
 
+from ._continuous_operator import ContinuousOperator
+from ._kinetic import KineticEnergy
+from ._potential import PotentialEnergy
+from ._sumoperators import SumOperator
+
 from . import spin, boson
 
 # TODO: Deprecated. Remove in v3.1
-from ._local_values import local_values
-from ._der_local_values import der_local_values
 from ._der_local_values_jax import local_energy_kernel
 
 from ._local_cost_functions import (
@@ -38,3 +42,7 @@ from ._local_cost_functions import (
     local_value_cost,
     local_value_op_op_cost,
 )
+
+from netket.utils import _auto_export
+
+_auto_export(__name__)

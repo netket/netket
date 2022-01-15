@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from numpy.typing import DTypeLike
+from netket.utils.types import DType as _DType
 
-from netket.hilbert import AbstractHilbert
+from netket.hilbert import AbstractHilbert as _AbstractHilbert
 
 from ._local_operator import LocalOperator as _LocalOperator
 
 
 def destroy(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
-    Builds the boson destruction operator :math:`\\hat{a}` acting on the `site`-th of the
-     Hilbert space `hilbert`.
+    Builds the boson destruction operator :math:`\\hat{a}` acting on the `site`-th of
+    the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
@@ -46,11 +46,11 @@ def destroy(
 
 
 def create(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
-    Builds the boson creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th of the
-     Hilbert space `hilbert`.
+    Builds the boson creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th
+    of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
@@ -72,11 +72,11 @@ def create(
 
 
 def number(
-    hilbert: AbstractHilbert, site: int, dtype: DTypeLike = float
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
-    Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the `site`-th of the
-    Hilbert space `hilbert`.
+    Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
+    `site`-th of the Hilbert space `hilbert`.
 
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
@@ -98,11 +98,12 @@ def number(
 
 
 def proj(
-    hilbert: AbstractHilbert, site: int, n: int, dtype: DTypeLike = float
+    hilbert: _AbstractHilbert, site: int, n: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
-    Builds the projector operator :math:`|n\\rangle\\langle n |` acting on the `site`-th of the
-    Hilbert space `hilbert` and collapsing on the state with `n` bosons.
+    Builds the projector operator :math:`|n\\rangle\\langle n |` acting on the
+    `site`-th of the Hilbert space `hilbert` and collapsing on the state with `n`
+    bosons.
 
     If `hilbert` is a non-Bosonic space of local dimension M, it is considered
     as a bosonic space of local dimension M.
@@ -126,7 +127,3 @@ def proj(
     D[n] = 1
     mat = np.diag(D, 0)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
-
-
-# clean up the module
-del AbstractHilbert

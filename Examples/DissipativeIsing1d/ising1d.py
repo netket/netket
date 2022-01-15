@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-import netket.legacy as nkl
-import numpy as np
 
 # 1D Lattice
 L = 8
@@ -65,10 +63,10 @@ sa = nk.sampler.MetropolisLocal(lind.hilbert)
 op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
-vs = nk.variational.MCMixedState(sa, ma, n_samples=2000, n_samples_diag=500)
+vs = nk.vqs.MCMixedState(sa, ma, n_samples=2000, n_samples_diag=500)
 vs.init_parameters(nk.nn.initializers.normal(stddev=0.01))
 
-ss = nk.SteadyState(lind, op, variational_state=vs, sr=sr)
+ss = nk.SteadyState(lind, op, variational_state=vs, preconditioner=sr)
 
 obs = {"Sx": obs_sx, "Sy": obs_sy, "Sz": obs_sz}
 

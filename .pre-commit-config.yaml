@@ -1,6 +1,11 @@
 repos:
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 21.6b0
     hooks:
       - id: black
         language_version: python3
+
+  - repo: https://github.com/life4/flakehell
+    rev: v.0.8.0
+    hooks:
+    -   id: flakehell

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
 import math
 
 from numba import jit
@@ -20,7 +19,6 @@ from numba import jit
 import numpy as np
 from flax import struct
 
-from netket.legacy import random as _random
 from netket.operator import AbstractOperator
 
 
@@ -41,25 +39,31 @@ class HamiltonianRuleNumpy(MetropolisRule):
     In this case, the transition matrix is taken to be:
 
     .. math::
-       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
 
-    Attributes:
-        Ô: The (hermitian) operator giving the transition amplitudes.
+       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
 
     """
 
-    Ô: AbstractOperator = struct.field(pytree_node=False)
+    operator: AbstractOperator = struct.field(pytree_node=False)
+    """The (hermitian) operator giving the transition amplitudes."""
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
-        if not isinstance(self.Ô, AbstractOperator):
+        if not isinstance(self.operator, AbstractOperator):
             raise TypeError(
-                "Argument to HamiltonianRuleNumpy must be a valid operator.".format(
-                    type(operator)
-                )
+                "Argument to HamiltonianRule must be a valid operator, "
+                f"but operator is a {type(self.operator)}."
             )
 
     def init_state(rule, sampler, machine, params, key):
+        if sampler.hilbert != rule.operator.hilbert:
+            raise ValueError(
+                f"""
+            The hilbert space of the sampler ({sampler.hilbert}) and the hilbert space
+            of the operator ({rule.operator.hilbert}) for HamiltonianRule must be the same.
+            """
+            )
+
         return HamiltonianRuleState(
             sections=np.empty(sampler.n_batches, dtype=np.int32)
         )
@@ -70,16 +74,16 @@ class HamiltonianRuleNumpy(MetropolisRule):
         log_prob_corr = state.log_prob_corr
 
         sections = state.rule_state.sections
-        σp = rule.Ô.get_conn_flattened(σ, sections)[0]
+        σp = rule.operator.get_conn_flattened(σ, sections)[0]
 
         rand_vec = rng.uniform(0, 1, size=σ.shape[0])
 
         _choose(σp, sections, σ1, log_prob_corr, rand_vec)
-        rule.Ô.n_conn(σ1, sections)
+        rule.operator.n_conn(σ1, sections)
         log_prob_corr -= np.log(sections)
 
     def __repr__(self):
-        return f"HamiltonianRuleNumpy({self.Ô})"
+        return f"HamiltonianRuleNumpy({self.operator})"
 
 
 @jit(nopython=True)

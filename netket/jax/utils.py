@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
-from typing import Optional, Tuple, Any, Union, Tuple, Callable
+from functools import partial, reduce
+from typing import Optional, Tuple, Callable
 
 import numpy as np
 
@@ -24,16 +24,12 @@ from jax.tree_util import (
     tree_flatten,
     tree_unflatten,
     tree_map,
-    tree_multimap,
     tree_leaves,
 )
-from jax.util import as_hashable_function
-from jax.dtypes import dtype_real
 
-from netket.utils import MPI, n_nodes, rank, random_seed
-
-PyTree = Any
-PRNGKeyType = jnp.ndarray
+from netket.utils import random_seed, mpi
+from netket.utils.mpi import MPI_jax_comm
+from netket.utils.types import PyTree, PRNGKeyT, SeedT, Scalar
 
 
 def tree_ravel(pytree: PyTree) -> Tuple[jnp.ndarray, Callable]:
@@ -78,19 +74,70 @@ def tree_size(tree: PyTree) -> int:
 
 
 def is_complex(x):
-    #  Returns true if x is complex
+    """
+    Returns True if x has a complex dtype
+    """
     return jnp.issubdtype(x.dtype, jnp.complexfloating)
 
 
-def tree_leaf_iscomplex(pars):
+def is_real(x):
+    """
+    Returns True if x has a floating point real dtype
+    """
+    return jnp.issubdtype(x.dtype, jnp.floating)
+
+
+def tree_leaf_iscomplex(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has complex dtype.
     """
     return any(jax.tree_leaves(jax.tree_map(is_complex, pars)))
 
 
+def tree_leaf_isreal(pars: PyTree) -> bool:
+    """
+    Returns true if at least one leaf in the tree has real dtype.
+    """
+    return any(jax.tree_leaves(jax.tree_map(is_real, pars)))
+
+
 def is_complex_dtype(typ):
+    """
+    Returns True if typ is a complex dtype
+    """
     return jnp.issubdtype(typ, jnp.complexfloating)
+
+
+def is_real_dtype(typ):
+    """
+    Returns True if typ is a floating real dtype
+    """
+    return jnp.issubdtype(typ, jnp.floating)
+
+
+# Return the type holding the real part of the input type
+def dtype_real(typ):
+    """
+    If typ is a complex dtype returns the real counterpart of typ
+    (eg complex64 -> float32, complex128 ->float64).
+    Returns typ otherwise.
+    """
+    if np.issubdtype(typ, np.complexfloating):
+        if typ == np.dtype("complex64"):
+            return np.dtype("float32")
+        elif typ == np.dtype("complex128"):
+            return np.dtype("float64")
+        else:
+            raise TypeError("Unknown complex floating type {}".format(typ))
+    else:
+        return typ
+
+
+def tree_ishomogeneous(pars: PyTree) -> bool:
+    """
+    Returns true if all leaves have real dtype or all leaves have complex dtype.
+    """
+    return not (tree_leaf_isreal(pars) and tree_leaf_iscomplex(pars))
 
 
 def dtype_complex(typ):
@@ -122,48 +169,119 @@ def maybe_promote_to_complex(*types):
         return main_typ
 
 
-class HashablePartial(partial):
+def tree_conj(t: PyTree) -> PyTree:
+    r"""
+    Conjugate all complex leaves. The real leaves are left untouched.
+    Args:
+        t: pytree
     """
-    A class behaving like functools.partial, but that retains it's hash
-    if it's created with a lexically equivalent (the same) function and
-    with the same partially applied arguments and keywords.
+    return jax.tree_map(lambda x: jax.lax.conj(x) if jnp.iscomplexobj(x) else x, t)
 
-    It also stores the computed hash for faster hashing.
+
+def tree_dot(a: PyTree, b: PyTree) -> Scalar:
+    r"""
+    compute the dot product of two pytrees
+
+    Args:
+        a, b: pytrees with the same treedef
+
+    Returns:
+        A scalar equal the dot product of of the flattened arrays of a and b.
+    """
+    return jax.tree_util.tree_reduce(
+        jax.numpy.add,
+        jax.tree_map(jax.numpy.sum, jax.tree_multimap(jax.numpy.multiply, a, b)),
+    )
+
+
+def tree_cast(x: PyTree, target: PyTree) -> PyTree:
+    r"""
+    cast x the types of target
+
+    Args:
+        x: a pytree with arrays as leaves
+        target: a pytree with the same treedef as x
+                where only the dtypes of the leaves are accessed
+    Returns:
+        A pytree where each leaf of x is cast to the dtype of the corresponding leaf in target.
+        The imaginary part of complex leaves which are cast to real is discarded.
+    """
+    # astype alone would also work, however that raises ComplexWarning when casting complex to real
+    # therefore the real is taken first where needed
+    return jax.tree_multimap(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
+            target.dtype
+        ),
+        x,
+        target,
+    )
+
+
+def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
+    r"""
+    compute a * x + y
+
+    Args:
+      a: scalar
+      x, y: pytrees with the same treedef
+    Returns:
+        The sum of the respective leaves of the two pytrees x and y
+        where the leaves of x are first scaled with a.
+    """
+    return jax.tree_multimap(lambda x_, y_: a * x_ + y_, x, y)
+
+
+def _to_real(x):
+    if jnp.iscomplexobj(x):
+        return x.real, x.imag
+        # TODO find a way to make it a nop?
+        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
+    else:
+        return x
+
+
+def _tree_to_real(x):
+    return jax.tree_map(_to_real, x)
+
+
+# invert the transformation using linear_transpose (AD)
+def _tree_reassemble_complex(x, target, fun=_tree_to_real):
+    (res,) = jax.linear_transpose(fun, target)(x)
+    return tree_conj(res)
+
+
+def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
+    """Replace all complex leaves of a pytree with a tuple of 2 real leaves.
+
+    Args:
+      pytree: a pytree to convert to real
+
+    Returns:
+      A pair where the first element is the converted real pytree,
+      and the second element is a callable for converting back a real pytree
+      to a complex pytree of of the same structure as the input pytree.
+    """
+    return _tree_to_real(pytree), partial(
+        _tree_reassemble_complex, target=pytree, fun=_tree_to_real
+    )
+
+
+def compose(*funcs):
+    """
+    function composition
+
+    compose(f,g,h)(x) is equivalent to f(g(h(x)))
     """
 
-    def __init__(self, *args, **kwargs):
-        self._hash = None
+    def _compose(f, g):
+        return lambda *args, **kwargs: f(g(*args, **kwargs))
 
-    def __eq__(self, other):
-        return (
-            type(other) is HashablePartial
-            and self.func.__code__ == other.func.__code__
-            and self.args == other.args
-            and self.keywords == other.keywords
-        )
-
-    def __hash__(self):
-        if self._hash is None:
-            self._hash = hash(
-                (self.func.__code__, self.args, frozenset(self.keywords.items()))
-            )
-
-        return self._hash
-
-    def __repr__(self):
-        return f"<hashable partial {self.func.__name__} with args={self.args} and kwargs={self.keywords}, hash={hash(self)}>"
-
-
-# jax.tree_util.register_pytree_node(
-#    HashablePartial,
-#    lambda partial_: ((), (partial_.func, partial_.args, partial_.keywords)),
-#    lambda args, _: StaticPartial(args[0], *args[1], **args[2]),
-# )
+    return reduce(_compose, funcs)
 
 
 def PRNGKey(
-    seed: Optional[Union[int, PRNGKeyType]] = None, root: int = 0, comm=MPI.COMM_WORLD
-) -> PRNGKeyType:
+    seed: Optional[SeedT] = None, *, root: int = 0, comm=MPI_jax_comm
+) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
     The same seed will be distributed to all processes.
@@ -175,15 +293,12 @@ def PRNGKey(
     else:
         key = seed
 
-    if n_nodes > 1:
-        import mpi4jax
-
-        key, _ = mpi4jax.bcast(key, root=root, comm=comm)
+    key = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key)
 
     return key
 
 
-def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> PRNGKeyType:
+def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
     Split a key across MPI nodes in the communicator.
     Only the input key on the root process matters.
@@ -199,14 +314,11 @@ def mpi_split(key, root=0, comm=MPI.COMM_WORLD) -> PRNGKeyType:
 
     # Maybe add error/warning if in_key is not the same
     # on all MPI nodes?
-    keys = jax.random.split(key, n_nodes)
+    keys = jax.random.split(key, mpi.n_nodes)
 
-    if n_nodes > 1:
-        import mpi4jax
+    keys = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys)
 
-        keys, _ = mpi4jax.bcast(keys, root=root, comm=comm)
-
-    return keys[rank]
+    return keys[mpi.rank]
 
 
 class PRNGSeq:
@@ -214,7 +326,7 @@ class PRNGSeq:
     A sequence of PRNG keys genrated based on an initial key.
     """
 
-    def __init__(self, base_key: Optional[Union[int, PRNGKeyType]] = None):
+    def __init__(self, base_key: Optional[SeedT] = None):
         if base_key is None:
             base_key = PRNGKey()
         elif isinstance(base_key, int):

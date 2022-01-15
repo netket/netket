@@ -18,7 +18,7 @@ from netket import legacy as nk
 g = nk.graph.Hypercube(length=8, n_dim=1, pbc=True)
 
 # Boson Hilbert Space
-hi = nk.hilbert.Boson(N=g.n_nodes, n_max=3, n_bosons=8)
+hi = nk.hilbert.Fock(N=g.n_nodes, n_max=3, n_bosons=8)
 
 # Bose Hubbard Hamiltonian
 ha = nk.operator.BoseHubbard(hilbert=hi, graph=g, U=4.0)
@@ -35,8 +35,13 @@ op = nk.optimizer.Sgd(ma, 0.05)
 
 # Variational Monte Carlo
 sr = nk.optimizer.SR(ma, diag_shift=0.1)
-vmc = nk.Vmc(
-    hamiltonian=ha, sampler=sa, optimizer=op, n_samples=4000, n_discard=0, sr=sr
+vmc = nk.VMC(
+    hamiltonian=ha,
+    sampler=sa,
+    optimizer=op,
+    n_samples=4000,
+    n_discard_per_chain=0,
+    sr=sr,
 )
 
 vmc.run(n_iter=300, out="test")

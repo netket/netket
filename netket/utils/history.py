@@ -12,171 +12,194 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
+from typing import Union, Any, List, Tuple, Dict, Optional
+from functools import partial
 from numbers import Number
+
+import numpy as np
+
+from .dispatch import dispatch
+from .numbers import is_scalar
+from .types import Array, DType
+
+
+def raise_if_len_not_match(length, expected_length, string):
+    if length != expected_length:
+        raise ValueError(
+            f"""
+            Length mismatch: expected object of length {expected_length}, but
+            got object of length {length} for key {string}.
+            """
+        )
 
 
 class History:
     """
-    A class to store a time-series of scalar data.
+    A class to store a time-series of arbitrary data.
 
-    It has two member variables, `iter` and `values`.
-    The first stores the `time` of the time series, while `values`
-    stores the values at each iteration.
+    An History object stores several time-series all sharing the same
+    time axis. History behaves like a dictionary, where the various key
+    index the values (y axis) of the time-series. The time-axis is accessed
+    through the attribute `History.iters`.
+
+    It's possible to label one time-serie (one key) as the main value, so that
+    when converting to numpy array (for example for plotting with pyplot) that
+    axis is automatically picked by default.
+
+    If only one time-series is provided, without a key, then its name will
+    be `value`.
     """
 
-    def __init__(self, values=[], iters=None, dtype=None, iter_dtype=None):
-        if isinstance(values, Number):
-            values = np.array([values], dtype=dtype)
-
-        if iters is None:
-            if iter_dtype is None:
-                iter_dtype = np.int32
-            iters = np.arange(len(values), dtype=iter_dtype)
-
-        elif isinstance(iters, Number):
-            iters = np.array([iters], dtype=iter_dtype)
-
-        if len(values) != len(iters):
-            raise ErrorException("Not matching lengths")
-
-        self.iters = np.array(iters, dtype=iter_dtype)
-        self.values = np.array(values, dtype=dtype)
-
-    def append(self, val, it=None):
+    def __init__(
+        self,
+        values: Any = None,
+        iters: Optional[Union[list, Array]] = None,
+        dtype: Optional[DType] = None,
+        iter_dtype: Optional[DType] = None,
+        main_value_name: Optional[str] = None,
+    ):
         """
-        Append another value to this history object.
+        Creates a new History object.
+
+        Values should be an arbitrary type or container to initialize the
+        History with.
+        By default assumes that values correspond to the first iteration `0`.
+        If `values` is a list or collection of lists, an array or range should
+        be passed to values with the correct length.
+
+        Optionally it's possible to specify the dtype of the data and of the
+        time-axis.
 
         Args:
-            val: the value in the next timestep
-            it: the time corresponding to this new value. If
-                not defined, increment by 1.
+            values: a type/container of types containing the value at the first
+                iteration, or an iterable/container of iterables
+                containing the values at all iterations (in the latter, values
+                must also be specified).
+            iters: an optional iterable of iterations at which values correspond.
+                If unspecified, assumes that values are logged at only one iteration.
+            dtype: If no values or iters are passed, uses this dtype to store data
+                if numerical
+            iter_dtype: If no values or iters are passed, uses this dtype to store
+                iteration numbers
+            main_value_name: If data is a dict or object with to_dict method, this
+                optional string labels an entry as being the main one.
         """
-        if isinstance(val, History):
-            self.values = np.concatenate([self.values, val.values])
-            self.iters = np.concatenate([self.iters, val.iters])
-            return
+        single_value = False
 
-        try:
-            self.values.resize(len(self.values) + 1)
-        except:
-            self.values = np.resize(self.values, (len(self.values) + 1))
+        if values is None and iters is None:
+            values = []
+            iters = []
+        elif iters is None:
+            iters = 0
 
-        try:
-            self.iters.resize(len(self.iters) + 1)
-        except:
-            self.iters = np.resize(self.iters, (len(self.iters) + 1))
+        if is_scalar(iters):
+            iters = np.array([iters], dtype=iter_dtype)
+        elif isinstance(iters, list):
+            iters = np.array(iters, dtype=iter_dtype)
 
-        if it is None:
-            if len(self.iters) > 2:
-                it = self.iters[-1] - self.iters[-2]
-            else:
-                it = len(self.iters)  # 0, 1...
+        n_elements = len(iters)
 
-        self.values[-1] = val
-        self.iters[-1] = it
+        if is_scalar(values):
+            values = {"value": values}
+            main_value_name = "value"
+            single_value = True
 
-    def get(self):
-        """
-        Returns a tuple containing times and values of this history object
-        """
-        return self.iters, self.values
-
-    def to_dict(self):
-        """
-        Converts the history object to dict.
-
-        Used for serialization
-        """
-        return {"iters": self.iters, "values": self.values}
-
-    def __array__(self, *args, **kwargs):
-        """
-        Automatically transform this object to a numpy array when calling
-        asarray, by only considering the values and neglecting the times.
-        """
-        return np.array(self.values, *args, **kwargs)
-
-    def __iter__(self):
-        """
-        You can iterate the values in history object.
-        """
-        """ Returns the Iterator object """
-        return iter(zip(self.iters, self.values))
-
-
-class MVHistory:
-    """
-    A class to store a time-series of scalar data.
-
-    It has two member variables, `iter` and `values`.
-    The first stores the `time` of the time series, while `values`
-    stores the values at each iteration.
-    """
-
-    def __init__(self, values=[], iters=None, dtype=None, iter_dtype=None):
-        _value_dict = {}
-        _value_name = None
-        _len = 0
-        _single_value = False
-        _keys = []
-
-        if isinstance(values, Number):
-            values = np.array([values], dtype=dtype)
-            _value_name = "value"
-            _value_dict["value"] = values
-            _single_value = True
-            _keys.append("value")
-            _len = 1
+        elif hasattr(values, "__array__"):
+            values = {"value": values}
+            main_value_name = "value"
+            single_value = True
 
         elif hasattr(values, "to_compound"):
-            _value_name, value_dict = values.to_compound()
-            _value_dict = {}
-            _len = 1
-            for (key, val) in value_dict.items():
-                _value_dict[key] = np.array([val], dtype=dtype)
-                _keys.append(key)
+            main_value_name, values = values.to_compound()
 
-        if iters is None:
-            if iter_dtype is None:
-                iter_dtype = np.int32
-            _value_dict["iters"] = np.arange(_len, dtype=iter_dtype)
+        elif hasattr(values, "to_dict"):
+            values = values.to_dict()
 
-        elif isinstance(iters, Number):
-            if _len != 1:
-                raise ValueError("Need at least one iteration")
-            _value_dict["iters"] = np.array([iters], dtype=iter_dtype)
+        elif isinstance(values, dict) or hasattr(values, "items"):
+            pass
 
-        if _len != len(_value_dict["iters"]):
-            raise ErrorException("Not matching lengths")
+        else:
+            values = {"value": [values]}
+            main_value_name = "value"
+            single_value = True
 
-        self._value_dict = _value_dict
-        self._value_name = _value_name
-        self._len = _len
-        self._single_value = _single_value
-        self._keys = _keys
+        value_dict = {"iters": iters}
+        keys = []
+        for (key, val) in values.items():
+            if key == "iters":
+                raise ValueError("cannot have a field called iters")
+
+            if is_scalar(val):
+                raise_if_len_not_match(1, n_elements, key)
+                val = np.asarray([val], dtype=dtype)
+
+            elif hasattr(val, "__array__"):
+                val = np.asarray(val, dtype=dtype)
+                if n_elements == 1 and len(val) != 1:
+                    val = np.reshape(val, (1,) + val.shape)
+
+                raise_if_len_not_match(len(val), n_elements, key)
+
+            elif isinstance(val, list):
+                pass
+            else:
+                val = [val]
+
+            value_dict[key] = val
+            keys.append(key)
+
+        self._value_dict = value_dict
+        self._value_name = main_value_name
+        self._len = n_elements
+        self._single_value = single_value
+        self._keys = keys
 
     @property
-    def iters(self):
+    def iters(self) -> Array:
         return self._value_dict["iters"]
 
     @property
-    def values(self):
+    def values(self) -> Array:
         return self._value_dict[self._value_name]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._len
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Array:
+        # if its an int corresponding to an element not inside the dict,
+        # treat it as accessing a slice of a single element
+        if isinstance(key, int) and key not in self:
+            return self._get_slice(key)
+
+        # support slice syntax
+        if isinstance(key, slice):
+            return self._get_slice(key)
+
         return self._value_dict[key]
 
-    def __contains__(self, key):
+    def _get_slice(self, slce: slice) -> "History":
+        """
+        get a slice of iterations from this history object
+        """
+        values_sliced = {}
+        for key in self.keys():
+            values_sliced[key] = self[key][slce]
+
+        iters = self.iters[slce]
+
+        hist = History(values_sliced, iters)
+        hist._single_value = self._single_value
+        hist._value_name = self._value_name
+
+        return hist
+
+    def __contains__(self, key: str) -> bool:
         return key in self._value_dict
 
-    def keys(self):
+    def keys(self) -> List:
         return self._keys
 
-    def append(self, val, it=None):
+    def append(self, val: Any, it: Optional[Number] = None):
         """
         Append another value to this history object.
 
@@ -185,49 +208,15 @@ class MVHistory:
             it: the time corresponding to this new value. If
                 not defined, increment by 1.
         """
-        if isinstance(val, MVHistory):
-            if not set(self.keys()) == set(val.keys()):
-                raise ValueError("cannot concatenate MVHistories with different keys")
+        append(self, val, it)
 
-            self._value_dict["iters"] = np.concatenate([self.iters, val.iters])
-
-            for key in self.keys():
-                self._value_dict[key] = np.concatenate([self[key], val[key]])
-
-            self._len = len(self) + len(val)
-            return
-
-        if self._single_value and isinstance(val, Number):
-            val_dict = {"value": val}
-        else:
-            _, val_dict = val.to_compound()
-
-        for key in val_dict.keys():
-            try:
-                self[key].resize(len(self) + 1)
-            except:
-                self._value_dict[key] = np.resize(self[key], (len(self) + 1))
-
-            self[key][-1] = val_dict[key]
-
-        try:
-            self.iters.resize(len(self.iters) + 1)
-        except:
-            self._value_dict["iters"] = np.resize(self.iters, (len(self.iters) + 1))
-
-        if it is None:
-            it = self.iters[-1] - self.iters[-2]
-
-        self.iters[-1] = it
-        self._len += 1
-
-    def get(self):
+    def get(self) -> Tuple[Array, Array]:
         """
         Returns a tuple containing times and values of this history object
         """
         return self.iters, self.values
 
-    def to_dict(self):
+    def to_dict(self) -> Dict:
         """
         Converts the history object to dict.
 
@@ -235,18 +224,19 @@ class MVHistory:
         """
         return self._value_dict
 
-    def __array__(self, *args, **kwargs):
+    def __array__(self, *args, **kwargs) -> Array:
         """
         Automatically transform this object to a numpy array when calling
         asarray, by only considering the values and neglecting the times.
         """
-        return np.array(self.values, *args, **kwargs)
+        return np.asarray(self.values, *args, **kwargs)
 
     def __iter__(self):
         """
         You can iterate the values in history object.
+
+        Returns the Iterator object.
         """
-        """ Returns the Iterator object """
         return iter(zip(self.iters, self.values))
 
     def __getattr__(self, attr):
@@ -257,19 +247,86 @@ class MVHistory:
         raise AttributeError
 
     def __repr__(self):
+        if len(self.iters) < 5:
+            iters_repr = repr(self.iters)
+        else:
+            iters_repr = (
+                f"[{self.iters[0]}, {self.iters[1]}, ..."
+                f" {self.iters[-2]}, {self.iters[-1]}] "
+                f"({len(self.iters)} steps)"
+            )
         return (
-            "MVHistory("
+            "History("
             + f"\n   keys  = {self.keys()}, "
-            + f"\n   iters = {self.iters},"
-            + f"\n)"
+            + f"\n   iters = {iters_repr},"
+            + "\n)"
         )
 
     def __str__(self):
-        return f"MVHistory(keys={self.keys()}, n_iters={len(self.iters)})"
+        return f"History(keys={self.keys()}, n_iters={len(self.iters)})"
 
 
-from functools import partial
-from jax.tree_util import tree_map
+@dispatch
+def append(self: History, val: Any):
+    return append(self, val, None)
+
+
+@dispatch
+def append(self: History, val: History, it: Any):  # noqa: E0102, F811
+    if not set(self.keys()) == set(val.keys()):
+        raise ValueError("cannot concatenate MVHistories with different keys")
+
+    if it is not None:
+        raise ValueError("When concatenating histories, cannot specify the iteration.")
+
+    for key in self.keys():
+        self._value_dict[key] = np.concatenate([self[key], val[key]])
+
+    self._value_dict["iters"] = np.concatenate([self.iters, val.iters])
+
+    self._len = len(self) + len(val)
+
+
+@dispatch
+def append(self: History, values: dict, it: Any):  # noqa: E0102, F811
+    for key, val in values.items():
+        _vals = self._value_dict[key]
+
+        if isinstance(_vals, list):
+            _vals.append(val)
+        elif isinstance(_vals, np.ndarray):
+            new_shape = (len(_vals) + 1,) + _vals.shape[1:]
+            # try to resize in place the buffer so that we don't reallocate
+            # and if we fail, resize tby reallocating to a new buffer.
+            try:
+                _vals.resize(new_shape)
+            except ValueError:
+                _vals = np.resize(_vals, new_shape)
+                self._value_dict[key] = _vals
+
+            _vals[-1] = val
+        else:
+            raise TypeError(f"Unknown accumulator type {type(_vals)} for key {key}.")
+
+    try:
+        self.iters.resize(len(self.iters) + 1)
+    except ValueError:
+        self._value_dict["iters"] = np.resize(self.iters, (len(self.iters) + 1))
+
+    self.iters[-1] = it
+    self._len += 1
+
+
+@dispatch
+def append(self: History, val: Any, it: Any):  # noqa: E0102, F811
+    if self._single_value and is_scalar(val) or hasattr(val, "__array__"):
+        append(self, {"value": val}, it)
+    elif hasattr(val, "to_compound"):
+        append(self, val.to_compound()[1], it)
+    elif hasattr(val, "to_dict"):
+        append(self, val.to_dict(), it)
+    else:
+        append(self, {"value": val}, it)
 
 
 def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):
@@ -329,18 +386,10 @@ def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):
 
 def accum_histories(accum, data, *, step=0):
     if accum is None:
-        return History([data], step)
+        return History(data, step)
     else:
         accum.append(data, it=step)
         return accum
 
 
-def accum_mvhistories(accum, data, *, step=0):
-    if accum is None:
-        return MVHistory(data, step)
-    else:
-        accum.append(data, it=step)
-        return accum
-
-
-accum_histories_in_tree = partial(accum_in_tree, accum_mvhistories)
+accum_histories_in_tree = partial(accum_in_tree, accum_histories)

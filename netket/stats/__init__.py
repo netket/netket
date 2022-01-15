@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._sum_inplace import sum_inplace
-
 from .mpi_stats import subtract_mean, mean, sum, var, total_size
 
 from .mc_stats import statistics, Stats

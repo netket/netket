@@ -12,21 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List
-
 import jax
-import numpy as np
 from jax import numpy as jnp
 
-# from numba import jit
-
-from ..custom_hilbert import CustomHilbert
-
-from .base import register_flip_state_impl, register_random_state_impl
+from netket.hilbert.custom_hilbert import CustomHilbert
+from netket.utils.dispatch import dispatch
 
 
-def random_state_batch_spin_impl(hilb: CustomHilbert, key, batches, dtype):
-    if not hilb.is_discrete or not hilb.is_finite or hilb._has_constraint:
+@dispatch
+def random_state(hilb: CustomHilbert, key, batches: int, *, dtype):
+    if not hilb.is_finite or hilb._has_constraint:
         raise NotImplementedError()
 
     # Default version for discrete hilbert spaces without constraints.
@@ -41,17 +36,18 @@ def random_state_batch_spin_impl(hilb: CustomHilbert, key, batches, dtype):
     return jnp.asarray(σ, dtype=dtype)
 
 
-## flips
-def flip_state_scalar_spin_impl(hilb: CustomHilbert, key, σ, indx):
+@dispatch
+def flip_state_scalar(hilb: CustomHilbert, key, σ, indx):
     local_states = jnp.asarray(hilb.local_states)
 
     rs = jax.random.randint(key, shape=(), minval=0, maxval=len(hilb.local_states) - 1)
 
     new_val = local_states[rs + (local_states[rs] >= σ[indx])]
-    return jax.ops.index_update(σ, indx, new_val), σ[indx]
+    return σ.at[indx].set(new_val), σ[indx]
 
 
-def flip_state_batch_spin_impl(hilb: CustomHilbert, key, σ, indxs):
+@dispatch
+def flip_state_batch(hilb: CustomHilbert, key, σ, indxs):
     n_batches = σ.shape[0]
 
     local_states = jnp.asarray(hilb.local_states)
@@ -62,12 +58,6 @@ def flip_state_batch_spin_impl(hilb: CustomHilbert, key, σ, indxs):
 
     def scalar_update_fun(σ, indx, rs):
         new_val = local_states[rs + (local_states[rs] >= σ[indx])]
-        return jax.ops.index_update(σ, indx, new_val), σ[indx]
+        return σ.at[indx].set(new_val), σ[indx]
 
     return jax.vmap(scalar_update_fun, in_axes=(0, 0, 0), out_axes=0)(σ, indxs, rs)
-
-
-register_random_state_impl(CustomHilbert, batch=random_state_batch_spin_impl)
-register_flip_state_impl(
-    CustomHilbert, scalar=flip_state_scalar_spin_impl, batch=flip_state_batch_spin_impl
-)

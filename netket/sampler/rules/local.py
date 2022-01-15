@@ -13,10 +13,7 @@
 # limitations under the License.
 
 import jax
-import flax
-import numpy as np
 
-from jax import numpy as jnp
 from flax import struct
 
 from netket.hilbert.random import flip_state
@@ -26,12 +23,12 @@ from ..metropolis import MetropolisRule
 
 @struct.dataclass
 class LocalRule(MetropolisRule):
-    """
+    r"""
     A transition rule acting on the local degree of freedom.
 
     This transition acts locally only on one local degree of freedom :math:`s_i`,
     and proposes a new state: :math:`s_1 \dots s^\prime_i \dots s_N`,
-    where :math:`s^\prime_i \\neq s_i`.
+    where :math:`s^\prime_i \neq s_i`.
 
     The transition probability associated to this
     sampler can be decomposed into two steps:

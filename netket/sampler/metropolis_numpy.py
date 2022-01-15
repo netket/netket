@@ -16,20 +16,21 @@ import math
 from dataclasses import dataclass
 from functools import partial
 
-from typing import Optional, Any, Union, Tuple, Callable
+from typing import Any, Tuple, Callable
 
 import numpy as np
-from numba import jit, int64, float64
+from numba import jit
 from jax import numpy as jnp
 import jax
 
 from netket.hilbert import AbstractHilbert
+from netket.utils.mpi import mpi_sum, n_nodes
+from netket.utils.types import PyTree
+from netket.utils.deprecation import deprecated
+
+import netket.jax as nkjax
 
 from .metropolis import MetropolisSampler
-
-PyTree = Any
-PRNGKeyType = jnp.ndarray
-SeedType = Union[int, PRNGKeyType]
 
 
 @dataclass
@@ -51,15 +52,67 @@ class MetropolisNumpySamplerState:
     rng: Any
     """A numpy random generator."""
 
-    n_samples: int = 0
-    """Number of moves performed along the chains since the last reset."""
-    n_accepted: int = 0
-    """Number of accepted transitions along the chains since the last reset."""
+    n_steps_proc: int = 0
+    """Number of moves performed along the chains in this process since the last reset."""
+    n_accepted_proc: int = 0
+    """Number of accepted transitions among the chains in this process since the last reset."""
+
+    @property
+    def acceptance(self) -> float:
+        """The fraction of accepted moves across all chains and MPI processes.
+
+        The rate is computed since the last reset of the sampler.
+        Will return None if no sampling has been performed since then.
+        """
+        if self.n_steps == 0:
+            return None
+
+        return self.n_accepted / self.n_steps
+
+    @property
+    @deprecated(
+        """Please use the attribute `.acceptance` instead of
+        `.acceptance_ratio`. The new attribute `.acceptance` returns the
+        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
+        returning a percentage, which is a bug."""
+    )
+    def acceptance_ratio(self) -> float:
+        """DEPRECATED: Please use the attribute `.acceptance` instead of
+        `.acceptance_ratio`. The new attribute `.acceptance` returns the
+        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
+        returning a percentage, which is a bug.
+
+        The percentage of accepted moves across all chains and MPI processes.
+
+        The rate is computed since the last reset of the sampler.
+        Will return None if no sampling has been performed since then.
+        """
+        return self.acceptance * 100
+
+    @property
+    def n_steps(self) -> int:
+        """Total number of moves performed across all processes since the last reset."""
+        return self.n_steps_proc * n_nodes
+
+    @property
+    def n_accepted(self) -> int:
+        """Total number of moves accepted across all processes since the last reset."""
+        return mpi_sum(self.n_accepted_proc)
+
+    def __repr__(self):
+        if self.n_steps > 0:
+            acc_string = "# accepted = {}/{} ({}%), ".format(
+                self.n_accepted, self.n_steps, self.acceptance * 100
+            )
+        else:
+            acc_string = ""
+
+        return f"MetropolisNumpySamplerState({acc_string}rng state={self.rng})"
 
 
 @partial(jax.jit, static_argnums=0)
 def apply_model(machine, pars, weights):
-    return machine(pars, weights)
+    return machine.apply(pars, weights)
 
 
 class MetropolisSamplerNumpy(MetropolisSampler):
@@ -86,7 +139,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
         σ = np.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
 
-        ma_out = jax.eval_shape(machine, parameters, σ)
+        ma_out = jax.eval_shape(machine.apply, parameters, σ)
 
         state = MetropolisNumpySamplerState(
             σ=σ,
@@ -94,13 +147,13 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             log_values=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
             log_values_1=np.zeros(sampler.n_batches, dtype=ma_out.dtype),
             log_prob_corr=np.zeros(
-                sampler.n_batches, dtype=jax.dtypes.dtype_real(ma_out.dtype)
+                sampler.n_batches, dtype=nkjax.dtype_real(ma_out.dtype)
             ),
             rng=rgen,
             rule_state=sampler.rule.init_state(sampler, machine, parameters, rgen),
         )
 
-        if not sampler.reset_chain:
+        if not sampler.reset_chains:
             key = jnp.asarray(
                 state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
             )
@@ -112,7 +165,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         return state
 
     def _reset(sampler, machine, parameters, state):
-        if sampler.reset_chain:
+        if sampler.reset_chains:
             # directly generate a PRNGKey which is a [2xuint32] array
             key = jnp.asarray(
                 state.rng.integers(0, 1 << 32, size=2, dtype=np.uint32), dtype=np.uint32
@@ -161,8 +214,8 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 random_uniform,
             )
 
-        state.n_samples += sampler.n_sweeps * sampler.n_chains
-        state.n_accepted += accepted
+        state.n_steps_proc += sampler.n_sweeps * sampler.n_chains
+        state.n_accepted_proc += accepted
 
         return state, state.σ
 
@@ -191,7 +244,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             + "\n  rule = {},".format(sampler.rule)
             + "\n  n_chains = {},".format(sampler.n_chains)
             + "\n  machine_power = {},".format(sampler.machine_pow)
-            + "\n  reset_chain = {},".format(sampler.reset_chain)
+            + "\n  reset_chains = {},".format(sampler.reset_chains)
             + "\n  n_sweeps = {},".format(sampler.n_sweeps)
             + "\n  dtype = {},".format(sampler.dtype)
             + ")"
@@ -228,29 +281,16 @@ def acceptance_kernel(
     return accepted
 
 
-# def MetropolisSamplerNumpy(
-#     hilbert: AbstractHilbert,
-#     rule,
-#     n_sweeps: Optional[int] = None,
-#     **kwargs,
-# ):
-#     if n_sweeps is None:
-#         n_sweeps = hilbert.size
-
-#     return MetropolisSamplerNumpy_(
-#         hilbert=hilbert, rule=rule, n_sweeps=n_sweeps, **kwargs
-#     )
-
-
-from .rules import LocalRuleNumpy, HamiltonianRuleNumpy, CustomRuleNumpy
-
-
 def MetropolisLocalNumpy(hilbert: AbstractHilbert, *args, **kwargs):
+    from .rules import LocalRuleNumpy
+
     rule = LocalRuleNumpy()
     return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)
 
 
 def MetropolisHamiltonianNumpy(hilbert: AbstractHilbert, hamiltonian, *args, **kwargs):
+    from .rules import HamiltonianRuleNumpy
+
     rule = HamiltonianRuleNumpy(hamiltonian)
     return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)
 
@@ -258,5 +298,7 @@ def MetropolisHamiltonianNumpy(hilbert: AbstractHilbert, hamiltonian, *args, **k
 def MetropolisCustomNumpy(
     hilbert: AbstractHilbert, move_operators, move_weights=None, *args, **kwargs
 ):
+    from .rules import CustomRuleNumpy
+
     rule = CustomRuleNumpy(move_operators, move_weights)
     return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)

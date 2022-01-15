@@ -12,14 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import itertools as _itertools
-
 import numpy as np
-from scipy.sparse.linalg import LinearOperator, bicgstab
+from scipy.sparse.linalg import bicgstab
 
 from .operator import AbstractOperator
-
-from ._exact_dynamics import PyExactTimePropagation
 
 
 def lanczos_ed(
@@ -31,7 +27,7 @@ def lanczos_ed(
     scipy_args: dict = None,
 ):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
-    of a Hermitian operator using `scipy.sparse.linalg.eigsh`.
+    of a Hermitian operator using :meth:`scipy.sparse.linalg.eigsh`.
 
     Args:
         operator: NetKet operator to diagonalize.
@@ -41,22 +37,24 @@ def lanczos_ed(
             eigenvectors has almost no performance benefits.
         matrix_free: If true, matrix elements are computed on the fly.
             Otherwise, the operator is first converted to a sparse matrix.
-        scipy_args: Additional keyword arguments passed to `scipy.sparse.linalg.eigvalsh`.
-            See the Scipy documentation for further information.
+        scipy_args: Additional keyword arguments passed to
+            :meth:`scipy.sparse.linalg.eigvalsh`. See the Scipy documentation for further
+            information.
 
     Returns:
-        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors` is True.
+        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors`
+        is True.
 
-        w: Array containing the lowest `first_n` eigenvalues.
-
-        v: Array containing the eigenvectors as columns, such that`v[:, i]` corresponds to `w[i]`.
+        - w: Array containing the lowest `first_n` eigenvalues.
+        - v: Array containing the eigenvectors as columns, such that`v[:, i]`
+          corresponds to `w[i]`.
 
     Example:
         Test for 1D Ising chain with 8 sites.
-        s
+
         >>> import netket as nk
         >>> hi = nk.hilbert.Spin(s=1/2)**8
-        >>> hamiltonian = nk.operator.Ising(hi, h=1.0)
+        >>> hamiltonian = nk.operator.Ising(hi, h=1.0, graph=nk.graph.Chain(8))
         >>> w = nk.exact.lanczos_ed(hamiltonian, k=3)
         >>> w
         array([-10.25166179, -10.05467898,  -8.69093921])
@@ -93,15 +91,16 @@ def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
             of the operator.
 
     Returns:
-        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors` is True.
+        Either `w` or the tuple `(w, v)` depending on whether `compute_eigenvectors`
+        is True.
 
     Example:
 
         Test for 1D Ising chain with 8 sites.
 
         >>> import netket as nk
-        >>> hi = nk.hilbert.Spin(nk.graph.Chain(8), s=1/2)
-        >>> hamiltonian = nk.operator.Ising(hi, h=1.0)
+        >>> hi = nk.hilbert.Spin(s=1/2)**8
+        >>> hamiltonian = nk.operator.Ising(hi, h=1.0, graph=nk.graph.Chain(8))
         >>> w = nk.exact.full_ed(hamiltonian)
         >>> w.shape
         (256,)
@@ -116,11 +115,12 @@ def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
         return eigvalsh(dense_op)
 
 
-def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
+def steady_state(lindblad, *, sparse=True, method="ed", rho0=None, **kwargs):
     r"""Computes the numerically exact steady-state of a lindblad master equation.
     The computation is performed either through the exact diagonalization of the
-    hermitian L^\dagger L matrix, or by means of an iterative solver (bicgstabl)
-    targeting the solution of the non-hermitian system L\rho = 0 && \Tr[\rho] = 1.
+    hermitian :math:`L^\dagger L` matrix, or by means of an iterative solver (bicgstabl)
+    targeting the solution of the non-hermitian system :math:`L\rho = 0`
+    and :math:`\mathrm{Tr}[\rho] = 1`.
 
     Note that for systems with 7 or more sites it is usually computationally impossible
     to build the full lindblad operator and therefore only `iterative` will work.
@@ -130,29 +130,24 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
 
     Args:
         lindblad: The lindbladian encoding the master equation.
-        sparse: Whever to use sparse matrices (default: False for ed, True for iterative)
+        sparse: Whever to use sparse matrices (default: False for ed, True for
+            iterative)
         method: 'ed' (exact diagonalization) or 'iterative' (iterative bicgstabl)
         rho0: starting density matrix for the iterative diagonalization (default: None)
         kwargs...: additional kwargs passed to bicgstabl
 
-    Optional args for iterative:
-        For full docs please consult SciPy documentation at
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.bicgstab.html
+    For full docs please consult SciPy documentation at
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.bicgstab.html
 
+    Keyword Args:
         maxiter: maximum number of iterations for the iterative solver (default: None)
         tol: The precision for the calculation (default: 1e-05)
-        callback: User-supplied function to call after each iteration. It is called as callback(xk),
-         where xk is the current solution vector
+        callback: User-supplied function to call after each iteration. It is called as
+            callback(xk), where xk is the current solution vector
 
     Returns:
         The steady-state density matrix.
-
     """
-    from numpy import sqrt, array
-
-    if sparse is None:
-        sparse = True
-
     M = lindblad.hilbert.physical.n_states
 
     if method == "ed":
@@ -171,14 +166,14 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
 
             lind_mat = lindblad.to_dense()
 
-            ldagl = lind_mat.H * lind_mat
+            ldagl = lind_mat.T.conj() * lind_mat
             w, v = eigh(ldagl)
 
         else:
             from scipy.sparse.linalg import eigsh
 
             lind_mat = lindblad.to_sparse()
-            ldagl = lind_mat.H * lind_mat
+            ldagl = lind_mat.T.conj() * lind_mat
 
             w, v = eigsh(ldagl, which="SM", k=2)
 

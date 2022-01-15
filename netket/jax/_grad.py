@@ -14,21 +14,10 @@
 
 from typing import Callable, Tuple, Any, Union, Sequence
 
-from functools import partial, wraps
 import operator
 
-import numpy as np
-
 import jax
-from jax import numpy as jnp
 from jax.util import safe_map
-from jax.tree_util import (
-    tree_flatten,
-    tree_unflatten,
-    tree_map,
-    tree_multimap,
-    tree_leaves,
-)
 
 from .utils import is_complex, tree_leaf_iscomplex, eval_shape
 
@@ -83,7 +72,7 @@ def grad(
     >>>
     >>> grad_tanh = jax.grad(jax.numpy.tanh)
     >>> print(grad_tanh(0.2))
-    0.961043
+    0.9610429829661166
     """
     value_and_grad_f = value_and_grad(
         fun, argnums, has_aux=has_aux, allow_int=allow_int

@@ -15,7 +15,6 @@
 import numpy as np
 from numba.experimental import jitclass
 from numba import int64, float64
-import numba
 
 
 spec = [
@@ -51,7 +50,7 @@ class HilbertIndex:
         return self._local_states
 
     def state_to_number(self, state):
-        if states.ndim != 1:
+        if state.ndim != 1:
             raise RuntimeError("Invalid input shape, expecting a 1d array.")
 
         # Converts a vector of quantum numbers into the unique integer identifier

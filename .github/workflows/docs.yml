@@ -31,7 +31,7 @@ jobs:
 
     - name: Install docs dependencies and Pandoc
       run: |
-        sudo apt-get -y install pandoc
+        sudo apt-get -y install pandoc graphviz
         pip install -r docs/requirements.txt
 
     - name: Make docs
@@ -57,7 +57,7 @@ jobs:
         cname: www.netket.org
 
     - name: Deploy Website and Docs Preview
-      if: success() && github.ref != 'refs/heads/master'
+      if: (success() && github.ref != 'refs/heads/master' && github.event.pull_request.head.repo.full_name == 'netket/netket' ) && !contains(github.event.pull_request.labels.*.name, 'dependencies')
       uses: peaceiris/actions-gh-pages@v3
       with:
         publish_branch: gh-pages
@@ -66,7 +66,7 @@ jobs:
         destination_dir: preview/${{ steps.determine-branch.outputs.branch }}
 
     - name: Comment on PR 
-      if: success() && github.ref != 'refs/heads/master'
+      if: success() && github.ref != 'refs/heads/master' && github.event.pull_request.head.repo.full_name == 'netket/netket' 
       uses: marocchino/sticky-pull-request-comment@v2
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -18,18 +18,9 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 
-from netket.legacy.machine._jax_utils import (
-    outdtype,
-    outdtype_iscomplex,
-    tree_leaf_iscomplex,
-)
-
-from ._local_liouvillian import LocalLiouvillian as _LocalLiouvillian
 from ._local_cost_functions import (
-    define_local_cost_function,
     local_costs_and_grads_function,
     local_value_cost,
-    local_value_op_op_cost,
 )
 
 local_energy_kernel = local_value_cost
@@ -59,7 +50,7 @@ def _local_value_and_grad_notcentered_kernel(logpsi, pars, vp, mel, v):
     vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
 
     # TODO : here someone must bring order to those multiple conjs
-    odtype = outdtype(logpsi, pars, v)
+    odtype = jax.eval_shape(logpsi, pars, v).dtype
     vec = jnp.asarray(jnp.conjugate(vec), dtype=odtype)
     loc_val = vec.sum()
     grad_c = f_vjp(vec.conj())[0]

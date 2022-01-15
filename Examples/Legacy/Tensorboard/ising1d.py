@@ -42,15 +42,15 @@ op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Create the optimization driver
-gs = nk.Vmc(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr)
+gs = nk.VMC(hamiltonian=ha, sampler=sa, optimizer=op, n_samples=1000, sr=sr)
 
 # Create the TensorBoard logger
-logger = nk.logging.TBLog("tblogs/run1")
+logger = nk.logging.TensorBoardLog("tblogs/run1")
 
 gs.run(n_iter=300, out=logger)
 
 # Create another tensorboard logger
-logger = nk.logging.TBLog("tblogs/run2")
+logger = nk.logging.TensorBoardLog("tblogs/run2")
 
 # reset the optimization driver
 gs.reset()

@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
-
 import jax
 import jax.numpy as jnp
-from jax.tree_util import tree_map
 
-from netket.operator import Squared
-from netket.stats import Stats
-
-from netket.variational import MCMixedState
+from netket.operator import Squared, AbstractSuperOperator
+from netket.vqs import MCMixedState
+from netket.utils import warn_deprecation
+from netket.optimizer import (
+    identity_preconditioner,
+    PreconditionerT,
+)
 
 from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
@@ -37,9 +37,10 @@ class SteadyState(AbstractVariationalDriver):
         lindbladian,
         optimizer,
         *args,
-        variational_state=None,
-        sr=None,
-        sr_restart=False,
+        variational_state: MCMixedState = None,
+        preconditioner: PreconditionerT = None,
+        sr: PreconditionerT = None,
+        sr_restart: bool = None,
         **kwargs,
     ):
         """
@@ -49,25 +50,61 @@ class SteadyState(AbstractVariationalDriver):
             lindbladian: The Lindbladian of the system.
             optimizer: Determines how optimization steps are performed given the
                 bare energy gradient.
-            sr: Determines whether and how stochastic reconfiguration
-                is applied to the bare energy gradient before performing applying
-                the optimizer. If this parameter is not passed or None, SR is not used.
-            sr_restart: whever to restart the SR solver at every iteration, or use the
-                previous result to speed it up
-
+            preconditioner: Determines which preconditioner to use for the loss gradient.
+                This must be a tuple of `(object, solver)` as documented in the section
+                `preconditioners` in the documentation. The standard preconditioner
+                included with NetKet is Stochastic Reconfiguration. By default, no preconditioner
+                is used and the bare gradient is passed to the optimizer.
         """
         if variational_state is None:
             variational_state = MCMixedState(*args, **kwargs)
+
+        if not isinstance(lindbladian, AbstractSuperOperator):
+            raise TypeError("The first argument must be a super-operator")
+
+        if sr is not None:
+            if preconditioner is not None:
+                raise ValueError(
+                    "sr is deprecated in favour of preconditioner kwarg. You should not pass both"
+                )
+            else:
+                preconditioner = sr
+                warn_deprecation(
+                    (
+                        "The `sr` keyword argument is deprecated in favour of `preconditioner`."
+                        "Please update your code to `SteadyState(.., precondioner=your_sr)`"
+                    )
+                )
+
+        if sr_restart is not None:
+            if preconditioner is None:
+                raise ValueError(
+                    "sr_restart only makes sense if you have a preconditioner/SR."
+                )
+            else:
+                preconditioner.solver_restart = sr_restart
+                warn_deprecation(
+                    (
+                        "The `sr_restart` keyword argument is deprecated in favour of specifiying "
+                        "`solver_restart` in the constructor of the SR object."
+                        "Please update your code to `SteadyState(.., preconditioner=nk.optimizer.SR(..., solver_restart=True/False))`"
+                    )
+                )
+
+        # move as kwarg once deprecations are removed
+        if preconditioner is None:
+            preconditioner = identity_preconditioner
 
         super().__init__(variational_state, optimizer, minimized_quantity_name="LdagL")
 
         self._lind = lindbladian
         self._ldag_l = Squared(lindbladian)
 
-        self.sr = sr
-        self.sr_restart = sr_restart
+        self.preconditioner = preconditioner
 
         self._dp = None
+        self._S = None
+        self._sr_info = None
 
     def _forward_and_backward(self):
         """
@@ -82,15 +119,9 @@ class SteadyState(AbstractVariationalDriver):
         # Compute the local energy estimator and average Energy
         self._loss_stats, self._loss_grad = self.state.expect_and_grad(self._ldag_l)
 
-        if self.sr is not None:
-            self._S = self.state.quantum_geometric_tensor(self.sr)
-
-            # use the previous solution as an initial guess to speed up the solution of the linear system
-            x0 = self._dp if self.sr_restart is False else None
-            self._dp = self._S.solve(self._loss_grad, x0=x0)
-        else:
-            # tree_map(lambda x, y: x if is_ccomplex(y) else x.real, self._grads, self.state.parameters)
-            self._dp = self._loss_grad
+        # if it's the identity it does
+        # self._dp = self._loss_grad
+        self._dp = self.preconditioner(self.state, self._loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = jax.tree_multimap(

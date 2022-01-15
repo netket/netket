@@ -5,7 +5,7 @@ name: Publish to PyPi
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
   deploy:
@@ -34,5 +34,5 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
 
         run: |
-          python setup.py sdist
+          python setup.py bdist_wheel sdist
           twine upload dist/*

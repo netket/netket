@@ -12,41 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
-import jax
-from jax import numpy as jnp
 import numpy as np
 
+from netket.utils.dispatch import parametric
+
 from .abstract_hilbert import AbstractHilbert
+from .discrete_hilbert import DiscreteHilbert
 
 
-class DoubledHilbert(AbstractHilbert):
-    r"""Superoperatorial hilbert space for states living in the
-    tensorised state H\otimes H, encoded according to Choi's isomorphism."""
+@parametric
+class DoubledHilbert(DiscreteHilbert):
+    r"""
+    Superoperatorial hilbert space for states living in the tensorised state
+    :math:`\hat{H}\otimes \hat{H}`, encoded according to Choi's isomorphism.
+    """
 
-    def __init__(self, hilb):
-        r"""Superoperatorial hilbert space for states living in the
-           tensorised state H\otimes H, encoded according to Choi's isomorphism.
+    def __init__(self, hilb: AbstractHilbert):
+        r"""
+        Superoperatorial hilbert space for states living in the tensorised
+        state :math:`\hat{H}\otimes \hat{H}`, encoded according to Choi's
+        isomorphism.
 
         Args:
-            hilb: the hilbrt space H.
+            hilb: the Hilbert space H.
 
         Examples:
             Simple superoperatorial hilbert space for few spins.
 
-           >>> from netket.hilbert import Spin, DoubledHilbert
-           >>> g = Hypercube(length=5,n_dim=2,pbc=True)
-           >>> hi = Spin(N=3, s=0.5)
-           >>> hi2 = DoubledHilbert(hi)
-           >>> print(hi2.size)
-           50
+            >>> import netket as nk
+            >>> g = nk.graph.Hypercube(length=5,n_dim=2,pbc=True)
+            >>> hi = nk.hilbert.Spin(N=3, s=0.5)
+            >>> hi2 = nk.hilbert.DoubledHilbert(hi)
+            >>> print(hi2.size)
+            6
         """
         self.physical = hilb
         self._size = 2 * hilb.size
 
-        self._shape = hilb.shape * 2
-        super().__init__()
+        super().__init__(shape=hilb.shape * 2)
 
     @property
     def size(self):
@@ -55,10 +60,6 @@ class DoubledHilbert(AbstractHilbert):
     @property
     def shape(self):
         return self._shape
-
-    @property
-    def is_discrete(self):
-        return self.physical.is_discrete
 
     @property
     def is_finite(self):
@@ -134,18 +135,3 @@ class DoubledHilbert(AbstractHilbert):
     @property
     def _attrs(self):
         return (self.physical,)
-
-    def _random_state_legacy(self, size=None, *, out=None, rgen=None):
-        if isinstance(size, int):
-            size = (size,)
-        shape = (*size, self.size) if size is not None else (self.size,)
-
-        if out is None:
-            out = np.empty(shape=shape)
-
-        n = self.size_physical
-
-        self.physical.random_state(out=out[..., :n], size=size, rgen=rgen)
-        self.physical.random_state(out=out[..., n:], size=size, rgen=rgen)
-
-        return out
