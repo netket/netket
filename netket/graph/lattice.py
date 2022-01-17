@@ -1,4 +1,4 @@
-# Copyright 2020, 2021 The NetKet Authors - All rights reserved.
+# Copyright 2020-2022 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@ import warnings
 
 import igraph
 import numpy as _np
-from scipy.spatial import cKDTree
-from scipy.sparse import find, triu
 
 from netket.utils.deprecation import deprecated as _deprecated
 from netket.utils import HashableArray
@@ -30,6 +28,7 @@ from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
 
 from .graph import Graph
+from .lattice_edge_logic import get_nn_edges, get_custom_edges
 
 if TYPE_CHECKING:
     from .space_group import SpaceGroupBuilder
@@ -64,99 +63,19 @@ class LatticeSite:
         return f"LatticeSite({s})"
 
 
-def create_sites(
-    basis_vectors, extent, apositions, pbc, order
-) -> Tuple[Sequence[LatticeSite], Sequence[bool], Dict[HashableArray, int]]:
-    # note: by modifying these, the number of shells can be tuned.
-    shell_vec = _np.where(pbc, 2 * order, 0)
-    shift_vec = _np.where(pbc, order, 0)
+def _create_sites(basis_vectors, extent, site_offsets):
+    ranges = [slice(0, ex) for ex in [*extent, len(site_offsets)]]
+    basis_coords = _np.mgrid[ranges].reshape(len(extent) + 1, -1).T
+    positions = basis_coords[:, :-1] @ basis_vectors
+    positions = positions.reshape(-1, len(site_offsets), len(extent)) + site_offsets
+    positions = positions.reshape(-1, len(extent))
 
-    shell_min = 0 - shift_vec
-    shell_max = _np.asarray(extent) + shell_vec - shift_vec
-    # cell coordinates
-    ranges = [slice(lo, hi) for lo, hi in zip(shell_min, shell_max)]
-    # site coordinate within unit cell
-    ranges += [slice(0, len(apositions))]
+    sites = [
+        LatticeSite(id=idx, position=pos, basis_coord=coord)
+        for idx, (coord, pos) in enumerate(zip(basis_coords, positions))
+    ]
 
-    basis_coords = _np.vstack([_np.ravel(x) for x in _np.mgrid[ranges]]).T
-    site_coords = (
-        basis_coords[:, :-1]
-        + _np.tile(apositions.T, reps=len(basis_coords) // len(apositions)).T
-    )
-    positions = site_coords @ basis_vectors
-
-    sites = []
-    coord_to_site = {}
-    for idx, (coord, pos) in enumerate(zip(basis_coords, positions)):
-        sites.append(
-            LatticeSite(
-                id=None,  # to be set later, after sorting all sites
-                basis_coord=coord,
-                position=pos,
-            ),
-        )
-        coord_to_site[HashableArray(coord)] = idx
-    is_inside = ~(
-        _np.any(basis_coords[:, :-1] < 0, axis=1)
-        | _np.any(basis_coords[:, :-1] > (extent - 1), axis=1)
-    )
-    return sites, is_inside, coord_to_site
-
-
-def get_edges(positions, cutoff, order):
-    """
-    Given an array of spatial `positions`, returns a list `es`, so that
-    `es[k]` contains all pairs of (k + 1)-nearest neighbors up to `order`.
-    Only edges up to distance `cutoff` are considered.
-    """
-    kdtree = cKDTree(positions)
-    dist_matrix = kdtree.sparse_distance_matrix(kdtree, cutoff)
-    row, col, dst = find(triu(dist_matrix))
-    dst = comparable(dst)
-    _, ii = _np.unique(dst, return_inverse=True)
-
-    return [sorted(list(zip(row[ii == k], col[ii == k]))) for k in range(order)]
-
-
-def get_true_edges(
-    basis_vectors: PositionT,
-    sites: Sequence[LatticeSite],
-    inside: Sequence[bool],
-    basis_coord_to_site,
-    extent,
-    distance_atol,
-    order,
-):
-    positions = _np.array([p.position for p in sites])
-    naive_edges_by_order = get_edges(
-        positions,
-        order * _np.linalg.norm(basis_vectors, axis=1).max() + distance_atol,
-        order,
-    )
-    true_edges_by_order = []
-    for k, naive_edges in enumerate(naive_edges_by_order):
-        true_edges = set()
-        for node1, node2 in naive_edges:
-            site1, inside1 = sites[node1], inside[node1]
-            site2, inside2 = sites[node2], inside[node2]
-            if inside1 and inside2:
-                true_edges.add((node1, node2))
-            elif inside1 or inside2:
-                cell1 = site1.basis_coord
-                cell2 = site2.basis_coord
-                cell1[:-1] = cell1[:-1] % extent
-                cell2[:-1] = cell2[:-1] % extent
-                node1 = basis_coord_to_site[HashableArray(cell1)]
-                node2 = basis_coord_to_site[HashableArray(cell2)]
-                edge = (node1, node2)
-                if edge not in true_edges and (node2, node1) not in true_edges:
-                    if node1 == node2:
-                        raise RuntimeError(
-                            f"Lattice contains self-referential edge {(node1, node2)} of order {k}"
-                        )
-                    true_edges.add(edge)
-        true_edges_by_order.append(list(true_edges))
-    return true_edges_by_order
+    return sites, basis_coords, positions
 
 
 def deprecated(alternative):
@@ -236,7 +155,8 @@ class Lattice(Graph):
         atoms_coord: Optional[_np.ndarray] = None,
         distance_atol: float = 1e-5,
         point_group: Optional[PointGroup] = None,
-        max_neighbor_order: int = 1,
+        max_neighbor_order: Optional[int] = None,
+        custom_edges: Optional[Sequence] = None,
     ):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit
@@ -261,6 +181,13 @@ class Lattice(Graph):
                 to :math:`k`-nearest neighbor sites (measured by their Euclidean distance)
                 are included in the graph. The edges can be distiguished by their color,
                 which is set to :math:`k - 1` (so nearest-neighbor edges have color 0).
+                By default, nearest-neighbours are autogenerated.
+            custom_edges: Describes all edges for one unit cell that are distributed to
+                all unit cells. Should be a list of tuples, where each tuple contains
+                the sublattice the edge starts from, the sublattice it arrives to, its
+                vector length, and an optional color. If colors are not supplied, they
+                are assigned sequentially starting from 0. Cannot be used together with
+                `max_neighbour_order`.
 
         Examples:
             Constructs a Kagome lattice with 3 × 3 unit cells:
@@ -297,9 +224,7 @@ class Lattice(Graph):
               [0.75       1.29903811]
               [1.25       1.29903811]]
         """
-        if max_neighbor_order < 1:
-            raise ValueError("max_neighbor_order must be >= 1.")
-
+        # Clean input parameters
         self._basis_vectors = self._clean_basis(basis_vectors)
         self._ndim = self._basis_vectors.shape[1]
 
@@ -311,58 +236,51 @@ class Lattice(Graph):
         self._pbc = self._clean_pbc(pbc, self._ndim)
 
         self._extent = _np.asarray(extent, dtype=int)
+        self._lattice_dims = _np.expand_dims(self._extent, 1) * self.basis_vectors
+        self._inv_dims = _np.linalg.inv(self._lattice_dims)
 
         self._point_group = point_group
 
-        sites, inside, self._basis_coord_to_site = create_sites(
+        # Generate sites
+        self._sites, self._basis_coords, self._positions = _create_sites(
             self._basis_vectors,
             self._extent,
-            site_pos_fractional,
-            self._pbc,
-            max_neighbor_order,
+            self._site_offsets,
         )
-        edges = get_true_edges(
-            self._basis_vectors,
-            sites,
-            inside,
-            self._basis_coord_to_site,
-            self._extent,
-            distance_atol,
-            max_neighbor_order,
-        )
-
-        old_nodes = sorted(
-            set(node for edges_k in edges for edge in edges_k for node in edge)
-        )
-        new_nodes = {old_node: new_node for new_node, old_node in enumerate(old_nodes)}
-
-        edges_by_order = []
-        for edges_k in edges:
-            graph = igraph.Graph()
-            graph.add_vertices(len(old_nodes))
-            graph.add_edges(
-                [(new_nodes[edge[0]], new_nodes[edge[1]]) for edge in edges_k]
-            )
-            graph.simplify()
-            edges_by_order.append(list(graph.get_edgelist()))
-
-        self._sites = []
-        for i, site in enumerate(sites[old_node] for old_node in old_nodes):
-            site.id = i
-            self._sites.append(site)
         self._basis_coord_to_site = {
             HashableArray(p.basis_coord): p.id for p in self._sites
         }
-        self._positions = _np.array([p.position for p in self._sites])
-        self._basis_coords = _np.array([p.basis_coord for p in self._sites])
-        self._lattice_dims = _np.expand_dims(self._extent, 1) * self.basis_vectors
-        self._inv_dims = _np.linalg.inv(self._lattice_dims)
         int_positions = self._to_integer_position(self._positions)
         self._int_position_to_site = {
             HashableArray(pos): index for index, pos in enumerate(int_positions)
         }
 
-        colored_edges = [(*e, k) for k, es in enumerate(edges_by_order) for e in es]
+        # Generate edges
+        if custom_edges is not None:
+            if max_neighbor_order is not None:
+                raise ValueError(
+                    "custom_edges and max_neighbor_order cannot be specified at the same time"
+                )
+            colored_edges = get_custom_edges(
+                self._basis_vectors,
+                self._extent,
+                self._site_offsets,
+                self._pbc,
+                distance_atol,
+                custom_edges,
+            )
+        else:
+            if max_neighbor_order is None:
+                max_neighbor_order = 1
+            colored_edges = get_nn_edges(
+                self._basis_vectors,
+                self._extent,
+                self._site_offsets,
+                self._pbc,
+                distance_atol,
+                max_neighbor_order,
+            )
+
         super().__init__(colored_edges, len(self._sites))
 
     @staticmethod
