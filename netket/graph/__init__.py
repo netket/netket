@@ -28,6 +28,7 @@ from .common_lattices import (
     Triangular,
     Honeycomb,
     Kagome,
+    KitaevHoneycomb,
 )
 
 from netket.utils import _hide_submodules
