@@ -82,7 +82,7 @@ It is possible to show that the updates $\delta W_k $ that minimise the norm of 
 S_{i,k} \delta W_k = F_i
 \end{equation}
 
-where $ F_i = \langle \hat{E}^{loc} \hat{O}_i\rangle_c $ is the gradient of the Energy and $ S_{i,k} = \langle \hat{O}^\dagger_i \hat{O}_k\rangle_c $ is the Quantum Geometric Tensor.
+where $ F_i = \langle \hat{E}^{loc} \hat{O}_i\rangle - \langle \hat{E}^{loc} \rangle\langle \hat{O}_i\rangle $ is the gradient of the Energy and $ S_{i,k} = \langle \hat{O}^\dagger_i \hat{O}_k\rangle - \langle \hat{O}^\dagger_i \rangle\langle \hat{O}_k\rangle $ is the Quantum Geometric Tensor.
 The QGT is positive definite, therefore it can be inverted and the solution is formally written as
 
 \begin{equation}
