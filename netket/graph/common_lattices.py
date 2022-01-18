@@ -510,7 +510,7 @@ def KitaevHoneycomb(
         Construct a Kitaev honeycomb lattice with 3 × 3 unit cells:
 
         >>> from netket.graph import Honeycomb
-        >>> g = Honeycomb(extent=[3, 3])
+        >>> g = KitaevHoneycomb(extent=[3, 3])
         >>> print(g.n_nodes)
         18
         >>> print(len(g.edges(2)))
