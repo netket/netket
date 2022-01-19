@@ -140,6 +140,11 @@ def test_custom_edges():
     for i in range(3):
         assert len(graph.edges(filter_color=i)) == 9
 
+    graph = nk.graph.KitaevHoneycomb([3, 3], pbc=False)
+    assert len(graph.edges(filter_color=0)) == 9
+    assert len(graph.edges(filter_color=1)) == 6
+    assert len(graph.edges(filter_color=2)) == 6
+
     graph = nk.graph.Lattice(
         np.eye(2), (6, 4), pbc=False, custom_edges=[(0, 0, [1, 0]), (0, 0, [0, 1])]
     )
@@ -635,13 +640,13 @@ def test_grid_space_group():
     assert len(g.space_group()) < len(g.automorphisms())
 
 
-@pytest.mark.parametrize("lattice", [Triangular, Honeycomb, Kagome, KitaevHoneycomb])
+@pytest.mark.parametrize("lattice", [Triangular, Honeycomb, Kagome])
 def test_triangular_space_group(lattice):
     g = lattice([3, 3])
     _check_symmgroups(g)
-    assert len(g.rotation_group()) == 6 if lattice != KitaevHoneycomb else 2
-    assert len(g.point_group()) == 12 if lattice != KitaevHoneycomb else 2
-    assert len(g.space_group()) == 3 * 3 * len(g.point_group())
+    assert len(g.rotation_group()) == 6
+    assert len(g.point_group()) == 12
+    assert len(g.space_group()) == 3 * 3 * 12
 
     g = lattice([3, 3], pbc=False)
     with pytest.raises(RuntimeError):
@@ -652,15 +657,37 @@ def test_triangular_space_group(lattice):
         _ = g.space_group()
 
     g = lattice([2, 4])
-    if lattice != KitaevHoneycomb:
-        with pytest.raises(RuntimeError):
-            _ = g.rotation_group()
-        with pytest.raises(RuntimeError):
-            _ = g.point_group()
-        with pytest.raises(RuntimeError):
-            _ = g.space_group()
-    else:
-        assert len(g.point_group()) == 2
+    with pytest.raises(RuntimeError):
+        _ = g.rotation_group()
+    with pytest.raises(RuntimeError):
+        _ = g.point_group()
+    with pytest.raises(RuntimeError):
+        _ = g.space_group()
+    # 2x4 unit cells of the triangle lattice make a rectangular grid
+    assert len(g.point_group(group.planar.rectangle())) == 4
+
+
+def test_kitaev_space_group():
+    lattice = KitaevHoneycomb
+
+    g = lattice([3, 3])
+    _check_symmgroups(g)
+    assert len(g.rotation_group()) == 2
+    assert len(g.point_group()) == 2
+    assert len(g.space_group()) == 3 * 3 * 2
+
+    g = lattice([3, 3], pbc=False)
+    with pytest.raises(RuntimeError):
+        _ = g.rotation_group()
+    with pytest.raises(RuntimeError):
+        _ = g.point_group()
+    with pytest.raises(RuntimeError):
+        _ = g.space_group()
+
+    g = lattice([2, 4])
+    assert len(g.rotation_group()) == 2
+    assert len(g.point_group()) == 2
+    assert len(g.space_group()) == 2 * 4 * 2
     # 2x4 unit cells of the triangle lattice make a rectangular grid
     assert len(g.point_group(group.planar.rectangle())) == 4
 

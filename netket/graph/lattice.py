@@ -28,7 +28,7 @@ from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
 
 from .graph import Graph
-from .lattice_edge_logic import get_nn_edges, get_custom_edges
+from ._lattice_edge_logic import get_nn_edges, get_custom_edges
 
 if TYPE_CHECKING:
     from .space_group import SpaceGroupBuilder
@@ -185,7 +185,7 @@ class Lattice(Graph):
                 unless :code:`custom_edges` is passed.
             custom_edges: Describes all edges for one unit cell that are distributed to
                 all unit cells. Should be a list of tuples, where each tuple contains
-                the sublattice the edge starts from, the sublattice it arrives to, its
+                the indices of the starting and ending sites in the unit cell, its
                 vector length, and an optional color. If colors are not supplied, they
                 are assigned sequentially starting from 0. Cannot be used together with
                 `max_neighbour_order`.
