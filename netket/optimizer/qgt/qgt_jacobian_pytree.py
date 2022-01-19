@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional, Union, Callable
 from functools import partial
 
 import jax
@@ -38,6 +38,7 @@ def QGTJacobianPyTree(
     mode: str = None,
     holomorphic: bool = None,
     rescale_shift=False,
+    diag_shift: Union[float, Callable[[], float]] = 0.00,
     **kwargs,
 ) -> "QGTJacobianPyTreeT":
     """
@@ -66,6 +67,7 @@ def QGTJacobianPyTree(
             mode=mode,
             holomorphic=holomorphic,
             rescale_shift=rescale_shift,
+            diag_shift=diag_shift,
             **kwargs,
         )
 
@@ -108,8 +110,16 @@ def QGTJacobianPyTree(
         chunk_size,
     )
 
+    if isinstance(diag_shift, Callable):
+        diag_shift = diag_shift()
+
     return QGTJacobianPyTreeT(
-        O=O, scale=scale, params=vstate.parameters, mode=mode, **kwargs
+        O=O,
+        scale=scale,
+        params=vstate.parameters,
+        mode=mode,
+        diag_shift=diag_shift,
+        **kwargs,
     )
 
 

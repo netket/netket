@@ -29,7 +29,9 @@ from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
+def QGTOnTheFly(
+    vstate=None, *, diag_shift: Union[float, Callable[[], float]] = 0.00, **kwargs
+) -> "QGTOnTheFlyT":
     """
     Lazy representation of an S Matrix computed by performing 2 jvp
     and 1 vjp products, using the variational state's model, the
@@ -44,7 +46,7 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
         vstate: The variational State.
     """
     if vstate is None:
-        return partial(QGTOnTheFly, **kwargs)
+        return partial(QGTOnTheFly, diag_shift=diag_shift, **kwargs)
 
     if "centered" in kwargs:
         warn_deprecation(
@@ -74,6 +76,9 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
         mv_factory = mat_vec_chunked_factory
         chunking = True
 
+    if isinstance(diag_shift, Callable):
+        diag_shift = diag_shift()
+
     mat_vec = mv_factory(
         forward_fn=vstate._apply_fun,
         params=vstate.parameters,
@@ -84,6 +89,7 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
         _mat_vec=mat_vec,
         _params=vstate.parameters,
         _chunking=chunking,
+        diag_shift=diag_shift,
         **kwargs,
     )
 

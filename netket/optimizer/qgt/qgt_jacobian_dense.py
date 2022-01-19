@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional, Union, Callable
 from functools import partial
 
 import jax
@@ -35,6 +35,7 @@ def QGTJacobianDense(
     mode: str = None,
     holomorphic: bool = None,
     rescale_shift=False,
+    diag_shift: Union[float, Callable[[], float]] = 0.00,
     **kwargs,
 ) -> "QGTJacobianDenseT":
     """
@@ -64,6 +65,7 @@ def QGTJacobianDense(
             mode=mode,
             holomorphic=holomorphic,
             rescale_shift=rescale_shift,
+            diag_shift=diag_shift,
             **kwargs,
         )
 
@@ -100,7 +102,12 @@ def QGTJacobianDense(
         chunk_size,
     )
 
-    return QGTJacobianDenseT(O=O, scale=scale, mode=mode, **kwargs)
+    if isinstance(diag_shift, Callable):
+        diag_shift = diag_shift()
+
+    return QGTJacobianDenseT(
+        O=O, scale=scale, mode=mode, diag_shift=diag_shift, **kwargs
+    )
 
 
 @struct.dataclass

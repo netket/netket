@@ -184,4 +184,26 @@ def RmsProp(
     return rmsprop(learning_rate, decay=beta, eps=epscut, centered=centered)
 
 
+def autonomous(schedule):
+    r"""Decorator to convert optax schedules into autonomous schedules.
+
+    The output function keeps track of its own step count, so it can be called without
+    arguments to return elements of the schedule successively. It also takes two
+    optional arguments:
+       fwd: the number of steps to forward the counter with
+       reset: step count to reset the counter to
+    """
+    n = 0
+
+    def aut_sch(fwd=1, reset=None):
+        nonlocal n
+        if reset is not None:
+            n = reset
+        rate = schedule(n)
+        n = n + fwd
+        return rate
+
+    return aut_sch
+
+
 _hide_submodules(__name__)
