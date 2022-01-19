@@ -513,7 +513,7 @@ def KitaevHoneycomb(
         >>> g = KitaevHoneycomb(extent=[3, 3])
         >>> print(g.n_nodes)
         18
-        >>> print(len(g.edges(2)))
+        >>> print(len(g.edges(filter_color=2)))
         9
     """
     return Lattice(

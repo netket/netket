@@ -138,13 +138,13 @@ def test_next_neighbors():
 def test_custom_edges():
     graph = nk.graph.KitaevHoneycomb(extent=[3, 3])
     for i in range(3):
-        assert len(graph.edges(i)) == 9
+        assert len(graph.edges(filter_color=i)) == 9
 
     graph = nk.graph.Lattice(
         np.eye(2), (6, 4), pbc=False, custom_edges=[(0, 0, [1, 0]), (0, 0, [0, 1])]
     )
-    assert len(graph.edges(0)) == 20
-    assert len(graph.edges(1)) == 18
+    assert len(graph.edges(filter_color=0)) == 20
+    assert len(graph.edges(filter_color=1)) == 18
 
 
 @pytest.mark.parametrize("i,name", list(enumerate(symmetric_graph_names)))
