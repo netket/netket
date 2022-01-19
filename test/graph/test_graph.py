@@ -482,33 +482,37 @@ def test_adjacency_list():
             assert set(adl[i]) in neigh
 
 
-# def test_grid_color_pbc():
-#    # compute length from iterator
-#    count = lambda it: sum(1 for _ in it)
-#
-#    g = Grid([4, 4], pbc=True, color_edges=True)
-#    assert count(g.edges(filter_color=0)) == 16
-#    assert count(g.edges(filter_color=1)) == 16
-#    assert g.n_edges == 32
-#
-#    g = Grid([4, 2], pbc=True, color_edges=True)
-#    assert count(g.edges(filter_color=0)) == 8
-#    assert count(g.edges(filter_color=1)) == 4
-#
-#    g = Grid([4, 2], pbc=False, color_edges=True)
-#    assert count(g.edges(filter_color=0)) == 6
-#    assert count(g.edges(filter_color=1)) == 4
-#
-#    with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
-#        g = Grid([2, 4], pbc=[True, True])
-#
-#    g1 = Grid([7, 5], pbc=False)
-#    g2 = Grid([7, 5], pbc=[False, False])
-#    assert sorted(g1.edges()) == sorted(g2.edges())
-#
-#    g1 = Grid([7, 5], pbc=True)
-#    g2 = Grid([7, 5], pbc=[True, True])
-#    assert sorted(g1.edges()) == sorted(g2.edges())
+def test_grid_color_pbc():
+    # compute length from iterator
+    count = lambda it: sum(1 for _ in it)
+
+    g = Grid([4, 4], pbc=True, color_edges=True)
+    assert count(g.edges(filter_color=0)) == 16
+    assert count(g.edges(filter_color=1)) == 16
+    assert g.n_edges == 32
+
+    g = Grid([4, 2], pbc=True, color_edges=True)
+    assert count(g.edges(filter_color=0)) == 8
+    assert count(g.edges(filter_color=1)) == 8
+
+    g = Grid([4, 2], pbc=[True, False], color_edges=True)
+    assert count(g.edges(filter_color=0)) == 8
+    assert count(g.edges(filter_color=1)) == 4
+
+    g = Grid([4, 2], pbc=False, color_edges=True)
+    assert count(g.edges(filter_color=0)) == 6
+    assert count(g.edges(filter_color=1)) == 4
+
+    # with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
+    #    g = Grid([2, 4], pbc=[True, True])
+
+    g1 = Grid([7, 5], pbc=False)
+    g2 = Grid([7, 5], pbc=[False, False])
+    assert sorted(g1.edges()) == sorted(g2.edges())
+
+    g1 = Grid([7, 5], pbc=True)
+    g2 = Grid([7, 5], pbc=[True, True])
+    assert sorted(g1.edges()) == sorted(g2.edges())
 
 
 @pytest.mark.parametrize("graph", graphs)

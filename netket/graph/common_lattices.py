@@ -65,6 +65,7 @@ def Grid(
     *,
     length: Sequence[int] = None,
     pbc: Union[bool, Sequence[bool]] = True,
+    color_edges: bool = False,
     **kwargs,
 ) -> Lattice:
     """
@@ -78,6 +79,8 @@ def Grid(
              This parameter can also be a list of booleans with same length as
              the parameter `length`, in which case each dimension will have
              PBC/OBC depending on the corresponding entry of `pbc`.
+        color_edges: generates nearest-neighbour edges colored according to direction
+                     cannot be used with `max_neighbor_order` or `custom_edges`
         kwargs: Additional keyword arguments are passed on to the constructor of
             :ref:`netket.graph.Lattice`.
 
@@ -116,6 +119,8 @@ def Grid(
     ndim = len(extent)
     if isinstance(pbc, bool):
         pbc = [pbc] * ndim
+    if color_edges:
+        kwargs["custom_edges"] = [(0, 0, vec) for vec in np.eye(ndim)]
     return Lattice(
         basis_vectors=np.eye(ndim),
         extent=extent,
