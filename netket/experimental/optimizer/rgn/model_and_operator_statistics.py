@@ -28,7 +28,7 @@ from netket.utils import mpi
 
 from netket.utils.types import Array, Callable, PyTree, Scalar
 
-from netket.jax import tree_cast, tree_conj, tree_axpy, tree_to_real
+from netket.jax import tree_cast, tree_conj, tree_axpy, tree_to_real, vjp
 
 
 # TODO better name and move it somewhere sensible
@@ -49,6 +49,10 @@ def tree_subtract_mean(oks: PyTree) -> PyTree:
     subtract the mean with MPI along axis 0 of every leaf
     """
     return jax.tree_map(partial(subtract_mean, axis=0), oks)  # MPI
+
+
+def complex_to_stacked(x):
+    return jax.tree_multimap(lambda x: jnp.concatenate((x.real, x.imag), axis=0), x)
 
 
 def tree_mean(oks: PyTree) -> PyTree:
@@ -362,9 +366,12 @@ def en_and_rhessian_cplx(
 
         eloc, vjp_fun = jax.vjp(E_loc, params)
 
+        real = vjp_fun(np.array(1.0, dtype=jnp.result_type(eloc)))
+        imag = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(eloc)))
+
         return eloc, _build_fn(
-            vjp_fun(np.array(1.0, dtype=jnp.result_type(eloc))),
-            vjp_fun(np.array(-1.0j, dtype=jnp.result_type(eloc))),
+            real,
+            imag,
         )
 
     return vmap_chunked(
@@ -386,7 +393,7 @@ def en_grad_and_rhessian(
 
     if mode == "real" or "complex":
         # doesn't do anything if the params are already real
-        params, reassemble = tree_to_real(params)
+        split_params, reassemble = tree_to_real(params)
 
         def f(W, σ):
             return forward_fn(reassemble(W), σ)
@@ -400,20 +407,21 @@ def en_grad_and_rhessian(
             )
         )
 
-    if mode == "holomorphic" or "real":
+    if mode == "holomorphic" or mode == "real":
         eloc, rhessian = en_and_rhessian_real_holo(
-            f, params, samples, connected_samples, matrix_elements, chunk_size
+            f, split_params, samples, connected_samples, matrix_elements, chunk_size
         )
     else:
         eloc, rhessian = en_and_rhessian_cplx(
             f,
-            params,
+            split_params,
             samples,
             connected_samples,
             matrix_elements,
             chunk_size,
-            _build_fn=lambda x: stack_jacobian_tuple(x),
         )
+
+        rhessian = complex_to_stacked(rhessian[0])
 
     rhessian = tree_subtract_mean(_divide_by_sqrt_n_samp(rhessian, samples))
 
@@ -421,7 +429,7 @@ def en_grad_and_rhessian(
 
     eloc -= E.mean
 
-    _, vjp_fun = jax.vjp(forward_fn, params, samples)
+    _, vjp_fun = vjp(partial(forward_fn, σ=samples), params, conjugate=True)
 
     grad = vjp_fun(jnp.conjugate(eloc) / n_samples)[0]
 

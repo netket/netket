@@ -68,6 +68,15 @@ class Hessian_Plus_QGT_PyTree(LinearOperator):
     params: PyTree = Uninitialized
     """Parameters of the network. Its only purpose is to represent its own shape when scale is None"""
 
+    mode: str = struct.field(pytree_node=False, default=Uninitialized)
+    """Differentiation mode:
+        - "real": for real-valued R->R and C->R ansatze, splits the complex inputs
+                  into real and imaginary part.
+        - "complex": for complex-valued R->C and C->C ansatze, splits the complex
+                  inputs and outputs into real and imaginary part
+        - "holomorphic": for any ansatze. Does not split complex values.
+    """
+
     _in_solve: bool = struct.field(pytree_node=False, default=False)
     """Internal flag used to signal that we are inside the _solve method and matmul should
     not take apart into real and complex parts the other vector"""
@@ -124,15 +133,9 @@ def _matmul(
     if self.mode != "holomorphic" and not self._in_solve:
         vec, reassemble = nkjax.tree_to_real(vec)
 
-    if self.scale is not None:
-        vec = jax.tree_multimap(jnp.multiply, vec, self.scale)
-
     result = mat_vec(
-        vec, self.jac, self.rhes, self.jac_mean, self.eps, self.en, self.diag_shift
+        vec, self.jac, self.rhes, self.jac_mean, self.eps, self.energy, self.diag_shift
     )
-
-    if self.scale is not None:
-        result = jax.tree_multimap(jnp.multiply, result, self.scale)
 
     # Reassemble real-imaginary split as needed
     if reassemble is not None:
@@ -153,21 +156,7 @@ def _solve(
     if self.mode != "holomorphic":
         y, reassemble = nkjax.tree_to_real(y)
 
-    if self.scale is not None:
-        y = jax.tree_multimap(jnp.divide, y, self.scale)
-        if x0 is not None:
-            x0 = jax.tree_multimap(jnp.multiply, x0, self.scale)
-
-    # to pass the object LinearOperator itself down
-    # but avoid rescaling, we pass down an object with
-    # scale = None
-    # mode=holomoprhic to disable splitting the complex part
-    unscaled_self = self.replace(scale=None, _in_solve=True)
-
-    out, info = solve_fun(unscaled_self, y, x0=x0)
-
-    if self.scale is not None:
-        out = jax.tree_multimap(jnp.divide, out, self.scale)
+    out, info = solve_fun(self, y, x0=x0)
 
     # Reassemble real-imaginary split as needed
     if self.mode != "holomorphic":

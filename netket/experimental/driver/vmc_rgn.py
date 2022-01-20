@@ -96,7 +96,7 @@ class VMC_RGN(VMC):
             self.mode,
             self.chunk_size,
         )
-        en, grad, rhessian = en_grad_and_rhessian(
+        self._loss_stats, self._loss_grad, rhessian = en_grad_and_rhessian(
             forward_fn,
             self.state.parameters,
             self.state.samples.squeeze(),
@@ -113,15 +113,15 @@ class VMC_RGN(VMC):
             jac=jac,
             jac_mean=jac_mean,
             rhes=rhessian,
-            grad=grad,
-            energy=en,
+            grad=self._loss_grad,
+            energy=self._loss_stats.mean,
             eps=eps,
             diag_shift=diag_shift,
             mode=self.mode,
             params=self.state.parameters,
         )
 
-        self._dp = preconditioner(grad)
+        self._dp = preconditioner(self._loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = jax.tree_multimap(
