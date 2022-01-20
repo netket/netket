@@ -35,29 +35,37 @@ def _axis_reflection(axis: int, ndim: int) -> PGSymmetry:
     return PGSymmetry(M)
 
 
-def _grid_point_group(extent: Sequence[int], pbc: Sequence[bool]) -> PointGroup:
-    # axis permutations
-    # can exchange two axes iff they have the same kind of BC and length
-    # represent open BC by setting kind[i] = -extent[i], so just have to
-    # match these
-    axis_perm = []
-    axes = np.arange(len(extent), dtype=int)
-    extent = np.asarray(extent, dtype=int)
-    kind = np.where(pbc, extent, -extent)
+def _grid_point_group(
+    extent: Sequence[int], pbc: Sequence[bool], color_edges: bool
+) -> PointGroup:
+    """Point group of `Grid`, made up of axis permutations and flipping each axis."""
     ndim = len(extent)
-    for perm in permutations(axes):
-        if np.all(kind == kind[list(perm)]):
-            axis_perm.append(_perm_symm(perm))
-    result = PointGroup(axis_perm, ndim=ndim)
+    # Cannot exchange two axes if they are colored differently; otherwise,
+    # can only exchange them if they have the same kind of BC and length.
+    # Represent open BC by setting kind[i] = -extent[i], so just have to match these
+    if color_edges:
+        result = PointGroup([Identity()], ndim=ndim)
+    else:
+        axis_perm = []
+        axes = np.arange(ndim, dtype=int)
+        extent = np.asarray(extent, dtype=int)
+        kind = np.where(pbc, extent, -extent)
+        for perm in permutations(axes):
+            if np.all(kind == kind[list(perm)]):
+                if np.all(perm == axes):
+                    axis_perm.append(Identity())
+                else:
+                    axis_perm.append(_perm_symm(perm))
+        result = PointGroup(axis_perm, ndim=ndim)
+
     # reflections across axes and setting the origin
     # OBC axes are only symmetric w.r.t. their midpoint, (extent[i]-1)/2
     origin = []
-    for i in axes:
+    for i in range(ndim):
         result = result @ PointGroup([Identity(), _axis_reflection(i, ndim)], ndim=ndim)
         origin.append(0 if pbc[i] else (extent[i] - 1) / 2)
-    result = result.elems
-    result[0] = Identity()  # it would otherwise be an equivalent PGSymmetry
-    return PointGroup(result, ndim=ndim).change_origin(origin)
+
+    return result.change_origin(origin)
 
 
 def Grid(
@@ -125,7 +133,7 @@ def Grid(
         basis_vectors=np.eye(ndim),
         extent=extent,
         pbc=pbc,
-        point_group=lambda: _grid_point_group(extent, pbc),
+        point_group=lambda: _grid_point_group(extent, pbc, color_edges),
         **kwargs,
     )
 
