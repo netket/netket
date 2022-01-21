@@ -435,7 +435,7 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
         for name in cache_fields:
             updates[name] = Uninitialized
 
-        return dataclasses.replace(self, **updates)
+        return dataclasses.replace(self, **updates, __skip_preprocess=True)
 
     data_clz.replace = replace
 
