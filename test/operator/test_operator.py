@@ -100,17 +100,17 @@ for name, op in operators.items():
 def test_produce_elements_in_hilbert(op, attr):
     rng = nk.jax.PRNGSeq(0)
     hi = op.hilbert
+    get_conn_fun = getattr(op, attr)
+
     assert len(hi.local_states) == hi.local_size
     assert hi.size > 0
 
     local_states = hi.local_states
-
     max_conn_size = op.max_conn_size
-
-    for i in range(1000):
-        rstate = hi.random_state(rng.next())
-
-        rstatet, mels = getattr(op, attr)(rstate)
+    rstates = hi.random_state(rng.next(), 1000)
+    
+    for i in range(len(rstates)):
+        rstatet, mels = get_conn_fun(rstates[i])
 
         assert np.all(np.isin(rstatet, local_states))
         assert len(mels) <= max_conn_size
@@ -120,15 +120,14 @@ def test_produce_elements_in_hilbert(op, attr):
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 def test_is_hermitean(op):
-    rng = nk.jax.PRNGSeq(0)
+    rng = nk.jax.PRNGSeq(20)
 
     hi = op.hilbert
     assert len(hi.local_states) == hi.local_size
 
-    rstate = np.zeros(hi.size)
-
-    for i in range(100):
-        rstate = hi.random_state(rng.next())
+    rstates = hi.random_state(rng.next(), 100)
+    for i in range(len(rstates)):
+        rstate = rstates[i]
         rstatet, mels = op.get_conn(rstate)
 
         for k, state in enumerate(rstatet):
@@ -194,8 +193,6 @@ def test_get_conn_padded(op, shape):
 
     assert vp.ndim == v.ndim + 1
     assert mels.ndim == v.ndim
-    print(mels.shape)
-    print(vp.shape)
 
     vp_f, mels_f = op.get_conn_padded(v.reshape(-1, hi.size))
     np.testing.assert_allclose(vp_f, vp.reshape(-1, *vp.shape[-2:]))
