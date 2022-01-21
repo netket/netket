@@ -108,7 +108,7 @@ def test_produce_elements_in_hilbert(op, attr):
     local_states = hi.local_states
     max_conn_size = op.max_conn_size
     rstates = hi.random_state(rng.next(), 1000)
-    
+
     for i in range(len(rstates)):
         rstatet, mels = get_conn_fun(rstates[i])
 

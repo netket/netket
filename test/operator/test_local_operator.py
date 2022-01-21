@@ -8,7 +8,7 @@ from netket.operator import AbstractOperator, LocalOperator
 import netket as nk
 import numpy as np
 import pytest
-from pytest import approx, raises
+from pytest import raises
 
 import jax
 
@@ -58,6 +58,7 @@ def assert_same_matrices(matl, matr, eps=1.0e-6):
 
     np.testing.assert_allclose(matl, matr, atol=eps, rtol=eps)
 
+
 @pytest.mark.parametrize(
     "op",
     [pytest.param(op, id=name) for name, op in herm_operators.items()],
@@ -70,7 +71,8 @@ def test_hermitian_local_operator_transpose_conjugation(op):
     op_h = op.transpose().conjugate()
 
     assert [
-        assert_same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
+        assert_same_matrices(m1, m2)
+        for (m1, m2) in zip(op._operators, orig_op._operators)
     ]
 
     mat = op.to_dense()
@@ -79,7 +81,8 @@ def test_hermitian_local_operator_transpose_conjugation(op):
     mat_h = op_h.to_dense()
 
     assert [
-        assert_same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
+        assert_same_matrices(m1, m2)
+        for (m1, m2) in zip(op._operators, orig_op._operators)
     ]
 
     assert_same_matrices(mat, mat_h)
@@ -92,7 +95,8 @@ def test_hermitian_local_operator_transpose_conjugation(op):
     assert_same_matrices(mat, mat_c_c)
 
     assert [
-        assert_same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
+        assert_same_matrices(m1, m2)
+        for (m1, m2) in zip(op._operators, orig_op._operators)
     ]
 
 
@@ -375,14 +379,14 @@ def test_empty_after_sum():
 
 def test_is_hermitian():
     for op in herm_operators.values():
-        assert op.is_hermitian == True
+        assert op.is_hermitian
 
     for (op, oph) in generic_operators.values():
-        assert op.is_hermitian == False
-        assert oph.is_hermitian == False
+        assert op.is_hermitian is False
+        assert oph.is_hermitian is False
 
     for op in herm_operators.values():
-        assert (1j * op).is_hermitian == False
+        assert (1j * op).is_hermitian is False
 
 
 def test_qutip_conversion():
