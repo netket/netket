@@ -62,7 +62,7 @@ te = nkx.TDVP(
     variational_state=vs,
     integrator=integrator,
     t0=0.0,
-    qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
+    qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True, diag_shift=1e-4),
     error_norm="qgt",
 )
 
