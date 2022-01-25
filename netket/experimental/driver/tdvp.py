@@ -317,6 +317,8 @@ class TDVP(AbstractVariationalDriver):
         ) as pbar:
             first_step = True
 
+            # We need a closure to pass to self._iter in order to update the progress bar even if
+            # there are no tstops
             def update_progress_bar():
                 # Reset the timing of tqdm after the first step to ignore compilation time
                 nonlocal first_step
