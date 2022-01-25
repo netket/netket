@@ -45,7 +45,7 @@ class GaussianRule(MetropolisRule):
 
         opt_1 = np.equal(boundary, False)
         opt_2 = np.logical_not(opt_1)
-        rp = opt_1 * (r+prop) + opt_2 * ((r+prop) % modulus)
+        rp = opt_1 * (r + prop) + opt_2 * ((r + prop) % modulus)
 
         return rp, None
 

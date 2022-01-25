@@ -36,7 +36,9 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     min_modulus = np.min(modulus)
 
     # use real dtypes because this does not work with complex ones.
-    gaussian = jax.random.normal(key, shape=(batches, hilb.size), dtype=nkjax.dtype_real(dtype))
+    gaussian = jax.random.normal(
+        key, shape=(batches, hilb.size), dtype=nkjax.dtype_real(dtype)
+    )
     width = min_modulus / (4.0 * hilb.n_particles)
     # The width gives the noise level. In the periodic case the
     # particles are evenly distributed between 0 and min(L). The
