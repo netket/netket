@@ -17,7 +17,6 @@ import numpy as np
 
 from flax import struct
 
-
 from ..metropolis import MetropolisRule
 
 
@@ -26,11 +25,16 @@ class GaussianRule(MetropolisRule):
     r"""
     A transition rule acting on all particle positions at once.
 
-    New proposals of particle positions are generated according to a Gaussian distribution of width sigma.
+    New proposals of particle positions are generated according to a
+    Gaussian distribution of width sigma.
     """
     sigma: float = 1.0
 
     def transition(rule, sampler, machine, parameters, state, key, r):
+        if jnp.issubdtype(r.dtype, jnp.complexfloating):
+            raise TypeError(
+                "Gaussian Rule does not work with complex " "basis elements."
+            )
 
         n_chains = r.shape[0]
         hilb = sampler.hilbert
@@ -41,7 +45,10 @@ class GaussianRule(MetropolisRule):
         Ls = np.array(hilb.n_particles * hilb.extent)
         modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
 
-        prop = jax.random.normal(key, shape=(n_chains, hilb.size)) * rule.sigma
+        prop = (
+            jax.random.normal(key, shape=(n_chains, hilb.size), dtype=r.dtype)
+            * rule.sigma
+        )
 
         opt_1 = np.equal(boundary, False)
         opt_2 = np.logical_not(opt_1)
