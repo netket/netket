@@ -387,6 +387,7 @@ def test_is_hermitian(op):
     op2 = 1j * op
     assert not op2.is_hermitian
 
+
 @pytest.mark.parametrize(
     "ops",
     [pytest.param(op, id=name) for name, op in generic_operators.items()],
@@ -396,7 +397,6 @@ def test_is_hermitian(ops):
 
     assert not op.is_hermitian
     assert not oph.is_hermitian
-
 
 
 def test_qutip_conversion():
