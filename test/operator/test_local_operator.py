@@ -377,16 +377,26 @@ def test_empty_after_sum():
     np.testing.assert_allclose(zero_op.to_dense(), 0.0)
 
 
-def test_is_hermitian():
-    for op in herm_operators.values():
-        assert op.is_hermitian
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(op, id=name) for name, op in herm_operators.items()],
+)
+def test_is_hermitian(op):
+    assert op.is_hermitian
 
-    for (op, oph) in generic_operators.values():
-        assert op.is_hermitian is False
-        assert oph.is_hermitian is False
+    op2 = 1j * op
+    assert not op2.is_hermitian
 
-    for op in herm_operators.values():
-        assert (1j * op).is_hermitian is False
+@pytest.mark.parametrize(
+    "ops",
+    [pytest.param(op, id=name) for name, op in generic_operators.items()],
+)
+def test_is_hermitian(ops):
+    op, oph = ops
+
+    assert not op.is_hermitian
+    assert not oph.is_hermitian
+
 
 
 def test_qutip_conversion():
