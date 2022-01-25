@@ -39,6 +39,10 @@ def printfmt(key, value=None, *, indent=0, pre="", alignment=STD_SPACE):
         print(f"{pre}{key : <{alignment}}", flush=True)
 
 
+def _fmt_device(dev):
+    return f"<{dev.id}: {dev.device_kind}>"
+
+
 def info():
     """
     When called via::
@@ -106,7 +110,11 @@ def info():
         backends = _jax_backends()
         printfmt("backends", backends, indent=1)
         for backend in backends:
-            printfmt(f"{backend}", jax.devices(backend), indent=2)
+            printfmt(
+                f"{backend}",
+                [_fmt_device(dev) for dev in jax.devices(backend)],
+                indent=2,
+            )
         print()
 
     if is_available("mpi4jax"):
