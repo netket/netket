@@ -45,14 +45,12 @@ class Particle(ContinuousHilbert):
             pbc = [pbc] * len(L)
 
         self._N = N
-        self._L = L
-        self._pbc = pbc
 
-        super().__init__(self._L, self._pbc)
+        super().__init__(L, pbc)
 
     @property
     def size(self) -> int:
-        return self._N * len(self._L)
+        return self._N * len(self._extent)
 
     @property
     def n_particles(self) -> int:
@@ -61,7 +59,7 @@ class Particle(ContinuousHilbert):
 
     @property
     def _attrs(self):
-        return (self._N, self._L, self._pbc)
+        return (self._N, self.extent, self.pbc)
 
     def __repr__(self):
         return "ContinuousParticle(N={}, d={})".format(
