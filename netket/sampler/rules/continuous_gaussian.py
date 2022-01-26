@@ -13,9 +13,9 @@
 # limitations under the License.
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from flax import struct
-
 
 from ..metropolis import MetropolisRule
 
@@ -25,23 +25,34 @@ class GaussianRule(MetropolisRule):
     r"""
     A transition rule acting on all particle positions at once.
 
-    New proposals of particle positions are generated according to a Gaussian distribution of width sigma.
+    New proposals of particle positions are generated according to a
+    Gaussian distribution of width sigma.
     """
     sigma: float = 1.0
 
     def transition(rule, sampler, machine, parameters, state, key, r):
+        if jnp.issubdtype(r.dtype, jnp.complexfloating):
+            raise TypeError(
+                "Gaussian Rule does not work with complex " "basis elements."
+            )
 
         n_chains = r.shape[0]
         hilb = sampler.hilbert
 
-        pbc = jnp.array(hilb.n_particles * hilb.pbc)
-        boundary = jnp.tile(pbc, (n_chains, 1))
+        pbc = np.array(hilb.n_particles * hilb.pbc)
+        boundary = np.tile(pbc, (n_chains, 1))
 
-        Ls = jnp.array(hilb.n_particles * hilb.extent)
-        modulus = jnp.where(jnp.equal(pbc, False), jnp.inf, Ls)
+        Ls = np.array(hilb.n_particles * hilb.extent)
+        modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
 
-        prop = jax.random.normal(key, shape=(n_chains, hilb.size)) * rule.sigma
-        rp = jnp.where(jnp.equal(boundary, False), r + prop, (r + prop) % modulus)
+        prop = (
+            jax.random.normal(key, shape=(n_chains, hilb.size), dtype=r.dtype)
+            * rule.sigma
+        )
+
+        opt_1 = np.equal(boundary, False)
+        opt_2 = np.logical_not(opt_1)
+        rp = opt_1 * (r + prop) + opt_2 * ((r + prop) % modulus)
 
         return rp, None
 
