@@ -114,14 +114,20 @@ class TensorBoardLog:
         *args,
         **kwargs,
     ):
-        from tensorboardX import SummaryWriter
+        self._init_args = args
+        """Store the args for the lazily initialized SummaryWriter's constructor."""
+        self._init_kwargs = kwargs
+        """Store the kwargs for the lazily initialized SummaryWriter's constructor."""
 
         self._writer = None
+        """Lazily initialized summarywriter constructor"""
 
         self._old_step = 0
 
     def _init_tensoboard(self):
-        self._writer = SummaryWriter(*args, **kwargs)
+        from tensorboardX import SummaryWriter
+
+        self._writer = SummaryWriter(*self._init_args, **self._init_kwargs)
 
     def __call__(self, step, item, machine):
         if self._writer is None:
