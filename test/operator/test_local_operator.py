@@ -4,11 +4,11 @@ from netket.operator.boson import (
     number as bnumber,
 )
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
-from netket.operator import LocalOperator
+from netket.operator import AbstractOperator, LocalOperator
 import netket as nk
 import numpy as np
 import pytest
-from pytest import approx, raises
+from pytest import raises
 
 import jax
 
@@ -49,62 +49,72 @@ sp_hat = nk.operator.LocalOperator(hi, [sp] * 3, [[0], [1], [4]])
 generic_operators["sigma +/-"] = (sm_hat, sp_hat)
 
 
-def same_matrices(matl, matr, eps=1.0e-6):
-    if isinstance(matl, LocalOperator):
+def assert_same_matrices(matl, matr, eps=1.0e-6):
+    if isinstance(matl, AbstractOperator):
         matl = matl.to_dense()
 
-    if isinstance(matr, LocalOperator):
+    if isinstance(matr, AbstractOperator):
         matr = matr.to_dense()
 
-    assert np.max(np.abs(matl - matr)) == approx(0.0, rel=eps, abs=eps)
+    np.testing.assert_allclose(matl, matr, atol=eps, rtol=eps)
 
 
-def test_hermitian_local_operator_transpose_conjugation():
-    for name, op in herm_operators.items():
-        orig_op = op.copy()
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(op, id=name) for name, op in herm_operators.items()],
+)
+def test_hermitian_local_operator_transpose_conjugation(op):
+    orig_op = op.copy()
 
-        op_t = op.transpose()
-        op_c = op.conjugate()
-        op_h = op.transpose().conjugate()
+    op_t = op.transpose()
+    op_c = op.conjugate()
+    op_h = op.transpose().conjugate()
 
-        assert [
-            same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
-        ]
+    assert [
+        assert_same_matrices(m1, m2)
+        for (m1, m2) in zip(op._operators, orig_op._operators)
+    ]
 
-        mat = op.to_dense()
-        mat_t = op_t.to_dense()
-        mat_c = op_c.to_dense()
-        mat_h = op_h.to_dense()
+    mat = op.to_dense()
+    mat_t = op_t.to_dense()
+    mat_c = op_c.to_dense()
+    mat_h = op_h.to_dense()
 
-        assert [
-            same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
-        ]
+    assert [
+        assert_same_matrices(m1, m2)
+        for (m1, m2) in zip(op._operators, orig_op._operators)
+    ]
 
-        same_matrices(mat, mat_h)
-        same_matrices(mat_t, mat_c)
+    assert_same_matrices(mat, mat_h)
+    assert_same_matrices(mat_t, mat_c)
 
-        mat_t_t = op.transpose().transpose().to_dense()
-        mat_c_c = op.conjugate().conjugate().to_dense()
+    mat_t_t = op.transpose().transpose().to_dense()
+    mat_c_c = op.conjugate().conjugate().to_dense()
 
-        same_matrices(mat, mat_t_t)
-        same_matrices(mat, mat_c_c)
+    assert_same_matrices(mat, mat_t_t)
+    assert_same_matrices(mat, mat_c_c)
 
-        assert [
-            same_matrices(m1, m2) for (m1, m2) in zip(op._operators, orig_op._operators)
-        ]
+    assert [
+        assert_same_matrices(m1, m2)
+        for (m1, m2) in zip(op._operators, orig_op._operators)
+    ]
 
 
-def test_local_operator_transpose_conjugation():
-    for name, (op, oph) in generic_operators.items():
+@pytest.mark.parametrize(
+    "op_tuple",
+    [pytest.param(op, id=name) for name, op in generic_operators.items()],
+)
+def test_local_operator_transpose_conjugation(op_tuple):
+    op, oph = op_tuple
 
-        mat = op.to_dense()
-        math = oph.to_dense()
+    mat = op.to_dense()
+    math = oph.to_dense()
 
-        mat_h = op.transpose().conjugate().to_dense()
-        same_matrices(mat_h, math)
+    mat_h = op.transpose().conjugate().to_dense()
+    assert_same_matrices(mat_h, math)
 
-        math_h = oph.transpose().conjugate().to_dense()
-        same_matrices(math_h, mat)
+    math_h = oph.transpose().conjugate().to_dense()
+    assert_same_matrices(math_h, mat)
 
 
 def test_lazy_operator_matdensevec():
@@ -113,16 +123,16 @@ def test_lazy_operator_matdensevec():
     v_jx = jax.numpy.asarray(v_np)
 
     sz0_t = sz0.transpose()
-    same_matrices(sz0_t @ v_np, sz0_t.to_dense() @ v_np)
-    same_matrices(sz0_t @ v_jx, sz0_t.to_dense() @ v_jx)
+    assert_same_matrices(sz0_t @ v_np, sz0_t.to_dense() @ v_np)
+    assert_same_matrices(sz0_t @ v_jx, sz0_t.to_dense() @ v_jx)
 
     sz0_h = sz0.transpose().conjugate()
-    same_matrices(sz0_h @ v_np, sz0_h.to_dense() @ v_np)
-    same_matrices(sz0_h @ v_jx, sz0_h.to_dense() @ v_jx)
+    assert_same_matrices(sz0_h @ v_np, sz0_h.to_dense() @ v_np)
+    assert_same_matrices(sz0_h @ v_jx, sz0_h.to_dense() @ v_jx)
 
     sz0_2 = sz0_h @ sz0
-    same_matrices(sz0_2 @ v_np, sz0_2.to_dense() @ v_np)
-    same_matrices(sz0_2 @ v_jx, sz0_2.to_dense() @ v_jx)
+    assert_same_matrices(sz0_2 @ v_np, sz0_2.to_dense() @ v_np)
+    assert_same_matrices(sz0_2 @ v_jx, sz0_2.to_dense() @ v_jx)
 
 
 def test_local_operator_add():
@@ -132,8 +142,8 @@ def test_local_operator_add():
     ha = 0.5 * sz0
     ha2 = nk.operator.spin.sigmaz(hi, 0)
     ha2 *= 0.5
-    same_matrices(ha, ha2)
-    same_matrices(ha, ham)
+    assert_same_matrices(ha, ha2)
+    assert_same_matrices(ha, ham)
 
     ha = ha * 1j
     with raises(ValueError):
@@ -141,35 +151,35 @@ def test_local_operator_add():
 
     ha2 = ha2 * 1j
     ham = ham * 1j
-    same_matrices(ha, ha2)
-    same_matrices(ha, ham)
+    assert_same_matrices(ha, ha2)
+    assert_same_matrices(ha, ham)
 
     for i in range(1, 3):
         ha = ha + 0.2 * nk.operator.spin.sigmaz(hi, i)
         ha2 += 0.2 * nk.operator.spin.sigmaz(hi, i)
         ham += 0.2 * nk.operator.spin.sigmaz(hi, i).to_dense()
-    same_matrices(ha, ha2)
-    same_matrices(ha, ham)
+    assert_same_matrices(ha, ha2)
+    assert_same_matrices(ha, ham)
 
     for i in range(3, 5):
         ha = ha + 0.2 * nk.operator.spin.sigmax(hi, i)
         ha2 += 0.2 * nk.operator.spin.sigmax(hi, i)
         ham += 0.2 * nk.operator.spin.sigmax(hi, i).to_dense()
-    same_matrices(ha, ha2)
-    same_matrices(ha, ham)
+    assert_same_matrices(ha, ha2)
+    assert_same_matrices(ha, ham)
 
     for i in range(5, 7):
         ha = ha - 0.3 * nk.operator.spin.sigmam(hi, i)
         ha2 -= 0.3 * nk.operator.spin.sigmam(hi, i)
         ham -= 0.3 * nk.operator.spin.sigmam(hi, i).to_dense()
-    same_matrices(ha, ha2)
-    same_matrices(ha, ham)
+    assert_same_matrices(ha, ha2)
+    assert_same_matrices(ha, ham)
 
     ha = ha - 0.3j * nk.operator.spin.sigmam(hi, 7)
     ha2 -= 0.3j * nk.operator.spin.sigmam(hi, 7)
     ham -= 0.3j * nk.operator.spin.sigmam(hi, 7).to_dense()
-    same_matrices(ha, ha2)
-    same_matrices(ha, ham)
+    assert_same_matrices(ha, ha2)
+    assert_same_matrices(ha, ham)
 
     # test commutativity
     ha = LocalOperator(hi)
@@ -181,7 +191,7 @@ def test_local_operator_add():
 
     ha_ha2 = ha + ha2
     ha2_ha = ha2 + ha
-    same_matrices(ha_ha2, ha2_ha)
+    assert_same_matrices(ha_ha2, ha2_ha)
 
 
 def test_simple_operators():
@@ -199,16 +209,16 @@ def test_simple_operators():
         sx_hat = nk.operator.LocalOperator(hi, sx, [i])
         sy_hat = nk.operator.LocalOperator(hi, sy, [i])
         sz_hat = nk.operator.LocalOperator(hi, sz, [i])
-        assert (sigmax(hi, i).to_dense() == sx_hat.to_dense()).all()
-        assert (sigmay(hi, i).to_dense() == sy_hat.to_dense()).all()
-        assert (sigmaz(hi, i).to_dense() == sz_hat.to_dense()).all()
+        assert_same_matrices(sigmax(hi, i), sx_hat)
+        assert_same_matrices(sigmay(hi, i), sy_hat)
+        assert_same_matrices(sigmaz(hi, i), sz_hat)
 
     print("Testing Sigma_+/-...")
     for i in range(L):
         sm_hat = nk.operator.LocalOperator(hi, sm, [i])
         sp_hat = nk.operator.LocalOperator(hi, sp, [i])
-        assert (sigmam(hi, i).to_dense() == sm_hat.to_dense()).all()
-        assert (sigmap(hi, i).to_dense() == sp_hat.to_dense()).all()
+        assert_same_matrices(sigmam(hi, i), sm_hat)
+        assert_same_matrices(sigmap(hi, i), sp_hat)
 
     print("Testing Sigma_+/- composition...")
 
@@ -218,8 +228,8 @@ def test_simple_operators():
         sy = sigmay(hi, i)
         sigmam_hat = 0.5 * (sx + (-1j) * sy)
         sigmap_hat = 0.5 * (sx + (1j) * sy)
-        assert (sigmam(hi, i).to_dense() == sigmam_hat.to_dense()).all()
-        assert (sigmap(hi, i).to_dense() == sigmap_hat.to_dense()).all()
+        assert_same_matrices(sigmam(hi, i), sigmam_hat)
+        assert_same_matrices(sigmap(hi, i), sigmap_hat)
 
     print("Testing create/destroy composition...")
     hi = nk.hilbert.Fock(3, N=L)
@@ -229,8 +239,8 @@ def test_simple_operators():
         ad = bcreate(hi, i)
         n = bnumber(hi, i)
 
-        assert np.allclose(n.to_dense(), (ad @ a).to_dense())
-        assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
+        assert_same_matrices(n, ad @ a)
+        assert_same_matrices(ad, a.conjugate().transpose())
 
     print("Testing mixed spaces...")
     L = 3
@@ -242,8 +252,8 @@ def test_simple_operators():
         sx = sigmax(hi, i)
 
         assert sx.operators[0].shape == (hi.shape[i], hi.shape[i])
-        assert np.allclose(n.to_dense(), (ad @ a).to_dense())
-        assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
+        assert_same_matrices(n, ad @ a)
+        assert_same_matrices(ad, a.conjugate().transpose())
 
     for i in range(3):
         print("i=", i)
@@ -256,8 +266,8 @@ def test_simple_operators():
             ad = bcreate(hi, j)
             n = bnumber(hi, j)
 
-        assert np.allclose(n.to_dense(), (ad @ a).to_dense())
-        assert (ad.to_dense() == a.conjugate().transpose().to_dense()).all()
+        assert_same_matrices(n, ad @ a)
+        assert_same_matrices(ad, a.conjugate().transpose())
 
 
 def test_mul_matmul():
@@ -266,9 +276,9 @@ def test_mul_matmul():
     sy1_hat = nk.operator.LocalOperator(hi, sy, [1])
 
     sx0sy1_hat = sx0_hat @ sy1_hat
-    assert np.allclose(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
+    assert_same_matrices(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
     sx0sy1_hat = sx0_hat * sy1_hat
-    assert np.allclose(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
+    assert_same_matrices(sx0sy1_hat.to_dense(), sx0_hat.to_dense() @ sy1_hat.to_dense())
 
     op = nk.operator.LocalOperator(hi, sx, [0])
     with raises(ValueError):
@@ -276,17 +286,17 @@ def test_mul_matmul():
 
     op = nk.operator.LocalOperator(hi, sx, [0], dtype=complex)
     op @= nk.operator.LocalOperator(hi, sy, [1])
-    assert np.allclose(op.to_dense(), sx0sy1_hat.to_dense())
+    assert_same_matrices(op.to_dense(), sx0sy1_hat.to_dense())
 
     op = nk.operator.LocalOperator(hi, sx, [0], dtype=complex)
     op *= nk.operator.LocalOperator(hi, sy, [1])
-    assert np.allclose(op.to_dense(), sx0sy1_hat.to_dense())
+    assert_same_matrices(op.to_dense(), sx0sy1_hat.to_dense())
 
-    assert np.allclose((2.0 * sx0sy1_hat).to_dense(), 2.0 * sx0sy1_hat.to_dense())
-    assert np.allclose((sx0sy1_hat * 2.0).to_dense(), 2.0 * sx0sy1_hat.to_dense())
+    assert_same_matrices((2.0 * sx0sy1_hat).to_dense(), 2.0 * sx0sy1_hat.to_dense())
+    assert_same_matrices((sx0sy1_hat * 2.0).to_dense(), 2.0 * sx0sy1_hat.to_dense())
 
     op *= 2.0
-    assert np.allclose(op.to_dense(), 2.0 * sx0sy1_hat.to_dense())
+    assert_same_matrices(op.to_dense(), 2.0 * sx0sy1_hat.to_dense())
 
     with pytest.raises(TypeError):
         sx0_hat @ 2.0
@@ -303,8 +313,8 @@ def test_complicated_mul():
 
     ha = nk.operator.Ising(hi, graph=g, h=0.4)
 
-    assert np.allclose(ha.to_dense(), ha.to_local_operator().to_dense())
-    assert np.allclose(ha.to_dense() @ ha.to_dense(), (ha @ ha).to_dense())
+    assert_same_matrices(ha.to_dense(), ha.to_local_operator().to_dense())
+    assert_same_matrices(ha.to_dense() @ ha.to_dense(), (ha @ ha).to_dense())
 
 
 def test_truediv():
@@ -314,11 +324,11 @@ def test_truediv():
     sy1_hat = nk.operator.LocalOperator(hi, sy, [1])
     sx0sy1_hat = sx0_hat @ sy1_hat
 
-    assert np.allclose((sx0sy1_hat / 2.0).to_dense(), sx0sy1_hat.to_dense() / 2.0)
-    assert np.allclose((sx0sy1_hat / 2.0).to_dense(), 0.5 * sx0sy1_hat.to_dense())
+    assert_same_matrices((sx0sy1_hat / 2.0).to_dense(), sx0sy1_hat.to_dense() / 2.0)
+    assert_same_matrices((sx0sy1_hat / 2.0).to_dense(), 0.5 * sx0sy1_hat.to_dense())
 
-    assert np.allclose((sx0sy1_hat / 2).to_dense(), sx0sy1_hat.to_dense() / 2)
-    assert np.allclose((sx0sy1_hat / 2).to_dense(), 0.5 * sx0sy1_hat.to_dense())
+    assert_same_matrices((sx0sy1_hat / 2).to_dense(), sx0sy1_hat.to_dense() / 2)
+    assert_same_matrices((sx0sy1_hat / 2).to_dense(), 0.5 * sx0sy1_hat.to_dense())
 
     with pytest.raises(TypeError):
         sx0_hat / sy1_hat
@@ -327,19 +337,20 @@ def test_truediv():
 
     sx0sy1 = sx0sy1_hat.to_dense()
     sx0sy1_hat /= 3.0
-    assert np.allclose(sx0sy1_hat.to_dense(), sx0sy1 / 3.0)
+    assert_same_matrices(sx0sy1_hat.to_dense(), sx0sy1 / 3.0)
 
 
-def test_copy():
-    for name, op in herm_operators.items():
-        print(name)
-        print(op)
-        op_copy = op.copy()
-        assert op_copy is not op
-        for o1, o2 in zip(op._operators, op_copy._operators):
-            assert o1 is not o2
-            assert np.all(o1 == o2)
-        same_matrices(op, op_copy)
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(op, id=name) for name, op in herm_operators.items()],
+)
+def test_copy(op):
+    op_copy = op.copy()
+    assert op_copy is not op
+    for o1, o2 in zip(op._operators, op_copy._operators):
+        assert o1 is not o2
+        assert_same_matrices(o1, o2)
+    assert_same_matrices(op, op_copy)
 
 
 def test_raises_unsorted_hilbert():
@@ -366,16 +377,26 @@ def test_empty_after_sum():
     np.testing.assert_allclose(zero_op.to_dense(), 0.0)
 
 
-def test_is_hermitian():
-    for op in herm_operators.values():
-        assert op.is_hermitian == True
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(op, id=name) for name, op in herm_operators.items()],
+)
+def test_is_hermitian(op):
+    assert op.is_hermitian
 
-    for (op, oph) in generic_operators.values():
-        assert op.is_hermitian == False
-        assert oph.is_hermitian == False
+    op2 = 1j * op
+    assert not op2.is_hermitian
 
-    for op in herm_operators.values():
-        assert (1j * op).is_hermitian == False
+
+@pytest.mark.parametrize(
+    "ops",
+    [pytest.param(op, id=name) for name, op in generic_operators.items()],
+)
+def test_is_hermitian(ops):
+    op, oph = ops
+
+    assert not op.is_hermitian
+    assert not oph.is_hermitian
 
 
 def test_qutip_conversion():
