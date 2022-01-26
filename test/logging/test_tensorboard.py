@@ -31,6 +31,9 @@ def vstate(request):
 
 
 def test_tblog(vstate, tmp_path):
+    # skip test if tensorboardX not installed
+    pytest.importorskip("tensorboardX")
+
     path = str(tmp_path) + "/dir1/dir2"
 
     log = nk.logging.TensorBoardLog(path)
@@ -46,7 +49,7 @@ def test_tblog(vstate, tmp_path):
 
 
 def test_lazy_init(tmp_path):
-    # skip test if qutip not installed
+    # skip test if tensorboardX not installed
     pytest.importorskip("tensorboardX")
 
     path = str(tmp_path) + "/dir1"
