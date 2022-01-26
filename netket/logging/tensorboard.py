@@ -116,11 +116,16 @@ class TensorBoardLog:
     ):
         from tensorboardX import SummaryWriter
 
-        self._writer = SummaryWriter(*args, **kwargs)
+        self._writer = None
 
         self._old_step = 0
 
+    def _init_tensoboard(self):
+        self._writer = SummaryWriter(*args, **kwargs)
+
     def __call__(self, step, item, machine):
+        if self._writer is None:
+            self._init_tensoboard()
 
         data = []
         tree_log(item, "", data)
@@ -133,7 +138,8 @@ class TensorBoardLog:
         self._old_step = step
 
     def _flush_log(self):
-        self._writer.flush()
+        if self._writer is not None:
+            self._writer.flush()
 
     def _flush_params(self, _):
         return None
