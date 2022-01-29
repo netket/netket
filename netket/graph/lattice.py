@@ -28,7 +28,7 @@ from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
 
 from .graph import Graph
-from ._lattice_edge_logic import get_nn_edges, get_custom_edges
+from ._lattice_edge_logic import get_nn_edges, get_custom_edges, create_site_positions
 
 if TYPE_CHECKING:
     from .space_group import SpaceGroupBuilder
@@ -64,11 +64,7 @@ class LatticeSite:
 
 
 def _create_sites(basis_vectors, extent, site_offsets):
-    ranges = [slice(0, ex) for ex in [*extent, len(site_offsets)]]
-    basis_coords = _np.mgrid[ranges].reshape(len(extent) + 1, -1).T
-    positions = basis_coords[:, :-1] @ basis_vectors
-    positions = positions.reshape(-1, len(site_offsets), len(extent)) + site_offsets
-    positions = positions.reshape(-1, len(extent))
+    basis_coords, positions = create_site_positions(basis_vectors, extent, site_offsets)
 
     sites = [
         LatticeSite(id=idx, position=pos, basis_coord=coord)

@@ -18,17 +18,20 @@ from scipy.spatial import cKDTree
 from scipy.sparse import find, triu
 from netket.utils.float import comparable, is_approx_int
 
-# Near-neighbour search logic
+from typing import Tuple
+
+# Helper functions
 
 
-def create_padded_sites(basis_vectors, extent, site_offsets, pbc, order):
-    """Generates all lattice sites in an extended shell"""
-    # note: by modifying these, the number of shells can be tuned.
-    shell_vec = np.where(pbc, 2 * order, 0)
-    shift_vec = np.where(pbc, order, 0)
+def create_site_positions(basis_vectors, extent, site_offsets, extra_shells=None):
+    """Generates the coordinates of all lattice sites.
 
-    shell_min = 0 - shift_vec
-    shell_max = np.asarray(extent) + shell_vec - shift_vec
+    extra_shells, if used, must be a vector of the same length as extent"""
+    if extra_shells is None:
+        extra_shells = np.zeros(extent.size, dtype=int)
+
+    shell_min = -extra_shells
+    shell_max = extent + extra_shells
 
     # cell coordinates
     ranges = [slice(lo, hi) for lo, hi in zip(shell_min, shell_max)]
@@ -40,9 +43,41 @@ def create_padded_sites(basis_vectors, extent, site_offsets, pbc, order):
     positions = positions.reshape(-1, len(site_offsets), len(extent)) + site_offsets
     positions = positions.reshape(-1, len(extent))
 
-    basis_coords[:, :-1] %= extent
-    radix = np.cumprod([1, len(site_offsets), *extent[:0:-1]])[::-1]
-    equivalent_ids = basis_coords @ radix
+    return basis_coords, positions
+
+
+def site_to_idx(basis_coords, extent, site_offsets):
+    """Converts unit cell + sublattice coordinates into lattice site indices.
+
+    basis_coords accepted as an array including sublattice coordinate in last column
+    or as a tuple of unit cell coordinates and a shared sublattice index
+    """
+    if isinstance(basis_coords, Tuple):
+        basis_coords, sl = basis_coords
+    else:
+        basis_coords, sl = basis_coords[:, :-1], basis_coords[:, -1]
+
+    # Accepts extended shells
+    basis_coords = basis_coords % extent
+
+    # Index difference between sites one lattice site apart in each direction
+    # len(site_offsets) for the last axis, as all sites in one cell are listed
+    # factor of extent[-1] to the penultimate axis, etc.
+    radix = np.cumprod([len(site_offsets), *extent[:0:-1]])[::-1]
+
+    return basis_coords @ radix + sl
+
+
+# Near-neighbour search logic
+
+
+def create_padded_sites(basis_vectors, extent, site_offsets, pbc, order):
+    """Generates all lattice sites in an extended shell"""
+    extra_shells = np.where(pbc, order, 0)
+    basis_coords, positions = create_site_positions(
+        basis_vectors, extent, site_offsets, extra_shells
+    )
+    equivalent_ids = site_to_idx(basis_coords, extent, site_offsets)
 
     return positions, equivalent_ids
 
@@ -134,9 +169,8 @@ def get_custom_edges(basis_vectors, extent, site_offsets, pbc, atol, descriptor)
         end = (start + d_cell) % extent
 
         # Convert to site indices
-        radix = np.cumprod([len(site_offsets), *extent[:0:-1]])[::-1]
-        start = start @ radix + sl1
-        end = end @ radix + sl2
+        start = site_to_idx((start, sl1), extent, site_offsets)
+        end = site_to_idx((end, sl2), extent, site_offsets)
 
         return [(*edge, color) for edge in zip(start, end)]
 
@@ -148,6 +182,7 @@ def get_custom_edges(basis_vectors, extent, site_offsets, pbc, atol, descriptor)
             colored_edges += translated_edges(*desc, i)
         else:
             raise ValueError(
-                "Each descriptor line is required to contain two sublattice indices, a distance vector, and an optional color"
+                "Each descriptor line is required to contain two sublattice indices, "
+                "a distance vector, and an optional color."
             )
     return colored_edges
