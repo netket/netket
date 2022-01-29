@@ -14,6 +14,9 @@
 import jax
 from jax import numpy as jnp
 
+import numpy as np
+
+from netket import jax as nkjax
 from netket.hilbert import ContinuousHilbert, Particle
 from netket.utils.dispatch import dispatch
 
@@ -25,14 +28,18 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     in a spatial dimension. Otherwise the particles are
     positioned evenly along the box from 0 to L, with Gaussian noise
     of certain width."""
-    pbc = jnp.array(hilb.n_particles * hilb.pbc)
-    boundary = jnp.tile(pbc, (batches, 1))
+    pbc = np.array(hilb.n_particles * hilb.pbc)
+    boundary = np.tile(pbc, (batches, 1))
 
-    Ls = jnp.array(hilb.n_particles * hilb.extent)
-    modulus = jnp.where(jnp.equal(pbc, False), jnp.inf, Ls)
+    Ls = np.array(hilb.n_particles * hilb.extent)
+    modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
+    min_modulus = np.min(modulus)
 
-    gaussian = jax.random.normal(key, shape=(batches, hilb.size))
-    width = jnp.min(modulus) / (4.0 * hilb.n_particles)
+    # use real dtypes because this does not work with complex ones.
+    gaussian = jax.random.normal(
+        key, shape=(batches, hilb.size), dtype=nkjax.dtype_real(dtype)
+    )
+    width = min_modulus / (4.0 * hilb.n_particles)
     # The width gives the noise level. In the periodic case the
     # particles are evenly distributed between 0 and min(L). The
     # distance between the particles coordinates is therefore given by
@@ -40,9 +47,10 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     # positions the noise level should be smaller than half this distance.
     # We choose width = min(L) / (4*hilb.N)
     noise = gaussian * width
-    uniform = jnp.tile(jnp.linspace(0.0, jnp.min(modulus), hilb.size), (batches, 1))
+    uniform = jnp.tile(jnp.linspace(0.0, min_modulus, hilb.size), (batches, 1))
 
-    rs = jnp.where(jnp.equal(boundary, False), gaussian, (uniform + noise) % modulus)
+    select = np.equal(boundary, False)
+    rs = select * gaussian + np.logical_not(select) * ((uniform + noise) % modulus)
 
     return jnp.asarray(rs, dtype=dtype)
 

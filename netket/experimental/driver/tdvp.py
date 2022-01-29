@@ -155,8 +155,8 @@ class TDVP(AbstractVariationalDriver):
             self.state.parameters,
             norm=error_norm,
         )
-
         self._stop_count = 0
+        self._postfix = {}
 
     @property
     def integrator(self):
@@ -197,6 +197,18 @@ class TDVP(AbstractVariationalDriver):
         Yields:
             The current step count.
         """
+        yield from self._iter(T, tstops)
+
+    def _iter(
+        self,
+        T: float,
+        tstops: Optional[Sequence[float]] = None,
+        callback: Callable = None,
+    ):
+        """
+        Implementation of :code:`iter`. This method accepts and additional `callback` object, which
+        is called after every accepted step.
+        """
         t_end = self.t + T
         if tstops is not None and (
             np.any(np.less(tstops, self.t)) or np.any(np.greater(tstops, t_end))
@@ -236,6 +248,9 @@ class TDVP(AbstractVariationalDriver):
                         UserWarning,
                     )
             self._step_count += 1
+            # optionally call callback
+            if callback:
+                callback()
 
         # Yield one last time if the remaining tstop is at t_end
         if (always_stop and np.isclose(self.t, t_end)) or (
@@ -295,17 +310,40 @@ class TDVP(AbstractVariationalDriver):
         callbacks = _to_iterable(callback)
         callback_stop = False
 
-        with tqdm(total=self.t + T, disable=not show_progress) as pbar:
-            old_step = self.step_value
+        with tqdm(
+            total=self.t + T,
+            disable=not show_progress,
+            unit_scale=True,
+        ) as pbar:
             first_step = True
 
-            for step in self.iter(T, tstops=tstops):
+            # We need a closure to pass to self._iter in order to update the progress bar even if
+            # there are no tstops
+            def update_progress_bar():
+                # Reset the timing of tqdm after the first step to ignore compilation time
+                nonlocal first_step
+                if first_step:
+                    first_step = False
+                    pbar.unpause()
+
+                pbar.n = np.asarray(self._integrator.t)
+                self._postfix["n"] = self.step_count
+                pbar.set_postfix(self._postfix)
+                pbar.refresh()
+
+            for step in self._iter(T, tstops=tstops, callback=update_progress_bar):
                 log_data = self.estimate(obs)
 
+                self._postfix = {"n": self.step_count}
                 # if the cost-function is defined then report it in the progress bar
                 if self._loss_stats is not None:
-                    pbar.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    self._postfix.update(
+                        {
+                            self._loss_name: str(self._loss_stats),
+                        }
+                    )
                     log_data[self._loss_name] = self._loss_stats
+                pbar.set_postfix(self._postfix)
 
                 # Execute callbacks before loggers because they can append to log_data
                 for callback in callbacks:
@@ -318,18 +356,10 @@ class TDVP(AbstractVariationalDriver):
                 if len(callbacks) > 0:
                     if mpi.mpi_any(callback_stop):
                         break
-
-                # Reset the timing of tqdm after the first step, to ignore compilation time
-                if first_step:
-                    first_step = False
-                    pbar.unpause()
-
-                # Update the progress bar
-                pbar.update(np.asarray(self.step_value - old_step))
-                old_step = self.step_value
+                update_progress_bar()
 
             # Final update so that it shows up filled.
-            pbar.update(np.asarray(self.step_value - old_step))
+            update_progress_bar()
 
         # flush at the end of the evolution so that final values are saved to
         # file
