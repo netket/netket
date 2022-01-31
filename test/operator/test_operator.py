@@ -157,7 +157,6 @@ def test_is_hermitean(op):
 
             assert found
 
-
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
@@ -426,7 +425,10 @@ def test_pauli_add_and_multiply():
     op_true_add_cte = nk.operator.PauliStrings(["X", "Y", "Z", "I"], [-1, 1, 1, 2])
     assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 04b9ab50 (Implementation of fermionic hilbert and operator)
 @pytest.mark.parametrize(
     "hilbert",
     [
@@ -536,7 +538,7 @@ def test_is_hermitian_fermion2nd(op_ferm, is_hermitian):
 def test_openfermion_conversion():
     # skip test if openfermion not installed
     pytest.importorskip("openfermion")
-    from openfermion.ops import QubitOperator
+    from openfermion.ops import QubitOperator, FermionOperator
 
     # first term is a constant
     of_qubit_operator = (

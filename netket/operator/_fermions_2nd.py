@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 from typing import List, Union
 from netket.utils.types import DType
 
@@ -126,7 +125,16 @@ class FermionOperator2nd(DiscreteOperator):
             self._weights = np.array(self._weights, dtype=self.dtype)
             self._term_ends = np.array(self._term_ends, dtype=bool)
             self._initialized = True
+<<<<<<< HEAD
 
+=======
+            
+    
+    
+    
+    
+    
+>>>>>>> 04b9ab50 (Implementation of fermionic hilbert and operator)
     @staticmethod
     def from_openfermion(
         hilbert: AbstractHilbert,
@@ -188,12 +196,20 @@ class FermionOperator2nd(DiscreteOperator):
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         return self._n_terms
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 04b9ab50 (Implementation of fermionic hilbert and operator)
     @property
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
         return self._is_hermitian
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 04b9ab50 (Implementation of fermionic hilbert and operator)
     def _get_conn_flattened_closure(self):
         self._setup()
         _max_conn_size = self.max_conn_size
