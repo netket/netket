@@ -35,7 +35,7 @@ from netket.experimental.optimizer.rgn import (
     en_grad_and_rhessian,
 )
 from netket.optimizer.qgt.qgt_jacobian_common import _choose_jacobian_mode
-from netket.experimental.optimizer.rgn import RGN
+from netket.experimental.optimizer import RGN
 
 
 class VMC_RGN(VMC):
