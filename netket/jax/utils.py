@@ -23,7 +23,6 @@ from jax import numpy as jnp
 from jax.tree_util import (
     tree_flatten,
     tree_unflatten,
-    tree_map,
     tree_leaves,
 )
 
@@ -71,7 +70,7 @@ def tree_size(tree: PyTree) -> int:
     Returns the sum of the size of all leaves in the tree.
     It's equivalent to the number of scalars in the pytree.
     """
-    return sum(tree_leaves(tree_map(lambda x: x.size, tree)))
+    return sum(tree_leaves(jax.tree_map(lambda x: x.size, tree)))
 
 
 def is_complex(x):
@@ -235,23 +234,42 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
         return jax.tree_map(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
 
 
+def _unpack(*x):
+    """
+    Equivalent to identity but unpacking the result and checking that it has length 1
+    """
+    assert len(x) == 1
+    return x[0]
+
+
 def _to_real(x):
     if jnp.iscomplexobj(x):
-        return x.real, x.imag
-        # TODO find a way to make it a nop?
-        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
+        return (x.real, x.imag)
     else:
-        return x
+        return (x,)
 
 
-def _tree_to_real(x):
-    return jax.tree_map(_to_real, x)
+def _to_real_transpose(x):
+    if jnp.iscomplexobj(x):
+        return jax.lax.complex
+    else:
+        return _unpack
 
 
 # invert the transformation using linear_transpose (AD)
-def _tree_reassemble_complex(x, target, fun=_tree_to_real):
-    (res,) = jax.linear_transpose(fun, target)(x)
-    return tree_conj(res)
+def _tree_reassemble_complex(x, reassemble_tree_fun):
+    """
+    Reassemble the original tree that was split into real and imaginary part by
+    `nk.jax.tree_to_real`.
+
+    Args:
+        x: A real PyTree obtained by `nk.jax.tree_to_real`.
+        reassemble_tree_fun: A tree of functions to reassemble `x`.
+
+    Returns:
+        a PyTree.
+    """
+    return jax.tree_map(lambda fun, x: fun(*x), reassemble_tree_fun, x)
 
 
 def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
@@ -265,8 +283,9 @@ def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
       and the second element is a callable for converting back a real pytree
       to a complex pytree of of the same structure as the input pytree.
     """
-    return _tree_to_real(pytree), partial(
-        _tree_reassemble_complex, target=pytree, fun=_tree_to_real
+    return jax.tree_map(_to_real, pytree), partial(
+        _tree_reassemble_complex,
+        reassemble_tree_fun=jax.tree_map(_to_real_transpose, pytree),
     )
 
 

@@ -100,7 +100,8 @@ def vec_to_real(vec: Array) -> Tuple[Array, Callable]:
             return reassemble(x)
 
     else:
-        reassemble_concat = reassemble
+        (out,) = out
+        reassemble_concat = lambda x: reassemble((x,))
 
     return out, reassemble_concat
 
