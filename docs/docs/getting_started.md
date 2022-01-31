@@ -11,9 +11,11 @@ Please read the release notes to see what has changed since the last release.
 ## Installation and requirements
 
 Netket v3.0 requires `python>= 3.8` and optionally a recent MPI install.
-To install, run one of the two following commands
+Before attempting the installation, you should update `pip` to a recent version (`>=20.3`) to avoid getting a broken install.
+To install, run the following commands:
 
 ```bash
+pip install --upgrade pip
 pip install netket
 ```
 

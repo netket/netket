@@ -23,17 +23,19 @@ It is a Python library built on [JAX](https://github.com/google/jax).
 
 ## Installation and Usage
 
-Netket runs on MacOS and Linux. We reccomend to install NetKet using `pip`, but it can also be installed with
-`conda`.
+Netket runs on MacOS and Linux. We reccomend to install NetKet using `pip`, but it can also be installed with `conda`. 
+It is often necessary to first update `pip` to a recent release (`>=20.3`) in order for upper compatibility bounds to be considered and avoid a broken installation.
 For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/docs/getting_started.html) section of our website or run the following command (Apple M1 users, follow that link for more instructions):
 
 ```
+pip install --upgrade pip
 pip install --upgrade netket
 ```
 
 If you wish to install the current development version of NetKet, which is the master branch of this GitHub repository, together with the additional dependencies, you can run the following command:
 
 ```
+pip install --upgrade pip
 pip install 'git+https://github.com/netket/netket.git#egg=netket[all]'
 ```
 
@@ -41,6 +43,7 @@ To speed-up NetKet-computations, even on a single machine, you
 can install the MPI-related dependencies by using `[mpi]` between square brackets.
 
 ```
+pip install --upgrade pip
 pip install --upgrade "netket[mpi]"
 ```
 

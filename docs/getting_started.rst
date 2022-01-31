@@ -24,8 +24,10 @@
 
         When using MPI, we recommend not to use Anaconda unless it's for small experimentation on a laptop. This is due to a dependency of netket, mpi4jax. You can read more about the limitations on the `mpi4jax documentation <https://mpi4jax.readthedocs.io/en/latest/installation.html>`_. 
 
-    .. dropdown:: :code:`pip install netket`
+    .. dropdown:: :code:`pip install --upgrade pip && pip install netket`
        Conda is also supported, but not reccomended. However you can use a conda environment and install netket with pip inside this environment.
+
+       If you are using pip, you should first upgrade it with `pip install --upgrade pip` to avoid issues with dependencies (any version after `pip>=20.3` will be good).
 
        If you want to use MPI, use :code:`pip install netket[mpi]`.
 
