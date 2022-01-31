@@ -187,7 +187,7 @@ class Lattice(Graph):
                     vector pointing from the former to the latter
                     color of the edge (optional)
                 If colors are not supplied, they are assigned sequentially starting from 0.
-                Cannot be used together with `max_neighbour_order`.
+                Cannot be used together with `max_neighbor_order`.
 
         Examples:
             Constructs a Kagome lattice with 3 × 3 unit cells:
