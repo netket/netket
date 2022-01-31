@@ -30,7 +30,7 @@ from netket.optimizer import Sgd
 
 from netket.driver import VMC
 
-from netket.experimental.optimizer.rgn.model_and_operator_statistics import (
+from netket.experimental.optimizer.rgn import (
     centered_jacobian_and_mean,
     en_grad_and_rhessian,
 )
