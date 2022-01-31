@@ -13,7 +13,11 @@
 * `Lattice` supports specifying arbitrary edge content for each unit cell via the kwarg `custom_edges`. A generator for hexagonal lattices with coloured edges is implemented as `nk.graph.KitaevHoneycomb`. `nk.graph.Grid` again supports colouring edges by direction. [#1074](https://github.com/netket/netket/pull/1074)
 
 ### Breaking Changes
-* The gradient for models with real-parameter is now multiplied by 2. If your model had real parameters you might need to change the learning rate and halve it. [#1069](https://github.com/netket/netket/pull/1069)
+* The gradient for models with real-parameter is now multiplied by 2. If your model had real parameters you might need to change the learning rate and halve it. [#1009](https://github.com/netket/netket/pull/1009)
+
+### Internal Changes
+* The minimum [optax](https://github.com/deepmind/optax) version is now `0.1.1`, which finally correctly supports complex numbers. The internal implementation of Adam which was introduced in 3.3 ([#1069](https://github.com/netket/netket/pull/1069)) has been removed. If an older version of `optax` is detected, an import error is thrown to avoid providing wrong numerical results. Please update your optax version!
+
 
 ### Bug Fixes
 * Allow `LazyOperator@densevector` for operators such as lazy `Adjoint`, `Transpose` and `Squared`. [#1068](https://github.com/netket/netket/pull/1068) 
