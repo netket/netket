@@ -184,7 +184,7 @@ class Lattice(Graph):
                 Should be a list of tuples; each tuple should contain the following:
                     index of the starting point in the unit cell
                     index of the endpoint in the unit cell
-                    vector distance between the two
+                    vector pointing from the former to the latter
                     color of the edge (optional)
                 If colors are not supplied, they are assigned sequentially starting from 0.
                 Cannot be used together with `max_neighbour_order`.
