@@ -26,11 +26,6 @@ from netket.hilbert import (
     Qubit,
     Spin,
     Fermions2nd,
-<<<<<<< HEAD
-    LatticeFermions2nd,
-=======
-    LatticeFermions2nd
->>>>>>> 04b9ab50 (Implementation of fermionic hilbert and operator)
 )
 
 import jax
@@ -221,17 +216,10 @@ def test_random_states_particle(hi: Particle):
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_flip_state_discrete(hi: DiscreteHilbert):
-<<<<<<< HEAD
-
-    if isinstance(hi, HomogeneousHilbert) and hi.constrained:
-        return  # makes little sense in most cases
-
-=======
     
     if isinstance(hi, HomogeneousHilbert) and hi.constrained:
         return  # makes little sense in most cases
     
->>>>>>> 04b9ab50 (Implementation of fermionic hilbert and operator)
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
 

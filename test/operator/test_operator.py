@@ -157,6 +157,7 @@ def test_is_hermitean(op):
 
             assert found
 
+
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
@@ -426,9 +427,13 @@ def test_pauli_add_and_multiply():
     assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> 04b9ab50 (Implementation of fermionic hilbert and operator)
+=======
+
+>>>>>>> 249bfc6e (Allow string format in operator)
 @pytest.mark.parametrize(
     "hilbert",
     [

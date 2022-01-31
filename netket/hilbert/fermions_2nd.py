@@ -9,6 +9,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
+
 class Fermions2nd(HomogeneousHilbert):
     def __init__(
         self,
