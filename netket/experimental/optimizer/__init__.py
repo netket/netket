@@ -14,4 +14,4 @@
 
 from .rgn.api import _RGN as RGN
 
-import .rgn
+from . import rgn
