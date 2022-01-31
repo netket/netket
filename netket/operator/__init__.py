@@ -20,6 +20,7 @@ from ._graph_operator import GraphOperator
 from ._pauli_strings import PauliStrings
 from ._lazy import Adjoint, Transpose, Squared
 from ._hamiltonian import Ising, Heisenberg, BoseHubbard
+from ._fermions_2nd import FermionOperator2nd
 
 from ._abstract_super_operator import AbstractSuperOperator
 from ._local_liouvillian import LocalLiouvillian

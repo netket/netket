@@ -86,6 +86,20 @@ operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
 
+hi = nk.hilbert.Fermions2nd(5)
+operators["FermionOperator2nd"] = nk.operator.FermionOperator2nd(
+    hi,
+    terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
+    weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
+)
+
+
+hi = nk.hilbert.LatticeFermions2nd(5)
+operators["LatticeFermionOperator2nd"] = nk.operator.FermionOperator2nd(
+    hi,
+    terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
+    weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
+)
 
 op_special = {}
 for name, op in operators.items():
@@ -142,7 +156,6 @@ def test_is_hermitean(op):
                     break
 
             assert found
-
 
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
@@ -412,37 +425,6 @@ def test_pauli_add_and_multiply():
     op_true_add_cte = nk.operator.PauliStrings(["X", "Y", "Z", "I"], [-1, 1, 1, 2])
     assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
 
-
-def test_openfermion_conversion():
-    # skip test if openfermion not installed
-    pytest.importorskip("openfermion")
-    from openfermion.ops import QubitOperator
-
-    # first term is a constant
-    of_qubit_operator = (
-        QubitOperator("") + 0.5 * QubitOperator("X0 X3") + 0.3 * QubitOperator("Z0")
-    )
-
-    # no extra info given
-    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator)
-    assert isinstance(ps, nk.operator.PauliStrings)
-    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
-    assert ps.hilbert.size == 4
-
-    # number of qubits given
-    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator, n_qubits=6)
-    assert isinstance(ps, nk.operator.PauliStrings)
-    # check default
-    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
-    assert ps.hilbert.size == 6
-
-    # with hilbert
-    hilbert = nk.hilbert.Spin(1 / 2, 6)
-    ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
-    assert ps.hilbert == hilbert
-    assert ps.hilbert.size == 6
-
-
 @pytest.mark.parametrize(
     "hilbert",
     [
@@ -506,3 +488,71 @@ def test_operator_on_subspace():
 
     h4 = nk.operator.Heisenberg(hi, g, acting_on_subspace=0)
     assert h4.acting_on == h1.acting_on
+
+
+op_ferm = {}
+hi = nk.hilbert.Fermions2nd(3)
+op_ferm["FermionOperator2nd_hermitian"] = (nk.operator.FermionOperator2nd(
+    hi,terms=(((0,0),(1,1)),((1,0),(0,1))), weights=(1.+1j,1-1j)), True)
+op_ferm["FermionOperator2nd_not_hermitian"] = (nk.operator.FermionOperator2nd(
+    hi,terms=(((0,0),(2,1)),((1,0),(0,1))), weights=(1.+1j,1-1j)), False)
+
+op_ferm["FermionOperator2nd_hermitian_3term"] = (nk.operator.FermionOperator2nd(
+    hi,(((0,0),(1,1),(2,1)),((2,0),(1,0),(0,1))), weights=(1.-1j,1+1j)), True)
+op_ferm["FermionOperator2nd_not_hermitian_3term"] = (nk.operator.FermionOperator2nd(
+    hi,(((0,0),(1,1),(2,1)),((3,0),(1,0),(0,1))), weights=(1.-1j,2+2j)), False)
+
+    
+@pytest.mark.parametrize(
+    "op_ferm, is_hermitian", [pytest.param(op, is_herm, id=name) for name, (op, is_herm) in op_ferm.items()]
+)
+def test_is_hermitian_fermion2nd(op_ferm, is_hermitian):
+	assert (op_ferm.is_hermitian==is_hermitian)
+
+def test_openfermion_conversion():
+    # skip test if openfermion not installed
+    pytest.importorskip("openfermion")
+    from openfermion.ops import QubitOperator
+
+    # first term is a constant
+    of_qubit_operator = (
+        QubitOperator("") + 0.5 * QubitOperator("X0 X3") + 0.3 * QubitOperator("Z0")
+    )
+
+    # no extra info given
+    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator)
+    assert isinstance(ps, nk.operator.PauliStrings)
+    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
+    assert ps.hilbert.size == 4
+
+    # number of qubits given
+    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator, n_qubits=6)
+    assert isinstance(ps, nk.operator.PauliStrings)
+    # check default
+    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
+    assert ps.hilbert.size == 6
+
+    # with hilbert
+    hilbert = nk.hilbert.Spin(1 / 2, 6)
+    ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
+    assert ps.hilbert == hilbert
+    assert ps.hilbert.size == 6
+    
+    #FermionOperator
+    of_fermion_operator = FermionOperator() + FermionOperator('0^ 3', 0.5 + 0.3j) + FermionOperator('3^ 0', 0.5 - 0.3j)
+    
+    # no extra info given
+    fo2 = nk.operator.FermionOperator2nd.from_openfermion(of_fermion_operator) 
+    assert fo2.hilbert.size == 4
+    
+    # number of orbitals given
+    fo2 = nk.operator.FermionOperator2nd.from_openfermion(of_fermion_operator, n_orbitals=4) 
+    assert isinstance(fo2, nk.operator.FermionOperator2nd)
+    assert isinstance(fo2.hilbert, nk.hilbert.Fermions2nd)
+    assert fo2.hilbert.size == 6
+
+    # with hilbert
+    hilbert = nk.hilbert.Fermions2nd(6)
+    fo2 = nk.operator.FermionOperator2nd.from_openfermion(hilbert, of_fermion_operator)
+    assert fo2.hilbert == hilbert
+    assert fo2.hilbert.size == 6
