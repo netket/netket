@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .model_and_operator_statistics import centered_jacobian_and_mean, en_and_rhessian_real_holo 
+from .model_and_operator_statistics import centered_jacobian_and_mean, en_grad_and_rhessian
