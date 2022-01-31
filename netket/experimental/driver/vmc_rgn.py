@@ -30,12 +30,12 @@ from netket.optimizer import Sgd
 
 from netket.driver import VMC
 
-from ..optimizer.rgn.model_and_operator_statistics import (
+from netket.experimental.optimizer.rgn.model_and_operator_statistics import (
     centered_jacobian_and_mean,
     en_grad_and_rhessian,
 )
 from netket.optimizer.qgt.qgt_jacobian_common import _choose_jacobian_mode
-from ..optimizer.rgn import RGN
+from netket.experimental.optimizer.rgn import RGN
 
 
 class VMC_RGN(VMC):
