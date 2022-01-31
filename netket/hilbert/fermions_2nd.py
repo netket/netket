@@ -9,6 +9,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
+
 class Fermions2nd(HomogeneousHilbert):
     def __init__(
         self,
@@ -17,16 +18,16 @@ class Fermions2nd(HomogeneousHilbert):
         extra_constraint_fn: Optional[Callable] = None,
     ):
         r"""
-            Class representing fermions in 2nd quantization with n_orbitals.
-            Samples of this hilbert space represents occupations numbers (0,1) of the orbitals.
-            Number of fermions can be fixed by setting n_fermions.
-            Implementation is optimized for fixed number of fermions.
-            Args:
-                n_orbitals (required): number of orbitals we store occupation numbers for.
-                n_fermions (optional, int): number of fermions that occupy the orbitals.
-                extra_constraint_fn (optional, Callable): any additional constraint function that does not include the fermion number constraint.
-            Returns:
-                A Fermions2nd object.        
+        Class representing fermions in 2nd quantization with n_orbitals.
+        Samples of this hilbert space represents occupations numbers (0,1) of the orbitals.
+        Number of fermions can be fixed by setting n_fermions.
+        Implementation is optimized for fixed number of fermions.
+        Args:
+            n_orbitals (required): number of orbitals we store occupation numbers for.
+            n_fermions (optional, int): number of fermions that occupy the orbitals.
+            extra_constraint_fn (optional, Callable): any additional constraint function that does not include the fermion number constraint.
+        Returns:
+            A Fermions2nd object.
         """
         local_states = [0, 1]  # occupied or not
 
@@ -88,15 +89,15 @@ class LatticeFermions2nd(Fermions2nd):
         graph: Optional[AbstractGraph] = None,
     ):
         r"""
-            Class representing fermions in 2nd quantization on a lattice.
-            This class is similar to Fermions2nd, but splits off spatial and spin degrees of freedom.
-            Args:
-                n_sites (required): number of sites in the lattice.
-                s (optional, int, default=0): spins of the fermions
-                n_fermions_per_spin (optional, int): for each spin projection quantum number, the total (fixed) number of fermions present
-                graph (optional, AbstractGraph): an optional graph argument from which we can infer the number of sites 
-            Returns:
-                A LatticeFermions2nd object.        
+        Class representing fermions in 2nd quantization on a lattice.
+        This class is similar to Fermions2nd, but splits off spatial and spin degrees of freedom.
+        Args:
+            n_sites (required): number of sites in the lattice.
+            s (optional, int, default=0): spins of the fermions
+            n_fermions_per_spin (optional, int): for each spin projection quantum number, the total (fixed) number of fermions present
+            graph (optional, AbstractGraph): an optional graph argument from which we can infer the number of sites
+        Returns:
+            A LatticeFermions2nd object.
         """
         self._s = s
         self._n_sites = graph_to_N_depwarn(N=n_sites, graph=graph)

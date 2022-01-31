@@ -157,6 +157,7 @@ def test_is_hermitean(op):
 
             assert found
 
+
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
@@ -425,6 +426,7 @@ def test_pauli_add_and_multiply():
     op_true_add_cte = nk.operator.PauliStrings(["X", "Y", "Z", "I"], [-1, 1, 1, 2])
     assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
 
+
 @pytest.mark.parametrize(
     "hilbert",
     [
@@ -492,27 +494,49 @@ def test_operator_on_subspace():
 
 op_ferm = {}
 hi = nk.hilbert.Fermions2nd(3)
-op_ferm["FermionOperator2nd_hermitian"] = (nk.operator.FermionOperator2nd(
-    hi,terms=(((0,0),(1,1)),((1,0),(0,1))), weights=(1.+1j,1-1j)), True)
-op_ferm["FermionOperator2nd_not_hermitian"] = (nk.operator.FermionOperator2nd(
-    hi,terms=(((0,0),(2,1)),((1,0),(0,1))), weights=(1.+1j,1-1j)), False)
+op_ferm["FermionOperator2nd_hermitian"] = (
+    nk.operator.FermionOperator2nd(
+        hi, terms=(((0, 0), (1, 1)), ((1, 0), (0, 1))), weights=(1.0 + 1j, 1 - 1j)
+    ),
+    True,
+)
+op_ferm["FermionOperator2nd_not_hermitian"] = (
+    nk.operator.FermionOperator2nd(
+        hi, terms=(((0, 0), (2, 1)), ((1, 0), (0, 1))), weights=(1.0 + 1j, 1 - 1j)
+    ),
+    False,
+)
 
-op_ferm["FermionOperator2nd_hermitian_3term"] = (nk.operator.FermionOperator2nd(
-    hi,(((0,0),(1,1),(2,1)),((2,0),(1,0),(0,1))), weights=(1.-1j,1+1j)), True)
-op_ferm["FermionOperator2nd_not_hermitian_3term"] = (nk.operator.FermionOperator2nd(
-    hi,(((0,0),(1,1),(2,1)),((3,0),(1,0),(0,1))), weights=(1.-1j,2+2j)), False)
+op_ferm["FermionOperator2nd_hermitian_3term"] = (
+    nk.operator.FermionOperator2nd(
+        hi,
+        (((0, 0), (1, 1), (2, 1)), ((2, 0), (1, 0), (0, 1))),
+        weights=(1.0 - 1j, 1 + 1j),
+    ),
+    True,
+)
+op_ferm["FermionOperator2nd_not_hermitian_3term"] = (
+    nk.operator.FermionOperator2nd(
+        hi,
+        (((0, 0), (1, 1), (2, 1)), ((3, 0), (1, 0), (0, 1))),
+        weights=(1.0 - 1j, 2 + 2j),
+    ),
+    False,
+)
 
-    
+
 @pytest.mark.parametrize(
-    "op_ferm, is_hermitian", [pytest.param(op, is_herm, id=name) for name, (op, is_herm) in op_ferm.items()]
+    "op_ferm, is_hermitian",
+    [pytest.param(op, is_herm, id=name) for name, (op, is_herm) in op_ferm.items()],
 )
 def test_is_hermitian_fermion2nd(op_ferm, is_hermitian):
-	assert (op_ferm.is_hermitian==is_hermitian)
+    assert op_ferm.is_hermitian == is_hermitian
+
 
 def test_openfermion_conversion():
     # skip test if openfermion not installed
     pytest.importorskip("openfermion")
-    from openfermion.ops import QubitOperator
+    from openfermion.ops import QubitOperator, FermionOperator
 
     # first term is a constant
     of_qubit_operator = (
@@ -542,11 +566,13 @@ def test_openfermion_conversion():
     of_fermion_operator = FermionOperator() + FermionOperator('0^ 3', 0.5 + 0.3j) + FermionOperator('3^ 0', 0.5 - 0.3j)
     
     # no extra info given
-    fo2 = nk.operator.FermionOperator2nd.from_openfermion(of_fermion_operator) 
+    fo2 = nk.operator.FermionOperator2nd.from_openfermion(of_fermion_operator)
     assert fo2.hilbert.size == 4
-    
+
     # number of orbitals given
-    fo2 = nk.operator.FermionOperator2nd.from_openfermion(of_fermion_operator, n_orbitals=4) 
+    fo2 = nk.operator.FermionOperator2nd.from_openfermion(
+        of_fermion_operator, n_orbitals=4
+    )
     assert isinstance(fo2, nk.operator.FermionOperator2nd)
     assert isinstance(fo2.hilbert, nk.hilbert.Fermions2nd)
     assert fo2.hilbert.size == 6
@@ -556,3 +582,36 @@ def test_openfermion_conversion():
     fo2 = nk.operator.FermionOperator2nd.from_openfermion(hilbert, of_fermion_operator)
     assert fo2.hilbert == hilbert
     assert fo2.hilbert.size == 6
+
+
+def test_fermion_operator_with_strings():
+    hi = nk.hilbert.Fermions2nd(3)
+    terms = (((0, 1), (2, 0)),)
+    op1 = nk.operator.FermionOperator2nd(hi, terms)
+    op2 = nk.operator.FermionOperator2nd(hi, ("0^ 2",))
+    assert np.allclose(op1.to_dense(), op2.to_dense())
+
+
+def compare_openfermion_fermions():
+    # skip test if openfermion not installed
+    pytest.importorskip("openfermion")
+    from openfermion import FermionOperator, get_sparse_operator
+    
+    # openfermion
+    of = FermionOperator("0^ 1", 1.0) + FermionOperator("1^ 0", 1.0)
+    of_dense = get_sparse_operator(of).todense()
+    # from_openfermion
+    fo = nk.operator.FermionOperator2nd.from_openfermion(of)
+    fo_dense = fo.to_dense()
+    # FermionOperator2nd
+    hi = nk.hilbert.Fermions2nd(2)  # two sites
+    fermop = nk.operator.FermionOperator2nd(
+        hi, terms=(((0, 1), (1, 0)), ((1, 1), (0, 0))), weights=(1.0, 1.0)
+    )
+    fermop_dense = fermop.to_dense()
+    # compare openfermion vs from_openfermion
+    assert np.array_equal(of_dense, fo_dense)
+    # compare openfermion vs FermionOperator2nd
+    assert np.array_equal(of_dense, fermop_dense)
+    # compare from_openfermion vs FermionOperator 2nd
+    assert np.array_equal(fo_dense, fermop_dense)

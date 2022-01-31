@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 from typing import List, Union
 from netket.utils.types import DType
 
@@ -8,37 +9,62 @@ from netket.hilbert import AbstractHilbert, Fermions2nd
 
 from netket.operator._discrete_operator import DiscreteOperator
 
+import re
+
+
+def _parse_string(s):
+    s = s.strip()
+    s = re.sub(" +", " ", s)
+    terms = s.split(" ")
+    processed_terms = []
+    for term in terms:
+        if term[-1] == "^":
+            dagger = True
+            term = term[:-1]
+        else:
+            dagger = False
+        orb_nr = int(term)
+        processed_terms.append((orb_nr, int(dagger)))
+    processed_terms = tuple(processed_terms)
+    return processed_terms
+
 
 class FermionOperator2nd(DiscreteOperator):
     """Constructs a fermion operator given the single terms (set of creation/annihilation operators) in second quantization formalism."""
+
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        terms: List[List[List[int]]],
+        terms: Union[List[List[str]], List[List[List[int]]]],
         weights: List[Union[float, complex]] = None,
         dtype: DType = complex,
     ):
 
         r"""
-            This class can be initialized in the following form: ``FermionOperator2nd(hilbert, terms, weights ...)``.
-            Args:
-                hilbert (required): hilbert of the resulting FermionOperator2nd object
-                terms (list(list(list(int)))): single term operators
-                weights (list(union(float,complex))): corresponding coefficients of the single term operators
-            Returns:
-                A FermionOperator2nd object.
-                    Example:
-                    Constructs a new ``FermionOperator2nd`` operator (0.5-0.5j)*(a_0^dagger a_1) + (0.5+0.5j)*(a_2^dagger a_1)  with the construction scheme.
-                    >>> import netket as nk
-                    >>> terms,weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
-                    >>> hi = nk.hilbert.Fermions2nd(3)
-                    >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
-                    >>> op
-                    FermionOperator2nd(hilbert=Fermions2nd(n_orbitals=3), n_terms=2)
-                    >>> op.hilbert
-                    Fermions2nd(n_orbitals=3)
-                    >>> op.hilbert.size
-                    3
+        This class can be initialized in the following form: ``FermionOperator2nd(hilbert, terms, weights ...)``.
+        Args:
+            hilbert (required): hilbert of the resulting FermionOperator2nd object
+            terms (list(list(list(int)))): single term operators
+            weights (list(union(float,complex))): corresponding coefficients of the single term operators
+        Returns:
+            A FermionOperator2nd object.
+
+        Example:
+            Constructs a new ``FermionOperator2nd`` operator (0.5-0.5j)*(a_0^dagger a_1) + (0.5+0.5j)*(a_2^dagger a_1)  with the construction scheme.
+            >>> import netket as nk
+            >>> terms,weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
+            >>> hi = nk.hilbert.Fermions2nd(3)
+            >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
+            >>> op
+            FermionOperator2nd(hilbert=Fermions2nd(n_orbitals=3), n_terms=2)
+            >>> terms = ("0^ 1", "2^ 1")
+            >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
+            >>> op
+            FermionOperator2nd(hilbert=Fermions2nd(n_orbitals=3), n_terms=2)
+            >>> op.hilbert
+            Fermions2nd(n_orbitals=3)
+            >>> op.hilbert.size
+            3
         """
         super().__init__(hilbert)
         self._dtype = dtype
@@ -47,6 +73,13 @@ class FermionOperator2nd(DiscreteOperator):
         self._term_ends = []
         self._weights = []
         self._n_terms = 0
+
+        if isinstance(terms, str):
+            terms = (terms,)
+
+        if len(terms) > 0 and isinstance(terms[0], str):
+            terms = list(map(_parse_string, terms))
+
         if weights is None:
             weights = [1.0] * len(terms)
         if not len(weights) == len(terms):
@@ -55,31 +88,31 @@ class FermionOperator2nd(DiscreteOperator):
             self.add_term(term, weight=weight)
         self._initialized = False
 
-
         # save in a dictionary the normal ordered terms and weights
-        normal_ordered = _normal_ordering(terms,weights)
+        normal_ordered = _normal_ordering(terms, weights)
         dict_normal = {}
-        for term, weight in zip(normal_ordered[0],normal_ordered[1]):
+        for term, weight in zip(normal_ordered[0], normal_ordered[1]):
             dict_normal[tuple(term)] = weight
 
         # take the hermitian conjugate of the terms
-        hc = _herm_conj(terms,weights)
+        hc = _herm_conj(terms, weights)
         # normal order the h.c. terms
-        hc_normal_ordered = _normal_ordering(hc[0],hc[1])
+        hc_normal_ordered = _normal_ordering(hc[0], hc[1])
 
         # save in a dictionary the normal ordered h.c. terms and weights
         dict_hc_normal = {}
-        for term_hc, weight_hc in zip(hc_normal_ordered[0],hc_normal_ordered[1]):
+        for term_hc, weight_hc in zip(hc_normal_ordered[0], hc_normal_ordered[1]):
             dict_hc_normal[tuple(term_hc)] = weight_hc
 
         # check if hermitian by comparing the dictionaries
         self._is_hermitian = dict_normal == dict_hc_normal
-        
-        
+
     def add_term(self, term, weight=1.0):
+        if isinstance(term, str):
+            term = _parse_string(term)
         for orb_idx, dagger in reversed(term):
             self._orb_idxs.append(orb_idx)
-            self._daggers.append(dagger)
+            self._daggers.append(bool(dagger))
             self._weights.append(weight)
             self._term_ends.append(False)
         self._term_ends[-1] = True
@@ -93,12 +126,7 @@ class FermionOperator2nd(DiscreteOperator):
             self._weights = np.array(self._weights, dtype=self.dtype)
             self._term_ends = np.array(self._term_ends, dtype=bool)
             self._initialized = True
-            
-    
-    
-    
-    
-    
+
     @staticmethod
     def from_openfermion(
         hilbert: AbstractHilbert,
@@ -160,12 +188,12 @@ class FermionOperator2nd(DiscreteOperator):
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         return self._n_terms
-    
+
     @property
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
         return self._is_hermitian
-    
+
     def _get_conn_flattened_closure(self):
         self._setup()
         _max_conn_size = self.max_conn_size
@@ -279,18 +307,16 @@ class FermionOperator2nd(DiscreteOperator):
 
             if pad:
                 n_c = (b + 1) * max_conn
-                
+
             sections[b] = n_c
-    
+
         if pad:
             return x_prime, mels
-        else:            
+        else:
             return x_prime[:n_c], mels[:n_c]
 
 
-            
-            
-def _order_fun(term: List[List[int]], weight: Union[float, complex]=1):
+def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1):
     """Return a normal ordered single term of the fermion operator.
     Normal ordering corresponds to placing the operator acting on the
     highest index on the left and lowest index on the right. In addition,
@@ -310,10 +336,10 @@ def _order_fun(term: List[List[int]], weight: Union[float, complex]=1):
                 term[j - 1] = right_term
                 term[j] = left_term
                 weight *= parity
-                        
+
                 # if same indices switch order (creation on the left),remember a a^+ = 1 + a^+ a
                 if right_term[0] == left_term[0]:
-                    new_term = term[:(j - 1)] + term[(j + 1):]
+                    new_term = term[: (j - 1)] + term[(j + 1) :]
                     weight *= parity
                     term = new_term
 
@@ -328,8 +354,11 @@ def _order_fun(term: List[List[int]], weight: Union[float, complex]=1):
                         term[j] = left_term
                         weight *= parity
     return term, weight
-    
-def _normal_ordering(terms: List[List[List[int]]], weights: List[Union[float, complex]]=1):
+
+
+def _normal_ordering(
+    terms: List[List[List[int]]], weights: List[Union[float, complex]] = 1
+):
     """Returns the normal ordered terms and weights of the fermion operator.
     We use the following normal ordering convention: we order the terms with
     the highest index of the operator on the left and the lowest index on the right. In addition,
@@ -337,19 +366,19 @@ def _normal_ordering(terms: List[List[List[int]]], weights: List[Union[float, co
     ordered_terms = []
     ordered_weights = []
     # loop over all the terms and weights and order each single term with corresponding weight
-    for term, weight in zip(terms,weights):
-        ordered = _order_fun(term,weight)
+    for term, weight in zip(terms, weights):
+        ordered = _order_fun(term, weight)
         ordered_terms.append(ordered[0])
         ordered_weights.append(ordered[1])
     return ordered_terms, ordered_weights
 
 
-def _herm_conj(terms: List[List[List[int]]], weights: List[Union[float, complex]]=1):
+def _herm_conj(terms: List[List[List[int]]], weights: List[Union[float, complex]] = 1):
     """Returns the hermitian conjugate of the terms and weights."""
     conj_term = []
     conj_weight = []
     # loop over all terms and weights and get the hermitian conjugate
     for term, weight in zip(terms, weights):
-        conj_term.append([(op, 1 - action) for (op,action) in reversed(term)])
+        conj_term.append([(op, 1 - action) for (op, action) in reversed(term)])
         conj_weight.append(weight.conjugate())
     return conj_term, conj_weight
