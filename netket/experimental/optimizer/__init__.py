@@ -13,3 +13,5 @@
 # limitations under the License.
 
 from .rgn.api import _RGN as RGN
+
+import .rgn
