@@ -372,7 +372,7 @@ def test_expect(vstate, operator):
 
     O1_mean = np.asarray(O_stat1.mean)
     O_mean = np.asarray(O_stat.mean)
-    err = O_stat1.variance / np.sqrt(vstate.n_samples)
+    err = 5*O_stat1.error_of_mean
 
     # check that vstate.expect gives the right result
     O_expval_exact = _expval(
@@ -407,10 +407,8 @@ def test_expect(vstate, operator):
     if not operator.is_hermitian:
         grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
 
-    # compare the two
-    err = O_stat.variance / np.sqrt(vstate.n_samples)
-
     # check the expectation values
+    err = 5*O_stat.error_of_mean
     assert O_stat.mean == approx(O_exact, abs=err)
 
     O_grad, _ = nk.jax.tree_ravel(O_grad)
