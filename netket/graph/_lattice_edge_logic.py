@@ -138,7 +138,7 @@ def get_nn_edges(
 
 
 def get_custom_edges(basis_vectors, extent, site_offsets, pbc, atol, descriptor):
-    if not all([len(desc) in (3,4) for desc in descriptor])
+    if not all([len(desc) in (3,4) for desc in descriptor]):
         raise ValueError(dedent(
             """
             custom_edges must be a list of tuples of length 3 or 4.
