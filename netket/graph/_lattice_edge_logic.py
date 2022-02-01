@@ -17,8 +17,9 @@ import numpy as np
 from scipy.spatial import cKDTree
 from scipy.sparse import find, triu
 from netket.utils.float import comparable, is_approx_int
+from netket.utils.types import Array
 
-from typing import Tuple
+from typing import Tuple, Sequence, Union
 
 # Helper functions
 
@@ -107,6 +108,9 @@ def get_nn_edges(
     distance_atol,
     order,
 ):
+    """For :code:`order == k`, generates all edges between up to :math:`k`-nearest
+    neighbor sites (measured by their Euclidean distance). Edges are colored by length
+    with colors between 0 and `order - 1` in order of increasing length."""
     positions, ids = create_padded_sites(
         basis_vectors, extent, site_offsets, pbc, order
     )
@@ -136,19 +140,25 @@ def get_nn_edges(
 
 # Unit cell distribution logic
 
+CustomEdgeT = Union[Tuple[int, int, Array], Tuple[int, int, Array, int]]
 
-def get_custom_edges(basis_vectors, extent, site_offsets, pbc, atol, descriptor):
-    if not all([len(desc) in (3,4) for desc in descriptor]):
-        raise ValueError(dedent(
-            """
+
+def get_custom_edges(
+    basis_vectors, extent, site_offsets, pbc, atol, custom_edges: Sequence[CustomEdgeT]
+):
+    if not all([len(desc) in (3, 4) for desc in custom_edges]):
+        raise ValueError(
+            dedent(
+                """
             custom_edges must be a list of tuples of length 3 or 4.
             Every tuple must contain two sublattice indices (integers), a distance vector
             and can optionally include an integer to represent the color of that edge.
             
             Check the docstring of `nk.graph.Lattice` for more informations.
             """
-        ))
-    
+            )
+        )
+
     def translated_edges(sl1, sl2, distance, color):
         # get distance in terms of unit cells
         d_cell = (distance + site_offsets[sl1] - site_offsets[sl2]) @ np.linalg.inv(
@@ -188,7 +198,7 @@ def get_custom_edges(basis_vectors, extent, site_offsets, pbc, atol, descriptor)
         return [(*edge, color) for edge in zip(start, end)]
 
     colored_edges = []
-    for i, desc in enumerate(descriptor):
+    for i, desc in enumerate(custom_edges):
         edge_data = desc[:3]
         edge_color = desc[3] if len(desc) == 4 else i
         colored_edges += translated_edges(*edge_data, edge_color)

@@ -28,7 +28,12 @@ from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
 
 from .graph import Graph
-from ._lattice_edge_logic import get_nn_edges, get_custom_edges, create_site_positions
+from ._lattice_edge_logic import (
+    get_nn_edges,
+    get_custom_edges,
+    create_site_positions,
+    CustomEdgeT,
+)
 
 if TYPE_CHECKING:
     from .space_group import SpaceGroupBuilder
@@ -152,7 +157,7 @@ class Lattice(Graph):
         distance_atol: float = 1e-5,
         point_group: Optional[PointGroup] = None,
         max_neighbor_order: Optional[int] = None,
-        custom_edges: Optional[Sequence] = None,
+        custom_edges: Optional[Sequence[CustomEdgeT]] = None,
     ):
         """
         Constructs a new ``Lattice`` given its side length and the features of the unit
