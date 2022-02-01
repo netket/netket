@@ -146,6 +146,9 @@ CustomEdgeT = Union[Tuple[int, int, Array], Tuple[int, int, Array, int]]
 def get_custom_edges(
     basis_vectors, extent, site_offsets, pbc, atol, custom_edges: Sequence[CustomEdgeT]
 ):
+    """Generates the edges described in `custom_edges` for all unit cells.
+
+    See the docstring of `Lattice.__init__` for the syntax of `custom_edges."""
     if not all([len(desc) in (3, 4) for desc in custom_edges]):
         raise ValueError(
             dedent(
