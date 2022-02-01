@@ -26,7 +26,9 @@ from typing import Tuple
 def create_site_positions(basis_vectors, extent, site_offsets, extra_shells=None):
     """Generates the coordinates of all lattice sites.
 
-    extra_shells, if used, must be a vector of the same length as extent"""
+    extra_shells: (optional) the number of unit cells added along each lattice direction.
+        This is used for near-neighbour searching in periodic BCs.
+        If used, it must be a vector of the same length as extent"""
     if extra_shells is None:
         extra_shells = np.zeros(extent.size, dtype=int)
 
@@ -136,6 +138,17 @@ def get_nn_edges(
 
 
 def get_custom_edges(basis_vectors, extent, site_offsets, pbc, atol, descriptor):
+    if not all([len(desc) in (3,4) for desc in descriptor])
+        raise ValueError(dedent(
+            """
+            custom_edges must be a list of tuples of length 3 or 4.
+            Every tuple must contain two sublattice indices (integers), a distance vector
+            and can optionally include an integer to represent the color of that edge.
+            
+            Check the docstring of `nk.graph.Lattice` for more informations.
+            """
+        ))
+    
     def translated_edges(sl1, sl2, distance, color):
         # get distance in terms of unit cells
         d_cell = (distance + site_offsets[sl1] - site_offsets[sl2]) @ np.linalg.inv(
@@ -176,13 +189,7 @@ def get_custom_edges(basis_vectors, extent, site_offsets, pbc, atol, descriptor)
 
     colored_edges = []
     for i, desc in enumerate(descriptor):
-        if len(desc) == 4:
-            colored_edges += translated_edges(*desc)
-        elif len(desc) == 3:
-            colored_edges += translated_edges(*desc, i)
-        else:
-            raise ValueError(
-                "Each descriptor line is required to contain two sublattice indices, "
-                "a distance vector, and an optional color."
-            )
+        edge_data = desc[:3]
+        edge_color = desc[3] if len(desc) == 4 else i
+        colored_edges += translated_edges(*edge_data, edge_color)
     return colored_edges

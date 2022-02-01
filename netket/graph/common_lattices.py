@@ -88,6 +88,7 @@ def Grid(
              the parameter `length`, in which case each dimension will have
              PBC/OBC depending on the corresponding entry of `pbc`.
         color_edges: generates nearest-neighbour edges colored according to direction
+                     i.e. edges along Cartesian direction #i have color i
                      cannot be used with `max_neighbor_order` or `custom_edges`
         kwargs: Additional keyword arguments are passed on to the constructor of
             :ref:`netket.graph.Lattice`.
