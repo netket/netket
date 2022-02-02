@@ -30,6 +30,7 @@ from netket.graph import (
     Triangular,
     Honeycomb,
     Kagome,
+    KitaevHoneycomb,
 )
 from netket.graph import _lattice
 from netket.utils import group
@@ -99,6 +100,8 @@ symmetric_graphs = [
     nk.graph.Honeycomb([3, 3]),
     # Kagome
     nk.graph.Kagome([3, 3]),
+    # Kitaev honeycomb
+    nk.graph.KitaevHoneycomb([3, 3]),
     # Cube
     nk.graph.Hypercube(length=3, n_dim=3),
     # Body-centred Cubic
@@ -111,25 +114,42 @@ symmetric_graphs = [
     nk.graph.Pyrochlore([3, 3, 3]),
 ]
 
-unit_cells = [9, 9, 9, 9, 27, 27, 27, 27, 27]
+unit_cells = [9, 9, 9, 9, 9, 27, 27, 27, 27, 27]
 
-atoms_per_unit_cell = [1, 1, 2, 3, 1, 1, 1, 2, 4]
+atoms_per_unit_cell = [1, 1, 2, 3, 2, 1, 1, 1, 2, 4]
 
-coordination_number = [4, 6, 3, 4, 6, 8, 12, 4, 6]
+coordination_number = [4, 6, 3, 4, 3, 6, 8, 12, 4, 6]
 
-dimension = [2, 2, 2, 2, 3, 3, 3, 3, 3]
+dimension = [2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
 
-kvec = [(2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 3 + [(4 * pi / 3, 0, 0)] * 5
+kvec = [(2 * pi / 3, 0)] + [(4 * pi / 3, 0)] * 4 + [(4 * pi / 3, 0, 0)] * 5
 
-little_group_size = [2] + [6] * 3 + [8] * 5
+little_group_size = [2] + [6] * 3 + [1] + [8] * 5
 
-little_group_irreps = [2] + [3] * 3 + [5] * 5
+little_group_irreps = [2] + [3] * 3 + [1] + [5] * 5
 
 
 def test_next_neighbors():
     graph1 = nk.graph.Honeycomb(extent=[3, 3], max_neighbor_order=2)
     graph2 = nk.graph.Honeycomb(extent=[3, 3], max_neighbor_order=1)
     assert graph1.n_edges == 3 * graph2.n_edges
+
+
+def test_custom_edges():
+    graph = nk.graph.KitaevHoneycomb(extent=[3, 3])
+    for i in range(3):
+        assert len(graph.edges(filter_color=i)) == 9
+
+    graph = nk.graph.KitaevHoneycomb([3, 3], pbc=False)
+    assert len(graph.edges(filter_color=0)) == 9
+    assert len(graph.edges(filter_color=1)) == 6
+    assert len(graph.edges(filter_color=2)) == 6
+
+    graph = nk.graph.Lattice(
+        np.eye(2), (6, 4), pbc=False, custom_edges=[(0, 0, [1, 0]), (0, 0, [0, 1])]
+    )
+    assert len(graph.edges(filter_color=0)) == 20
+    assert len(graph.edges(filter_color=1)) == 18
 
 
 @pytest.mark.parametrize("i,name", list(enumerate(symmetric_graph_names)))
@@ -326,9 +346,9 @@ def test_edges_are_correct():
         y_edges = sorted([sorted(ed) for ed in y.edges()])
         assert x_edges == y_edges
 
-    with pytest.raises(ValueError):
-        check_edges(1, 1, False)
-        check_edges(1, 2, False)
+    # with pytest.raises(ValueError):
+    #    check_edges(1, 1, False)
+    #    check_edges(1, 2, False)
 
     for length in [3, 4]:
         for dim in [1, 2]:
@@ -462,33 +482,37 @@ def test_adjacency_list():
             assert set(adl[i]) in neigh
 
 
-# def test_grid_color_pbc():
-#    # compute length from iterator
-#    count = lambda it: sum(1 for _ in it)
-#
-#    g = Grid([4, 4], pbc=True, color_edges=True)
-#    assert count(g.edges(filter_color=0)) == 16
-#    assert count(g.edges(filter_color=1)) == 16
-#    assert g.n_edges == 32
-#
-#    g = Grid([4, 2], pbc=True, color_edges=True)
-#    assert count(g.edges(filter_color=0)) == 8
-#    assert count(g.edges(filter_color=1)) == 4
-#
-#    g = Grid([4, 2], pbc=False, color_edges=True)
-#    assert count(g.edges(filter_color=0)) == 6
-#    assert count(g.edges(filter_color=1)) == 4
-#
-#    with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
-#        g = Grid([2, 4], pbc=[True, True])
-#
-#    g1 = Grid([7, 5], pbc=False)
-#    g2 = Grid([7, 5], pbc=[False, False])
-#    assert sorted(g1.edges()) == sorted(g2.edges())
-#
-#    g1 = Grid([7, 5], pbc=True)
-#    g2 = Grid([7, 5], pbc=[True, True])
-#    assert sorted(g1.edges()) == sorted(g2.edges())
+def test_grid_color_pbc():
+    # compute length from iterator
+    count = lambda it: sum(1 for _ in it)
+
+    g = Grid([4, 4], pbc=True, color_edges=True)
+    assert count(g.edges(filter_color=0)) == 16
+    assert count(g.edges(filter_color=1)) == 16
+    assert g.n_edges == 32
+
+    g = Grid([4, 2], pbc=True, color_edges=True)
+    assert count(g.edges(filter_color=0)) == 8
+    assert count(g.edges(filter_color=1)) == 8
+
+    g = Grid([4, 2], pbc=[True, False], color_edges=True)
+    assert count(g.edges(filter_color=0)) == 8
+    assert count(g.edges(filter_color=1)) == 4
+
+    g = Grid([4, 2], pbc=False, color_edges=True)
+    assert count(g.edges(filter_color=0)) == 6
+    assert count(g.edges(filter_color=1)) == 4
+
+    # with pytest.raises(ValueError, match="Directions with length <= 2 cannot have PBC"):
+    #    g = Grid([2, 4], pbc=[True, True])
+
+    g1 = Grid([7, 5], pbc=False)
+    g2 = Grid([7, 5], pbc=[False, False])
+    assert sorted(g1.edges()) == sorted(g2.edges())
+
+    g1 = Grid([7, 5], pbc=True)
+    g2 = Grid([7, 5], pbc=[True, True])
+    assert sorted(g1.edges()) == sorted(g2.edges())
 
 
 @pytest.mark.parametrize("graph", graphs)
@@ -643,6 +667,31 @@ def test_triangular_space_group(lattice):
         _ = g.point_group()
     with pytest.raises(RuntimeError):
         _ = g.space_group()
+    # 2x4 unit cells of the triangle lattice make a rectangular grid
+    assert len(g.point_group(group.planar.rectangle())) == 4
+
+
+def test_kitaev_space_group():
+    lattice = KitaevHoneycomb
+
+    g = lattice([3, 3])
+    _check_symmgroups(g)
+    assert len(g.rotation_group()) == 2
+    assert len(g.point_group()) == 2
+    assert len(g.space_group()) == 3 * 3 * 2
+
+    g = lattice([3, 3], pbc=False)
+    with pytest.raises(RuntimeError):
+        _ = g.rotation_group()
+    with pytest.raises(RuntimeError):
+        _ = g.point_group()
+    with pytest.raises(RuntimeError):
+        _ = g.space_group()
+
+    g = lattice([2, 4])
+    assert len(g.rotation_group()) == 2
+    assert len(g.point_group()) == 2
+    assert len(g.space_group()) == 2 * 4 * 2
     # 2x4 unit cells of the triangle lattice make a rectangular grid
     assert len(g.point_group(group.planar.rectangle())) == 4
 
