@@ -132,7 +132,7 @@ def canonicalize_input(
 
 
 # TODO: support sparse arrays without returning dense arrays
-def _reorder_kronecker_product(hi, mat, acting_on):
+def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
     """
     Reorders the matrix resulting from a kronecker product of several
     operators in such a way to sort acting_on.
@@ -182,7 +182,7 @@ def _reorder_kronecker_product(hi, mat, acting_on):
     # reorder the matrix
     mat_sorted = mat[n_unsorted, :][:, n_unsorted]
 
-    return mat_sorted, acting_on_sorted
+    return mat_sorted, tuple(acting_on_sorted)
 
 
 # TODO: support sparse arrays without returning dense arrays
