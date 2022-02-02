@@ -536,7 +536,7 @@ def test_is_hermitian_fermion2nd(op_ferm, is_hermitian):
 def test_openfermion_conversion():
     # skip test if openfermion not installed
     pytest.importorskip("openfermion")
-    from openfermion.ops import QubitOperator, FermionOperator
+    from openfermion.ops import QubitOperator
 
     # first term is a constant
     of_qubit_operator = (
