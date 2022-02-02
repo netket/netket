@@ -421,7 +421,10 @@ def test_openfermion_conversion():
     pytest.importorskip("openfermion")
     from openfermion.ops import QubitOperator
 
-    of_qubit_operator = 0.5 * QubitOperator("X0 X3") + 0.3 * QubitOperator("Z0")
+    # first term is a constant
+    of_qubit_operator = (
+        QubitOperator("") + 0.5 * QubitOperator("X0 X3") + 0.3 * QubitOperator("Z0")
+    )
 
     # no extra info given
     ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator)
