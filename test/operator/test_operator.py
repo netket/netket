@@ -543,7 +543,7 @@ def test_operator_on_subspace():
     assert nk.exact.lanczos_ed(h2)[0] == pytest.approx(-2.0)
 
     h12 = h1 + h2
-    assert sorted(h12.acting_on) == [[0, 1], [1, 2], [3, 4], [4, 5]]
+    assert sorted(h12.acting_on) == [(0, 1), (1, 2), (3, 4), (4, 5)]
     assert nk.exact.lanczos_ed(h12)[0] == pytest.approx(-4.0)
 
     h3 = nk.operator.GraphOperator(
@@ -551,7 +551,7 @@ def test_operator_on_subspace():
     )
     assert h3.acting_on_subspace == [0, 2, 4]
     assert nk.exact.lanczos_ed(h3)[0] == pytest.approx(-2.0)
-    assert h3.acting_on == [[0, 2], [2, 4]]
+    assert h3.acting_on == [(0, 2), (2, 4)]
 
     h4 = nk.operator.Heisenberg(hi, g, acting_on_subspace=0)
     assert h4.acting_on == h1.acting_on
