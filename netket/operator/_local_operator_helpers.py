@@ -57,6 +57,7 @@ def cast_operator_matrix_dtype(matrix, dtype):
     # return np.asarray(matrix, dtype=dtype)
     return matrix.astype(dtype)
 
+
 def _standardize_matrix_input_type(op):
     """
     Standardize the structural type of operators stored in LocalOperator.
@@ -69,6 +70,7 @@ def _standardize_matrix_input_type(op):
         return op.todense()
     else:
         return op
+
 
 def canonicalize_input(
     hilbert: AbstractHilbert, operators, acting_on, constant, *, dtype=None
@@ -189,7 +191,7 @@ def _multiply_operators(
 ) -> Tuple[Tuple, "array"]:
     """
     Returns the `Tuple[acting_on, Matrix]` representing the operator obtained by
-    multiplying the two input operators A and B. 
+    multiplying the two input operators A and B.
     """
     support_A = np.asarray(support_A)
     support_B = np.asarray(support_B)

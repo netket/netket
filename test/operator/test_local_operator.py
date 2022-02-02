@@ -28,6 +28,7 @@ hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
 
 sy_sparse = sparse.csr_matrix(sy)
 
+
 def _loc(*args):
     return nk.operator.LocalOperator(hi, *args)
 

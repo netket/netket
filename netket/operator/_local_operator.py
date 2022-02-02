@@ -473,7 +473,7 @@ class LocalOperator(DiscreteOperator):
                     ba *= self.hilbert.shape[aon_size - s - 1]
 
                 # eventually could support sparse matrices
-                #if isinstance(op, sparse.spmatrix):
+                # if isinstance(op, sparse.spmatrix):
                 #    op = op.todense()
 
                 _append_matrix(
