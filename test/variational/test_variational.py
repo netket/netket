@@ -505,8 +505,8 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
     # compute the distance between the two phases modulo 2pi
     delta_der_log = der_log.imag - num_der_log.imag
 
-    # the distance is taken to be the minimum of the distance between |A-B| and
-    # mod(|B-A|)
+    # the distance is taken to be the minimum of the distance between
+    # (|A-B|mod 2Pi) and (|B-A| mod 2Pi)
     delta_der_log_mod_1 = np.mod(delta_der_log, 2 * np.pi)
     delta_der_log_mod_2 = np.mod(-delta_der_log, 2 * np.pi)
     delta_der_log = np.minimum(delta_der_log_mod_1, delta_der_log_mod_2)
