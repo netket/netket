@@ -372,7 +372,7 @@ def test_expect(vstate, operator):
 
     O1_mean = np.asarray(O_stat1.mean)
     O_mean = np.asarray(O_stat.mean)
-    err = 5*O_stat1.error_of_mean
+    err = 5 * O_stat1.error_of_mean
 
     # check that vstate.expect gives the right result
     O_expval_exact = _expval(
@@ -408,7 +408,7 @@ def test_expect(vstate, operator):
         grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
 
     # check the expectation values
-    err = 5*O_stat.error_of_mean
+    err = 5 * O_stat.error_of_mean
     assert O_stat.mean == approx(O_exact, abs=err)
 
     O_grad, _ = nk.jax.tree_ravel(O_grad)
@@ -503,12 +503,12 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
     )
 
     # compute the distance between the two phases modulo 2pi
-    der_log_mod = np.mod(der_log.imag, np.pi * 2)
-    num_der_log_mod_1 = np.mod(num_der_log.imag, np.pi * 2)
-    num_der_log_mod_2 = 2 * np.pi - np.mod(num_der_log.imag, np.pi * 2)
+    delta_der_log = der_log.imag - num_der_log.imag
 
-    delta_der_log_mod_1 = np.abs(der_log_mod - num_der_log_mod_1)
-    delta_der_log_mod_2 = np.abs(der_log_mod - num_der_log_mod_2)
+    # the distance is taken to be the minimum of the distance between |A-B| and
+    # mod(|B-A|)
+    delta_der_log_mod_1 = np.mod(delta_der_log, 2 * np.pi)
+    delta_der_log_mod_2 = np.mod(-delta_der_log, 2 * np.pi)
     delta_der_log = np.minimum(delta_der_log_mod_1, delta_der_log_mod_2)
 
     # Compare against pi and not 0 because otherwise rtol will fail always
