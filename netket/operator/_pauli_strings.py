@@ -488,6 +488,12 @@ class PauliStrings(DiscreteOperator):
 
 
 def _count_of_locations(of_qubit_operator):
+    """Obtain the number of qubits in the openfermion QubitOperator. Openfermion builds operators from terms that store operators locations.
+    Args:
+        of_qubit_operator (openfermion.QubitOperator, openfermion.FermionOperator)
+    Returns:
+        n_qubits (int): number of qubits in the operator, which we can use to create a suitable hilbert space
+    """
     # we always start counting from 0, so we only determine the maximum location
     def max_or_default(x):
         x = list(x)
