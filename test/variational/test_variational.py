@@ -68,7 +68,8 @@ L = 4
 g = nk.graph.Hypercube(length=L, n_dim=1)
 hi = nk.hilbert.Spin(s=0.5, N=L)
 
-operators["operator:(Hermitian Real)"] = nk.operator.Ising(hi, graph=g, h=1.0)
+H = nk.operator.Ising(hi, graph=g, h=1.0)
+operators["operator:(Hermitian Real)"] = H
 
 H = nk.operator.Ising(hi, graph=g, h=1.0)
 for i in range(H.hilbert.size):
@@ -361,7 +362,7 @@ def test_qutip_conversion(vstate):
     ],
 )
 def test_expect(vstate, operator):
-    #  Use lots of samples
+    # Use lots of samples
     vstate.n_samples = 5 * 1e5
     vstate.n_discard_per_chain = 1e3
 
@@ -371,15 +372,17 @@ def test_expect(vstate, operator):
 
     O1_mean = np.asarray(O_stat1.mean)
     O_mean = np.asarray(O_stat.mean)
+    err = 5 * O_stat1.error_of_mean
 
     # check that vstate.expect gives the right result
     O_expval_exact = _expval(
         vstate.parameters, vstate, operator, real=operator.is_hermitian
     )
-    np.testing.assert_allclose(O_expval_exact.real, O1_mean.real, atol=1e-3, rtol=1e-3)
+
+    np.testing.assert_allclose(O_expval_exact.real, O1_mean.real, atol=err, rtol=err)
     if not operator.is_hermitian:
         np.testing.assert_allclose(
-            O_expval_exact.imag, O1_mean.imag, atol=1e-3, rtol=1e-3
+            O_expval_exact.imag, O1_mean.imag, atol=err, rtol=err
         )
 
     # Check that expect and expect_and_grad give same expect. value
@@ -404,10 +407,8 @@ def test_expect(vstate, operator):
     if not operator.is_hermitian:
         grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
 
-    # compare the two
-    err = 5 / np.sqrt(vstate.n_samples)
-
     # check the expectation values
+    err = 5 * O_stat.error_of_mean
     assert O_stat.mean == approx(O_exact, abs=err)
 
     O_grad, _ = nk.jax.tree_ravel(O_grad)
@@ -500,9 +501,20 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
     np.testing.assert_allclose(
         der_log.real, num_der_log.real, rtol=rel_eps, atol=abs_eps
     )
+
+    # compute the distance between the two phases modulo 2pi
+    delta_der_log = der_log.imag - num_der_log.imag
+
+    # the distance is taken to be the minimum of the distance between
+    # (|A-B|mod 2Pi) and (|B-A| mod 2Pi)
+    delta_der_log_mod_1 = np.mod(delta_der_log, 2 * np.pi)
+    delta_der_log_mod_2 = np.mod(-delta_der_log, 2 * np.pi)
+    delta_der_log = np.minimum(delta_der_log_mod_1, delta_der_log_mod_2)
+
+    # Compare against pi and not 0 because otherwise rtol will fail always
     np.testing.assert_allclose(
-        np.mod(der_log.imag, np.pi * 2),
-        np.mod(num_der_log.imag, np.pi * 2),
+        delta_der_log + np.pi,
+        np.pi,
         rtol=rel_eps,
         atol=abs_eps,
     )
