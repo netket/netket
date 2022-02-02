@@ -252,13 +252,7 @@ class PauliStrings(DiscreteOperator):
             # no warning, just overwrite
             n_qubits = hilbert.size
         if n_qubits is None:
-            # we always start counting from 0, so we only determine the maximum location
-            n_qubits = (
-                max(
-                    max(term[0] for term in op) for op in of_qubit_operator.terms.keys()
-                )
-                + 1
-            )
+            n_qubits = _count_of_locations(of_qubit_operator)
         for operator, weight in of_qubit_operator.terms.items():  # gives dict
             s = ["I"] * n_qubits
             for loc, op in operator:
@@ -491,6 +485,19 @@ class PauliStrings(DiscreteOperator):
             )
 
         return jit(nopython=True)(gccf_fun)
+
+
+def _count_of_locations(of_qubit_operator):
+    # we always start counting from 0, so we only determine the maximum location
+    def max_or_default(x):
+        x = list(x)
+        return max(x) if len(x) > 0 else -1  # -1 is default
+
+    n_qubits = max_or_default(
+        max_or_default(term[0] for term in op) for op in of_qubit_operator.terms.keys()
+    )
+    n_qubits += 1
+    return n_qubits
 
 
 @jit(nopython=True)
