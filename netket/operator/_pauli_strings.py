@@ -493,10 +493,9 @@ def _count_of_locations(of_qubit_operator):
         x = list(x)
         return max(x) if len(x) > 0 else -1  # -1 is default
 
-    n_qubits = max_or_default(
+    n_qubits = 1 + max_or_default(
         max_or_default(term[0] for term in op) for op in of_qubit_operator.terms.keys()
     )
-    n_qubits += 1
     return n_qubits
 
 
