@@ -26,6 +26,7 @@ from netket.hilbert import (
     Qubit,
     Spin,
     Fermions2nd,
+    LatticeFermions2nd,
 )
 
 import jax
