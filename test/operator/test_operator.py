@@ -531,6 +531,20 @@ op_ferm["FermionOperator2nd_not_hermitian_3term"] = (
     False,
 )
 
+op_ferm["fermihubbard_int"] = (
+    nk.operator.FermionOperator2nd(
+        hi,
+        terms=(
+            ((0, 1), (0, 0), (1, 1), (1, 0)),
+            ((0, 1), (0, 0), (1, 1), (1, 0)),
+            ((0, 1), (0, 0), (1, 1), (1, 0)),
+            ((0, 1), (0, 0), (1, 1), (1, 0)),
+        ),
+        weights=(1.0, 1.0, 1.0, 1.0),
+    ),
+    True,
+)
+
 
 @pytest.mark.parametrize(
     "op_ferm, is_hermitian",
@@ -603,7 +617,7 @@ def compare_openfermion_fermions():
     # skip test if openfermion not installed
     pytest.importorskip("openfermion")
     from openfermion import FermionOperator, get_sparse_operator
-    
+
     # openfermion
     of = FermionOperator("0^ 1", 1.0) + FermionOperator("1^ 0", 1.0)
     of_dense = get_sparse_operator(of).todense()

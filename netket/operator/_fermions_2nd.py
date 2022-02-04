@@ -73,6 +73,9 @@ class FermionOperator2nd(DiscreteOperator):
         self._term_ends = []
         self._weights = []
         self._n_terms = 0
+        # we keep the input, in order to be able to add terms later
+        self._orig_terms = []
+        self._orig_weights = []
 
         if isinstance(terms, str):
             terms = (terms,)
@@ -82,30 +85,15 @@ class FermionOperator2nd(DiscreteOperator):
 
         if weights is None:
             weights = [1.0] * len(terms)
+
         if not len(weights) == len(terms):
             raise ValueError("length of weights should be equal")
+
         for term, weight in zip(terms, weights):
             self.add_term(term, weight=weight)
+
         self._initialized = False
-
-        # save in a dictionary the normal ordered terms and weights
-        normal_ordered = _normal_ordering(terms, weights)
-        dict_normal = {}
-        for term, weight in zip(normal_ordered[0], normal_ordered[1]):
-            dict_normal[tuple(term)] = weight
-
-        # take the hermitian conjugate of the terms
-        hc = _herm_conj(terms, weights)
-        # normal order the h.c. terms
-        hc_normal_ordered = _normal_ordering(hc[0], hc[1])
-
-        # save in a dictionary the normal ordered h.c. terms and weights
-        dict_hc_normal = {}
-        for term_hc, weight_hc in zip(hc_normal_ordered[0], hc_normal_ordered[1]):
-            dict_hc_normal[tuple(term_hc)] = weight_hc
-
-        # check if hermitian by comparing the dictionaries
-        self._is_hermitian = dict_normal == dict_hc_normal
+        self._is_hermitian = _check_hermitian(self._orig_terms, self._orig_weights)
 
     def add_term(self, term, weight=1.0):
         if isinstance(term, str):
@@ -115,6 +103,8 @@ class FermionOperator2nd(DiscreteOperator):
             self._daggers.append(bool(dagger))
             self._weights.append(weight)
             self._term_ends.append(False)
+            self._orig_terms.append(term)
+            self._orig_weights.append(weight)
         self._term_ends[-1] = True
         self._n_terms += 1
 
@@ -169,8 +159,8 @@ class FermionOperator2nd(DiscreteOperator):
                 + 1
             )
             hilbert = Fermions2nd(n_orbitals)
-        terms = of_fermion_operator.terms.keys()
-        weights = of_fermion_operator.terms.values()
+        terms = list(of_fermion_operator.terms.keys())
+        weights = list(of_fermion_operator.terms.values())
 
         return FermionOperator2nd(hilbert, terms, weights=weights)
 
@@ -316,11 +306,41 @@ class FermionOperator2nd(DiscreteOperator):
             return x_prime[:n_c], mels[:n_c]
 
 
-def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1):
+def _check_hermitian(
+    terms: List[List[List[int]]], weights: Union[float, complex] = 1.0
+):
+    """Check whether a set of terms and weights for a hermitian operator"""
+
+    # save in a dictionary the normal ordered terms and weights
+    normal_ordered = _normal_ordering(terms, weights)
+
+    dict_normal = {}
+    for term, weight in zip(*normal_ordered):
+        dict_normal[tuple(term)] = weight
+
+    # take the hermitian conjugate of the terms
+    hc = _herm_conj(terms, weights)
+
+    # normal order the h.c. terms
+    hc_normal_ordered = _normal_ordering(*hc)
+
+    # save in a dictionary the normal ordered h.c. terms and weights
+    dict_hc_normal = {}
+    for term_hc, weight_hc in zip(*hc_normal_ordered):
+        dict_hc_normal[tuple(term_hc)] = weight_hc
+
+    # check if hermitian by comparing the dictionaries
+    is_hermitian = dict_normal == dict_hc_normal
+    return is_hermitian
+
+
+def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1.0):
     """Return a normal ordered single term of the fermion operator.
     Normal ordering corresponds to placing the operator acting on the
     highest index on the left and lowest index on the right. In addition,
-    the creation operators are placed on the left and annihilation on the right."""
+    the creation operators are placed on the left and annihilation on the right.
+    In this ordering, we make sure to account for the anti-commutation of operators.
+    """
 
     parity = -1
     term = list(term)
@@ -331,28 +351,32 @@ def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1):
         for j in range(i, 0, -1):
             right_term = term[j]
             left_term = term[j - 1]
+
             # exchange operators if creation operator is on the right and annihilation on the left
             if right_term[1] and not left_term[1]:
                 term[j - 1] = right_term
                 term[j] = left_term
                 weight *= parity
 
-                # if same indices switch order (creation on the left),remember a a^+ = 1 + a^+ a
+                # if same indices switch order (creation on the left), remember a a^ = 1 + a^ a
                 if right_term[0] == left_term[0]:
                     new_term = term[: (j - 1)] + term[(j + 1) :]
                     weight *= parity
                     term = new_term
 
-                # if same operator types (creation or anihilation)
-                elif right_term[1] == left_term[1]:
-                    # evaluate to zero if two creation/anihilation operators acting on the same index
-                    if right_term[0] == left_term[0]:
-                        return None
-                        # put lower index on the right for same operator type (creation or annihilation)
-                    elif right_term[0] > left_term[0]:
-                        term[j - 1] = right_term
-                        term[j] = left_term
-                        weight *= parity
+            # if we have two creation or two annihilation operators
+            elif right_term[1] == left_term[1]:
+
+                # If same two Fermionic operators are repeated,
+                # evaluate to zero.
+                if parity == -1 and right_term[0] == left_term[0]:
+                    return None, None  # return None if the weight is zero
+
+                # swap if same type but order is not correct
+                elif right_term[0] > left_term[0]:
+                    term[j - 1] = right_term
+                    term[j] = left_term
+                    weight *= parity
     return term, weight
 
 
