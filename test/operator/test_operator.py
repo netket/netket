@@ -426,14 +426,7 @@ def test_pauli_add_and_multiply():
     op_true_add_cte = nk.operator.PauliStrings(["X", "Y", "Z", "I"], [-1, 1, 1, 2])
     assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-=======
->>>>>>> 04b9ab50 (Implementation of fermionic hilbert and operator)
-=======
-
->>>>>>> 249bfc6e (Allow string format in operator)
 @pytest.mark.parametrize(
     "hilbert",
     [
@@ -596,7 +589,7 @@ def test_openfermion_conversion():
     )
     assert isinstance(fo2, nk.operator.FermionOperator2nd)
     assert isinstance(fo2.hilbert, nk.hilbert.Fermions2nd)
-    assert fo2.hilbert.size == 6
+    assert fo2.hilbert.size == 4
 
     # with hilbert
     hilbert = nk.hilbert.Fermions2nd(6)

@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 from typing import List, Union
 from netket.utils.types import DType
 
@@ -8,6 +7,7 @@ from numba import jit
 from netket.hilbert import AbstractHilbert, Fermions2nd
 
 from netket.operator._discrete_operator import DiscreteOperator
+from netket.operator._pauli_strings import _count_of_locations
 
 import re
 
@@ -98,13 +98,15 @@ class FermionOperator2nd(DiscreteOperator):
     def add_term(self, term, weight=1.0):
         if isinstance(term, str):
             term = _parse_string(term)
+
+        self._orig_terms.append(term)
+        self._orig_weights.append(weight)
+
         for orb_idx, dagger in reversed(term):
             self._orb_idxs.append(orb_idx)
             self._daggers.append(bool(dagger))
             self._weights.append(weight)
             self._term_ends.append(False)
-            self._orig_terms.append(term)
-            self._orig_weights.append(weight)
         self._term_ends[-1] = True
         self._n_terms += 1
 
@@ -142,7 +144,6 @@ class FermionOperator2nd(DiscreteOperator):
         if not isinstance(hilbert, AbstractHilbert):
             # if first argument is not Hilbert, then shift all arguments by one
             hilbert, of_fermion_operator = None, hilbert
-
         if not isinstance(of_fermion_operator, FermionOperator):
             raise NotImplementedError()
 
@@ -151,17 +152,12 @@ class FermionOperator2nd(DiscreteOperator):
             n_orbitals = hilbert.size
         if n_orbitals is None:
             # we always start counting from 0, so we only determine the maximum location
-            n_orbitals = (
-                max(
-                    max(term[0] for term in op)
-                    for op in of_fermion_operator.terms.keys()
-                )
-                + 1
-            )
+            n_orbitals = _count_of_locations(of_fermion_operator)
+        if hilbert is None:
             hilbert = Fermions2nd(n_orbitals)
+
         terms = list(of_fermion_operator.terms.keys())
         weights = list(of_fermion_operator.terms.values())
-
         return FermionOperator2nd(hilbert, terms, weights=weights)
 
     def __repr__(self):

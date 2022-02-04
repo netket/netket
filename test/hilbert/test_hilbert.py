@@ -216,10 +216,10 @@ def test_random_states_particle(hi: Particle):
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_flip_state_discrete(hi: DiscreteHilbert):
-    
+
     if isinstance(hi, HomogeneousHilbert) and hi.constrained:
         return  # makes little sense in most cases
-    
+
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
 
