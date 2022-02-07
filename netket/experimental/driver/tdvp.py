@@ -311,7 +311,7 @@ class TDVP(AbstractVariationalDriver):
         callback_stop = False
 
         with tqdm(
-            total=self.t + T,
+            total=float(self.t + T),
             disable=not show_progress,
             unit_scale=True,
         ) as pbar:
