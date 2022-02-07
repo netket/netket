@@ -4,7 +4,7 @@ from netket.utils.types import DType
 import numpy as np
 from numba import jit
 
-from netket.hilbert import AbstractHilbert, Fermions2nd
+from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
 
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
@@ -53,16 +53,16 @@ class FermionOperator2nd(DiscreteOperator):
             Constructs a new ``FermionOperator2nd`` operator (0.5-0.5j)*(a_0^dagger a_1) + (0.5+0.5j)*(a_2^dagger a_1)  with the construction scheme.
             >>> import netket as nk
             >>> terms,weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
-            >>> hi = nk.hilbert.Fermions2nd(3)
+            >>> hi = nk.hilbert.SpinOrbitalFermions(3)
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=Fermions2nd(n_orbitals=3), n_terms=2)
+            FermionOperator2nd(hilbert=Fock(n_max=1, N=3), n_terms=2)
             >>> terms = ("0^ 1", "2^ 1")
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=Fermions2nd(n_orbitals=3), n_terms=2)
+            FermionOperator2nd(hilbert=Fock(n_max=1, N=3), n_terms=2)
             >>> op.hilbert
-            Fermions2nd(n_orbitals=3)
+            Fock(n_max=1, N=3)
             >>> op.hilbert.size
             3
         """
@@ -154,7 +154,7 @@ class FermionOperator2nd(DiscreteOperator):
             # we always start counting from 0, so we only determine the maximum location
             n_orbitals = _count_of_locations(of_fermion_operator)
         if hilbert is None:
-            hilbert = Fermions2nd(n_orbitals)
+            hilbert = SpinOrbitalFermions(n_orbitals)
 
         terms = list(of_fermion_operator.terms.keys())
         weights = list(of_fermion_operator.terms.values())

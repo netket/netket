@@ -25,8 +25,7 @@ from netket.hilbert import (
     Fock,
     Qubit,
     Spin,
-    Fermions2nd,
-    LatticeFermions2nd,
+    SpinOrbitalFermions,
 )
 
 import jax
@@ -110,13 +109,10 @@ hilberts["DoubledHilbert[CustomHilbert]"] = DoubledHilbert(
 
 # hilberts["Tensor: Spin x Fock"] = Spin(s=0.5, N=4) * Fock(4, N=2)
 
-hilberts["Fermions2nd"] = Fermions2nd(3)
-hilberts["Fermions2nd (n_fermions)"] = Fermions2nd(3, n_fermions=2)
-hilberts["LatticeFermions2nd"] = LatticeFermions2nd(3)
-hilberts["LatticeFermions2nd (spin)"] = LatticeFermions2nd(3, s=1 / 2)
-hilberts["LatticeFermions2nd (n_fermions)"] = LatticeFermions2nd(3, n_fermions=2)
-hilberts["LatticeFermions2nd (spin, n_fermions_per_spin)"] = LatticeFermions2nd(
-    5, s=1 / 2, n_fermions_per_spin=(2, 3)
+hilberts["SpinOrbitalFermions"] = SpinOrbitalFermions(3)
+hilberts["SpinOrbitalFermions (n_fermions)"] = SpinOrbitalFermions(3, n_fermions=2)
+hilberts["SpinOrbitalFermions (n_fermions_per_spin)"] = SpinOrbitalFermions(
+    3, n_fermions_per_spin=(2, 1)
 )
 
 # Continuous space
@@ -369,3 +365,16 @@ def test_inhomogeneous_fock():
     for i in range(40, 80):
         assert hi.size_at_index(i) == 3
         assert hi.states_at_index(i) == list(range(3))
+
+
+def test_fermions():
+    hi = SpinOrbitalFermions(5)
+    assert hi.size == 5
+    assert hi.n_states == 2 ** 5
+    hi = SpinOrbitalFermions(5, n_fermions=2)
+    assert hi.size == 5
+    assert np.all(hi.all_states().sum(axis=-1) == 2)
+    hi = SpinOrbitalFermions(5, n_fermions_per_spin=(2, 1))
+    assert hi.size == 10
+    assert np.all(hi.all_states()[:, :5].sum(axis=-1) == 2)
+    assert np.all(hi.all_states()[:, 5:].sum(axis=-1) == 1)

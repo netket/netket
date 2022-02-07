@@ -86,16 +86,8 @@ operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
 
-hi = nk.hilbert.Fermions2nd(5)
+hi = nk.hilbert.SpinOrbitalFermions(5)
 operators["FermionOperator2nd"] = nk.operator.FermionOperator2nd(
-    hi,
-    terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
-    weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
-)
-
-
-hi = nk.hilbert.LatticeFermions2nd(5)
-operators["LatticeFermionOperator2nd"] = nk.operator.FermionOperator2nd(
     hi,
     terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
     weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
@@ -493,7 +485,7 @@ def test_operator_on_subspace():
 
 
 op_ferm = {}
-hi = nk.hilbert.Fermions2nd(3)
+hi = nk.hilbert.SpinOrbitalFermions(3)
 op_ferm["FermionOperator2nd_hermitian"] = (
     nk.operator.FermionOperator2nd(
         hi, terms=(((0, 0), (1, 1)), ((1, 0), (0, 1))), weights=(1.0 + 1j, 1 - 1j)
@@ -588,18 +580,28 @@ def test_openfermion_conversion():
         of_fermion_operator, n_orbitals=4
     )
     assert isinstance(fo2, nk.operator.FermionOperator2nd)
-    assert isinstance(fo2.hilbert, nk.hilbert.Fermions2nd)
+    assert isinstance(fo2.hilbert, nk.hilbert.Fock)
     assert fo2.hilbert.size == 4
 
     # with hilbert
-    hilbert = nk.hilbert.Fermions2nd(6)
+    hilbert = nk.hilbert.SpinOrbitalFermions(6)
     fo2 = nk.operator.FermionOperator2nd.from_openfermion(hilbert, of_fermion_operator)
     assert fo2.hilbert == hilbert
     assert fo2.hilbert.size == 6
 
+    # to check that the constraints are met (convention wrt ordering of states with different spin)
+    from openfermion.hamiltonians import fermi_hubbard
+
+    hilbert = nk.hilbert.SpinOrbitalFermions(6, n_fermions_per_spin=(2, 1))
+    of_fermion_operator = fermi_hubbard(3, 2, tunneling=1, coulomb=0, spinless=False)
+    fo2 = nk.operator.FermionOperator2nd.from_openfermion(hilbert, of_fermion_operator)
+    assert fo2.hilbert.size == 6 * 2
+    # will fail of we go outside of the allowed states with openfermion operators
+    assert fo2.to_dense()
+
 
 def test_fermion_operator_with_strings():
-    hi = nk.hilbert.Fermions2nd(3)
+    hi = nk.hilbert.SpinOrbitalFermions(3)
     terms = (((0, 1), (2, 0)),)
     op1 = nk.operator.FermionOperator2nd(hi, terms)
     op2 = nk.operator.FermionOperator2nd(hi, ("0^ 2",))
@@ -618,7 +620,7 @@ def compare_openfermion_fermions():
     fo = nk.operator.FermionOperator2nd.from_openfermion(of)
     fo_dense = fo.to_dense()
     # FermionOperator2nd
-    hi = nk.hilbert.Fermions2nd(2)  # two sites
+    hi = nk.hilbert.SpinOrbitalFermions(2)  # two sites
     fermop = nk.operator.FermionOperator2nd(
         hi, terms=(((0, 1), (1, 0)), ((1, 1), (0, 0))), weights=(1.0, 1.0)
     )

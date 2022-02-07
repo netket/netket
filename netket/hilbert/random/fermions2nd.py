@@ -12,24 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .abstract_hilbert import AbstractHilbert
-from .discrete_hilbert import DiscreteHilbert
-from .homogeneous import HomogeneousHilbert
+import jax
+from jax import numpy as jnp
 
-from .continuous_hilbert import ContinuousHilbert
-
-from .custom_hilbert import CustomHilbert
-from .doubled_hilbert import DoubledHilbert
-from .spin import Spin
-from .fock import Fock
-from .qubit import Qubit
-from .particle import Particle
-from .fermions_2nd import SpinOrbitalFermions
+from netket.hilbert import SpinOrbitalFermions
+from netket.utils.dispatch import dispatch
 
 
-from .tensor_hilbert import TensorHilbert
+@dispatch
+def random_state(hilb: SpinOrbitalFermions, key, batches: int, *, dtype):
+    return random_state(hilb._fock)
 
 
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+@dispatch
+def flip_state_scalar(hilb: SpinOrbitalFermions, key, state, index):
+    return flip_state_scalar(hilb._fock)
