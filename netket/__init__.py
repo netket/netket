@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # enable x64 on jax
-# must be done at 0 startup.
+# must be done at startup.
 from jax.config import config
 
 config.update("jax_enable_x64", True)
