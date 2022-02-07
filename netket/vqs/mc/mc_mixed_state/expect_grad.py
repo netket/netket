@@ -109,23 +109,12 @@ def grad_expect_operator_Lrho2(
     LdagL_stats = statistics((jnp.abs(Lρ) ** 2).T)
     LdagL_mean = LdagL_stats.mean
 
-    # old implementation
-    # this is faster, even though i think the one below should be faster
-    # (this works, but... yeah. let's keep it here and delete in a while.)
-    grad_fun = jax.vmap(nkjax.grad(logpsi, argnums=0), in_axes=(None, 0), out_axes=0)
-    der_logs = grad_fun(parameters, σ)
-    der_logs_ave = jax.tree_map(lambda x: mean(x, axis=0), der_logs)
-
-    # TODO
-    # NEW IMPLEMENTATION
-    # This should be faster, but should benchmark as it seems slower
-    # to compute der_logs_ave i can just do a jvp with a ones vector
-    # _logpsi_ave, d_logpsi = nkjax.vjp(lambda w: logpsi(w, σ), parameters)
+    _logpsi_ave, d_logpsi = nkjax.vjp(lambda w: logpsi(w, σ), parameters)
     # TODO: this ones_like might produce a complexXX type but we only need floatXX
     # and we cut in 1/2 the # of operations to do.
-    # der_logs_ave = d_logpsi(
-    #    jnp.ones_like(_logpsi_ave).real / (n_samples_node * utils.n_nodes)
-    # )[0]
+    der_logs_ave = d_logpsi(
+        jnp.ones_like(_logpsi_ave).real / (n_samples_node * mpi.n_nodes)
+    )[0]
     der_logs_ave = jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], der_logs_ave)
 
     def gradfun(der_loc_vals, der_logs_ave):
