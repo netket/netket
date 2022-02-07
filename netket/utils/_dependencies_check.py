@@ -31,9 +31,13 @@ if not module_version("optax") >= (0, 1, 1):
 		Optax version {version} (< 0.1.1) is too old and incompatible with NetKet. 
 		Please update `optax` by running the command:
 
+			pip install --upgrade pip
 			pip install --upgrade netket optax
 		
 		(assuming you are using pip. Similar commands can be used on conda).
+
+		This error most likely happened because you either have an old version of `pip`
+		or you are hard-coding the `optax` version in a requirements file.
 
 		Reason: Optax is NetKet's provider of optimisers. Versions before 0.1.1 did not
 		support complex numbers and silently returned wrong values, especially when
