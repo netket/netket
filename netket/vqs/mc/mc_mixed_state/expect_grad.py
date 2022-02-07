@@ -28,9 +28,7 @@ from netket.utils.dispatch import dispatch, FalseT
 
 from netket.operator import (
     AbstractSuperOperator,
-    # local_value_cost,
     Squared,
-    _der_local_values_jax,
 )
 
 from .state import MCMixedState
@@ -104,32 +102,19 @@ def grad_expect_operator_Lrho2(
     (
         Lρ,
         der_loc_vals,
-    ) = _der_local_values_jax._local_values_and_grads_notcentered_kernel(
-        logpsi, parameters, σp, mels, σ
-    )
-    # _der_local_values_jax._local_values_and_grads_notcentered_kernel returns a loc_val that is conjugated
+    ) = _local_values_and_grads_notcentered_kernel(logpsi, parameters, σp, mels, σ)
+    # _local_values_and_grads_notcentered_kernel returns a loc_val that is conjugated
     Lρ = jnp.conjugate(Lρ)
 
     LdagL_stats = statistics((jnp.abs(Lρ) ** 2).T)
     LdagL_mean = LdagL_stats.mean
 
-    # old implementation
-    # this is faster, even though i think the one below should be faster
-    # (this works, but... yeah. let's keep it here and delete in a while.)
-    grad_fun = jax.vmap(nkjax.grad(logpsi, argnums=0), in_axes=(None, 0), out_axes=0)
-    der_logs = grad_fun(parameters, σ)
-    der_logs_ave = jax.tree_map(lambda x: mean(x, axis=0), der_logs)
-
-    # TODO
-    # NEW IMPLEMENTATION
-    # This should be faster, but should benchmark as it seems slower
-    # to compute der_logs_ave i can just do a jvp with a ones vector
-    # _logpsi_ave, d_logpsi = nkjax.vjp(lambda w: logpsi(w, σ), parameters)
+    _logpsi_ave, d_logpsi = nkjax.vjp(lambda w: logpsi(w, σ), parameters)
     # TODO: this ones_like might produce a complexXX type but we only need floatXX
     # and we cut in 1/2 the # of operations to do.
-    # der_logs_ave = d_logpsi(
-    #    jnp.ones_like(_logpsi_ave).real / (n_samples_node * utils.n_nodes)
-    # )[0]
+    der_logs_ave = d_logpsi(
+        jnp.ones_like(_logpsi_ave).real / (n_samples_node * mpi.n_nodes)
+    )[0]
     der_logs_ave = jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], der_logs_ave)
 
     def gradfun(der_loc_vals, der_logs_ave):
@@ -161,3 +146,20 @@ def grad_expect_operator_Lrho2(
         LdagL_grad,
         model_state,
     )
+
+
+########################################
+# Computes the non-centered gradient of local values
+# \sum_i mel(i) * exp(vp(i)-v) * O_k(i)
+@partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=(0, 0))
+def _local_values_and_grads_notcentered_kernel(logpsi, pars, vp, mel, v):
+    logpsi_vp, f_vjp = nkjax.vjp(lambda w: logpsi(w, vp), pars, conjugate=False)
+    vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+
+    # TODO : here someone must bring order to those multiple conjs
+    odtype = jax.eval_shape(logpsi, pars, v).dtype
+    vec = jnp.asarray(jnp.conjugate(vec), dtype=odtype)
+    loc_val = vec.sum()
+    grad_c = f_vjp(vec.conj())[0]
+
+    return loc_val, grad_c

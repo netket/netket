@@ -31,18 +31,6 @@ from ._sumoperators import SumOperator
 
 from . import spin, boson
 
-# TODO: Deprecated. Remove in v3.1
-from ._der_local_values_jax import local_energy_kernel
-
-from ._local_cost_functions import (
-    define_local_cost_function,
-    local_cost_function,
-    local_cost_and_grad_function,
-    local_costs_and_grads_function,
-    local_value_cost,
-    local_value_op_op_cost,
-)
-
 from netket.utils import _auto_export
 
 _auto_export(__name__)
