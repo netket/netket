@@ -37,6 +37,9 @@ from .history import History, accum_in_tree, accum_histories_in_tree
 
 from . import mpi
 
+# error if old dependencies are detected
+from . import _dependencies_check
+
 _hide_submodules(
     __name__, remove_self=False, ignore=["numbers", "types", "float", "dispatch"]
 )
