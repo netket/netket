@@ -28,9 +28,7 @@ from netket.utils.dispatch import dispatch, FalseT
 
 from netket.operator import (
     AbstractSuperOperator,
-    # local_value_cost,
     Squared,
-    _der_local_values_jax,
 )
 
 from .state import MCMixedState
@@ -104,10 +102,8 @@ def grad_expect_operator_Lrho2(
     (
         Lρ,
         der_loc_vals,
-    ) = _der_local_values_jax._local_values_and_grads_notcentered_kernel(
-        logpsi, parameters, σp, mels, σ
-    )
-    # _der_local_values_jax._local_values_and_grads_notcentered_kernel returns a loc_val that is conjugated
+    ) = _local_values_and_grads_notcentered_kernel(logpsi, parameters, σp, mels, σ)
+    # _local_values_and_grads_notcentered_kernel returns a loc_val that is conjugated
     Lρ = jnp.conjugate(Lρ)
 
     LdagL_stats = statistics((jnp.abs(Lρ) ** 2).T)
@@ -161,3 +157,20 @@ def grad_expect_operator_Lrho2(
         LdagL_grad,
         model_state,
     )
+
+
+########################################
+# Computes the non-centered gradient of local values
+# \sum_i mel(i) * exp(vp(i)-v) * O_k(i)
+@partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=(0, 0))
+def _local_values_and_grads_notcentered_kernel(logpsi, pars, vp, mel, v):
+    logpsi_vp, f_vjp = nkjax.vjp(lambda w: logpsi(w, vp), pars, conjugate=False)
+    vec = mel * jax.numpy.exp(logpsi_vp - logpsi(pars, v))
+
+    # TODO : here someone must bring order to those multiple conjs
+    odtype = jax.eval_shape(logpsi, pars, v).dtype
+    vec = jnp.asarray(jnp.conjugate(vec), dtype=odtype)
+    loc_val = vec.sum()
+    grad_c = f_vjp(vec.conj())[0]
+
+    return loc_val, grad_c
