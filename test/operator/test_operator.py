@@ -1,4 +1,5 @@
 import netket as nk
+from netket.operator.boson import destroy
 import numpy as np
 
 import pytest
@@ -567,10 +568,14 @@ def test_openfermion_conversion():
     ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
     assert ps.hilbert == hilbert
     assert ps.hilbert.size == 6
-    
-    #FermionOperator
-    of_fermion_operator = FermionOperator() + FermionOperator('0^ 3', 0.5 + 0.3j) + FermionOperator('3^ 0', 0.5 - 0.3j)
-    
+
+    # FermionOperator
+    of_fermion_operator = (
+        FermionOperator("")  # todo
+        + FermionOperator("0^ 3", 0.5 + 0.3j)
+        + FermionOperator("3^ 0", 0.5 - 0.3j)
+    )
+
     # no extra info given
     fo2 = nk.operator.FermionOperator2nd.from_openfermion(of_fermion_operator)
     assert fo2.hilbert.size == 4
@@ -580,7 +585,7 @@ def test_openfermion_conversion():
         of_fermion_operator, n_orbitals=4
     )
     assert isinstance(fo2, nk.operator.FermionOperator2nd)
-    assert isinstance(fo2.hilbert, nk.hilbert.Fock)
+    assert isinstance(fo2.hilbert, nk.hilbert.SpinOrbitalFermions)
     assert fo2.hilbert.size == 4
 
     # with hilbert
@@ -592,12 +597,14 @@ def test_openfermion_conversion():
     # to check that the constraints are met (convention wrt ordering of states with different spin)
     from openfermion.hamiltonians import fermi_hubbard
 
-    hilbert = nk.hilbert.SpinOrbitalFermions(6, n_fermions_per_spin=(2, 1))
-    of_fermion_operator = fermi_hubbard(3, 2, tunneling=1, coulomb=0, spinless=False)
-    fo2 = nk.operator.FermionOperator2nd.from_openfermion(hilbert, of_fermion_operator)
-    assert fo2.hilbert.size == 6 * 2
+    hilbert = nk.hilbert.SpinOrbitalFermions(3, n_fermions_per_spin=(2, 1))
+    of_fermion_operator = fermi_hubbard(1, 3, tunneling=1, coulomb=0, spinless=False)
+    fo2 = nk.operator.FermionOperator2nd.from_openfermion(
+        hilbert, of_fermion_operator, convert_spin_blocks=True
+    )
+    assert fo2.hilbert.size == 3 * 2
     # will fail of we go outside of the allowed states with openfermion operators
-    assert fo2.to_dense()
+    fo2.to_dense()
 
 
 def test_fermion_operator_with_strings():
@@ -631,3 +638,30 @@ def compare_openfermion_fermions():
     assert np.array_equal(of_dense, fermop_dense)
     # compare from_openfermion vs FermionOperator 2nd
     assert np.array_equal(fo_dense, fermop_dense)
+
+
+def test_add_fermions():
+    hi = nk.hilbert.SpinOrbitalFermions(5)
+    op1 = nk.operator.FermionOperator2nd(hi, terms=("1^ 2"), weights=(1,), constant=2)
+    op2 = nk.operator.FermionOperator2nd(
+        hi, terms=("3^ 4"), weights=(1.3,), constant=5.7
+    )
+    op3 = nk.operator.FermionOperator2nd(
+        hi, terms=("3^ 4", "1^ 2"), weights=(1.3, 1), constant=7.7
+    )
+    op4 = op3 * 2
+    op5 = nk.operator.FermionOperator2nd(
+        hi, terms=("3^ 4", "1^ 2"), weights=(2 * 1.3, 2 * 1), constant=2 * 7.7
+    )
+    assert np.allclose((op1 + op2).to_dense(), op3.to_dense())
+    assert np.allclose(op4.to_dense(), op5.to_dense())
+
+
+def test_create_annihil_number():
+    hi = nk.hilbert.SpinOrbitalFermions(5)
+    op1 = nk.operator.FermionOperator2nd(hi, terms=("0^ 0", "1^ 2"), weights=(0.3, 2))
+    c = lambda site: nk.operator.FermionOperator2nd.destroy(hi, site)
+    cdag = lambda site: nk.operator.FermionOperator2nd.create(hi, site)
+    cn = lambda site: nk.operator.FermionOperator2nd.number(hi, site)
+    op2 = 0.3 * cn(0) + 2 * cdag(1) * c(2)
+    assert np.allclose(op1.to_dense(), op2.to_dense())

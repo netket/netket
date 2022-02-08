@@ -21,9 +21,9 @@ from netket.utils.dispatch import dispatch
 
 @dispatch
 def random_state(hilb: SpinOrbitalFermions, key, batches: int, *, dtype):
-    return random_state(hilb._fock)
+    return random_state(hilb._fock, key, batches, dtype)
 
 
 @dispatch
 def flip_state_scalar(hilb: SpinOrbitalFermions, key, state, index):
-    return flip_state_scalar(hilb._fock)
+    return flip_state_scalar(hilb._fock, key, state, index)
