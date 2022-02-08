@@ -231,6 +231,7 @@ def test_repr_and_info():
     assert "integrator" in info
     assert "RK23" in info
 
+
 def test_run_twice():
     # 1100
     ha, vstate, _ = _setup_system(L=2)
