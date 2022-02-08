@@ -230,3 +230,16 @@ def test_repr_and_info():
     assert "generator" in info
     assert "integrator" in info
     assert "RK23" in info
+
+
+def test_run_twice():
+    # 1100
+    ha, vstate, _ = _setup_system(L=2)
+    driver = nkx.TDVP(
+        ha,
+        vstate,
+        nkx.dynamics.RK23(dt=0.01),
+    )
+    driver.run(0.03)
+    driver.run(0.03)
+    np.testing.assert_allclose(driver.t, 0.06)
