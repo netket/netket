@@ -606,7 +606,7 @@ def test_openfermion_conversion():
     # to check that the constraints are met (convention wrt ordering of states with different spin)
     from openfermion.hamiltonians import fermi_hubbard
 
-    hilbert = nk.hilbert.SpinOrbitalFermions(3, n_fermions_per_spin=(2, 1))
+    hilbert = nk.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions=(2, 1))
     of_fermion_operator = fermi_hubbard(1, 3, tunneling=1, coulomb=0, spinless=False)
     fo2 = nk.operator.FermionOperator2nd.from_openfermion(
         hilbert, of_fermion_operator, convert_spin_blocks=True
@@ -669,8 +669,8 @@ def test_add_fermions():
 def test_create_annihil_number():
     hi = nk.hilbert.SpinOrbitalFermions(5)
     op1 = nk.operator.FermionOperator2nd(hi, terms=("0^ 0", "1^ 2"), weights=(0.3, 2))
-    c = lambda site: nk.operator.FermionOperator2nd.destroy(hi, site)
-    cdag = lambda site: nk.operator.FermionOperator2nd.create(hi, site)
-    cn = lambda site: nk.operator.FermionOperator2nd.number(hi, site)
+    c = lambda site: nk.operator.fermion.destroy(hi, site)
+    cdag = lambda site: nk.operator.fermion.create(hi, site)
+    cn = lambda site: nk.operator.fermion.number(hi, site)
     op2 = 0.3 * cn(0) + 2 * cdag(1) * c(2)
     assert np.allclose(op1.to_dense(), op2.to_dense())

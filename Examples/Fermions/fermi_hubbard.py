@@ -2,6 +2,7 @@ import netket as nk
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+from netket.operator.fermion import create, destroy, number
 
 L = 2  # take a 2x2 lattice
 D = 2
@@ -16,10 +17,10 @@ Nsites = g.n_nodes
 hi = nk.hilbert.SpinOrbitalFermions(Nsites, s=1 / 2, n_fermions=(2, 2))
 
 # create an operator representing fermi hubbard interactions
-# -t (i^ j + h.c.) + V (i^ i j^ j)
-c = lambda site, sz: nk.operator.FermionOperator2nd.create(hi, site, sz=sz)
-cdag = lambda site, sz: nk.operator.FermionOperator2nd.destroy(hi, site, sz=sz)
-nc = lambda site, sz: nk.operator.FermionOperator2nd.number(hi, site, sz=sz)
+# -t (i^ j + h.c.) + U (i^ i j^ j)
+c = lambda site, sz: create(hi, site, sz=sz)
+cdag = lambda site, sz: destroy(hi, site, sz=sz)
+nc = lambda site, sz: number(hi, site, sz=sz)
 up = +1 / 2
 down = -1 / 2
 ham = []
@@ -28,7 +29,6 @@ for u, v in g.edges():
         ham.append(-t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz))
         ham.append(U * nc(u, sz) * nc(v, sz))
 ham = sum(ham)
-print(ham)
 
 # create everything necessary for the VMC
 

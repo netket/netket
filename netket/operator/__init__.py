@@ -30,7 +30,7 @@ from ._kinetic import KineticEnergy
 from ._potential import PotentialEnergy
 from ._sumoperators import SumOperator
 
-from . import spin, boson
+from . import spin, boson, fermion
 
 from netket.utils import _auto_export
 

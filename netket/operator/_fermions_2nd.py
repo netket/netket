@@ -5,7 +5,7 @@ from netket.utils.types import DType
 import numpy as np
 from numba import jit
 
-from netket.hilbert import AbstractHilbert, OrbitalFermions, SpinOrbitalFermions
+from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
 
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
@@ -29,10 +29,12 @@ class FermionOperator2nd(DiscreteOperator):
         This class can be initialized in the following form: ``FermionOperator2nd(hilbert, terms, weights ...)``.
         The terms contain pairs of (idx, dagger), where the idx is the index in the output of the hilbert.all_states()
         To split up per spin, use the creation and annihilation operators to build the operator.
+
         Args:
             hilbert (required): hilbert of the resulting FermionOperator2nd object
             terms (list(list(list(int)))): single term operators
             weights (list(union(float,complex))): corresponding coefficients of the single term operators
+
         Returns:
             A FermionOperator2nd object.
 
@@ -40,7 +42,7 @@ class FermionOperator2nd(DiscreteOperator):
             Constructs a new ``FermionOperator2nd`` operator (0.5-0.5j)*(a_0^dagger a_1) + (0.5+0.5j)*(a_2^dagger a_1)  with the construction scheme.
             >>> import netket as nk
             >>> terms,weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
-            >>> hi = nk.hilbert.OrbitalFermions(3)
+            >>> hi = nk.hilbert.SpinOrbitalFermions(3)
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
             >>> terms = ("0^ 1", "2^ 1")
@@ -111,55 +113,6 @@ class FermionOperator2nd(DiscreteOperator):
             self._initialized = True
 
     @staticmethod
-    def destroy(
-        hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = complex
-    ):
-        """
-        Builds the fermion destruction operator :math:`\\hat{a}` acting on the `site`-th of
-        the Hilbert space `hilbert`.
-        Args:
-            hilbert: The hilbert space
-            site: the site on which this operator acts
-        Returns:
-            The resulting FermionOperator2nd
-        """
-        idx = _get_index(hilbert, site, sz)
-        return FermionOperator2nd(hilbert, ("{}".format(idx),), dtype=dtype)
-
-    @staticmethod
-    def create(
-        hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = complex
-    ):
-        """
-        Builds the fermion creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th of
-        the Hilbert space `hilbert`.
-        Args:
-            hilbert: The hilbert space
-            site: the site on which this operator acts
-        Returns:
-            The resulting FermionOperator2nd
-        """
-        idx = _get_index(hilbert, site, sz)
-        return FermionOperator2nd(hilbert, ("{}^".format(idx),), dtype=dtype)
-
-    @staticmethod
-    def number(
-        hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = complex
-    ):
-        """
-        Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
-        `site`-th of the Hilbert space `hilbert`.
-        Args:
-            hilbert: The hilbert space
-            site: the site on which this operator acts
-            sz: spin projection
-        Returns:
-            The resulting FermionOperator2nd
-        """
-        idx = _get_index(hilbert, site, sz)
-        return FermionOperator2nd(hilbert, ("{}^ {}".format(idx, idx),), dtype=dtype)
-
-    @staticmethod
     def from_openfermion(
         hilbert: AbstractHilbert,
         of_fermion_operator: "openfermion.ops.FermionOperator" = None,  # noqa: F821
@@ -171,11 +124,13 @@ class FermionOperator2nd(DiscreteOperator):
         Converts an openfermion FermionOperator into a netket FermionOperator2nd.
         The hilbert first argument can be dropped, see __init__ for details and default value.
         Warning: convention of openfermion.hamiltonians is different from ours: instead of strong spin components as subsequent hilbert state outputs (i.e. the 1/2 spin components of spin-orbit i are stored in locations (2*i, 2*i+1)), we concatenate blocks of definite spin (i.e. locations (i, n_orbitals+i)).
+
         Args:
             hilbert (optional): hilbert of the resulting FermionOperator2nd object
             of_fermion_operator (required): openfermion.ops.FermionOperator object
             n_orbitals (int): total number of orbitals in the system, default None means inferring it from the FermionOperator2nd. Argument is ignored when hilbert is given.
-            convert_spin_blocks (bool): whether or not we need to convert the FermionOperator to our convention. Only works if hilbert is provided
+            convert_spin_blocks (bool): whether or not we need to convert the FermionOperator to our convention. Only works if hilbert is provided and if it has spin != 0
+
         Returns:
             A FermionOperator2nd object.
         """
@@ -201,14 +156,14 @@ class FermionOperator2nd(DiscreteOperator):
         if hilbert is not None:
             # no warning, just overwrite
             n_orbitals = hilbert.n_orbitals
-            n_spin = hilbert.n_spin_components
+            n_spin = hilbert._n_spin_states
             if convert_spin_blocks:
                 terms = _convert_terms_to_spin_blocks(terms, n_orbitals, n_spin)
         if n_orbitals is None:
             # we always start counting from 0, so we only determine the maximum location
             n_orbitals = _count_of_locations(of_fermion_operator)
         if hilbert is None:
-            hilbert = OrbitalFermions(n_orbitals)  # no spin splitup assumed
+            hilbert = SpinOrbitalFermions(n_orbitals)  # no spin splitup assumed
 
         return FermionOperator2nd(hilbert, terms, weights=weights, constant=constant)
 
@@ -377,10 +332,12 @@ class FermionOperator2nd(DiscreteOperator):
 
     @staticmethod
     def identity(hilbert):
+        """identity operator"""
         return FermionOperator2nd(hilbert, [], [], constant=1.0)
 
     @staticmethod
     def zero(hilbert):
+        """returns an object that has no contribution, meaning a constant of 0"""
         return FermionOperator2nd(hilbert, [], [], constant=0.0)
 
     def _op__matmul__(self, other):
@@ -460,14 +417,6 @@ class FermionOperator2nd(DiscreteOperator):
         )
 
 
-def _get_index(hilbert: AbstractHilbert, site: int, sz: float = None):
-    """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
-    if sz is None:
-        return site
-    else:  # we assume hilbert is a SpinOrbitalHilbert
-        return hilbert.get_index(site, sz)
-
-
 def _convert_terms_to_spin_blocks(terms, n_orbitals, n_spin_components):
     """see explanation in from_openfermion in conversion between conventions of netket and openfermion"""
 
@@ -497,6 +446,7 @@ def _collect_constants(terms, weights):
 
 
 def _parse_string(s):
+    """parse strings such as '1^ 2' into a term form ((1, 1), (2, 0))"""
     s = s.strip()
     if s == "":
         return ()
@@ -544,7 +494,8 @@ def _check_hermitian(
 
 
 def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1.0):
-    """Return a normal ordered single term of the fermion operator.
+    """
+    Return a normal ordered single term of the fermion operator.
     Normal ordering corresponds to placing the operator acting on the
     highest index on the left and lowest index on the right. In addition,
     the creation operators are placed on the left and annihilation on the right.
@@ -600,10 +551,12 @@ def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1.0):
 def _normal_ordering(
     terms: List[List[List[int]]], weights: List[Union[float, complex]] = 1
 ):
-    """Returns the normal ordered terms and weights of the fermion operator.
+    """
+    Returns the normal ordered terms and weights of the fermion operator.
     We use the following normal ordering convention: we order the terms with
     the highest index of the operator on the left and the lowest index on the right. In addition,
-    creation operators are placed on the left and annihilation operators on the right."""
+    creation operators are placed on the left and annihilation operators on the right.
+    """
     ordered_terms = []
     ordered_weights = []
     # loop over all the terms and weights and order each single term with corresponding weight
@@ -626,6 +579,8 @@ def _herm_conj(terms: List[List[List[int]]], weights: List[Union[float, complex]
 
 
 def _check_tree_structure(terms):
+    """Check whether the terms structure is depth 3 everywhere and contains pairs of (idx, dagger) everywhere"""
+
     def _descend(tree, current_depth, depths, pairs):
         if current_depth == 2 and hasattr(tree, "__len__"):
             pairs.append(len(tree) == 2)
