@@ -178,8 +178,6 @@ def test_lazy_hermitian(op):
     [pytest.param(op, id=name) for name, op in op_finite_size.items()],
 )
 def test_lazy_squared(op):
-    if isinstance(op, nk.operator.PauliStrings):
-        pytest.xfail(reason="Not Implemented")
 
     op2 = op.H @ op
     opd = op.to_dense()

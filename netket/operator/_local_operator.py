@@ -372,36 +372,35 @@ class LocalOperator(DiscreteOperator):
                 f"Cannot add inplace operator with dtype {type(other)} to operator with dtype {self.dtype}"
             )
 
-        return self._concrete_imatmul_(other)
+        return self._op_imatmul_(other)
 
-    def _op__matmul__(self, other):
-        return self._concrete_matmul_(other)
-
-    def _concrete_matmul_(self, other: "LocalOperator") -> "LocalOperator":
+    def _op__matmul__(self, other: "LocalOperator") -> "LocalOperator":
         if not isinstance(other, LocalOperator):
             return NotImplemented
         op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
-        return op._concrete_imatmul_(other)
+        return op._op_imatmul_(other)
 
-    def _concrete_imatmul_(self, other: "LocalOperator") -> "LocalOperator":
+    def _op_imatmul_(self, other: "LocalOperator") -> "LocalOperator":
         if not isinstance(other, LocalOperator):
             return NotImplemented
 
         # (α + ∑ᵢAᵢ)(β + ∑ᵢBᵢ) =
         # = αβ + α ∑ᵢBᵢ + β ∑ᵢAᵢ + ∑ᵢⱼAᵢBⱼ
+        # = β(α + ∑ᵢAᵢ) + α ∑ᵢBᵢ + ∑ᵢⱼAᵢBⱼ
 
-        A_const = self.constant.item()
-        B_const = other.constant.item()
-        A_op_dict = self._operators_dict
+        α = self.constant.item()
+        β = other.constant.item()
+        # copy A dict because it is modified inplace in __imul__(β) and add_operators
+        A_op_dict = self._operators_dict.copy()
         B_op_dict = other._operators_dict
 
         # αβ + β ∑ᵢAᵢ
-        self.__imul__(B_const)
+        self.__imul__(β)
 
         # α ∑ᵢBᵢ
-        if np.abs(A_const) > self.mel_cutoff:
+        if np.abs(α) > self.mel_cutoff:
             for aon, op in B_op_dict.items():
-                self._add_operator(aon, A_const * op)
+                self._add_operator(aon, α * op)
 
         # ∑ᵢⱼAᵢBⱼ
         for supp_A_i, A_i in A_op_dict.items():

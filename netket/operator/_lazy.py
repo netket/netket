@@ -208,7 +208,7 @@ class Squared(WrappedOperator):
         return self.parent.dtype
 
     def collect(self):
-        return self.parent.H.collect()._concrete_matmul_(self.parent)
+        return self.parent.H.collect()._op__matmul__(self.parent)
 
     @property
     def T(self):
