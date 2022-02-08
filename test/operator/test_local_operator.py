@@ -430,3 +430,20 @@ def test_notsharing():
 
     np.testing.assert_allclose(a_orig, a.to_dense())
     np.testing.assert_allclose(a_copy.to_dense(), b.to_dense())
+
+
+def test_correct_minus():
+    # at some point during the rewrite this got broken
+    hi = nk.hilbert.Fock(3)
+    n = nk.operator.boson.number(hi, 0)
+    nd = n.to_dense()
+    I = np.eye(4)
+
+    op = n @ (n - 1)
+    op2 = (n - 1) @ n
+    opd = nd @ (nd - I)
+
+    # they commute
+    assert_same_matrices(op, op2)
+    # they commute
+    assert_same_matrices(op, opd)
