@@ -5,7 +5,7 @@ from netket.utils.types import DType
 import numpy as np
 from numba import jit
 
-from netket.hilbert import AbstractHilbert, SpinOrbitalFermions
+from netket.hilbert import AbstractHilbert, OrbitalFermions, SpinOrbitalFermions
 
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
@@ -27,6 +27,8 @@ class FermionOperator2nd(DiscreteOperator):
 
         r"""
         This class can be initialized in the following form: ``FermionOperator2nd(hilbert, terms, weights ...)``.
+        The terms contain pairs of (idx, dagger), where the idx is the index in the output of the hilbert.all_states()
+        To split up per spin, use the creation and annihilation operators to build the operator.
         Args:
             hilbert (required): hilbert of the resulting FermionOperator2nd object
             terms (list(list(list(int)))): single term operators
@@ -38,7 +40,7 @@ class FermionOperator2nd(DiscreteOperator):
             Constructs a new ``FermionOperator2nd`` operator (0.5-0.5j)*(a_0^dagger a_1) + (0.5+0.5j)*(a_2^dagger a_1)  with the construction scheme.
             >>> import netket as nk
             >>> terms,weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
-            >>> hi = nk.hilbert.SpinOrbitalFermions(3)
+            >>> hi = nk.hilbert.OrbitalFermions(3)
             >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
             >>> terms = ("0^ 1", "2^ 1")
@@ -109,7 +111,9 @@ class FermionOperator2nd(DiscreteOperator):
             self._initialized = True
 
     @staticmethod
-    def destroy(hilbert: AbstractHilbert, site: int, dtype: DType = complex):
+    def destroy(
+        hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = complex
+    ):
         """
         Builds the fermion destruction operator :math:`\\hat{a}` acting on the `site`-th of
         the Hilbert space `hilbert`.
@@ -119,10 +123,13 @@ class FermionOperator2nd(DiscreteOperator):
         Returns:
             The resulting FermionOperator2nd
         """
-        return FermionOperator2nd(hilbert, ("{}".format(int(site)),), dtype=dtype)
+        idx = _get_index(hilbert, site, sz)
+        return FermionOperator2nd(hilbert, ("{}".format(idx),), dtype=dtype)
 
     @staticmethod
-    def create(hilbert: AbstractHilbert, site: int, dtype: DType = complex):
+    def create(
+        hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = complex
+    ):
         """
         Builds the fermion creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th of
         the Hilbert space `hilbert`.
@@ -132,21 +139,25 @@ class FermionOperator2nd(DiscreteOperator):
         Returns:
             The resulting FermionOperator2nd
         """
-        return FermionOperator2nd(hilbert, ("{}^".format(int(site)),), dtype=dtype)
+        idx = _get_index(hilbert, site, sz)
+        return FermionOperator2nd(hilbert, ("{}^".format(idx),), dtype=dtype)
 
     @staticmethod
-    def number(hilbert: AbstractHilbert, site: int, dtype: DType = complex):
+    def number(
+        hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = complex
+    ):
         """
         Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
         `site`-th of the Hilbert space `hilbert`.
         Args:
             hilbert: The hilbert space
             site: the site on which this operator acts
+            sz: spin projection
         Returns:
             The resulting FermionOperator2nd
         """
-        site = int(site)
-        return FermionOperator2nd(hilbert, ("{}^ {}".format(site, site),), dtype=dtype)
+        idx = _get_index(hilbert, site, sz)
+        return FermionOperator2nd(hilbert, ("{}^ {}".format(idx, idx),), dtype=dtype)
 
     @staticmethod
     def from_openfermion(
@@ -197,7 +208,7 @@ class FermionOperator2nd(DiscreteOperator):
             # we always start counting from 0, so we only determine the maximum location
             n_orbitals = _count_of_locations(of_fermion_operator)
         if hilbert is None:
-            hilbert = SpinOrbitalFermions(n_orbitals)  # no spin splitup assumed
+            hilbert = OrbitalFermions(n_orbitals)  # no spin splitup assumed
 
         return FermionOperator2nd(hilbert, terms, weights=weights, constant=constant)
 
@@ -447,6 +458,14 @@ class FermionOperator2nd(DiscreteOperator):
             constant=constant,
             dtype=dtype,
         )
+
+
+def _get_index(hilbert: AbstractHilbert, site: int, sz: float = None):
+    """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
+    if sz is None:
+        return site
+    else:  # we assume hilbert is a SpinOrbitalHilbert
+        return hilbert.get_index(site, sz)
 
 
 def _convert_terms_to_spin_blocks(terms, n_orbitals, n_spin_components):

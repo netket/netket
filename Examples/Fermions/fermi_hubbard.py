@@ -13,19 +13,22 @@ g = nk.graph.Hypercube(length=L, n_dim=D, pbc=True)
 Nsites = g.n_nodes
 
 # create a hilbert space with 2 up and 2 down spins
-hi = nk.hilbert.SpinOrbitalFermions(Nsites, n_fermions_per_spin=(2, 2))
+hi = nk.hilbert.SpinOrbitalFermions(Nsites, s=1 / 2, n_fermions=(2, 2))
 
 # create an operator representing fermi hubbard interactions
 # -t (i^ j + h.c.) + V (i^ i j^ j)
-c = lambda site: nk.operator.FermionOperator2nd.create(hi, site)
-cdag = lambda site: nk.operator.FermionOperator2nd.destroy(hi, site)
-nc = lambda site: nk.operator.FermionOperator2nd.number(hi, site)
+c = lambda site, sz: nk.operator.FermionOperator2nd.create(hi, site, sz=sz)
+cdag = lambda site, sz: nk.operator.FermionOperator2nd.destroy(hi, site, sz=sz)
+nc = lambda site, sz: nk.operator.FermionOperator2nd.number(hi, site, sz=sz)
+up = +1 / 2
+down = -1 / 2
 ham = []
 for u, v in g.edges():
-    hopping = -t * cdag(u) * c(v) - t * cdag(v) * c(u)
-    coulomb = U * nc(u) * nc(v)
-    ham.append(hopping + coulomb)
+    for sz in (up, down):
+        ham.append(-t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz))
+        ham.append(U * nc(u, sz) * nc(v, sz))
 ham = sum(ham)
+print(ham)
 
 # create everything necessary for the VMC
 
@@ -37,7 +40,7 @@ ma = nk.models.RBM(alpha=1, dtype=complex)
 vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=100, n_samples=512)
 
 # we will use sgd with Stochastic R
-opt = nk.optimizer.Sgd(learning_rate=0.01)
+opt = nk.optimizer.Sgd(learning_rate=0.001)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
 gs = nk.driver.VMC(ham, opt, variational_state=vs, preconditioner=sr)

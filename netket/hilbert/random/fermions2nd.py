@@ -15,8 +15,18 @@
 import jax
 from jax import numpy as jnp
 
-from netket.hilbert import SpinOrbitalFermions
+from netket.hilbert import SpinOrbitalFermions, OrbitalFermions
 from netket.utils.dispatch import dispatch
+
+
+@dispatch
+def random_state(hilb: OrbitalFermions, key, batches: int, *, dtype):
+    return random_state(hilb._fock, key, batches, dtype)
+
+
+@dispatch
+def flip_state_scalar(hilb: OrbitalFermions, key, state, index):
+    return flip_state_scalar(hilb._fock, key, state, index)
 
 
 @dispatch
