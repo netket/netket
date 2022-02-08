@@ -531,6 +531,15 @@ op_ferm["fermihubbard_int"] = (
     True,
 )
 
+op_ferm["ordering"] = (
+    nk.operator.FermionOperator2nd(
+        hi,
+        terms=(((0, 1), (0, 0), (1, 1), (1, 0)), ((1, 1), (1, 0), (0, 1), (0, 0))),
+        weights=(1.0 - 1j, 1 + 1j),
+    ),
+    True,
+)
+
 
 @pytest.mark.parametrize(
     "op_ferm, is_hermitian",
