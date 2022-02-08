@@ -27,8 +27,6 @@ from .preconditioner import (
 
 from netket.utils import _hide_submodules
 
-from ._optax import split_complex
-
 
 def Sgd(learning_rate: float):
     r"""Stochastic Gradient Descent Optimizer.
@@ -140,7 +138,7 @@ def Adam(learning_rate: float = 0.001, b1: float = 0.9, b2: float = 0.999, eps=1
         b2: Decay rate for the exponentially weighted average of squared norm of grads.
         eps: Term added to the denominator to improve numerical stability.
     """
-    from ._optax import adam
+    from optax import adam
 
     return adam(learning_rate, b1=b1, b2=b2, eps=eps)
 
