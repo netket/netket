@@ -19,6 +19,7 @@
 
 ### Bug Fixes
 Allow `LazyOperator@densevector` for operators such as lazy `Adjoint`, `Transpose` and `Squared`. [#1068](https://github.com/netket/netket/pull/1068) 
+* The `nk.logging.TensorBoardLog` is now lazily initialized to better work in an MPI environment. [#1086](https://github.com/netket/netket/pull/1086)
 
 
 ## NetKet 3.3.1 (🐛 Bug Fixes)
