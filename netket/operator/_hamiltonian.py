@@ -573,7 +573,7 @@ class BoseHubbard(SpecialHamiltonian):
         if self.U != 0 or self.mu != 0:
             for i in range(self.hilbert.size):
                 n_i = boson.number(self.hilbert, i)
-                ha += self.U * n_i * (n_i - 1) - self.mu * n_i
+                ha += (self.U / 2) * n_i * (n_i - 1) - self.mu * n_i
 
         if self.J != 0:
             for (i, j) in self.edges:

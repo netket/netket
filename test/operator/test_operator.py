@@ -7,12 +7,12 @@ import jax
 operators = {}
 
 # Ising 1D
-g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 operators["Ising 1D"] = nk.operator.Ising(hi, g, h=1.321)
 
 # Heisenberg 1D
-g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
+g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0, N=g.n_nodes)
 operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi, graph=g)
 
@@ -20,6 +20,12 @@ operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi, graph=g)
 g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
 hi = nk.hilbert.Fock(n_max=3, n_particles=6, N=g.n_nodes)
 operators["Bose Hubbard"] = nk.operator.BoseHubbard(U=4.0, hilbert=hi, graph=g)
+
+g = nk.graph.Hypercube(length=3, n_dim=1, pbc=True)
+hi = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
+operators["Bose Hubbard Complex"] = nk.operator.BoseHubbard(
+    U=4.0, V=2.3, mu=-0.4, J=0.7, hilbert=hi, graph=g
+)
 
 # Graph Hamiltonian
 N = 10
@@ -93,6 +99,14 @@ for name, op in operators.items():
         op_special[name] = op
 
 
+# Operators that can be converted to a dense matrix without going OOM
+op_finite_size = {}
+for name, op in operators.items():
+    hi = op.hilbert
+    if hi.is_finite and hi.n_states < 2 ** 14:
+        op_finite_size[name] = op
+
+
 @pytest.mark.parametrize("attr", ["get_conn", "get_conn_padded"])
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
@@ -139,10 +153,44 @@ def test_is_hermitean(op):
             for kp, invstate in enumerate(invstates):
                 if np.array_equal(rstate, invstate.flatten()):
                     found = True
-                    assert mels1[kp] == np.conj(mels[k])
+                    np.testing.assert_allclose(mels1[kp], np.conj(mels[k]))
                     break
 
             assert found
+
+
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(op, id=name) for name, op in operators.items()],
+)
+def test_lazy_hermitian(op):
+    if op.is_hermitian:
+        assert isinstance(op.H, type(op))
+        assert op == op.H
+    else:
+        if np.issubdtype(op.dtype, np.complexfloating):
+            assert isinstance(op.H, nk.operator.Adjoint)
+        else:
+            assert isinstance(op.H, nk.operator.Transpose)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(op, id=name) for name, op in op_finite_size.items()],
+)
+def test_lazy_squared(op):
+    if isinstance(op, nk.operator.PauliStrings):
+        pytest.xfail(reason="Not Implemented")
+
+    op2 = op.H @ op
+    opd = op.to_dense()
+    op2d = opd.transpose().conjugate() @ opd
+    assert isinstance(op2, nk.operator.Squared)
+
+    op2_c = op2.collect()
+    assert isinstance(op2_c, nk.operator.AbstractOperator)
+    assert not isinstance(op2_c, nk.operator.Squared)
+    np.testing.assert_allclose(op2_c.to_dense(), op2d, atol=1e-13)
 
 
 @pytest.mark.parametrize(
@@ -206,8 +254,9 @@ def test_get_conn_padded(op, shape):
     "op", [pytest.param(op, id=name) for name, op in op_special.items()]
 )
 def test_to_local_operator(op):
-    op.to_local_operator()
-    # TODO check dense representaiton.
+    op_l = op.to_local_operator()
+    assert isinstance(op_l, nk.operator.LocalOperator)
+    np.testing.assert_allclose(op.to_dense(), op_l.to_dense(), atol=1e-13)
 
 
 def test_no_segfault():
