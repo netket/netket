@@ -311,7 +311,7 @@ class TDVP(AbstractVariationalDriver):
         callback_stop = False
 
         with tqdm(
-            total=float(self.t + T),
+            total=np.asarray(self.t + T),
             disable=not show_progress,
             unit_scale=True,
         ) as pbar:
@@ -326,7 +326,7 @@ class TDVP(AbstractVariationalDriver):
                     first_step = False
                     pbar.unpause()
 
-                pbar.n = float(self._integrator.t)
+                pbar.n = np.asarray(self._integrator.t)
                 self._postfix["n"] = self.step_count
                 pbar.set_postfix(self._postfix)
                 pbar.refresh()
