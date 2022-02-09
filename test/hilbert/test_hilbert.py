@@ -390,3 +390,17 @@ def test_fermions():
     assert hi.size == 10
     assert np.all(hi.all_states()[:, :5].sum(axis=-1) == 2)
     assert np.all(hi.all_states()[:, 5:].sum(axis=-1) == 1)
+
+    hi = SpinOrbitalFermions(3, s=1 / 2)
+    assert (
+        hi._get_index(0, -0.5) == 0
+    )  # first block (-0.5) and first site (1) --> idx = 0
+    assert (
+        hi._get_index(1, -0.5) == 1
+    )  # first block (-0.5) and second site (1) --> idx = 1
+    assert (
+        hi._get_index(0, +0.5) == 3
+    )  # first block (-0.5) and first site (1) --> idx = 0 + n_orbital
+    assert (
+        hi._get_index(1, +0.5) == 4
+    )  # first block (-0.5) and second site (1) --> idx = 1 + n_orbital

@@ -7,6 +7,7 @@ from netket.hilbert.homogeneous import HomogeneousHilbert
 import jax.numpy as jnp
 from netket.hilbert.tensor_hilbert import TensorHilbert
 import numpy as np
+from fractions import Fraction
 
 
 class SpinOrbitalFermions(HomogeneousHilbert):
@@ -70,6 +71,8 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         _str = "SpinOrbitalFermions(n_orbitals={}".format(self.n_orbitals)
         if self.n_fermions is not None:
             _str += ", n_fermions={}".format(self.n_fermions)
+        if self.spin != 0.0:
+            _str += ", s={}".format(Fraction(self.spin))
         _str += ")"
         return _str
 
@@ -101,10 +104,9 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
     def _spin_index(self, sz: float) -> int:
         """return the index of the Fock block corresponding to the sz projection"""
-        return round(2 * sz + 2 * self.spin)
+        return round(sz + self.spin)
 
     def _get_index(self, orb: int, sz: float = None):
         """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
-        n_spin_states = self._n_spin_states
         spin_idx = self._spin_index(sz)
-        return spin_idx * n_spin_states + orb
+        return spin_idx * self.n_orbitals + orb
