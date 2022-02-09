@@ -9,19 +9,26 @@
 [GitHub commits](https://github.com/netket/netket/compare/v3.3...master).
 
 ### New features
-* Support for Python 3.10 [#952](https://github.com/netket/netket/pull/952).
 * `Lattice` supports specifying arbitrary edge content for each unit cell via the kwarg `custom_edges`. A generator for hexagonal lattices with coloured edges is implemented as `nk.graph.KitaevHoneycomb`. `nk.graph.Grid` again supports colouring edges by direction. [#1074](https://github.com/netket/netket/pull/1074)
 
 ### Breaking Changes
 * The gradient for models with real-parameter is now multiplied by 2. If your model had real parameters you might need to change the learning rate and halve it. Conceptually this is a bug-fix, as the value returned before was wrong (see Bug Fixes section below for additional details) [#1069](https://github.com/netket/netket/pull/1069)
 
 ### Internal Changes
-* The minimum [optax](https://github.com/deepmind/optax) version is now `0.1.1`, which finally correctly supports complex numbers. The internal implementation of Adam which was introduced in 3.3 ([#1069](https://github.com/netket/netket/pull/1069)) has been removed. If an older version of `optax` is detected, an import error is thrown to avoid providing wrong numerical results. Please update your optax version!
+
+### Bug Fixes
+* The gradient obtained with `VarState.expect_and_grad` for models with real-parameters was off by a factor of $ 1/2 $ from the correct value. This has now been corrected. As a consequence, the correct gradient for real-parameter models is equal to the old times 2. If your model had real parameters you might need to change the learning rate and halve it. [#1069](https://github.com/netket/netket/pull/1069)
+* Support for coloured edges in `nk.graph.Grid`, removed in [#724](https://github.com/netket/netket/pull/724), is now restored. [#1074](https://github.com/netket/netket/pull/1074)
+
+
+## NetKet 3.3.2 (🐛 Bug Fixes)
+
+### Internal Changes
+* Support for Python 3.10 [#952](https://github.com/netket/netket/pull/952).
+* The minimum [optax](https://github.com/deepmind/optax) version is now `0.1.1`, which finally correctly supports complex numbers. The internal implementation of Adam which was introduced in 3.3 ([#1069](https://github.com/netket/netket/pull/1069)) has been removed. If an older version of `optax` is detected, an import error is thrown to avoid providing wrong numerical results. Please update your optax version! [#1097](https://github.com/netket/netket/pull/1097)
 
 ### Bug Fixes
 * Allow `LazyOperator@densevector` for operators such as lazy `Adjoint`, `Transpose` and `Squared`. [#1068](https://github.com/netket/netket/pull/1068) 
-* The gradient obtained with `VarState.expect_and_grad` for models with real-parameters was off by a factor of $ 1/2 $ from the correct value. This has now been corrected. As a consequence, the correct gradient for real-parameter models is equal to the old times 2. If your model had real parameters you might need to change the learning rate and halve it. [#1069](https://github.com/netket/netket/pull/1069)
-* Support for coloured edges in `nk.graph.Grid`, removed in [#724](https://github.com/netket/netket/pull/724), is now restored. [#1074](https://github.com/netket/netket/pull/1074)
 * The logic to update the progress bar in `nk.experimental.TDVP` has been improved, and it should now display updates even if there are very sparse `save_steps`. [#1084](https://github.com/netket/netket/pull/1084)
 * The `nk.logging.TensorBoardLog` is now lazily initialized to better work in an MPI environment. [#1086](https://github.com/netket/netket/pull/1086)
 * Converting a `nk.operator.BoseHubbard` to a `nk.operator.LocalOperator` multiplied by 2 the nonlinearity `U`. This has now been fixed. [#1102](https://github.com/netket/netket/pull/1102)
