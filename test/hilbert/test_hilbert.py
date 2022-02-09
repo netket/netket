@@ -391,16 +391,51 @@ def test_fermions():
     assert np.all(hi.all_states()[:, :5].sum(axis=-1) == 2)
     assert np.all(hi.all_states()[:, 5:].sum(axis=-1) == 1)
 
+
+def test_fermions_states():
+    import scipy.special
+
+    hi = SpinOrbitalFermions(5)
+    assert hi.size == 5
+    assert hi.n_states == 2 ** 5
+
+    hi = SpinOrbitalFermions(5, n_fermions=2)
+    assert hi.size == 5
+    assert np.all(hi.all_states().sum(axis=-1) == 2)
+    assert hi.n_states == int(scipy.special.comb(5, 2))
+
+    hi = SpinOrbitalFermions(5, s=1 / 2, n_fermions=2)
+    assert hi.size == 10
+    assert np.all(hi.all_states().sum(axis=-1) == 2)
+    # distribute 2 fermions over (2*number of orbitals)
+    assert hi.n_states == int(scipy.special.comb(2 * 5, 2))
+
+    hi = SpinOrbitalFermions(5, s=1 / 2, n_fermions=(2, 1))
+    assert hi.size == 10
+    assert np.all(hi.all_states()[:, :5].sum(axis=-1) == 2)
+    assert np.all(hi.all_states()[:, 5:].sum(axis=-1) == 1)
+    # product of all_states for -1/2 spin block and states for 1/2 block
+    assert hi.n_states == int(scipy.special.comb(5, 2) * scipy.special.comb(5, 1))
+
+
+def test_fermions_spin_index():
+    hi = SpinOrbitalFermions(5, s=1 / 2)
+    assert hi._spin_index(-0.5) == 0  # indexing starts from -spin
+    # sz=-0.5 --> block 0, sz= +0.5 --> block 1
+    assert hi._spin_index(0.5) == 1
+    hi = SpinOrbitalFermions(5, s=3 / 2)
+    assert hi._spin_index(-0.5) == 1  # indexing starts from -spin
+    # sz=-1.5 --> block 0, sz=-0.5 --> block 1, sz= 0.5 --> block 2, ...
+    assert hi._spin_index(0.5) == 2
+
+
+def test_fermions_get_index():
     hi = SpinOrbitalFermions(3, s=1 / 2)
-    assert (
-        hi._get_index(0, -0.5) == 0
-    )  # first block (-0.5) and first site (1) --> idx = 0
-    assert (
-        hi._get_index(1, -0.5) == 1
-    )  # first block (-0.5) and second site (1) --> idx = 1
-    assert (
-        hi._get_index(0, +0.5) == 3
-    )  # first block (-0.5) and first site (1) --> idx = 0 + n_orbital
-    assert (
-        hi._get_index(1, +0.5) == 4
-    )  # first block (-0.5) and second site (1) --> idx = 1 + n_orbital
+    # first block (-0.5) and first site (1) --> idx = 0
+    assert hi._get_index(0, -0.5) == 0
+    # first block (-0.5) and second site (1) --> idx = 1
+    assert hi._get_index(1, -0.5) == 1
+    # first block (-0.5) and first site (1) --> idx = 0 + n_orbital
+    assert hi._get_index(0, +0.5) == 3
+    # first block (-0.5) and second site (1) --> idx = 1 + n_orbital
+    assert hi._get_index(1, +0.5) == 4

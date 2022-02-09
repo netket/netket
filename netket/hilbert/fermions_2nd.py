@@ -16,13 +16,13 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     ):
         r"""
         Class of fermions in 2nd quantization with n_orbitals and spin s.
-        Samples of this hilbert space represents occupations numbers (0,1) of the orbitals.
+        Samples of this hilbert space represent occupation numbers (0,1) of the orbitals.
         Number of fermions can be fixed by setting n_fermions.
         If the spin is different from 0, n_fermions can also be a list to fix the number of fermions per spin component.
         Using this class, one can generate a tensor product of fermionic hilbert spaces that distinguish particles with different spin.
 
         Args:
-            n_orbitals (required): number of orbitals we store occupation numbers for. If the number of fermions per spin is converved, the different spin configurations are not counted as orbitals and are handled differently.
+            n_orbitals (required): number of orbitals we store occupation numbers for. If the number of fermions per spin is conserved, the different spin configurations are not counted as orbitals and are handled differently.
             s (float): spin of the fermions.
             n_fermions (optional, int or list(int)): fixed number of fermions per spin (conserved). In the case n_fermions is an int, the total number of fermions is fixed, while for lists, the number of fermions per spin component is fixed.
 
