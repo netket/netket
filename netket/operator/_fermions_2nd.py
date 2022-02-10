@@ -11,6 +11,7 @@ from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 import re
+from collections import defaultdict
 
 
 class FermionOperator2nd(DiscreteOperator):
@@ -473,9 +474,9 @@ def _check_hermitian(
     # save in a dictionary the normal ordered terms and weights
     normal_ordered = _normal_ordering(terms, weights)
 
-    dict_normal = {}
+    dict_normal = defaultdict(complex)
     for term, weight in zip(*normal_ordered):
-        dict_normal[tuple(term)] = weight
+        dict_normal[tuple(term)] += weight
 
     # take the hermitian conjugate of the terms
     hc = _herm_conj(terms, weights)
@@ -484,9 +485,9 @@ def _check_hermitian(
     hc_normal_ordered = _normal_ordering(*hc)
 
     # save in a dictionary the normal ordered h.c. terms and weights
-    dict_hc_normal = {}
+    dict_hc_normal = defaultdict(complex)
     for term_hc, weight_hc in zip(*hc_normal_ordered):
-        dict_hc_normal[tuple(term_hc)] = weight_hc
+        dict_hc_normal[tuple(term_hc)] += weight_hc
 
     # check if hermitian by comparing the dictionaries
     is_hermitian = dict_normal == dict_hc_normal
@@ -573,7 +574,7 @@ def _herm_conj(terms: List[List[List[int]]], weights: List[Union[float, complex]
     conj_weight = []
     # loop over all terms and weights and get the hermitian conjugate
     for term, weight in zip(terms, weights):
-        conj_term.append([(op, 1 - action) for (op, action) in reversed(term)])
+        conj_term.append([(op, 1 - dag) for (op, dag) in reversed(term)])
         conj_weight.append(weight.conjugate())
     return conj_term, conj_weight
 
