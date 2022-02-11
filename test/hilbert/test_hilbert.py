@@ -217,9 +217,6 @@ def test_random_states_particle(hi: Particle):
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_flip_state_discrete(hi: DiscreteHilbert):
 
-    if isinstance(hi, HomogeneousHilbert) and hi.constrained:
-        return  # makes little sense in most cases
-
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
 
@@ -374,8 +371,10 @@ def test_fermions():
     # size checks
     hi = nkx.hilbert.SpinOrbitalFermions(3)
     assert hi.size == 3
+    assert hi.spin == 0.0
     hi = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2)
     assert hi.size == 6
+    assert hi.spin == 1 / 2
     hi = nkx.hilbert.SpinOrbitalFermions(3, n_fermions=2)
     assert hi.size == 3
     hi = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions=(2, 3))
@@ -385,11 +384,13 @@ def test_fermions():
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
     assert hi.n_states == 2 ** 5
+    assert hi.spin == 0.0
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
     assert np.all(hi.all_states().sum(axis=-1) == 2)
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=(2, 1))
     assert hi.size == 10
+    assert hi.spin == 1 / 2
     assert np.all(hi.all_states()[:, :5].sum(axis=-1) == 2)
     assert np.all(hi.all_states()[:, 5:].sum(axis=-1) == 1)
 

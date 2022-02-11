@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2022 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.utils.types import DType
-from netket.hilbert.abstract_hilbert import AbstractHilbert
-from netket.experimental.operator import FermionOperator2nd
+from netket.utils.types import DType as _DType
+from netket.hilbert.abstract_hilbert import AbstractHilbert as _AbstractHilbert
+from netket.experimental.operator import FermionOperator2nd as _FermionOperator2nd
 
 
 def destroy(
-    hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = complex
+    hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = complex
 ):
     """
     Builds the fermion destruction operator :math:`\\hat{a}` acting on the `site`-th of
@@ -33,10 +33,12 @@ def destroy(
         The resulting FermionOperator2nd
     """
     idx = _get_index(hilbert, site, sz)
-    return FermionOperator2nd(hilbert, ("{}".format(idx),), dtype=dtype)
+    return _FermionOperator2nd(hilbert, (f"{idx}",), dtype=dtype)
 
 
-def create(hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = complex):
+def create(
+    hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = complex
+):
     """
     Builds the fermion creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th of
     the Hilbert space `hilbert`.
@@ -46,15 +48,16 @@ def create(hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = c
         site (int): the site on which this operator acts
         sz (int): spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 down)
 
-
     Returns:
         The resulting FermionOperator2nd
     """
     idx = _get_index(hilbert, site, sz)
-    return FermionOperator2nd(hilbert, ("{}^".format(idx),), dtype=dtype)
+    return _FermionOperator2nd(hilbert, (f"{idx}^",), dtype=dtype)
 
 
-def number(hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = complex):
+def number(
+    hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = complex
+):
     """
     Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -69,12 +72,22 @@ def number(hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = c
         The resulting FermionOperator2nd
     """
     idx = _get_index(hilbert, site, sz)
-    return FermionOperator2nd(hilbert, ("{}^ {}".format(idx, idx),), dtype=dtype)
+    return _FermionOperator2nd(hilbert, (f"{idx}^ {idx}",), dtype=dtype)
 
 
-def _get_index(hilbert: AbstractHilbert, site: int, sz: float = None):
+def _get_index(hilbert: _AbstractHilbert, site: int, sz: float = None):
     """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
     if sz is None:
         return site
     else:  # we assume hilbert is a SpinOrbitalHilbert
         return hilbert._get_index(site, sz)
+
+
+def identity(hilbert: _AbstractHilbert):
+    """identity operator"""
+    return _FermionOperator2nd(hilbert, [], [], constant=1.0)
+
+
+def zero(hilbert: _AbstractHilbert):
+    """returns an object that has no contribution, meaning a constant of 0"""
+    return _FermionOperator2nd(hilbert, [], [], constant=0.0)

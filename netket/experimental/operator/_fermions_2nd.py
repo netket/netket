@@ -1,18 +1,18 @@
-from multiprocessing.sharedctypes import Value
-from typing import List, Union
-from netket.utils.types import DType
+from typing import List, Union, Optional
+import re
+from collections import defaultdict
 
 import numpy as np
 from numba import jit
 
+from netket.utils.types import DType
 from netket.hilbert import AbstractHilbert
-from netket.experimental.hilbert import SpinOrbitalFermions
-
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
-import re
-from collections import defaultdict
+
+from netket.experimental.hilbert import SpinOrbitalFermions
+import netket.experimental as nkx
 
 
 class FermionOperator2nd(DiscreteOperator):
@@ -60,11 +60,15 @@ class FermionOperator2nd(DiscreteOperator):
         """
         super().__init__(hilbert)
         self._dtype = dtype
+
+        # following lists will be used to compute matrix elements
+        # they are filled in _add_term
         self._orb_idxs = []
         self._daggers = []
         self._term_ends = []
         self._weights = []
         self._n_terms = 0
+
         # we keep the input, in order to be able to add terms later
         self._orig_terms = []
         self._orig_weights = []
@@ -80,17 +84,23 @@ class FermionOperator2nd(DiscreteOperator):
             weights = [1.0] * len(terms)
 
         if not len(weights) == len(terms):
-            raise ValueError("length of weights should be equal")
+            raise ValueError(
+                f"length of weights should be equal, but received {len(weights)} and {len(terms)}"
+            )
 
         for term, weight in zip(terms, weights):
-            self.add_term(term, weight=weight)
+            self._add_term(term, weight=weight)
 
         _check_tree_structure(self._orig_terms)
 
         self._initialized = False
-        self._is_hermitian = None
+        self._is_hermitian = None  # set when requested
 
-    def add_term(self, term, weight=1.0):
+    def _add_term(self, term, weight=1.0):
+        """
+        Processes and adds a single term such that we can compute its matrix elements,
+        which can be in string format `1^ 2` or in tuple format ((1,1), (2,0))
+        """
         if isinstance(term, str):
             term = _parse_string(term)
 
@@ -99,13 +109,15 @@ class FermionOperator2nd(DiscreteOperator):
         if len(term) == 0:
             raise ValueError("terms cannot be size 0")
         if not all(len(t) == 2 for t in term):
-            raise ValueError(
-                "terms must contain (i, dag) pairs, but received {}".format(term)
-            )
+            raise ValueError(f"terms must contain (i, dag) pairs, but received {term}")
         for orb_idx, dagger in reversed(term):
+            # orb_idxs: holds the hilbert index of the orbital
             self._orb_idxs.append(orb_idx)
+            # daggers: stores whether operator is creator or annihilator
             self._daggers.append(bool(dagger))
+            # weights: stores the weights corresponding to this term
             self._weights.append(weight)
+            # term_ends keeps a flag that determines whether we've reached the end of this term and will start a new one after
             self._term_ends.append(False)
         self._term_ends[-1] = True
         self._n_terms += 1
@@ -124,19 +136,20 @@ class FermionOperator2nd(DiscreteOperator):
         hilbert: AbstractHilbert,
         of_fermion_operator: "openfermion.ops.FermionOperator" = None,  # noqa: F821
         *,
-        n_orbitals: int = None,
+        n_orbitals: Optional[int] = None,
         convert_spin_blocks: bool = False,
     ):
         r"""
         Converts an openfermion FermionOperator into a netket FermionOperator2nd.
+
         The hilbert first argument can be dropped, see __init__ for details and default value.
         Warning: convention of openfermion.hamiltonians is different from ours: instead of strong spin components as subsequent hilbert state outputs (i.e. the 1/2 spin components of spin-orbit i are stored in locations (2*i, 2*i+1)), we concatenate blocks of definite spin (i.e. locations (i, n_orbitals+i)).
 
         Args:
-            hilbert (optional): hilbert of the resulting FermionOperator2nd object
-            of_fermion_operator (required): openfermion.ops.FermionOperator object
-            n_orbitals (int): total number of orbitals in the system, default None means inferring it from the FermionOperator2nd. Argument is ignored when hilbert is given.
-            convert_spin_blocks (bool): whether or not we need to convert the FermionOperator to our convention. Only works if hilbert is provided and if it has spin != 0
+            hilbert: (optional) hilbert of the resulting FermionOperator2nd object
+            of_fermion_operator: openfermion.ops.FermionOperator object
+            n_orbitals: (optional) total number of orbitals in the system, default None means inferring it from the FermionOperator2nd. Argument is ignored when hilbert is given.
+            convert_spin_blocks: whether or not we need to convert the FermionOperator to our convention. Only works if hilbert is provided and if it has spin != 0
 
         Returns:
             A FermionOperator2nd object.
@@ -144,7 +157,11 @@ class FermionOperator2nd(DiscreteOperator):
         from openfermion.ops import FermionOperator
 
         if hilbert is None:
-            raise ValueError("None-valued hilbert passed.")
+            raise ValueError(
+                "The first argument `from_openfermion` must either be an"
+                "openfermion operator or an Hilbert space, followed by"
+                "an openfermion operator"
+            )
 
         if not isinstance(hilbert, AbstractHilbert):
             # if first argument is not Hilbert, then shift all arguments by one
@@ -175,9 +192,7 @@ class FermionOperator2nd(DiscreteOperator):
         return FermionOperator2nd(hilbert, terms, weights=weights, constant=constant)
 
     def __repr__(self):
-        return "FermionOperator2nd(hilbert={}, n_terms={})".format(
-            self.hilbert, self._n_terms
-        )
+        return f"FermionOperator2nd(hilbert={self.hilbert}, n_terms={self._n_terms})"
 
     @property
     def dtype(self) -> DType:
@@ -339,16 +354,6 @@ class FermionOperator2nd(DiscreteOperator):
         else:
             return x_prime[:n_c], mels[:n_c]
 
-    @staticmethod
-    def identity(hilbert):
-        """identity operator"""
-        return FermionOperator2nd(hilbert, [], [], constant=1.0)
-
-    @staticmethod
-    def zero(hilbert):
-        """returns an object that has no contribution, meaning a constant of 0"""
-        return FermionOperator2nd(hilbert, [], [], constant=0.0)
-
     def _op__matmul__(self, other):
         if not isinstance(other, FermionOperator2nd):
             return NotImplementedError
@@ -382,7 +387,7 @@ class FermionOperator2nd(DiscreteOperator):
     def __add__(self, other):
         if np.issubdtype(type(other), np.number):
             if other != 0.0:
-                return self + FermionOperator2nd.identity(self.hilbert) * other
+                return self + nkx.operator.fermion.identity(self.hilbert) * other
             return self
         if not isinstance(other, FermionOperator2nd):
             raise NotImplementedError
@@ -441,7 +446,10 @@ def _convert_terms_to_spin_blocks(terms, n_orbitals, n_spin_components):
 
 
 def _collect_constants(terms, weights):
-    """openfermion has the convention to store constants as empty terms"""
+    """
+    Openfermion has the convention to store constants as empty terms
+    Returns new terms and weights list, and the collected constants
+    """
     new_terms = []
     new_weights = []
     constant = 0.0
@@ -477,7 +485,12 @@ def _parse_string(s):
 def _check_hermitian(
     terms: List[List[List[int]]], weights: Union[float, complex] = 1.0
 ):
-    """Check whether a set of terms and weights for a hermitian operator"""
+    """
+    Check whether a set of terms and weights for a hermitian operator
+    The terms are ordered into a canonical form with daggers and high orbital numbers to the left.
+    After conjugation, the result is again reordered into canonical form.
+    The result of both ordered lists of terms and weights are compared to be the same
+    """
 
     # save in a dictionary the normal ordered terms and weights
     normal_ordered = _normal_ordering(terms, weights)
@@ -603,6 +616,6 @@ def _check_tree_structure(terms):
     pairs = []
     _descend(terms, 0, depths, pairs)
     if not np.all(np.array(depths) == 3):
-        raise ValueError("terms is not a depth 3 tree, found depths {}".format(depths))
+        raise ValueError(f"terms is not a depth 3 tree, found depths {depths}")
     if not np.all(pairs):
         raise ValueError("terms should be provided in (i, dag) pairs")

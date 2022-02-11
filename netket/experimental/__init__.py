@@ -14,12 +14,12 @@
 
 __all__ = ["driver", "dynamics", "sampler", "vqs", "TDVP", "hilbert", "operator"]
 
+from . import hilbert
+from . import operator
 from . import driver
 from . import dynamics
 from . import sampler
 from . import vqs
-from . import hilbert
-from . import operator
 
 from .driver import TDVP
 

@@ -18,6 +18,6 @@ __all__ = ["FermionOperator2nd"]
 from ._fermions_2nd import FermionOperator2nd
 from . import fermion
 
-from netket.utils import _hide_submodules
+from netket.utils import _auto_export
 
-_hide_submodules(__name__)
+_auto_export(__name__)
