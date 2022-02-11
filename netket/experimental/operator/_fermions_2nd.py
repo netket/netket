@@ -34,7 +34,7 @@ class FermionOperator2nd(DiscreteOperator):
 
         Args:
             hilbert (required): hilbert of the resulting FermionOperator2nd object
-            terms (list(list(list(int)))): single term operators
+            terms (list(str) or list(list(list(int)))): single term operators (see example below)
             weights (list(union(float,complex))): corresponding coefficients of the single term operators
 
         Returns:
@@ -42,16 +42,20 @@ class FermionOperator2nd(DiscreteOperator):
 
         Example:
             Constructs a new ``FermionOperator2nd`` operator (0.5-0.5j)*(a_0^dagger a_1) + (0.5+0.5j)*(a_2^dagger a_1)  with the construction scheme.
-            >>> import netket as nk
-            >>> terms,weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
-            >>> hi = nk.hilbert.SpinOrbitalFermions(3)
-            >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
+            >>> import netket.experimental as nkx
+            >>> terms, weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
+            >>> hi = nkx.hilbert.SpinOrbitalFermions(3)
+            >>> op = nkx.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
+            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_terms=2)
             >>> terms = ("0^ 1", "2^ 1")
-            >>> op = nk.operator.FermionOperator2nd(hi, terms, weights)
+            >>> op = nkx.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
+            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_terms=2)
             >>> op.hilbert
+            SpinOrbitalFermions(n_orbitals=3)
             >>> op.hilbert.size
+            3
         """
         super().__init__(hilbert)
         self._dtype = dtype
