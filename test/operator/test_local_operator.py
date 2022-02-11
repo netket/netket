@@ -458,13 +458,14 @@ def test_correct_minus():
     # they commute
     assert_same_matrices(op, opd)
 
+
 def test_operator():
     # check that heterogeneous hilbert spaces are ordered correctly #1106
     n_max = 5
     hi = nk.hilbert.Fock(n_max, N=1) * nk.hilbert.Qubit()
     a = nk.operator.boson.destroy(hi, 0)
     sp = nk.operator.spin.sigmap(hi, 1)
-    op1 = a*sp
-    op2 = sp*a
+    op1 = a * sp
+    op2 = sp * a
 
     assert_same_matrices(op1, op2)
