@@ -20,7 +20,6 @@ from ._graph_operator import GraphOperator
 from ._pauli_strings import PauliStrings
 from ._lazy import Adjoint, Transpose, Squared
 from ._hamiltonian import Ising, Heisenberg, BoseHubbard
-from ._fermions_2nd import FermionOperator2nd
 
 from ._abstract_super_operator import AbstractSuperOperator
 from ._local_liouvillian import LocalLiouvillian
@@ -30,7 +29,7 @@ from ._kinetic import KineticEnergy
 from ._potential import PotentialEnergy
 from ._sumoperators import SumOperator
 
-from . import spin, boson, fermion
+from . import spin, boson
 
 from netket.utils import _auto_export
 

@@ -2,7 +2,8 @@ import netket as nk
 import numpy as np
 import matplotlib.pyplot as plt
 import json
-from netket.operator.fermion import create, destroy, number
+from netket.experimental.operator.fermion import create, destroy, number
+from netket.experimental.hilbert import SpinOrbitalFermions
 
 L = 2  # take a 2x2 lattice
 D = 2
@@ -14,7 +15,7 @@ g = nk.graph.Hypercube(length=L, n_dim=D, pbc=True)
 Nsites = g.n_nodes
 
 # create a hilbert space with 2 up and 2 down spins
-hi = nk.hilbert.SpinOrbitalFermions(Nsites, s=1 / 2, n_fermions=(2, 2))
+hi = SpinOrbitalFermions(Nsites, s=1 / 2, n_fermions=(2, 2))
 
 # create an operator representing fermi hubbard interactions
 # -t (i^ j + h.c.) + U (i^ i j^ j)

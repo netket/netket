@@ -14,7 +14,7 @@
 
 from netket.utils.types import DType
 from netket.hilbert.abstract_hilbert import AbstractHilbert
-from netket.operator import FermionOperator2nd
+from netket.experimental.operator import FermionOperator2nd
 
 
 def destroy(
