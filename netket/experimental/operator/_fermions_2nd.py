@@ -88,7 +88,7 @@ class FermionOperator2nd(DiscreteOperator):
         _check_tree_structure(self._orig_terms)
 
         self._initialized = False
-        self._is_hermitian = _check_hermitian(self._orig_terms, self._orig_weights)
+        self._is_hermitian = None
 
     def add_term(self, term, weight=1.0):
         if isinstance(term, str):
@@ -192,6 +192,8 @@ class FermionOperator2nd(DiscreteOperator):
     @property
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
+        if self._is_hermitian is None:  # only compute when needed, is expensive
+            self._is_hermitian = _check_hermitian(self._orig_terms, self._orig_weights)
         return self._is_hermitian
 
     def _get_conn_flattened_closure(self):
