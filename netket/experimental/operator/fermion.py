@@ -26,7 +26,8 @@ def destroy(
 
     Args:
         hilbert: The hilbert space
-        site: the site on which this operator acts
+        site (int): the site on which this operator acts
+        sz (int): spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 down)
 
     Returns:
         The resulting FermionOperator2nd
@@ -42,7 +43,9 @@ def create(hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = c
 
     Args:
         hilbert: The hilbert space
-        site: the site on which this operator acts
+        site (int): the site on which this operator acts
+        sz (int): spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 down)
+
 
     Returns:
         The resulting FermionOperator2nd
@@ -59,7 +62,8 @@ def number(hilbert: AbstractHilbert, site: int, sz: int = None, dtype: DType = c
     Args:
         hilbert: The hilbert space
         site: the site on which this operator acts
-        sz: spin projection
+        site (int): the site on which this operator acts
+        sz (int): spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 fermion with spin down)
 
     Returns:
         The resulting FermionOperator2nd

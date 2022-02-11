@@ -16,8 +16,6 @@ from collections import defaultdict
 
 
 class FermionOperator2nd(DiscreteOperator):
-    """Constructs a fermion operator given the single terms (set of creation/annihilation operators) in second quantization formalism."""
-
     def __init__(
         self,
         hilbert: AbstractHilbert,
@@ -28,14 +26,17 @@ class FermionOperator2nd(DiscreteOperator):
     ):
 
         r"""
+        Constructs a fermion operator given the single terms (set of creation/annihilation operators) in second quantization formalism.
         This class can be initialized in the following form: ``FermionOperator2nd(hilbert, terms, weights ...)``.
-        The terms contain pairs of (idx, dagger), where the idx is the index in the output of the hilbert.all_states()
+        The terms contain pairs of (idx, dagger), where the idx is the index in the output of the hilbert.all_states().
+        A term of the form :math:`\\hat{a}_1^\\dagger \\hat{a}_2` would take the form ((1,1), (2,0)), where (1,1) represents :math:`\\hat{a}_1^\\dagger` and (2,0) represents :math:`\\hat{a}_2`.
         To split up per spin, use the creation and annihilation operators to build the operator.
 
         Args:
             hilbert (required): hilbert of the resulting FermionOperator2nd object
             terms (list(str) or list(list(list(int)))): single term operators (see example below)
             weights (list(union(float,complex))): corresponding coefficients of the single term operators
+            constant (float, complex): constant contribution (corresponding to the identity operator * constant)
 
         Returns:
             A FermionOperator2nd object.
