@@ -96,8 +96,6 @@ class SpecialHamiltonian(DiscreteOperator):
         return self.to_local_operator().__matmul__(other)
 
     def _op__rmatmul__(self, other):
-        if self == other and self.is_hermitian:
-            return Squared(self)
         if hasattr(other, "to_local_operator"):
             other = other.to_local_operator()
 
