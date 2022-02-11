@@ -2,6 +2,7 @@ import netket as nk
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+import jax
 from netket.experimental.operator.fermion import create, destroy, number
 from netket.experimental.hilbert import SpinOrbitalFermions
 
@@ -25,24 +26,33 @@ nc = lambda site, sz: number(hi, site, sz=sz)
 up = +1 / 2
 down = -1 / 2
 ham = []
-for u, v in g.edges():
-    for sz in (up, down):
+for sz in (up, down):
+    for u, v in g.edges():
         ham.append(-t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz))
-        ham.append(U * nc(u, sz) * nc(v, sz))
+for u in g.nodes():
+    ham.append(U * nc(u, up) * nc(u, down))  # spinful interaction on site
 ham = sum(ham)
 
 # create everything necessary for the VMC
 
-# move the fermions around
-sa = nk.sampler.MetropolisExchange(hi, graph=g)
+# metropolis exchange moves fermions around according to a graph
+# the physical graph has LxL vertices, but the computational basis defined by the
+# hilbert space contains (2s+1)*L*L occupation numbers
+# by taking a disjoint copy of the lattice, we can
+# move the fermions around independently for both spins
+# and therefore conserve the number of fermions with up and down spin
+
+# g.n_nodes == L*L --> disj_graph == 2*L*L
+disj_graph = nk.graph.disjoint_union(g, g)
+sa = nk.sampler.MetropolisExchange(hi, graph=disj_graph, n_chains=16)
 
 # since the hilbert basis is a set of occupation numbers, we can take a general NN
-ma = nk.models.RBM(alpha=1, dtype=complex)
+ma = nk.models.RBM(alpha=1, dtype=complex, use_visible_bias=False)
 vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=100, n_samples=512)
 
 # we will use sgd with Stochastic R
-opt = nk.optimizer.Sgd(learning_rate=0.001)
-sr = nk.optimizer.SR(diag_shift=0.01)
+opt = nk.optimizer.Sgd(learning_rate=0.01)
+sr = nk.optimizer.SR(diag_shift=0.1)
 
 gs = nk.driver.VMC(ham, opt, variational_state=vs, preconditioner=sr)
 
