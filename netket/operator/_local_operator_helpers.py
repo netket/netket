@@ -161,7 +161,11 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
     # target ordering binary representation
     hi_subspace = Fock(hi.shape[acting_on_sorted[0]] - 1)
     for site in acting_on_sorted[1:]:
-        hi_subspace = Fock(hi.shape[site] - 1) * hi_subspace
+        hi_subspace = hi_subspace * Fock(hi.shape[site] - 1)
+
+    hi_unsorted_subspace = Fock(hi.shape[acting_on[0]] - 1)
+    for site in acting_on[1:]:
+        hi_unsorted_subspace = hi_unsorted_subspace * Fock(hi.shape[site] - 1)
 
     # find how to map target ordering back to unordered
     acting_on_unsorted_ids = np.zeros(len(acting_on), dtype=np.intp)
@@ -177,7 +181,7 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
     # convert them to origin (unordered) ordering
     v_unsorted = v[:, acting_on_unsorted_ids]
     # convert the unordered bit-strings to numbers in the target space.
-    n_unsorted = hi_subspace.states_to_numbers(v_unsorted)
+    n_unsorted = hi_unsorted_subspace.states_to_numbers(v_unsorted)
 
     # reorder the matrix
     mat_sorted = mat[n_unsorted, :][:, n_unsorted]
