@@ -19,9 +19,10 @@ from collections import defaultdict
 import numpy as np
 from numba import jit
 from jax.tree_util import tree_map
+import numbers
 import copy
 
-from netket.utils.types import DType
+from netket.utils.types import DType, Array
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
@@ -76,10 +77,10 @@ class FermionOperator2nd(DiscreteOperator):
         self._dtype = dtype
 
         # bring terms, weights into consistent form
-        terms, weights = _canonicalize_input(terms, weights)
+        _operators, _constant = _canonicalize_input(terms, weights, constant, dtype)
         # we keep the input, in order to be able to add terms later
-        self._operators = dict(zip(terms, weights))
-        self._constant = constant
+        self._operators = _operators
+        self._constant = _constant
 
         self._initialized = False
         self._is_hermitian = None  # set when requested
@@ -168,11 +169,14 @@ class FermionOperator2nd(DiscreteOperator):
         """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
         return self._dtype
 
-    def copy(self):
+    def copy(self, *, dtype: Optional[DType] = None):
+        if dtype is None:
+            dtype = self.dtype
         op = FermionOperator2nd(
-            self.hilbert, [], [], constant=self._constant, dtype=self.dtype
+            self.hilbert, [], [], constant=self._constant, dtype=dtype
         )
         op._operators = copy.deepcopy(self._operators)
+        op._constant = np.array(self._constant, dtype=dtype).item()
         return op
 
     @property
@@ -362,16 +366,58 @@ class FermionOperator2nd(DiscreteOperator):
             self.hilbert, terms, weights=weights, constant=constant, dtype=dtype
         )
 
+    def _iop__matmul__(self, other):
+        if not isinstance(other, FermionOperator2nd):
+            return NotImplementedError
+        if not self.hilbert == other.hilbert:
+            raise ValueError(
+                f"Can only multiply identical hilbert spaces (got A@B, A={self.hilbert}, B={other.hilbert})"
+            )
+        if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
+            raise ValueError(
+                f"Cannot multiply inplace operator with dtype {type(other)} "
+                f"to operator with dtype {self.dtype}"
+            )
+
+        terms = []
+        weights = []
+        for t, w in self._operators.items():
+            for to, wo in other._operators.items():
+                terms.append(tuple(t) + tuple(to))
+                weights.append(w * wo)
+        if other._constant != 0.0:
+            for t, w in self._operators.items():
+                terms.append(tuple(t))
+                weights.append(w * other._constant)
+        if self._constant != 0:
+            for t, w in other._operators.items():
+                terms.append(tuple(t))
+                weights.append(w * self._constant)
+        constant = self._constant * other._constant
+
+        self._operators = dict(zip(terms, weights))
+        self._constant = constant
+        return self
+
+    def _op_matmul(self, other):
+        if not isinstance(other, FermionOperator2nd):
+            return NotImplementedError
+        dtype = np.promote_types(self.dtype, other.dtype)
+        op = self.copy(dtype=dtype)
+        op @= other
+        return op
+
     def __radd__(self, other):
         return self + other
 
     def __add__(self, other):
-        op = self.copy()
+        dtype = np.promote_types(self.dtype, _dtype(other))
+        op = self.copy(dtype=dtype)
         op += other
         return op
 
     def __iadd__(self, other):
-        if np.issubdtype(type(other), np.number):
+        if isinstance(other, numbers.Number):
             if other != 0.0:
                 self._constant += other
             return self
@@ -381,18 +427,17 @@ class FermionOperator2nd(DiscreteOperator):
             raise ValueError(
                 f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, B={other.hilbert})"
             )
-
+        if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
+            raise ValueError(
+                f"Cannot add inplace operator with dtype {type(other)} "
+                f"to operator with dtype {self.dtype}"
+            )
         for t, w in other._operators.items():
             if t in self._operators.keys():
                 self._operators[t] += w
             else:
                 self._operators[t] = w
         self._constant += other._constant
-        self._dtype = np.promote_types(self.dtype, other.dtype)
-        return self
-
-    def __isub__(self, other):
-        self += -other
         return self
 
     def __sub__(self, other):
@@ -408,20 +453,25 @@ class FermionOperator2nd(DiscreteOperator):
         return self * scalar
 
     def __imul__(self, scalar):
-        if not np.issubdtype(type(scalar), np.number):
+        if not isinstance(scalar, numbers.Number):
             # we will overload this as matrix multiplication
-            raise Exception(
-                "cannot inplace multiply two operators, since it changes the internal structure"
+            self._iop__matmul__(scalar)
+        if not np.can_cast(_dtype(scalar), self.dtype, casting="same_kind"):
+            raise ValueError(
+                f"Cannot multiply inplace scalar with dtype {type(scalar)} "
+                f"to operator with dtype {self.dtype}"
             )
+        scalar = np.array(scalar, dtype=self.dtype).item()
         self._operators = tree_map(lambda x: x * scalar, self._operators)
         self._constant *= scalar
         return self
 
     def __mul__(self, scalar):
-        if not np.issubdtype(type(scalar), np.number):
+        if not isinstance(scalar, numbers.Number):
             # we will overload this as matrix multiplication
             return self._op__matmul__(scalar)
-        op = self.copy()
+        dtype = np.promote_types(self.dtype, _dtype(scalar))
+        op = self.copy(dtype=dtype)
         op *= scalar
         return op
 
@@ -460,7 +510,7 @@ def _collect_constants(terms, weights):
     return new_terms, new_weights, constant
 
 
-def _canonicalize_input(terms, weights):
+def _canonicalize_input(terms, weights, constant, dtype):
     """The canonical form is a tree tuple with a tuple pair of integers at lowest level"""
     if isinstance(terms, str):
         terms = (terms,)
@@ -471,6 +521,8 @@ def _canonicalize_input(terms, weights):
     if weights is None:
         weights = [1.0] * len(terms)
 
+    weights = np.array(weights, dtype=dtype).tolist()
+
     if not len(weights) == len(terms):
         raise ValueError(
             f"length of weights should be equal, but received {len(weights)} and {len(terms)}"
@@ -478,7 +530,10 @@ def _canonicalize_input(terms, weights):
 
     _check_tree_structure(terms)
 
-    return terms, weights
+    operators = dict(zip(terms, weights))
+    constant = np.array(constant, dtype=dtype).item()
+
+    return operators, constant
 
 
 def _parse_term_tree(terms):
@@ -523,17 +578,14 @@ def _check_hermitian(
     After conjugation, the result is again reordered into canonical form.
     The result of both ordered lists of terms and weights are compared to be the same
     """
-
     # save in a dictionary the normal ordered terms and weights
     normal_ordered = _normal_ordering(terms, weights)
-
     dict_normal = defaultdict(complex)
     for term, weight in zip(*normal_ordered):
         dict_normal[tuple(term)] += weight
 
     # take the hermitian conjugate of the terms
     hc = _herm_conj(terms, weights)
-
     # normal order the h.c. terms
     hc_normal_ordered = _normal_ordering(*hc)
 
@@ -543,6 +595,8 @@ def _check_hermitian(
         dict_hc_normal[tuple(term_hc)] += weight_hc
 
     # check if hermitian by comparing the dictionaries
+    dict_normal = dict(dict_normal)
+    dict_hc_normal = dict(dict_hc_normal)
     is_hermitian = dict_normal == dict_hc_normal
     return is_hermitian
 
@@ -557,7 +611,8 @@ def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1.0):
     """
 
     parity = -1
-    term = list(term)
+    term = copy.deepcopy(list(term))
+    weight = copy.copy(weight)
     ordered_terms = []
     ordered_weights = []
     # the arguments given to this function will be transformed in a normal ordered way
@@ -640,7 +695,7 @@ def _herm_conj(terms: List[List[List[int]]], weights: List[Union[float, complex]
     conj_weight = []
     # loop over all terms and weights and get the hermitian conjugate
     for term, weight in zip(terms, weights):
-        conj_term.append([(op, 1 - dag) for (op, dag) in reversed(term)])
+        conj_term.append([(op, 1 - int(dag)) for (op, dag) in reversed(term)])
         conj_weight.append(weight.conjugate())
     return conj_term, conj_weight
 
@@ -698,3 +753,17 @@ def _pack_internals(operators, dtype):
     term_ends = np.array(term_ends, dtype=bool)
 
     return orb_idxs, daggers, weights, term_ends
+
+
+def _dtype(obj: Union[numbers.Number, Array, "FermionOperator2nd"]) -> DType:
+    """
+    Returns the dtype of the input object
+    """
+    if isinstance(obj, numbers.Number):
+        return type(obj)
+    elif isinstance(obj, DiscreteOperator):
+        return obj.dtype
+    elif isinstance(obj, np.ndarray):
+        return obj.dtype
+    else:
+        raise TypeError(f"cannot deduce dtype of object type {type(obj)}: {obj}")

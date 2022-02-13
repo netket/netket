@@ -36,7 +36,7 @@ def nc(site, sz):
 
 up = +1 / 2
 down = -1 / 2
-ham = 0
+ham = 0.0
 for sz in (up, down):
     for u, v in g.edges():
         ham += -t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz)

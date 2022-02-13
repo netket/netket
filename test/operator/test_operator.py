@@ -547,6 +547,7 @@ op_ferm["ordering"] = (
     [pytest.param(op, is_herm, id=name) for name, (op, is_herm) in op_ferm.items()],
 )
 def test_is_hermitian_fermion2nd(op_ferm, is_hermitian):
+    print("OPERATOR", op_ferm._operators)
     assert op_ferm.is_hermitian == is_hermitian
 
 
