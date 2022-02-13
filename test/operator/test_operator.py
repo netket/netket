@@ -703,19 +703,35 @@ def test_create_annihil_number():
     assert np.allclose(op3.to_dense(), op4.to_dense())
 
 
-def test_add_fermions():
+def test_operations_fermions():
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     op1 = nkx.operator.FermionOperator2nd(hi, terms=("1^ 2",), weights=(1,), constant=2)
     op2 = nkx.operator.FermionOperator2nd(
         hi, terms=("3^ 4"), weights=(1.3,), constant=5.7
     )
+    op2copy = op2.copy()
+    assert op2copy.hilbert == op2.hilbert
+    assert np.allclose(list(op2._operators.keys()), list(op2copy._operators.keys()))
+    assert np.allclose(list(op2._operators.values()), list(op2copy._operators.values()))
+    assert op2.is_hermitian == op2copy.is_hermitian
+    assert np.allclose(op2.to_dense(), op2copy.to_dense())
+
     op3 = nkx.operator.FermionOperator2nd(
         hi, terms=("3^ 4", "1^ 2"), weights=(1.3, 1), constant=7.7
     )
+    op12 = op1.copy()
+    op12 += op2
+    assert np.allclose((op1 + op2).to_dense(), op3.to_dense())
+    assert np.allclose(op12.to_dense(), op3.to_dense())
+
     op4 = op3 * 2
     op5 = nkx.operator.FermionOperator2nd(
         hi, terms=("3^ 4", "1^ 2"), weights=(2 * 1.3, 2 * 1), constant=2 * 7.7
     )
+    op4b = op3.copy()
+    op4b *= 2
+    assert np.allclose(op4.to_dense(), op5.to_dense())
+    assert np.allclose(op4b.to_dense(), op5.to_dense())
 
     op6 = nkx.operator.FermionOperator2nd(
         hi, terms=("1^ 2", "0^ 1"), weights=(1j, -1.0j), constant=7.7
@@ -726,10 +742,10 @@ def test_add_fermions():
     op8 = nkx.operator.FermionOperator2nd(
         hi, terms=("1^ 2", "0^ 1"), weights=(1.0 + 1j, 1 - 1j), constant=2 * 7.7
     )
-
-    assert np.allclose((op1 + op2).to_dense(), op3.to_dense())
-    assert np.allclose(op4.to_dense(), op5.to_dense())
+    op67 = op6.copy()
+    op67 += op7
     assert np.allclose((op6 + op7).to_dense(), op8.to_dense())
+    assert np.allclose(op67.to_dense(), op8.to_dense())
 
 
 def test_fermion_op_matmul():
@@ -738,39 +754,49 @@ def test_fermion_op_matmul():
 
     # multiply with a real constant
     op_real = nkx.operator.FermionOperator2nd(hi, [], [], constant=2.0)
-    assert np.allclose(op1._op__matmul__(op_real).to_dense(), (op1 * 2).to_dense())
+    assert np.allclose((op1 @ op_real).to_dense(), (op1 * 2).to_dense())
+    assert np.allclose((op1 * op_real).to_dense(), (op1 * 2).to_dense())
 
     # multiply with a real+complex constant
     op_complex = nkx.operator.FermionOperator2nd(hi, [], [], constant=2.0 + 2j)
-    assert np.allclose(
-        op1._op__matmul__(op_complex).to_dense(), (op1 * (2 + 2j)).to_dense()
-    )
+    assert np.allclose((op1 @ op_complex).to_dense(), (op1 * (2 + 2j)).to_dense())
+    assert np.allclose((op1 * op_complex).to_dense(), (op1 * (2 + 2j)).to_dense())
 
     # multiply with another operator
     op2 = nkx.operator.FermionOperator2nd(
         hi, terms=("1^ 1", "0^ 2"), weights=(1 + 1j, 0.5)
     )
+    op2b = nkx.operator.FermionOperator2nd(
+        hi,
+        terms=("0^ 0 1^ 1", "0^ 0 0^ 2", "1^ 2 1^ 1", "1^ 2 0^ 2"),
+        weights=(0.3 * (1 + 1j), 0.3 * 0.5, 2 * (1 + 1j), 2 * 0.5),
+    )
     assert np.allclose(
-        op1._op__matmul__(op2).to_dense(),
-        nkx.operator.FermionOperator2nd(
-            hi,
-            terms=("0^ 0 1^ 1", "0^ 0 0^ 2", "1^ 2 1^ 1", "1^ 2 0^ 2"),
-            weights=(0.3 * (1 + 1j), 0.3 * 0.5, 2 * (1 + 1j), 2 * 0.5),
-        ).to_dense(),
+        (op1 @ op2).to_dense(),
+        op2b.to_dense(),
+    )
+    assert np.allclose(
+        (op1 * op2).to_dense(),
+        op2b.to_dense(),
     )
 
     # multiply with another operator + constant
     op3 = nkx.operator.FermionOperator2nd(
         hi, terms=("1^ 1",), weights=(1 + 1j,), constant=5
     )
+    op3b = nkx.operator.FermionOperator2nd(
+        hi,
+        terms=("0^ 0 1^ 1", "0^ 0", "1^ 2 1^ 1", "1^ 2"),
+        weights=(0.3 * (1 + 1j), 5 * 0.3, 2 * (1 + 1j), 10),
+        constant=0,
+    )
     assert np.allclose(
-        op1._op__matmul__(op3).to_dense(),
-        nkx.operator.FermionOperator2nd(
-            hi,
-            terms=("0^ 0 1^ 1", "0^ 0", "1^ 2 1^ 1", "1^ 2"),
-            weights=(0.3 * (1 + 1j), 5 * 0.3, 2 * (1 + 1j), 10),
-            constant=0,
-        ).to_dense(),
+        (op1 @ op3).to_dense(),
+        op3b.to_dense(),
+    )
+    assert np.allclose(
+        (op1 * op3).to_dense(),
+        op3b.to_dense(),
     )
 
 
@@ -780,34 +806,39 @@ def test_fermion_add_sub_mul():
     op1 = nkx.operator.FermionOperator2nd(
         hi, terms=("0^ 0", "1^ 2"), weights=(0.3, 2), constant=2
     )
-    assert np.allclose(op1.__add__(op1).to_dense(), 2 * op1.to_dense())
+    assert np.allclose((op1 + op1).to_dense(), 2 * op1.to_dense())
 
     op2 = nkx.operator.FermionOperator2nd(
         hi, terms=("0^ 0", "0^ 1"), weights=(0.5, 4j), constant=1
     )
-    assert np.allclose(
-        op1.__add__(op2).to_dense(),
-        nkx.operator.FermionOperator2nd(
-            hi, terms=("0^ 0", "1^ 2", "0^ 1"), weights=(0.3 + 0.5, 2, 4j), constant=3
-        ).to_dense(),
+    op2b = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0", "1^ 2", "0^ 1"), weights=(0.3 + 0.5, 2, 4j), constant=3
     )
+    assert np.allclose((op1 + op2).to_dense(), op2b.to_dense())
+    op2c = op2.copy()
+    op2c += op1
+    assert np.allclose(op2c.to_dense(), op2b.to_dense())
+
     # check substraction
-    assert np.allclose(
-        op1.__sub__(op2).to_dense(),
-        nkx.operator.FermionOperator2nd(
-            hi, terms=("0^ 0", "1^ 2", "0^ 1"), weights=(0.3 - 0.5, 2, -4j), constant=1
-        ).to_dense(),
+    op2d = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0", "1^ 2", "0^ 1"), weights=(0.3 - 0.5, 2, -4j), constant=1
     )
+    assert np.allclose((op1 - op2).to_dense(), op2d.to_dense())
+    op1c = op1.copy()
+    op1c -= op2
+    assert np.allclose(op1c.to_dense(), op2d.to_dense())
+
     # check multiplication with scalar
-    assert np.allclose(
-        op1.__mul__(10).to_dense(),
-        nkx.operator.FermionOperator2nd(
-            hi,
-            terms=("0^ 0", "1^ 2"),
-            weights=(
-                3,
-                20,
-            ),
-            constant=20,
-        ).to_dense(),
+    op1f = nkx.operator.FermionOperator2nd(
+        hi,
+        terms=("0^ 0", "1^ 2"),
+        weights=(
+            3,
+            20,
+        ),
+        constant=20,
     )
+    op1c = op1.copy()
+    op1c *= 10
+    assert np.allclose((op1 * 10).to_dense(), op1f.to_dense())
+    assert np.allclose(op1c.to_dense(), op1f.to_dense())

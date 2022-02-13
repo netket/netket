@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax
-from jax import numpy as jnp
-
 from netket.experimental.hilbert import SpinOrbitalFermions
 from netket.utils.dispatch import dispatch
 

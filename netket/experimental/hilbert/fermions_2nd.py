@@ -14,7 +14,6 @@
 
 from typing import Optional, List, Union
 from collections.abc import Iterable
-import jax.numpy as jnp
 import numpy as np
 from fractions import Fraction
 
@@ -31,7 +30,10 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     """
 
     def __init__(
-        self, n_orbitals: int, s: float = 0.0, n_fermions: Union[int, List[int]] = None
+        self,
+        n_orbitals: int,
+        s: float = 0.0,
+        n_fermions: Optional[Union[int, List[int]]] = None,
     ):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.

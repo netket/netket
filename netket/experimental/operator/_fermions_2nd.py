@@ -4,15 +4,15 @@ from collections import defaultdict
 
 import numpy as np
 from numba import jit
+from jax.tree_util import tree_map
+import copy
 
 from netket.utils.types import DType
-from netket.hilbert import AbstractHilbert
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 
 from netket.experimental.hilbert import SpinOrbitalFermions
-import netket.experimental as nkx
 
 
 class FermionOperator2nd(DiscreteOperator):
@@ -20,7 +20,7 @@ class FermionOperator2nd(DiscreteOperator):
         self,
         hilbert: AbstractHilbert,
         terms: Union[List[str], List[List[List[int]]]],
-        weights: List[Union[float, complex]] = None,
+        weights: Optional[List[Union[float, complex]]] = None,
         constant: Union[float, complex] = 0.0,
         dtype: DType = complex,
     ):
@@ -69,29 +69,11 @@ class FermionOperator2nd(DiscreteOperator):
         self._weights = []
         self._n_terms = 0
 
+        # bring terms, weights into consistent form
+        terms, weights = _canonicalize_input(terms, weights)
         # we keep the input, in order to be able to add terms later
-        self._orig_terms = []
-        self._orig_weights = []
+        self._operators = dict(zip(terms, weights))
         self._constant = constant
-
-        if isinstance(terms, str):
-            terms = (terms,)
-
-        if len(terms) > 0 and isinstance(terms[0], str):
-            terms = list(map(_parse_string, terms))
-
-        if weights is None:
-            weights = [1.0] * len(terms)
-
-        if not len(weights) == len(terms):
-            raise ValueError(
-                f"length of weights should be equal, but received {len(weights)} and {len(terms)}"
-            )
-
-        for term, weight in zip(terms, weights):
-            self._add_term(term, weight=weight)
-
-        _check_tree_structure(self._orig_terms)
 
         self._initialized = False
         self._is_hermitian = None  # set when requested
@@ -99,13 +81,8 @@ class FermionOperator2nd(DiscreteOperator):
     def _add_term(self, term, weight=1.0):
         """
         Processes and adds a single term such that we can compute its matrix elements,
-        which can be in string format `1^ 2` or in tuple format ((1,1), (2,0))
+        in tuple format ((1,1), (2,0))
         """
-        if isinstance(term, str):
-            term = _parse_string(term)
-
-        self._orig_terms.append(term)
-        self._orig_weights.append(weight)
         if len(term) == 0:
             raise ValueError("terms cannot be size 0")
         if not all(len(t) == 2 for t in term):
@@ -125,6 +102,10 @@ class FermionOperator2nd(DiscreteOperator):
     def _setup(self, force=False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
+
+            for term, weight in self._operators.items():
+                self._add_term(term, weight=weight)
+
             self._orb_idxs = np.array(self._orb_idxs, dtype=np.intp)
             self._daggers = np.array(self._daggers, dtype=bool)
             self._weights = np.array(self._weights, dtype=self.dtype)
@@ -192,23 +173,33 @@ class FermionOperator2nd(DiscreteOperator):
         return FermionOperator2nd(hilbert, terms, weights=weights, constant=constant)
 
     def __repr__(self):
-        return f"FermionOperator2nd(hilbert={self.hilbert}, n_terms={self._n_terms})"
+        return f"FermionOperator2nd(hilbert={self.hilbert}, n_operators={len(self._operators)})"
 
     @property
     def dtype(self) -> DType:
         """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
         return self._dtype
 
+    def copy(self):
+        op = FermionOperator2nd(
+            self.hilbert, [], [], constant=self._constant, dtype=self.dtype
+        )
+        op._operators = copy.deepcopy(self._operators)
+        return op
+
     @property
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        return self._n_terms
+        self._setup()
+        return self._n_terms + 1  # constant also can add a term
 
     @property
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
         if self._is_hermitian is None:  # only compute when needed, is expensive
-            self._is_hermitian = _check_hermitian(self._orig_terms, self._orig_weights)
+            terms = list(self._operators.keys())
+            weights = list(self._operators.values())
+            self._is_hermitian = _check_hermitian(terms, weights)
         return self._is_hermitian
 
     def _get_conn_flattened_closure(self):
@@ -363,16 +354,16 @@ class FermionOperator2nd(DiscreteOperator):
             )
         terms = []
         weights = []
-        for t, w in zip(self._orig_terms, self._orig_weights):
-            for to, wo in zip(other._orig_terms, other._orig_weights):
+        for t, w in self._operators.items():
+            for to, wo in other._operators.items():
                 terms.append(tuple(t) + tuple(to))
                 weights.append(w * wo)
         if other._constant != 0.0:
-            for t, w in zip(self._orig_terms, self._orig_weights):
+            for t, w in self._operators.items():
                 terms.append(tuple(t))
                 weights.append(w * other._constant)
         if self._constant != 0:
-            for t, w in zip(other._orig_terms, other._orig_weights):
+            for t, w in other._operators.items():
                 terms.append(tuple(t))
                 weights.append(w * self._constant)
         constant = self._constant * other._constant
@@ -385,9 +376,14 @@ class FermionOperator2nd(DiscreteOperator):
         return self + other
 
     def __add__(self, other):
+        op = self.copy()
+        op += other
+        return op
+
+    def __iadd__(self, other):
         if np.issubdtype(type(other), np.number):
             if other != 0.0:
-                return self + nkx.operator.fermion.identity(self.hilbert) * other
+                self._constant += other
             return self
         if not isinstance(other, FermionOperator2nd):
             raise NotImplementedError
@@ -395,13 +391,19 @@ class FermionOperator2nd(DiscreteOperator):
             raise ValueError(
                 f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, B={other.hilbert})"
             )
-        terms = list(self._orig_terms) + list(other._orig_terms)
-        weights = list(self._orig_weights) + list(other._orig_weights)
-        constant = self._constant + other._constant
-        dtype = np.promote_types(self.dtype, other.dtype)
-        return FermionOperator2nd(
-            self.hilbert, terms, weights=weights, constant=constant, dtype=dtype
-        )
+
+        for t, w in other._operators.items():
+            if t in self._operators.keys():
+                self._operators[t] += w
+            else:
+                self._operators[t] = w
+        self._constant += other._constant
+        self._dtype = np.promote_types(self.dtype, other.dtype)
+        return self
+
+    def __isub__(self, other):
+        self += -other
+        return self
 
     def __sub__(self, other):
         return self + (-other)
@@ -415,20 +417,23 @@ class FermionOperator2nd(DiscreteOperator):
     def __rmul__(self, scalar):
         return self * scalar
 
+    def __imul__(self, scalar):
+        if not np.issubdtype(type(scalar), np.number):
+            # we will overload this as matrix multiplication
+            raise Exception(
+                "cannot inplace multiply two operators, since it changes the internal structure"
+            )
+        self._operators = tree_map(lambda x: x * scalar, self._operators)
+        self._constant *= scalar
+        return self
+
     def __mul__(self, scalar):
         if not np.issubdtype(type(scalar), np.number):
             # we will overload this as matrix multiplication
             return self._op__matmul__(scalar)
-        weights = np.array(self._orig_weights, self.dtype) * scalar
-        constant = self._constant * scalar
-        dtype = weights.dtype
-        return FermionOperator2nd(
-            self.hilbert,
-            self._orig_terms,
-            weights=weights,
-            constant=constant,
-            dtype=dtype,
-        )
+        op = self.copy()
+        op *= scalar
+        return op
 
 
 def _convert_terms_to_spin_blocks(terms, n_orbitals, n_spin_components):
@@ -462,6 +467,41 @@ def _collect_constants(terms, weights):
     return new_terms, new_weights, constant
 
 
+def _canonicalize_input(terms, weights):
+    """The canonical form is a tree tuple with a tuple pair of integers at lowest level"""
+    if isinstance(terms, str):
+        terms = (terms,)
+
+    if len(terms) > 0:
+        terms = _parse_term_tree(terms)
+
+    if weights is None:
+        weights = [1.0] * len(terms)
+
+    if not len(weights) == len(terms):
+        raise ValueError(
+            f"length of weights should be equal, but received {len(weights)} and {len(terms)}"
+        )
+
+    _check_tree_structure(terms)
+
+    return terms, weights
+
+
+def _parse_term_tree(terms):
+    """convert the terms tree into a canonical form of tuple tree of depth 3"""
+
+    def _parse_branch(t):
+        if isinstance(t, str):
+            return _parse_string(t)
+        elif hasattr(t, "__len__"):
+            return tuple([_parse_branch(b) for b in t])
+        else:
+            return int(t)
+
+    return _parse_branch(terms)
+
+
 def _parse_string(s):
     """parse strings such as '1^ 2' into a term form ((1, 1), (2, 0))"""
     s = s.strip()
@@ -478,8 +518,7 @@ def _parse_string(s):
             dagger = False
         orb_nr = int(term)
         processed_terms.append((orb_nr, int(dagger)))
-    processed_terms = tuple(processed_terms)
-    return processed_terms
+    return tuple(processed_terms)
 
 
 def _check_hermitian(
@@ -586,7 +625,20 @@ def _normal_ordering(
         ordered = _order_fun(term, weight)
         ordered_terms += ordered[0]
         ordered_weights += ordered[1]
+    ordered_terms = _make_tuple_tree(ordered_terms)
     return ordered_terms, ordered_weights
+
+
+def _make_tuple_tree(terms):
+    """make tuples, so terms are hashable"""
+
+    def _make_tuple(branch):
+        if hasattr(branch, "__len__"):
+            return tuple([_make_tuple(t) for t in branch])
+        else:
+            return int(branch)
+
+    return _make_tuple(terms)
 
 
 def _herm_conj(terms: List[List[List[int]]], weights: List[Union[float, complex]] = 1):

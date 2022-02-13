@@ -36,13 +36,12 @@ def nc(site, sz):
 
 up = +1 / 2
 down = -1 / 2
-ham = []
+ham = 0
 for sz in (up, down):
     for u, v in g.edges():
-        ham.append(-t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz))
+        ham += -t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz)
 for u in g.nodes():
-    ham.append(U * nc(u, up) * nc(u, down))  # spinful interaction on site
-ham = sum(ham)
+    ham += U * nc(u, up) * nc(u, down)
 
 # metropolis exchange moves fermions around according to a graph
 # the physical graph has LxL vertices, but the computational basis defined by the
