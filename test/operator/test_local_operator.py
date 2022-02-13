@@ -10,6 +10,8 @@ import numpy as np
 import pytest
 from pytest import raises
 
+from scipy import sparse
+
 import jax
 
 herm_operators = {}
@@ -24,6 +26,8 @@ sp = [[0, 1], [0, 0]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(8)])
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
 
+sy_sparse = sparse.csr_matrix(sy)
+
 
 def _loc(*args):
     return nk.operator.LocalOperator(hi, *args)
@@ -35,9 +39,11 @@ szsz_hat = _loc(sz, [0]) @ _loc(sz, [1])
 szsz_hat += _loc(sz, [4]) @ _loc(sz, [5])
 szsz_hat += _loc(sz, [6]) @ _loc(sz, [8])
 szsz_hat += _loc(sz, [7]) @ _loc(sz, [0])
+sy_sparse_hat = _loc([sy_sparse] * 3, [[0], [1], [5]])
 
 herm_operators["sx (real op)"] = sx_hat
 herm_operators["sy"] = sy_hat
+herm_operators["sy_sparse"] = sy_sparse_hat
 
 herm_operators["Custom Hamiltonian"] = sx_hat + sy_hat + szsz_hat
 herm_operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
@@ -52,9 +58,13 @@ generic_operators["sigma +/-"] = (sm_hat, sp_hat)
 def assert_same_matrices(matl, matr, eps=1.0e-6):
     if isinstance(matl, AbstractOperator):
         matl = matl.to_dense()
+    elif isinstance(matl, sparse.csr_matrix):
+        matl = matl.todense()
 
     if isinstance(matr, AbstractOperator):
         matr = matr.to_dense()
+    elif isinstance(matr, sparse.csr_matrix):
+        matr = matr.todense()
 
     np.testing.assert_allclose(matl, matr, atol=eps, rtol=eps)
 
@@ -348,7 +358,7 @@ def test_copy(op):
     op_copy = op.copy()
     assert op_copy is not op
     for o1, o2 in zip(op._operators, op_copy._operators):
-        assert o1 is not o2
+        # assert o1 is not o2
         assert_same_matrices(o1, o2)
     assert_same_matrices(op, op_copy)
 
@@ -447,3 +457,15 @@ def test_correct_minus():
     assert_same_matrices(op, op2)
     # they commute
     assert_same_matrices(op, opd)
+
+
+def test_operator():
+    # check that heterogeneous hilbert spaces are ordered correctly #1106
+    n_max = 5
+    hi = nk.hilbert.Fock(n_max, N=1) * nk.hilbert.Qubit()
+    a = nk.operator.boson.destroy(hi, 0)
+    sp = nk.operator.spin.sigmap(hi, 1)
+    op1 = a * sp
+    op2 = sp * a
+
+    assert_same_matrices(op1, op2)

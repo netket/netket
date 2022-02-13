@@ -35,7 +35,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
-    sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(8)])
+    sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(L)])
 
     if sr:
         sr_config = nk.optimizer.SR()
