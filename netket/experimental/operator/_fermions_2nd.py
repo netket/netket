@@ -42,7 +42,7 @@ class FermionOperator2nd(DiscreteOperator):
         r"""
         Constructs a fermion operator given the single terms (set of creation/annihilation operators) in second quantization formalism.
         This class can be initialized in the following form: ``FermionOperator2nd(hilbert, terms, weights ...)``.
-        The terms contain pairs of (idx, dagger), where the idx is the index in the output of the hilbert.all_states().
+        The term contains pairs of `(idx, dagger)`, where `idx ∈ range(hilbert.size)` (it identifies an orbital) and `dagger` is a True/False flag determining if the operator is a creation or destruction operator.
         A term of the form :math:`\\hat{a}_1^\\dagger \\hat{a}_2` would take the form ((1,1), (2,0)), where (1,1) represents :math:`\\hat{a}_1^\\dagger` and (2,0) represents :math:`\\hat{a}_2`.
         To split up per spin, use the creation and annihilation operators to build the operator.
 
