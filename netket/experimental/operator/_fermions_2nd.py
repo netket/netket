@@ -62,11 +62,11 @@ class FermionOperator2nd(DiscreteOperator):
             >>> hi = nkx.hilbert.SpinOrbitalFermions(3)
             >>> op = nkx.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_terms=2)
+            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2)
             >>> terms = ("0^ 1", "2^ 1")
             >>> op = nkx.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_terms=2)
+            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2)
             >>> op.hilbert
             SpinOrbitalFermions(n_orbitals=3)
             >>> op.hilbert.size
