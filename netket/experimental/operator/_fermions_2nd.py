@@ -75,14 +75,6 @@ class FermionOperator2nd(DiscreteOperator):
         super().__init__(hilbert)
         self._dtype = dtype
 
-        # following lists will be used to compute matrix elements
-        # they are filled in _add_term
-        self._orb_idxs = []
-        self._daggers = []
-        self._term_ends = []
-        self._weights = []
-        self._n_terms = 0
-
         # bring terms, weights into consistent form
         terms, weights = _canonicalize_input(terms, weights)
         # we keep the input, in order to be able to add terms later
@@ -92,38 +84,15 @@ class FermionOperator2nd(DiscreteOperator):
         self._initialized = False
         self._is_hermitian = None  # set when requested
 
-    def _add_term(self, term, weight=1.0):
-        """
-        Processes and adds a single term such that we can compute its matrix elements,
-        in tuple format ((1,1), (2,0))
-        """
-        if len(term) == 0:
-            raise ValueError("terms cannot be size 0")
-        if not all(len(t) == 2 for t in term):
-            raise ValueError(f"terms must contain (i, dag) pairs, but received {term}")
-        for orb_idx, dagger in reversed(term):
-            # orb_idxs: holds the hilbert index of the orbital
-            self._orb_idxs.append(orb_idx)
-            # daggers: stores whether operator is creator or annihilator
-            self._daggers.append(bool(dagger))
-            # weights: stores the weights corresponding to this term
-            self._weights.append(weight)
-            # term_ends keeps a flag that determines whether we've reached the end of this term and will start a new one after
-            self._term_ends.append(False)
-        self._term_ends[-1] = True
-        self._n_terms += 1
-
-    def _setup(self, force=False):
+    def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
 
-            for term, weight in self._operators.items():
-                self._add_term(term, weight=weight)
+            # following lists will be used to compute matrix elements
+            # they are filled in _add_term
+            out = _pack_internals(self._operators, self._dtype)
+            self._orb_idxs, self._daggers, self._weights, self._term_ends = out
 
-            self._orb_idxs = np.array(self._orb_idxs, dtype=np.intp)
-            self._daggers = np.array(self._daggers, dtype=bool)
-            self._weights = np.array(self._weights, dtype=self.dtype)
-            self._term_ends = np.array(self._term_ends, dtype=bool)
             self._initialized = True
 
     @staticmethod
@@ -209,8 +178,10 @@ class FermionOperator2nd(DiscreteOperator):
     @property
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        self._setup()
-        return self._n_terms + 1  # constant also can add a term
+        if self._constant == 0.0:
+            return len(self._operators)
+        else:
+            return len(self._operators) + 1  # constant also can add a term
 
     @property
     def is_hermitian(self) -> bool:
@@ -693,3 +664,37 @@ def _check_tree_structure(terms):
         raise ValueError(f"terms is not a depth 3 tree, found depths {depths}")
     if not np.all(pairs):
         raise ValueError("terms should be provided in (i, dag) pairs")
+
+
+def _pack_internals(operators, dtype):
+    """
+    Create the internal structures to compute the matrix elements
+    Processes and adds a single term such that we can compute its matrix elements, in tuple format ((1,1), (2,0))
+    """
+    orb_idxs = []
+    daggers = []
+    term_ends = []
+    weights = []
+
+    for term, weight in operators.items():
+        if len(term) == 0:
+            raise ValueError("terms cannot be size 0")
+        if not all(len(t) == 2 for t in term):
+            raise ValueError(f"terms must contain (i, dag) pairs, but received {term}")
+        for orb_idx, dagger in reversed(term):
+            # orb_idxs: holds the hilbert index of the orbital
+            orb_idxs.append(orb_idx)
+            # daggers: stores whether operator is creator or annihilator
+            daggers.append(bool(dagger))
+            # weights: stores the weights corresponding to this term
+            weights.append(weight)
+            # term_ends keeps a flag that determines whether we've reached the end of this term and will start a new one after
+            term_ends.append(False)
+        term_ends[-1] = True
+
+    orb_idxs = np.array(orb_idxs, dtype=np.intp)
+    daggers = np.array(daggers, dtype=bool)
+    weights = np.array(weights, dtype=dtype)
+    term_ends = np.array(term_ends, dtype=bool)
+
+    return orb_idxs, daggers, weights, term_ends
