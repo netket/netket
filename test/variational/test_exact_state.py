@@ -90,6 +90,19 @@ def test_init_parameters(vstate):
 
 
 @common.skipif_mpi
+def test_basic_methods(vstate):
+    key1, key2 = jax.random.split(nk.jax.PRNGKey())
+
+    s = vstate.hilbert.random_state(key1)
+    assert np.shape(vstate.log_value(s)) == ()
+
+    s = vstate.hilbert.random_state(key2, size=2)
+    assert np.shape(vstate.log_value(s)) == (2,)
+
+    _ = vstate.quantum_geometric_tensor()
+
+
+@common.skipif_mpi
 def test_qutip_conversion(vstate):
     # skip test if qutip not installed
     pytest.importorskip("qutip")

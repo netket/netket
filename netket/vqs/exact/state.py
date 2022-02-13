@@ -221,7 +221,7 @@ class ExactState(VariationalState):
         Returns:
             nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
-        raise qgt_T(self)
+        return qgt_T(self)
 
     def to_array(self, normalize: bool = True, allgather: bool = True) -> jnp.ndarray:
 
