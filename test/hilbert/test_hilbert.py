@@ -371,6 +371,9 @@ def test_fermions():
     # size checks
     hi = nkx.hilbert.SpinOrbitalFermions(3)
     assert hi.size == 3
+    assert hi.spin is None
+    hi = nkx.hilbert.SpinOrbitalFermions(3, s=0)
+    assert hi.size == 3
     assert hi.spin == 0.0
     hi = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2)
     assert hi.size == 6
@@ -384,7 +387,7 @@ def test_fermions():
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
     assert hi.n_states == 2 ** 5
-    assert hi.spin == 0.0
+    assert hi.spin is None
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
     assert np.all(hi.all_states().sum(axis=-1) == 2)

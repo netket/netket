@@ -13,10 +13,10 @@ U = 0.01  # coulomb
 
 # create the graph our fermions can hop on
 g = nk.graph.Hypercube(length=L, n_dim=D, pbc=True)
-Nsites = g.n_nodes
+n_sites = g.n_nodes
 
 # create a hilbert space with 2 up and 2 down spins
-hi = nkx.hilbert.SpinOrbitalFermions(Nsites, s=1 / 2, n_fermions=(2, 2))
+hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions=(2, 2))
 
 # create an operator representing fermi hubbard interactions
 # -t (i^ j + h.c.) + U (i^ i j^ j)

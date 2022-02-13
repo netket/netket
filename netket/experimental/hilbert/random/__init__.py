@@ -14,6 +14,6 @@
 
 from netket.utils import _hide_submodules
 
-from . import fermions2nd
+from . import spin_orbital_fermions
 
 _hide_submodules(__name__)

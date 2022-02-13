@@ -15,7 +15,7 @@
 
 __all__ = ["SpinOrbitalFermions"]
 
-from .fermions_2nd import SpinOrbitalFermions
+from .spin_orbital_fermions import SpinOrbitalFermions
 
 from . import random
 

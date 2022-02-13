@@ -1,3 +1,17 @@
+# Copyright 2022 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import List, Union, Optional
 import re
 from collections import defaultdict
@@ -161,8 +175,13 @@ class FermionOperator2nd(DiscreteOperator):
         if hilbert is not None:
             # no warning, just overwrite
             n_orbitals = hilbert.n_orbitals
-            n_spin = hilbert._n_spin_states
+
             if convert_spin_blocks:
+                if not hasattr(hilbert, "spin") or hilbert.spin is None:
+                    raise ValueError(
+                        f"cannot convert spin blocks for hilbert space {hilbert} without spin"
+                    )
+                n_spin = hilbert._n_spin_states
                 terms = _convert_terms_to_spin_blocks(terms, n_orbitals, n_spin)
         if n_orbitals is None:
             # we always start counting from 0, so we only determine the maximum location
@@ -438,6 +457,9 @@ class FermionOperator2nd(DiscreteOperator):
 
 def _convert_terms_to_spin_blocks(terms, n_orbitals, n_spin_components):
     """see explanation in from_openfermion in conversion between conventions of netket and openfermion"""
+
+    if n_spin_components == 1:
+        return terms
 
     def _convert_loc(of_loc):
         orb_idx = of_loc // n_spin_components

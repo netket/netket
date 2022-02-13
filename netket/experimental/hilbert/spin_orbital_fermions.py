@@ -27,12 +27,16 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     Hilbert space for 2nd quantization fermions with spin `s` distributed among `n_orbital` orbitals.
 
     The number of fermions can be fixed globally or fixed on a per spin projection.
+
+    Note:
+        This class is simply a convenient wrapper that creates a Fock or TensorHilbert of Fock spaces with occupation numbers 0 or 1.
+        It is mainly useful to avoid needing to specify the n_max=1 each time, and adds convenient functions such as _get_index and _spin_index, which allow one to index the correct TensorHilbert corresponding to the right spin projection.
     """
 
     def __init__(
         self,
         n_orbitals: int,
-        s: float = 0.0,
+        s: float = None,
         n_fermions: Optional[Union[int, List[int]]] = None,
     ):
         r"""
@@ -40,7 +44,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
         Samples of this hilbert space represent occupation numbers (0,1) of the orbitals.
         The number of fermions may be fixed to `n_fermions`.
-        If the spin is different from 0, n_fermions can also be a list to fix the number of fermions per spin component.
+        If the spin is different from 0 or None, n_fermions can also be a list to fix the number of fermions per spin component.
         Using this class, one can generate a tensor product of fermionic hilbert spaces that distinguish particles with different spin.
 
         Args:
@@ -51,11 +55,14 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         Returns:
             A SpinOrbitalFermions object
         """
+        if s is None:
+            total_size = n_orbitals
+            spin_states = None
+        else:
+            spin_size = round(2 * s + 1)
+            total_size = n_orbitals * spin_size
+            spin_states = list(np.arange(spin_size) * 2 - round(2 * s))
 
-        spin_size = round(2 * s + 1)
-        spin_states = list(np.arange(spin_size) * 2 - round(2 * s))
-
-        total_size = n_orbitals * spin_size
         if n_fermions is None:
             hilbert = Fock(n_max=1, N=total_size)
         elif isinstance(n_fermions, int):
@@ -63,6 +70,10 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         else:
             if not isinstance(n_fermions, Iterable):
                 raise ValueError("n_fermions must be iterable or int")
+            if s is None:
+                raise ValueError(
+                    "n_fermions can not be a sequence if no spin is specified"
+                )
             if len(n_fermions) != spin_size:
                 raise ValueError(
                     "list of number of fermions must equal number of spin components"
@@ -83,8 +94,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         self.n_fermions = n_fermions
         self._is_constrained = n_fermions is not None
         self.n_orbitals = n_orbitals
-        self._n_spin_states = spin_size
-        self._spin_states = tuple(spin_states)
+        self._spin_states = None if spin_states is None else tuple(spin_states)
         # we copy the respective functions, independent of what hilbert space they are
         self._numbers_to_states = self._fock._numbers_to_states
         self._states_to_numbers = self._fock._states_to_numbers
@@ -93,7 +103,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         _str = f"SpinOrbitalFermions(n_orbitals={self.n_orbitals}"
         if self.n_fermions is not None:
             _str += f", n_fermions={self.n_fermions}"
-        if self.spin != 0.0:
+        if self.spin is not None:
             _str += f", s={Fraction(self.spin)}"
         _str += ")"
         return _str
@@ -114,7 +124,6 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             self.spin,
             self.n_fermions,
             self.n_orbitals,
-            self._n_spin_states,
             self._spin_states,
         )
 
@@ -130,9 +139,23 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     def n_states(self) -> int:
         return self._fock.n_states
 
+    @property
+    def _n_spin_states(self) -> int:
+        """return the number of spin projections"""
+        if self.spin is None:
+            raise Exception(
+                "cannot request number of spin states for spinless fermions"
+            )
+        return len(self._spin_states)
+
     def _spin_index(self, sz: float) -> int:
         """return the index of the Fock block corresponding to the sz projection"""
-        return round(sz + self.spin)
+        if self.spin is None:
+            if sz is not None or not np.isclose(sz, 0):
+                raise Exception("cannot request spin index of spinless fermions")
+            return 0
+        else:
+            return round(sz + self.spin)
 
     def _get_index(self, orb: int, sz: float = None):
         """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""

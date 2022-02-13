@@ -79,8 +79,12 @@ def _get_index(hilbert: _AbstractHilbert, site: int, sz: float = None):
     """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
     if sz is None:
         return site
-    else:  # we assume hilbert is a SpinOrbitalHilbert
+    elif hasattr(hilbert, "_get_index"):  # keep it general
         return hilbert._get_index(site, sz)
+    else:
+        raise NotImplementedError(
+            f"no method _get_index available for hilbert space {hilbert} that allows to find the position in hilbert space based on a spin projection value sz"
+        )
 
 
 def identity(hilbert: _AbstractHilbert):
