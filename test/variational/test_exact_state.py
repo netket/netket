@@ -22,6 +22,8 @@ import jax
 import netket as nk
 from jax.nn.initializers import normal
 
+from netket.optimizer.linear_operator import LinearOperator
+
 from .. import common
 
 SEED = 2148364
@@ -99,7 +101,8 @@ def test_basic_methods(vstate):
     s = vstate.hilbert.random_state(key2, size=2)
     assert np.shape(vstate.log_value(s)) == (2,)
 
-    _ = vstate.quantum_geometric_tensor()
+    qgt = vstate.quantum_geometric_tensor()
+    assert isinstance(qgt, LinearOperator)
 
 
 @common.skipif_mpi
