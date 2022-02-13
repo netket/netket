@@ -22,6 +22,8 @@ import jax
 import netket as nk
 from jax.nn.initializers import normal
 
+from netket.optimizer.linear_operator import LinearOperator
+
 from .. import common
 
 SEED = 2148364
@@ -87,6 +89,20 @@ def test_init_parameters(vstate):
         np.testing.assert_allclose(x, y)
 
     jax.tree_multimap(_f, pars, pars2)
+
+
+@common.skipif_mpi
+def test_basic_methods(vstate):
+    key1, key2 = jax.random.split(nk.jax.PRNGKey())
+
+    s = vstate.hilbert.random_state(key1)
+    assert np.shape(vstate.log_value(s)) == ()
+
+    s = vstate.hilbert.random_state(key2, size=2)
+    assert np.shape(vstate.log_value(s)) == (2,)
+
+    qgt = vstate.quantum_geometric_tensor()
+    assert isinstance(qgt, LinearOperator)
 
 
 @common.skipif_mpi
