@@ -26,6 +26,7 @@ from netket.utils.types import DType, Array
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
+from netket.utils.numbers import is_scalar
 
 from netket.experimental.hilbert import SpinOrbitalFermions
 
@@ -37,7 +38,7 @@ class FermionOperator2nd(DiscreteOperator):
         terms: Union[List[str], List[List[List[int]]]],
         weights: Optional[List[Union[float, complex]]] = None,
         constant: Union[float, complex] = 0.0,
-        dtype: DType = complex,
+        dtype: DType = None,
     ):
 
         r"""
@@ -74,10 +75,13 @@ class FermionOperator2nd(DiscreteOperator):
             3
         """
         super().__init__(hilbert)
+
+        # bring terms, weights into consistent form, autopromote dtypes if necessary
+        _operators, _constant, dtype = _canonicalize_input(
+            terms, weights, constant, dtype
+        )
         self._dtype = dtype
 
-        # bring terms, weights into consistent form
-        _operators, _constant = _canonicalize_input(terms, weights, constant, dtype)
         # we keep the input, in order to be able to add terms later
         self._operators = _operators
         self._constant = _constant
@@ -417,7 +421,7 @@ class FermionOperator2nd(DiscreteOperator):
         return op
 
     def __iadd__(self, other):
-        if isinstance(other, numbers.Number):
+        if is_scalar(other):
             if other != 0.0:
                 self._constant += other
             return self
@@ -447,13 +451,13 @@ class FermionOperator2nd(DiscreteOperator):
         return other + (-self)
 
     def __neg__(self):
-        return -1 * self
+        return self.__mul__(np.array(-1, dtype=self.dtype))
 
     def __rmul__(self, scalar):
         return self * scalar
 
     def __imul__(self, scalar):
-        if not isinstance(scalar, numbers.Number):
+        if not is_scalar(scalar):
             # we will overload this as matrix multiplication
             self._iop__matmul__(scalar)
         if not np.can_cast(_dtype(scalar), self.dtype, casting="same_kind"):
@@ -467,13 +471,12 @@ class FermionOperator2nd(DiscreteOperator):
         return self
 
     def __mul__(self, scalar):
-        if not isinstance(scalar, numbers.Number):
+        if not is_scalar(scalar):
             # we will overload this as matrix multiplication
             return self._op__matmul__(scalar)
         dtype = np.promote_types(self.dtype, _dtype(scalar))
         op = self.copy(dtype=dtype)
-        op *= scalar
-        return op
+        return op.__imul__(scalar)
 
 
 def _convert_terms_to_spin_blocks(terms, n_orbitals, n_spin_components):
@@ -521,7 +524,14 @@ def _canonicalize_input(terms, weights, constant, dtype):
     if weights is None:
         weights = [1.0] * len(terms)
 
+    # promote dtype iwth constant
+    if dtype is None:
+        constant_dtype = np.array(constant).dtype
+        weights_dtype = np.array(weights).dtype
+        dtype = np.promote_types(constant_dtype, weights_dtype)
+
     weights = np.array(weights, dtype=dtype).tolist()
+    constant = np.array(constant, dtype=dtype).item()
 
     if not len(weights) == len(terms):
         raise ValueError(
@@ -531,9 +541,8 @@ def _canonicalize_input(terms, weights, constant, dtype):
     _check_tree_structure(terms)
 
     operators = dict(zip(terms, weights))
-    constant = np.array(constant, dtype=dtype).item()
 
-    return operators, constant
+    return operators, constant, dtype
 
 
 def _parse_term_tree(terms):

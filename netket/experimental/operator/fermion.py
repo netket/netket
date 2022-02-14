@@ -17,9 +17,7 @@ from netket.hilbert.abstract_hilbert import AbstractHilbert as _AbstractHilbert
 from netket.experimental.operator import FermionOperator2nd as _FermionOperator2nd
 
 
-def destroy(
-    hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = complex
-):
+def destroy(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = None):
     """
     Builds the fermion destruction operator :math:`\\hat{a}` acting on the `site`-th of
     the Hilbert space `hilbert`.
@@ -36,9 +34,7 @@ def destroy(
     return _FermionOperator2nd(hilbert, (f"{idx}",), dtype=dtype)
 
 
-def create(
-    hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = complex
-):
+def create(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = None):
     """
     Builds the fermion creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th of
     the Hilbert space `hilbert`.
@@ -55,9 +51,7 @@ def create(
     return _FermionOperator2nd(hilbert, (f"{idx}^",), dtype=dtype)
 
 
-def number(
-    hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = complex
-):
+def number(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = None):
     """
     Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -87,11 +81,11 @@ def _get_index(hilbert: _AbstractHilbert, site: int, sz: float = None):
         )
 
 
-def identity(hilbert: _AbstractHilbert):
+def identity(hilbert: _AbstractHilbert, dtype: _DType = None):
     """identity operator"""
-    return _FermionOperator2nd(hilbert, [], [], constant=1.0)
+    return _FermionOperator2nd(hilbert, [], [], constant=1.0, dtype=dtype)
 
 
-def zero(hilbert: _AbstractHilbert):
+def zero(hilbert: _AbstractHilbert, dtype: _DType = None):
     """returns an object that has no contribution, meaning a constant of 0"""
-    return _FermionOperator2nd(hilbert, [], [], constant=0.0)
+    return _FermionOperator2nd(hilbert, [], [], constant=0.0, dtype=dtype)

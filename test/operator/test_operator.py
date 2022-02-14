@@ -843,3 +843,37 @@ def test_fermion_add_sub_mul():
     op1c *= 10
     assert np.allclose((op1 * 10).to_dense(), op1f.to_dense())
     assert np.allclose(op1c.to_dense(), op1f.to_dense())
+
+
+@pytest.mark.parametrize("dtype1", [np.float32, np.float64])
+@pytest.mark.parametrize("dtype2", [np.float32, np.float64])
+def test_dtype_promotion(dtype1, dtype2):
+    hi = nkx.hilbert.SpinOrbitalFermions(3)
+    op1 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0", "1^ 2"), weights=(0.3, 2), constant=2, dtype=dtype1
+    )
+    op2 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 1"), weights=(0.1,), constant=2, dtype=dtype2
+    )
+
+    assert op1.dtype == dtype1
+    assert op2.dtype == dtype2
+    assert op1.to_dense().dtype == dtype1
+    assert op2.to_dense().dtype == dtype2
+
+    assert (-op1).dtype == dtype1
+    assert (-op2).dtype == dtype2
+
+    assert (op1 + op2).dtype == np.promote_types(op1.dtype, op2.dtype)
+    assert (op1 - op2).dtype == np.promote_types(op1.dtype, op2.dtype)
+    assert (op1 @ op2).dtype == np.promote_types(op1.dtype, op2.dtype)
+
+    a = np.array(0.5, dtype=dtype1)
+    assert (op2 + a + op2).dtype == np.promote_types(a.dtype, op2.dtype)
+    assert (op2 - a).dtype == np.promote_types(a.dtype, op2.dtype)
+    assert (op2 * a).dtype == np.promote_types(a.dtype, op2.dtype)
+
+    a = np.array(0.5, dtype=dtype2)
+    assert (op1 + a).dtype == np.promote_types(op1.dtype, a.dtype)
+    assert (op1 - a).dtype == np.promote_types(op1.dtype, a.dtype)
+    assert (op1 * a).dtype == np.promote_types(op1.dtype, a.dtype)
