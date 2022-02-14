@@ -209,6 +209,21 @@ class FermionOperator2nd(DiscreteOperator):
             self._is_hermitian = _check_hermitian(terms, weights)
         return self._is_hermitian
 
+    def operator_string(self):
+        """Return a readable string describing all the operator terms"""
+        op_string = []
+        if not _isclose(self._constant, 0.0):
+            op_string.append(f"{self._constant} []")
+        for term, weight in self._operators.items():
+            s = []
+            for idx, dag in term:
+                dag_string = "^" if bool(dag) else ""
+                s.append(f"{int(idx)}{dag_string}")
+            s = " ".join(s)
+            s = f"{weight} [{s}]"
+            op_string.append(s)
+        return " +\n".join(op_string)
+
     def _get_conn_flattened_closure(self):
         self._setup()
         _max_conn_size = self.max_conn_size

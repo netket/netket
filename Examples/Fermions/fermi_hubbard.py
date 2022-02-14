@@ -43,6 +43,8 @@ for sz in (up, down):
 for u in g.nodes():
     ham += U * nc(u, up) * nc(u, down)
 
+print("Hamiltonian =", ham.operator_string())
+
 # metropolis exchange moves fermions around according to a graph
 # the physical graph has LxL vertices, but the computational basis defined by the
 # hilbert space contains (2s+1)*L*L occupation numbers
