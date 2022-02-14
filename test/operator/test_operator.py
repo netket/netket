@@ -706,7 +706,9 @@ def test_create_annihil_number():
 
 def test_operations_fermions():
     hi = nkx.hilbert.SpinOrbitalFermions(5)
-    op1 = nkx.operator.FermionOperator2nd(hi, terms=("1^ 2",), weights=(1,), constant=2)
+    op1 = nkx.operator.FermionOperator2nd(
+        hi, terms=("1^ 2",), weights=(1,), constant=2, dtype=complex
+    )
     op2 = nkx.operator.FermionOperator2nd(
         hi, terms=("3^ 4"), weights=(1.3,), constant=5.7
     )
@@ -747,6 +749,14 @@ def test_operations_fermions():
     op67 += op7
     assert np.allclose((op6 + op7).to_dense(), op8.to_dense())
     assert np.allclose(op67.to_dense(), op8.to_dense())
+
+    op8 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 1", "2^ 3"), weights=(1 + 1j, 2 - 0.5j), constant=1.0 + 3j
+    )
+    op8_trueconj = nkx.operator.FermionOperator2nd(
+        hi, terms=("1^ 0", "3^ 2"), weights=(1 - 1j, 2 + 0.5j), constant=1.0 - 3j
+    )
+    assert np.allclose(op8.conjugate().to_dense(), op8_trueconj.to_dense())
 
 
 def test_fermion_op_matmul():
