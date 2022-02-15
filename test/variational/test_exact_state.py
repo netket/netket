@@ -121,6 +121,7 @@ def test_qutip_conversion(vstate):
     assert q_obj.shape == (vstate.hilbert.n_states, 1)
     np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
 
+
 @pytest.mark.parametrize("dtype", [float, complex])
 def test_derivatives_agree(dtype):
     err = 1e-3
@@ -181,7 +182,10 @@ def central_diff_grad(func, x, eps, *args, dtype=None):
 
 
 @common.skipif_mpi
-@pytest.mark.parametrize("L,n_iterations,h,dtype", [(4, 100, 1, float), (4, 100, 1, complex), (6, 100, 2, float), (8, 100, 3, float)])
+@pytest.mark.parametrize(
+    "L,n_iterations,h,dtype",
+    [(4, 100, 1, float), (4, 100, 1, complex), (6, 100, 2, float), (8, 100, 3, float)],
+)
 def test_TFIM_energy_strictly_decreases(
     L, n_iterations, h, dtype, abs_eps=1.0e-3, rel_eps=1.0e-4
 ):
