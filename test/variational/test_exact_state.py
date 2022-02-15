@@ -121,13 +121,13 @@ def test_qutip_conversion(vstate):
     assert q_obj.shape == (vstate.hilbert.n_states, 1)
     np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
 
-
-def test_derivatives_agree():
+@pytest.mark.parametrize("dtype", [float, complex])
+def test_derivatives_agree(dtype):
     err = 1e-3
     g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=1)
-    ma = nk.models.RBM(alpha=10, dtype=float)
+    ma = nk.models.RBM(alpha=10, dtype=dtype)
     vs = nk.vqs.ExactState(hi, ma)
 
     _, grads_exact = vs.expect_and_grad(ha)
@@ -181,14 +181,14 @@ def central_diff_grad(func, x, eps, *args, dtype=None):
 
 
 @common.skipif_mpi
-@pytest.mark.parametrize("L,n_iterations,h", [(4, 100, 1), (6, 100, 2), (8, 100, 3)])
+@pytest.mark.parametrize("L,n_iterations,h,dtype", [(4, 100, 1, float), (4, 100, 1, complex), (6, 100, 2, float), (8, 100, 3, float)])
 def test_TFIM_energy_strictly_decreases(
-    L, n_iterations, h, abs_eps=1.0e-3, rel_eps=1.0e-4
+    L, n_iterations, h, dtype, abs_eps=1.0e-3, rel_eps=1.0e-4
 ):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=h)
-    ma = nk.models.RBM(alpha=10, dtype=float)
+    ma = nk.models.RBM(alpha=10, dtype=dtype)
     vs = nk.vqs.ExactState(hi, ma)
 
     op = nk.optimizer.Sgd(learning_rate=0.003)
