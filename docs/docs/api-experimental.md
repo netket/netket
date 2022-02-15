@@ -126,8 +126,8 @@ It is experimental until it has been thoroughly tested by the community, meaning
    :template: class
    :nosignatures:
 
-   netket.experimental.operators.fermion.FermionOperator2nd
-   netket.experimental.operators.fermion.create
-   netket.experimental.operators.fermion.destroy
-   netket.experimental.operators.fermion.number
+   netket.experimental.operator.fermion.FermionOperator2nd
+   netket.experimental.operator.fermion.create
+   netket.experimental.operator.fermion.destroy
+   netket.experimental.operator.fermion.number
 ```
