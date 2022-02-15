@@ -65,11 +65,11 @@ class FermionOperator2nd(DiscreteOperator):
             >>> hi = nkx.hilbert.SpinOrbitalFermions(3)
             >>> op = nkx.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2)
+            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> terms = ("0^ 1", "2^ 1")
             >>> op = nkx.operator.FermionOperator2nd(hi, terms, weights)
             >>> op
-            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2)
+            FermionOperator2nd(hilbert=SpinOrbitalFermions(n_orbitals=3), n_operators=2, dtype=complex128)
             >>> op.hilbert
             SpinOrbitalFermions(n_orbitals=3)
             >>> op.hilbert.size
@@ -496,8 +496,18 @@ class FermionOperator2nd(DiscreteOperator):
         return new
 
 
-def _convert_terms_to_spin_blocks(terms, n_orbitals, n_spin_components):
-    """see explanation in from_openfermion in conversion between conventions of netket and openfermion"""
+def _convert_terms_to_spin_blocks(terms, n_orbitals: int, n_spin_components: int):
+    """
+    See explanation in from_openfermion in conversion between conventions of netket and openfermion.
+
+    Args:
+        terms: the operator terms in tuple tree format
+        n_orbitals: number of orbitals
+        n_spin_components: number of spin components (2*spin+1)
+
+    Returns:
+        new terms tree
+    """
 
     if n_spin_components == 1:
         return terms

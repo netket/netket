@@ -72,7 +72,13 @@ def number(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType =
 def _get_index(hilbert: _AbstractHilbert, site: int, sz: float = None):
     """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
     if sz is None:
+        if hasattr(hilbert, "spin") and hilbert.spin is not None:
+            raise ValueError(
+                "hilbert spaces with spin property require to specify the sz value to get the position in hilbert space"
+            )
         return site
+    elif not hasattr(hilbert, "spin"):
+        raise ValueError("cannot specify sz for hilbert without spin property")
     elif hasattr(hilbert, "_get_index"):  # keep it general
         return hilbert._get_index(site, sz)
     else:
