@@ -398,6 +398,16 @@ def test_fermions():
     assert np.all(hi.all_states()[:, 5:].sum(axis=-1) == 1)
 
 
+def test_fermion_fails():
+    with pytest.raises(TypeError):
+        hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2.7)
+    with pytest.raises(TypeError):
+        hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
+
+    with pytest.raises(ValueError):
+        hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2], s=1)
+
+
 def test_fermions_states():
     import scipy.special
 

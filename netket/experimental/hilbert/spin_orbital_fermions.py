@@ -24,13 +24,17 @@ from netket.hilbert.homogeneous import HomogeneousHilbert
 
 class SpinOrbitalFermions(HomogeneousHilbert):
     r"""
-    Hilbert space for 2nd quantization fermions with spin `s` distributed among `n_orbital` orbitals.
+    Hilbert space for 2nd quantization fermions with spin `s` distributed among
+    `n_orbital` orbitals.
 
     The number of fermions can be fixed globally or fixed on a per spin projection.
 
     Note:
-        This class is simply a convenient wrapper that creates a Fock or TensorHilbert of Fock spaces with occupation numbers 0 or 1.
-        It is mainly useful to avoid needing to specify the n_max=1 each time, and adds convenient functions such as _get_index and _spin_index, which allow one to index the correct TensorHilbert corresponding to the right spin projection.
+        This class is simply a convenient wrapper that creates a Fock or TensorHilbert
+        of Fock spaces with occupation numbers 0 or 1.
+        It is mainly useful to avoid needing to specify the n_max=1 each time, and adds
+        convenient functions such as _get_index and _spin_index, which allow one to
+        index the correct TensorHilbert corresponding to the right spin projection.
     """
 
     def __init__(
@@ -42,15 +46,21 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.
 
-        Samples of this hilbert space represent occupation numbers (0,1) of the orbitals.
-        The number of fermions may be fixed to `n_fermions`.
-        If the spin is different from 0 or None, n_fermions can also be a list to fix the number of fermions per spin component.
-        Using this class, one can generate a tensor product of fermionic hilbert spaces that distinguish particles with different spin.
+        Samples of this hilbert space represent occupation numbers (0,1) of the
+        orbitals. The number of fermions may be fixed to `n_fermions`.
+        If the spin is different from 0 or None, n_fermions can also be a list to fix
+        the number of fermions per spin component.
+        Using this class, one can generate a tensor product of fermionic hilbert spaces
+        that distinguish particles with different spin.
 
         Args:
-            n_orbitals: number of orbitals we store occupation numbers for. If the number of fermions per spin is conserved, the different spin configurations are not counted as orbitals and are handled differently.
+            n_orbitals: number of orbitals we store occupation numbers for. If the
+                number of fermions per spin is conserved, the different spin
+                configurations are not counted as orbitals and are handled differently.
             s: spin of the fermions.
-            n_fermions: (optional) fixed number of fermions per spin (conserved). In the case n_fermions is an int, the total number of fermions is fixed, while for lists, the number of fermions per spin component is fixed.
+            n_fermions: (optional) fixed number of fermions per spin (conserved). In the
+                case n_fermions is an int, the total number of fermions is fixed, while
+                for lists, the number of fermions per spin component is fixed.
 
         Returns:
             A SpinOrbitalFermions object
@@ -67,10 +77,13 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             hilbert = Fock(n_max=1, N=total_size, n_particles=n_fermions)
         else:
             if not isinstance(n_fermions, Iterable):
-                raise ValueError("n_fermions must be iterable or int")
+                raise TypeError(
+                    f"n_fermions (whose type is {type(n_fermions)}) "
+                    "must be None, an integer, or an iterable of integers"
+                )
             if s is None:
-                raise ValueError(
-                    "n_fermions can not be a sequence if no spin is specified"
+                raise TypeError(
+                    "n_fermions cannot be a sequence if no spin is specified."
                 )
             if len(n_fermions) != spin_size:
                 raise ValueError(
@@ -82,7 +95,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             hilbert = TensorHilbert(*spin_hilberts)
 
         self._fock = hilbert
-        """Internal representation of this Hilbert space, which is either a Fock or TensorHilbert."""
+        """Internal representation of this Hilbert space (Fock or TensorHilbert)."""
         # local states are the occupation numbers (0, 1)
         local_states = np.array((0.0, 1.0))
 
@@ -112,7 +125,8 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
     @property
     def size(self) -> int:
-        """Size of the hilbert space. In case the fermions have spin `s`, the size is (2*s+1)*n_orbitals"""
+        """Size of the hilbert space. In case the fermions have spin `s`, the size is
+        (2*s+1)*n_orbitals"""
         return self._fock.size
 
     @property
@@ -150,6 +164,6 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             return round(sz + self.spin)
 
     def _get_index(self, orb: int, sz: float = None):
-        """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
+        """go from (site, spin_projection) indices to index in the hilbert space"""
         spin_idx = self._spin_index(sz)
         return spin_idx * self.n_orbitals + orb

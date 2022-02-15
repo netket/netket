@@ -42,24 +42,34 @@ class FermionOperator2nd(DiscreteOperator):
         dtype: DType = None,
     ):
         r"""
-        Constructs a fermion operator given the single terms (set of creation/annihilation operators) in second quantization formalism.
+        Constructs a fermion operator given the single terms (set of
+        creation/annihilation operators) in second quantization formalism.
 
-        This class can be initialized in the following form: ``FermionOperator2nd(hilbert, terms, weights ...)``.
-        The term contains pairs of `(idx, dagger)`, where `idx ∈ range(hilbert.size)` (it identifies an orbital) and `dagger` is a True/False flag determining if the operator is a creation or destruction operator.
-        A term of the form :math:`\\hat{a}_1^\\dagger \\hat{a}_2` would take the form ((1,1), (2,0)), where (1,1) represents :math:`\\hat{a}_1^\\dagger` and (2,0) represents :math:`\\hat{a}_2`.
-        To split up per spin, use the creation and annihilation operators to build the operator.
+        This class can be initialized in the following form: ``FermionOperator2nd(
+        hilbert, terms, weights ...)``.
+        The term contains pairs of `(idx, dagger)`, where `idx ∈ range(hilbert.size)`
+        (it identifies an orbital) and `dagger` is a True/False flag determining if the
+        operator is a creation or destruction operator.
+        A term of the form :math:`\\hat{a}_1^\\dagger \\hat{a}_2` would take the form
+        `((1,1), (2,0))`, where (1,1) represents :math:`\\hat{a}_1^\\dagger` and (2,0)
+        represents :math:`\\hat{a}_2`.
+        To split up per spin, use the creation and annihilation operators to build the
+        operator.
 
         Args:
             hilbert (required): hilbert of the resulting FermionOperator2nd object
-            terms (list(str) or list(list(list(int)))): single term operators (see example below)
-            weights (list(union(float,complex))): corresponding coefficients of the single term operators
-            constant (float, complex): constant contribution (corresponding to the identity operator * constant)
+            terms (list(str) or list(list(list(int)))): single term operators (see
+                example below)
+            weights (list(union(float,complex))): corresponding coefficients of the
+                single term operators
+            constant (float, complex): constant contribution (corresponding to the
+                identity operator * constant)
 
         Returns:
             A FermionOperator2nd object.
 
         Example:
-            Constructs a new ``FermionOperator2nd`` operator (0.5-0.5j)*(a_0^dagger a_1) + (0.5+0.5j)*(a_2^dagger a_1)  with the construction scheme.
+            Constructs a new ``FermionOperator2nd`` operator :math:``(0.5-0.5j)*(a_0^\\dagger a_1) + (0.5+0.5j)*(a_2^\\dagger a_1)``  with the construction scheme.
             >>> import netket.experimental as nkx
             >>> terms, weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
             >>> hi = nkx.hilbert.SpinOrbitalFermions(3)
@@ -119,14 +129,22 @@ class FermionOperator2nd(DiscreteOperator):
         r"""
         Converts an openfermion FermionOperator into a netket FermionOperator2nd.
 
-        The hilbert first argument can be dropped, see __init__ for details and default value.
-        Warning: convention of openfermion.hamiltonians is different from ours: instead of strong spin components as subsequent hilbert state outputs (i.e. the 1/2 spin components of spin-orbit i are stored in locations (2*i, 2*i+1)), we concatenate blocks of definite spin (i.e. locations (i, n_orbitals+i)).
+        The hilbert first argument can be dropped, see __init__ for details and default
+        value.
+        Warning: convention of openfermion.hamiltonians is different from ours: instead
+        of strong spin components as subsequent hilbert state outputs (i.e. the 1/2 spin
+        components of spin-orbit i are stored in locations (2*i, 2*i+1)), we concatenate
+        blocks of definite spin (i.e. locations (i, n_orbitals+i)).
 
         Args:
             hilbert: (optional) hilbert of the resulting FermionOperator2nd object
             of_fermion_operator: openfermion.ops.FermionOperator object
-            n_orbitals: (optional) total number of orbitals in the system, default None means inferring it from the FermionOperator2nd. Argument is ignored when hilbert is given.
-            convert_spin_blocks: whether or not we need to convert the FermionOperator to our convention. Only works if hilbert is provided and if it has spin != 0
+            n_orbitals: (optional) total number of orbitals in the system, default
+                None means inferring it from the FermionOperator2nd. Argument is
+                ignored when hilbert is given.
+            convert_spin_blocks: whether or not we need to convert the FermionOperator
+                to our convention. Only works if hilbert is provided and if it has
+                spin != 0
 
         Returns:
             A FermionOperator2nd object.
@@ -174,7 +192,10 @@ class FermionOperator2nd(DiscreteOperator):
         return FermionOperator2nd(hilbert, terms, weights=weights, constant=constant)
 
     def __repr__(self):
-        return f"FermionOperator2nd(hilbert={self.hilbert}, n_operators={len(self._operators)}, dtype={self.dtype})"
+        return (
+            f"FermionOperator2nd(hilbert={self.hilbert}, "
+            "n_operators={len(self._operators)}, dtype={self.dtype})"
+        )
 
     @property
     def dtype(self) -> DType:
@@ -372,7 +393,8 @@ class FermionOperator2nd(DiscreteOperator):
             return NotImplementedError
         if not self.hilbert == other.hilbert:
             raise ValueError(
-                f"Can only multiply identical hilbert spaces (got A@B, A={self.hilbert}, B={other.hilbert})"
+                f"Can only multiply identical hilbert spaces (got A@B, "
+                "A={self.hilbert}, B={other.hilbert})"
             )
         if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
             raise ValueError(
@@ -426,7 +448,8 @@ class FermionOperator2nd(DiscreteOperator):
             raise NotImplementedError
         if not self.hilbert == other.hilbert:
             raise ValueError(
-                f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, B={other.hilbert})"
+                f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, "
+                "B={other.hilbert})"
             )
         if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
             raise ValueError(
@@ -498,7 +521,8 @@ class FermionOperator2nd(DiscreteOperator):
 
 def _convert_terms_to_spin_blocks(terms, n_orbitals: int, n_spin_components: int):
     """
-    See explanation in from_openfermion in conversion between conventions of netket and openfermion.
+    See explanation in from_openfermion in conversion between conventions of netket
+    and openfermion.
 
     Args:
         terms: the operator terms in tuple tree format
@@ -541,7 +565,8 @@ def _collect_constants(terms, weights):
 
 
 def _canonicalize_input(terms, weights, constant, dtype):
-    """The canonical form is a tree tuple with a tuple pair of integers at lowest level"""
+    """The canonical form is a tree tuple with a tuple pair of integers at the
+    lowest level"""
     if isinstance(terms, str):
         terms = (terms,)
 
