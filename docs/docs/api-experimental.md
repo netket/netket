@@ -101,3 +101,33 @@ driver above.
   netket.experimental.dynamics.RK4
   netket.experimental.dynamics.RK45
 ```
+
+## Fermions
+
+This module contains hilbert space and operator implementations of fermions in second quantization.
+It is experimental until it has been thoroughly tested by the community, meaning feedback is welcome.
+
+```{eval-rst}
+.. currentmodule:: netket
+```
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/experimental/hilbert
+   :template: class
+   :nosignatures:
+
+   netket.experimental.hilbert.SpinOrbitalFermions
+```
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/experimental/operator
+   :template: class
+   :nosignatures:
+
+   netket.experimental.operators.fermion.FermionOperator2nd
+   netket.experimental.operators.fermion.create
+   netket.experimental.operators.fermion.destroy
+   netket.experimental.operators.fermion.number
+```
