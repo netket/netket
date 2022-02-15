@@ -39,10 +39,10 @@ def arr_loc(request, arr, _mpi_rank):
 def test_mean(axis, arr, arr_loc):
     arr_mean = jnp.mean(arr, axis=axis)
 
-    nk_mean = nk.stats.mean(arr_loc, axis=axis)
+    nk_mean, _ = nk.stats.mean(arr_loc, axis=axis)
     np.testing.assert_allclose(nk_mean, arr_mean)
 
-    nk_mean = nk.stats.mean(arr_loc, keepdims=True, axis=axis)
+    nk_mean, _ = nk.stats.mean(arr_loc, keepdims=True, axis=axis)
     assert nk_mean.ndim == arr.ndim
     np.testing.assert_allclose(nk_mean, arr_mean.reshape(1, -1))
 
@@ -51,7 +51,7 @@ def test_mean(axis, arr, arr_loc):
 def test_subtract_mean(axis, arr, arr_loc, _mpi_rank):
     arr_sub = arr - jnp.mean(arr, axis=axis)
 
-    nk_sub = nk.stats.subtract_mean(arr_loc, axis=axis)
+    nk_sub, _ = nk.stats.subtract_mean(arr_loc, axis=axis)
     np.testing.assert_allclose(
         nk_sub, arr_sub[100 * _mpi_rank : 100 * (_mpi_rank + 1), :]
     )
@@ -61,10 +61,10 @@ def test_subtract_mean(axis, arr, arr_loc, _mpi_rank):
 def test_sum(axis, arr, arr_loc):
     arr_sum = jnp.sum(arr, axis=axis)
 
-    nk_sum = nk.stats.sum(arr_loc, axis=axis)
+    nk_sum, _ = nk.stats.sum(arr_loc, axis=axis)
     np.testing.assert_allclose(nk_sum, arr_sum)
 
-    nk_sum = nk.stats.sum(arr_loc, keepdims=True, axis=axis)
+    nk_sum, _ = nk.stats.sum(arr_loc, keepdims=True, axis=axis)
     assert nk_sum.ndim == arr.ndim
     np.testing.assert_allclose(nk_sum, arr_sum.reshape(1, -1))
 
@@ -73,7 +73,7 @@ def test_sum(axis, arr, arr_loc):
 def test_var(axis, arr, arr_loc):
     arr_var = jnp.var(arr, axis=axis)
 
-    nk_var = nk.stats.var(arr_loc, axis=axis)
+    nk_var, _ = nk.stats.var(arr_loc, axis=axis)
     np.testing.assert_allclose(nk_var, arr_var)
 
 

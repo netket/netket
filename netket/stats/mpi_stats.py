@@ -17,7 +17,7 @@ import jax.numpy as jnp
 from netket.utils import mpi
 
 
-def subtract_mean(x, axis=None):
+def subtract_mean(x, axis=None, *, token=None):
     """
     Subtracts the mean of the input array over all but the last dimension
     and over all MPI processes from each entry.
@@ -34,11 +34,11 @@ def subtract_mean(x, axis=None):
     # here we keep the dims, since automatic broadcasting of a scalar (shape () )
     # to an array produces errors when used inside of a function which is transposed
     # with jax.linear_transpose
-    x_mean = mean(x, axis=axis, keepdims=True)
-    return x - x_mean  # automatic broadcasting of x_mean
+    x_mean, token = mean(x, axis=axis, keepdims=True, token=token)
+    return x - x_mean, token  # automatic broadcasting of x_mean
 
 
-def mean(a, axis=None, keepdims: bool = False):
+def mean(a, axis=None, keepdims: bool = False, *, token=None):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
 
@@ -59,11 +59,10 @@ def mean(a, axis=None, keepdims: bool = False):
     """
     out = a.mean(axis=axis, keepdims=keepdims)
 
-    out, _ = mpi.mpi_mean_jax(out)
-    return out
+    return mpi.mpi_mean_jax(out, token=token)
 
 
-def sum(a, axis=None, keepdims: bool = False):
+def sum(a, axis=None, keepdims: bool = False, *, token=None):
     """
     Compute the sum along the specified axis and over MPI processes.
 
@@ -88,11 +87,10 @@ def sum(a, axis=None, keepdims: bool = False):
         # assume it's a scalar
         a_sum = jnp.asarray(a)
 
-    out, _ = mpi.mpi_sum_jax(a_sum)
-    return out
+    return mpi.mpi_sum_jax(a_sum, token=token)
 
 
-def var(a, axis=None, ddof: int = 0):
+def var(a, axis=None, ddof: int = 0, *, token=None):
     """
     Compute the variance mean along the specified axis and over MPI processes.
     Assumes same shape on all MPI processes.
@@ -111,19 +109,19 @@ def var(a, axis=None, ddof: int = 0):
         returns out.
 
     """
-    m = mean(a, axis=axis)
+    m, token = mean(a, axis=axis, token=token)
 
     if axis is None:
         ssq = jnp.abs(a - m) ** 2.0
     else:
         ssq = jnp.abs(a - jnp.expand_dims(m, axis)) ** 2.0
 
-    out = sum(ssq, axis=axis)
+    out, token = sum(ssq, axis=axis, token=token)
 
     n_all = total_size(a, axis=axis)
     out /= n_all - ddof
 
-    return out
+    return out, token
 
 
 def total_size(a, axis=None):
