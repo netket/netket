@@ -174,7 +174,7 @@ class FermionOperator2nd(DiscreteOperator):
         return FermionOperator2nd(hilbert, terms, weights=weights, constant=constant)
 
     def __repr__(self):
-        return f"FermionOperator2nd(hilbert={self.hilbert}, n_operators={len(self._operators)})"
+        return f"FermionOperator2nd(hilbert={self.hilbert}, n_operators={len(self._operators)}, dtype={self.dtype})"
 
     @property
     def dtype(self) -> DType:
