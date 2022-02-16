@@ -130,7 +130,7 @@ def test_qutip_conversion(vstate):
     np.testing.assert_allclose(q_obj.data.todense(), ket.reshape(q_obj.shape))
 
 
-@pytest.mark.parametrize("machine", machines.values())
+@pytest.mark.parametrize("machine", [pytest.param(ma, id=name) for name, ma in machines.items()])
 def test_derivatives_agree(machine):
     err = 1e-3
     g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
