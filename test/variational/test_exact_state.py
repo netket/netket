@@ -194,8 +194,7 @@ def central_diff_grad(func, x, eps, *args, dtype=None):
     [(4, 100, 1), (6, 100, 2), (8, 100, 3)],
 )
 @pytest.mark.parametrize(
-    "machine",
-    machines.values(),
+    "machine", [pytest.param(ma, id=name) for name, ma in machines.items()]
 )
 def test_TFIM_energy_strictly_decreases(
     L, n_iterations, h, machine, abs_eps=1.0e-3, rel_eps=1.0e-4
