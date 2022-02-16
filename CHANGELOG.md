@@ -11,6 +11,7 @@
 ### New features
 * Support for Python 3.10 [#952](https://github.com/netket/netket/pull/952).
 * `Lattice` supports specifying arbitrary edge content for each unit cell via the kwarg `custom_edges`. A generator for hexagonal lattices with coloured edges is implemented as `nk.graph.KitaevHoneycomb`. `nk.graph.Grid` again supports colouring edges by direction. [#1074](https://github.com/netket/netket/pull/1074)
+* Fermionic hilbert space (`nkx.hilbert.SpinOrbitalFermions`) and fermionic operators (`nkx.operator.fermion`) to treat systems with a finite number of Orbitals have been added to the experimental submodule. The operators are also integrated with [OpenFermion](https://quantumai.google/openfermion). Those functionalities are still in development and we would welcome feedback. [#1090](https://github.com/netket/netket/pull/1090)
 
 ### Breaking Changes
 * The gradient for models with real-parameter is now multiplied by 2. If your model had real parameters you might need to change the learning rate and halve it. Conceptually this is a bug-fix, as the value returned before was wrong (see Bug Fixes section below for additional details) [#1069](https://github.com/netket/netket/pull/1069)
