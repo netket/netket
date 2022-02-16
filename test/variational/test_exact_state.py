@@ -56,8 +56,8 @@ machines["model:(C->C)"] = RBM(
     kernel_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),
 )
-machines["model:(C->C)"] = RBM(
-    alpha=10,
+machines["model:(C->C) (alt)"] = RBM(
+    alpha=5,
     dtype=complex,
     kernel_init=normal(stddev=1.0),
     hidden_bias_init=normal(stddev=1.0),
