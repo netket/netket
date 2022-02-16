@@ -133,7 +133,7 @@ def test_qutip_conversion(vstate):
 @pytest.mark.parametrize("machine", [pytest.param(ma, id=name) for name, ma in machines.items()])
 def test_derivatives_agree(machine):
     err = 1e-3
-    g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
+    g = nk.graph.Chain(length=8, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=1)
     vs = nk.vqs.ExactState(hi, machine)
