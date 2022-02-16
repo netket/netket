@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ["driver", "dynamics", "sampler", "vqs", "TDVP", "hilbert", "operator"]
+from netket.experimental.hilbert import SpinOrbitalFermions
+from netket.utils.dispatch import dispatch
 
-from . import hilbert
-from . import operator
-from . import driver
-from . import dynamics
-from . import sampler
-from . import vqs
 
-from .driver import TDVP
+@dispatch
+def random_state(hilb: SpinOrbitalFermions, key, batches: int, *, dtype):
+    return random_state(hilb._fock, key, batches, dtype)
 
-from netket.utils import _hide_submodules
 
-_hide_submodules(__name__)
+@dispatch
+def flip_state_scalar(hilb: SpinOrbitalFermions, key, state, index):
+    return flip_state_scalar(hilb._fock, key, state, index)
+
+
+@dispatch
+def flip_state_batch(hilb: SpinOrbitalFermions, key, state, index):
+    return flip_state_batch(hilb._fock, key, state, index)

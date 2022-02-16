@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ["driver", "dynamics", "sampler", "vqs", "TDVP", "hilbert", "operator"]
 
-from . import hilbert
-from . import operator
-from . import driver
-from . import dynamics
-from . import sampler
-from . import vqs
+__all__ = ["SpinOrbitalFermions"]
 
-from .driver import TDVP
+from .spin_orbital_fermions import SpinOrbitalFermions
+
+from . import random
 
 from netket.utils import _hide_submodules
 
