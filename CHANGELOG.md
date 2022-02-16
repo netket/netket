@@ -20,7 +20,7 @@
 * The gradient obtained with `VarState.expect_and_grad` for models with real-parameters was off by a factor of $ 1/2 $ from the correct value. This has now been corrected. As a consequence, the correct gradient for real-parameter models is equal to the old times 2. If your model had real parameters you might need to change the learning rate and halve it. [#1069](https://github.com/netket/netket/pull/1069)
 * Support for coloured edges in `nk.graph.Grid`, removed in [#724](https://github.com/netket/netket/pull/724), is now restored. [#1074](https://github.com/netket/netket/pull/1074)
 * Fixed bug that prevented calling `.quantum_geometric_tensor` on `netket.vqs.ExactState`. [#1108](https://github.com/netket/netket/pull/1108)
-
+* Fixed bug where the gradient of `C->C` models (complex parameters, complex output) was computed incorrectly with `nk.vqs.ExactState`. [#1110](https://github.com/netket/netket/pull/1110)
 
 ## NetKet 3.3.2 (🐛 Bug Fixes)
 

@@ -105,7 +105,7 @@ def _exp_grad(
     is_mutable = mutable is not False
 
     expval_O = (Ψ.conj() * OΨ).sum()
-    ΔOΨ = (OΨ - expval_O * Ψ.conj()) * Ψ
+    ΔOΨ = (OΨ - expval_O * Ψ).conj() * Ψ
 
     _, vjp_fun, *new_model_state = nkjax.vjp(
         lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
