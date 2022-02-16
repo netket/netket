@@ -14,8 +14,6 @@
 
 from functools import partial
 
-from itertools import product
-
 import pytest
 from pytest import approx, raises, warns
 
