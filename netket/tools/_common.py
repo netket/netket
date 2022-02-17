@@ -1,5 +1,6 @@
-from subprocess import check_output
 import importlib
+import sys
+from subprocess import CalledProcessError, PIPE, check_output
 
 
 def exec_in_terminal(command):
@@ -9,7 +10,7 @@ def exec_in_terminal(command):
     Args:
         command: a string or list of strings
     """
-    return check_output(command).strip().decode("utf8")
+    return check_output(command, stderr=PIPE).strip().decode("utf8")
 
 
 def is_available(lib_name: str) -> bool:
@@ -46,3 +47,17 @@ def _version(lib_name):
         return lib.__version__
     else:
         return "available"
+
+
+def get_executable_path(name):
+    """
+    Get the path of an executable.
+    """
+    try:
+        if sys.platform.startswith("win32"):
+            path = exec_in_terminal(["where", name])
+        else:
+            path = exec_in_terminal(["which", name])
+    except (CalledProcessError, FileNotFoundError):
+        path = ""
+    return path

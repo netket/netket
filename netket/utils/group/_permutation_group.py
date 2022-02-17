@@ -146,7 +146,7 @@ class PermutationGroup(FiniteGroup):
             lookup = self._canonical_lookup()
             inverses = []
             for perm in self.to_array():
-                invperm = np.argsort(perm)
+                invperm = np.argsort(perm).astype(perm.dtype)
                 inverses.append(lookup[HashableArray(invperm)])
 
             return np.asarray(inverses, dtype=int)
