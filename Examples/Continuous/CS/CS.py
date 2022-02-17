@@ -41,12 +41,11 @@ def potential(x):
 
     return jnp.sum(g / dis)
 
-
 L = 15.0
 
 hilb = nk.hilbert.Particle(N=10, L=(L,), pbc=True)
 
-sab = nk.sampler.SingleMetropolisGaussian(hilb, sigma=1.0, n_chains=16)
+sab = nk.sampler.MetropolisGaussian(hilb, sigma=1., n_chains=16)
 
 model = nk.models.DeepSet(
     k=4,
@@ -57,19 +56,14 @@ model = nk.models.DeepSet(
     features_phi=(16, 16),
     features_rho=(16, 16, 1),
 )
-# model = nk.models.Gaussian()
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
 pot = nk.operator.PotentialEnergy(hilb, potential)
 ha = ekin + pot
 
 vs = nk.vqs.MCState(sab, model, n_samples=10 ** 4, n_discard_per_chain=2000)
-"""
-import flax
-with open(r'/home/gabriel/Documents/PhD/netket/Examples/Continuous/CS/CS_10_1d.mpack', 'rb') as file:
-    vs.variables = flax.serialization.from_bytes(vs.variables, file.read())
-"""
+
 op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
-gs = nk.VMC(ha, op, sab, variational_state=vs)  # , preconditioner=sr)
-gs.run(n_iter=100, callback=mycb, out="test")
+gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
+gs.run(n_iter=100, callback=mycb, out="CS_10_1d")
