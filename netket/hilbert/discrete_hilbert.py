@@ -215,7 +215,7 @@ class DiscreteHilbert(AbstractHilbert):
 
     def __mul__(self, other: "DiscreteHilbert"):
         if self == other:
-            return self ** 2
+            return self**2
         else:
             from .tensor_hilbert import TensorHilbert
 

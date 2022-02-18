@@ -113,7 +113,7 @@ class LocalLiouvillian(AbstractSuperOperator):
         self._max_dissipator_conn_size = 0
         for L in self._jump_ops:
             Hnh = Hnh - 0.5j * L.conjugate().transpose() @ L
-            self._max_dissipator_conn_size += L.max_conn_size ** 2
+            self._max_dissipator_conn_size += L.max_conn_size**2
 
         self._Hnh = Hnh.collect()
 
@@ -399,7 +399,7 @@ class LocalLiouvillian(AbstractSuperOperator):
             ]
 
         if not append_trace:
-            op_size = M ** 2
+            op_size = M**2
 
             def matvec(rho_vec):
                 rho = rho_vec.reshape((M, M))
@@ -423,12 +423,12 @@ class LocalLiouvillian(AbstractSuperOperator):
             # The logic behind the use of Hnh_dag_ and Hnh_ is derived from the
             # convention adopted in local_liouvillian.cc, and inspired from reference
             # arXiv:1504.05266
-            op_size = M ** 2 + 1
+            op_size = M**2 + 1
 
             def matvec(rho_vec):
                 rho = rho_vec[:-1].reshape((M, M))
 
-                out = np.zeros((M ** 2 + 1), dtype=rho.dtype)
+                out = np.zeros((M**2 + 1), dtype=rho.dtype)
                 drho = out[:-1].reshape((M, M))
 
                 drho += iHnh @ rho + rho @ iHnh.conj().T

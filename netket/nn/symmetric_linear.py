@@ -36,7 +36,7 @@ default_equivariant_initializer = lecun_normal(in_axis=1, out_axis=0)
 
 def _normalise_mask(mask, new_norm):
     mask = jnp.asarray(mask)
-    return mask / jnp.linalg.norm(mask) * new_norm ** 0.5
+    return mask / jnp.linalg.norm(mask) * new_norm**0.5
 
 
 def symm_input_warning(x_shape, new_x_shape, name):

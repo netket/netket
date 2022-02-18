@@ -12,7 +12,7 @@ from functools import partial
 def test_scan_append_reduce(jit, N):
     def f(x):
         y = jnp.sin(x)
-        return y, y, y ** 2
+        return y, y, y**2
 
     x = jnp.linspace(0.0, jnp.pi, 2 * N).reshape((N, 2))
 
@@ -25,7 +25,7 @@ def test_scan_append_reduce(jit, N):
 
     np.testing.assert_allclose(y, y_expected)
     np.testing.assert_allclose(s, y_expected.sum(axis=0))
-    np.testing.assert_allclose(s2, (y_expected ** 2).sum(axis=0))
+    np.testing.assert_allclose(s2, (y_expected**2).sum(axis=0))
 
 
 @pytest.mark.parametrize("jit", [False, True])
@@ -37,7 +37,7 @@ def test_scanmap(jit, N):
     @partial(nk.jax.scanmap, scan_fun=scan_fun, argnums=1)
     def f(c, x):
         y = jnp.sin(x) + c
-        return y, y, y ** 2
+        return y, y, y**2
 
     if jit:
         f = jax.jit(f)
@@ -50,4 +50,4 @@ def test_scanmap(jit, N):
 
     np.testing.assert_allclose(y, y_expected)
     np.testing.assert_allclose(s, y_expected.sum(axis=0))
-    np.testing.assert_allclose(s2, (y_expected ** 2).sum(axis=0))
+    np.testing.assert_allclose(s2, (y_expected**2).sum(axis=0))

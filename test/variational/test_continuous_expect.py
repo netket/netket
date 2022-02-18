@@ -8,7 +8,7 @@ import flax.linen as nn
 class test(nn.Module):
     @nn.compact
     def __call__(self, x):
-        nothing = self.param("nothing", lambda *args: jnp.ones(1))
+        _ = self.param("nothing", lambda *args: jnp.ones(1))
         if len(x.shape) != 1:
             return jnp.array(x.size * [1.0])
         return 1.0
@@ -19,7 +19,7 @@ class test2(nn.Module):
     def __call__(self, x):
         nothing = self.param("nothing", lambda *args: jnp.ones(1))
 
-        sol = jnp.sum(nothing ** 2 * x, axis=-1)
+        sol = jnp.sum(nothing**2 * x, axis=-1)
         return sol
 
 
@@ -40,19 +40,19 @@ sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, n_sweeps=1)
 
 model = test()
 model2 = test2()
-vs_continuous = nk.vqs.MCState(sab, model, n_samples=10 ** 6, n_discard_per_chain=2000)
+vs_continuous = nk.vqs.MCState(sab, model, n_samples=10**6, n_discard_per_chain=2000)
 vs_continuous2 = nk.vqs.MCState(
-    sab, model2, n_samples=10 ** 7, n_discard_per_chain=2000
+    sab, model2, n_samples=10**7, n_discard_per_chain=2000
 )
 
 
 def test_expect():
-    x = vs_continuous2.samples.reshape(-1, 1)
+    # x = vs_continuous2.samples.reshape(-1, 1)
     sol = vs_continuous.expect(pot)
     O_stat, O_grad = vs_continuous2.expect_and_grad(e)
     O_grad, _ = nk.jax.tree_ravel(O_grad)
 
-    O_grad_exact = 2 * jnp.dot(x.T, (v1(x) - jnp.mean(v1(x), axis=0))) / x.shape[0]
+    # O_grad_exact = 2 * jnp.dot(x.T, (v1(x) - jnp.mean(v1(x), axis=0))) / x.shape[0]
     r"""
     :math:`<V> = \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = 0.1975164 (\psi = 1)`
     :math:`<\nabla V> = \nabla_p \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = -0.140256 (\psi = \exp(p^2 x))`
