@@ -5,10 +5,10 @@ black = "22.1.0"
 pre-commit = ">= 2.7"
 pytest = ">= 6"
 pytest-xdist = ">= 2"
-flaky = ">= 3.7"
 coverage = ">= 5"
 pytest-cov = ">= 2.10.1"
-flakehell = ">= 0.9"
+pyproject-flake8 = "0.0.1a2.post1"
+flake8 = "4.0.1"
 
 [build-system]
 requires = ["setuptools>=50",
@@ -64,52 +64,7 @@ testpaths = [
     "test",
 ]
 
-[tool.flakehell]
-exclude = []
-# make output nice
-format = "grouped"
+[tool.flake8]
 max-line-length = 88
-# show line of source code in output
-show_source = true
-extended_default_ignore=[]  # workaround for flakehell#10
-
-[tool.flakehell.plugins]
-pycodestyle = ["+*",
-               "-E203",
-               "-E501",
-               "-W503",
-               "-E741",
-               "-E266",  # too many leading #
-               "-E731", # do not assign lambda expression, use def
-               ]
-pyflakes = ["+*", "-E203"]
-
-# match by prefix
-[tool.flakehell.exceptions."tests/"]
-pycodestyle = ["-F401"]     # disable a check
-pyflakes = ["-*"]           # disable a plugin
-
-# match by glob
-[tool.flakehell.exceptions."**/__init__.py"]
-pyflakes = ["-F401"]
-pycodestyle = ["-F401", "-E402"]
-
-[tool.flakehell.exceptions."netket/nn/"]
-pyflakes = ["-F401", "-F403", "-F405"]
-pycodestyle = ["-F401", "-E402"]
-
-# ignore on docs
-[tool.flakehell.exceptions."**/*.md"]
-pyflakes = ["-*"]
-pycodestyle = ["-*"]
-
-# ignore on docs
-[tool.flakehell.exceptions."**/*.rst"]
-pyflakes = ["-*"]
-pycodestyle = ["-*"]
-
-
-# ignore on docs
-[tool.flakehell.exceptions."docs/"]
-pyflakes = ["-*"]
-pycodestyle = ["-*", "-E999"]
+ignore = "E203,E266,E501,E731,E741,W503"
+per-file-ignores = "**/__init__.py:E402,F401 netket/nn/activation.py:F401"
