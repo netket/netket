@@ -1,5 +1,4 @@
 import netket as nk
-from netket.operator.boson import destroy
 import numpy as np
 import netket.experimental as nkx
 
@@ -111,7 +110,7 @@ for name, op in operators.items():
 op_finite_size = {}
 for name, op in operators.items():
     hi = op.hilbert
-    if hi.is_finite and hi.n_states < 2 ** 14:
+    if hi.is_finite and hi.n_states < 2**14:
         op_finite_size[name] = op
 
 

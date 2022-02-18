@@ -91,7 +91,7 @@ class DoubledHilbert(DiscreteHilbert):
 
     @property
     def n_states(self):
-        return self.physical.n_states ** 2
+        return self.physical.n_states**2
 
     def _numbers_to_states(self, numbers, out):
         # !!! WARNING

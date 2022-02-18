@@ -150,7 +150,7 @@ def propose_time_step(
     SAFETY_FACTOR = 0.95
     err_exponent = -1.0 / (1 + error_order)
     return jnp.clip(
-        dt * SAFETY_FACTOR * scaled_error ** err_exponent,
+        dt * SAFETY_FACTOR * scaled_error**err_exponent,
         limits[0],
         limits[1],
     )

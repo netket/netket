@@ -243,6 +243,6 @@ def _to_dense(self: QGTJacobianDenseT) -> jnp.ndarray:
         diag = jnp.eye(self.O.shape[1])
     else:
         O = self.O * self.scale[jnp.newaxis, :]
-        diag = jnp.diag(self.scale ** 2)
+        diag = jnp.diag(self.scale**2)
 
     return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag

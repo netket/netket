@@ -7,11 +7,11 @@ import netket
 
 
 def v1(x):
-    return jnp.sum(jnp.exp(-(x ** 2)), axis=-1)
+    return jnp.sum(jnp.exp(-(x**2)), axis=-1)
 
 
 def v2(x):
-    return jnp.sum(2.0 * jnp.exp(-(x ** 2)))
+    return jnp.sum(2.0 * jnp.exp(-(x**2)))
 
 
 v2_vec = jax.vmap(v2)
@@ -41,8 +41,8 @@ kin10p52 = kin1 + 0.5 * kin2
 etot = pottot + kintot
 
 model1 = lambda p, x: 1.0
-model2 = lambda p, x: jnp.sum(x ** 3)
-kinexact = lambda x: -0.5 * jnp.sum((3 * x ** 2) ** 2 + 6 * x, axis=-1)
+model2 = lambda p, x: jnp.sum(x**3)
+kinexact = lambda x: -0.5 * jnp.sum((3 * x**2) ** 2 + 6 * x, axis=-1)
 
 
 def test_is_hermitean():

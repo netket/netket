@@ -235,7 +235,7 @@ class ARNNConv2D(AbstractARNN):
 
     def setup(self):
         self.L = int(sqrt(self.hilbert.size))
-        assert self.L ** 2 == self.hilbert.size
+        assert self.L**2 == self.hilbert.size
 
         if isinstance(self.features, int):
             features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]

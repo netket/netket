@@ -8,7 +8,7 @@ DEV_DEPENDENCIES = [
     "networkx~=2.4",
     "flaky>=3.7",
     "pre-commit",
-    "black==21.6b0",
+    "black==22.1.0",
     "flakehell>=0.9",
 ]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]

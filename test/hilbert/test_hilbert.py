@@ -386,7 +386,7 @@ def test_fermions():
     # check the output
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
-    assert hi.n_states == 2 ** 5
+    assert hi.n_states == 2**5
     assert hi.spin is None
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
@@ -400,12 +400,11 @@ def test_fermions():
 
 def test_fermion_fails():
     with pytest.raises(TypeError):
-        hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2.7)
+        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2.7)
     with pytest.raises(TypeError):
-        hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
-
+        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
     with pytest.raises(ValueError):
-        hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2], s=1)
+        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2], s=1)
 
 
 def test_fermions_states():
@@ -413,7 +412,7 @@ def test_fermions_states():
 
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
-    assert hi.n_states == 2 ** 5
+    assert hi.n_states == 2**5
 
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5

@@ -62,7 +62,7 @@ ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
 pot = nk.operator.PotentialEnergy(hilb, potential)
 ha = ekin + pot
 
-vs = nk.vqs.MCState(sab, model, n_samples=10 ** 4, n_discard_per_chain=2000)
+vs = nk.vqs.MCState(sab, model, n_samples=10**4, n_discard_per_chain=2000)
 """
 import flax
 with open(r'/home/gabriel/Documents/PhD/netket/Examples/Continuous/CS/CS_10_1d.mpack', 'rb') as file:

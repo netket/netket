@@ -269,6 +269,6 @@ def _to_dense(self: QGTJacobianPyTreeT) -> jnp.ndarray:
     else:
         scale, _ = nkjax.tree_ravel(self.scale)
         O = O * scale[jnp.newaxis, :]
-        diag = jnp.diag(scale ** 2)
+        diag = jnp.diag(scale**2)
 
     return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag
