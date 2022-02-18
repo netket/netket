@@ -7,7 +7,7 @@ pytest = ">= 6"
 pytest-xdist = ">= 2"
 coverage = ">= 5"
 pytest-cov = ">= 2.10.1"
-pyproject-flake8 = "0.0.1a2.post1"
+pyproject-flake8 = "0.0.1a2"
 flake8 = "4.0.1"
 
 [build-system]
