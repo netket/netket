@@ -14,13 +14,11 @@
 
 from typing import Tuple, Union, List, Optional
 
-import functools
 import numbers
 
 from textwrap import dedent
 
 import numpy as np
-from scipy import sparse
 import numba
 
 from netket.hilbert import AbstractHilbert
@@ -109,7 +107,7 @@ class LocalOperator(DiscreteOperator):
         for (op, aon) in zip(operators, acting_on):
             self._add_operator(aon, op)
 
-    def _add_operator(self, acting_on: Tuple, operator: "array"):
+    def _add_operator(self, acting_on: Tuple, operator: Array):
         """
         Adds an operator acting on a subset of sites.
 

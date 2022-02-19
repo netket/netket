@@ -12,23 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, Union, Optional, Tuple
+from typing import Any, Optional, Tuple
 
-from flax.linen.module import Module, compact
-from jax import lax
-
-import jax.numpy as jnp
 import numpy as np
-import jax
+import jax.numpy as jnp
+
+from jax import lax
 from jax.nn.initializers import zeros, lecun_normal
+from flax.linen.module import Module, compact
 
 from netket.utils import warn_deprecation
 from netket.utils import HashableArray
-from netket.utils.types import Array, DType, PRNGKeyT, Shape, NNInitFunc
+from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils.group import PermutationGroup
 from typing import Sequence
 from netket.graph import Graph, Lattice
-import warnings
 
 # All layers defined here have kernels of shape [out_features, in_features, n_symm]
 default_equivariant_initializer = lecun_normal(in_axis=1, out_axis=0)

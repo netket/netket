@@ -12,27 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple, Union, List, Optional
-
-import numba
+from typing import Tuple, Union
 
 import functools
 import numbers
 
-from textwrap import dedent
-
 import numpy as np
-from numba import jit
 
 from scipy.sparse import spmatrix
 
 from netket.hilbert import AbstractHilbert, Fock
 from netket.utils.types import DType, Array
 
+from ._abstract_operator import AbstractOperator
 from ._discrete_operator import DiscreteOperator
 
 
-def _dtype(obj: Union[numbers.Number, Array, "LocalOperator"]) -> DType:
+def _dtype(obj: Union[numbers.Number, Array, AbstractOperator]) -> DType:
     """
     Returns the dtype of the input object
     """
@@ -191,8 +187,8 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
 
 # TODO: support sparse arrays without returning dense arrays
 def _multiply_operators(
-    hilbert, support_A: Tuple, A: "array", support_B: Tuple, B: "array", *, dtype
-) -> Tuple[Tuple, "array"]:
+    hilbert, support_A: Tuple, A: Array, support_B: Tuple, B: Array, *, dtype
+) -> Tuple[Tuple, Array]:
     """
     Returns the `Tuple[acting_on, Matrix]` representing the operator obtained by
     multiplying the two input operators A and B.

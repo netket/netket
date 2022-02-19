@@ -393,8 +393,8 @@ class FermionOperator2nd(DiscreteOperator):
             return NotImplementedError
         if not self.hilbert == other.hilbert:
             raise ValueError(
-                f"Can only multiply identical hilbert spaces (got A@B, "
-                "A={self.hilbert}, B={other.hilbert})"
+                "Can only multiply identical hilbert spaces (got A@B, "
+                f"A={self.hilbert}, B={other.hilbert})"
             )
         if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
             raise ValueError(

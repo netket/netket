@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Tuple, Sequence, Union
+from textwrap import dedent
 
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.sparse import find, triu
 from netket.utils.float import comparable, is_approx_int
 from netket.utils.types import Array
-
-from typing import Tuple, Sequence, Union
-
-# Helper functions
 
 
 def create_site_positions(basis_vectors, extent, site_offsets, extra_shells=None):
@@ -156,7 +154,7 @@ def get_custom_edges(
             custom_edges must be a list of tuples of length 3 or 4.
             Every tuple must contain two sublattice indices (integers), a distance vector
             and can optionally include an integer to represent the color of that edge.
-            
+
             Check the docstring of `nk.graph.Lattice` for more informations.
             """
             )
