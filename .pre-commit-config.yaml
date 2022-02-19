@@ -8,5 +8,6 @@ repos:
     rev: v0.0.1a2.post1
     hooks:
     - id: pyproject-flake8
+      files: netket/
       additional_dependencies:
         - flake8==4.0.1
