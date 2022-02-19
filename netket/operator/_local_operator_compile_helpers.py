@@ -17,14 +17,11 @@ This file contains functions generating the numba-packed representation of local
 operators.
 """
 
-from typing import Tuple, Union, List, Optional
-
 import numpy as np
-from scipy import sparse
 import numba
 
 from netket.hilbert import AbstractHilbert
-from netket.utils.types import DType, Array
+from netket.utils.types import DType
 
 
 def pack_internals(

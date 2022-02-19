@@ -19,7 +19,6 @@ from netket.utils.types import Array
 from typing import Callable, Dict, Sequence, Tuple, Union, Optional, TYPE_CHECKING
 import warnings
 
-import igraph
 import numpy as _np
 
 from netket.utils.deprecation import deprecated as _deprecated

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-This file contains logic to check version of NetKet's dependencies and hard-error in 
+This file contains logic to check version of NetKet's dependencies and hard-error in
 case of outdated dependencies that we know might break NetKet's numerical results
 silently or unexpectedly.
 """
@@ -28,21 +28,21 @@ if not module_version("optax") >= (0, 1, 1):
     version = version_string("optax")
     msg = dedent(
         f"""
-		Optax version {version} (< 0.1.1) is too old and incompatible with NetKet. 
-		Please update `optax` by running the command:
+        Optax version {version} (< 0.1.1) is too old and incompatible with NetKet.
+        Please update `optax` by running the command:
 
-			pip install --upgrade pip
-			pip install --upgrade netket optax
-		
-		(assuming you are using pip. Similar commands can be used on conda).
+            pip install --upgrade pip
+            pip install --upgrade netket optax
 
-		This error most likely happened because you either have an old version of `pip`
-		or you are hard-coding the `optax` version in a requirements file.
+        (assuming you are using pip. Similar commands can be used on conda).
 
-		Reason: Optax is NetKet's provider of optimisers. Versions before 0.1.1 did not
-		support complex numbers and silently returned wrong values, especially when
-		using optimisers involving the norm of the gradient such as `Adam`. 
-		As recent versions of optax correctly work with complex numbers, please upgrade.
-		"""
+        This error most likely happened because you either have an old version of `pip`
+        or you are hard-coding the `optax` version in a requirements file.
+
+        Reason: Optax is NetKet's provider of optimisers. Versions before 0.1.1 did not
+        support complex numbers and silently returned wrong values, especially when
+        using optimisers involving the norm of the gradient such as `Adam`.
+        As recent versions of optax correctly work with complex numbers, please upgrade.
+        """
     )
     raise ImportError(msg)

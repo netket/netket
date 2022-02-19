@@ -26,7 +26,6 @@ from . import spin, boson
 from ._local_operator import LocalOperator
 from ._graph_operator import GraphOperator
 from ._discrete_operator import DiscreteOperator
-from ._lazy import Squared
 
 
 class SpecialHamiltonian(DiscreteOperator):
