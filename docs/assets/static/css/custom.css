@@ -1,0 +1,56 @@
+h1 {
+    color: #003B71 !important;
+}
+
+.header {
+}
+
+.sig, .sig- {
+  display: block !important;
+}
+
+
+.py.function {
+  border-style: groove;
+}
+
+.class-dl-groups,
+.py.class,
+.py.function,
+.py.attribute,
+.py.method {
+  border: 1px solid #dbdbdb;
+  box-shadow: 2px 2px 3px rgba(10, 10, 10, 0.1);
+  margin-bottom: 1em;
+}
+
+.class-dl-groups > dt,
+.py.class > dt,
+.py.function > dt,
+.py.attribute > dt,
+.py.method > dt {
+  display: block;
+  background-color: whitesmoke;
+  border-bottom: 1px solid #dbdbdb;
+  padding: 0.75rem;
+  /*font-family: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Helvetica", "Arial", sans-serif; */
+}
+
+.class-dl-groups > dt {
+    display: block !important;
+    font-variant: small-caps;
+    font-weight: bold;
+}
+
+.sig-name.descname {
+  color: #2e63b8;
+}
+
+.class-dl-groups > dd,
+.py.class > dd,
+.py.attribute > dd,
+.py.function > dd,
+.py.method > dd {
+  padding: 1rem 1.25rem;
+}
+

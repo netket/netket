@@ -53,7 +53,7 @@ use the more first API, where the variational state is built explicitly.
 
 ## Running the optimisation
 
-The simplest way to use optimization drivers to perform the optimisation is to use their {py:meth}`~netket.driver.AbstractVariationalDriver.run` method.
+The simplest way to use optimization drivers to perform the optimisation is to use their {attr}`~netket.driver.AbstractVariationalDriver.run` method.
 
 This method will run the optimisation for the desired number of steps, while logging data to the
 desired output.

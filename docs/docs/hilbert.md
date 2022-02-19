@@ -189,7 +189,9 @@ Lastly, it is also possible to obtain the batch of all basis states with the {me
 The Hilbert spaces provided by NetKet are compatible with some simple constraints. 
 The constraints that can be imposed are quite ~constrained~ limited themselves: they can only act on the set of basis elements, for example by excluding those that do not satisfy a certain condition. 
 
-```{warning} Warning: Common error
+```{admonition} Warning: Common error
+:class: warning
+
 When you define a constrained Hilbert space and you use it with a Markov-Chain sampler, the constraints guarantees that the initial state of the chain, generated through the {meth}`~netket.hilbert.DiscreteHilbert.random_state` method, respects the constraint.
 
 However, *it is not guaranteed that a transition rule will respect the constraint.* 

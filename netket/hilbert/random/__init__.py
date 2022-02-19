@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-This module constains functions that act on hilbert spaces necessary
+This module contains functions that act on hilbert spaces necessary
 for sampling.
 
 If you define custom hilbert spaces, and want to sample from it, you

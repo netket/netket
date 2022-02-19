@@ -33,6 +33,10 @@ from netket.experimental.hilbert import SpinOrbitalFermions
 
 
 class FermionOperator2nd(DiscreteOperator):
+    r"""
+    A fermionic operator in :math:`2^{nd}` quantization.
+    """
+
     def __init__(
         self,
         hilbert: AbstractHilbert,
@@ -45,31 +49,33 @@ class FermionOperator2nd(DiscreteOperator):
         Constructs a fermion operator given the single terms (set of
         creation/annihilation operators) in second quantization formalism.
 
-        This class can be initialized in the following form: ``FermionOperator2nd(
-        hilbert, terms, weights ...)``.
+        This class can be initialized in the following form:
+        `FermionOperator2nd(hilbert, terms, weights ...)`.
         The term contains pairs of `(idx, dagger)`, where `idx ∈ range(hilbert.size)`
         (it identifies an orbital) and `dagger` is a True/False flag determining if the
         operator is a creation or destruction operator.
-        A term of the form :math:`\\hat{a}_1^\\dagger \\hat{a}_2` would take the form
-        `((1,1), (2,0))`, where (1,1) represents :math:`\\hat{a}_1^\\dagger` and (2,0)
-        represents :math:`\\hat{a}_2`.
+        A term of the form :math:`\hat{a}_1^\dagger \hat{a}_2` would take the form
+        `((1,1), (2,0))`, where (1,1) represents :math:`\hat{a}_1^\dagger` and (2,0)
+        represents :math:`\hat{a}_2`.
         To split up per spin, use the creation and annihilation operators to build the
         operator.
 
         Args:
-            hilbert (required): hilbert of the resulting FermionOperator2nd object
-            terms (list(str) or list(list(list(int)))): single term operators (see
+            hilbert: hilbert of the resulting FermionOperator2nd object
+            terms: single term operators (see
                 example below)
-            weights (list(union(float,complex))): corresponding coefficients of the
-                single term operators
-            constant (float, complex): constant contribution (corresponding to the
-                identity operator * constant)
+            weights: corresponding coefficients of the single term operators
+                (defaults to a list of 1)
+            constant: constant contribution, corresponding to the
+                identity operator * constant (default = 0)
 
         Returns:
             A FermionOperator2nd object.
 
         Example:
-            Constructs a new ``FermionOperator2nd`` operator :math:``(0.5-0.5j)*(a_0^\\dagger a_1) + (0.5+0.5j)*(a_2^\\dagger a_1)``  with the construction scheme.
+            Constructs the fermionic hamiltonian in :math:`2^{nd}` quantization
+            :math:`(0.5-0.5j)*(a_0^\dagger a_1) + (0.5+0.5j)*(a_2^\dagger a_1)`.
+
             >>> import netket.experimental as nkx
             >>> terms, weights = (((0,1),(1,0)),((2,1),(1,0))), (0.5-0.5j,0.5+0.5j)
             >>> hi = nkx.hilbert.SpinOrbitalFermions(3)
@@ -84,6 +90,7 @@ class FermionOperator2nd(DiscreteOperator):
             SpinOrbitalFermions(n_orbitals=3)
             >>> op.hilbert.size
             3
+
         """
         super().__init__(hilbert)
 
@@ -270,18 +277,22 @@ class FermionOperator2nd(DiscreteOperator):
         return jit(nopython=True)(gccf_fun)
 
     def get_conn_flattened(self, x, sections, pad=False):
-        r"""Finds the connected elements of the Operator. Starting
-        from a given quantum number x, it finds all other quantum numbers x' such
+        r"""Finds the connected elements of the Operator.
+
+        Starting from a given quantum number x, it finds all other quantum numbers x' such
         that the matrix element :math:`O(x,x')` is different from zero. In general there
         will be several different connected states x' satisfying this
         condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+
         This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+
         Args:
-            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                        the batch of quantum numbers x.
-            sections (array): An array of size (batch_size) useful to unflatten
-                        the output of this function.
-                        See numpy.split for the meaning of sections.
+            x: A matrix of shape (batch_size,hilbert.size) containing
+                the batch of quantum numbers x.
+            sections: An array of size (batch_size) useful to unflatten
+                the output of this function.
+                See numpy.split for the meaning of sections.
+
         Returns:
             matrix: The connected states x', flattened together in a single matrix.
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.

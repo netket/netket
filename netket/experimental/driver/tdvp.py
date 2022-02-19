@@ -42,7 +42,7 @@ from netket.experimental.dynamics._rk_solver import euclidean_norm, maximum_norm
 class TDVP(AbstractVariationalDriver):
     """
     Variational time evolution based on the time-dependent variational principle which,
-    when used with Monte Carlo sampling via :ref:`~netket.vqs.MCState`, is the time-dependent VMC
+    when used with Monte Carlo sampling via :ref:`netket.vqs.MCState`, is the time-dependent VMC
     (t-VMC) method.
     """
 

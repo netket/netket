@@ -1,0 +1,61 @@
+@media screen and (max-width: 991px) {
+  .landing-page-box-logo {
+  background-image:none;
+  }
+  .navbar-brand, .navbar-form {
+    display:none;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .navbar-brand, .navbar-form {
+    display:inline;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .bs-sidenav .nav > .active > ul {
+    display: block;
+    position: fixed;
+  }
+}
+
+.navbar {
+    background-color: #2c3e50 !important;
+}
+
+.navbar-brand {
+    color: white !important;
+}
+
+.navbar-brand-logo {
+    margin-right: 15px;
+}
+
+
+.navbar-custom {
+  position: static;
+  background-color: #2c3e50  !important;
+  z-index: 9999;
+}
+
+.sticky-top {
+  z-index: 9999;
+}
+
+.btn-bd-download {
+    font-weight: 600;
+    color: #ffe484;
+    border-color: #ffe484
+}
+
+.btn-bd-download:hover,
+.btn-bd-download:active {
+    color: #2a2730;
+    background-color: #ffe484;
+    border-color: #ffe484
+}
+
+.btn-bd-download:focus {
+    box-shadow: 0 0 0 3px rgba(255, 228, 132, 0.25)
+}

@@ -1,4 +1,4 @@
-# Netket model Library
+# __NetKet model Library__
 
 In this folder there are some models you can use with NetKet. 
 Most of them are written using Flax.

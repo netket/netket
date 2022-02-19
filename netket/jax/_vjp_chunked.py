@@ -107,38 +107,34 @@ def vjp_chunked(
         nondiff_argnums: an integer or tuple of integers indicating the primals which should not be differentiated with.
             Specifying the arguments which are not needed should increase performance.
         return_forward: whether the returned function should also return the output of the forward pass
+
     Returns:
         a function corresponding to the vjp_fun returned by an equivalent ``jax.vjp(fun, *primals)[1]``` call
         which computes the vjp in chunks (recomputing the forward pass every time on subsequent calls).
         If return_forward=True the vjp_fun returned returns a tuple containg the ouput of the forward pass and the vjp.
 
     Example:
-        In [1]: import jax
-           ...: from netket.jax import vjp_chunked
-           ...: from functools import partial
-
-        In [2]: @partial(jax.vmap, in_axes=(None, 0))
-           ...: def f(p, x):
-           ...:     return jax.lax.log(p.dot(jax.lax.sin(x)))
-           ...:
-
-        In [3]: k = jax.random.split(jax.random.PRNGKey(123), 4)
-           ...: p = jax.random.uniform(k[0], shape=(8,))
-           ...: v = jax.random.uniform(k[1], shape=(8,))
-           ...: X = jax.random.uniform(k[2], shape=(1024,8))
-           ...: w = jax.random.uniform(k[3], shape=(1024,))
-
-        In [4]: vjp_fun_chunked = vjp_chunked(f, p, X, chunk_argnums=(1,), chunk_size=32, nondiff_argnums=1)
-           ...: vjp_fun = jax.vjp(f, p, X)[1]
-
-        In [5]: vjp_fun_chunked(w)
-        Out[5]:
+        >>> import jax
+        >>> from netket.jax import vjp_chunked
+        >>> from functools import partial
+        >>>
+        >>> @partial(jax.vmap, in_axes=(None, 0))
+        ... def f(p, x):
+        ...     return jax.lax.log(p.dot(jax.lax.sin(x)))
+        >>>
+        >>> k = jax.random.split(jax.random.PRNGKey(123), 4)
+        >>> p = jax.random.uniform(k[0], shape=(8,))
+        >>> v = jax.random.uniform(k[1], shape=(8,))
+        >>> X = jax.random.uniform(k[2], shape=(1024,8))
+        >>> w = jax.random.uniform(k[3], shape=(1024,))
+        >>>
+        >>> vjp_fun_chunked = vjp_chunked(f, p, X, chunk_argnums=(1,), chunk_size=32, nondiff_argnums=1)
+        >>> vjp_fun = jax.vjp(f, p, X)[1]
+        >>>
+        >>> vjp_fun_chunked(w)
         (DeviceArray([106.76358917, 113.3123931 , 101.95475061, 104.11138622,
                       111.95590131, 109.17531467, 108.97138052, 106.89249739],            dtype=float64),)
-
-        In [6]: vjp_fun(w)[:1]
-           ...:
-        Out[6]:
+        >>> vjp_fun(w)[:1]
         (DeviceArray([106.76358917, 113.3123931 , 101.95475061, 104.11138622,
                       111.95590131, 109.17531467, 108.97138052, 106.89249739],            dtype=float64),)
     """
