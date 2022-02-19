@@ -54,6 +54,9 @@ autoclass_content = "class"
 autodoc_class_signature = "separated"
 autodoc_typehints = "description"
 
+# Renders display latex in MyST Markdown even if there aren't empty lines around it
+myst_dmath_double_inline = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates", "_templates/autosummary"]
 

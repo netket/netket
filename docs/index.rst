@@ -158,6 +158,8 @@
 
    docs/contributing
    docs/writing-tests
+   docs/equivariance
+   docs/representation_theory
 
 
 .. toctree::
