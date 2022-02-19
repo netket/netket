@@ -22,6 +22,7 @@
 * Support for coloured edges in `nk.graph.Grid`, removed in [#724](https://github.com/netket/netket/pull/724), is now restored. [#1074](https://github.com/netket/netket/pull/1074)
 * Fixed bug that prevented calling `.quantum_geometric_tensor` on `netket.vqs.ExactState`. [#1108](https://github.com/netket/netket/pull/1108)
 * Fixed bug where the gradient of `C->C` models (complex parameters, complex output) was computed incorrectly with `nk.vqs.ExactState`. [#1110](https://github.com/netket/netket/pull/1110)
+* Fixed bug where `QGTJacobianDense.state` and `QGTJacobianPyTree.state` would not correctly transform the starting point `x0` if `holomorphic=False`. [#1115](https://github.com/netket/netket/pull/1115)
 
 ## NetKet 3.3.2 (🐛 Bug Fixes)
 

@@ -214,6 +214,9 @@ def _solve(
 
     if x0 is not None:
         x0, _ = nkjax.tree_ravel(x0)
+        if self.mode != "holomorphic":
+            x0, _ = vec_to_real(x0)
+
         if self.scale is not None:
             x0 = x0 * self.scale
 
