@@ -234,6 +234,8 @@ def _solve(
     # Real-imaginary split RHS in R→R and R→C modes
     if self.mode != "holomorphic":
         y, reassemble = nkjax.tree_to_real(y)
+        if x0 is not None:
+            x0, _ = nkjax.tree_to_real(x0)
 
     check_valid_vector_type(self.params, y)
 

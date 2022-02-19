@@ -17,6 +17,7 @@ import pytest
 from functools import partial
 
 import jax
+import jax.numpy as jnp
 import numpy as np
 from numpy import testing
 import jax.flatten_util
@@ -139,6 +140,20 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
             x_all, _ = S.solve(solver, vstate.parameters)
 
             jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
+
+
+@pytest.mark.skipif_mpi
+@pytest.mark.parametrize(
+    "qgt",
+    [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
+)
+@pytest.mark.parametrize("chunk_size", [None])
+def test_qgt_solve_with_x0(qgt, vstate):
+    solver = jax.scipy.sparse.linalg.gmres
+    x0 = jax.tree_map(jnp.zeros_like, vstate.parameters)
+
+    S = qgt(vstate)
+    x, _ = S.solve(solver, vstate.parameters, x0=x0)
 
 
 @pytest.mark.parametrize(
