@@ -23,12 +23,9 @@ It's probably a bad idea.
 }
 
 
-@media screen and (max-width: 991px) {
-  .landing-page-box-logo {
-  background-image:none;
-  }
-  .navbar-brand, .navbar-form {
-    display:none;
+@media screen and (max-width: 997px) {
+  .btn-bd-download {
+    display: none !important;
   }
 }
 
