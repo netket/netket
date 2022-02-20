@@ -1,3 +1,28 @@
+/* This block tries to match the widths of the main netket website. 
+It's probably a bad idea.
+*/
+@media (min-width:  768px) {
+  .container-navbar {
+    max-width: 720px;
+  }
+}
+@media (min-width:  992px) {
+  .container-navbar {
+    max-width: 960px;
+  }
+}
+@media (min-width:  1200px) {
+  .container-navbar {
+    max-width: 1140px;
+  }
+}
+@media (min-width:  1400px) {
+  .container-navbar {
+    max-width: 1320px;
+  }
+}
+
+
 @media screen and (max-width: 991px) {
   .landing-page-box-logo {
   background-image:none;

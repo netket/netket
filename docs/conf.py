@@ -138,7 +138,7 @@ html_context = {
             "https://brave-noether-a3f1b4.netlify.app/get_involved/",
             True,
         ),
-        ("Citing NetKet", f"{main_website_base_url}/cite/", True),
+        ("Citing", f"{main_website_base_url}/cite/", True),
         ("Documentation", "index"),
         ("API Reference", "api/api"),
     ],
