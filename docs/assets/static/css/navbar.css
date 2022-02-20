@@ -26,12 +26,28 @@
 
 .navbar-brand {
     color: white !important;
+    height: 100%;
+    padding: 0rem;
 }
 
-.navbar-brand-logo {
-    margin-right: 15px;
+.navbar-brand {
+    color: white !important;
 }
 
+.navbar-brand-text {
+    font-family: Lato, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}
+
+.nav-item > .nav-link a {
+    font-family: Lato, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}
+
+img.navbar-brand-logo {
+    position: relative;
+    top: -3px;
+    margin-right: 15px !important;
+    height: 2rem;
+}
 
 .navbar-custom {
   position: static;
