@@ -1,13 +1,12 @@
-import sphinx_bootstrap_theme
+import netket as nk
 
 # -- Project information -----------------------------------------------------
 
-project = "netket"
+project = "NetKet"
 copyright = "2019-2021, The Netket authors - All rights reserved"
-author = "Giuseppe Carleo et al."
 
 # The full version, including alpha/beta/rc tags
-release = "v3.0"
+release = nk.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -26,9 +25,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
     "sphinx_reredirects",
-    "sphinx_panels",
-    "nbsphinx",
-    "myst_parser",
+    "myst_nb",
     "sphinx.ext.graphviz",
     "btd.sphinx.inheritance_diagram",  # this is a custom patched version because of bug sphinx#2484
 ]
@@ -46,8 +43,6 @@ napoleon_preprocess_types = True
 # PEP 526 annotations
 napoleon_attr_annotations = True
 
-panels_add_bootstrap_css = False
-
 master_doc = "index"
 
 autoclass_content = "class"
@@ -55,7 +50,11 @@ autodoc_class_signature = "separated"
 autodoc_typehints = "description"
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates", "_templates/autosummary"]
+templates_path = [
+    "assets/templates",
+    "assets/templates/autosummary",
+    "assets/templates/sections",
+]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -67,72 +66,83 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 # copies of each notebook, and myst will choose which to convert based on
 # the order in the source_suffix list. Notebooks which are not executed have
 # outputs stored in ipynb but not in md, so we must convert the ipynb.
-source_suffix = {
-    ".rst": "restructuredtext",
-    ".md": "markdown",
-}
+# source_suffix = {
+#    ".rst": "restructuredtext",
+#    ".ipynb": "myst-nb'",
+#    ".md": "markdown",
+#    '.myst': 'myst-nb',
+# }
+source_suffix = [".rst", ".ipynb", ".md"]
 
 # Markdown parser latex support
-myst_enable_extensions = ["dollarmath", "amsmath", "colon_fence"]
+myst_enable_extensions = ["dollarmath", "amsmath", "colon_fence", "html_admonition"]
 myst_update_mathjax = False
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
+myst_heading_anchors = 2
+
+main_website_base_url = "https://brave-noether-a3f1b4.netlify.app"
+
+# -- Pre-process -------------------------------------------------
+autodoc_mock_imports = ["openfermion", "qutip"]
+
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "bootstrap"
-html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
+# html_theme = "pydata_sphinx_theme"
+html_theme = "sphinx_book_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
-
-# html_js_files = ["https://kit.fontawesome.com/7c145f31db.js"]
-html_css_files = [
-    "jumbo-style.css",
-    "css/all.min.css",
-    "css/custom.css",
-    "css/rtd_theme.css",
-]
-
-html_js_files = [
-    "js/rtd_theme.js",
-]
+html_static_path = ["assets/static"]
+html_css_files = ["css/custom.css", "css/navbar.css"]  # , "css/api.css"]
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "flax": ("https://flax.readthedocs.io/en/latest/", None),
+    "qutip": ("https://qutip.org/docs/latest/", None)
     # "networkx": ("https://networkx.org/doc/reference/", None),
 }
 
 # (Optional) Logo. Should be small enough to fit the navbar (ideally 24x24).
 # Path should be relative to the ``_static`` files directory.
-html_logo = "_static/logonav.png"
+html_title = "NetKet"
+html_logo = "assets/static/logo_simple.jpg"
 
-# Theme options are theme-specific and customize the look and feel of a
-# theme further.
 html_theme_options = {
-    # Navigation bar title. (Default: ``project`` value)
+    "logo_only": True,
+    "home_page_in_toc": False,
+    "show_navbar_depth": 1,
+    "show_toc_level": 3,
+    "repository_url": "https://github.com/netket/netket",
+    "use_repository_button": True,
+    "use_issues_button": True,
+    "launch_buttons": {"colab_url": "https://colab.research.google.com"},
+    "extra_navbar": "",
+}
+
+html_context = {
     "navbar_title": "NetKet",
-    # Tab name for entire site. (Default: "Site")
-    "navbar_site_name": "Site",
-    # A list of tuples containing pages or urls to link to.
-    # Valid tuples should be in the following forms:
-    #    (name, page)                 # a link to a page
-    #    (name, "/aa/bb", 1)          # a link to an arbitrary relative url
-    #    (name, "http://example.com", True) # arbitrary absolute url
-    # Note the "1" or "True" value above as the third argument to indicate
-    # an arbitrary url.
+    "navbar_logo": "logonav.png",
+    "navbar_fixed_top": True,
+    "navbar_link": ("https://brave-noether-a3f1b4.netlify.app/", True),
+    "navbar_class": "navbar",
     "navbar_links": [
-        ("Get Started", "getting_started"),
-        ("Documentation", "docs/getting_started"),
-        ("Tutorials", "tutorials"),
-        ("Citing NetKet", "citing"),
-        ("About", "about"),
+        ("Posts", "https://brave-noether-a3f1b4.netlify.app/posts/", True),
+        (
+            "Get Involved",
+            "https://brave-noether-a3f1b4.netlify.app/get_involved/",
+            True,
+        ),
+        ("Citing", f"{main_website_base_url}/cite/", True),
+        ("Documentation", "index"),
+        ("API Reference", "api/api"),
+    ],
+    "navbar_links_right": [
         (
             '<i class="fab fa-github" aria-hidden="true"></i>',
             "https://github.com/netket/netket",
@@ -143,61 +153,22 @@ html_theme_options = {
             "https://twitter.com/NetKetOrg",
             True,
         ),
+        (
+            '<i class="fab fa-slack" aria-hidden="true"></i>',
+            "https://join.slack.com/t/mlquantum/shared_invite/zt-13nohbtt3-nWgz~faxWXjVnu0BCHWM7w",
+            True,
+        ),
     ],
-    # Render the next and previous page links in navbar. (Default: true)
-    "navbar_sidebarrel": False,
-    # Render the current pages TOC in the navbar. (Default: true)
-    "navbar_pagenav": False,
-    # Tab name for the current pages TOC. (Default: "Page")
-    "navbar_pagenav_name": "Page",
-    # Global TOC depth for "site" navbar tab. (Default: 1)
-    # Switching to -1 shows all levels.
-    "globaltoc_depth": 10,
-    # Include hidden TOCs in Site navbar?
-    #
-    # Note: If this is "false", you cannot have mixed ``:hidden:`` and
-    # non-hidden ``toctree`` directives in the same page, or else the build
-    # will break.
-    #
-    # Values: "true" (default) or "false"
-    "globaltoc_includehidden": "false",
-    # HTML navbar class (Default: "navbar") to attach to <div> element.
-    # For black navbar, do "navbar navbar-inverse"
-    "navbar_class": "navbar",
-    # Fix navigation bar to top of page?
-    # Values: "true" (default) or "false"
-    "navbar_fixed_top": "true",
-    # Location of link to source.
-    # Options are "nav" (default), "footer" or anything else to exclude.
-    "source_link_position": "none",
-    # Bootswatch (http://bootswatch.com/) theme.
-    #
-    # Options are nothing (default) or the name of a valid theme
-    # such as "cosmo" or "sandstone".
-    #
-    # The set of valid themes depend on the version of Bootstrap
-    # that's used (the next config option).
-    #
-    # Currently, the supported themes are:
-    # - Bootstrap 2: https://bootswatch.com/2
-    # - Bootstrap 3: https://bootswatch.com/3
-    "bootswatch_theme": "flatly",
-    # Choose Bootstrap version.
-    # Values: "3" (default) or "2" (in quotes)
-    "bootstrap_version": "3",
+    "navbar_download_button": (
+        "Get Started",
+        f"{main_website_base_url}/get_started/",
+        True,
+    ),
 }
 
-html_sidebars = {
-    "docs/*": ["custom_localtoc.html"],
-    "docs/_generated/**/*": ["custom_localtoc.html"],
-    "modules/*": ["custom_localtoc.html"],
-}
-
-## redirects
-redirects = {
-    "documentation": "docs/getting_started.html",
-}
-
+# -- Options for myst ----------------------------------------------
+jupyter_execute_notebooks = "off"
+execution_allow_errors = False
 
 # do not show __init__ if it does not have a docstring
 def autodoc_skip_member(app, what, name, obj, skip, options):
@@ -207,22 +178,12 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
         "__doc__",
         "__module__",
         "__dict__",  # undoc-members
+        "__new__",
     )
     exclude = name in exclusions
     if name == "__init__":
         exclude = True if obj.__doc__ is None else False
     return True if (skip or exclude) else None
-
-
-## bug in sphinx: take docstring
-# def warn_undocumented_members(app, what, name, obj, options, lines):
-#    if name.startswith("netket"):
-#        print(f"Autodoc dostuff: {what}, {name}, {obj}, {lines}, {options}")
-#        print(f"the type is {type(obj)}")
-#        if obj.__doc__ == None:
-#
-#    else:
-#        print(f"Autodoc cacca: {what}, {name}, {obj}, {lines}, {options}")
 
 
 def setup(app):

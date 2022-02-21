@@ -23,6 +23,8 @@ def svd(A, b, rcond=None, x0=None):
     Solve the linear system using Singular Value Decomposition.
     The diagonal shift on the matrix should be 0.
 
+    Internally uses {ref}`jax.numpy.linalg.lstsq`.
+
     Args:
         A: the matrix A in Ax=b
         b: the vector b in Ax=b
@@ -39,6 +41,19 @@ def svd(A, b, rcond=None, x0=None):
 
 
 def cholesky(A, b, lower=False, x0=None):
+    """
+    Solve the linear system using a Cholesky Factorisation.
+    The diagonal shift on the matrix should be 0.
+
+    Internally uses {ref}`jax.numpy.linalg.cho_solve`.
+
+    Args:
+        A: the matrix A in Ax=b
+        b: the vector b in Ax=b
+        lower: if True uses the lower half of the A matrix
+        x0: unused
+    """
+
     del x0
 
     A = A.to_dense()
@@ -50,6 +65,19 @@ def cholesky(A, b, lower=False, x0=None):
 
 
 def LU(A, b, trans=0, x0=None):
+    """
+    Solve the linear system using a LU Factorisation.
+    The diagonal shift on the matrix should be 0.
+
+    Internally uses {ref}`jax.numpy.linalg.lu_solve`.
+
+    Args:
+        A: the matrix A in Ax=b
+        b: the vector b in Ax=b
+        lower: if True uses the lower half of the A matrix
+        x0: unused
+    """
+
     del x0
 
     A = A.to_dense()
@@ -63,6 +91,18 @@ def LU(A, b, trans=0, x0=None):
 # I believe this internally uses a smarter/more efficient way to
 # do cholesky
 def solve(A, b, sym_pos=True, x0=None):
+    """
+    Solve the linear system.
+    The diagonal shift on the matrix should be 0.
+
+    Internally uses {ref}`jax.numpy.solve`.
+
+    Args:
+        A: the matrix A in Ax=b
+        b: the vector b in Ax=b
+        lower: if True uses the lower half of the A matrix
+        x0: unused
+    """
     del x0
 
     A = A.to_dense()

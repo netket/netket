@@ -504,8 +504,9 @@ def KitaevHoneycomb(
     extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs
 ) -> Lattice:
     r"""Constructs a honeycomb lattice of a given spatial extent.
+
     Nearest-neighbour edges are coloured according to direction
-        (cf. Kitaev, https://doi.org/10.1016/j.aop.2005.10.005).
+    (cf. Kitaev, https://doi.org/10.1016/j.aop.2005.10.005).
     Periodic boundary conditions can also be imposed.
     Sites are returned at the 2b Wyckoff positions.
 
