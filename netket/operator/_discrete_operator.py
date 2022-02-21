@@ -31,18 +31,23 @@ class DiscreteOperator(AbstractOperator):
 
     def get_conn_padded(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
-        Starting from a batch of quantum numbers x={x_1, ... x_n} of size B x M
-        where B size of the batch and M size of the hilbert space, finds all states
-        y_i^1, ..., y_i^K connected to every x_i.
-        Returns a matrix of size B x Kmax x M where Kmax is the maximum number of
-        connections for every y_i.
+
+        Starting from a batch of quantum numbers :math:`x={x_1, ... x_n}` of
+        size :math:`B \times M` where :math:`B` size of the batch and :math:`M`
+        size of the hilbert space, finds all states :math:`y_i^1, ..., y_i^K`
+        connected to every :math:`x_i`.
+
+        Returns a matrix of size :math:`B \times K_{max} \times M` where
+        :math:`K_{max}` is the maximum number of connections for every
+        :math:`y_i`.
+
         Args:
-            x : A N-tensor of shape (...,hilbert.size) containing
-                        the batch/batches of quantum numbers x.
+            x : A N-tensor of shape :math:`(...,hilbert.size)` containing
+                the batch/batches of quantum numbers :math:`x`.
         Returns:
-            x_primes: The connected states x', in a N+1-tensor.
-            mels: A N-tensor containing the matrix elements :math:`O(x,x')`
-                associated to each x' for every batch.
+            **(x_primes, mels)**: The connected states x', in a N+1-tensor and an
+            N-tensor containing the matrix elements :math:`O(x,x')`
+            associated to each x' for every batch.
         """
         n_visible = x.shape[-1]
         n_samples = x.size // n_visible
@@ -63,23 +68,29 @@ class DiscreteOperator(AbstractOperator):
     def get_conn_flattened(
         self, x: np.ndarray, sections: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
-        r"""Finds the connected elements of the Operator. Starting
-        from a given quantum number x, it finds all other quantum numbers x' such
-        that the matrix element :math:`O(x,x')` is different from zero. In general there
-        will be several different connected states x' satisfying this
-        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+        r"""Finds the connected elements of the Operator.
 
-        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
+        Starting from a given quantum number :math:`x`, it finds all
+        other quantum numbers  :math:`x'` such that the matrix element
+        :math:`O(x,x')` is different from zero. In general there will be
+        several different connected states :math:`x'` satisfying this
+        condition, and they are denoted here :math:`x'(k)`, for
+        :math:`k=0,1...N_{\mathrm{connected}}`.
+
+        This is a batched version, where x is a matrix of shape
+        :math:`(batch_size,hilbert.size)`.
 
         Args:
-            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                        the batch of quantum numbers x.
+            x (matrix): A matrix of shape (batch_size,hilbert.size)
+                containing the batch of quantum numbers x.
             sections (array): An array of sections for the flattened x'.
-                        See numpy.split for the meaning of sections.
+                See numpy.split for the meaning of sections.
 
         Returns:
-            matrix: The connected states x', flattened together in a single matrix.
-            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
+            (matrix, array): The connected states x', flattened together in
+                a single matrix.
+                An array containing the matrix elements :math:`O(x,x')`
+                associated to each x'.
 
         """
 

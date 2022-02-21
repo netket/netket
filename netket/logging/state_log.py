@@ -61,11 +61,9 @@ class StateLog:
                 (default 1)
             mode: Specify the behaviour in case the file already exists at this
                 output_prefix. Options are
-                - `[w]rite`: (default) overwrites file/delete the folder if
-                  it already exists;
-                - `[a]ppend`: appends to the file/folder if it exists, overwise
-                  creates a new file;
-                - `[x]` or `fail`: fails if file/folder already exists;
+                **`[w]rite`**: (default) overwrites file/delete the folder if it already exists;
+                **`[a]ppend`**: appends to the file/folder if it exists, overwise creates a new file;
+                **`[x]`** or **`fail`**: fails if file/folder already exists;
             tar: if True creates a tar archive instead of a folder.
 
         """

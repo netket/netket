@@ -55,8 +55,20 @@ class ARDirectSamplerState(SamplerState):
 
 @struct.dataclass
 class ARDirectSampler(Sampler):
-    """
+    r"""
     Direct sampler for autoregressive neural networks.
+
+    This sampler only works with Flax models.
+    This flax model must expose a specific method, `model._conditional`, which given
+    a batch of samples and an index `i∈[0,self.hilbert.size]` must return the vector
+    of partial probabilities at index `i` for the various (partial) samples provided.
+
+    In short, if your model can be sampled according to a probability
+    $ p(x) = p_1(x_1)p_2(x_2|x_1)\dots p_N(x_N|x_{N-1}\dots x_1) $ then
+    `model._conditional(x, i)` should return $p_i(x)$.
+
+    NetKet implements some autoregressive networks that can be used together with this
+    sampler.
     """
 
     def __pre_init__(self, *args, **kwargs):
@@ -88,6 +100,12 @@ class ARDirectSampler(Sampler):
 
     @property
     def is_exact(sampler):
+        """
+        Returns `True` because the sampler is exact.
+
+        The sampler is exact if all the samples are exactly distributed according to the
+        chosen power of the variational state, and there is no correlation among them.
+        """
         return True
 
     def _init_cache(sampler, model, σ, key):
