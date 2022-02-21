@@ -129,13 +129,13 @@ html_context = {
     "navbar_title": "NetKet",
     "navbar_logo": "logonav.png",
     "navbar_fixed_top": True,
-    "navbar_link": ("https://brave-noether-a3f1b4.netlify.app/", True),
+    "navbar_link": (f"{main_website_base_url}", True),
     "navbar_class": "navbar",
     "navbar_links": [
-        ("Posts", "https://brave-noether-a3f1b4.netlify.app/posts/", True),
+        ("Posts", f"{main_website_base_url}/posts/", True),
         (
             "Get Involved",
-            "https://brave-noether-a3f1b4.netlify.app/get_involved/",
+            f"{main_website_base_url}/get_involved/",
             True,
         ),
         ("Citing", f"{main_website_base_url}/cite/", True),
