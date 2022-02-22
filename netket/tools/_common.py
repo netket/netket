@@ -53,11 +53,14 @@ def get_executable_path(name):
     """
     Get the path of an executable.
     """
+    # I. Hate. Windows.
+    if sys.platform.startswith("win32"):
+        os_which = "where"
+    else:
+        os_which = "which"
+        
     try:
-        if sys.platform.startswith("win32"):
-            path = exec_in_terminal(["where", name])
-        else:
-            path = exec_in_terminal(["which", name])
+        path = exec_in_terminal([os_which, name])
     except (CalledProcessError, FileNotFoundError):
         path = ""
     return path
