@@ -161,7 +161,7 @@ class MetropolisPtSampler(MetropolisSampler):
             n_accepted_per_beta=jnp.zeros((sampler.n_chains, sampler.n_replicas)),
             beta_position=jnp.zeros((sampler.n_chains,)),
             beta_diffusion=jnp.zeros((sampler.n_chains)),
-            exchange_steps=jnp.zeros((), dtype=jnp.int32),
+            exchange_steps=jnp.zeros((), dtype=jnp.int64),
             # beta=beta,
             # beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int32),
         )
@@ -358,7 +358,7 @@ class MetropolisPtSampler(MetropolisSampler):
                 # Total exchange steps performed
                 delta = s.beta_0_index - s.beta_position
                 s.beta_position = s.beta_position + delta / (
-                    state.exchange_steps + jnp.asarray(i, dtype=jnp.int32)
+                    state.exchange_steps + jnp.asarray(i, dtype=jnp.int64)
                 )
                 delta2 = s.beta_0_index - s.beta_position
                 s.beta_diffusion = s.beta_diffusion + delta * delta2
