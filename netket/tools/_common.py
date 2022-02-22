@@ -58,7 +58,7 @@ def get_executable_path(name):
         os_which = "where"
     else:
         os_which = "which"
-        
+
     try:
         path = exec_in_terminal([os_which, name])
     except (CalledProcessError, FileNotFoundError):
