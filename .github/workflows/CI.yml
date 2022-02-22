@@ -97,7 +97,7 @@ jobs:
           pytest --cov=netket --cov-append test
 
       - name: Netket tests for Windows
-        if: ${{ matrix.os != 'windows-latest' && matrix.main_tests }}
+        if: ${{ matrix.os == 'windows-latest' && matrix.main_tests }}
         run: |
           set NETKET_EXPERIMENTAL=1
           pytest --cov=netket --cov-append test
