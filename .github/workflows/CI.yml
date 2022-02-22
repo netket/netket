@@ -73,12 +73,6 @@ jobs:
           python conf/compute_oldest_dependencies.py
           pip install -r oldest_requirements.txt
 
-      - name: Pip install packages for Windows
-        if: matrix.os == 'windows-latest'
-        run: |
-          pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
-          pip install -e .[dev]
-
       - name: Pip install packages
         if: matrix.os != 'windows-latest'
         run: |
@@ -90,10 +84,22 @@ jobs:
             pip install -e ".[dev, mpi]"
           fi
 
+      - name: Pip install packages for Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
+          pip install -e .[dev]
+
       - name: Netket tests
-        if: ${{ matrix.main_tests }}
+        if: ${{ matrix.os != 'windows-latest' && matrix.main_tests }}
         run: |
           export NETKET_EXPERIMENTAL=1
+          pytest --cov=netket --cov-append test
+
+      - name: Netket tests for Windows
+        if: ${{ matrix.os != 'windows-latest' && matrix.main_tests }}
+        run: |
+          set NETKET_EXPERIMENTAL=1
           pytest --cov=netket --cov-append test
 
       - name: NetKet docstring tests
