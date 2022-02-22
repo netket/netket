@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://www.netket.org/_static/logo_simple.jpg" alt="logo" width="400"></img>
+<img src="https://www.netket.org/logo/logo_simple.jpg" alt="logo" width="400"></img>
 </div>
 
 # __NetKet__
