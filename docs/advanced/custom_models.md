@@ -97,7 +97,7 @@ of the models included in netket or Flax documentation.
 
 ## Using Jax/Stax
 
-See tutorial {doc}`Using Jax: Netket 3 preview <../tutorials/jax>`
+See tutorial {doc}`Using Jax: Netket 3 preview <../tutorials/gs-ising>`
 
 ## Using Haiku
 

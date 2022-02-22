@@ -18,7 +18,8 @@ from .continuous_hilbert import ContinuousHilbert
 
 class Particle(ContinuousHilbert):
     r"""Hilbert space derived from AbstractParticle for
-    Fermions."""
+    Fermions.
+    """
 
     def __init__(
         self,
@@ -28,7 +29,8 @@ class Particle(ContinuousHilbert):
     ):
         """
         Constructs new ``Particles`` given specifications
-         of the continuous space they are defined in.
+        of the continuous space they are defined in.
+
         Args:
             N: Number of particles
             L: spatial extension in each spatial dimension

@@ -62,13 +62,13 @@ tutorials/gs-gcnn-honeycomb
 :caption: Reference Documentation
 :maxdepth: 2
 
-docs/superop
+docs/sharp-bits
 docs/hilbert
 docs/operator
 docs/varstate
 docs/sr
 docs/drivers
-docs/sharp-bits
+docs/superop
 ```
 
 ```{toctree}

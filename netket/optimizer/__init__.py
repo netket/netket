@@ -68,9 +68,10 @@ def Momentum(learning_rate: float, beta: float = 0.9, nesterov: bool = False):
         :math:`G(\mathbf{p})`, the updates for the parameter :math:`p_k` and
         corresponding component of the momentum :math:`m_k` are
 
-        .. math:: m^\prime_k &= \beta m_k + (1-\beta)G_k(\mathbf{p})\\
-        p^\prime_k &= \eta m^\prime_k
+        .. math:: 
 
+            m^\prime_k &= \beta m_k + (1-\beta)G_k(\mathbf{p})\\
+            p^\prime_k &= \eta m^\prime_
 
         Args:
            learning_rate: The learning rate :math:`\eta`

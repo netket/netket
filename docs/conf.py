@@ -24,7 +24,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
-    "sphinx_reredirects",
     "myst_nb",
     "sphinx.ext.graphviz",
     "btd.sphinx.inheritance_diagram",  # this is a custom patched version because of bug sphinx#2484
@@ -96,6 +95,7 @@ html_theme = "sphinx_book_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["assets/static"]
 html_css_files = ["css/custom.css", "css/navbar.css"]  # , "css/api.css"]
+html_favicon = "assets/static/favicon.ico"
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
@@ -104,8 +104,8 @@ intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "flax": ("https://flax.readthedocs.io/en/latest/", None),
-    "qutip": ("https://qutip.org/docs/latest/", None)
-    # "networkx": ("https://networkx.org/doc/reference/", None),
+    "igraph": ("https://igraph.org/python/api/latest", None),
+    "qutip": ("https://qutip.org/docs/latest/", None),
 }
 
 # (Optional) Logo. Should be small enough to fit the navbar (ideally 24x24).
@@ -121,6 +121,7 @@ html_theme_options = {
     "repository_url": "https://github.com/netket/netket",
     "use_repository_button": True,
     "use_issues_button": True,
+    "path_to_docs": "docs",
     "launch_buttons": {"colab_url": "https://colab.research.google.com"},
     "extra_navbar": "",
 }
