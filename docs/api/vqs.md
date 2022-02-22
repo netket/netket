@@ -48,5 +48,5 @@ This module defines the variational states, the heart of NetKet itself.
 
   get_local_kernel
   get_local_kernel_arguments
-``
+```
 

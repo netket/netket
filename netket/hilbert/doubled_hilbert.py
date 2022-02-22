@@ -73,14 +73,29 @@ class DoubledHilbert(DiscreteHilbert):
     def local_states(self):
         return self.physical.local_states
 
-    def size_at_index(self, i: int) -> int:
+    def size_at_index(self, i):
+        r"""Size of the local degrees of freedom for the i-th variable.
+
+        Args:
+            i: The index of the desired site
+
+        Returns:
+            The number of degrees of freedom at that site
+        """
         return self.physical.size_at_index(
             i if i < self.physical.size else i - self.physical.size
         )
 
-    def states_at_index(self, i: int) -> Optional[List[float]]:
+    def states_at_index(self, i):
         r"""A list of discrete local quantum numbers at the site i.
-        If the local states are infinitely many, None is returned."""
+        If the local states are infinitely many, None is returned.
+
+        Args:
+            i: The index of the desired site.
+
+        Returns:
+            A list of values or None if there are infintely many.
+        """
         return self.physical.states_at_index(
             i if i < self.physical.size else i - self.physical.size
         )

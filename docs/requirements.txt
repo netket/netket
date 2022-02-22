@@ -5,7 +5,6 @@ sphinxcontrib-fulltoc>=1.2.0
 sphinxcontrib-jsmath>=1.0.1
 sphinxcontrib-napoleon>=0.7
 myst-parser>=0.13.7
-sphinx_reredirects
 nbsphinx>=0.8.7
 myst-nb==0.13.1
 jaxlib>=0.1.59

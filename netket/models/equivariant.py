@@ -574,8 +574,8 @@ def GCNN(
     r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
     that is invariant over a specified symmetry group.
 
-    The G-CNN is described in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
-    and applied to quantum many-body problems in ` Roth et. *al* <https://arxiv.org/pdf/2104.05085.pdf>`_.
+    The G-CNN is described in `Cohen et al. <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    and applied to quantum many-body problems in `Roth et al. <https://arxiv.org/pdf/2104.05085.pdf>`_ .
 
     The G-CNN alternates convolution operations with pointwise non-linearities. The first
     layer is symmetrized linear transform given by DenseSymm, while the other layers are
@@ -612,7 +612,7 @@ def GCNN(
             :ref:`nk.nn.activation.reim_selu`.
         output_activation: The nonlinear activation before the output.
         equal_amplitudes: If True forces all basis states to have equal amplitude
-            by setting Re[psi] = 0.
+            by setting :math:`\Re(\psi) = 0`.
         use_bias: If True uses a bias in all layers.
         precision: Numerical precision of the computation see `jax.lax.Precision`for details.
         kernel_init: Initializer for the kernels of all layers. Defaults to

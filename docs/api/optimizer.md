@@ -10,7 +10,7 @@ This module provides some optimisers,
 implementations of the [Quantum Geometric Tensor](QGT_and_SR) and preconditioners such
 as SR.
 
-### Optimizers
+## Optimizers
 
 Optimizers in NetKet are simple wrappers of [optax](https://github.com/deepmind/optax)
 optimizers. If you want to write a custom optimizer or use more advanced ones, we suggest
@@ -40,7 +40,7 @@ optimisers, and it's extremely easy to use step-dependent schedulers.
 
 ```
 
-### Preconditioners
+## Preconditioners
 
 This module also provides an implemnetation of the Stochastic Reconfiguration/Natural
 gradient preconditioner.
@@ -53,7 +53,7 @@ gradient preconditioner.
    SR
 ```
 
-### Quantum Geometric Tensor
+## Quantum Geometric Tensor
 
 It also provides the following implementation of the quantum geometric tensor:
 
@@ -68,7 +68,7 @@ It also provides the following implementation of the quantum geometric tensor:
    qgt.QGTJacobianDense
 ```
 
-### Dense solvers
+## Dense solvers
 
 And the following dense solvers for Stochastic Reconfiguration:
 

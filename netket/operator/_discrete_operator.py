@@ -205,8 +205,9 @@ class DiscreteOperator(AbstractOperator):
 
     def to_qobj(self) -> "qutip.Qobj":  # noqa: F821
         r"""Convert the operator to a qutip's Qobj.
+
         Returns:
-            A `qutip.Qobj` object.
+            A :ref:`qutip.Qobj` object.
         """
         from qutip import Qobj
 

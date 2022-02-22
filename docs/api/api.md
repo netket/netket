@@ -36,6 +36,8 @@ utils
 ## Default drivers
 
 ```{eval-rst}
+.. currentmodule:: netket.driver
+
 .. autosummary::
    :toctree: _generated/driver
    :nosignatures:
