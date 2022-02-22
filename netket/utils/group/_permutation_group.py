@@ -146,6 +146,8 @@ class PermutationGroup(FiniteGroup):
             lookup = self._canonical_lookup()
             inverses = []
             for perm in self.to_array():
+                # `np.argsort` changes int32 to int64 on Windows,
+                # and we need to change it back
                 invperm = np.argsort(perm).astype(perm.dtype)
                 inverses.append(lookup[HashableArray(invperm)])
 
