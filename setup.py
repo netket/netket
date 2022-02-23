@@ -8,7 +8,6 @@ DEV_DEPENDENCIES = [
     "networkx~=2.4",
     "pre-commit>=2.7",
     "black==22.1.0",
-    "pyproject-flake8==0.0.1a2",
     "flake8==4.0.1",
 ]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]
