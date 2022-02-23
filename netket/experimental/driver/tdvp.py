@@ -128,6 +128,7 @@ class TDVP(AbstractVariationalDriver):
         self._dw = None  # type: PyTree
         self._last_qgt = None
         self._integrator = None
+        self._integrator_constructor = None
 
         self._odefun = HashablePartial(odefun_host_callback, self.state, self)
 
@@ -150,6 +151,8 @@ class TDVP(AbstractVariationalDriver):
             t0 = self.t0
         else:
             t0 = self.t
+
+        self._integrator_constructor = integrator
 
         self._integrator = integrator(
             self._odefun,
@@ -200,6 +203,9 @@ class TDVP(AbstractVariationalDriver):
                 "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum',"
                 f" but {error_norm} was passed."
             )
+
+        if self.integrator is not None:
+            self.integrator.norm = self._error_norm
 
     def advance(self, T: float):
         """

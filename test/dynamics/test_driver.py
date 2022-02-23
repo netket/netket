@@ -259,3 +259,28 @@ def test_change_integrator():
 
     driver.run(0.1)
     np.testing.assert_allclose(driver.t, 0.13)
+
+
+def test_change_norm():
+    ha, vstate, _ = _setup_system(L=2)
+    driver = nkx.TDVP(
+        ha,
+        vstate,
+        nkx.dynamics.RK23(dt=0.01, adaptive=False),
+    )
+    driver.run(0.03)
+
+    def norm(x):
+        return 0.0
+
+    driver.error_norm = norm
+    driver.run(0.02)
+
+    driver.error_norm = "qgt"
+    driver.run(0.02)
+
+    driver.error_norm = "maximum"
+    driver.run(0.02)
+
+    with pytest.raises(ValueError):
+        driver.error_norm = "assd"
