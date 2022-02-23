@@ -1,12 +1,12 @@
 Sphinx==4.4.0
 sphinx-autodoc-typehints==1.17.0
-sphinx-markdown-parser>=0.2.4
-sphinxcontrib-fulltoc>=1.2.0
-sphinxcontrib-jsmath>=1.0.1
-sphinxcontrib-napoleon>=0.7
-myst-parser>=0.13.7
-nbsphinx>=0.8.7
-myst-nb==0.13.1
+sphinx-markdown-parser~=0.2.4
+sphinxcontrib-fulltoc~=1.2.0
+sphinxcontrib-jsmath~=1.0.1
+sphinxcontrib-napoleon~=0.7
+myst-parser~=0.15.2
+nbsphinx~=0.8.7
+myst-nb==0.13.2
 jaxlib>=0.1.59
 sphinx-book-theme @ git+https://github.com/executablebooks/sphinx-book-theme@910e26be00e74cafbaaaff274de26b95cab1f7a8
 -e .
