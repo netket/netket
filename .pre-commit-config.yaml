@@ -4,7 +4,8 @@ repos:
     hooks:
     - id: black
 
-  - repo: https://github.com/life4/flakehell
-    rev: v.0.8.0
+  - repo: https://github.com/pycqa/flake8
+    rev: 4.0.1
     hooks:
-    - id: flakehell
+    - id: flake8
+      files: netket/
