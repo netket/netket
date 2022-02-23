@@ -50,7 +50,7 @@ command_line = "-m pytest --verbose test"
 source = ["netket"]
 
 [tool.pytest.ini_options]
-addopts = "--color=yes --verbose --durations=100 --tb=short"
+addopts = "--color=yes --verbose --durations=100 -n auto --tb=short"
 doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER"
 filterwarnings = [
     "ignore::UserWarning",

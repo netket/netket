@@ -20,9 +20,9 @@ jobs:
             doctest: true
             oldest_deps: false
 
-          - os: windows-latest
+          - os: ubuntu-latest
             python-version: "3.10"
-            mpi: ""
+            mpi: "mpich"
             main_tests: true
             oldest_deps: false
 
@@ -40,8 +40,7 @@ jobs:
             env: NUMBA_BOUNDSCHECK=1
 
         # python-version: [3.7, 3.8, 3.9, 3.10]
-        # os: [ubuntu-latest, macos-latest, windows-latest]
-        # features: mpi, oldest_deps, NUMBA_BOUNDSCHECK
+        # os: [ubuntu-latest, macos-latest]
 
     env:
       MPICH_INTERFACE_HOSTNAME: localhost
@@ -74,7 +73,6 @@ jobs:
           pip install -r oldest_requirements.txt
 
       - name: Pip install packages
-        if: matrix.os != 'windows-latest'
         run: |
           pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
@@ -84,28 +82,16 @@ jobs:
             pip install -e ".[dev, mpi]"
           fi
 
-      - name: Pip install packages for Windows
-        if: matrix.os == 'windows-latest'
-        run: |
-          pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
-          pip install -e .[dev]
-
       - name: Netket tests
-        if: ${{ matrix.os != 'windows-latest' && matrix.main_tests }}
+        if: ${{ matrix.main_tests }}
         run: |
           export NETKET_EXPERIMENTAL=1
-          pytest -n auto --cov=netket --cov-append test
-
-      - name: Netket tests for Windows
-        if: ${{ matrix.os == 'windows-latest' && matrix.main_tests }}
-        run: |
-          set NETKET_EXPERIMENTAL=1
-          pytest -n 0 --cov=netket --cov-append test
+          pytest --cov=netket --cov-append test
 
       - name: NetKet docstring tests
         if: ${{ matrix.doctest }}
         run: |
-          pytest -n auto --doctest-continue-on-failure --doctest-modules netket/
+          pytest --doctest-continue-on-failure --doctest-modules netket/
 
       - name: MPI tests
         if: matrix.mpi != ''
