@@ -153,6 +153,9 @@ class JsonLog(RuntimeLog):
         # Check if the time from the last flush is higher than the maximum
         # allowed runtime cost of flushing
         elapsed_time = time.time() - self._last_flush_time
+        # On windows, the precision of `time.time` is much lower than that on Linux,
+        # so `elapsed_time` may be essentially zero.
+        # We add 1e-7 to avoid the zero division error.
         flush_anyway = (
             self._last_flush_runtime / (elapsed_time + 1e-7) < self._autoflush_cost
         )

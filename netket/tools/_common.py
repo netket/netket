@@ -10,6 +10,9 @@ def exec_in_terminal(command):
     Args:
         command: a string or list of strings
     """
+    # On Windows, when using `where` to find a command, it will output some
+    # message to stderr if the command is not found.
+    # We redirect stderr to PIPE to prevent that message from showing on the screen.
     return check_output(command, stderr=PIPE).strip().decode("utf8")
 
 
