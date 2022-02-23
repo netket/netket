@@ -127,34 +127,13 @@ class TDVP(AbstractVariationalDriver):
 
         self._dw = None  # type: PyTree
         self._last_qgt = None
-
-        if isinstance(error_norm, Callable):
-            pass
-        elif error_norm == "euclidean":
-            error_norm = euclidean_norm
-        elif error_norm == "maximum":
-            error_norm = maximum_norm
-        elif error_norm == "qgt":
-            w = self.state.parameters
-            norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
-            # QGT norm is called via host callback since it accesses the driver
-            error_norm = lambda x: hcb.call(
-                HashablePartial(qgt_norm, self),
-                x,
-                result_shape=jax.ShapeDtypeStruct((), norm_dtype),
-            )
-        else:
-            raise ValueError(
-                "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum'."
-            )
+        self._integrator = None
 
         self._odefun = HashablePartial(odefun_host_callback, self.state, self)
-        self._integrator = integrator(
-            self._odefun,
-            t0,
-            self.state.parameters,
-            norm=error_norm,
-        )
+
+        self.error_norm = error_norm
+        self.integrator = integrator
+
         self._stop_count = 0
         self._postfix = {}
 
@@ -165,6 +144,20 @@ class TDVP(AbstractVariationalDriver):
         """
         return self._integrator
 
+    @integrator.setter
+    def integrator(self, integrator):
+        if self._integrator is None:
+            t0 = self.t0
+        else:
+            t0 = self.t
+
+        self._integrator = integrator(
+            self._odefun,
+            t0,
+            self.state.parameters,
+            norm=self.error_norm,
+        )
+
     @property
     def generator(self) -> Callable:
         """
@@ -172,6 +165,41 @@ class TDVP(AbstractVariationalDriver):
             generator(t: float) -> AbstractOperator
         """
         return self._generator
+
+    @property
+    def error_norm(self) -> Callable:
+        """
+        Returns the Callable function computing the error of the norm used for adaptive
+        timestepping by the integrator.
+        """
+        if self._error_norm == "euclidean_norm":
+            norm_fn = euclidean_norm
+        elif self._error_norm == "maximum":
+            norm_fn = maximum_norm
+        elif self._error_norm == "qgt":
+            w = self.state.parameters
+            norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
+            # QGT norm is called via host callback since it accesses the driver
+            norm_fn = lambda x: hcb.call(
+                HashablePartial(qgt_norm, self),
+                x,
+                result_shape=jax.ShapeDtypeStruct((), norm_dtype),
+            )
+        else:
+            norm_fn = self._error_norm
+
+        return norm_fn
+
+    @error_norm.setter
+    def error_norm(self, error_norm: Union[str, Callable]):
+        if isinstance(error_norm, Callable):
+            self._error_norm = error_norm
+        elif error_norm in ["euclidean", "maximum", "qgt"]:
+            self._error_norm = error_norm
+        else:
+            raise ValueError(
+                "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum'."
+            )
 
     def advance(self, T: float):
         """
