@@ -1,7 +1,7 @@
 # WARNING: Windows support is experimental
 # The default shell is pwsh
 
-name: CI
+name: Windows CI
 
 on:
   pull_request:
