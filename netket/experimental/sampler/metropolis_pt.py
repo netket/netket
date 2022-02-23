@@ -363,7 +363,7 @@ class MetropolisPtSampler(MetropolisSampler):
                 # to int64, there will be a type error. It may be a bug of
                 # `jax.experimental.loops`.
                 s.beta_position = s.beta_position + delta / (
-                    state.exchange_steps + jnp.asarray(i, dtype=jnp.int32)
+                    state.exchange_steps + jnp.asarray(i, dtype=jnp.int64)
                 )
                 delta2 = s.beta_0_index - s.beta_position
                 s.beta_diffusion = s.beta_diffusion + delta * delta2
