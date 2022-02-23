@@ -171,34 +171,34 @@ class TDVP(AbstractVariationalDriver):
         """
         Returns the Callable function computing the error of the norm used for adaptive
         timestepping by the integrator.
-        """
-        if self._error_norm == "euclidean_norm":
-            norm_fn = euclidean_norm
-        elif self._error_norm == "maximum":
-            norm_fn = maximum_norm
-        elif self._error_norm == "qgt":
-            w = self.state.parameters
-            norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
-            # QGT norm is called via host callback since it accesses the driver
-            norm_fn = lambda x: hcb.call(
-                HashablePartial(qgt_norm, self),
-                x,
-                result_shape=jax.ShapeDtypeStruct((), norm_dtype),
-            )
-        else:
-            norm_fn = self._error_norm
 
-        return norm_fn
+        Can be set to a Callable accepting a pytree and returning a real scalar, or
+        a string between 'euclidean', 'maximum' or 'qgt'.
+        """
+        return self._error_norm
 
     @error_norm.setter
     def error_norm(self, error_norm: Union[str, Callable]):
         if isinstance(error_norm, Callable):
             self._error_norm = error_norm
-        elif error_norm in ["euclidean", "maximum", "qgt"]:
-            self._error_norm = error_norm
+        elif error_norm == "euclidean":
+            self._error_norm = euclidean_norm
+        elif error_norm == "maximum":
+            self._error_norm = maximum_norm
+        elif error_norm == "qgt":
+            w = self.state.parameters
+            norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
+            # QGT norm is called via host callback since it accesses the driver
+            # TODO: make this also an hashablepartial on self to reduce recompilation
+            self._error_norm = lambda x: hcb.call(
+                HashablePartial(qgt_norm, self),
+                x,
+                result_shape=jax.ShapeDtypeStruct((), norm_dtype),
+            )
         else:
             raise ValueError(
-                "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum'."
+                "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum',"
+                f" but {error_norm} was passed."
             )
 
     def advance(self, T: float):
