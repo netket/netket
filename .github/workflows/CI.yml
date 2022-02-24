@@ -39,8 +39,8 @@ jobs:
             oldest_deps: true
             env: NUMBA_BOUNDSCHECK=1
 
-        #python-version: [3.6, 3.7, 3.8]
-        #os: [ubuntu-latest, macos-latest]
+        # python-version: [3.7, 3.8, 3.9, 3.10]
+        # os: [ubuntu-latest, macos-latest]
 
     env:
       MPICH_INTERFACE_HOSTNAME: localhost
@@ -84,7 +84,7 @@ jobs:
 
       - name: Netket tests
         if: ${{ matrix.main_tests }}
-        run : |
+        run: |
           export NETKET_EXPERIMENTAL=1
           pytest --cov=netket --cov-append test
 

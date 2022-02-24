@@ -1,24 +1,11 @@
-from subprocess import CalledProcessError
-
-from ._common import exec_in_terminal
+from ._common import exec_in_terminal, get_executable_path
 
 
 def get_global_mpi_info():
     info = {}
-    try:
-        info["mpicc"] = exec_in_terminal(["which", "mpicc"])
-    except CalledProcessError:
-        info["mpicc"] = ""
-
-    try:
-        info["mpirun"] = exec_in_terminal(["which", "mpirun"])
-    except CalledProcessError:
-        info["mpirun"] = ""
-
-    try:
-        info["mpiexec"] = exec_in_terminal(["which", "mpiexec"])
-    except CalledProcessError:
-        info["mpiexec"] = ""
+    info["mpicc"] = get_executable_path("mpicc")
+    info["mpirun"] = get_executable_path("mpirun")
+    info["mpiexec"] = get_executable_path("mpiexec")
 
     if info["mpicc"]:
         info["link_flags"] = get_link_flags(exec_in_terminal([info["mpicc"], "-show"]))

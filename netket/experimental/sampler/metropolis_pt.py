@@ -133,9 +133,9 @@ class MetropolisPtSampler(MetropolisSampler):
             n_steps_proc=0,
             n_accepted_proc=0,
             beta=beta,
-            beta_0_index=jnp.zeros((sampler.n_chains,), dtype=int),
+            beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int64),
             n_accepted_per_beta=jnp.zeros(
-                (sampler.n_chains, sampler.n_replicas), dtype=int
+                (sampler.n_chains, sampler.n_replicas), dtype=jnp.int64
             ),
             beta_position=jnp.zeros((sampler.n_chains,)),
             beta_diffusion=jnp.zeros((sampler.n_chains,)),
@@ -158,12 +158,14 @@ class MetropolisPtSampler(MetropolisSampler):
             rule_state=rule_state,
             n_steps_proc=0,
             n_accepted_proc=0,
-            n_accepted_per_beta=jnp.zeros((sampler.n_chains, sampler.n_replicas)),
+            n_accepted_per_beta=jnp.zeros(
+                (sampler.n_chains, sampler.n_replicas), dtype=jnp.int64
+            ),
             beta_position=jnp.zeros((sampler.n_chains,)),
             beta_diffusion=jnp.zeros((sampler.n_chains)),
             exchange_steps=0,
             # beta=beta,
-            # beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int32),
+            # beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int64),
         )
 
     def _sample_next(
@@ -357,7 +359,12 @@ class MetropolisPtSampler(MetropolisSampler):
                 # Update statistics to compute diffusion coefficient of replicas
                 # Total exchange steps performed
                 delta = s.beta_0_index - s.beta_position
-                s.beta_position = s.beta_position + delta / (state.exchange_steps + i)
+                # On Windows, if we leave `i` as a Python int or set its dtype
+                # to int64, there will be a type error. It may be a bug of
+                # `jax.experimental.loops`.
+                s.beta_position = s.beta_position + delta / (
+                    state.exchange_steps + jnp.asarray(i, dtype=jnp.int64)
+                )
                 delta2 = s.beta_0_index - s.beta_position
                 s.beta_diffusion = s.beta_diffusion + delta * delta2
 
