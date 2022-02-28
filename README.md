@@ -57,7 +57,7 @@ can be slightly out of date compared to PyPi.
 To check what is the latest version released on both distributions you can inspect the badges at the top of this readme.
 
 ### Extra dependencies
-When installing netket with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
+When installing `netket` with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
  - `"[dev]"`: installs development-related dependencies such as black, pytest and testing dependencies
  - `"[mpi]"`: Installs `mpi4py` to enable multi-process parallelism. Requires a working MPI compiler in your path
  - `"[extra]"`: Installs `tensorboardx` to enable logging to tensorboard, and openfermion to convert the QubitOperators.
