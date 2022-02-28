@@ -80,6 +80,19 @@ def expect_and_grad(  # noqa: F811
     *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
+
+    if not isinstance(Ô, Squared) and not config.FLAGS["NETKET_EXPERIMENTAL"]:
+        raise RuntimeError(
+            """
+            Computing the gradient of non hermitian operator is an
+            experimental feature under development and is known not to
+            return wrong values sometimes.
+
+            If you want to debug it, set the environment variable
+            NETKET_EXPERIMENTAL=1
+            """
+        )
+
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô)
@@ -166,18 +179,6 @@ def grad_expect_operator_kernel(
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree, Stats]:
 
-    if not config.FLAGS["NETKET_EXPERIMENTAL"]:
-        raise RuntimeError(
-            """
-                           Computing the gradient of a squared or non hermitian
-                           operator is an experimental feature under development
-                           and is known not to return wrong values sometimes.
-
-                           If you want to debug it, set the environment variable
-                           NETKET_EXPERIMENTAL=1
-                           """
-        )
-
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
@@ -200,8 +201,18 @@ def grad_expect_operator_kernel(
             n_chains=σ_shape[0],
         )
 
-    Ō, Ō_pb, Ō_stats = nkjax.vjp(expect_closure_pars, parameters, has_aux=True)
+    Ō, Ō_pb, Ō_stats = nkjax.vjp(
+        expect_closure_pars, parameters, has_aux=True, conjugate=True
+    )
     Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))[0]
+
+    # This term below is needed otherwise it does not match the value obtained by
+    # (ha@ha).collect(). I'm unsure of why it is needed.
+    Ō_pars_grad = jax.tree_multimap(
+        lambda x, target: x / 2 if jnp.iscomplexobj(target) else x,
+        Ō_pars_grad,
+        parameters,
+    )
 
     if is_mutable:
         raise NotImplementedError(

@@ -15,13 +15,14 @@
 from functools import partial
 
 import pytest
-from pytest import raises
+from pytest import approx, raises, warns
 
 import numpy as np
 import jax
 import netket as nk
 from jax.nn.initializers import normal
 
+from .finite_diff import expval as _expval, central_diff_grad, same_derivatives
 from .. import common
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
@@ -40,14 +41,16 @@ machines["model:(R->C)"] = NDM(
     kernel_init=normal(stddev=0.1),
     bias_init=normal(stddev=0.1),
 )
-# machines["model:(C->C)"] = RBM(
-#    alpha=1,
-#    dtype=complex,
-#    kernel_init=normal(stddev=0.1),
-#    bias_init=normal(stddev=0.1),
-# )
+machines["model:(C->C)"] = nk.models.RBM(
+    alpha=1,
+    dtype=complex,
+    kernel_init=normal(stddev=0.1),
+    visible_bias_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
+)
 
 operators = {}
+superoperators = {}
 
 L = 2
 g = nk.graph.Hypercube(length=L, n_dim=1)
@@ -63,6 +66,8 @@ LdagL = liouv.H @ liouv
 operators["operator:(Lind^2)"] = LdagL
 operators["operator:H"] = ha
 operators["operator:sigmam"] = jump_ops[0]
+
+superoperators["superop:(Lind^2)"] = LdagL
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
@@ -359,3 +364,69 @@ def check_consistent_diag(vstate):
         == vstate.chain_length_diag * vstate.sampler_diag.n_chains
         == vstate.diagonal.chain_length * vstate.diagonal.sampler.n_chains
     )
+
+
+@common.skipif_mpi
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in superoperators.items()
+    ],
+)
+def test_expect_findiff(vstate, operator):
+    op_sparse = operator.to_sparse()
+
+    # Use lots of samples
+    vstate.n_samples = 5 * 1e5
+    vstate.n_discard_per_chain = 1e3
+
+    # sample the expectation value and gradient with tons of samples
+    O_stat1 = vstate.expect(operator)
+    O_stat, O_grad = vstate.expect_and_grad(operator)
+
+    O1_mean = np.asarray(O_stat1.mean)
+    O_mean = np.asarray(O_stat.mean)
+    err = 5 * O_stat1.error_of_mean
+
+    # check that vstate.expect gives the right result
+    O_expval_exact = _expval(
+        vstate.parameters, vstate, op_sparse, real=operator.is_hermitian
+    )
+
+    np.testing.assert_allclose(O_expval_exact.real, O1_mean.real, atol=err, rtol=err)
+    if not operator.is_hermitian:
+        np.testing.assert_allclose(
+            O_expval_exact.imag, O1_mean.imag, atol=err, rtol=err
+        )
+
+    # Check that expect and expect_and_grad give same expect. value
+    assert O1_mean.real == approx(O_mean.real, abs=1e-5)
+    if not operator.is_hermitian:
+        assert O1_mean.imag == approx(O_mean.imag, abs=1e-5)
+
+    assert np.asarray(O_stat1.variance) == approx(np.asarray(O_stat.variance), abs=1e-5)
+
+    # Prepare the exact estimations
+    pars_0 = vstate.parameters
+    pars, unravel = nk.jax.tree_ravel(pars_0)
+
+    def expval_fun(par, vstate, H):
+        return _expval(unravel(par), vstate, H, real=operator.is_hermitian)
+
+    # Compute the expval and gradient with exact formula
+    O_exact = expval_fun(pars, vstate, op_sparse)
+    grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
+
+    if not operator.is_hermitian:
+        grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
+
+    # check the expectation values
+    err = 5 * O_stat.error_of_mean
+    assert O_stat.mean == approx(O_exact, abs=err)
+
+    O_grad, _ = nk.jax.tree_ravel(O_grad)
+    same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
