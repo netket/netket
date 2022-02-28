@@ -80,12 +80,20 @@ for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmay(H.hilbert, i)
 
 operators["operator:(Hermitian Complex)"] = H
+operators["operator:(Hermitian Complex Squared)"] = H.H@H
 
 H = H.copy()
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmap(H.hilbert, i)
 
 operators["operator:(Non Hermitian)"] = H
+
+machines["model:(C->C)-nonholo"] = nk.models.ARNNDense(
+    layers=1,
+    features=2,
+    hilbert=hi,
+    dtype=complex,
+)
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
