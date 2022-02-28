@@ -15,9 +15,9 @@ of many-body quantum systems with artificial neural networks and machine learnin
 It is a Python library built on [JAX](https://github.com/google/jax).
 
 - **Homepage:** <https://www.netket.org>
-- **Citing:** <https://www.netket.org/citing>
-- **Documentation:** <https://www.netket.org/documentation>
-- **Tutorials:** <https://www.netket.org/tutorials>
+- **Citing:** <https://www.netket.org/cite/>
+- **Documentation:** <https://netket.readthedocs.io/en/latest/index.html>
+- **Tutorials:** <https://netket.readthedocs.io/en/latest/tutorials/gs-ising.htmls>
 - **Examples:** <https://github.com/netket/netket/tree/master/Examples>
 - **Source code:** <https://github.com/netket/netket>
 
@@ -94,7 +94,7 @@ If you want MPI support, please follow the discussion in [mpi4jax](https://githu
 
 ## Getting Started
 
-To get started with NetKet, we reccomend you give a look to our [tutorials](https://www.netket.org/tutorials), by running them on your computer.
+To get started with NetKet, we recommend you give a look at our [tutorials page](https://netket.readthedocs.io/en/latest/tutorials/gs-ising.htmls), by running them on your computer or on [Google Colaboratory](https://colab.research.google.com).
 There are also many example scripts that you can download, run and edit that showcase some use-cases of NetKet, although they are not commented.
 
 If you want to get in touch with us, feel free to open an issue or a discussion here on GitHub, or to join the MLQuantum slack group where several people involved with NetKet hang out. To join the slack channel just accept [this invitation](https://join.slack.com/t/mlquantum/shared_invite/zt-13nohbtt3-nWgz~faxWXjVnu0BCHWM7w)
