@@ -23,9 +23,9 @@ It is a Python library built on [JAX](https://github.com/google/jax).
 
 ## Installation and Usage
 
-Netket runs on MacOS and Linux. We reccomend to install NetKet using `pip`, but it can also be installed with `conda`.
+NetKet runs on MacOS and Linux. We recommend to install NetKet using `pip`, but it can also be installed with `conda`.
 It is often necessary to first update `pip` to a recent release (`>=20.3`) in order for upper compatibility bounds to be considered and avoid a broken installation.
-For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/docs/getting_started.html) section of our website or run the following command (Apple M1 users, follow that link for more instructions):
+For instructions on how to install the latest stable/beta release of NetKet see the [Get Started](https://www.netket.org/get_started/) page of our website or run the following command (Apple M1 users, follow that link for more instructions):
 
 ```sh
 pip install --upgrade pip
