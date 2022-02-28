@@ -55,7 +55,28 @@ def central_diff_grad(func, x, eps, *args, dtype=None):
     return grad
 
 
-def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
+def same_derivatives(der, num_der, abs_eps=1.0e-6, rel_eps=1.0e-6):
+    """
+    Checks that two complex-valued arrays are the same.
+
+    Same as `np.testing.assert_allclose` but checks the real 
+    and imaginary parts independently for better error reporting.
+    """
+    assert der.shape == num_der.shape
+
+    np.testing.assert_allclose(
+        der.real, num_der.real, rtol=rel_eps, atol=abs_eps
+    )
+
+    np.testing.assert_allclose(
+        der.imag, num_der.imag, rtol=rel_eps, atol=abs_eps
+    )
+
+
+def same_log_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
+    """
+    Checks that two log-derivatives are equivalent
+    """
     assert der_log.shape == num_der_log.shape
 
     np.testing.assert_allclose(
