@@ -24,6 +24,7 @@
 * Fixed bug that prevented calling `.quantum_geometric_tensor` on `netket.vqs.ExactState`. [#1108](https://github.com/netket/netket/pull/1108)
 * Fixed bug where the gradient of `C->C` models (complex parameters, complex output) was computed incorrectly with `nk.vqs.ExactState`. [#1110](https://github.com/netket/netket/pull/1110)
 * Fixed bug where `QGTJacobianDense.state` and `QGTJacobianPyTree.state` would not correctly transform the starting point `x0` if `holomorphic=False`. [#1115](https://github.com/netket/netket/pull/1115)
+* The gradient of the expectation value obtained with `VarState.expect_and_grad` for `SquaredOperator`s was off by a factor of 2 in some cases, and wrong in others. This has now been fixed for models with real parameters. [#1065](https://github.com/netket/netket/pull/1065).
 
 ## NetKet 3.3.2 (🐛 Bug Fixes)
 
