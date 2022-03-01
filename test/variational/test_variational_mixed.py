@@ -377,7 +377,39 @@ def check_consistent_diag(vstate):
         for name, op in superoperators.items()
     ],
 )
-def test_expect_findiff(vstate, operator):
+def test_expect_exact(vstate, operator):
+    # Use lots of samples
+    vstate.n_samples = 5 * 1e5
+    vstate.n_discard_per_chain = 1e3
+
+    # sample the expectation value and gradient with tons of samples
+    O_stat = vstate.expect(operator)
+
+    O_mean = np.asarray(O_stat.mean)
+    err = 5 * O_stat.error_of_mean
+
+    # check that vstate.expect gives the right result
+    O_expval_exact = _expval(
+        vstate.parameters, vstate, operator.to_sparse(), real=operator.is_hermitian
+    )
+
+    np.testing.assert_allclose(O_expval_exact.real, O_mean.real, atol=err, rtol=err)
+    if not operator.is_hermitian:
+        np.testing.assert_allclose(O_expval_exact.imag, O_mean.imag, atol=err, rtol=err)
+
+
+@common.skipif_mpi
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in superoperators.items()
+    ],
+)
+def test_grad_finitedifferences(vstate, operator):
     op_sparse = operator.to_sparse()
 
     # Use lots of samples
@@ -391,17 +423,6 @@ def test_expect_findiff(vstate, operator):
     O1_mean = np.asarray(O_stat1.mean)
     O_mean = np.asarray(O_stat.mean)
     err = 5 * O_stat1.error_of_mean
-
-    # check that vstate.expect gives the right result
-    O_expval_exact = _expval(
-        vstate.parameters, vstate, op_sparse, real=operator.is_hermitian
-    )
-
-    np.testing.assert_allclose(O_expval_exact.real, O1_mean.real, atol=err, rtol=err)
-    if not operator.is_hermitian:
-        np.testing.assert_allclose(
-            O_expval_exact.imag, O1_mean.imag, atol=err, rtol=err
-        )
 
     # Check that expect and expect_and_grad give same expect. value
     assert O1_mean.real == approx(O_mean.real, abs=1e-5)
@@ -417,16 +438,11 @@ def test_expect_findiff(vstate, operator):
     def expval_fun(par, vstate, H):
         return _expval(unravel(par), vstate, H, real=operator.is_hermitian)
 
-    # Compute the expval and gradient with exact formula
-    O_exact = expval_fun(pars, vstate, op_sparse)
+    # Compute the gradient with exact formula
     grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
 
     if not operator.is_hermitian:
         grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
-
-    # check the expectation values
-    err = 5 * O_stat.error_of_mean
-    assert O_stat.mean == approx(O_exact, abs=err)
 
     O_grad, _ = nk.jax.tree_ravel(O_grad)
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
