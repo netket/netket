@@ -34,7 +34,7 @@ sa = nk.sampler.MetropolisHamiltonian(machine=ma, hamiltonian=ha)
 op = nk.optimizer.Sgd(ma, learning_rate=0.1)
 
 # Variational Monte Carlo
-vmc = nk.variational.Vmc(
+vmc = nk.variational.VMC(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,

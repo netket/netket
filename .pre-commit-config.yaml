@@ -1,11 +1,11 @@
 repos:
   - repo: https://github.com/psf/black
-    rev: 21.6b0
+    rev: 22.1.0
     hooks:
-      - id: black
-        language_version: python3
+    - id: black
 
-  - repo: https://github.com/life4/flakehell
-    rev: v.0.8.0
+  - repo: https://github.com/pycqa/flake8
+    rev: 4.0.1
     hooks:
-    -   id: flakehell
+    - id: flake8
+      files: netket/

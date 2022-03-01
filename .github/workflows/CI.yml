@@ -15,31 +15,36 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python-version: 3.8
+            python-version: "3.9"
             mpi: ""
             doctest: true
+            oldest_deps: false
 
           - os: ubuntu-latest
-            python-version: 3.9
+            python-version: "3.10"
             mpi: "mpich"
             main_tests: true
+            oldest_deps: false
 
           - os: macos-latest
-            python-version: 3.8
+            python-version: "3.8"
             mpi: "mpich"
             main_tests: true
+            oldest_deps: false
 
           - os: ubuntu-latest
-            python-version: 3.7
+            python-version: "3.7"
             mpi: ""
             main_tests: true
+            oldest_deps: true
+            env: NUMBA_BOUNDSCHECK=1
 
-        #python-version: [3.6, 3.7, 3.8]
-        #os: [ubuntu-latest, macos-latest]
+        # python-version: [3.7, 3.8, 3.9, 3.10]
+        # os: [ubuntu-latest, macos-latest]
 
     env:
       MPICH_INTERFACE_HOSTNAME: localhost
-      USE_MPI: ${{ matrix.mpi }} 
+      USE_MPI: ${{ matrix.mpi }}
 
     steps:
       - uses: actions/checkout@v2
@@ -61,18 +66,25 @@ jobs:
           python -m pip install wheel
           echo "::set-output name=dir::$(pip cache dir)"
 
+      - name: Pip install oldest dependencies
+        if: matrix.oldest_deps
+        run: |
+          python conf/compute_oldest_dependencies.py
+          pip install -r oldest_requirements.txt
+
       - name: Pip install packages
         run: |
           pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
-            pip install -e ".[dev]"
+            pip install -e ".[dev, extras]"
+            pip install openfermion
           else
             pip install -e ".[dev, mpi]"
           fi
 
       - name: Netket tests
         if: ${{ matrix.main_tests }}
-        run : |
+        run: |
           export NETKET_EXPERIMENTAL=1
           pytest --cov=netket --cov-append test
 
@@ -82,7 +94,7 @@ jobs:
           pytest --doctest-continue-on-failure --doctest-modules netket/
 
       - name: MPI tests
-        if: matrix.mpi != '' 
+        if: matrix.mpi != ''
         run: |
           mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 test
           coverage combine --append

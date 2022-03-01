@@ -86,7 +86,7 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
         # variance == average sample variance over chains
         assert stats.variance == pytest.approx(np.var(eloc))
         # R estimate
-        B_over_n = stats.error_of_mean ** 2
+        B_over_n = stats.error_of_mean**2
         W = stats.variance
         assert stats.R_hat == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
 
@@ -140,7 +140,7 @@ def _test_tau_corr(batch_size, sig_corr):
 
     @jit
     def log_f(x):
-        return -(x ** 2.0) / 2.0
+        return -(x**2.0) / 2.0
 
     def func_corr(x, tau):
         return np.exp(-x / (tau))

@@ -68,9 +68,10 @@ def Momentum(learning_rate: float, beta: float = 0.9, nesterov: bool = False):
         :math:`G(\mathbf{p})`, the updates for the parameter :math:`p_k` and
         corresponding component of the momentum :math:`m_k` are
 
-        .. math:: m^\prime_k &= \beta m_k + (1-\beta)G_k(\mathbf{p})\\
-        p^\prime_k &= \eta m^\prime_k
+        .. math:: 
 
+            m^\prime_k &= \beta m_k + (1-\beta)G_k(\mathbf{p})\\
+            p^\prime_k &= \eta m^\prime_
 
         Args:
            learning_rate: The learning rate :math:`\eta`
@@ -134,10 +135,9 @@ def Adam(learning_rate: float = 0.001, b1: float = 0.9, b2: float = 0.999, eps=1
 
     Args:
         learning_rate: Learning rate :math:`\eta`.
-        b1:
-        b2:
-        epscut: Small cutoff value.
-        initial_accumulator_value: initial value of the accumulator
+        b1: Decay rate for the exponentially weighted average of grads.
+        b2: Decay rate for the exponentially weighted average of squared norm of grads.
+        eps: Term added to the denominator to improve numerical stability.
     """
     from optax import adam
 

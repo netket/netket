@@ -1,0 +1,51 @@
+# WARNING: Windows support is experimental
+# The default shell is pwsh
+
+name: Windows CI
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            python-version: "3.9"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade pip and install wheel
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install wheel
+
+      - name: Pip install packages
+        run: |
+          pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
+          pip install -e .[dev]
+
+      - name: Netket tests
+        run: |
+          $Env:NETKET_EXPERIMENTAL = 1
+          # We need to set `-n 1` to enable `pytest-xdist` and continue testing
+          # even if a worker crashes
+          # On Windows the memory usage is higher than that on Linux,
+          # so we don't enable `-n 2`
+          pytest -n 1 test
+          # Exit 0 to make the job successful even if tests fail,
+          # and we can manually check the logs if needed
+          exit 0

@@ -266,45 +266,6 @@ def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
     )
 
 
-class HashablePartial(partial):
-    """
-    A class behaving like functools.partial, but that retains it's hash
-    if it's created with a lexically equivalent (the same) function and
-    with the same partially applied arguments and keywords.
-
-    It also stores the computed hash for faster hashing.
-    """
-
-    def __init__(self, *args, **kwargs):
-        self._hash = None
-
-    def __eq__(self, other):
-        return (
-            type(other) is HashablePartial
-            and self.func.__code__ == other.func.__code__
-            and self.args == other.args
-            and self.keywords == other.keywords
-        )
-
-    def __hash__(self):
-        if self._hash is None:
-            self._hash = hash(
-                (self.func.__code__, self.args, frozenset(self.keywords.items()))
-            )
-
-        return self._hash
-
-    def __repr__(self):
-        return f"<hashable partial {self.func.__name__} with args={self.args} and kwargs={self.keywords}, hash={hash(self)}>"
-
-
-# jax.tree_util.register_pytree_node(
-#    HashablePartial,
-#    lambda partial_: ((), (partial_.func, partial_.args, partial_.keywords)),
-#    lambda args, _: StaticPartial(args[0], *args[1], **args[2]),
-# )
-
-
 def compose(*funcs):
     """
     function composition
@@ -318,7 +279,9 @@ def compose(*funcs):
     return reduce(_compose, funcs)
 
 
-def PRNGKey(seed: Optional[SeedT] = None, root: int = 0, comm=MPI_jax_comm) -> PRNGKeyT:
+def PRNGKey(
+    seed: Optional[SeedT] = None, *, root: int = 0, comm=MPI_jax_comm
+) -> PRNGKeyT:
     """
     Initialises a PRNGKey using an optional starting seed.
     The same seed will be distributed to all processes.
@@ -330,12 +293,12 @@ def PRNGKey(seed: Optional[SeedT] = None, root: int = 0, comm=MPI_jax_comm) -> P
     else:
         key = seed
 
-    key, _ = mpi.mpi_bcast_jax(key, root=root, comm=comm)
+    key = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key)
 
     return key
 
 
-def mpi_split(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
+def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     """
     Split a key across MPI nodes in the communicator.
     Only the input key on the root process matters.
@@ -353,7 +316,7 @@ def mpi_split(key, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
     # on all MPI nodes?
     keys = jax.random.split(key, mpi.n_nodes)
 
-    keys, _ = mpi.mpi_bcast_jax(keys, root=root)
+    keys = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys)
 
     return keys[mpi.rank]
 

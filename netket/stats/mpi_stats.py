@@ -31,8 +31,9 @@ def subtract_mean(x, axis=None):
         The resulting array.
 
     """
-    # here we keep the dims, since automatic broadcasting of a scalar (shape () ) to an array produces errors
-    # when used inside of a function which is transposed with jax.linear_transpose
+    # here we keep the dims, since automatic broadcasting of a scalar (shape () )
+    # to an array produces errors when used inside of a function which is transposed
+    # with jax.linear_transpose
     x_mean = mean(x, axis=axis, keepdims=True)
     return x - x_mean  # automatic broadcasting of x_mean
 
@@ -41,15 +42,16 @@ def mean(a, axis=None, keepdims: bool = False):
     """
     Compute the arithmetic mean along the specified axis and over MPI processes.
 
-    Returns the average of the array elements. The average is taken over the flattened array by default,
-    otherwise over the specified axis. float64 intermediate and return values are used for integer inputs.
+    Returns the average of the array elements. The average is taken over the flattened
+    array by default, otherwise over the specified axis. float64 intermediate and
+    return values are used for integer inputs.
 
     Args:
         a: The input array
-        axis: Axis or axes along which the means are computed. The default (None) is to
-              compute the mean of the flattened array.
-        keepdims: If True the output array will have the same number of dimensions as the input,
-              with the reduced axes having length 1. (default=False)
+        axis: Axis or axes along which the means are computed. The default (None) is
+            to compute the mean of the flattened array.
+        keepdims: If True the output array will have the same number of dimensions as
+            the input, with the reduced axes having length 1. (default=False)
 
     Returns:
         The array with reduced dimensions defined by axis.
@@ -70,11 +72,12 @@ def sum(a, axis=None, keepdims: bool = False):
         axis: Axis or axes along which the mean is computed. The default (None) is to
               compute the mean of the flattened array.
         out: An optional pre-allocated array to fill with the result.
-        keepdims: If True the output array will have the same number of dimensions as the input,
-              with the reduced axes having length 1. (default=False)
+        keepdims: If True the output array will have the same number of dimensions as
+              the input, with the reduced axes having length 1. (default=False)
 
     Returns:
-        The array with reduced dimensions defined by axis. If out is not none, returns out.
+        The array with reduced dimensions defined by axis. If out is not none,
+        returns out.
 
     """
     # if it's a numpy-like array...
@@ -96,14 +99,16 @@ def var(a, axis=None, ddof: int = 0):
 
     Args:
         a: The input array
-        axis: Axis or axes along which the variance is computed. The default (None) is to
-              compute the variance of the whole flattened array.
+        axis: Axis or axes along which the variance is computed. The default (None)
+            is to compute the variance of the whole flattened array.
         out: An optional pre-allocated array to fill with the result.
-        ddof: “Delta Degrees of Freedom”: the divisor used in the calculation is N - ddof,
-              where N represents the number of elements. By default ddof is zero.
+        ddof: “Delta Degrees of Freedom”: the divisor used in the calculation
+            is $N - ddof$, where $N$ represents the number of elements.
+            By default ddof is zero.
 
     Returns:
-        The array with reduced dimensions defined by axis. If out is not none, returns out.
+        The array with reduced dimensions defined by axis. If out is not none,
+        returns out.
 
     """
     m = mean(a, axis=axis)
@@ -123,7 +128,8 @@ def var(a, axis=None, ddof: int = 0):
 
 def total_size(a, axis=None):
     """
-    Compute the total number of elements stored in the input array among all MPI processes.
+    Compute the total number of elements stored in the input array among all
+    MPI processes.
 
     This function essentially returns MPI_sum_among_processes(a.size).
 

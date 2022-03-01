@@ -1,20 +1,19 @@
 # Setup and install configuration
 
 [dev-dependencies]
-black = { version = "^21.6b0", python = "^3.6" }
+black = "22.1.0"
 pre-commit = ">= 2.7"
 pytest = ">= 6"
 pytest-xdist = ">= 2"
-flaky = ">= 3.7"
 coverage = ">= 5"
 pytest-cov = ">= 2.10.1"
-flakehell = ">= 0.9"
+flake8 = "4.0.1"
 
 [build-system]
-requires = ["setuptools>=50", 
-            "wheel", 
+requires = ["setuptools>=50",
+            "wheel",
             "toml",
-            "setuptools_scm[toml]>=3.4", 
+            "setuptools_scm[toml]>=3.4",
             "setuptools_scm_git_archive"]
 
 [tool.setuptools_scm]
@@ -25,7 +24,7 @@ write_to = "netket/_version.py"
 
 [tool.black]
 line-length = 88
-target-version = ['py36', 'py37', 'py38']
+target-version = ['py37', 'py38', 'py39']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -50,7 +49,7 @@ command_line = "-m pytest --verbose test"
 source = ["netket"]
 
 [tool.pytest.ini_options]
-addopts = "--color=yes --verbose --durations=0 -n auto"
+addopts = "--color=yes --verbose --durations=100 -n auto --tb=short"
 doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER"
 filterwarnings = [
     "ignore::UserWarning",
@@ -58,58 +57,8 @@ filterwarnings = [
     "ignore:the imp module is deprecated in favour of importlib.*:DeprecationWarning",
     "ignore:`np.long`",
     "ignore:`np.int` is a deprecated alias for the builtin `int`",
-    "ignore:Call to deprecated function 'Boson'"
+    "ignore::DeprecationWarning:tensorboardX",
 ]
 testpaths = [
     "test",
 ]
-
-[tool.flakehell]
-exclude = []
-# make output nice
-format = "grouped"
-max-line-length = 88
-# show line of source code in output
-show_source = true
-extended_default_ignore=[]  # workaround for flakehell#10
-
-[tool.flakehell.plugins]
-pycodestyle = ["+*", 
-               "-E203", 
-               "-E501", 
-               "-W503", 
-               "-E741", 
-               "-E266",  # too many leading #
-               "-E731", # do not assign lambda expression, use def
-               ]
-pyflakes = ["+*", "-E203"]
-
-# match by prefix
-[tool.flakehell.exceptions."tests/"]
-pycodestyle = ["-F401"]     # disable a check
-pyflakes = ["-*"]           # disable a plugin
-
-# match by glob
-[tool.flakehell.exceptions."**/__init__.py"]
-pyflakes = ["-F401"]
-pycodestyle = ["-F401", "-E402"]
-
-[tool.flakehell.exceptions."netket/nn/"]
-pyflakes = ["-F401", "-F403", "-F405"]
-pycodestyle = ["-F401", "-E402"]
-
-# ignore on docs
-[tool.flakehell.exceptions."**/*.md"]
-pyflakes = ["-*"]
-pycodestyle = ["-*"]
-
-# ignore on docs
-[tool.flakehell.exceptions."**/*.rst"]
-pyflakes = ["-*"]
-pycodestyle = ["-*"]
-
-
-# ignore on docs
-[tool.flakehell.exceptions."docs/"]
-pyflakes = ["-*"]
-pycodestyle = ["-*", "-E999"]

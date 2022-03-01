@@ -1,6 +1,3 @@
-#
-docs/tutorials/*.ipynb
-docs/docs/changelog.md
 netket/_version.py
 
 # Compiled source #
@@ -20,6 +17,7 @@ pip-wheel-metadata
 .ipynb_checkpoints
 .pytest_cache
 .mypy_cache
+oldest_requirements.txt
 
 # Packages #
 ############
@@ -75,7 +73,8 @@ build/
 .coverage
 .coverage.*
 
-##
-_build
+# Website #
+###########
+docs/_build
 _generated
 dist

@@ -15,7 +15,9 @@
 import sys
 
 
-def _hide_submodules(module_name, *, remove_self=True, ignore=tuple()):
+def _hide_submodules(
+    module_name, *, remove_self=True, ignore=tuple(), hide_folder=tuple()
+):
     """
     Hide all submodules created by files (not folders) in module_name defined
     at module_path.
@@ -29,6 +31,12 @@ def _hide_submodules(module_name, *, remove_self=True, ignore=tuple()):
     for file in os.listdir(module_path):
         if file.endswith(".py") and not file == "__init__.py":
             mod_name = file[:-3]
+        elif file in hide_folder:
+            mod_name = file
+        else:
+            mod_name = None
+
+        if mod_name is not None:
             if (
                 hasattr(module, mod_name)
                 and mod_name[0] != "_"
@@ -40,6 +48,8 @@ def _hide_submodules(module_name, *, remove_self=True, ignore=tuple()):
 
     if remove_self and hasattr(module, "_hide_submodules"):
         delattr(module, "_hide_submodules")
+
+    auto_export(module)
 
 
 def rename_class(new_name):
@@ -69,6 +79,32 @@ def export(fn):
     else:
         mod.__all__ = [fn.__name__]
     return fn
+
+
+def auto_export(module):
+    """
+    Automatically construct __all__ with all modules desired.
+    This is necessary to have correct paths in the documentation.
+
+    Args:
+        module: a module or module name
+    """
+    if isinstance(module, str):
+        module = sys.modules[module]
+
+    elements = dir(module)
+
+    if not hasattr(module, "__all__"):
+        setattr(module, "__all__", [])
+
+    _all = module.__all__
+
+    for el in elements:
+        if el.startswith("_"):
+            continue
+
+        if el not in _all:
+            _all.append(el)
 
 
 def hide_unexported(module_name):

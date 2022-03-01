@@ -21,7 +21,7 @@ from numba.typed import List
 
 from scipy.sparse.linalg import LinearOperator
 
-from ._abstract_operator import AbstractOperator
+from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 from ._abstract_super_operator import AbstractSuperOperator
 
@@ -63,8 +63,8 @@ class LocalLiouvillian(AbstractSuperOperator):
 
     def __init__(
         self,
-        ham: AbstractOperator,
-        jump_ops: PyList[AbstractOperator] = [],
+        ham: DiscreteOperator,
+        jump_ops: PyList[DiscreteOperator] = [],
         dtype=complex,
     ):
         super().__init__(ham.hilbert)
@@ -113,7 +113,7 @@ class LocalLiouvillian(AbstractSuperOperator):
         self._max_dissipator_conn_size = 0
         for L in self._jump_ops:
             Hnh = Hnh - 0.5j * L.conjugate().transpose() @ L
-            self._max_dissipator_conn_size += L.max_conn_size ** 2
+            self._max_dissipator_conn_size += L.max_conn_size**2
 
         self._Hnh = Hnh.collect()
 
@@ -399,7 +399,7 @@ class LocalLiouvillian(AbstractSuperOperator):
             ]
 
         if not append_trace:
-            op_size = M ** 2
+            op_size = M**2
 
             def matvec(rho_vec):
                 rho = rho_vec.reshape((M, M))
@@ -423,12 +423,12 @@ class LocalLiouvillian(AbstractSuperOperator):
             # The logic behind the use of Hnh_dag_ and Hnh_ is derived from the
             # convention adopted in local_liouvillian.cc, and inspired from reference
             # arXiv:1504.05266
-            op_size = M ** 2 + 1
+            op_size = M**2 + 1
 
             def matvec(rho_vec):
                 rho = rho_vec[:-1].reshape((M, M))
 
-                out = np.zeros((M ** 2 + 1), dtype=rho.dtype)
+                out = np.zeros((M**2 + 1), dtype=rho.dtype)
                 drho = out[:-1].reshape((M, M))
 
                 drho += iHnh @ rho + rho @ iHnh.conj().T
@@ -441,3 +441,15 @@ class LocalLiouvillian(AbstractSuperOperator):
         L = LinearOperator((op_size, op_size), matvec=matvec, dtype=iHnh.dtype)
 
         return L
+
+    def to_qobj(self) -> "qutip.liouvillian":  # noqa: F821
+        r"""Convert the operator to a qutip's liouvillian Qobj.
+
+        Returns:
+            A `qutip.liouvillian` object.
+        """
+        from qutip import liouvillian
+
+        return liouvillian(
+            self.hamiltonian.to_qobj(), [op.to_qobj() for op in self.jump_operators]
+        )

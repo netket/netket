@@ -25,8 +25,11 @@ import netket.jax as nkjax
 
 from ..linear_operator import LinearOperator, Uninitialized
 
+from .common import check_valid_vector_type
 from .qgt_jacobian_pytree_logic import mat_vec, prepare_centered_oks
 from .qgt_jacobian_common import choose_jacobian_mode
+
+from netket.nn import split_array_mpi
 
 
 def QGTJacobianPyTree(
@@ -55,7 +58,7 @@ def QGTJacobianPyTree(
               models. holomorphic works for any function assuming it's holomorphic
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
-        rescale_shift: If True rescales the diagonal shift
+        rescale_shift: If True rescales the diagonal shift.
     """
     if vstate is None:
         return partial(
@@ -66,26 +69,43 @@ def QGTJacobianPyTree(
             **kwargs,
         )
 
+    # TODO: Find a better way to handle this case
+    from netket.vqs import ExactState
+
+    if isinstance(vstate, ExactState):
+        samples = split_array_mpi(vstate._all_states)
+        pdf = split_array_mpi(vstate.probability_distribution())
+    else:
+        samples = vstate.samples
+        pdf = None
+
     # Choose sensible default mode
     if mode is None:
         mode = choose_jacobian_mode(
             vstate._apply_fun,
             vstate.parameters,
             vstate.model_state,
-            vstate.samples,
+            samples,
             mode=mode,
             holomorphic=holomorphic,
         )
     elif holomorphic is not None:
         raise ValueError("Cannot specify both `mode` and `holomorphic`.")
 
+    if hasattr(vstate, "chunk_size"):
+        chunk_size = vstate.chunk_size
+    else:
+        chunk_size = None
+
     O, scale = prepare_centered_oks(
         vstate._apply_fun,
         vstate.parameters,
-        vstate.samples.reshape(-1, vstate.samples.shape[-1]),
+        samples.reshape(-1, samples.shape[-1]),
         vstate.model_state,
         mode,
         rescale_shift,
+        pdf,
+        chunk_size,
     )
 
     return QGTJacobianPyTreeT(
@@ -185,6 +205,8 @@ def _matmul(
     if self.mode != "holomorphic" and not self._in_solve:
         vec, reassemble = nkjax.tree_to_real(vec)
 
+    check_valid_vector_type(self.params, vec)
+
     if self.scale is not None:
         vec = jax.tree_multimap(jnp.multiply, vec, self.scale)
 
@@ -208,9 +230,14 @@ def _matmul(
 def _solve(
     self: QGTJacobianPyTreeT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
 ) -> PyTree:
+
     # Real-imaginary split RHS in R→R and R→C modes
     if self.mode != "holomorphic":
         y, reassemble = nkjax.tree_to_real(y)
+        if x0 is not None:
+            x0, _ = nkjax.tree_to_real(x0)
+
+    check_valid_vector_type(self.params, y)
 
     if self.scale is not None:
         y = jax.tree_multimap(jnp.divide, y, self.scale)
@@ -244,6 +271,6 @@ def _to_dense(self: QGTJacobianPyTreeT) -> jnp.ndarray:
     else:
         scale, _ = nkjax.tree_ravel(self.scale)
         O = O * scale[jnp.newaxis, :]
-        diag = jnp.diag(scale ** 2)
+        diag = jnp.diag(scale**2)
 
     return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag

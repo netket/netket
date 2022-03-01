@@ -17,12 +17,11 @@
 from typing import Any, Callable, Iterable, Optional, Tuple, Union
 
 import flax
-from flax.linen.module import Module, compact
-from jax import lax
 import jax.numpy as jnp
 import numpy as np
-
-from netket.nn.initializers import lecun_normal, zeros
+from flax.linen.module import Module, compact
+from jax import lax
+from jax.nn.initializers import lecun_normal, zeros
 
 PRNGKey = Any
 Shape = Iterable[int]

@@ -39,6 +39,10 @@ def printfmt(key, value=None, *, indent=0, pre="", alignment=STD_SPACE):
         print(f"{pre}{key : <{alignment}}", flush=True)
 
 
+def _fmt_device(dev):
+    return f"<{dev.id}: {dev.device_kind}>"
+
+
 def info():
     """
     When called via::
@@ -78,12 +82,7 @@ def info():
 
     printfmt("AVX", platform_info["supports_avx"], indent=1)
     printfmt("AVX2", platform_info["supports_avx2"], indent=1)
-    if "cpu cores" in platform_info:
-        printfmt("Cores", platform_info["cpu cores"], indent=1)
-    elif "cpu_cores" in platform_info:
-        printfmt("Cores", platform_info["cpu_cores"], indent=1)
-    elif "core_count" in platform_info:
-        printfmt("Cores", platform_info["core_count"], indent=1)
+    printfmt("Cores", platform_info["core_count"], indent=1)
     print()
 
     # try to load jax
@@ -106,15 +105,25 @@ def info():
         backends = _jax_backends()
         printfmt("backends", backends, indent=1)
         for backend in backends:
-            printfmt(f"{backend}", jax.devices(backend), indent=2)
+            printfmt(
+                f"{backend}",
+                [_fmt_device(dev) for dev in jax.devices(backend)],
+                indent=2,
+            )
         print()
 
     if is_available("mpi4jax"):
         print("# MPI4JAX")
         import mpi4jax
 
-        if hasattr(mpi4jax._src.xla_bridge, "HAS_GPU_EXT"):
-            printfmt("HAS_GPU_EXT", mpi4jax._src.xla_bridge.HAS_GPU_EXT, indent=1)
+        if hasattr(mpi4jax, "has_cuda_support"):
+            printfmt("HAS_GPU_EXT", mpi4jax.has_cuda_support(), indent=1)
+        elif hasattr(mpi4jax, "_src"):
+            if hasattr(mpi4jax._src, "xla_bridge"):
+                if hasattr(mpi4jax._src.xla_bridge, "HAS_GPU_EXT"):
+                    printfmt(
+                        "HAS_GPU_EXT", mpi4jax._src.xla_bridge.HAS_GPU_EXT, indent=1
+                    )
         print()
 
     if is_available("mpi4py"):
@@ -123,12 +132,14 @@ def info():
         from mpi4py import MPI
 
         printfmt("mpi4py", indent=1)
-        printfmt("MPICC", mpi4py.get_config()["mpicc"], indent=1)
-        printfmt(
-            "MPI link flags",
-            get_link_flags(exec_in_terminal([mpi4py.get_config()["mpicc"], "-show"])),
-            indent=1,
-        )
+        mpi4py_config = mpi4py.get_config()
+        if "mpicc" in mpi4py_config:
+            printfmt("MPICC", mpi4py_config["mpicc"], indent=1)
+            printfmt(
+                "MPI link flags",
+                get_link_flags(exec_in_terminal([mpi4py_config["mpicc"], "-show"])),
+                indent=1,
+            )
         printfmt("MPI version", MPI.Get_version(), indent=2)
         printfmt("MPI library_version", MPI.Get_library_version(), indent=2)
 

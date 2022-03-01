@@ -355,7 +355,7 @@ def replace_hash_method(data_clz, *, globals={}):
     setattr(data_clz, "__hash__", fun)
 
 
-def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False):
+def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
     """
     Decorator creating a NetKet-flavour dataclass.
     This behaves as a flax dataclass, that is a Frozen python dataclass, with a twist!
@@ -384,11 +384,14 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False):
             from `__pre_init__`.
         cache_hash: If True the hash is computed only once and cached. Use if
             the computation is expensive.
-
+        _frozen: (default True) controls whever the resulting class is frozen or not.
+            If it is not frozen, extra care should be taken.
     """
 
     if clz is None:
-        return partial(dataclass, init_doc=init_doc, cache_hash=cache_hash)
+        return partial(
+            dataclass, init_doc=init_doc, cache_hash=cache_hash, _frozen=_frozen
+        )
 
     # get globals of the class to put generated methods in there
     _globals = get_class_globals(clz)
@@ -396,7 +399,7 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False):
     # proces all cached properties
     process_cached_properties(clz, globals=_globals)
     # create the dataclass
-    data_clz = dataclasses.dataclass(frozen=True)(clz)
+    data_clz = dataclasses.dataclass(frozen=_frozen)(clz)
     purge_cache_fields(data_clz)
     # attach the custom preprocessing of init arguments
     attach_preprocess_init(
@@ -432,7 +435,7 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False):
         for name in cache_fields:
             updates[name] = Uninitialized
 
-        return dataclasses.replace(self, **updates)
+        return dataclasses.replace(self, **updates, __skip_preprocess=True)
 
     data_clz.replace = replace
 

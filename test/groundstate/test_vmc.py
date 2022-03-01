@@ -26,7 +26,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
     ma = nk.models.RBM(alpha=1, dtype=dtype)
-    sa = nk.sampler.ExactSampler(hilbert=hi, n_chains=16)
+    sa = nk.sampler.ExactSampler(hilbert=hi)
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
@@ -35,7 +35,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
 
     # Add custom observable
     X = [[0, 1], [1, 0]]
-    sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(8)])
+    sx = nk.operator.LocalOperator(hi, [X] * L, [[i] for i in range(L)])
 
     if sr:
         sr_config = nk.optimizer.SR()
@@ -44,44 +44,6 @@ def _setup_vmc(dtype=np.float32, sr=True):
     driver = nk.VMC(ha, op, variational_state=vs, preconditioner=sr_config)
 
     return ha, sx, vs, sa, driver
-
-
-#####
-@partial(jax.jit, static_argnums=0)
-@partial(jax.vmap, in_axes=(None, None, 0, 0, 0), out_axes=(0))
-def local_value_kernel(logpsi, pars, σ, σp, mel):
-    return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
-
-
-def local_values(logpsi, variables, Ô, σ):
-    """
-    Returns loc_vals for an operator O
-    """
-    σp, mels = Ô.get_conn_padded(np.asarray(σ).reshape((-1, σ.shape[-1])))
-    loc_vals = local_value_kernel(
-        logpsi, variables, σ.reshape((-1, σ.shape[-1])), σp, mels
-    )
-    return loc_vals.reshape(σ.shape[:-1])
-
-
-def estimate_gradient(logpsi, variables, Ô, σ):
-    """
-    Estimate the gradient of hermmitian operator O using legacy code
-    """
-    O_loc = local_values(logpsi, variables, Ô, σ)
-    O_loc -= O_loc.mean()
-    O_loc /= np.prod(O_loc.shape)
-
-    σr = σ.reshape((-1, σ.shape[-1]))
-    O_loc_r = O_loc.reshape(-1)
-
-    _, vjp = nk.jax.vjp(logpsi, variables, σr, conjugate=True)
-    Opsi = vjp(O_loc_r.conjugate())[0]
-
-    return Opsi
-
-
-####
 
 
 def test_estimate():
@@ -113,7 +75,7 @@ def test_vmc_construction_vstate():
 
     op = nk.optimizer.Sgd(learning_rate=0.05)
 
-    driver = nk.Vmc(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)
+    driver = nk.VMC(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)
 
     driver.run(1)
 
@@ -202,8 +164,8 @@ def central_diff_grad(func, x, eps, *args):
             grad_i = 0.5 * (func(x + 1j * epsd, *args) - func(x - 1j * epsd, *args))
             grad[i] = 0.5 * grad_r + 0.5j * grad_i
         else:
-            grad_i = 0.0
-            grad[i] = 0.5 * grad_r
+            # grad_i = 0.0
+            grad[i] = grad_r
 
         assert not np.isnan(grad[i])
         grad[i] /= eps
@@ -228,16 +190,6 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
 def test_vmc_gradient(dtype):
     ha, sx, ma, sampler, driver = _setup_vmc(dtype=dtype, sr=False)
     driver.run(3, out=None)
-
-    # old formula
-    _, grads = ma.expect_and_grad(ha)
-    grad_old = estimate_gradient(
-        lambda w, x: ma._apply_fun({"params": w}, x), ma.parameters, ha, ma.samples
-    )
-
-    # check that the old fformula and the new give same result
-    jax.tree_multimap(lambda x, y: same_derivatives(x, y), grads, grad_old)
-    # end old
 
     pars_0 = ma.parameters
     pars, unravel = nk.jax.tree_ravel(pars_0)
@@ -284,3 +236,11 @@ def test_vmc_sr_legacy_api():
         driver = nk.VMC(
             ha, op, variational_state=vs, sr=sr_config, preconditioner=sr_config
         )
+
+
+def test_deprecated_vmc_name():
+    ha, sx, ma, sa, driver = _setup_vmc()
+    op = nk.optimizer.Sgd(learning_rate=0.05)
+
+    with pytest.warns(FutureWarning):
+        driver = nk.Vmc(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)

@@ -35,6 +35,8 @@ from .activation import (
     log_cosh,
     log_sinh,
     log_tanh,
+    reim_selu,
+    reim_relu,
 )
 from flax.linen import (
     MultiHeadDotProductAttention,
@@ -57,11 +59,10 @@ from .symmetric_linear import (
 from .masked_linear import MaskedDense1D, MaskedConv1D, MaskedConv2D
 from .fast_masked_linear import FastMaskedDense1D, FastMaskedConv1D, FastMaskedConv2D
 
-from .module import Module
-from flax.linen.module import compact, enable_named_call, disable_named_call, Variable
+from flax.linen import Module, compact
 
 from .initializers import zeros, ones
 
 from flax.linen import Embed
 
-from .utils import to_array, to_matrix
+from .utils import to_array, to_matrix, split_array_mpi, update_dense_symm

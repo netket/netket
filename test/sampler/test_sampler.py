@@ -11,18 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import flax
 from jax import numpy as jnp
 
 from .. import common
 
 import netket as nk
-from netket.hilbert import DiscreteHilbert, ContinuousBoson
+from netket.hilbert import DiscreteHilbert, Particle
+
+from netket import experimental as nkx
+
 import numpy as np
 import pytest
 from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
-
 import jax
+from jax.nn.initializers import normal
+
 from jax.config import config
 
 config.update("jax_enable_x64", True)
@@ -53,30 +58,24 @@ hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
-samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi, n_chains=8)
-samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u, n_chains=4)
+samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
+samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u)
 
-samplers["Metropolis(Local): Spin"] = nk.sampler.MetropolisLocal(hi, n_chains=16)
+samplers["Metropolis(Local): Spin"] = nk.sampler.MetropolisLocal(hi)
 
-samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(
-    hi, n_chains=16
-)
-# samplers["MetropolisNumpy(Local): Fock"] = nk.sampler.MetropolisLocalNumpy(
-#    hib_u, n_chains=8
-# )
+samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(hi)
+# samplers["MetropolisNumpy(Local): Fock"] = nk.sampler.MetropolisLocalNumpy(hib_u)
 # samplers["MetropolisNumpy(Local): Doubled-Spin"] = nk.sampler.MetropolisLocalNumpy(
-#    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2)), n_chains=8
+#    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2))
 # )
 
-samplers["MetropolisPT(Local): Spin"] = nk.sampler.MetropolisLocalPt(
-    hi, n_chains=8, n_replicas=4
-)
-samplers["MetropolisPT(Local): Fock"] = nk.sampler.MetropolisLocalPt(
-    hib_u, n_chains=8, n_replicas=4
+samplers["MetropolisPT(Local): Spin"] = nkx.sampler.MetropolisLocalPt(hi, n_replicas=4)
+samplers["MetropolisPT(Local): Fock"] = nkx.sampler.MetropolisLocalPt(
+    hib_u, n_replicas=4
 )
 
 samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange(
-    hib, n_chains=16, graph=g
+    hib, graph=g
 )
 
 samplers["Metropolis(Hamiltonian,Jax): Spin"] = nk.sampler.MetropolisHamiltonian(
@@ -95,17 +94,17 @@ samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
     hi, move_operators=move_op
 )
 
-# samplers["MetropolisPT(Custom: Sx): Spin"] = nk.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
+# samplers["MetropolisPT(Custom: Sx): Spin"] = nkx.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
 
-samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi, n_chains=16)
-samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1, n_chains=16)
-samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u, n_chains=16)
+samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi)
+samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1)
+samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u)
 
 
 # Hilbert space and sampler for particles
-hi_particles = nk.hilbert.ContinuousBoson(N=3, L=(np.inf,), pbc=(False,))
+hi_particles = nk.hilbert.Particle(N=3, L=(np.inf,), pbc=(False,))
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
-    hi_particles, sigma=1.0, n_chains=16
+    hi_particles, sigma=1.0
 )
 
 
@@ -115,16 +114,18 @@ samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
 def model_and_weights(request):
     def build_model(hilb, sampler=None):
         if isinstance(sampler, nk.sampler.ARDirectSampler):
-            ma = nk.models.ARNNDense(hilbert=hilb, layers=3, features=5)
-        elif isinstance(hilb, ContinuousBoson):
+            ma = nk.models.ARNNDense(
+                hilbert=hilb, machine_pow=sampler.machine_pow, layers=3, features=5
+            )
+        elif isinstance(hilb, Particle):
             ma = nk.models.Gaussian()
         else:
             # Build RBM by default
             ma = nk.models.RBM(
                 alpha=1,
                 dtype=complex,
-                kernel_init=nk.nn.initializers.normal(stddev=0.1),
-                hidden_bias_init=nk.nn.initializers.normal(stddev=0.1),
+                kernel_init=normal(stddev=0.1),
+                hidden_bias_init=normal(stddev=0.1),
             )
 
         # init network
@@ -162,7 +163,7 @@ def set_pdf_power(request):
             pass
         elif cmdline_mpow == "single":
             # same sampler leads to same rng
-            rng = np.random.default_rng(abs(hash((type(sampler), repr(sampler)))))
+            rng = np.random.default_rng(common.hash_for_seed(sampler))
             exponent = rng.integers(1, 3)  # 1 or 2
             if exponent != request.param:
                 pytest.skip(
@@ -186,15 +187,15 @@ def test_states_in_hilbert(sampler, model_and_weights):
 
         ma, w = model_and_weights(hi, sampler)
 
-        for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
+        for sample in sampler.samples(ma, w, chain_length=50):
             assert sample.shape == (sampler.n_chains, hi.size)
             for v in sample:
                 assert v in all_states
 
-    elif isinstance(hi, ContinuousBoson):
+    elif isinstance(hi, Particle):
         ma, w = model_and_weights(hi, sampler)
 
-        for sample in nk.sampler.samples(sampler, ma, w, chain_length=50):
+        for sample in sampler.samples(ma, w, chain_length=50):
             assert sample.shape == (sampler.n_chains, hi.size)
 
     # if hasattr(sa, "acceptance"):
@@ -210,10 +211,6 @@ def findrng(rng):
 
 # Mark tests that we know are failing on correctedness
 def failing_test(sampler):
-    if isinstance(sampler, nk.sampler.MetropolisSampler):
-        if isinstance(sampler, nk.sampler.MetropolisPtSampler):
-            return True
-
     return False
 
 
@@ -298,7 +295,7 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
         s, pval = combine_pvalues(pvalues, method="fisher")
         assert pval > 0.01 or np.max(pvalues) > 0.01
 
-    elif isinstance(hi, ContinuousBoson):
+    elif isinstance(hi, Particle):
         ma, w = model_and_weights(hi, sampler)
         n_samples = 5000
         n_discard = 2000
@@ -391,10 +388,23 @@ def test_throwing(model_and_weights):
         # test raising of init state
         sampler.init_state(ma, w, seed=SAMPLER_SEED)
 
+    with pytest.raises(ValueError):
+        nk.sampler.ARDirectSampler(hi, machine_pow=1)
+
+    # MetropolisLocal should not work with continuous Hilbert spaces
+    with pytest.raises(TypeError):
+        sampler = nk.sampler.MetropolisLocal(hi_particles)
+
+        ma, w = model_and_weights(hi)
+
+        sampler.sample(ma, w, seed=SAMPLER_SEED)
+
 
 def test_exact_sampler(sampler):
     known_exact_samplers = (nk.sampler.ExactSampler, nk.sampler.ARDirectSampler)
     if isinstance(sampler, known_exact_samplers):
         assert sampler.is_exact is True
+        assert sampler.n_chains_per_rank == 1
     else:
         assert sampler.is_exact is False
+        assert sampler.n_chains_per_rank == 16

@@ -19,12 +19,12 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.nn.initializers import normal
+
 from netket.utils import HashableArray
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
-
 from netket import nn as nknn
-from netket.nn.initializers import normal
 
 default_kernel_init = normal(stddev=0.01)
 
@@ -79,7 +79,7 @@ class RBM(nn.Module):
 
 
 class RBMModPhase(nn.Module):
-    """
+    r"""
     A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
 
     In this case, two RBMs are taken to parameterize, respectively, the real
@@ -88,8 +88,10 @@ class RBMModPhase(nn.Module):
 
     This type of RBM has spin 1/2 hidden units and is defined by:
 
-    .. math:: \\Psi(s_1,\\dots s_N) = e^{\\sum_i^N a_i s_i} \\times \\Pi_{j=1}^M
-            \\cosh \\left(\\sum_i^N W_{ij} s_i + b_j \\right)
+    .. math::
+
+        \Psi(s_1,\dots s_N) = e^{\sum_i^N a_i s_i} \times \Pi_{j=1}^M
+            \cosh \left(\sum_i^N W_{ij} s_i + b_j \right)
 
     for arbitrary local quantum numbers :math:`s_i`.
     """
@@ -103,7 +105,7 @@ class RBMModPhase(nn.Module):
     use_hidden_bias: bool = True
     """if True uses a bias in the dense layer (hidden layer bias)."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see `jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
@@ -209,7 +211,7 @@ class RBMSymm(nn.Module):
     use_visible_bias: bool = True
     """if True adds a bias to the input not passed through the nonlinear layer."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see `jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = normal(stddev=0.1)
     """Initializer for the Dense layer matrix."""
@@ -229,6 +231,9 @@ class RBMSymm(nn.Module):
 
     @nn.compact
     def __call__(self, x_in):
+        x = x_in
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)
         x = nknn.DenseSymm(
             name="Dense",
             mode="matrix",
@@ -239,7 +244,7 @@ class RBMSymm(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
             precision=self.precision,
-        )(x_in)
+        )(x)
         x = self.activation(x)
 
         x = x.reshape(-1, self.features * self.n_symm)

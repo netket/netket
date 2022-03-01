@@ -21,17 +21,24 @@ from . import types
 from . import float
 
 from .array import HashableArray
-from .jax import get_afun_if_module, wrap_afun
-from . import mpi
+from .partial import HashablePartial
+from .jax import get_afun_if_module, wrap_afun, wrap_to_support_scalar
 from .optional_deps import tensorboard_available
 from .seed import random_seed
+from .summation import KahanSum
 
 from .deprecation import warn_deprecation, deprecated, deprecated_new_name
-from .moduletools import _hide_submodules, rename_class
+from .moduletools import _hide_submodules, rename_class, auto_export as _auto_export
+from .version_check import module_version
 
 from .model_frameworks import maybe_wrap_module
 
 from .history import History, accum_in_tree, accum_histories_in_tree
+
+from . import mpi
+
+# error if old dependencies are detected
+from . import _dependencies_check
 
 _hide_submodules(
     __name__, remove_self=False, ignore=["numbers", "types", "float", "dispatch"]

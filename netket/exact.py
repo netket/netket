@@ -115,7 +115,7 @@ def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
         return eigvalsh(dense_op)
 
 
-def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
+def steady_state(lindblad, *, sparse=True, method="ed", rho0=None, **kwargs):
     r"""Computes the numerically exact steady-state of a lindblad master equation.
     The computation is performed either through the exact diagonalization of the
     hermitian :math:`L^\dagger L` matrix, or by means of an iterative solver (bicgstabl)
@@ -148,9 +148,6 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
     Returns:
         The steady-state density matrix.
     """
-    if sparse is None:
-        sparse = True
-
     M = lindblad.hilbert.physical.n_states
 
     if method == "ed":
@@ -191,7 +188,7 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
         L = lindblad.to_linear_operator(sparse=sparse, append_trace=True)
 
         # Initial density matrix ( + trace condition)
-        Lrho_start = np.zeros((M ** 2 + 1), dtype=L.dtype)
+        Lrho_start = np.zeros((M**2 + 1), dtype=L.dtype)
         if rho0 is None:
             Lrho_start[0] = 1.0
             Lrho_start[-1] = 1.0
@@ -200,7 +197,7 @@ def steady_state(lindblad, *, sparse=None, method="ed", rho0=None, **kwargs):
             Lrho_start[-1] = rho0.trace()
 
         # Target residual (everything 0 and trace 1)
-        Lrho_target = np.zeros((M ** 2 + 1), dtype=L.dtype)
+        Lrho_target = np.zeros((M**2 + 1), dtype=L.dtype)
         Lrho_target[-1] = 1.0
 
         # Iterative solver

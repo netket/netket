@@ -17,17 +17,16 @@ from typing import Tuple, Any
 
 import numpy as np
 
-import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.nn.initializers import zeros, lecun_normal
+from jax.scipy.special import logsumexp
 
-from netket.utils import HashableArray
+from netket.utils import HashableArray, warn_deprecation
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
-from jax.scipy.special import logsumexp
-
-from netket.nn.initializers import zeros
+from netket.nn.activation import reim_selu
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
     DenseSymmFFT,
@@ -35,15 +34,13 @@ from netket.nn.symmetric_linear import (
     DenseEquivariantIrrep,
 )
 
+# Same as netket.nn.symmetric_linear.default_equivariant_initializer
+# All GCNN layers have kernels of shape [out_features, in_features, n_symm]
+default_gcnn_initializer = lecun_normal(in_axis=1, out_axis=0)
+
 
 def identity(x):
     return x
-
-
-def unit_normal_scaling(key, shape, dtype):
-    return jax.random.normal(key, shape, dtype) / jnp.sqrt(
-        jnp.prod(jnp.asarray(shape[1:]))
-    )
 
 
 class GCNN_FFT(nn.Module):
@@ -72,7 +69,7 @@ class GCNN_FFT(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     dtype: Any = float
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output. Defaults to the identity."""
@@ -82,10 +79,10 @@ class GCNN_FFT(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix."""
+    kernel_init: NNInitFunc = default_gcnn_initializer
+    """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the hidden bias."""
+    """Initializer for the biases of all layers."""
 
     def setup(self):
 
@@ -106,8 +103,7 @@ class GCNN_FFT(nn.Module):
             DenseEquivariantFFT(
                 product_table=self.product_table,
                 shape=self.shape,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -119,6 +115,8 @@ class GCNN_FFT(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)  # add a feature dimension
         x = self.dense_symm(x)
 
         for layer in range(self.layers - 1):
@@ -143,7 +141,7 @@ class GCNN_Irrep(nn.Module):
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
-    eeturns a feature map of shape [batch_size, out_features, n_symm].
+    eeturns a feature map of shape [batch_size, features, n_symm].
     The input and the output are related by
 
     .. math ::
@@ -179,7 +177,7 @@ class GCNN_Irrep(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
@@ -189,10 +187,10 @@ class GCNN_Irrep(nn.Module):
     """if True uses a bias in all layers."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix."""
+    kernel_init: NNInitFunc = default_gcnn_initializer
+    """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the hidden bias."""
+    """Initializer for the biases of all layers."""
 
     def setup(self):
 
@@ -211,8 +209,7 @@ class GCNN_Irrep(nn.Module):
         self.equivariant_layers = [
             DenseEquivariantIrrep(
                 irreps=self.irreps,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -224,6 +221,8 @@ class GCNN_Irrep(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)  # add a feature dimension
         x = self.dense_symm(x)
 
         for layer in range(self.layers - 1):
@@ -271,7 +270,7 @@ class GCNN_Parity_FFT(nn.Module):
     """Integer specifying the eigenvalue with respect to parity"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
@@ -279,14 +278,28 @@ class GCNN_Parity_FFT(nn.Module):
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
+    extra_bias: bool = False
+    """Deprecated. If True, uses bias in parity-flip layers too. Required for using
+    parameters saved before PR#1030, but hinders performance.
+    See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix."""
+    kernel_init: NNInitFunc = default_gcnn_initializer
+    """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the hidden bias."""
+    """Initializer for the biases of all layers."""
 
     def setup(self):
+        # TODO: evenutally remove this warning
+        # supports a deprecated attribute
+        if self.extra_bias:
+            warn_deprecation(
+                (
+                    "`extra_bias` is detrimental for performance and is deprecated. "
+                    "Please switch to the default `extra_bias=False`. Previously saved "
+                    "parameters can be migrated using `nk.models.update_GCNN_parity`."
+                )
+            )
 
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
@@ -305,8 +318,7 @@ class GCNN_Parity_FFT(nn.Module):
             DenseEquivariantFFT(
                 product_table=self.product_table,
                 shape=self.shape,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -320,9 +332,9 @@ class GCNN_Parity_FFT(nn.Module):
             DenseEquivariantFFT(
                 product_table=self.product_table,
                 shape=self.shape,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
-                use_bias=self.use_bias,
+                features=self.features[layer + 1],
+                # this would bias the same outputs as self.equivariant
+                use_bias=self.extra_bias and self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
@@ -333,6 +345,8 @@ class GCNN_Parity_FFT(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)  # add a feature dimension
 
         x_flip = self.dense_symm(-1 * x)
         x = self.dense_symm(x)
@@ -384,7 +398,7 @@ class GCNN_Parity_Irrep(nn.Module):
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
-    eeturns a feature map of shape [batch_size, out_features, n_symm].
+    eeturns a feature map of shape [batch_size, features, n_symm].
     The input and the output are related by
 
     .. math ::
@@ -425,7 +439,7 @@ class GCNN_Parity_Irrep(nn.Module):
     """Integer specifying the eigenvalue with respect to parity"""
     dtype: Any = np.float64
     """The dtype of the weights."""
-    activation: Any = jax.nn.selu
+    activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
@@ -433,14 +447,28 @@ class GCNN_Parity_Irrep(nn.Module):
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
+    extra_bias: bool = False
+    """Deprecated. If True, uses bias in parity-flip layers too. Required for using
+    parameters saved before PR#1030, but hinders performance.
+    See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
-    kernel_init: NNInitFunc = unit_normal_scaling
-    """Initializer for the Dense layer matrix."""
+    kernel_init: NNInitFunc = default_gcnn_initializer
+    """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
-    """Initializer for the hidden bias."""
+    """Initializer for the biases of all layers."""
 
     def setup(self):
+        # TODO: evenutally remove this warning
+        # supports a deprecated attribute
+        if self.extra_bias:
+            warn_deprecation(
+                (
+                    "`extra_bias` is detrimental for performance and is deprecated. "
+                    "Please switch to the default `extra_bias=False`. Previously saved "
+                    "parameters can be migrated using `nk.models.update_GCNN_parity`."
+                )
+            )
 
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
@@ -457,8 +485,7 @@ class GCNN_Parity_Irrep(nn.Module):
         self.equivariant_layers = [
             DenseEquivariantIrrep(
                 irreps=self.irreps,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
+                features=self.features[layer + 1],
                 use_bias=self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
@@ -471,9 +498,9 @@ class GCNN_Parity_Irrep(nn.Module):
         self.equivariant_layers_flip = [
             DenseEquivariantIrrep(
                 irreps=self.irreps,
-                in_features=self.features[layer],
-                out_features=self.features[layer + 1],
-                use_bias=self.use_bias,
+                features=self.features[layer + 1],
+                # this would bias the same outputs as self.equivariant
+                use_bias=self.extra_bias and self.use_bias,
                 dtype=self.dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
@@ -484,6 +511,8 @@ class GCNN_Parity_Irrep(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        if x.ndim < 3:
+            x = jnp.expand_dims(x, -2)  # add a feature dimension
 
         x_flip = self.dense_symm(-1 * x)
         x = self.dense_symm(x)
@@ -545,8 +574,8 @@ def GCNN(
     r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
     that is invariant over a specified symmetry group.
 
-    The G-CNN is described in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
-    and applied to quantum many-body problems in ` Roth et. *al* <https://arxiv.org/pdf/2104.05085.pdf>`_.
+    The G-CNN is described in `Cohen et al. <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    and applied to quantum many-body problems in `Roth et al. <https://arxiv.org/pdf/2104.05085.pdf>`_ .
 
     The G-CNN alternates convolution operations with pointwise non-linearities. The first
     layer is symmetrized linear transform given by DenseSymm, while the other layers are
@@ -579,14 +608,17 @@ def GCNN(
         parity: Optional argument with value +/-1 that specifies the eigenvalue
             with respect to parity (only use on two level systems).
         dtype: The dtype of the weights.
-        activation: The nonlinear activation function between hidden layers.
+        activation: The nonlinear activation function between hidden layers. Defaults to
+            :ref:`nk.nn.activation.reim_selu`.
         output_activation: The nonlinear activation before the output.
         equal_amplitudes: If True forces all basis states to have equal amplitude
-            by setting Re[psi] = 0.
+            by setting :math:`\Re(\psi) = 0`.
         use_bias: If True uses a bias in all layers.
         precision: Numerical precision of the computation see `jax.lax.Precision`for details.
-        kernel_init: Initializer for the Dense layer matrix.
-        bias_init: Initializer for the hidden bias.
+        kernel_init: Initializer for the kernels of all layers. Defaults to
+            `lecun_normal(in_axis=1, out_axis=0)` which guarantees the correct variance of the
+            output.
+        bias_init: Initializer for the biases of all layers.
     """
 
     if isinstance(symmetries, Lattice) and (

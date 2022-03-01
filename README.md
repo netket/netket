@@ -1,144 +1,103 @@
 <div align="center">
-<img src="https://www.netket.org/_static/logo_simple.jpg" alt="logo" width="400"></img>
+<img src="https://www.netket.org/logo/logo_simple.jpg" alt="logo" width="400"></img>
 </div>
 
 # __NetKet__
 
 [![Release](https://img.shields.io/github/release/netket/netket.svg)](https://github.com/netket/netket/releases)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/netket/badges/version.svg)](https://anaconda.org/conda-forge/netket)
-[![Paper](https://img.shields.io/badge/paper-SoftwareX%2010%2C%20100311%20(2019)-B31B1B)](https://doi.org/10.1016/j.softx.2019.100311)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Paper (v3)](https://img.shields.io/badge/paper%20%28v3%29-arXiv%3A2112.10526-B31B1B)](https://arxiv.org/abs/2112.10526)
 [![codecov](https://codecov.io/gh/netket/netket/branch/master/graph/badge.svg?token=gzcOlpO5lB)](https://codecov.io/gh/netket/netket)
+[![Slack](https://img.shields.io/badge/slack-chat-green.svg)](https://join.slack.com/t/mlquantum/shared_invite/zt-13nohbtt3-nWgz~faxWXjVnu0BCHWM7w) 
 
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
 It is a Python library built on [JAX](https://github.com/google/jax).
 
 - **Homepage:** <https://www.netket.org>
-- **Citing:** <https://www.netket.org/citing>
-- **Documentation:** <https://www.netket.org/documentation>
-- **Tutorials:** <https://www.netket.org/tutorials>
+- **Citing:** <https://www.netket.org/cite/>
+- **Documentation:** <https://netket.readthedocs.io/en/latest/index.html>
+- **Tutorials:** <https://netket.readthedocs.io/en/latest/tutorials/gs-ising.htmls>
 - **Examples:** <https://github.com/netket/netket/tree/master/Examples>
 - **Source code:** <https://github.com/netket/netket>
 
 ## Installation and Usage
 
-Netket supports MacOS and Linux. We reccomend to install NetKet using `pip`
-For instructions on how to install the latest stable/beta release of NetKet see the [Getting Started](https://www.netket.org/website/get_started.html) section of our website.
+NetKet runs on MacOS and Linux. We recommend to install NetKet using `pip`, but it can also be installed with `conda`.
+It is often necessary to first update `pip` to a recent release (`>=20.3`) in order for upper compatibility bounds to be considered and avoid a broken installation.
+For instructions on how to install the latest stable/beta release of NetKet see the [Get Started](https://www.netket.org/get_started/) page of our website or run the following command (Apple M1 users, follow that link for more instructions):
 
-If you wish to install the current development version of NetKet, which is the master branch of this GitHub repository, together with the additional
-dependencies, you can run the following command:
-
+```sh
+pip install --upgrade pip
+pip install --upgrade netket
 ```
-pip install 'git+https://github.com/netket/netket.git#egg=netket[all]'
-``` 
 
-You can also install the MPI-related dependencies by using `[dev,mpi]` between the square brackets.
-We recommend to install NetKet with all it's extra dependencies, which are documented below. 
+If you wish to install the current development version of NetKet, which is the master branch of this GitHub repository, together with the additional dependencies, you can run the following command:
+
+```sh
+pip install --upgrade pip
+pip install 'git+https://github.com/netket/netket.git#egg=netket[all]'
+```
+
+To speed-up NetKet-computations, even on a single machine, you
+can install the MPI-related dependencies by using `[mpi]` between square brackets.
+
+```sh
+pip install --upgrade pip
+pip install --upgrade "netket[mpi]"
+```
+
+We recommend to install NetKet with all it's extra dependencies, which are documented below.
 However, if you do not have a working MPI compiler in your PATH this installation will most likely fail because
 it will attempt to install `mpi4py`, which enables MPI support in netket.
 
-The latest release of Netket is not currently available on conda-forge. 
-However, you can still install NetKet with pip inside conda environments.
+The latest release of NetKet is always available on PyPi and can be installed with `pip`.
+NetKet is also available on conda-forge, however the version available through `conda install`
+can be slightly out of date compared to PyPi.
+To check what is the latest version released on both distributions you can inspect the badges at the top of this readme.
 
 ### Extra dependencies
-When installing netket with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
- - '[dev]': installs development-related dependencies such as black, pytest and testing dependencies
- - '[mpi]': Installs `mpi4py` to enable multi-process parallelism. Requires a working MPI compiler in your path
- - '[tensorboard]': Installs `tensorboardx` to enable logging to tensorboard.
- - '[all]': Installs all extra dependencies
+When installing `netket` with pip, you can pass the following extra variants as square brakets. You can install several of them by separating them with a comma.
+ - `"[dev]"`: installs development-related dependencies such as black, pytest and testing dependencies
+ - `"[mpi]"`: Installs `mpi4py` to enable multi-process parallelism. Requires a working MPI compiler in your path
+ - `"[extra]"`: Installs `tensorboardx` to enable logging to tensorboard, and openfermion to convert the QubitOperators.
+ - `"[all]"`: Installs all extra dependencies
 
 ### MPI Support
 To enable MPI support you must install [mpi4jax](https://github.com/PhilipVinc/mpi4jax). Please note that we advise to install mpi4jax  with the same tool (conda or pip) with which you install it's dependency `mpi4py`.
 
-To check whever MPI support is enabled, check the flags 
+To check whever MPI support is enabled, check the flags
 ```python
 >>> import netket
 >>> netket.utils.mpi.available
 True
-
 ```
 
-## Major Features
+### Installation on Windows
+**WARNING:** Windows support is **experimental**, and you should expect suboptimal performance.
 
-* Graphs
-  * Built-in Graphs
-    * Hypercube
-    * General Lattice with arbitrary number of atoms per unit cell
-  * Custom Graphs
-    * Any Graph With Given Adjacency Matrix
-    * Any Graph With Given Edges
-  * Symmetries
-    * Automorphisms: pre-computed in built-in graphs, available through iGraph for custom graphs
+We suggest to use Windows Subsystem for Linux (WSL), on which you can install NetKet following the same instructions as above, and CUDA and MPI work as intended.
 
-* Quantum Operators
-  * Built-in Hamiltonians
-    * Transverse-field Ising
-    * Heisenberg
-    * Bose-Hubbard
-  * Custom Operators
-    * Any k-local Hamiltonian
-    * General k-local Operator defined on Graphs
+However, if you just want to quickly get started with NetKet, it is also possible to install it natively on Windows. First, download an unofficial `jaxlib` wheel from [cloudhan/jax-windows-builder](https://github.com/cloudhan/jax-windows-builder):
+```sh
+pip install --upgrade pip
+pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
+```
+Alternatively, you may specify a wheel version with CUDA support.
 
-* Variational Monte Carlo   
-  * Stochastic Learning Methods for Ground-State Problems
-    * Gradient Descent
-    * Stochastic Reconfiguration Method
-      * Direct Solver
-      * Iterative Solver for Large Number of Parameters  
+Then install NetKet as usual:
+```sh
+pip install --upgrade netket
+```
 
-* Exact Diagonalization
-  * Full Solver
-  * Lanczos Solver
-  * Imaginary-Time Dynamics
+If you want MPI support, please follow the discussion in [mpi4jax](https://github.com/mpi4jax/mpi4jax/issues/24).
 
-* Supervised Learning
-  * Supervised overlap optimization from given data
+## Getting Started
 
-* Neural-Network Quantum State Tomography
-  * Using arbitrary k-local measurement basis       
+To get started with NetKet, we recommend you give a look at our [tutorials page](https://netket.readthedocs.io/en/latest/tutorials/gs-ising.htmls), by running them on your computer or on [Google Colaboratory](https://colab.research.google.com).
+There are also many example scripts that you can download, run and edit that showcase some use-cases of NetKet, although they are not commented.
 
-* Optimizers
-  * Stochastic Gradient Descent
-  * AdaMax, AdaDelta, AdaGrad, AMSGrad
-  * RMSProp
-  * Momentum
-
-* Models
-  * Restricted Boltzmann Machines
-    * Standard
-    * For Custom Local Hilbert Spaces
-    * With Permutation Symmetry Using Graph Isomorphisms
-  * Feed-Forward Networks
-    * For Custom Local Hilbert Spaces
-  * Jastrow States
-    * Standard
-    * With Permutation Symmetry Using Graph Isomorphisms
-  * Matrix Product States
-    * MPS
-    * Periodic MPS
-  * Custom Models
-
-* Observables
-  * Custom Observables
-    * Any k-local Operator
-
-* Sampling
-  * Local Metropolis Moves
-    * Local Hilbert Space Sampling
-  * Hamiltonian Moves
-    * Automatic Moves with Hamiltonian Symmetry
-  * Custom Sampling
-    * Any k-local Stochastic Operator can be used to do Metropolis Sampling
-  * Exact Sampler for small systems  
-
-* Statistics
-  * Automatic Estimate of Correlation Times
-
-* Interface
-  * Python module
-  * JSON output
+If you want to get in touch with us, feel free to open an issue or a discussion here on GitHub, or to join the MLQuantum slack group where several people involved with NetKet hang out. To join the slack channel just accept [this invitation](https://join.slack.com/t/mlquantum/shared_invite/zt-13nohbtt3-nWgz~faxWXjVnu0BCHWM7w)
 
 ## License
 

@@ -19,12 +19,11 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
+from jax.nn.initializers import zeros, normal
 
 from netket.utils.types import NNInitFunc
-
 from netket import jax as nkjax
 from netket import nn as nknn
-from netket.nn.initializers import zeros, normal
 
 default_kernel_init = normal(stddev=0.001)
 
@@ -46,7 +45,7 @@ class PureRBM(nn.Module):
     use_visible_bias: bool = True
     """if True adds a bias to the input not passed through the nonlinear layer."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """Numerical precision of the computation see `jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""

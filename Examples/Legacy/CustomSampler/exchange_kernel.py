@@ -40,7 +40,7 @@ sa = nk.sampler.MetropolisHastings(ma, exchange_kernel, n_chains=16)
 op = nk.optimizer.Sgd(learning_rate=0.05)
 
 # Stochastic reconfiguration
-gs = nk.variational.Vmc(
+gs = nk.variational.VMC(
     hamiltonian=ha,
     sampler=sa,
     optimizer=op,

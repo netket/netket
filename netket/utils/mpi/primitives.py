@@ -169,6 +169,45 @@ def mpi_any_jax(x, *, token=None, comm=MPI_jax_comm):
         return mpi4jax.allreduce(x, op=MPI.LOR, comm=comm, token=token)
 
 
+def mpi_all(x, *, comm=MPI_py_comm):
+    """
+    Computes the elementwise logical AND of an array or a scalar across all MPI
+    processes.
+
+    Args:
+        a: The input array, which will usually be overwritten in place.
+    Returns:
+        out: The reduced array.
+    """
+    ar = np.asarray(x)
+
+    if n_nodes > 1:
+        comm.Allreduce(MPI.IN_PLACE, ar.reshape(-1), op=MPI.LAND)
+
+    return ar
+
+
+def mpi_all_jax(x, *, token=None, comm=MPI_jax_comm):
+    """
+    Computes the elementwise logical AND of an array or a scalar across all MPI
+    processes.
+
+    Args:
+        a: The input array.
+        token: An optional token to impose ordering of MPI operations
+
+    Returns:
+        out: The reduced array.
+        token: an output token
+    """
+    if n_nodes == 1:
+        return x, token
+    else:
+        import mpi4jax
+
+        return mpi4jax.allreduce(x, op=MPI.LAND, comm=comm, token=token)
+
+
 def mpi_max(x, *, comm=MPI_py_comm):
     """
     Computes the elementwise logical OR of an array or a scalar across all MPI

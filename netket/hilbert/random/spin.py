@@ -104,7 +104,7 @@ def flip_state_scalar(hilb: Spin, key, state, index):
 
 
 def _flipat_N2(key, x, i):
-    res = jax.ops.index_update(x, i, -x[i]), x[i]
+    res = x.at[i].set(-x[i]), x[i]
     return res
 
 
@@ -116,5 +116,5 @@ def _flipat_generic(key, x, i, s):
     xi_new = jax.numpy.floor(r * (n_states - 1)) * 2 - (n_states - 1)
     xi_new = xi_new + 2 * (xi_new >= xi_old)
 
-    new_state = jax.ops.index_update(x, i, xi_new)
+    new_state = x.at[i].set(xi_new)
     return new_state, xi_old

@@ -4,6 +4,7 @@ import tarfile
 import glob
 
 import netket as nk
+from jax.nn.initializers import normal
 
 from .. import common
 
@@ -18,8 +19,8 @@ def vstate(request):
     ma = nk.models.RBM(
         alpha=1,
         dtype=float,
-        hidden_bias_init=nk.nn.initializers.normal(),
-        visible_bias_init=nk.nn.initializers.normal(),
+        hidden_bias_init=normal(),
+        visible_bias_init=normal(),
     )
 
     return nk.vqs.MCState(
@@ -110,3 +111,13 @@ def test_dir(vstate, tmp_path):
 
     for file in files:
         assert file.endswith(".mpack")
+
+
+def test_lazy_init(tmp_path):
+    path = str(tmp_path) + "/dir1/dir2"
+
+    # check that overwriting works
+    log = nk.logging.StateLog(path, "w", tar=False, save_every=1)
+
+    files = glob.glob(path + "/*")
+    assert len(files) == 0

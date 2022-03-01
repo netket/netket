@@ -19,6 +19,7 @@ from jax import numpy as jnp
 
 from netket.sampler import Sampler, SamplerState
 from netket.utils import struct
+from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PRNGKeyT
 
 
@@ -54,10 +55,57 @@ class ARDirectSamplerState(SamplerState):
 
 @struct.dataclass
 class ARDirectSampler(Sampler):
-    """Direct sampler for autoregressive neural networks."""
+    r"""
+    Direct sampler for autoregressive neural networks.
+
+    This sampler only works with Flax models.
+    This flax model must expose a specific method, `model._conditional`, which given
+    a batch of samples and an index `i∈[0,self.hilbert.size]` must return the vector
+    of partial probabilities at index `i` for the various (partial) samples provided.
+
+    In short, if your model can be sampled according to a probability
+    $ p(x) = p_1(x_1)p_2(x_2|x_1)\dots p_N(x_N|x_{N-1}\dots x_1) $ then
+    `model._conditional(x, i)` should return $p_i(x)$.
+
+    NetKet implements some autoregressive networks that can be used together with this
+    sampler.
+    """
+
+    def __pre_init__(self, *args, **kwargs):
+        """
+        Construct an autoregressive direct sampler.
+
+        Args:
+            hilbert: The Hilbert space to sample.
+            dtype: The dtype of the states sampled (default = np.float64).
+
+        Note:
+            `ARDirectSampler.machine_pow` has no effect. Please set the model's `machine_pow` instead.
+        """
+        if "n_chains" in kwargs or "n_chains_per_rank" in kwargs:
+            warn_deprecation(
+                "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
+            )
+
+        return super().__pre_init__(*args, **kwargs)
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # self.machine_pow may be traced in jit
+        if isinstance(self.machine_pow, int) and self.machine_pow != 2:
+            raise ValueError(
+                "ARDirectSampler.machine_pow should not be used. Modify the model `machine_pow` directly."
+            )
 
     @property
     def is_exact(sampler):
+        """
+        Returns `True` because the sampler is exact.
+
+        The sampler is exact if all the samples are exactly distributed according to the
+        chosen power of the variational state, and there is no correlation among them.
+        """
         return True
 
     def _init_cache(sampler, model, σ, key):
@@ -77,14 +125,12 @@ class ARDirectSampler(Sampler):
     def _sample_chain(sampler, model, variables, state, chain_length):
         return _sample_chain(sampler, model, variables, state, chain_length)
 
-    def _sample_next(sampler, model, variables, state):
-        σ, new_state = sampler._sample_chain(model, variables, state, 1)
-        σ = σ.squeeze(axis=0)
-        return new_state, σ
-
 
 @partial(jax.jit, static_argnums=(1, 4))
 def _sample_chain(sampler, model, variables, state, chain_length):
+    """
+    Internal method used for jitting calls.
+    """
     if "cache" in variables:
         variables, _ = variables.pop("cache")
 

@@ -67,6 +67,12 @@ def QGTJacobianDense(
             **kwargs,
         )
 
+    # TODO: Find a better way to handle this case
+    from netket.vqs import ExactState
+
+    if isinstance(vstate, ExactState):
+        raise TypeError("Only QGTJacobianPyTree works with ExactState.")
+
     if mode is None:
         mode = choose_jacobian_mode(
             vstate._apply_fun,
@@ -79,6 +85,11 @@ def QGTJacobianDense(
     elif holomorphic is not None:
         raise ValueError("Cannot specify both `mode` and `holomorphic`.")
 
+    if hasattr(vstate, "chunk_size"):
+        chunk_size = vstate.chunk_size
+    else:
+        chunk_size = None
+
     O, scale = prepare_centered_oks(
         vstate._apply_fun,
         vstate.parameters,
@@ -86,6 +97,7 @@ def QGTJacobianDense(
         vstate.model_state,
         mode,
         rescale_shift,
+        chunk_size,
     )
 
     return QGTJacobianDenseT(O=O, scale=scale, mode=mode, **kwargs)
@@ -202,6 +214,9 @@ def _solve(
 
     if x0 is not None:
         x0, _ = nkjax.tree_ravel(x0)
+        if self.mode != "holomorphic":
+            x0, _ = vec_to_real(x0)
+
         if self.scale is not None:
             x0 = x0 * self.scale
 
@@ -231,6 +246,6 @@ def _to_dense(self: QGTJacobianDenseT) -> jnp.ndarray:
         diag = jnp.eye(self.O.shape[1])
     else:
         O = self.O * self.scale[jnp.newaxis, :]
-        diag = jnp.diag(self.scale ** 2)
+        diag = jnp.diag(self.scale**2)
 
     return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag

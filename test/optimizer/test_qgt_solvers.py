@@ -16,15 +16,19 @@ import pytest
 
 from functools import partial
 
-
 import jax
-
 import jax.flatten_util
+from jax.nn.initializers import normal
 
 import netket as nk
 from netket.optimizer import qgt
 
 from .. import common  # noqa: F401
+
+QGT_types = {}
+QGT_types["QGTOnTheFly"] = nk.optimizer.qgt.QGTOnTheFly
+# QGT_types["QGTJacobianDense"] = nk.optimizer.qgt.QGTJacobianDense
+QGT_types["QGTJacobianPyTree"] = nk.optimizer.qgt.QGTJacobianPyTree
 
 QGT_objects = {}
 
@@ -49,17 +53,15 @@ def vstate(request):
     ma = nk.models.RBM(
         alpha=1,
         dtype=dtype,
-        hidden_bias_init=nk.nn.initializers.normal(),
-        visible_bias_init=nk.nn.initializers.normal(),
+        hidden_bias_init=normal(),
+        visible_bias_init=normal(),
     )
 
     vstate = nk.vqs.MCState(
         nk.sampler.MetropolisLocal(hi),
         ma,
     )
-    vstate.init_parameters(
-        nk.nn.initializers.normal(stddev=0.001), seed=jax.random.PRNGKey(3)
-    )
+    vstate.init_parameters(normal(stddev=0.001), seed=jax.random.PRNGKey(3))
 
     vstate.sample()
 
@@ -78,3 +80,22 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     S = qgt(vstate)
 
     x, _ = S.solve(solver, vstate.parameters)
+
+
+# Issue #789 https://github.com/netket/netket/issues/789
+# cannot multiply real qgt by complex vector
+@common.skipif_mpi
+@pytest.mark.parametrize(
+    "SType", [pytest.param(T, id=name) for name, T in QGT_types.items()]
+)
+def test_qgt_throws(SType):
+    hi = nk.hilbert.Spin(s=1 / 2, N=5)
+    ma = nk.models.RBMModPhase(alpha=1, dtype=float)
+    sa = nk.sampler.MetropolisLocal(hi, n_chains=16, reset_chains=False)
+    vs = nk.vqs.MCState(sa, ma, n_samples=100, n_discard_per_chain=100)
+
+    S = vs.quantum_geometric_tensor(SType)
+    g_cmplx = jax.tree_map(lambda x: x + x * 0.1j, vs.parameters)
+
+    with pytest.raises(TypeError, match="Cannot multiply the"):
+        S @ g_cmplx

@@ -310,7 +310,7 @@ def _to_rational(x: float) -> str:
     except ValueError:
         # in hexagonal symmetry, you often get a √3 in the x/y coordinate
         try:
-            numer, denom = __to_rational(x / 3 ** 0.5)
+            numer, denom = __to_rational(x / 3**0.5)
             numer = "" if numer == 1 else ("-" if numer == -1 else numer)
             denom = "" if denom == 1 else f"/{denom}"
             return f"{numer}√3{denom}"
@@ -344,7 +344,7 @@ def _to_int_vector(v: Array) -> str:
         # in hexagonal symmetry, you often get a √3 in the x/y coordinate
         try:
             w = v.copy()
-            w[1] /= 3 ** 0.5
+            w[1] /= 3**0.5
             w = __to_int_vector(w)
             return f"[{w[0]},{w[1]}√3,{w[2]}]"
         except ValueError:

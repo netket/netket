@@ -43,7 +43,7 @@ def flip_state_scalar(hilb: CustomHilbert, key, σ, indx):
     rs = jax.random.randint(key, shape=(), minval=0, maxval=len(hilb.local_states) - 1)
 
     new_val = local_states[rs + (local_states[rs] >= σ[indx])]
-    return jax.ops.index_update(σ, indx, new_val), σ[indx]
+    return σ.at[indx].set(new_val), σ[indx]
 
 
 @dispatch
@@ -58,6 +58,6 @@ def flip_state_batch(hilb: CustomHilbert, key, σ, indxs):
 
     def scalar_update_fun(σ, indx, rs):
         new_val = local_states[rs + (local_states[rs] >= σ[indx])]
-        return jax.ops.index_update(σ, indx, new_val), σ[indx]
+        return σ.at[indx].set(new_val), σ[indx]
 
     return jax.vmap(scalar_update_fun, in_axes=(0, 0, 0), out_axes=0)(σ, indxs, rs)

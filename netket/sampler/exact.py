@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple, Callable
+from typing import Any, Optional, Tuple
 from functools import partial
 
 import jax
+from flax import linen as nn
 from jax import numpy as jnp
 from jax.experimental import host_callback as hcb
 
 from netket.nn import to_array
 from netket.utils import struct
+from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, SeedT
 
 from .base import Sampler, SamplerState
@@ -47,13 +49,29 @@ class ExactSampler(Sampler):
     option.
     """
 
+    def __pre_init__(self, *args, **kwargs):
+        """
+        Construct an exact sampler.
+
+        Args:
+            hilbert: The Hilbert space to sample.
+            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+            dtype: The dtype of the states sampled (default = np.float64).
+        """
+        if "n_chains" in kwargs or "n_chains_per_rank" in kwargs:
+            warn_deprecation(
+                "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
+            )
+
+        return super().__pre_init__(*args, **kwargs)
+
     @property
     def is_exact(sampler):
         return True
 
     def _init_state(
         sampler,
-        machine: Callable,
+        machine: nn.Module,
         parameters: PyTree,
         seed: Optional[SeedT] = None,
     ):
@@ -68,33 +86,9 @@ class ExactSampler(Sampler):
 
         return state.replace(pdf=pdf)
 
-    def _sample_next(sampler, machine, parameters, state):
-        new_rng, rng = jax.random.split(state.rng)
-        numbers = jax.random.choice(
-            rng,
-            sampler.hilbert.n_states,
-            shape=(sampler.n_chains_per_rank,),
-            replace=True,
-            p=state.pdf,
-        )
-
-        # We use a host-callback to convert integers labelling states to
-        # valid state-arrays because that code is written with numba and
-        # we have not yet converted it to jax.
-        sample = hcb.call(
-            lambda numbers: sampler.hilbert.numbers_to_states(numbers),
-            numbers,
-            result_shape=jax.ShapeDtypeStruct(
-                (sampler.n_chains_per_rank, sampler.hilbert.size), jnp.float64
-            ),
-        )
-
-        new_state = state.replace(rng=new_rng)
-        return new_state, jnp.asarray(sample, dtype=sampler.dtype)
-
     def _sample_chain(
         sampler,
-        machine: Callable,
+        machine: nn.Module,
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
@@ -124,12 +118,15 @@ class ExactSampler(Sampler):
 
 @partial(jax.jit, static_argnums=(1, 4))
 def _sample_chain(
-    sampler,
-    machine: Callable,
+    sampler: ExactSampler,
+    machine: nn.Module,
     parameters: PyTree,
     state: SamplerState,
     chain_length: int,
 ) -> Tuple[jnp.ndarray, SamplerState]:
+    """
+    Internal method used for jitting calls.
+    """
     new_rng, rng = jax.random.split(state.rng)
     numbers = jax.random.choice(
         rng,
@@ -139,6 +136,10 @@ def _sample_chain(
         p=state.pdf,
     )
 
+    # We use a host-callback to convert integers labelling states to
+    # valid state-arrays because that code is written with numba and
+    # we have not yet converted it to jax.
+    #
     # For future investigators:
     # this will lead to a crash if numbers_to_state throws.
     # it throws if we feed it nans!
