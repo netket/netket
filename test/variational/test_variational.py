@@ -23,6 +23,7 @@ import jax
 import netket as nk
 from jax.nn.initializers import normal
 
+from .finite_diff import expval as _expval, central_diff_grad, same_derivatives
 from .. import common
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
@@ -71,17 +72,28 @@ hi = nk.hilbert.Spin(s=0.5, N=L)
 H = nk.operator.Ising(hi, graph=g, h=1.0)
 operators["operator:(Hermitian Real)"] = H
 
+H2 = H @ H
+operators["operator:(Hermitian Real Squared)"] = H2
+
 H = nk.operator.Ising(hi, graph=g, h=1.0)
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmay(H.hilbert, i)
 
 operators["operator:(Hermitian Complex)"] = H
+operators["operator:(Hermitian Complex Squared)"] = H.H @ H
 
 H = H.copy()
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmap(H.hilbert, i)
 
 operators["operator:(Non Hermitian)"] = H
+
+machines["model:(C->C)-nonholo"] = nk.models.ARNNDense(
+    layers=1,
+    features=2,
+    hilbert=hi,
+    dtype=complex,
+)
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
@@ -104,6 +116,11 @@ def test_deprecated_name():
         nk.variational.accabalubba
 
     assert dir(nk.vqs) == dir(nk.variational)
+
+
+def check_consistent(vstate, mpi_size):
+    assert vstate.n_samples == vstate.n_samples_per_rank * mpi_size
+    assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
 
 
 def test_n_samples_api(vstate, _mpi_size):
@@ -404,9 +421,6 @@ def test_expect(vstate, operator):
     O_exact = expval_fun(pars, vstate, op_sparse)
     grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
 
-    if not operator.is_hermitian:
-        grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
-
     # check the expectation values
     err = 5 * O_stat.error_of_mean
     assert O_stat.mean == approx(O_exact, abs=err)
@@ -455,71 +469,3 @@ def test_expect_chunking(vstate, operator, n_chunks):
     jax.tree_multimap(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )
-
-
-###
-
-
-def _expval(par, vstate, H, real=False):
-    vstate.parameters = par
-    psi = vstate.to_array()
-    expval = psi.conj() @ (H @ psi)
-    if real:
-        expval = np.real(expval)
-
-    return expval
-
-
-def central_diff_grad(func, x, eps, *args, dtype=None):
-    if dtype is None:
-        dtype = x.dtype
-
-    grad = np.zeros(
-        len(x), dtype=nk.jax.maybe_promote_to_complex(x.dtype, func(x, *args).dtype)
-    )
-    epsd = np.zeros(len(x), dtype=dtype)
-    epsd[0] = eps
-    for i in range(len(x)):
-        assert not np.any(np.isnan(x + epsd))
-        grad_r = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
-        if nk.jax.is_complex(x):
-            grad_i = 0.5 * (func(x + 1j * epsd, *args) - func(x - 1j * epsd, *args))
-            grad[i] = 0.5 * grad_r + 0.5j * grad_i
-        else:
-            # grad_i = 0.0
-            grad[i] = grad_r
-
-        assert not np.isnan(grad[i])
-        grad[i] /= eps
-        epsd = np.roll(epsd, 1)
-    return grad
-
-
-def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
-    assert der_log.shape == num_der_log.shape
-
-    np.testing.assert_allclose(
-        der_log.real, num_der_log.real, rtol=rel_eps, atol=abs_eps
-    )
-
-    # compute the distance between the two phases modulo 2pi
-    delta_der_log = der_log.imag - num_der_log.imag
-
-    # the distance is taken to be the minimum of the distance between
-    # (|A-B|mod 2Pi) and (|B-A| mod 2Pi)
-    delta_der_log_mod_1 = np.mod(delta_der_log, 2 * np.pi)
-    delta_der_log_mod_2 = np.mod(-delta_der_log, 2 * np.pi)
-    delta_der_log = np.minimum(delta_der_log_mod_1, delta_der_log_mod_2)
-
-    # Compare against pi and not 0 because otherwise rtol will fail always
-    np.testing.assert_allclose(
-        delta_der_log + np.pi,
-        np.pi,
-        rtol=rel_eps,
-        atol=abs_eps,
-    )
-
-
-def check_consistent(vstate, mpi_size):
-    assert vstate.n_samples == vstate.n_samples_per_rank * mpi_size
-    assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
