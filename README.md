@@ -17,7 +17,7 @@ It is a Python library built on [JAX](https://github.com/google/jax).
 - **Homepage:** <https://www.netket.org>
 - **Citing:** <https://www.netket.org/cite/>
 - **Documentation:** <https://netket.readthedocs.io/en/latest/index.html>
-- **Tutorials:** <https://netket.readthedocs.io/en/latest/tutorials/gs-ising.htmls>
+- **Tutorials:** <https://netket.readthedocs.io/en/latest/tutorials/gs-ising.html>
 - **Examples:** <https://github.com/netket/netket/tree/master/Examples>
 - **Source code:** <https://github.com/netket/netket>
 
