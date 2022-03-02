@@ -110,7 +110,7 @@ def pack_internals(
         np.any(np.abs(diag_mels) >= mel_cutoff) or np.abs(constant) >= mel_cutoff
     )
 
-    max_conn_size = n_operators if nonzero_diagonal else 0
+    max_conn_size = 1 if nonzero_diagonal else 0
     for op in operators:
         nnz_mat = np.abs(op) > mel_cutoff
         nnz_mat[np.diag_indices(nnz_mat.shape[0])] = False
