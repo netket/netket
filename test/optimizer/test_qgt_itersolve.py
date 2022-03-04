@@ -139,7 +139,9 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all, _ = S.solve(solver, vstate.parameters)
 
-            jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
+            jax.tree_multimap(
+                lambda a, b: np.testing.assert_allclose(a, b, rtol=0.00045), x, x_all
+            )
 
 
 @pytest.mark.skipif_mpi
