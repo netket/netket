@@ -398,6 +398,7 @@ def test_expect_exact(vstate, operator):
         np.testing.assert_allclose(O_expval_exact.imag, O_mean.imag, atol=err, rtol=err)
 
 
+@common.skipif_ci
 @common.skipif_mpi
 @pytest.mark.parametrize(
     "operator",

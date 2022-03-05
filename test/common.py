@@ -3,6 +3,21 @@
 import pytest
 import netket as nk
 
+import os
+
+skipif_ci = pytest.mark.skipif(
+    os.environ.get("CI", False), reason="Test too slow/broken on CI"
+)
+"""Use as a decorator to mark a test to be skipped when running on CI.
+For example:
+
+Example:
+>>> @skipif_ci
+>>> def test_my_serial_function():
+>>>     your_serial_test()
+
+"""
+
 skipif_mpi = pytest.mark.skipif(nk.utils.mpi.n_nodes > 1, reason="Only run without MPI")
 """Use as a decorator to mark a test to be skipped when running under MPI.
 For example:
