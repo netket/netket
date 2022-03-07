@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 DEV_DEPENDENCIES = [
     "pytest>=6",
-    "pytest-xdist>=2",
-    "coverage>=5",
+    "pytest-xdist[psutil]>=2",
     "pytest-cov>=2.10.1",
+    "coverage>=5",
     "networkx~=2.4",
     "pre-commit>=2.7",
     "black==22.1.0",
