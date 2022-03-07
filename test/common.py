@@ -5,8 +5,20 @@ import netket as nk
 
 import os
 
+
+def _is_true(x):
+    if isinstance(x, str):
+        xl = x.lower()
+        if xl == "1" or x == "true":
+            return True
+    elif x == 1:
+        return True
+    else:
+        return False
+
+
 skipif_ci = pytest.mark.skipif(
-    os.environ.get("CI", False), reason="Test too slow/broken on CI"
+    _is_true(os.environ.get("CI", False)), reason="Test too slow/broken on CI"
 )
 """Use as a decorator to mark a test to be skipped when running on CI.
 For example:
