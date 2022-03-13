@@ -80,6 +80,7 @@ jobs:
           else
             pip install -e ".[dev, mpi]"
           fi
+          pip install dm-haiku
 
       - name: Netket tests
         if: ${{ matrix.main_tests }}
