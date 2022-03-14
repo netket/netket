@@ -37,6 +37,7 @@ from .activation import (
     log_tanh,
     reim_selu,
     reim_relu,
+    logsumexp_cplx,
 )
 from flax.linen import (
     MultiHeadDotProductAttention,

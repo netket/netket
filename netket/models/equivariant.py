@@ -26,7 +26,7 @@ from netket.utils import HashableArray, warn_deprecation
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
-from netket.nn.activation import reim_selu
+from netket.nn.activation import reim_selu, logsumexp_cplx
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
     DenseSymmFFT,
@@ -83,6 +83,8 @@ class GCNN_FFT(nn.Module):
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
     """Initializer for the biases of all layers."""
+    ensure_cplx: bool = True
+    """Use complex-valued `logsumexp` to avoid NaNs."""
 
     def setup(self):
 
@@ -125,9 +127,10 @@ class GCNN_FFT(nn.Module):
 
         x = self.output_activation(x)
 
-        x = logsumexp(
-            x, axis=(-2, -1), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
-        )
+        if self.ensure_cplx:
+            x = logsumexp_cplx(x, axis=(-2, -1), b=jnp.asarray(self.characters))
+        else:
+            x = logsumexp(x, axis=(-2, -1), b=jnp.asarray(self.characters))
 
         if self.equal_amplitudes:
             return 1j * jnp.imag(x)
@@ -191,6 +194,8 @@ class GCNN_Irrep(nn.Module):
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
     """Initializer for the biases of all layers."""
+    ensure_cplx: bool = True
+    """Use complex-valued `logsumexp` to avoid NaNs."""
 
     def setup(self):
 
@@ -231,9 +236,10 @@ class GCNN_Irrep(nn.Module):
 
         x = self.output_activation(x)
 
-        x = logsumexp(
-            x, axis=(-2, -1), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
-        )
+        if self.ensure_cplx:
+            x = logsumexp_cplx(x, axis=(-2, -1), b=jnp.asarray(self.characters))
+        else:
+            x = logsumexp(x, axis=(-2, -1), b=jnp.asarray(self.characters))
 
         if self.equal_amplitudes:
             return 1j * jnp.imag(x)
@@ -288,6 +294,8 @@ class GCNN_Parity_FFT(nn.Module):
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
     """Initializer for the biases of all layers."""
+    ensure_cplx: bool = True
+    """Use complex-valued `logsumexp` to avoid NaNs."""
 
     def setup(self):
         # TODO: evenutally remove this warning
@@ -384,7 +392,10 @@ class GCNN_Parity_FFT(nn.Module):
                 (0, 1),
             )
 
-        x = logsumexp(x, axis=(-2, -1), b=par_chars)
+        if self.ensure_cplx:
+            x = logsumexp_cplx(x, axis=(-2, -1), b=par_chars)
+        else:
+            x = logsumexp(x, axis=(-2, -1), b=par_chars)
 
         if self.equal_amplitudes:
             return 1j * jnp.imag(x)
@@ -457,6 +468,8 @@ class GCNN_Parity_Irrep(nn.Module):
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
     """Initializer for the biases of all layers."""
+    ensure_cplx: bool = True
+    """Use complex-valued `logsumexp` to avoid NaNs."""
 
     def setup(self):
         # TODO: evenutally remove this warning
@@ -550,7 +563,10 @@ class GCNN_Parity_Irrep(nn.Module):
                 (0, 1),
             )
 
-        x = logsumexp(x, axis=(-2, -1), b=par_chars)
+        if self.ensure_cplx:
+            x = logsumexp_cplx(x, axis=(-2, -1), b=par_chars)
+        else:
+            x = logsumexp(x, axis=(-2, -1), b=par_chars)
 
         if self.equal_amplitudes:
             return 1j * jnp.imag(x)
@@ -619,6 +635,8 @@ def GCNN(
             `lecun_normal(in_axis=1, out_axis=0)` which guarantees the correct variance of the
             output.
         bias_init: Initializer for the biases of all layers.
+        ensure_cplx: The return type is always complex, avoiding the possibility of NaNs
+            from taking the log of negative reals.
     """
 
     if isinstance(symmetries, Lattice) and (
