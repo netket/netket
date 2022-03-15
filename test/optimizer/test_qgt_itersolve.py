@@ -245,7 +245,9 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
 
 
 @pytest.mark.skipif_mpi
-@pytest.mark.parametrize( "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()])
+@pytest.mark.parametrize(
+    "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
+)
 @pytest.mark.parametrize(
     "chunk_size",
     [
@@ -257,12 +259,14 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
     S = qgt(vstate)
     expected = S @ v
     diag_shift = S.diag_shift
-    if hasattr(S, 'O'): # JacobianPyTree and JacobianDense
+    if hasattr(S, "O"):  # JacobianPyTree and JacobianDense
         # extract the necessary shape for the diag_shift
         t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0], S.O))
     else:
         t = v
-    diag_shift_tree = jax.tree_map(lambda x: diag_shift * jnp.ones(x.shape, dtype=x.dtype), t)
+    diag_shift_tree = jax.tree_map(
+        lambda x: diag_shift * jnp.ones(x.shape, dtype=x.dtype), t
+    )
     S = S.replace(diag_shift=diag_shift_tree)
     res = S @ v
     jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), res, expected)
