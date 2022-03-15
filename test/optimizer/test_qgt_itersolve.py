@@ -27,6 +27,9 @@ import netket as nk
 import netket.jax as nkjax
 from netket.optimizer import qgt
 
+from netket.optimizer.qgt.qgt_jacobian_pytree import QGTJacobianPyTreeT
+from netket.optimizer.qgt.qgt_jacobian_dense import QGTJacobianDenseT
+
 from .. import common
 
 QGT_objects = {}
@@ -259,7 +262,7 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
     S = qgt(vstate)
     expected = S @ v
     diag_shift = S.diag_shift
-    if hasattr(S, "O"):  # JacobianPyTree and JacobianDense
+    if isinstance(S, (QGTJacobianPyTreeT, QGTJacobianDenseT)):
         # extract the necessary shape for the diag_shift
         t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0], S.O))
     else:
