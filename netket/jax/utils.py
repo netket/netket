@@ -30,6 +30,7 @@ from jax.tree_util import (
 from netket.utils import random_seed, mpi
 from netket.utils.mpi import MPI_jax_comm
 from netket.utils.types import PyTree, PRNGKeyT, SeedT, Scalar
+from netket.utils.numbers import is_scalar
 
 
 def tree_ravel(pytree: PyTree) -> Tuple[jnp.ndarray, Callable]:
@@ -228,7 +229,10 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
         The sum of the respective leaves of the two pytrees x and y
         where the leaves of x are first scaled with a.
     """
-    return jax.tree_multimap(lambda x_, y_: a * x_ + y_, x, y)
+    if is_scalar(a):
+        return jax.tree_multimap(lambda x_, y_: a * x_ + y_, x, y)
+    else:
+        return jax.tree_multimap(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
 
 
 def _to_real(x):
