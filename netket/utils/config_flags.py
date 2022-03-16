@@ -125,3 +125,18 @@ config.define(
     ),
     runtime=False,
 )
+
+config.define(
+    "NETKET_USE_PLAIN_RHAT",
+    bool,
+    default=False,
+    help=dedent(
+        """
+        By default, NetKet uses the split-R̂ Gelman-Rubin diagnostic in `netket.stats.statistics`,
+        which detects non-stationarity in the MCMC chains (in addition to the classes of
+        chain-mixing failures detected by plain R) since version 3.4.
+        Enabling this flag restores the previous behavior of using plain (non-split) Rhat.
+        """
+    ),
+    runtime=True,
+)

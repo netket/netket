@@ -25,6 +25,7 @@ from jax import numpy as jnp
 import numpy as np
 
 from netket import jax as nkjax
+from netket.utils import config
 
 from . import mean as _mean
 from . import var as _var
@@ -228,6 +229,22 @@ def _statistics(data, batch_size):
 
     if n_batches > 1:
         N = data.shape[-1]
+
+        if not config.FLAGS["NETKET_USE_PLAIN_RHAT"]:
+            # compute split-chain batch variance
+            local_batch_size = data.shape[0]
+            if N % 2 == 0:
+                # split each chain in the middle,
+                # like [[1 2 3 4]] -> [[1 2][3 4]]
+                batch_var, _ = _batch_variance(
+                    data.reshape(2 * local_batch_size, N // 2)
+                )
+            else:
+                # drop the last sample of each chain for an even split,
+                # like [[1 2 3 4 5]] -> [[1 2][3 4]]
+                batch_var, _ = _batch_variance(
+                    data[:, :-1].reshape(2 * local_batch_size, N // 2)
+                )
 
         # V_loc = _np.var(data, axis=-1, ddof=0)
         # W_loc = _np.mean(V_loc)
