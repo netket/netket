@@ -26,7 +26,8 @@ from netket.utils import HashableArray, warn_deprecation
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
-from netket.nn.activation import reim_selu, logsumexp_cplx
+from netket.jax import logsumexp_cplx
+from netket.nn.activation import reim_selu
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
     DenseSymmFFT,

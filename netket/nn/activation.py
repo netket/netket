@@ -17,7 +17,6 @@ from functools import wraps
 
 import jax
 from jax import numpy as jnp
-from jax.scipy.special import logsumexp
 
 from netket.utils import deprecated
 
@@ -84,21 +83,6 @@ r"""Returns the selu non-linearity, applied seperately to the real and imaginary
 
 reim_relu = reim(relu)
 r"""Returns the relu non-linearity, applied seperately to the real and imaginary parts"""
-
-
-def logsumexp_cplx(a, b=None, **kwargs):
-    """Compute the log of the sum of exponentials of input elements.
-
-    Wraps `jax.scipy.special.logsumexp` but ensures the output is complex and never NaN.
-    See the JAX function for details of the calling sequence;
-    `return_sign` is not supported."""
-    if jnp.iscomplexobj(a) or jnp.iscomplexobj(b):
-        # logsumexp uses complex algebra anyway
-        return logsumexp(a, b=b, **kwargs)
-    else:
-        a, sgn = logsumexp(a, b=b, **kwargs, return_sign=True)
-        a = a + jnp.where(sgn < 0, 1j * jnp.pi, 0j)
-        return a
 
 
 # TODO: DEPRECATION 3.1
