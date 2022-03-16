@@ -26,6 +26,9 @@ import netket as nk
 import netket.jax as nkjax
 from netket.optimizer import qgt
 
+from netket.optimizer.qgt.qgt_jacobian_pytree import QGTJacobianPyTreeT
+from netket.optimizer.qgt.qgt_jacobian_dense import QGTJacobianDenseT
+
 from .. import common
 
 QGT_objects = {}
@@ -225,3 +228,31 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
             Sd_all = S.to_dense()
 
             np.testing.assert_allclose(Sd_all, Sd, rtol=1e-5, atol=1e-15)
+
+
+@pytest.mark.skipif_mpi
+@pytest.mark.parametrize(
+    "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
+)
+@pytest.mark.parametrize(
+    "chunk_size",
+    [
+        None,
+    ],
+)
+def test_qgt_pytree_diag_shift(qgt, vstate):
+    v = vstate.parameters
+    S = qgt(vstate)
+    expected = S @ v
+    diag_shift = S.diag_shift
+    if isinstance(S, (QGTJacobianPyTreeT, QGTJacobianDenseT)):
+        # extract the necessary shape for the diag_shift
+        t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0], S.O))
+    else:
+        t = v
+    diag_shift_tree = jax.tree_map(
+        lambda x: diag_shift * jnp.ones(x.shape, dtype=x.dtype), t
+    )
+    S = S.replace(diag_shift=diag_shift_tree)
+    res = S @ v
+    jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), res, expected)
