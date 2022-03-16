@@ -678,3 +678,76 @@ serialization.register_serialization_state(
     serialize_MCState,
     deserialize_MCState,
 )
+
+
+def special_flatten(vs):
+    """Specifies a flattening recipe.
+
+    Params:
+      v: the value of registered type to flatten.
+    Returns:
+      a pair of an iterable with the children to be flattened recursively,
+      and some opaque auxiliary data to pass back to the unflattening recipe.
+      The auxiliary data is stored in the treedef for use during unflattening.
+      The auxiliary data could be used, e.g., for dictionary keys.
+    """
+    children = (vs.parameters, vs.model_state, vs.samples, vs.sampler, vs.sampler_state)
+    aux_data = (
+        vs.hilbert,
+        vs.chain_length,
+        vs.n_discard_per_chain,
+        vs.model,
+        vs._init_fun,
+        vs._apply_fun,
+        vs.chunk_size,
+        vs.mutable,
+        vs.training_kwargs,
+    )
+    return (children, aux_data)
+
+
+def special_unflatten(aux_data, children):
+    """Specifies an unflattening recipe.
+
+    Params:
+      aux_data: the opaque data that was specified during flattening of the
+        current treedef.
+      children: the unflattened children
+
+    Returns:
+      a re-constructed object of the registered type, using the specified
+      children and auxiliary data.
+    """
+    pars, state, samples, sampler, sampler_state = children
+
+    hilb, ch_len, n_disc, model, _initfun, _afun, cnk_sz, mut, train_kw = aux_data
+
+    vs = MCState.__new__(MCState)
+    vs._hilbert = hilb
+    vs.parameters = pars
+    vs._model_state = state
+    vs._samples = samples
+    vs._sampler = sampler
+    vs.sampler_state = sampler_state
+
+    vs._chain_length = ch_len
+    vs._n_discard_per_chain = n_disc
+
+    vs._model = model
+    vs._init_fun = _initfun
+    vs._apply_fun = _afun
+
+    vs._chunk_size = cnk_sz
+
+    vs.mutable = mut
+    vs.training_kwargs = train_kw
+
+    return vs
+
+
+# Global registration
+jax.tree_util.register_pytree_node(
+    MCState,
+    special_flatten,  # tell JAX what are the children nodes
+    special_unflatten,  # tell JAX how to pack back into a RegisteredSpecial
+)
