@@ -19,7 +19,19 @@ from textwrap import dedent
 import jax
 
 import netket.jax as nkjax
+from netket.utils.struct import dataclass
 
+@dataclass
+class RealT:
+    pass
+
+@dataclass
+class ComplexT:
+    pass
+
+@dataclass
+class HoloT:
+    pass
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
 def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorphic):
@@ -69,11 +81,11 @@ def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorph
             mode = "real"
 
     if mode == "real":
-        return 0
+        return RealT()
     elif mode == "complex":
-        return 1
+        return ComplexT()
     elif mode == "holomorphic":
-        return 2
+        return HoloT()
     else:
         raise ValueError(f"unknown mode {mode}")
 
@@ -82,12 +94,13 @@ def choose_jacobian_mode(afun, pars, state, samples, *, mode, holomorphic):
     """
     Select an implementation of Jacobian
     """
-    i = _choose_jacobian_mode(afun, pars, state, samples, mode, holomorphic).item()
-    if i == 0:
+    i = _choose_jacobian_mode(afun, pars, state, samples, mode, holomorphic)
+
+    if isinstance(i, RealT):
         return "real"
-    elif i == 1:
+    elif isinstance(i, ComplexT):
         return "complex"
-    elif i == 2:
+    elif isinstance(i, HoloT):
         return "holomorphic"
     else:
         raise ValueError(f"unknown mode {i}")
