@@ -120,6 +120,9 @@ class Sampler(abc.ABC):
         # workaround Jax bug under pmap
         # might be removed in the future
         if type(self.machine_pow) != object:
+            if isinstance(self.machine_pow, jnp.ndarray):
+                return
+            print(self.machine_pow, type(self.machine_pow))
             if not np.issubdtype(numbers.dtype(self.machine_pow), np.integer):
                 raise ValueError(
                     f"machine_pow ({self.machine_pow}) must be a positive integer"

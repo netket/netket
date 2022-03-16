@@ -19,3 +19,5 @@ from . import expect_grad
 
 from . import expect_chunked
 from . import expect_grad_chunked
+
+from . import expect_natgrad
