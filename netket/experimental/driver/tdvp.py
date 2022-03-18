@@ -514,6 +514,14 @@ def odefun(state: MCState, driver: TDVP, t, w, *, stage=0):  # noqa: F811
 
     initial_dw = None if driver.linear_solver_restart else driver._dw
     driver._dw, _ = qgt.solve(driver.linear_solver, driver._loss_grad, x0=initial_dw)
+
+    # If parameters are real, then take only real part of the gradient (if it's complex)
+    driver._dw = jax.tree_multimap(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
+        driver._dw,
+        state.parameters,
+    )
+
     return driver._dw
 
 
