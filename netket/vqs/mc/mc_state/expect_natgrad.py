@@ -63,12 +63,19 @@ def expect_and_natgrad(  # noqa: F811
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0,1,2,))
+@partial(
+    jax.jit,
+    static_argnums=(
+        0,
+        1,
+        2,
+    ),
+)
 def natgrad_expect_hermitian(
-    ntk: Callable, 
+    ntk: Callable,
     solver: Callable,
     local_value_kernel: Callable,
-    vs: MCState, 
+    vs: MCState,
     σ: jnp.ndarray,
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree]:
@@ -99,5 +106,12 @@ def natgrad_expect_hermitian(
     dw_1, sol_data = K.solve(solver, O_loc)
     Ō_grad = K.project_to(dw_1, vs.parameters)
 
+    Ō_grad = jax.tree_multimap(
+        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
+            target.dtype
+        ),
+        Ō_grad,
+        parameters,
+    )
 
     return Ō, jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)

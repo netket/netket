@@ -626,7 +626,7 @@ class MCState(VariationalState):
         if mutable is None:
             mutable = self.mutable
 
-        return expect_and_natgrad(self, K, solver, Ô,  mutable=mutable)
+        return expect_and_natgrad(self, K, solver, Ô, mutable=mutable)
 
     @deprecated("Use MCState.log_value(σ) instead.")
     def evaluate(self, σ: jnp.ndarray) -> jnp.ndarray:

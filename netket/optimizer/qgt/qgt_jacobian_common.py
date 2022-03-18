@@ -21,17 +21,21 @@ import jax
 import netket.jax as nkjax
 from netket.utils.struct import dataclass
 
+
 @dataclass
 class RealT:
     pass
+
 
 @dataclass
 class ComplexT:
     pass
 
+
 @dataclass
 class HoloT:
     pass
+
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
 def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorphic):
