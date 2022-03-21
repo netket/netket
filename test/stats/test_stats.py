@@ -82,13 +82,8 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
 
     assert stats.mean == pytest.approx(np.mean(eloc))
     if n_chains > 1:
-
         # variance == average sample variance over chains
         assert stats.variance == pytest.approx(np.var(eloc))
-        # R estimate
-        B_over_n = stats.error_of_mean**2
-        W = stats.variance
-        assert stats.R_hat == pytest.approx(np.sqrt(1.0 + B_over_n / W), abs=1e-3)
 
 
 @common.skipif_mpi
@@ -194,6 +189,7 @@ def test_decimal_format():
     assert str(Stats(1.0, 0.12, 0.5, R_hat=1.01)) == "1.00 ± 0.12 [σ²=0.50, R̂=1.0100]"
 
 
+@common.skipif_mpi
 def test_R_hat():
     # detect disagreeing chains
     x = np.array(
