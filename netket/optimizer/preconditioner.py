@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Callable, Optional, Any
+from numbers import Number
 
 from dataclasses import dataclass
 
@@ -23,14 +24,16 @@ from .linear_operator import LinearOperator, SolverT
 
 # Generic signature of a preconditioner function/object
 
-PreconditionerT = Callable[[VariationalState, PyTree], PyTree]
+PreconditionerT = Callable[[VariationalState, PyTree, Number], PyTree]
 """Signature for Gradient preconditioners supported by NetKet drivers."""
 
-LHSConstructorT = Callable[[VariationalState], LinearOperator]
-"""Signature for the constructor of a LinerOperator"""
+LHSConstructorT = Callable[[VariationalState, Number], LinearOperator]
+"""Signature for the constructor of a LinearOperator"""
 
 
-def identity_preconditioner(vstate: VariationalState, gradient: PyTree):
+def identity_preconditioner(
+    vstate: VariationalState, gradient: PyTree, step_value: Number = 0.0
+):
     return gradient
 
 
@@ -64,9 +67,11 @@ class LinearPreconditioner:
         self.solver = solver
         self.solver_restart = solver_restart
 
-    def __call__(self, vstate: VariationalState, gradient: PyTree) -> PyTree:
+    def __call__(
+        self, vstate: VariationalState, gradient: PyTree, step_value: Number
+    ) -> PyTree:
 
-        self._lhs = self.lhs_constructor(vstate)
+        self._lhs = self.lhs_constructor(vstate, step_value)
 
         x0 = self.x0 if self.solver_restart else None
         self.x0, self.info = self._lhs.solve(self.solver, gradient, x0=x0)

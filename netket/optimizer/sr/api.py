@@ -14,6 +14,8 @@
 
 from functools import partial
 from collections import namedtuple
+from typing import Union, Callable
+from numbers import Number
 
 from netket.utils.numbers import is_scalar
 
@@ -140,7 +142,7 @@ def _SR(
     qgt=None,
     solver=None,
     *,
-    diag_shift: float = 0.01,
+    diag_shift: Union[float, Callable[[float], float]] = 0.01,
     solver_restart: bool = False,
     **kwargs,
 ):
@@ -156,7 +158,7 @@ def _SR(
 
     Args:
         qgt: The Quantum Geomtric Tensor type to use.
-        diag_shift: Diagonal shift added to the S matrix
+        diag_shift: Diagonal shift (or schedule thereof) added to the S matrix
         method: (cg, gmres) The specific method.
         iterative: Whever to use an iterative method or not.
         jacobian: Differentiation mode to precompute gradients
@@ -175,8 +177,14 @@ def _SR(
     if qgt is None:
         qgt = QGTAuto(solver)
 
+    if isinstance(diag_shift, Number):
+        diag_shift = lambda _: diag_shift
+
     return SR(
-        partial(qgt, diag_shift=diag_shift, **kwargs),
+        lambda vstate, step_value: qgt(
+            vstate, diag_shift=diag_shift(step_value), **kwargs
+        ),
+        # partial(qgt, diag_shift=diag_shift, **kwargs),
         solver=solver,
         solver_restart=solver_restart,
     )
