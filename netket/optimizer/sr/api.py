@@ -20,6 +20,7 @@ from numbers import Number
 from netket.utils.numbers import is_scalar
 
 import jax
+from optax import constant_schedule
 
 from ..qgt import QGTAuto
 from ..preconditioner import LinearPreconditioner
@@ -178,7 +179,7 @@ def _SR(
         qgt = QGTAuto(solver)
 
     if isinstance(diag_shift, Number):
-        diag_shift = lambda _: diag_shift
+        diag_shift = constant_schedule(diag_shift)
 
     return SR(
         lambda vstate, step_value: qgt(
