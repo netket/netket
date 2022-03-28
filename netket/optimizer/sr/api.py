@@ -18,6 +18,7 @@ from typing import Union, Callable
 from numbers import Number
 
 from netket.utils.numbers import is_scalar
+from netket.utils.types import PyTree
 
 import jax
 
