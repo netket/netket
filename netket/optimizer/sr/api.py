@@ -20,12 +20,12 @@ from numbers import Number
 from netket.utils.numbers import is_scalar
 
 import jax
-from optax import constant_schedule
 
 from ..qgt import QGTAuto
 from ..preconditioner import LinearPreconditioner
 
 Preconditioner = namedtuple("Preconditioner", ["object", "solver"])
+Schedule = Callable[[Number], PyTree]
 
 default_iterative = "cg"
 # default_direct = "eigen"
@@ -137,13 +137,19 @@ class SR(LinearPreconditioner):
     pass
 
 
+# This is the same as optax's constant_schedule but including it here
+# makes it obvious that it works with pytrees
+def constant_schedule(value: PyTree) -> Schedule:
+    return lambda _: value
+
+
 # This will become the future implementation once legacy and semi-legacy
 # bejaviour is removed
 def _SR(
     qgt=None,
     solver=None,
     *,
-    diag_shift: Union[float, Callable[[float], float]] = 0.01,
+    diag_shift: Union[PyTree, Schedule] = 0.01,
     solver_restart: bool = False,
     **kwargs,
 ):
@@ -178,7 +184,7 @@ def _SR(
     if qgt is None:
         qgt = QGTAuto(solver)
 
-    if isinstance(diag_shift, Number):
+    if not isinstance(diag_shift, Callable):
         diag_shift = constant_schedule(diag_shift)
 
     return SR(

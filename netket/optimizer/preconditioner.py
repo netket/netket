@@ -68,7 +68,7 @@ class LinearPreconditioner:
         self.solver_restart = solver_restart
 
     def __call__(
-        self, vstate: VariationalState, gradient: PyTree, step_value: Number
+        self, vstate: VariationalState, gradient: PyTree, step_value: Number = None
     ) -> PyTree:
 
         self._lhs = self.lhs_constructor(vstate, step_value)
