@@ -21,6 +21,7 @@ hilbert
 operator
 exact
 sampler
+stats
 models
 nn
 jax

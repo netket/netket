@@ -133,18 +133,28 @@ def statistics(data, batch_size=32):
 
     Args:
         data (vector or matrix): The input data. It can be real or complex valued.
-                                * if a vector, it is assumed that this is a time
-                                  series of data (not necessarily independent).
-                                * if a matrix, it is assumed that that rows data[i]
-                                  contain independent time series.
+            * if a vector, it is assumed that this is a time series of data (not necessarily independent);
+            * if a matrix, it is assumed that that rows :code:`data[i]` contain independent time series.
 
     Returns:
-       Stats: A dictionary-compatible class containing the average (mean),
-             the variance (variance),
-             the error of the mean (error_of_mean), and an estimate of the
-             autocorrelation time (tau_corr). In addition to accessing the elements with the standard
-             dict sintax (e.g. res['mean']), one can also access them directly with the dot operator
-             (e.g. res.mean).
+       Stats: A dictionary-compatible class containing the
+             average (:code:`.mean`, :code:`["Mean"]`),
+             variance (:code:`.variance`, :code:`["Variance"]`),
+             the Monte Carlo standard error of the mean (:code:`error_of_mean`, :code:`["Sigma"]`),
+             an estimate of the autocorrelation time (:code:`tau_corr`, :code:`["TauCorr"]`), and the
+             Gelman-Rubin split-Rhat diagnostic (:code:`.R_hat`, :code:`["R_hat"]`).
+
+             These properties can be accessed both the attribute and the dictionary-style syntax
+             (both indicated above).
+
+             The split-Rhat diagnostic is based on comparing intra-chain and inter-chain
+             statistics of the sample and is thus only available for 2d-array inputs where
+             the rows are independently sampled MCMC chains. In an ideal MCMC samples,
+             R_hat should be 1.0. If it deviates from this value too much, this indicates
+             MCMC convergence issues. Thresholds such as R_hat > 1.1 or even R_hat > 1.01 have
+             been suggested in the literature for when to discard a sample. (See, e.g.,
+             Gelman et al., `Bayesian Data Analysis <http://www.stat.columbia.edu/~gelman/book/>`_,
+             or Vehtari et al., `arXiv:1903.08008 <https://arxiv.org/abs/1903.08008>`_.)
     """
     return _statistics(data, batch_size)
 
