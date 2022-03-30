@@ -62,7 +62,8 @@ def test_gcnn_equivariance(parity, symmetries, lattice, mode):
 
 
 @pytest.mark.parametrize("mode", ["fft", "irreps"])
-def test_gcnn(mode):
+@pytest.mark.parametrize("complex_output", [True, False])
+def test_gcnn(mode, complex_output):
     lattice = nk.graph.Chain
     symmetries = "trans"
     parity = True
@@ -76,6 +77,7 @@ def test_gcnn(mode):
         features=2,
         parity=parity,
         bias_init=uniform(),
+        complex_output=complex_output,
     )
 
     vmc = nk.VMC(
@@ -192,3 +194,39 @@ def test_GCNN_creation(mode):
             symmetries=g, mode=mode, layers=2, features=4, equal_amplitudes=True
         )
     )
+
+    # complex_output = False
+    # fails iff parameters are real and there are negative characters
+    check_init(
+        lambda: nk.models.GCNN(
+            symmetries=g, mode=mode, layers=2, features=4, complex_output=False
+        )
+    )
+
+    # this is a valid character of g.space_group()
+    # invariant under translations, flips sign under mirrors
+    char = np.array([1, -1] * 8, dtype=float)
+
+    check_init(
+        lambda: nk.models.GCNN(
+            symmetries=g,
+            mode=mode,
+            layers=2,
+            features=4,
+            complex_output=False,
+            characters=char,
+            dtype=complex,
+        )
+    )
+
+    with pytest.raises(ValueError):
+        check_init(
+            lambda: nk.models.GCNN(
+                symmetries=g,
+                mode=mode,
+                layers=2,
+                features=4,
+                complex_output=False,
+                characters=char,
+            )
+        )

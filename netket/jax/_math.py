@@ -17,11 +17,18 @@ from jax.scipy.special import logsumexp
 
 
 def logsumexp_cplx(a, b=None, **kwargs):
-    """Compute the log of the sum of exponentials of input elements.
+    """Compute the log of the sum of exponentials of input elements, always returning a
+    complex number.
 
-    Wraps `jax.scipy.special.logsumexp` but ensures the output is complex and never NaN.
+    Equivalent to, but more numerically stable than, `np.log(np.sum(b*np.exp(a)))`.
+    If the optional argument `b` is omitted, `np.log(np.sum(np.exp(a)))` is returned.
+
+    Wraps `jax.scipy.special.logsumexp` but uses `return_sign=True` if both `a` and `b`
+    are real numbers in order to support `b<0` instead of returning `nan`.
+
     See the JAX function for details of the calling sequence;
-    `return_sign` is not supported."""
+    `return_sign` is not supported.
+    """
     if jnp.iscomplexobj(a) or jnp.iscomplexobj(b):
         # logsumexp uses complex algebra anyway
         return logsumexp(a, b=b, **kwargs)
