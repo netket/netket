@@ -91,7 +91,8 @@ def test_vmc_functions():
 
     driver.advance(500)
 
-    assert driver.energy.mean == approx(ma.expect(ha).mean, abs=1e-5)
+    tol = driver.energy.error_of_mean * 5
+    assert driver.energy.mean == approx(ma.expect(ha).mean, abs=tol)
 
     state = ma.to_array()
 
@@ -123,7 +124,7 @@ def test_vmc_functions():
         print(mean, var)
 
         # 5-sigma test for expectation values
-        tol = np.sqrt(var / float(ma.n_samples)) * 5
+        tol = op_stats.error_of_mean * 5
         assert mean.real == approx(exact_ex, abs=tol)
 
 
