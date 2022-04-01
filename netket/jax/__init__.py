@@ -46,6 +46,8 @@ from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap
 from ._vjp_chunked import vjp_chunked
 from ._vmap_chunked import vmap_chunked
 
+from ._math import logsumexp_cplx
+
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)

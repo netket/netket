@@ -26,6 +26,7 @@ from netket.utils import HashableArray, warn_deprecation
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
+from netket.jax import logsumexp_cplx, is_complex, is_complex_dtype
 from netket.nn.activation import reim_selu
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
@@ -83,6 +84,9 @@ class GCNN_FFT(nn.Module):
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
     """Initializer for the biases of all layers."""
+    complex_output: bool = True
+    """Use complex-valued `logsumexp`. Necessary when parameters are real but some
+    `characters` are negative."""
 
     def setup(self):
 
@@ -125,9 +129,10 @@ class GCNN_FFT(nn.Module):
 
         x = self.output_activation(x)
 
-        x = logsumexp(
-            x, axis=(-2, -1), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
-        )
+        if self.complex_output:
+            x = logsumexp_cplx(x, axis=(-2, -1), b=jnp.asarray(self.characters))
+        else:
+            x = logsumexp(x, axis=(-2, -1), b=jnp.asarray(self.characters))
 
         if self.equal_amplitudes:
             return 1j * jnp.imag(x)
@@ -191,6 +196,9 @@ class GCNN_Irrep(nn.Module):
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
     """Initializer for the biases of all layers."""
+    complex_output: bool = True
+    """Use complex-valued `logsumexp`. Necessary when parameters are real but some
+    `characters` are negative."""
 
     def setup(self):
 
@@ -231,9 +239,10 @@ class GCNN_Irrep(nn.Module):
 
         x = self.output_activation(x)
 
-        x = logsumexp(
-            x, axis=(-2, -1), b=jnp.expand_dims(jnp.asarray(self.characters), (0, 1))
-        )
+        if self.complex_output:
+            x = logsumexp_cplx(x, axis=(-2, -1), b=jnp.asarray(self.characters))
+        else:
+            x = logsumexp(x, axis=(-2, -1), b=jnp.asarray(self.characters))
 
         if self.equal_amplitudes:
             return 1j * jnp.imag(x)
@@ -288,6 +297,9 @@ class GCNN_Parity_FFT(nn.Module):
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
     """Initializer for the biases of all layers."""
+    complex_output: bool = True
+    """Use complex-valued `logsumexp`. Necessary when parameters are real but some
+    `characters` are negative."""
 
     def setup(self):
         # TODO: evenutally remove this warning
@@ -384,7 +396,10 @@ class GCNN_Parity_FFT(nn.Module):
                 (0, 1),
             )
 
-        x = logsumexp(x, axis=(-2, -1), b=par_chars)
+        if self.complex_output:
+            x = logsumexp_cplx(x, axis=(-2, -1), b=par_chars)
+        else:
+            x = logsumexp(x, axis=(-2, -1), b=par_chars)
 
         if self.equal_amplitudes:
             return 1j * jnp.imag(x)
@@ -457,6 +472,9 @@ class GCNN_Parity_Irrep(nn.Module):
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
     """Initializer for the biases of all layers."""
+    complex_output: bool = True
+    """Use complex-valued `logsumexp`. Necessary when parameters are real but some
+    `characters` are negative."""
 
     def setup(self):
         # TODO: evenutally remove this warning
@@ -550,7 +568,10 @@ class GCNN_Parity_Irrep(nn.Module):
                 (0, 1),
             )
 
-        x = logsumexp(x, axis=(-2, -1), b=par_chars)
+        if self.complex_output:
+            x = logsumexp_cplx(x, axis=(-2, -1), b=par_chars)
+        else:
+            x = logsumexp(x, axis=(-2, -1), b=par_chars)
 
         if self.equal_amplitudes:
             return 1j * jnp.imag(x)
@@ -569,6 +590,8 @@ def GCNN(
     features=None,
     characters=None,
     parity=None,
+    dtype=np.float64,
+    complex_output=True,
     **kwargs,
 ):
     r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
@@ -619,6 +642,8 @@ def GCNN(
             `lecun_normal(in_axis=1, out_axis=0)` which guarantees the correct variance of the
             output.
         bias_init: Initializer for the biases of all layers.
+        complex_output: If True, ensures that the network output is always complex.
+            Necessary when network parameters are real but some `characters` are negative.
     """
 
     if isinstance(symmetries, Lattice) and (
@@ -673,6 +698,16 @@ def GCNN(
     if characters is None:
         characters = HashableArray(np.ones(len(np.asarray(sg))))
     else:
+        if (
+            not is_complex(characters)
+            and not is_complex_dtype(dtype)
+            and not complex_output
+            and jnp.any(characters < 0)
+        ):
+            raise ValueError(
+                "`complex_output` must be used with real parameters and negative "
+                "characters to avoid NaN errors."
+            )
         characters = HashableArray(characters)
 
     if mode == "fft":
@@ -688,6 +723,8 @@ def GCNN(
                 characters=characters,
                 shape=shape,
                 parity=parity,
+                dtype=dtype,
+                complex_output=complex_output,
                 **kwargs,
             )
         else:
@@ -698,6 +735,8 @@ def GCNN(
                 features=features,
                 characters=characters,
                 shape=shape,
+                dtype=dtype,
+                complex_output=complex_output,
                 **kwargs,
             )
     elif mode in ["irreps", "auto"]:
@@ -714,6 +753,8 @@ def GCNN(
                 features=features,
                 characters=characters,
                 parity=parity,
+                dtype=dtype,
+                complex_output=complex_output,
                 **kwargs,
             )
         else:
@@ -723,6 +764,8 @@ def GCNN(
                 layers=layers,
                 features=features,
                 characters=characters,
+                dtype=dtype,
+                complex_output=complex_output,
                 **kwargs,
             )
     else:
