@@ -12,10 +12,12 @@
 * `Lattice` supports specifying arbitrary edge content for each unit cell via the kwarg `custom_edges`. A generator for hexagonal lattices with coloured edges is implemented as `nk.graph.KitaevHoneycomb`. `nk.graph.Grid` again supports colouring edges by direction. [#1074](https://github.com/netket/netket/pull/1074)
 * Fermionic hilbert space (`nkx.hilbert.SpinOrbitalFermions`) and fermionic operators (`nkx.operator.fermion`) to treat systems with a finite number of Orbitals have been added to the experimental submodule. The operators are also integrated with [OpenFermion](https://quantumai.google/openfermion). Those functionalities are still in development and we would welcome feedback. [#1090](https://github.com/netket/netket/pull/1090)
 * It is now possible to change the integrator of a `TDVP` object without reconstructing it. [#1123](https://github.com/netket/netket/pull/1123)
+* Drivers call all preconditioners supplying an additional `step_value` argument, so parameters of custom preconditioners can be made dependent on training step etc. In particular, `nk.optimizer.SR` now accepts an optax schedule for `diag_shift`. [#1142](https://github.com/netket/netket/pull/1142)
 
 ### Breaking Changes
 * The gradient for models with real-parameter is now multiplied by 2. If your model had real parameters you might need to change the learning rate and halve it. Conceptually this is a bug-fix, as the value returned before was wrong (see Bug Fixes section below for additional details) [#1069](https://github.com/netket/netket/pull/1069)
 * In the statistics returned by `netket.stats.statistics`, the `.R_hat` diagnostic has been updated to be able to detect non-stationary chains via the split-Rhat diagnostic (see, e.g., Gelman et al., [Bayesian Data Analysis](http://www.stat.columbia.edu/~gelman/book/), 3rd edition). This changes (generally increases) the numerical values of `R_hat` for existing simulations, but should strictly improve its capabilities to detect MCMC convergence failure. [#1138](https://github.com/netket/netket/pull/1138)
+* Support for preconditioners that do not accept a `step_value` kwarg is deprecated. If you do not need this functionality in your custom preconditioner, add a dummy argument `step_value=None` to its calling sequence. [#1142](https://github.com/netket/netket/pull/1142)
 
 ### Internal Changes
 
@@ -25,7 +27,8 @@
 * Fixed bug that prevented calling `.quantum_geometric_tensor` on `netket.vqs.ExactState`. [#1108](https://github.com/netket/netket/pull/1108)
 * Fixed bug where the gradient of `C->C` models (complex parameters, complex output) was computed incorrectly with `nk.vqs.ExactState`. [#1110](https://github.com/netket/netket/pull/1110)
 * Fixed bug where `QGTJacobianDense.state` and `QGTJacobianPyTree.state` would not correctly transform the starting point `x0` if `holomorphic=False`. [#1115](https://github.com/netket/netket/pull/1115)
-* The gradient of the expectation value obtained with `VarState.expect_and_grad` for `SquaredOperator`s was off by a factor of 2 in some cases, and wrong in others. This has now been fixed. [#1065](https://github.com/netket/netket/pull/1065).
+* The gradient of the expectation value obtained with `VarState.expect_and_grad` for `SquaredOperator`s was off by a factor of 2 in some cases, and wrong in others. This has now been fixed. [#1065](https://github.com/netket/netket/pull/1065)
+* Real-parameter `GCNN` returned NaNs when used with real-valued characters, some of which is negative, as `logsumexp` uses real logarithms even if the result is negative. This is fixed by defining `nk.jax.logsumexp_cplx` that always returns a complex number and using it by default in `GCNN`. The old behaviour can be recovered using `complex_output=False`. [#1134](https://github.com/netket/netket/pull/1134)
 
 ## NetKet 3.3.2 (🐛 Bug Fixes)
 
