@@ -32,7 +32,7 @@ def _setup_system():
     return hi, lind
 
 
-def _setup_ss(dtype=np.float32, sr=True):
+def _setup_ss(dtype=np.float32, sr="SR"):
     hi, lind = _setup_system()
 
     ma = nk.models.NDM()
@@ -44,8 +44,11 @@ def _setup_ss(dtype=np.float32, sr=True):
     vs = nk.vqs.MCMixedState(sa, ma, sampler_diag=sa_obs, n_samples=1000, seed=SEED)
 
     op = nk.optimizer.Sgd(learning_rate=0.05)
-    if sr:
+    if sr == "SR":
         sr_config = nk.optimizer.SR()
+    elif sr == "no_step_value":
+        # an identity preconditioner that doesn't accept step_value
+        sr_config = lambda vstate, gradient: gradient
     else:
         sr_config = None
 
@@ -73,6 +76,15 @@ def test_estimate():
 
     driver.estimate(lind.H @ lind)
     driver.advance(1)
+    driver.estimate(lind.H @ lind)
+
+
+def test_no_step_value():
+    lind, _, driver = _setup_ss(sr="no_step_value")
+
+    driver.estimate(lind.H @ lind)
+    with pytest.warns(FutureWarning):
+        driver.advance(1)
     driver.estimate(lind.H @ lind)
 
 
