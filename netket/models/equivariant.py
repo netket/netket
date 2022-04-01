@@ -723,6 +723,8 @@ def GCNN(
                 characters=characters,
                 shape=shape,
                 parity=parity,
+                dtype=dtype,
+                complex_output=complex_output,
                 **kwargs,
             )
         else:
@@ -733,6 +735,8 @@ def GCNN(
                 features=features,
                 characters=characters,
                 shape=shape,
+                dtype=dtype,
+                complex_output=complex_output,
                 **kwargs,
             )
     elif mode in ["irreps", "auto"]:
@@ -749,6 +753,8 @@ def GCNN(
                 features=features,
                 characters=characters,
                 parity=parity,
+                dtype=dtype,
+                complex_output=complex_output,
                 **kwargs,
             )
         else:
@@ -758,6 +764,8 @@ def GCNN(
                 layers=layers,
                 features=features,
                 characters=characters,
+                dtype=dtype,
+                complex_output=complex_output,
                 **kwargs,
             )
     else:
