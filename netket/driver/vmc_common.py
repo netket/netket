@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from netket.utils import warn_deprecation
+from inspect import signature
 
 
 def info(obj, depth=None):
@@ -22,15 +23,17 @@ def info(obj, depth=None):
         return str(obj)
 
 
-def apply_preconditioner(self):
-    try:
-        # Default: preconditioner accepts step_value
-        self._dp = self.preconditioner(
-            self.state, self._loss_grad, step_value=self.step_count
-        )
-    except TypeError:
+def ensure_step_value(preconditioner):
+    """Adds a dummy `step_value` argument to preconditioners that lack it."""
+    if "step_value" not in signature(preconditioner).parameters:
         # Not accepting step_value is deprecated but supported for now
         warn_deprecation(
             "Preconditioners should accept an optional `step_value` argument."
         )
-        self._dp = self.preconditioner(self.state, self._loss_grad)
+
+        def new_preconditioner(vstate, rhs, step_value=None):
+            return preconditioner(vstate, rhs)
+
+        return new_preconditioner
+    else:
+        return preconditioner

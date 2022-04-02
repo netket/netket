@@ -80,11 +80,11 @@ def test_estimate():
 
 
 def test_no_step_value():
-    lind, _, driver = _setup_ss(sr="no_step_value")
+    with pytest.warns(FutureWarning):
+        lind, _, driver = _setup_ss(sr="no_step_value")
 
     driver.estimate(lind.H @ lind)
-    with pytest.warns(FutureWarning):
-        driver.advance(1)
+    driver.advance(1)
     driver.estimate(lind.H @ lind)
 
 

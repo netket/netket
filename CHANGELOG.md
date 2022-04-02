@@ -17,7 +17,7 @@
 ### Breaking Changes
 * The gradient for models with real-parameter is now multiplied by 2. If your model had real parameters you might need to change the learning rate and halve it. Conceptually this is a bug-fix, as the value returned before was wrong (see Bug Fixes section below for additional details) [#1069](https://github.com/netket/netket/pull/1069)
 * In the statistics returned by `netket.stats.statistics`, the `.R_hat` diagnostic has been updated to be able to detect non-stationary chains via the split-Rhat diagnostic (see, e.g., Gelman et al., [Bayesian Data Analysis](http://www.stat.columbia.edu/~gelman/book/), 3rd edition). This changes (generally increases) the numerical values of `R_hat` for existing simulations, but should strictly improve its capabilities to detect MCMC convergence failure. [#1138](https://github.com/netket/netket/pull/1138)
-* Support for preconditioners that do not accept a `step_value` kwarg is deprecated. If you do not need this functionality in your custom preconditioner, add a dummy argument `step_value=None` to its calling sequence. [#1142](https://github.com/netket/netket/pull/1142)
+* Support for preconditioners that do not accept a `step_value` kwarg is deprecated. If you do not need this functionality in your custom preconditioner, add a dummy argument `step_value=None` to its calling sequence (adding a dummy `**kwargs` will not silence the error). [#1142](https://github.com/netket/netket/pull/1142)
 
 ### Internal Changes
 

@@ -23,7 +23,7 @@ from netket.optimizer import (
     PreconditionerT,
 )
 
-from .vmc_common import info, apply_preconditioner
+from .vmc_common import info, ensure_step_value
 from .abstract_variational_driver import AbstractVariationalDriver
 
 
@@ -100,7 +100,7 @@ class SteadyState(AbstractVariationalDriver):
         self._lind = lindbladian
         self._ldag_l = Squared(lindbladian)
 
-        self.preconditioner = preconditioner
+        self.preconditioner = ensure_step_value(preconditioner)
 
         self._dp = None
         self._S = None
@@ -121,7 +121,9 @@ class SteadyState(AbstractVariationalDriver):
 
         # if it's the identity it does
         # self._dp = self._loss_grad
-        apply_preconditioner(self)
+        self._dp = self.preconditioner(
+            self.state, self._loss_grad, step_value=self.step_count
+        )
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
         self._dp = jax.tree_multimap(
