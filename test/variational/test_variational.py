@@ -95,6 +95,8 @@ machines["model:(C->C)-nonholo"] = nk.models.ARNNDense(
     dtype=complex,
 )
 
+operator_params = [pytest.param(op, id=name) for name, op in operators.items()]
+
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
 def vstate(request):
@@ -328,16 +330,7 @@ def test_init_parameters(vstate):
 
 
 @common.skipif_mpi
-@pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
-)
+@pytest.mark.parametrize("operator", operator_params)
 def test_expect_numpysampler_works(vstate, operator):
     sampl = nk.sampler.MetropolisLocalNumpy(vstate.hilbert)
     vstate.sampler = sampl
@@ -429,6 +422,26 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
+@common.skipif_mpi
+@pytest.mark.parametrize("operator", operator_params)
+def test_expect_local_values(vstate, operator):
+    def assert_stats_equal(st1, st2):
+        assert st1.mean == pytest.approx(st2.mean)
+        assert st1.variance == pytest.approx(st2.variance)
+        assert st1.error_of_mean == pytest.approx(st2.error_of_mean)
+
+    stats, oloc = vstate.expect(operator, return_estimators=True)
+    assert oloc.shape == (vstate.sampler.n_chains, vstate.n_samples)
+
+    stats2 = nk.stats.statistics(oloc)
+    assert_stats_equal(stats, stats2)
+
+    stats_g, _, oloc_g = vstate.expect_and_grad(operator, return_estimators=True)
+    assert oloc_g.shape == (vstate.sampler.n_chains, vstate.n_samples)
+    assert np.allclose(oloc, oloc_g)
+    assert_stats_equal(stats, stats_g)
+
+
 # Have a different test because the above is marked as xfail.
 # This only checks that the code runs.
 def test_expect_grad_nonhermitian_works(vstate):
@@ -437,17 +450,7 @@ def test_expect_grad_nonhermitian_works(vstate):
 
 
 @common.skipif_mpi
-@pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-        if op.is_hermitian
-    ],
-)
+@pytest.mark.parametrize("operator", operator_params)
 @pytest.mark.parametrize("n_chunks", [1, 2])
 def test_expect_chunking(vstate, operator, n_chunks):
     vstate.n_samples = 200

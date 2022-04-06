@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable
+from typing import Callable, Tuple, Union
 from functools import partial
 
 import jax
@@ -89,12 +89,17 @@ def get_local_kernel(vstate: MCState, Ô: ContinuousOperator):  # noqa: F811
 # but if somebody wants to override behaviour for an existing operator or define
 # a completely arbitrary novel type of operator, this makes it much easier.
 @dispatch
-def expect(vstate: MCState, Ô: AbstractOperator) -> Stats:  # noqa: F811
+def expect(
+    vstate: MCState,
+    Ô: AbstractOperator,
+    *,
+    return_estimators: bool = False,
+) -> Union[Stats, Tuple]:  # noqa: F811
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô)
 
-    return _expect(
+    O_stats, O_loc = _expect(
         local_estimator_fun,
         vstate._apply_fun,
         vstate.sampler.machine_pow,
@@ -103,6 +108,10 @@ def expect(vstate: MCState, Ô: AbstractOperator) -> Stats:  # noqa: F811
         σ,
         args,
     )
+    if return_estimators:
+        return O_stats, O_loc
+    else:
+        return O_stats
 
 
 @partial(jax.jit, static_argnums=(0, 1))
@@ -114,7 +123,7 @@ def _expect(
     model_state: PyTree,
     σ: jnp.ndarray,
     local_value_args: PyTree,
-) -> Stats:
+) -> Union[Stats, Tuple]:
     σ_shape = σ.shape
 
     if jnp.ndim(σ) != 2:
@@ -126,7 +135,7 @@ def _expect(
     def log_pdf(w, σ):
         return machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
 
-    _, Ō_stats = nkjax.expect(
+    _, (O_stats, O_loc) = nkjax.expect(
         log_pdf,
         partial(local_value_kernel, logpsi),
         parameters,
@@ -134,5 +143,4 @@ def _expect(
         local_value_args,
         n_chains=σ_shape[0],
     )
-
-    return Ō_stats
+    return O_stats, O_loc

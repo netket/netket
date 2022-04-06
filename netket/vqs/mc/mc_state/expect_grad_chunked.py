@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Tuple, Union
 import warnings
 
 import jax
@@ -24,7 +24,7 @@ from netket import jax as nkjax
 from netket.operator import AbstractOperator
 from netket.stats import Stats, statistics
 from netket.utils import mpi
-from netket.utils.types import PyTree
+from netket.utils.types import ArrayLike, PyTree
 from netket.utils.dispatch import dispatch, TrueT, Bool
 
 from netket.vqs import expect_and_grad
@@ -76,12 +76,13 @@ def expect_and_grad(  # noqa: F811
     chunk_size: int,
     *,
     mutable: Any,
-) -> Tuple[Stats, PyTree]:
+    return_estimators: bool = False,
+) -> Union[Tuple[Stats, PyTree], Tuple[Stats, PyTree, ArrayLike]]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
 
-    Ō, Ō_grad, new_model_state = grad_expect_hermitian_chunked(
+    Ō, Ō_grad, O_loc, new_model_state = grad_expect_hermitian_chunked(
         chunk_size,
         local_estimator_fun,
         vstate._apply_fun,
@@ -95,7 +96,10 @@ def expect_and_grad(  # noqa: F811
     if mutable is not False:
         vstate.model_state = new_model_state
 
-    return Ō, Ō_grad
+    if return_estimators:
+        return Ō, Ō_grad, O_loc
+    else:
+        return Ō, Ō_grad
 
 
 @partial(jax.jit, static_argnums=(0, 1, 2, 3))
@@ -108,7 +112,7 @@ def grad_expect_hermitian_chunked(
     model_state: PyTree,
     σ: jnp.ndarray,
     local_value_args: PyTree,
-) -> Tuple[PyTree, PyTree]:
+) -> Tuple[PyTree, PyTree, ArrayLike, PyTree]:
 
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
@@ -126,7 +130,7 @@ def grad_expect_hermitian_chunked(
 
     Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
 
-    O_loc -= Ō.mean
+    O_loc_centered = O_loc - Ō.mean
 
     # Then compute the vjp.
     # Code is a bit more complex than a standard one because we support
@@ -146,7 +150,7 @@ def grad_expect_hermitian_chunked(
         raise NotImplementedError
 
     Ō_grad = vjp_fun_chunked(
-        (jnp.conjugate(O_loc) / n_samples),
+        (jnp.conjugate(O_loc_centered) / n_samples),
     )[0]
 
     Ō_grad = jax.tree_map(
@@ -156,5 +160,6 @@ def grad_expect_hermitian_chunked(
         Ō_grad,
         parameters,
     )
+    Ō_grad = tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)
 
-    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
+    return Ō, Ō_grad, O_loc.reshape(σ_shape[:-1]).T, new_model_state

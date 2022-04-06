@@ -291,7 +291,7 @@ class VariationalMixedState(VariationalState):
 
 
 @dispatch.abstract
-def expect(vstate: VariationalState, operator: AbstractOperator):
+def expect(vstate: VariationalState, operator: AbstractOperator, **kwargs):
     """
     Computes the expectation value of the given operator over the
     variational state.

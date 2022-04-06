@@ -72,14 +72,20 @@ def get_local_kernel(  # noqa: F811
 # If batch_size is None, ignore it and remove it from signature so that we fall back
 # to already implemented methods
 @expect.dispatch
-def expect_nochunking(vstate: MCState, operator: AbstractOperator, chunk_size: None):
-    return expect(vstate, operator)
+def expect_nochunking(
+    vstate: MCState, operator: AbstractOperator, chunk_size: None, **kwargs
+):
+    return expect(vstate, operator, **kwargs)
 
 
 # if no implementation exists for batched, fall back to unbatched methods.
 @expect.dispatch
 def expect_fallback(
-    vstate: MCState, operator: AbstractOperator, chunk_size
+    vstate: MCState,
+    operator: AbstractOperator,
+    chunk_size,
+    *,
+    return_estimators: bool = False,
 ):  # noqa: F811
     warnings.warn(
         f"Ignoring chunk_size={chunk_size} for expect_and_grad method with signature "
@@ -87,18 +93,22 @@ def expect_fallback(
         f"chunking for this signature exists."
     )
 
-    return expect(vstate, operator)
+    return expect(vstate, operator, return_estimators=return_estimators)
 
 
 @expect.dispatch
 def expect_mcstate_operator_chunked(
-    vstate: MCState, Ô: AbstractOperator, chunk_size: int
+    vstate: MCState,
+    Ô: AbstractOperator,
+    chunk_size: int,
+    *,
+    return_estimators: bool = False,
 ) -> Stats:  # noqa: F811
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
 
-    return _expect_chunking(
+    O_stats, O_loc = _expect_chunking(
         chunk_size,
         local_estimator_fun,
         vstate._apply_fun,
@@ -108,6 +118,10 @@ def expect_mcstate_operator_chunked(
         σ,
         args,
     )
+    if return_estimators:
+        return O_stats, O_loc
+    else:
+        return O_stats
 
 
 @partial(jax.jit, static_argnums=(0, 1, 2))
@@ -132,7 +146,7 @@ def _expect_chunking(
     def log_pdf(w, σ):
         return machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
 
-    _, Ō_stats = nkjax.expect(
+    _, (O_stats, O_loc) = nkjax.expect(
         log_pdf,
         partial(local_value_kernel, logpsi, chunk_size=chunk_size),
         parameters,
@@ -140,5 +154,4 @@ def _expect_chunking(
         args,
         n_chains=σ_shape[0],
     )
-
-    return Ō_stats
+    return O_stats, O_loc

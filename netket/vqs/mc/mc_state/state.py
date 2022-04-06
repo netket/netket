@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 
@@ -37,7 +37,7 @@ from netket.utils import (
     wrap_afun,
     wrap_to_support_scalar,
 )
-from netket.utils.types import PyTree, SeedT, NNInitFunc
+from netket.utils.types import ArrayLike, PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
@@ -550,7 +550,9 @@ class MCState(VariationalState):
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
     # override to use chunks
-    def expect(self, Ô: AbstractOperator) -> Stats:
+    def expect(
+        self, Ô: AbstractOperator, *, return_estimators: bool = False
+    ) -> Union[Stats, Tuple[Stats, ArrayLike]]:
         r"""Estimates the quantum expectation value for a given operator O.
             In the case of a pure state $\psi$, this is $<O>= <Psi|O|Psi>/<Psi|Psi>$
             otherwise for a mixed state $\rho$, this is $<O> = \Tr[\rho \hat{O}/\Tr[\rho]$.
@@ -561,7 +563,7 @@ class MCState(VariationalState):
         Returns:
             An estimation of the quantum expectation value <O>.
         """
-        return expect(self, Ô, self.chunk_size)
+        return expect(self, Ô, self.chunk_size, return_estimators=return_estimators)
 
     # override to use chunks
     def expect_and_grad(
@@ -570,7 +572,8 @@ class MCState(VariationalState):
         *,
         mutable: Optional[Any] = None,
         use_covariance: Optional[bool] = None,
-    ) -> Tuple[Stats, PyTree]:
+        return_estimators: bool = False,
+    ) -> Union[Tuple[Stats, PyTree], Tuple[Stats, PyTree, ArrayLike]]:
         r"""Estimates both the gradient of the quantum expectation value of a given operator O.
 
         Args:
@@ -593,7 +596,12 @@ class MCState(VariationalState):
             mutable = self.mutable
 
         return expect_and_grad(
-            self, Ô, use_covariance, self.chunk_size, mutable=mutable
+            self,
+            Ô,
+            use_covariance,
+            self.chunk_size,
+            mutable=mutable,
+            return_estimators=return_estimators,
         )
 
     @deprecated("Use MCState.log_value(σ) instead.")

@@ -46,12 +46,13 @@ def expect_and_grad(  # noqa: F811
     use_covariance: TrueT,
     *,
     mutable: Any,
+    return_estimators: bool = False,
 ) -> Tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô)
 
-    Ō, Ō_grad, new_model_state = grad_expect_hermitian(
+    Ō, Ō_grad, O_loc, new_model_state = grad_expect_hermitian(
         local_estimator_fun,
         vstate._apply_fun,
         mutable,
@@ -64,7 +65,10 @@ def expect_and_grad(  # noqa: F811
     if mutable is not False:
         vstate.model_state = new_model_state
 
-    return Ō, Ō_grad
+    if return_estimators:
+        return Ō, Ō_grad, O_loc
+    else:
+        return Ō, Ō_grad
 
 
 # pure state, squared operator
@@ -79,6 +83,7 @@ def expect_and_grad(  # noqa: F811
     use_covariance,
     *,
     mutable: Any,
+    return_estimators: bool = False,
 ) -> Tuple[Stats, PyTree]:
 
     if not isinstance(Ô, Squared) and not config.FLAGS["NETKET_EXPERIMENTAL"]:
@@ -97,7 +102,7 @@ def expect_and_grad(  # noqa: F811
 
     local_estimator_fun = get_local_kernel(vstate, Ô)
 
-    Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
+    Ō, Ō_grad, O_loc, new_model_state = grad_expect_operator_kernel(
         local_estimator_fun,
         vstate._apply_fun,
         vstate.sampler.machine_pow,
@@ -111,7 +116,10 @@ def expect_and_grad(  # noqa: F811
     if mutable is not False:
         vstate.model_state = new_model_state
 
-    return Ō, Ō_grad
+    if return_estimators:
+        return Ō, Ō_grad, O_loc
+    else:
+        return Ō, Ō_grad
 
 
 @partial(jax.jit, static_argnums=(0, 1, 2))
@@ -140,7 +148,7 @@ def grad_expect_hermitian(
 
     Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
 
-    O_loc -= Ō.mean
+    O_loc_centered = O_loc - Ō.mean
 
     # Then compute the vjp.
     # Code is a bit more complex than a standard one because we support
@@ -152,7 +160,7 @@ def grad_expect_hermitian(
         conjugate=True,
         has_aux=is_mutable,
     )
-    Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
+    Ō_grad = vjp_fun(jnp.conjugate(O_loc_centered) / n_samples)[0]
 
     Ō_grad = jax.tree_map(
         lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
@@ -163,8 +171,9 @@ def grad_expect_hermitian(
     )
 
     new_model_state = new_model_state[0] if is_mutable else None
+    Ō_grad = jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)
 
-    return Ō, jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
+    return Ō, Ō_grad, O_loc.reshape(σ_shape[:-1]).T, new_model_state
 
 
 @partial(jax.jit, static_argnums=(0, 1, 2, 3))
@@ -178,7 +187,6 @@ def grad_expect_operator_kernel(
     σ: jnp.ndarray,
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree, Stats]:
-
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
@@ -201,7 +209,7 @@ def grad_expect_operator_kernel(
             n_chains=σ_shape[0],
         )
 
-    Ō, Ō_pb, Ō_stats = nkjax.vjp(
+    Ō, Ō_pb, (Ō_stats, O_loc) = nkjax.vjp(
         expect_closure_pars, parameters, has_aux=True, conjugate=True
     )
     Ō_pars_grad = Ō_pb(jnp.ones_like(Ō))[0]
@@ -221,8 +229,5 @@ def grad_expect_operator_kernel(
         )
     new_model_state = None
 
-    return (
-        Ō_stats,
-        jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad),
-        new_model_state,
-    )
+    Ō_pars_grad = jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad)
+    return Ō_stats, Ō_pars_grad, O_loc, new_model_state

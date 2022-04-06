@@ -35,11 +35,7 @@ def expect(
     n_chains: int = None,
 ) -> Tuple[jnp.ndarray, Stats]:
     """
-    Computes the expectation value over a log-pdf.
-
-    Args:
-        log_pdf:
-        expected_ffun
+    Computes the expectation value of `expected_fun` over a log-probability density `log_pdf`.
     """
     return _expect(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args)
 
@@ -48,7 +44,14 @@ def expect(
 # gradient. They can be continuous or discrete, and they can be pytrees
 # Does not support higher-order derivatives yet
 @partial(jax.custom_vjp, nondiff_argnums=(0, 1, 2))
-def _expect(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args):
+def _expect(
+    n_chains,
+    log_pdf,
+    expected_fun,
+    pars,
+    σ,
+    *expected_fun_args,
+):
     L_σ = expected_fun(pars, σ, *expected_fun_args)
     if n_chains is not None:
         L_σ = L_σ.reshape((n_chains, -1))
@@ -56,10 +59,17 @@ def _expect(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args):
     L̄_σ = mpi_statistics(L_σ.T)
     # L̄_σ = L_σ.mean(axis=0)
 
-    return L̄_σ.mean, L̄_σ
+    return L̄_σ.mean, (L̄_σ, L_σ.T)
 
 
-def _expect_fwd(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args):
+def _expect_fwd(
+    n_chains,
+    log_pdf,
+    expected_fun,
+    pars,
+    σ,
+    *expected_fun_args,
+):
     L_σ = expected_fun(pars, σ, *expected_fun_args)
     if n_chains is not None:
         L_σ_r = L_σ.reshape((n_chains, -1))
@@ -74,7 +84,7 @@ def _expect_fwd(n_chains, log_pdf, expected_fun, pars, σ, *expected_fun_args):
     # Use the baseline trick to reduce the variance
     ΔL_σ = L_σ - L̄_σ
 
-    return (L̄_σ, L̄_stat), (pars, σ, expected_fun_args, ΔL_σ)
+    return (L̄_σ, (L̄_stat, L_σ_r.T)), (pars, σ, expected_fun_args, ΔL_σ)
 
 
 # TODO: in principle, the gradient of an expectation is another expectation,
