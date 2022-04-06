@@ -114,7 +114,7 @@ def _divide_by_sqrt_n_samp(oks, samples):
     divide Oⱼₖ by √n
     """
     n_samp = samples.shape[0] * mpi.n_nodes  # MPI
-    return jax.tree_map(lambda x: x / np.sqrt(n_samp), oks)
+    return jax.tree_map(lambda x: x / np.sqrt(n_samp, dtype=x.dtype), oks)
 
 
 def _multiply_by_pdf(oks, pdf):
