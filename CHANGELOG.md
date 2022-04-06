@@ -4,9 +4,22 @@
 
 # Change Log
 
-## NetKet 3.4 (⚙️ In development)
+## NetKet 3.5 (⚙️ In development)
 
-[GitHub commits](https://github.com/netket/netket/compare/v3.3...master).
+[GitHub commits](https://github.com/netket/netket/compare/v3.4...master).
+
+### New features
+
+### Breaking Changes
+
+### Internal Changes
+
+### Bug Fixes
+
+
+## NetKet 3.4 (Special 🧱 edition)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.3...v3.4).
 
 ### New features
 * `Lattice` supports specifying arbitrary edge content for each unit cell via the kwarg `custom_edges`. A generator for hexagonal lattices with coloured edges is implemented as `nk.graph.KitaevHoneycomb`. `nk.graph.Grid` again supports colouring edges by direction. [#1074](https://github.com/netket/netket/pull/1074)
