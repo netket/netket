@@ -74,6 +74,7 @@ RBMModPhase = partial(
 
 models = {
     "RBM[dtype=float]": partial(RBM, dtype=float),
+    "RBM[dtype=float]": partial(RBM, dtype=np.float32),
     "RBM[dtype=complex]": partial(RBM, dtype=complex),
     "RBMModPhase[dtype=float]": partial(RBMModPhase, dtype=float),
 }
