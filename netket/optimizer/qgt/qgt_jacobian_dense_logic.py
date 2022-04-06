@@ -287,7 +287,9 @@ def prepare_centered_oks(
     )
 
     n_samp = samples.shape[0] * mpi.n_nodes
-    centered_oks = subtract_mean(jacobians, axis=0) / np.sqrt(n_samp, dtype=jacobians.dtype)
+    centered_oks = subtract_mean(jacobians, axis=0) / np.sqrt(
+        n_samp, dtype=jacobians.dtype
+    )
 
     centered_oks = centered_oks.reshape(-1, centered_oks.shape[-1])
 
