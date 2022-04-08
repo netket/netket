@@ -154,7 +154,7 @@ def grad_expect_hermitian(
     )
     Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
 
-    Ō_grad = jax.tree_multimap(
+    Ō_grad = jax.tree_map(
         lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
             target.dtype
         ),
@@ -208,7 +208,7 @@ def grad_expect_operator_kernel(
 
     # This term below is needed otherwise it does not match the value obtained by
     # (ha@ha).collect(). I'm unsure of why it is needed.
-    Ō_pars_grad = jax.tree_multimap(
+    Ō_pars_grad = jax.tree_map(
         lambda x, target: x / 2 if jnp.iscomplexobj(target) else x,
         Ō_pars_grad,
         parameters,

@@ -251,9 +251,7 @@ def test_serialization(vstate):
 
     vstate_new = serialization.from_bytes(vstate_new, bdata)
 
-    jax.tree_multimap(
-        np.testing.assert_allclose, vstate.parameters, vstate_new.parameters
-    )
+    jax.tree_map(np.testing.assert_allclose, vstate.parameters, vstate_new.parameters)
     np.testing.assert_allclose(vstate.samples, vstate_new.samples)
     np.testing.assert_allclose(vstate.diagonal.samples, vstate_new.diagonal.samples)
     assert vstate.n_samples == vstate_new.n_samples
@@ -303,7 +301,7 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.diagonal.chunk_size = chunk_size_diag
     eval_chunk = vstate.expect(operator)
 
-    jax.tree_multimap(
+    jax.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
     )
 
@@ -324,7 +322,7 @@ def test_expect_grad_chunking(vstate, n_chunks):
     vstate.diagonal.chunk_size = chunk_size_diag
     grad_chunk = vstate.grad(operator)
 
-    jax.tree_multimap(
+    jax.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )
 

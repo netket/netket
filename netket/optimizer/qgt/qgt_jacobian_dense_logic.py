@@ -149,7 +149,7 @@ def _jacobian_cplx(
 
 @partial(wraps(_jacobian_cplx))
 def jacobian_cplx(
-    forward_fn, params, samples, _build_fn=partial(jax.tree_multimap, jax.lax.complex)
+    forward_fn, params, samples, _build_fn=partial(jax.tree_map, jax.lax.complex)
 ):
     return _jacobian_cplx(forward_fn, params, samples, _build_fn)
 

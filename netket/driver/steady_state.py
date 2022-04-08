@@ -124,7 +124,7 @@ class SteadyState(AbstractVariationalDriver):
         self._dp = self.preconditioner(self.state, self._loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
-        self._dp = jax.tree_multimap(
+        self._dp = jax.tree_map(
             lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
             self._dp,
             self.state.parameters,

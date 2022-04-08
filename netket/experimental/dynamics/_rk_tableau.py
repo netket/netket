@@ -115,9 +115,9 @@ class TableauRKExplicit:
         k = expand_dim(y_t, self.stages)
         for l in range(self.stages):
             dy_l = jax.tree_map(lambda k: jnp.tensordot(self.a[l], k, axes=1), k)
-            y_l = jax.tree_multimap(lambda y_t, dy_l: y_t + dt * dy_l, y_t, dy_l)
+            y_l = jax.tree_map(lambda y_t, dy_l: y_t + dt * dy_l, y_t, dy_l)
             k_l = f(times[l], y_l, stage=l)
-            k = jax.tree_multimap(lambda k, k_l: k.at[l].set(k_l), k, k_l)
+            k = jax.tree_map(lambda k, k_l: k.at[l].set(k_l), k, k_l)
 
         return k
 
@@ -132,7 +132,7 @@ class TableauRKExplicit:
         k = self._compute_slopes(f, t, dt, y_t)
 
         b = self.b[0] if self.b.ndim == 2 else self.b
-        y_tp1 = jax.tree_multimap(
+        y_tp1 = jax.tree_map(
             lambda y_t, k: y_t + dt * jnp.tensordot(b, k, axes=1), y_t, k
         )
 
@@ -154,7 +154,7 @@ class TableauRKExplicit:
 
         k = self._compute_slopes(f, t, dt, y_t)
 
-        y_tp1 = jax.tree_multimap(
+        y_tp1 = jax.tree_map(
             lambda y_t, k: y_t + dt * jnp.tensordot(self.b[0], k, axes=1), y_t, k
         )
         db = self.b[0] - self.b[1]

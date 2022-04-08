@@ -8,7 +8,7 @@ from functools import partial, wraps
 
 from netket.utils import module_version
 
-_tree_add = partial(jax.tree_multimap, jax.lax.add)
+_tree_add = partial(jax.tree_map, jax.lax.add)
 _tree_zeros_like = partial(jax.tree_map, lambda x: jnp.zeros(x.shape, dtype=x.dtype))
 
 
@@ -93,7 +93,7 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add):
         y_op = _get_op_part(y)
         y_append = _get_append_part(y)
         # select here to avoid the user having to specify the zero element for op
-        y_reduce = jax.tree_multimap(
+        y_reduce = jax.tree_map(
             partial(jax.lax.select, is_first), y_op, op(y_carry, y_op)
         )
         return (False, y_reduce), y_append

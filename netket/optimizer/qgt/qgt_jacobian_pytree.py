@@ -208,12 +208,12 @@ def _matmul(
     check_valid_vector_type(self.params, vec)
 
     if self.scale is not None:
-        vec = jax.tree_multimap(jnp.multiply, vec, self.scale)
+        vec = jax.tree_map(jnp.multiply, vec, self.scale)
 
     result = mat_vec(vec, self.O, self.diag_shift)
 
     if self.scale is not None:
-        result = jax.tree_multimap(jnp.multiply, result, self.scale)
+        result = jax.tree_map(jnp.multiply, result, self.scale)
 
     # Reassemble real-imaginary split as needed
     if reassemble is not None:
@@ -240,9 +240,9 @@ def _solve(
     check_valid_vector_type(self.params, y)
 
     if self.scale is not None:
-        y = jax.tree_multimap(jnp.divide, y, self.scale)
+        y = jax.tree_map(jnp.divide, y, self.scale)
         if x0 is not None:
-            x0 = jax.tree_multimap(jnp.multiply, x0, self.scale)
+            x0 = jax.tree_map(jnp.multiply, x0, self.scale)
 
     # to pass the object LinearOperator itself down
     # but avoid rescaling, we pass down an object with
@@ -253,7 +253,7 @@ def _solve(
     out, info = solve_fun(unscaled_self, y, x0=x0)
 
     if self.scale is not None:
-        out = jax.tree_multimap(jnp.divide, out, self.scale)
+        out = jax.tree_map(jnp.divide, out, self.scale)
 
     # Reassemble real-imaginary split as needed
     if self.mode != "holomorphic":
