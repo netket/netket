@@ -122,7 +122,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     S = qgt(vstate)
     x, _ = S.solve(solver, vstate.parameters)
 
-    jax.tree_multimap(
+    jax.tree_map(
         partial(testing.assert_allclose, rtol=solvers_tol[solver]),
         S @ x,
         vstate.parameters,
@@ -142,7 +142,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all, _ = S.solve(solver, vstate.parameters)
 
-            jax.tree_multimap(
+            jax.tree_map(
                 lambda a, b: np.testing.assert_allclose(a, b, rtol=0.00045), x, x_all
             )
 
@@ -178,16 +178,14 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     def check_same_dtype(x, y):
         assert x.dtype == y.dtype
 
-    jax.tree_multimap(check_same_dtype, x, y)
+    jax.tree_map(check_same_dtype, x, y)
 
     # test multiplication by dense gives same result...
     y_dense, unravel = nk.jax.tree_ravel(y)
     x_dense = S @ y_dense
     x_dense_unravelled = unravel(x_dense)
 
-    jax.tree_multimap(
-        lambda a, b: np.testing.assert_allclose(a, b), x, x_dense_unravelled
-    )
+    jax.tree_map(lambda a, b: np.testing.assert_allclose(a, b), x, x_dense_unravelled)
 
     if _mpi_size > 1:
         # other check
@@ -203,7 +201,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all = S @ y
 
-            jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
+            jax.tree_map(lambda a, b: np.testing.assert_allclose(a, b), x, x_all)
 
 
 @pytest.mark.parametrize(
@@ -272,4 +270,4 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
     )
     S = S.replace(diag_shift=diag_shift_tree)
     res = S @ v
-    jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b), res, expected)
+    jax.tree_map(lambda a, b: np.testing.assert_allclose(a, b), res, expected)

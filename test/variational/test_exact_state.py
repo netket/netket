@@ -94,7 +94,7 @@ def test_init_parameters(vstate):
     def _f(x, y):
         np.testing.assert_allclose(x, y)
 
-    jax.tree_multimap(_f, pars, pars2)
+    jax.tree_map(_f, pars, pars2)
 
 
 @common.skipif_mpi

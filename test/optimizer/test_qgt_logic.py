@@ -67,7 +67,7 @@ def reassemble_complex(x, target, fun=tree_toreal_flat):
 
 
 def tree_allclose(t1, t2):
-    t = jax.tree_multimap(jnp.allclose, t1, t2)
+    t = jax.tree_map(jnp.allclose, t1, t2)
     return all(jax.tree_util.tree_flatten(t)[0])
 
 
@@ -80,7 +80,7 @@ def random_split_like_tree(rng_key, target=None, treedef=None):
 
 def tree_random_normal_like(rng_key, target):
     keys_tree = random_split_like_tree(rng_key, target)
-    return jax.tree_multimap(
+    return jax.tree_map(
         lambda l, k: jax.random.normal(k, l.shape, l.dtype),
         target,
         keys_tree,
