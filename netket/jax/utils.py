@@ -191,7 +191,7 @@ def tree_dot(a: PyTree, b: PyTree) -> Scalar:
     """
     return jax.tree_util.tree_reduce(
         jax.numpy.add,
-        jax.tree_map(jax.numpy.sum, jax.tree_multimap(jax.numpy.multiply, a, b)),
+        jax.tree_map(jax.numpy.sum, jax.tree_map(jax.numpy.multiply, a, b)),
     )
 
 
@@ -209,7 +209,7 @@ def tree_cast(x: PyTree, target: PyTree) -> PyTree:
     """
     # astype alone would also work, however that raises ComplexWarning when casting complex to real
     # therefore the real is taken first where needed
-    return jax.tree_multimap(
+    return jax.tree_map(
         lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
             target.dtype
         ),
@@ -230,9 +230,9 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
         where the leaves of x are first scaled with a.
     """
     if is_scalar(a):
-        return jax.tree_multimap(lambda x_, y_: a * x_ + y_, x, y)
+        return jax.tree_map(lambda x_, y_: a * x_ + y_, x, y)
     else:
-        return jax.tree_multimap(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
+        return jax.tree_map(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
 
 
 def _to_real(x):

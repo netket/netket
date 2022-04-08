@@ -116,7 +116,7 @@ def _exp_grad(
 
     Ō_grad = vjp_fun(ΔOΨ)[0]
 
-    Ō_grad = jax.tree_multimap(
+    Ō_grad = jax.tree_map(
         lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
             target.dtype
         ),

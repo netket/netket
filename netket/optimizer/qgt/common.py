@@ -48,4 +48,4 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
                 )
             )
 
-    jax.tree_multimap(check, x, target)
+    jax.tree_map(check, x, target)

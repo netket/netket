@@ -19,7 +19,7 @@ import jax
 from jax import numpy as jnp
 from jax.tree_util import (
     tree_map,
-    tree_multimap,
+    tree_map,
 )
 
 
@@ -74,9 +74,9 @@ def vjp_rr(
             out_r = _vjp_fun(jnp.asarray(ȳ.real, dtype=primals_out.dtype))
             out_i = _vjp_fun(jnp.asarray(ȳ.imag, dtype=primals_out.dtype))
             if conjugate:
-                out = tree_multimap(lambda re, im: re - 1j * im, out_r, out_i)
+                out = tree_map(lambda re, im: re - 1j * im, out_r, out_i)
             else:
-                out = tree_multimap(lambda re, im: re + 1j * im, out_r, out_i)
+                out = tree_map(lambda re, im: re + 1j * im, out_r, out_i)
 
         return out
 
@@ -124,13 +124,13 @@ def vjp_rc(
         vr_jj = vjp_j_fun(jnp.asarray(ȳ_r, dtype=vals_j.dtype))
         vj_jj = vjp_j_fun(jnp.asarray(ȳ_j, dtype=vals_j.dtype))
 
-        r = tree_multimap(
+        r = tree_map(
             lambda re, im: re + 1j * im,
             vr_jr,
             vj_jr,
         )
-        i = tree_multimap(lambda re, im: re + 1j * im, vr_jj, vj_jj)
-        out = tree_multimap(lambda re, im: re + 1j * im, r, i)
+        i = tree_map(lambda re, im: re + 1j * im, vr_jj, vj_jj)
+        out = tree_map(lambda re, im: re + 1j * im, r, i)
 
         if conjugate:
             out = tree_map(jnp.conjugate, out)

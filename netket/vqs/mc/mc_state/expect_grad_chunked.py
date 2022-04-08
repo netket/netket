@@ -149,7 +149,7 @@ def grad_expect_hermitian_chunked(
         (jnp.conjugate(O_loc) / n_samples),
     )[0]
 
-    Ō_grad = jax.tree_multimap(
+    Ō_grad = jax.tree_map(
         lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
             target.dtype
         ),
