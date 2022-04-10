@@ -475,8 +475,6 @@ def test_error_if_wrong_shape():
     # Issue #1157
     # https://github.com/netket/netket/issues/1157
     hi = nk.hilbert.Fock(5, N=3)
-    mat = np.random.rand(3,3)
+    mat = np.random.rand(3, 3)
     with pytest.raises(ValueError):
         nk.operator.LocalOperator(hi, mat, [0, 1])
-
-
