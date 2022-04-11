@@ -64,7 +64,7 @@ solvers_tol[solvers["cholesky"], np.dtype("float32")] = 1e-2, 1e-4
 
 matmul_tol = {}
 matmul_tol[np.dtype("float64")] = 1e-7, 0
-matmul_tol[np.dtype("float32")] = 1e-4, 0
+matmul_tol[np.dtype("float32")] = 5e-4, 0
 
 
 dense_tol = {}
