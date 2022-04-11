@@ -64,7 +64,7 @@ solvers_tol[solvers["cholesky"], np.dtype("float32")] = 1e-3, 1e-4
 
 matmul_tol = {}
 matmul_tol[np.dtype("float64")] = 1e-7, 0
-matmul_tol[np.dtype("float32")] = 1e-4, 1e-4
+matmul_tol[np.dtype("float32")] = 1e-4, 0
 
 RBM = partial(
     nk.models.RBM,
