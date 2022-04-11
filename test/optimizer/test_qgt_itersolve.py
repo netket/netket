@@ -56,16 +56,15 @@ solvers = {}
 solvers_tol = {}
 
 solvers["gmres"] = partial(jax.scipy.sparse.linalg.gmres, tol=1e-6)
-solvers_tol[solvers["gmres"], np.dtype("float64")] = 5e-4
-solvers_tol[solvers["gmres"], np.dtype("float32")] = 1e-2
+solvers_tol[solvers["gmres"], np.dtype("float64")] = 5e-4, 0
+solvers_tol[solvers["gmres"], np.dtype("float32")] = 1e-2, 1e-4
 solvers["cholesky"] = nk.optimizer.solver.cholesky
-solvers_tol[solvers["cholesky"], np.dtype("float64")] = 1e-8
-solvers_tol[solvers["cholesky"], np.dtype("float32")] = 1e-3
+solvers_tol[solvers["cholesky"], np.dtype("float64")] = 1e-8, 0
+solvers_tol[solvers["cholesky"], np.dtype("float32")] = 1e-3, 1e-4
 
 matmul_tol = {}
-matmul_tol[np.dtype("float64")] = 1e-7
-matmul_tol[np.dtype("float32")] = 1e-4
-
+matmul_tol[np.dtype("float64")] = 1e-7, 0
+matmul_tol[np.dtype("float32")] = 1e-4, 1e-4
 
 RBM = partial(
     nk.models.RBM,
@@ -127,9 +126,9 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     S = qgt(vstate)
     x, _ = S.solve(solver, vstate.parameters)
 
-    rtol = solvers_tol[solver, nk.jax.dtype_real(vstate.model.dtype)]
-    jax.tree_map(
-        partial(testing.assert_allclose, rtol=rtol),
+    rtol, atol = solvers_tol[solver, nk.jax.dtype_real(vstate.model.dtype)]
+    jax.tree_multimap(
+        partial(testing.assert_allclose, rtol=rtol, atol=atol),
         S @ x,
         vstate.parameters,
     )
@@ -148,8 +147,8 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all, _ = S.solve(solver, vstate.parameters)
 
-            jax.tree_map(
-                lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol), x, x_all
+            jax.tree_multimap(
+                lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol), x, x_all
             )
 
 
@@ -174,7 +173,7 @@ def test_qgt_solve_with_x0(qgt, vstate):
 @pytest.mark.parametrize("chunk_size", [None, 16])
 def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
 
-    rtol = matmul_tol[nk.jax.dtype_real(vstate.model.dtype)]
+    rtol, atol = matmul_tol[nk.jax.dtype_real(vstate.model.dtype)]
 
     S = qgt(vstate)
     rng = nkjax.PRNGSeq(0)
@@ -194,8 +193,8 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     x_dense = S @ y_dense
     x_dense_unravelled = unravel(x_dense)
 
-    jax.tree_map(
-        lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol), x, x_dense_unravelled
+    jax.tree_multimap(
+        lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol), x, x_dense_unravelled
     )
 
     if _mpi_size > 1:
@@ -212,7 +211,8 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all = S @ y
 
-            jax.tree_map(lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol), x, x_all)
+            jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol), x, x_all)
+
 
 
 @pytest.mark.parametrize(
