@@ -148,7 +148,9 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
             x_all, _ = S.solve(solver, vstate.parameters)
 
             jax.tree_multimap(
-                lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol), x, x_all
+                lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
+                x,
+                x_all,
             )
 
 
@@ -194,7 +196,9 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     x_dense_unravelled = unravel(x_dense)
 
     jax.tree_multimap(
-        lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol), x, x_dense_unravelled
+        lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
+        x,
+        x_dense_unravelled,
     )
 
     if _mpi_size > 1:
@@ -211,8 +215,11 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all = S @ y
 
-            jax.tree_multimap(lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol), x, x_all)
-
+            jax.tree_multimap(
+                lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
+                x,
+                x_all,
+            )
 
 
 @pytest.mark.parametrize(
