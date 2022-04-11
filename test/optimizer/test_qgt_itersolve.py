@@ -106,11 +106,17 @@ def vstate(request, model, chunk_size):
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
 
+    k = jax.random.PRNGKey(3)
+    k1, k2 = jax.random.split(k)
+
     vstate = nk.vqs.MCState(
         nk.sampler.MetropolisLocal(hi),
         model,
+        seed=k1,
     )
-    vstate.init_parameters(normal(stddev=0.001), seed=jax.random.PRNGKey(3))
+
+    # initialize the same parameters on every rank
+    vstate.init_parameters(normal(stddev=0.001), seed=k2)
 
     vstate.sample()
 
