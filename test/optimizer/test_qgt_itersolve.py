@@ -133,7 +133,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     x, _ = S.solve(solver, vstate.parameters)
 
     rtol, atol = solvers_tol[solver, nk.jax.dtype_real(vstate.model.dtype)]
-    jax.tree_multimap(
+    jax.tree_map(
         partial(testing.assert_allclose, rtol=rtol, atol=atol),
         S @ x,
         vstate.parameters,
@@ -153,7 +153,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all, _ = S.solve(solver, vstate.parameters)
 
-            jax.tree_multimap(
+            jax.tree_map(
                 lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
                 x,
                 x_all,
@@ -201,7 +201,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     x_dense = S @ y_dense
     x_dense_unravelled = unravel(x_dense)
 
-    jax.tree_multimap(
+    jax.tree_map(
         lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
         x,
         x_dense_unravelled,
@@ -221,7 +221,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             x_all = S @ y
 
-            jax.tree_multimap(
+            jax.tree_map(
                 lambda a, b: np.testing.assert_allclose(a, b, rtol=rtol, atol=atol),
                 x,
                 x_all,
