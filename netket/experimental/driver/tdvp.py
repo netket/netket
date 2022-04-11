@@ -367,6 +367,7 @@ class TDVP(AbstractVariationalDriver):
 
             for step in self._iter(T, tstops=tstops, callback=update_progress_bar):
                 log_data = self.estimate(obs)
+                self._log_additional_data(log_data, step)
 
                 self._postfix = {"n": self.step_count}
                 # if the cost-function is defined then report it in the progress bar
@@ -402,8 +403,8 @@ class TDVP(AbstractVariationalDriver):
 
         return loggers
 
-    def _log_additional_data(self, obs, step):
-        obs["t"] = self.t
+    def _log_additional_data(self, log_dict, step):
+        log_dict["t"] = self.t
 
     @property
     def _default_step_size(self):

@@ -252,6 +252,7 @@ class AbstractVariationalDriver(abc.ABC):
             for step in self.iter(n_iter, step_size):
 
                 log_data = self.estimate(obs)
+                self._log_additional_data(log_data, step)
 
                 # if the cost-function is defined then report it in the progress bar
                 if self._loss_stats is not None:
@@ -313,6 +314,22 @@ class AbstractVariationalDriver(abc.ABC):
         self._optimizer_state, self.state.parameters = apply_gradient(
             self._optimizer.update, self._optimizer_state, dp, self.state.parameters
         )
+
+    def _log_additional_data(self, log_dict, step):
+        """
+        Method to be implemented in sub-classes of AbstractVariationalDriver to
+        log additional data at every step.
+        This method is called at every iteration when executing with `run`.
+
+        Args:
+            `log_dict`: The dictionary containing all logged data. It must be
+                modified in-place adding new keys.
+            `step`: the current step number.
+
+        Returns:
+            Nothing. The log dictionary should be modified in place.
+        """
+        pass  # pragma: no cover
 
 
 @partial(jax.jit, static_argnums=0)
