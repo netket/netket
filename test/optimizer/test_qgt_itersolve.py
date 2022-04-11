@@ -60,11 +60,17 @@ solvers_tol[solvers["gmres"], np.dtype("float64")] = 5e-4, 0
 solvers_tol[solvers["gmres"], np.dtype("float32")] = 1e-2, 1e-4
 solvers["cholesky"] = nk.optimizer.solver.cholesky
 solvers_tol[solvers["cholesky"], np.dtype("float64")] = 1e-8, 0
-solvers_tol[solvers["cholesky"], np.dtype("float32")] = 1e-3, 1e-4
+solvers_tol[solvers["cholesky"], np.dtype("float32")] = 1e-2, 1e-4
 
 matmul_tol = {}
 matmul_tol[np.dtype("float64")] = 1e-7, 0
 matmul_tol[np.dtype("float32")] = 1e-4, 0
+
+
+dense_tol = {}
+dense_tol[np.dtype("float64")] = 1e-5, 1e-15
+dense_tol[np.dtype("float32")] = 5e-4, 1e-6
+
 
 RBM = partial(
     nk.models.RBM,
@@ -228,6 +234,9 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
 )
 @pytest.mark.parametrize("chunk_size", [None, 16])
 def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
+
+    rtol, atol = dense_tol[nk.jax.dtype_real(vstate.model.dtype)]
+
     S = qgt(vstate)
 
     # test repr
@@ -260,7 +269,7 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
             S = qgt(vstate)
             Sd_all = S.to_dense()
 
-            np.testing.assert_allclose(Sd_all, Sd, rtol=1e-5, atol=1e-15)
+            np.testing.assert_allclose(Sd_all, Sd, rtol=rtol, atol=atol)
 
 
 @pytest.mark.skipif_mpi
