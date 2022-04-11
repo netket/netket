@@ -402,8 +402,8 @@ class TDVP(AbstractVariationalDriver):
 
         return loggers
 
-    def _log_additional_data(self, obs, step):
-        obs["t"] = self.t
+    def _log_additional_data(self, log_dict, step):
+        log_dict["t"] = self.t
 
     @property
     def _default_step_size(self):
