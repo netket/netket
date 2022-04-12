@@ -47,7 +47,7 @@ setup(
         "Operating System :: Unix",
         "Topic :: Scientific/Engineering :: Physics",
     ],
-    packages=find_packages(),
+    packages=find_packages(include=["netket*"]),
     install_requires=BASE_DEPENDENCIES,
     python_requires=">=3.7",
     extras_require={
