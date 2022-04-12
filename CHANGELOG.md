@@ -12,9 +12,16 @@
 
 ### Breaking Changes
 
+
+## NetKet 3.4.1 (BugFixes & DepWarns)
+
 ### Internal Changes
+* Several deprecation warnings related to `jax.tree_util.tree_multimap` being deprecated have been resolved by changing those calls to `jax.tree_util.tree_map`. Jax should feel more tranquillo now. [#1156](https://github.com/netket/netket/pull/1156)
 
 ### Bug Fixes
+* `TDVP` now supports model with real parameters such as `RBMModPhase`. [#1139](https://github.com/netket/netket/pull/1139)
+* An error is now raised when user attempts to construct a `LocalOperator` with a matrix of the wrong size (bug [#1157](https://github.com/netket/netket/pull/1157). [#1158](https://github.com/netket/netket/pull/1158)
+* A bug where `QGTJacobian` could not be used with models in single precision has been addressed (bug [#1153](https://github.com/netket/netket/pull/1153). [#1155](https://github.com/netket/netket/pull/1155)
 
 
 ## NetKet 3.4 (Special 🧱 edition)

@@ -26,14 +26,16 @@ import netket.experimental as nkx
 SEED = 214748364
 
 
-def _setup_system(L, *, dtype=np.complex128):
+def _setup_system(L, *, model=None, dtype=np.complex128):
     g = nk.graph.Chain(length=L)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
-    ma = nk.models.RBM(alpha=1, dtype=dtype)
+    if model is None:
+        model = nk.models.RBM(alpha=1, dtype=dtype)
+
     sa = nk.sampler.ExactSampler(hilbert=hi)
 
-    vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
+    vs = nk.vqs.MCState(sa, model, n_samples=1000, seed=SEED)
 
     ha = nk.operator.Ising(hi, graph=g, h=1.0)
 
@@ -68,11 +70,19 @@ adaptive_step_integrators = [
 ]
 all_integrators = fixed_step_integrators + adaptive_step_integrators
 
+nqs_models = [
+    pytest.param(nk.models.RBM(alpha=1, dtype=np.complex128), id="RBM(complex128)"),
+    pytest.param(
+        nk.models.RBMModPhase(alpha=1, dtype=np.float64), id="RBMModPhase(float64)"
+    ),
+]
 
+
+@pytest.mark.parametrize("model", nqs_models)
 @pytest.mark.parametrize("integrator", fixed_step_integrators)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
-def test_one_fixed_step(integrator, propagation_type):
-    ha, vstate, _ = _setup_system(L=2)
+def test_one_fixed_step(model, integrator, propagation_type):
+    ha, vstate, _ = _setup_system(L=2, model=model)
     te = nkx.TDVP(
         ha,
         vstate,
