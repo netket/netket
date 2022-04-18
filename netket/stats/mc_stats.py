@@ -46,6 +46,13 @@ def _format_decimal(value, std, var):
 _NaN = float("NaN")
 
 
+def _maybe_item(x):
+    if hasattr(x, "shape") and x.shape == ():
+        return x.item()
+    else:
+        return x
+
+
 @struct.dataclass
 class Stats:
     """A dict-compatible class containing the result of the statistics function."""
@@ -60,12 +67,12 @@ class Stats:
 
     def to_dict(self):
         jsd = {}
-        jsd["Mean"] = self.mean.item()
-        jsd["Variance"] = self.variance.item()
-        jsd["Sigma"] = self.error_of_mean.item()
-        jsd["R_hat"] = self.R_hat.item()
-        jsd["TauCorr"] = self.tau_corr.item()
-        jsd["TauCorrMax"] = self.tau_corr_max.item()
+        jsd["Mean"] = _maybe_item(self.mean)
+        jsd["Variance"] = _maybe_item(self.variance)
+        jsd["Sigma"] = _maybe_item(self.error_of_mean)
+        jsd["R_hat"] = _maybe_item(self.R_hat)
+        jsd["TauCorr"] = _maybe_item(self.tau_corr)
+        jsd["TauCorrMax"] = _maybe_item(self.tau_corr_max)
         return jsd
 
     def to_compound(self):
@@ -204,8 +211,8 @@ def _statistics(data):
     variance = _var(data)
 
     taus = jax.vmap(integrated_time)(data)
-    tau_avg = mpi.mpi_mean_jax(taus)
-    tau_max = mpi.mpi_max_jax(taus)
+    tau_avg, _ = mpi.mpi_mean_jax(jnp.mean(taus))
+    tau_max, _ = mpi.mpi_max_jax(jnp.max(taus))
 
     batch_var, n_batches = _batch_variance(data)
     if n_batches > 1:
