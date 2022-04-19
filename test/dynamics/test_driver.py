@@ -81,13 +81,35 @@ nqs_models = [
 @pytest.mark.parametrize("model", nqs_models)
 @pytest.mark.parametrize("integrator", fixed_step_integrators)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
-def test_one_fixed_step(model, integrator, propagation_type):
+@pytest.mark.parametrize(
+    "qgt",
+    [
+        nk.optimizer.qgt.QGTJacobianDense,
+        nk.optimizer.qgt.QGTJacobianPyTree,
+        nk.optimizer.qgt.QGTOnTheFly,
+    ],
+)
+@pytest.mark.parametrize("mode", ["real", "complex", "holomorphic"])
+def test_one_fixed_step(model, integrator, propagation_type, qgt, mode):
     ha, vstate, _ = _setup_system(L=2, model=model)
+    if nk.jax.tree_leaf_isreal(vstate.parameters) and mode in (
+        "complex",
+        "holomorphic",
+    ):
+        pytest.skip("mode=complex/holomorphic does not apply to real parameters")
+    if nk.jax.tree_leaf_iscomplex(vstate.parameters) and mode == "real":
+        pytest.skip("mode=real does not apply to complex parameters")
+    if qgt == nk.optimizer.qgt.QGTOnTheFly:
+        if mode in ("real", "holomorphic"):
+            pytest.skip("mode is not a QGTOnTheFly option")
+        qgt = qgt()
+    else:
+        qgt = qgt(mode=mode)
     te = nkx.TDVP(
         ha,
         vstate,
         integrator,
-        qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
+        qgt=qgt,
         propagation_type=propagation_type,
     )
     te.run(T=0.01, callback=_stop_after_one_step)
