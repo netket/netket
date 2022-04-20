@@ -351,8 +351,15 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     if jit:
         mv = jax.jit(mv)
 
-    centered_oks, _ = qgt_jacobian_pytree_logic.prepare_centered_oks(
-        apply_fun, e.params, e.samples, model_state, mode, rescale_shift
+    centered_oks, _ = qgt_jacobian_pytree_logic.prepare_log_gradients(
+        apply_fun,
+        e.params,
+        e.samples,
+        model_state,
+        mode,
+        rescale_shift,
+        centered=True,
+        split_complex=mode == "complex",
     )
     actual = reassemble(mv(v, centered_oks, diag_shift))
     expected = reassemble_complex(

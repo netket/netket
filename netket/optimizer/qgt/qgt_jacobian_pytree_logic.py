@@ -200,20 +200,35 @@ def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
 # here the other modes are converted
 
 
-@partial(jax.jit, static_argnames=("apply_fun", "mode", "rescale_shift", "chunk_size"))
-def prepare_centered_oks(
+@partial(
+    jax.jit,
+    static_argnames=(
+        "apply_fun",
+        "mode",
+        "rescale_shift",
+        "chunk_size",
+        "centered",
+        "split_complex",
+    ),
+)
+def prepare_log_gradients(
     apply_fun: Callable,
     params: PyTree,
     samples: Array,
     model_state: Optional[PyTree],
     mode: str,
     rescale_shift: bool,
+    centered: bool,
     pdf=None,
     chunk_size: int = None,
+    split_complex: bool = False,
 ) -> PyTree:
     """
-    compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
-    divided by √n
+    compute Oⱼₖ = Oⱼₖ = ∂/∂pₖ ln Ψ(σⱼ)
+    or      ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
+    divided by √n.
+
+    The `centered` argument determines whether Oⱼₖ or ΔOⱼₖ is computed.
 
     In a somewhat intransparent way this also internally splits all parameters to real
     in the 'real' and 'complex' modes (for C→R, R&C→R, R&C→C and general C→C) resulting in the respective ΔOⱼₖ
@@ -226,8 +241,10 @@ def prepare_centered_oks(
         model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
+        centered: Whether to center the returned gradients around zero by subtracting the sample mean.
         pdf: |ψ(x)|^2 if exact optimization is being used else None
         chunk_size: an int specfying the size of the chunks the gradient should be computed in (default: None)
+        split_complex: If mode=="complex", split result into stacked real and imaginary part.
 
     Returns:
         if not rescale_shift:
@@ -238,6 +255,9 @@ def prepare_centered_oks(
             pytree containing the norms that were divided out (same shape as params)
 
     """
+    if mode != "complex" and split_complex:
+        raise ValueError("split_complex=True can only be used with mode='complex'")
+
     # un-batch the samples
     samples = samples.reshape((-1, samples.shape[-1]))
 
@@ -247,22 +267,35 @@ def prepare_centered_oks(
 
     if mode == "real":
         split_complex_params = True  # convert C→R and R&C→R to R→R
-        centered_jacobian_fun = centered_jacobian_real_holo
+        if centered:
+            centered_jacobian_fun = centered_jacobian_real_holo
+        else:
+            centered_jacobian_fun = jacobian_real_holo
         jacobian_fun = jacobian_real_holo
     elif mode == "complex":
-        split_complex_params = True  # convert C→C and R&C→C to R→C
-        # centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
+        if centered:
+            centered_jacobian_fun = centered_jacobian_cplx
+        else:
+            centered_jacobian_fun = jacobian_cplx
+        if split_complex:
+            split_complex_params = True  # convert C→C and R&C→C to R→C
+            # centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
 
-        # avoid converting to complex and then back
-        # by passing around the oks as a tuple of two pytrees representing the real and imag parts
-        centered_jacobian_fun = compose(
-            stack_jacobian_tuple,
-            partial(centered_jacobian_cplx, _build_fn=lambda *x: x),
-        )
+            # avoid converting to complex and then back
+            # by passing around the oks as a tuple of two pytrees representing the real and imag parts
+            centered_jacobian_fun = compose(
+                stack_jacobian_tuple,
+                partial(centered_jacobian_fun, _build_fn=lambda *x: x),
+            )
+        else:
+            split_complex_params = False
         jacobian_fun = jacobian_cplx
     elif mode == "holomorphic":
         split_complex_params = False
-        centered_jacobian_fun = centered_jacobian_real_holo
+        if centered:
+            centered_jacobian_fun = centered_jacobian_real_holo
+        else:
+            centered_jacobian_fun = jacobian_real_holo
         jacobian_fun = jacobian_real_holo
     else:
         raise NotImplementedError(
@@ -293,8 +326,11 @@ def prepare_centered_oks(
         )
     else:
         oks = jacobian_fun(f, params, samples)
-        oks_mean = jax.tree_map(partial(sum, axis=0), _multiply_by_pdf(oks, pdf))
-        centered_oks = jax.tree_map(lambda x, y: x - y, oks, oks_mean)
+        if centered:
+            oks_mean = jax.tree_map(partial(sum, axis=0), _multiply_by_pdf(oks, pdf))
+            centered_oks = jax.tree_map(lambda x, y: x - y, oks, oks_mean)
+        else:
+            centered_oks = oks
 
         centered_oks = _multiply_by_pdf(centered_oks, jnp.sqrt(pdf))
     if rescale_shift:
