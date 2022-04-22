@@ -18,7 +18,6 @@ import numpy as np
 
 import jax
 from jax import numpy as jnp
-from jax.experimental import loops
 
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils import struct
@@ -171,215 +170,215 @@ class MetropolisPtSampler(MetropolisSampler):
     def _sample_next(
         sampler, machine, parameters: PyTree, state: MetropolisPtSamplerState
     ):
+        def loop_body(i, s):
+            # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
+            s["key"], key1, key2, key3, key4 = jax.random.split(s["key"], 5)
+
+            # def cbi(data):
+            #    i, beta = data
+            #    print("sweep #", i, " for beta=\n", beta)
+            #    return beta
+            #
+            # beta = hcb.call(
+            #   cbi,
+            #   (i, s["beta"]),
+            #   result_shape=jax.ShapeDtypeStruct(s["beta"].shape, s["beta"].dtype),
+            # )
+
+            beta = s["beta"]
+
+            σp, log_prob_correction = sampler.rule.transition(
+                sampler, machine, parameters, state, key1, s["σ"]
+            )
+            proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
+
+            uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
+            if log_prob_correction is not None:
+                do_accept = uniform < jnp.exp(
+                    beta.reshape((-1,))
+                    * (proposal_log_prob - s["log_prob"] + log_prob_correction)
+                )
+            else:
+                do_accept = uniform < jnp.exp(
+                    beta.reshape((-1,)) * (proposal_log_prob - s["log_prob"])
+                )
+
+            # do_accept must match ndim of proposal and state (which is 2)
+            s["σ"] = jnp.where(do_accept.reshape(-1, 1), σp, s["σ"])
+            n_accepted_per_beta = s["n_accepted_per_beta"] + do_accept.reshape(
+                (sampler.n_chains, sampler.n_replicas)
+            )
+
+            s["log_prob"] = jax.numpy.where(
+                do_accept.reshape(-1), proposal_log_prob, s["log_prob"]
+            )
+
+            # exchange betas
+
+            # randomly decide if every set of replicas should be swapped in even or odd order
+            swap_order = jax.random.randint(
+                key3,
+                minval=0,
+                maxval=2,
+                shape=(sampler.n_chains,),
+            )  # 0 or 1
+            # iswap_order = jnp.mod(swap_order + 1, 2)  #  1 or 0
+
+            # indices of even swapped elements (per-row)
+            idxs = jnp.arange(0, sampler.n_replicas, 2).reshape(
+                (1, -1)
+            ) + swap_order.reshape((-1, 1))
+            # indices off odd swapped elements (per-row)
+            inn = (idxs + 1) % sampler.n_replicas
+
+            # for every rows of the input, swap elements at idxs with elements at inn
+            @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
+            def swap_rows(beta_row, idxs, inn):
+                proposed_beta = beta_row.at[idxs].set(
+                    beta_row[inn], unique_indices=True, indices_are_sorted=True
+                )
+                proposed_beta = proposed_beta.at[inn].set(
+                    beta_row[idxs], unique_indices=True, indices_are_sorted=False
+                )
+                return proposed_beta
+
+            proposed_beta = swap_rows(beta, idxs, inn)
+
+            @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
+            def compute_proposed_prob(prob, idxs, inn):
+                prob_rescaled = prob[idxs] + prob[inn]
+                return prob_rescaled
+
+            # compute the probability of the swaps
+            log_prob = (proposed_beta - state.beta) * s["log_prob"].reshape(
+                (sampler.n_chains, sampler.n_replicas)
+            )
+
+            prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
+
+            uniform = jax.random.uniform(
+                key4, shape=(sampler.n_chains, sampler.n_replicas // 2)
+            )
+
+            do_swap = uniform < prob_rescaled
+
+            do_swap = jnp.dstack((do_swap, do_swap)).reshape(
+                (-1, sampler.n_replicas)
+            )  # concat along last dimension
+
+            # roll if swap_ordeer is odd
+            @partial(jax.vmap, in_axes=(0, 0), out_axes=0)
+            def fix_swap(do_swap, swap_order):
+                return jax.lax.cond(
+                    swap_order == 0, lambda x: x, lambda x: jnp.roll(x, 1), do_swap
+                )
+
+            do_swap = fix_swap(do_swap, swap_order)
+            # jax.experimental.host_callback.id_print(state.beta)
+            # jax.experimental.host_callback.id_print(proposed_beta)
+
+            # new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
+
+            # def cb(data):
+            #     _bt, _pbt, new_beta, so, do_swap, log_prob, prob = data
+            #     print("--------.---------.---------.--------")
+            #     print("     cur beta:\n", _bt)
+            #     print("proposed beta:\n", _pbt)
+            #     print("     new beta:\n", new_beta)
+            #     print("swaporder :", so)
+            #     print("do_swap :\n", do_swap)
+            #     print("log_prob;\n", log_prob)
+            #     print("prob_rescaled;\n", prob)
+            #     return new_beta
+            #
+            # new_beta = hcb.call(
+            #    cb,
+            #    (
+            #        beta,
+            #        proposed_beta,
+            #        new_beta,
+            #        swap_order,
+            #        do_swap,
+            #        log_prob,
+            #        prob_rescaled,
+            #    ),
+            #    result_shape=jax.ShapeDtypeStruct(new_beta.shape, new_beta.dtype),
+            # )
+            # s["beta"] = new_beta
+
+            swap_order = swap_order.reshape(-1)
+
+            beta_0_moved = jax.vmap(
+                lambda do_swap, i: do_swap[i], in_axes=(0, 0), out_axes=0
+            )(do_swap, state.beta_0_index)
+            proposed_beta_0_index = jnp.mod(
+                state.beta_0_index
+                + (-jnp.mod(swap_order, 2) * 2 + 1)
+                * (-jnp.mod(state.beta_0_index, 2) * 2 + 1),
+                sampler.n_replicas,
+            )
+
+            s["beta_0_index"] = jnp.where(
+                beta_0_moved, proposed_beta_0_index, s["beta_0_index"]
+            )
+
+            # swap acceptances
+            swapped_n_accepted_per_beta = swap_rows(n_accepted_per_beta, idxs, inn)
+            s["n_accepted_per_beta"] = jax.numpy.where(
+                do_swap,
+                swapped_n_accepted_per_beta,
+                n_accepted_per_beta,
+            )
+
+            # Update statistics to compute diffusion coefficient of replicas
+            # Total exchange steps performed
+            delta = s["beta_0_index"] - s["beta_position"]
+            s["beta_position"] = s["beta_position"] + delta / (
+                state.exchange_steps + jnp.asarray(i, dtype=jnp.int64)
+            )
+            delta2 = s["beta_0_index"] - s["beta_position"]
+            s["beta_diffusion"] = s["beta_diffusion"] + delta * delta2
+
+            return s
+
         new_rng, rng = jax.random.split(state.rng)
+
         # def cbr(data):
         #    new_rng, rng = data
         #    print("sample_next newrng:\n", new_rng,  "\nand rng:\n", rng)
         #    return new_rng
+        #
         # new_rng = hcb.call(
         #   cbr,
         #   (new_rng, rng),
         #   result_shape=jax.ShapeDtypeStruct(new_rng.shape, new_rng.dtype),
         # )
 
-        with loops.Scope() as s:
-            s.key = rng
-            s.σ = state.σ
-            s.log_prob = sampler.machine_pow * machine.apply(parameters, state.σ).real
-            s.beta = state.beta
-
+        s = {
+            "key": rng,
+            "σ": state.σ,
+            "log_prob": sampler.machine_pow * machine.apply(parameters, state.σ).real,
+            "beta": state.beta,
             # for logging
-            s.beta_0_index = state.beta_0_index
-            s.n_accepted_per_beta = state.n_accepted_per_beta
-            s.beta_position = state.beta_position
-            s.beta_diffusion = state.beta_diffusion
+            "beta_0_index": state.beta_0_index,
+            "n_accepted_per_beta": state.n_accepted_per_beta,
+            "beta_position": state.beta_position,
+            "beta_diffusion": state.beta_diffusion,
+        }
+        s = jax.lax.fori_loop(0, sampler.n_sweeps, loop_body, s)
 
-            for i in s.range(sampler.n_sweeps):
-                # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
-                s.key, key1, key2, key3, key4 = jax.random.split(s.key, 5)
-
-                # def cbi(data):
-                #    i, beta = data
-                #    print("sweep #", i, " for beta=\n", beta)
-                #    return beta
-                # beta = hcb.call(
-                #   cbi,
-                #   (i, s.beta),
-                #   result_shape=jax.ShapeDtypeStruct(s.beta.shape, s.beta.dtype),
-                # )
-                beta = s.beta
-
-                σp, log_prob_correction = sampler.rule.transition(
-                    sampler, machine, parameters, state, key1, s.σ
-                )
-                proposal_log_prob = (
-                    sampler.machine_pow * machine.apply(parameters, σp).real
-                )
-
-                uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
-                if log_prob_correction is not None:
-                    do_accept = uniform < jnp.exp(
-                        beta.reshape((-1,))
-                        * (proposal_log_prob - s.log_prob + log_prob_correction)
-                    )
-                else:
-                    do_accept = uniform < jnp.exp(
-                        beta.reshape((-1,)) * (proposal_log_prob - s.log_prob)
-                    )
-
-                # do_accept must match ndim of proposal and state (which is 2)
-                s.σ = jnp.where(do_accept.reshape(-1, 1), σp, s.σ)
-                n_accepted_per_beta = s.n_accepted_per_beta + do_accept.reshape(
-                    (sampler.n_chains, sampler.n_replicas)
-                )
-
-                s.log_prob = jax.numpy.where(
-                    do_accept.reshape(-1), proposal_log_prob, s.log_prob
-                )
-
-                # exchange betas
-
-                # randomly decide if every set of replicas should be swapped in even or odd order
-                swap_order = jax.random.randint(
-                    key3,
-                    minval=0,
-                    maxval=2,
-                    shape=(sampler.n_chains,),
-                )  # 0 or 1
-                # iswap_order = jnp.mod(swap_order + 1, 2)  #  1 or 0
-
-                # indices of even swapped elements (per-row)
-                idxs = jnp.arange(0, sampler.n_replicas, 2).reshape(
-                    (1, -1)
-                ) + swap_order.reshape((-1, 1))
-                # indices off odd swapped elements (per-row)
-                inn = (idxs + 1) % sampler.n_replicas
-
-                # for every rows of the input, swap elements at idxs with elements at inn
-                @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
-                def swap_rows(beta_row, idxs, inn):
-                    proposed_beta = beta_row.at[idxs].set(
-                        beta_row[inn], unique_indices=True, indices_are_sorted=True
-                    )
-                    proposed_beta = proposed_beta.at[inn].set(
-                        beta_row[idxs], unique_indices=True, indices_are_sorted=False
-                    )
-                    return proposed_beta
-
-                proposed_beta = swap_rows(beta, idxs, inn)
-
-                @partial(jax.vmap, in_axes=(0, 0, 0), out_axes=0)
-                def compute_proposed_prob(prob, idxs, inn):
-                    prob_rescaled = prob[idxs] + prob[inn]
-                    return prob_rescaled
-
-                # compute the probability of the swaps
-                log_prob = (proposed_beta - state.beta) * s.log_prob.reshape(
-                    (sampler.n_chains, sampler.n_replicas)
-                )
-
-                prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
-
-                prob_rescaled = jnp.exp(compute_proposed_prob(log_prob, idxs, inn))
-
-                uniform = jax.random.uniform(
-                    key4, shape=(sampler.n_chains, sampler.n_replicas // 2)
-                )
-
-                do_swap = uniform < prob_rescaled
-
-                do_swap = jnp.dstack((do_swap, do_swap)).reshape(
-                    (-1, sampler.n_replicas)
-                )  # concat along last dimension
-
-                # roll if swap_ordeer is odd
-                @partial(jax.vmap, in_axes=(0, 0), out_axes=0)
-                def fix_swap(do_swap, swap_order):
-                    return jax.lax.cond(
-                        swap_order == 0, lambda x: x, lambda x: jnp.roll(x, 1), do_swap
-                    )
-
-                do_swap = fix_swap(do_swap, swap_order)
-                # jax.experimental.host_callback.id_print(state.beta)
-                # jax.experimental.host_callback.id_print(proposed_beta)
-
-                # new_beta = jax.numpy.where(do_swap, proposed_beta, beta)
-
-                def cb(data):
-                    _bt, _pbt, new_beta, so, do_swap, log_prob, prob = data
-                    print("--------.---------.---------.--------")
-                    print("     cur beta:\n", _bt)
-                    print("proposed beta:\n", _pbt)
-                    print("     new beta:\n", new_beta)
-                    print("swaporder :", so)
-                    print("do_swap :\n", do_swap)
-                    print("log_prob;\n", log_prob)
-                    print("prob_rescaled;\n", prob)
-                    return new_beta
-
-                # new_beta = hcb.call(
-                #    cb,
-                #    (
-                #        beta,
-                #        proposed_beta,
-                #        new_beta,
-                #        swap_order,
-                #        do_swap,
-                #        log_prob,
-                #        prob_rescaled,
-                #    ),
-                #    result_shape=jax.ShapeDtypeStruct(new_beta.shape, new_beta.dtype),
-                # )
-                # s.beta = new_beta
-
-                swap_order = swap_order.reshape(-1)
-
-                beta_0_moved = jax.vmap(
-                    lambda do_swap, i: do_swap[i], in_axes=(0, 0), out_axes=0
-                )(do_swap, state.beta_0_index)
-                proposed_beta_0_index = jnp.mod(
-                    state.beta_0_index
-                    + (-jnp.mod(swap_order, 2) * 2 + 1)
-                    * (-jnp.mod(state.beta_0_index, 2) * 2 + 1),
-                    sampler.n_replicas,
-                )
-
-                s.beta_0_index = jnp.where(
-                    beta_0_moved, proposed_beta_0_index, s.beta_0_index
-                )
-
-                # swap acceptances
-                swapped_n_accepted_per_beta = swap_rows(n_accepted_per_beta, idxs, inn)
-                s.n_accepted_per_beta = jax.numpy.where(
-                    do_swap,
-                    swapped_n_accepted_per_beta,
-                    n_accepted_per_beta,
-                )
-
-                # Update statistics to compute diffusion coefficient of replicas
-                # Total exchange steps performed
-                delta = s.beta_0_index - s.beta_position
-                # On Windows, if we leave `i` as a Python int or set its dtype
-                # to int64, there will be a type error. It may be a bug of
-                # `jax.experimental.loops`.
-                s.beta_position = s.beta_position + delta / (
-                    state.exchange_steps + jnp.asarray(i, dtype=jnp.int64)
-                )
-                delta2 = s.beta_0_index - s.beta_position
-                s.beta_diffusion = s.beta_diffusion + delta * delta2
-
-            new_state = state.replace(
-                rng=new_rng,
-                σ=s.σ,
-                # n_accepted=s.accepted,
-                n_steps_proc=state.n_steps_proc + sampler.n_sweeps * sampler.n_chains,
-                beta=s.beta,
-                beta_0_index=s.beta_0_index,
-                beta_position=s.beta_position,
-                beta_diffusion=s.beta_diffusion,
-                exchange_steps=state.exchange_steps + sampler.n_sweeps,
-                n_accepted_per_beta=s.n_accepted_per_beta,
-            )
+        new_state = state.replace(
+            rng=new_rng,
+            σ=s["σ"],
+            # n_accepted=s["accepted"],
+            n_steps_proc=state.n_steps_proc + sampler.n_sweeps * sampler.n_chains,
+            beta=s["beta"],
+            beta_0_index=s["beta_0_index"],
+            beta_position=s["beta_position"],
+            beta_diffusion=s["beta_diffusion"],
+            exchange_steps=state.exchange_steps + sampler.n_sweeps,
+            n_accepted_per_beta=s["n_accepted_per_beta"],
+        )
 
         offsets = jnp.arange(
             0, sampler.n_chains * sampler.n_replicas, sampler.n_replicas
