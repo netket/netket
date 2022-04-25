@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Callable
+from typing import Callable, Tuple, Union
 import warnings
 
 import jax
@@ -21,7 +21,7 @@ from jax import numpy as jnp
 
 from netket import jax as nkjax
 from netket.stats import Stats
-from netket.utils.types import PyTree
+from netket.utils.types import ArrayLike, PyTree
 from netket.utils.dispatch import dispatch
 
 from netket.operator import (
@@ -103,7 +103,7 @@ def expect_mcstate_operator_chunked(
     chunk_size: int,
     *,
     return_estimators: bool = False,
-) -> Stats:  # noqa: F811
+) -> Union[Stats, Tuple[Stats, ArrayLike]]:  # noqa: F811
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
@@ -134,7 +134,7 @@ def _expect_chunking(
     model_state: PyTree,
     σ: jnp.ndarray,
     args: PyTree,
-) -> Stats:
+) -> Union[Stats, Tuple[Stats, ArrayLike]]:
     σ_shape = σ.shape
 
     if jnp.ndim(σ) != 2:

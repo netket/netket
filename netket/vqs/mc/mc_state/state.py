@@ -26,6 +26,8 @@ from flax import serialization
 
 from netket import jax as nkjax
 from netket import nn
+from netket.optimizer.qgt.qgt_jacobian_common import choose_jacobian_mode
+from netket.optimizer.qgt.qgt_jacobian_pytree import log_gradients_pytree
 from netket.stats import Stats
 from netket.operator import AbstractOperator
 from netket.sampler import Sampler, SamplerState
@@ -539,8 +541,8 @@ class MCState(VariationalState):
         """
         Evaluate the variational state for a batch of states and returns
         the logarithm of the amplitude of the quantum state. For pure states,
-        this is :math:`log(<σ|ψ>)`, whereas for mixed states this is
-        :math:`log(<σr|ρ|σc>)`, where ψ and ρ are respectively a pure state
+        this is :code:`log(<σ|ψ>)`, whereas for mixed states this is
+        :code:`log(<σr|ρ|σc>)`, where ψ and ρ are respectively a pure state
         (wavefunction) and a mixed state (density matrix).
         For the density matrix, the left and right-acting states (row and column)
         are obtained as :code:`σr=σ[::,0:N]` and :code:`σc=σ[::,N:]`.
@@ -548,6 +550,33 @@ class MCState(VariationalState):
         Given a batch of inputs (Nb, N), returns a batch of outputs (Nb,).
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
+
+    def log_gradient(
+        self, s: ArrayLike, *, mode: str = None, centered: bool = False
+    ) -> PyTree:
+        """
+        Evaluate the logarithmic gradient of the quantum state with respect
+        to the variational parameters for a batch of configurations :code:`s`:,
+        i.e., :code:`log(<s|ψ>)` for a pure and :code:`log(<sc|ψ|sr>)` for a mixed
+        state.
+
+        Given a batch of inputs :code:`(Nb, N)`, returns a PyTree with the same structure
+        as :code:`self.parameters` with each leave of shape :code:`ls` in the parameters
+        corresponding to a leaf of shape :code:`(Nb, *ls)` in the output.
+        """
+        if mode is None:
+            mode = choose_jacobian_mode(
+                self._apply_fun,
+                self.parameters,
+                self.model_state,
+                s,
+                mode=None,
+                holomorphic=None,
+            )
+        grads, _ = log_gradients_pytree(
+            self, s, mode=mode, centered=centered, split_complex=False
+        )
+        return grads
 
     # override to use chunks
     def expect(

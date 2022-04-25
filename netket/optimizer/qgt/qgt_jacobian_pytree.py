@@ -26,10 +26,40 @@ import netket.jax as nkjax
 from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
-from .qgt_jacobian_pytree_logic import mat_vec, prepare_centered_oks
+from .qgt_jacobian_pytree_logic import mat_vec, prepare_log_gradients
 from .qgt_jacobian_common import choose_jacobian_mode
 
 from netket.nn import split_array_mpi
+
+
+def log_gradients_pytree(
+    vstate,
+    samples,
+    *,
+    centered: bool,
+    pdf=None,
+    mode: str,
+    split_complex: bool,
+    rescale_shift=False,
+):
+    if hasattr(vstate, "chunk_size"):
+        chunk_size = vstate.chunk_size
+    else:
+        chunk_size = None
+
+    O, scale = prepare_log_gradients(
+        vstate._apply_fun,
+        vstate.parameters,
+        samples.reshape(-1, samples.shape[-1]),
+        vstate.model_state,
+        mode,
+        rescale_shift,
+        centered,
+        pdf,
+        chunk_size,
+        split_complex=split_complex,
+    )
+    return O, scale
 
 
 def QGTJacobianPyTree(
@@ -92,20 +122,14 @@ def QGTJacobianPyTree(
     elif holomorphic is not None:
         raise ValueError("Cannot specify both `mode` and `holomorphic`.")
 
-    if hasattr(vstate, "chunk_size"):
-        chunk_size = vstate.chunk_size
-    else:
-        chunk_size = None
-
-    O, scale = prepare_centered_oks(
-        vstate._apply_fun,
-        vstate.parameters,
-        samples.reshape(-1, samples.shape[-1]),
-        vstate.model_state,
-        mode,
-        rescale_shift,
-        pdf,
-        chunk_size,
+    O, scale = log_gradients_pytree(
+        vstate,
+        samples,
+        centered=True,
+        split_complex=mode == "complex",
+        pdf=pdf,
+        mode=mode,
+        rescale_shift=rescale_shift,
     )
 
     return QGTJacobianPyTreeT(

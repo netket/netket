@@ -430,16 +430,23 @@ def test_expect_local_values(vstate, operator):
         assert st1.variance == pytest.approx(st2.variance)
         assert st1.error_of_mean == pytest.approx(st2.error_of_mean)
 
-    stats, oloc = vstate.expect(operator, return_estimators=True)
-    assert oloc.shape == (vstate.sampler.n_chains, vstate.n_samples)
+    def inner_test():
+        stats, oloc = vstate.expect(operator, return_estimators=True)
+        assert oloc.shape == (vstate.sampler.n_chains, vstate.n_samples)
 
-    stats2 = nk.stats.statistics(oloc)
-    assert_stats_equal(stats, stats2)
+        stats2 = nk.stats.statistics(oloc)
+        assert_stats_equal(stats, stats2)
 
-    stats_g, _, oloc_g = vstate.expect_and_grad(operator, return_estimators=True)
-    assert oloc_g.shape == (vstate.sampler.n_chains, vstate.n_samples)
-    assert np.allclose(oloc, oloc_g)
-    assert_stats_equal(stats, stats_g)
+        stats_g, _, oloc_g = vstate.expect_and_grad(operator, return_estimators=True)
+        assert oloc_g.shape == (vstate.sampler.n_chains, vstate.n_samples)
+        assert np.allclose(oloc, oloc_g)
+        assert_stats_equal(stats, stats_g)
+
+    # no chunking
+    inner_test()
+    # chunking
+    vstate.chunk_size = 2
+    inner_test()
 
 
 # Have a different test because the above is marked as xfail.
