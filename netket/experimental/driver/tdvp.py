@@ -362,6 +362,12 @@ class TDVP(AbstractVariationalDriver):
 
                 pbar.n = np.asarray(self._integrator.t)
                 self._postfix["n"] = self.step_count
+                self._postfix.update(
+                    {
+                        self._loss_name: str(self._loss_stats),
+                    }
+                )
+
                 pbar.set_postfix(self._postfix)
                 pbar.refresh()
 
