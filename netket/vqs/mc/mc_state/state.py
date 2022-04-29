@@ -572,7 +572,7 @@ class MCState(VariationalState):
             chunk_size: Suggested maximum size of the chunks used in forward and backward evaluations
                 of the model. (Default: :code:`self.chunk_size`)
         """
-        s, (sp, mels) = get_local_kernel_arguments(self, op)
+        s, extra_args = get_local_kernel_arguments(self, op)
 
         shape = s.shape
         if jnp.ndim(s) != 2:
@@ -588,7 +588,7 @@ class MCState(VariationalState):
         else:
             kernel = get_local_kernel(self, op)
 
-        O_loc = kernel(logpsi, self.parameters, s, (sp, mels))
+        O_loc = kernel(logpsi, self.parameters, s, extra_args)
 
         # transpose O_loc so it matches the (n_chains, n_samples_per_chain) shape
         # expected by netket.stats.statistics.
