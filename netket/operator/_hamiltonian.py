@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Sequence, Union
+from typing import List, Optional, Sequence, Union
 from numba import jit
 
 import numpy as np
+import jax.numpy as jnp
 import math
 
 from netket.graph import AbstractGraph, Graph
@@ -26,6 +27,7 @@ from . import spin, boson
 from ._local_operator import LocalOperator
 from ._graph_operator import GraphOperator
 from ._discrete_operator import DiscreteOperator
+from ._local_operator_helpers import _dtype
 
 
 class SpecialHamiltonian(DiscreteOperator):
@@ -114,7 +116,7 @@ class Ising(SpecialHamiltonian):
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
-        dtype: DType = float,
+        dtype: DType = None,
     ):
         r"""
         Constructs the Ising Operator from an hilbert space and a
@@ -142,14 +144,17 @@ class Ising(SpecialHamiltonian):
 
         super().__init__(hilbert)
 
-        self._h = dtype(h)
-        self._J = dtype(J)
+        if dtype is None:
+            dtype = jnp.promote_types(_dtype(h), _dtype(J))
+        dtype = np.empty((), dtype=dtype).dtype
+        self._dtype = dtype
+
+        self._h = np.array(h, dtype=dtype)
+        self._J = np.array(J, dtype=dtype)
         self._edges = np.asarray(
             [[u, v] for u, v in graph.edges()],
             dtype=np.intp,
         )
-
-        self._dtype = dtype
 
     @property
     def h(self) -> float:
@@ -209,9 +214,12 @@ class Ising(SpecialHamiltonian):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         return self.hilbert.size + 1
 
-    def copy(self):
+    def copy(self, *, dtype: Optional[DType] = None):
+        if dtype is None:
+            dtype = self.dtype
+
         graph = Graph(edges=[list(edge) for edge in self.edges])
-        return Ising(hilbert=self.hilbert, graph=graph, J=self.J, h=self.h)
+        return Ising(hilbert=self.hilbert, graph=graph, J=self.J, h=self.h, dtype=dtype)
 
     def to_local_operator(self):
         # The hamiltonian
@@ -263,9 +271,10 @@ class Ising(SpecialHamiltonian):
             (
                 x.shape[0] * n_conn,
                 n_sites,
-            )
+            ),
+            dtype=x.dtype,
         )
-        mels = np.empty(x.shape[0] * n_conn, dtype=type(h))
+        mels = np.empty(x.shape[0] * n_conn, dtype=h.dtype)
 
         diag_ind = 0
 
@@ -472,7 +481,7 @@ class BoseHubbard(SpecialHamiltonian):
         V: float = 0.0,
         J: float = 1.0,
         mu: float = 0.0,
-        dtype: DType = float,
+        dtype: DType = None,
     ):
         r"""
         Constructs a new BoseHubbard operator given a hilbert space, a graph
@@ -498,20 +507,24 @@ class BoseHubbard(SpecialHamiltonian):
            >>> print(op.hilbert.size)
            9
         """
-
         assert (
             graph.n_nodes == hilbert.size
         ), "The size of the graph must match the hilbert space."
 
         assert isinstance(hilbert, Fock)
-
         super().__init__(hilbert)
 
-        self._U = dtype(U)
-        self._V = dtype(V)
-        self._J = dtype(J)
-        self._mu = dtype(mu)
+        if dtype is None:
+            dtype = jnp.promote_types(_dtype(U), _dtype(V))
+            dtype = jnp.promote_types(dtype, _dtype(J))
+            dtype = jnp.promote_types(dtype, _dtype(mu))
+        dtype = np.empty((), dtype=dtype).dtype
         self._dtype = dtype
+
+        self._U = np.asarray(U, dtype=dtype)
+        self._V = np.asarray(V, dtype=dtype)
+        self._J = np.asarray(J, dtype=dtype)
+        self._mu = np.asarray(mu, dtype=dtype)
 
         self._n_max = hilbert.n_max
         self._n_sites = hilbert.size
@@ -613,67 +626,6 @@ class BoseHubbard(SpecialHamiltonian):
         # 1 diagonal element + 2 for every coupling
         return 1 + 2 * len(self._edges)
 
-    def get_conn(self, x):
-        r"""Finds the connected elements of the Operator. Starting
-        from a given quantum number x, it finds all other quantum numbers x' such
-        that the matrix element :math:`O(x,x')` is different from zero. In general there
-        will be several different connected states x' satisfying this
-        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
-
-        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
-
-        Args:
-            x (array): An array of shape (hilbert.size) containing the quantum numbers x.
-
-        Returns:
-            matrix: The connected states x' of shape (N_connected,hilbert.size)
-            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-
-        """
-        mels = self._max_mels
-        x_prime = self._max_xprime
-
-        mels[0] = 0.0
-        x_prime[0] = np.copy(x)
-
-        J = self._J
-        V = self._V
-        sqrt = math.sqrt
-        n_max = self._n_max
-
-        c = 1
-        for e in self._edges:
-            i, j = e
-            n_i = x[i]
-            n_j = x[j]
-            mels[0] += V * n_i * n_j
-
-            # destroy on i create on j
-            if n_i > 0 and n_j < n_max:
-                mels[c] = -J * sqrt(n_i) * sqrt(n_j + 1)
-                x_prime[c] = np.copy(x)
-                x_prime[c, i] -= 1.0
-                x_prime[c, j] += 1.0
-                c += 1
-
-            # destroy on j create on i
-            if n_j > 0 and n_i < n_max:
-                mels[c] = -J * sqrt(n_j) * sqrt(n_i + 1)
-                x_prime[c] = np.copy(x)
-                x_prime[c, j] -= 1.0
-                x_prime[c, i] += 1.0
-                c += 1
-
-        mu = self._mu
-        Uh = 0.5 * self._U
-        for i in range(self._n_sites):
-            # chemical potential
-            mels[0] -= mu * x[i]
-            # on-site interaction
-            mels[0] += Uh * x[i] * (x[i] - 1.0)
-
-        return np.copy(x_prime[:c]), np.copy(mels[:c])
-
     @staticmethod
     @jit(nopython=True)
     def _flattened_kernel(
@@ -700,7 +652,7 @@ class BoseHubbard(SpecialHamiltonian):
         # When executed as a closure those must be allocated inside the numba jitted function
         if mels is None:
             mels_allocated = True
-            mels = np.empty(batch_size * max_conn, dtype=type(U))
+            mels = np.empty(batch_size * max_conn, dtype=U.dtype)
 
         if x_prime is None:
             x_prime_allocated = True
@@ -792,9 +744,8 @@ class BoseHubbard(SpecialHamiltonian):
         if self._max_mels.size < total_size:
             self._max_mels = np.empty(total_size, dtype=self._max_mels.dtype)
             self._max_xprime = np.empty((total_size, x.shape[1]), dtype=x.dtype)
-        else:
-            if x.dtype != self._max_xprime.dtype:
-                self._max_xprime = self._max_xprime.astype(x.dtype)
+        elif x.dtype != self._max_xprime.dtype:
+            self._max_xprime = self._max_xprime.astype(x.dtype)
 
         return self._flattened_kernel(
             np.asarray(x),
