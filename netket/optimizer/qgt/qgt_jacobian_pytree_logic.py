@@ -14,7 +14,7 @@
 
 from typing import Optional
 from functools import partial
-from netket.jax import compose, vmap_chunked
+import math
 
 import jax
 import jax.flatten_util
@@ -24,10 +24,15 @@ import numpy as np
 
 from netket.stats import subtract_mean, sum
 from netket.utils import mpi
-
 from netket.utils.types import Array, Callable, PyTree, Scalar
-
-from netket.jax import tree_cast, tree_conj, tree_axpy, tree_to_real
+from netket.jax import (
+    tree_cast,
+    tree_conj,
+    tree_axpy,
+    tree_to_real,
+    compose,
+    vmap_chunked,
+)
 
 
 # TODO better name and move it somewhere sensible
@@ -114,7 +119,7 @@ def _divide_by_sqrt_n_samp(oks, samples):
     divide Oⱼₖ by √n
     """
     n_samp = samples.shape[0] * mpi.n_nodes  # MPI
-    sqrt_n = float(np.sqrt(n_samp))  # enforce weak type
+    sqrt_n = math.sqrt(n_samp)  # enforce weak type
     return jax.tree_map(lambda x: x / sqrt_n, oks)
 
 
