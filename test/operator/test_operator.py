@@ -224,6 +224,13 @@ def test_get_conn_numpy_closure(op):
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
 )
 @pytest.mark.parametrize(
+    "dtype",
+    [
+        pytest.param(np.float32, id="float32"),
+        pytest.param(np.float64, id="float64"),
+    ],
+)
+@pytest.mark.parametrize(
     "shape",
     [
         pytest.param(s, id=f"shape={s}")
@@ -237,15 +244,17 @@ def test_get_conn_numpy_closure(op):
         ]
     ],
 )
-def test_get_conn_padded(op, shape):
+def test_get_conn_padded(op, shape, dtype):
     hi = op.hilbert
 
-    v = hi.random_state(jax.random.PRNGKey(0), shape)
+    v = hi.random_state(jax.random.PRNGKey(0), shape, dtype=dtype)
 
     vp, mels = op.get_conn_padded(v)
 
     assert vp.ndim == v.ndim + 1
     assert mels.ndim == v.ndim
+    assert vp.dtype == v.dtype
+    assert mels.dtype == op.dtype
 
     vp_f, mels_f = op.get_conn_padded(v.reshape(-1, hi.size))
     np.testing.assert_allclose(vp_f, vp.reshape(-1, *vp.shape[-2:]))
