@@ -11,6 +11,8 @@
 ### New features
 
 ### Breaking Changes
+* `nk.operator.Ising`, `nk.operator.BoseHubbard` and `nk.operator.LocalLiouvillian` now return connected samples with the same precision (`dtype`) as the input samples. This allows to preserve low precision along the computation when using those operators.[#1180](https://github.com/netket/netket/pull/1180)
+* `nkx.TDVP` now updates the expectation value displaied in the progress bar at every time-step. [#1182](https://github.com/netket/netket/pull/1182)
 
 
 ## NetKet 3.4.1 (BugFixes & DepWarns)
