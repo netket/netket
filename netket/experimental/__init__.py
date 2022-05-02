@@ -20,8 +20,9 @@ from . import driver
 from . import dynamics
 from . import sampler
 from . import vqs
+from . import optimizer
 
-from .driver import TDVP
+from .driver import TDVP, VMC_RGN
 
 from netket.utils import _hide_submodules
 

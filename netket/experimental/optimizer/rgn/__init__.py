@@ -12,9 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .tdvp import TDVP
-
-from netket.utils import _hide_submodules
-from .vmc_rgn import VMC_RGN
-
-_hide_submodules(__name__)
+from .model_and_operator_statistics import centered_jacobian_and_mean, en_grad_and_rhessian

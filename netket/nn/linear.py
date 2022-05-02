@@ -186,6 +186,7 @@ class Dense(Module):
             "kernel", self.kernel_init, (inputs.shape[-1], self.features), self.dtype
         )
         kernel = jnp.asarray(kernel, dtype)
+
         y = lax.dot_general(
             inputs,
             kernel,
