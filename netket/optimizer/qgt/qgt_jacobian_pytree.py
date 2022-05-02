@@ -265,12 +265,22 @@ def _solve(
 @jax.jit
 def _to_dense(self: QGTJacobianPyTreeT) -> jnp.ndarray:
     O = jax.vmap(lambda l: nkjax.tree_ravel(l)[0])(self.O)
+    # support PyTreee diag_shift
+    diag_shift, _ = nkjax.tree_ravel(self.diag_shift)
 
     if self.scale is None:
-        diag = jnp.eye(O.shape[1])
+        if diag_shift.size == 1:
+            diag_matrix = diag_shift*jnp.eye(O.shape[1])
+        elif  diag_shift.shape[0] == O.shape[-1]:
+            diag_matrix = jnp.diag(diag_shift)
+        else:
+            raise ValueError(
+                f"Cannot handle shape {diag_shift.shape} of diag_shift, that "
+                f"originated from a PyTree with structure "
+                f"{jax.tree_map(lambda x:(x.shape, x.dtype), diag_shift)}")
     else:
         scale, _ = nkjax.tree_ravel(self.scale)
         O = O * scale[jnp.newaxis, :]
-        diag = jnp.diag(scale**2)
+        diag_matrix = jnp.diag(diag_shift * (scale**2))
 
-    return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag
+    return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + diag_matrix
