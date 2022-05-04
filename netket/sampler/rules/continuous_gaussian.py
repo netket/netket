@@ -45,10 +45,9 @@ class GaussianRule(MetropolisRule):
         Ls = np.array(hilb.n_particles * hilb.extent, dtype=r.dtype)
         modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
 
-        prop = (
-            jax.random.normal(key, shape=(n_chains, hilb.size), dtype=r.dtype)
-            * jnp.asarray(rule.sigma, dtype=r.dtype)
-        )
+        prop = jax.random.normal(
+            key, shape=(n_chains, hilb.size), dtype=r.dtype
+        ) * jnp.asarray(rule.sigma, dtype=r.dtype)
 
         opt_1 = np.equal(boundary, False)
         opt_2 = np.logical_not(opt_1)
