@@ -10,6 +10,8 @@
 
 ### New features
 
+* The method `MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
+
 ### Breaking Changes
 * `nk.operator.Ising`, `nk.operator.BoseHubbard` and `nk.operator.LocalLiouvillian` now return connected samples with the same precision (`dtype`) as the input samples. This allows to preserve low precision along the computation when using those operators.[#1180](https://github.com/netket/netket/pull/1180)
 * `nkx.TDVP` now updates the expectation value displaied in the progress bar at every time-step. [#1182](https://github.com/netket/netket/pull/1182)
