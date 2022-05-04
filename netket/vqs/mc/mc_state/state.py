@@ -689,12 +689,13 @@ def local_estimators(
     if jnp.ndim(s) != 2:
         s = s.reshape((-1, shape[-1]))
 
-    if chunk_size is not None or state.chunk_size is not None:
-        if chunk_size is None:
-            chunk_size = state.chunk_size
-        kernel = get_local_kernel(state, op, chunk_size)
-    else:
+    if chunk_size is None:
+        chunk_size = state.chunk_size  # state.chunk_size can still be None
+
+    if chunk_size is None:
         kernel = get_local_kernel(state, op)
+    else:
+        kernel = get_local_kernel(state, op, chunk_size)
 
     return _local_estimators_kernel(
         kernel, state._apply_fun, shape[:-1], state.variables, s, extra_args
