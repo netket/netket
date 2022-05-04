@@ -63,14 +63,15 @@ class KineticEnergy(ContinuousOperator):
 
         dlogpsi_x = jax.grad(logpsi_x)
 
-        basis = jnp.eye(x.shape[0])
-
         y, f_jvp = jax.linearize(dlogpsi_x, x)
+        basis = jnp.eye(x.shape[0], dtype=y.dtype)
+
         dp_dx2 = jnp.diag(jax.vmap(f_jvp)(basis))
 
         dp_dx = dlogpsi_x(x) ** 2
 
-        return -0.5 * jnp.sum(mass * (dp_dx2 + dp_dx), axis=-1)
+        res = -0.5 * jnp.sum(mass * (dp_dx2 + dp_dx), axis=-1)
+        return res
 
     @partial(jax.vmap, in_axes=(None, None, None, 0, None))
     def _expect_kernel_batched(
