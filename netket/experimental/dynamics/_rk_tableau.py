@@ -170,7 +170,7 @@ class TableauRKExplicit:
         y_tp1 = jax.tree_map(
             lambda y_t, k: y_t
             + jnp.asarray(dt, dtype=y_t.dtype)
-            * jnp.tensordot(jnp.asarray(b[0], dtype=k.dtype), k, axes=1),
+            * jnp.tensordot(jnp.asarray(self.b[0], dtype=k.dtype), k, axes=1),
             y_t,
             k,
         )
