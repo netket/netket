@@ -55,6 +55,8 @@ def test_gcnn_equivariance(parity, symmetries, lattice, mode):
     pars = ma.init(nk.jax.PRNGKey(), hi.random_state(nk.jax.PRNGKey(), 1))
 
     v = hi.random_state(jax.random.PRNGKey(0), 3)
+    # vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
+    # code below implements the commented line above, but is vectorised    
     v = v[..., np.asarray(perms)].transpose(1, 0, 2)
     v = v.reshape(len(perms) * 3, g.n_nodes)
     vals = ma.apply(pars, v).reshape(len(perms), 3)
