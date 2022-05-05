@@ -14,6 +14,7 @@
 
 from typing import List as PyList
 import functools
+import warnings
 
 import numpy as np
 import jax.numpy as jnp
@@ -22,6 +23,8 @@ from numba import jit
 from numba.typed import List
 
 from scipy.sparse.linalg import LinearOperator
+
+import netket.jax as nkjax
 
 from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
@@ -77,6 +80,16 @@ class LocalLiouvillian(AbstractSuperOperator):
             dtype = functools.reduce(
                 lambda dt, op: jnp.promote_types(dt, op.dtype), jump_ops, dtype
             )
+        elif not nkjax.is_complex_dtype(dtype):
+            old_dtype = dtype
+            dtype = jnp.promote_types(complex, old_dtype)
+            warnings.warn(
+                np.ComplexWarning(
+                    f"A complex dtype is required (dtype={old_dtype} specified). "
+                    f"Promoting to dtype={dtype}."
+                )
+            )
+
         dtype = np.empty((), dtype=dtype).dtype
 
         self._H = ham
@@ -119,13 +132,15 @@ class LocalLiouvillian(AbstractSuperOperator):
 
     def _compute_hnh(self):
         # There is no i here because it's inserted in the kernel
-        Hnh = 1.0 * self._H
+        Hnh = np.asarray(1.0, dtype=self.dtype) * self.hamiltonian
         self._max_dissipator_conn_size = 0
         for L in self._jump_ops:
-            Hnh = Hnh - 0.5j * L.conjugate().transpose() @ L
+            Hnh = (
+                Hnh - np.asarray(0.5j, dtype=self.dtype) * L.conjugate().transpose() @ L
+            )
             self._max_dissipator_conn_size += L.max_conn_size**2
 
-        self._Hnh = Hnh.collect()
+        self._Hnh = Hnh.collect().copy(dtype=self.dtype)
 
         max_conn_size = self._max_dissipator_conn_size + 2 * Hnh.max_conn_size
         self._max_conn_size = max_conn_size
