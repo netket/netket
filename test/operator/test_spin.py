@@ -37,8 +37,9 @@ def test_pauli_algebra(S):
                 (-1j * sx.to_dense() @ sy.to_dense() @ sz.to_dense()), Imat
             )
 
+
 def test_sigmay_is_complex():
-    hi = nk.hilbert.Spin(1//2) ** 3
+    hi = nk.hilbert.Spin(1 // 2) ** 3
 
     with pytest.warns(np.ComplexWarning):
         sy = spin.sigmay(hi, 0, dtype=np.float64)
