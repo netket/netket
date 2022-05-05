@@ -36,3 +36,20 @@ def test_pauli_algebra(S):
             assert_almost_equal(
                 (-1j * sx.to_dense() @ sy.to_dense() @ sz.to_dense()), Imat
             )
+
+def test_sigmay_is_complex():
+    hi = nk.hilbert.Spin(1//2) ** 3
+
+    with pytest.warns(np.ComplexWarning):
+        sy = spin.sigmay(hi, 0, dtype=np.float64)
+        assert sy.dtype == np.complex128
+
+    with pytest.warns(np.ComplexWarning):
+        sy = spin.sigmay(hi, 0, dtype=np.float32)
+        assert sy.dtype == np.complex64
+
+    sy = spin.sigmay(hi, 0, dtype=np.complex64)
+    assert sy.dtype == np.complex64
+
+    sy = spin.sigmay(hi, 0, dtype=np.complex128)
+    assert sy.dtype == np.complex128
