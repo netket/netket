@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.utils import HashablePartial
+from netket.utils import HashablePartial, Static
 
 from .utils import (
     tree_ravel,
