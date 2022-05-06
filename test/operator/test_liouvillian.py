@@ -17,6 +17,7 @@ import numpy as np
 from scipy import sparse
 from scipy.sparse import linalg
 
+import pytest
 from pytest import approx
 
 from netket.operator import spin
@@ -116,3 +117,32 @@ def test_linear_operator():
     assert res_op2[-1] - dm.reshape((hi.n_states, hi.n_states)).trace() == approx(
         0.0, rel=1e-8, abs=1e-8
     )
+
+
+dtypes_r = [np.float32, np.float64]
+dtypes_c = [np.complex64, np.complex128]
+dtypes = dtypes_r + dtypes_c
+
+
+@pytest.mark.parametrize("dtype", dtypes)
+def test_dtype(dtype):
+    if not nk.jax.is_complex_dtype(dtype):
+        with pytest.warns(np.ComplexWarning):
+            lind = nk.operator.LocalLiouvillian(ha, j_ops, dtype=dtype)
+            dtype_c = nk.jax.dtype_complex(dtype)
+
+    else:
+        lind = nk.operator.LocalLiouvillian(ha, j_ops, dtype=dtype)
+        dtype_c = dtype
+
+    assert lind.dtype == dtype_c
+    assert lind.hamiltonian_nh.dtype == dtype_c
+    for op in lind.jump_operators:
+        assert op.dtype == dtype_c
+
+    for _dt in dtypes_r + [np.int8, np.int16]:
+        sigma = op.hilbert.numbers_to_states(np.array([0, 1, 2, 3]))
+        sigma = np.array(sigma, dtype=_dt)
+        sigmap, mels = op.get_conn_padded(sigma)
+        assert sigmap.dtype == sigma.dtype
+        assert mels.dtype == lind.dtype

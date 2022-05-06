@@ -111,4 +111,4 @@ class AbstractOperator(abc.ABC):
         return self.conjugate(concrete=False)
 
     def __repr__(self):
-        return f"{type(self).__name__}(hilbert={self.hilbert})"
+        return f"{type(self).__name__}(hilbert={self.hilbert}, dtype={self.dtype})"

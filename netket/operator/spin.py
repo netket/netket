@@ -58,6 +58,20 @@ def sigmay(
     :return: a nk.operator.LocalOperator
     """
     import numpy as np
+    import netket.jax as nkjax
+
+    if not nkjax.is_complex_dtype(dtype):
+        import jax.numpy as jnp
+        import warnings
+
+        old_dtype = dtype
+        dtype = jnp.promote_types(complex, old_dtype)
+        warnings.warn(
+            np.ComplexWarning(
+                f"A complex dtype is required (dtype={old_dtype} specified). "
+                f"Promoting to dtype={dtype}."
+            )
+        )
 
     N = hilbert.size_at_index(site)
     S = (N - 1) / 2
