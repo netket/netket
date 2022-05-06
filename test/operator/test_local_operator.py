@@ -489,8 +489,8 @@ def test_inhomogeneous_hilb_issue_1192():
 
     assert_same_matrices(c0 @ d2, c0.to_dense() @ d2.to_dense())
 
-def test_add_transpose():
-    hi = nk.hilbert.Fock(n_max=3) 
-    c0 = bcreate(hi, 0)
-    assert_same_matrices(c0+c0.H, c0.to_dense() + c0.H.to_dense())
 
+def test_add_transpose():
+    hi = nk.hilbert.Fock(n_max=3)
+    c0 = bcreate(hi, 0)
+    assert_same_matrices(c0 + c0.H, c0.to_dense() + c0.H.to_dense())
