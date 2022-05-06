@@ -88,7 +88,7 @@ def pack_internals(
         ba = 1
         for s in range(aon_size):
             basis[i, s] = ba
-            ba *= hilbert.shape[aon_size - s - 1]
+            ba *= hilbert.shape[aon[aon_size - s - 1]]
 
         # eventually could support sparse matrices
         # if isinstance(op, sparse.spmatrix):

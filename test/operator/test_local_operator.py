@@ -478,3 +478,13 @@ def test_error_if_wrong_shape():
     mat = np.random.rand(3, 3)
     with pytest.raises(ValueError):
         nk.operator.LocalOperator(hi, mat, [0, 1])
+
+
+def test_inhomogeneous_hilb_issue_1192():
+    # Issue #1192
+    # https://github.com/netket/netket/issues/1192
+    hi = nk.hilbert.Fock(n_max=3) * nk.hilbert.Spin(1 / 2) * nk.hilbert.Fock(n_max=2)
+    c0 = bcreate(hi, 0)
+    d2 = bdestroy(hi, 2)
+
+    assert_same_matrices(c0 @ d2, c0.to_dense() @ d2.to_dense())
