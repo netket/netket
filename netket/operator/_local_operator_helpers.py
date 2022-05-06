@@ -24,8 +24,7 @@ from scipy.sparse import spmatrix
 from netket.hilbert import AbstractHilbert, Fock
 from netket.utils.types import DType, Array
 
-from ._abstract_operator import AbstractOperator
-from ._discrete_operator import DiscreteOperator
+from ._discrete_operator import AbstractOperator, DiscreteOperator
 
 
 def _dtype(obj: Union[numbers.Number, Array, AbstractOperator]) -> DType:
@@ -34,7 +33,7 @@ def _dtype(obj: Union[numbers.Number, Array, AbstractOperator]) -> DType:
     """
     if isinstance(obj, numbers.Number):
         return type(obj)
-    elif isinstance(obj, DiscreteOperator):
+    elif isinstance(obj, AbstractOperator):
         return obj.dtype
     elif isinstance(obj, np.ndarray):
         return obj.dtype

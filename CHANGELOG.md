@@ -19,6 +19,7 @@
 ### Bug Fixes
 * Several _type promotion_ bugs that would end up promoting single-precision models to double-precision have been squashed. Those involved `nk.operator.Ising` and `nk.operator.BoseHubbard`[#1180](https://github.com/netket/netket/pull/1180), `nkx.TDVP` [#1186](https://github.com/netket/netket/pull/1186) and continuous-space samplers and operators [#1187](https://github.com/netket/netket/pull/1187).
 * Fixed bug [#1192](https://github.com/netket/netket/pull/1192) that affected most operators (`nk.operator.LocalOperator`) constructed on non-homogeneous hilbert spaces. This bug was first introduced in version 3.3.4 and affects all subsequent versions until [NEXT BUGFIX RELEASE]. [#1193](https://github.com/netket/netket/pull/1193)
+* It is now possible to add an operator and it's lazy transpose/hermitian conjugate [#1194](https://github.com/netket/netket/pull/1194)
 
 ## NetKet 3.4.1 (BugFixes & DepWarns)
 
