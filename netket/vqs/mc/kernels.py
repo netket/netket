@@ -49,6 +49,33 @@ def batch_discrete_kernel(kernel):
 
     return vmapped_kernel
 
+def local_value_kernel_flattened(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
+    σp, mels, secs, N_conn = args
+    N_conn = N_conn.value
+    N_samples = σ.shape[0]
+
+    ns = jnp.diff(secs, prepend=0)
+
+    ψ_σ = logpsi(pars, σ)
+    ψ_σp = logpsi(pars, σp)
+
+    ψ_σ_ext = jnp.repeat(ψ_σ, ns, total_repeat_length=N_conn)
+
+    delta_ψ = mels * jnp.exp(ψ_σp - ψ_σ_ext)
+    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
+
+    e_loc = jax.ops.segment_sum(
+        delta_ψ, indices, num_segments=N_samples, indices_are_sorted=True
+    )
+
+    return e_loc
+
+def local_value_squared_kernel_flattened(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
+    """
+    local_value kernel for MCState and Squared (generic) operators
+    """
+    return jnp.abs(local_value_kernel_flattened(logpsi, pars, σ, args)) ** 2
+
 
 @batch_discrete_kernel
 def local_value_kernel(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
