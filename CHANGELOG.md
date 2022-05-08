@@ -13,21 +13,35 @@
 * The method `MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
 
 ### Breaking Changes
-* `nk.operator.Ising`, `nk.operator.BoseHubbard` and `nk.operator.LocalLiouvillian` now return connected samples with the same precision (`dtype`) as the input samples. This allows to preserve low precision along the computation when using those operators.[#1180](https://github.com/netket/netket/pull/1180)
-* `nkx.TDVP` now updates the expectation value displaied in the progress bar at every time-step. [#1182](https://github.com/netket/netket/pull/1182)
+
+### Bug Fixes
+
+
+## NetKet 3.4.2 (BugFixes & DepWarns again)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.4.1...v3.4.2).
+
+### Internal Changes
+* Several deprecation warnings related to `jax.experimental.loops` being deprecated have been resolved by changing those calls to `jax.lax.fori_loop`. Jax should feel more tranquillo now. [#1172](https://github.com/netket/netket/pull/1172)
 
 ### Bug Fixes
 * Several _type promotion_ bugs that would end up promoting single-precision models to double-precision have been squashed. Those involved `nk.operator.Ising` and `nk.operator.BoseHubbard`[#1180](https://github.com/netket/netket/pull/1180), `nkx.TDVP` [#1186](https://github.com/netket/netket/pull/1186) and continuous-space samplers and operators [#1187](https://github.com/netket/netket/pull/1187).
-* Fixed bug [#1192](https://github.com/netket/netket/pull/1192) that affected most operators (`nk.operator.LocalOperator`) constructed on non-homogeneous hilbert spaces. This bug was first introduced in version 3.3.4 and affects all subsequent versions until [NEXT BUGFIX RELEASE]. [#1193](https://github.com/netket/netket/pull/1193)
+* `nk.operator.Ising`, `nk.operator.BoseHubbard` and `nk.operator.LocalLiouvillian` now return connected samples with the same precision (`dtype`) as the input samples. This allows to preserve low precision along the computation when using those operators.[#1180](https://github.com/netket/netket/pull/1180)
+* `nkx.TDVP` now updates the expectation value displayed in the progress bar at every time step. [#1182](https://github.com/netket/netket/pull/1182)
+* Fixed bug [#1192](https://github.com/netket/netket/pull/1192) that affected most operators (`nk.operator.LocalOperator`) constructed on non-homogeneous hilbert spaces. This bug was first introduced in version 3.3.4 and affects all subsequent versions until 3.4.2. [#1193](https://github.com/netket/netket/pull/1193)
 * It is now possible to add an operator and it's lazy transpose/hermitian conjugate [#1194](https://github.com/netket/netket/pull/1194)
 
+
+
 ## NetKet 3.4.1 (BugFixes & DepWarns)
+
+[GitHub commits](https://github.com/netket/netket/compare/v3.4...v3.4.1).
 
 ### Internal Changes
 * Several deprecation warnings related to `jax.tree_util.tree_multimap` being deprecated have been resolved by changing those calls to `jax.tree_util.tree_map`. Jax should feel more tranquillo now. [#1156](https://github.com/netket/netket/pull/1156)
 
 ### Bug Fixes
-* `TDVP` now supports model with real parameters such as `RBMModPhase`. [#1139](https://github.com/netket/netket/pull/1139)
+* ~`TDVP` now supports model with real parameters such as `RBMModPhase`. [#1139](https://github.com/netket/netket/pull/1139)~ (not yet fixed)
 * An error is now raised when user attempts to construct a `LocalOperator` with a matrix of the wrong size (bug [#1157](https://github.com/netket/netket/pull/1157). [#1158](https://github.com/netket/netket/pull/1158)
 * A bug where `QGTJacobian` could not be used with models in single precision has been addressed (bug [#1153](https://github.com/netket/netket/pull/1153). [#1155](https://github.com/netket/netket/pull/1155)
 
