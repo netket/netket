@@ -17,6 +17,7 @@ __all__ = ["FermionOperator2nd"]
 
 from ._fermions_2nd import FermionOperator2nd
 from . import fermion
+from .propagator import propagator
 
 from netket.utils import _auto_export
 
