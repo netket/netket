@@ -35,11 +35,6 @@ def segment_sumdiffexp(A_nz, B=None, *, row_lengths, H_nz=None):
         sections: a keyword argument expressing the length of every row of the matrix A.
         H: an optional kewyrod argumnet that must be a vector with the same structure as `vecA`.
     """
-    return _segment_sumdiffexp(A_nz, B, H_nz, row_lengths)
-
-
-@partial(jax.custom_jvp, nondiff_argnums=(3,))
-def _segment_sumdiffexp(A_nz, B, H_nz, row_lengths):
 
     if A_nz.ndim != 1:
         raise ValueError(
@@ -76,28 +71,3 @@ def _segment_sumdiffexp(A_nz, B, H_nz, row_lengths):
     )
 
     return result
-
-
-@_segment_sumdiffexp.defjvp
-def _segment_sumdiffexp_jvp(row_lengths, primals, tangents):
-    print(f"extra {row_lengths}")
-    A_nz, B, H_nz = primals
-    A_nz_dot, B_dot, H_nz_dot = tangents
-
-    primal_out = _segment_sumdiffexp(A_nz, B, H_nz, row_lengths)
-    dR_dH_dH = _segment_sumdiffexp(A_nz, B, H_nz_dot, row_lengths)
-    dR_dA_dA = _segment_sumdiffexp(A_nz, B, H_nz * A_nz_dot, row_lengths)
-    dR_dB = -_segment_sumdiffexp(A_nz, B, H_nz, row_lengths)
-    print(f"{primal_out = }")
-    print(f"{dR_dH_dH = }")
-    print(f"{dR_dA_dA =}")
-    print(f"{dR_dB =}")
-    print(f"{A_nz_dot =}")
-    print(f"{B_dot =}")
-    print(f"{H_nz_dot =}")
-    tangent_out = dR_dH_dH + dR_dA_dA + dR_dB * B_dot
-    tangent_out = dR_dB * B_dot
-
-    print(f"{tangent_out = }")
-
-    return primal_out, tangent_out
