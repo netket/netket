@@ -23,7 +23,7 @@ from jax.tree_util import (
 )
 
 
-from .utils import is_complex, tree_leaf_iscomplex, eval_shape
+from .utils import is_complex, tree_leaf_iscomplex, eval_shape, complex
 
 
 # _grad_CC, _RR and _RC are the chunked gradient functions for machines going
@@ -74,9 +74,9 @@ def vjp_rr(
             out_r = _vjp_fun(jnp.asarray(ȳ.real, dtype=primals_out.dtype))
             out_i = _vjp_fun(jnp.asarray(ȳ.imag, dtype=primals_out.dtype))
             if conjugate:
-                out = tree_map(lambda re, im: re - 1j * im, out_r, out_i)
+                out = tree_map(lambda re, im: complex(re, -im), out_r, out_i)
             else:
-                out = tree_map(lambda re, im: re + 1j * im, out_r, out_i)
+                out = tree_map(lambda re, im: complex(re, im), out_r, out_i)
 
         return out
 
@@ -109,7 +109,7 @@ def vjp_rc(
         vals_r, vjp_r_fun = jax.vjp(real_fun, *primals, has_aux=False)
         vals_j, vjp_j_fun = jax.vjp(imag_fun, *primals, has_aux=False)
 
-    primals_out = vals_r + 1j * vals_j
+    primals_out = complex(vals_r, vals_j)  # vals_r + 1j * vals_j
 
     def vjp_fun(ȳ):
         """
@@ -125,12 +125,12 @@ def vjp_rc(
         vj_jj = vjp_j_fun(jnp.asarray(ȳ_j, dtype=vals_j.dtype))
 
         r = tree_map(
-            lambda re, im: re + 1j * im,
+            lambda re, im: complex(re, im),
             vr_jr,
             vj_jr,
         )
-        i = tree_map(lambda re, im: re + 1j * im, vr_jj, vj_jj)
-        out = tree_map(lambda re, im: re + 1j * im, r, i)
+        i = tree_map(lambda re, im: complex(re, im), vr_jj, vj_jj)
+        out = tree_map(lambda re, im: complex(re, im), r, i)
 
         if conjugate:
             out = tree_map(jnp.conjugate, out)

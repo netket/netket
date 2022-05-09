@@ -34,6 +34,7 @@ from .utils import (
     mpi_split,
     PRNGKey,
     PRNGSeq,
+    complex,
 )
 
 from ._vjp import vjp
