@@ -27,6 +27,11 @@ from .state import MCMixedState
 
 # Dispatches to select what expect-kernel to use
 @dispatch
+def get_local_kernel(vstate: MCMixedState, Ô: AbstractSuperOperator):  # noqa: F811
+    return kernels.local_value_kernel_flattened_chunked
+
+
+@dispatch
 def get_local_kernel(  # noqa: F811
     vstate: MCMixedState, Ô: Squared[AbstractSuperOperator], chunk_size: int
 ):
