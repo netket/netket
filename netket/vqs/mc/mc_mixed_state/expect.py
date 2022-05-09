@@ -44,7 +44,7 @@ def get_local_kernel_arguments(  # noqa: F811
 
     secs = np.zeros(σr.shape[0], dtype=np.intp)
     σp, mels = Ô.get_conn_flattened(σr, sections=secs)
-    return σ, (σp, mels, secs, nkjax.Static(int(secs[-1])))
+    return σ, (σp, mels, secs)
 
 
 @dispatch
@@ -57,7 +57,7 @@ def get_local_kernel_arguments(  # noqa: F811
 
     secs = np.zeros(σr.shape[0], dtype=np.intp)
     σp, mels = Ô.get_conn_flattened(σr, sections=secs)
-    return σ, (σp, mels, secs, nkjax.Static(int(secs[-1])))
+    return σ, (σp, mels, secs)
 
 
 @dispatch

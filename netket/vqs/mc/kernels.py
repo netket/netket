@@ -84,8 +84,7 @@ def local_value_op_op_cost(logpsi: Callable, pars: PyTree, σ: Array, args: PyTr
 def local_value_kernel_flattened(
     logpsi: Callable, pars: PyTree, σ: Array, args: PyTree
 ):
-    σp, mels, secs, N_conn = args
-    N_conn = N_conn.value
+    σp, mels, secs = args
     N_samples = σ.shape[0]
 
     ns = jnp.diff(secs, prepend=0)
@@ -93,15 +92,7 @@ def local_value_kernel_flattened(
     ψ_σ = logpsi(pars, σ)
     ψ_σp = logpsi(pars, σp)
 
-    ψ_σ_ext = jnp.repeat(ψ_σ, ns, total_repeat_length=N_conn)
-
-    delta_ψ = mels * jnp.exp(ψ_σp - ψ_σ_ext)
-    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
-
-    e_loc = jax.ops.segment_sum(
-        delta_ψ, indices, num_segments=N_samples, indices_are_sorted=True
-    )
-
+    e_loc = nkjax.segment_sumdiffexp(ψ_σp, ψ_σ, row_lengths=ns, H_nz=mels)
     return e_loc
 
 
@@ -120,27 +111,19 @@ def local_value_op_op_kernel_flattened(
     """
     local_value kernel for MCMixedState and generic operators
     """
-    η, mels, secs, N_conn = args
-    N_conn = N_conn.value
+    η, mels, secs = args
     N_samples = σ.shape[0]
 
     ns = jnp.diff(secs, prepend=0)
 
-    ση = jnp.repeat(σ, ns, total_repeat_length=N_conn)
+    σ_ext = jnp.repeat(σ, ns.reshape(-1, 1), axis=0, total_repeat_length=η.shape[0])
+    ση = jnp.hstack((η, σ_ext))
     σσ = jnp.hstack((σ, σ))
 
     ρ_σσ = logrho(pars, σσ)
     ρ_ση = logrho(pars, ση)
 
-    ρ_σσ_ext = jnp.repeat(ρ_σσ, ns, total_repeat_length=N_conn)
-
-    delta_ρ = mels * jnp.exp(ρ_ση - ρ_σσ_ext)
-    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
-
-    e_loc = jax.ops.segment_sum(
-        delta_ρ, indices, num_segments=N_samples, indices_are_sorted=True
-    )
-
+    e_loc = nkjax.segment_sumdiffexp(ρ_ση, ρ_σσ, row_lengths=ns, H_nz=mels)
     return e_loc
 
 
@@ -236,8 +219,7 @@ def local_value_kernel_flattened_chunked(
     *,
     chunk_size: Optional[int] = None,
 ):
-    σp, mels, secs, N_conn = args
-    N_conn = N_conn.value
+    σp, mels, secs = args
     N_samples = σ.shape[0]
 
     ns = jnp.diff(secs, prepend=0)
@@ -249,14 +231,8 @@ def local_value_kernel_flattened_chunked(
     ψ_σ = logpsi_chunked(σ)
     ψ_σp = logpsi_chunked(σp)
 
-    ψ_σ_ext = jnp.repeat(ψ_σ, ns, total_repeat_length=N_conn)
+    e_loc = nkjax.segment_sumdiffexp(ψ_σp, ψ_σ, row_lengths=ns, H_nz=mels)
 
-    delta_ψ = mels * jnp.exp(ψ_σp - ψ_σ_ext)
-    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
-
-    e_loc = jax.ops.segment_sum(
-        delta_ψ, indices, num_segments=N_samples, indices_are_sorted=True
-    )
     return e_loc
 
 
@@ -292,8 +268,7 @@ def local_value_op_op_kernel_flattened(
     """
     local_value kernel for MCMixedState and generic operators
     """
-    η, mels, secs, N_conn = args
-    N_conn = N_conn.value
+    η, mels, secs = args
     N_samples = σ.shape[0]
 
     ns = jnp.diff(secs, prepend=0)
@@ -302,19 +277,13 @@ def local_value_op_op_kernel_flattened(
         partial(logrho, pars), in_axes=0, chunk_size=chunk_size
     )
 
-    ση = jnp.repeat(σ, ns, total_repeat_length=N_conn)
+    σ_ext = jnp.repeat(σ, ns, axis=0, total_repeat_length=η.shape[0])
+    ση = jnp.hstack((η, σ_ext))
     σσ = jnp.hstack((σ, σ))
 
     ρ_σσ = logρ_chunked(σσ)
     ρ_ση = logρ_chunked(ση)
 
-    ρ_σσ_ext = jnp.repeat(ρ_σσ, ns, total_repeat_length=N_conn)
-
-    delta_ρ = mels * jnp.exp(ρ_ση - ρ_σσ_ext)
-    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
-
-    e_loc = jax.ops.segment_sum(
-        delta_ρ, indices, num_segments=N_samples, indices_are_sorted=True
-    )
+    e_loc = nkjax.segment_sumdiffexp(ρ_ση, ρ_σσ, row_lengths=ns, H_nz=mels)
 
     return e_loc
