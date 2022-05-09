@@ -41,6 +41,7 @@ from ._vjp import vjp
 from ._grad import grad, value_and_grad
 
 from ._expect import expect
+from ._segment import segment_sumdiffexp
 
 from ._chunk_utils import chunk, unchunk
 from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap
