@@ -30,11 +30,11 @@ from .state import MCMixedState
 def get_local_kernel(  # noqa: F811
     vstate: MCMixedState, Ô: Squared[AbstractSuperOperator], chunk_size: int
 ):
-    return kernels.local_value_squared_kernel_chunked
+    return kernels.local_value_squared_kernel_flattened_chunked
 
 
 @dispatch
 def get_local_kernel(  # noqa: F811
     vstate: MCMixedState, Ô: DiscreteOperator, chunk_size: int
 ):
-    return kernels.local_value_op_op_cost_chunked
+    return kernels.local_value_op_op_kernel_flattened

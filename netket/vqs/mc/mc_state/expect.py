@@ -42,15 +42,6 @@ from .state import MCState
 
 
 @dispatch
-def get_local_kernel_arguments(vstate: MCState, Ô: Squared):  # noqa: F811
-    return get_local_kernel_arguments(vstate, Ô.parent)
-
-@dispatch
-def get_local_kernel(vstate: MCState, Ô: Squared):  # noqa: F811
-    return kernels.local_value_squared_kernel_flattened
-
-
-@dispatch
 def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteOperator):  # noqa: F811
     check_hilbert(vstate.hilbert, Ô.hilbert)
 
@@ -64,7 +55,17 @@ def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteOperator):  # noqa:
 
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: DiscreteOperator):  # noqa: F811
-    return kernels.local_value_kernel_flattened
+    return kernels.local_value_kernel_flattened_chunked
+
+
+@dispatch
+def get_local_kernel_arguments(vstate: MCState, Ô: Squared):  # noqa: F811
+    return get_local_kernel_arguments(vstate, Ô.parent)
+
+
+@dispatch
+def get_local_kernel(vstate: MCState, Ô: Squared):  # noqa: F811
+    return kernels.local_value_squared_kernel_flattened
 
 
 @dispatch

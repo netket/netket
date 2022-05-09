@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
+
 from netket.utils.dispatch import dispatch
+import netket.jax as nkjax
 
 from netket.operator import (
     DiscreteOperator,
@@ -37,8 +40,11 @@ def get_local_kernel_arguments(  # noqa: F811
     check_hilbert(vstate.diagonal.hilbert, Ô.hilbert)
 
     σ = vstate.diagonal.samples
-    σp, mels = Ô.get_conn_padded(σ)
-    return σ, (σp, mels)
+    σr = σ.reshape(-1, Ô.hilbert.size)
+
+    secs = np.zeros(σr.shape[0], dtype=np.intp)
+    σp, mels = Ô.get_conn_flattened(σr, sections=secs)
+    return σ, (σp, mels, secs, nkjax.Static(int(secs[-1])))
 
 
 @dispatch
@@ -47,33 +53,32 @@ def get_local_kernel_arguments(  # noqa: F811
 ):  # noqa: F811
     check_hilbert(vstate.hilbert, Ô.hilbert)
     σ = vstate.samples
-    σp, mels = Ô.get_conn_padded(σ)
-    return σ, (σp, mels)
+    σr = σ.reshape(-1, Ô.hilbert.size)
+
+    secs = np.zeros(σr.shape[0], dtype=np.intp)
+    σp, mels = Ô.get_conn_flattened(σr, sections=secs)
+    return σ, (σp, mels, secs, nkjax.Static(int(secs[-1])))
 
 
 @dispatch
 def get_local_kernel(vstate: MCMixedState, Ô: AbstractSuperOperator):  # noqa: F811
-    return kernels.local_value_kernel
+    return kernels.local_value_kernel_flattened
 
 
 @dispatch
 def get_local_kernel(vstate: MCMixedState, Ô: DiscreteOperator):  # noqa: F811
-    return kernels.local_value_op_op_cost
+    return kernels.local_value_op_op_kernel_flattened
 
 
 @dispatch
 def get_local_kernel_arguments(  # noqa: F811
     vstate: MCMixedState, Ô: Squared[AbstractSuperOperator]
 ):
-    check_hilbert(vstate.hilbert, Ô.hilbert)
-
-    σ = vstate.samples
-    σp, mels = Ô.parent.get_conn_padded(σ)
-    return σ, (σp, mels)
+    return get_local_kernel_arguments(vstate, Ô.parent)
 
 
 @dispatch
 def get_local_kernel(  # noqa: F811
     vstate: MCMixedState, Ô: Squared[AbstractSuperOperator]
 ):
-    return kernels.local_value_squared_kernel
+    return kernels.local_value_squared_kernel_flattened

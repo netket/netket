@@ -49,33 +49,6 @@ def batch_discrete_kernel(kernel):
 
     return vmapped_kernel
 
-def local_value_kernel_flattened(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
-    σp, mels, secs, N_conn = args
-    N_conn = N_conn.value
-    N_samples = σ.shape[0]
-
-    ns = jnp.diff(secs, prepend=0)
-
-    ψ_σ = logpsi(pars, σ)
-    ψ_σp = logpsi(pars, σp)
-
-    ψ_σ_ext = jnp.repeat(ψ_σ, ns, total_repeat_length=N_conn)
-
-    delta_ψ = mels * jnp.exp(ψ_σp - ψ_σ_ext)
-    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
-
-    e_loc = jax.ops.segment_sum(
-        delta_ψ, indices, num_segments=N_samples, indices_are_sorted=True
-    )
-
-    return e_loc
-
-def local_value_squared_kernel_flattened(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
-    """
-    local_value kernel for MCState and Squared (generic) operators
-    """
-    return jnp.abs(local_value_kernel_flattened(logpsi, pars, σ, args)) ** 2
-
 
 @batch_discrete_kernel
 def local_value_kernel(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
@@ -103,6 +76,72 @@ def local_value_op_op_cost(logpsi: Callable, pars: PyTree, σ: Array, args: PyTr
     σ_σp = jax.vmap(lambda σp, σ: jnp.hstack((σp, σ)), in_axes=(0, None))(σp, σ)
     σ_σ = jnp.hstack((σ, σ))
     return jnp.sum(mel * jnp.exp(logpsi(pars, σ_σp) - logpsi(pars, σ_σ)))
+
+
+## Flattened kernels
+
+
+def local_value_kernel_flattened(
+    logpsi: Callable, pars: PyTree, σ: Array, args: PyTree
+):
+    σp, mels, secs, N_conn = args
+    N_conn = N_conn.value
+    N_samples = σ.shape[0]
+
+    ns = jnp.diff(secs, prepend=0)
+
+    ψ_σ = logpsi(pars, σ)
+    ψ_σp = logpsi(pars, σp)
+
+    ψ_σ_ext = jnp.repeat(ψ_σ, ns, total_repeat_length=N_conn)
+
+    delta_ψ = mels * jnp.exp(ψ_σp - ψ_σ_ext)
+    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
+
+    e_loc = jax.ops.segment_sum(
+        delta_ψ, indices, num_segments=N_samples, indices_are_sorted=True
+    )
+
+    return e_loc
+
+
+def local_value_squared_kernel_flattened(
+    logpsi: Callable, pars: PyTree, σ: Array, args: PyTree
+):
+    """
+    local_value kernel for MCState and Squared (generic) operators
+    """
+    return jnp.abs(local_value_kernel_flattened(logpsi, pars, σ, args)) ** 2
+
+
+def local_value_op_op_kernel_flattened(
+    logrho: Callable, pars: PyTree, σ: Array, args: PyTree
+):
+    """
+    local_value kernel for MCMixedState and generic operators
+    """
+    η, mels, secs, N_conn = args
+    N_conn = N_conn.value
+    N_samples = σ.shape[0]
+
+    ns = jnp.diff(secs, prepend=0)
+
+    ση = jnp.repeat(σ, ns, total_repeat_length=N_conn)
+    σσ = jnp.hstack((σ, σ))
+
+    ρ_σσ = logrho(pars, σσ)
+    ρ_ση = logrho(pars, ση)
+
+    ρ_σσ_ext = jnp.repeat(ρ_σσ, ns, total_repeat_length=N_conn)
+
+    delta_ρ = mels * jnp.exp(ρ_ση - ρ_σσ_ext)
+    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
+
+    e_loc = jax.ops.segment_sum(
+        delta_ρ, indices, num_segments=N_samples, indices_are_sorted=True
+    )
+
+    return e_loc
 
 
 ## Chunked versions of those kernels are defined below.
@@ -184,3 +223,98 @@ def local_value_op_op_cost_chunked(
     return local_value_kernel_chunked(
         logpsi, pars, σ_σ, (σ_σp, mels), chunk_size=chunk_size
     )
+
+
+## flattened chunked kernels
+
+
+def local_value_kernel_flattened_chunked(
+    logpsi: Callable,
+    pars: PyTree,
+    σ: Array,
+    args: PyTree,
+    *,
+    chunk_size: Optional[int] = None,
+):
+    σp, mels, secs, N_conn = args
+    N_conn = N_conn.value
+    N_samples = σ.shape[0]
+
+    ns = jnp.diff(secs, prepend=0)
+
+    logpsi_chunked = nkjax.vmap_chunked(
+        partial(logpsi, pars), in_axes=0, chunk_size=chunk_size
+    )
+
+    ψ_σ = logpsi_chunked(σ)
+    ψ_σp = logpsi_chunked(σp)
+
+    ψ_σ_ext = jnp.repeat(ψ_σ, ns, total_repeat_length=N_conn)
+
+    delta_ψ = mels * jnp.exp(ψ_σp - ψ_σ_ext)
+    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
+
+    e_loc = jax.ops.segment_sum(
+        delta_ψ, indices, num_segments=N_samples, indices_are_sorted=True
+    )
+    return e_loc
+
+
+def local_value_squared_kernel_flattened_chunked(
+    logpsi: Callable,
+    pars: PyTree,
+    σ: Array,
+    args: PyTree,
+    *,
+    chunk_size: Optional[int] = None,
+):
+    """
+    local_value kernel for MCState and Squared (generic) operators
+    """
+    return (
+        jnp.abs(
+            local_value_kernel_flattened_chunked(
+                logpsi, pars, σ, args, chunk_size=chunk_size
+            )
+        )
+        ** 2
+    )
+
+
+def local_value_op_op_kernel_flattened(
+    logrho: Callable,
+    pars: PyTree,
+    σ: Array,
+    args: PyTree,
+    *,
+    chunk_size: Optional[int] = None,
+):
+    """
+    local_value kernel for MCMixedState and generic operators
+    """
+    η, mels, secs, N_conn = args
+    N_conn = N_conn.value
+    N_samples = σ.shape[0]
+
+    ns = jnp.diff(secs, prepend=0)
+
+    logρ_chunked = nkjax.vmap_chunked(
+        partial(logrho, pars), in_axes=0, chunk_size=chunk_size
+    )
+
+    ση = jnp.repeat(σ, ns, total_repeat_length=N_conn)
+    σσ = jnp.hstack((σ, σ))
+
+    ρ_σσ = logρ_chunked(σσ)
+    ρ_ση = logρ_chunked(ση)
+
+    ρ_σσ_ext = jnp.repeat(ρ_σσ, ns, total_repeat_length=N_conn)
+
+    delta_ρ = mels * jnp.exp(ρ_ση - ρ_σσ_ext)
+    indices = jnp.repeat(jnp.arange(N_samples), ns, total_repeat_length=N_conn)
+
+    e_loc = jax.ops.segment_sum(
+        delta_ρ, indices, num_segments=N_samples, indices_are_sorted=True
+    )
+
+    return e_loc

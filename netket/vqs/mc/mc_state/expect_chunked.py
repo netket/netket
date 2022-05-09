@@ -45,14 +45,14 @@ from .state import MCState
 # Dispatches to select what expect-kernel to use
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):  # noqa: F811
-    return kernels.local_value_squared_kernel_chunked
+    return kernels.local_value_squared_kernel_flattened_chunked
 
 
 @dispatch
 def get_local_kernel(  # noqa: F811
     vstate: MCState, Ô: DiscreteOperator, chunk_size: int
 ):
-    return kernels.local_value_kernel_chunked
+    return kernels.local_value_kernel_flattened_chunked
 
 
 def _local_continuous_kernel(kernel, logpsi, pars, σ, args, *, chunk_size=None):
