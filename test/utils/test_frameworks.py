@@ -36,6 +36,7 @@ def test_jax_framework_works_without_haiku():
 
 
 def test_haiku_framework():
+    pytest.importorskip("haiku")
     import haiku as hk
 
     def apply(x):
