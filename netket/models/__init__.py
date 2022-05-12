@@ -14,6 +14,7 @@
 
 from .rbm import RBM, RBMModPhase, RBMMultiVal, RBMSymm
 from .equivariant import GCNN
+from .full_space import LogStateVector
 from .jastrow import Jastrow
 from .mps import MPSPeriodic
 from .gaussian import Gaussian
