@@ -47,11 +47,18 @@ def pack_internals(
 
     """Analyze the operator strings and precompute arrays for get_conn inference"""
     acting_size = np.array([len(aon) for aon in op_acting_on], dtype=np.intp)
-    max_acting_on_sz = np.max(acting_size)
-    max_local_hilbert_size = max(
-        [max(map(hilbert.size_at_index, aon)) for aon in op_acting_on]
-    )
-    max_op_size = max(map(lambda x: x.shape[0], operators))
+
+    # Support empty LocalOperators such as the identity.
+    if len(acting_size) > 0:
+        max_acting_on_sz = np.max(acting_size)
+        max_local_hilbert_size = max(
+            [max(map(hilbert.size_at_index, aon)) for aon in op_acting_on]
+        )
+        max_op_size = max(map(lambda x: x.shape[0], operators))
+    else:
+        max_acting_on_sz = 0
+        max_local_hilbert_size = 0
+        max_op_size = 0
 
     acting_on = np.full((n_operators, max_acting_on_sz), -1, dtype=np.intp)
     for (i, aon) in enumerate(op_acting_on):
@@ -63,13 +70,17 @@ def pack_internals(
     basis = np.full((n_operators, max_acting_on_sz), 1e10, dtype=np.int64)
 
     diag_mels = np.full((n_operators, max_op_size), np.nan, dtype=dtype)
+
+    # if max_op_size = 0, clamp to 0
+    max_op_size_offdiag = max(max_op_size - 1, 0)
+
     mels = np.full(
-        (n_operators, max_op_size, max_op_size - 1),
+        (n_operators, max_op_size, max_op_size_offdiag),
         np.nan,
         dtype=dtype,
     )
     x_prime = np.full(
-        (n_operators, max_op_size, max_op_size - 1, max_acting_on_sz),
+        (n_operators, max_op_size, max_op_size_offdiag, max_acting_on_sz),
         -1,
         dtype=np.float64,
     )

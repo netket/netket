@@ -15,6 +15,7 @@
 ### Breaking Changes
 
 ### Bug Fixes
+* Fixed bug where a `nk.operator.LocalOperator` representing the identity would lead to a crash. [#1197](https://github.com/netket/netket/pull/1197)
 
 
 ## NetKet 3.4.2 (BugFixes & DepWarns again)
