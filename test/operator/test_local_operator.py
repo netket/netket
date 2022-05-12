@@ -499,10 +499,8 @@ def test_add_transpose():
 def test_identity():
     hi = nk.hilbert.Fock(n_max=3)
     I = nk.operator.LocalOperator(hi, constant=1)
-    
+
     assert_same_matrices(I, np.eye(hi.n_states))
 
     X = bcreate(hi, 0)
-    assert_same_matrices(I@X, X)
-
-
+    assert_same_matrices(I @ X, X)
