@@ -86,6 +86,7 @@ class ExactSampler(Sampler):
 
         return state.replace(pdf=pdf)
 
+    @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(
         sampler,
         machine: nn.Module,
@@ -96,7 +97,35 @@ class ExactSampler(Sampler):
         # Reimplement sample_chain because we can sample the whole 'chain' in one
         # go, since it's not really a chain anyway. This will be much faster because
         # we call into python only once.
-        return _sample_chain(sampler, machine, parameters, state, chain_length)
+        new_rng, rng = jax.random.split(state.rng)
+        numbers = jax.random.choice(
+            rng,
+            sampler.hilbert.n_states,
+            shape=(chain_length * sampler.n_chains_per_rank,),
+            replace=True,
+            p=state.pdf,
+        )
+
+        # We use a host-callback to convert integers labelling states to
+        # valid state-arrays because that code is written with numba and
+        # we have not yet converted it to jax.
+        #
+        # For future investigators:
+        # this will lead to a crash if numbers_to_state throws.
+        # it throws if we feed it nans!
+        samples = hcb.call(
+            lambda numbers: sampler.hilbert.numbers_to_states(numbers),
+            numbers,
+            result_shape=jax.ShapeDtypeStruct(
+                (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
+                jnp.float64,
+            ),
+        )
+        samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
+            chain_length, sampler.n_chains_per_rank, sampler.hilbert.size
+        )
+
+        return samples, state.replace(rng=new_rng)
 
     def __repr__(sampler):
         return (
@@ -114,45 +143,3 @@ class ExactSampler(Sampler):
             + "machine_power = {}, ".format(sampler.machine_pow)
             + "dtype = {})".format(sampler.dtype)
         )
-
-
-@partial(jax.jit, static_argnums=(1, 4))
-def _sample_chain(
-    sampler: ExactSampler,
-    machine: nn.Module,
-    parameters: PyTree,
-    state: SamplerState,
-    chain_length: int,
-) -> Tuple[jnp.ndarray, SamplerState]:
-    """
-    Internal method used for jitting calls.
-    """
-    new_rng, rng = jax.random.split(state.rng)
-    numbers = jax.random.choice(
-        rng,
-        sampler.hilbert.n_states,
-        shape=(chain_length * sampler.n_chains_per_rank,),
-        replace=True,
-        p=state.pdf,
-    )
-
-    # We use a host-callback to convert integers labelling states to
-    # valid state-arrays because that code is written with numba and
-    # we have not yet converted it to jax.
-    #
-    # For future investigators:
-    # this will lead to a crash if numbers_to_state throws.
-    # it throws if we feed it nans!
-    samples = hcb.call(
-        lambda numbers: sampler.hilbert.numbers_to_states(numbers),
-        numbers,
-        result_shape=jax.ShapeDtypeStruct(
-            (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
-            jnp.float64,
-        ),
-    )
-    samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
-        chain_length, sampler.n_chains_per_rank, sampler.hilbert.size
-    )
-
-    return samples, state.replace(rng=new_rng)

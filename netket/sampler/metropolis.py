@@ -390,8 +390,32 @@ class MetropolisSampler(Sampler):
 
         return new_state, new_state.σ
 
+    @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(sampler, machine, parameters, state, chain_length):
-        return _sample_chain(sampler, machine, parameters, state, chain_length)
+        """
+        Samples `chain_length` batches of samples along the chains.
+
+        Internal method used for jitting calls.
+
+        Arguments:
+            sampler: The Monte Carlo sampler.
+            machine: A Flax module with the forward pass of the log-pdf.
+            parameters: The PyTree of parameters of the model.
+            state: The current state of the sampler.
+            chain_length: The length of the chains.
+
+        Returns:
+            σ: The next batch of samples.
+            state: The new state of the sampler
+        """
+        state, samples = jax.lax.scan(
+            lambda state, _: sampler.sample_next(machine, parameters, state),
+            state,
+            xs=None,
+            length=chain_length,
+        )
+
+        return samples, state
 
     def __repr__(sampler):
         return (
@@ -442,42 +466,6 @@ def sample_next(
         σ: The next batch of samples.
     """
     return sampler.sample_next(machine, parameters, state)
-
-
-@partial(jax.jit, static_argnums=(1, 4))
-def _sample_chain(
-    sampler: MetropolisSampler,
-    machine: nn.Module,
-    parameters: PyTree,
-    state: SamplerState,
-    chain_length: int,
-) -> Tuple[jnp.ndarray, SamplerState]:
-    """
-    Samples `chain_length` batches of samples along the chains.
-
-    Internal method used for jitting calls.
-
-    Arguments:
-        sampler: The Monte Carlo sampler.
-        machine: A Flax module with the forward pass of the log-pdf.
-        parameters: The PyTree of parameters of the model.
-        state: The current state of the sampler.
-        chain_length: The length of the chains.
-
-    Returns:
-        σ: The next batch of samples.
-        state: The new state of the sampler
-    """
-    _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
-
-    state, samples = jax.lax.scan(
-        _sample_next,
-        state,
-        xs=None,
-        length=chain_length,
-    )
-
-    return samples, state
 
 
 def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:

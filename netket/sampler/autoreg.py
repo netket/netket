@@ -122,60 +122,55 @@ class ARDirectSampler(Sampler):
     def _reset(sampler, model, variables, state):
         return state
 
+    @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(sampler, model, variables, state, chain_length):
-        return _sample_chain(sampler, model, variables, state, chain_length)
+        if "cache" in variables:
+            variables, _ = variables.pop("cache")
 
+        def scan_fun(carry, index):
+            σ, cache, key = carry
+            if cache:
+                _variables = {**variables, "cache": cache}
+            else:
+                _variables = variables
+            new_key, key = jax.random.split(key)
 
-@partial(jax.jit, static_argnums=(1, 4))
-def _sample_chain(sampler, model, variables, state, chain_length):
-    """
-    Internal method used for jitting calls.
-    """
-    if "cache" in variables:
-        variables, _ = variables.pop("cache")
+            p, mutables = model.apply(
+                _variables,
+                σ,
+                index,
+                method=model._conditional,
+                mutable=["cache"],
+            )
+            if "cache" in mutables:
+                cache = mutables["cache"]
+            else:
+                cache = None
 
-    def scan_fun(carry, index):
-        σ, cache, key = carry
-        if cache:
-            _variables = {**variables, "cache": cache}
-        else:
-            _variables = variables
-        new_key, key = jax.random.split(key)
+            local_states = jnp.asarray(
+                sampler.hilbert.local_states, dtype=sampler.dtype
+            )
+            new_σ = batch_choice(key, local_states, p)
+            σ = σ.at[:, index].set(new_σ)
 
-        p, mutables = model.apply(
-            _variables,
-            σ,
-            index,
-            method=model._conditional,
-            mutable=["cache"],
+            return (σ, cache, new_key), None
+
+        new_key, key_init, key_scan = jax.random.split(state.key, 3)
+
+        # We just need a buffer for `σ` before generating each sample
+        # The result does not depend on the initial contents in it
+        σ = jnp.zeros(
+            (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
+            dtype=sampler.dtype,
         )
-        if "cache" in mutables:
-            cache = mutables["cache"]
-        else:
-            cache = None
 
-        local_states = jnp.asarray(sampler.hilbert.local_states, dtype=sampler.dtype)
-        new_σ = batch_choice(key, local_states, p)
-        σ = σ.at[:, index].set(new_σ)
+        # Initialize `cache` before generating each sample,
+        # even if `variables` is not changed and `reset` is not called
+        cache = sampler._init_cache(model, σ, key_init)
 
-        return (σ, cache, new_key), None
+        indices = jnp.arange(sampler.hilbert.size)
+        (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
+        σ = σ.reshape((chain_length, sampler.n_chains_per_rank, sampler.hilbert.size))
 
-    new_key, key_init, key_scan = jax.random.split(state.key, 3)
-
-    # We just need a buffer for `σ` before generating each sample
-    # The result does not depend on the initial contents in it
-    σ = jnp.zeros(
-        (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
-        dtype=sampler.dtype,
-    )
-
-    # Initialize `cache` before generating each sample,
-    # even if `variables` is not changed and `reset` is not called
-    cache = sampler._init_cache(model, σ, key_init)
-
-    indices = jnp.arange(sampler.hilbert.size)
-    (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
-    σ = σ.reshape((chain_length, sampler.n_chains_per_rank, sampler.hilbert.size))
-
-    new_state = state.replace(key=new_key)
-    return σ, new_state
+        new_state = state.replace(key=new_key)
+        return σ, new_state
