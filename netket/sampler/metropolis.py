@@ -228,7 +228,7 @@ class MetropolisSampler(Sampler):
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
-    def __pre_init__(self, hilbert, rule, **kwargs):
+    def __pre_init__(self, hilbert: AbstractHilbert, rule: MetropolisRule, **kwargs):
         """
         Constructs a Metropolis Sampler.
 
@@ -244,6 +244,13 @@ class MetropolisSampler(Sampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
         """
+        # Validate the inputs
+        if not isinstance(rule, MetropolisRule):
+            raise TypeError(
+                f"The second positional argument, rule, must be a MetropolisRule but "
+                f"`type(rule)={type(rule)}`."
+            )
+
         if "n_chains" not in kwargs and "n_chains_per_rank" not in kwargs:
             kwargs["n_chains_per_rank"] = 16
 
@@ -263,9 +270,6 @@ class MetropolisSampler(Sampler):
 
     def __post_init__(self):
         super().__post_init__()
-        # Validate the inputs
-        if not isinstance(self.rule, MetropolisRule):
-            raise TypeError("rule must be a MetropolisRule.")
 
         if not isinstance(self.reset_chains, bool):
             raise TypeError("reset_chains must be a boolean.")
