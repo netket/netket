@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Any
+from typing import Union, Tuple, Any, Optional
 
 import jax
 from jax import numpy as jnp
@@ -44,7 +44,7 @@ class DeepSet(nn.Module):
     features_rho: Union[Tuple, int]
     """Number of features in each layer for rho network."""
 
-    cusp_exponent: int = 0.0
+    cusp_exponent: Optional[int] = None
     """exponent of Katos cusp condition"""
 
     dtype: Any = jnp.float64
@@ -64,6 +64,12 @@ class DeepSet(nn.Module):
     """Initializer for the parameter in the cusp"""
 
     def setup(self):
+        if isinstance(self.features_phi, int):
+            self.features_phi = [self.features_phi] * (self.layers_phi - 1)
+
+        if isinstance(self.features_rho, int):
+            self.features_rho = [self.features_rho] * (self.layers_rho - 1)
+
         self.phi = [
             nn.Dense(
                 feat,
@@ -107,22 +113,22 @@ class DeepSet(nn.Module):
             / 2.0
             * jnp.sin(jnp.pi / self.L * jnp.linalg.norm(d, axis=-1, keepdims=True))
         )
-
-        cusp = -0.5 * jnp.sum(param / d**self.cusp_exponent, axis=-2)
+        cusp = 0.0
+        if self.cusp_exponent is not None:
+            cusp = -0.5 * jnp.sum(param / d**self.cusp_exponent, axis=-2)
 
         y = d**2
         """ The phi transformation """
-        for layer in range(self.layers_phi):
-            y = self.phi[layer](y)
-            y = self.activation(y)
+        for layer in self.phi:
+            y = self.activation(layer(y))
 
         """ Pooling operation """
         y = jnp.sum(y, axis=-2)
 
         """ The rho transformation """
-        for layer in range(self.layers_rho):
-            y = self.rho[layer](y)
-            if layer == self.layers_rho - 1:
+        for layer in self.rho:
+            y = layer(y)
+            if layer == len(self.rho) - 1:
                 break
             y = self.activation(y)
 

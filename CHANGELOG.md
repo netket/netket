@@ -11,7 +11,8 @@
 ### New features
 
 * The method `MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
-
+* The permutation equivariant DeepSet model has been added.
+* Example of interacting particles in continuous space modelled by the permutation equivariant DeepSets architecture has been added.
 ### Breaking Changes
 
 ### Bug Fixes
