@@ -126,9 +126,9 @@ class DeepSet(nn.Module):
         y = jnp.sum(y, axis=-2)
 
         """ The rho transformation """
-        for layer in self.rho:
+        for i, layer in enumerate(self.rho):
             y = layer(y)
-            if layer == len(self.rho) - 1:
+            if i == len(self.rho) - 1:
                 break
             y = self.activation(y)
 
