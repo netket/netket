@@ -12,31 +12,56 @@ from jax.nn.initializers import (
 
 
 class DeepSet(nn.Module):
-    L: jnp.float64  # boxsize
-    sdim: int  # nbr of spatial dimensions
+    r"""Implements an equivariant version of the DeepSets architecture
+    given by (https://arxiv.org/abs/1703.06114)
 
-    """Number of layers in phi/rho network"""
+    .. math ::
+
+        f(x_1,...,x_N) = \rho\left(\sum_i \phi(x_i)\right)
+
+    that is suitable for the simulation of periodic systems.
+    Additionally one can add a cusp condition by specifying the
+    asymptotic exponent.
+    For helium the Ansatz reads:
+
+    .. math ::
+
+        \psi(x_1,...,x_N) = \rho\left(\sum_i \phi(d_{\sin}(x_i,x_j))\right) \cdot \exp\left[-\frac{1}{2}\left(b/d_{\sin}(x_i,x_j)\right)^5\right]
+
+    """
+    L: jnp.float64
+    """boxsize"""
+    sdim: int
+    """number of spatial dimensions"""
+
     layers_phi: int
+    """Number of layers in phi network"""
     layers_rho: int
+    """Number of layers in rho network"""
 
-    """Number of features in each layer for phi/rho network."""
     features_phi: Union[Tuple, int]
+    """Number of features in each layer for phi network."""
     features_rho: Union[Tuple, int]
+    """Number of features in each layer for rho network."""
 
-    """The dtype of the weights."""
+    cusp_exponent: int = 0.0
+    """exponent of Katos cusp condition"""
+
     dtype: Any = jnp.float64
+    """The dtype of the weights."""
 
-    """The nonlinear activation function between hidden layers."""
     activation: Any = jax.nn.gelu
+    """The nonlinear activation function between hidden layers."""
 
-    """if True uses a bias in all layers."""
     use_bias: bool = True
+    """if True uses a bias in all layers."""
 
-    """Initializer for the Dense layer matrix, hidden bias
-    and parameter in the cusp"""
     kernel_init: NNInitFunc = lecun_normal()
+    """Initializer for the Dense layer matrix"""
     bias_init: NNInitFunc = zeros
+    """Initializer for the hidden bias"""
     params_init: NNInitFunc = ones
+    """Initializer for the parameter in the cusp"""
 
     def setup(self):
         self.phi = [
@@ -83,7 +108,7 @@ class DeepSet(nn.Module):
             * jnp.sin(jnp.pi / self.L * jnp.linalg.norm(d, axis=-1, keepdims=True))
         )
 
-        cusp = -0.5 * jnp.sum(param / d**5, axis=-2)
+        cusp = -0.5 * jnp.sum(param / d**self.cusp_exponent, axis=-2)
 
         y = d**2
         """ The phi transformation """

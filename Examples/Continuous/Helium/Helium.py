@@ -64,6 +64,7 @@ ha = ekin + pot
 model = nk.models.DeepSet(
     L=L,
     sdim=1,
+    cusp_exponent=5,
     layers_phi=2,
     layers_rho=3,
     features_phi=(16, 16),
