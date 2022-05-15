@@ -14,7 +14,7 @@
 
 from functools import partial
 from typing import Any, Callable, Optional, Tuple, Union
-import abc
+from textwrap import dedent
 
 import jax
 from flax import linen as nn
@@ -23,7 +23,7 @@ from jax import numpy as jnp
 from netket.hilbert import AbstractHilbert, ContinuousHilbert
 
 from netket.utils import mpi, wrap_afun
-from netket.utils.types import PyTree, PRNGKeyT
+from netket.utils.types import PyTree
 
 from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
@@ -111,6 +111,44 @@ class MetropolisSamplerState(SamplerState):
             acc_string = ""
 
         return f"{type(self).__name__}({acc_string}rng state={self.rng})"
+
+
+def _assert_good_sample_shape(samples, shape, dtype, obj=""):
+    if samples.shape != shape or samples.dtype != dtype:
+        raise ValueError(
+            dedent(
+                f"""
+
+            The samples returned by the {obj} have `shape={samples.shape}` and
+            `dtype={samples.dtype}`, but the sampler requires `shape={shape} and
+            `dtype={dtype}`.
+
+            If you are using a custom transition rule, check that it returns the
+            correct shape and dtype.
+
+            If you are using a built-in transition rule, there might be a mismatch
+            between hilbert spaces, or it's a bug in NetKet.
+
+            """
+            )
+        )
+
+
+def _assert_good_log_prob_shape(log_prob, n_chains_per_rank, machine):
+    if log_prob.shape != (n_chains_per_rank,):
+        raise ValueError(
+            dedent(
+                f"""
+
+            The output of the model {machine} has `shape={log_prob.shape}`, but
+            `shape=({n_chains_per_rank},)` was expected.
+
+            This might be becausee of an hilbert space mismatch or because your
+            model is ill-configured.
+
+            """
+            )
+        )
 
 
 @struct.dataclass
@@ -231,6 +269,12 @@ class MetropolisSampler(Sampler):
         if not sampler.reset_chains:
             key_state, rng = jax.random.split(key_state)
             σ = sampler.rule.random_state(sampler, machine, params, state, rng)
+            _assert_good_sample_shape(
+                σ,
+                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                sampler.dtype,
+                f"{sampler.rule}.random_state",
+            )
             state = state.replace(σ=σ, rng=key_state)
 
         return state
@@ -240,6 +284,12 @@ class MetropolisSampler(Sampler):
 
         if sampler.reset_chains:
             σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
+            _assert_good_sample_shape(
+                σ,
+                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                sampler.dtype,
+                f"{sampler.rule}.random_state",
+            )
         else:
             σ = state.σ
 
@@ -264,7 +314,16 @@ class MetropolisSampler(Sampler):
             σp, log_prob_correction = sampler.rule.transition(
                 sampler, machine, parameters, state, key1, s["σ"]
             )
+            _assert_good_sample_shape(
+                σp,
+                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                sampler.dtype,
+                f"{sampler.rule}.transition",
+            )
             proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
+            _assert_good_log_prob_shape(
+                proposal_log_prob, sampler.n_chains_per_rank, machine
+            )
 
             uniform = jax.random.uniform(key2, shape=(sampler.n_chains_per_rank,))
             if log_prob_correction is not None:
