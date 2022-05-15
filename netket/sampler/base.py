@@ -31,15 +31,11 @@ fancy = []
 
 
 @struct.dataclass
-class SamplerState:
+class SamplerState(abc.ABC):
     """
     Base class holding the state of a sampler.
     """
 
-    pass
-
-
-def autodoc(clz):
     pass
 
 

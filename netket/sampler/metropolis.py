@@ -14,6 +14,7 @@
 
 from functools import partial
 from typing import Any, Callable, Optional, Tuple, Union
+import abc
 
 import jax
 from flax import linen as nn
@@ -31,7 +32,7 @@ from .base import Sampler, SamplerState
 
 
 @struct.dataclass
-class MetropolisRule:
+class MetropolisRule(abc.ABC):
     """
     Base class for transition rules of Metropolis, such as Local, Exchange, Hamiltonian
     and several others.
@@ -84,6 +85,7 @@ class MetropolisRule:
         """
         return sampler_state.rule_state
 
+    @abc.abstractmethod
     def transition(
         rule,
         sampler: "MetropolisSampler",
@@ -94,7 +96,7 @@ class MetropolisRule:
         σ: jnp.ndarray,
     ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
 
-        raise NotImplementedError
+        pass
 
     def random_state(
         rule,
