@@ -20,7 +20,7 @@ import jax
 from flax import linen as nn
 from jax import numpy as jnp
 
-from netket.hilbert import ContinuousHilbert
+from netket.hilbert import AbstractHilbert, ContinuousHilbert
 
 from netket.utils import mpi, wrap_afun
 from netket.utils.types import PyTree, PRNGKeyT
@@ -29,98 +29,7 @@ from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
 
 from .base import Sampler, SamplerState
-
-
-@struct.dataclass
-class MetropolisRule(abc.ABC):
-    """
-    Base class for transition rules of Metropolis, such as Local, Exchange, Hamiltonian
-    and several others.
-    """
-
-    def init_state(
-        rule,
-        sampler: "MetropolisSampler",
-        machine: nn.Module,
-        params: PyTree,
-        key: PRNGKeyT,
-    ) -> Optional[Any]:
-        """
-        Initialises the optional internal state of the Metropolis sampler transition
-        rule.
-
-        The provided key is unique and does not need to be splitted.
-
-        It should return an immutable data structure.
-
-        Arguments:
-            sampler: The Metropolis sampler.
-            machine: A Flax module with the forward pass of the log-pdf.
-            params: The PyTree of parameters of the model.
-            key: A Jax PRNGKey.
-
-        Returns:
-            An optional state.
-        """
-        return None
-
-    def reset(
-        rule,
-        sampler: "MetropolisSampler",
-        machine: nn.Module,
-        params: PyTree,
-        sampler_state: SamplerState,
-    ) -> Optional[Any]:
-        """
-        Resets the internal state of the Metropolis Sampler Transition Rule.
-
-        Arguments:
-            sampler: The Metropolis sampler.
-            machine: A Flax module with the forward pass of the log-pdf.
-            params: The PyTree of parameters of the model.
-            sampler_state: The current state of the sampler. Should not modify it.
-
-        Returns:
-           A new, resetted, state of the rule. This returns the same type of :py:meth:`sampler_state.rule_state` and might be `None`.
-        """
-        return sampler_state.rule_state
-
-    @abc.abstractmethod
-    def transition(
-        rule,
-        sampler: "MetropolisSampler",
-        machine: nn.Module,
-        parameters: PyTree,
-        state: SamplerState,
-        key: PRNGKeyT,
-        σ: jnp.ndarray,
-    ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
-
-        pass
-
-    def random_state(
-        rule,
-        sampler: "MetropolisSampler",
-        machine: nn.Module,
-        parameters: PyTree,
-        state: SamplerState,
-        key: PRNGKeyT,
-    ):
-        """
-        Generates a random state compatible with this rule.
-
-        By default this calls :func:`netket.hilbert.random.random_state`.
-
-        Arguments:
-            sampler: The Metropolis sampler.
-            machine: A Flax module with the forward pass of the log-pdf.
-            parameters: The PyTree of parameters of the model.
-            state: The current state of the sampler. Should not modify it.
-            key: The PRNGKey to use to generate the random state.
-        """
-        return sampler.hilbert.random_state(
-            key, size=sampler.n_batches, dtype=sampler.dtype
-        )
+from .rules import MetropolisRule
 
 
 @struct.dataclass

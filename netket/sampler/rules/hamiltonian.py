@@ -23,7 +23,7 @@ from numba4jax import njit4jax
 
 from netket.operator import AbstractOperator
 
-from ..metropolis import MetropolisRule
+from .base import MetropolisRule
 
 
 @struct.dataclass

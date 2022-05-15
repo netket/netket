@@ -21,7 +21,8 @@ from jax import numpy as jnp
 from flax import struct
 
 from netket.graph import AbstractGraph
-from ..metropolis import MetropolisRule
+
+from .base import MetropolisRule
 
 
 @struct.dataclass
