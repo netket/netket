@@ -53,7 +53,7 @@ class Sampler(abc.ABC):
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
     """The Hilbert space to sample."""
 
-    n_chains_per_rank: int = struct.field(pytree_node=False, default=None)
+    n_chains_per_rank: int = struct.field(pytree_node=False, default=None, repr=False)
     """Number of independent chains on every MPI rank."""
 
     machine_pow: int = struct.field(default=2)

@@ -126,20 +126,3 @@ class ExactSampler(Sampler):
         )
 
         return samples, state.replace(rng=new_rng)
-
-    def __repr__(sampler):
-        return (
-            "ExactSampler("
-            + "\n  hilbert = {},".format(sampler.hilbert)
-            + "\n  n_chains_per_rank = {},".format(sampler.n_chains_per_rank)
-            + "\n  machine_power = {},".format(sampler.machine_pow)
-            + "\n  dtype = {})".format(sampler.dtype)
-        )
-
-    def __str__(sampler):
-        return (
-            "ExactSampler("
-            + "n_chains_per_rank = {}, ".format(sampler.n_chains_per_rank)
-            + "machine_power = {}, ".format(sampler.machine_pow)
-            + "dtype = {})".format(sampler.dtype)
-        )
