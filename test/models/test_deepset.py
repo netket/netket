@@ -19,12 +19,17 @@ import jax.numpy as jnp
 
 import netket as nk
 
+
 @pytest.mark.parametrize(
     "cusp_exponent", [pytest.param(None, id="cusp=None"), pytest.param(5, id="cusp=5")]
 )
 @pytest.mark.parametrize(
-    "L", [pytest.param(1.0, id="1D"), pytest.param((1.0, 1.0), id="2D-Square"),
-    pytest.param((1.0, 0.5), id="2D-Rectangle")]
+    "L",
+    [
+        pytest.param(1.0, id="1D"),
+        pytest.param((1.0, 1.0), id="2D-Square"),
+        pytest.param((1.0, 0.5), id="2D-Rectangle"),
+    ],
 )
 def test_deepsets(cusp_exponent, L):
 
