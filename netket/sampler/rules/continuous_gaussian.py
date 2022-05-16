@@ -50,8 +50,8 @@ class GaussianRule(MetropolisRule):
         ) * jnp.asarray(rule.sigma, dtype=r.dtype)
 
         opt_1 = np.equal(boundary, False)
-        opt_2 = np.logical_not(opt_1)
-        rp = opt_1 * (r + prop) + opt_2 * ((r + prop) % modulus)
+        rp = jnp.where(opt_1, (r + prop), (r + prop) % modulus)
+
         return rp, None
 
     def __repr__(self):

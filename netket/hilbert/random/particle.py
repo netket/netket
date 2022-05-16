@@ -39,6 +39,7 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     gaussian = jax.random.normal(
         key, shape=(batches, hilb.size), dtype=nkjax.dtype_real(dtype)
     )
+
     width = min_modulus / (4.0 * hilb.n_particles)
     # The width gives the noise level. In the periodic case the
     # particles are evenly distributed between 0 and min(L). The
@@ -50,7 +51,7 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     uniform = jnp.tile(jnp.linspace(0.0, min_modulus, hilb.size), (batches, 1))
 
     select = np.equal(boundary, False)
-    rs = select * gaussian + np.logical_not(select) * ((uniform + noise) % modulus)
+    rs = jnp.where(select, gaussian, (uniform + noise) % modulus)
 
     return jnp.asarray(rs, dtype=dtype)
 
