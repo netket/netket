@@ -65,6 +65,7 @@ tutorials/gs-gcnn-honeycomb
 docs/sharp-bits
 docs/hilbert
 docs/operator
+docs/sampler
 docs/varstate
 docs/sr
 docs/drivers
