@@ -12,10 +12,13 @@ from jax.nn.initializers import (
 
 from netket.hilbert import ContinuousHilbert
 
+
 def check_features_length(features, n_layers, name):
     if len(features) != n_layers:
-        raise ValueError(f"The number of {name} layers ({n_layers}) does not match "
-                         f"the length of the features list ({len(features)}).")
+        raise ValueError(
+            f"The number of {name} layers ({n_layers}) does not match "
+            f"the length of the features list ({len(features)})."
+        )
 
 
 class DeepSetRelDistance(nn.Module):
@@ -62,6 +65,9 @@ class DeepSetRelDistance(nn.Module):
     activation: Any = jax.nn.gelu
     """The nonlinear activation function between hidden layers."""
 
+    pooling: Any = jnp.sum
+    """The pooling operation to be used after the phi-transformation"""
+
     use_bias: bool = True
     """if True uses a bias in all layers."""
 
@@ -85,7 +91,7 @@ class DeepSetRelDistance(nn.Module):
             features_rho = [features_rho] * (self.layers_rho - 1) + [1]
 
         check_features_length(features_rho, self.layers_rho, "rho")
-        assert features_rho[-1] == 1 
+        assert features_rho[-1] == 1
 
         self.phi = [
             nn.Dense(
@@ -114,8 +120,9 @@ class DeepSetRelDistance(nn.Module):
         x = x.reshape(-1, sdim)
 
         dis = -x[jnp.newaxis, :, :] + x[:, jnp.newaxis, :]
-        dis = dis[jnp.triu_indices(n_particles, 1)]
 
+        dis = dis[jnp.triu_indices(n_particles, 1)]
+        dis = L[jnp.newaxis, :] / 2.0 * jnp.sin(jnp.pi * dis / L[jnp.newaxis, :])
         return dis
 
     @nn.compact
@@ -123,27 +130,25 @@ class DeepSetRelDistance(nn.Module):
         sha = x.shape
         param = self.param("cusp", self.params_init, (1,), self.dtype)
 
-        L = self.hilbert.extent[0]
-        sdim = len(self.hilbert.extent)
+        L = jnp.array(self.hilbert.extent)
+        sdim = L.size
 
         d = jax.vmap(self.distance, in_axes=(0, None, None))(x, sdim, L)
 
-        d = (
-            L
-            / 2.0
-            * jnp.sin(jnp.pi / L * jnp.linalg.norm(d, axis=-1, keepdims=True))
-        )
         cusp = 0.0
         if self.cusp_exponent is not None:
-            cusp = -0.5 * jnp.sum(param / d**self.cusp_exponent, axis=-2)
+            cusp = -0.5 * jnp.sum(
+                param / jnp.linalg.norm(d, axis=-1) ** self.cusp_exponent, axis=-1
+            )
 
         y = d**2
+
         """ The phi transformation """
         for layer in self.phi:
             y = self.activation(layer(y))
 
         """ Pooling operation """
-        y = jnp.sum(y, axis=-2)
+        y = self.pooling(y, axis=-2)
 
         """ The rho transformation """
         for i, layer in enumerate(self.rho):
@@ -152,4 +157,4 @@ class DeepSetRelDistance(nn.Module):
                 break
             y = self.activation(y)
 
-        return (y + cusp).reshape(sha[0])
+        return (y.reshape(-1) + cusp).reshape(sha[0])

@@ -15,6 +15,8 @@ import netket as nk
 import jax.numpy as jnp
 
 
+from optax._src import linear_algebra
+
 def minimum_distance(x, sdim):
     """Computes distances between particles using mimimum image convention"""
     n_particles = x.shape[0] // sdim
@@ -54,7 +56,7 @@ d = 0.3  # 1/Angstrom
 rm = 2.9673  # Angstrom
 L = N / (0.3 * rm)
 hilb = nk.hilbert.Particle(N=N, L=(L,), pbc=True)
-sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.05, n_chains=16)
+sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.05, n_chains=16, n_sweeps=32)
 
 
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
@@ -75,4 +77,4 @@ op = nk.optimizer.Sgd(0.001)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
 gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
-gs.run(n_iter=1000, out="Helium_10_1d")
+gs.run(n_iter=500, out="Helium_10_1d")
