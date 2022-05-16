@@ -62,8 +62,7 @@ pot = nk.operator.PotentialEnergy(hilb, lambda x: potential(x, 1))
 ha = ekin + pot
 
 model = nk.models.DeepSetRelDistance(
-    L=L,
-    sdim=1,
+    hilbert=hilb,
     cusp_exponent=5,
     layers_phi=2,
     layers_rho=3,

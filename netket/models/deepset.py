@@ -10,6 +10,7 @@ from jax.nn.initializers import (
     lecun_normal,
 )
 
+from netket.hilbert import ContinuousHilbert
 
 def check_features_length(features, n_layers, name):
     if len(features) != n_layers:
@@ -35,10 +36,9 @@ class DeepSetRelDistance(nn.Module):
         \psi(x_1,...,x_N) = \rho\left(\sum_i \phi(d_{\sin}(x_i,x_j))\right) \cdot \exp\left[-\frac{1}{2}\left(b/d_{\sin}(x_i,x_j)\right)^5\right]
 
     """
-    L: jnp.float64
-    """boxsize"""
-    sdim: int
-    """number of spatial dimensions"""
+
+    hilbert: ContinuousHilbert
+    """The hilbert space defining the periodic box where this ansatz is defined."""
 
     layers_phi: int
     """Number of layers in phi network."""
@@ -123,12 +123,15 @@ class DeepSetRelDistance(nn.Module):
         sha = x.shape
         param = self.param("cusp", self.params_init, (1,), self.dtype)
 
-        d = jax.vmap(self.distance, in_axes=(0, None, None))(x, self.sdim, self.L)
+        L = self.hilbert.extent[0]
+        sdim = len(self.hilbert.extent)
+
+        d = jax.vmap(self.distance, in_axes=(0, None, None))(x, sdim, L)
 
         d = (
-            self.L
+            L
             / 2.0
-            * jnp.sin(jnp.pi / self.L * jnp.linalg.norm(d, axis=-1, keepdims=True))
+            * jnp.sin(jnp.pi / L * jnp.linalg.norm(d, axis=-1, keepdims=True))
         )
         cusp = 0.0
         if self.cusp_exponent is not None:
