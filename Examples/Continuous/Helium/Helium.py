@@ -61,7 +61,7 @@ ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
 pot = nk.operator.PotentialEnergy(hilb, lambda x: potential(x, 1))
 ha = ekin + pot
 
-model = nk.models.DeepSet(
+model = nk.models.DeepSetRelDistance(
     L=L,
     sdim=1,
     cusp_exponent=5,

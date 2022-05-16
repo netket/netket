@@ -11,7 +11,13 @@ from jax.nn.initializers import (
 )
 
 
-class DeepSet(nn.Module):
+def check_features_length(features, n_layers, name):
+    if len(features) != n_layers:
+        raise ValueError(f"The number of {name} layers ({n_layers}) does not match "
+                         f"the length of the features list ({len(features)}).")
+
+
+class DeepSetRelDistance(nn.Module):
     r"""Implements an equivariant version of the DeepSets architecture
     given by (https://arxiv.org/abs/1703.06114)
 
@@ -35,14 +41,17 @@ class DeepSet(nn.Module):
     """number of spatial dimensions"""
 
     layers_phi: int
-    """Number of layers in phi network"""
+    """Number of layers in phi network."""
     layers_rho: int
-    """Number of layers in rho network"""
+    """Number of layers in rho network."""
 
     features_phi: Union[Tuple, int]
     """Number of features in each layer for phi network."""
     features_rho: Union[Tuple, int]
-    """Number of features in each layer for rho network."""
+    """
+    Number of features in each layer for rho network.
+    If specified as a list, the last layer must have 1 feature. 
+    """
 
     cusp_exponent: Optional[int] = None
     """exponent of Katos cusp condition"""
@@ -64,11 +73,19 @@ class DeepSet(nn.Module):
     """Initializer for the parameter in the cusp"""
 
     def setup(self):
-        if isinstance(self.features_phi, int):
-            self.features_phi = [self.features_phi] * (self.layers_phi - 1)
 
-        if isinstance(self.features_rho, int):
-            self.features_rho = [self.features_rho] * (self.layers_rho - 1)
+        features_phi = self.features_phi
+        if isinstance(features_phi, int):
+            features_phi = [features_phi] * self.layers_phi
+
+        check_features_length(features_phi, self.layers_phi, "phi")
+
+        features_rho = self.layers_rho
+        if isinstance(features_rho, int):
+            features_rho = [features_rho] * (self.layers_rho - 1) + [1]
+
+        check_features_length(features_rho, self.layers_rho, "rho")
+        assert features_rho[-1] == 1 
 
         self.phi = [
             nn.Dense(
@@ -78,7 +95,7 @@ class DeepSet(nn.Module):
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
-            for feat in self.features_phi
+            for feat in features_phi
         ]
 
         self.rho = [
@@ -89,7 +106,7 @@ class DeepSet(nn.Module):
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
-            for feat in self.features_rho
+            for feat in features_rho
         ]
 
     def distance(self, x, sdim, L):
