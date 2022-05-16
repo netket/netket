@@ -72,7 +72,7 @@ model = nk.models.DeepSetRelDistance(
     features_phi=(16, 16),
     features_rho=(16, 16, 1),
 )
-vs = nk.vqs.MCState(sab, model, n_samples=2 * 4096, n_discard_per_chain=128)
+vs = nk.vqs.MCState(sab, model, n_samples=4096, n_discard_per_chain=128)
 
 op = nk.optimizer.Sgd(0.001)
 sr = nk.optimizer.SR(diag_shift=0.01)

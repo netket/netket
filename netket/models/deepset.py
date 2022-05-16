@@ -104,7 +104,7 @@ class DeepSetRelDistance(nn.Module):
             nn.Dense(
                 feat,
                 use_bias=self.use_bias,
-                param_dtype=self.dtype,
+                dtype=self.dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
@@ -115,7 +115,7 @@ class DeepSetRelDistance(nn.Module):
             nn.Dense(
                 feat,
                 use_bias=self.use_bias,
-                param_dtype=self.dtype,
+                dtype=self.dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
