@@ -134,14 +134,13 @@ class DeepSetRelDistance(nn.Module):
         sdim = L.size
 
         d = jax.vmap(self.distance, in_axes=(0, None, None))(x, sdim, L)
+        dis = jnp.linalg.norm(d, axis=-1)
 
         cusp = 0.0
         if self.cusp_exponent is not None:
-            cusp = -0.5 * jnp.sum(
-                param / jnp.linalg.norm(d, axis=-1) ** self.cusp_exponent, axis=-1
-            )
+            cusp = -0.5 * jnp.sum(param / dis**self.cusp_exponent, axis=-1)
 
-        y = d**2
+        y = (d / L[jnp.newaxis, :]) ** 2
 
         """ The phi transformation """
         for layer in self.phi:
