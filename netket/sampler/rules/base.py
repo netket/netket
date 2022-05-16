@@ -31,7 +31,7 @@ class MetropolisRule(abc.ABC):
     """
 
     def init_state(
-        rule,
+        self,
         sampler: "MetropolisSampler",  # noqa: F821
         machine: nn.Module,
         params: PyTree,
@@ -57,7 +57,7 @@ class MetropolisRule(abc.ABC):
         return None
 
     def reset(
-        rule,
+        self,
         sampler: "MetropolisSampler",  # noqa: F821
         machine: nn.Module,
         params: PyTree,
@@ -66,6 +66,8 @@ class MetropolisRule(abc.ABC):
         """
         Resets the internal state of the Metropolis Sampler Transition Rule.
 
+        The default implementation returns the current rule_state without modofying it.
+
         Arguments:
             sampler: The Metropolis sampler.
             machine: A Flax module with the forward pass of the log-pdf.
@@ -73,29 +75,52 @@ class MetropolisRule(abc.ABC):
             sampler_state: The current state of the sampler. Should not modify it.
 
         Returns:
-           A new, resetted, state of the rule. This returns the same type of :py:meth:`sampler_state.rule_state` and might be `None`.
+           A resetted, state of the rule. This returns the same type of
+           :py:meth:`~nk.sampler.rule.MetropolisRule.rule_state` and might be `None`.
         """
         return sampler_state.rule_state
 
     @abc.abstractmethod
     def transition(
-        rule,
+        self,
         sampler: "MetropolisSampler",  # noqa: F821
         machine: nn.Module,
-        parameters: PyTree,
-        state: "SamplerState",  # noqa: F821
+        params: PyTree,
+        sampler_state: "SamplerState",  # noqa: F821
         key: PRNGKeyT,
         σ: jnp.ndarray,
     ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
+        r"""
+        Proposes a new configuration set of configurations $\sigma'$ starting from the current
+        chain configurations $\sigma$.
 
+        The new configurations $\sigma'$ should be a matrix with the same dimension as $\sigma$.
+
+        This function should return a tuple. where the first element are the new configurations
+        $\sigma'$ and the second element is either `None` or an array of length `σ.shape[0]`
+        containing an optional log-correction factor. The correction factor should be non-zero
+        when the transition rule is non-symmetrical.
+
+        Arguments:
+            sampler: The Metropolis sampler.
+            machine: A Flax module with the forward pass of the log-pdf.
+            params: The PyTree of parameters of the model.
+            sampler_state: The current state of the sampler. Should not modify it.
+            key: A Jax PRNGKey to use to generate new random configurations.
+            σ: The current configurations stored in a 2D matrix.
+
+        Returns:
+           A tuple containing the new configurations $\sigma'$ and the optional vector of
+           log corrections to the transition probability.
+        """
         pass
 
     def random_state(
-        rule,
+        self,
         sampler: "MetropolisSampler",  # noqa: F821
         machine: nn.Module,
-        parameters: PyTree,
-        state: "SamplerState",  # noqa: F821
+        params: PyTree,
+        sampler_state: "SamplerState",  # noqa: F821
         key: PRNGKeyT,
     ):
         """
@@ -106,8 +131,8 @@ class MetropolisRule(abc.ABC):
         Arguments:
             sampler: The Metropolis sampler.
             machine: A Flax module with the forward pass of the log-pdf.
-            parameters: The PyTree of parameters of the model.
-            state: The current state of the sampler. Should not modify it.
+            params: The PyTree of parameters of the model.
+            sampler_state: The current state of the sampler. Should not modify it.
             key: The PRNGKey to use to generate the random state.
         """
         return sampler.hilbert.random_state(
