@@ -248,12 +248,14 @@ def _to_real(x):
     else:
         return (x,)
 
+
 def _complex(xr, xi):
     # run jax.lax.complex but support complex inputs
     if jnp.iscomplexobj(xr) or jnp.iscomplexobj(xi):
-        return xr+1j*xi
+        return xr + 1j * xi
     else:
         return jax.lax.complex(xr, xi)
+
 
 def _to_real_transpose(x):
     if jnp.iscomplexobj(x):
