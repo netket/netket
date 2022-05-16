@@ -80,13 +80,18 @@ class DeepSetRelDistance(nn.Module):
 
     def setup(self):
 
+        if not all(self.hilbert.pbc):
+            raise ValueError("The DeepSetRelDistance modeel only works with "
+                             "hilbert spaces with periodic boundary conditions "
+                             "among all directions.")
+
         features_phi = self.features_phi
         if isinstance(features_phi, int):
             features_phi = [features_phi] * self.layers_phi
 
         check_features_length(features_phi, self.layers_phi, "phi")
 
-        features_rho = self.layers_rho
+        features_rho = self.features_rho
         if isinstance(features_rho, int):
             features_rho = [features_rho] * (self.layers_rho - 1) + [1]
 
