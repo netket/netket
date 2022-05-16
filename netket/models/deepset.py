@@ -74,7 +74,7 @@ class DeepSet(nn.Module):
             nn.Dense(
                 feat,
                 use_bias=self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
@@ -85,7 +85,7 @@ class DeepSet(nn.Module):
             nn.Dense(
                 feat,
                 use_bias=self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
