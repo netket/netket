@@ -35,7 +35,7 @@ class AbstractARNN(nn.Module):
 
     Subclasses must implement the methods `__call__` and `conditionals`.
     They can also override `_conditional` to implement the caching for fast autoregressive sampling.
-    See :ref:`netket.nn.FastARNNConv1D` for example.
+    See :class:`netket.nn.FastARNNConv1D` for example.
 
     They must also implement the field `machine_pow`,
     which specifies the exponent to normalize the outputs of `__call__`.

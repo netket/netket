@@ -92,9 +92,10 @@ class MetropolisRule(abc.ABC):
     ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
         r"""
         Proposes a new configuration set of configurations $\sigma'$ starting from the current
-        chain configurations $\sigma$.
+        chain configurations :math:`\sigma`.
 
-        The new configurations $\sigma'$ should be a matrix with the same dimension as $\sigma$.
+        The new configurations :math:`\sigma'` should be a matrix with the same dimension as
+        :math:`\sigma`.
 
         This function should return a tuple. where the first element are the new configurations
         $\sigma'$ and the second element is either `None` or an array of length `σ.shape[0]`
@@ -110,7 +111,7 @@ class MetropolisRule(abc.ABC):
             σ: The current configurations stored in a 2D matrix.
 
         Returns:
-           A tuple containing the new configurations $\sigma'$ and the optional vector of
+           A tuple containing the new configurations :math:`\sigma'` and the optional vector of
            log corrections to the transition probability.
         """
         pass

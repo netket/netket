@@ -9,7 +9,7 @@
 In this page we present some experimental interfaces of NetKet.
 Those are not guaranteed to be API-stable, and might change without notice (other than the
 changelog) among minor releases.
-The {ref}`netket.experimental` modules mirrors the standard {ref}`netket` module structure,
+The {ref}`netket.experimental <api-experimental>` modules mirrors the standard {ref}`netket <api>` module structure,
 and we suggest to use it as follows:
 
 ```python
@@ -29,7 +29,7 @@ Until we will have verified this hypotesis and updated the tests in order not
 to fail, we provide the current implementation as-is, in the hope that some
 contributor might take up that work.
 
-The other experimental sampler is MetropolisSamplerPmap, which makes use of {ref}`jax.pmap`
+The other experimental sampler is MetropolisSamplerPmap, which makes use of {func}`jax.pmap`
 to use different GPUs/CPUs without having to use MPI. It should scale much better over
 several CPUs, but you have to start jax with a specific environment variable.
 

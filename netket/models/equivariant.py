@@ -46,6 +46,7 @@ def identity(x):
 
 class GCNN_FFT(nn.Module):
     r"""Implements a GCNN using a fast fourier transform over the translation group.
+
     The group convolution can be written in terms of translational convolutions with
     symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
     The translational convolutions are then implemented with Fast Fourier Transforms.
@@ -632,12 +633,12 @@ def GCNN(
             with respect to parity (only use on two level systems).
         dtype: The dtype of the weights.
         activation: The nonlinear activation function between hidden layers. Defaults to
-            :ref:`nk.nn.activation.reim_selu`.
+            :func:`nk.nn.activation.reim_selu` .
         output_activation: The nonlinear activation before the output.
         equal_amplitudes: If True forces all basis states to have equal amplitude
             by setting :math:`\Re(\psi) = 0`.
         use_bias: If True uses a bias in all layers.
-        precision: Numerical precision of the computation see `jax.lax.Precision`for details.
+        precision: Numerical precision of the computation see {class}`jax.lax.Precision` for details.
         kernel_init: Initializer for the kernels of all layers. Defaults to
             `lecun_normal(in_axis=1, out_axis=0)` which guarantees the correct variance of the
             output.
