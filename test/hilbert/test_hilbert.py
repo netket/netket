@@ -217,7 +217,7 @@ def test_random_states_particle(hi: Particle):
 
 def test_particle_fail():
     with pytest.raises(ValueError):
-        _ = Particle(N=5, L=(jnp.inf, 2.0), periodic=True)
+        _ = Particle(N=5, L=(jnp.inf, 2.0), pbc=True)
 
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
