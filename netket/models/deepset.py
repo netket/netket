@@ -32,7 +32,7 @@ class DeepSetRelDistance(nn.Module):
     that is suitable for the simulation of periodic systems.
     Additionally one can add a cusp condition by specifying the
     asymptotic exponent.
-    For helium the Ansatz reads:
+    For helium the Ansatz reads (https://arxiv.org/abs/2112.11957):
 
     .. math ::
 
@@ -82,7 +82,7 @@ class DeepSetRelDistance(nn.Module):
 
         if not all(self.hilbert.pbc):
             raise ValueError(
-                "The DeepSetRelDistance modeel only works with "
+                "The DeepSetRelDistance model only works with "
                 "hilbert spaces with periodic boundary conditions "
                 "among all directions."
             )

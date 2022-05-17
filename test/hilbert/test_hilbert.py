@@ -124,6 +124,7 @@ hilberts["ContinuousSpaceHilbert"] = nk.hilbert.Particle(
     N=5, L=(np.inf, 10.0), pbc=(False, True)
 )
 
+
 all_hilbert_params = [pytest.param(hi, id=name) for name, hi in hilberts.items()]
 discrete_hilbert_params = [
     pytest.param(hi, id=name)
@@ -212,6 +213,11 @@ def test_random_states_particle(hi: Particle):
     assert jnp.sum(
         jnp.where(jnp.equal(boundary, True), state < extension, 0)
     ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
+
+
+def test_particle_fail():
+    with pytest.raises(ValueError):
+        _ = Particle(N=5, L=(jnp.inf, 2.0), pbc=True)
 
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)

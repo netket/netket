@@ -104,9 +104,9 @@ samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u)
 
 
 # Hilbert space and sampler for particles
-hi_particles = nk.hilbert.Particle(N=3, L=(np.inf,), pbc=(False,))
+hi_particles = nk.hilbert.Particle(N=3, L=jnp.inf, pbc=False)
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
-    hi_particles, sigma=1.0, n_sweeps=hi_particles.size * 4
+    hi_particles, sigma=1.0, n_sweeps=hi_particles.size * 10
 )
 
 
@@ -306,9 +306,11 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
         assert pval > 0.01 or np.max(pvalues) > 0.01
 
     elif isinstance(hi, Particle):
+        # TODO: Find periodic distribution that can be exactly sampled and do the same test.
+
         ma, w = model_and_weights(hi, sampler)
         n_samples = 5000
-        n_discard = 2000
+        n_discard = 2 * 1024
         n_rep = 6
         pvalues = np.zeros(n_rep)
 
@@ -327,7 +329,10 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
                 hi.size,
             )
             samples, sampler_state = sampler.sample(
-                ma, w, state=sampler_state, chain_length=n_samples
+                ma,
+                w,
+                state=sampler_state,
+                chain_length=n_samples,
             )
 
             assert samples.shape == (n_samples, sampler.n_chains, hi.size)
@@ -341,7 +346,7 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
                     * np.dot(w["params"]["kernel"].T, w["params"]["kernel"])
                 ),
             )
-            exact_samples = dist.rvs(size=samples.shape[0] * sampler.n_chains)
+            exact_samples = dist.rvs(size=samples.shape[0])
 
             counts, bins = np.histogramdd(samples, bins=10)
             counts_exact, _ = np.histogramdd(exact_samples, bins=bins)
@@ -351,6 +356,7 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
             )
 
         s, pval = combine_pvalues(pvalues, method="fisher")
+
         assert pval > 0.01 or np.max(pvalues) > 0.01
 
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Tuple, Union
-
+import numpy as np
 from .continuous_hilbert import ContinuousHilbert
 
 
@@ -45,6 +45,12 @@ class Particle(ContinuousHilbert):
 
         if isinstance(pbc, bool):
             pbc = [pbc] * len(L)
+
+        if np.any(np.isinf(np.array(L) * np.array(pbc))):
+            raise ValueError(
+                "If you do have periodic boundary conditions the size of the box (L) "
+                "must be finite."
+            )
 
         self._N = N
 
