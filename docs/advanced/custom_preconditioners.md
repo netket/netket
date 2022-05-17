@@ -26,7 +26,7 @@ def preconditioner(vstate: VariationalState, gradient: PyTree) -> PyTree:
 The Callable must accept two (positional) inputs, where the first is the variational state itself and the latter is the current gradient, stored as a PyTree.
 The output of the preconditioner must be the transformed gradient stored as a PyTree.
 
-This general API will allow you to implement any preconditioner and use it together with NetKet Variational Drivers.
+This general API will allow you to implement any preconditioner and use it together with NetKet's variational optimization drivers.
 However, note that any performance optimisation (such as calling {func}`jax.jit` on the code) will be your responsability.
 
 ### The LinearPreconditioner interface
