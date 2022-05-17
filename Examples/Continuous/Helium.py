@@ -18,6 +18,15 @@ import jax.numpy as jnp
 from optax._src import linear_algebra
 
 
+from optax._src import linear_algebra
+
+
+def mycb(step, logged_data, driver):
+    logged_data["acceptance"] = float(driver.state.sampler_state.acceptance)
+    logged_data["globalnorm"] = float(linear_algebra.global_norm(driver._loss_grad))
+    return True
+
+
 def minimum_distance(x, sdim):
     """Computes distances between particles using mimimum image convention"""
     n_particles = x.shape[0] // sdim
@@ -72,10 +81,10 @@ model = nk.models.DeepSetRelDistance(
     features_phi=(16, 16),
     features_rho=(16, 16, 1),
 )
-vs = nk.vqs.MCState(sab, model, n_samples=2 * 4096, n_discard_per_chain=128)
+vs = nk.vqs.MCState(sab, model, n_samples=4096, n_discard_per_chain=128)
 
-op = nk.optimizer.Sgd(0.001)
+op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
 gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
-gs.run(n_iter=500, out="Helium_10_1d")
+gs.run(n_iter=1000, callback=mycb, out="Helium_10_1d")

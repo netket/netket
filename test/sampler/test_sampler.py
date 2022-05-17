@@ -306,8 +306,10 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
         assert pval > 0.01 or np.max(pvalues) > 0.01
 
     elif isinstance(hi, Particle):
+        # TODO: Find periodic distribution that can be exactly sampled and do the same test.
+
         ma, w = model_and_weights(hi, sampler)
-        n_samples = 75000
+        n_samples = 5000
         n_discard = 2 * 1024
         n_rep = 6
         pvalues = np.zeros(n_rep)

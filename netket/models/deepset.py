@@ -82,7 +82,7 @@ class DeepSetRelDistance(nn.Module):
 
         if not all(self.hilbert.pbc):
             raise ValueError(
-                "The DeepSetRelDistance modeel only works with "
+                "The DeepSetRelDistance model only works with "
                 "hilbert spaces with periodic boundary conditions "
                 "among all directions."
             )
@@ -147,7 +147,7 @@ class DeepSetRelDistance(nn.Module):
         if self.cusp_exponent is not None:
             cusp = -0.5 * jnp.sum(param / dis**self.cusp_exponent, axis=-1)
 
-        y = (d / L[jnp.newaxis, :]) ** 2
+        y = (2 * d / L[jnp.newaxis, :]) ** 2
 
         """ The phi transformation """
         for layer in self.phi:
