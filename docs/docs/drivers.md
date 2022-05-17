@@ -16,7 +16,7 @@ may wish.
 
 There are two objects both drivers above need in order to be constructed:
 
-- The {class}`~netket.operator.AbstractOperator` defining the problem we wish to solve, such as the Hamiltonian for which we want to find the ground state or the Lindbladian for which we want to find the Steady-State.
+- The {class}`~netket.operator.AbstractOperator` defining the problem we wish to solve, such as the Hamiltonian for which we want to find the ground state or the Lindbladian for which we want to find the steady state.
 - The [Optimizer](netket_optimizer_api) to use in order to update the weights among iterations.
 
 Those are respectively the first and second argument of the constructor.
