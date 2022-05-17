@@ -27,7 +27,7 @@ The Callable must accept two (positional) inputs, where the first is the variati
 The output of the preconditioner must be the transformed gradient stored as a PyTree.
 
 This general API will allow you to implement any preconditioner and use it together with NetKet's variational optimization drivers.
-However, note that any performance optimisation (such as calling {func}`jax.jit` on the code) will be your responsability.
+However, note that any performance optimisation (such as calling {func}`jax.jit` on the code) will be your responsibility.
 
 ### The LinearPreconditioner interface
 
