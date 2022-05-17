@@ -216,7 +216,7 @@ def test_random_states_particle(hi: Particle):
 
 
 def test_particle_fail():
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         _ = Particle(N=5, L=(jnp.inf, 2.0), periodic=True)
 
 
