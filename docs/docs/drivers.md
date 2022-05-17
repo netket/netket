@@ -1,7 +1,7 @@
 # The Drivers API
 
 In this section we will briefly describe the capabilities of the drivers API.
-This page assumes that you have already read and are familiar witht the [Variational State interface](varstate).
+This page assumes that you have already read and are familiar with the [`VariationalState` interface](varstate).
 
 In Netket there are two drivers, even though you can define your own; those are:
 
