@@ -50,8 +50,7 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     noise = gaussian * width
     uniform = jnp.tile(jnp.linspace(0.0, min_modulus, hilb.size), (batches, 1))
 
-    select = np.equal(boundary, False)
-    rs = jnp.where(select, gaussian, (uniform + noise) % modulus)
+    rs = jnp.where(np.equal(boundary, False), gaussian, (uniform + noise) % modulus)
 
     return jnp.asarray(rs, dtype=dtype)
 

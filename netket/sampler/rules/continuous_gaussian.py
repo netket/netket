@@ -49,8 +49,7 @@ class GaussianRule(MetropolisRule):
             key, shape=(n_chains, hilb.size), dtype=r.dtype
         ) * jnp.asarray(rule.sigma, dtype=r.dtype)
 
-        opt_1 = np.equal(boundary, False)
-        rp = jnp.where(opt_1, (r + prop), (r + prop) % modulus)
+        rp = jnp.where(np.equal(boundary, False), (r + prop), (r + prop) % modulus)
 
         return rp, None
 

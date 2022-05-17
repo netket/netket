@@ -15,18 +15,6 @@ import netket as nk
 import jax.numpy as jnp
 
 
-from optax._src import linear_algebra
-
-
-from optax._src import linear_algebra
-
-
-def mycb(step, logged_data, driver):
-    logged_data["acceptance"] = float(driver.state.sampler_state.acceptance)
-    logged_data["globalnorm"] = float(linear_algebra.global_norm(driver._loss_grad))
-    return True
-
-
 def minimum_distance(x, sdim):
     """Computes distances between particles using mimimum image convention"""
     n_particles = x.shape[0] // sdim
@@ -87,4 +75,4 @@ op = nk.optimizer.Sgd(0.01)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
 gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
-gs.run(n_iter=1000, callback=mycb, out="Helium_10_1d")
+gs.run(n_iter=1000, out="Helium_10_1d")
