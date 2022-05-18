@@ -17,7 +17,7 @@ import numpy as np
 
 from flax import struct
 
-from ..metropolis import MetropolisRule
+from .base import MetropolisRule
 
 
 @struct.dataclass
@@ -28,7 +28,12 @@ class GaussianRule(MetropolisRule):
     New proposals of particle positions are generated according to a
     Gaussian distribution of width sigma.
     """
+
     sigma: float = 1.0
+    """
+    The variance of the gaussian distribution centered around the current
+    configuration, used to propose new configurations. 
+    """
 
     def transition(rule, sampler, machine, parameters, state, key, r):
         if jnp.issubdtype(r.dtype, jnp.complexfloating):

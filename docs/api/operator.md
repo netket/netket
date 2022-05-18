@@ -39,7 +39,7 @@ Those classes cannot be directly instantiated, but you can inherit from one of t
 
 ## Concrete Classes
 
-Below you find a list of all concrete Operators that you can create on [DiscreteHilbert](netket.hilbert.DiscreteHilbert) spaces.
+Below you find a list of all concrete Operators that you can create on {class}`~netket.hilbert.DiscreteHilbert` spaces.
 
 ```{eval-rst}
 .. currentmodule:: netket.operator
@@ -72,7 +72,7 @@ In the experimental submodule there is also a class to represent fermionic opera
 
 ### Continuous space operators
 
-This is a list of operators that you can define on [ContinuousHilbert](netket.hilbert.ContinuousHilbert) spaces.
+This is a list of operators that you can define on {class}`~netket.hilbert.ContinuousHilbert` spaces.
 
 ```{eval-rst}
 .. currentmodule:: netket.operator
@@ -89,7 +89,7 @@ This is a list of operators that you can define on [ContinuousHilbert](netket.hi
 
 ## Pre-defined operators
 
-Those are easy-to-use constructors for a [LocalOperator](netket.operator.LocalOperator).
+Those are easy-to-use constructors for a {class}`~netket.operator.LocalOperator`.
 
 ```{eval-rst}
 .. currentmodule:: netket.operator
@@ -110,7 +110,7 @@ Those are easy-to-use constructors for a [LocalOperator](netket.operator.LocalOp
 
 ```
 
-In the experimental submodule there are also easy-to-use constructors for common [FermionOperator2nd](netket.experimental.operator.FermionOperator2nd).
+In the experimental submodule there are also easy-to-use constructors for common {class}`~netket.experimental.operator.FermionOperator2nd`.
 
 ```{eval-rst}
 .. currentmodule:: netket

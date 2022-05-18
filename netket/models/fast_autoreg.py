@@ -36,7 +36,7 @@ class FastARNNDense(AbstractARNN):
     """
     Fast autoregressive neural network with dense layers.
 
-    See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
 
     TODO: FastMaskedDense1D does not support JIT yet, because it involves slicing the cached inputs
     and the weights with a dynamic shape.
@@ -98,7 +98,7 @@ class FastARNNConv1D(AbstractARNN):
     """
     Fast autoregressive neural network with 1D convolution layers.
 
-    See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
 
     layers: int
@@ -162,7 +162,7 @@ class FastARNNConv2D(AbstractARNN):
     """
     Fast autoregressive neural network with 2D convolution layers.
 
-    See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
 
     layers: int
