@@ -24,6 +24,7 @@ from netket.nn.masked_linear import (
     MaskedConv1D,
     MaskedConv2D,
     MaskedDense1D,
+    _conv_dimension_numbers,
     default_kernel_init,
     wrap_kernel_init,
 )
@@ -254,7 +255,7 @@ class FastMaskedConv1D(nn.Module):
         if self.exclusive and dilation > 1:
             cache = cache[:, : -(dilation - 1), :]
 
-        dimension_numbers = flax.linen.linear._conv_dimension_numbers(cache.shape)
+        dimension_numbers = _conv_dimension_numbers(cache.shape)
         y_i = lax.conv_general_dilated(
             cache,
             kernel,
@@ -428,7 +429,7 @@ class FastMaskedConv2D(nn.Module):
             cache, (0, 0, index_w, 0), (batch, recep_h, recep_w, in_features)
         )
 
-        dimension_numbers = flax.linen.linear._conv_dimension_numbers(cache.shape)
+        dimension_numbers = _conv_dimension_numbers(cache.shape)
         y_i = lax.conv_general_dilated(
             cache,
             kernel,

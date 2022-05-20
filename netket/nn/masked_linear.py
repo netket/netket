@@ -37,6 +37,15 @@ def wrap_kernel_init(kernel_init, mask):
     return wrapped_kernel_init
 
 
+def _conv_dimension_numbers(input_shape):
+    """Computes the dimension numbers based on the input shape."""
+    ndim = len(input_shape)
+    lhs_spec = (0, ndim - 1) + tuple(range(1, ndim - 1))
+    rhs_spec = (ndim - 1, ndim - 2) + tuple(range(0, ndim - 2))
+    out_spec = lhs_spec
+    return lax.ConvDimensionNumbers(lhs_spec, rhs_spec, out_spec)
+
+
 class MaskedDense1D(nn.Module):
     """1D linear transformation module with mask for autoregressive NN."""
 
@@ -179,7 +188,7 @@ class MaskedConv1D(nn.Module):
             ),
         )
 
-        dimension_numbers = flax.linen.linear._conv_dimension_numbers(inputs.shape)
+        dimension_numbers = _conv_dimension_numbers(inputs.shape)
         y = lax.conv_general_dilated(
             y,
             kernel,
@@ -285,7 +294,7 @@ class MaskedConv2D(nn.Module):
             ),
         )
 
-        dimension_numbers = flax.linen.linear._conv_dimension_numbers(inputs.shape)
+        dimension_numbers = _conv_dimension_numbers(inputs.shape)
         y = lax.conv_general_dilated(
             y,
             mask * kernel,
