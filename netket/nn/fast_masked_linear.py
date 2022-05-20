@@ -94,11 +94,10 @@ class FastMaskedDense1D(nn.Module):
         if not initializing:
             # Add the input site into the cache
             # To write the cache, use `_cache.value` as the left value of the assignment
-            _cache.value = lax.cond(
+            _cache.value = jnp.where(
                 index - self.exclusive >= 0,
-                lambda _: _cache.value.at[:, index - self.exclusive, :].set(inputs),
-                lambda _: _cache.value,
-                None,
+                _cache.value.at[:, index - self.exclusive, :].set(inputs),
+                _cache.value,
             )
 
         cache = _cache.value
@@ -233,13 +232,12 @@ class FastMaskedConv1D(nn.Module):
         if not initializing:
             # Add the input site into the cache
             # To write the cache, use `_cache.value` as the left value of the assignment
-            _cache.value = lax.cond(
+            _cache.value = jnp.where(
                 index - self.exclusive >= 0,
-                lambda _: jnp.concatenate(
+                jnp.concatenate(
                     [_cache.value[:, 1:, :], jnp.expand_dims(inputs, axis=1)], axis=1
                 ),
-                lambda _: _cache.value,
-                None,
+                _cache.value,
             )
 
         cache = _cache.value
@@ -326,10 +324,7 @@ class FastMaskedConv2D(nn.Module):
     """initializer for the bias."""
 
     def setup(self):
-        kernel_h, kernel_w = self.kernel_size
-        mask = jnp.ones((kernel_h, kernel_w, 1, 1), dtype=self.dtype)
-        mask = mask.at[-1, kernel_w // 2 + (not self.exclusive) :].set(0)
-        self.mask = mask
+        MaskedConv2D.setup(self)
 
     @nn.compact
     def update_site(self, inputs: Array, index: int) -> Array:
@@ -390,33 +385,16 @@ class FastMaskedConv2D(nn.Module):
                 return lax.dynamic_update_slice(cache, inputs, (0, -1, index_w_in, 0))
 
             def _shift(cache):
-                return jnp.concatenate(
-                    [
-                        cache[:, 1:, :, :],
-                        jnp.zeros((batch, 1, L, in_features), dtype=inputs.dtype),
-                    ],
-                    axis=1,
-                )
+                return jnp.pad(cache[:, 1:, :, :], ((0, 0), (0, 1), (0, 0), (0, 0)))
 
-            cache_new_row = lax.cond(
-                index_w_in == 0,
-                lambda _: _add(_shift(_cache.value)),
-                lambda _: _shift(_add(_cache.value)),
-                None,
+            cache_new_row = jnp.where(
+                index_w_in == 0, _add(_shift(_cache.value)), _shift(_add(_cache.value))
             )
 
-            cache_new = lax.cond(
-                index_w == 0,
-                lambda _: cache_new_row,
-                lambda _: _add(_cache.value),
-                None,
-            )
+            cache_new = jnp.where(index_w == 0, cache_new_row, _add(_cache.value))
 
-            _cache.value = lax.cond(
-                index - self.exclusive >= 0,
-                lambda _: cache_new,
-                lambda _: _cache.value,
-                None,
+            _cache.value = jnp.where(
+                index - self.exclusive >= 0, cache_new, _cache.value
             )
 
         cache = _cache.value

@@ -15,6 +15,7 @@
 from typing import Any, Tuple
 
 import flax
+import numpy as np
 from flax import linen as nn
 from jax import lax
 from jax import numpy as jnp
@@ -77,9 +78,10 @@ class MaskedDense1D(nn.Module):
         batch, size, in_features = inputs.shape
         inputs = inputs.reshape((batch, size * in_features))
 
-        mask = jnp.ones((size, size), dtype=self.dtype)
-        mask = jnp.triu(mask, self.exclusive)
-        mask = jnp.kron(mask, jnp.ones((in_features, self.features), dtype=self.dtype))
+        mask = np.ones((size, size), dtype=dtype)
+        mask = np.triu(mask, self.exclusive)
+        mask = np.kron(mask, np.ones((in_features, self.features), dtype=dtype))
+        mask = jnp.asarray(mask)
 
         kernel = self.param(
             "kernel",
@@ -87,7 +89,6 @@ class MaskedDense1D(nn.Module):
             (size * in_features, size * self.features),
             self.dtype,
         )
-        mask = jnp.asarray(mask, dtype)
         kernel = jnp.asarray(kernel, dtype)
 
         y = lax.dot(inputs, mask * kernel, precision=self.precision)
@@ -229,9 +230,9 @@ class MaskedConv2D(nn.Module):
 
     def setup(self):
         kernel_h, kernel_w = self.kernel_size
-        mask = jnp.ones((kernel_h, kernel_w, 1, 1), dtype=self.dtype)
-        mask = mask.at[-1, kernel_w // 2 + (not self.exclusive) :].set(0)
-        self.mask = mask
+        mask = np.ones((kernel_h, kernel_w, 1, 1), dtype=self.dtype)
+        mask[-1, kernel_w // 2 + (not self.exclusive) :] = 0
+        self.mask = jnp.asarray(mask)
 
     @nn.compact
     def __call__(self, inputs: Array) -> Array:
