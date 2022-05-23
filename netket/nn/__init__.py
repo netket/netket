@@ -66,15 +66,14 @@ from .deprecation import (
 )
 
 
-
 # TODO: Eventually remove thoses (deprecated in 3.5)
 # Those were never supposed to be re-exported, but they slipped and I used them in quite
 # some tutorials so we should keep them for a long time.
 _deprecated_names = ["Module", "compact"]
 
 
-
 from netket.utils import warn_deprecation as _warn_deprecation
+
 
 def __getattr__(name):
     import sys
@@ -91,7 +90,7 @@ def __getattr__(name):
             f"directly. There are no functionality changes.\n"
         )
         import flax
+
         return getattr(flax.linen, name)
 
     raise AttributeError(f"module {__name__} has no attribute {name}")
-

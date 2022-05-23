@@ -22,6 +22,7 @@ import flax
 # contains wrappers to deprecate some flax Modules that we were wrapping prior to flax 0.5
 # TODO: eventually remove this.
 
+
 def _warning_string(module_name):
     return dedent(
         f"""
