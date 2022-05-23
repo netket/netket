@@ -52,10 +52,10 @@ be numpy or jax arrays).
 Models should define the {code}`__call__(self, x)` function that represents their action on a batch of inputs {code}`x`.
 
 ```python
-import netket.nn as nknn
+import flax.linen as nn
 import jax.numpy as jnp
 
-class Model1(nknn.Module):
+class Model1(nn.Module):
 
         y : float = 1.0
 
@@ -74,18 +74,18 @@ If you want to use some layers inside your model, you can for example create the
 the {code}`@nn.compact` decorator. Don't worry: they will only be initialised once.
 
 ```python
-import netket.nn as nknn
+import flax.linen as nn
 import jax.numpy as jnp
 
-class RBM(nknn.Module):
+class RBM(nn.Module):
 
         y : float = 1.0
         alpha : int = 1
 
-        @nknn.compact
+        @nn.compact
         def __call__(self, x):
                 # create a dense layers with alpha * N features, where N is the size of the system
-                dense = nknn.Dense(features=self.alpha*x.shape[-1])
+                dense = nn.Dense(features=self.alpha*x.shape[-1])
                 # apply the dense layer
                 x = dense(x)
                 # sum the output

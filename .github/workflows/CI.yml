@@ -70,9 +70,11 @@ jobs:
         if: matrix.oldest_deps
         run: |
           python conf/compute_oldest_dependencies.py
-          pip install -r oldest_requirements.txt
+          pip install --upgrade -r oldest_requirements.txt
+          pip install -e ".[dev, extras]"
 
       - name: Pip install packages
+        if: ${{ ! matrix.oldest_deps }}
         run: |
           pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
