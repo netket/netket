@@ -42,7 +42,6 @@ from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
 from netket.vqs.base import VariationalState, expect, expect_and_grad
-from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
 
 
 def compute_chain_length(n_chains, n_samples):
@@ -550,32 +549,6 @@ class MCState(VariationalState):
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
-    def local_estimators(
-        self, op: AbstractOperator, *, chunk_size: Optional[int] = None
-    ):
-        r"""
-        Compute the local estimators for the operator :code:`op` (also known as local energies
-        when :code:`op` is the Hamiltonian) at the current configuration samples :code:`self.samples`.
-
-        .. math::
-
-            O_\mathrm{loc}(s) = \frac{\langle s | \mathtt{op} | \psi \rangle}{\langle s | \psi \rangle}
-
-        .. warning::
-
-            The samples differ between MPI processes, so returned the local estimators will
-            also take different values on each process. To compute sample averages and similar
-            quantities, you will need to perform explicit operations over all MPI ranks.
-            (Use functions like :code:`self.expect` to get process-independent quantities without
-            manual reductions.)
-
-        Args:
-            op: The operator.
-            chunk_size: Suggested maximum size of the chunks used in forward and backward evaluations
-                of the model. (Default: :code:`self.chunk_size`)
-        """
-        return local_estimators(self, op, chunk_size=chunk_size)
-
     # override to use chunks
     def expect(self, Ô: AbstractOperator) -> Stats:
         r"""Estimates the quantum expectation value for a given operator O.
@@ -669,37 +642,6 @@ class MCState(VariationalState):
             + "sampler = {}, ".format(self.sampler)
             + "n_samples = {})".format(self.n_samples)
         )
-
-
-@partial(jax.jit, static_argnames=("kernel", "apply_fun", "shape"))
-def _local_estimators_kernel(kernel, apply_fun, shape, variables, samples, extra_args):
-    O_loc = kernel(apply_fun, variables, samples, extra_args)
-
-    # transpose O_loc so it matches the (n_chains, n_samples_per_chain) shape
-    # expected by netket.stats.statistics.
-    return O_loc.reshape(shape).T
-
-
-def local_estimators(
-    state: MCState, op: AbstractOperator, *, chunk_size: Optional[int]
-):
-    s, extra_args = get_local_kernel_arguments(state, op)
-
-    shape = s.shape
-    if jnp.ndim(s) != 2:
-        s = s.reshape((-1, shape[-1]))
-
-    if chunk_size is None:
-        chunk_size = state.chunk_size  # state.chunk_size can still be None
-
-    if chunk_size is None:
-        kernel = get_local_kernel(state, op)
-    else:
-        kernel = get_local_kernel(state, op, chunk_size)
-
-    return _local_estimators_kernel(
-        kernel, state._apply_fun, shape[:-1], state.variables, s, extra_args
-    )
 
 
 # serialization

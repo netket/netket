@@ -429,40 +429,6 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
-@common.skipif_mpi
-@pytest.mark.parametrize(
-    "operator",
-    [
-        pytest.param(
-            op,
-            id=name,
-        )
-        for name, op in operators.items()
-    ],
-)
-def test_local_estimators(vstate, operator):
-    def assert_stats_equal(st1, st2):
-        assert st1.mean == pytest.approx(st2.mean)
-        assert st1.variance == pytest.approx(st2.variance)
-        assert st1.error_of_mean == pytest.approx(st2.error_of_mean)
-
-    def inner_test():
-        print(vstate.samples.shape)
-        oloc = vstate.local_estimators(operator)
-        print(oloc.shape)
-        assert oloc.shape == (vstate.sampler.n_chains, vstate.n_samples)
-
-        stats1 = nk.stats.statistics(oloc)
-        stats2 = vstate.expect(operator)
-        assert_stats_equal(stats1, stats2)
-
-    # no chunking
-    inner_test()
-    # chunking
-    vstate.chunk_size = 2
-    inner_test()
-
-
 # Have a different test because the above is marked as xfail.
 # This only checks that the code runs.
 def test_expect_grad_nonhermitian_works(vstate):
