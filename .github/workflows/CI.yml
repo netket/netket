@@ -79,11 +79,11 @@ jobs:
           pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
             pip install -e ".[dev, extras]"
-            pip install openfermion
           else
             pip install -e ".[dev, mpi]"
           fi
           pip install dm-haiku
+          pip install openfermion
 
       - name: Netket tests
         if: ${{ matrix.main_tests }}
