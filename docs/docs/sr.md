@@ -90,7 +90,7 @@ The QGT is positive definite, therefore it can be inverted and the solution is f
 \end{equation}
 where bold fonts are used for vectors.
 A complication is given by the fact that the QGT is determined by Monte Carlo sampling and it might have several eigenvalues that are zero or very small, leading to numerical stability issues when inverting the matrix or in the resulting dynamics.
-The linear system can be solved with several methods. For the models with many parameters and to achieve the best performance, iterative solvers such as those found in `jax.scipy.sparse.linalg`, such as {ref}`jax.scipy.sparse.linalg.cg` {ref}`jax.scipy.sparse.linalg.gmres` are the best choice. 
+The linear system can be solved with several methods. For the models with many parameters and to achieve the best performance, iterative solvers such as those found in [jax.scipy.sparse.linalg](https://jax.readthedocs.io/en/latest/jax.scipy.html#module-jax.scipy.sparse.linalg), such as {func}`jax.scipy.sparse.linalg.cg` {func}`jax.scipy.sparse.linalg.gmres` are the best choice. 
 Do note that to stabilize those algorithms it is often needed to add a small ($10^{-5} - 10^{-2}$) shift to the diagonal of the QGT. 
 This can be set with the keyword argument `diag_shift`.
 Those methods, combined with our lazy representations of the QGT, never instantiate the full matrix and therefore achieve a great performance.

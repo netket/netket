@@ -13,17 +13,23 @@
 # limitations under the License.
 
 from typing import List as PyList
+import functools
+import warnings
 
 import numpy as np
+import jax.numpy as jnp
 import numba
 from numba import jit
 from numba.typed import List
 
 from scipy.sparse.linalg import LinearOperator
 
+import netket.jax as nkjax
+
 from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 from ._abstract_super_operator import AbstractSuperOperator
+from ._local_operator_helpers import _dtype
 
 
 class LocalLiouvillian(AbstractSuperOperator):
@@ -65,9 +71,26 @@ class LocalLiouvillian(AbstractSuperOperator):
         self,
         ham: DiscreteOperator,
         jump_ops: PyList[DiscreteOperator] = [],
-        dtype=complex,
+        dtype=None,
     ):
         super().__init__(ham.hilbert)
+
+        if dtype is None:
+            dtype = jnp.promote_types(complex, ham.dtype)
+            dtype = functools.reduce(
+                lambda dt, op: jnp.promote_types(dt, op.dtype), jump_ops, dtype
+            )
+        elif not nkjax.is_complex_dtype(dtype):
+            old_dtype = dtype
+            dtype = jnp.promote_types(complex, old_dtype)
+            warnings.warn(
+                np.ComplexWarning(
+                    f"A complex dtype is required (dtype={old_dtype} specified). "
+                    f"Promoting to dtype={dtype}."
+                )
+            )
+
+        dtype = np.empty((), dtype=dtype).dtype
 
         self._H = ham
         self._jump_ops = [op.copy(dtype=dtype) for op in jump_ops]  # to accept dicts
@@ -109,13 +132,15 @@ class LocalLiouvillian(AbstractSuperOperator):
 
     def _compute_hnh(self):
         # There is no i here because it's inserted in the kernel
-        Hnh = 1.0 * self._H
+        Hnh = np.asarray(1.0, dtype=self.dtype) * self.hamiltonian
         self._max_dissipator_conn_size = 0
         for L in self._jump_ops:
-            Hnh = Hnh - 0.5j * L.conjugate().transpose() @ L
+            Hnh = (
+                Hnh - np.asarray(0.5j, dtype=self.dtype) * L.conjugate().transpose() @ L
+            )
             self._max_dissipator_conn_size += L.max_conn_size**2
 
-        self._Hnh = Hnh.collect()
+        self._Hnh = Hnh.collect().copy(dtype=self.dtype)
 
         max_conn_size = self._max_dissipator_conn_size + 2 * Hnh.max_conn_size
         self._max_conn_size = max_conn_size
@@ -209,8 +234,8 @@ class LocalLiouvillian(AbstractSuperOperator):
         # cannot infer their type
         L_xrps = List.empty_list(numba.typeof(x.dtype)[:, :])
         L_xcps = List.empty_list(numba.typeof(x.dtype)[:, :])
-        L_mel_rs = List.empty_list(numba.typeof(self.dtype())[:])
-        L_mel_cs = List.empty_list(numba.typeof(self.dtype())[:])
+        L_mel_rs = List.empty_list(numba.typeof(self.dtype)[:])
+        L_mel_cs = List.empty_list(numba.typeof(self.dtype)[:])
 
         sections_Lr = np.empty(batch_size * n_jops, dtype=np.int32)
         sections_Lc = np.empty(batch_size * n_jops, dtype=np.int32)
@@ -242,6 +267,8 @@ class LocalLiouvillian(AbstractSuperOperator):
                 max_conns_Lrc += max_lr * max_lc
 
         # compose everything again
+        if self._xprime_f.dtype != x.dtype:
+            self._xprime_f = np.empty(self._xprime_f.shape, dtype=x.dtype)
         if self._xprime_f.shape[0] < self._max_conn_size * batch_size:
             # refcheck=False because otherwise this errors when testing
             self._xprime_f.resize(

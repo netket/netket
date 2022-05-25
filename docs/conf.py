@@ -156,7 +156,7 @@ html_context = {
         ),
         (
             '<i class="fab fa-slack" aria-hidden="true"></i>',
-            "https://join.slack.com/t/mlquantum/shared_invite/zt-13nohbtt3-nWgz~faxWXjVnu0BCHWM7w",
+            "https://join.slack.com/t/mlquantum/shared_invite/zt-16r1nfgoy-VkSghuNL1Co0mu3iYwOhuA",
             True,
         ),
     ],
@@ -168,8 +168,8 @@ html_context = {
 }
 
 # -- Options for myst ----------------------------------------------
-jupyter_execute_notebooks = "off"
-execution_allow_errors = False
+nb_execution_mode = "off"
+nb_execution_allow_errors = False
 
 # do not show __init__ if it does not have a docstring
 def autodoc_skip_member(app, what, name, obj, skip, options):

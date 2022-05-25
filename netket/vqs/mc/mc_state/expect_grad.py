@@ -80,6 +80,19 @@ def expect_and_grad(  # noqa: F811
     *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
+
+    if not isinstance(Ô, Squared) and not config.FLAGS["NETKET_EXPERIMENTAL"]:
+        raise RuntimeError(
+            """
+            Computing the gradient of non hermitian operator is an
+            experimental feature under development and is known not to
+            return wrong values sometimes.
+
+            If you want to debug it, set the environment variable
+            NETKET_EXPERIMENTAL=1
+            """
+        )
+
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô)
@@ -141,7 +154,7 @@ def grad_expect_hermitian(
     )
     Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
 
-    Ō_grad = jax.tree_multimap(
+    Ō_grad = jax.tree_map(
         lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
             target.dtype
         ),
@@ -165,18 +178,6 @@ def grad_expect_operator_kernel(
     σ: jnp.ndarray,
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree, Stats]:
-
-    if not config.FLAGS["NETKET_EXPERIMENTAL"]:
-        raise RuntimeError(
-            """
-                           Computing the gradient of a squared or non hermitian
-                           operator is an experimental feature under development
-                           and is known not to return wrong values sometimes.
-
-                           If you want to debug it, set the environment variable
-                           NETKET_EXPERIMENTAL=1
-                           """
-        )
 
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
@@ -207,7 +208,7 @@ def grad_expect_operator_kernel(
 
     # This term below is needed otherwise it does not match the value obtained by
     # (ha@ha).collect(). I'm unsure of why it is needed.
-    Ō_pars_grad = jax.tree_multimap(
+    Ō_pars_grad = jax.tree_map(
         lambda x, target: x / 2 if jnp.iscomplexobj(target) else x,
         Ō_pars_grad,
         parameters,

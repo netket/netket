@@ -80,7 +80,7 @@ def jacobian_cplx(
     params: PyTree,
     samples: Array,
     chunk_size: int = None,
-    _build_fn: Callable = partial(jax.tree_multimap, jax.lax.complex),
+    _build_fn: Callable = partial(jax.tree_map, jax.lax.complex),
 ) -> PyTree:
     """Calculates Jacobian entries by vmapping grad.
     Assumes the function is R→C, backpropagates 1 and -1j
@@ -114,7 +114,7 @@ def _divide_by_sqrt_n_samp(oks, samples):
     divide Oⱼₖ by √n
     """
     n_samp = samples.shape[0] * mpi.n_nodes  # MPI
-    return jax.tree_map(lambda x: x / np.sqrt(n_samp), oks)
+    return jax.tree_map(lambda x: x / np.sqrt(n_samp, dtype=x.dtype), oks)
 
 
 def _multiply_by_pdf(oks, pdf):
@@ -148,7 +148,7 @@ def stack_jacobian_tuple(centered_oks_re_im):
     Args:
         centered_oks_re_im : a tuple (ΔOᵣ, ΔOᵢ) of two PyTrees representing the real and imag part of ΔOⱼₖ
     """
-    return jax.tree_multimap(
+    return jax.tree_map(
         lambda re, im: jnp.concatenate([re, im], axis=0), *centered_oks_re_im
     )
 
@@ -166,7 +166,7 @@ def _rescale(centered_oks):
         ** 0.5,
         centered_oks,
     )
-    centered_oks = jax.tree_multimap(jnp.divide, centered_oks, scale)
+    centered_oks = jax.tree_map(jnp.divide, centered_oks, scale)
     scale = jax.tree_map(partial(jnp.squeeze, axis=0), scale)
     return centered_oks, scale
 
@@ -176,7 +176,7 @@ def _jvp(oks: PyTree, v: PyTree) -> Array:
     Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
     """
     td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
-    return jax.tree_util.tree_reduce(jnp.add, jax.tree_multimap(td, oks, v))
+    return jax.tree_util.tree_reduce(jnp.add, jax.tree_map(td, oks, v))
 
 
 def _vjp(oks: PyTree, w: Array) -> PyTree:
@@ -294,7 +294,7 @@ def prepare_centered_oks(
     else:
         oks = jacobian_fun(f, params, samples)
         oks_mean = jax.tree_map(partial(sum, axis=0), _multiply_by_pdf(oks, pdf))
-        centered_oks = jax.tree_multimap(lambda x, y: x - y, oks, oks_mean)
+        centered_oks = jax.tree_map(lambda x, y: x - y, oks, oks_mean)
 
         centered_oks = _multiply_by_pdf(centered_oks, jnp.sqrt(pdf))
     if rescale_shift:

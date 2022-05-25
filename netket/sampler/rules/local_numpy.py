@@ -17,7 +17,7 @@ from numba import jit
 import numpy as np
 from flax import struct
 
-from ..metropolis import MetropolisRule
+from .base import MetropolisRule
 
 
 @struct.dataclass

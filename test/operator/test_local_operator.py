@@ -469,3 +469,38 @@ def test_operator():
     op2 = sp * a
 
     assert_same_matrices(op1, op2)
+
+
+def test_error_if_wrong_shape():
+    # Issue #1157
+    # https://github.com/netket/netket/issues/1157
+    hi = nk.hilbert.Fock(5, N=3)
+    mat = np.random.rand(3, 3)
+    with pytest.raises(ValueError):
+        nk.operator.LocalOperator(hi, mat, [0, 1])
+
+
+def test_inhomogeneous_hilb_issue_1192():
+    # Issue #1192
+    # https://github.com/netket/netket/issues/1192
+    hi = nk.hilbert.Fock(n_max=3) * nk.hilbert.Spin(1 / 2) * nk.hilbert.Fock(n_max=2)
+    c0 = bcreate(hi, 0)
+    d2 = bdestroy(hi, 2)
+
+    assert_same_matrices(c0 @ d2, c0.to_dense() @ d2.to_dense())
+
+
+def test_add_transpose():
+    hi = nk.hilbert.Fock(n_max=3)
+    c0 = bcreate(hi, 0)
+    assert_same_matrices(c0 + c0.H, c0.to_dense() + c0.H.to_dense())
+
+
+def test_identity():
+    hi = nk.hilbert.Fock(n_max=3)
+    I = nk.operator.LocalOperator(hi, constant=1)
+
+    assert_same_matrices(I, np.eye(hi.n_states))
+
+    X = bcreate(hi, 0)
+    assert_same_matrices(I @ X, X)

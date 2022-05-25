@@ -308,7 +308,7 @@ def test_serialization(vstate):
 
     vstate = serialization.from_bytes(vstate, bdata)
 
-    jax.tree_multimap(np.testing.assert_allclose, vstate.parameters, old_params)
+    jax.tree_map(np.testing.assert_allclose, vstate.parameters, old_params)
     np.testing.assert_allclose(vstate.samples, old_samples)
     assert vstate.n_samples == old_nsamples
     assert vstate.n_discard_per_chain == old_ndiscard
@@ -324,7 +324,7 @@ def test_init_parameters(vstate):
     def _f(x, y):
         np.testing.assert_allclose(x, y)
 
-    jax.tree_multimap(_f, pars, pars2)
+    jax.tree_map(_f, pars, pars2)
 
 
 @common.skipif_mpi
@@ -429,6 +429,40 @@ def test_expect(vstate, operator):
     same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)
 
 
+@common.skipif_mpi
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in operators.items()
+    ],
+)
+def test_local_estimators(vstate, operator):
+    def assert_stats_equal(st1, st2):
+        assert st1.mean == pytest.approx(st2.mean)
+        assert st1.variance == pytest.approx(st2.variance)
+        assert st1.error_of_mean == pytest.approx(st2.error_of_mean)
+
+    def inner_test():
+        print(vstate.samples.shape)
+        oloc = vstate.local_estimators(operator)
+        print(oloc.shape)
+        assert oloc.shape == (vstate.sampler.n_chains, vstate.n_samples)
+
+        stats1 = nk.stats.statistics(oloc)
+        stats2 = vstate.expect(operator)
+        assert_stats_equal(stats1, stats2)
+
+    # no chunking
+    inner_test()
+    # chunking
+    vstate.chunk_size = 2
+    inner_test()
+
+
 # Have a different test because the above is marked as xfail.
 # This only checks that the code runs.
 def test_expect_grad_nonhermitian_works(vstate):
@@ -457,7 +491,7 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.chunk_size = chunk_size
     eval_chunk = vstate.expect(operator)
 
-    jax.tree_multimap(
+    jax.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
     )
 
@@ -466,6 +500,6 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.chunk_size = chunk_size
     grad_chunk = vstate.grad(operator)
 
-    jax.tree_multimap(
+    jax.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )

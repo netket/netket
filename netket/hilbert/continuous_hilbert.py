@@ -32,8 +32,8 @@ class ContinuousHilbert(AbstractHilbert):
         Args:
             domain: range of the continuous quantum numbers
         """
-        self._extent = domain
-        self._pbc = pbc
+        self._extent = tuple(domain)
+        self._pbc = tuple(pbc)
         if not len(self._extent) == len(self._pbc):
             raise ValueError(
                 """`pbc` must be either a bool or a tuple indicating the periodicity of each spatial dimension."""

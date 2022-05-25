@@ -34,7 +34,7 @@ class FastMaskedDense1D(nn.Module):
     """
     1D linear transformation module with mask for fast autoregressive NN.
 
-    See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
 
     TODO: FastMaskedDense1D does not support JIT yet, because it involves slicing the cached inputs
     and the weights with a dynamic shape.
@@ -298,7 +298,7 @@ class FastMaskedConv2D(nn.Module):
     """
     2D convolution module with mask for fast autoregressive NN.
 
-    See :ref:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
 
     L: int
@@ -306,7 +306,7 @@ class FastMaskedConv2D(nn.Module):
     features: int
     """number of convolution filters."""
     kernel_size: Tuple[int, int]
-    """shape of the convolutional kernel `(h, w)`. Typically, `h = w // 2 + 1`."""
+    """shape of the convolutional kernel `(h, w)`. Typically, :math:`h = w // 2 + 1`."""
     kernel_dilation: Tuple[int, int]
     """a sequence of 2 integers, giving the dilation factor to
     apply in each spatial dimension of the convolution kernel."""

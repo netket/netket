@@ -17,7 +17,7 @@ import numpy as np
 
 from flax import struct
 
-from ..metropolis import MetropolisRule
+from .base import MetropolisRule
 
 
 @struct.dataclass
@@ -28,7 +28,12 @@ class GaussianRule(MetropolisRule):
     New proposals of particle positions are generated according to a
     Gaussian distribution of width sigma.
     """
+
     sigma: float = 1.0
+    """
+    The variance of the gaussian distribution centered around the current
+    configuration, used to propose new configurations. 
+    """
 
     def transition(rule, sampler, machine, parameters, state, key, r):
         if jnp.issubdtype(r.dtype, jnp.complexfloating):
@@ -39,20 +44,17 @@ class GaussianRule(MetropolisRule):
         n_chains = r.shape[0]
         hilb = sampler.hilbert
 
-        pbc = np.array(hilb.n_particles * hilb.pbc)
+        pbc = np.array(hilb.n_particles * hilb.pbc, dtype=r.dtype)
         boundary = np.tile(pbc, (n_chains, 1))
 
-        Ls = np.array(hilb.n_particles * hilb.extent)
+        Ls = np.array(hilb.n_particles * hilb.extent, dtype=r.dtype)
         modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
 
-        prop = (
-            jax.random.normal(key, shape=(n_chains, hilb.size), dtype=r.dtype)
-            * rule.sigma
-        )
+        prop = jax.random.normal(
+            key, shape=(n_chains, hilb.size), dtype=r.dtype
+        ) * jnp.asarray(rule.sigma, dtype=r.dtype)
 
-        opt_1 = np.equal(boundary, False)
-        opt_2 = np.logical_not(opt_1)
-        rp = opt_1 * (r + prop) + opt_2 * ((r + prop) % modulus)
+        rp = jnp.where(np.equal(boundary, False), (r + prop), (r + prop) % modulus)
 
         return rp, None
 

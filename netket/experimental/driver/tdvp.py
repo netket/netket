@@ -362,11 +362,18 @@ class TDVP(AbstractVariationalDriver):
 
                 pbar.n = np.asarray(self._integrator.t)
                 self._postfix["n"] = self.step_count
+                self._postfix.update(
+                    {
+                        self._loss_name: str(self._loss_stats),
+                    }
+                )
+
                 pbar.set_postfix(self._postfix)
                 pbar.refresh()
 
             for step in self._iter(T, tstops=tstops, callback=update_progress_bar):
                 log_data = self.estimate(obs)
+                self._log_additional_data(log_data, step)
 
                 self._postfix = {"n": self.step_count}
                 # if the cost-function is defined then report it in the progress bar
@@ -402,8 +409,8 @@ class TDVP(AbstractVariationalDriver):
 
         return loggers
 
-    def _log_additional_data(self, obs, step):
-        obs["t"] = self.t
+    def _log_additional_data(self, log_dict, step):
+        log_dict["t"] = self.t
 
     @property
     def _default_step_size(self):
@@ -514,6 +521,14 @@ def odefun(state: MCState, driver: TDVP, t, w, *, stage=0):  # noqa: F811
 
     initial_dw = None if driver.linear_solver_restart else driver._dw
     driver._dw, _ = qgt.solve(driver.linear_solver, driver._loss_grad, x0=initial_dw)
+
+    # If parameters are real, then take only real part of the gradient (if it's complex)
+    driver._dw = jax.tree_map(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
+        driver._dw,
+        state.parameters,
+    )
+
     return driver._dw
 
 

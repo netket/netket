@@ -19,14 +19,14 @@ def reference_stats(data):
     M_full = M_par * M_loc
     data_ = data.reshape(M_full, N)
 
-    chain_means = np.mean(data_, axis=1)
-    chain_vars = np.var(data_, axis=1, ddof=0)
-
     mean_full = np.mean(data)
     var_full = np.var(data, ddof=0)
 
-    var_mean = np.mean(chain_vars)
-    var_between = N * np.var(chain_means, ddof=0)
+    data_split = data_.reshape(2 * M_full, N // 2)
+    split_chain_means = np.mean(data_split, axis=1)
+    split_chain_vars = np.var(data_split, axis=1, ddof=0)
+    var_mean = np.mean(split_chain_vars)
+    var_between = N * np.var(split_chain_means, ddof=0)
 
     R_hat = np.sqrt((N - 1) / N + var_between / (N * var_mean))
 

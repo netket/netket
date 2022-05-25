@@ -18,7 +18,7 @@ from flax import struct
 
 from netket.hilbert.random import flip_state
 
-from ..metropolis import MetropolisRule
+from .base import MetropolisRule
 
 
 @struct.dataclass

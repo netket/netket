@@ -6,6 +6,7 @@
 
 ```
 
+(drivers_abstract_classes)=
 ## Abstract classes
 
 Those are the abstract classes you can inherit from to implement your own driver
@@ -20,6 +21,7 @@ Those are the abstract classes you can inherit from to implement your own driver
    AbstractVariationalDriver
 ```
 
+(drivers_concrete)=
 ## Concrete drivers
 
 Those are the optimization drivers already implmented in Netket:

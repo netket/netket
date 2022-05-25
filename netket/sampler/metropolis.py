@@ -14,112 +14,22 @@
 
 from functools import partial
 from typing import Any, Callable, Optional, Tuple, Union
+from textwrap import dedent
 
 import jax
 from flax import linen as nn
 from jax import numpy as jnp
-from jax.experimental import loops
 
-from netket.hilbert import ContinuousHilbert
+from netket.hilbert import AbstractHilbert, ContinuousHilbert
 
 from netket.utils import mpi, wrap_afun
-from netket.utils.types import PyTree, PRNGKeyT
+from netket.utils.types import PyTree
 
 from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
 
 from .base import Sampler, SamplerState
-
-
-@struct.dataclass
-class MetropolisRule:
-    """
-    Base class for transition rules of Metropolis, such as Local, Exchange, Hamiltonian
-    and several others.
-    """
-
-    def init_state(
-        rule,
-        sampler: "MetropolisSampler",
-        machine: nn.Module,
-        params: PyTree,
-        key: PRNGKeyT,
-    ) -> Optional[Any]:
-        """
-        Initialises the optional internal state of the Metropolis sampler transition
-        rule.
-
-        The provided key is unique and does not need to be splitted.
-
-        It should return an immutable data structure.
-
-        Arguments:
-            sampler: The Metropolis sampler.
-            machine: A Flax module with the forward pass of the log-pdf.
-            params: The PyTree of parameters of the model.
-            key: A Jax PRNGKey.
-
-        Returns:
-            An optional state.
-        """
-        return None
-
-    def reset(
-        rule,
-        sampler: "MetropolisSampler",
-        machine: nn.Module,
-        params: PyTree,
-        sampler_state: SamplerState,
-    ) -> Optional[Any]:
-        """
-        Resets the internal state of the Metropolis Sampler Transition Rule.
-
-        Arguments:
-            sampler: The Metropolis sampler.
-            machine: A Flax module with the forward pass of the log-pdf.
-            params: The PyTree of parameters of the model.
-            sampler_state: The current state of the sampler. Should not modify it.
-
-        Returns:
-           A new, resetted, state of the rule. This returns the same type of :py:meth:`sampler_state.rule_state` and might be `None`.
-        """
-        return sampler_state.rule_state
-
-    def transition(
-        rule,
-        sampler: "MetropolisSampler",
-        machine: nn.Module,
-        parameters: PyTree,
-        state: SamplerState,
-        key: PRNGKeyT,
-        σ: jnp.ndarray,
-    ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
-
-        raise NotImplementedError
-
-    def random_state(
-        rule,
-        sampler: "MetropolisSampler",
-        machine: nn.Module,
-        parameters: PyTree,
-        state: SamplerState,
-        key: PRNGKeyT,
-    ):
-        """
-        Generates a random state compatible with this rule.
-
-        By default this calls :func:`netket.hilbert.random.random_state`.
-
-        Arguments:
-            sampler: The Metropolis sampler.
-            machine: A Flax module with the forward pass of the log-pdf.
-            parameters: The PyTree of parameters of the model.
-            state: The current state of the sampler. Should not modify it.
-            key: The PRNGKey to use to generate the random state.
-        """
-        return sampler.hilbert.random_state(
-            key, size=sampler.n_batches, dtype=sampler.dtype
-        )
+from .rules import MetropolisRule
 
 
 @struct.dataclass
@@ -203,6 +113,44 @@ class MetropolisSamplerState(SamplerState):
         return f"{type(self).__name__}({acc_string}rng state={self.rng})"
 
 
+def _assert_good_sample_shape(samples, shape, dtype, obj=""):
+    if samples.shape != shape or samples.dtype != dtype:
+        raise ValueError(
+            dedent(
+                f"""
+
+            The samples returned by the {obj} have `shape={samples.shape}` and
+            `dtype={samples.dtype}`, but the sampler requires `shape={shape} and
+            `dtype={dtype}`.
+
+            If you are using a custom transition rule, check that it returns the
+            correct shape and dtype.
+
+            If you are using a built-in transition rule, there might be a mismatch
+            between hilbert spaces, or it's a bug in NetKet.
+
+            """
+            )
+        )
+
+
+def _assert_good_log_prob_shape(log_prob, n_chains_per_rank, machine):
+    if log_prob.shape != (n_chains_per_rank,):
+        raise ValueError(
+            dedent(
+                f"""
+
+            The output of the model {machine} has `shape={log_prob.shape}`, but
+            `shape=({n_chains_per_rank},)` was expected.
+
+            This might be becausee of an hilbert space mismatch or because your
+            model is ill-configured.
+
+            """
+            )
+        )
+
+
 @struct.dataclass
 class MetropolisSampler(Sampler):
     r"""
@@ -229,7 +177,7 @@ class MetropolisSampler(Sampler):
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
-    def __pre_init__(self, hilbert, rule, **kwargs):
+    def __pre_init__(self, hilbert: AbstractHilbert, rule: MetropolisRule, **kwargs):
         """
         Constructs a Metropolis Sampler.
 
@@ -245,6 +193,13 @@ class MetropolisSampler(Sampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
         """
+        # Validate the inputs
+        if not isinstance(rule, MetropolisRule):
+            raise TypeError(
+                f"The second positional argument, rule, must be a MetropolisRule but "
+                f"`type(rule)={type(rule)}`."
+            )
+
         if "n_chains" not in kwargs and "n_chains_per_rank" not in kwargs:
             kwargs["n_chains_per_rank"] = 16
 
@@ -264,9 +219,6 @@ class MetropolisSampler(Sampler):
 
     def __post_init__(self):
         super().__post_init__()
-        # Validate the inputs
-        if not isinstance(self.rule, MetropolisRule):
-            raise TypeError("rule must be a MetropolisRule.")
 
         if not isinstance(self.reset_chains, bool):
             raise TypeError("reset_chains must be a boolean.")
@@ -317,6 +269,12 @@ class MetropolisSampler(Sampler):
         if not sampler.reset_chains:
             key_state, rng = jax.random.split(key_state)
             σ = sampler.rule.random_state(sampler, machine, params, state, rng)
+            _assert_good_sample_shape(
+                σ,
+                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                sampler.dtype,
+                f"{sampler.rule}.random_state",
+            )
             state = state.replace(σ=σ, rng=key_state)
 
         return state
@@ -326,6 +284,12 @@ class MetropolisSampler(Sampler):
 
         if sampler.reset_chains:
             σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
+            _assert_good_sample_shape(
+                σ,
+                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                sampler.dtype,
+                f"{sampler.rule}.random_state",
+            )
         else:
             σ = state.σ
 
@@ -342,55 +306,90 @@ class MetropolisSampler(Sampler):
         If you subclass `MetropolisSampler`, you should override this and not `sample_next`
         itself, because `sample_next` contains some common logic.
         """
+
+        def loop_body(i, s):
+            # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
+            s["key"], key1, key2 = jax.random.split(s["key"], 3)
+
+            σp, log_prob_correction = sampler.rule.transition(
+                sampler, machine, parameters, state, key1, s["σ"]
+            )
+            _assert_good_sample_shape(
+                σp,
+                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                sampler.dtype,
+                f"{sampler.rule}.transition",
+            )
+            proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
+            _assert_good_log_prob_shape(
+                proposal_log_prob, sampler.n_chains_per_rank, machine
+            )
+
+            uniform = jax.random.uniform(key2, shape=(sampler.n_chains_per_rank,))
+            if log_prob_correction is not None:
+                do_accept = uniform < jnp.exp(
+                    proposal_log_prob - s["log_prob"] + log_prob_correction
+                )
+            else:
+                do_accept = uniform < jnp.exp(proposal_log_prob - s["log_prob"])
+
+            # do_accept must match ndim of proposal and state (which is 2)
+            s["σ"] = jnp.where(do_accept.reshape(-1, 1), σp, s["σ"])
+            s["accepted"] += do_accept.sum()
+
+            s["log_prob"] = jax.numpy.where(
+                do_accept.reshape(-1), proposal_log_prob, s["log_prob"]
+            )
+
+            return s
+
         new_rng, rng = jax.random.split(state.rng)
 
-        with loops.Scope() as s:
-            s.key = rng
-            s.σ = state.σ
-            s.log_prob = sampler.machine_pow * machine.apply(parameters, state.σ).real
-
+        s = {
+            "key": rng,
+            "σ": state.σ,
+            "log_prob": sampler.machine_pow * machine.apply(parameters, state.σ).real,
             # for logging
-            s.accepted = state.n_accepted_proc
+            "accepted": state.n_accepted_proc,
+        }
+        s = jax.lax.fori_loop(0, sampler.n_sweeps, loop_body, s)
 
-            for i in s.range(sampler.n_sweeps):
-                # 1 to propagate for next iteration, 1 for uniform rng and n_chains for transition kernel
-                s.key, key1, key2 = jax.random.split(s.key, 3)
-
-                σp, log_prob_correction = sampler.rule.transition(
-                    sampler, machine, parameters, state, key1, s.σ
-                )
-                proposal_log_prob = (
-                    sampler.machine_pow * machine.apply(parameters, σp).real
-                )
-
-                uniform = jax.random.uniform(key2, shape=(sampler.n_chains_per_rank,))
-                if log_prob_correction is not None:
-                    do_accept = uniform < jnp.exp(
-                        proposal_log_prob - s.log_prob + log_prob_correction
-                    )
-                else:
-                    do_accept = uniform < jnp.exp(proposal_log_prob - s.log_prob)
-
-                # do_accept must match ndim of proposal and state (which is 2)
-                s.σ = jnp.where(do_accept.reshape(-1, 1), σp, s.σ)
-                s.accepted += do_accept.sum()
-
-                s.log_prob = jax.numpy.where(
-                    do_accept.reshape(-1), proposal_log_prob, s.log_prob
-                )
-
-            new_state = state.replace(
-                rng=new_rng,
-                σ=s.σ,
-                n_accepted_proc=s.accepted,
-                n_steps_proc=state.n_steps_proc
-                + sampler.n_sweeps * sampler.n_chains_per_rank,
-            )
+        new_state = state.replace(
+            rng=new_rng,
+            σ=s["σ"],
+            n_accepted_proc=s["accepted"],
+            n_steps_proc=state.n_steps_proc
+            + sampler.n_sweeps * sampler.n_chains_per_rank,
+        )
 
         return new_state, new_state.σ
 
+    @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(sampler, machine, parameters, state, chain_length):
-        return _sample_chain(sampler, machine, parameters, state, chain_length)
+        """
+        Samples `chain_length` batches of samples along the chains.
+
+        Internal method used for jitting calls.
+
+        Arguments:
+            sampler: The Monte Carlo sampler.
+            machine: A Flax module with the forward pass of the log-pdf.
+            parameters: The PyTree of parameters of the model.
+            state: The current state of the sampler.
+            chain_length: The length of the chains.
+
+        Returns:
+            σ: The next batch of samples.
+            state: The new state of the sampler
+        """
+        state, samples = jax.lax.scan(
+            lambda state, _: sampler.sample_next(machine, parameters, state),
+            state,
+            xs=None,
+            length=chain_length,
+        )
+
+        return samples, state
 
     def __repr__(sampler):
         return (
@@ -441,42 +440,6 @@ def sample_next(
         σ: The next batch of samples.
     """
     return sampler.sample_next(machine, parameters, state)
-
-
-@partial(jax.jit, static_argnums=(1, 4))
-def _sample_chain(
-    sampler: MetropolisSampler,
-    machine: nn.Module,
-    parameters: PyTree,
-    state: SamplerState,
-    chain_length: int,
-) -> Tuple[jnp.ndarray, SamplerState]:
-    """
-    Samples `chain_length` batches of samples along the chains.
-
-    Internal method used for jitting calls.
-
-    Arguments:
-        sampler: The Monte Carlo sampler.
-        machine: A Flax module with the forward pass of the log-pdf.
-        parameters: The PyTree of parameters of the model.
-        state: The current state of the sampler.
-        chain_length: The length of the chains.
-
-    Returns:
-        σ: The next batch of samples.
-        state: The new state of the sampler
-    """
-    _sample_next = lambda state, _: sampler.sample_next(machine, parameters, state)
-
-    state, samples = jax.lax.scan(
-        _sample_next,
-        state,
-        xs=None,
-        length=chain_length,
-    )
-
-    return samples, state
 
 
 def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:

@@ -149,7 +149,7 @@ def _jacobian_cplx(
 
 @partial(wraps(_jacobian_cplx))
 def jacobian_cplx(
-    forward_fn, params, samples, _build_fn=partial(jax.tree_multimap, jax.lax.complex)
+    forward_fn, params, samples, _build_fn=partial(jax.tree_map, jax.lax.complex)
 ):
     return _jacobian_cplx(forward_fn, params, samples, _build_fn)
 
@@ -287,7 +287,9 @@ def prepare_centered_oks(
     )
 
     n_samp = samples.shape[0] * mpi.n_nodes
-    centered_oks = subtract_mean(jacobians, axis=0) / np.sqrt(n_samp)
+    centered_oks = subtract_mean(jacobians, axis=0) / np.sqrt(
+        n_samp, dtype=jacobians.dtype
+    )
 
     centered_oks = centered_oks.reshape(-1, centered_oks.shape[-1])
 

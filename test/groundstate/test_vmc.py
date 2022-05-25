@@ -91,7 +91,8 @@ def test_vmc_functions():
 
     driver.advance(500)
 
-    assert driver.energy.mean == approx(ma.expect(ha).mean, abs=1e-5)
+    tol = driver.energy.error_of_mean * 5
+    assert driver.energy.mean == approx(ma.expect(ha).mean, abs=tol)
 
     state = ma.to_array()
 
@@ -105,7 +106,7 @@ def test_vmc_functions():
     def check_shape(a, b):
         assert a.shape == b.shape
 
-    jax.tree_multimap(check_shape, grads, ma.parameters)
+    jax.tree_map(check_shape, grads, ma.parameters)
     grads, _ = nk.jax.tree_ravel(grads)
 
     assert np.mean(np.abs(grads) ** 2) == approx(0.0, abs=1e-8)
@@ -123,7 +124,7 @@ def test_vmc_functions():
         print(mean, var)
 
         # 5-sigma test for expectation values
-        tol = np.sqrt(var / float(ma.n_samples)) * 5
+        tol = op_stats.error_of_mean * 5
         assert mean.real == approx(exact_ex, abs=tol)
 
 

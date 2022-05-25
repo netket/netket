@@ -24,8 +24,7 @@ from scipy.sparse import spmatrix
 from netket.hilbert import AbstractHilbert, Fock
 from netket.utils.types import DType, Array
 
-from ._abstract_operator import AbstractOperator
-from ._discrete_operator import DiscreteOperator
+from ._discrete_operator import AbstractOperator, DiscreteOperator
 
 
 def _dtype(obj: Union[numbers.Number, Array, AbstractOperator]) -> DType:
@@ -34,7 +33,7 @@ def _dtype(obj: Union[numbers.Number, Array, AbstractOperator]) -> DType:
     """
     if isinstance(obj, numbers.Number):
         return type(obj)
-    elif isinstance(obj, DiscreteOperator):
+    elif isinstance(obj, AbstractOperator):
         return obj.dtype
     elif isinstance(obj, np.ndarray):
         return obj.dtype
@@ -116,6 +115,8 @@ def canonicalize_input(
     canonicalized_operators = []
     canonicalized_acting_on = []
     for (operator, acting_on) in zip(operators, acting_on):
+        check_valid_opmatrix(hilbert, operator, acting_on)
+
         if operator.dtype is not dtype:
             operator = cast_operator_matrix_dtype(operator, dtype=dtype)
 
@@ -125,6 +126,18 @@ def canonicalize_input(
         canonicalized_acting_on.append(acting_on)
 
     return canonicalized_operators, canonicalized_acting_on, dtype
+
+
+def check_valid_opmatrix(hi, mat, acting_on):
+    """ """
+    expected_size = np.prod([hi.shape[aon] for aon in acting_on])
+
+    if mat.shape != (expected_size, expected_size):
+        raise ValueError(
+            f"The matrix of the sub-operator acting on sites {acting_on} "
+            f"must have shape {expected_size, expected_size}, "
+            f"but it has shape {mat.shape}."
+        )
 
 
 # TODO: support sparse arrays without returning dense arrays

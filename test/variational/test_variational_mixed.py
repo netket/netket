@@ -15,13 +15,14 @@
 from functools import partial
 
 import pytest
-from pytest import raises
+from pytest import approx, raises, warns
 
 import numpy as np
 import jax
 import netket as nk
 from jax.nn.initializers import normal
 
+from .finite_diff import expval as _expval, central_diff_grad, same_derivatives
 from .. import common
 
 nk.config.update("NETKET_EXPERIMENTAL", True)
@@ -40,14 +41,16 @@ machines["model:(R->C)"] = NDM(
     kernel_init=normal(stddev=0.1),
     bias_init=normal(stddev=0.1),
 )
-# machines["model:(C->C)"] = RBM(
-#    alpha=1,
-#    dtype=complex,
-#    kernel_init=normal(stddev=0.1),
-#    bias_init=normal(stddev=0.1),
-# )
+machines["model:(C->C)"] = nk.models.RBM(
+    alpha=1,
+    dtype=complex,
+    kernel_init=normal(stddev=0.1),
+    visible_bias_init=normal(stddev=0.1),
+    hidden_bias_init=normal(stddev=0.1),
+)
 
 operators = {}
+superoperators = {}
 
 L = 2
 g = nk.graph.Hypercube(length=L, n_dim=1)
@@ -63,6 +66,8 @@ LdagL = liouv.H @ liouv
 operators["operator:(Lind^2)"] = LdagL
 operators["operator:H"] = ha
 operators["operator:sigmam"] = jump_ops[0]
+
+superoperators["superop:(Lind^2)"] = LdagL
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
@@ -246,9 +251,7 @@ def test_serialization(vstate):
 
     vstate_new = serialization.from_bytes(vstate_new, bdata)
 
-    jax.tree_multimap(
-        np.testing.assert_allclose, vstate.parameters, vstate_new.parameters
-    )
+    jax.tree_map(np.testing.assert_allclose, vstate.parameters, vstate_new.parameters)
     np.testing.assert_allclose(vstate.samples, vstate_new.samples)
     np.testing.assert_allclose(vstate.diagonal.samples, vstate_new.diagonal.samples)
     assert vstate.n_samples == vstate_new.n_samples
@@ -298,7 +301,7 @@ def test_expect_chunking(vstate, operator, n_chunks):
     vstate.diagonal.chunk_size = chunk_size_diag
     eval_chunk = vstate.expect(operator)
 
-    jax.tree_multimap(
+    jax.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
     )
 
@@ -319,7 +322,7 @@ def test_expect_grad_chunking(vstate, n_chunks):
     vstate.diagonal.chunk_size = chunk_size_diag
     grad_chunk = vstate.grad(operator)
 
-    jax.tree_multimap(
+    jax.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), grad_nochunk, grad_chunk
     )
 
@@ -359,3 +362,112 @@ def check_consistent_diag(vstate):
         == vstate.chain_length_diag * vstate.sampler_diag.n_chains
         == vstate.diagonal.chain_length * vstate.diagonal.sampler.n_chains
     )
+
+
+def _skip_expect_exact_hotfix(vstate, operator):
+    """
+    Skip one specific test which regularly crashes (only) on CI
+    when Python 3.7 is used.
+    TODO: Remove this once the crash is actually fixed.
+    """
+    import os
+    import sys
+
+    info = sys.version_info
+    is_python_37 = info.major == 3 and info.minor == 7
+
+    is_crashing_test = operator is LdagL and isinstance(vstate._model, nk.models.NDM)
+
+    is_ci = common._is_true(os.environ.get("CI", False))
+
+    return is_ci and is_python_37 and is_crashing_test
+
+
+@common.skipif_mpi
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in superoperators.items()
+    ],
+)
+def test_expect_exact(vstate, operator):
+    if _skip_expect_exact_hotfix(vstate, operator):
+        pytest.skip("Test crashes on CI with Python 3.7")
+
+    # Use lots of samples
+    vstate.n_samples = 5 * 1e5
+    vstate.n_discard_per_chain = 1e3
+
+    # sample the expectation value and gradient with tons of samples
+    O_stat = vstate.expect(operator)
+
+    O_mean = np.asarray(O_stat.mean)
+    err = 5 * O_stat.error_of_mean
+
+    # check that vstate.expect gives the right result
+    O_expval_exact = _expval(
+        vstate.parameters, vstate, operator.to_sparse(), real=operator.is_hermitian
+    )
+
+    np.testing.assert_allclose(O_expval_exact.real, O_mean.real, atol=err, rtol=err)
+    if not operator.is_hermitian:
+        np.testing.assert_allclose(O_expval_exact.imag, O_mean.imag, atol=err, rtol=err)
+
+
+# This test is 'broken' on CI when running under pytest-xdist. It does pass with
+# pytest -n0 . I cannot reproduce locally, and I suspect it's a bug in Jax itself
+# so I still include it in the local runs. Should be tested in a while to see if
+# Jax fixed this bug.
+@common.skipif_ci
+@common.skipif_mpi
+@pytest.mark.parametrize(
+    "operator",
+    [
+        pytest.param(
+            op,
+            id=name,
+        )
+        for name, op in superoperators.items()
+    ],
+)
+def test_grad_finitedifferences(vstate, operator):
+    op_sparse = operator.to_sparse()
+
+    # Use lots of samples
+    vstate.n_samples = 5 * 1e5
+    vstate.n_discard_per_chain = 1e3
+
+    # sample the expectation value and gradient with tons of samples
+    O_stat1 = vstate.expect(operator)
+    O_stat, O_grad = vstate.expect_and_grad(operator)
+
+    O1_mean = np.asarray(O_stat1.mean)
+    O_mean = np.asarray(O_stat.mean)
+    err = 5 * O_stat1.error_of_mean
+
+    # Check that expect and expect_and_grad give same expect. value
+    assert O1_mean.real == approx(O_mean.real, abs=1e-5)
+    if not operator.is_hermitian:
+        assert O1_mean.imag == approx(O_mean.imag, abs=1e-5)
+
+    assert np.asarray(O_stat1.variance) == approx(np.asarray(O_stat.variance), abs=1e-5)
+
+    # Prepare the exact estimations
+    pars_0 = vstate.parameters
+    pars, unravel = nk.jax.tree_ravel(pars_0)
+
+    def expval_fun(par, vstate, H):
+        return _expval(unravel(par), vstate, H, real=operator.is_hermitian)
+
+    # Compute the gradient with exact formula
+    grad_exact = central_diff_grad(expval_fun, pars, 1.0e-5, vstate, op_sparse)
+
+    if not operator.is_hermitian:
+        grad_exact = jax.tree_map(lambda x: x * 2, grad_exact)
+
+    O_grad, _ = nk.jax.tree_ravel(O_grad)
+    same_derivatives(O_grad, grad_exact, abs_eps=err, rel_eps=err)

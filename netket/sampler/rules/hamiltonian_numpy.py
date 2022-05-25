@@ -21,8 +21,7 @@ from flax import struct
 
 from netket.operator import AbstractOperator
 
-
-from ..metropolis import MetropolisRule
+from .base import MetropolisRule
 
 
 @struct.dataclass
