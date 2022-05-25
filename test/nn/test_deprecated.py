@@ -17,14 +17,17 @@ pytestmark = common.skipif_mpi
 
 def test_deprecated_stuff():
     with pytest.warns(FutureWarning):
+
         class TestModule(nknn.Module):
             pass
 
     with pytest.warns(FutureWarning):
+
         class TestModule(nn.Module):
             @nknn.compact
             def __call__(self, x):
                 pass
+
 
 def test_deprecated_layers():
     with pytest.warns(FutureWarning):
