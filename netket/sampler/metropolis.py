@@ -173,7 +173,8 @@ class MetropolisSampler(Sampler):
     rule: MetropolisRule = None
     """The Metropolis transition rule."""
     n_sweeps: int = struct.field(pytree_node=False, default=None)
-    """Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space."""
+    """Number of sweeps for each step along the chain. Defaults to the number
+    of sites in the Hilbert space."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
@@ -184,13 +185,20 @@ class MetropolisSampler(Sampler):
         Args:
             hilbert: The Hilbert space to sample.
             rule: A `MetropolisRule` to generate random transitions from a given state as
-                    well as uniform random states.
-            n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
+                well as uniform random states.
+            n_chains: The total number of independent Markov chains across all MPI ranks.
+                Either specify this or `n_chains_per_rank`. If MPI is disabled, the two are equivalent;
+                if MPI is enabled and `n_chains` is specified, then every MPI rank will run
+                `n_chains/mpi.n_nodes` chains. In general, we reccomend specifying `n_chains_per_rank`
+                as it is more portable.
             n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
-            n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
-                    This is equivalent to subsampling the Markov chain.
-            reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
-            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+            n_sweeps: Number of sweeps for each step along the chain.
+                This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
+                in the Hilbert space.)
+            reset_chains: If True, resets the chain state when `reset` is called on every
+                new sampling (default = False).
+            machine_pow: The power to which the machine should be exponentiated to generate
+                the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
         """
         # Validate the inputs
@@ -238,7 +246,8 @@ class MetropolisSampler(Sampler):
 
         Args:
             machine: A Flax module or callable with the forward pass of the log-pdf.
-                If it is a callable, it should have the signature :code:`f(parameters, σ) -> jnp.ndarray`.
+                If it is a callable, it should have the signature
+                :code:`f(parameters, σ) -> jnp.ndarray`.
             parameters: The PyTree of parameters of the model.
             state: The current state of the sampler. If not specified, then initialize and reset it.
 

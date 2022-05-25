@@ -111,10 +111,11 @@ Sampler. Rules with `Numpy` in their name can only be used with
 .. autosummary::
   :toctree: _generated/samplers
 
-  MetropolisRule
+  rules.MetropolisRule
   rules.LocalRule
   rules.ExchangeRule
   rules.HamiltonianRule
+  rules.GaussianRule
   rules.HamiltonianRuleNumpy
   rules.CustomRuleNumpy
 

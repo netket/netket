@@ -48,6 +48,14 @@ class Sampler(abc.ABC):
     API.
     Note that fields marked with `pytree_node=False` are treated as static arguments
     when jitting.
+
+    Subclasses should be NetKet dataclasses and they should define the `_init_state`,
+    `_reset` and `_sample_chain` methods which only accept positional arguments.
+    See the respective method's definition for its signature.
+
+    Notice that those methods are different from the API-entry point without the leading
+    underscore in order to allow us to share some pre-processing code between samplers
+    and simplify the definition of a new sampler.
     """
 
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
