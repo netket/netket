@@ -71,19 +71,18 @@ jobs:
         run: |
           python conf/compute_oldest_dependencies.py
           pip install --upgrade -r oldest_requirements.txt
-          pip install -e ".[dev, extras]"
+          pip install -e ".[dev,extras]"
 
       - name: Pip install packages
         if: ${{ ! matrix.oldest_deps }}
         run: |
           pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
-            pip install -e ".[dev, extras]"
+            pip install -e ".[dev,extras]"
           else
-            pip install -e ".[dev, mpi]"
+            pip install -e ".[dev,mpi]"
           fi
           pip install dm-haiku
-          pip install openfermion
 
       - name: Netket tests
         if: ${{ matrix.main_tests }}
