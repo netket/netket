@@ -38,31 +38,59 @@ from .activation import (
     reim_selu,
     reim_relu,
 )
-from flax.linen import (
-    MultiHeadDotProductAttention,
+
+from .symmetric_linear import (
+    DenseSymm,
+    DenseEquivariant,
+)
+
+from .masked_linear import MaskedDense1D, MaskedConv1D, MaskedConv2D
+
+from .fast_masked_linear import FastMaskedDense1D, FastMaskedConv1D, FastMaskedConv2D
+
+from .initializers import zeros, ones
+
+from .utils import to_array, to_matrix, split_array_mpi, update_dense_symm
+
+from .deprecation import (
+    Dense,
+    DenseGeneral,
+    Conv,
+    ConvTranspose,
+    Embed,
     SelfAttention,
     dot_product_attention,
     make_attention_mask,
     make_causal_mask,
     combine_masks,
 )
-from .linear import (
-    Conv,
-    ConvTranspose,
-    Dense,
-    DenseGeneral,
-)
-from .symmetric_linear import (
-    DenseSymm,
-    DenseEquivariant,
-)
-from .masked_linear import MaskedDense1D, MaskedConv1D, MaskedConv2D
-from .fast_masked_linear import FastMaskedDense1D, FastMaskedConv1D, FastMaskedConv2D
 
-from flax.linen import Module, compact
 
-from .initializers import zeros, ones
+# TODO: Eventually remove thoses (deprecated in 3.5)
+# Those were never supposed to be re-exported, but they slipped and I used them in quite
+# some tutorials so we should keep them for a long time.
+_deprecated_names = ["Module", "compact"]
 
-from flax.linen import Embed
 
-from .utils import to_array, to_matrix, split_array_mpi, update_dense_symm
+from netket.utils import warn_deprecation as _warn_deprecation
+
+
+def __getattr__(name):
+    import sys
+
+    if name in _deprecated_names:
+        _warn_deprecation(
+            f" \n"
+            f" \n"
+            f"          =======================================================================\n"
+            f"          `nk.nn.{name}` is deprecated. Use `flax.linen.{name}` directly instead.\n"
+            f"          =======================================================================\n"
+            f" \n"
+            f"If you imported `flax.linen as nn`, as is customary to do, you can use `nn.{name}` "
+            f"directly. There are no functionality changes.\n"
+        )
+        import flax
+
+        return getattr(flax.linen, name)
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")
