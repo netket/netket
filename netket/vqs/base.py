@@ -125,7 +125,7 @@ class VariationalState(abc.ABC):
             determined by the model. DO NOT SPECIFY IT INSIDE THE INIT FUNCTION
 
         Args:
-            init_fun: a jax initializer such as :ref:`jax.nn.initializers.normal`.
+            init_fun: a jax initializer such as :func:`jax.nn.initializers.normal`.
                 Must be a Callable taking 3 inputs, the jax PRNG key, the shape and the
                 dtype, and outputting an array with the valid dtype and shape. If left
                 unspecified, defaults to :code:`jax.nn.initializers.normal(stddev=0.01)`

@@ -19,9 +19,7 @@ be released.
 
 ## Public API Definition
 
-The parts of the API covered by the API stability guarantee and semantic versioning are all
-methods, functions and classes listed in the [API reference](api) *unless stated otherwise 
-in the docstring of said function or method*.
+The parts of the API covered by the API stability guarantee and semantic versioning are all methods, functions and classes listed in the [API reference](netket_api)) *unless stated otherwise in the docstring of said function or method*.
 
 In general we try to ensure that all functions, methods and classes that can be accessed by 
 dot-syntax and *with a name not starting with an underscore* are part of the public-API, 

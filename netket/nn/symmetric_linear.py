@@ -621,8 +621,8 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
-            :ref:`netket.graph.Graph`, a :ref:`netket.utils.group.PermutationGroup`, or an array
-            of shape :code:`(n_symm, n_sites)`. A :ref:`netket.utils.HashableArray` may also
+            :class:`nk.graph.Graph`, a :class:`nk.utils.group.PermutationGroup`, or an array
+            of shape :code:`(n_symm, n_sites)`. A :class:`nk.utils.HashableArray` may also
             be passed.
             specifying the permutations corresponding to symmetry transformations
             of the lattice.
@@ -633,15 +633,16 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
             based on the symmetry group.
         shape: A tuple specifying the dimensions of the translation group.
         features: The number of output features. The full output shape
-            is [n_batch,features,n_symm].
+            is :code:`[n_batch,features,n_symm]`.
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
             that can be used to give the kernel a particular shape.
         dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
-            see `jax.lax.Precision`for details.
+            see {class}`jax.lax.Precision` for details.
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.
         bias_init: Optional bias initialization function. Defaults to zero initialization.
+    
     """
     if isinstance(symmetries, Lattice) and (
         point_group is not None or symmetries._point_group is not None

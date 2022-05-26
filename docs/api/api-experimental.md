@@ -9,7 +9,7 @@
 In this page we present some experimental interfaces of NetKet.
 Those are not guaranteed to be API-stable, and might change without notice (other than the
 changelog) among minor releases.
-The {ref}`netket.experimental <api-experimental>` modules mirrors the standard {ref}`netket <api>` module structure,
+The {ref}`netket.experimental <api-experimental>` modules mirrors the standard {ref}`netket <netket_api>` module structure,
 and we suggest to use it as follows:
 
 ```python

@@ -14,10 +14,8 @@ are interested in implementing a new kind of variational state that encodes a st
 
 ## Constructing a Variational State
 
-To construct the two variational states above you need to provide at least a Monte Carlo sampler (you can see
-the list of available ones {ref}`here <sampler-api>`) and a model.
-The hilbert space of the variational state will be inferred from the sampler, as they all reference the
-hilbert space they are sampling.
+To construct the two variational states above you need to provide at least a Monte Carlo sampler (you can find the list of available ones [here](netket_sampler_api)) and a model.
+The hilbert space of the variational state will be inferred from the sampler, as they all reference the hilbert space they are sampling.
 
 The model can be specified in several ways. The most standard way is to pass a [Flax Linen Module](https://flax.readthedocs.io/en/latest/flax.linen.html#module), but you can also pass a Jax-style pair
 of functions {code}`(init, apply)` or an haiku module obtained by calling {code}`haiku.transform()`.
@@ -38,7 +36,7 @@ If you are not familiar with Flax, it's a package that allows to define Neural N
 parametrized functions. While we suggest to read carefully the [introduction to Flax](https://flax.readthedocs.io/en/latest/notebooks/flax_basics.html), if you are impatient and just want to define some simple, easy
 models you can find some examples in the [Model Surgery](https://flax.readthedocs.io/en/latest/howtos/model_surgery.html) section of Flax documentation.
 
-Other examples can be found in the source of the {ref}`Pre-built models <_Models>` distributed with NetKet, such as
+Other examples can be found in the source of the [Pre-built models](netket_models_api) distributed with NetKet, such as
 {class}`~netket.models.RBM` (the simplest one), {class}`~netket.models.MPSPeriodic` and {class}`~netket.models.NDM` for
 more complicated examples.
 
@@ -91,7 +89,7 @@ A value of at least 128 is suggested, but will greatly depend on your model. You
 One you have a variational state, you can do many things with it.
 First of all, you can probe expectation values:
 
-```python
+```
 Ĥ = nk.operator.Ising(hilbert, nk.graph.Chain(hilbert.size), h=0.5)
 
 vstate.expect(Ĥ)
@@ -103,7 +101,7 @@ Notice that if you call multiple times {code}`expect`, the same set of
 samples will be used, and you will get the same result. To force sampling
 to happen again, you can call {py:meth}`~netket.vqs.MCState.sample`.
 
-```python
+```
 vstate.expect(Ĥ)
 
 >>> -4.98 ± 0.14 [σ²=9.51, R̂=1.0006]
