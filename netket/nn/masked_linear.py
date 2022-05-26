@@ -16,11 +16,14 @@ from typing import Any, Tuple
 
 import flax
 from flax import linen as nn
+from flax.linen.dtypes import promote_dtype
+
 from jax import lax
 from jax import numpy as jnp
 from jax.nn.initializers import lecun_normal, zeros
 
 from netket.utils.types import Array, DType, NNInitFunc
+from netket.utils import deprecate_dtype
 
 default_kernel_init = lecun_normal()
 
@@ -36,6 +39,7 @@ def wrap_kernel_init(kernel_init, mask):
     return wrapped_kernel_init
 
 
+@deprecate_dtype
 class MaskedDense1D(nn.Module):
     """1D linear transformation module with mask for autoregressive NN."""
 
@@ -45,7 +49,7 @@ class MaskedDense1D(nn.Module):
     """True if an output element does not depend on the input element at the same index."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
@@ -65,30 +69,38 @@ class MaskedDense1D(nn.Module):
         Returns:
           The transformed data.
         """
-        dtype = jnp.promote_types(inputs.dtype, self.dtype)
-
-        inputs = jnp.asarray(inputs, dtype)
-
-        is_single_input = False
         if inputs.ndim == 2:
             is_single_input = True
             inputs = jnp.expand_dims(inputs, axis=0)
+        else:
+            is_single_input = False
 
         batch, size, in_features = inputs.shape
         inputs = inputs.reshape((batch, size * in_features))
 
-        mask = jnp.ones((size, size), dtype=self.dtype)
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (size, self.features), self.param_dtype
+            )
+        else:
+            bias = None
+
+        mask = jnp.ones((size, size), dtype=self.param_dtype)
         mask = jnp.triu(mask, self.exclusive)
-        mask = jnp.kron(mask, jnp.ones((in_features, self.features), dtype=self.dtype))
+        mask = jnp.kron(
+            mask, jnp.ones((in_features, self.features), dtype=self.param_dtype)
+        )
 
         kernel = self.param(
             "kernel",
             wrap_kernel_init(self.kernel_init, mask),
             (size * in_features, size * self.features),
-            self.dtype,
+            self.param_dtype,
         )
-        mask = jnp.asarray(mask, dtype)
-        kernel = jnp.asarray(kernel, dtype)
+
+        inputs, mask, kernel, bias = promote_dtype(
+            inputs, mask, kernel, bias, dtype=None
+        )
 
         y = lax.dot(inputs, mask * kernel, precision=self.precision)
 
@@ -98,13 +110,12 @@ class MaskedDense1D(nn.Module):
             y = y.squeeze(axis=0)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (size, self.features), self.dtype)
-            bias = jnp.asarray(bias, dtype)
             y = y + bias
 
         return y
 
 
+@deprecate_dtype
 class MaskedConv1D(nn.Module):
     """1D convolution module with mask for autoregressive NN."""
 
@@ -120,7 +131,7 @@ class MaskedConv1D(nn.Module):
     """if specified, divides the input features into groups (default: 1)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
@@ -142,17 +153,14 @@ class MaskedConv1D(nn.Module):
         Returns:
           The convolved data.
         """
-        dtype = jnp.promote_types(inputs.dtype, self.dtype)
-
-        inputs = jnp.asarray(inputs, dtype)
-
         kernel_size = self.kernel_size - self.exclusive
         dilation = self.kernel_dilation
 
-        is_single_input = False
         if inputs.ndim == 2:
             is_single_input = True
             inputs = jnp.expand_dims(inputs, axis=0)
+        else:
+            is_single_input = False
 
         in_features = inputs.shape[-1]
         assert in_features % self.feature_group_count == 0
@@ -162,8 +170,16 @@ class MaskedConv1D(nn.Module):
             self.features,
         )
 
-        kernel = self.param("kernel", self.kernel_init, kernel_shape, self.dtype)
-        kernel = jnp.asarray(kernel, dtype)
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (self.features,), self.param_dtype
+            )
+        else:
+            bias = None
+
+        kernel = self.param("kernel", self.kernel_init, kernel_shape, self.param_dtype)
+
+        inputs, kernel, bias = promote_dtype(inputs, kernel, bias, dtype=None)
 
         if self.exclusive:
             inputs = inputs[:, :-dilation, :]
@@ -195,13 +211,12 @@ class MaskedConv1D(nn.Module):
             y = y.squeeze(axis=0)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(bias, dtype)
             y = y + bias
 
         return y
 
 
+@deprecate_dtype
 class MaskedConv2D(nn.Module):
     """2D convolution module with mask for autoregressive NN."""
 
@@ -218,7 +233,7 @@ class MaskedConv2D(nn.Module):
     """if specified, divides the input features into groups (default: 1)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
@@ -229,7 +244,7 @@ class MaskedConv2D(nn.Module):
 
     def setup(self):
         kernel_h, kernel_w = self.kernel_size
-        mask = jnp.ones((kernel_h, kernel_w, 1, 1), dtype=self.dtype)
+        mask = jnp.ones((kernel_h, kernel_w, 1, 1), dtype=self.param_dtype)
         mask = mask.at[-1, kernel_w // 2 + (not self.exclusive) :].set(0)
         self.mask = mask
 
@@ -244,18 +259,15 @@ class MaskedConv2D(nn.Module):
         Returns:
           The convolved data.
         """
-        dtype = jnp.promote_types(inputs.dtype, self.dtype)
-
-        inputs = jnp.asarray(inputs, dtype)
-
         kernel_h, kernel_w = self.kernel_size
         dilation_h, dilation_w = self.kernel_dilation
         ones = (1, 1)
 
-        is_single_input = False
         if inputs.ndim == 3:
             is_single_input = True
             inputs = jnp.expand_dims(inputs, axis=0)
+        else:
+            is_single_input = False
 
         in_features = inputs.shape[-1]
         assert in_features % self.feature_group_count == 0
@@ -264,14 +276,25 @@ class MaskedConv2D(nn.Module):
             self.features,
         )
 
+        mask = self.mask
+
         kernel = self.param(
             "kernel",
-            wrap_kernel_init(self.kernel_init, self.mask),
+            wrap_kernel_init(self.kernel_init, mask),
             kernel_shape,
-            self.dtype,
+            self.param_dtype,
         )
-        mask = jnp.asarray(self.mask, dtype)
-        kernel = jnp.asarray(kernel, dtype)
+
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (self.features,), self.param_dtype
+            )
+        else:
+            bias = None
+
+        inputs, mask, kernel, bias = promote_dtype(
+            inputs, mask, kernel, bias, dtype=None
+        )
 
         # Zero padding
         y = jnp.pad(
@@ -301,8 +324,6 @@ class MaskedConv2D(nn.Module):
             y = y.squeeze(axis=0)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(bias, dtype)
             y = y + bias
 
         return y
