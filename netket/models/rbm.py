@@ -35,7 +35,7 @@ class RBM(nn.Module):
     nonlinear activation function in between.
     """
 
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -60,7 +60,7 @@ class RBM(nn.Module):
         x = nn.Dense(
             name="Dense",
             features=int(self.alpha * input.shape[-1]),
-            param_dtype=self.dtype,
+            param_dtype=self.param_dtype,
             precision=self.precision,
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
@@ -71,7 +71,10 @@ class RBM(nn.Module):
 
         if self.use_visible_bias:
             v_bias = self.param(
-                "visible_bias", self.visible_bias_init, (input.shape[-1],), self.dtype
+                "visible_bias",
+                self.visible_bias_init,
+                (input.shape[-1],),
+                self.param_dtype,
             )
             out_bias = jnp.dot(input, v_bias)
             return x + out_bias
@@ -98,7 +101,7 @@ class RBMModPhase(nn.Module):
     for arbitrary local quantum numbers :math:`s_i`.
     """
 
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -118,7 +121,7 @@ class RBMModPhase(nn.Module):
     def __call__(self, x):
         re = nn.Dense(
             features=int(self.alpha * x.shape[-1]),
-            param_dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_hidden_bias,
             precision=self.precision,
             kernel_init=self.kernel_init,
@@ -129,7 +132,7 @@ class RBMModPhase(nn.Module):
 
         im = nn.Dense(
             features=int(self.alpha * x.shape[-1]),
-            param_dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_hidden_bias,
             precision=self.precision,
             kernel_init=self.kernel_init,
@@ -152,7 +155,7 @@ class RBMMultiVal(nn.Module):
 
     n_classes: int
     """The number of classes in the one-hot encoding"""
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -174,7 +177,7 @@ class RBMMultiVal(nn.Module):
 
     def setup(self):
         self.RBM = RBM(
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             activation=self.activation,
             alpha=self.alpha,
             use_hidden_bias=self.use_hidden_bias,
@@ -203,7 +206,7 @@ class RBMSymm(nn.Module):
     """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -242,7 +245,7 @@ class RBMSymm(nn.Module):
             mode="matrix",
             symmetries=self.symmetries,
             features=self.features,
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
@@ -255,7 +258,7 @@ class RBMSymm(nn.Module):
 
         if self.use_visible_bias:
             v_bias = self.param(
-                "visible_bias", self.visible_bias_init, (1,), self.dtype
+                "visible_bias", self.visible_bias_init, (1,), self.param_dtype
             )
             out_bias = v_bias[0] * jnp.sum(x_in, axis=-1)
             return x + out_bias

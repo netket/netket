@@ -10,6 +10,7 @@ from jax.nn.initializers import (
     lecun_normal,
 )
 
+from netket.utils import deprecate_dtype
 from netket.hilbert import ContinuousHilbert
 
 
@@ -21,6 +22,7 @@ def check_features_length(features, n_layers, name):
         )
 
 
+@deprecate_dtype
 class DeepSetRelDistance(nn.Module):
     r"""Implements an equivariant version of the DeepSets architecture
     given by (https://arxiv.org/abs/1703.06114)
@@ -59,7 +61,7 @@ class DeepSetRelDistance(nn.Module):
     cusp_exponent: Optional[int] = None
     """exponent of Katos cusp condition"""
 
-    dtype: Any = jnp.float64
+    param_dtype: Any = jnp.float64
     """The dtype of the weights."""
 
     activation: Any = jax.nn.gelu
@@ -104,7 +106,7 @@ class DeepSetRelDistance(nn.Module):
             nn.Dense(
                 feat,
                 use_bias=self.use_bias,
-                param_dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
@@ -115,7 +117,7 @@ class DeepSetRelDistance(nn.Module):
             nn.Dense(
                 feat,
                 use_bias=self.use_bias,
-                param_dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
@@ -135,7 +137,7 @@ class DeepSetRelDistance(nn.Module):
     @nn.compact
     def __call__(self, x):
         sha = x.shape
-        param = self.param("cusp", self.params_init, (1,), self.dtype)
+        param = self.param("cusp", self.params_init, (1,), self.param_dtype)
 
         L = jnp.array(self.hilbert.extent)
         sdim = L.size

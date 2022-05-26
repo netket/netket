@@ -22,11 +22,13 @@ from jax import numpy as jnp
 import numpy as np
 from jax.nn.initializers import normal
 
+from netket.utils import deprecate_dtype
 from netket.graph import AbstractGraph, Chain
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import NNInitFunc
 
 
+@deprecate_dtype
 class MPSPeriodic(nn.Module):
     r"""
     A periodic Matrix Product State (MPS) for a quantum state of discrete
@@ -60,7 +62,7 @@ class MPSPeriodic(nn.Module):
         stddev=0.01
     )  # default standard deviation equals 1e-2
     """the initializer for the MPS weights."""
-    dtype: Any = np.complex64
+    param_dtype: Any = np.complex64
     """complex or float, whether the variational parameters of the MPS are real or complex."""
 
     def setup(self):
@@ -113,11 +115,11 @@ class MPSPeriodic(nn.Module):
         # define diagonal tensors with correct unit cell shape
         if self.diag:
             iden_tensors = jnp.ones(
-                (self._symperiod, phys_dim, self.bond_dim), dtype=self.dtype
+                (self._symperiod, phys_dim, self.bond_dim), dtype=self.param_dtype
             )
         else:
             iden_tensors = jnp.repeat(
-                jnp.eye(self.bond_dim, dtype=self.dtype)[jnp.newaxis, :, :],
+                jnp.eye(self.bond_dim, dtype=self.param_dtype)[jnp.newaxis, :, :],
                 self._symperiod * phys_dim,
                 axis=0,
             )
@@ -126,7 +128,7 @@ class MPSPeriodic(nn.Module):
             )
 
         self.kernel = (
-            self.param("kernel", self.kernel_init, unit_cell_shape, self.dtype)
+            self.param("kernel", self.kernel_init, unit_cell_shape, self.param_dtype)
             + iden_tensors
         )
 
