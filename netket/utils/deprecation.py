@@ -106,14 +106,6 @@ def deprecate_dtype(clz):
     # this env variable set by us sphinx's conf.py, and we do not apply the
     # deecorator if that's the case.
     if config.FLAGS["NETKET_SPHINX_BUILD"]:
-        if hasattr(clz, "__init__"):
-            if clz.__init__.__doc__ is not None and clz.__init__.__doc__ != "":
-                clz.__init__.__doc__ = clz.__init__.__doc__ + _dep_msg
-            else:
-                clz.__doc__ = clz.__doc__ + _dep_msg
-        else:
-            clz.__doc__ = clz.__doc__ + _dep_msg
-
         return clz
 
     # If it is a class, then add the deprecated dtype attribute returning
