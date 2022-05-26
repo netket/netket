@@ -140,3 +140,16 @@ config.define(
     ),
     runtime=True,
 )
+
+
+config.define(
+    "NETKET_SPHINX_BUILD",
+    bool,
+    default=False,
+    help=dedent(
+        """
+        Set to True when building documentation with Sphinx. Disables some decorators.
+        """
+    ),
+    runtime=True,
+)

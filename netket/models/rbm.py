@@ -21,7 +21,7 @@ from jax import numpy as jnp
 from flax import linen as nn
 from jax.nn.initializers import normal
 
-from netket.utils import HashableArray
+from netket.utils import HashableArray, deprecate_dtype
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket import nn as nknn
@@ -29,8 +29,9 @@ from netket import nn as nknn
 default_kernel_init = normal(stddev=0.01)
 
 
+@deprecate_dtype
 class RBM(nn.Module):
-    """A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
+    r"""A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
     nonlinear activation function in between.
     """
 
@@ -78,6 +79,7 @@ class RBM(nn.Module):
             return x
 
 
+@deprecate_dtype
 class RBMModPhase(nn.Module):
     r"""
     A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
@@ -139,6 +141,7 @@ class RBMModPhase(nn.Module):
         return re + 1j * im
 
 
+@deprecate_dtype
 class RBMMultiVal(nn.Module):
     """
     A fully connected Restricted Boltzmann Machine (see :ref:`netket.models.RBM`) suitable for large local hilbert spaces.

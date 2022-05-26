@@ -15,8 +15,11 @@
 import warnings
 import functools
 import inspect
+import typing
 
 from textwrap import dedent
+
+from .config_flags import config
 
 
 def deprecated(reason=None, func_name=None):
@@ -72,3 +75,70 @@ def deprecated_new_name(message):
         return deprecated_func
 
     return deprecated_decorator
+
+
+_dep_msg = f"""
+
+**DEPRECATION_WARNING:**
+    The `dtype` argument to Neural-Network layers and models is deprecated
+    throughout NetKet to maintain consistency with new releases of flax. 
+    Please use `param_dtype` instead.
+
+    This warning will eventually turn into an error.  
+
+"""
+
+
+def _dtype_deprecated(self):
+    warn_deprecation(_dep_msg)
+    return self.param_dtype
+
+
+def deprecate_dtype(clz):
+    """
+    Decorator taking a class or a function returning an instance of a class
+    and replacing the `dtype` argument with `param_dtype`.
+
+    This decorator also adds a deprecated field `dtype` to the class, which
+    returns `param_dtype`.
+    """
+    # Sphinx is terrible at understanding wrappers of classses, so we detect
+    # this env variable set by us sphinx's conf.py, and we do not apply the
+    # deecorator if that's the case.
+    if config.FLAGS["NETKET_SPHINX_BUILD"]:
+        if hasattr(clz, "__init__"):
+            if clz.__init__.__doc__ is not None and clz.__init__.__doc__ != "":
+                clz.__init__.__doc__ = clz.__init__.__doc__ + _dep_msg
+            else:
+                clz.__doc__ = clz.__doc__ + _dep_msg
+        else:
+            clz.__doc__ = clz.__doc__ + _dep_msg
+
+        return clz
+
+    # If it is a class, then add the deprecated dtype attribute returning
+    # `param.dtype`
+    # else, if this is a function returning a class, it will be set later
+    # on.
+    if inspect.isclass(clz):
+        lazy = False
+        if not hasattr(clz, "dtype"):
+            clz.dtype = property(_dtype_deprecated)
+    else:
+        lazy = True
+
+    @functools.wraps(clz)
+    def helper(*args, **kws):
+        # deprecated dtype argument
+        if "dtype" in kws.keys():
+            warn_deprecation(_dep_msg)
+            dtype = kws.pop("dtype")
+            kws["param_dtype"] = dtype
+        res = clz(*args, **kws)
+        if lazy:
+            _clz = type(res)
+            if not hasattr(_clz, "dtype"):
+                _clz.dtype = property(_dtype_deprecated)
+        return res
+
+    return helper
