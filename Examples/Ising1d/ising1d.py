@@ -26,7 +26,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, use_visible_bias=True, dtype=float)
+ma = nk.models.RBM(alpha=1, use_visible_bias=True, param_dtype=float)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16, reset_chains=False)

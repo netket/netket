@@ -28,7 +28,7 @@ ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
 pot = nk.operator.PotentialEnergy(hilb, v)
 ha = ekin + 0.5 * pot
 
-model = nk.models.Gaussian(dtype=float)
+model = nk.models.Gaussian(param_dtype=float)
 
 vs = nk.vqs.MCState(sab, model, n_samples=10**4, n_discard_per_chain=2000)
 
