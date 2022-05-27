@@ -376,7 +376,7 @@ def _skip_expect_exact_hotfix(vstate, operator):
     info = sys.version_info
     is_python_37 = info.major == 3 and info.minor == 7
 
-    is_crashing_test = operator is LdagL and isinstance(vstate._model, nk.models.NDM)
+    is_crashing_test = operator is LdagL and type(vstate.model).__name__ == "NDM"
 
     is_ci = common._is_true(os.environ.get("CI", False))
 

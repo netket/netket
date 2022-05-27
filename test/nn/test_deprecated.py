@@ -39,3 +39,18 @@ def test_deprecated_layers():
     module2 = nn.Dense(features=3, param_dtype=complex)
 
     assert module == module2
+
+
+def test_deprecated_dtype_layers():
+    g = nk.graph.Square(3)
+    with pytest.warns(FutureWarning):
+        module = nknn.DenseSymm(g, features=2, dtype=complex)
+
+    with pytest.warns(FutureWarning):
+        assert module.dtype == module.param_dtype
+
+    with pytest.warns(FutureWarning):
+        module = nknn.DenseEquivariant(g, features=2, dtype=complex)
+
+    with pytest.warns(FutureWarning):
+        assert module.dtype == module.param_dtype

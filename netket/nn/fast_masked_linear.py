@@ -16,6 +16,8 @@ from typing import Any, Tuple
 
 import flax
 from flax import linen as nn
+from flax.linen.dtypes import promote_dtype
+
 from jax import lax
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
@@ -28,8 +30,10 @@ from netket.nn.masked_linear import (
     wrap_kernel_init,
 )
 from netket.utils.types import Array, DType, NNInitFunc
+from netket.utils import deprecate_dtype
 
 
+@deprecate_dtype
 class FastMaskedDense1D(nn.Module):
     """
     1D linear transformation module with mask for fast autoregressive NN.
@@ -48,7 +52,7 @@ class FastMaskedDense1D(nn.Module):
     """True if an output element does not depend on the input element at the same index."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
@@ -69,17 +73,39 @@ class FastMaskedDense1D(nn.Module):
         Returns:
           The output site with dimensions (batch, features).
         """
-        dtype = jnp.promote_types(inputs.dtype, self.dtype)
-
-        inputs = jnp.asarray(inputs, dtype)
-
-        is_single_input = False
         if inputs.ndim == 1:
             is_single_input = True
             inputs = jnp.expand_dims(inputs, axis=0)
+        else:
+            is_single_input = False
 
         batch, in_features = inputs.shape
         size = self.size
+
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (size, self.features), self.param_dtype
+            )
+        else:
+            bias = None
+
+        # The construction of `mask` will be optimized to a constant by JIT
+        mask = jnp.ones((size, size), dtype=self.param_dtype)
+        mask = jnp.triu(mask, self.exclusive)
+        mask = jnp.kron(
+            mask, jnp.ones((in_features, self.features), dtype=self.param_dtype)
+        )
+
+        kernel = self.param(
+            "kernel",
+            wrap_kernel_init(self.kernel_init, mask),
+            (size * in_features, size * self.features),
+            self.param_dtype,
+        )
+
+        inputs, kernel, mask, bias = promote_dtype(
+            inputs, kernel, mask, bias, dtype=None
+        )
 
         # Number of input sites depended by the output site at the index
         size_i = index + 1
@@ -100,26 +126,10 @@ class FastMaskedDense1D(nn.Module):
                 lambda _: _cache.value,
                 None,
             )
-
         cache = _cache.value
-        cache = jnp.asarray(cache, dtype)
 
         cache_i = cache[:, :size_i, :]
         cache_i = cache_i.reshape((batch, size_i * in_features))
-
-        # The construction of `mask` will be optimized to a constant by JIT
-        mask = jnp.ones((size, size), dtype=self.dtype)
-        mask = jnp.triu(mask, self.exclusive)
-        mask = jnp.kron(mask, jnp.ones((in_features, self.features), dtype=self.dtype))
-
-        kernel = self.param(
-            "kernel",
-            wrap_kernel_init(self.kernel_init, mask),
-            (size * in_features, size * self.features),
-            self.dtype,
-        )
-        mask = jnp.asarray(mask, dtype)
-        kernel = jnp.asarray(kernel, dtype)
 
         mask_i = mask.reshape((size, in_features, size, self.features))
         mask_i = mask_i[:size_i, :, index, :]
@@ -132,12 +142,7 @@ class FastMaskedDense1D(nn.Module):
         y_i = lax.dot(cache_i, mask_i * kernel_i, precision=self.precision)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (size, self.features), self.dtype)
-            bias = jnp.asarray(bias, dtype)
-
-            bias_i = bias[index, :]
-
-            y_i = y_i + bias_i
+            y_i = y_i + bias[index, :]
 
         assert y_i.shape[1] == self.features
 
@@ -159,6 +164,7 @@ class FastMaskedDense1D(nn.Module):
         return MaskedDense1D.__call__(self, inputs)
 
 
+@deprecate_dtype
 class FastMaskedConv1D(nn.Module):
     """
     1D convolution module with mask for fast autoregressive NN.
@@ -181,7 +187,7 @@ class FastMaskedConv1D(nn.Module):
     """if specified, divides the input features into groups (default: 1)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
@@ -202,21 +208,34 @@ class FastMaskedConv1D(nn.Module):
         Returns:
           The next output site with dimensions (batch, features).
         """
-        dtype = jnp.promote_types(inputs.dtype, self.dtype)
-
-        inputs = jnp.asarray(inputs, dtype)
-
         kernel_size = self.kernel_size - self.exclusive
         dilation = self.kernel_dilation
 
-        is_single_input = False
         if inputs.ndim == 1:
             is_single_input = True
             inputs = jnp.expand_dims(inputs, axis=0)
+        else:
+            is_single_input = False
 
         batch, in_features = inputs.shape
         assert in_features % self.feature_group_count == 0
         cache_size = kernel_size * dilation - (not self.exclusive) * (dilation - 1)
+
+        kernel_shape = (
+            kernel_size,
+            in_features // self.feature_group_count,
+            self.features,
+        )
+        kernel = self.param("kernel", self.kernel_init, kernel_shape, self.param_dtype)
+
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (self.features,), self.param_dtype
+            )
+        else:
+            bias = None
+
+        inputs, kernel, bias = promote_dtype(inputs, kernel, bias, dtype=None)
 
         # Initialize the cache with zeros, and the RNG key is None
         # `cache.dtype` must be the same as `inputs.dtype` (no promotion)
@@ -243,15 +262,6 @@ class FastMaskedConv1D(nn.Module):
             )
 
         cache = _cache.value
-        cache = jnp.asarray(cache, dtype)
-
-        kernel_shape = (
-            kernel_size,
-            in_features // self.feature_group_count,
-            self.features,
-        )
-        kernel = self.param("kernel", self.kernel_init, kernel_shape, self.dtype)
-        kernel = jnp.asarray(kernel, dtype)
 
         if self.exclusive and dilation > 1:
             cache = cache[:, : -(dilation - 1), :]
@@ -270,8 +280,6 @@ class FastMaskedConv1D(nn.Module):
         )
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(bias, dtype)
             y_i = y_i + bias
 
         y_i = y_i.squeeze(axis=1)
@@ -294,6 +302,7 @@ class FastMaskedConv1D(nn.Module):
         return MaskedConv1D.__call__(self, inputs)
 
 
+@deprecate_dtype
 class FastMaskedConv2D(nn.Module):
     """
     2D convolution module with mask for fast autoregressive NN.
@@ -316,7 +325,7 @@ class FastMaskedConv2D(nn.Module):
     """if specified, divides the input features into groups (default: 1)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
@@ -327,7 +336,7 @@ class FastMaskedConv2D(nn.Module):
 
     def setup(self):
         kernel_h, kernel_w = self.kernel_size
-        mask = jnp.ones((kernel_h, kernel_w, 1, 1), dtype=self.dtype)
+        mask = jnp.ones((kernel_h, kernel_w, 1, 1), dtype=self.param_dtype)
         mask = mask.at[-1, kernel_w // 2 + (not self.exclusive) :].set(0)
         self.mask = mask
 
@@ -343,10 +352,6 @@ class FastMaskedConv2D(nn.Module):
         Returns:
           The next output site with dimensions (batch, features).
         """
-        dtype = jnp.promote_types(inputs.dtype, self.dtype)
-
-        inputs = jnp.asarray(inputs, dtype)
-
         L = self.L
         index_w = index % L
 
@@ -354,15 +359,36 @@ class FastMaskedConv2D(nn.Module):
         dilation_h, dilation_w = self.kernel_dilation
         ones = (1, 1)
 
-        is_single_input = False
         if inputs.ndim == 1:
             is_single_input = True
             inputs = jnp.expand_dims(inputs, axis=0)
+        else:
+            is_single_input = False
 
         batch, in_features = inputs.shape
         assert in_features % self.feature_group_count == 0
         recep_h = (kernel_h - 1) * dilation_h + 1
         recep_w = (kernel_w - 1) * dilation_w + 1
+
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (self.features,), self.param_dtype
+            )
+        else:
+            bias = None
+
+        kernel_shape = self.kernel_size + (
+            in_features // self.feature_group_count,
+            self.features,
+        )
+        kernel = self.param(
+            "kernel",
+            wrap_kernel_init(self.kernel_init, self.mask),
+            kernel_shape,
+            self.param_dtype,
+        )
+
+        inputs, kernel, bias = promote_dtype(inputs, kernel, bias, dtype=None)
 
         # Initialize the cache with zeros, and the RNG key is None
         # `cache.dtype` must be the same as `inputs.dtype` (no promotion)
@@ -420,19 +446,6 @@ class FastMaskedConv2D(nn.Module):
             )
 
         cache = _cache.value
-        cache = jnp.asarray(cache, dtype)
-
-        kernel_shape = self.kernel_size + (
-            in_features // self.feature_group_count,
-            self.features,
-        )
-        kernel = self.param(
-            "kernel",
-            wrap_kernel_init(self.kernel_init, self.mask),
-            kernel_shape,
-            self.dtype,
-        )
-        kernel = jnp.asarray(kernel, dtype)
 
         # Zero padding
         cache = jnp.pad(
@@ -464,8 +477,6 @@ class FastMaskedConv2D(nn.Module):
         )
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(bias, dtype)
             y_i = y_i + bias
 
         y_i = y_i.squeeze(axis=(1, 2))

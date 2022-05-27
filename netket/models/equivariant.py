@@ -22,7 +22,7 @@ from flax import linen as nn
 from jax.nn.initializers import zeros, lecun_normal
 from jax.scipy.special import logsumexp
 
-from netket.utils import HashableArray, warn_deprecation
+from netket.utils import HashableArray, warn_deprecation, deprecate_dtype
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
@@ -44,6 +44,7 @@ def identity(x):
     return x
 
 
+@deprecate_dtype
 class GCNN_FFT(nn.Module):
     r"""Implements a GCNN using a fast fourier transform over the translation group.
 
@@ -69,7 +70,7 @@ class GCNN_FFT(nn.Module):
     all layers will have the same number of features."""
     characters: HashableArray
     """Array specifying the characters of the desired symmetry representation"""
-    dtype: Any = float
+    param_dtype: Any = float
     """The dtype of the weights."""
     activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
@@ -97,7 +98,7 @@ class GCNN_FFT(nn.Module):
             space_group=self.symmetries,
             shape=self.shape,
             features=self.features[0],
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
@@ -110,7 +111,7 @@ class GCNN_FFT(nn.Module):
                 shape=self.shape,
                 features=self.features[layer + 1],
                 use_bias=self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -141,6 +142,7 @@ class GCNN_FFT(nn.Module):
             return x
 
 
+@deprecate_dtype
 class GCNN_Irrep(nn.Module):
     r"""Implements a GCNN by projecting onto irreducible
     representations of the group. The projection onto
@@ -181,7 +183,7 @@ class GCNN_Irrep(nn.Module):
     all layers will have the same number of features."""
     characters: HashableArray
     """Array specifying the characters of the desired symmetry representation"""
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
@@ -208,7 +210,7 @@ class GCNN_Irrep(nn.Module):
         self.dense_symm = DenseSymmMatrix(
             symmetries=self.symmetries,
             features=self.features[0],
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
@@ -220,7 +222,7 @@ class GCNN_Irrep(nn.Module):
                 irreps=self.irreps,
                 features=self.features[layer + 1],
                 use_bias=self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -251,6 +253,7 @@ class GCNN_Irrep(nn.Module):
             return x
 
 
+@deprecate_dtype
 class GCNN_Parity_FFT(nn.Module):
     r"""Implements a GCNN using a fast fourier transform over the translation group.
     The group convolution can be written in terms of translational convolutions with
@@ -278,7 +281,7 @@ class GCNN_Parity_FFT(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     parity: int
     """Integer specifying the eigenvalue with respect to parity"""
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
@@ -320,7 +323,7 @@ class GCNN_Parity_FFT(nn.Module):
             space_group=self.symmetries,
             shape=self.shape,
             features=self.features[0],
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
@@ -333,7 +336,7 @@ class GCNN_Parity_FFT(nn.Module):
                 shape=self.shape,
                 features=self.features[layer + 1],
                 use_bias=self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -348,7 +351,7 @@ class GCNN_Parity_FFT(nn.Module):
                 features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
                 use_bias=self.extra_bias and self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -408,6 +411,7 @@ class GCNN_Parity_FFT(nn.Module):
             return x
 
 
+@deprecate_dtype
 class GCNN_Parity_Irrep(nn.Module):
     r"""Implements a GCNN by projecting onto irreducible
     representations of the group. The projection onto
@@ -453,7 +457,7 @@ class GCNN_Parity_Irrep(nn.Module):
     """Array specifying the characters of the desired symmetry representation"""
     parity: int
     """Integer specifying the eigenvalue with respect to parity"""
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = reim_selu
     """The nonlinear activation function between hidden layers."""
@@ -494,7 +498,7 @@ class GCNN_Parity_Irrep(nn.Module):
         self.dense_symm = DenseSymmMatrix(
             symmetries=self.symmetries,
             features=self.features[0],
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
@@ -506,7 +510,7 @@ class GCNN_Parity_Irrep(nn.Module):
                 irreps=self.irreps,
                 features=self.features[layer + 1],
                 use_bias=self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -520,7 +524,7 @@ class GCNN_Parity_Irrep(nn.Module):
                 features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
                 use_bias=self.extra_bias and self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -580,6 +584,7 @@ class GCNN_Parity_Irrep(nn.Module):
             return x
 
 
+@deprecate_dtype
 def GCNN(
     symmetries=None,
     product_table=None,
@@ -591,7 +596,7 @@ def GCNN(
     features=None,
     characters=None,
     parity=None,
-    dtype=np.float64,
+    param_dtype=np.float64,
     complex_output=True,
     **kwargs,
 ):
@@ -632,7 +637,7 @@ def GCNN(
         characters: Array specifying the characters of the desired symmetry representation.
         parity: Optional argument with value +/-1 that specifies the eigenvalue
             with respect to parity (only use on two level systems).
-        dtype: The dtype of the weights.
+        param_dtype: The dtype of the weights.
         activation: The nonlinear activation function between hidden layers. Defaults to
             :func:`nk.nn.activation.reim_selu` .
         output_activation: The nonlinear activation before the output.
@@ -704,7 +709,7 @@ def GCNN(
     else:
         if (
             not is_complex(characters)
-            and not is_complex_dtype(dtype)
+            and not is_complex_dtype(param_dtype)
             and not complex_output
             and jnp.any(characters < 0)
         ):
@@ -727,7 +732,7 @@ def GCNN(
                 characters=characters,
                 shape=shape,
                 parity=parity,
-                dtype=dtype,
+                param_dtype=param_dtype,
                 complex_output=complex_output,
                 **kwargs,
             )
@@ -739,7 +744,7 @@ def GCNN(
                 features=features,
                 characters=characters,
                 shape=shape,
-                dtype=dtype,
+                param_dtype=param_dtype,
                 complex_output=complex_output,
                 **kwargs,
             )
@@ -757,7 +762,7 @@ def GCNN(
                 features=features,
                 characters=characters,
                 parity=parity,
-                dtype=dtype,
+                param_dtype=param_dtype,
                 complex_output=complex_output,
                 **kwargs,
             )
@@ -768,7 +773,7 @@ def GCNN(
                 layers=layers,
                 features=features,
                 characters=characters,
-                dtype=dtype,
+                param_dtype=param_dtype,
                 complex_output=complex_output,
                 **kwargs,
             )

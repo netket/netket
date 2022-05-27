@@ -13,7 +13,7 @@ This can be expanded to second order in an infinitesimal parameter change $\delt
 In NetKet you can obtain (an approximation of) the quantum geometric tensor of a variational state by calling {attr}`~netket.vqs.VariationalState.quantum_geometric_tensor`.
 
 ```python
-ma = nk.models.RBM(alpha=1, dtype=float)
+ma = nk.models.RBM(alpha=1, param_dtype=float)
 sa = nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5, 16), n_chains=16)
 vs = nk.vqs.MCState(sa, ma)
 

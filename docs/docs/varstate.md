@@ -61,7 +61,7 @@ hilbert = nk.hilbert.Spin(0.5)**10
 
 sampler = nk.sampler.MetropolisLocal(hilbert)
 
-model = nk.models.RBM(alpha=1, dtype=float, kernel_init=nk.nn.initializers.normal(stddev=0.01))
+model = nk.models.RBM(alpha=1, param_dtype=float, kernel_init=nn.initializers.normal(stddev=0.01))
 
 vstate = nk.vqs.MCState(sampler, model, n_samples=500)
 ```

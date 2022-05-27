@@ -194,7 +194,7 @@ The [operator sub-module](netket_operator_api) contains several pre-built hamilt
 See the [Operators](operator.md) documentation for more informations.
 
 ```python
-ma = nk.models.RBM(alpha=1, dtype=float)
+ma = nk.models.RBM(alpha=1, param_dtype=float)
 
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 ```

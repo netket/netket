@@ -20,9 +20,9 @@ import jax.numpy as jnp
 from jax import lax
 from jax.nn.initializers import zeros, lecun_normal
 from flax.linen.module import Module, compact
+from flax.linen.dtypes import promote_dtype
 
-from netket.utils import warn_deprecation
-from netket.utils import HashableArray
+from netket.utils import HashableArray, warn_deprecation, deprecate_dtype
 from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils.group import PermutationGroup
 from typing import Sequence
@@ -63,7 +63,7 @@ class DenseSymmMatrix(Module):
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
     """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
-    dtype: Any = jnp.float64
+    param_dtype: Any = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
@@ -89,8 +89,6 @@ class DenseSymmMatrix(Module):
         Returns:
           The transformed input.
         """
-        dtype = jnp.promote_types(x.dtype, self.dtype)
-        x = jnp.asarray(x, dtype)
         # infer in_features and ensure input dimensions (batch, in_features,n_sites)
 
         # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
@@ -104,21 +102,36 @@ class DenseSymmMatrix(Module):
 
         in_features = x.shape[1]
 
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (self.features,), self.param_dtype
+            )
+        else:
+            bias = None
+
+        if self.mask is not None:
+            scaled_mask = self.scaled_mask
+        else:
+            scaled_mask = None
+
         kernel = self.param(
             "kernel",
             self.kernel_init,
             (self.features, in_features, self.n_sites),
-            self.dtype,
+            self.param_dtype,
+        )
+
+        x, scaled_mask, kernel, bias = promote_dtype(
+            x, scaled_mask, kernel, bias, dtype=None
         )
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(scaled_mask, (0, 1))
 
         # Converts the convolutional kernel of shape (self.features, in_features, n_sites)
         # to a full dense kernel of shape (self.features, in_features, n_symm, n_sites).
         # result[out, in, g, r] == kernel[out, in, g^{-1}r]
         kernel = jnp.take(kernel, jnp.asarray(self.symmetries), 2)
-        kernel = jnp.asarray(kernel, dtype)
 
         # x is      (batches,       in_features,         n_sites)
         # kernel is (self.features, in_features, n_symm, n_sites)
@@ -130,14 +143,9 @@ class DenseSymmMatrix(Module):
         )
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-
             # Convert symmetry-reduced bias of shape (features,) to the full bias of
             # shape (..., features, 1).
-            bias = jnp.expand_dims(bias, 1)
-            bias = jnp.asarray(bias, dtype)
-
-            x += bias
+            x += jnp.expand_dims(bias, 1)
 
         return x
 
@@ -155,7 +163,7 @@ class DenseSymmFFT(Module):
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
     """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
 
@@ -189,9 +197,6 @@ class DenseSymmFFT(Module):
         dimensions (-2: features, -1: group elements)
         """
 
-        dtype = jnp.promote_types(x.dtype, self.dtype)
-        x = jnp.asarray(x, dtype)
-
         # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
         # infer in_features and ensure input dimensions (batch, in_features,n_sites)
         if x.ndim < 3:
@@ -208,17 +213,32 @@ class DenseSymmFFT(Module):
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
+        if self.mask is not None:
+            scaled_mask = self.scaled_mask
+        else:
+            scaled_mask = None
+
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (self.features,), self.param_dtype
+            )
+        else:
+            bias = None
+
         kernel = self.param(
             "kernel",
             self.kernel_init,
             (self.features, in_features, self.n_cells * self.sites_per_cell),
-            self.dtype,
+            self.param_dtype,
         )
 
-        kernel = jnp.asarray(kernel, dtype)
+        x, scaled_mask, kernel, bias = promote_dtype(
+            x, scaled_mask, kernel, bias, dtype=None
+        )
+        dtype = x.dtype
 
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
+            kernel = kernel * jnp.expand_dims(scaled_mask, (0, 1))
 
         # Converts the convolutional kernel of shape (features, in_features, n_sites)
         # to the expanded kernel of shape (features, in_features, sites_per_cell,
@@ -243,8 +263,6 @@ class DenseSymmFFT(Module):
         x = x.transpose(0, 1, 3, 2).reshape(*x.shape[:2], -1)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(bias, dtype)
             x += jnp.expand_dims(bias, (0, 2))
 
         if jnp.can_cast(x, dtype):
@@ -270,7 +288,7 @@ class DenseEquivariantFFT(Module):
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
     """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
@@ -305,24 +323,29 @@ class DenseEquivariantFFT(Module):
         """
         in_features = x.shape[-2]
 
-        dtype = jnp.promote_types(x.dtype, self.dtype)
-        x = jnp.asarray(x, dtype)
-
         x = x.reshape(*x.shape[:-1], self.n_cells, self.n_point)
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
+
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (self.features,), self.param_dtype
+            )
+        else:
+            bias = None
 
         kernel = self.param(
             "kernel",
             self.kernel_init,
             (self.features, in_features, self.n_point * self.n_cells),
-            self.dtype,
+            self.param_dtype,
         )
-
-        kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
+
+        x, kernel, bias = promote_dtype(x, kernel, bias, dtype=None)
+        dtype = x.dtype
 
         # Convert the convolutional kernel of shape (features, in_features, n_symm)
         # to the expanded kernel of shape (features, in_features, n_point(in),
@@ -346,8 +369,6 @@ class DenseEquivariantFFT(Module):
         x = x.reshape(*x.shape[:2], -1)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(bias, dtype)
             x += jnp.expand_dims(bias, (0, 2))
 
         if jnp.can_cast(x, dtype):
@@ -393,7 +414,7 @@ class DenseEquivariantIrrep(Module):
     mask: Optional[HashableArray] = None
     """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
 
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
@@ -488,22 +509,27 @@ class DenseEquivariantIrrep(Module):
         """
         in_features = x.shape[-2]
 
-        dtype = jnp.promote_types(x.dtype, self.dtype)
-        x = jnp.asarray(x, dtype)
-
-        x = self.forward_ft(x)
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (self.features,), self.param_dtype
+            )
+        else:
+            bias = None
 
         kernel = self.param(
             "kernel",
             self.kernel_init,
             (self.features, in_features, self.n_symm),
-            self.dtype,
+            self.param_dtype,
         )
-
-        kernel = jnp.asarray(kernel, dtype)
 
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
+
+        x, kernel, bias = promote_dtype(x, kernel, bias, dtype=None)
+        dtype = x.dtype
+
+        x = self.forward_ft(x)
 
         kernel = self.forward_ft(kernel)
 
@@ -517,9 +543,6 @@ class DenseEquivariantIrrep(Module):
         x = self.inverse_ft(x)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
-            bias = jnp.asarray(bias, dtype)
-
             x += jnp.expand_dims(bias, (0, 2))
 
         if jnp.can_cast(x, dtype):
@@ -543,7 +566,7 @@ class DenseEquivariantMatrix(Module):
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
     """Whether to mask the filters to restrict the connectivity"""
-    dtype: Any = jnp.float64
+    param_dtype: Any = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
@@ -568,27 +591,30 @@ class DenseEquivariantMatrix(Module):
         """
         in_features = x.shape[-2]
 
-        dtype = jnp.promote_types(x.dtype, self.dtype)
-        x = jnp.asarray(x, dtype)
-
         kernel = self.param(
             "kernel",
             self.kernel_init,
             (self.features, in_features, self.n_symm),
-            self.dtype,
+            self.param_dtype,
         )
 
-        kernel = jnp.asarray(kernel, dtype)
+        if self.use_bias:
+            bias = self.param(
+                "bias", self.bias_init, (self.features,), self.param_dtype
+            )
+        else:
+            bias = None
 
         if self.mask is not None:
             kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
+
+        kernel, bias, x = promote_dtype(kernel, bias, x, dtype=None)
 
         # Converts the convolutional kernel of shape (features, in_features, n_symm)
         # to a full dense kernel of shape (features, in_features, n_symm, n_symm)
         # result[out, in, g, h] == kernel[out, in, g^{-1}h]
         # input dimensions are [in, g], output dimensions are [out, h]
         kernel = jnp.take(kernel, jnp.asarray(self.product_table), 2)
-        kernel = jnp.asarray(kernel, dtype)
 
         x = lax.dot_general(
             x,
@@ -600,12 +626,12 @@ class DenseEquivariantMatrix(Module):
         x = x.reshape(-1, self.features, self.n_symm)
 
         if self.use_bias:
-            bias = self.param("bias", self.bias_init, (self.features,), self.dtype)
             x += jnp.expand_dims(bias, 1)
 
         return x
 
 
+@deprecate_dtype
 def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
     r"""
     Implements a projection onto a symmetry group. The output will be
@@ -637,7 +663,7 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
             that can be used to give the kernel a particular shape.
-        dtype: The datatype of the weights. Defaults to a 64bit float.
+        param_dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
             see {class}`jax.lax.Precision` for details.
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.
@@ -680,6 +706,7 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
         )
 
 
+@deprecate_dtype
 def DenseEquivariant(
     symmetries,
     features: int = None,
@@ -724,7 +751,7 @@ def DenseEquivariant(
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         mask: An optional array of shape [n_sites] consisting of ones and zeros
             that can be used to give the kernel a particular shape.
-        dtype: The datatype of the weights. Defaults to a 64bit float.
+        param_dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
             see `jax.lax.Precision`for details.
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.

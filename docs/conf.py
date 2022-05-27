@@ -1,3 +1,7 @@
+# -- Set env variables to correctly detect sphinx in NetKet
+import os
+
+os.environ["NETKET_SPHINX_BUILD"] = "1"
 import netket as nk
 
 # -- Project information -----------------------------------------------------

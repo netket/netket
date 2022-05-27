@@ -30,7 +30,7 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg=""):
         f"""
 
         ##########################################################################################
-        
+
         {pkg_name} version {cur_version} (< {desired_version}) is too old and incompatible with NetKet.
         Please update `{pkg_name}` by running the command:
 
@@ -52,16 +52,16 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg=""):
 
 if not module_version("optax") >= (0, 1, 1):
     cur_version = version_string("optax")
-    extra = f"""Reason: Optax is NetKet's provider of optimisers. Versions before 0.1.1 did not
-                support complex numbers and silently returned wrong values, especially when
-                using optimisers involving the norm of the gradient such as `Adam`.
-                As recent versions of optax correctly work with complex numbers, please upgrade.
-                """
+    extra = """Reason: Optax is NetKet's provider of optimisers. Versions before 0.1.1 did not
+               support complex numbers and silently returned wrong values, especially when
+               using optimisers involving the norm of the gradient such as `Adam`.
+               As recent versions of optax correctly work with complex numbers, please upgrade.
+               """
     raise ImportError(create_msg("optax", cur_version, "0.1.1", extra))
 
 if not module_version("flax") >= (0, 5, 0):
     cur_version = version_string("flax")
-    extra = f"""Reason: Flax is NetKet's default neural-network library. Versions before 0.5 had
-                a bug and did not properly support complex numbers.
-                """
+    extra = """Reason: Flax is NetKet's default neural-network library. Versions before 0.5 had
+               a bug and did not properly support complex numbers.
+               """
     raise ImportError(create_msg("flax", cur_version, "0.5", extra))
