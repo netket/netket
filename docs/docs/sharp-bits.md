@@ -2,8 +2,8 @@
 
 Read ahead for some pitfalls, counter-intuitive behavior, and sharp edges that we had to introduce in order to make this work.
 
-(parallelization)=
 
+(parallelization)=
 ## Parallelization
 
 Netket computations run mostly via Jax's XLA.
@@ -39,8 +39,8 @@ the environment variables above might not prevent it from making use of the `ava
 On Mac it is not possible to control this number.
 On Linux it can be controlled using `taskset` or `--bind-to core` when using `mpirun`.
 
-(running-on-cpu)=
 
+(running-on-cpu)=
 ## Running on CPU when GPUs are present
 
 If you have the CUDA version of jaxlib installed, then computations will, by default, run on the GPU.

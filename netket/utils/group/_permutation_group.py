@@ -102,12 +102,22 @@ class PermutationGroup(FiniteGroup):
 
     def to_array(self) -> Array:
         r"""
-        Convert the abstract group operations to an array of permutation indices,
-        such that the `i`-th row contains the indices corresponding to the `i`-th group
-        element. That is, `self.to_array()[i, j]` is :math:`g_i^{-1}(j)`) and
-        (for :code:`G = self`)::
+        Convert the abstract group operations to an array of permutation indices.
+
+
+        It returns a matrix where the `i`-th row contains the indices corresponding
+        to the `i`-th group element. That is, :code:`self.to_array()[i, j]`
+        is :math:`g_i^{-1}(j)`. Moreover, 
+        
+        .. code::
+            
+            G = # this permutation group...
             V = np.arange(G.degree)
             assert np.all(G(V) == V[..., G.to_array()])
+
+        Returns:
+            A matrix that can be used to index arrays in the computational basis
+            in order to obtain their permutations.
         """
         return self._canonical_array()
 
@@ -119,14 +129,14 @@ class PermutationGroup(FiniteGroup):
         Returns a new :code:`PermutationGroup` with duplicate elements (that is,
         elements which represent identical permutations) removed.
 
-        Arguments:
-            return_inverse: If True, also return indices to reconstruct the original
+        Args:
+            return_inverse: If `True`, also return indices to reconstruct the original
                 group from the result.
 
         Returns:
-            group: the permutation group with duplicate elements removed.
-            return_inverse: Indices to reconstruct the original group from the result.
-                Only returned if `return_inverse` is True.
+            The permutation group with duplicate elements removed. If 
+            :code:`return_inverse==True`, it also returns the indices needed to 
+            reconstruct the original group from the result.
         """
         if return_inverse:
             group, inverse = super().remove_duplicates(return_inverse=True)
