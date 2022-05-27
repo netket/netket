@@ -141,11 +141,11 @@ class QGTJacobianPyTreeT(LinearOperator):
 
     mode: str = struct.field(pytree_node=False, default=Uninitialized)
     """Differentiation mode:
-        - "real": for real-valued R->R and C->R Änsatze, splits the complex inputs
+        - "real": for real-valued R->R and C->R Ansätze, splits the complex inputs
                   into real and imaginary part.
-        - "complex": for complex-valued R->C and C->C Änsatze, splits the complex
+        - "complex": for complex-valued R->C and C->C Ansätze, splits the complex
                   inputs and outputs into real and imaginary part
-        - "holomorphic": for any Änsatze. Does not split complex values.
+        - "holomorphic": for any Ansätze. Does not split complex values.
         - "auto": autoselect real or complex.
     """
 

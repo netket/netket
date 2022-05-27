@@ -15,7 +15,7 @@ The 3 frameworks that are supported are:
 
 ## Commonalities
 
-Whatever the framework you pick, your model must be able to accept batches of states, so 2-Dimensional matrices {code}`(B,N)` where $N$ is the number of local degrees of freedom in the hilbert space (spatial sites) and $B$ is the number of batches.
+Whatever the framework you pick, your model must be able to accept batches of states, so 2-dimensional matrices {code}`(B,N)` where $N$ is the number of local degrees of freedom in the hilbert space (spatial sites) and $B$ is the number of batches.
 The result *must* be a {code}`(B,)` vector  where every element is the evaluation of your network for that entry.
 
 If you have a model that is difficult to write in such a way to act on batches, you can use [jax.vmap](https://jax.readthedocs.io/en/latest/jax.html#jax.vmap) to vectorize it.
