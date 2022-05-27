@@ -327,7 +327,7 @@ def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
 
 class PRNGSeq:
     """
-    A sequence of PRNG keys genrated based on an initial key.
+    A sequence of PRNG keys generated based on an initial key.
     """
 
     def __init__(self, base_key: Optional[SeedT] = None):

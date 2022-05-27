@@ -66,8 +66,8 @@ from .deprecation import (
 )
 
 
-# TODO: Eventually remove thoses (deprecated in 3.5)
-# Those were never supposed to be re-exported, but they slipped and I used them in quite
+# TODO: Eventually remove These (deprecated in 3.5)
+# These were never supposed to be re-exported, but they slipped and I used them in quite
 # some tutorials so we should keep them for a long time.
 _deprecated_names = ["Module", "compact"]
 

@@ -66,7 +66,7 @@ class MetropolisRule(abc.ABC):
         """
         Resets the internal state of the Metropolis Sampler Transition Rule.
 
-        The default implementation returns the current rule_state without modofying it.
+        The default implementation returns the current rule_state without modifying it.
 
         Arguments:
             sampler: The Metropolis sampler.

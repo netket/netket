@@ -82,7 +82,7 @@ Args:
             (the size of the input vector s to the machine).
     n_chains: The number of batches of the states to sample (default = 8)
     machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-    dtype: The dtype of the statees sampled (default = np.float32).
+    dtype: The dtype of the states sampled (default = np.float32).
 """
 
 
@@ -421,7 +421,7 @@ def MetropolisLocalPt(hilbert, *args, **kwargs):
                 (the size of the input vector s to the machine).
         n_chains: The number of batches of the states to sample (default = 8)
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-        dtype: The dtype of the statees sampled (default = np.float32).
+        dtype: The dtype of the states sampled (default = np.float32).
     """
     return MetropolisPtSampler(hilbert, LocalRule(), *args, **kwargs)
 
@@ -459,7 +459,7 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
                 (the size of the input vector s to the machine).
         n_chains: The number of batches of the states to sample (default = 8)
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-        dtype: The dtype of the statees sampled (default = np.float32).
+        dtype: The dtype of the states sampled (default = np.float32).
 
 
     Examples:

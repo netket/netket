@@ -148,7 +148,7 @@ def _set_annotation(clz, attr, typ):
         setattr(clz, "__annotations__", {})
 
     if not hasattr(clz, attr):
-        raise ValueError(f"Setting annotation for inexistant attribute {attr}")
+        raise ValueError(f"Setting annotation for nonexistent attribute {attr}")
 
     clz.__annotations__[attr] = typ
 
@@ -330,7 +330,7 @@ def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash
 
 def replace_hash_method(data_clz, *, globals={}):
     """
-    Replace __hash__ by a method that checks if it has already been comptued
+    Replace __hash__ by a method that checks if it has already been computed
     and returns the cached value otherwise.
     """
     self_name = "self"
@@ -367,7 +367,7 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
        to the dataclass constructor. This allows to deprecate argument names and add
        some logic to customize the constructors.
        This function should return a tuple of the edited `(args, kwargs)`. If
-       inheriting from other classes it is recomended (though not mandated) to
+       inheriting from other classes it is recommended (though not mandated) to
        call the same method in parent classes. The function should return arguments and
        keyword arguments that will match the standard dataclass constructor.
        The function can also not be called in some internal cases, so it should not be
@@ -379,12 +379,12 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
        Cached properties can be part of the flattened pytree or not.
        See :ref:`netket.utils.struct.property_cached` for more info.
 
-    Optinal Args:
+    Optional Args:
         init_doc: the docstring for the init method. Otherwise it's inherited
             from `__pre_init__`.
         cache_hash: If True the hash is computed only once and cached. Use if
             the computation is expensive.
-        _frozen: (default True) controls whever the resulting class is frozen or not.
+        _frozen: (default True) controls whether the resulting class is frozen or not.
             If it is not frozen, extra care should be taken.
     """
 

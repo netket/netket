@@ -204,7 +204,7 @@ import inspect
 def process_module_names(module, modname="", inner=0):
     """
     This function goes through everything that is exported through __all__ in every
-    module, recursively, and if it hits classes or functions it chagnes their __module__
+    module, recursively, and if it hits classes or functions it changes their __module__
     so that it reflects the one we want printed in the docs (instead of the actual one).
 
     This fixes the fact that for example netket.graph.Lattice is actually

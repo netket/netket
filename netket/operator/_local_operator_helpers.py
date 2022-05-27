@@ -165,7 +165,7 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
     # could write custom binary <-> int logic instead of using Fock...
     # Since i need to work with bit-strings (where instead of bits i
     # have integers, in order to support arbitrary size spaces) this
-    # is exactly what hilbert.to_number() and viceversa do.
+    # is exactly what hilbert.to_number() and vice versa do.
 
     # target ordering binary representation
     hi_subspace = Fock(hi.shape[acting_on_sorted[0]] - 1)
@@ -255,7 +255,7 @@ def _multiply_operators(
         if len(_support_A) == len(_support_B) and np.array_equal(
             _support_A, _support_B
         ):
-            # back to the case of non-interesecting with same support
+            # back to the case of non-intersecting with same support
             return tuple(_support_A), _A @ _B
         else:
             raise ValueError("Something failed")

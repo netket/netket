@@ -46,7 +46,7 @@ def QGTJacobianPyTree(
 
     The matrix of gradients O is computed on initialisation, but not S,
     which can be computed by calling :code:`to_dense`.
-    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
+    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contained in
     the field `sr`.
 
     Args:
@@ -120,7 +120,7 @@ class QGTJacobianPyTreeT(LinearOperator):
 
     The matrix of gradients O is computed on initialisation, but not S,
     which can be computed by calling :code:`to_dense`.
-    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
+    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contained in
     the field `sr`.
     """
 
@@ -141,11 +141,11 @@ class QGTJacobianPyTreeT(LinearOperator):
 
     mode: str = struct.field(pytree_node=False, default=Uninitialized)
     """Differentiation mode:
-        - "real": for real-valued R->R and C->R ansatze, splits the complex inputs
+        - "real": for real-valued R->R and C->R Ansätze, splits the complex inputs
                   into real and imaginary part.
-        - "complex": for complex-valued R->C and C->C ansatze, splits the complex
+        - "complex": for complex-valued R->C and C->C Ansätze, splits the complex
                   inputs and outputs into real and imaginary part
-        - "holomorphic": for any ansatze. Does not split complex values.
+        - "holomorphic": for any Ansätze. Does not split complex values.
         - "auto": autoselect real or complex.
     """
 
@@ -158,7 +158,7 @@ class QGTJacobianPyTreeT(LinearOperator):
 
     def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None) -> PyTree:
         """
-        Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterataive solver.
+        Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterative solver.
 
         Args:
             y: the vector y in the system above.
@@ -247,7 +247,7 @@ def _solve(
     # to pass the object LinearOperator itself down
     # but avoid rescaling, we pass down an object with
     # scale = None
-    # mode=holomoprhic to disable splitting the complex part
+    # mode=holomorphic to disable splitting the complex part
     unscaled_self = self.replace(scale=None, _in_solve=True)
 
     out, info = solve_fun(unscaled_self, y, x0=x0)

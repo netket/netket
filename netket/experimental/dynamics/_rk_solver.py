@@ -29,7 +29,7 @@ from . import _rk_tableau as rkt
 
 class SolverFlags(IntFlag):
     """
-    Enumc class containing flags for signaling solver information from within `jax.jit`ed code.
+    Enum class containing flags for signaling solver information from within `jax.jit`ed code.
     """
 
     NONE = 0
@@ -319,7 +319,7 @@ class RungeKuttaIntegrator:
 
 
         Returns:
-            A boolean indicating whether the step was sucessful or
+            A boolean indicating whether the step was successful or
             was rejected by the step controller and should be retried.
 
             Note that the step size can be adjusted by the step controller

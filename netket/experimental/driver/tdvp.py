@@ -69,7 +69,7 @@ class TDVP(AbstractVariationalDriver):
             integrator: Configuration of the algorithm used for solving the ODE.
             t0: Initial time at the start of the time evolution.
             propagation_type: Determines the equation of motion: "real"  for the
-                real-time Schödinger equation (SE), "imag" for the imaginary-time SE.
+                real-time Schrödinger equation (SE), "imag" for the imaginary-time SE.
             qgt: The QGT specification.
             linear_solver: The solver for solving the linear system determining the time evolution.
             linear_solver_restart: If False (default), the last solution of the linear system
@@ -224,7 +224,7 @@ class TDVP(AbstractVariationalDriver):
 
         Args:
             T: Length of the integration interval.
-            tstops: A sequence of stopping times, each within the intervall :code:`[self.t0, self.t0 + T]`,
+            tstops: A sequence of stopping times, each within the interval :code:`[self.t0, self.t0 + T]`,
                 at which this method will stop and yield. By default, a stop is performed
                 after each time step (at potentially varying step size if an adaptive
                 integrator is used).
@@ -314,13 +314,13 @@ class TDVP(AbstractVariationalDriver):
             out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
                 If this argument is a string, it will be used as output prefix for the standard JSON logger.
             obs: An iterable containing the observables that should be computed.
-            tstops: A sequence of stopping times, each within the intervall :code:`[self.t0, self.t0 + T]`,
-                at which the driver will stop and perform estimation of observables, logging, and excecute
+            tstops: A sequence of stopping times, each within the interval :code:`[self.t0, self.t0 + T]`,
+                at which the driver will stop and perform estimation of observables, logging, and execute
                 the callback function. By default, a stop is performed after each time step (at potentially
                 varying step size if an adaptive integrator is used).
             show_progress: If true displays a progress bar (default=True)
             callback: Callable or list of callable callback functions to be executed at each
-                stoping time.
+                stopping time.
         """
         if obs is None:
             obs = {}

@@ -66,7 +66,7 @@ def comparable_periodic(
         bin_density: the inverse width of each bin. When binning rational numbers,
             it's best to use a multiple of all expected denominators `bin_density`.
             The default is :math:`3326400 = 2^6\times 3^3\times 5^2\times 7\times 11`.
-        offset: constant offset added to `bin_density * x` before rounding. To minimse
+        offset: constant offset added to `bin_density * x` before rounding. To minimise
             the chances of "interesting" numbers appearing on bin boundaries, it's
             best to use a rational number with a large prime denominator.
             The default is 5413/15629, both are primes.

@@ -52,7 +52,7 @@ from netket.jax import HashablePartial
 
 
 def reim(f):
-    r"""Modifies a non-linearity to act seperately on the real and imaginary parts"""
+    r"""Modifies a non-linearity to act separately on the real and imaginary parts"""
 
     def reim_activation(f, x):
         sqrt2 = jnp.sqrt(jnp.array(2, dtype=x.real.dtype))
@@ -79,10 +79,10 @@ def log_tanh(x):
 
 
 reim_selu = reim(selu)
-r"""Returns the selu non-linearity, applied seperately to the real and imaginary parts"""
+r"""Returns the selu non-linearity, applied separately to the real and imaginary parts"""
 
 reim_relu = reim(relu)
-r"""Returns the relu non-linearity, applied seperately to the real and imaginary parts"""
+r"""Returns the relu non-linearity, applied separately to the real and imaginary parts"""
 
 
 # TODO: DEPRECATION 3.1

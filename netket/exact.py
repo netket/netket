@@ -130,7 +130,7 @@ def steady_state(lindblad, *, sparse=True, method="ed", rho0=None, **kwargs):
 
     Args:
         lindblad: The lindbladian encoding the master equation.
-        sparse: Whever to use sparse matrices (default: False for ed, True for
+        sparse: Whether to use sparse matrices (default: False for ed, True for
             iterative)
         method: 'ed' (exact diagonalization) or 'iterative' (iterative bicgstabl)
         rho0: starting density matrix for the iterative diagonalization (default: None)
@@ -161,7 +161,7 @@ def steady_state(lindblad, *, sparse=True, method="ed", rho0=None, **kwargs):
                 since the update to numpy 1.9.
                 We suggest using sparse=True, however, if you wish not to, you have
                 been warned.
-                Your digits are your reponsability now."""
+                Your digits are your responsibility now."""
             )
 
             lind_mat = lindblad.to_dense()
@@ -210,7 +210,7 @@ def steady_state(lindblad, *, sparse=True, method="ed", rho0=None, **kwargs):
         elif info > 0:
             print("Failed to converge after ", info, " ( trace is ", rho.trace(), " )")
         elif info < 0:
-            print("An error occured: ", info)
+            print("An error occurred: ", info)
 
     else:
         raise ValueError("method must be 'ed' or 'iterative'")

@@ -40,7 +40,7 @@ sampling step the state.
 If you are using GPUs, this conversion can be very costly. On CPUs, while the
 conversion is cheap, the dispatch cost of jax is considerate for small systems.
 
-In general those samplers, while they have the same asyntotic cost of Jax samplers,
+In general those samplers, while they have the same asymptotic cost of Jax samplers,
 have a much higher overhead for small to moderate (for GPUs) system sizes.
 
 This is because it is not possible to implement all transition rules in Jax.

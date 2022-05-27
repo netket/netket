@@ -50,7 +50,7 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add):
             containing the evaluation of f at each element in x
         else (append_cond is False):
             a (pytree of) array(s) with the same shape as the corresponding output of f,
-            containg the reduction over op of f evaluated at each x
+            containing the reduction over op of f evaluated at each x
 
 
     Example:

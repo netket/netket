@@ -486,7 +486,7 @@ class BoseHubbard(SpecialHamiltonian):
         r"""
         Constructs a new BoseHubbard operator given a hilbert space, a graph
         specifying the connectivity and the interaction strength.
-        The chemical potential and the density-density interaction strenght
+        The chemical potential and the density-density interaction strength
         can be specified as well.
 
         Args:
@@ -495,7 +495,7 @@ class BoseHubbard(SpecialHamiltonian):
            V: The strength of density-density interaction term.
            J: The hopping amplitude.
            mu: The chemical potential.
-           dtype: The dtype of the matrix eleements.
+           dtype: The dtype of the matrix elements.
 
         Examples:
            Constructs a BoseHubbard operator for a 2D system.
@@ -772,7 +772,7 @@ class BoseHubbard(SpecialHamiltonian):
         _max_conn = self._max_conn
         fun = self._flattened_kernel
 
-        # do not pass the preallocated self._max_mels andself._max_xprime because they are frozen in a closure
+        # do not pass the preallocated self._max_mels and self._max_xprime because they are frozen in a closure
         # and become read only
         def gccf_fun(x, sections):
             return fun(

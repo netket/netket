@@ -70,9 +70,9 @@ class AbstractOperator(abc.ABC):
 
     def collect(self) -> "AbstractOperator":
         """
-        Returns a guranteed concrete instancce of an operator.
+        Returns a guaranteed concrete instance of an operator.
 
-        As some operations on operators return lazy wrapperes (such as transpose,
+        As some operations on operators return lazy wrappers (such as transpose,
         hermitian conjugate...), this is used to obtain a guaranteed non-lazy
         operator.
         """

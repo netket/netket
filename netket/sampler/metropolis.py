@@ -143,7 +143,7 @@ def _assert_good_log_prob_shape(log_prob, n_chains_per_rank, machine):
             The output of the model {machine} has `shape={log_prob.shape}`, but
             `shape=({n_chains_per_rank},)` was expected.
 
-            This might be becausee of an hilbert space mismatch or because your
+            This might be because of an hilbert space mismatch or because your
             model is ill-configured.
 
             """
@@ -189,7 +189,7 @@ class MetropolisSampler(Sampler):
             n_chains: The total number of independent Markov chains across all MPI ranks.
                 Either specify this or `n_chains_per_rank`. If MPI is disabled, the two are equivalent;
                 if MPI is enabled and `n_chains` is specified, then every MPI rank will run
-                `n_chains/mpi.n_nodes` chains. In general, we reccomend specifying `n_chains_per_rank`
+                `n_chains/mpi.n_nodes` chains. In general, we recommend specifying `n_chains_per_rank`
                 as it is more portable.
             n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
             n_sweeps: Number of sweeps for each step along the chain.
@@ -564,7 +564,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSa
     Notice that this sampler preserves by construction all the symmetries
     of the Hamiltonian. This is in generally not true for the local samplers instead.
 
-    This sampler only works on the CPU. To use the Hamiltonian smapler with GPUs,
+    This sampler only works on the CPU. To use the Hamiltonian sampler with GPUs,
     you should use :class:`netket.sampler.MetropolisHamiltonianNumpy`
 
     Args:

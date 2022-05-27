@@ -82,7 +82,7 @@ class RBMModPhase(nn.Module):
     r"""
     A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
 
-    In this case, two RBMs are taken to parameterize, respectively, the real
+    In this case, two RBMs are taken to parametrize, respectively, the real
     and imaginary part of the log-wave-function, as introduced in Torlai et al.,
     Nature Physics 14, 447–450(2018).
 
@@ -187,7 +187,7 @@ class RBMMultiVal(nn.Module):
 
         # do the one hot encoding: output x.shape +(n_classes,)
         x_oh = jax.nn.one_hot(x, self.n_classes)
-        # vectorizee the last two dimensions
+        # vectorize the last two dimensions
         x_oh = jnp.reshape(x_oh, batches + (self.n_classes * N,))
         # apply the rbm to this output
         return self.RBM(x_oh)

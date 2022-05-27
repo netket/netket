@@ -197,7 +197,7 @@ class FiniteGroup(FiniteSemiGroup):
         #
         # From our oblique times table it is easier to calculate
         #    (d_S)_{RT} = #{r,t: r \in R, t \in T: rs = t}
-        # for a fixed s \in S. This is just `product_table == s`, aggregrated
+        # for a fixed s \in S. This is just `product_table == s`, aggregated
         # over conjugacy classes. c_S and d_S are related by
         #    c_{RST} = |S| d_{RST} / |T|;
         # since we only want a random linear combination, we forget about the

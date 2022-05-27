@@ -63,7 +63,7 @@ class HaikuFramework(ModuleFramework):
 
     @staticmethod
     def is_my_module(module) -> bool:
-        # this will only get callede if the module is loaded
+        # this will only get called if the module is loaded
         import haiku  # noqa: E0401
 
         # jax modules are tuples

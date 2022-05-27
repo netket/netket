@@ -201,7 +201,7 @@ A typical error is to use {class}`~netket.sampler.MetropolisLocal` with a constr
 A simple workaround is to use {class}`~netket.sampler.MetropolisExchange`: as it exchanges the value on two different sites, it guarantees that the total number
 of particles is conserved, and therefore respects the constraint if it is correctly imposed at the initialization of the chain.
 
-In short: when working with constrained Hilbert spaces you have to take extra care when chosing your sampler. And if you have exotic constraints you will most likely need to define your own transition kernel. But don't worry: it is very easy! (however nobody has yet written documentation for it. In the meantime, have a look at [this discussion](https://github.com/netket/netket/discussions/755#discussioncomment-858719))
+In short: when working with constrained Hilbert spaces you have to take extra care when choosing your sampler. And if you have exotic constraints you will most likely need to define your own transition kernel. But don't worry: it is very easy! (however nobody has yet written documentation for it. In the meantime, have a look at [this discussion](https://github.com/netket/netket/discussions/755#discussioncomment-858719))
 ```
 
 The constraints supported on the built-in hilbert spaces are:
@@ -233,7 +233,7 @@ The constraints supported on the built-in hilbert spaces are:
 
 ### Defining Custom constraints
 
-NetKet provides a custom class `CustomHilbert`, that makes it relatively simple to define your own constaint on homogeneous Hilbert spaces.
+NetKet provides a custom class `CustomHilbert`, that makes it relatively simple to define your own constraint on homogeneous Hilbert spaces.
 In this example we show how to use it to build a space that behaves like {ref}`Fock`, while enforcing even parity.
 
 ```python
@@ -254,7 +254,7 @@ array([[0., 0., 0., 0., 0.],
 ```
 
 The constraint function sums the basis number (a number in `range(n_max)`) and then checks if it is even. 
-Pleaes notice how we used `@numba.njit` to speed up the constraint.
+Please notice how we used `@numba.njit` to speed up the constraint.
 
 If you then want to sample this space, you'll encounter the following error:
 

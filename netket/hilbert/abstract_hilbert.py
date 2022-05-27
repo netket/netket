@@ -26,7 +26,7 @@ max_states = np.iinfo(np.int32).max
 class AbstractHilbert(abc.ABC):
     """Abstract class for NetKet hilbert objects.
 
-    This class definese the common interface used to interact with Hilbert spaces.
+    This class defines the common interface used to interact with Hilbert spaces.
 
     An AbstractHilbert object identifies an Hilbert space and a computational basis on
     such hilbert space, such as the z-basis for spins on a lattice, or the
@@ -99,14 +99,14 @@ class AbstractHilbert(abc.ABC):
 
     @property
     def is_indexable(self) -> bool:
-        """Whever the space can be indexed with an integer"""
+        """Whether the space can be indexed with an integer"""
         return False
 
     @property
     @abc.abstractmethod
     def _attrs(self) -> Tuple:
         """
-        Tuple of hashable attributs, used to compute the immutable
+        Tuple of hashable attributes, used to compute the immutable
         hash of this Hilbert space
         """
 

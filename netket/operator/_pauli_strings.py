@@ -28,7 +28,7 @@ valid_pauli_regex = re.compile(r"^[XYZI]+$")
 
 
 class PauliStrings(DiscreteOperator):
-    """A Hamiltonian consisiting of the sum of products of Pauli operators."""
+    """A Hamiltonian consisting of the sum of products of Pauli operators."""
 
     def __init__(
         self,
@@ -74,7 +74,7 @@ class PauliStrings(DiscreteOperator):
 
         if operators is None:
             raise ValueError(
-                "None valued operators passed. (Might arised when passing None valued hilbert explicitly)"
+                "None valued operators passed. (Might arise when passing None valued hilbert explicitly)"
             )
 
         if len(operators) == 0:

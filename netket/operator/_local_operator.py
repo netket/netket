@@ -206,7 +206,7 @@ class LocalOperator(DiscreteOperator):
         return new
 
     def transpose(self, *, concrete=False):
-        r"""LocalOperator: Returns the tranpose of this operator."""
+        r"""LocalOperator: Returns the transpose of this operator."""
         if concrete:
             new = self.copy()
             for aon in new._operators_dict.keys():
@@ -275,7 +275,7 @@ class LocalOperator(DiscreteOperator):
 
     def __truediv__(self, other):
         if not isinstance(other, numbers.Number):
-            raise TypeError("Only divison by a scalar number is supported.")
+            raise TypeError("Only division by a scalar number is supported.")
 
         if other == 0:
             raise ValueError("Dividing by 0")

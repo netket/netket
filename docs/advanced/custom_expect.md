@@ -19,7 +19,7 @@ Some parts of NetKet rely on multiple-dispatch in order to select the right impl
 of a function, instead of the more limited single dispatch used in 
 traditional Object-Oriented programming.
 Significant inspiration has been taken from the [Julia programming language](https://julialang.org/), 
-and NetKet relies on an somehwat-faithfull implementation of Julia's dispatch into python, 
+and NetKet relies on an somewhat-faithful implementation of Julia's dispatch into python, 
 provided by the [plum-dispatch](https://github.com/wesselb/plum) package.
 
 If you are already familiar with multiple-dispatch, you can skip this section. 

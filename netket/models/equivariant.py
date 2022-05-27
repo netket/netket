@@ -48,7 +48,7 @@ class GCNN_FFT(nn.Module):
     r"""Implements a GCNN using a fast fourier transform over the translation group.
 
     The group convolution can be written in terms of translational convolutions with
-    symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    symmetry transformed filters as described in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
     The translational convolutions are then implemented with Fast Fourier Transforms.
     """
 
@@ -147,7 +147,7 @@ class GCNN_Irrep(nn.Module):
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
-    eeturns a feature map of shape [batch_size, features, n_symm].
+    returns a feature map of shape [batch_size, features, n_symm].
     The input and the output are related by
 
     .. math ::
@@ -173,7 +173,7 @@ class GCNN_Irrep(nn.Module):
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
     irreps: Tuple[HashableArray]
-    """List of irreducible represenation matrices"""
+    """List of irreducible representation matrices"""
     layers: int
     """Number of layers (not including sum layer over output)."""
     features: Tuple
@@ -254,7 +254,7 @@ class GCNN_Irrep(nn.Module):
 class GCNN_Parity_FFT(nn.Module):
     r"""Implements a GCNN using a fast fourier transform over the translation group.
     The group convolution can be written in terms of translational convolutions with
-    symmetry transformed filters as desribed in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    symmetry transformed filters as described in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
     The translational convolutions are then implemented with Fast Fourier Transforms.
     This model adds parity symmetry under the transformation x->-x
     """
@@ -303,7 +303,7 @@ class GCNN_Parity_FFT(nn.Module):
     `characters` are negative."""
 
     def setup(self):
-        # TODO: evenutally remove this warning
+        # TODO: eventually remove this warning
         # supports a deprecated attribute
         if self.extra_bias:
             warn_deprecation(
@@ -414,7 +414,7 @@ class GCNN_Parity_Irrep(nn.Module):
     the group is implemented with matrix multiplication
 
     Layers act on a feature maps of shape [batch_size, in_features, n_symm] and
-    eeturns a feature map of shape [batch_size, features, n_symm].
+    returns a feature map of shape [batch_size, features, n_symm].
     The input and the output are related by
 
     .. math ::
@@ -443,7 +443,7 @@ class GCNN_Parity_Irrep(nn.Module):
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
     irreps: Tuple[HashableArray]
-    """List of irreducible represenation matrices"""
+    """List of irreducible representation matrices"""
     layers: int
     """Number of layers (not including sum layer over output)."""
     features: Tuple
@@ -478,7 +478,7 @@ class GCNN_Parity_Irrep(nn.Module):
     `characters` are negative."""
 
     def setup(self):
-        # TODO: evenutally remove this warning
+        # TODO: eventually remove this warning
         # supports a deprecated attribute
         if self.extra_bias:
             warn_deprecation(
@@ -612,7 +612,7 @@ def GCNN(
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
-            nk.graph.Graph, a nk.utils.PermuationGroup, or an array [n_symm, n_sites]
+            nk.graph.Graph, a nk.utils.PermutationGroup, or an array [n_symm, n_sites]
             specifying the permutations corresponding to symmetry transformations
             of the lattice.
         product_table: Product table describing the algebra of the symmetry group.

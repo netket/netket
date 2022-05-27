@@ -18,7 +18,7 @@ from netket.utils import accum_histories_in_tree
 class RuntimeLog:
     """
     Runtim Logger, that can be passed with keyword argument `logger` to Monte
-    Carlo drivers in order to serialize the outpit data of the simulation.
+    Carlo drivers in order to serialize the output data of the simulation.
 
     This logger keeps the data in memory, and does not save it to disk.
     """

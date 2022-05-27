@@ -158,17 +158,17 @@ class MCState(VariationalState):
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
-            mutable: Dict specifing mutable arguments. Use it to specify if the model has a state that can change
+            mutable: Dict specifying mutable arguments. Use it to specify if the model has a state that can change
                 during evaluation, but that should not be optimised. See also flax.linen.module.apply documentation
                 (default=False)
             init_fun: Function of the signature f(model, shape, rng_key, dtype) -> Optional_state, parameters used to
                 initialise the parameters. Defaults to the standard flax initialiser. Only specify if your network has
                 a non-standard init method.
             variables: Optional initial value for the variables (parameters and model state) of the model.
-            apply_fun: Function of the signature f(model, variables, σ) that should evaluate the model. Defafults to
+            apply_fun: Function of the signature f(model, variables, σ) that should evaluate the model. Defaults to
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
             sample_fun: Optional function used to sample the state, if it is not the same as `apply_fun`.
-            training_kwargs: a dict containing the optionaal keyword arguments to be passed to the apply_fun during training.
+            training_kwargs: a dict containing the optional keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
             n_discard: DEPRECATED. Please use `n_discard_per_chain` which has the same behaviour.
         """
@@ -480,8 +480,8 @@ class MCState(VariationalState):
         """
         Sample a certain number of configurations.
 
-        If one among chain_leength or n_samples is defined, that number of samples
-        are gen erated. Otherwise the value set internally is used.
+        If one among chain_length or n_samples is defined, that number of samples
+        are generated. Otherwise the value set internally is used.
 
         Args:
             chain_length: The length of the markov chains.
@@ -526,7 +526,7 @@ class MCState(VariationalState):
         """
         Returns the set of cached samples.
 
-        The samples returnede are guaranteed valid for the current state of
+        The samples returned are guaranteed valid for the current state of
         the variational state. If no cached parameters are available, then
         they are sampled first and then cached.
 
@@ -608,8 +608,8 @@ class MCState(VariationalState):
                      This is used to mutate the state of the model while you train it (for example
                      to implement BatchNorm. Consult
                      `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
-                     for a more in-depth exaplanation).
-            use_covariance: whever to use the covariance formula, usually reserved for
+                     for a more in-depth explanation).
+            use_covariance: whether to use the covariance formula, usually reserved for
                 hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
 
         Returns:
