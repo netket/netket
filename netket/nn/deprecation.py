@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from textwrap import dedent
-from functools import wraps, partial
+from functools import wraps
 
 import warnings
 
@@ -40,14 +40,14 @@ def _warning_string(module_name):
          1) Flax has fixed their issues with complex numbers, so we encourage you to use flax directly
          instead of `netket.nn`
 
-         2) The meaning of `module.dtype` in Flax is different than in NetKet! 
+         2) The meaning of `module.dtype` in Flax is different than in NetKet!
             - `param_dtype` specifies the type of parameters to be used. In most cases you will want to
                             specify this one. For example, to use complex parameters you should use
                             `param_dtype=complex`.
                             By default it is `jnp.float32`.
 
-            - `dtype`       is an optional specification stating the precision of the calculation, and 
-                            it has no impact unless you are working on a GPU or TPU. For example, by 
+            - `dtype`       is an optional specification stating the precision of the calculation, and
+                            it has no impact unless you are working on a GPU or TPU. For example, by
                             specifying `param_dtype=jnp.float64` and `dtype=jnp.float32`, you will store
                             parameters in double precision, but perform calculations in single precision.
 
@@ -63,9 +63,9 @@ def deprecated_module(original_module, module_name):
         if "param_dtype" in kwargs:
 
             err_msg = f"""
-                    *************************************************************************          
-                    Use `flax.linen.{module_name}` instead of `netket.nn.{module_name}`. 
-                    *************************************************************************            
+                    *************************************************************************
+                    Use `flax.linen.{module_name}` instead of `netket.nn.{module_name}`.
+                    *************************************************************************
 
             You are specifying `param_dtype` so you should be good.
             """
@@ -90,9 +90,9 @@ def deprecated_function(original_function, function_name):
     @wraps(original_function)
     def call_deprecated_function(*args, **kwargs):
         wrn_msg = f"""
-                *************************************************************************          
-                Use `flax.linen.{function_name}` instead of `netket.nn.{function_name}`. 
-                *************************************************************************            
+                *************************************************************************
+                Use `flax.linen.{function_name}` instead of `netket.nn.{function_name}`.
+                *************************************************************************
         """
 
         warnings.warn(dedent(wrn_msg), category=FutureWarning, stacklevel=3)

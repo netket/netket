@@ -15,7 +15,6 @@
 import warnings
 import functools
 import inspect
-import typing
 
 from textwrap import dedent
 
@@ -77,14 +76,14 @@ def deprecated_new_name(message):
     return deprecated_decorator
 
 
-_dep_msg = f"""
+_dep_msg = """
 
 **DEPRECATION_WARNING:**
     The `dtype` argument to neural-network layers and models is deprecated
-    throughout NetKet to maintain consistency with new releases of flax. 
+    throughout NetKet to maintain consistency with new releases of flax.
     Please use `param_dtype` instead.
 
-    This warning will become an error in a future version of NetKet.  
+    This warning will become an error in a future version of NetKet.
 
 """
 
