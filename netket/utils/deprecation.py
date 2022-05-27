@@ -80,11 +80,11 @@ def deprecated_new_name(message):
 _dep_msg = f"""
 
 **DEPRECATION_WARNING:**
-    The `dtype` argument to Neural-Network layers and models is deprecated
+    The `dtype` argument to neural-network layers and models is deprecated
     throughout NetKet to maintain consistency with new releases of flax. 
     Please use `param_dtype` instead.
 
-    This warning will eventually turn into an error.  
+    This warning will become an error in a future version of NetKet.  
 
 """
 
