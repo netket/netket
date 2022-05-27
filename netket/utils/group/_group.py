@@ -84,7 +84,7 @@ class FiniteGroup(FiniteSemiGroup):
                 original group from the result.
 
         Returns:
-            The group with duplicate elements removed. If 
+            The group with duplicate elements removed. If
             :code:`return_inverse==True` it also returns the list of indices
             needed to reconstruct the original group from the result.
         """
@@ -105,7 +105,7 @@ class FiniteGroup(FiniteSemiGroup):
         r"""
         Indices of the inverse of each element.
 
-        Assuming the definitions 
+        Assuming the definitions
 
         .. code::
 
@@ -131,9 +131,9 @@ class FiniteGroup(FiniteSemiGroup):
         A table of indices corresponding to :math:`g^{-1} h` over the group.
 
         Assuming the following definitions:
-    
+
         .. code::
-    
+
             g = self[idx_g]
             h = self[idx_h]
             idx_u = self.product_table[idx_g, idx_h]
@@ -157,11 +157,11 @@ class FiniteGroup(FiniteSemiGroup):
         r"""
         The conjugacy table of this Permutation Group.
 
-        Assuming the definitions 
+        Assuming the definitions
 
         .. code::
 
-            g = self[idx_g] 
+            g = self[idx_g]
             h = self[idx_h]
 
         Then, :code:`self[self.conjugacy_table[idx_g,idx_h]]`
@@ -177,10 +177,10 @@ class FiniteGroup(FiniteSemiGroup):
         The conjugacy classes of the group.
 
         Returns:
-            
-            The three arrays 
 
-            - classes: a boolean array, each row indicating the elements that 
+            The three arrays
+
+            - classes: a boolean array, each row indicating the elements that
               belong to one conjugacy class
             - representatives: the lowest-indexed member of each conjugacy class
             - inverse: the conjugacy class index of every group element
@@ -263,7 +263,7 @@ class FiniteGroup(FiniteSemiGroup):
         Calculates the character table using Burnside's algorithm.
 
         Each row of the output lists the characters of all group elements
-        for one irrep, i.e. :code:`self.character_table()[i,g]` gives 
+        for one irrep, i.e. :code:`self.character_table()[i,g]` gives
         :math:`\chi_i(g)`.
 
         Assumes that :code:`Identity() == self[0]`, if not, the sign

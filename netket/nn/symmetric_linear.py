@@ -642,7 +642,7 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
             see {class}`jax.lax.Precision` for details.
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.
         bias_init: Optional bias initialization function. Defaults to zero initialization.
-    
+
     """
     if isinstance(symmetries, Lattice) and (
         point_group is not None or symmetries._point_group is not None

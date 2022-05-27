@@ -479,7 +479,7 @@ class PointGroup(FiniteGroup):
                 group from the result.
 
         Returns:
-            The point group with duplicate elements removed. If 
+            The point group with duplicate elements removed. If
             :code:`return_inverse==True`, then it also returns the list
             of indices needed to reconstruct the original group from the result.
         """

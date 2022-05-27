@@ -107,10 +107,10 @@ class PermutationGroup(FiniteGroup):
 
         It returns a matrix where the `i`-th row contains the indices corresponding
         to the `i`-th group element. That is, :code:`self.to_array()[i, j]`
-        is :math:`g_i^{-1}(j)`. Moreover, 
-        
+        is :math:`g_i^{-1}(j)`. Moreover,
+
         .. code::
-            
+
             G = # this permutation group...
             V = np.arange(G.degree)
             assert np.all(G(V) == V[..., G.to_array()])
@@ -134,8 +134,8 @@ class PermutationGroup(FiniteGroup):
                 group from the result.
 
         Returns:
-            The permutation group with duplicate elements removed. If 
-            :code:`return_inverse==True`, it also returns the indices needed to 
+            The permutation group with duplicate elements removed. If
+            :code:`return_inverse==True`, it also returns the indices needed to
             reconstruct the original group from the result.
         """
         if return_inverse:

@@ -613,14 +613,14 @@ def GCNN(
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
-            :class:`nk.graph.Graph`, a :class:`nk.utils.PermutationGroup`, or an 
-            array :code:`[n_symm, n_sites]` specifying the permutations 
+            :class:`nk.graph.Graph`, a :class:`nk.utils.PermutationGroup`, or an
+            array :code:`[n_symm, n_sites]` specifying the permutations
             corresponding to symmetry transformations of the lattice.
         product_table: Product table describing the algebra of the symmetry group.
             Only needs to be specified if mode='fft' and symmetries is specified as an array.
         irreps: List of 3D tensors that project onto irreducible representations of the symmetry group.
             Only needs to be specified if mode='irreps' and symmetries is specified as an array.
-        point_group: The point group, from which the space group is built. If symmetries is a 
+        point_group: The point group, from which the space group is built. If symmetries is a
             graph the default point group is overwritten.
         mode: string "fft, irreps, matrix, auto" specifying whether to use a fast
             fourier transform over the translation group, a fourier transform using
