@@ -94,7 +94,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
             n_chains_per_device: The number of chains to be run in parallel on one device.
                 Cannot be specified if n_chains is also specified.
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-            dtype: The dtype of the statees sampled (default = np.float32).
+            dtype: The dtype of the states sampled (default = np.float32).
         """
 
         n_devices = len(jax.devices())

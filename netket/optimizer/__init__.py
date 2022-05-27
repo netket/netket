@@ -170,7 +170,7 @@ def RmsProp(
        learning_rate: The learning rate :math:`\eta`
        beta: Exponential decay rate.
        epscut: Small cutoff value.
-       centered: whever to center the moving average.
+       centered: whether to center the moving average.
 
     Examples:
        RmsProp optimizer.

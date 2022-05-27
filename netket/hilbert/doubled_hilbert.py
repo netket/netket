@@ -94,7 +94,7 @@ class DoubledHilbert(DiscreteHilbert):
             i: The index of the desired site.
 
         Returns:
-            A list of values or None if there are infintely many.
+            A list of values or None if there are infinitely many.
         """
         return self.physical.states_at_index(
             i if i < self.physical.size else i - self.physical.size

@@ -33,7 +33,7 @@ pytestmark = common.skipif_mpi
 # TODO move the transformation and tree utils out of the test
 
 
-# transform inhomogeneous parameters into a flattened array of reals parameters
+# transform inhomogeneous parameters into a flattened array of real parameters
 # without needing to pad
 
 

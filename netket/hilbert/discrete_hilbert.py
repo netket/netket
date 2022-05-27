@@ -54,7 +54,7 @@ legacy_warn_str = (
 class DiscreteHilbert(AbstractHilbert):
     """Abstract class for an hilbert space defined on a lattice.
 
-    This class definese the common interface that can be used to
+    This class defines the common interface that can be used to
     interact with hilbert spaces on lattices.
     """
 
@@ -119,7 +119,7 @@ class DiscreteHilbert(AbstractHilbert):
             i: The index of the desired site.
 
         Returns:
-            A list of values or None if there are infintely many.
+            A list of values or None if there are infinitely many.
         """
         raise NotImplementedError()  # pragma: no cover
 
@@ -184,7 +184,7 @@ class DiscreteHilbert(AbstractHilbert):
         r"""Returns an iterator over all valid configurations of the Hilbert space.
         Throws an exception iff the space is not indexable.
         Iterating over all states with this method is typically inefficient,
-        and ```all_states``` should be prefered.
+        and ```all_states``` should be preferred.
 
         """
         for i in range(self.n_states):
@@ -199,7 +199,7 @@ class DiscreteHilbert(AbstractHilbert):
             out: an optional pre-allocated output array
 
         Returns:
-            A (n_states x size) batch of statess. this corresponds
+            A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
         numbers = np.arange(0, self.n_states, dtype=np.int64)
@@ -208,7 +208,7 @@ class DiscreteHilbert(AbstractHilbert):
 
     @property
     def is_indexable(self) -> bool:
-        """Whever the space can be indexed with an integer"""
+        """Whether the space can be indexed with an integer"""
         if not self.is_finite:
             return False
         return _is_indexable(self.shape)

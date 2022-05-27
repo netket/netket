@@ -43,7 +43,7 @@ def QGTJacobianDense(
 
     The matrix of gradients O is computed on initialisation, but not S,
     which can be computed by calling :code:`to_dense`.
-    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
+    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contained in
     the field `sr`.
 
     Args:
@@ -110,7 +110,7 @@ class QGTJacobianDenseT(LinearOperator):
 
     The matrix of gradients O is computed on initialisation, but not S,
     which can be computed by calling :code:`to_dense`.
-    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
+    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contained in
     the field `sr`.
     """
 
@@ -129,11 +129,11 @@ class QGTJacobianDenseT(LinearOperator):
 
     mode: str = struct.field(pytree_node=False, default=Uninitialized)
     """Differentiation mode:
-        - "real": for real-valued R->R and C->R ansatze, splits the complex inputs
+        - "real": for real-valued R->R and C->R Änsatze, splits the complex inputs
                   into real and imaginary part.
-        - "complex": for complex-valued R->C and C->C ansatze, splits the complex
+        - "complex": for complex-valued R->C and C->C Änsatze, splits the complex
                   inputs and outputs into real and imaginary part
-        - "holomorphic": for any ansatze. Does not split complex values.
+        - "holomorphic": for any Änsatze. Does not split complex values.
         - "auto": autoselect real or complex.
     """
 

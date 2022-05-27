@@ -37,7 +37,7 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
 
     The S matrix is not computed yet, but can be computed by calling
     :code:`to_dense`.
-    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
+    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contained in
     the field `sr`.
 
     Args:
@@ -97,7 +97,7 @@ class QGTOnTheFlyT(LinearOperator):
 
     The S matrix is not computed yet, but can be computed by calling
     :code:`to_dense`.
-    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contaianed in
+    The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contained in
     the field `sr`.
     """
 
@@ -110,7 +110,7 @@ class QGTOnTheFlyT(LinearOperator):
     Only used as a shape placeholder."""
 
     _chunking: bool = struct.field(pytree_node=False, default=False)
-    """Wether the implementation with chunks is used which currently does not support vmapping over it"""
+    """Whether the implementation with chunks is used which currently does not support vmapping over it"""
 
     def __matmul__(self, y):
         return onthefly_mat_treevec(self, y)
@@ -140,7 +140,7 @@ def onthefly_mat_treevec(
     params or a ravelled vector
     """
 
-    # if hasa ndim it's an array and not a pytree
+    # if has a ndim it's an array and not a pytree
     if hasattr(vec, "ndim"):
         if not vec.ndim == 1:
             raise ValueError("Unsupported mat-vec for chunks of vectors")

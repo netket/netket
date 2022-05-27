@@ -227,7 +227,7 @@ def prepare_centered_oks(
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
         pdf: |ψ(x)|^2 if exact optimization is being used else None
-        chunk_size: an int specfying the size of the chunks the gradient should be computed in (default: None)
+        chunk_size: an int specifying the size of the chunks the gradient should be computed in (default: None)
 
     Returns:
         if not rescale_shift:

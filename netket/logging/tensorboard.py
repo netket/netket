@@ -124,14 +124,14 @@ class TensorBoardLog:
 
         self._old_step = 0
 
-    def _init_tensoboard(self):
+    def _init_tensorboard(self):
         from tensorboardX import SummaryWriter
 
         self._writer = SummaryWriter(*self._init_args, **self._init_kwargs)
 
     def __call__(self, step, item, machine):
         if self._writer is None:
-            self._init_tensoboard()
+            self._init_tensorboard()
 
         data = []
         tree_log(item, "", data)

@@ -229,7 +229,7 @@ def prepare_centered_oks(
         model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
-        chunk_size: an int specfying the size of the chunks degradient should be computed in (default: None)
+        chunk_size: an int specifying the size of the chunks the gradient should be computed in (default: None)
 
     Returns:
         if not rescale_shift:

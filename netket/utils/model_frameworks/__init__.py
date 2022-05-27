@@ -14,7 +14,7 @@
 
 """
 This module attempts to autodetect when a model/Module passed to netket
-comes from one of the several jax packages in existance.
+comes from one of the several jax packages in existence.
 
 It it comes from jax, flax, haiku or whatever else, and then extracts
 the two functions that are really needed (init_fun and apply_fun).

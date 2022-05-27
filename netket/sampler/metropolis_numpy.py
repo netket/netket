@@ -126,7 +126,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
     them is performed in numpy.
 
     Because of Jax dispatch cost, and especially for small system, this sampler performs
-    poorly, while asyntotically it should have the same performance of standard Jax samplers.
+    poorly, while asymptotically it should have the same performance of standard Jax samplers.
 
     However, some transition rules don't work on GPU, and some samplers (Hamiltonian) work
     very poorly on jax so this is a good workaround.

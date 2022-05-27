@@ -55,7 +55,7 @@ def default(obj):
 class JsonLog(RuntimeLog):
     """
     Json Logger, that can be passed with keyword argument `logger` to Monte
-    Carlo drivers in order to serialize the outpit data of the simulation.
+    Carlo drivers in order to serialize the output data of the simulation.
 
     If the model state is serialized, then it is serialized using the msgpack protocol
     of flax. For more information on how to de-serialize the output, see
@@ -91,7 +91,7 @@ class JsonLog(RuntimeLog):
                 output_prefix. Options are
                 - `[w]rite`: (default) overwrites file if it already exists;
                 - `[x]` or `fail`: fails if file already exists;
-            save_params: bool flag indicating whever variables of the variational state
+            save_params: bool flag indicating whether variables of the variational state
                 should be serialized at some interval. The output file is overwritten
                 every time variables are saved again.
             autoflush_cost: Maximum fraction of runtime that can be dedicated to

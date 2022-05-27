@@ -7,7 +7,7 @@ from netket.utils.types import DType, Array, NNInitFunc
 
 class Gaussian(nn.Module):
     r"""
-    Multivariate Gaussain function with mean 0 and parametrised covariance matrix
+    Multivariate Gaussian function with mean 0 and parametrised covariance matrix
     :math:`\Sigma_{ij}`.
 
     The wavefunction is given by the formula: :math:`\Psi(x) = \exp(\sum_{ij} x_i \Sigma_{ij} x_j)`.

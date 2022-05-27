@@ -30,7 +30,7 @@ class FlaxFramework(ModuleFramework):
 
     @staticmethod
     def is_my_module(module) -> bool:
-        # this will only get callede if the module is loaded
+        # this will only get called if the module is loaded
         from flax import linen as nn
 
         return isinstance(module, nn.Module)

@@ -25,7 +25,7 @@ def check_mpi():
         # python3 -m netket.tools.check_mpi
         mpi4puavailable              : True
         mpi4jax_available            : True
-        avalable_cpus (rank 0)       : 12
+        available_cpus (rank 0)       : 12
         n_nodes                      : 1
         mpi4py | MPI version         : (3, 1)
         mpi4py | MPI library_version : Open MPI v4.1.0, ...
@@ -39,7 +39,7 @@ def check_mpi():
     info = {
         "mpi4py_available": mpi4py_available,
         "mpi4jax_available": mpi4jax_available,
-        "avalable_cpus (rank 0)": available_cpus(),
+        "available_cpus (rank 0)": available_cpus(),
     }
     if mpi4py_available:
         from mpi4py import MPI

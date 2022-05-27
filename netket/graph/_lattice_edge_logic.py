@@ -179,7 +179,7 @@ def get_custom_edges(
 
         d_cell = np.asarray(np.rint(d_cell), dtype=int)
 
-        # catches self-referential and other unrealisably long edges
+        # catches self-referential and other unrealisable long edges
         if not np.all(d_cell < extent):
             raise ValueError(
                 f"Distance vector {distance} does not fit into the lattice"

@@ -38,7 +38,7 @@ sa = nk.sampler.MetropolisExchange(machine=ma)
 # Optimizer
 op = nk.optimizer.Sgd(ma, learning_rate=0.05)
 
-# Stochastic Reconfifugration
+# Stochastic Reconfiguration
 sr = nk.optimizer.SR(ma, diag_shift=0.1)
 
 # Early Stopping

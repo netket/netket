@@ -24,7 +24,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
-# Paremeterizing phase and amplitude separately
+# Parametrizing phase and amplitude separately
 ma = nk.machine.RbmSpinPhase(alpha=1, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 

@@ -32,7 +32,7 @@ sp_ha = ha.to_sparse().real
 vals, vecs = eigsh(sp_ha, k=2, which="SA")
 print("eigenvalues with scipy sparse:", vals)
 
-# Explicitely compute energy of ground state
+# Explicitly compute energy of ground state
 # Doing full dot product
 psi = vecs[:, 0]
 print("\ng.s. energy:", psi @ sp_ha @ psi)
