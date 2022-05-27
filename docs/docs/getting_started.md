@@ -65,14 +65,14 @@ This will also install the set of MPI-related dependencies.
 
 Netket is a numerical framework written in Python to simulate many-body quantum systems using
 variational methods. In general, netket allows the user to parametrize quantum states using
-arbitrary functions, be it simple mean-field ansatze, Jastrow, MPS ansatze or convolutional
+arbitrary functions, be it simple mean-field Ansätze, Jastrow, MPS Ansätze or convolutional
 neural networks.
 Those states can be sampled efficiently in order to estimate observables or other quantities.
-Stochastic optimisation of the energy or a time-evolution are implemnented on top of those samplers.
+Stochastic optimisation of the energy or a time-evolution are implemented on top of those samplers.
 
 Netket tries to follow the [functional programming](https://en.wikipedia.org/wiki/Functional_programming) paradigm,
 and is built around [jax](https://en.wikipedia.org/wiki/Functional_programming). While it is possible
-to run the examples without knowledge of [jax], we strongly reccomend getting familiar with it if you
+to run the examples without knowledge of [jax], we strongly recommend getting familiar with it if you
 wish to extend netket.
 
 This documentation is divided into several modules, each explaining in-depth how a sub-module of netket works.
@@ -150,7 +150,7 @@ ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 ```
 
 Then, one must define the hilbert space and the hamiltonian. Common options
-for the Hilbert spacee are {ref}`Spin`,  {ref}`Fock` or {ref}`QuBit`, but it is
+for the Hilbert space are {ref}`Spin`,  {ref}`Fock` or {ref}`QuBit`, but it is
 also possible to define your own. Those classes are contained in the {ref}`Hilbert`
 submodule.
 

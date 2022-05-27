@@ -25,7 +25,7 @@ This module contains the Metropolis Parallel Tempered sampler.
 This sampler is experimental because we believe it to be correct, but our tests
 fail. We believe it to be a false negative: possibly the implementation of the
 sampler is correct, but the test is too tight.
-Until we will have verified this hypotesis and updated the tests in order not
+Until we will have verified this hypothesis and updated the tests in order not
 to fail, we provide the current implementation as-is, in the hope that some
 contributor might take up that work.
 

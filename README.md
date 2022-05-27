@@ -66,7 +66,7 @@ When installing `netket` with pip, you can pass the following extra variants as 
 ### MPI Support
 To enable MPI support you must install [mpi4jax](https://github.com/PhilipVinc/mpi4jax). Please note that we advise to install mpi4jax  with the same tool (conda or pip) with which you install it's dependency `mpi4py`.
 
-To check whever MPI support is enabled, check the flags
+To check whether MPI support is enabled, check the flags
 ```python
 >>> import netket
 >>> netket.utils.mpi.available

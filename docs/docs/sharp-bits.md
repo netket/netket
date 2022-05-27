@@ -9,7 +9,7 @@ Read ahead for some pitfalls, counter-intuitive behavior, and sharp edges that w
 Netket computations run mostly via Jax's XLA.
 Compared to NetKet 2, this means that we can automatically benefit from multiple CPUs without having to use MPI.
 This is because mathematical operations such as matrix multiplications and overs will be split into sub-chunks and distributed across different cpus.
-This behaviour is trigered only for matrices/vectors above a certain size, and will not perform particularly good for small matrices or if you have many cpu cores.
+This behaviour is triggered only for matrices/vectors above a certain size, and will not perform particularly good for small matrices or if you have many cpu cores.
 To disable this behaviour, refer to [Jax#743](https://github.com/google/jax/issues/743), which mainly suggest defining the two env variables:
 
 ```bash
@@ -25,7 +25,7 @@ If you encounter issues, you can check whether your MPI environment is set up pr
 $ mpirun -np 2 python3 -m netket.tools.check_mpi
 mpi4py_available             : True
 mpi4jax_available            : True
-avalable_cpus (rank 0)       : 12
+available_cpus (rank 0)       : 12
 n_nodes                      : 1
 mpi4py | MPI version         : (3, 1)
 mpi4py | MPI library_version : Open MPI v4.1.0, package: Open MPI brew@BigSur Distribution, ident: 4.1.0,  repo rev: v4.1.0, Dec 18, 2020
@@ -54,7 +54,7 @@ print(jax.devices())
 If the output is {code}`[CpuDevice(id=0)]`, then computations will run by default on the CPU, if instead you see
 something like {code}`[GpuDevice(id=0)]` computations will run on the GPU.
 
-To force Jax/XLA to run comutations on the CPU, set the environment variable
+To force Jax/XLA to run computations on the CPU, set the environment variable
 
 ```bash
 export JAX_PLATFORM_NAME="cpu"
@@ -85,5 +85,5 @@ If you find NaNs while training, especially if you are using your own model, the
 - Check the initial parameters. In the NetKet 2 models were always initialized with weights normally distributed.
   In Netket 3, `netket.nn` layers use the same default (normal distribution with standard deviation 0.01) but
   if you use general flax layers they might use different initializers.
-  different initialisation distributions have particoularly strong effects when working with complex-valued models.
+  different initialisation distributions have particularly strong effects when working with complex-valued models.
   A good way to enforce the same distribution across all your weights, similar to NetKet 2 behaviour, is to use {py:meth}`~netket.vqs.VariationalState.init_parameters`.

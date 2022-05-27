@@ -42,7 +42,7 @@ optimisers, and it's extremely easy to use step-dependent schedulers.
 
 ## Preconditioners
 
-This module also provides an implemnetation of the Stochastic Reconfiguration/Natural
+This module also provides an implementation of the Stochastic Reconfiguration/Natural
 gradient preconditioner.
 
 ```{eval-rst}

@@ -8,7 +8,7 @@ Examples of _gradient preconditioners_ are the [Stochastic Reconfiguration (SR)]
 
 We call those methods _gradient preconditioners_ because they take as input the gradient of the cost function (e.g., the energy gradient in VMC ground state optimisation) and output a transformed gradient.
 
-In the current version, NetKet provides Stocastic Reconfiguration ({func}`netket.optimizer.SR`) as a built-in method. 
+In the current version, NetKet provides Stochastic Reconfiguration ({func}`netket.optimizer.SR`) as a built-in method. 
 It is also possible to define your own method. If you implement the API as outlined in this document, you will be able to use your own preconditioner for use in NetKet optimisation driver without issues.
 
 Keep in mind that writing your own optimisation loop only requires writing about 10  lines of code and you are not forced to use NetKet's drivers!

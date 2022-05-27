@@ -77,11 +77,11 @@ weights and the sampler. You can also pass two different seeds for the sampler a
 (warn-chunking)=
 
 :::{warning}
-Sometimes you might be working on very large models that run on GPUs, or you might want to compute expectaion values with a very high number of samples, which might cause out-of-memory errors. To prevent this, {code}`MCState` exposes the attribute {py:attr}`~netket.vqs.MCState.chunk_size`, which controls the size of the chunks used in the forward and backward computation of expectation values.
+Sometimes you might be working on very large models that run on GPUs, or you might want to compute expectation values with a very high number of samples, which might cause out-of-memory errors. To prevent this, {code}`MCState` exposes the attribute {py:attr}`~netket.vqs.MCState.chunk_size`, which controls the size of the chunks used in the forward and backward computation of expectation values.
 
 When this value is set, computations are not performed on huge matrices, but instead we split the inputs into smaller matrices and loop through them. In general, setting {py:attr}`~netket.vqs.MCState.chunk_size` to a low value will address the majority of memory issues, but will increase the computational cost.
 
-A value of at least 128 is suggested, but will geatly depend on your model. You should try to use the largest value you can for your system. Setting it to {code}`None` is equivalent to setting it to infinity.
+A value of at least 128 is suggested, but will greatly depend on your model. You should try to use the largest value you can for your system. Setting it to {code}`None` is equivalent to setting it to infinity.
 :::
 
 ## Using a Monte Carlo Variational State
@@ -203,7 +203,7 @@ the ket it represents.
 This is achieved by using the {py:meth}`~netket.vqs.VariationalState.to_array` method,
 which by defaults normalises the $L_2$ norm of the vector to 1 (but can be turned off).
 
-Mixed state ansatzes can be converted to their matrix representation with
+Mixed state Ansätze can be converted to their matrix representation with
 {py:meth}`~netket.vqs.MCMixedState.to_matrix`. In this case, the default
 normalisation sets the trace to 1.
 

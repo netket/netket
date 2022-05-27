@@ -15,13 +15,13 @@ The 3 frameworks that are supported are:
 
 ## Commonalities
 
-Whatever the framework you pick, your model must be able to accept batches of states, so 2-Dimensonal matrices {code}`(B,N)` where $N$ is the number of local degrees of freedom in the hilbert space (spatial sites) and $B$ is the number of batches.
+Whatever the framework you pick, your model must be able to accept batches of states, so 2-Dimensional matrices {code}`(B,N)` where $N$ is the number of local degrees of freedom in the hilbert space (spatial sites) and $B$ is the number of batches.
 The result *must* be a {code}`(B,)` vector  where every element is the evaluation of your network for that entry.
 
 If you have a model that is difficult to write in such a way to act on batches, you can use [jax.vmap](https://jax.readthedocs.io/en/latest/jax.html#jax.vmap) to vectorize it.
 
 Your model will be compiled with `jax.jit`. Therefore in general you should NEVER (unless you know what you are doing) use {code}`numpy`, but rather {code}`jax.numpy` inside of it.
-If you want to understand why, read [Jax 101 guide](https://jax.readthedocs.io/en/latest/jax-101/index.html) ( however, even if you don't care, we think it's hard to us a tool you don't undrstand: so at least rad [Jax for the Impatient](https://flax.readthedocs.io/en/latest/notebooks/jax_for_the_impatient.html), which is shorter).
+If you want to understand why, read [Jax 101 guide](https://jax.readthedocs.io/en/latest/jax-101/index.html) ( however, even if you don't care, we think it's hard to us a tool you don't understand: so at least rad [Jax for the Impatient](https://flax.readthedocs.io/en/latest/notebooks/jax_for_the_impatient.html), which is shorter).
 
 ### Defining models: init and apply functions
 

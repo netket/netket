@@ -1,7 +1,7 @@
 # NetKet: The Machine Learning Toolbox for Quantum Physics
 
 NetKet is a suite for using Machine-Learning methods to numerically study many-body quantum systems and available for use in Python.
-The purpose of this package is to supply efficient and flexible building blocks to write novel algorithms as well as to provide simple, easy to use implementations of estabilished algorithms.
+The purpose of this package is to supply efficient and flexible building blocks to write novel algorithms as well as to provide simple, easy to use implementations of established algorithms.
 
 NetKet is built on top of [Jax], a framework for Differentiable Programming which works on CPUs, GPUs and TPUs. Neural Network architectures can be specified using any Jax-based framework such as [Flax].
 
@@ -14,7 +14,7 @@ Some of the tasks that NetKet can be used for are:
 
 NetKet includes those interesting :
  
- - Support for artbitrary periodic Lattices
+ - Support for arbitrary periodic Lattices
    - Automatic generation of symmetry groups and character tables
  - Implementation of Autoregressive Neural Networks
  - Implementation of symmetry-invariant and -equivariant networks.
@@ -53,7 +53,7 @@ docs/install
 :maxdepth: 2
 
 tutorials/gs-ising
-tutorials/gs-heinsenberg
+tutorials/gs-heisenberg
 tutorials/gs-j1j2
 tutorials/gs-gcnn-honeycomb
 ```   
