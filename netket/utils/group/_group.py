@@ -112,7 +112,7 @@ class FiniteGroup(FiniteSemiGroup):
             g = self[idx_g]
             h = self[self.inverse[idx_g]]
 
-        Then :code:`gh = product(g, h)` is equivalent to :code:`Identity()`
+        :code:`gh = product(g, h)` is equivalent to :code:`Identity()`
         """
         canonical_identity = self._canonical(Identity())
         inverse = np.zeros(len(self.elems), dtype=int)
@@ -130,7 +130,7 @@ class FiniteGroup(FiniteSemiGroup):
         r"""
         A table of indices corresponding to :math:`g^{-1} h` over the group.
 
-        Assuming the following definitions:
+        Assuming the definitions
 
         .. code::
 
@@ -138,7 +138,7 @@ class FiniteGroup(FiniteSemiGroup):
             h = self[idx_h]
             idx_u = self.product_table[idx_g, idx_h]
 
-        then :code:`self[idx_u]` corresponds to :math:`u = g^{-1} h` .
+        :code:`self[idx_u]` corresponds to :math:`u = g^{-1} h` .
         """
         n_symm = len(self)
         product_table = np.zeros([n_symm, n_symm], dtype=int)
@@ -164,7 +164,7 @@ class FiniteGroup(FiniteSemiGroup):
             g = self[idx_g]
             h = self[idx_h]
 
-        Then, :code:`self[self.conjugacy_table[idx_g,idx_h]]`
+        :code:`self[self.conjugacy_table[idx_g,idx_h]]`
         corresponds to :math:`h^{-1}gh`.
         """
         col_index = np.arange(len(self))[np.newaxis, :]
