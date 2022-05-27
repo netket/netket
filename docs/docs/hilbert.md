@@ -87,7 +87,7 @@ Please do open an issue or a feature request on the GitHub repository if you enc
 Examples of such spaces are spins or bosons on a lattice.
 
 You can always probe their {attr}`~DiscreteHilbert.shape`, which returns a tuple 
-with the size of the hilbert space on every site/degree of freedom.
+with the size of the Hilbert space on every site/degree of freedom.
 For example, for 4 spins-$1/2$ coupled to a bosonic mode with a cutoff of 5 bosons, the shape will be
 `[2,2,2,2,6]`.
 
@@ -120,7 +120,7 @@ You can also obtain the total size of the hilbert space by invoking {attr}`~Disc
 96
 ```
 
-Do bear in mind that this attribute only works if the hilbert space is indexable ({attr}`~DiscreteHilbert.is_indexable`), which is True when it has a size smaller than $ 2^{64} $. 
+Bear in mind that this attribute only works if the Hilbert space is indexable ({attr}`~DiscreteHilbert.is_indexable`), which is true if it has a dimension smaller than $2^{64}$. 
 
 NetKet also supports discrete-but-infinite hilbert spaces, such as Fock spaces with no cutoff. 
 Those hilbert spaces are of course not indexable ({attr}`~DiscreteHilbert.is_indexable` will return `False`) and they are further signaled by the attribute ({attr}`~DiscreteHilbert.is_finite`, which will be set to `False`.

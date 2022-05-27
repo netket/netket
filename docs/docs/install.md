@@ -154,7 +154,7 @@ to all relevant parts of the documentation.
 
 ## Jax/Flax extensions
 
-Netket v3 API is centered around [flax](https://flax.readthedocs.io), a jax library to simplify the definition and usage of Neural-Networks.
+NetKet v3 API is centered around [flax](https://flax.readthedocs.io), a JAX-based library providing components to define and use neural network models.
 If you want to define more complex custom models, you should read Flax documentation on how to define a Linen module.
 If you wish, you can also use [haiku](https://github.com/deepmind/dm-haiku).
 [`netket.optimizer`](netket_optimizer_api) is a re-export of some optimizers from [optax](https://optax.readthedocs.io) together with some additional objects.
@@ -176,9 +176,8 @@ g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)
 ```
 
 Then, one must define the system to be studied.
-To do so, the first thing to do is usually defining the lattice of the model.
-This is not always required, but it can sometimes avoid errors.
-Several types of Lattices (graphs) are defined in the [Graph submodule](netket_graph_api).
+For a discrete system, the first thing to do is usually defining the underlying lattice structure of the model.
+Several types of lattices and, more generally, graphs allowing arbitrary connections between sites are defined in the [Graph submodule](netket_graph_api).
 
 In the example above we chose a 1-Dimensional chain with 20 sites and periodic boundary conditions.
 
@@ -188,7 +187,7 @@ ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 ```
 
 Then, one must define the hilbert space and the hamiltonian. 
-Common options for the Hilbert space are {class}`~nk.hilbert.Spin`,  {class}`~nk.hilbert.Fock` or {class}`~nk.hilbert.QuBit`, but it is also possible to define your own.
+Common options for the Hilbert space are {class}`~nk.hilbert.Spin`,  {class}`~nk.hilbert.Fock` or {class}`~nk.hilbert.Qubit`, but it is also possible to define your own.
 Those classes are contained in the [Hilbert submodule](hilbert.md).
 
 The [operator sub-module](netket_operator_api) contains several pre-built hamiltonian, such as {class}`~nk.operator.Ising` and {class}`~nk.operator.Bose-Hubbard`, but you can also build the operators yourself by summing all the local terms. 

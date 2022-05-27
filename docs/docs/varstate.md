@@ -15,7 +15,7 @@ are interested in implementing a new kind of variational state that encodes a st
 ## Constructing a Variational State
 
 To construct the two variational states above you need to provide at least a Monte Carlo sampler (you can find the list of available ones [here](netket_sampler_api)) and a model.
-The hilbert space of the variational state will be inferred from the sampler, as they all reference the hilbert space they are sampling.
+The Hilbert space of the variational state will be inferred from the sampler, which contains a reference to the underlying Hilbert space.
 
 The model can be specified in several ways. The most standard way is to pass a [Flax Linen Module](https://flax.readthedocs.io/en/latest/flax.linen.html#module), but you can also pass a Jax-style pair
 of functions {code}`(init, apply)` or an haiku module obtained by calling {code}`haiku.transform()`.
