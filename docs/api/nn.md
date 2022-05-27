@@ -6,7 +6,7 @@
 
 ```
 
-This sub-module extends [flax.linen](https://flax.readthedocs.io/en/latest/flax.linen.html) with layers and tools that are useeful to applications in quantum physics.
+This sub-module extends [flax.linen](https://flax.readthedocs.io/en/latest/flax.linen.html) with layers and tools that are useful to applications in quantum physics.
 Read more about the design goal of this module in their [README](https://github.com/google/flax/blob/master/flax/linen/README.md)
 
 
