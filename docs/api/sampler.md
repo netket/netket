@@ -73,7 +73,7 @@ This is because it is not possible to implement all transition rules in Jax.
 ```
 
 
-This is a list of shorthands that allow to construct a [MetropolisSampler](netket.sampler.MetropolisSampler) with a corresponding rule.
+This is a list of shorthands that allow to construct a {class}`~netket.sampler.MetropolisSampler` with a corresponding rule.
 
 ```{eval-rst}
 .. currentmodule:: netket.sampler

@@ -610,17 +610,18 @@ def GCNN(
 
         {\bf f}^{i+1}_h = \Gamma( \sum_h W_{g^{-1} h} {\bf f}^i_h).
 
+
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
-            nk.graph.Graph, a nk.utils.PermutationGroup, or an array [n_symm, n_sites]
-            specifying the permutations corresponding to symmetry transformations
-            of the lattice.
+            :class:`nk.graph.Graph`, a :class:`nk.utils.PermutationGroup`, or an
+            array :code:`[n_symm, n_sites]` specifying the permutations
+            corresponding to symmetry transformations of the lattice.
         product_table: Product table describing the algebra of the symmetry group.
             Only needs to be specified if mode='fft' and symmetries is specified as an array.
         irreps: List of 3D tensors that project onto irreducible representations of the symmetry group.
             Only needs to be specified if mode='irreps' and symmetries is specified as an array.
-        point_group: The point group, from which the space group is built.
-            If symmetries is a graph the default point group is overwritten.
+        point_group: The point group, from which the space group is built. If symmetries is a
+            graph the default point group is overwritten.
         mode: string "fft, irreps, matrix, auto" specifying whether to use a fast
             fourier transform over the translation group, a fourier transform using
             the irreducible representations or by constructing the full kernel matrix.
@@ -628,7 +629,7 @@ def GCNN(
         layers: Number of layers (not including sum layer over output).
         features: Number of features in each layer starting from the input. If a single
             number is given, all layers will have the same number of features.
-        characters: Array specifying the characters of the desired symmetry representation
+        characters: Array specifying the characters of the desired symmetry representation.
         parity: Optional argument with value +/-1 that specifies the eigenvalue
             with respect to parity (only use on two level systems).
         dtype: The dtype of the weights.
@@ -636,15 +637,17 @@ def GCNN(
             :func:`nk.nn.activation.reim_selu` .
         output_activation: The nonlinear activation before the output.
         equal_amplitudes: If True forces all basis states to have equal amplitude
-            by setting :math:`\Re(\psi) = 0`.
+            by setting :math:`\Re(\psi) = 0` .
         use_bias: If True uses a bias in all layers.
-        precision: Numerical precision of the computation see {class}`jax.lax.Precision` for details.
+        precision: Numerical precision of the computation see :class:`jax.lax.Precision` for details.
         kernel_init: Initializer for the kernels of all layers. Defaults to
-            `lecun_normal(in_axis=1, out_axis=0)` which guarantees the correct variance of the
+            :code:`lecun_normal(in_axis=1, out_axis=0)` which guarantees the correct variance of the
             output.
         bias_init: Initializer for the biases of all layers.
         complex_output: If True, ensures that the network output is always complex.
             Necessary when network parameters are real but some `characters` are negative.
+
+
     """
 
     if isinstance(symmetries, Lattice) and (

@@ -530,7 +530,8 @@ class MCState(VariationalState):
         the variational state. If no cached parameters are available, then
         they are sampled first and then cached.
 
-        To obtain a new set of samples either use :ref:`reset` or :ref:`sample`.
+        To obtain a new set of samples either use
+        :meth:`~MCState.reset` or :meth:`~MCState.sample`.
         """
         if self._samples is None:
             self.sample()

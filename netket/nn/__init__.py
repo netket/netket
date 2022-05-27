@@ -37,6 +37,7 @@ from .activation import (
     log_tanh,
     reim_selu,
     reim_relu,
+    reim,
 )
 
 from .symmetric_linear import (

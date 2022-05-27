@@ -32,7 +32,7 @@ class GaussianRule(MetropolisRule):
     sigma: float = 1.0
     """
     The variance of the gaussian distribution centered around the current
-    configuration, used to propose new configurations. 
+    configuration, used to propose new configurations.
     """
 
     def transition(rule, sampler, machine, parameters, state, key, r):

@@ -53,7 +53,7 @@ class DeepSetRelDistance(nn.Module):
     features_rho: Union[Tuple, int]
     """
     Number of features in each layer for rho network.
-    If specified as a list, the last layer must have 1 feature. 
+    If specified as a list, the last layer must have 1 feature.
     """
 
     cusp_exponent: Optional[int] = None
