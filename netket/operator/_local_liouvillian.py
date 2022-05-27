@@ -29,7 +29,6 @@ import netket.jax as nkjax
 from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 from ._abstract_super_operator import AbstractSuperOperator
-from ._local_operator_helpers import _dtype
 
 
 class LocalLiouvillian(AbstractSuperOperator):
