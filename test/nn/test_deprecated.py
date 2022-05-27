@@ -40,6 +40,7 @@ def test_deprecated_layers():
 
     assert module == module2
 
+
 def test_deprecated_dtype_layers():
     g = nk.graph.Square(3)
     with pytest.warns(FutureWarning):
