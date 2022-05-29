@@ -26,7 +26,7 @@ from flax import serialization
 def save_binary_to_tar(tar_file, byte_data, name):
     abuf = BytesIO(byte_data)
 
-    # Contruct the info object with the correct length
+    # Construct the info object with the correct length
     info = tarfile.TarInfo(name=name)
     info.size = len(abuf.getbuffer())
 
@@ -62,7 +62,7 @@ class StateLog:
             mode: Specify the behaviour in case the file already exists at this
                 output_prefix. Options are
                 **`[w]rite`**: (default) overwrites file/delete the folder if it already exists;
-                **`[a]ppend`**: appends to the file/folder if it exists, overwise creates a new file;
+                **`[a]ppend`**: appends to the file/folder if it exists, otherwise creates a new file;
                 **`[x]`** or **`fail`**: fails if file/folder already exists;
             tar: if True creates a tar archive instead of a folder.
 

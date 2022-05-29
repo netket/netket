@@ -70,16 +70,17 @@ jobs:
         if: matrix.oldest_deps
         run: |
           python conf/compute_oldest_dependencies.py
-          pip install -r oldest_requirements.txt
+          pip install --upgrade -r oldest_requirements.txt
+          pip install -e ".[dev,extra]"
 
       - name: Pip install packages
+        if: ${{ ! matrix.oldest_deps }}
         run: |
           pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
-            pip install -e ".[dev, extras]"
-            pip install openfermion
+            pip install -e ".[dev,extra]"
           else
-            pip install -e ".[dev, mpi]"
+            pip install -e ".[dev,mpi]"
           fi
           pip install dm-haiku
 

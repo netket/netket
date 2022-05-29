@@ -15,13 +15,13 @@ The 3 frameworks that are supported are:
 
 ## Commonalities
 
-Whatever the framework you pick, your model must be able to accept batches of states, so 2-Dimensonal matrices {code}`(B,N)` where $N$ is the number of local degrees of freedom in the hilbert space (spatial sites) and $B$ is the number of batches.
+Whatever the framework you pick, your model must be able to accept batches of states, so 2-dimensional matrices {code}`(B,N)` where $N$ is the number of local degrees of freedom in the hilbert space (spatial sites) and $B$ is the number of batches.
 The result *must* be a {code}`(B,)` vector  where every element is the evaluation of your network for that entry.
 
 If you have a model that is difficult to write in such a way to act on batches, you can use [jax.vmap](https://jax.readthedocs.io/en/latest/jax.html#jax.vmap) to vectorize it.
 
 Your model will be compiled with `jax.jit`. Therefore in general you should NEVER (unless you know what you are doing) use {code}`numpy`, but rather {code}`jax.numpy` inside of it.
-If you want to understand why, read [Jax 101 guide](https://jax.readthedocs.io/en/latest/jax-101/index.html) ( however, even if you don't care, we think it's hard to us a tool you don't undrstand: so at least rad [Jax for the Impatient](https://flax.readthedocs.io/en/latest/notebooks/jax_for_the_impatient.html), which is shorter).
+If you want to understand why, read [Jax 101 guide](https://jax.readthedocs.io/en/latest/jax-101/index.html) ( however, even if you don't care, we think it's hard to us a tool you don't understand: so at least rad [Jax for the Impatient](https://flax.readthedocs.io/en/latest/notebooks/jax_for_the_impatient.html), which is shorter).
 
 ### Defining models: init and apply functions
 
@@ -52,10 +52,10 @@ be numpy or jax arrays).
 Models should define the {code}`__call__(self, x)` function that represents their action on a batch of inputs {code}`x`.
 
 ```python
-import netket.nn as nknn
+import flax.linen as nn
 import jax.numpy as jnp
 
-class Model1(nknn.Module):
+class Model1(nn.Module):
 
         y : float = 1.0
 
@@ -74,18 +74,18 @@ If you want to use some layers inside your model, you can for example create the
 the {code}`@nn.compact` decorator. Don't worry: they will only be initialised once.
 
 ```python
-import netket.nn as nknn
+import flax.linen as nn
 import jax.numpy as jnp
 
-class RBM(nknn.Module):
+class RBM(nn.Module):
 
         y : float = 1.0
         alpha : int = 1
 
-        @nknn.compact
+        @nn.compact
         def __call__(self, x):
                 # create a dense layers with alpha * N features, where N is the size of the system
-                dense = nknn.Dense(features=self.alpha*x.shape[-1])
+                dense = nn.Dense(features=self.alpha*x.shape[-1])
                 # apply the dense layer
                 x = dense(x)
                 # sum the output

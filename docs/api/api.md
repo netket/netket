@@ -1,4 +1,4 @@
-(api)=
+(netket_api)=
 
 # Public API
 

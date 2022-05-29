@@ -49,9 +49,9 @@ def _to_iterable(maybe_iterable):
 # - _estimate_stats should return the MC estimate of a single operator
 # - reset should reset the driver (usually the sampler).
 # - info should return a string with an overview of the driver.
-# - The __init__ method shouldbe called with the machine and the optimizer. If this
+# - The __init__ method should be called with the machine and the optimizer. If this
 #   driver is minimising a loss function and you want it's name to show up automatically
-#   in the progress bar/ouput files you should pass the optional keyword argument
+#   in the progress bar/output files you should pass the optional keyword argument
 #   minimized_quantity_name.
 class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""

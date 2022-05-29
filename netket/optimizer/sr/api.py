@@ -42,7 +42,7 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
     Args:
         diag_shift: Diagonal shift added to the S matrix
         method: (cg, gmres) The specific method.
-        iterative: Whever to use an iterative method or not.
+        iterative: Whether to use an iterative method or not.
         jacobian: Differentiation mode to precompute gradients
                   can be "holomorphic", "R2R", "R2C",
                   None (if they shouldn't be precomputed)
@@ -135,7 +135,7 @@ class SR(LinearPreconditioner):
 
 
 # This will become the future implementation once legacy and semi-legacy
-# bejaviour is removed
+# behaviour is removed
 def _SR(
     qgt=None,
     solver=None,
@@ -155,10 +155,10 @@ def _SR(
     You can also construct one of those structures directly.
 
     Args:
-        qgt: The Quantum Geomtric Tensor type to use.
+        qgt: The Quantum Geometric Tensor type to use.
         diag_shift: Diagonal shift added to the S matrix
         method: (cg, gmres) The specific method.
-        iterative: Whever to use an iterative method or not.
+        iterative: Whether to use an iterative method or not.
         jacobian: Differentiation mode to precompute gradients
                   can be "holomorphic", "R2R", "R2C",
                          None (if they shouldn't be precomputed)

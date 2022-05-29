@@ -17,10 +17,7 @@ from typing import Callable, Tuple, Any, Union
 import jax
 
 from jax import numpy as jnp
-from jax.tree_util import (
-    tree_map,
-    tree_map,
-)
+from jax.tree_util import tree_map
 
 
 from .utils import is_complex, tree_leaf_iscomplex, eval_shape

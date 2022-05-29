@@ -30,7 +30,7 @@ def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorph
             warnings.warn(
                 dedent(
                     """The ansatz has non homogeneous variables, which might not behave well with the
-                       holomorhic implemnetation.
+                       holomorhic implementation.
                        Use `holomorphic=False` or mode='complex' for more accurate results but
                        lower performance.
                     """

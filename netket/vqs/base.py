@@ -100,7 +100,7 @@ class VariationalState(abc.ABC):
 
     @property
     def variables(self) -> PyTree:
-        r"""The PyTreee containing the paramters and state of the model,
+        r"""The PyTree containing the parameters and state of the model,
         used when evaluating it.
         """
         return flax.core.freeze({"params": self.parameters, **self.model_state})
@@ -125,7 +125,7 @@ class VariationalState(abc.ABC):
             determined by the model. DO NOT SPECIFY IT INSIDE THE INIT FUNCTION
 
         Args:
-            init_fun: a jax initializer such as :ref:`jax.nn.initializers.normal`.
+            init_fun: a jax initializer such as :func:`jax.nn.initializers.normal`.
                 Must be a Callable taking 3 inputs, the jax PRNG key, the shape and the
                 dtype, and outputting an array with the valid dtype and shape. If left
                 unspecified, defaults to :code:`jax.nn.initializers.normal(stddev=0.01)`
@@ -174,7 +174,7 @@ class VariationalState(abc.ABC):
 
         Args:
             op (netket.operator.AbstractOperator): the operator O.
-            is_hermitian: optional override for whever to use or not the hermitian logic. By default
+            is_hermitian: optional override for whether to use or not the hermitian logic. By default
                 it's automatically detected.
 
         Returns:
@@ -201,8 +201,8 @@ class VariationalState(abc.ABC):
                 of names of mutable collections. This is used to mutate the state of the
                 model while you train it (for example to implement BatchNorm. Consult
                 `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
-                for a more in-depth exaplanation).
-            use_covariance: whever to use the covariance formula, usually reserved for
+                for a more in-depth explanation).
+            use_covariance: whether to use the covariance formula, usually reserved for
                 hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
 
         Returns:
@@ -350,7 +350,7 @@ def expect_and_grad(
     Args:
         vstate: The variational state
         Ô: the operator Ô for which we compute the expectation value and it's gradient
-        use_covariance: whever to use the covariance formula, usually reserved for
+        use_covariance: whether to use the covariance formula, usually reserved for
             hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
         mutable: Can be bool, str, or list. Specifies which collections in the model_state should
                  be treated as  mutable: bool: all/no collections are mutable. str: The name of a
@@ -358,7 +358,7 @@ def expect_and_grad(
                  This is used to mutate the state of the model while you train it (for example
                  to implement BatchNorm. Consult
                  `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
-                 for a more in-depth exaplanation).
+                 for a more in-depth explanation).
 
     Returns:
         An estimation of the quantum expectation value <O>.

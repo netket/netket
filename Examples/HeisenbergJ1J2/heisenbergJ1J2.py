@@ -17,7 +17,7 @@ machine = nk.models.GCNN(
     parity=1,
     layers=4,
     features=4,
-    dtype=complex,
+    param_dtype=complex,
 )
 sampler = nk.sampler.MetropolisExchange(
     hilbert=hi,
@@ -50,7 +50,7 @@ machine = nk.models.GCNN(
     parity=-1,
     layers=4,
     features=4,
-    dtype=complex,
+    param_dtype=complex,
 )
 vstate = nk.vqs.MCState(
     sampler=sampler,

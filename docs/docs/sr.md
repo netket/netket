@@ -13,7 +13,7 @@ This can be expanded to second order in an infinitesimal parameter change $\delt
 In NetKet you can obtain (an approximation of) the quantum geometric tensor of a variational state by calling {attr}`~netket.vqs.VariationalState.quantum_geometric_tensor`.
 
 ```python
-ma = nk.models.RBM(alpha=1, dtype=float)
+ma = nk.models.RBM(alpha=1, param_dtype=float)
 sa = nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5, 16), n_chains=16)
 vs = nk.vqs.MCState(sa, ma)
 
@@ -48,7 +48,7 @@ x, info = qgt.solve(nk.optimizer.solver.cholesky, grad)
 ```
 
 While mathematically those operations are all well defined, there are several ways to implement them in code, all with different performance characteristics. For that reason, we have several (3) different implementations of the same Quantum Geometric Tensor object.
-The 3 implemnentations are:
+The 3 implementations are:
 
  - {ref}`netket.optimizer.qgt.QGTOnTheFly`, which uses jax automatic differentiation through two `vjp` and one `jvp` product to compute the action of quantum geometric tensor on a vector and operates natively on PyTrees. This method will essentially run AD every time you compute `QGT@vector`. This method shines if the parameters of your network are stored in a PyTree with few leaf nodes and/or you are not performing many iterations of the iterative solver. It can compute the full dense QGT but it is not efficient at doing it so we advise not to use it with dense solvers.
  - {ref}`netket.optimizer.qgt.QGTJacobianDense`, which precomputes the log derivatives ( $ O_k $ ) when it's constructed and converts it to a single dense array. If you have a high number of total parameters and/or many leaf nodes in your parameter PyTree, this implementation might perform better because everything is stored contiguously in memory. However, it has an high 'startup cost'. 
@@ -124,7 +124,7 @@ gs = nk.VMC(hamiltonian, optimizer, variational_state=vstate, preconditioner=sr)
 
 ```
 If you don't specify the QGT format, NetKet will try to guess the best format.
-We reccomend you experiment and specify the QGT format that gives you the best performance, which can be by passing it as an argument. Additional keyword arguments will be forwarded to the QGT constructor, as shown below:
+We recommend you experiment and specify the QGT format that gives you the best performance, which can be by passing it as an argument. Additional keyword arguments will be forwarded to the QGT constructor, as shown below:
 
 ```python
 sr = nk.optimizer.SR(QGTJacobianPyTree, solver=partial(jax.scipy.sparse.linalg.gmres, maxiter=1000, tol=1e-8)diag_shift=1e-3

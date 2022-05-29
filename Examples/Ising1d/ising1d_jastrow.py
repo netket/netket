@@ -27,7 +27,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=0.0)
 
 # RBM Spin Machine
-ma = nk.models.Jastrow(dtype=np.float64)
+ma = nk.models.Jastrow(param_dtype=np.float64)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)

@@ -8,10 +8,10 @@
 
 Hilbert-space objects determine the state space of a quantum system and a specific choice of basis. 
 All implementations of Hilbert spaces derive from the class `AbstractHilbert` and fall into two classes:
- - discrete Hilbert spaces, which inherit from the abstract class `DiscreteHilbert` and include spin (`Spin`), Fock (`Fock`), and qubit (`Qubit`) spaces. Discrete spaces are typically used to describe lattice systems. 
+ - discrete Hilbert spaces, which inherit from the abstract class `DiscreteHilbert` and include spin ({class}`Spin`), Fock ({class}`Fock`), and qubit ({class}`Qubit`) spaces. Discrete spaces are typically used to describe lattice systems. 
  The lattice structure itself is, however, not part of the Hilbert space class and can be defined separately.
- - continuous Hilbert spaces, which inherit from the abstract class `ContinuousHilbert`. 
- Currently, the only concrete continuous space provided by NetKet is `Particle`.
+ - continuous Hilbert spaces, which inherit from the abstract class {class}`ContinuousHilbert`. 
+ Currently, the only concrete continuous space provided by NetKet is {class}`Particle`.
 
 
 ```{eval-rst}

@@ -21,7 +21,7 @@ from jax import numpy as jnp
 from flax import linen as nn
 from jax.nn.initializers import normal
 
-from netket.utils import HashableArray
+from netket.utils import HashableArray, deprecate_dtype
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket import nn as nknn
@@ -29,12 +29,13 @@ from netket import nn as nknn
 default_kernel_init = normal(stddev=0.01)
 
 
+@deprecate_dtype
 class RBM(nn.Module):
-    """A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
+    r"""A restricted boltzman Machine, equivalent to a 2-layer FFNN with a
     nonlinear activation function in between.
     """
 
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -56,10 +57,10 @@ class RBM(nn.Module):
 
     @nn.compact
     def __call__(self, input):
-        x = nknn.Dense(
+        x = nn.Dense(
             name="Dense",
             features=int(self.alpha * input.shape[-1]),
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             precision=self.precision,
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
@@ -70,7 +71,10 @@ class RBM(nn.Module):
 
         if self.use_visible_bias:
             v_bias = self.param(
-                "visible_bias", self.visible_bias_init, (input.shape[-1],), self.dtype
+                "visible_bias",
+                self.visible_bias_init,
+                (input.shape[-1],),
+                self.param_dtype,
             )
             out_bias = jnp.dot(input, v_bias)
             return x + out_bias
@@ -78,11 +82,12 @@ class RBM(nn.Module):
             return x
 
 
+@deprecate_dtype
 class RBMModPhase(nn.Module):
     r"""
     A fully connected Restricted Boltzmann Machine (RBM) with real-valued parameters.
 
-    In this case, two RBMs are taken to parameterize, respectively, the real
+    In this case, two RBMs are taken to parametrize, respectively, the real
     and imaginary part of the log-wave-function, as introduced in Torlai et al.,
     Nature Physics 14, 447–450(2018).
 
@@ -96,7 +101,7 @@ class RBMModPhase(nn.Module):
     for arbitrary local quantum numbers :math:`s_i`.
     """
 
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -114,9 +119,9 @@ class RBMModPhase(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        re = nknn.Dense(
+        re = nn.Dense(
             features=int(self.alpha * x.shape[-1]),
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_hidden_bias,
             precision=self.precision,
             kernel_init=self.kernel_init,
@@ -125,9 +130,9 @@ class RBMModPhase(nn.Module):
         re = self.activation(re)
         re = jnp.sum(re, axis=-1)
 
-        im = nknn.Dense(
+        im = nn.Dense(
             features=int(self.alpha * x.shape[-1]),
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_hidden_bias,
             precision=self.precision,
             kernel_init=self.kernel_init,
@@ -139,6 +144,7 @@ class RBMModPhase(nn.Module):
         return re + 1j * im
 
 
+@deprecate_dtype
 class RBMMultiVal(nn.Module):
     """
     A fully connected Restricted Boltzmann Machine (see :ref:`netket.models.RBM`) suitable for large local hilbert spaces.
@@ -149,7 +155,7 @@ class RBMMultiVal(nn.Module):
 
     n_classes: int
     """The number of classes in the one-hot encoding"""
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -171,7 +177,7 @@ class RBMMultiVal(nn.Module):
 
     def setup(self):
         self.RBM = RBM(
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             activation=self.activation,
             alpha=self.alpha,
             use_hidden_bias=self.use_hidden_bias,
@@ -187,7 +193,7 @@ class RBMMultiVal(nn.Module):
 
         # do the one hot encoding: output x.shape +(n_classes,)
         x_oh = jax.nn.one_hot(x, self.n_classes)
-        # vectorizee the last two dimensions
+        # vectorize the last two dimensions
         x_oh = jnp.reshape(x_oh, batches + (self.n_classes * N,))
         # apply the rbm to this output
         return self.RBM(x_oh)
@@ -200,7 +206,7 @@ class RBMSymm(nn.Module):
     """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -239,7 +245,7 @@ class RBMSymm(nn.Module):
             mode="matrix",
             symmetries=self.symmetries,
             features=self.features,
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
@@ -252,7 +258,7 @@ class RBMSymm(nn.Module):
 
         if self.use_visible_bias:
             v_bias = self.param(
-                "visible_bias", self.visible_bias_init, (1,), self.dtype
+                "visible_bias", self.visible_bias_init, (1,), self.param_dtype
             )
             out_bias = v_bias[0] * jnp.sum(x_in, axis=-1)
             return x + out_bias

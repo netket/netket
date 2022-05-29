@@ -92,7 +92,7 @@ class HamiltonianRule(MetropolisRule):
             log_prob_corr -= np.log(sections)
 
         # ideally we would pass the key to python/numba in _choose, initialise a
-        # np.random.default_rng(key) and use it to generatee random uniform integers.
+        # np.random.default_rng(key) and use it to generate random uniform integers.
         # However, numba dose not support np states, and reseeding it's MT1998 implementation
         # would be slow so we generate floats in the [0,1] range in jax and pass those
         # to python

@@ -28,7 +28,7 @@ Tests are expected to run with or without mpi4py installed, under MPI and not un
 Therefore you should never import `mpi4py` or `mpi4jax` in the global test module, but only
 inside individual tests.
 
-Tests not testing MPI-related fucntionality should be skipped when executed under MPI.
+Tests not testing MPI-related functionality should be skipped when executed under MPI.
 To mark a whole module to be skipped under mpi, you can define the following variable
 
 ```python
@@ -43,7 +43,7 @@ def test_tensors():
 	...
 ```
 
-Alternatively, you can skip individual testts by decorating them with `common.skipif_mpi`.
+Alternatively, you can skip individual tests by decorating them with `common.skipif_mpi`.
 
 ```python
 
@@ -70,7 +70,7 @@ def test_matmul():
 	with common.netket_disable_mpi():
 		x_serial = A@v
 
-		np.testing.assertr_allclose(x_mpi, x_serial)
+		np.testing.assert_allclose(x_mpi, x_serial)
 ```
 
 For simplicity, you can also use the fixtures `_mpi_size`, `_mpi_rank` and `_mpi_comm` as inputs to your test 

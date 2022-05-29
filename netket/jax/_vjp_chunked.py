@@ -111,7 +111,7 @@ def vjp_chunked(
     Returns:
         a function corresponding to the vjp_fun returned by an equivalent ``jax.vjp(fun, *primals)[1]``` call
         which computes the vjp in chunks (recomputing the forward pass every time on subsequent calls).
-        If return_forward=True the vjp_fun returned returns a tuple containg the ouput of the forward pass and the vjp.
+        If return_forward=True the vjp_fun returned returns a tuple containing the output of the forward pass and the vjp.
 
     Example:
         >>> import jax

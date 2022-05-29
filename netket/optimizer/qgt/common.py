@@ -23,7 +23,7 @@ from netket.utils.types import PyTree
 def check_valid_vector_type(x: PyTree, target: PyTree):
     """
     Raises a TypeError if x is complex where target is real, because it is not
-    supported by QGTOnTheFly and the imaginary part would be dicscarded after
+    supported by QGTOnTheFly and the imaginary part would be discarded after
     anyhow.
     """
 

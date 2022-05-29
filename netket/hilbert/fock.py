@@ -55,7 +55,7 @@ class Fock(HomogeneousHilbert):
           N: number of bosonic modes (default = 1)
           n_particles: Constraint for the number of particles. If None, no constraint
             is imposed.
-          graph: (Deprecated, pleaese use `N`) A graph, from which the number of nodes
+          graph: (Deprecated, please use `N`) A graph, from which the number of nodes
             is extracted.
 
         Examples:

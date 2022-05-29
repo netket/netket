@@ -2,7 +2,7 @@
 
 Everyone can contribute to NetKet: it is only thanks to the involvement of a large community of developers that open-source 
 software like NetKet can thrive.
-There are severalways to contribute, including:
+There are several ways to contribute, including:
 
 - Answering questions on NetKet's [discussions page](https://github.com/netket/netket/discussions)
 - Improving or expanding NetKet's [documentation](https://www.netket.org/docs/getting_started.html)

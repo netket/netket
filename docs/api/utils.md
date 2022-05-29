@@ -35,3 +35,18 @@ Utility functions and classes.
    
 ```
 
+## Symmetry Group Manipulation
+
+ ```{eval-rst}
+.. autosummary::
+   :toctree: _generated/utils
+   :nosignatures:
+
+   group.Permutation 
+   group.PermutationGroup 
+
+   group.FiniteGroup
+   group.PointGroup
+
+```
+

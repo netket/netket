@@ -16,7 +16,7 @@ import jax.numpy as jnp
 
 
 def minimum_distance(x, sdim):
-    """Computes distances between particles using mimimum image convention"""
+    """Computes distances between particles using minimum image convention"""
     n_particles = x.shape[0] // sdim
     x = x.reshape(-1, sdim)
 

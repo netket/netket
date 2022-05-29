@@ -21,6 +21,7 @@ from jax import numpy as jnp
 from flax import linen as nn
 from jax.nn.initializers import zeros, normal
 
+from netket.utils import deprecate_dtype
 from netket.utils.types import NNInitFunc
 from netket import jax as nkjax
 from netket import nn as nknn
@@ -34,7 +35,7 @@ class PureRBM(nn.Module):
     indices with the same RBM.
     """
 
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -56,10 +57,10 @@ class PureRBM(nn.Module):
 
     @nn.compact
     def __call__(self, σr, σc, symmetric=True):
-        W = nknn.Dense(
+        W = nn.Dense(
             name="Dense",
             features=int(self.alpha * σr.shape[-1]),
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_hidden_bias,
             kernel_init=self.kernel_init,
             bias_init=self.hidden_bias_init,
@@ -75,7 +76,10 @@ class PureRBM(nn.Module):
 
         if self.use_visible_bias:
             v_bias = self.param(
-                "visible_bias", self.visible_bias_init, (σr.shape[-1],), self.dtype
+                "visible_bias",
+                self.visible_bias_init,
+                (σr.shape[-1],),
+                self.param_dtype,
             )
             if symmetric:
                 out_bias = jnp.dot(σr + σc, v_bias)
@@ -93,7 +97,7 @@ class MixedRBM(nn.Module):
     indices with the same RBM.
     """
 
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -111,18 +115,18 @@ class MixedRBM(nn.Module):
 
     @nn.compact
     def __call__(self, σr, σc):
-        U_S = nknn.Dense(
+        U_S = nn.Dense(
             name="Symm",
             features=int(self.alpha * σr.shape[-1]),
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=False,
             kernel_init=self.kernel_init,
             precision=self.precision,
         )
-        U_A = nknn.Dense(
+        U_A = nn.Dense(
             name="ASymm",
             features=int(self.alpha * σr.shape[-1]),
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=False,
             kernel_init=self.kernel_init,
             precision=self.precision,
@@ -134,7 +138,7 @@ class MixedRBM(nn.Module):
                 "bias",
                 self.bias_init,
                 (int(self.alpha * σr.shape[-1]),),
-                nkjax.dtype_real(self.dtype),
+                nkjax.dtype_real(self.param_dtype),
             )
             y = y + bias
 
@@ -142,6 +146,7 @@ class MixedRBM(nn.Module):
         return y.sum(axis=-1)
 
 
+@deprecate_dtype
 class NDM(nn.Module):
     """
     Encodes a Positive-Definite Neural Density Matrix using the ansatz from Torlai and
@@ -152,7 +157,7 @@ class NDM(nn.Module):
     given in Vicentini et Al, PRL 122, 250503 (2019).
     """
 
-    dtype: Any = np.float64
+    param_dtype: Any = np.float64
     """The dtype of the weights."""
     activation: Any = nknn.log_cosh
     """The nonlinear activation function."""
@@ -188,7 +193,7 @@ class NDM(nn.Module):
             name="PureSymm",
             alpha=self.alpha,
             activation=self.activation,
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_hidden_bias=self.use_hidden_bias,
             use_visible_bias=self.use_visible_bias,
             visible_bias_init=self.visible_bias_init,
@@ -201,7 +206,7 @@ class NDM(nn.Module):
             name="PureASymm",
             alpha=self.alpha,
             activation=self.activation,
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_hidden_bias=self.use_hidden_bias,
             use_visible_bias=self.use_visible_bias,
             visible_bias_init=self.visible_bias_init,
@@ -213,7 +218,7 @@ class NDM(nn.Module):
         Π = MixedRBM(
             name="Mixed",
             alpha=self.beta,
-            dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_ancilla_bias,
             activation=self.activation,
             kernel_init=self.kernel_init,

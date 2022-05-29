@@ -84,10 +84,10 @@ RBMModPhase = partial(
 )
 
 models = {
-    "RBM[dtype=float64]": partial(RBM, dtype=np.dtype("float64")),
-    "RBM[dtype=float32]": partial(RBM, dtype=np.dtype("float32")),
-    "RBM[dtype=complex128]": partial(RBM, dtype=np.dtype("complex128")),
-    "RBMModPhase[dtype=float64]": partial(RBMModPhase, dtype=np.dtype("float64")),
+    "RBM[dtype=float64]": partial(RBM, param_dtype=np.dtype("float64")),
+    "RBM[dtype=float32]": partial(RBM, param_dtype=np.dtype("float32")),
+    "RBM[dtype=complex128]": partial(RBM, param_dtype=np.dtype("complex128")),
+    "RBMModPhase[dtype=float64]": partial(RBMModPhase, param_dtype=np.dtype("float64")),
 }
 
 
@@ -253,7 +253,7 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
     assert Sd.ndim == 2
     if hasattr(S, "mode"):
         if S.mode == "complex" and np.issubdtype(
-            vstate.model.dtype, np.complexfloating
+            vstate.model.param_dtype, np.complexfloating
         ):
             assert Sd.shape == (2 * vstate.n_parameters, 2 * vstate.n_parameters)
         else:

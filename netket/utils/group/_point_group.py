@@ -361,7 +361,7 @@ class PointGroup(FiniteGroup):
     """
     Collection of point group symmetries acting on n-dimensional vectors.
 
-    Group elements need not all be of type :ref:`netket.utils.symmetry.PGSymmetry`,
+    Group elements need not all be of type :class:`netket.utils.symmetry.PGSymmetry`,
     only act on such vectors when called. Currently, however, only `Identity` and
     `PGSymmetry` have canonical forms implemented.
 
@@ -479,9 +479,9 @@ class PointGroup(FiniteGroup):
                 group from the result.
 
         Returns:
-            group: the point group with duplicate elements removed.
-            return_inverse: Indices to reconstruct the original group from the result.
-                Only returned if `return_inverse` is True.
+            The point group with duplicate elements removed. If
+            :code:`return_inverse==True`, then it also returns the list
+            of indices needed to reconstruct the original group from the result.
         """
         if return_inverse:
             group, inverse = super().remove_duplicates(return_inverse=True)

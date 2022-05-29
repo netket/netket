@@ -1,3 +1,7 @@
+# -- Set env variables to correctly detect sphinx in NetKet
+import os
+
+os.environ["NETKET_SPHINX_BUILD"] = "1"
 import netket as nk
 
 # -- Project information -----------------------------------------------------
@@ -101,7 +105,7 @@ html_favicon = "assets/static/favicon.ico"
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "jax": ("https://jax.readthedocs.io/en/latest/", None),
     "flax": ("https://flax.readthedocs.io/en/latest/", None),
     "igraph": ("https://igraph.org/python/api/latest", None),
@@ -204,7 +208,7 @@ import inspect
 def process_module_names(module, modname="", inner=0):
     """
     This function goes through everything that is exported through __all__ in every
-    module, recursively, and if it hits classes or functions it chagnes their __module__
+    module, recursively, and if it hits classes or functions it changes their __module__
     so that it reflects the one we want printed in the docs (instead of the actual one).
 
     This fixes the fact that for example netket.graph.Lattice is actually

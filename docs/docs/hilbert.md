@@ -5,11 +5,11 @@
 .. currentmodule:: netket.hilbert
 ```
 
-The [Hilbert](`netket.hilbert`) module defines the abstract Hilbert space API and some concrete implementations, such as {ref}`netket.hilbert.Spin`, {ref}`netket.hilbert.Fock`.
+The [Hilbert](netket_hilbert_api) module defines the abstract Hilbert space API and some concrete implementations, such as {class}`Spin`, {class}`Fock`.
 An `Hilbert` object represents a Hilbert space together with a particular choice of computational basis.
 They are needed to construct most other objects in NetKet, but they can also be useful to experiment and validate variational ansätze.
 
-Hilbert space objects are all sub-classes of the abstract class {ref}`netket.hilbert.AbstractHilbert`, which defines the general API respected by all implementations. 
+Hilbert space objects are all sub-classes of the abstract class {class}`AbstractHilbert`, which defines the general API respected by all implementations. 
 You can see a birds-eye view of the inheritance diagram among the various kinds of Hilbert spaces included with NetKet below (you can click on the nodes in the graph to go to their API documentation page). 
 Classes whose edge is dashed are abstract classes, while the others are concrete and can be instantiated.
 
@@ -20,17 +20,17 @@ Classes whose edge is dashed are abstract classes, while the others are concrete
 
 ```
 
-{ref}`netket.hilbert.AbstractHilbert` makes very few assumptions on the structure of the resulting space and you will generally very rarely interact with it directly.
-Derived from `AbstractHilbert` are two less generic, but still abstract, types: {ref}`netket.hilbert.DiscreteHilbert`, representing Hilbert spaces where the local degrees of freedom are countable, and {ref}`netket.hilbert.ContinuousHilbert`, representing the Hilbert spaces with continuous bases, such as particles in a box.
+{class}`AbstractHilbert` makes very few assumptions on the structure of the resulting space and you will generally very rarely interact with it directly.
+Derived from {class}`AbstractHilbert` are two less generic, but still abstract, types: {class}`DiscreteHilbert`, representing Hilbert spaces where the local degrees of freedom are countable, and {class}`ContinuousHilbert`, representing the Hilbert spaces with continuous bases, such as particles in a box.
 
-So far, the majority of NetKet development has focused `DiscreteHilbert` spaces which therefore have a much more developed API, while `ContinuousHilbert` is still experimental and does not yet support many operations.
+So far, the majority of NetKet development has focused {class}`DiscreteHilbert` spaces which therefore have a much more developed API, while {class}`ContinuousHilbert` is still experimental and does not yet support many operations.
 
-The most important class of discrete Hilbert spaces are subclasses of {ref}`netket.hilbert.HomogeneousHilbert`, which is a tensor product of a finite number of local Hilbert spaces of the same kind, each with the same number of local degrees of freedom.
-`HomogeneousHilbert` has the concrete subclasses {ref}`netket.hilbert.Fock`, {ref}`netket.hilbert.Spin`, and {ref}`netket.hilbert.Qubit`.
+The most important class of discrete Hilbert spaces are subclasses of {class}`HomogeneousHilbert`, which is a tensor product of a finite number of local Hilbert spaces of the same kind, each with the same number of local degrees of freedom.
+{class}`HomogeneousHilbert` has the concrete subclasses {class}`Fock`, {class}`Spin`, and {class}`Qubit`.
 
-{ref}`netket.hilbert.TensorHilbert` represents tensor products of different homogeneous hilbert spaces, therefore it is not homogeneous. You can use it to represent composite systems such as spin-boson setups.
+{class}`TensorHilbert` represents tensor products of different homogeneous hilbert spaces, therefore it is not homogeneous. You can use it to represent composite systems such as spin-boson setups.
 
-{ref}`netket.hilbert.DoubledHilbert` represents a space doubled through [Choi's Isomorphism](https://en.wikipedia.org/wiki/Choi%E2%80%93Jamio%C5%82kowski_isomorphism).
+{class}`DoubledHilbert` represents a space doubled through [Choi's Isomorphism](https://en.wikipedia.org/wiki/Choi%E2%80%93Jamio%C5%82kowski_isomorphism).
 This is the space of density matrices and is used to work with dissipative/open systems.
 
 ## The `AbstractHilbert` interface
@@ -49,20 +49,20 @@ Currently, all the operators shipping with NetKet hardcode the choice of $\hat{Z
 
 ### Attributes
 
-All Hilbert spaces expose one attribute: {attr}`~netket.hilbert.AbstractHilbert.size` 
+All Hilbert spaces expose one attribute: {attr}`~AbstractHilbert.size` 
 This is an integer that exposes how many degrees of freedom has the basis of the Hilbert space.
-For discrete spaces, this corresponds exactly to the number of sites (which is, e.g., the number of spins in a `Spin` Hilbert space).
+For discrete spaces, this corresponds exactly to the number of sites (which is, e.g., the number of spins in a {class}`Spin` Hilbert space).
 Therefore, elements of the basis of an $N$ spin-$1/2$ system are vectors in $\{-1,+1\}^N$, an $N-$ dimensional space.
 
 As NetKet is a package focused on Monte Carlo calculations, we also need a way to generate random configurations distributed uniformly from the basis of an Hilbert space.
-This can be achieved through the method {meth}`~netket.hilbert.AbstractHilbert.random_state`. 
+This can be achieved through the method {meth}`~AbstractHilbert.random_state`. 
 
 ```{eval-rst}
 .. automethod:: netket.hilbert.AbstractHilbert.random_state
 
 ```
 
-`random_state` behaves similarly to {ref}`jax.random.uniform`: the first argument is a Jax PRNGKey, the second is the shape or number of resulting elements and the third is the dtype of the output (which defaults to `jnp.float32`, or single precision.
+{meth}`~AbstractHilbert.random_state` behaves similarly to {func}`jax.random.uniform`: the first argument is a Jax PRNGKey, the second is the shape or number of resulting elements and the third is the dtype of the output (which defaults to {ref}`np.float32`, or single precision.
 The resulting basis elements will be distributed uniformly.
 
 ```{admonition} Jax PRNG
@@ -83,11 +83,11 @@ Please do open an issue or a feature request on the GitHub repository if you enc
 
 ## The `DiscreteHilbert` interface
 
-{ref}`netket.hilbert.DiscreteHilbert` is also an abstract class from which any hilbert space with countable (or discrete) local degrees of freedom must inherit.
+{class}`DiscreteHilbert` is also an abstract class from which any hilbert space with countable (or discrete) local degrees of freedom must inherit.
 Examples of such spaces are spins or bosons on a lattice.
 
-You can always probe their {attr}`~netket.hilbert.DiscreteHilbert.shape`, which returns a tuple 
-with the size of the hilbert space on every site/degree of freedom.
+You can always probe their {attr}`~DiscreteHilbert.shape`, which returns a tuple 
+with the size of the Hilbert space on every site/degree of freedom.
 For example, for 4 spins-$1/2$ coupled to a bosonic mode with a cutoff of 5 bosons, the shape will be
 `[2,2,2,2,6]`.
 
@@ -97,10 +97,10 @@ For example, for 4 spins-$1/2$ coupled to a bosonic mode with a cutoff of 5 boso
 >>> hi.shape
 array([2, 2, 2, 2, 6])
 ```
-The `shape` is also linked to the local Hilbert basis, which lists all possible values that a basis elements can take on this particular lattice site/subsystem.
+The {attr}`~DiscreteHilbert.shape` is also linked to the local Hilbert basis, which lists all possible values that a basis elements can take on this particular lattice site/subsystem.
 For example, on the first four sites of the example above, the basis elements are only 2: `[-1, 1]`, while on the last site they are 6: `[0,1,2,3,4,5]`.
 
-This information can be extracted with the {meth}`~netket.hilbert.DiscreteHilbert.states_at_index` method, as shown below:
+This information can be extracted with the {meth}`~DiscreteHilbert.states_at_index` method, as shown below:
 
 ```python
 >>> hi.states_at_index(0)
@@ -113,17 +113,17 @@ This information can be extracted with the {meth}`~netket.hilbert.DiscreteHilber
 
 It should be now evident why NetKet distinguishes locally discrete/countable spaces from arbitrary (e.g: continuous) spaces: if we can index the local basis, we can perform many optimisations and write efficient kernels to compute matrix elements of operators, but also Monte-Carlo samplers will propose transitions in a very different way than in continuous spaces.
 
-You can also obtain the total size of the hilbert space by invoking {attr}`~netket.hilbert.DiscreteHilbert.n_states`, which in general is equivalent to calling `np.prod(hi.shape)`.
+You can also obtain the total size of the hilbert space by invoking {attr}`~DiscreteHilbert.n_states`, which in general is equivalent to calling `np.prod(hi.shape)`.
 
 ```python
 >>> hi.n_states
 96
 ```
 
-Do bear in mind that this attribute only works if the hilbert space is indexable ({attr}`~netket.hilbert.DiscreteHilbert.is_indexable`), which is True when it has a size smaller than $ 2^{64} $. 
+Bear in mind that this attribute only works if the Hilbert space is indexable ({attr}`~DiscreteHilbert.is_indexable`), which is true if it has a dimension smaller than $2^{64}$. 
 
 NetKet also supports discrete-but-infinite hilbert spaces, such as Fock spaces with no cutoff. 
-Those hilbert spaces are of course not indexable ({attr}`~netket.hilbert.DiscreteHilbert.is_indexable` will return `False`) and they are further signaled by the attribute ({attr}`~netket.hilbert.DiscreteHilbert.is_finite`, which will be set to `False`.
+Those hilbert spaces are of course not indexable ({attr}`~DiscreteHilbert.is_indexable` will return `False`) and they are further signaled by the attribute ({attr}`~DiscreteHilbert.is_finite`, which will be set to `False`.
 
 The only non-finite (discrete) hilbert space implemented in NetKet is the Fock space, and it can be constructed by not specifying the cutoff, as shown below:
 
@@ -143,7 +143,7 @@ Do bear in mind that due to computational limitations, _infinite_ Hilbert spaces
 If a space is indexable it is possible to perform several handy operations on it, especially useful when you are checking the correctness of your calculations.
 In practice all those operations rely on converting elements of the basis such as `[0,1,1,0]` to an integer index labelling all basis elements.
 
-For the following examples, we will be using the {ref}`netket.hilbert.Qubit` hilbert space, whose local basis is `[0,1]`.
+For the following examples, we will be using the {class}`Qubit` hilbert space, whose local basis is `[0,1]`.
 
 ```python
 >>> import netket as nk
@@ -151,7 +151,7 @@ For the following examples, we will be using the {ref}`netket.hilbert.Qubit` hil
 Qubit(N=3)
 ```
 
-Converting indices to basis elements can be performed through the {meth}`~netket.hilbert.DiscreteHilbert.numbers_to_states` method. 
+Converting indices to basis elements can be performed through the {meth}`~DiscreteHilbert.numbers_to_states` method. 
 When converting indices to a basis-element, NetKet relies on a sort of big-endian (or Most-Significant-Bit first) N-ary-encoding: for qubits, index $0$ will correspond to $|0,0,0\rangle$, index $1$ to $|0,0,1\rangle$, index $2$ to $|0,1,0\rangle$ and so on.
 For hilbert spaces with larger local dimensions, all the local states are iterated continuously.
 
@@ -168,7 +168,7 @@ array([0., 1., 1.])
 array([1., 1., 1.])
 ```
 
-It is also possible to perform the opposite transformation and go from a basis element to an integer index using the {meth}`~netket.hilbert.DiscreteHilbert.states_to_numbers` method.
+It is also possible to perform the opposite transformation and go from a basis element to an integer index using the {meth}`~DiscreteHilbert.states_to_numbers` method.
 
 ```python
 >>> hi.states_to_numbers(np.array([0,0,0]))
@@ -181,7 +181,7 @@ It is also possible to perform the opposite transformation and go from a basis e
 
 Do notice that all those methods work with arrays too and will convert an array of $M$ indices to a batch of states, that is, a matrix of size $M \times N$.
 
-Lastly, it is also possible to obtain the batch of all basis states with the {meth}`~netket.hilbert.DiscreteHilbert.all_states` method. 
+Lastly, it is also possible to obtain the batch of all basis states with the {meth}`~DiscreteHilbert.all_states` method. 
 
 ### Constrained Hilbert spaces
 
@@ -192,7 +192,7 @@ The constraints that can be imposed are quite ~constrained~ limited themselves: 
 ```{admonition} Warning: Common error
 :class: warning
 
-When you define a constrained Hilbert space and you use it with a Markov-Chain sampler, the constraints guarantees that the initial state of the chain, generated through the {meth}`~netket.hilbert.DiscreteHilbert.random_state` method, respects the constraint.
+When you define a constrained Hilbert space and you use it with a Markov-Chain sampler, the constraints guarantees that the initial state of the chain, generated through the {meth}`~DiscreteHilbert.random_state` method, respects the constraint.
 
 However, *it is not guaranteed that a transition rule will respect the constraint.* 
 In fact, built-in samplers are not aware of the constraints directly, even though some of can still be used effectively with constraints.
@@ -201,7 +201,7 @@ A typical error is to use {class}`~netket.sampler.MetropolisLocal` with a constr
 A simple workaround is to use {class}`~netket.sampler.MetropolisExchange`: as it exchanges the value on two different sites, it guarantees that the total number
 of particles is conserved, and therefore respects the constraint if it is correctly imposed at the initialization of the chain.
 
-In short: when working with constrained Hilbert spaces you have to take extra care when chosing your sampler. And if you have exotic constraints you will most likely need to define your own transition kernel. But don't worry: it is very easy! (however nobody has yet written documentation for it. In the meantime, have a look at [this discussion](https://github.com/netket/netket/discussions/755#discussioncomment-858719))
+In short: when working with constrained Hilbert spaces you have to take extra care when choosing your sampler. And if you have exotic constraints you will most likely need to define your own transition kernel. But don't worry: it is very easy! (however nobody has yet written documentation for it. In the meantime, have a look at [this discussion](https://github.com/netket/netket/discussions/755#discussioncomment-858719))
 ```
 
 The constraints supported on the built-in hilbert spaces are:
@@ -233,8 +233,8 @@ The constraints supported on the built-in hilbert spaces are:
 
 ### Defining Custom constraints
 
-NetKet provides a custom class `CustomHilbert`, that makes it relatively simple to define your own constaint on homogeneous Hilbert spaces.
-In this example we show how to use it to build a space that behaves like {ref}`Fock`, while enforcing even parity.
+NetKet provides a custom class {class}`CustomHilbert`, that makes it relatively simple to define your own constraint on homogeneous Hilbert spaces.
+In this example we show how to use it to build a space that behaves like {class}`Fock`, while enforcing even parity.
 
 ```python
 >>> import numba
@@ -254,7 +254,7 @@ array([[0., 0., 0., 0., 0.],
 ```
 
 The constraint function sums the basis number (a number in `range(n_max)`) and then checks if it is even. 
-Pleaes notice how we used `@numba.njit` to speed up the constraint.
+Please notice how we used `@numba.njit` to speed up the constraint.
 
 If you then want to sample this space, you'll encounter the following error:
 
@@ -274,16 +274,16 @@ NotImplementedError
 This is because you did not specify how to sample the space. To do so, check the documentation on defining custom Hilbert spaces.
 
 
-## Using Hilbert spaces with {ref}`jax.jit`ted functions
+## Using Hilbert spaces with {func}`jax.jit`ted functions
 
 Hilbert spaces are immutable, hashable objects. 
-Their hash is computed by hashing their inner fields, determined by the internal {meth}`~netket.hilbert.DiscreteHilbert._attrs` method.
-You can freely use `AbstractHilbert` objects inside of `jax.jit`ted functions as long as you specify that they are `static`.
+Their hash is computed by hashing their inner fields, determined by the internal {meth}`~DiscreteHilbert._attrs` method.
+You can freely use {class}`~nk.hilbert.AbstractHilbert` objects inside of {func}`jax.jit`ted functions as long as you specify that they are `static`.
 
-All attributes and methods of Hilbert spaces can be freely used inside of a `jax.jit` block except for 
-{meth}`~netket.hilbert.DiscreteHilbert.states_to_numbers` and {meth}`~netket.hilbert.DiscreteHilbert.numbers_to_states`, because
-they are written using {ref}`numpy` instead of jax.
+All attributes and methods of Hilbert spaces can be freely used inside of a {func}`jax.jit` block except for 
+{meth}`~DiscreteHilbert.states_to_numbers` and {meth}`~DiscreteHilbert.numbers_to_states`, because
+they are written using standard [numpy](https://numpy.org/doc/stable/user/index.html#user) instead of jax.
 
-In particular the {meth}`~netket.hilbert.DiscreteHilbert.random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax 
-{ref}`jax.random.PRNGKey` object as the first argument.
+In particular the {meth}`~DiscreteHilbert.random_state` method can be used inside of jitted blocks, as it is written in jax, as long as you pass a valid jax 
+{func}`jax.random.PRNGKey` object as the first argument.
 

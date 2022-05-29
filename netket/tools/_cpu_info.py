@@ -153,7 +153,7 @@ def get_wmic_cpu():
             break
         info[key] = value
 
-    # Stepping sometines the empty string in wmic output
+    # Stepping sometimes the empty string in wmic output
     if "stepping" in info and info["stepping"] == "":
         info["stepping"] = None
 

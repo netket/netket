@@ -65,8 +65,8 @@ from .driver import SteadyState
 
 # Deprecations
 @_deprecated("VMC")
-def Vmc(*args, **kwarags):
-    return VMC(*args, **kwarags)
+def Vmc(*args, **kwargs):
+    return VMC(*args, **kwargs)
 
 
 from . import variational

@@ -40,7 +40,7 @@ sampling step the state.
 If you are using GPUs, this conversion can be very costly. On CPUs, while the
 conversion is cheap, the dispatch cost of jax is considerate for small systems.
 
-In general those samplers, while they have the same asyntotic cost of Jax samplers,
+In general those samplers, while they have the same asymptotic cost of Jax samplers,
 have a much higher overhead for small to moderate (for GPUs) system sizes.
 
 This is because it is not possible to implement all transition rules in Jax.
@@ -73,7 +73,7 @@ This is because it is not possible to implement all transition rules in Jax.
 ```
 
 
-This is a list of shorthands that allow to construct a [MetropolisSampler](netket.sampler.MetropolisSampler) with a corresponding rule.
+This is a list of shorthands that allow to construct a {class}`~netket.sampler.MetropolisSampler` with a corresponding rule.
 
 ```{eval-rst}
 .. currentmodule:: netket.sampler
@@ -111,10 +111,11 @@ Sampler. Rules with `Numpy` in their name can only be used with
 .. autosummary::
   :toctree: _generated/samplers
 
-  MetropolisRule
+  rules.MetropolisRule
   rules.LocalRule
   rules.ExchangeRule
   rules.HamiltonianRule
+  rules.GaussianRule
   rules.HamiltonianRuleNumpy
   rules.CustomRuleNumpy
 

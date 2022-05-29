@@ -30,8 +30,10 @@ from netket.models.autoreg import (
 from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
 from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc
+from netket.utils import deprecate_dtype
 
 
+@deprecate_dtype
 class FastARNNDense(AbstractARNN):
     """
     Fast autoregressive neural network with dense layers.
@@ -51,7 +53,7 @@ class FastARNNDense(AbstractARNN):
     """the nonlinear activation function between hidden layers (default: selu)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
@@ -76,7 +78,7 @@ class FastARNNDense(AbstractARNN):
                 features=features[i],
                 exclusive=(i == 0),
                 use_bias=self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -94,6 +96,7 @@ class FastARNNDense(AbstractARNN):
         return _call(self, inputs)
 
 
+@deprecate_dtype
 class FastARNNConv1D(AbstractARNN):
     """
     Fast autoregressive neural network with 1D convolution layers.
@@ -114,7 +117,7 @@ class FastARNNConv1D(AbstractARNN):
     """the nonlinear activation function between hidden layers (default: selu)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
@@ -140,7 +143,7 @@ class FastARNNConv1D(AbstractARNN):
                 kernel_dilation=self.kernel_dilation,
                 exclusive=(i == 0),
                 use_bias=self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -179,7 +182,7 @@ class FastARNNConv2D(AbstractARNN):
     """the nonlinear activation function between hidden layers (default: selu)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
-    dtype: DType = jnp.float64
+    param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
@@ -209,7 +212,7 @@ class FastARNNConv2D(AbstractARNN):
                 kernel_dilation=self.kernel_dilation,
                 exclusive=(i == 0),
                 use_bias=self.use_bias,
-                dtype=self.dtype,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,

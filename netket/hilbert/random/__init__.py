@@ -42,7 +42,7 @@ performance.
 
 In order to implement the scalar rule for your custom hilbert object `MyHilbert`
 you should define a function taking 4 inputs, the hilbert space, a jax PRNG key and
-the dtype of the derised result. For random operations you should use the key
+the dtype of the desired result. For random operations you should use the key
 provided.
 
 @netket.utils.dispatch.dispatch

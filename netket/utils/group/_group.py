@@ -76,17 +76,17 @@ class FiniteGroup(FiniteSemiGroup):
 
     def remove_duplicates(self, *, return_inverse=False) -> "FiniteGroup":
         r"""
-        Returns a new :code:`FiniteGroup` with duplicate elements (that is,
+        Returns a new :class:`FiniteGroup` with duplicate elements (that is,
         elements with identical canonical forms) removed.
 
         Arguments:
-            return_inverse: If True, also return indices to reconstruct the original
-                group from the result.
+            return_inverse: If True, also return indices to reconstruct the
+                original group from the result.
 
         Returns:
-            group: the group with duplicate elements removed.
-            inverse: Indices to reconstruct the original group from the result.
-                Only returned if `return_inverse` is True.
+            The group with duplicate elements removed. If
+            :code:`return_inverse==True` it also returns the list of indices
+            needed to reconstruct the original group from the result.
         """
         result = np.unique(
             self._canonical_array(),
@@ -104,7 +104,14 @@ class FiniteGroup(FiniteSemiGroup):
     def inverse(self) -> Array:
         r"""
         Indices of the inverse of each element.
-        If :code:`g = self[idx_g]` and :code:`h = self[self.inverse[idx_g]]`, then
+
+        Assuming the definitions
+
+        .. code::
+
+            g = self[idx_g]
+            h = self[self.inverse[idx_g]]
+
         :code:`gh = product(g, h)` is equivalent to :code:`Identity()`
         """
         canonical_identity = self._canonical(Identity())
@@ -122,9 +129,16 @@ class FiniteGroup(FiniteSemiGroup):
     def product_table(self) -> Array:
         r"""
         A table of indices corresponding to :math:`g^{-1} h` over the group.
-        That is, if :code:`g = self[idx_g]', :code:`h = self[idx_h]`, and
-        :code:`idx_u = self.product_table[idx_g, idx_h]`, then :code:`self[idx_u]`
-        corresponds to :math:`u = g^{-1} h`.
+
+        Assuming the definitions
+
+        .. code::
+
+            g = self[idx_g]
+            h = self[idx_h]
+            idx_u = self.product_table[idx_g, idx_h]
+
+        :code:`self[idx_u]` corresponds to :math:`u = g^{-1} h` .
         """
         n_symm = len(self)
         product_table = np.zeros([n_symm, n_symm], dtype=int)
@@ -141,8 +155,17 @@ class FiniteGroup(FiniteSemiGroup):
     @struct.property_cached
     def conjugacy_table(self) -> Array:
         r"""
-        A table of conjugates: if `g = self[idx_g]` and `h = self[idx_h]`,
-        then `self[self.conjugacy_table[idx_g,idx_h]]` is :math:`h^{-1}gh`.
+        The conjugacy table of this Permutation Group.
+
+        Assuming the definitions
+
+        .. code::
+
+            g = self[idx_g]
+            h = self[idx_h]
+
+        :code:`self[self.conjugacy_table[idx_g,idx_h]]`
+        corresponds to :math:`h^{-1}gh`.
         """
         col_index = np.arange(len(self))[np.newaxis, :]
         # exploits that h^{-1}gh = (g^{-1} h)^{-1} h
@@ -154,10 +177,14 @@ class FiniteGroup(FiniteSemiGroup):
         The conjugacy classes of the group.
 
         Returns:
-            classes: a boolean array, each row indicating the elements that belong
-                to one conjugacy class
-            representatives: the lowest-indexed member of each conjugacy class
-            inverse: the conjugacy class index of every group element
+
+            The three arrays
+
+            - classes: a boolean array, each row indicating the elements that
+              belong to one conjugacy class
+            - representatives: the lowest-indexed member of each conjugacy class
+            - inverse: the conjugacy class index of every group element
+
         """
         row_index = np.arange(len(self))[:, np.newaxis]
 
@@ -186,8 +213,8 @@ class FiniteGroup(FiniteSemiGroup):
         Each row of the output lists the characters of one irrep in the order the
         conjugacy classes are listed in `self.conjugacy_classes`.
 
-        Assumes that `Identity() == self[0]`, if not, the sign of some characters
-        may be flipped. The irreps are sorted by dimension.
+        Assumes that :code:`Identity() == self[0]`, if not, the sign of some
+        characters may be flipped. The irreps are sorted by dimension.
         """
         classes, _, _ = self.conjugacy_classes
         class_sizes = classes.sum(axis=1)
@@ -197,7 +224,7 @@ class FiniteGroup(FiniteSemiGroup):
         #
         # From our oblique times table it is easier to calculate
         #    (d_S)_{RT} = #{r,t: r \in R, t \in T: rs = t}
-        # for a fixed s \in S. This is just `product_table == s`, aggregrated
+        # for a fixed s \in S. This is just `product_table == s`, aggregated
         # over conjugacy classes. c_S and d_S are related by
         #    c_{RST} = |S| d_{RST} / |T|;
         # since we only want a random linear combination, we forget about the
@@ -235,11 +262,12 @@ class FiniteGroup(FiniteSemiGroup):
         r"""
         Calculates the character table using Burnside's algorithm.
 
-        Each row of the output lists the characters of all group elements for one irrep,
-        i.e. self.character_table()[i,g] gives :math:`\chi_i(g)`.
+        Each row of the output lists the characters of all group elements
+        for one irrep, i.e. :code:`self.character_table()[i,g]` gives
+        :math:`\chi_i(g)`.
 
-        Assumes that `Identity() == self[0]`, if not, the sign of some characters
-        may be flipped. The irreps are sorted by dimension.
+        Assumes that :code:`Identity() == self[0]`, if not, the sign
+        of some characters may be flipped. The irreps are sorted by dimension.
         """
         _, _, inverse = self.conjugacy_classes
         CT = self.character_table_by_class
@@ -250,9 +278,13 @@ class FiniteGroup(FiniteSemiGroup):
         Returns a conventional rendering of the character table.
 
         Returns:
-            classes: a text description of a representative of each conjugacy class
-                as a list
-            characters: a matrix, each row of which lists the characters of one irrep
+
+            A tuple containing a list of strings and an array
+
+            - :code:`classes`: a text description of a representative of
+              each conjugacy class as a list
+            - :code:`characters`: a matrix, each row of which lists the
+              characters of one irrep
         """
         # TODO put more effort into nice rendering?
         classes, idx_repr, _ = self.conjugacy_classes

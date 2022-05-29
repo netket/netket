@@ -110,7 +110,7 @@ samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
 )
 
 
-# The following fixture initialisees a model and it's weights
+# The following fixture initialises a model and it's weights
 # for tests that require it.
 @pytest.fixture
 def model_and_weights(request):

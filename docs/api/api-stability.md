@@ -19,9 +19,7 @@ be released.
 
 ## Public API Definition
 
-The parts of the API covered by the API stability guarantee and semantic versioning are all
-methods, functions and classes listed in the [API reference](api) *unless stated otherwise 
-in the docstring of said function or method*.
+The parts of the API covered by the API stability guarantee and semantic versioning are all methods, functions and classes listed in the [API reference](netket_api)) *unless stated otherwise in the docstring of said function or method*.
 
 In general we try to ensure that all functions, methods and classes that can be accessed by 
 dot-syntax and *with a name not starting with an underscore* are part of the public-API, 
@@ -73,7 +71,7 @@ Exceptions also include those modules that will be refactored in the next minor 
  - The API needed to define a new sampler might incur minor changes in NetKet 3.1, however
  we will try to avoid breaking user code if possible;
  - The API needed to define new operators will incur *major* breaking changes in NetKet 
- 3.1/3.2 and is therefore not reccomended to define new operators. The user-facing API
+ 3.1/3.2 and is therefore not recommended to define new operators. The user-facing API
  of operators is instead stable;
 
 ## Netket.nn module
@@ -89,17 +87,17 @@ found in those packages.
 Our plan is that in NetKet 4.X `netket.nn` will only contain NetKet-specific Neural-Network
 structures, and we might even split it off into it's own package.
 
-For this reason, since both `jax` and `flax` have their own versioning scheme, we reccomend
+For this reason, since both `jax` and `flax` have their own versioning scheme, we recommend
 you take care in versioning your environment, that is, you check their version too and 
 try to keep the same minor version of those libraries in your project.
 
 
 ## Storing the environment
 
-We strongly reccomend that you store somewhere the exact version number, or at least the
+We strongly recommend that you store somewhere the exact version number, or at least the
 `major.minor` version number you used in a project so that you can reproduce it later on.
 We also strongly advise to keep the version numbers of *every python package installed*, in
-particoular of `jax`, `jaxlib`, `flax` and `optax` because they might not be as precise as
+particular of `jax`, `jaxlib`, `flax` and `optax` because they might not be as precise as
 us when updating their version numbers.
 
 An easy way to achieve this is to use a package manager such as [poetry](https://python-poetry.org) 

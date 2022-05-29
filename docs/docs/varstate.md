@@ -14,10 +14,8 @@ are interested in implementing a new kind of variational state that encodes a st
 
 ## Constructing a Variational State
 
-To construct the two variational states above you need to provide at least a Monte Carlo sampler (you can see
-the list of available ones {ref}`here <sampler-api>`) and a model.
-The hilbert space of the variational state will be inferred from the sampler, as they all reference the
-hilbert space they are sampling.
+To construct the two variational states above you need to provide at least a Monte Carlo sampler (you can find the list of available ones [here](netket_sampler_api)) and a model.
+The Hilbert space of the variational state will be inferred from the sampler, which contains a reference to the underlying Hilbert space.
 
 The model can be specified in several ways. The most standard way is to pass a [Flax Linen Module](https://flax.readthedocs.io/en/latest/flax.linen.html#module), but you can also pass a Jax-style pair
 of functions {code}`(init, apply)` or an haiku module obtained by calling {code}`haiku.transform()`.
@@ -38,7 +36,7 @@ If you are not familiar with Flax, it's a package that allows to define Neural N
 parametrized functions. While we suggest to read carefully the [introduction to Flax](https://flax.readthedocs.io/en/latest/notebooks/flax_basics.html), if you are impatient and just want to define some simple, easy
 models you can find some examples in the [Model Surgery](https://flax.readthedocs.io/en/latest/howtos/model_surgery.html) section of Flax documentation.
 
-Other examples can be found in the source of the {ref}`Pre-built models <_Models>` distributed with NetKet, such as
+Other examples can be found in the source of the [Pre-built models](netket_models_api) distributed with NetKet, such as
 {class}`~netket.models.RBM` (the simplest one), {class}`~netket.models.MPSPeriodic` and {class}`~netket.models.NDM` for
 more complicated examples.
 
@@ -63,7 +61,7 @@ hilbert = nk.hilbert.Spin(0.5)**10
 
 sampler = nk.sampler.MetropolisLocal(hilbert)
 
-model = nk.models.RBM(alpha=1, dtype=float, kernel_init=nk.nn.initializers.normal(stddev=0.01))
+model = nk.models.RBM(alpha=1, param_dtype=float, kernel_init=nn.initializers.normal(stddev=0.01))
 
 vstate = nk.vqs.MCState(sampler, model, n_samples=500)
 ```
@@ -77,11 +75,11 @@ weights and the sampler. You can also pass two different seeds for the sampler a
 (warn-chunking)=
 
 :::{warning}
-Sometimes you might be working on very large models that run on GPUs, or you might want to compute expectaion values with a very high number of samples, which might cause out-of-memory errors. To prevent this, {code}`MCState` exposes the attribute {py:attr}`~netket.vqs.MCState.chunk_size`, which controls the size of the chunks used in the forward and backward computation of expectation values.
+Sometimes you might be working on very large models that run on GPUs, or you might want to compute expectation values with a very high number of samples, which might cause out-of-memory errors. To prevent this, {code}`MCState` exposes the attribute {py:attr}`~netket.vqs.MCState.chunk_size`, which controls the size of the chunks used in the forward and backward computation of expectation values.
 
 When this value is set, computations are not performed on huge matrices, but instead we split the inputs into smaller matrices and loop through them. In general, setting {py:attr}`~netket.vqs.MCState.chunk_size` to a low value will address the majority of memory issues, but will increase the computational cost.
 
-A value of at least 128 is suggested, but will geatly depend on your model. You should try to use the largest value you can for your system. Setting it to {code}`None` is equivalent to setting it to infinity.
+A value of at least 128 is suggested, but will greatly depend on your model. You should try to use the largest value you can for your system. Setting it to {code}`None` is equivalent to setting it to infinity.
 :::
 
 ## Using a Monte Carlo Variational State
@@ -91,7 +89,7 @@ A value of at least 128 is suggested, but will geatly depend on your model. You 
 One you have a variational state, you can do many things with it.
 First of all, you can probe expectation values:
 
-```python
+```
 Ĥ = nk.operator.Ising(hilbert, nk.graph.Chain(hilbert.size), h=0.5)
 
 vstate.expect(Ĥ)
@@ -103,7 +101,7 @@ Notice that if you call multiple times {code}`expect`, the same set of
 samples will be used, and you will get the same result. To force sampling
 to happen again, you can call {py:meth}`~netket.vqs.MCState.sample`.
 
-```python
+```
 vstate.expect(Ĥ)
 
 >>> -4.98 ± 0.14 [σ²=9.51, R̂=1.0006]
@@ -203,7 +201,7 @@ the ket it represents.
 This is achieved by using the {py:meth}`~netket.vqs.VariationalState.to_array` method,
 which by defaults normalises the $L_2$ norm of the vector to 1 (but can be turned off).
 
-Mixed state ansatzes can be converted to their matrix representation with
+Mixed state Ansätze can be converted to their matrix representation with
 {py:meth}`~netket.vqs.MCMixedState.to_matrix`. In this case, the default
 normalisation sets the trace to 1.
 

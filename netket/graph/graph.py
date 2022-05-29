@@ -26,7 +26,7 @@ class Graph(AbstractGraph):
     """
     A simple implementation of Graph based on an external graph library.
 
-    The underlying implemnetation is based on igraph and supports conversion to
+    The underlying implementation is based on igraph and supports conversion to
     networkx, but this is an implementation detail and could be changed in the future.
     """
 

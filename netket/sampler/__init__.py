@@ -49,7 +49,7 @@ from . import rules
 Metropolis = MetropolisSampler
 MetropolisNumpy = MetropolisSamplerNumpy
 
-# Replacements for effficiency
+# Replacements for efficiency
 # MetropolisHamiltonian = MetropolisHamiltonianNumpy
 MetropolisCustom = MetropolisCustomNumpy
 

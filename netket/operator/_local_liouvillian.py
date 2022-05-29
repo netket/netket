@@ -29,7 +29,6 @@ import netket.jax as nkjax
 from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 from ._abstract_super_operator import AbstractSuperOperator
-from ._local_operator_helpers import _dtype
 
 
 class LocalLiouvillian(AbstractSuperOperator):
@@ -219,7 +218,7 @@ class LocalLiouvillian(AbstractSuperOperator):
         xc_prime, mels_c = self._Hnh.get_conn_flattened(xc, sections_c)
 
         if pad:
-            # if else to accomodate for batches of 1 element, because
+            # if else to accommodate for batches of 1 element, because
             # sections don't start from 0-index...
             # TODO: if we ever switch to 0-indexing, remove this.
             if batch_size > 1:
@@ -440,7 +439,7 @@ class LocalLiouvillian(AbstractSuperOperator):
                 return drho.reshape(-1)
 
         else:
-            # This function defines the product Liouvillian x densitymatrix, without
+            # This function defines the product Liouvillian x density matrix, without
             # constructing the full density matrix (passed as a vector M^2).
 
             # An extra row is added at the bottom of the therefore M^2+1 long array,

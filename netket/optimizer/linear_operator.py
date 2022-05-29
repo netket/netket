@@ -85,7 +85,7 @@ class LinearOperator:
         self, solve_fun: SolverT, y: PyTree, *, x0: Optional[PyTree] = None, **kwargs
     ) -> PyTree:
         """
-        Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterataive solver.
+        Solve the linear system x=⟨S⟩⁻¹⟨y⟩ with the chosen iterative solver.
 
         Args:
             y: the vector y in the system above.

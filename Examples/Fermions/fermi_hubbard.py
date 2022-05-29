@@ -58,7 +58,7 @@ sa = nk.sampler.MetropolisExchange(hi, graph=disj_graph, n_chains=16)
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM
 # we take complex parameters, since it learns sign structures more easily, and for even fermion number, the wave function might be complex
-ma = nk.models.RBM(alpha=1, dtype=complex, use_visible_bias=False)
+ma = nk.models.RBM(alpha=1, param_dtype=complex, use_visible_bias=False)
 vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=100, n_samples=512)
 
 # we will use sgd with Stochastic Reconfiguration

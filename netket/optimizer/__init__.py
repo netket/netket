@@ -68,7 +68,7 @@ def Momentum(learning_rate: float, beta: float = 0.9, nesterov: bool = False):
         :math:`G(\mathbf{p})`, the updates for the parameter :math:`p_k` and
         corresponding component of the momentum :math:`m_k` are
 
-        .. math:: 
+        .. math::
 
             m^\prime_k &= \beta m_k + (1-\beta)G_k(\mathbf{p})\\
             p^\prime_k &= \eta m^\prime_
@@ -170,7 +170,7 @@ def RmsProp(
        learning_rate: The learning rate :math:`\eta`
        beta: Exponential decay rate.
        epscut: Small cutoff value.
-       centered: whever to center the moving average.
+       centered: whether to center the moving average.
 
     Examples:
        RmsProp optimizer.

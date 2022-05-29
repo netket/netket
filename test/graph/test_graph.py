@@ -601,7 +601,7 @@ def test_grid_translations():
 @pytest.mark.parametrize("n_dim", [1, 2, 3, 4])
 def test_grid_point_group_dim(n_dim):
     # point group of n-dimensional Hypercube should be the
-    # hyperoctaherdal group of order 2^n n!, see
+    # hyperoctahedral group of order 2^n n!, see
     # https://en.wikipedia.org/wiki/Hyperoctahedral_group
     point_group = Hypercube(length=3, n_dim=n_dim).point_group()
     order = 2**n_dim * math.factorial(n_dim)
