@@ -514,7 +514,7 @@ def MetropolisExchange(
     numbers, thus global quantities such as the sum of the local quantum numbers
     are conserved during the sampling.
     This scheme should be used then only when sampling in a
-    region where :math:`\sum_i s_i = \mathrm{constant} ` is needed,
+    region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
     otherwise the sampling would be strongly not ergodic.
 
     Args:

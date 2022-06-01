@@ -95,7 +95,7 @@ def AdaGrad(
     initial_accumulator_value: float = 0.1,
 ):
     r"""AdaGrad Optimizer.
-        In many cases, in Sgd the learning rate :math`\eta` should
+        In many cases, in Sgd the learning rate :math:`\eta` should
         decay as a function of training iteration to prevent overshooting
         as the optimum is approached. AdaGrad is an adaptive learning
         rate algorithm that automatically scales the learning rate with a sum
