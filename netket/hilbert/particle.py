@@ -17,9 +17,8 @@ from .continuous_hilbert import ContinuousHilbert
 
 
 class Particle(ContinuousHilbert):
-    r"""Hilbert space derived from AbstractParticle for
-    Fermions.
-    """
+    r"""Hilbert space derived from ContinuousHilbert defining N particles
+    in continuous space with or without periodic boundary conditions."""
 
     def __init__(
         self,

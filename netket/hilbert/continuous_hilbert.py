@@ -31,6 +31,7 @@ class ContinuousHilbert(AbstractHilbert):
 
         Args:
             domain: range of the continuous quantum numbers
+            pbc: Whether or not to use periodic boundary conditions
         """
         self._extent = tuple(domain)
         self._pbc = tuple(pbc)
