@@ -682,8 +682,8 @@ def dict_compare(d1, d2):
     d2_keys = set(d2.keys())
     if d1_keys != d2_keys:
         return False
-    shared_keys = d1_keys.intersection(d2_keys)
-    return all(np.isclose(d1[o], d2[o]) for o in shared_keys)
+    # We checked that d1 and d2 have the same keys. Now check the values.
+    return all(np.isclose(d1[o], d2[o]) for o in d1_keys)
 
 
 def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1.0):
