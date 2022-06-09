@@ -23,7 +23,7 @@
 
 ### Bug Fixes
 * Fixed bug where a `nk.operator.LocalOperator` representing the identity would lead to a crash. [#1197](https://github.com/netket/netket/pull/1197)
-
+* Use np.isclose to allow for some tolerance in checking the hermicity of a `nkx.operator.FermionOperator2nd` [#1233](https://github.com/netket/netket/pull/1233)
 
 ## NetKet 3.4.2 (BugFixes & DepWarns again)
 

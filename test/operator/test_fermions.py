@@ -61,6 +61,15 @@ op_ferm["ordering"] = (
     True,
 )
 
+op_ferm["float_round"] = (
+    nkx.operator.FermionOperator2nd(
+        hi,
+        terms=("0^ 1", "1^ 0"),
+        weights=(0.15438015086600768 + 0j, 0.15438015086600765 + 0j),
+    ),
+    True,
+)
+
 
 @pytest.mark.parametrize(
     "op_ferm, is_hermitian",
