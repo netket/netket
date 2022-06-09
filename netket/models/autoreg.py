@@ -74,7 +74,6 @@ class AbstractARNN(nn.Module):
         """
         return self.conditionals(inputs)[:, index, :]
 
-    @abc.abstractmethod
     def conditionals(self, inputs: Array) -> Array:
         """
         Computes the conditional probabilities for each site to take each value.
@@ -96,10 +95,67 @@ class AbstractARNN(nn.Module):
           # it takes probability 0.3 to be spin down (local state index 0),
           # and probability 0.7 to be spin up (local state index 1).
         """
+        if inputs.ndim == 1:
+            inputs = jnp.expand_dims(inputs, axis=0)
+
+        log_psi = self._conditionals_log_psi(inputs)
+
+        return jnp.exp(self.machine_pow * log_psi.real)
+
+    def __call__(self, inputs: Array) -> Array:
+        """Returns log_psi."""
+
+        if inputs.ndim == 1:
+            inputs = jnp.expand_dims(inputs, axis=0)
+
+        idx = self.hilbert.states_to_local_indices(inputs)
+        idx = jnp.expand_dims(idx, axis=-1)
+
+        log_psi = self._conditionals_log_psi(inputs)
+
+        log_psi = jnp.take_along_axis(log_psi, idx, axis=-1)
+        log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
+        return log_psi
+
+    @abc.abstractmethod
+    def _conditionals_log_psi(self, inputs):
+        pass
+
+
+class AbstractFeedForwardARNN(AbstractARNN):
+    """
+    Base class for a variety of ARNN composed by a series of layers
+    with an activation function in between.
+
+    Subclasses must implement the `@setup` method and populate the
+    `._layers` attribute as well as have a `.activation` attribute and
+    a `.machine_pow`.
+    """
+
+    def _conditionals_log_psi(self: AbstractARNN, inputs: Array) -> Array:
+        """
+        Computes the log of the conditional wave-functions for each site if it takes each value.
+        See `AbstractARNN.conditionals`.
+        """
+        inputs = self.reshape_inputs(inputs)
+
+        x = jnp.expand_dims(inputs, axis=-1)
+
+        for i, layer in enumerate(self._layers):
+            if i > 0:
+                x = self.activation(x)
+            x = layer(x)
+
+        x = x.reshape((x.shape[0], -1, x.shape[-1]))
+        log_psi = _normalize(x, self.machine_pow)
+        return log_psi
+
+    def reshape_inputs(model: Any, inputs: Array) -> Array:
+        return inputs
 
 
 @deprecate_dtype
-class ARNNDense(AbstractARNN):
+class ARNNDense(AbstractFeedForwardARNN):
     """Autoregressive neural network with dense layers."""
 
     layers: int
@@ -143,15 +199,9 @@ class ARNNDense(AbstractARNN):
             for i in range(self.layers)
         ]
 
-    def conditionals(self, inputs: Array) -> Array:
-        return _conditionals(self, inputs)
-
-    def __call__(self, inputs: Array) -> Array:
-        return _call(self, inputs)
-
 
 @deprecate_dtype
-class ARNNConv1D(AbstractARNN):
+class ARNNConv1D(AbstractFeedForwardARNN):
     """Autoregressive neural network with 1D convolution layers."""
 
     layers: int
@@ -201,14 +251,8 @@ class ARNNConv1D(AbstractARNN):
             for i in range(self.layers)
         ]
 
-    def conditionals(self, inputs: Array) -> Array:
-        return _conditionals(self, inputs)
 
-    def __call__(self, inputs: Array) -> Array:
-        return _call(self, inputs)
-
-
-class ARNNConv2D(AbstractARNN):
+class ARNNConv2D(AbstractFeedForwardARNN):
     """Autoregressive neural network with 2D convolution layers."""
 
     layers: int
@@ -262,11 +306,8 @@ class ARNNConv2D(AbstractARNN):
             for i in range(self.layers)
         ]
 
-    def conditionals(self, inputs: Array) -> Array:
-        return _conditionals(self, inputs)
-
-    def __call__(self, inputs: Array) -> Array:
-        return _call(self, inputs)
+    def reshape_inputs(self, inputs: Array) -> Array:
+        return inputs.reshape((inputs.shape[0], self.L, self.L))
 
 
 def _normalize(log_psi: Array, machine_pow: int) -> Array:
@@ -276,62 +317,3 @@ def _normalize(log_psi: Array, machine_pow: int) -> Array:
     return log_psi - 1 / machine_pow * jax.scipy.special.logsumexp(
         machine_pow * log_psi.real, axis=-1, keepdims=True
     )
-
-
-def _conditionals_log_psi(model: AbstractARNN, inputs: Array) -> Array:
-    """
-    Computes the log of the conditional wave-functions for each site if it takes each value.
-    See `AbstractARNN.conditionals`.
-    """
-    inputs = _reshape_inputs(model, inputs)
-
-    x = jnp.expand_dims(inputs, axis=-1)
-
-    for i in range(model.layers):
-        if i > 0:
-            x = model.activation(x)
-        x = model._layers[i](x)
-
-    x = x.reshape((x.shape[0], -1, x.shape[-1]))
-    log_psi = _normalize(x, model.machine_pow)
-    return log_psi
-
-
-def _conditionals(model: AbstractARNN, inputs: Array) -> Array:
-    """
-    Computes the conditional probabilities for each site to take each value.
-    See `AbstractARNN.conditionals`.
-    """
-    if inputs.ndim == 1:
-        inputs = jnp.expand_dims(inputs, axis=0)
-
-    log_psi = _conditionals_log_psi(model, inputs)
-
-    p = jnp.exp(model.machine_pow * log_psi.real)
-    return p
-
-
-def _call(model: AbstractARNN, inputs: Array) -> Array:
-    """Returns log_psi."""
-
-    if inputs.ndim == 1:
-        inputs = jnp.expand_dims(inputs, axis=0)
-
-    idx = model.hilbert.states_to_local_indices(inputs)
-    idx = jnp.expand_dims(idx, axis=-1)
-
-    log_psi = _conditionals_log_psi(model, inputs)
-
-    log_psi = jnp.take_along_axis(log_psi, idx, axis=-1)
-    log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
-    return log_psi
-
-
-@dispatch
-def _reshape_inputs(model: ARNNConv2D, inputs: Array) -> Array:  # noqa: F811
-    return inputs.reshape((inputs.shape[0], model.L, model.L))
-
-
-@dispatch
-def _reshape_inputs(model: Any, inputs: Array) -> Array:  # noqa: F811
-    return inputs
