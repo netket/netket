@@ -669,8 +669,32 @@ def _check_hermitian(
     # check if hermitian by comparing the dictionaries
     dict_normal = dict(dict_normal)
     dict_hc_normal = dict(dict_hc_normal)
-    is_hermitian = dict_normal == dict_hc_normal
+
+    # compare dict up to a tolerance
+    is_hermitian = dict_compare(dict_normal, dict_hc_normal)
+
     return is_hermitian
+
+
+def dict_compare(d1, d2, rtol=1e-05, atol=1e-08, equal_nan=False):
+    """Compare two dicts and return True if their keys and values are all the same (up to some tolerance)"""
+    d1_keys = set(d1.keys())
+    d2_keys = set(d2.keys())
+    shared_keys = d1_keys.intersection(d2_keys)
+    added = d1_keys - d2_keys
+    if len(added) != 0:
+        return False
+    removed = d2_keys - d1_keys
+    if len(removed) != 0:
+        return False
+    modified = {
+        o: (d1[o], d2[o])
+        for o in shared_keys
+        if not np.isclose(d1[o], d2[o], rtol=rtol, atol=atol, equal_nan=equal_nan)
+    }
+    if len(modified) != 0:
+        return False
+    return True
 
 
 def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1.0):
