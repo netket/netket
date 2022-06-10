@@ -23,6 +23,7 @@ from jax.tree_util import tree_map
 
 from netket.logging import JsonLog
 from netket.utils import mpi
+from netket.callbacks import InvalidLossStopping
 
 
 def _to_iterable(maybe_iterable):
@@ -190,7 +191,7 @@ class AbstractVariationalDriver(abc.ABC):
         save_params_every=50,  # for default logger
         write_every=50,  # for default logger
         step_size=1,  # for default logger
-        callback=lambda *x: True,
+        callback=InvalidLossStopping,
     ):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
