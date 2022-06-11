@@ -16,6 +16,8 @@ from .state import MCState
 
 from . import expect
 from . import expect_grad
+from . import expect_forces
 
 from . import expect_chunked
 from . import expect_grad_chunked
+from . import expect_forces_chunked
