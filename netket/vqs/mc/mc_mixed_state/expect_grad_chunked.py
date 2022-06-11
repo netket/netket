@@ -15,7 +15,7 @@
 from netket.operator import AbstractOperator
 from netket.utils.dispatch import Bool
 
-from netket.vqs import expect_and_grad
+from netket.vqs import expect_and_grad, expect_and_forces
 
 from .state import MCMixedState
 
@@ -31,3 +31,15 @@ def expect_and_grad_nochunking(
     **kwargs,
 ):
     return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)
+
+
+# If batch_size is None, ignore it and remove it from signature
+@expect_and_forces.dispatch
+def expect_and_forces_nochunking(
+    vstate: MCMixedState,
+    operator: AbstractOperator,
+    chunk_size: None,
+    *args,
+    **kwargs,
+):
+    return expect_and_forces(vstate, operator, *args, **kwargs)
