@@ -15,6 +15,8 @@
 from typing import Callable, Optional, Sequence, Union
 import warnings
 
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 import jax.experimental.host_callback as hcb
@@ -507,12 +509,17 @@ def odefun(state: MCState, driver: TDVP, t, w, *, stage=0):  # noqa: F811
     state.parameters = w
     state.reset()
 
-    driver._loss_stats, driver._loss_grad = state.expect_and_grad(
-        driver.generator(t),
-        use_covariance=True,
+    op_t = driver.generator(t)
+
+    driver._loss_stats, driver._loss_forces = state.expect_and_forces(
+        op_t,
     )
-    driver._loss_grad = jax.tree_map(
-        lambda x: driver._loss_grad_factor * x, driver._loss_grad
+    driver._loss_grad = _map_parameters(
+        driver._loss_forces,
+        state.parameters,
+        driver._loss_grad_factor,
+        driver.propagation_type,
+        type(state),
     )
 
     qgt = driver.qgt(driver.state)
@@ -530,6 +537,48 @@ def odefun(state: MCState, driver: TDVP, t, w, *, stage=0):  # noqa: F811
     )
 
     return driver._dw
+
+
+@partial(jax.jit, static_argnums=(3, 4))
+def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, state_T):
+    # pars_f, _ = jax.tree_flatten(jax.tree_map(jnp.iscomplexobj, parameters))
+    # if all(pars_f):
+    #    all_complex = True
+    # else:
+    #    all_complex = False
+    #
+    # take_real = False
+    #
+    # if issubclass(state_T, VariationalMixedState):
+    #    # assuming Lindblad Dynamics
+    #    # TODO: support density-matrix imaginary time evolution
+    #    if propagation_type == "real":
+    #        loss_grad_factor = 1.0
+    #    else:
+    #        raise ValueError(
+    #            "only real-time Lindblad evolution is supported for " "mixed states"
+    #        )
+    # else:
+    #    if propagation_type == "real":
+    #        loss_grad_factor = -1.0j
+    #    elif propagation_type == "imag":
+    #        loss_grad_factor = -1.0
+    #    else:
+    #        raise ValueError("propagation_type must be one of 'real', 'imag'")
+
+    forces = jax.tree_map(
+        lambda x, target: loss_grad_factor * x,
+        forces,
+        parameters,
+    )
+
+    forces = jax.tree_map(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
+        forces,
+        parameters,
+    )
+
+    return forces
 
 
 def odefun_host_callback(state, driver, *args, **kwargs):
