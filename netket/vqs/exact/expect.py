@@ -63,10 +63,9 @@ def expect(vstate: ExactState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
 
 
 @dispatch
-def expect_and_grad(
+def expect_and_forces(
     vstate: ExactState,
     Ô: DiscreteOperator,
-    use_covariance: TrueT,
     *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
@@ -76,7 +75,7 @@ def expect_and_grad(
     Ψ = vstate.to_array()
     OΨ = O @ Ψ
 
-    _, Ō_grad, expval_O, new_model_state = _exp_grad(
+    _, Ō_grad, expval_O, new_model_state = _exp_forces(
         vstate._apply_fun,
         mutable,
         vstate.parameters,
@@ -93,7 +92,7 @@ def expect_and_grad(
 
 
 @partial(jax.jit, static_argnums=(0, 1))
-def _exp_grad(
+def _exp_forces(
     model_apply_fun: Callable,
     mutable: bool,
     parameters: PyTree,
@@ -132,3 +131,28 @@ def _exp_grad(
         expval_O,
         new_model_state,
     )
+
+
+@dispatch
+def expect_and_grad(
+    vstate: ExactState,
+    Ô: DiscreteOperator,
+    use_covariance: TrueT,
+    *,
+    mutable: Any,
+) -> Tuple[Stats, PyTree]:
+    Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
+    Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
+    return Ō, Ō_grad
+
+
+@jax.jit
+def _force_to_grad(Ō_grad, parameters):
+    Ō_grad = jax.tree_map(
+        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
+            target.dtype
+        ),
+        Ō_grad,
+        parameters,
+    )
+    return Ō_grad
