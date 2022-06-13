@@ -144,13 +144,11 @@ class HDF5Log(RuntimeLog):
                 or flush_anyway
             ):
                 self._flush_log(step)
-                print(f"step={step}: flushing log")
             if (
                 self._steps_notflushed_params % self._save_params_every == 0
                 or step == old_step - 1
             ):
                 self._flush_params(step, variational_state)
-                print(f"step={step}: flushing params")
 
         self._old_step = step
         self._steps_notflushed_log += 1
