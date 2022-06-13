@@ -1,12 +1,15 @@
 import os
 import time
-import h5py
 import numpy as np
 from os import path as _path
 from ..logging import RuntimeLog
 from ..stats import Stats
 from ..jax import tree_ravel
 
+try:
+    import h5py
+except ImportError:
+    pass
 
 def _allkeys(obj):
     "Recursively find all keys in an h5py.Group."
@@ -77,8 +80,8 @@ class HDF5Log(RuntimeLog):
             autoflush_cost: Maximum fraction of runtime that can be dedicated to
                 serializing data. Defaults to 0.005 (0.5 per cent)
         """
+        import h5py
         super().__init__()
-
 
         if not ((mode == "write") or (mode == "append") or (mode == "fail")):
             raise ValueError(
