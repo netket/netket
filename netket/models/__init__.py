@@ -19,7 +19,13 @@ from .mps import MPSPeriodic
 from .gaussian import Gaussian
 from .deepset import DeepSetRelDistance
 from .ndm import NDM
-from .autoreg import AbstractARNN, ARNNDense, ARNNConv1D, ARNNConv2D as _ARNNConv2D
+from .autoreg import (
+    AbstractARNN,
+    ARNNDense,
+    ARNNDenseModPhase,
+    ARNNConv1D,
+    ARNNConv2D as _ARNNConv2D,
+)
 from .fast_autoreg import (
     FastARNNDense,
     FastARNNConv1D,
