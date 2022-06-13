@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .runtime_log import RuntimeLog
+from .hdf5_log import HDF5Log
 from .json_log import JsonLog
 from .state_log import StateLog
 from .tensorboard import TensorBoardLog, TBLog
