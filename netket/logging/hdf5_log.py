@@ -146,22 +146,16 @@ class HDF5Log(RuntimeLog):
     def __call__(self, step, log_data, variational_state):
         if self._writer is None:
             self._writer = h5py.File(self._file_name, self._file_mode)
-        self._flush_log(step, log_data)
-        if self._save_params and step % self._save_params_every == 0:
-            self._flush_params(step, variational_state)
-
-    def _flush_log(self, step, log_data):
         tree_log(log_data, "data", self._writer, iter=step)
-
-    def _flush_params(self, step, variational_state):
-        variables = variational_state.variables.unfreeze()
-        params = variables.pop('params')
-        binary_data = to_bytes(variables)
-        tree = {
-            "variables": binary_data,
-            "parameters": params
-        }
-        tree_log(tree, "variational_state", self._writer, iter=step)
+        if self._save_params and step % self._save_params_every == 0:
+            variables = variational_state.variables.unfreeze()
+            params = variables.pop('params')
+            binary_data = to_bytes(variables)
+            tree = {
+                "variables": binary_data,
+                "parameters": params
+            }
+            tree_log(tree, "variational_state", self._writer, iter=step)
 
     def flush(self, variational_state=None):
         """
@@ -170,10 +164,8 @@ class HDF5Log(RuntimeLog):
         Args:
             variational_state: optionally also writes the parameters of the machine.
         """
-        self._flush_log()
-
-        if variational_state is not None:
-            self._flush_params(variational_state)
+        if self._writer is not None:
+            self._writer.flush()
 
     def __repr__(self):
         _str = f"HDF5Log('{self._prefix}', mode={self._file_mode}"
