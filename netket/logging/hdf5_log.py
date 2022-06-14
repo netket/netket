@@ -9,9 +9,6 @@ except ImportError:
     pass
 
 
-def _exists_hdf5(prefix):
-    return os.path.exists(prefix + ".hdf5")
-
 _mode_shorthands = {
     'write': 'w',
     'append': 'a',
@@ -126,7 +123,7 @@ class HDF5Log(RuntimeLog):
             )
         mode = _mode_shorthands[mode]
 
-        file_exists = _exists_hdf5(output_prefix)
+        file_exists = os.path.exists(output_prefix + ".hdf5")
 
         if file_exists and mode == "x":
             raise ValueError(
