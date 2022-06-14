@@ -17,6 +17,8 @@ from textwrap import dedent
 
 import numpy as np
 
+from netket.utils.types import Array
+
 from .abstract_hilbert import AbstractHilbert
 
 max_states = np.iinfo(np.int32).max
@@ -205,6 +207,27 @@ class DiscreteHilbert(AbstractHilbert):
         numbers = np.arange(0, self.n_states, dtype=np.int64)
 
         return self.numbers_to_states(numbers, out)
+
+    def states_to_local_indices(self, x: Array):
+        r"""Returns a tensor with the same shape of `x`, where all local
+        values are converted to indices in the range `0...self.shape[i]`.
+        This function is guaranteed to be jax-jittable.
+
+        For the `Fock` space this returns `x`, but for other hilbert spaces
+        such as `Spin` this returns an array of indices.
+
+        NOTE: This function is experimental. Use at your own risk.
+
+        Args:
+            x: a tensor containing samples from this hilbert space
+
+        Returns:
+            a tensor containing integer indices into the local hilbert
+        """
+        raise NotImplementedError(
+            "states_to_local_indices(self, x) is not "
+            f"implemented for Hilbert space {self} of type {type(self)}"
+        )
 
     @property
     def is_indexable(self) -> bool:
