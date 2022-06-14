@@ -50,8 +50,7 @@ def tree_log(tree, root, data, *, iter=None):
 
     elif isinstance(tree, dict):
         for key, value in tree.items():
-            tree_log(iter, f"{root}/{key}/iter", data)
-            tree_log(value, f"{root}/{key}", data)  # noqa: F722
+            tree_log(value, f"{root}/{key}", data, iter=iter)  # noqa: F722
 
     elif hasattr(tree, "to_compound"):
         tree_log(iter, f"{root}/iter", data)
@@ -62,6 +61,9 @@ def tree_log(tree, root, data, *, iter=None):
         tree_log(tree.to_dict(), root, data)  # noqa: F722
 
     else:
+        if iter is not None:
+            tree_log(iter, f"{root}/iter", data)
+            root = f"{root}/value"
         value = np.asarray(tree)
         if root in data:
             f_value = data[root]
@@ -156,7 +158,7 @@ class HDF5Log(RuntimeLog):
         params = variables.pop('params')
         binary_data = to_bytes(variables)
         tree = {
-            "variables": {'value': binary_data},
+            "variables": binary_data,
             "parameters": params
         }
         tree_log(tree, "variational_state", self._file_open, iter=step)
