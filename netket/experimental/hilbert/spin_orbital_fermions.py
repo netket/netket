@@ -163,6 +163,9 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         else:
             return round(sz + self.spin)
 
+    def states_to_local_indices(self, x):
+        return self._fock.states_to_local_indices(x)
+
     def _get_index(self, orb: int, sz: float = None):
         """go from (site, spin_projection) indices to index in the hilbert space"""
         spin_idx = self._spin_index(sz)

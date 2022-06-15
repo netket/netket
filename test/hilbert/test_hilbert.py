@@ -333,8 +333,6 @@ def _states_to_local_indices_jit(hilb, x):
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_states_to_local_indices(hi):
-    if isinstance(hi, nkx.hilbert.SpinOrbitalFermions):
-        pytest.xfail()
 
     x = hi.random_state(jax.random.PRNGKey(3), (200))
     idxs = hi.states_to_local_indices(x)
