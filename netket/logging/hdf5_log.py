@@ -68,7 +68,7 @@ def tree_log(tree, root, data, *, iter=None):
             data.create_dataset(root, data=[value], maxshape=maxshape)
 
 
-class HDF5Log(RuntimeLog):
+class HDF5Log:
     r"""
     HDF5 Logger, that can be passed with keyword argument `logger` to Monte
     Carlo drivers in order to serialize the output data of the simulation.
