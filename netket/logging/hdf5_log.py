@@ -69,7 +69,7 @@ def tree_log(tree, root, data, *, iter=None):
 
 
 class HDF5Log(RuntimeLog):
-    """
+    r"""
     HDF5 Logger, that can be passed with keyword argument `logger` to Monte
     Carlo drivers in order to serialize the output data of the simulation.
 
@@ -88,6 +88,13 @@ class HDF5Log(RuntimeLog):
 
     Data can be deserialized by calling :code:`f = h5py.File(filename, 'r')` and
     inspecting the datasets as a dictionary, i.e. :code:`f['data/energy/Mean']`
+    
+    .. note::
+        The API of this logger is covered by our Semantic Versioning API guarantees. However, the structure of the
+        logged files is not, and might change in the future while we iterate on this logger. If you think that we
+        could improve the output format of this logger, please open an issue on the NetKet repository and let us
+        know.
+    
     """
 
     def __init__(
