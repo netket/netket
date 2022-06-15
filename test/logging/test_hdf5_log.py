@@ -36,7 +36,7 @@ def test_hdf5log(vstate, tmp_path):
 
     path = str(tmp_path) + "/dir1/dir2"
 
-    log = nk.logging.HDF5Log(path+'/output')
+    log = nk.logging.HDF5Log(path + "/output")
 
     for i in range(30):
         log(i, {"Energy": jnp.array(1.0), "complex": jnp.array(1.0 + 1j)}, vstate)
@@ -47,13 +47,14 @@ def test_hdf5log(vstate, tmp_path):
     files = glob.glob(path + "/*")
     assert len(files) >= 1
 
-    f = h5py.File(files[0], 'r')
-    energy = np.array(f['data/Energy/value'])
-    complex = np.array(f['data/complex/value'])
-    params = np.array(f['variational_state/parameters/Dense/kernel/value'])
+    f = h5py.File(files[0], "r")
+    energy = np.array(f["data/Energy/value"])
+    complex = np.array(f["data/complex/value"])
+    params = np.array(f["variational_state/parameters/Dense/kernel/value"])
     assert energy.shape[0] == 30
     assert complex.shape[0] == 30
     assert params.shape[0] == 30
+
 
 def test_lazy_init(tmp_path):
     # skip test if hdf5py not installed

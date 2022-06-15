@@ -9,11 +9,8 @@ except ImportError:
     pass
 
 
-_mode_shorthands = {
-    'write': 'w',
-    'append': 'a',
-    'fail': 'x'
-}
+_mode_shorthands = {"write": "w", "append": "a", "fail": "x"}
+
 
 def tree_log(tree, root, data, *, iter=None):
     """
@@ -29,11 +26,11 @@ def tree_log(tree, root, data, *, iter=None):
 
     if tree is None:
         return
-    
+
     elif isinstance(tree, list):
         for (i, val) in enumerate(tree):
             tree_log(val, f"{root}/{i}", data, iter=iter)
-    
+
     # handle namedtuples
     elif isinstance(tree, list) and hasattr(tree, "_fields"):
         tree_log(iter, f"{root}/iter", data)
@@ -64,11 +61,12 @@ def tree_log(tree, root, data, *, iter=None):
         value = np.asarray(tree)
         if root in data:
             f_value = data[root]
-            f_value.resize(f_value.shape[0]+1, axis=0)
+            f_value.resize(f_value.shape[0] + 1, axis=0)
             f_value[-1] = value
         else:
-            maxshape = (None, ) + value.shape
+            maxshape = (None,) + value.shape
             data.create_dataset(root, data=[value], maxshape=maxshape)
+
 
 class HDF5Log(RuntimeLog):
     """
@@ -82,7 +80,7 @@ class HDF5Log(RuntimeLog):
     - arrays are stored in the same way, but with values having shape (n_steps, *array_shape),
     - netket.stats.Stats are stored as a group containing each field (Mean, Variance, etc...) as a separate dataset.
 
-    Importantly, each group has a dataset `iters`, which tracks the iteration number of the logged quantity.  
+    Importantly, each group has a dataset `iters`, which tracks the iteration number of the logged quantity.
 
     If the model state is serialized, then it is serialized as a dataset in the group `parameters/`.
     The target of the serialization are the parameters of the variational state,
@@ -114,6 +112,7 @@ class HDF5Log(RuntimeLog):
                 flushed to file
         """
         import h5py
+
         super().__init__()
 
         if not ((mode == "write") or (mode == "append") or (mode == "fail")):
@@ -137,7 +136,7 @@ class HDF5Log(RuntimeLog):
 
         self._prefix = output_prefix
         self._file_mode = mode
-        self._file_name = self._prefix+'.hdf5'
+        self._file_name = self._prefix + ".hdf5"
         self._writer = None
 
         self._save_params = save_params
@@ -152,12 +151,9 @@ class HDF5Log(RuntimeLog):
 
         if self._steps_notsaved_params % self._save_params_every == 0:
             variables = variational_state.variables.unfreeze()
-            params = variables.pop('params')
+            params = variables.pop("params")
             binary_data = to_bytes(variables)
-            tree = {
-                "variables": binary_data,
-                "parameters": params
-            }
+            tree = {"variables": binary_data, "parameters": params}
             tree_log(tree, "variational_state", self._writer, iter=step)
             self._steps_notsaved_params = 0
 
@@ -176,4 +172,3 @@ class HDF5Log(RuntimeLog):
     def __repr__(self):
         _str = f"HDF5Log('{self._prefix}', mode={self._file_mode}"
         return _str
-    
