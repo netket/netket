@@ -12,6 +12,7 @@
 
 * The method `MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
 * The permutation equivariant {class}`nk.models.DeepSetRelDistance` for use with particles in periodic potentials has been added together with an example. [#1199](https://github.com/netket/netket/pull/1199)
+* The class `HDF5Log` has been added, which logs data and variational state into a single HDF5 file. [#1200](https://github.com/netket/netket/issues/1200)
 
 ### Dependencies
 * NetKet now requires at least Flax v0.5

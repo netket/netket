@@ -24,6 +24,7 @@ This module contains the loggers that can be used with the optimization drivers.
 
    RuntimeLog
    JsonLog
+   HDF5Log
    StateLog
    TensorBoardLog
 

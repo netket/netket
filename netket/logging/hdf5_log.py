@@ -82,19 +82,20 @@ class HDF5Log:
 
     Importantly, each group has a dataset `iters`, which tracks the iteration number of the logged quantity.
 
-    If the model state is serialized, then it is serialized as a dataset in the group `parameters/`.
-    The target of the serialization are the parameters of the variational state,
-    which are stored in a dataset `parameters/value` as a flattened array.
+    If the model state is serialized, then it is serialized as a dataset in the group `variational_state/`.
+    The target of the serialization is the parameters PyTree of the variational state (stored in the group
+    `variational_state/parameters`), and the rest of the variational state variables (stored in the group
+    `variational_state/model_state`)
 
     Data can be deserialized by calling :code:`f = h5py.File(filename, 'r')` and
     inspecting the datasets as a dictionary, i.e. :code:`f['data/energy/Mean']`
-    
+
     .. note::
         The API of this logger is covered by our Semantic Versioning API guarantees. However, the structure of the
         logged files is not, and might change in the future while we iterate on this logger. If you think that we
         could improve the output format of this logger, please open an issue on the NetKet repository and let us
         know.
-    
+
     """
 
     def __init__(
