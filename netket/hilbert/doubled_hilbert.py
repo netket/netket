@@ -142,6 +142,9 @@ class DoubledHilbert(DiscreteHilbert):
 
         return out
 
+    def states_to_local_indices(self, x):
+        return self.physical.states_to_local_indices(x)
+
     def __repr__(self):
         return "DoubledHilbert({})".format(self.physical)
 
