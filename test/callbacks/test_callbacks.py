@@ -1,8 +1,18 @@
+from sympy import Dummy
 import netket as nk
 import time
 
 SEED = 3141592
 L = 8
+
+
+class DummyDriver:
+    _loss_name: str = "loss"
+
+
+class DummyLogEntry:
+    def __init__(self, mean):
+        self.mean = mean
 
 
 def _vmc(n_iter=20):
@@ -54,3 +64,13 @@ def test_timeout():
     # There is a lag in the first iteration of about 3 seconds
     # But the timeout works!
     assert abs(timeout - runtime) < 3
+
+
+def test_earlystopping_doesnt_get_stuck_with_patience():
+    loss_values = [10] + [9] * 11 + [1] * 4
+    es = nk.callbacks.EarlyStopping(patience=10)
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+    assert es._best_val == 9
