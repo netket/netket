@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from ..logging import RuntimeLog
 from flax.serialization import to_bytes
 
 try:

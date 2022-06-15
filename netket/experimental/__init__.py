@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ["driver", "dynamics", "sampler", "vqs", "TDVP", "hilbert", "operator"]
+__all__ = ["driver", "dynamics", "sampler", "vqs", "TDVP", "hilbert", "operator", "logging"]
 
 from . import hilbert
 from . import operator
@@ -20,6 +20,7 @@ from . import driver
 from . import dynamics
 from . import sampler
 from . import vqs
+from . import logging
 
 from .driver import TDVP
 

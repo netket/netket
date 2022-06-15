@@ -4,6 +4,7 @@ import glob
 
 import numpy as np
 import netket as nk
+import netket.experimental as nkx
 from jax.nn.initializers import normal
 from jax import numpy as jnp
 
@@ -36,7 +37,7 @@ def test_hdf5log(vstate, tmp_path):
 
     path = str(tmp_path) + "/dir1/dir2"
 
-    log = nk.logging.HDF5Log(path + "/output")
+    log = nkx.logging.HDF5Log(path + "/output")
 
     for i in range(30):
         log(i, {"Energy": jnp.array(1.0), "complex": jnp.array(1.0 + 1j)}, vstate)
@@ -64,7 +65,7 @@ def test_lazy_init(tmp_path):
 
     path = str(tmp_path) + "/dir1"
 
-    log = nk.logging.HDF5Log(path)
+    log = nkx.logging.HDF5Log(path)
 
     files = glob.glob(path + "/*")
     assert len(files) == 0
