@@ -129,8 +129,8 @@ class HDF5Log(RuntimeLog):
             )
         mode = _mode_shorthands[mode]
 
-    if output_prefix.endswith(".hdf5"):
-        output_prefix = output_prefix[:-5]
+        if output_prefix.endswith(".hdf5"):
+            output_prefix = output_prefix[:-5]
 
         file_exists = os.path.exists(output_prefix + ".hdf5")
 
