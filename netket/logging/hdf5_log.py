@@ -130,10 +130,10 @@ class HDF5Log:
             )
         mode = _mode_shorthands[mode]
 
-        if output_prefix.endswith(".hdf5"):
+        if output_prefix.endswith(".h5"):
             output_prefix = output_prefix[:-5]
 
-        file_exists = os.path.exists(output_prefix + ".hdf5")
+        file_exists = os.path.exists(output_prefix + ".h5")
 
         if file_exists and mode == "x":
             raise ValueError(
@@ -147,7 +147,7 @@ class HDF5Log:
 
         self._prefix = output_prefix
         self._file_mode = mode
-        self._file_name = self._prefix + ".hdf5"
+        self._file_name = self._prefix + ".h5"
         self._writer = None
 
         self._save_params = save_params
