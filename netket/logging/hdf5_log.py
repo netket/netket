@@ -97,7 +97,7 @@ class HDF5Log(RuntimeLog):
         output_prefix: str,
         mode: str = "write",
         save_params: bool = True,
-        save_params_every: int = 50
+        save_params_every: int = 1,
     ):
         """
         Construct a HDF5 Logger.
@@ -142,12 +142,15 @@ class HDF5Log(RuntimeLog):
 
         self._save_params = save_params
         self._save_params_every = save_params_every
+        self._steps_notsaved_params = 0
 
     def __call__(self, step, log_data, variational_state):
         if self._writer is None:
             self._writer = h5py.File(self._file_name, self._file_mode)
+
         tree_log(log_data, "data", self._writer, iter=step)
-        if self._save_params and step % self._save_params_every == 0:
+
+        if self._steps_notsaved_params % self._save_params_every == 0:
             variables = variational_state.variables.unfreeze()
             params = variables.pop('params')
             binary_data = to_bytes(variables)
@@ -156,6 +159,9 @@ class HDF5Log(RuntimeLog):
                 "parameters": params
             }
             tree_log(tree, "variational_state", self._writer, iter=step)
+            self._steps_notsaved_params = 0
+
+        self._steps_notsaved_params += 1
 
     def flush(self, variational_state=None):
         """
