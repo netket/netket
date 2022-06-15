@@ -50,10 +50,12 @@ def test_hdf5log(vstate, tmp_path):
     f = h5py.File(files[0], "r")
     energy = np.array(f["data/Energy/value"])
     complex = np.array(f["data/complex/value"])
-    params = np.array(f["variational_state/parameters/Dense/kernel/value"])
+    params = np.array(f["variational_state/parameters/Dense/kernel"])
+    iters = np.array(f["variational_state/iter"])
     assert energy.shape[0] == 30
     assert complex.shape[0] == 30
     assert params.shape[0] == 30
+    assert iters.shape[0] == 30
 
 
 def test_lazy_init(tmp_path):

@@ -122,6 +122,9 @@ class HDF5Log(RuntimeLog):
             )
         mode = _mode_shorthands[mode]
 
+    if output_prefix.endswith(".hdf5"):
+        output_prefix = output_prefix[:-5]
+
         file_exists = os.path.exists(output_prefix + ".hdf5")
 
         if file_exists and mode == "x":
@@ -153,8 +156,8 @@ class HDF5Log(RuntimeLog):
             variables = variational_state.variables.unfreeze()
             params = variables.pop("params")
             binary_data = to_bytes(variables)
-            tree = {"variables": binary_data, "parameters": params}
-            tree_log(tree, "variational_state", self._writer, iter=step)
+            tree = {"model_state": binary_data, "parameters": params, "iter": step}
+            tree_log(tree, "variational_state", self._writer)
             self._steps_notsaved_params = 0
 
         self._steps_notsaved_params += 1
