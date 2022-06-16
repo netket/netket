@@ -155,7 +155,8 @@ class HDF5Log:
 
     def __call__(self, step, log_data, variational_state):
         if self._writer is None:
-            self._writer = h5py.File(self._file_name, self._file_mode)
+            self._writer = h5py.File(self._file_name, self._file_mode, libver='latest')
+            self._writer.swmr_mode = True
 
         tree_log(log_data, "data", self._writer, iter=step)
 
@@ -167,6 +168,7 @@ class HDF5Log:
             tree_log(tree, "variational_state", self._writer)
             self._steps_notsaved_params = 0
 
+        self._writer.flush()
         self._steps_notsaved_params += 1
 
     def flush(self, variational_state=None):
