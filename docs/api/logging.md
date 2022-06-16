@@ -24,8 +24,9 @@ This module contains the loggers that can be used with the optimization drivers.
 
    RuntimeLog
    JsonLog
-   HDF5Log
    StateLog
    TensorBoardLog
 
 ```
+
+In the [netket.experimental](api-experimental) module there are also some experimental loggers such as the {class}`HDF5 logger <netket.experimental.logging.HDF5Log>`

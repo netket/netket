@@ -1,12 +1,20 @@
+# Copyright 2022 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import numpy as np
 from flax.serialization import to_bytes
-
-try:
-    import h5py
-except ImportError:
-    pass
-
 
 _mode_shorthands = {"write": "w", "append": "a", "fail": "x"}
 
@@ -99,7 +107,7 @@ class HDF5Log:
 
     def __init__(
         self,
-        output_prefix: str,
+        path: str,
         mode: str = "write",
         save_params: bool = True,
         save_params_every: int = 1,
@@ -108,9 +116,9 @@ class HDF5Log:
         Construct a HDF5 Logger.
 
         Args:
-            output_prefix: the name of the output files before the extension
+            path: the name of the output files before the extension
             mode: Specify the behaviour in case the file already exists at this
-                output_prefix. Options are
+                path. Options are
                 - `[w]rite`: (default) overwrites file if it already exists;
                 - `[x]` or `fail`: fails if file already exists;
             save_params: bool flag indicating whether variables of the variational state
@@ -129,33 +137,35 @@ class HDF5Log:
             )
         mode = _mode_shorthands[mode]
 
-        if output_prefix.endswith(".h5"):
-            output_prefix = output_prefix[:-5]
+        if not path.endswith((".h5", ".hdf5")):
+            path = path + ".h5"
 
-        file_exists = os.path.exists(output_prefix + ".h5")
-
-        if file_exists and mode == "x":
+        if os.path.exists(path) and mode == "x":
             raise ValueError(
                 "Output file already exists. Either delete it manually or"
-                "change `output_prefix`."
+                "change `path`."
             )
 
-        dir_name = os.path.dirname(output_prefix)
+        dir_name = os.path.dirname(path)
         if dir_name != "":
             os.makedirs(dir_name, exist_ok=True)
 
-        self._prefix = output_prefix
         self._file_mode = mode
-        self._file_name = self._prefix + ".h5"
+        self._file_name = path
         self._writer = None
 
         self._save_params = save_params
         self._save_params_every = save_params_every
         self._steps_notsaved_params = 0
 
+    def _init_output_file(self):
+        import h5py
+
+        self._writer = h5py.File(self._file_name, self._file_mode)
+
     def __call__(self, step, log_data, variational_state):
         if self._writer is None:
-            self._writer = h5py.File(self._file_name, self._file_mode)
+            self._init_output_file()
 
         tree_log(log_data, "data", self._writer, iter=step)
 
@@ -181,5 +191,5 @@ class HDF5Log:
             self._writer.flush()
 
     def __repr__(self):
-        _str = f"HDF5Log('{self._prefix}', mode={self._file_mode}"
+        _str = f"HDF5Log('{self._file_name}', mode={self._file_mode}"
         return _str
