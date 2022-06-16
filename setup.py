@@ -12,7 +12,7 @@ DEV_DEPENDENCIES = [
     "flake8==4.0.1",
 ]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]
-EXTRA_DEPENDENCIES = ["tensorboardx>=2.0.0", "openfermion>=1.0.0"]
+EXTRA_DEPENDENCIES = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0"]
 BASE_DEPENDENCIES = [
     "numpy~=1.19",
     "scipy>=1.5.3, <2",
