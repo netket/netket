@@ -127,6 +127,19 @@ config.define(
 )
 
 config.define(
+    "NETKET_MPI",
+    bool,
+    default=True,
+    help=dedent(
+        """
+        Used to forcibly shut-down MPI in NetKet. If this flag is
+        `0` `mpi4py` and `mpi4jax` will not be imported.
+        """
+    ),
+    runtime=False,
+)
+
+config.define(
     "NETKET_USE_PLAIN_RHAT",
     bool,
     default=False,
