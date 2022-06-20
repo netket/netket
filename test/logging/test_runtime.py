@@ -37,24 +37,35 @@ def test_serialize(vstate, tmp_path):
     log = nk.logging.RuntimeLog()
     e = vstate.expect(nk.operator.spin.sigmax(vstate.hilbert, 0))
 
-    for i in np.arange(0,1,0.1):
-        log(i, {'energy': e, 'vals':{'energy':e, 'random':1.0, 'matrix': jnp.array(np.random.rand(3))}}, None)
+    for i in np.arange(0, 1, 0.1):
+        log(
+            i,
+            {
+                "energy": e,
+                "vals": {
+                    "energy": e,
+                    "random": 1.0,
+                    "matrix": jnp.array(np.random.rand(3)),
+                },
+            },
+            None,
+        )
 
     log.serialize(tmp_path / "file_1")
     filename = tmp_path / "file_1.json"
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         data1 = orjson.loads(f.read())
 
     log.serialize(str(tmp_path) + "/file_2.log")
     filename = tmp_path / "file_2.log"
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         data2 = orjson.loads(f.read())
 
     filename = tmp_path / "file_3"
-    with open(filename, 'wb') as f:
+    with open(filename, "wb") as f:
         log.serialize(f)
 
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         data3 = orjson.loads(f.read())
 
     assert data1 == data2
@@ -70,7 +81,6 @@ def test_serialize(vstate, tmp_path):
     assert len(data1["vals"]["random"]["value"]) == 10
     assert len(data1["vals"]["random"]["iters"]) == 10
 
-    assert np.array(data1["vals"]["matrix"]["value"]).shape == (10,3)
+    assert np.array(data1["vals"]["matrix"]["value"]).shape == (10, 3)
 
     assert repr(log).startswith("RuntimeLog")
-
