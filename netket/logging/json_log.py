@@ -12,58 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import orjson
 import time
 
 import os
 from os import path as _path
-import numpy as np
 
 from flax import serialization
 
 from .runtime_log import RuntimeLog
 
 
-def _exists_json(prefix):
-    return _path.exists(prefix + ".log") or _path.exists(prefix + ".mpack")
-
-
-def default(obj):
-    if hasattr(obj, "to_json"):
-        return obj.to_json()
-    elif hasattr(obj, "to_dict"):
-        return obj.to_dict()
-    elif isinstance(obj, np.ndarray):
-        if np.issubdtype(obj.dtype, np.complexfloating):
-            return {"real": obj.real, "imag": obj.imag}
-        else:
-            if obj.ndim == 0:
-                return obj.item()
-            elif obj.ndim == 1:
-                return obj.tolist()
-            else:
-                raise TypeError
-
-    elif hasattr(obj, "_device"):
-        return np.array(obj)
-    elif isinstance(obj, complex):
-        return {"real": obj.real, "imag": obj.imag}
-
-    raise TypeError
-
-
 class JsonLog(RuntimeLog):
     """
-    Json Logger, that can be passed with keyword argument `logger` to Monte
-    Carlo drivers in order to serialize the output data of the simulation.
+      This logger serializes expectation values and other log data to a JSON file and can save the latest model parameters in MessagePack encoding to a separate file.
 
-    If the model state is serialized, then it is serialized using the msgpack protocol
+    It can be passed with keyword argument `out` to Monte Carlo drivers in order
+    to serialize the output data of the simulation.
+
+    This logger inherits from :class:`netket.logging.RuntimeLog`, so it maintains the dictionary
+    of all logged quantities in memory, which can be accessed through the attribute
+    :attr:`~netket.logging.JsonLog.data`.
+
+    If the model state is serialized, then it can be de-serialized using the msgpack protocol
     of flax. For more information on how to de-serialize the output, see
     `here <https://flax.readthedocs.io/en/latest/flax.serialization.html>`_.
     The target of the serialization is the variational state itself.
 
     Data is serialized to json as several nested dictionaries. You can deserialize
-    by simply calling :code:`json.load(open(filename))`.
+    by simply calling :func:`json.load(open(filename)) <json.load>`.
     Logged expectation values will be captured inside histories objects, so they will
     have a subfield `iter` with the iterations at which that quantity has been computed,
     then `Mean` and others.
@@ -116,7 +92,9 @@ class JsonLog(RuntimeLog):
         if mode == "append":
             raise ValueError("Append mode is no longer supported.")
 
-        file_exists = _exists_json(output_prefix)
+        file_exists = _path.exists(output_prefix + ".log") or _path.exists(
+            output_prefix + ".mpack"
+        )
 
         if file_exists and mode == "fail":
             raise ValueError(
@@ -177,15 +155,13 @@ class JsonLog(RuntimeLog):
         self._steps_notflushed_pars += 1
 
     def _flush_log(self):
-        self._last_flush_time = time.time()
-        with open(self._prefix + ".log", "wb") as outfile:
-
-            outfile.write(orjson.dumps(self.data, default=default))
-            self._steps_notflushed_write = 0
-
         # Time how long flushing data takes.
+        self._last_flush_time = time.time()
+        self.serialize(self._prefix + ".log")
         self._last_flush_runtime = time.time() - self._last_flush_time
+
         self._flush_log_time += self._last_flush_runtime
+        self._steps_notflushed_write = 0
 
     def _flush_params(self, variational_state):
         if not self._save_params:

@@ -126,7 +126,7 @@ class HDF5Log:
             save_params_every: every how many iterations should machine parameters be
                 flushed to file
         """
-        import h5py
+        import h5py  # noqa: F401
 
         super().__init__()
 

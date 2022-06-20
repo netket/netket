@@ -134,7 +134,7 @@ class Sampler(abc.ABC):
         """
         The total number of independent chains across all MPI ranks.
 
-        If you are not using MPI, this is equal to `n_chains_per_rank`.
+        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains_per_rank`.
         """
         return self.n_chains_per_rank * mpi.n_nodes
 
