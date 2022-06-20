@@ -83,7 +83,7 @@ class RuntimeLog:
 
     def _serialize(self, outstream: IO):
         r"""
-        Inner method of `serialize`, working on an IO object. 
+        Inner method of `serialize`, working on an IO object.
         """
         outstream.write(
             orjson.dumps(
@@ -97,6 +97,7 @@ class RuntimeLog:
         _str = "RuntimeLog():\n"
         _str += f" keys = {list(self.data.keys())}"
         return _str
+
 
 def default(obj):
     if hasattr(obj, "to_json"):

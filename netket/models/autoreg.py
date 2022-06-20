@@ -22,7 +22,6 @@ from jax import numpy as jnp
 from jax.nn.initializers import zeros
 from plum import dispatch
 
-from netket.hilbert import Fock, Qubit, Spin
 from netket.hilbert.homogeneous import HomogeneousHilbert
 from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
 from netket.nn.masked_linear import default_kernel_init

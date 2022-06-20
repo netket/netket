@@ -16,7 +16,6 @@ import time
 
 import os
 from os import path as _path
-import numpy as np
 
 from flax import serialization
 
