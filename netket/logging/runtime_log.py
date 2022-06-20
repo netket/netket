@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union, IO
+
 import orjson
 from pathlib import Path
+
+import numpy as np
 
 from netket.utils import accum_histories_in_tree
 
@@ -53,8 +57,8 @@ class RuntimeLog:
     def flush(self, variational_state):
         pass
 
-    def serialize(self, path: str):
-        """
+    def serialize(self, path: Union[str, Path, IO]):
+        r"""
         Serialize the content of :py:attr:`~netket.logging.RuntimeLog.data` to a file.
 
         If the file already exists, it is overwritten.
@@ -75,10 +79,13 @@ class RuntimeLog:
             with open(path, "wb") as io:
                 self._serialize(io)
         else:
-            self._serialize(io)
+            self._serialize(path)
 
-    def _serialize(self, outfile):
-        outfile.write(
+    def _serialize(self, outstream: IO):
+        r"""
+        Inner method of `serialize`, working on an IO object. 
+        """
+        outstream.write(
             orjson.dumps(
                 self.data,
                 default=default,
