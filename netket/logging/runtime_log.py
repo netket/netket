@@ -93,6 +93,10 @@ class RuntimeLog:
             )
         )
 
+    def __repr__(self):
+        _str = "RuntimeLog():\n"
+        _str += f" keys = {list(self.data.keys())}"
+        return _str
 
 def default(obj):
     if hasattr(obj, "to_json"):
