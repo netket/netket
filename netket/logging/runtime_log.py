@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import orjson
+from pathlib import Path
 
 from netket.utils import accum_histories_in_tree
 
@@ -61,18 +62,29 @@ class RuntimeLog:
         Args:
             path: The path of the output file. It must be a valid path.
         """
-        if not path.endswith((".log", ".json")):
-            path = path + ".json"
+        if isinstance(path, str):
+            path = Path(path)
 
-        with open(path, "wb") as outfile:
-            outfile.write(
-                orjson.dumps(
-                    self.data,
-                    default=default,
-                    # TODO: Activate this option
-                    #option=orjson.OPT_SERIALIZE_NUMPY,
-                )
+        if isinstance(path, Path):
+            parent = path.parent
+            filename = path.name
+            if not filename.endswith((".log", ".json")):
+                filename = filename + ".json"
+            path = parent / filename
+
+            with open(path, "wb") as io:
+                self._serialize(io)
+        else:
+            self._serialize(io)
+
+    def _serialize(self, outfile):
+        outfile.write(
+            orjson.dumps(
+                self.data,
+                default=default,
+                option=orjson.OPT_SERIALIZE_NUMPY,
             )
+        )
 
 
 def default(obj):
