@@ -62,15 +62,16 @@ class RuntimeLog:
         Args:
             path: The path of the output file. It must be a valid path.
         """
-        if not file_name.endswith((".log", ".json")):
-            file_name = file_name + ".json"
+        if not path.endswith((".log", ".json")):
+            path = path + ".json"
 
-        with open(file_name, "wb") as outfile:
+        with open(path, "wb") as outfile:
             outfile.write(
                 orjson.dumps(
                     self.data,
                     default=default,
-                    option=orjson.OPT_SERIALIZE_NUMPY,
+                    # TODO: Activate this option
+                    #option=orjson.OPT_SERIALIZE_NUMPY,
                 )
             )
 
