@@ -19,8 +19,7 @@ from netket.utils import accum_histories_in_tree
 
 class RuntimeLog:
     """
-    Logger for an optimisation Driver, accumulating data in a set of nested
-    dictionaries which is stored in memory. Does not serialise to disk.
+    This logger accumulates log data in a set of nested dictionaries which are stored in memory. The log data is not automatically saved to the filesystem.
 
     It can be passed with keyword argument `out` to Monte Carlo drivers in order
     to serialize the output data of the simulation.

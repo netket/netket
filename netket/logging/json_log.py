@@ -25,8 +25,7 @@ from .runtime_log import RuntimeLog
 
 class JsonLog(RuntimeLog):
     """
-    Logger for an optimisation Driver, serializing data and the model
-    parameters to a json file.
+      This logger serializes expectation values and other log data to a JSON file and can save the latest model parameters in MessagePack encoding to a separate file.
 
     It can be passed with keyword argument `out` to Monte Carlo drivers in order
     to serialize the output data of the simulation.
