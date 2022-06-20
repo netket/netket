@@ -74,6 +74,7 @@ def tree_allclose(t1, t2):
 def tree_samedtypes(t1, t2):
     def _same_dtypes(x, y):
         assert x.dtype == y.dtype
+        assert x.weak_type == y.weak_type
 
     jax.tree_map(_same_dtypes, t1, t2)
 
