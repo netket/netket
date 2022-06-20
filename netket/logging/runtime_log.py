@@ -12,15 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import orjson
+
 from netket.utils import accum_histories_in_tree
 
 
 class RuntimeLog:
     """
-    Runtim Logger, that can be passed with keyword argument `logger` to Monte
-    Carlo drivers in order to serialize the output data of the simulation.
+    Logger for an optimisation Driver, accumulating data in a set of nested
+    dictionaries which is stored in memory. Does not serialise to disk.
 
-    This logger keeps the data in memory, and does not save it to disk.
+    It can be passed with keyword argument `out` to Monte Carlo drivers in order
+    to serialize the output data of the simulation.
+
+    This logger keeps the data in memory, and does not save it to disk. To serialize
+    the current content to a file, use the method :py:meth:`~netket.logging.RuntimeLog.serialize`.
     """
 
     def __init__(self):
@@ -46,3 +52,48 @@ class RuntimeLog:
 
     def flush(self, variational_state):
         pass
+
+    def serialize(self, path: str):
+        """
+        Serialize the content of :py:attr:`~netket.logging.RuntimeLog.data` to a file.
+
+        If the file already exists, it is overwritten.
+
+        Args:
+            path: The path of the output file. It must be a valid path.
+        """
+        if not file_name.endswith((".log", ".json")):
+            file_name = file_name + ".json"
+
+        with open(file_name, "wb") as outfile:
+            outfile.write(
+                orjson.dumps(
+                    self.data,
+                    default=default,
+                    option=orjson.OPT_SERIALIZE_NUMPY,
+                )
+            )
+
+
+def default(obj):
+    if hasattr(obj, "to_json"):
+        return obj.to_json()
+    elif hasattr(obj, "to_dict"):
+        return obj.to_dict()
+    elif isinstance(obj, np.ndarray):
+        if np.issubdtype(obj.dtype, np.complexfloating):
+            return {"real": obj.real, "imag": obj.imag}
+        else:
+            if obj.ndim == 0:
+                return obj.item()
+            elif obj.ndim == 1:
+                return obj.tolist()
+            else:
+                raise TypeError
+
+    elif hasattr(obj, "_device"):
+        return np.array(obj)
+    elif isinstance(obj, complex):
+        return {"real": obj.real, "imag": obj.imag}
+
+    raise TypeError
