@@ -29,7 +29,7 @@ def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorph
     if holomorphic is True:
         if homogeneous_vars and leaf_iscomplex:
             ## all complex parameters
-            mode = "complex"
+            mode = "holomorphic"
         elif homogeneous_vars and not leaf_iscomplex:
             # all real parameters
             raise ValueError(
