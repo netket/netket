@@ -24,7 +24,7 @@ _mpi4jax_loaded = False
 mpi4jax_available = False
 
 try:
-    if not config.FLAGS["NETKET_MPI"]:
+    if not config.FLAGS["NETKET_MPI"]:  # pragma: no cover
         # if mpi is disabled, import a package that does not exist
         # to trigger import error and follow the no-mpi code path
         import this_package_does_not_exist_zuzzurellone
