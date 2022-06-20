@@ -64,6 +64,8 @@ class KineticEnergy(ContinuousOperator):
         dlogpsi_x = jax.grad(logpsi_x)
 
         dp_dx, f_jvp = jax.linearize(dlogpsi_x, x)
+        dp_dx = dp_dx**2
+
         basis = jnp.eye(x.shape[0], dtype=dp_dx.dtype)
 
         dp_dx2 = jnp.diag(jax.vmap(f_jvp)(basis))
