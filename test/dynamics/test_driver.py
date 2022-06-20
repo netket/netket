@@ -72,9 +72,9 @@ all_integrators = fixed_step_integrators + adaptive_step_integrators
 
 nqs_models = [
     pytest.param(nk.models.RBM(alpha=1, dtype=np.complex128), id="RBM(complex128)"),
-    #pytest.param(
+    # pytest.param(
     #    nk.models.RBMModPhase(alpha=1, dtype=np.float64), id="RBMModPhase(float64)"
-    #),
+    # ),
 ]
 
 

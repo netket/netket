@@ -32,12 +32,15 @@ def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorph
             mode = "complex"
         elif homogeneous_vars and not leaf_iscomplex:
             # all real parameters
-            raise ValueError(dedent(
-                """
+            raise ValueError(
+                dedent(
+                    """
                 A function with real parameters cannot be holomorphic. 
                 
                 Please remove the kw-arg `holomorphic=True`.
-                """))
+                """
+                )
+            )
         else:
             # mixed complex and real parameters
             warnings.warn(

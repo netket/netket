@@ -124,6 +124,7 @@ def vstate(request, model, chunk_size):
 
     return vstate
 
+
 def is_complex_failing(vstate, qgt_partial):
     """
     returns true if this qgt should error on construction
@@ -132,6 +133,7 @@ def is_complex_failing(vstate, qgt_partial):
         if qgt_partial.keywords.get("holomorphic", False):
             return True
     return False
+
 
 @pytest.mark.parametrize(
     "qgt",
@@ -188,7 +190,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
 @pytest.mark.parametrize("chunk_size", [None])
 def test_qgt_solve_with_x0(qgt, vstate):
     if is_complex_failing(vstate, qgt):
-        return 
+        return
 
     solver = jax.scipy.sparse.linalg.gmres
     x0 = jax.tree_map(jnp.zeros_like, vstate.parameters)
@@ -204,7 +206,7 @@ def test_qgt_solve_with_x0(qgt, vstate):
 @pytest.mark.parametrize("chunk_size", [None, 16])
 def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
-        return 
+        return
 
     rtol, atol = matmul_tol[nk.jax.dtype_real(vstate.model.dtype)]
 
@@ -260,7 +262,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
 @pytest.mark.parametrize("chunk_size", [None, 16])
 def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
-        return 
+        return
 
     rtol, atol = dense_tol[nk.jax.dtype_real(vstate.model.dtype)]
 
@@ -311,7 +313,7 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
 )
 def test_qgt_pytree_diag_shift(qgt, vstate):
     if is_complex_failing(vstate, qgt):
-        return 
+        return
 
     v = vstate.parameters
     S = qgt(vstate)
