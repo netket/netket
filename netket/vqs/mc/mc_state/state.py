@@ -109,6 +109,12 @@ class MCState(VariationalState):
     """The sampler used to sample the Hilbert space."""
     sampler_state: SamplerState
     """The current state of the sampler."""
+    _previous_sampler_state: SamplerState = None
+    """The sampler state before the last sampling has been effected.
+
+    This field is used so that we don't need to serialize the current samples
+    but we can always regenerate them.
+    """
 
     _chain_length: int = 0
     """Length of the Markov chain used for sampling configurations."""
@@ -316,6 +322,7 @@ class MCState(VariationalState):
         self.sampler_state = self.sampler.init_state(
             self.model, self.variables, seed=self._sampler_seed
         )
+        self._sampler_state_previous = self.sampler_state
 
         # Update `n_samples`, `n_samples_per_rank`, and `chain_length` according
         # to the new `sampler.n_chains`.
@@ -500,6 +507,9 @@ class MCState(VariationalState):
 
         if n_discard_per_chain is None:
             n_discard_per_chain = self.n_discard_per_chain
+
+        # Store the previous sampler state, for serialization purposes
+        self._sampler_state_previous = self.sampler_state
 
         self.sampler_state = self.sampler.reset(
             self.model, self.variables, self.sampler_state
@@ -707,9 +717,10 @@ def local_estimators(
 def serialize_MCState(vstate):
     state_dict = {
         "variables": serialization.to_state_dict(vstate.variables),
-        "sampler_state": serialization.to_state_dict(vstate.sampler_state),
+        "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,
+        "chunk_size": vstate.chunk_size,
     }
     return state_dict
 
@@ -728,6 +739,7 @@ def deserialize_MCState(vstate, state_dict):
     )
     new_vstate.n_samples = state_dict["n_samples"]
     new_vstate.n_discard_per_chain = state_dict["n_discard_per_chain"]
+    new_vstate.chunk_size = state_dict["chunk_size"]
 
     return new_vstate
 
