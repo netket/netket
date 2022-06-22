@@ -106,11 +106,11 @@ def default(obj):
         return obj.to_dict()
     elif isinstance(obj, np.ndarray):
         if np.issubdtype(obj.dtype, np.complexfloating):
-            return jax.tree_map(
-                np.ascontiguousarray, {"real": obj.real, "imag": obj.imag}
-            )
-    # TODO: replace with isinstance(obj, jnp.ndarray) once all support JAX versions have it
-    elif hasattr(obj, "_device"):
+            return {
+                "real": np.ascontiguousarray(obj.real),
+                "imag": np.ascontiguousarray(obj.imag),
+            }
+    elif isinstance(obj, jax.numpy.ndarray):
         return np.ascontiguousarray(obj)
     elif isinstance(obj, complex):
         return {"real": obj.real, "imag": obj.imag}
