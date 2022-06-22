@@ -28,20 +28,23 @@ __all__ = [
     "icosahedral",
 ]
 
+
 @export
 def I() -> PointGroup:
     """
     Rotational symmetries of an icosahedron with two vertices on z axis
     and two others in the xz plane.
     """
-    g1 = group.axial.C(5, axis = (0,0,1))
-    g2 = group.axial.C(5, axis = (2/5**0.5, 0, 1/5**0.5))
+    g1 = group.axial.C(5, axis=(0, 0, 1))
+    g2 = group.axial.C(5, axis=(2 / 5**0.5, 0, 1 / 5**0.5))
     g = (g2 @ g1).remove_duplicates()
     g = (g @ g2).remove_duplicates()
     g = (g @ g1).remove_duplicates()
     return g
 
+
 icosahedral_rotations = I
+
 
 @export
 def Ih() -> PointGroup:
@@ -50,5 +53,6 @@ def Ih() -> PointGroup:
     and two others in the xz plane.
     """
     return _inv_group() @ I()
+
 
 icosahedral = Ih
