@@ -37,15 +37,20 @@ def test_serialize(vstate, tmp_path):
     log = nk.logging.RuntimeLog()
     e = vstate.expect(nk.operator.spin.sigmax(vstate.hilbert, 0))
 
-    for i in np.arange(0, 1, 0.1):
+    steps = np.arange(0, 1, 0.1)
+    for i in steps:
         log(
             i,
             {
                 "energy": e,
                 "vals": {
                     "energy": e,
-                    "random": 1.0,
-                    "matrix": jnp.array(np.random.rand(3)),
+                    "scalar": 1.0,
+                    "scalar_ndarray": jnp.array(1.0),
+                    "vector": jnp.array([1.0, 1.0]),
+                    "matrix": jnp.array([[1.0, 2.0], [2.0, 1.0]]),
+                    "complex_scalar": 1.0j,
+                    "complex_matrix": jnp.array([[1.0j], [1.0j]]),
                 },
             },
             None,
@@ -74,13 +79,34 @@ def test_serialize(vstate, tmp_path):
     assert "energy" in data1
     assert "vals" in data1
     assert "energy" in data1["vals"]
-    assert "random" in data1["vals"]
-    assert "value" in data1["vals"]["random"]
-    assert "iters" in data1["vals"]["random"]
 
-    assert len(data1["vals"]["random"]["value"]) == 10
-    assert len(data1["vals"]["random"]["iters"]) == 10
+    assert "scalar" in data1["vals"]
+    assert "value" in data1["vals"]["scalar"]
+    assert "iters" in data1["vals"]["scalar"]
+    assert len(data1["vals"]["scalar"]["value"]) == 10
+    assert len(data1["vals"]["scalar"]["iters"]) == 10
 
-    assert np.array(data1["vals"]["matrix"]["value"]).shape == (10, 3)
+    assert "scalar_ndarray" in data1["vals"]
+    assert "value" in data1["vals"]["scalar_ndarray"]
+    assert "iters" in data1["vals"]["scalar_ndarray"]
+    assert len(data1["vals"]["scalar_ndarray"]["value"]) == 10
+    assert len(data1["vals"]["scalar_ndarray"]["iters"]) == 10
+
+    assert "vector" in data1["vals"]
+    assert np.array(data1["vals"]["vector"]["value"]).shape == (10, 2)
+
+    assert "matrix" in data1["vals"]
+    assert np.array(data1["vals"]["matrix"]["value"]).shape == (10, 2, 2)
+
+    assert "complex_scalar" in data1["vals"]
+    assert "real" in data1["vals"]["complex_scalar"]["value"]
+    assert "imag" in data1["vals"]["complex_scalar"]["value"]
+
+    assert "complex_matrix" in data1["vals"]
+    assert "real" in data1["vals"]["complex_matrix"]["value"]
+    assert "imag" in data1["vals"]["complex_matrix"]["value"]
+    shape = (10, 2, 1)
+    assert np.array(data1["vals"]["complex_matrix"]["value"]["real"]).shape == shape
+    assert np.array(data1["vals"]["complex_matrix"]["value"]["imag"]).shape == shape
 
     assert repr(log).startswith("RuntimeLog")

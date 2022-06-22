@@ -13,11 +13,11 @@
 # limitations under the License.
 
 from typing import Union, IO
-
-import orjson
 from pathlib import Path
 
+import jax
 import numpy as np
+import orjson
 
 from netket.utils import accum_histories_in_tree
 
@@ -106,17 +106,12 @@ def default(obj):
         return obj.to_dict()
     elif isinstance(obj, np.ndarray):
         if np.issubdtype(obj.dtype, np.complexfloating):
-            return {"real": obj.real, "imag": obj.imag}
-        else:
-            if obj.ndim == 0:
-                return obj.item()
-            elif obj.ndim == 1:
-                return obj.tolist()
-            else:
-                raise TypeError
-
-    elif hasattr(obj, "_device"):
-        return np.array(obj)
+            return {
+                "real": np.ascontiguousarray(obj.real),
+                "imag": np.ascontiguousarray(obj.imag),
+            }
+    elif isinstance(obj, jax.numpy.ndarray):
+        return np.ascontiguousarray(obj)
     elif isinstance(obj, complex):
         return {"real": obj.real, "imag": obj.imag}
 
