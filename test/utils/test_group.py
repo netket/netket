@@ -71,7 +71,12 @@ cubics = [
     group.cubic.Fd3m(),
 ]
 cubics_proper = [True, False, False, True, False, False]
-point_groups = planars + uniaxials + screws + biaxials + impropers + cubics
+icosas = [
+    group.icosa.I(),
+    group.icosa.Ih(),
+]
+icosas_proper = [True, False]
+point_groups = planars + uniaxials + screws + biaxials + impropers + cubics + icosas
 proper = (
     planars_proper
     + uniaxials_proper
@@ -79,6 +84,7 @@ proper = (
     + biaxials_proper
     + impropers_proper
     + cubics_proper
+    + icosas_proper
 )
 perms = [
     nk.graph.Hypercube(2, n_dim=3).point_group(),
@@ -140,6 +146,8 @@ details = [
     (group.cubic.O(), [1, 6, 3, 8, 6], [1, 1, 2, 3, 3]),
     (group.cubic.Oh(), [1, 6, 3, 8, 6] * 2, [1, 1, 2, 3, 3] * 2),
     (group.cubic.Fd3m(), [1, 6, 3, 8, 6] * 2, [1, 1, 2, 3, 3] * 2),
+    (group.icosa.I(), [1,12,12,20,15], [1,3,3,4,5]),
+    (group.icosa.I(), [1,12,12,20,15]*2, [1,3,3,4,5]*2),
 ]
 
 
