@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass
+from typing import Union
 
 import numpy as np
 
@@ -24,6 +25,11 @@ class InvalidLossStopping:
 
     monitor: str = "mean"
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
+    patience: Union[int, float] = 0
+    """Number of epochs with invalid loss after which training will be stopped."""
+
+    def __post_init__(self):
+        self._last_valid_iter = 0
 
     def __call__(self, step, log_data, driver):
         """
@@ -38,6 +44,7 @@ class InvalidLossStopping:
             A boolean. If True, training continues, else, it does not.
         """
         loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
-        if np.isnan(loss):
+        if np.isnan(loss) and step - self._last_valid_iter >= self.patience:
             return False
+        self._last_valid_iter = step
         return True
