@@ -348,7 +348,7 @@ def _conditionals_log_psi(model: ARNNDenseModPhase, inputs: Array) -> Array:
 
     x = jnp.expand_dims(inputs, axis=-1)
 
-    x_imag = jnp.copy(x)
+    x_imag = x
 
     for i in range(model.layers):
         if i > 0:
