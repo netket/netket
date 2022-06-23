@@ -1,4 +1,3 @@
-from sympy import Dummy
 import netket as nk
 import time
 
