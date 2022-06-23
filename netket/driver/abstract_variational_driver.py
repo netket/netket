@@ -251,9 +251,9 @@ class AbstractVariationalDriver(abc.ABC):
         callback_stop = False
 
         if stop_on_invalid_loss and all(
-            not isinstance(cb, InvalidLossStopping) for cb in callback
+            not isinstance(cb, InvalidLossStopping) for cb in callbacks
         ):
-            callback.append(InvalidLossStopping())
+            callbacks = callbacks + (InvalidLossStopping(),)
 
         with tqdm(total=n_iter, disable=not show_progress) as pbar:
             old_step = self.step_count
