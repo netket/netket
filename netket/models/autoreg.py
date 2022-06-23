@@ -268,7 +268,6 @@ class ARNNConv2D(AbstractARNN):
         return _call(self, inputs)
 
 
-@deprecate_dtype
 class ARNNDenseModPhase(AbstractARNN):
     """Autoregressive neural network with separate dense layers for the modulus and phase of the wave function."""
 
@@ -281,6 +280,8 @@ class ARNNDenseModPhase(AbstractARNN):
     """the nonlinear activation function between hidden layers (default: selu)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
+    param_dtype: DType = jnp.float64
+    """the dtype of the computation (default: float64)."""
     precision: Any = None
     """numerical precision of the computation, see `jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -303,7 +304,7 @@ class ARNNDenseModPhase(AbstractARNN):
                 features=features[i],
                 exclusive=(i == 0),
                 use_bias=self.use_bias,
-                param_dtype=jnp.float64,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -315,7 +316,7 @@ class ARNNDenseModPhase(AbstractARNN):
                 features=features[i],
                 exclusive=(i == 0),
                 use_bias=self.use_bias,
-                param_dtype=jnp.float64,
+                param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -347,7 +348,6 @@ def _conditionals_log_psi(model: ARNNDenseModPhase, inputs: Array) -> Array:
     """
 
     x = jnp.expand_dims(inputs, axis=-1)
-
     x_imag = x
 
     for i in range(model.layers):
