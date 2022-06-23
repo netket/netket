@@ -191,7 +191,8 @@ class AbstractVariationalDriver(abc.ABC):
         save_params_every=50,  # for default logger
         write_every=50,  # for default logger
         step_size=1,  # for default logger
-        callback=InvalidLossStopping,
+        callback=lambda *x: True,
+        stop_on_invalid_loss=True,
     ):
         """
         Executes the Monte Carlo Variational optimization, updating the weights of the network
@@ -215,6 +216,9 @@ class AbstractVariationalDriver(abc.ABC):
             step_size: Every how many steps should observables be logged to disk (default=1)
             show_progress: If true displays a progress bar (default=True)
             callback: Callable or list of callable callback functions to stop training given a condition
+            stop_on_invalid_loss: If true, stops training if the loss becomes NaN. If you want to configure
+                the patience of stopping when there are invalid losses, you can pass an instance of the
+                `InvalidLossStopping` callback directly to the `callback` argument.
         """
 
         if not isinstance(n_iter, numbers.Number):
@@ -245,6 +249,11 @@ class AbstractVariationalDriver(abc.ABC):
 
         callbacks = _to_iterable(callback)
         callback_stop = False
+
+        if stop_on_invalid_loss and all(
+            not isinstance(cb, InvalidLossStopping) for cb in callback
+        ):
+            callback.append(InvalidLossStopping())
 
         with tqdm(total=n_iter, disable=not show_progress) as pbar:
             old_step = self.step_count
