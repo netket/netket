@@ -73,3 +73,14 @@ def test_earlystopping_doesnt_get_stuck_with_patience():
         if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
     assert es._best_val == 9
+
+
+def test_invalid_loss_stopping():
+    loss_values = [10, 9, 8, 7] + [float("nan")] * 11 + [1] * 4
+    ils = nk.callbacks.InvalidLossStopping(patience=10)
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        if not ils(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+    assert ils._last_valid_iter == 3
+    assert step == 13
