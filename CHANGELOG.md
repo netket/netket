@@ -10,7 +10,7 @@
 
 ### New features
 
-* The method `MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
+* The method {meth}`~nk.vqs.MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
 * The permutation equivariant {class}`nk.models.DeepSetRelDistance` for use with particles in periodic potentials has been added together with an example. [#1199](https://github.com/netket/netket/pull/1199)
 * The class {class}`HDF5Log` has been added to the experimental submodule. This logger writes log data and variational state variables into a single HDF5 file. [#1200](https://github.com/netket/netket/issues/1200)
 * Added a new method {meth}`~nk.logging.RuntimeLog.serialize` to store the content of the logger to disk [#1255](https://github.com/netket/netket/issues/1255).
@@ -25,15 +25,17 @@
 
 ### Bug Fixes
 * Fixed bug where a `nk.operator.LocalOperator` representing the identity would lead to a crash. [#1197](https://github.com/netket/netket/pull/1197)
-* Use np.isclose to allow for some tolerance in checking the hermicity of a `nkx.operator.FermionOperator2nd` [#1233](https://github.com/netket/netket/pull/1233)
+* Fix a bug where Fermionic operators {class}`nkx.operator.FermionOperator2nd` would not result hermitian even if they were. [#1233](https://github.com/netket/netket/pull/1233)
 * Fix serialization of some arrays with complex dtype in `RuntimeLog` and `JsonLog` [#1258](https://github.com/netket/netket/pull/1258)
+* Fixed bug where the {class}`nk.callbacks.EarlyStopping` callback would not work as intended when hitting a local minima. [#1238](https://github.com/netket/netket/pull/1238)
+
 
 ## NetKet 3.4.2 (BugFixes & DepWarns again)
 
 [GitHub commits](https://github.com/netket/netket/compare/v3.4.1...v3.4.2).
 
 ### Internal Changes
-* Several deprecation warnings related to `jax.experimental.loops` being deprecated have been resolved by changing those calls to `jax.lax.fori_loop`. Jax should feel more tranquillo now. [#1172](https://github.com/netket/netket/pull/1172)
+* Several deprecation warnings related to `jax.experimental.loops` being deprecated have been resolved by changing those calls to {func}`jax.lax.fori_loop`. Jax should feel more tranquillo now. [#1172](https://github.com/netket/netket/pull/1172)
 
 ### Bug Fixes
 * Several _type promotion_ bugs that would end up promoting single-precision models to double-precision have been squashed. Those involved `nk.operator.Ising` and `nk.operator.BoseHubbard`[#1180](https://github.com/netket/netket/pull/1180), `nkx.TDVP` [#1186](https://github.com/netket/netket/pull/1186) and continuous-space samplers and operators [#1187](https://github.com/netket/netket/pull/1187).
