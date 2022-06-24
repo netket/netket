@@ -1,12 +1,11 @@
 Sphinx==4.5.0
-sphinx-autodoc-typehints~=1.18.1
-sphinx-markdown-parser~=0.2.4
+sphinx-autodoc-typehints~=1.18.3
 sphinxcontrib-fulltoc~=1.2.0
 sphinxcontrib-jsmath~=1.0.1
 sphinxcontrib-napoleon~=0.7
-myst-parser~=0.17.2
-nbsphinx~=0.8.7
-myst-nb==0.14.0
+myst-parser~=0.18.0
+nbsphinx~=0.8.9
+myst-nb==0.16.0
 jaxlib>=0.1.59
 sphinx-book-theme==0.3.2
 -e .

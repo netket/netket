@@ -160,7 +160,7 @@ html_context = {
         ),
         (
             '<i class="fab fa-slack" aria-hidden="true"></i>',
-            "https://join.slack.com/t/mlquantum/shared_invite/zt-16r1nfgoy-VkSghuNL1Co0mu3iYwOhuA",
+            "https://join.slack.com/t/mlquantum/shared_invite/zt-19wibmfdv-LLRI6i43wrLev6oQX0OfOw",
             True,
         ),
     ],

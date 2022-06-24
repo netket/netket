@@ -297,13 +297,17 @@ def test_constructor():
 def test_serialization(vstate):
     from flax import serialization
 
+    vstate.chunk_size = 12345
+
     bdata = serialization.to_bytes(vstate)
 
     old_params = vstate.parameters
     old_samples = vstate.samples
     old_nsamples = vstate.n_samples
     old_ndiscard = vstate.n_discard_per_chain
+    old_chunksize = vstate.chunk_size
 
+    # test same samples, serialization before sampling
     vstate = nk.vqs.MCState(vstate.sampler, vstate.model, n_samples=10, seed=SEED + 100)
 
     vstate = serialization.from_bytes(vstate, bdata)
@@ -312,6 +316,14 @@ def test_serialization(vstate):
     np.testing.assert_allclose(vstate.samples, old_samples)
     assert vstate.n_samples == old_nsamples
     assert vstate.n_discard_per_chain == old_ndiscard
+    assert vstate.chunk_size == old_chunksize
+
+    # test samples before serailziation
+    old_samples = vstate.samples
+    bdata = serialization.to_bytes(vstate)
+    vstate = serialization.from_bytes(vstate, bdata)
+
+    np.testing.assert_allclose(vstate.samples, old_samples)
 
 
 @common.skipif_mpi

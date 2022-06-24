@@ -22,7 +22,6 @@ from jax import numpy as jnp
 from jax.nn.initializers import zeros
 from plum import dispatch
 
-from netket.hilbert import Fock, Qubit, Spin
 from netket.hilbert.homogeneous import HomogeneousHilbert
 from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
 from netket.nn.masked_linear import default_kernel_init
@@ -317,7 +316,7 @@ def _call(model: AbstractARNN, inputs: Array) -> Array:
     if inputs.ndim == 1:
         inputs = jnp.expand_dims(inputs, axis=0)
 
-    idx = _local_states_to_numbers(model.hilbert, inputs)
+    idx = model.hilbert.states_to_local_indices(inputs)
     idx = jnp.expand_dims(idx, axis=-1)
 
     log_psi = _conditionals_log_psi(model, inputs)
@@ -335,25 +334,3 @@ def _reshape_inputs(model: ARNNConv2D, inputs: Array) -> Array:  # noqa: F811
 @dispatch
 def _reshape_inputs(model: Any, inputs: Array) -> Array:  # noqa: F811
     return inputs
-
-
-@dispatch
-def _local_states_to_numbers(hilbert: Spin, x: Array) -> Array:  # noqa: F811
-    numbers = (x + hilbert.local_size - 1) / 2
-    numbers = jnp.asarray(numbers, jnp.int32)
-    return numbers
-
-
-@dispatch
-def _local_states_to_numbers(  # noqa: F811
-    hilbert: Union[Fock, Qubit], x: Array
-) -> Array:
-    numbers = jnp.asarray(x, jnp.int32)
-    return numbers
-
-
-@dispatch
-def _local_states_to_numbers(hilbert: Any, x: Array) -> Array:  # noqa: F811
-    raise NotImplementedError(
-        f"_local_states_to_numbers is not implemented for hilbert {type(hilbert)}."
-    )

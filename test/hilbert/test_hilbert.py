@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import itertools
+from functools import partial
 import netket as nk
 import numpy as np
 import pytest
@@ -323,6 +324,26 @@ def test_hilbert_index_discrete(hi: DiscreteHilbert):
         op.to_dense()
     with pytest.raises(RuntimeError):
         op.to_sparse()
+
+
+@partial(jax.jit, static_argnums=0)
+def _states_to_local_indices_jit(hilb, x):
+    return hilb.states_to_local_indices(x)
+
+
+@pytest.mark.parametrize("hi", discrete_hilbert_params)
+def test_states_to_local_indices(hi):
+
+    x = hi.random_state(jax.random.PRNGKey(3), (200))
+    idxs = hi.states_to_local_indices(x)
+    idxs_jit = _states_to_local_indices_jit(hi, x)
+
+    np.testing.assert_allclose(idxs, idxs_jit)
+
+    # check that the index is correct
+    for s in range(hi.size):
+        local_states = np.asarray(hi.states_at_index(s))
+        np.testing.assert_allclose(local_states[idxs[..., s]], x[..., s])
 
 
 def test_state_iteration():

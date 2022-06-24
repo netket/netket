@@ -16,6 +16,8 @@ from typing import Optional, List, Callable
 
 from numbers import Real
 
+import jax.numpy as jnp
+
 from netket.graph import AbstractGraph
 
 from .homogeneous import HomogeneousHilbert
@@ -56,6 +58,14 @@ class CustomHilbert(HomogeneousHilbert):
         N = graph_to_N_depwarn(N=N, graph=graph)
 
         super().__init__(local_states, N, constraint_fn)
+
+    def states_to_local_indices(self, x):
+        local_states = jnp.asarray(self.local_states)
+        local_states = local_states.reshape(tuple(1 for _ in range(x.ndim)) + (-1,))
+        x = x.reshape(x.shape + (1,))
+        x_idmap = x == local_states
+        idxs = jnp.arange(self.local_size).reshape(local_states.shape)
+        return jnp.sum(x_idmap * idxs, axis=-1)
 
     def __pow__(self, n):
         if self._has_constraint:

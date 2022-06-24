@@ -48,6 +48,27 @@ several CPUs, but you have to start jax with a specific environment variable.
 
 (experimental-variational-api)=
 
+## Logging
+
+```{eval-rst}
+.. currentmodule:: netket.experimental.logging
+
+```
+
+This module contains experimental loggers that can be used with the optimization drivers.
+
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/experimental/logging
+   :nosignatures:
+
+   HDF5Log
+
+```
+
+(experimental-variational-api)=
+
 ## Variational State Interface
 
 ```{eval-rst}

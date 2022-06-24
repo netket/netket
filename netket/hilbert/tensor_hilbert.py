@@ -15,6 +15,7 @@
 from typing import Optional, List, Union
 
 import numpy as np
+import jax.numpy as jnp
 
 from .discrete_hilbert import DiscreteHilbert, _is_indexable
 
@@ -144,6 +145,16 @@ class TensorHilbert(DiscreteHilbert):
             )
             out += temp * dim
 
+        return out
+
+    def states_to_local_indices(self, x):
+        out = jnp.empty_like(x, dtype=jnp.int32)
+        for (i, hilb_i) in enumerate(self._hilbert_spaces):
+            out = out.at[..., self._cum_indices[i] : self._cum_sizes[i]].set(
+                hilb_i.states_to_local_indices(
+                    x[..., self._cum_indices[i] : self._cum_sizes[i]]
+                )
+            )
         return out
 
     def __repr__(self):

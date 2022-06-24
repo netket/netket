@@ -17,9 +17,8 @@ from .continuous_hilbert import ContinuousHilbert
 
 
 class Particle(ContinuousHilbert):
-    r"""Hilbert space derived from AbstractParticle for
-    Fermions.
-    """
+    r"""Hilbert space derived from ContinuousHilbert defining N particles
+    in continuous space with or without periodic boundary conditions."""
 
     def __init__(
         self,
@@ -33,11 +32,15 @@ class Particle(ContinuousHilbert):
 
         Args:
             N: Number of particles
-            L: spatial extension in each spatial dimension
-            pbc: Whether or not to use periodic boundary
-                conditions for each spatial dimension.
-                If bool, its value will be used for all spatial
-                dimensions.
+            L: Tuple indicating the maximum of the continuous quantum number(s) in the configurations. Each entry
+                in the tuple corresponds to a different physical dimension.
+                If np.inf is used an infinite box is considered and `pbc=False` is mandatory (because what are PBC
+                if there are no boundaries?). If a finite value is given, a minimum value of zero is assumed for the
+                quantum number(s).
+                A particle in a 3D box of size L would take `(L,L,L)`. A rotor model would take e.g. `(2pi,)`.
+            pbc: Tuple or bool indicating whether to use periodic boundary conditions in a given physical dimension.
+                If tuple it must have the same length as domain. If bool the same value is used for all the dimensions
+                defined in domain.
         """
         # Assume 1D if L is a scalar
         if not hasattr(L, "__len__"):

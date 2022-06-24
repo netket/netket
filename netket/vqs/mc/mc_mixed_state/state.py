@@ -289,10 +289,11 @@ class MCMixedState(VariationalMixedState, MCState):
 def serialize_MCMixedState(vstate):
     state_dict = {
         "variables": serialization.to_state_dict(vstate.variables),
-        "sampler_state": serialization.to_state_dict(vstate.sampler_state),
+        "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
         "diagonal": serialization.to_state_dict(vstate.diagonal),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,
+        "chunk_size": vstate.chunk_size,
     }
     return state_dict
 
@@ -316,6 +317,7 @@ def deserialize_MCMixedState(vstate, state_dict):
     )
     new_vstate.n_samples = state_dict["n_samples"]
     new_vstate.n_discard_per_chain = state_dict["n_discard_per_chain"]
+    new_vstate.chunk_size = state_dict["chunk_size"]
 
     return new_vstate
 

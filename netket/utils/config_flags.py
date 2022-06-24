@@ -127,6 +127,19 @@ config.define(
 )
 
 config.define(
+    "NETKET_MPI",
+    bool,
+    default=True,
+    help=dedent(
+        """
+        Prevent NetKet from using (and initializing) MPI. If this flag is
+        `0` `mpi4py` and `mpi4jax` will not be imported.
+        """
+    ),
+    runtime=False,
+)
+
+config.define(
     "NETKET_USE_PLAIN_RHAT",
     bool,
     default=False,

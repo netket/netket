@@ -243,6 +243,8 @@ def test_deprecations(vstate):
 def test_serialization(vstate):
     from flax import serialization
 
+    vstate.chunk_size = 12345
+
     bdata = serialization.to_bytes(vstate)
 
     vstate_new = nk.vqs.MCMixedState(
@@ -258,6 +260,13 @@ def test_serialization(vstate):
     assert vstate.n_discard_per_chain == vstate_new.n_discard_per_chain
     assert vstate.n_samples_diag == vstate_new.n_samples_diag
     assert vstate.n_discard_per_chain_diag == vstate_new.n_discard_per_chain_diag
+    assert vstate.chunk_size == vstate_new.chunk_size
+
+    old_samples = vstate.samples
+    bdata = serialization.to_bytes(vstate)
+    vstate_new = serialization.from_bytes(vstate_new, bdata)
+
+    np.testing.assert_allclose(old_samples, vstate_new.samples)
 
 
 @common.skipif_mpi
