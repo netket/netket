@@ -10,7 +10,7 @@
 
 ### New features
 
-* The method `MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
+* The method {meth}`~nk.vqs.MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
 * The permutation equivariant {class}`nk.models.DeepSetRelDistance` for use with particles in periodic potentials has been added together with an example. [#1199](https://github.com/netket/netket/pull/1199)
 
 ### Dependencies
@@ -22,7 +22,8 @@
 * `nk.nn.Dense(dtype=mydtype)` and related Modules (`Conv`, `DenseGeneral` and `ConvGeneral`) are deprecated. Please use `flax.linen.***(param_dtype=mydtype)` instead. Before flax v0.5 they did not support complex numbers properly within their modules, but starting with flax 0.5 they now do so we have removed our linear module wrappers and encourage you to use them. Please notice that the `dtype` argument previously used by netket should be changed to `param_dtype` to maintain the same effect. [#...](https://github.com/netket/netket/pull/...)  
 
 ### Bug Fixes
-* Fixed bug where a `nk.operator.LocalOperator` representing the identity would lead to a crash. [#1197](https://github.com/netket/netket/pull/1197)
+* Fixed bug where a `~nk.operator.LocalOperator` representing the identity would lead to a crash. [#1197](https://github.com/netket/netket/pull/1197)
+* Fixed bug where the {class}`nk.callbacks.EarlyStopping` callback would not work as intended when hitting a local minima. [#1238](https://github.com/netket/netket/pull/1238)
 
 
 ## NetKet 3.4.2 (BugFixes & DepWarns again)
@@ -30,7 +31,7 @@
 [GitHub commits](https://github.com/netket/netket/compare/v3.4.1...v3.4.2).
 
 ### Internal Changes
-* Several deprecation warnings related to `jax.experimental.loops` being deprecated have been resolved by changing those calls to `jax.lax.fori_loop`. Jax should feel more tranquillo now. [#1172](https://github.com/netket/netket/pull/1172)
+* Several deprecation warnings related to `jax.experimental.loops` being deprecated have been resolved by changing those calls to {func}`jax.lax.fori_loop`. Jax should feel more tranquillo now. [#1172](https://github.com/netket/netket/pull/1172)
 
 ### Bug Fixes
 * Several _type promotion_ bugs that would end up promoting single-precision models to double-precision have been squashed. Those involved `nk.operator.Ising` and `nk.operator.BoseHubbard`[#1180](https://github.com/netket/netket/pull/1180), `nkx.TDVP` [#1186](https://github.com/netket/netket/pull/1186) and continuous-space samplers and operators [#1187](https://github.com/netket/netket/pull/1187).
