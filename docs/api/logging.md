@@ -6,7 +6,8 @@
 
 ```
 
-This module contains the loggers that can be used with the optimization drivers.
+This module contains the loggers that can be used with the optimization drivers by passing them to the `out=` keyword argument of 
+{meth}`~netket.driver.AbstractVariationalDriver.run`.
 
 
 ```{eval-rst}
@@ -28,3 +29,5 @@ This module contains the loggers that can be used with the optimization drivers.
    TensorBoardLog
 
 ```
+
+In the [netket.experimental](api-experimental) module there are also some experimental loggers such as the {class}`HDF5 logger <netket.experimental.logging.HDF5Log>`
