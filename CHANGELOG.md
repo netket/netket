@@ -14,6 +14,7 @@
 * The permutation equivariant {class}`nk.models.DeepSetRelDistance` for use with particles in periodic potentials has been added together with an example. [#1199](https://github.com/netket/netket/pull/1199)
 * The class {class}`HDF5Log` has been added to the experimental submodule. This logger writes log data and variational state variables into a single HDF5 file. [#1200](https://github.com/netket/netket/issues/1200)
 * Added a new method {meth}`~nk.logging.RuntimeLog.serialize` to store the content of the logger to disk [#1255](https://github.com/netket/netket/issues/1255).
+* New {class}`nk.callbacks.InvalidLossStopping` which stops optimisation if the loss function reaches a `NaN` value. An optional `patience` argument can be set. [#1259](https://github.com/netket/netket/pull/1259)
 
 ### Dependencies
 * NetKet now requires at least Flax v0.5
