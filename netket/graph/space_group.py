@@ -292,3 +292,42 @@ class SpaceGroupBuilder:
             "igp, tp -> itg", point_group_factors, trans_factors
         ).reshape(point_group_factors.shape[0], -1)
         return prune_zeros(result)
+
+    def one_arm_irreps(self, *k: Array) -> Array:
+        """
+        Returns the portion of the character table of the full space group corresponding
+        to the star of the wave vector *k*, projected onto *k* itself.
+
+        Arguments:
+            k: the wave vector in Cartesian axes
+
+        Returns:
+            An array `CT` listing the projected characters for a number of irreps of
+            the space group.
+            `CT[i]` for each `i` gives a distinct irrep, each corresponding to
+            `self.little_group(k).character_table[i].
+            `CT[i,j]` gives the character of `self.space_group[j]` in the same.
+        """
+        # Convert k to reciprocal lattice vectors
+        k = _ensure_iterable(k)
+        k_rec = self.lattice.to_reciprocal_lattice(k) * (2 * pi / self.lattice.extent)
+        # Little-group irrep factors
+        # Phase factor for non-symmorphic symmetries is exp(-i w_g . p(k))
+        point_group_factors = self._little_group_irreps(k) * np.exp(
+            -1j * (self.point_group_.translations() @ k)
+        )
+        # Translational factors
+        trans_factors = []
+        for axis in range(self.lattice.ndim):
+            n_trans = self.lattice.extent[axis] if self.lattice.pbc[axis] else 1
+            factors = np.exp(-1j * k[axis] * np.arange(n_trans))
+            shape = [1] * axis + [n_trans] + [1] * (self.lattice.ndim - 1 - axis)
+            trans_factors.append(factors.reshape(shape))
+        trans_factors = reduce(np.multiply, trans_factors).ravel()
+
+        # Multiply the factors together
+        # Translations are more major than point group operations
+        result = np.einsum("ig, t -> itg", point_group_factors, trans_factors).reshape(
+            point_group_factors.shape[0], -1
+        )
+        return prune_zeros(result)
