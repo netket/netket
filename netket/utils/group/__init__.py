@@ -17,4 +17,4 @@ from ._group import FiniteGroup
 from ._permutation_group import Permutation, PermutationGroup
 from ._point_group import PGSymmetry, PointGroup, trivial_point_group
 
-from . import axial, cubic, planar
+from . import axial, cubic, planar, icosa
