@@ -18,6 +18,7 @@ from typing import Callable, Any, Tuple
 import jax
 from jax import numpy as jnp
 from netket import jax as nkjax
+from netket.operator import Squared
 from netket.stats import Stats
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch, TrueT
@@ -69,6 +70,9 @@ def expect_and_forces(
     *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
+    if isinstance(Ô, Squared):
+        raise NotImplementedError("expect_and_forces not yet implemented for `Squared`")
+
     _check_hilbert(vstate, Ô)
 
     O = sparsify(Ô)

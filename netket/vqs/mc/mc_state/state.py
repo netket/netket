@@ -27,7 +27,7 @@ from flax import serialization
 from netket import jax as nkjax
 from netket import nn
 from netket.stats import Stats
-from netket.operator import AbstractOperator
+from netket.operator import AbstractOperator, Squared
 from netket.sampler import Sampler, SamplerState
 from netket.utils import (
     maybe_wrap_module,
@@ -609,10 +609,10 @@ class MCState(VariationalState):
         mutable: Optional[Any] = None,
         use_covariance: Optional[bool] = None,
     ) -> Tuple[Stats, PyTree]:
-        r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+        r"""Estimates the quantum expectation value and its gradient for a given operator O.
 
         Args:
-            Ô: the operator Ô for which we compute the expectation value and it's gradient
+            Ô: The operator Ô for which expectation value and gradient are computed.
             mutable: Can be bool, str, or list. Specifies which collections in the model_state should
                      be treated as  mutable: bool: all/no collections are mutable. str: The name of a
                      single mutable  collection. list: A list of names of mutable collections.
@@ -624,8 +624,8 @@ class MCState(VariationalState):
                 hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
 
         Returns:
-            An estimation of the quantum expectation value <O>.
-            An estimation of the average gradient of the quantum expectation value <O>.
+            An estimate of the quantum expectation value <O>.
+            An estimate of the gradient of the quantum expectation value <O>.
         """
         if mutable is None:
             mutable = self.mutable
@@ -641,10 +641,15 @@ class MCState(VariationalState):
         *,
         mutable: Optional[Any] = None,
     ) -> Tuple[Stats, PyTree]:
-        r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+        r"""Estimates the quantum expectation value and the corresponding force vector for a given operator O.
+
+        The force vector F_j is defined as the covariance of log-derivative of the trial wave function
+        and the local estimators of the operator. For complex holomorphic states, this is
+        equivalent to the expectation gradient d<O>/d(θ_j)* = F_j. For real-parameter states,
+        the gradient is given by d<O>/dθ_j = 2 Re[F_j].
 
         Args:
-            Ô: the operator Ô for which we compute the expectation value and it's gradient
+            Ô: The operator Ô for which expectation value and force are computed.
             mutable: Can be bool, str, or list. Specifies which collections in the model_state should
                      be treated as  mutable: bool: all/no collections are mutable. str: The name of a
                      single mutable  collection. list: A list of names of mutable collections.
@@ -652,13 +657,16 @@ class MCState(VariationalState):
                      to implement BatchNorm. Consult
                      `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
                      for a more in-depth explanation).
-            use_covariance: whether to use the covariance formula, usually reserved for
-                hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
 
         Returns:
-            An estimation of the quantum expectation value <O>.
-            An estimation of the average gradient of the quantum expectation value <O>.
+            An estimate of the quantum expectation value <O>.
+            An estimate of the forve vector F_j = cov[dlog(ψ)/dx_j, O_loc].
         """
+        if isinstance(Ô, Squared):
+            raise NotImplementedError(
+                "expect_and_forces not yet implemented for `Squared`"
+            )
+
         if mutable is None:
             mutable = self.mutable
 

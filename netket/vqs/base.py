@@ -190,24 +190,23 @@ class VariationalState(abc.ABC):
         mutable: Optional[Any] = None,
         use_covariance: Optional[bool] = None,
     ) -> Tuple[Stats, PyTree]:
-        r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+        r"""Estimates the quantum expectation value and its gradient for a given operator O.
 
         Args:
-            Ô: the operator Ô for which we compute the expectation value and its
-                gradient
-            mutable: Can be bool, str, or list. Specifies which collections in the
-                `model_state` should be treated as  mutable: bool: all/no collections
-                are mutable. str: The name of a single mutable  collection. list: A list
-                of names of mutable collections. This is used to mutate the state of the
-                model while you train it (for example to implement BatchNorm. Consult
-                `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
-                for a more in-depth explanation).
+            Ô: The operator Ô for which expectation value and gradient are computed.
+            mutable: Can be bool, str, or list. Specifies which collections in the model_state should
+                     be treated as  mutable: bool: all/no collections are mutable. str: The name of a
+                     single mutable  collection. list: A list of names of mutable collections.
+                     This is used to mutate the state of the model while you train it (for example
+                     to implement BatchNorm. Consult
+                     `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
+                     for a more in-depth explanation).
             use_covariance: whether to use the covariance formula, usually reserved for
                 hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
 
         Returns:
-            An estimation of the quantum expectation value <O>.
-            An estimation of the average gradient of the quantum expectation value <O>.
+            An estimate of the quantum expectation value <O>.
+            An estimate of the gradient of the quantum expectation value <O>.
         """
         if mutable is None:
             mutable = self.mutable
@@ -220,24 +219,26 @@ class VariationalState(abc.ABC):
         *,
         mutable: Optional[Any] = None,
     ) -> Tuple[Stats, PyTree]:
-        r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+        r"""Estimates the quantum expectation value and corresponding force vector for a given operator O.
+
+        The force vector F_j is defined as the covariance of log-derivative of the trial wave function
+        and the local estimators of the operator. For complex holomorphic states, this is
+        equivalent to the expectation gradient d<O>/d(θ_j)* = F_j. For real-parameter states,
+        the gradient is given by d<O>/dθ_j = 2 Re[F_j].
 
         Args:
-            Ô: the operator Ô for which we compute the expectation value and its
-                gradient
-            mutable: Can be bool, str, or list. Specifies which collections in the
-                `model_state` should be treated as  mutable: bool: all/no collections
-                are mutable. str: The name of a single mutable  collection. list: A list
-                of names of mutable collections. This is used to mutate the state of the
-                model while you train it (for example to implement BatchNorm. Consult
-                `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
-                for a more in-depth explanation).
-            use_covariance: whether to use the covariance formula, usually reserved for
-                hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
+            Ô: The operator Ô for which expectation value and force are computed.
+            mutable: Can be bool, str, or list. Specifies which collections in the model_state should
+                     be treated as  mutable: bool: all/no collections are mutable. str: The name of a
+                     single mutable  collection. list: A list of names of mutable collections.
+                     This is used to mutate the state of the model while you train it (for example
+                     to implement BatchNorm. Consult
+                     `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
+                     for a more in-depth explanation).
 
         Returns:
-            An estimation of the quantum expectation value <O>.
-            An estimation of the average gradient of the quantum expectation value <O>.
+            An estimate of the quantum expectation value <O>.
+            An estimate of the forve vector F_j = cov[dlog(ψ)/dx_j, O_loc].
         """
         if mutable is None:
             mutable = self.mutable
@@ -364,7 +365,9 @@ def expect_and_grad(
     mutable=None,
     **kwargs,
 ):
-    r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+    r"""Estimates the quantum expectation value and its gradient for a given operator O.
+
+    See `VariationalState.expect_and_grad` docstring for more information.
 
     Additional Information:
         To implement `vstate.expect` for a custom operator, implement
@@ -372,27 +375,10 @@ def expect_and_grad(
 
         .. code:
 
-            @nk.vqs.expect.register
+            @nk.vqs.expect_and_grad.register
             expect_and_grad(vstate : VStateType, operator: OperatorType,
                             use_covariance : bool/TrueT/FalseT, * mutable)
                 return ...
-
-    Args:
-        vstate: The variational state
-        Ô: the operator Ô for which we compute the expectation value and it's gradient
-        use_covariance: whether to use the covariance formula, usually reserved for
-            hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
-        mutable: Can be bool, str, or list. Specifies which collections in the model_state should
-                 be treated as  mutable: bool: all/no collections are mutable. str: The name of a
-                 single mutable  collection. list: A list of names of mutable collections.
-                 This is used to mutate the state of the model while you train it (for example
-                 to implement BatchNorm. Consult
-                 `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
-                 for a more in-depth explanation).
-
-    Returns:
-        An estimation of the quantum expectation value <O>.
-        An estimation of the average gradient of the quantum expectation value <O>.
     """
 
     # convert to type-static True/False
@@ -421,7 +407,9 @@ def expect_and_forces(
     mutable=None,
     **kwargs,
 ):
-    r"""Estimates both the gradient of the quantum expectation value of a given operator O.
+    r"""Estimates the quantum expectation value and corresponding force vector for a given operator O.
+
+    See `VariationalState.expect_and_forces` docstring for more information.
 
     Additional Information:
         To implement `vstate.expect` for a custom operator, implement
@@ -429,25 +417,8 @@ def expect_and_forces(
 
         .. code:
 
-            @nk.vqs.expect.register
-            expect_and_grad(vstate : VStateType, operator: OperatorType,
-                            use_covariance : bool/TrueT/FalseT, * mutable)
+            @nk.vqs.expect_and_forces.register
+            expect_and_forces(vstate : VStateType, operator: OperatorType,
+                              use_covariance : bool/TrueT/FalseT, * mutable)
                 return ...
-
-    Args:
-        vstate: The variational state
-        Ô: the operator Ô for which we compute the expectation value and it's gradient
-        use_covariance: whether to use the covariance formula, usually reserved for
-            hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
-        mutable: Can be bool, str, or list. Specifies which collections in the model_state should
-                 be treated as  mutable: bool: all/no collections are mutable. str: The name of a
-                 single mutable  collection. list: A list of names of mutable collections.
-                 This is used to mutate the state of the model while you train it (for example
-                 to implement BatchNorm. Consult
-                 `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
-                 for a more in-depth explanation).
-
-    Returns:
-        An estimation of the quantum expectation value <O>.
-        An estimation of the average gradient of the quantum expectation value <O>.
     """
