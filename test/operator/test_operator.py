@@ -514,6 +514,12 @@ def test_pauli_zero():
     assert np.allclose(mels, 0)
 
 
+def test_ising_int_dtype():
+    H = nk.operator.Ising(nk.hilbert.Spin(0.5, 4), nk.graph.Chain(4), h=1, J=-1)
+    H.to_local_operator()
+    (H @ H).collect()
+
+
 def test_operator_on_subspace():
     hi = nk.hilbert.Spin(1 / 2, N=3) * nk.hilbert.Qubit(N=3)
     g = nk.graph.Chain(3, pbc=False)
