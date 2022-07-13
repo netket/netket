@@ -16,9 +16,24 @@ import netket as nk
 import numpy as np
 
 
-def test_mlp():
+def test_mlp_alpha():
     ma = nk.models.MLP(alpha_hidden_dims=(4, 5))
     x = np.zeros((16,))
     pars = ma.init(nk.jax.PRNGKey(), x)
     assert pars["params"]["Dense_0"]["kernel"].shape == (16, 4 * 16)
     assert pars["params"]["Dense_1"]["kernel"].shape == (4 * 16, 5 * 16)
+
+
+def test_mlp():
+    ma = nk.models.MLP(
+        output_dim=3,
+        hidden_dims=(16, 32),
+        param_dtype=np.float64,
+        hidden_activation=None,
+        output_activation=nk.nn.gelu,
+        use_output_bias=True,
+    )
+    x = np.zeros((16,))
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    out = ma.apply(pars, x)
+    assert out.shape[-1] == 3

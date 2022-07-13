@@ -38,7 +38,7 @@ class MLP(nn.Module):
     """Initializer for the Dense layer matrix."""
     bias_init: NNInitFunc = default_bias_init
     """Initializer for the bias."""
-    squeeze_output: bool = True
+    squeeze_output: bool = False
     """Whether to remove output dimension 1 if it is present"""
 
     @nn.compact
