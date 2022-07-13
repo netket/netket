@@ -227,12 +227,13 @@ class Ising(SpecialHamiltonian):
 
         if self.h != 0:
             for i in range(self.hilbert.size):
-                ha -= self.h * spin.sigmax(self.hilbert, i)
+                ha -= self.h * spin.sigmax(self.hilbert, i, dtype=self.dtype)
 
         if self.J != 0:
             for (i, j) in self.edges:
                 ha += self.J * (
-                    spin.sigmaz(self.hilbert, i) * spin.sigmaz(self.hilbert, j)
+                    spin.sigmaz(self.hilbert, i, dtype=self.dtype)
+                    * spin.sigmaz(self.hilbert, j, dtype=self.dtype)
                 )
 
         return ha

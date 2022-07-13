@@ -66,4 +66,4 @@ class PotentialEnergy(ContinuousOperator):
         return self.coefficient
 
     def __repr__(self):
-        return f"Potential(coefficient={self.coefficient}, function+{self._afun})"
+        return f"Potential(coefficient={self.coefficient}, function={self._afun})"
