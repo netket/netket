@@ -1,11 +1,10 @@
-from typing import Any, Tuple
+from typing import Any, Tuple, Callable, Union
 
 import numpy as np
 
 from flax import linen as nn
 from jax.nn.initializers import lecun_normal, zeros
 
-from netket.utils import deprecate_dtype
 from netket.utils.types import NNInitFunc
 from netket import nn as nknn
 
@@ -13,21 +12,26 @@ default_kernel_init = lecun_normal()
 default_bias_init = zeros
 
 
-@deprecate_dtype
 class MLP(nn.Module):
-    r"""A Multi-Layer Perceptron"""
+    r"""A Multi-Layer Perceptron with hidden layers.
+
+    This combines multiple dense layers and activations functions into a single object.
+    It separates the output layer from the hidden layers, since it typically has a different form.
+    One can specify the specific activation functions per layer.
+    The size of the hidden dimensions can be provided as a number, or as a factor relative to the input size (similar as for RBM)
+    """
     output_dim: int = 1
     """The output dimension"""
     hidden_dims: Tuple[int] = None
-    """The size of the hidden layers"""
+    """The size of the hidden layers, excluding the output layer."""
     alpha_hidden_dims: Tuple[int] = None
-    """The size of the hidden layers provided as number of times the input size"""
+    """The size of the hidden layers provided as number of times the input size. One must choose to either specify this or the hidden_dims keyword argument"""
     param_dtype: Any = np.float64
     """The dtype of the weights."""
-    hidden_activation: Any = nknn.gelu
-    """The nonlinear activation function after each hidden layer."""
-    output_activation: Any = None
-    """The nonlinear activation at the output layer."""
+    hidden_activation: Union[Callable, Tuple[Callable]] = nknn.gelu
+    """The nonlinear activation function after each hidden layer. Can be provided as a single activation, where the same activation will be used for every layer."""
+    output_activation: Callable = None
+    """The nonlinear activation at the output layer. If None is provided, the output layer will be essentially linear."""
     use_hidden_bias: bool = True
     """if True uses a bias in the hidden layer."""
     use_output_bias: bool = False
@@ -37,9 +41,9 @@ class MLP(nn.Module):
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
     bias_init: NNInitFunc = default_bias_init
-    """Initializer for the bias."""
+    """Initializer for the biases."""
     squeeze_output: bool = False
-    """Whether to remove output dimension 1 if it is present"""
+    """Whether to remove output dimension 1 if it is present. This is typically useful if we want to use the MLP as an NQS directly, where we do not need the final dimension 1."""
 
     @nn.compact
     def __call__(self, input):
@@ -57,10 +61,21 @@ class MLP(nn.Module):
         if hidden_dims is None:
             hidden_dims = []
 
+        if self.hidden_activation is None:
+            hidden_activation = [None] * len(hidden_dims)
+        elif hasattr(self.hidden_activation, "__len__"):
+            if len(self.hidden_activation) != len(hidden_dims):
+                raise ValueError(
+                    "number of hidden activations must be the same as the length of the hidden dimensions list"
+                )
+            hidden_activation = self.hidden_activation
+        else:
+            hidden_activation = [self.hidden_activation] * len(hidden_dims)
+
         x = input
 
         # hidden layers
-        for nh in hidden_dims:
+        for nh, act_h in zip(hidden_dims, hidden_activation):
             x = nn.Dense(
                 features=nh,
                 param_dtype=self.param_dtype,
@@ -69,8 +84,8 @@ class MLP(nn.Module):
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )(x)
-            if self.hidden_activation:
-                x = self.hidden_activation(x)
+            if act_h:
+                x = act_h(x)
 
         # output layer
         x = nn.Dense(
