@@ -21,6 +21,7 @@ import jax
 import netket.jax as nkjax
 from jax import numpy as jnp
 from jax.tree_util import (
+    register_pytree_node,
     tree_flatten,
     tree_unflatten,
     tree_map,
@@ -235,23 +236,42 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
         return jax.tree_map(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
 
 
-def _to_real(x):
+# TODO rename it
+class fake_tuple(tuple):
+    '''
+    a tuple which is not a real tuple
+    '''
+    pass
+
+register_pytree_node(
+    fake_tuple,
+    lambda xs: (xs, None),
+    lambda _, xs: fake_tuple(xs),
+)
+
+
+def _complex_to_real(x):
     if jnp.iscomplexobj(x):
-        return x.real, x.imag
-        # TODO find a way to make it a nop?
-        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
+        return fake_tuple((x.real, x.imag))
+    else:
+        return x
+
+
+def _real_to_complex(x):
+    # jax.lax.complex would convert scalars to arrays
+    _complex = lambda re, im: re + 1j * im
+    if isinstance(x, fake_tuple):
+        return _complex(*x)
     else:
         return x
 
 
 def _tree_to_real(x):
-    return jax.tree_map(_to_real, x)
+    return jax.tree_map(_complex_to_real, x)
 
 
-# invert the transformation using linear_transpose (AD)
-def _tree_reassemble_complex(x, target, fun=_tree_to_real):
-    (res,) = jax.linear_transpose(fun, target)(x)
-    return tree_conj(res)
+def _tree_reassemble_complex(x):
+    return jax.tree_map(_real_to_complex, x, is_leaf=lambda x: isinstance(x, RealImagTuple))
 
 
 def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
@@ -265,9 +285,7 @@ def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
       and the second element is a callable for converting back a real pytree
       to a complex pytree of of the same structure as the input pytree.
     """
-    return _tree_to_real(pytree), partial(
-        _tree_reassemble_complex, target=pytree, fun=_tree_to_real
-    )
+    return _tree_to_real(pytree), _tree_reassemble_complex
 
 
 def compose(*funcs):
