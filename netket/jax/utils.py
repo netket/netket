@@ -236,13 +236,14 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
         return jax.tree_map(lambda a_, x_, y_: a_ * x_ + y_, a, x, y)
 
 
-# TODO rename it
 class RealImagTuple(tuple):
-    '''
+    """
     A special kind of tuple which marks complex parameters which were split.
     Behaves like a regular tuple.
-    '''
+    """
+
     pass
+
 
 register_pytree_node(
     RealImagTuple,
@@ -273,7 +274,9 @@ def _tree_to_real(x):
 
 def _tree_to_real_inverse(x):
     # undoes _tree_to_real
-    return jax.tree_map(_real_to_complex, x, is_leaf=lambda x: isinstance(x, RealImagTuple))
+    return jax.tree_map(
+        _real_to_complex, x, is_leaf=lambda x: isinstance(x, RealImagTuple)
+    )
 
 
 def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
