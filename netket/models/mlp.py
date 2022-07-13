@@ -28,7 +28,7 @@ class MLP(nn.Module):
     """The size of the hidden layers provided as number of times the input size. One must choose to either specify this or the hidden_dims keyword argument"""
     param_dtype: Any = np.float64
     """The dtype of the weights."""
-    hidden_activation: Union[Callable, Tuple[Callable]] = nknn.gelu
+    hidden_activations: Union[Callable, Tuple[Callable]] = nknn.gelu
     """The nonlinear activation function after each hidden layer. Can be provided as a single activation, where the same activation will be used for every layer."""
     output_activation: Callable = None
     """The nonlinear activation at the output layer. If None is provided, the output layer will be essentially linear."""
@@ -61,21 +61,21 @@ class MLP(nn.Module):
         if hidden_dims is None:
             hidden_dims = []
 
-        if self.hidden_activation is None:
-            hidden_activation = [None] * len(hidden_dims)
-        elif hasattr(self.hidden_activation, "__len__"):
-            if len(self.hidden_activation) != len(hidden_dims):
+        if self.hidden_activations is None:
+            hidden_activations = [None] * len(hidden_dims)
+        elif hasattr(self.hidden_activations, "__len__"):
+            if len(self.hidden_activations) != len(hidden_dims):
                 raise ValueError(
                     "number of hidden activations must be the same as the length of the hidden dimensions list"
                 )
-            hidden_activation = self.hidden_activation
+            hidden_activations = self.hidden_activations
         else:
-            hidden_activation = [self.hidden_activation] * len(hidden_dims)
+            hidden_activations = [self.hidden_activations] * len(hidden_dims)
 
         x = input
 
         # hidden layers
-        for nh, act_h in zip(hidden_dims, hidden_activation):
+        for nh, act_h in zip(hidden_dims, hidden_activations):
             x = nn.Dense(
                 features=nh,
                 param_dtype=self.param_dtype,
