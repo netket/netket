@@ -237,22 +237,22 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
 
 
 # TODO rename it
-class fake_tuple(tuple):
+class RealImagTuple(tuple):
     '''
-    a tuple which is not a real tuple
+    a special kind of tuple which marks complex parameters which were split
     '''
     pass
 
 register_pytree_node(
-    fake_tuple,
+    RealImagTuple,
     lambda xs: (xs, None),
-    lambda _, xs: fake_tuple(xs),
+    lambda _, xs: RealImagTuple(xs),
 )
 
 
 def _complex_to_real(x):
     if jnp.iscomplexobj(x):
-        return fake_tuple((x.real, x.imag))
+        return RealImagTuple((x.real, x.imag))
     else:
         return x
 
@@ -260,7 +260,7 @@ def _complex_to_real(x):
 def _real_to_complex(x):
     # jax.lax.complex would convert scalars to arrays
     _complex = lambda re, im: re + 1j * im
-    if isinstance(x, fake_tuple):
+    if isinstance(x, RealImagTuple):
         return _complex(*x)
     else:
         return x
@@ -270,12 +270,13 @@ def _tree_to_real(x):
     return jax.tree_map(_complex_to_real, x)
 
 
-def _tree_reassemble_complex(x):
+def _tree_to_real_inverse(x):
+    # undoes _tree_to_real
     return jax.tree_map(_real_to_complex, x, is_leaf=lambda x: isinstance(x, RealImagTuple))
 
 
 def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
-    """Replace all complex leaves of a pytree with a tuple of 2 real leaves.
+    """Replace all complex leaves of a pytree with a RealImagTuple of 2 real leaves.
 
     Args:
       pytree: a pytree to convert to real
@@ -285,7 +286,7 @@ def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
       and the second element is a callable for converting back a real pytree
       to a complex pytree of of the same structure as the input pytree.
     """
-    return _tree_to_real(pytree), _tree_reassemble_complex
+    return _tree_to_real(pytree), _tree_to_real_inverse
 
 
 def compose(*funcs):
