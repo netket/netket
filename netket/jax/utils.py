@@ -239,7 +239,8 @@ def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
 # TODO rename it
 class RealImagTuple(tuple):
     '''
-    a special kind of tuple which marks complex parameters which were split
+    A special kind of tuple which marks complex parameters which were split.
+    Behaves like a regular tuple.
     '''
     pass
 
