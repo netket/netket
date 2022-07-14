@@ -119,14 +119,6 @@ def _exp_forces(
 
     Ō_grad = vjp_fun(ΔOΨ)[0]
 
-    Ō_grad = jax.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
-            target.dtype
-        ),
-        Ō_grad,
-        parameters,
-    )
-
     new_model_state = new_model_state[0] if is_mutable else None
 
     return (

@@ -485,7 +485,7 @@ def test_forces_gradient_rule():
             )
 
             y = jnp.einsum("ij,...j", W, x)
-            return jnp.sum(jnp.tanh(y), axis=-1)
+            return jnp.sum(nk.nn.activation.reim_selu(y), axis=-1)
 
     class M2(nn.Module):
         n_h: int
@@ -503,7 +503,7 @@ def test_forces_gradient_rule():
             W = Wr + 1j * Wi
 
             y = jnp.einsum("ij,...j", W, x)
-            return jnp.sum(jnp.tanh(y), axis=-1)
+            return jnp.sum(nk.nn.activation.reim_selu(y), axis=-1)
 
     ma1 = M1(8)
     ma2 = M2(8)
