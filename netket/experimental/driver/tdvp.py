@@ -541,30 +541,6 @@ def odefun(state: MCState, driver: TDVP, t, w, *, stage=0):  # noqa: F811
 
 @partial(jax.jit, static_argnums=(3, 4))
 def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, state_T):
-    # pars_f, _ = jax.tree_flatten(jax.tree_map(jnp.iscomplexobj, parameters))
-    # if all(pars_f):
-    #    all_complex = True
-    # else:
-    #    all_complex = False
-    #
-    # take_real = False
-    #
-    # if issubclass(state_T, VariationalMixedState):
-    #    # assuming Lindblad Dynamics
-    #    # TODO: support density-matrix imaginary time evolution
-    #    if propagation_type == "real":
-    #        loss_grad_factor = 1.0
-    #    else:
-    #        raise ValueError(
-    #            "only real-time Lindblad evolution is supported for " "mixed states"
-    #        )
-    # else:
-    #    if propagation_type == "real":
-    #        loss_grad_factor = -1.0j
-    #    elif propagation_type == "imag":
-    #        loss_grad_factor = -1.0
-    #    else:
-    #        raise ValueError("propagation_type must be one of 'real', 'imag'")
 
     forces = jax.tree_map(
         lambda x, target: loss_grad_factor * x,

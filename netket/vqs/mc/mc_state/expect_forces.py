@@ -103,14 +103,6 @@ def forces_expect_hermitian(
     )
     Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
 
-    # Ō_grad = jax.tree_map(
-    #    lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
-    #        target.dtype
-    #    ),
-    #    Ō_grad,
-    #    parameters,
-    # )
-
     new_model_state = new_model_state[0] if is_mutable else None
 
     return Ō, jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state

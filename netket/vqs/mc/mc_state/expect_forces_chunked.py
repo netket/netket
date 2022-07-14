@@ -145,12 +145,4 @@ def forces_expect_hermitian_chunked(
         (jnp.conjugate(O_loc) / n_samples),
     )[0]
 
-    # Ō_grad = jax.tree_map(
-    #    lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
-    #        target.dtype
-    #    ),
-    #    Ō_grad,
-    #    parameters,
-    # )
-
     return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
