@@ -84,7 +84,8 @@ class Stats:
             ext = ", R̂={:.4f}".format(self.R_hat)
         else:
             ext = ""
-        ext += ", τ={:.1f}<{:.1f}".format(self.tau_corr, self.tau_corr_max)
+        if not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
+            ext += ", τ={:.1f}<{:.1f}".format(self.tau_corr, self.tau_corr_max)
         return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
 
     # Alias accessors

@@ -93,7 +93,9 @@ def test_stats_mean_std():
         _test_stats_mean_std(hi, ham, ma, bs)
 
 
-def _test_tau_corr(batch_size, sig_corr):
+@pytest.mark.parametrize("batch_size", [1, 2, 4, 8, 16, 32])
+@pytest.mark.parametrize("sig_corr", [0.5])
+def test_tau_corr(batch_size, sig_corr):
     def next_pow_two(n):
         i = 1
         while i < n:
@@ -117,7 +119,6 @@ def _test_tau_corr(batch_size, sig_corr):
 
         return acf
 
-    @jit
     def gen_data(n_samples, log_f, dx, seed=1234):
         np.random.seed(seed)
         # Generates data with a simple markov chain
@@ -133,14 +134,13 @@ def _test_tau_corr(batch_size, sig_corr):
             x_old = x[i]
         return x
 
-    @jit
     def log_f(x):
         return -(x**2.0) / 2.0
 
     def func_corr(x, tau):
         return np.exp(-x / (tau))
 
-    n_samples = 8000000 // batch_size
+    n_samples = 2**20 // batch_size
 
     data = np.empty((batch_size, n_samples))
     tau_fit = np.empty((batch_size))
@@ -151,25 +151,19 @@ def _test_tau_corr(batch_size, sig_corr):
         popt, pcov = curve_fit(func_corr, np.arange(40), autoc[0:40])
         tau_fit[i] = popt[0]
 
-    tau_fit_m = tau_fit.mean()
+    tau_fit_mean = 1 + 2 * tau_fit.mean()
+    tau_fit_max = 1 + 2 * tau_fit.max()
 
     stats = statistics(data)
 
     assert np.mean(data) == pytest.approx(stats.mean)
     assert np.var(data) == pytest.approx(stats.variance)
 
-    assert tau_fit_m == pytest.approx(stats.tau_corr, rel=1, abs=3)
+    assert tau_fit_mean == pytest.approx(stats.tau_corr, rel=0.5, abs=0.5)
+    assert tau_fit_max == pytest.approx(stats.tau_corr_max, rel=0.5, abs=0.5)
 
-    eom_fit = np.sqrt(np.var(data) * tau_fit_m / float(n_samples * batch_size))
-
-    print(stats.error_of_mean, eom_fit)
-    assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.6)
-
-
-def test_tau_corr():
-    sig_corr = 0.5
-    for bs in (1, 2, 32, 64):
-        _test_tau_corr(bs, sig_corr)
+    eom_fit = np.sqrt(np.var(data) * tau_fit_mean / float(n_samples * batch_size))
+    assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.5)
 
 
 def test_decimal_format():
