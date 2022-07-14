@@ -44,7 +44,7 @@ class InvalidLossStopping:
             A boolean. If True, training continues, else, it does not.
         """
         loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
-        if np.isfinite(loss):
+        if not np.isfinite(loss):
             if step - self._last_valid_iter >= self.patience:
                 return False
         else:
