@@ -29,7 +29,7 @@ def test_mlp():
         output_dim=3,
         hidden_dims=(16, 32),
         param_dtype=np.float64,
-        hidden_activation=None,
+        hidden_activations=None,
         output_activation=nk.nn.gelu,
         use_output_bias=True,
     )
