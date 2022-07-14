@@ -16,13 +16,13 @@ def _chunk_vmapped_function(vmapped_fun, chunk_size, argnums=0):
     if isinstance(argnums, int):
         argnums = (argnums,)
 
-    def _fun(*args):
+    def _fun(*args, **kwargs):
 
         n_elements = jax.tree_leaves(args[argnums[0]])[0].shape[0]
         n_chunks, n_rest = divmod(n_elements, chunk_size)
 
         if n_chunks == 0 or chunk_size >= n_elements:
-            y = vmapped_fun(*args)
+            y = vmapped_fun(*args, **kwargs)
         else:
             # split inputs
             def _get_chunks(x):
@@ -42,13 +42,13 @@ def _chunk_vmapped_function(vmapped_fun, chunk_size, argnums=0):
             ]
 
             y_chunks = _unchunk(
-                scanmap(vmapped_fun, scan_append, argnums)(*args_chunks)
+                scanmap(vmapped_fun, scan_append, argnums)(*args_chunks, **kwargs)
             )
 
             if n_rest == 0:
                 y = y_chunks
             else:
-                y_rest = vmapped_fun(*args_rest)
+                y_rest = vmapped_fun(*args_rest, **kwargs)
                 y = jax.tree_map(
                     lambda y1, y2: jnp.concatenate((y1, y2)), y_chunks, y_rest
                 )

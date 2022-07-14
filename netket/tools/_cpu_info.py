@@ -75,7 +75,9 @@ def get_sysctl_cpu():
         except ValueError:
             pass
         info[key] = value
-    flags = [flag.lower() for flag in info["features"].split()]
+    # features is absent in M1 macs
+    info_features = info.get("features", "")
+    flags = [flag.lower() for flag in info_features.split()]
     info["flags"] = [SYSCTL_FLAG_TRANSLATIONS.get(flag, flag) for flag in flags]
     info["unknown_flags"] = ["3dnow"]
     info["supports_avx"] = "hw.optional.avx1_0: 1\n" in sysctl_text
