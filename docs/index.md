@@ -55,6 +55,7 @@ docs/install
 tutorials/gs-ising
 tutorials/gs-heisenberg
 tutorials/gs-j1j2
+tutorials/gs-matrix-models
 tutorials/gs-gcnn-honeycomb
 ```   
 
