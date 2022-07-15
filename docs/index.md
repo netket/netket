@@ -55,9 +55,8 @@ docs/install
 tutorials/gs-ising
 tutorials/gs-heinsenberg
 tutorials/gs-j1j2
-tutorials/gs-gcnn-honeycomb
-tutorials/gs-free-matrix-models
 tutorials/gs-matrix-models
+tutorials/gs-gcnn-honeycomb
 ```   
 
 ```{toctree}
