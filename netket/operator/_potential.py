@@ -50,7 +50,7 @@ class PotentialEnergy(ContinuousOperator):
     def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
     ):
-        return jnp.array(coefficient) * self._afun(x)
+        return coefficient * self._afun(x)
 
     @partial(jax.vmap, in_axes=(None, None, None, 0, None))
     def _expect_kernel_batched(

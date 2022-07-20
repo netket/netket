@@ -41,7 +41,8 @@ kin10p52 = kin1 + 0.5 * kin2
 
 # sum of potential and kinetic operators
 etot = pottot + kintot
-etot2 = pot1 + pot2 + kin1 + kin2
+# TODO: make this recognize double appearing of same operator
+etot2 = pot1 + pot2 + 2.0 * kin1 - kin1 + kin2
 
 model1 = lambda p, x: 1.0
 model2 = lambda p, x: jnp.sum(x**3)
