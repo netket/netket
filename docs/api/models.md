@@ -30,5 +30,6 @@ neural quantum states.
    FastARNNConv1D
    FastARNNConv2D
    DeepSetRelDistance
+   MLP
 
 ```

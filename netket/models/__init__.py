@@ -25,6 +25,7 @@ from .fast_autoreg import (
     FastARNNConv1D,
     FastARNNConv2D as _FastARNNConv2D,
 )
+from .mlp import MLP
 from .utils import update_GCNN_parity
 
 
