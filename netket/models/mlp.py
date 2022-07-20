@@ -16,22 +16,29 @@ class MLP(nn.Module):
     r"""A Multi-Layer Perceptron with hidden layers.
 
     This combines multiple dense layers and activations functions into a single object.
-    It separates the output layer from the hidden layers, since it typically has a different form.
+    It separates the output layer from the hidden layers,
+    since it typically has a different form.
     One can specify the specific activation functions per layer.
-    The size of the hidden dimensions can be provided as a number, or as a factor relative to the input size (similar as for RBM)
+    The size of the hidden dimensions can be provided as a number,
+    or as a factor relative to the input size (similar as for RBM).
+    The default model is a single linear layer without activations.
     """
     output_dim: int = 1
     """The output dimension"""
     hidden_dims: Tuple[int] = None
     """The size of the hidden layers, excluding the output layer."""
-    alpha_hidden_dims: Tuple[int] = None
-    """The size of the hidden layers provided as number of times the input size. One must choose to either specify this or the hidden_dims keyword argument"""
+    hidden_dims_alpha: Tuple[int] = None
+    """The size of the hidden layers provided as number of times the input size.
+    One must choose to either specify this or the hidden_dims keyword argument"""
     param_dtype: Any = np.float64
     """The dtype of the weights."""
     hidden_activations: Union[Callable, Tuple[Callable]] = nknn.gelu
-    """The nonlinear activation function after each hidden layer. Can be provided as a single activation, where the same activation will be used for every layer."""
+    """The nonlinear activation function after each hidden layer.
+    Can be provided as a single activation,
+    where the same activation will be used for every layer."""
     output_activation: Callable = None
-    """The nonlinear activation at the output layer. If None is provided, the output layer will be essentially linear."""
+    """The nonlinear activation at the output layer.
+    If None is provided, the output layer will be essentially linear."""
     use_hidden_bias: bool = True
     """if True uses a bias in the hidden layer."""
     use_output_bias: bool = False
@@ -43,34 +50,40 @@ class MLP(nn.Module):
     bias_init: NNInitFunc = default_bias_init
     """Initializer for the biases."""
     squeeze_output: bool = False
-    """Whether to remove output dimension 1 if it is present. This is typically useful if we want to use the MLP as an NQS directly, where we do not need the final dimension 1."""
+    """Whether to remove output dimension 1 if it is present.
+    This is typically useful if we want to use the MLP as an NQS directly,
+    where we do not need the final dimension 1."""
 
     @nn.compact
     def __call__(self, input):
-        hidden_dims = self.hidden_dims
-        if hidden_dims is None:
-            if self.alpha_hidden_dims is not None:
-                hidden_dims = [
-                    int(nh * input.shape[-1]) for nh in self.alpha_hidden_dims
-                ]
-        elif self.alpha_hidden_dims is not None:
-            raise ValueError(
-                "Cannot specify both hidden_dims and alpha_hidden_dims, choose one way to provide the hidden dimensions"
-            )
 
-        if hidden_dims is None:
-            hidden_dims = []
+        if self.hidden_dims is None:
+            if self.hidden_dims_alpha is not None:
+                hidden_dims = [
+                    int(nh * input.shape[-1]) for nh in self.hidden_dims_alpha
+                ]
+            else:
+                hidden_dims = []
+        else:
+            if self.hidden_dims_alpha is not None:
+                raise ValueError(
+                    "Cannot specify both hidden_dims and alpha_hidden_dims, "
+                    "choose one way to provide the hidden dimensions"
+                )
+            hidden_dims = self.hidden_dims
 
         if self.hidden_activations is None:
             hidden_activations = [None] * len(hidden_dims)
         elif hasattr(self.hidden_activations, "__len__"):
-            if len(self.hidden_activations) != len(hidden_dims):
-                raise ValueError(
-                    "number of hidden activations must be the same as the length of the hidden dimensions list"
-                )
             hidden_activations = self.hidden_activations
         else:
             hidden_activations = [self.hidden_activations] * len(hidden_dims)
+
+        if len(hidden_activations) != len(hidden_dims):
+            raise ValueError(
+                "number of hidden activations must be the same "
+                "as the length of the hidden dimensions list"
+            )
 
         x = input
 

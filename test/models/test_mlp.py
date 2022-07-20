@@ -12,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import netket as nk
+import pytest
 import numpy as np
+
+import netket as nk
 
 
 def test_mlp_alpha():
-    ma = nk.models.MLP(alpha_hidden_dims=(4, 5))
+    ma = nk.models.MLP(hidden_dims_alpha=(4, 5))
     x = np.zeros((16,))
     pars = ma.init(nk.jax.PRNGKey(), x)
     assert pars["params"]["Dense_0"]["kernel"].shape == (16, 4 * 16)
     assert pars["params"]["Dense_1"]["kernel"].shape == (4 * 16, 5 * 16)
 
 
-def test_mlp():
+def test_mlp_dimensions():
     ma = nk.models.MLP(
         output_dim=3,
         hidden_dims=(16, 32),
@@ -33,7 +35,58 @@ def test_mlp():
         output_activation=nk.nn.gelu,
         use_output_bias=True,
     )
-    x = np.zeros((16,))
+    x = np.zeros((1024, 16))
+
     pars = ma.init(nk.jax.PRNGKey(), x)
     out = ma.apply(pars, x)
     assert out.shape[-1] == 3
+
+    ma = nk.models.MLP(output_dim=1, hidden_dims=(16, 32), squeeze_output=True)
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    out = ma.apply(pars, x)
+    assert out.shape[-1] == x.shape[-2]
+
+
+def _eval_model(ma):
+    # test input, only throws errors when init or apply is called
+    x = np.zeros((1024, 16))
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    out = ma.apply(pars, x)
+
+
+def test_mlp_input():
+
+    # raise because different length
+    with pytest.raises(ValueError):
+        ma = nk.models.MLP(
+            output_dim=1,
+            hidden_dims=(16, 33),
+            hidden_activations=[nk.nn.gelu, nk.nn.gelu, nk.nn.gelu],
+        )
+        _eval_model(ma)
+
+    # this must run
+    ma = nk.models.MLP(
+        output_dim=1, hidden_dims=(16, 32), hidden_activations=[nk.nn.gelu, nk.nn.gelu]
+    )
+    _eval_model(ma)
+
+    ma = nk.models.MLP(output_dim=1, hidden_dims_alpha=(1, 2))
+    _eval_model(ma)
+
+    ma = nk.models.MLP(output_dim=1)
+    _eval_model(ma)
+
+    with pytest.raises(ValueError):
+        # raise because different length
+        ma = nk.models.MLP(
+            output_dim=1,
+            hidden_dims=(16, 32),
+            hidden_activations=[nk.nn.gelu, nk.nn.gelu, nk.nn.gelu],
+        )
+        _eval_model(ma)
+
+    with pytest.raises(ValueError):
+        # cannot be specified together
+        ma = nk.models.MLP(output_dim=1, hidden_dims=(16, 32), hidden_dims_alpha=(1, 1))
+        _eval_model(ma)
