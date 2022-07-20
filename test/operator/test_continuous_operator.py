@@ -39,7 +39,9 @@ kin10p52 = kin1 + 0.5 * kin2
 
 # sum of potential and kinetic operators
 etot = pottot + kintot
-
+etot2 = pot1 + pot2 + kin1 + kin2
+print(etot)
+print(etot2)
 model1 = lambda p, x: 1.0
 model2 = lambda p, x: jnp.sum(x**3)
 kinexact = lambda x: -0.5 * jnp.sum((3 * x**2) ** 2 + 6 * x, axis=-1)
@@ -102,5 +104,9 @@ def test_sumoperator():
     np.testing.assert_allclose(kinen10p52, kinenergy10p52ex)
 
     enertot = etot._expect_kernel_batched(model2, 0.0, x, etot._pack_arguments())
+    enertot2 = etot2._expect_kernel_batched(model2, 0.0, x, etot2._pack_arguments())
     enerexact = v1(x) + v2_vec(x) + kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
+    print(enertot)
+    print(enertot2)
     np.testing.assert_allclose(enertot, enerexact)
+    np.testing.assert_allclose(enertot2, enerexact)

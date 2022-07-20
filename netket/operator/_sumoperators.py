@@ -29,7 +29,7 @@ class SumOperator(ContinuousOperator):
 
     def __init__(
         self,
-        *operators: List,
+        operators: List,
         coefficients: Union[float, List[float]] = 1.0,
         dtype: Optional[DType] = None,
     ):
@@ -40,6 +40,19 @@ class SumOperator(ContinuousOperator):
             coefficients: A coefficient for each ContinuousOperator object
             dtype: Data type of the matrix elements. Defaults to `np.float64`
         """
+        new_operators = []
+        new_coeffs = []
+        for op, c in zip(operators, coefficients):
+            if isinstance(op, SumOperator):
+                for i, oi in enumerate(op._ops):
+                    new_operators.append(oi)
+                    new_coeffs.append(op._pack_arguments()[i] * c)
+            else:
+                new_operators.append(op)
+                new_coeffs.append(c * op._pack_arguments())
+
+        operators = new_operators
+        coefficients = new_coeffs
 
         hil = [op.hilbert for op in operators]
         if not all(_ == hil[0] for _ in hil):
@@ -85,7 +98,7 @@ class SumOperator(ContinuousOperator):
         return sum(result)
 
     def _pack_arguments(self):
-        return [self._coeff * jnp.array(op._pack_arguments()) for op in self._ops]
+        return list(self._coeff)
 
     def __repr__(self):
         return f"SumOperator(coefficients={self._pack_arguments()})"
