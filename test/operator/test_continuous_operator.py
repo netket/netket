@@ -5,6 +5,8 @@ import jax.numpy as jnp
 
 import netket
 
+import pytest
+
 
 def v1(x):
     return jnp.sum(jnp.exp(-(x**2)), axis=-1)
@@ -107,3 +109,11 @@ def test_sumoperator():
     enerexact = v1(x) + v2_vec(x) + kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
     np.testing.assert_allclose(enertot, enerexact)
     np.testing.assert_allclose(enertot2, enerexact)
+
+    with pytest.raises(AssertionError):
+        ha = netket.operator.SumOperator(
+            [etot, etot2],
+            coefficients=[
+                1.0,
+            ],
+        )

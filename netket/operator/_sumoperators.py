@@ -40,6 +40,9 @@ class SumOperator(ContinuousOperator):
             coefficients: A coefficient for each ContinuousOperator object
             dtype: Data type of the matrix elements. Defaults to `np.float64`
         """
+        if len(operators) != len(coefficients):
+            raise AssertionError("Each operator needs a coefficient")
+
         new_operators = []
         new_coeffs = []
         for op, c in zip(operators, coefficients):
