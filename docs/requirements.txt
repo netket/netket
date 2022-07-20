@@ -7,6 +7,6 @@ myst-parser~=0.18.0
 nbsphinx~=0.8.9
 myst-nb==0.16.0
 jaxlib>=0.1.59
-sphinx-book-theme==0.3.2
+sphinx-book-theme==0.3.3
 -e .
 -e docs/sphinx_extensions/custom_inheritance_diagram
