@@ -90,6 +90,8 @@ class SumOperator(ContinuousOperator):
             for i, op in enumerate(self._ops)
         ]
 
+        return sum(result)
+
     def _expect_kernel_batched(
         self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
     ):
