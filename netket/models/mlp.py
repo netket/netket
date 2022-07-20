@@ -22,6 +22,9 @@ class MLP(nn.Module):
     The size of the hidden dimensions can be provided as a number,
     or as a factor relative to the input size (similar as for RBM).
     The default model is a single linear layer without activations.
+
+    Forms a common building block for models such as PauliNet (continuous)
+    https://www.nature.com/articles/s41557-020-0544-y
     """
     output_dim: int = 1
     """The output dimension"""
