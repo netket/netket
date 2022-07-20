@@ -28,6 +28,8 @@ from .qgt_jacobian_pytree_logic import (
     single_sample,
 )
 
+from netket.jax.utils import RealImagTuple
+
 
 # Utilities for splitting real and imaginary part
 def _to_re(x):
@@ -96,7 +98,7 @@ def vec_to_real(vec: Array) -> Tuple[Array, Callable]:
         out = jnp.concatenate([re, im], axis=0)
 
         def reassemble_concat(x):
-            x = tuple(jnp.split(x, 2, axis=0))
+            x = RealImagTuple(jnp.split(x, 2, axis=0))
             return reassemble(x)
 
     else:
