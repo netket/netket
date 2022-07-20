@@ -47,9 +47,10 @@ class SumOperator(ContinuousOperator):
         new_coeffs = []
         for op, c in zip(operators, coefficients):
             if isinstance(op, SumOperator):
-                for i, oi in enumerate(op._ops):
-                    new_operators.append(oi)
-                    new_coeffs.append(c * op._pack_arguments()[0][i])
+                new_operators = new_operators + op._ops
+                new_coeffs = new_coeffs + list(
+                    jnp.array(c) * jnp.array(op._pack_arguments()[0])
+                )
             else:
                 new_operators.append(op)
                 new_coeffs.append(c)
