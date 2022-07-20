@@ -46,6 +46,11 @@ def test_mlp_dimensions():
     out = ma.apply(pars, x)
     assert out.shape[-1] == x.shape[-2]
 
+    ma = nk.models.MLP(output_dim=3, hidden_dims=None)
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    assert pars["params"]["Dense_0"]["kernel"].shape == (x.shape[-1], 3)
+    assert "Dense_1" not in pars["params"]
+
 
 def _eval_model(ma):
     # test input, only throws errors when init or apply is called
