@@ -112,7 +112,8 @@ def test_sumoperator():
 
     with pytest.raises(AssertionError):
         ha = netket.operator.SumOperator(
-            [etot, etot2],
+            etot,
+            etot2,
             coefficients=[
                 1.0,
             ],

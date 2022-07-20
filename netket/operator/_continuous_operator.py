@@ -78,7 +78,7 @@ class ContinuousOperator(AbstractOperator):
         ):
             from netket.operator import SumOperator
 
-            return SumOperator([self, other], coefficients=[1.0, 1.0])
+            return SumOperator(self, other, coefficients=[1.0, 1.0])
         else:
             return NotImplemented  # pragma: no cover
 
@@ -92,7 +92,7 @@ class ContinuousOperator(AbstractOperator):
         if isinstance(self, ContinuousOperator) and isinstance(other, float):
             from netket.operator import SumOperator
 
-            return SumOperator([self], coefficients=[other])
+            return SumOperator(self, coefficients=[other])
         else:
             return NotImplemented  # pragma: no cover
 
@@ -100,4 +100,12 @@ class ContinuousOperator(AbstractOperator):
         if isinstance(self, ContinuousOperator) and isinstance(
             other, ContinuousOperator
         ):
-            return self + (-1.0) * other
+            return self + (-other)
+        else:
+            return NotImplemented  # pragma: no cover
+
+    def __neg__(self):
+        if isinstance(self, ContinuousOperator):
+            return -1.0 * self
+        else:
+            return NotImplemented  # pragma: no cover

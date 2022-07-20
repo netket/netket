@@ -29,7 +29,7 @@ class SumOperator(ContinuousOperator):
 
     def __init__(
         self,
-        operators: List,
+        *operators: List,
         coefficients: Union[float, List[float]] = 1.0,
         dtype: Optional[DType] = None,
     ):
@@ -49,10 +49,10 @@ class SumOperator(ContinuousOperator):
             if isinstance(op, SumOperator):
                 for i, oi in enumerate(op._ops):
                     new_operators.append(oi)
-                    new_coeffs.append(op._pack_arguments()[i] * c)
+                    new_coeffs.append(c * op._pack_arguments()[0][i])
             else:
                 new_operators.append(op)
-                new_coeffs.append(c * op._pack_arguments())
+                new_coeffs.append(c)
 
         operators = new_operators
         coefficients = new_coeffs
@@ -83,25 +83,28 @@ class SumOperator(ContinuousOperator):
     def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
     ):
+        term_coefficients, term_datas = data
         result = [
-            op._expect_kernel(logpsi, params, x, data[i])
+            term_coefficients[i]
+            * op._expect_kernel_batched(logpsi, params, x, term_datas[i])
             for i, op in enumerate(self._ops)
         ]
-
-        return sum(result)
 
     def _expect_kernel_batched(
         self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
     ):
+        term_coefficients, term_datas = data
         result = [
-            op._expect_kernel_batched(logpsi, params, x, data[i])
+            term_coefficients[i]
+            * op._expect_kernel_batched(logpsi, params, x, term_datas[i])
             for i, op in enumerate(self._ops)
         ]
 
         return sum(result)
 
     def _pack_arguments(self):
-        return list(self._coeff)
+
+        return self._coeff, [op._pack_arguments() for op in self._ops]
 
     def __repr__(self):
         return f"SumOperator(coefficients={self._pack_arguments()})"
