@@ -20,6 +20,30 @@ import jax.numpy as jnp
 import netket as nk
 
 
+def test_deepset():
+    """Test the permutation invariance"""
+    L = (1.0, 1.0)
+    n_particles = 6
+    hilb = nk.hilbert.Particle(N=n_particles, L=L, pbc=True)
+    sdim = len(hilb.extent)
+    key = jax.random.PRNGKey(42)
+    x = hilb.random_state(key, size=1024)
+    x = x.reshape(x.shape[0], n_particles, sdim)
+
+    xp = jnp.roll(x, 2, axis=-2)  # permute the particles
+
+    ds = nk.models.DeepSet(
+        features_phi=(16, 16), features_rho=(16, 1), squeeze_output=True
+    )
+    params = ds.init(key, x)
+    out = ds.apply(params, x)
+    outp = ds.apply(params, xp)
+    assert out.shape == outp.shape
+    assert out.shape == x.shape[:-2]
+
+    assert jnp.allclose(out, outp)
+
+
 @pytest.mark.parametrize(
     "cusp_exponent", [pytest.param(None, id="cusp=None"), pytest.param(5, id="cusp=5")]
 )
@@ -31,7 +55,7 @@ import netket as nk
         pytest.param((1.0, 0.5), id="2D-Rectangle"),
     ],
 )
-def test_deepsets(cusp_exponent, L):
+def test_rel_dist_deepsets(cusp_exponent, L):
 
     hilb = nk.hilbert.Particle(N=2, L=L, pbc=True)
     sdim = len(hilb.extent)
@@ -50,7 +74,7 @@ def test_deepsets(cusp_exponent, L):
     assert jnp.allclose(ds.apply(p, x), ds.apply(p, xp))
 
 
-def test_deepsets_error():
+def test_rel_dist_deepsets_error():
     hilb = nk.hilbert.Particle(N=2, L=1.0, pbc=True)
     sdim = len(hilb.extent)
 

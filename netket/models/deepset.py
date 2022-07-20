@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Any, Optional
+from typing import Union, Tuple, Any, Optional, Callable
 
 import jax
 from jax import numpy as jnp
@@ -20,6 +20,114 @@ def check_features_length(features, n_layers, name):
             f"The number of {name} layers ({n_layers}) does not match "
             f"the length of the features list ({len(features)})."
         )
+
+
+class DeepSet(nn.Module):
+    r"""Implements the DeepSets architecture, which is permutation invariant.
+
+    .. math ::
+
+        f(x_1,...,x_N) = \rho\left(\sum_i \phi(x_i)\right)
+
+    that is suitable for the simulation of bosonic.
+
+    The input shape must have an axis that is reshaped to (..., N, D), where we pool over N.
+
+    """
+
+    features_phi: Tuple[int]
+    """Number of features in each layer for phi network."""
+    features_rho: Tuple[int]
+    """
+    Number of features in each layer for rho network.
+    """
+
+    param_dtype: Any = jnp.float64
+    """The dtype of the weights."""
+
+    hidden_activation: Callable = jax.nn.gelu
+    """The nonlinear activation function between hidden layers."""
+    output_activation: Callable = None
+    """The nonlinear activation function at the output layer."""
+
+    pooling: Callable = jnp.sum
+    """The pooling operation to be used after the phi-transformation"""
+
+    use_bias: bool = True
+    """if True uses a bias in all layers."""
+
+    kernel_init: NNInitFunc = lecun_normal()
+    """Initializer for the Dense layer matrix"""
+    bias_init: NNInitFunc = zeros
+    """Initializer for the hidden bias"""
+
+    squeeze_output: bool = False
+    """ Whether to remove the 1 dimension in the output, if present """
+
+    def setup(self):
+
+        features_phi = self.features_phi
+        if isinstance(features_phi, int):
+            features_phi = [features_phi]
+
+        features_rho = self.features_rho
+        if isinstance(features_rho, int):
+            features_rho = [features_rho]
+
+        self.phi = [
+            nn.Dense(
+                feat,
+                use_bias=self.use_bias,
+                param_dtype=self.param_dtype,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )
+            for feat in features_phi
+        ]
+
+        self.rho = [
+            nn.Dense(
+                feat,
+                use_bias=self.use_bias,
+                param_dtype=self.param_dtype,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )
+            for feat in features_rho
+        ]
+
+    @nn.compact
+    def __call__(self, x):
+        """The input shape must have an axis that is reshaped to(..., N, D), where we pool over N."""
+
+        """ The phi transformation """
+        for layer in self.phi:
+            x = layer(x)
+            if self.hidden_activation is not None:
+                x = self.hidden_activation(x)
+
+        """ Pooling operation """
+        if self.pooling:
+            x = self.pooling(x, axis=-2)
+
+        """ The rho transformation """
+        for i, layer in enumerate(self.rho):
+            x = layer(x)
+            if i == len(self.rho) - 1:
+                if self.output_activation is not None:
+                    x = self.output_activation(x)
+            else:
+                if self.hidden_activation is not None:
+                    x = self.hidden_activation(x)
+
+        if self.squeeze_output:
+            if x.shape[-1] != 1:
+                raise ValueError(
+                    f"cannot squeeze the output of deepset with output dimension {x.shape[-1]}"
+                )
+            x = x.squeeze(-1)
+
+        return x
 
 
 @deprecate_dtype
@@ -92,37 +200,30 @@ class DeepSetRelDistance(nn.Module):
         features_phi = self.features_phi
         if isinstance(features_phi, int):
             features_phi = [features_phi] * self.layers_phi
+        features_phi = tuple(features_phi)
 
         check_features_length(features_phi, self.layers_phi, "phi")
 
         features_rho = self.features_rho
         if isinstance(features_rho, int):
             features_rho = [features_rho] * (self.layers_rho - 1) + [1]
+        features_rho = tuple(features_rho)
 
         check_features_length(features_rho, self.layers_rho, "rho")
         assert features_rho[-1] == 1
 
-        self.phi = [
-            nn.Dense(
-                feat,
-                use_bias=self.use_bias,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
-            )
-            for feat in features_phi
-        ]
-
-        self.rho = [
-            nn.Dense(
-                feat,
-                use_bias=self.use_bias,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
-            )
-            for feat in features_rho
-        ]
+        self.deepset = DeepSet(
+            features_phi,
+            features_rho,
+            param_dtype=self.param_dtype,
+            hidden_activation=self.activation,
+            output_activation=None,
+            pooling=self.pooling,
+            use_bias=self.use_bias,
+            kernel_init=self.kernel_init,
+            bias_init=self.bias_init,
+            squeeze_output=True,
+        )
 
     def distance(self, x, sdim, L):
         n_particles = x.shape[0] // sdim
@@ -136,7 +237,7 @@ class DeepSetRelDistance(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        sha = x.shape
+        batch_shape = x.shape[:-1]
         param = self.param("cusp", self.params_init, (1,), self.param_dtype)
 
         L = jnp.array(self.hilbert.extent)
@@ -151,18 +252,6 @@ class DeepSetRelDistance(nn.Module):
 
         y = (d / L[jnp.newaxis, :]) ** 2
 
-        """ The phi transformation """
-        for layer in self.phi:
-            y = self.activation(layer(y))
+        y = self.deepset(y)
 
-        """ Pooling operation """
-        y = self.pooling(y, axis=-2)
-
-        """ The rho transformation """
-        for i, layer in enumerate(self.rho):
-            y = layer(y)
-            if i == len(self.rho) - 1:
-                break
-            y = self.activation(y)
-
-        return (y.reshape(-1) + cusp).reshape(sha[0])
+        return (y + cusp).reshape(*batch_shape)
