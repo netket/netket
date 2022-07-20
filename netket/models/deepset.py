@@ -98,7 +98,7 @@ class DeepSet(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        """The input shape must have an axis that is reshaped to(..., N, D), where we pool over N."""
+        """The input shape must have an axis that is reshaped to (..., N, D), where we pool over N."""
 
         """ The phi transformation """
         for layer in self.phi:

@@ -18,6 +18,7 @@ import jax
 import jax.numpy as jnp
 
 import netket as nk
+import netket.nn as nknn
 
 
 def test_deepset():
@@ -42,6 +43,22 @@ def test_deepset():
     assert out.shape == x.shape[:-2]
 
     assert jnp.allclose(out, outp)
+
+    ds = nk.models.DeepSet(
+        features_phi=16, features_rho=32, output_activation=nknn.gelu
+    )
+    params = ds.init(key, x)
+    out = ds.apply(params, x)
+    assert params["params"]["phi_0"]["kernel"].shape == (x.shape[-1], 16)
+    assert params["params"]["rho_0"]["kernel"].shape == (16, 32)
+
+    with pytest.raises(ValueError):
+        # squeezing with dimension 3 should fail
+        ds = nk.models.DeepSet(
+            features_phi=(16,), features_rho=(16, 3), squeeze_output=True
+        )
+        params = ds.init(key, x)
+        out = ds.apply(params, x)
 
 
 @pytest.mark.parametrize(
