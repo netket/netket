@@ -111,4 +111,4 @@ class SumOperator(ContinuousOperator):
         return self._coeff, [op._pack_arguments() for op in self._ops]
 
     def __repr__(self):
-        return f"SumOperator(coefficients={self._coeff()})"
+        return f"SumOperator(coefficients={self._coeff})"
