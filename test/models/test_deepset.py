@@ -49,8 +49,9 @@ def test_deepset():
     )
     params = ds.init(key, x)
     out = ds.apply(params, x)
-    assert params["params"]["phi_0"]["kernel"].shape == (x.shape[-1], 16)
-    assert params["params"]["rho_0"]["kernel"].shape == (16, 32)
+    print(params)
+    assert params["params"]["ds_phi"]["Dense_0"]["kernel"].shape == (x.shape[-1], 16)
+    assert params["params"]["ds_rho"]["Dense_0"]["kernel"].shape == (16, 32)
 
     with pytest.raises(ValueError):
         # squeezing with dimension 3 should fail
@@ -67,7 +68,7 @@ def test_deepset():
         output_activation=None,
         hidden_activation=None,
         pooling=None,
-        dtype=complex,
+        param_dtype=complex,
     )
     params = ds.init(key, x)
     out = ds.apply(params, x)

@@ -12,6 +12,7 @@ from jax.nn.initializers import (
 
 from netket.utils import deprecate_dtype
 from netket.hilbert import ContinuousHilbert
+import netket as nk
 
 
 def check_features_length(features, n_layers, name):
@@ -20,6 +21,24 @@ def check_features_length(features, n_layers, name):
             f"The number of {name} layers ({n_layers}) does not match "
             f"the length of the features list ({len(features)})."
         )
+
+
+def _process_features(features):
+    """
+    Convert some inputs to a consistent format of features.
+    Returns output dimension and hidden features of the MLP
+    """
+    if features is None:
+        feat, out = None, None
+    elif isinstance(features, int):
+        feat, out = None, features
+    elif len(features) == 0:
+        feat, out = None, None
+    elif len(features) == 1:
+        feat, out = None, features[0]
+    else:
+        feat, out = features[:-1], features[-1]
+    return feat, out
 
 
 class DeepSet(nn.Module):
@@ -60,65 +79,44 @@ class DeepSet(nn.Module):
     """Initializer for the Dense layer matrix"""
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias"""
+    precision: Any = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
 
     squeeze_output: bool = False
     """ Whether to remove the 1 dimension in the output, if present """
 
     def setup(self):
+        def _create_mlp(features, output_activation, name):
+            hidden_dims, out_dim = _process_features(features)
+            if out_dim is None:
+                return None
+            else:
+                return nk.models.MLP(
+                    output_dim=out_dim,
+                    hidden_dims=hidden_dims,
+                    param_dtype=self.param_dtype,
+                    hidden_activations=self.hidden_activation,
+                    output_activation=output_activation,
+                    use_hidden_bias=self.use_bias,
+                    use_output_bias=self.use_bias,
+                    kernel_init=self.kernel_init,
+                    squeeze_output=False,
+                    name=name,
+                )
 
-        features_phi = self.features_phi
-        if isinstance(features_phi, int):
-            features_phi = [features_phi]
-
-        features_rho = self.features_rho
-        if isinstance(features_rho, int):
-            features_rho = [features_rho]
-
-        self.phi = [
-            nn.Dense(
-                feat,
-                use_bias=self.use_bias,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
-            )
-            for feat in features_phi
-        ]
-
-        self.rho = [
-            nn.Dense(
-                feat,
-                use_bias=self.use_bias,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
-            )
-            for feat in features_rho
-        ]
+        self.phi = _create_mlp(self.features_phi, self.hidden_activation, "ds_phi")
+        self.rho = _create_mlp(self.features_rho, self.output_activation, "ds_rho")
 
     @nn.compact
     def __call__(self, x):
         """The input shape must have an axis that is reshaped to (..., N, D), where we pool over N."""
 
-        """ The phi transformation """
-        for layer in self.phi:
-            x = layer(x)
-            if self.hidden_activation is not None:
-                x = self.hidden_activation(x)
-
-        """ Pooling operation """
+        if self.phi:
+            x = self.phi(x)
         if self.pooling:
             x = self.pooling(x, axis=-2)
-
-        """ The rho transformation """
-        for i, layer in enumerate(self.rho):
-            x = layer(x)
-            if i == len(self.rho) - 1:
-                if self.output_activation is not None:
-                    x = self.output_activation(x)
-            else:
-                if self.hidden_activation is not None:
-                    x = self.hidden_activation(x)
+        if self.rho:
+            x = self.rho(x)
 
         if self.squeeze_output:
             if x.shape[-1] != 1:
