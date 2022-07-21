@@ -60,6 +60,18 @@ def test_deepset():
         params = ds.init(key, x)
         out = ds.apply(params, x)
 
+    # flexible, should still work
+    ds = nk.models.DeepSet(
+        features_phi=None,
+        features_rho=None,
+        output_activation=None,
+        hidden_activation=None,
+        pooling=None,
+        dtype=complex,
+    )
+    params = ds.init(key, x)
+    out = ds.apply(params, x)
+
 
 @pytest.mark.parametrize(
     "cusp_exponent", [pytest.param(None, id="cusp=None"), pytest.param(5, id="cusp=5")]
