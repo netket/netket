@@ -49,6 +49,7 @@ class SumOperator(ContinuousOperator):
 
         if is_scalar(coefficients):
             coefficients = [coefficients for _ in operators]
+
         if len(operators) != len(coefficients):
             raise AssertionError("Each operator needs a coefficient")
 
