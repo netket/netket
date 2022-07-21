@@ -12,7 +12,7 @@ from jax.nn.initializers import (
 
 from netket.utils import deprecate_dtype
 from netket.hilbert import ContinuousHilbert
-import netket as nk
+from .mlp import MLP
 
 
 def check_features_length(features, n_layers, name):
@@ -91,7 +91,7 @@ class DeepSet(nn.Module):
             if out_dim is None:
                 return None
             else:
-                return nk.models.MLP(
+                return MLP(
                     output_dim=out_dim,
                     hidden_dims=hidden_dims,
                     param_dtype=self.param_dtype,
