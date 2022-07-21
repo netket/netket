@@ -97,15 +97,10 @@ class ContinuousOperator(AbstractOperator):
             return NotImplemented  # pragma: no cover
 
     def __sub__(self, other):
-        if isinstance(self, ContinuousOperator) and isinstance(
-            other, ContinuousOperator
-        ):
+        if isinstance(other, ContinuousOperator):
             return self + (-other)
         else:
             return NotImplemented  # pragma: no cover
 
     def __neg__(self):
-        if isinstance(self, ContinuousOperator):
-            return -1.0 * self
-        else:
-            return NotImplemented  # pragma: no cover
+        return -1.0 * self
