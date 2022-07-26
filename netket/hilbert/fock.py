@@ -76,7 +76,7 @@ class Fock(HomogeneousHilbert):
             n_particles = int(n_particles)
             if n_particles < 0:
                 raise ValueError(
-                    f"Number of particles must be larger than 0, but received {n_particles}."
+                    f"Number of particles must be >= 0, but received {n_particles}."
                 )
             self._n_particles = n_particles
 
