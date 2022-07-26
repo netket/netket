@@ -118,6 +118,9 @@ hilberts["SpinOrbitalFermions (n_fermions)"] = nkx.hilbert.SpinOrbitalFermions(
 hilberts["SpinOrbitalFermions (n_fermions=list)"] = nkx.hilbert.SpinOrbitalFermions(
     5, s=1 / 2, n_fermions=(2, 3)
 )
+hilberts["SpinOrbitalFermions (polarized)"] = nkx.hilbert.SpinOrbitalFermions(
+    5, s=1 / 2, n_fermions=(2, 0)
+)
 
 # Continuous space
 # no pbc
@@ -481,3 +484,16 @@ def test_fermions_get_index():
     assert hi._get_index(0, +0.5) == 3
     # first block (-0.5) and second site (1) --> idx = 1 + n_orbital
     assert hi._get_index(1, +0.5) == 4
+
+
+def test_no_particles():
+    hi = Fock(n_max=3, n_particles=0, N=4)
+    states = hi.all_states()
+    assert states.shape[0] == 1
+    assert np.allclose(states, 0.0)
+
+    # same for fermions
+    hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2, n_fermions=(0, 0))
+    states = hi.all_states()
+    assert states.shape[0] == 1
+    assert np.allclose(states, 0.0)
