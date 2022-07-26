@@ -497,3 +497,7 @@ def test_no_particles():
     states = hi.all_states()
     assert states.shape[0] == 1
     assert np.allclose(states, 0.0)
+
+    with pytest.raises(ValueError):
+        # also test negative particles
+        _ = Fock(n_max=3, n_particles=-1, N=4)
