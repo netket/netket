@@ -106,6 +106,7 @@ class FermionOperator2nd(DiscreteOperator):
 
         self._initialized = False
         self._is_hermitian = None  # set when requested
+        self._max_conn_size = None
 
     def _reset_caches(self):
         """
@@ -113,6 +114,7 @@ class FermionOperator2nd(DiscreteOperator):
         """
         self._initialized = False
         self._is_hermitian = None
+        self._max_conn_size = None
 
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
@@ -121,7 +123,13 @@ class FermionOperator2nd(DiscreteOperator):
             # following lists will be used to compute matrix elements
             # they are filled in _add_term
             out = _pack_internals(self._operators, self._dtype)
-            self._orb_idxs, self._daggers, self._weights, self._term_ends = out
+            (
+                self._orb_idxs,
+                self._daggers,
+                self._weights,
+                self._term_ends,
+                self._term_herm,
+            ) = out
 
             self._initialized = True
 
@@ -217,16 +225,44 @@ class FermionOperator2nd(DiscreteOperator):
         op = FermionOperator2nd(
             self.hilbert, [], [], constant=self._constant, dtype=dtype
         )
-        op._operators = copy.deepcopy(self._operators)
+        # careful to make sure we propagate the correct dtype
+        terms = self._operators.keys()
+        weights = np.array(list(self._operators.values()), dtype=dtype)
+        op._operators = dict(zip(terms, weights))
         return op
+
+    def reduce(self):
+        """Reduce the number of operators by bringing them to normal form and grouping equivalent terms"""
+        self._operators = _reduce_operators(self._operators, self.dtype)
+        return self
 
     @property
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        if _isclose(self._constant, 0):
-            return len(self._operators)
-        else:
-            return len(self._operators) + 1  # constant also can add a term
+        if self._max_conn_size is None:
+            self._setup()
+            mcs = 0 if _isclose(self._constant, 0) else 1
+            if self.is_hermitian:
+                herm_terms = self._term_herm
+                # terms that are hermitian by themselves will generate 1 connected element
+                mcs += np.sum(herm_terms)
+                # terms that are not hermitian will have 1 counterpart
+                # which only generates connected components if this one doesn't
+                n_non_herm_terms = np.sum(~herm_terms)
+                if not (n_non_herm_terms % 2 == 0):
+                    raise ValueError(
+                        "Unknown error, please submit a GitHub issue describing your operator."
+                    )
+                mcs += n_non_herm_terms // 2  # only half
+            else:
+                ops = _reduce_operators(self._operators, self.dtype)
+                mcs += len(ops)
+            self._max_conn_size = mcs
+        return self._max_conn_size
+        # if _isclose(self._constant, 0):
+        #     return len(self._operators)
+        # else:
+        #     return len(self._operators) + 1  # constant also can add a term
 
     @property
     def is_hermitian(self) -> bool:
@@ -603,7 +639,14 @@ def _canonicalize_input(terms, weights, constant, dtype):
 
     _check_tree_structure(terms)
 
-    operators = dict(zip(terms, weights))
+    # add the weights of terms that occur multiple times
+    def dtype_init():
+        return np.array(0, dtype=dtype)
+
+    operators = defaultdict(dtype_init)
+    for t, w in zip(terms, weights):
+        operators[t] += w
+    operators = _remove_dict_zeros(dict(operators))
 
     return operators, constant, dtype
 
@@ -639,6 +682,11 @@ def _parse_string(s):
         orb_nr = int(term)
         processed_terms.append((orb_nr, int(dagger)))
     return tuple(processed_terms)
+
+
+def _remove_dict_zeros(d):
+    """Remove redundant zero values from a dictionary"""
+    return {k: v for k, v in d.items() if not np.isclose(v, 0.0)}
 
 
 def _check_hermitian(
@@ -678,6 +726,8 @@ def _check_hermitian(
 
 def dict_compare(d1, d2):
     """Compare two dicts and return True if their keys and values are all the same (up to some tolerance)"""
+    d1 = _remove_dict_zeros(d1)
+    d2 = _remove_dict_zeros(d2)
     d1_keys = set(d1.keys())
     d2_keys = set(d2.keys())
     if d1_keys != d2_keys:
@@ -806,6 +856,21 @@ def _check_tree_structure(terms):
         raise ValueError("terms should be provided in (i, dag) pairs")
 
 
+def _reduce_operators(operators, dtype):
+    """reduce the operators by adding equivalent terms together"""
+
+    def dtype_init():
+        return np.array(0, dtype=dtype)
+
+    red_ops = defaultdict(dtype_init)
+    terms = list(operators.keys())
+    weights = list(operators.values())
+    for term, weight in zip(*_normal_ordering(terms, weights)):
+        red_ops[term] += weight
+    red_ops = _remove_dict_zeros(dict(red_ops))
+    return red_ops
+
+
 def _pack_internals(operators, dtype):
     """
     Create the internal structures to compute the matrix elements
@@ -815,12 +880,17 @@ def _pack_internals(operators, dtype):
     daggers = []
     term_ends = []
     weights = []
+    herm_term = []
+
+    # first remove redundant terms and group equivalent ones together
+    operators = _reduce_operators(operators, dtype)
 
     for term, weight in operators.items():
         if len(term) == 0:
             raise ValueError("terms cannot be size 0")
         if not all(len(t) == 2 for t in term):
             raise ValueError(f"terms must contain (i, dag) pairs, but received {term}")
+        herm_term.append(_check_hermitian((term,), (weight,)))
         for orb_idx, dagger in reversed(term):
             # orb_idxs: holds the hilbert index of the orbital
             orb_idxs.append(orb_idx)
@@ -836,8 +906,9 @@ def _pack_internals(operators, dtype):
     daggers = np.array(daggers, dtype=bool)
     weights = np.array(weights, dtype=dtype)
     term_ends = np.array(term_ends, dtype=bool)
+    herm_term = np.array(herm_term, dtype=bool)
 
-    return orb_idxs, daggers, weights, term_ends
+    return orb_idxs, daggers, weights, term_ends, herm_term
 
 
 def _dtype(obj: Union[numbers.Number, Array, "FermionOperator2nd"]) -> DType:

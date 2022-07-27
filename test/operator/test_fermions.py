@@ -99,6 +99,13 @@ def test_fermion_operator_with_strings():
     op2 = nkx.operator.FermionOperator2nd(hi, ("0^ 1 2^", "2^ 1 0^"), weights)
     assert np.allclose(op1.to_dense(), op2.to_dense())
 
+    # make sure we do not throw away similar terms
+    op1 = nkx.operator.FermionOperator2nd(
+        hi, terms=("1^ 2", "1^ 2"), weights=(1, -1), constant=2
+    ).reduce()
+    op2 = nkx.operator.FermionOperator2nd(hi, terms=(), weights=(), constant=2)
+    assert np.allclose(op1.to_dense(), op2.to_dense())
+
 
 def compare_openfermion_fermions():
     # skip test if openfermion not installed
@@ -307,7 +314,7 @@ def test_fermion_add_sub_mul():
     op2c += op1
     assert np.allclose(op2c.to_dense(), op2b.to_dense())
 
-    # check substraction
+    # check subtraction
     op2d = nkx.operator.FermionOperator2nd(
         hi, terms=("0^ 0", "1^ 2", "0^ 1"), weights=(0.3 - 0.5, 2, -4j), constant=1
     )
@@ -449,3 +456,48 @@ def test_identity_zero():
 
     assert np.allclose(op0.to_dense(), np.zeros(((8**2, 8**2))))
     assert np.allclose(op1.to_dense(), np.identity(8**2))
+
+
+def test_fermion_max_conn_size():
+    def _compute_max_conn_size(op):
+        mat = op.to_dense()
+        mat = ~np.isclose(mat, 0)
+        conn = np.sum(mat, axis=-1)
+        return np.max(conn)
+
+    hi = nkx.hilbert.SpinOrbitalFermions(3)
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0", "1^ 1"), weights=(0.3, 2), constant=2
+    )
+    assert op.max_conn_size == 3
+    assert _compute_max_conn_size(op) <= 3
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0", "1^ 1"), weights=(0.3, 2), constant=0
+    )
+    assert op.max_conn_size == 2
+    assert _compute_max_conn_size(op) <= 2
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 1", "1^ 0"), weights=(1, 1), constant=0
+    )
+    assert op.max_conn_size == 1
+    assert _compute_max_conn_size(op) <= 1
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 1", "1^ 0"), weights=(1, 0.5), constant=0
+    )
+    assert op.max_conn_size == 2
+    assert _compute_max_conn_size(op) <= 2
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0 1^",), weights=(0.3,), constant=0
+    )
+    assert op.max_conn_size == 1
+    assert _compute_max_conn_size(op) <= 1
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0 1^", "1 0^ 0"), weights=(0.3, 0.3), constant=0
+    )
+    assert op.max_conn_size == 1
+    assert _compute_max_conn_size(op) <= 1
