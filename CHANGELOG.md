@@ -30,6 +30,7 @@
 * Fix a bug where Fermionic operators {class}`nkx.operator.FermionOperator2nd` would not result hermitian even if they were. [#1233](https://github.com/netket/netket/pull/1233)
 * Fix serialization of some arrays with complex dtype in `RuntimeLog` and `JsonLog` [#1258](https://github.com/netket/netket/pull/1258)
 * Fixed bug where the {class}`nk.callbacks.EarlyStopping` callback would not work as intended when hitting a local minima. [#1238](https://github.com/netket/netket/pull/1238)
+* `chunk_size` and the random seed of Monte Carlo variational states are now serialised. States serialised previous to this change can no longer be unserialised [#1247](https://github.com/netket/netket/pull/1247)
 
 
 ## NetKet 3.4.2 (BugFixes & DepWarns again)
