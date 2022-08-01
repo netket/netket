@@ -1,5 +1,5 @@
 Sphinx==4.5.0
-sphinx-autodoc-typehints~=1.18.3
+sphinx-autodoc-typehints~=1.19.1
 sphinxcontrib-fulltoc~=1.2.0
 sphinxcontrib-jsmath~=1.0.1
 sphinxcontrib-napoleon~=0.7
