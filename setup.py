@@ -9,7 +9,7 @@ DEV_DEPENDENCIES = [
     "networkx~=2.4",
     "pre-commit>=2.7",
     "black==22.3.0",
-    "flake8==4.0.1",
+    "flake8==5.0.3",
 ]
 MPI_DEPENDENCIES = ["mpi4py>=3.0.1, <4", "mpi4jax~=0.3.1"]
 EXTRA_DEPENDENCIES = ["tensorboardx>=2.0.0", "openfermion>=1.0.0", "h5py>=3.7.0"]
