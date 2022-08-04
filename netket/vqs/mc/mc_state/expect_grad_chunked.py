@@ -60,6 +60,7 @@ def expect_and_grad_fallback(  # noqa: F811
     return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)
 
 
+# dispatch for given chunk_size and use_covariance == True
 @expect_and_grad.dispatch
 def expect_and_grad_covariance_chunked(  # noqa: F811
     vstate: MCState,
