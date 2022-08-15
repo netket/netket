@@ -136,7 +136,7 @@ def _expect(
     #    n_chains=σ_shape[0],
     # )
 
-    L_σ = local_value_kernel(logpsi, parameters, σ, *local_value_args)
+    L_σ = local_value_kernel(logpsi, parameters, σ, local_value_args)
     L_σ = L_σ.reshape((σ_shape[0], -1))
     Ō_stats = mpi_statistics(L_σ.T)
 
