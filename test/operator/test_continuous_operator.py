@@ -5,6 +5,8 @@ import jax.numpy as jnp
 
 import netket
 
+import pytest
+
 
 def v1(x):
     return jnp.sum(jnp.exp(-(x**2)), axis=-1)
@@ -39,6 +41,8 @@ kin10p52 = kin1 + 0.5 * kin2
 
 # sum of potential and kinetic operators
 etot = pottot + kintot
+# TODO: make this recognize double appearing of same operator
+etot2 = pot1 + pot2 + 2.0 * kin1 - kin1 + kin2
 
 model1 = lambda p, x: 1.0
 model2 = lambda p, x: jnp.sum(x**3)
@@ -102,5 +106,16 @@ def test_sumoperator():
     np.testing.assert_allclose(kinen10p52, kinenergy10p52ex)
 
     enertot = etot._expect_kernel_batched(model2, 0.0, x, etot._pack_arguments())
+    enertot2 = etot2._expect_kernel_batched(model2, 0.0, x, etot2._pack_arguments())
     enerexact = v1(x) + v2_vec(x) + kinexact(x) / kin1.mass + kinexact(x) / kin2.mass
     np.testing.assert_allclose(enertot, enerexact)
+    np.testing.assert_allclose(enertot2, enerexact)
+
+    with pytest.raises(AssertionError):
+        ha = netket.operator.SumOperator(
+            etot,
+            etot2,
+            coefficients=[
+                1.0,
+            ],
+        )

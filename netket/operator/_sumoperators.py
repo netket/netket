@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Union, List, Optional, Callable
 
+from netket.jax.utils import is_scalar
 from netket.utils.types import DType, PyTree, Array
 
 import functools
@@ -40,12 +41,30 @@ class SumOperator(ContinuousOperator):
             coefficients: A coefficient for each ContinuousOperator object
             dtype: Data type of the matrix elements. Defaults to `np.float64`
         """
-
         hil = [op.hilbert for op in operators]
         if not all(_ == hil[0] for _ in hil):
             raise NotImplementedError(
                 "Cannot add operators on different hilbert spaces"
             )
+
+        if is_scalar(coefficients):
+            coefficients = [coefficients for _ in operators]
+
+        if len(operators) != len(coefficients):
+            raise AssertionError("Each operator needs a coefficient")
+
+        new_operators = []
+        new_coeffs = []
+        for op, c in zip(operators, coefficients):
+            if isinstance(op, SumOperator):
+                new_operators = new_operators + op._ops
+                new_coeffs = new_coeffs + list(c * op._coeff)
+            else:
+                new_operators.append(op)
+                new_coeffs.append(c)
+
+        operators = new_operators
+        coefficients = jnp.asarray(new_coeffs, dtype=dtype)
 
         self._ops = operators
         self._coeff = coefficients
@@ -67,8 +86,10 @@ class SumOperator(ContinuousOperator):
     def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
     ):
+        term_coefficients, term_datas = data
         result = [
-            op._expect_kernel(logpsi, params, x, data[i])
+            term_coefficients[i]
+            * op._expect_kernel(logpsi, params, x, term_datas[i])
             for i, op in enumerate(self._ops)
         ]
 
@@ -77,15 +98,18 @@ class SumOperator(ContinuousOperator):
     def _expect_kernel_batched(
         self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
     ):
+        term_coefficients, term_datas = data
         result = [
-            op._expect_kernel_batched(logpsi, params, x, data[i])
+            term_coefficients[i]
+            * op._expect_kernel_batched(logpsi, params, x, term_datas[i])
             for i, op in enumerate(self._ops)
         ]
 
         return sum(result)
 
     def _pack_arguments(self):
-        return [self._coeff * jnp.array(op._pack_arguments()) for op in self._ops]
+
+        return self._coeff, [op._pack_arguments() for op in self._ops]
 
     def __repr__(self):
-        return f"SumOperator(coefficients={self._pack_arguments()})"
+        return f"SumOperator(coefficients={self._coeff})"

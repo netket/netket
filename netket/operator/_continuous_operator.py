@@ -95,3 +95,12 @@ class ContinuousOperator(AbstractOperator):
             return SumOperator(self, coefficients=other)
         else:
             return NotImplemented  # pragma: no cover
+
+    def __sub__(self, other):
+        if isinstance(other, ContinuousOperator):
+            return self + (-other)
+        else:
+            return NotImplemented  # pragma: no cover
+
+    def __neg__(self):
+        return -1.0 * self
