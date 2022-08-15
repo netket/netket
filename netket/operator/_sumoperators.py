@@ -89,7 +89,7 @@ class SumOperator(ContinuousOperator):
         term_coefficients, term_datas = data
         result = [
             term_coefficients[i]
-            * op._expect_kernel_batched(logpsi, params, x, term_datas[i])
+            * op._expect_kernel(logpsi, params, x, term_datas[i])
             for i, op in enumerate(self._ops)
         ]
 
