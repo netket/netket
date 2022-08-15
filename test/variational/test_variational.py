@@ -477,6 +477,7 @@ def test_local_estimators(vstate, operator):
 
 # Have a different test because the above is marked as xfail.
 # This only checks that the code runs.
+@common.xfailif_mpi
 def test_expect_grad_nonhermitian_works(vstate):
     op = nk.operator.spin.sigmap(vstate.hilbert, 0)
     O_stat, O_grad = vstate.expect_and_grad(op)
