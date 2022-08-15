@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import jax.numpy as jnp
 
 import netket as nk
@@ -20,7 +21,7 @@ from .. import common
 
 
 @common.onlyif_mpi
-def test_key_split(_mpi_size, _mpi_comm):
+def test_key_split(_mpi_size, _mpi_comm, _mpi_rank):
     from mpi4py import MPI
 
     size = _mpi_size
@@ -33,5 +34,14 @@ def test_key_split(_mpi_size, _mpi_comm):
 
     key, _ = nk.jax.mpi_split(key)
     keys = MPI.COMM_WORLD.allgather(key)
-    assert all([not jnp.all(k == keys) for k in keys])
+
+    # print(f"{comm.Get_rank()} : k{key}, {type(key)}")
+    # print(f"{comm.Get_rank()} : ks{keys}, {type(keys)}, {type(keys[0])}")
+
+    for r, ki in enumerate(keys):
+        if _mpi_rank == r:
+            assert np.array(key) == np.array(ki)
+        else:
+            assert not np.array(key) == np.array(ki)
+
     assert len(keys) == size
