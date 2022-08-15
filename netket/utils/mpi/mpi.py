@@ -27,7 +27,7 @@ try:
     if not config.FLAGS["NETKET_MPI"]:  # pragma: no cover
         # if mpi is disabled, import a package that does not exist
         # to trigger import error and follow the no-mpi code path
-        import this_package_does_not_exist_zuzzurellone
+        import this_package_does_not_exist_zuzzurellone  # noqa: F401
 
     from mpi4py import MPI
 
@@ -43,14 +43,6 @@ try:
     n_nodes = MPI_py_comm.Get_size()
     node_number = MPI_py_comm.Get_rank()
     rank = MPI_py_comm.Get_rank()
-
-    import jax
-
-    if not jax.config.omnistaging_enabled:
-        raise RuntimeError(
-            "MPI requires jax omnistaging to be enabled."
-            + "check jax documentation to enable it or uninstall mpi."
-        )
 
     import mpi4jax
 
