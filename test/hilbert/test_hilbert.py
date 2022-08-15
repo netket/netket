@@ -163,6 +163,7 @@ def test_consistent_size_homogeneous(hi: HomogeneousHilbert):
 def test_consistent_size_particle(hi: Particle):
     assert hi.size > 0
     assert hi.n_particles > 0
+    assert hi.n_particles == sum(hi.n_per_spin)
     assert len(hi.extent) == (hi.size // hi.n_particles)
 
 
