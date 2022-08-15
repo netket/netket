@@ -18,8 +18,7 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
-from netket import jax as nkjax
-from netket.stats import Stats
+from netket.stats import Stats, statistics as mpi_statistics
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
@@ -126,13 +125,19 @@ def _expect(
     def log_pdf(w, σ):
         return machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
 
-    _, Ō_stats = nkjax.expect(
-        log_pdf,
-        partial(local_value_kernel, logpsi),
-        parameters,
-        σ,
-        local_value_args,
-        n_chains=σ_shape[0],
-    )
+    # TODO: Broken until google/jax#11916 is resolved.
+    # should uncomment and remove code below once this is fixed
+    # _, Ō_stats = nkjax.expect(
+    #    log_pdf,
+    #    partial(local_value_kernel, logpsi),
+    #    parameters,
+    #    σ,
+    #    local_value_args,
+    #    n_chains=σ_shape[0],
+    # )
+
+    L_σ = local_value_kernel(logpsi, parameters, σ, local_value_args)
+    L_σ = L_σ.reshape((σ_shape[0], -1))
+    Ō_stats = mpi_statistics(L_σ.T)
 
     return Ō_stats

@@ -62,6 +62,13 @@ Example:
 
 """
 
+xfailif_mpi = pytest.mark.xfail(
+    nk.utils.mpi.n_nodes > 1, reason="custom_vjp not supports effects."
+)
+"""Use as a decorator to mark a test to be expected to fail only when running with 
+at least 2 MPI processes.
+"""
+
 
 class netket_disable_mpi:
     """
