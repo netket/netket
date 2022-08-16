@@ -148,7 +148,7 @@ class FiniteSemiGroup:
         Apply all group elements to all entries of `initial` along the last axis.
         """
         initial = np.asarray(initial)
-        return np.array([np.apply_along_axis(elem, -1, initial) for elem in self.elems])
+        return product(self, initial)
 
     def __getitem__(self, i):
         return self.elems[i]
@@ -176,3 +176,8 @@ def product(A: FiniteSemiGroup, B: FiniteSemiGroup):  # noqa: F811
     return FiniteSemiGroup(
         elems=[a @ b for a, b in itertools.product(A.elems, B.elems)],
     )
+
+
+@dispatch
+def product(self: FiniteSemiGroup, initial: Array):
+    return np.array([np.apply_along_axis(elem, -1, initial) for elem in self.elems])

@@ -66,6 +66,10 @@ class Permutation(Element):
     def __array__(self, dtype: DType = None):
         return np.asarray(self.permutation, dtype)
 
+    def permute_index(self, x: Array):
+        """Returns the image of indices `x` under the permutation"""
+        return np.argsort(self.permutation)[x]
+
 
 @dispatch
 def product(p: Permutation, x: Array):
@@ -199,6 +203,10 @@ class PermutationGroup(FiniteGroup):
         """
         return (len(self), self.degree)
 
+    def permute_index(self, x: Array):
+        """Returns the image of indices `x` under all permutations"""
+        return np.argsort(self.to_array())[:, x]  # default argsort along last axis :)
+
 
 @dispatch
 def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
@@ -209,3 +217,8 @@ def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
     return PermutationGroup(
         elems=[a @ b for a, b in itertools.product(A.elems, B.elems)], degree=A.degree
     )
+
+
+@dispatch
+def product(G: PermutationGroup, x: Array):
+    return np.moveaxis(x[..., G.to_array()], -2, 0)
