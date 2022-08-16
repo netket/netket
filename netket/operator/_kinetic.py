@@ -20,8 +20,33 @@ import jax
 import jax.numpy as jnp
 
 from netket.utils.types import DType, PyTree, Array
+import netket.jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinuousOperator
+
+
+def jacrev(f):
+    def jacfun(x):
+        y, vjp_fun = nkjax.vjp(f, x)
+        if y.size == 1:
+            eye = jnp.eye(y.size)[0]
+            J = jax.vmap(vjp_fun, in_axes=0)(eye)
+        else:
+            eye = jnp.eye(y.size)
+            J = jax.vmap(vjp_fun, in_axes=0)(eye)
+        return J
+
+    return jacfun
+
+
+def jacfwd(f):
+    def jacfun(x):
+        jvp_fun = lambda s: jax.jvp(f, (x,), (s,))[1]
+        eye = jnp.eye(len(x))
+        J = jax.vmap(jvp_fun, in_axes=0)(eye)
+        return J
+
+    return jacfun
 
 
 class KineticEnergy(ContinuousOperator):
@@ -55,29 +80,24 @@ class KineticEnergy(ContinuousOperator):
     def is_hermitian(self):
         return self._is_hermitian
 
-    def _expect_kernel(
+    def _expect_kernel_single(
         self, logpsi: Callable, params: PyTree, x: Array, mass: Optional[PyTree]
     ):
         def logpsi_x(x):
             return logpsi(params, x)
 
-        dlogpsi_x = jax.grad(logpsi_x)
+        dlogpsi_x = jacrev(logpsi_x)
 
-        dp_dx, f_jvp = jax.linearize(dlogpsi_x, x)
-        dp_dx = dp_dx**2
+        dp_dx2 = jnp.diag(jacfwd(dlogpsi_x)(x)[0].reshape(x.shape[0], x.shape[0]))
+        dp_dx = dlogpsi_x(x)[0][0] ** 2
 
-        basis = jnp.eye(x.shape[0], dtype=dp_dx.dtype)
-
-        dp_dx2 = jnp.diag(jax.vmap(f_jvp)(basis))
-
-        res = -0.5 * jnp.sum(mass * (dp_dx2 + dp_dx), axis=-1)
-        return res
+        return -0.5 * jnp.sum(mass * (dp_dx2 + dp_dx), axis=-1)
 
     @partial(jax.vmap, in_axes=(None, None, None, 0, None))
-    def _expect_kernel_batched(
+    def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
     ):
-        return self._expect_kernel(logpsi, params, x, coefficient)
+        return self._expect_kernel_single(logpsi, params, x, coefficient)
 
     def _pack_arguments(self) -> PyTree:
         return 1.0 / self._mass

@@ -21,18 +21,31 @@ from netket.hilbert import ContinuousHilbert, Particle
 from netket.utils.dispatch import dispatch
 
 
+def take_sub(key, x, n):
+    key, subkey = jax.random.split(key)
+    ind = jax.random.choice(
+        subkey, jnp.arange(0, x.shape[0], 1), replace=False, shape=(n,)
+    )
+    return x[ind, :]
+
+
 @dispatch
 def random_state(hilb: Particle, key, batches: int, *, dtype):
-    """Positions particles w.r.t. normal distribution,
-    if no periodic boundary conditions are applied
-    in a spatial dimension. Otherwise the particles are
-    positioned evenly along the box from 0 to L, with Gaussian noise
-    of certain width."""
+    """If no periodic boundary conditions are present particles are positioned normally distributed around the origin.
+    If periodic boundary conditions are present the particles are positioned uniformly inside the box and a small
+    gaussian noise is added on top.
+    If periodic boundary conditions are chosen only for certain dimensions, the periodic initialization is used for
+    all of those dimensions and the free initialization is used for all the other ones."""
     pbc = np.array(hilb.n_particles * hilb.pbc)
     boundary = np.tile(pbc, (batches, 1))
 
     Ls = np.array(hilb.n_particles * hilb.extent)
-    modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
+
+    # If we have PBCs this defines the size of the Gaussian noise in the particle positions.
+    # Without PBCs this is never needed (initialization with random Gaussian)
+    # and we can set a random number (here 1.)
+    modulus = np.where(np.equal(pbc, False), 1.0, Ls)
+
     min_modulus = np.min(modulus)
 
     # use real dtypes because this does not work with complex ones.
@@ -48,8 +61,17 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     # positions the noise level should be smaller than half this distance.
     # We choose width = min(L) / (4*hilb.N)
     noise = gaussian * width
-    uniform = jnp.tile(jnp.linspace(0.0, min_modulus, hilb.size), (batches, 1))
 
+    key = jax.random.split(key, num=batches)
+    sdim = len(hilb.extent)
+    n = int(jnp.ceil(hilb.n_particles ** (1 / sdim)))
+    xs = jnp.linspace(0, min(hilb.extent), n)
+    uniform = jnp.array(jnp.meshgrid(*(sdim * [xs]))).reshape(-1, sdim)
+    uniform = jnp.tile(uniform, (batches, 1, 1))
+
+    uniform = jax.vmap(take_sub, in_axes=(0, 0, None))(
+        key, uniform, hilb.n_particles
+    ).reshape(batches, -1)
     rs = jnp.where(np.equal(boundary, False), gaussian, (uniform + noise) % modulus)
 
     return jnp.asarray(rs, dtype=dtype)

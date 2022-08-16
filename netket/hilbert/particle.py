@@ -22,7 +22,7 @@ class Particle(ContinuousHilbert):
 
     def __init__(
         self,
-        N: int,
+        N: Union[int, Tuple[int, ...]],
         L: Tuple[float, ...],
         pbc: Union[bool, Tuple[bool, ...]],
     ):
@@ -31,7 +31,8 @@ class Particle(ContinuousHilbert):
         of the continuous space they are defined in.
 
         Args:
-            N: Number of particles
+            N: Number of particles. If int all have the same spin. If Tuple the entry indicates how many particles
+                there are with a certain spin-projection.
             L: Tuple indicating the maximum of the continuous quantum number(s) in the configurations. Each entry
                 in the tuple corresponds to a different physical dimension.
                 If np.inf is used an infinite box is considered and `pbc=False` is mandatory (because what are PBC
@@ -46,6 +47,9 @@ class Particle(ContinuousHilbert):
         if not hasattr(L, "__len__"):
             L = (L,)
 
+        if not hasattr(N, "__len__"):
+            N = (N,)
+
         if isinstance(pbc, bool):
             pbc = [pbc] * len(L)
 
@@ -55,7 +59,8 @@ class Particle(ContinuousHilbert):
                 "must be finite."
             )
 
-        self._N = N
+        self._N = sum(N)
+        self._n_per_spin = N
 
         super().__init__(L, pbc)
 
@@ -67,6 +72,15 @@ class Particle(ContinuousHilbert):
     def n_particles(self) -> int:
         r"""The number of particles"""
         return self._N
+
+    @property
+    def n_per_spin(self) -> Tuple:
+        r"""Gives the number of particles in a specific spin projection.
+        The length of this tuple indicates the total spin whereas the position in the
+        tuple indicates the spin projection.
+        Example: (10,5,3) describes 18 particles of total spin 1 where 10 of those have spin-projection
+        -1, 5 have spin-projection 0 and 3 have spin-projection 1."""
+        return self._n_per_spin
 
     @property
     def _attrs(self):
