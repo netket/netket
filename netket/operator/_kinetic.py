@@ -80,7 +80,7 @@ class KineticEnergy(ContinuousOperator):
     def is_hermitian(self):
         return self._is_hermitian
 
-    def _expect_kernel(
+    def _expect_kernel_single(
         self, logpsi: Callable, params: PyTree, x: Array, mass: Optional[PyTree]
     ):
         def logpsi_x(x):
@@ -94,10 +94,10 @@ class KineticEnergy(ContinuousOperator):
         return -0.5 * jnp.sum(mass * (dp_dx2 + dp_dx), axis=-1)
 
     @partial(jax.vmap, in_axes=(None, None, None, 0, None))
-    def _expect_kernel_batched(
+    def _expect_kernel(
         self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
     ):
-        return self._expect_kernel(logpsi, params, x, coefficient)
+        return self._expect_kernel_single(logpsi, params, x, coefficient)
 
     def _pack_arguments(self) -> PyTree:
         return 1.0 / self._mass
