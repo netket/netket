@@ -66,7 +66,7 @@ class Permutation(Element):
     def __array__(self, dtype: DType = None):
         return np.asarray(self.permutation, dtype)
 
-    def permute_index(self, x: Array):
+    def apply_to_id(self, x: Array):
         """Returns the image of indices `x` under the permutation"""
         return np.argsort(self.permutation)[x]
 
@@ -159,10 +159,14 @@ class PermutationGroup(FiniteGroup):
         try:
             lookup = self._canonical_lookup()
             inverses = []
-            for perm in self.to_array():
-                # `np.argsort` changes int32 to int64 on Windows,
-                # and we need to change it back
-                invperm = np.argsort(perm).astype(perm.dtype)
+            # `np.argsort` on a 1D permutation list generates the inverse permutation
+            # it acts along last axis by default, so can perform it on to_array()
+            # `np.argsort` changes int32 to int64 on Windows,
+            # and we need to change it back
+            perms = self.to_array()
+            invperms = np.argsort(perms).astype(perms.dtype)
+
+            for invperm in invperms:
                 inverses.append(lookup[HashableArray(invperm)])
 
             return np.asarray(inverses, dtype=int)
@@ -203,7 +207,7 @@ class PermutationGroup(FiniteGroup):
         """
         return (len(self), self.degree)
 
-    def permute_index(self, x: Array):
+    def apply_to_id(self, x: Array):
         """Returns the image of indices `x` under all permutations"""
         return self.to_array()[self.inverse][:, x]
 
