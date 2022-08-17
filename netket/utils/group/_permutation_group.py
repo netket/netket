@@ -205,7 +205,7 @@ class PermutationGroup(FiniteGroup):
 
     def permute_index(self, x: Array):
         """Returns the image of indices `x` under all permutations"""
-        return np.argsort(self.to_array())[:, x]  # default argsort along last axis :)
+        return self.to_array()[self.inverse][:, x]
 
 
 @dispatch
