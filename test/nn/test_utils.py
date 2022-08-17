@@ -13,12 +13,17 @@
 # limitations under the License.
 
 import pytest
+from itertools import combinations_with_replacement
+from functools import reduce
+import operator
 
 import jax.numpy as jnp
 import numpy as np
+import jax
 from jax.nn.initializers import normal
 
 import netket as nk
+from netket.nn import binary_encoding
 
 from .. import common  # noqa: F401
 
@@ -99,3 +104,53 @@ def test_to_matrix(vstate_rho, normalize):
     rho_exact = rho_exact / jnp.trace(rho_exact)
 
     np.testing.assert_allclose(rho_norm, rho_exact)
+
+
+def _get_tls_hilbert_space(_type: str) -> nk.hilbert.DiscreteHilbert:
+    if _type == "spin":
+        return nk.hilbert.Spin(s=1 / 2, N=1)
+    elif _type == "qubit":
+        return nk.hilbert.Qubit(N=1)
+    else:
+        raise ValueError("Supported types are 'spin' and 'qubit'")
+
+
+def _create_hilbert_space(shape) -> nk.hilbert.DiscreteHilbert:
+    n_tls = shape.count(2)
+    tls_hilbert = ["spin", "qubit"]
+    for tlss in combinations_with_replacement(tls_hilbert, n_tls):
+        hilberts = []
+        m = 0
+        for n in shape:
+            if n == 2:
+                hilberts.append(_get_tls_hilbert_space(tlss[m]))
+                m += 1
+            else:
+                hilberts.append(nk.hilbert.Fock(n_max=n - 1, N=1))
+        yield reduce(operator.mul, hilberts[1:], hilberts[0])
+
+
+def _int_to_binary_list(x, n_total_bits):
+    b = format(int(max(0, x)), "b")
+    nb = len(b)
+    zeros = n_total_bits - nb
+    return [0] * zeros + [int(br) for br in b]
+
+
+def _state_to_binary_list(random_state, bits_per_site):
+    return [
+        _int_to_binary_list(x, nbits) for (x, nbits) in zip(random_state, bits_per_site)
+    ]
+
+
+@pytest.mark.parametrize("hilbert_shape", [(2,), (2, 2), (2, 3), (4, 3, 2)])
+def test_binary_encoding(hilbert_shape):
+    for hilbert in _create_hilbert_space(hilbert_shape):
+        shape = tuple(hilbert.shape)
+        bits_per_site = [int(np.ceil(np.log2(s))) for s in shape]
+        total_bits = sum(bits_per_site)
+        random_state = hilbert.random_state(key=jax.random.PRNGKey(0))
+        encoded_with_hilbert = binary_encoding(hilbert, random_state)
+        assert total_bits == encoded_with_hilbert.size
+        desired_state = sum(_state_to_binary_list(random_state, bits_per_site), [])
+        np.testing.assert_allclose(encoded_with_hilbert, desired_state)
