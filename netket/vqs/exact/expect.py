@@ -18,6 +18,7 @@ from typing import Callable, Any, Tuple
 import jax
 from jax import numpy as jnp
 from netket import jax as nkjax
+from netket.operator import Squared
 from netket.stats import Stats
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch, TrueT
@@ -63,20 +64,22 @@ def expect(vstate: ExactState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
 
 
 @dispatch
-def expect_and_grad(
+def expect_and_forces(
     vstate: ExactState,
     Ô: DiscreteOperator,
-    use_covariance: TrueT,
     *,
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
+    if isinstance(Ô, Squared):
+        raise NotImplementedError("expect_and_forces not yet implemented for `Squared`")
+
     _check_hilbert(vstate, Ô)
 
     O = sparsify(Ô)
     Ψ = vstate.to_array()
     OΨ = O @ Ψ
 
-    _, Ō_grad, expval_O, new_model_state = _exp_grad(
+    _, Ō_grad, expval_O, new_model_state = _exp_forces(
         vstate._apply_fun,
         mutable,
         vstate.parameters,
@@ -93,7 +96,7 @@ def expect_and_grad(
 
 
 @partial(jax.jit, static_argnums=(0, 1))
-def _exp_grad(
+def _exp_forces(
     model_apply_fun: Callable,
     mutable: bool,
     parameters: PyTree,
@@ -116,14 +119,6 @@ def _exp_grad(
 
     Ō_grad = vjp_fun(ΔOΨ)[0]
 
-    Ō_grad = jax.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
-            target.dtype
-        ),
-        Ō_grad,
-        parameters,
-    )
-
     new_model_state = new_model_state[0] if is_mutable else None
 
     return (
@@ -132,3 +127,28 @@ def _exp_grad(
         expval_O,
         new_model_state,
     )
+
+
+@dispatch
+def expect_and_grad(
+    vstate: ExactState,
+    Ô: DiscreteOperator,
+    use_covariance: TrueT,
+    *,
+    mutable: Any,
+) -> Tuple[Stats, PyTree]:
+    Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
+    Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
+    return Ō, Ō_grad
+
+
+@jax.jit
+def _force_to_grad(Ō_grad, parameters):
+    Ō_grad = jax.tree_map(
+        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
+            target.dtype
+        ),
+        Ō_grad,
+        parameters,
+    )
+    return Ō_grad
