@@ -45,6 +45,14 @@ Read more about the design goal of this module in their [README](https://github.
 
 ```
 
+## Miscellaneous Functions
+
+```{eval-rst}
+    :toctree: _generated/nn
+
+    binary_encoding
+```
+
 ## Utility functions
 
 ```{eval-rst}

@@ -187,7 +187,7 @@ def binary_encoding(
     """
     Encodes the array `x` into a set of binary-encoded variables described by
     the shape of a Hilbert space. The i-th element of x will be encoded in
-    ceil(log2(shape[i])) bits.
+    {code}`ceil(log2(shape[i]))` bits.
 
     Args:
         hilbert: Hilbert space of the samples that are to be encoded.
