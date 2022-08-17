@@ -1,9 +1,12 @@
-from functools import partial
+from functools import partial, reduce
+from typing import Tuple, Optional
+import operator
 
 import numpy as np
 from jax import numpy as jnp
-from netket.utils import get_afun_if_module
-from netket.utils import mpi
+from netket.utils import get_afun_if_module, mpi
+from netket.utils.types import Array
+from netket.hilbert import DiscreteHilbert
 import jax
 from flax.traverse_util import flatten_dict, unflatten_dict
 from flax.core import unfreeze
@@ -144,3 +147,70 @@ def update_dense_symm(params, names=["dense_symm", "Dense"]):
         return (path, array)
 
     return unflatten_dict(dict(map(fix_one_kernel, flatten_dict(params).items())))
+
+
+def _get_output_idx(
+    shape: Tuple[int, ...], max_bits: Optional[int] = None
+) -> Tuple[Tuple[int, ...], int]:
+    bits_per_local_occupation = tuple(np.ceil(np.log2(shape)).astype(int))
+    if max_bits is None:
+        max_bits = max(bits_per_local_occupation)
+    output_idx = []
+    offset = 0
+    for b in bits_per_local_occupation:
+        output_idx.extend([i + offset for i in range(b)][::-1])
+        offset += max_bits
+    output_idx = tuple(output_idx)
+    return output_idx, max_bits
+
+
+def _separate_binary_indices(
+    shape: Tuple[int, ...]
+) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    binary_indices = tuple([i for i in range(len(shape)) if shape[i] == 2])
+    non_binary_indices = tuple([i for i in range(len(shape)) if shape[i] != 2])
+    return binary_indices, non_binary_indices
+
+
+def _prod(iterable):
+    # This is a workaround for math.prod which is not defined for Python 3.7
+    return reduce(operator.mul, iterable, 1)
+
+
+@partial(jax.jit, static_argnums=(0, 2, 3))
+def binary_encoding(
+    hilbert: DiscreteHilbert,
+    x: Array,
+    *,
+    max_bits: Optional[int] = None,
+) -> Array:
+    """
+    Encodes the array `x` into a set of binary-encoded variables described by
+    the shape of a Hilbert space. The i-th element of x will be encoded in
+    {code}`ceil(log2(shape[i]))` bits.
+
+    Args:
+        hilbert: Hilbert space of the samples that are to be encoded.
+        x: The array to encode.
+        max_bits: The maximum number of bits to use for each element of `x`.
+    """
+    x = hilbert.states_to_local_indices(x)
+    shape = tuple(hilbert.shape)
+    jax.core.concrete_or_error(None, shape, "Shape must be known statically")
+    output_idx, max_bits = _get_output_idx(shape, max_bits)
+    binarised_states = jnp.zeros(x.shape + (max_bits,), dtype=x.dtype)
+    binary_indices, non_binary_indices = _separate_binary_indices(shape)
+    for i in non_binary_indices:
+        substates = x[..., i].astype(int)[..., jnp.newaxis]
+        binarised_states = (
+            binarised_states.at[..., i, :]
+            .set(
+                substates & 2 ** jnp.arange(binarised_states.shape[-1], dtype=int) != 0
+            )
+            .astype(x.dtype)
+        )
+    for i in binary_indices:
+        binarised_states = binarised_states.at[..., i, 0].set(x[..., i])
+    return binarised_states.reshape(
+        *binarised_states.shape[:-2], _prod(binarised_states.shape[-2:])
+    )[..., output_idx]

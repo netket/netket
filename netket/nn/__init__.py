@@ -51,7 +51,13 @@ from .fast_masked_linear import FastMaskedDense1D, FastMaskedConv1D, FastMaskedC
 
 from .initializers import zeros, ones
 
-from .utils import to_array, to_matrix, split_array_mpi, update_dense_symm
+from .utils import (
+    to_array,
+    to_matrix,
+    split_array_mpi,
+    update_dense_symm,
+    binary_encoding,
+)
 
 from .deprecation import (
     Dense,
