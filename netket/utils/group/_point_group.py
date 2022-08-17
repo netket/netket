@@ -599,3 +599,12 @@ def product(A: PointGroup, B: PointGroup):  # noqa: F811
         ndim=A.ndim,
         unit_cell=unit_cell,
     )
+
+
+@dispatch
+def product(G: PointGroup, x: Array):
+    return np.moveaxis(
+        np.tensordot(x, G.matrices().transpose(2, 0, 1), axes=1) + G.translations(),
+        -2,
+        0,
+    )

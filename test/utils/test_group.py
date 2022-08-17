@@ -349,3 +349,32 @@ def test_pyrochlore():
     Oh = group.axial.inversion_group() @ group.cubic.Td()
     # after specifying the unit cell, Fd3m is isomorphic to Oh
     assert_equal(Fd3m.product_table, Oh.product_table)
+
+
+# Testing __call__() and permute_index for PermutationGroup
+@pytest.mark.parametrize("grp", perms)
+def test_call_perm(grp):
+    indices = np.arange(grp.degree)
+    σ = np.random.random(size=(2, grp.degree))
+
+    perm_indices = grp.apply_to_id(indices)
+    perm_σ = grp(σ)
+
+    for p, idx, s in zip(grp, perm_indices, perm_σ):
+        assert np.all(σ == s[:, idx])  # permutation consistent with generated indices
+        assert np.all(s == p @ σ)  # group __call__ consistent with permutation @
+        assert np.all(indices == p(idx))  # generated indices cons. with perm. __call__
+
+        # check Permutation.apply_to_id
+        if not isinstance(p, group.Identity):
+            assert np.all(σ == s[:, p.apply_to_id(indices)])
+
+
+# Testing __call__() for PointGroup
+@pytest.mark.parametrize("grp", cubics + icosas)
+def test_call_point(grp):
+    v = np.random.random(size=(2, 3))
+    apply_v = grp @ v
+
+    for g, gv in zip(grp, apply_v):
+        assert_allclose(gv, g(v), rtol=1e-15)
