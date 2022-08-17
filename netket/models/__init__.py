@@ -18,7 +18,7 @@ from .jastrow import Jastrow
 from .mps import MPSPeriodic
 from .gaussian import Gaussian
 from .deepset import DeepSetRelDistance
-from .ndm import NDM, NDMMultiVal
+from .ndm import NDM
 from .autoreg import AbstractARNN, ARNNDense, ARNNConv1D, ARNNConv2D as _ARNNConv2D
 from .fast_autoreg import (
     FastARNNDense,
