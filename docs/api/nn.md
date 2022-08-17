@@ -48,6 +48,7 @@ Read more about the design goal of this module in their [README](https://github.
 ## Miscellaneous Functions
 
 ```{eval-rst}
+.. autosummary::
     :toctree: _generated/nn
 
     binary_encoding
