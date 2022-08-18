@@ -55,15 +55,43 @@ def _maybe_item(x):
 
 @struct.dataclass
 class Stats:
-    """A dict-compatible class containing the result of the statistics function."""
+    """A dict-compatible pytree containing the result of the statistics function."""
 
     mean: Union[float, complex] = _NaN
-    """The mean value"""
+    """The mean value."""
     error_of_mean: float = _NaN
+    """Estimate of the error of the mean."""
     variance: float = _NaN
+    """Estimation of the variance of the data."""
     tau_corr: float = _NaN
+    """Estimate of the correlation time (in adimensional units relating to `steps`).
+
+    This value is estimated with a blocking algorithm by default, but the result is known
+    to be unreliable. A more precise estimator based on the FFT transform can be used by
+    setting the environment variable `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION=1`. This
+    estimator is more computationally expensive, but overall the added cost should be
+    negligible.
+    """
     R_hat: float = _NaN
+    """
+    Estimator of the split-Rhat convergence estimator.
+
+    The split-Rhat diagnostic is based on comparing intra-chain and inter-chain
+    statistics of the sample and is thus only available for 2d-array inputs where
+    the rows are independently sampled MCMC chains. In an ideal MCMC samples,
+    R_hat should be 1.0. If it deviates from this value too much, this indicates
+    MCMC convergence issues. Thresholds such as R_hat > 1.1 or even R_hat > 1.01 have
+    been suggested in the literature for when to discard a sample. (See, e.g.,
+    Gelman et al., `Bayesian Data Analysis <http://www.stat.columbia.edu/~gelman/book/>`_,
+    or Vehtari et al., `arXiv:1903.08008 <https://arxiv.org/abs/1903.08008>`_.)
+    """
     tau_corr_max: float = _NaN
+    """
+    Estimation of the maximum correlation time among all markov chains.
+
+    This value is only computed if the environment variable
+    `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION` is `True`.
+    """
 
     def to_dict(self):
         jsd = {}
