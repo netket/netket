@@ -13,23 +13,18 @@
 # limitations under the License.
 
 import math
-
 from typing import Union
 
-from functools import partial
-
-from flax import struct
 import jax
+import numpy as np
 from jax import numpy as jnp
 
-import numpy as np
-
-from netket import jax as nkjax
-from netket.utils import config
+from netket.utils import config, mpi, struct
 
 from . import mean as _mean
 from . import var as _var
 from . import total_size as _total_size
+from ._autocorr import integrated_time
 
 
 def _format_decimal(value, std, var):
@@ -51,24 +46,62 @@ def _format_decimal(value, std, var):
 _NaN = float("NaN")
 
 
+def _maybe_item(x):
+    if hasattr(x, "shape") and x.shape == ():
+        return x.item()
+    else:
+        return x
+
+
 @struct.dataclass
 class Stats:
-    """A dict-compatible class containing the result of the statistics function."""
+    """A dict-compatible pytree containing the result of the statistics function."""
 
     mean: Union[float, complex] = _NaN
-    """The mean value"""
+    """The mean value."""
     error_of_mean: float = _NaN
+    """Estimate of the error of the mean."""
     variance: float = _NaN
+    """Estimation of the variance of the data."""
     tau_corr: float = _NaN
+    """Estimate of the autocorrelation time (in dimensionless units of number of steps).
+
+    This value is estimated with a blocking algorithm by default, but the result is known
+    to be unreliable. A more precise estimator based on the FFT transform can be used by
+    setting the environment variable `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION=1`. This
+    estimator is more computationally expensive, but overall the added cost should be
+    negligible.
+    """
     R_hat: float = _NaN
+    """
+    Estimator of the split-Rhat convergence estimator.
+
+    The split-Rhat diagnostic is based on comparing intra-chain and inter-chain
+    statistics of the sample and is thus only available for 2d-array inputs where
+    the rows are independently sampled MCMC chains. In an ideal MCMC samples,
+    R_hat should be 1.0. If it deviates from this value too much, this indicates
+    MCMC convergence issues. Thresholds such as R_hat > 1.1 or even R_hat > 1.01 have
+    been suggested in the literature for when to discard a sample. (See, e.g.,
+    Gelman et al., `Bayesian Data Analysis <http://www.stat.columbia.edu/~gelman/book/>`_,
+    or Vehtari et al., `arXiv:1903.08008 <https://arxiv.org/abs/1903.08008>`_.)
+    """
+    tau_corr_max: float = _NaN
+    """
+    Estimate of the maximum autocorrelation time among all Markov chains.
+
+    This value is only computed if the environment variable
+    `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION` is set.
+    """
 
     def to_dict(self):
         jsd = {}
-        jsd["Mean"] = self.mean.item()
-        jsd["Variance"] = self.variance.item()
-        jsd["Sigma"] = self.error_of_mean.item()
-        jsd["R_hat"] = self.R_hat.item()
-        jsd["TauCorr"] = self.tau_corr.item()
+        jsd["Mean"] = _maybe_item(self.mean)
+        jsd["Variance"] = _maybe_item(self.variance)
+        jsd["Sigma"] = _maybe_item(self.error_of_mean)
+        jsd["R_hat"] = _maybe_item(self.R_hat)
+        jsd["TauCorr"] = _maybe_item(self.tau_corr)
+        if config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
+            jsd["TauCorrMax"] = _maybe_item(self.tau_corr_max)
         return jsd
 
     def to_compound(self):
@@ -80,6 +113,9 @@ class Stats:
             ext = ", R̂={:.4f}".format(self.R_hat)
         else:
             ext = ""
+        if config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
+            if not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
+                ext += ", τ={:.1f}<{:.1f}".format(self.tau_corr, self.tau_corr_max)
         return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
 
     # Alias accessors
@@ -94,10 +130,18 @@ class Stats:
             return self.R_hat
         elif name in ("tau_corr", "TauCorr"):
             return self.tau_corr
+        elif name in ("tau_corr_max", "TauCorrMax"):
+            return self.tau_corr_max
         else:
             raise AttributeError(
                 "'Stats' object object has no attribute '{}'".format(name)
             )
+
+    def real(self):
+        return self.replace(mean=np.real(self.mean))
+
+    def imag(self):
+        return self.replace(mean=np.imag(self.mean))
 
 
 def _get_blocks(data, block_size):
@@ -123,8 +167,33 @@ def _batch_variance(data):
     return _var(b_means), ts
 
 
-# this is not batch_size maybe?
-def statistics(data, batch_size=32):
+def _split_R_hat(data, W):
+    N = data.shape[-1]
+    if not config.FLAGS["NETKET_USE_PLAIN_RHAT"]:
+        # compute split-chain batch variance
+        local_batch_size = data.shape[0]
+        if N % 2 == 0:
+            # split each chain in the middle,
+            # like [[1 2 3 4]] -> [[1 2][3 4]]
+            batch_var, _ = _batch_variance(data.reshape(2 * local_batch_size, N // 2))
+        else:
+            # drop the last sample of each chain for an even split,
+            # like [[1 2 3 4 5]] -> [[1 2][3 4]]
+            batch_var, _ = _batch_variance(
+                data[:, :-1].reshape(2 * local_batch_size, N // 2)
+            )
+
+    # V_loc = _np.var(data, axis=-1, ddof=0)
+    # W_loc = _np.mean(V_loc)
+    # W = _mean(W_loc)
+    # # This approximation seems to hold well enough for larger n_samples
+    return jnp.sqrt((N - 1) / N + batch_var / W)
+
+
+BLOCK_SIZE = 32
+
+
+def statistics(data):
     r"""
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
@@ -137,30 +206,40 @@ def statistics(data, batch_size=32):
             * if a matrix, it is assumed that that rows :code:`data[i]` contain independent time series.
 
     Returns:
-       Stats: A dictionary-compatible class containing the
-             average (:code:`.mean`, :code:`["Mean"]`),
-             variance (:code:`.variance`, :code:`["Variance"]`),
-             the Monte Carlo standard error of the mean (:code:`error_of_mean`, :code:`["Sigma"]`),
-             an estimate of the autocorrelation time (:code:`tau_corr`, :code:`["TauCorr"]`), and the
-             Gelman-Rubin split-Rhat diagnostic (:code:`.R_hat`, :code:`["R_hat"]`).
+       Stats:
+        A dictionary-compatible class containing the
+        average (:code:`.mean`, :code:`["Mean"]`),
+        variance (:code:`.variance`, :code:`["Variance"]`),
+        the Monte Carlo standard error of the mean (:code:`error_of_mean`, :code:`["Sigma"]`),
+        an estimate of the autocorrelation time (:code:`tau_corr`, :code:`["TauCorr"]`), and the
+        Gelman-Rubin split-Rhat diagnostic (:code:`.R_hat`, :code:`["R_hat"]`).
 
-             These properties can be accessed both the attribute and the dictionary-style syntax
-             (both indicated above).
+        If the flag `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION` is set, the autocorrelation is computed
+        exactly using a FFT transform, and an extra field `tau_corr_max` is inserted in the
+        statistics object
 
-             The split-Rhat diagnostic is based on comparing intra-chain and inter-chain
-             statistics of the sample and is thus only available for 2d-array inputs where
-             the rows are independently sampled MCMC chains. In an ideal MCMC samples,
-             R_hat should be 1.0. If it deviates from this value too much, this indicates
-             MCMC convergence issues. Thresholds such as R_hat > 1.1 or even R_hat > 1.01 have
-             been suggested in the literature for when to discard a sample. (See, e.g.,
-             Gelman et al., `Bayesian Data Analysis <http://www.stat.columbia.edu/~gelman/book/>`_,
-             or Vehtari et al., `arXiv:1903.08008 <https://arxiv.org/abs/1903.08008>`_.)
+        These properties can be accessed both the attribute and the dictionary-style syntax
+        (both indicated above).
+
+        The split-Rhat diagnostic is based on comparing intra-chain and inter-chain
+        statistics of the sample and is thus only available for 2d-array inputs where
+        the rows are independently sampled MCMC chains. In an ideal MCMC samples,
+        R_hat should be 1.0. If it deviates from this value too much, this indicates
+        MCMC convergence issues. Thresholds such as R_hat > 1.1 or even R_hat > 1.01 have
+        been suggested in the literature for when to discard a sample. (See, e.g.,
+        Gelman et al., `Bayesian Data Analysis <http://www.stat.columbia.edu/~gelman/book/>`_,
+        or Vehtari et al., `arXiv:1903.08008 <https://arxiv.org/abs/1903.08008>`_.)
     """
-    return _statistics(data, batch_size)
+    if config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
+        return _statistics(data)
+    else:
+        from .mc_stats_old import statistics as statistics_blocks
+
+        return statistics_blocks(data)
 
 
-@partial(jax.jit, static_argnums=1)
-def _statistics(data, batch_size):
+@jax.jit
+def _statistics(data):
     data = jnp.atleast_1d(data)
     if data.ndim == 1:
         data = data.reshape((1, -1))
@@ -171,102 +250,20 @@ def _statistics(data, batch_size):
     mean = _mean(data)
     variance = _var(data)
 
-    ts = _total_size(data)
-
-    bare_var = variance
+    taus = jax.vmap(integrated_time)(data)
+    tau_avg, _ = mpi.mpi_mean_jax(jnp.mean(taus))
+    tau_max, _ = mpi.mpi_max_jax(jnp.max(taus))
 
     batch_var, n_batches = _batch_variance(data)
-
-    l_block = max(1, data.shape[1] // batch_size)
-
-    block_var, n_blocks = _block_variance(data, l_block)
-
-    tau_batch = ((ts / n_batches) * batch_var / bare_var - 1) * 0.5
-    tau_block = ((ts / n_blocks) * block_var / bare_var - 1) * 0.5
-
-    batch_good = (tau_batch < 6 * data.shape[1]) * (n_batches >= batch_size)
-    block_good = (tau_block < 6 * l_block) * (n_blocks >= batch_size)
-
-    stat_dtype = nkjax.dtype_real(data.dtype)
-
-    # if batch_good:
-    #    error_of_mean = jnp.sqrt(batch_var / n_batches)
-    #    tau_corr = jnp.max(0, tau_batch)
-    # elif block_good:
-    #    error_of_mean = jnp.sqrt(block_var / n_blocks)
-    #    tau_corr = jnp.max(0, tau_block)
-    # else:
-    #    error_of_mean = jnp.nan
-    #    tau_corr = jnp.nan
-    # jax style
-
-    def batch_good_err(args):
-        batch_var, tau_batch, *_ = args
-        error_of_mean = jnp.sqrt(batch_var / n_batches)
-        tau_corr = jnp.clip(tau_batch, 0)
-        return jnp.asarray(error_of_mean, dtype=stat_dtype), jnp.asarray(
-            tau_corr, dtype=stat_dtype
-        )
-
-    def block_good_err(args):
-        _, _, block_var, tau_block = args
-        error_of_mean = jnp.sqrt(block_var / n_blocks)
-        tau_corr = jnp.clip(tau_block, 0)
-        return jnp.asarray(error_of_mean, dtype=stat_dtype), jnp.asarray(
-            tau_corr, dtype=stat_dtype
-        )
-
-    def nan_err(args):
-        return jnp.asarray(jnp.nan, dtype=stat_dtype), jnp.asarray(
-            jnp.nan, dtype=stat_dtype
-        )
-
-    def batch_not_good(args):
-        batch_var, tau_batch, block_var, tau_block, block_good = args
-        return jax.lax.cond(
-            block_good,
-            block_good_err,
-            nan_err,
-            (batch_var, tau_batch, block_var, tau_block),
-        )
-
-    error_of_mean, tau_corr = jax.lax.cond(
-        batch_good,
-        batch_good_err,
-        batch_not_good,
-        (batch_var, tau_batch, block_var, tau_block, block_good),
-    )
-
     if n_batches > 1:
-        N = data.shape[-1]
-
-        if not config.FLAGS["NETKET_USE_PLAIN_RHAT"]:
-            # compute split-chain batch variance
-            local_batch_size = data.shape[0]
-            if N % 2 == 0:
-                # split each chain in the middle,
-                # like [[1 2 3 4]] -> [[1 2][3 4]]
-                batch_var, _ = _batch_variance(
-                    data.reshape(2 * local_batch_size, N // 2)
-                )
-            else:
-                # drop the last sample of each chain for an even split,
-                # like [[1 2 3 4 5]] -> [[1 2][3 4]]
-                batch_var, _ = _batch_variance(
-                    data[:, :-1].reshape(2 * local_batch_size, N // 2)
-                )
-
-        # V_loc = _np.var(data, axis=-1, ddof=0)
-        # W_loc = _np.mean(V_loc)
-        # W = _mean(W_loc)
-        # # This approximation seems to hold well enough for larger n_samples
-        W = variance
-
-        R_hat = jnp.sqrt((N - 1) / N + batch_var / W)
+        error_of_mean = jnp.sqrt(batch_var / n_batches)
+        R_hat = _split_R_hat(data, variance)
     else:
+        l_block = max(1, data.shape[1] // BLOCK_SIZE)
+        block_var, n_blocks = _block_variance(data, l_block)
+        error_of_mean = jnp.sqrt(block_var / n_blocks)
         R_hat = jnp.nan
 
-    res = Stats(mean, error_of_mean, variance, tau_corr, R_hat)
+    res = Stats(mean, error_of_mean, variance, tau_avg, R_hat, tau_max)
 
     return res
-    ##
