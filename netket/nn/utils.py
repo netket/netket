@@ -177,7 +177,7 @@ def _prod(iterable):
     return reduce(operator.mul, iterable, 1)
 
 
-@partial(jax.jit, static_argnums=(0, 2, 3))
+@partial(jax.jit, static_argnames=("hilbert", "max_bits"))
 def binary_encoding(
     hilbert: DiscreteHilbert,
     x: Array,

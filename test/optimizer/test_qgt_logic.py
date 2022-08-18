@@ -73,7 +73,7 @@ def tree_allclose(t1, t2):
 
 def random_split_like_tree(rng_key, target=None, treedef=None):
     if treedef is None:
-        treedef = jax.tree_structure(target)
+        treedef = jax.tree_util.tree_structure(target)
     keys = jax.random.split(rng_key, treedef.num_leaves)
     return jax.tree_unflatten(treedef, keys)
 
