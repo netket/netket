@@ -15,7 +15,7 @@
 
 [GitHub commits](https://github.com/netket/netket/compare/v3.4...master).
 
-This release adds support and needed functions to run TDVP for neural networks with real/non-holomorphic parameters, an HDF5 logger, a function to compute the local estimators of an observable for a set of samples.
+This release adds support and needed functions to run TDVP for neural networks with real/non-holomorphic parameters, an experimental HDF5 logger, and an `MCState` method to compute the local estimators of an observable for a set of samples.
 
 This release also drops support for older version of flax, while adopting the new interface which completely supports complex-valued neural networks. Deprecation warnings might be raised if you were using some layers from `netket.nn` that are now avaiable in flax.
 
