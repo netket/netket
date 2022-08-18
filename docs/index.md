@@ -91,6 +91,7 @@ advanced/custom_operators
 
 api/api-stability
 docs/changelog
+docs/configurations
 api/api
 api/api-experimental
 ```

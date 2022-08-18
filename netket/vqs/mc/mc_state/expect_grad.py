@@ -90,7 +90,7 @@ def expect_and_grad_nonherm(
     mutable: Any,
 ) -> Tuple[Stats, PyTree]:
 
-    if not isinstance(Ô, Squared) and not config.FLAGS["NETKET_EXPERIMENTAL"]:
+    if not isinstance(Ô, Squared) and not config.netket_experimental:
         raise RuntimeError(
             """
             Computing the gradient of non hermitian operator is an

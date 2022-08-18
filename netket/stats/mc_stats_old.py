@@ -168,7 +168,7 @@ def _statistics(data, batch_size):
     if n_batches > 1:
         N = data.shape[-1]
 
-        if not config.FLAGS["NETKET_USE_PLAIN_RHAT"]:
+        if not config.netket_use_plain_rhat:
             # compute split-chain batch variance
             local_batch_size = data.shape[0]
             if N % 2 == 0:

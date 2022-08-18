@@ -109,7 +109,7 @@ class netket_experimental_fft_autocorrelation:
         self._value = val
 
     def __enter__(self):
-        self._orig_value = nk.config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]
+        self._orig_value = nk.config.netket_experimental_fft_autocorrelation
         nk.config.update("NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION", self._value)
 
     def __exit__(self, exc_type, exc_value, traceback):
