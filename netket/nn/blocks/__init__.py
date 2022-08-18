@@ -12,23 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-import numpy as np
+from .mlp import MLP
 
-import netket as nk
+from netket.utils import _hide_submodules
 
-
-def test_mlp_model_output():
-    # make sure that the output of a model is flattened
-    ma = nk.models.MLP(
-        hidden_dims=(16, 32),
-        param_dtype=np.float64,
-        hidden_activations=None,
-        output_activation=nk.nn.gelu,
-        use_output_bias=True,
-    )
-    x = np.zeros((2, 1024, 16))
-
-    pars = ma.init(nk.jax.PRNGKey(), x)
-    out = ma.apply(pars, x)
-    assert out.shape == (2, 1024)
+_hide_submodules(__name__)

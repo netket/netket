@@ -29,8 +29,6 @@ default_bias_init = zeros
 class MLP(nn.Module):
     r"""A Multi-Layer Perceptron with hidden layers.
 
-    This model uses the MLP block with output dimension 1, which is squeezed.
-
     This combines multiple dense layers and activations functions into a single object.
     It separates the output layer from the hidden layers,
     since it typically has a different form.
@@ -42,6 +40,8 @@ class MLP(nn.Module):
     Forms a common building block for models such as
     `PauliNet (continuous) <https://www.nature.com/articles/s41557-020-0544-y>`_
     """
+    output_dim: int = 1
+    """The output dimension"""
     hidden_dims: Tuple[int] = None
     """The size of the hidden layers, excluding the output layer."""
     hidden_dims_alpha: Tuple[int] = None
@@ -58,7 +58,7 @@ class MLP(nn.Module):
     If None is provided, the output layer will be essentially linear."""
     use_hidden_bias: bool = True
     """if True uses a bias in the hidden layer."""
-    use_output_bias: bool = False
+    use_output_bias: bool = True
     """if True adds a bias to the output layer."""
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
@@ -69,18 +69,60 @@ class MLP(nn.Module):
 
     @nn.compact
     def __call__(self, input):
-        x = nknn.blocks.MLP(
-            output_dim=1,  # a netket model has a single output
-            hidden_dims=self.hidden_dims,
-            hidden_dims_alpha=self.hidden_dims_alpha,
+
+        if self.hidden_dims is None:
+            if self.hidden_dims_alpha is not None:
+                hidden_dims = [
+                    int(nh * input.shape[-1]) for nh in self.hidden_dims_alpha
+                ]
+            else:
+                hidden_dims = []
+        else:
+            if self.hidden_dims_alpha is not None:
+                raise ValueError(
+                    "Cannot specify both hidden_dims and alpha_hidden_dims, "
+                    "choose one way to provide the hidden dimensions"
+                )
+            hidden_dims = self.hidden_dims
+
+        if self.hidden_activations is None:
+            hidden_activations = [None] * len(hidden_dims)
+        elif hasattr(self.hidden_activations, "__len__"):
+            hidden_activations = self.hidden_activations
+        else:
+            hidden_activations = [self.hidden_activations] * len(hidden_dims)
+
+        if len(hidden_activations) != len(hidden_dims):
+            raise ValueError(
+                "number of hidden activations must be the same "
+                "as the length of the hidden dimensions list"
+            )
+
+        x = input
+
+        # hidden layers
+        for nh, act_h in zip(hidden_dims, hidden_activations):
+            x = nn.Dense(
+                features=nh,
+                param_dtype=self.param_dtype,
+                precision=self.precision,
+                use_bias=self.use_hidden_bias,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )(x)
+            if act_h:
+                x = act_h(x)
+
+        # output layer
+        x = nn.Dense(
+            features=self.output_dim,
             param_dtype=self.param_dtype,
-            hidden_activations=self.hidden_activations,
-            output_activation=self.output_activation,
-            use_hidden_bias=self.use_hidden_bias,
-            use_output_bias=self.use_output_bias,
             precision=self.precision,
+            use_bias=self.use_output_bias,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
-        )(input)
-        x = x.squeeze(-1)
+        )(x)
+        if self.output_activation:
+            x = self.output_activation(x)
+
         return x

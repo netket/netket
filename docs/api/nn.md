@@ -65,3 +65,14 @@ Read more about the design goal of this module in their [README](https://github.
 
 ```
 
+
+## Blocks
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/nn
+   :nosignatures:
+
+    MLP
+
+```
