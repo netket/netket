@@ -24,7 +24,7 @@ _mpi4jax_loaded = False
 mpi4jax_available = False
 
 try:
-    if not config.FLAGS["NETKET_MPI"]:  # pragma: no cover
+    if not config.netket_mpi:  # pragma: no cover
         # if mpi is disabled, import a package that does not exist
         # to trigger import error and follow the no-mpi code path
         import this_package_does_not_exist_zuzzurellone  # noqa: F401
@@ -64,7 +64,7 @@ except ImportError:
     MPI = FakeMPI()
 
     # Try to detect if we are running under MPI and warn that mpi4py is not installed
-    if config.FLAGS["NETKET_MPI_WARNING"]:
+    if config.netket_mpi_warning:
         _MPI_ENV_VARIABLES = [
             "OMPI_COMM_WORLD_SIZE",
             "I_MPI_HYDRA_HOST_FILE",

@@ -100,7 +100,7 @@ class Stats:
         jsd["Sigma"] = _maybe_item(self.error_of_mean)
         jsd["R_hat"] = _maybe_item(self.R_hat)
         jsd["TauCorr"] = _maybe_item(self.tau_corr)
-        if config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
+        if config.netket_experimental_fft_autocorrelation:
             jsd["TauCorrMax"] = _maybe_item(self.tau_corr_max)
         return jsd
 
@@ -113,7 +113,7 @@ class Stats:
             ext = ", R̂={:.4f}".format(self.R_hat)
         else:
             ext = ""
-        if config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
+        if config.netket_experimental_fft_autocorrelation:
             if not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
                 ext += ", τ={:.1f}<{:.1f}".format(self.tau_corr, self.tau_corr_max)
         return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
@@ -169,7 +169,7 @@ def _batch_variance(data):
 
 def _split_R_hat(data, W):
     N = data.shape[-1]
-    if not config.FLAGS["NETKET_USE_PLAIN_RHAT"]:
+    if not config.netket_use_plain_rhat:
         # compute split-chain batch variance
         local_batch_size = data.shape[0]
         if N % 2 == 0:
@@ -230,7 +230,7 @@ def statistics(data):
         Gelman et al., `Bayesian Data Analysis <http://www.stat.columbia.edu/~gelman/book/>`_,
         or Vehtari et al., `arXiv:1903.08008 <https://arxiv.org/abs/1903.08008>`_.)
     """
-    if config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
+    if config.netket_experimental_fft_autocorrelation:
         return _statistics(data)
     else:
         from .mc_stats_old import statistics as statistics_blocks
