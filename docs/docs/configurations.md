@@ -14,21 +14,23 @@ python
 >>> import os
 >>> os.environ["NETKET_DEBUG"] = "1"
 >>> import netket as nk
+>>> print(netket.config.netket_debug)
+True
 ```
-Some configuration options can also be changed at runtime by using the function {func}`netket.config.update(option_name, value)`, which can be used as:
+Some configuration options can also be changed at runtime by setting it as:
 ```python
 >>> import netket as nk
->>> nk.config.update("NETKET_DEBUG", True)
+>>> nk.config.netket_debug = True
 >>> ...
 ```
 
 You can always query the value of an option by accessing the `nk.config` module:
 ```python
 >>> import netket as nk
->>> nk.config.netket_debug
+>>> print(nk.config.netket_debug)
 False
->>> nk.config.update("NETKET_DEBUG", True)
->>> nk.config.netket_debug
+>>> nk.config.netket_debug = True
+>>> print(nk.config.netket_debug)
 True
 ```
 
