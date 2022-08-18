@@ -140,7 +140,7 @@ config.define(
     bool,
     default=False,
     help="Enable experimental features.",
-    runtime=False,
+    runtime=True,
 )
 
 config.define(
