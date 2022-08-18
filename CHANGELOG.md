@@ -21,6 +21,7 @@
 * New method {meth}`~nk.utils.group.Permutation.apply_to_id` can be used to apply a permutation (or a permutation group) to one or more lattice indices. [#1293](https://github.com/netket/netket/issues/1293)
 * It is now possible to disable MPI by setting the environment variable `NETKET_MPI`. This is useful in cases where mpi4py crashes upon load [#1254](https://github.com/netket/netket/issues/1254).
 * The new function {func}`nk.nn.binary_encoding` can be used to encode a set of samples according to the binary shape defined by an Hilbert space. It should be used similarly to {func}`flax.linen.one_hot` and works with non homogeneous Hilbert spaces [#1209](https://github.com/netket/netket/issues/1209).
+* A new technique to estimate the correlation time in markov-chains, based on the full FFT transform of the input data, has been added to the {func}`nk.stats.statistics` function. This new technique is not used by default, but can be turned on by setting the `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION` environment variable to 1. In the future we might turn this on by default [#1150](https://github.com/netket/netket/issues/1150).
 
 ### Dependencies
 * NetKet now requires at least Flax v0.5
