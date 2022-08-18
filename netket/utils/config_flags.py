@@ -76,6 +76,12 @@ class Config:
         self._editable_at_runtime[name] = runtime
         self._values[name] = get_env(name, type, default)
 
+        @property
+        def _read_config(self):
+            return self.FLAGS[name]
+
+        setattr(Config, name.lower(), _read_config)
+
     @property
     def FLAGS(self):
         """
@@ -85,12 +91,20 @@ class Config:
 
     def update(self, name, value):
         """
-        Updates a variable in netket
+        Updates a configuration variable in netket.
 
         Args:
             name: the name of the variable
             value: the new value
         """
+        name = name.upper()
+
+        if not self._editable_at_runtime[name]:
+            raise RuntimeError(
+                f"Flag `{name}` can only be set through an environment"
+                "variable before importing netket."
+            )
+
         self._values[name] = self._types[name](value)
 
 
