@@ -64,7 +64,7 @@ class Stats:
     variance: float = _NaN
     """Estimation of the variance of the data."""
     tau_corr: float = _NaN
-    """Estimate of the correlation time (in adimensional units relating to `steps`).
+    """Estimate of the autocorrelation time (in dimensionless units of number of steps).
 
     This value is estimated with a blocking algorithm by default, but the result is known
     to be unreliable. A more precise estimator based on the FFT transform can be used by
@@ -87,10 +87,10 @@ class Stats:
     """
     tau_corr_max: float = _NaN
     """
-    Estimation of the maximum correlation time among all markov chains.
+    Estimate of the maximum autocorrelation time among all Markov chains.
 
     This value is only computed if the environment variable
-    `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION` is `True`.
+    `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION` is set.
     """
 
     def to_dict(self):
@@ -113,12 +113,9 @@ class Stats:
             ext = ", R̂={:.4f}".format(self.R_hat)
         else:
             ext = ""
-        if not config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
-            if not math.isnan(self.tau_corr):
-                ext += ", τ={:.1f}".format(self.tau_corr)
-        elif not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
-            ext += ", τ={:.1f}<{:.1f}".format(self.tau_corr, self.tau_corr_max)
-
+        if config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
+            if not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
+                ext += ", τ={:.1f}<{:.1f}".format(self.tau_corr, self.tau_corr_max)
         return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
 
     # Alias accessors
