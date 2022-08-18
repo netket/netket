@@ -4,9 +4,22 @@
 
 # Change Log
 
-## NetKet 3.5 (⚙️ In development)
+## NetKet 3.6 (In development)
+
+### New features
+
+### Bug Fixes
+
+
+## NetKet 3.5 (☀️ 18 August 2022)
 
 [GitHub commits](https://github.com/netket/netket/compare/v3.4...master).
+
+This release adds support and needed functions to run TDVP for neural networks with real/non-holomorphic parameters, an experimental HDF5 logger, and an `MCState` method to compute the local estimators of an observable for a set of samples.
+
+This release also drops support for older version of flax, while adopting the new interface which completely supports complex-valued neural networks. Deprecation warnings might be raised if you were using some layers from `netket.nn` that are now avaiable in flax.
+
+A new, more accurate, estimation of the autocorrelation time has been introduced, but it is disabled by default. We welcome feedback.
 
 ### New features
 
@@ -38,6 +51,7 @@
 * Fixed bug where the {class}`nk.callbacks.EarlyStopping` callback would not work as intended when hitting a local minima. [#1238](https://github.com/netket/netket/pull/1238)
 * `chunk_size` and the random seed of Monte Carlo variational states are now serialised. States serialised previous to this change can no longer be unserialised [#1247](https://github.com/netket/netket/pull/1247)
 * Continuous-space hamiltonians now work correctly with neural networks with complex parameters [#1273](https://github.com/netket/netket/pull/1273).
+* NetKet now works under MPI with recent versions of jax (>=0.3.15) [#1291](https://github.com/netket/netket/pull/1291).
 
 ## NetKet 3.4.2 (BugFixes & DepWarns again)
 
