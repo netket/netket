@@ -14,10 +14,12 @@
 
 from typing import Callable, Optional, Tuple
 from functools import partial, wraps
+import math
 
-import numpy as np
 import jax
 from jax import numpy as jnp
+
+import numpy as np
 
 from netket.stats import subtract_mean
 from netket.utils.types import PyTree, Array
@@ -289,9 +291,9 @@ def prepare_centered_oks(
     )
 
     n_samp = samples.shape[0] * mpi.n_nodes
-    centered_oks = subtract_mean(jacobians, axis=0) / np.sqrt(
-        n_samp, dtype=jacobians.dtype
-    )
+    centered_oks = subtract_mean(jacobians, axis=0) / math.sqrt(
+        n_samp
+    )  # maintain weak type!
 
     centered_oks = centered_oks.reshape(-1, centered_oks.shape[-1])
 

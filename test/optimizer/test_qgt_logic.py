@@ -71,6 +71,14 @@ def tree_allclose(t1, t2):
     return all(jax.tree_util.tree_flatten(t)[0])
 
 
+def tree_samedtypes(t1, t2):
+    def _same_dtypes(x, y):
+        assert x.dtype == y.dtype
+        assert x.weak_type == y.weak_type
+
+    jax.tree_map(_same_dtypes, t1, t2)
+
+
 def random_split_like_tree(rng_key, target=None, treedef=None):
     if treedef is None:
         treedef = jax.tree_structure(target)
@@ -244,6 +252,7 @@ def test_matvec(e, jit, chunk_size):
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
     )
     assert tree_allclose(actual, expected)
+    tree_samedtypes(actual, expected)
 
 
 @pytest.mark.parametrize("holomorphic", [True, False])
@@ -286,6 +295,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
     )
     # (expected,) = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_), target=e.target), v)(v)
     assert tree_allclose(actual, expected)
+    tree_samedtypes(actual, expected)
 
 
 # TODO separate test for prepare_centered_oks
@@ -315,6 +325,7 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
     actual = mv(e.v, centered_oks)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
     assert tree_allclose(actual, expected)
+    tree_samedtypes(actual, expected)
 
 
 # TODO separate test for prepare_centered_oks
@@ -359,6 +370,7 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
     )
     assert tree_allclose(actual, expected)
+    tree_samedtypes(actual, expected)
 
 
 @pytest.mark.parametrize("holomorphic", [True])
@@ -383,6 +395,7 @@ def test_scale_invariant_regularization(e, outdtype, pardtype):
     actual = mv(e.v, centered_oks_scaled)
     expected = reassemble_complex(e.S_real_scaled @ e.v_real_flat, target=e.target)
     assert tree_allclose(actual, expected)
+    tree_samedtypes(actual, expected)
 
 
 # TODO test with MPI
