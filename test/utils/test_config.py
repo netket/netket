@@ -2,7 +2,7 @@ import netket as nk
 import pytest
 
 with pytest.raises(RuntimeError):
-    nk.config.netket_experimental = True
+    nk.config.netket_mpi = True
 
 assert isinstance(nk.config.netket_debug, bool)
 
