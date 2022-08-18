@@ -154,6 +154,23 @@ config.define(
     runtime=True,
 )
 
+config.define(
+    "NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION",
+    bool,
+    default=False,
+    help=dedent(
+        """
+        The integrated autocorrelation time $\tau_c$ is computed separately for each chain $c$.
+        To summarize it for the user, `Stats.tau_corr` is changed to contain the average over all
+        chains and a new field `Stats.tau_corr_max` is added containing the maximum autocorrelation
+        among all chains (which helps to identify outliers). Using the average $\tau$ over all chains
+        seems like a good choice as it results in a low-variance estimate
+        (see [here](https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#autocorr) for a good
+        discussion).
+        """
+    ),
+    runtime=True,
+)
 
 config.define(
     "NETKET_SPHINX_BUILD",

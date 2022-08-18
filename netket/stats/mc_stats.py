@@ -62,8 +62,8 @@ class Stats:
     error_of_mean: float = _NaN
     variance: float = _NaN
     tau_corr: float = _NaN
-    tau_corr_max: float = _NaN
     R_hat: float = _NaN
+    tau_corr_max: float = _NaN
 
     def to_dict(self):
         jsd = {}
@@ -72,7 +72,8 @@ class Stats:
         jsd["Sigma"] = _maybe_item(self.error_of_mean)
         jsd["R_hat"] = _maybe_item(self.R_hat)
         jsd["TauCorr"] = _maybe_item(self.tau_corr)
-        jsd["TauCorrMax"] = _maybe_item(self.tau_corr_max)
+        if config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
+            jsd["TauCorrMax"] = _maybe_item(self.tau_corr_max)
         return jsd
 
     def to_compound(self):
@@ -86,6 +87,7 @@ class Stats:
             ext = ""
         if not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
             ext += ", τ={:.1f}<{:.1f}".format(self.tau_corr, self.tau_corr_max)
+
         return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
 
     # Alias accessors
@@ -184,6 +186,10 @@ def statistics(data):
         an estimate of the autocorrelation time (:code:`tau_corr`, :code:`["TauCorr"]`), and the
         Gelman-Rubin split-Rhat diagnostic (:code:`.R_hat`, :code:`["R_hat"]`).
 
+        If the flag `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION` is set, the autocorrelation is computed
+        exactly using a FFT transform, and an extra field `tau_corr_max` is inserted in the
+        statistics object
+
         These properties can be accessed both the attribute and the dictionary-style syntax
         (both indicated above).
 
@@ -196,7 +202,12 @@ def statistics(data):
         Gelman et al., `Bayesian Data Analysis <http://www.stat.columbia.edu/~gelman/book/>`_,
         or Vehtari et al., `arXiv:1903.08008 <https://arxiv.org/abs/1903.08008>`_.)
     """
-    return _statistics(data)
+    if config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]:
+        return _statistics(data)
+    else:
+        from .mc_stats_old import statistics as statistics_blocks
+
+        return statistics_blocks(data)
 
 
 @jax.jit
@@ -225,6 +236,6 @@ def _statistics(data):
         error_of_mean = jnp.sqrt(block_var / n_blocks)
         R_hat = jnp.nan
 
-    res = Stats(mean, error_of_mean, variance, tau_avg, tau_max, R_hat)
+    res = Stats(mean, error_of_mean, variance, tau_avg, R_hat, tau_max)
 
     return res
