@@ -72,6 +72,8 @@ from .deprecation import (
     combine_masks,
 )
 
+from . import blocks
+
 
 # TODO: Eventually remove These (deprecated in 3.5)
 # These were never supposed to be re-exported, but they slipped and I used them in quite
