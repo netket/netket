@@ -94,6 +94,28 @@ class netket_disable_mpi:
         nk.utils.mpi.primitives.n_nodes = self._orig_nodes
 
 
+class netket_experimental_fft_autocorrelation:
+    """
+    Temporarily enables the experimental fft autocorrelation logic
+
+    Example:
+
+    >>> with netket_experimental_fft_autocorrelation(True):
+    >>>     run_code
+
+    """
+
+    def __init__(self, val):
+        self._value = val
+
+    def __enter__(self):
+        self._orig_value = nk.config.FLAGS["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"]
+        nk.config.update("NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION", self._value)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        nk.config.update("NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION", self._orig_value)
+
+
 def hash_for_seed(obj):
     """
     Hash any object into an int that can be used in `np.random.seed`, and does not change between Python sessions.

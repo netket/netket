@@ -23,7 +23,7 @@ from functools import partial
 import netket as nk
 from netket.stats import statistics
 from scipy.optimize import curve_fit
-from numba import jit
+import numba
 
 from .. import common
 
@@ -93,9 +93,24 @@ def test_stats_mean_std():
         _test_stats_mean_std(hi, ham, ma, bs)
 
 
+def _gen_data(n_samples, log_f, dx, seed_val):
+    np.random.seed(seed_val)
+    # Generates data with a simple markov chain
+    x = np.empty(n_samples)
+    x_old = np.random.normal()
+    for i in range(n_samples):
+        x_new = x_old + np.random.normal(scale=dx, loc=0.0)
+        if np.exp(log_f(x_new) - log_f(x_old)) > np.random.uniform(0, 1):
+            x[i] = x_new
+        else:
+            x[i] = x_old
+        x_old = x[i]
+    return x
+
+
 @pytest.mark.parametrize("batch_size", [1, 2, 4, 8, 16, 32])
 @pytest.mark.parametrize("sig_corr", [0.5])
-def test_tau_corr(batch_size, sig_corr):
+def test_tau_corr_fft_logic(batch_size, sig_corr):
     def next_pow_two(n):
         i = 1
         while i < n:
@@ -119,21 +134,6 @@ def test_tau_corr(batch_size, sig_corr):
 
         return acf
 
-    def gen_data(n_samples, log_f, dx, seed=1234):
-        np.random.seed(seed)
-        # Generates data with a simple markov chain
-        x = np.empty(n_samples)
-        x_old = np.random.normal()
-        for i in range(n_samples):
-            x_new = x_old + np.random.normal(scale=dx, loc=0.0)
-            if np.exp(log_f(x_new) - log_f(x_old)) > np.random.uniform(0, 1):
-                x[i] = x_new
-            else:
-                x[i] = x_old
-
-            x_old = x[i]
-        return x
-
     def log_f(x):
         return -(x**2.0) / 2.0
 
@@ -146,24 +146,40 @@ def test_tau_corr(batch_size, sig_corr):
     tau_fit = np.empty((batch_size))
 
     for i in range(batch_size):
-        data[i] = gen_data(n_samples, log_f, sig_corr, seed=i + batch_size)
+        data[i] = _gen_data(n_samples, log_f, sig_corr, i + batch_size)
         autoc = autocorr_func_1d(data[i])
         popt, pcov = curve_fit(func_corr, np.arange(40), autoc[0:40])
         tau_fit[i] = popt[0]
 
-    tau_fit_mean = 1 + 2 * tau_fit.mean()
-    tau_fit_max = 1 + 2 * tau_fit.max()
+    with common.netket_experimental_fft_autocorrelation(True):
 
-    stats = statistics(data)
+        tau_fit_mean = 1 + 2 * tau_fit.mean()
+        tau_fit_max = 1 + 2 * tau_fit.max()
 
-    assert np.mean(data) == pytest.approx(stats.mean)
-    assert np.var(data) == pytest.approx(stats.variance)
+        stats = statistics(data)
 
-    assert tau_fit_mean == pytest.approx(stats.tau_corr, rel=0.5, abs=0.5)
-    assert tau_fit_max == pytest.approx(stats.tau_corr_max, rel=0.5, abs=0.5)
+        assert np.mean(data) == pytest.approx(stats.mean)
+        assert np.var(data) == pytest.approx(stats.variance)
 
-    eom_fit = np.sqrt(np.var(data) * tau_fit_mean / float(n_samples * batch_size))
-    assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.5)
+        assert tau_fit_mean == pytest.approx(stats.tau_corr, rel=0.5, abs=0.5)
+        assert tau_fit_max == pytest.approx(stats.tau_corr_max, rel=0.5, abs=0.5)
+
+        eom_fit = np.sqrt(np.var(data) * tau_fit_mean / float(n_samples * batch_size))
+        assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.5)
+
+    with common.netket_experimental_fft_autocorrelation(False):
+        tau_fit_m = tau_fit.mean()
+
+        stats = statistics(data)
+
+        assert np.mean(data) == pytest.approx(stats.mean)
+        assert np.var(data) == pytest.approx(stats.variance)
+
+        assert tau_fit_m == pytest.approx(stats.tau_corr, rel=1, abs=3)
+
+        eom_fit = np.sqrt(np.var(data) * tau_fit_m / float(n_samples * batch_size))
+
+        assert eom_fit == pytest.approx(stats.error_of_mean, rel=0.6)
 
 
 def test_decimal_format():
