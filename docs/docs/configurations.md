@@ -3,7 +3,7 @@
 NetKet exposes a few configuration options which can be set through environment variables by doing something like
 ```bash
 # without exporting it
-NETKET_DEBUG=1 python
+NETKET_DEBUG=1 python ...
 
 # by exporting it
 export NETKET_DEBUG=1
