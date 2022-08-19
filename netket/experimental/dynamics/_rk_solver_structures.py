@@ -380,6 +380,11 @@ class RungeKuttaIntegrator:
 
 class RKIntegratorConfig:
     def __init__(self, dt, tableau, *, adaptive=False, **kwargs):
+        if not tableau.data.is_adaptive and adaptive:
+            raise ValueError(
+                "Cannot set `adaptive=True` for a non-adaptive integrator."
+            )
+
         self.dt = dt
         self.tableau = tableau
         self.adaptive = adaptive
@@ -405,21 +410,3 @@ class RKIntegratorConfig:
             self.adaptive,
             f", **kwargs={self.kwargs}" if self.kwargs else "",
         )
-
-
-# Solvers with preset tableaus
-
-Euler = partial(RKIntegratorConfig, tableau=rkt.bt_feuler)
-"""First-order Euler solver"""
-Midpoint = partial(RKIntegratorConfig, tableau=rkt.bt_midpoint)
-"""Second-order midpoint method solver"""
-Heun = partial(RKIntegratorConfig, tableau=rkt.bt_heun)
-"""Second-order Heun solver"""
-RK4 = partial(RKIntegratorConfig, tableau=rkt.bt_rk4)
-"""Fourth-order Runge-Kutta solver"""
-RK12 = partial(RKIntegratorConfig, tableau=rkt.bt_rk12)
-"""Heun-Euler solver (adaptive)"""
-RK23 = partial(RKIntegratorConfig, tableau=rkt.bt_rk23)
-"""Bogacki–Shampine method solver (adaptive)"""
-RK45 = partial(RKIntegratorConfig, tableau=rkt.bt_rk4_dopri)
-"""Dormand-Prince (dopri) method solver (adaptive)"""
