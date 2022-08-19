@@ -46,7 +46,7 @@ class PureRBM(nn.Module):
     use_visible_bias: bool = True
     """if True adds a bias to the input not passed through the nonlinear layer."""
     precision: Any = None
-    """Numerical precision of the computation see `jax.lax.Precision` for details."""
+    """Numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
@@ -106,7 +106,7 @@ class MixedRBM(nn.Module):
     use_bias: bool = True
     """if True uses a bias in the dense layer (hidden layer bias)."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
@@ -176,7 +176,7 @@ class NDM(nn.Module):
     use_visible_bias: bool = True
     """if True adds a bias to the input not passed through the nonlinear layer."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""

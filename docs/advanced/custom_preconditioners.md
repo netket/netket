@@ -2,7 +2,7 @@
 
 NetKet calls _gradient preconditioner_ that class of techniques that transform the
 gradient of the cost function in order to improve convergence properties before
-passing it to an optimiser like {ref}`netket.optimizer.Sgd` or {ref}`netket.optimizer.Adam`.
+passing it to an optimiser like {func}`netket.optimizer.Sgd` or {func}`netket.optimizer.Adam`.
 
 Examples of _gradient preconditioners_ are the [Stochastic Reconfiguration (SR)](https://www.attaccalite.com/PhDThesis/html/node15.html) method  (also known as [Natural Gradient Descent](https://wiseodd.github.io/techblog/2018/03/14/natural-gradient/) in ML literature), the Linear Method or second order Hessian-based optimisation.
 

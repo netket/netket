@@ -81,7 +81,7 @@ class GCNN_FFT(nn.Module):
     use_bias: bool = True
     """if True uses a bias in all layers."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_gcnn_initializer
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
@@ -194,7 +194,7 @@ class GCNN_Irrep(nn.Module):
     use_bias: bool = True
     """if True uses a bias in all layers."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_gcnn_initializer
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
@@ -296,7 +296,7 @@ class GCNN_Parity_FFT(nn.Module):
     parameters saved before PR#1030, but hinders performance.
     See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_gcnn_initializer
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros
@@ -472,7 +472,7 @@ class GCNN_Parity_Irrep(nn.Module):
     parameters saved before PR#1030, but hinders performance.
     See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_gcnn_initializer
     """Initializer for the kernels of all layers."""
     bias_init: NNInitFunc = zeros

@@ -57,11 +57,11 @@ class MLP(nn.Module):
     """The nonlinear activation at the output layer.
     If None is provided, the output layer will be essentially linear."""
     use_hidden_bias: bool = True
-    """if True uses a bias in the hidden layer."""
+    """If True uses a bias in the hidden layer."""
     use_output_bias: bool = True
-    """if True adds a bias to the output layer."""
+    """If True adds a bias to the output layer."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """Numerical precision of the computation see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
     bias_init: NNInitFunc = default_bias_init

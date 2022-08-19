@@ -55,7 +55,7 @@ class FastMaskedDense1D(nn.Module):
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
-    """numerical precision of the computation, see `jax.lax.Precision` for details."""
+    """numerical precision of the computation, see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
     """initializer for the weight matrix."""
     bias_init: NNInitFunc = zeros
@@ -190,7 +190,7 @@ class FastMaskedConv1D(nn.Module):
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
-    """numerical precision of the computation, see `jax.lax.Precision` for details."""
+    """numerical precision of the computation, see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
     """initializer for the convolutional kernel."""
     bias_init: NNInitFunc = zeros
@@ -328,7 +328,7 @@ class FastMaskedConv2D(nn.Module):
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     precision: Any = None
-    """numerical precision of the computation, see `jax.lax.Precision` for details."""
+    """numerical precision of the computation, see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
     """initializer for the convolutional kernel."""
     bias_init: NNInitFunc = zeros

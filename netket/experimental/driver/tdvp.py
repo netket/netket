@@ -44,7 +44,7 @@ from netket.experimental.dynamics._rk_solver import euclidean_norm, maximum_norm
 class TDVP(AbstractVariationalDriver):
     """
     Variational time evolution based on the time-dependent variational principle which,
-    when used with Monte Carlo sampling via :ref:`netket.vqs.MCState`, is the time-dependent VMC
+    when used with Monte Carlo sampling via :class:`netket.vqs.MCState`, is the time-dependent VMC
     (t-VMC) method.
     """
 
@@ -307,7 +307,7 @@ class TDVP(AbstractVariationalDriver):
         """
         Runs the time evolution.
 
-        By default uses :ref:`netket.logging.JsonLog`. To know about the output format
+        By default uses :class:`netket.logging.JsonLog`. To know about the output format
         check it's documentation. The logger object is also returned at the end of this function
         so that you can inspect the results without reading the json output.
 

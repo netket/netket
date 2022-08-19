@@ -1,4 +1,3 @@
-
 ```{currentmodule} netket
 ```
 
@@ -114,7 +113,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 
 ### Bug Fixes
 * Allow `LazyOperator@densevector` for operators such as lazy `Adjoint`, `Transpose` and `Squared`. [#1068](https://github.com/netket/netket/pull/1068) 
-* The logic to update the progress bar in `nk.experimental.TDVP` has been improved, and it should now display updates even if there are very sparse `save_steps`. [#1084](https://github.com/netket/netket/pull/1084)
+* The logic to update the progress bar in {class}`nk.experimental.TDVP` has been improved, and it should now display updates even if there are very sparse `save_steps`. [#1084](https://github.com/netket/netket/pull/1084)
 * The `nk.logging.TensorBoardLog` is now lazily initialized to better work in an MPI environment. [#1086](https://github.com/netket/netket/pull/1086)
 * Converting a `nk.operator.BoseHubbard` to a `nk.operator.LocalOperator` multiplied by 2 the nonlinearity `U`. This has now been fixed. [#1102](https://github.com/netket/netket/pull/1102)
 
@@ -134,12 +133,12 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 [GitHub commits](https://github.com/netket/netket/compare/v3.2...v3.3).
 
 ### New features
-* The interface to define expectation and gradient function of arbitrary custom operators is now stable. If you want to define it for a standard operator that can be written as an average of local expectation terms, you can now define a dispatch rule for {ref}`netket.vqs.get_local_kernel_arguments` and {ref}`netket.vqs.get_local_kernel`. The old mechanism is still supported, but we encourage to use the new mechanism as it is more terse. [#954](https://github.com/netket/netket/pull/954)
-* `nk.optimizer.Adam` now supports complex parameters, and you can use `nk.optimizer.split_complex` to make optimizers process complex parameters as if they are pairs of real parameters. [#1009](https://github.com/netket/netket/pull/1009)
+* The interface to define expectation and gradient function of arbitrary custom operators is now stable. If you want to define it for a standard operator that can be written as an average of local expectation terms, you can now define a dispatch rule for {func}`netket.vqs.get_local_kernel_arguments` and {func}`netket.vqs.get_local_kernel`. The old mechanism is still supported, but we encourage to use the new mechanism as it is more terse. [#954](https://github.com/netket/netket/pull/954)
+* {func}`nk.optimizer.Adam` now supports complex parameters, and you can use {func}`nk.optimizer.split_complex` to make optimizers process complex parameters as if they are pairs of real parameters. [#1009](https://github.com/netket/netket/pull/1009)
 * Chunking of `MCState.expect` and `MCState.expect_and_grad` computations is now supported, which allows to bound the memory cost in exchange of a minor increase in computation time. [#1006](https://github.com/netket/netket/pull/1006) (and discussions in [#918](https://github.com/netket/netket/pull/918) and [#830](https://github.com/netket/netket/pull/830))
-* A new variational state that performs exact summation over the whole Hilbert space has been added. It can be constructed with {ref}`nk.vqs.ExactState` and supports the same Jax neural networks as {ref}`nk.vqs.MCState`. [#953](https://github.com/netket/netket/pull/953)
-* `DenseSymm` allows multiple input features. [#1030](https://github.com/netket/netket/pull/1030)
-* [Experimental] A new time-evolution driver  {ref}`nk.experimental.TDVP` using the time-dependent variational principle (TDVP) has been added. It works with time-independent and time-dependent Hamiltonians and Liouvillians. [#1012](https://github.com/netket/netket/pull/1012)
+* A new variational state that performs exact summation over the whole Hilbert space has been added. It can be constructed with {class}`nk.vqs.ExactState` and supports the same Jax neural networks as {class}`nk.vqs.MCState`. [#953](https://github.com/netket/netket/pull/953)
+* {func}`nk.nn.DenseSymm` allows multiple input features. [#1030](https://github.com/netket/netket/pull/1030)
+* [Experimental] A new time-evolution driver {class}`nk.experimental.TDVP` using the time-dependent variational principle (TDVP) has been added. It works with time-independent and time-dependent Hamiltonians and Liouvillians. [#1012](https://github.com/netket/netket/pull/1012)
 * [Experimental] A set of JAX-compatible Runge-Kutta ODE integrators has been added for use together with the new TDVP driver. [#1012](https://github.com/netket/netket/pull/1012)
 
 ### Breaking Changes
@@ -159,7 +158,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 
 ### Bug Fixes
 * The constructor of `TensorHilbert` (which is used by the product operator `*` for inhomogeneous spaces) no longer fails when one of the component spaces is non-indexable. [#1004](https://github.com/netket/netket/pull/1004)
-* The {ref}`nk.hilbert.random.flip_state` method used by `MetropolisLocal` now throws an error when called on a {ref}`nk.hilbert.ContinuousHilbert` hilbert space instead of entering an endless loop. [#1014](https://github.com/netket/netket/pull/1014)
+* The {func}`~nk.hilbert.random.flip_state` method used by `MetropolisLocal` now throws an error when called on a {class}`nk.hilbert.ContinuousHilbert` hilbert space instead of entering an endless loop. [#1014](https://github.com/netket/netket/pull/1014)
 * Fixed bug in conversion to qutip for `MCMixedState`, where the resulting shape (hilbert space size) was wrong. [#1020](https://github.com/netket/netket/pull/1020)
 * Setting `MCState.sampler` now recomputes `MCState.chain_length` according to `MCState.n_samples` and the new `sampler.n_chains`. [#1028](https://github.com/netket/netket/pull/1028)
 * `GCNN_Parity` allowed biasing both the parity-preserving and the parity-flip equivariant layers. These enter into the network output the same way, so having both is redundant and makes QGTs unstable. The biases of the parity-flip layers are now removed. [#1030](https://github.com/netket/netket/pull/1030)
@@ -271,13 +270,13 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 
 ### New features
 
-* The {ref}`netket.utils.group` submodule provides utilities for geometrical and permutation groups. `Lattice` (and its specialisations like `Grid`) use these to automatically construct the space groups of lattices, as well as their character tables for generating wave functions with broken symmetry. [#724](https://github.com/netket/netket/pull/724)
+* The {py:mod}`netket.utils.group` submodule provides utilities for geometrical and permutation groups. `Lattice` (and its specialisations like `Grid`) use these to automatically construct the space groups of lattices, as well as their character tables for generating wave functions with broken symmetry. [#724](https://github.com/netket/netket/pull/724)
 * Autoregressive neural networks, sampler, and masked linear layers have been added to `models`, `sampler` and `nn` [#705](https://github.com/netket/netket/pull/705).
 
 
 ### Breaking Changes
 
-* The `netket.graph.Grid` class has been removed. {ref}`netket.graph.Grid` will now return an instance of {ref}`graph.Lattice` supporting the same API but with new functionalities related to spatial symmetries. The `color_edges` optional keyword argument has been removed without deprecation. [#724](https://github.com/netket/netket/pull/724)
+* The `netket.graph.Grid` class has been removed. {ref}`netket.graph.Grid` will now return an instance of {class}`graph.Lattice` supporting the same API but with new functionalities related to spatial symmetries. The `color_edges` optional keyword argument has been removed without deprecation. [#724](https://github.com/netket/netket/pull/724)
 * `MCState.n_discard` has been renamed `MCState.n_discard_per_chain` and the old binding has been deprecated [#739](https://github.com/netket/netket/pull/739).
 * `nk.optimizer.qgt.QGTOnTheFly` option `centered=True` has been removed because we are now convinced the two options yielded equivalent results. `QGTOnTheFly` now always behaves as if `centered=False` [#706](https://github.com/netket/netket/pull/706).
 
@@ -329,7 +328,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 * For all samplers, `n_chains` now sets the _total_ number of chains across all MPI ranks. This is a breaking change
   compared to the old API, where `n_chains` would set the number of chains on a single MPI rank. It is still possible to
   set the number of chains per MPI rank by specifying `n_chains_per_rank` instead of `n_chains`. This change, while breaking
-  allows us to be consistent with the interface of {ref}`variational.MCState`, where `n_samples` is the total number of samples
+  allows us to be consistent with the interface of {class}`variational.MCState`, where `n_samples` is the total number of samples
   across MPI nodes.
 * `MetropolisSampler.reset_chain` has been renamed to `MetropolisSampler.reset_chains`.
   Likewise in the constructor of all samplers.
@@ -351,7 +350,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 * Fix MPI Compilation deadlock when computing expectation values [#655](https://github.com/netket/netket/pull/655)
 * Fix bug preventing the creation of a `hilbert.Spin` Hilbert space with odd sites and even `S`. [#641](https://github.com/netket/netket/pull/641)
 * Fix bug [#635](https://github.com/netket/netket/pull/635) preventing the usage of `NumpyMetropolisSampler` with `MCState.expect` [#635](https://github.com/netket/netket/pull/635)
-* Fix bug [#635](https://github.com/netket/netket/pull/635) where the `graph.Lattice` was not correctly computing neighbours because of floating point issues. [#633](https://github.com/netket/netket/pull/633)
+* Fix bug [#635](https://github.com/netket/netket/pull/635) where the {class}`graph.Lattice` was not correctly computing neighbours because of floating point issues. [#633](https://github.com/netket/netket/pull/633)
 * Fix bug the Y Pauli matrix, which was stored as its conjugate. [#618](https://github.com/netket/netket/pull/618) [#617](https://github.com/netket/netket/pull/617) [#615](https://github.com/netket/netket/pull/615)
 
 
@@ -375,11 +374,11 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 
   * The model, in general is composed by two functions, or an object with two functions: an `init(rng, sample_val)` function, accepting a {func}`jax.random.PRNGKey` object and an input, returning the parameters and the state of the model for that particular sample shape, and a {code}`apply(params, samples, **kwargs)` function, evaluating the model for the given parameters and inputs.
 
-  * Some models (previously machines) such as the RBM (Restricted Boltzmann Machine) Machine, NDM (Neural Density Matrix) or MPS (Matrix Product State ansatz) are available in {ref}`Pre-built models`.
+  * Some models (previously machines) such as the RBM (Restricted Boltzmann Machine) Machine, NDM (Neural Density Matrix) or MPS (Matrix Product State ansatz) are available in [`Pre-built models`](netket_models_api).
 
   * Machines, now called models, should be written using [Flax](https://flax.readthedocs.io/en/latest) or another jax framework.
 
-  * Serialization and deserialization functionality has now been moved to {ref}`netket.variational.MCState`, which support the standard Flax interface through MsgPack. See [Flax docs](https://flax.readthedocs.io/en/latest/flax.serialization.html) for more information
+  * Serialization and deserialization functionality has now been moved to {class}`netket.variational.MCState`, which support the standard Flax interface through MsgPack. See [Flax docs](https://flax.readthedocs.io/en/latest/flax.serialization.html) for more information
 
   * {code}`AbstractMachine.init_random_parameters` functionality has now been absorbed into {meth}`netket.vqs.VariationalState.init_parameters`, which however has a different syntax.
 
@@ -392,14 +391,14 @@ Also note that several keyword arguments of the samplers have changed, and new o
 
 * {ref}`Samplers <Sampler>` are now immutable (frozen) `dataclasses` (defined through `flax.struct.dataclass`) that only hold the sampling parameters. As a consequence it is no longer possible to change their settings such as `n_chains` or `n_sweeps` without creating a new sampler. If you wish to update only one parameter, it is possible to construct the new sampler with the updated value by using the `sampler.replace(parameter=new_value)` function.
 
-* {ref}`Samplers <Sampler>` are no longer stateful objects. Instead, they can construct an immutable state object {ref}`netket.sampler.init_state`, which can be passed to sampling functions such as {ref}`netket.sampler.sample`, which now return also the updated state. However, unless you have particular use-cases we advise you use the variational state {ref}`MCState` instead.
+* {ref}`Samplers <Sampler>` are no longer stateful objects. Instead, they can construct an immutable state object `netket.sampler.init_state`, which can be passed to sampling functions such as `netket.sampler.sample`, which now return also the updated state. However, unless you have particular use-cases we advise you use the variational state `MCState` instead.
 
 * The {ref}`netket.optimizer` module has been overhauled, and now only re-exports flax optim module. We advise not to use netket's optimizer but instead to use [optax](https://github.com/deepmind/optax>) .
 
 * The {ref}`netket.optimizer.SR` object now is only a set of options used to compute the SR matrix. The SR matrix, now called `quantum_geometric_tensor` can be obtained by calling {meth}`variational.MCState.quantum_geometric_tensor`. Depending on the settings, this can be a lazy object.
 
-* `netket.Vmc` has been renamed to {ref}`netket.VMC`
+* `netket.Vmc` has been renamed to {class}`netket.VMC`
 
-* {ref}`netket.models.RBM` replaces the old {code}`RBM` machine, but has real parameters by default.
+* {class}`netket.models.RBM` replaces the old {code}`RBM` machine, but has real parameters by default.
 
 * As we rely on Jax, using {code}`dtype=float` or {code}`dtype=complex`, which are weak types, will sometimes lead to loss of precision because they might be converted to `float32`. Use {code}`np.float64` or {code}`np.complex128` instead if you want double precision when defining your models.

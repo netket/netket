@@ -468,11 +468,11 @@ class LocalLiouvillian(AbstractSuperOperator):
 
         return L
 
-    def to_qobj(self) -> "qutip.liouvillian":  # noqa: F821
+    def to_qobj(self):  # -> "qutip.liouvillian"
         r"""Convert the operator to a qutip's liouvillian Qobj.
 
         Returns:
-            A `qutip.liouvillian` object.
+            A :class:`qutip.liouvillian` object.
         """
         from qutip import liouvillian
 
