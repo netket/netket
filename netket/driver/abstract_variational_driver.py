@@ -198,7 +198,7 @@ class AbstractVariationalDriver(abc.ABC):
         in the output `logger`. If no logger is specified, creates a json file at `out`,
         overwriting files with the same prefix.
 
-        By default uses :ref:`netket.logging.JsonLog`. To know about the output format
+        By default uses :class:`nk.logging.JsonLog`. To know about the output format
         check it's documentation. The logger object is also returned at the end of this function
         so that you can inspect the results without reading the json output.
 

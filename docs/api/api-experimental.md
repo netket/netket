@@ -1,5 +1,3 @@
-(api-experimental)=
-
 # Experimental API
 
 ```{eval-rst}
@@ -9,7 +7,7 @@
 In this page we present some experimental interfaces of NetKet.
 Those are not guaranteed to be API-stable, and might change without notice (other than the
 changelog) among minor releases.
-The {ref}`netket.experimental <api-experimental>` modules mirrors the standard {ref}`netket <netket_api>` module structure,
+The [netket.experimental](api-experimental) module mirrors the standard {ref}`netket <netket_api>` module structure,
 and we suggest to use it as follows:
 
 ```python
@@ -18,7 +16,6 @@ import netket.experimental as nkx
 ```
 
 (experimental-sampler-api)=
-
 ## Samplers
 
 This module contains the Metropolis Parallel Tempered sampler.
@@ -46,8 +43,7 @@ several CPUs, but you have to start jax with a specific environment variable.
    sampler.MetropolisSamplerPmap
 ```
 
-(experimental-variational-api)=
-
+(experimental-logging-api)=
 ## Logging
 
 ```{eval-rst}
@@ -68,7 +64,6 @@ This module contains experimental loggers that can be used with the optimization
 ```
 
 (experimental-variational-api)=
-
 ## Variational State Interface
 
 ```{eval-rst}

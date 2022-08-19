@@ -275,11 +275,11 @@ class VariationalState(abc.ABC):
         """
         return NotImplemented  # pragma: no cover
 
-    def to_qobj(self):
+    def to_qobj(self):  # -> "qutip.Qobj"
         r"""Convert the variational state to a qutip's ket Qobj.
 
         Returns:
-            A `qutip.Qobj` object.
+            A :class:`qutip.Qobj` object.
         """
         from qutip import Qobj
 
@@ -309,11 +309,11 @@ class VariationalMixedState(VariationalState):
         """
         return NotImplemented  # pragma: no cover
 
-    def to_qobj(self):
+    def to_qobj(self):  # -> "qutip.Qobj"
         r"""Convert this mixed state to a qutip density matrix Qobj.
 
         Returns:
-            A `qutip.Qobj` object.
+            A :class:`qutip.Qobj` object.
         """
         from qutip import Qobj
 

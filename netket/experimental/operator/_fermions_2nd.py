@@ -128,11 +128,11 @@ class FermionOperator2nd(DiscreteOperator):
     @staticmethod
     def from_openfermion(
         hilbert: AbstractHilbert,
-        of_fermion_operator: "openfermion.ops.FermionOperator" = None,  # noqa: F821
+        of_fermion_operator=None,  # : "openfermion.ops.FermionOperator" type
         *,
         n_orbitals: Optional[int] = None,
         convert_spin_blocks: bool = False,
-    ):
+    ) -> "FermionOperator2nd":
         r"""
         Converts an openfermion FermionOperator into a netket FermionOperator2nd.
 
@@ -145,7 +145,10 @@ class FermionOperator2nd(DiscreteOperator):
 
         Args:
             hilbert: (optional) hilbert of the resulting FermionOperator2nd object
-            of_fermion_operator: openfermion.ops.FermionOperator object
+            of_fermion_operator (openfermion.ops.FermionOperator):
+                `FermionOperator object <https://quantumai.google/reference/python/openfermion/ops/FermionOperator>`_ .
+                More information about those objects can be found in
+                `OpenFermion's documentation <https://quantumai.google/reference/python/openfermion>`_
             n_orbitals: (optional) total number of orbitals in the system, default
                 None means inferring it from the FermionOperator2nd. Argument is
                 ignored when hilbert is given.
@@ -153,8 +156,6 @@ class FermionOperator2nd(DiscreteOperator):
                 to our convention. Only works if hilbert is provided and if it has
                 spin != 0
 
-        Returns:
-            A FermionOperator2nd object.
         """
         from openfermion.ops import FermionOperator
 

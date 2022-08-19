@@ -61,7 +61,7 @@ class MLP(nn.Module):
     use_output_bias: bool = False
     """if True adds a bias to the output layer."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """Numerical precision of the computation see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
     bias_init: NNInitFunc = default_bias_init

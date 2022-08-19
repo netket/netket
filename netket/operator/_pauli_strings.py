@@ -219,21 +219,25 @@ class PauliStrings(DiscreteOperator):
     @staticmethod
     def from_openfermion(
         hilbert: AbstractHilbert,
-        of_qubit_operator: "openfermion.ops.QubitOperator" = None,  # noqa: F821
+        of_qubit_operator=None,  # : "openfermion.ops.QubitOperator" type
         *,
         n_qubits: int = None,
-    ):
+    ) -> "PauliStrings":
         r"""
         Converts an openfermion QubitOperator into a netket PauliStrings.
-        The hilbert first argument can be dropped, see __init__ for details and default value
+
+        The hilbert first argument can be dropped, see :code:`__init__` for
+        details and default value
 
         Args:
-            hilbert (optional): hilbert of the resulting PauliStrings object
-            of_qubit_operator (required): openfermion.ops.QubitOperator object
-            n_qubits (int): total number of qubits in the system, default None means inferring it from the QubitOperator. Argument is ignored when hilbert is given.
+            hilbert: hilbert of the resulting PauliStrings object
+            of_qubit_operator: this must be a
+                `QubitOperator object <https://quantumai.google/reference/python/openfermion/ops/QubitOperator>`_ .
+                More information about those objects can be found in
+                `OpenFermion's documentation <https://quantumai.google/reference/python/openfermion>`_
+            n_qubits: (optional) total number of qubits in the system, default None means inferring
+                it from the QubitOperator. Argument is ignored when hilbert is given.
 
-        Returns:
-            A PauliStrings object.
         """
         from openfermion.ops import QubitOperator
 

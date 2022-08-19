@@ -62,7 +62,7 @@ This can be achieved through the method {meth}`~AbstractHilbert.random_state`.
 
 ```
 
-{meth}`~AbstractHilbert.random_state` behaves similarly to {func}`jax.random.uniform`: the first argument is a Jax PRNGKey, the second is the shape or number of resulting elements and the third is the dtype of the output (which defaults to {ref}`np.float32`, or single precision.
+{meth}`~AbstractHilbert.random_state` behaves similarly to {func}`jax.random.uniform`: the first argument is a Jax PRNGKey, the second is the shape or number of resulting elements and the third is the dtype of the output (which defaults to [`np.float32`](https://numpy.org/doc/stable/user/basics.types.html), or single precision).
 The resulting basis elements will be distributed uniformly.
 
 ```{admonition} Jax PRNG

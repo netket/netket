@@ -32,8 +32,8 @@ If you are on an Apple Arm (M1) processor you should follow the [special instruc
 ```{admonition} Conda
 :class: warning
 
-If you are using a `conda` environment, please don't.
-If you really want to use `conda` environments, see [this section](conda).
+If you are using a [`conda`](https://docs.conda.io/en/latest/) environment, please don't.
+If you really want to use [`conda`](https://docs.conda.io/en/latest/) environments, see [this section](conda).
 ```
 
 ```{admonition} Install Errors?
@@ -97,6 +97,7 @@ pip install --upgrade "netket[mpi]"
 Subsequently, NetKet will exploit MPI-level parallelism for the Monte-Carlo sampling.
 See {ref}`this block <warn-mpi-sampling>` to understand how NetKet behaves under MPI.
 
+(conda)=
 ## Conda
 
 Conda is a great package manager as long as it works. 

@@ -46,7 +46,7 @@ class RBM(nn.Module):
     use_visible_bias: bool = True
     """if True adds a bias to the input not passed through the nonlinear layer."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
@@ -110,7 +110,7 @@ class RBMModPhase(nn.Module):
     use_hidden_bias: bool = True
     """if True uses a bias in the dense layer (hidden layer bias)."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision` for details."""
+    """Numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
@@ -147,7 +147,7 @@ class RBMModPhase(nn.Module):
 @deprecate_dtype
 class RBMMultiVal(nn.Module):
     """
-    A fully connected Restricted Boltzmann Machine (see :ref:`netket.models.RBM`) suitable for large local hilbert spaces.
+    A fully connected Restricted Boltzmann Machine (see :class:`netket.models.RBM`) suitable for large local hilbert spaces.
     Local quantum numbers are passed through a one hot encoding that maps them onto
     an enlarged space of +/- 1 spins. In turn, these quantum numbers are used with a
     standard :class:`~netket.models.RBM` wave function.
@@ -166,7 +166,7 @@ class RBMMultiVal(nn.Module):
     use_visible_bias: bool = True
     """if True adds a bias to the input not passed through the nonlinear layer."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """Numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the Dense layer matrix."""
@@ -217,7 +217,7 @@ class RBMSymm(nn.Module):
     use_visible_bias: bool = True
     """if True adds a bias to the input not passed through the nonlinear layer."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision` for details."""
+    """Numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = normal(stddev=0.1)
     """Initializer for the Dense layer matrix."""

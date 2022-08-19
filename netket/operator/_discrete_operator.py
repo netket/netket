@@ -203,11 +203,11 @@ class DiscreteOperator(AbstractOperator):
         """
         return self.to_sparse().todense().A
 
-    def to_qobj(self) -> "qutip.Qobj":  # noqa: F821
+    def to_qobj(self):  # -> "qutip.Qobj"
         r"""Convert the operator to a qutip's Qobj.
 
         Returns:
-            A :ref:`qutip.Qobj` object.
+            A :class:`qutip.Qobj` object.
         """
         from qutip import Qobj
 

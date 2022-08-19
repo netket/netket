@@ -83,6 +83,7 @@ myst_update_mathjax = False
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 myst_heading_anchors = 2
+autosectionlabel_maxdepth = 1
 
 main_website_base_url = "https://www.netket.org"
 

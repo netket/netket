@@ -21,6 +21,11 @@ from jax import numpy as jnp
 from netket.utils.types import PyTree, PRNGKeyT
 
 from netket.utils import struct
+from netket import config
+
+# Necessary for the type annotation to work
+if config.netket_sphinx_build:
+    from netket import sampler
 
 
 @struct.dataclass
@@ -32,7 +37,7 @@ class MetropolisRule(abc.ABC):
 
     def init_state(
         self,
-        sampler: "MetropolisSampler",  # noqa: F821
+        sampler: "sampler.MetropolisSampler",  # noqa: F821
         machine: nn.Module,
         params: PyTree,
         key: PRNGKeyT,
@@ -58,10 +63,10 @@ class MetropolisRule(abc.ABC):
 
     def reset(
         self,
-        sampler: "MetropolisSampler",  # noqa: F821
+        sampler: "sampler.MetropolisSampler",  # noqa: F821
         machine: nn.Module,
         params: PyTree,
-        sampler_state: "SamplerState",  # noqa: F821
+        sampler_state: "sampler.SamplerState",  # noqa: F821
     ) -> Optional[Any]:
         """
         Resets the internal state of the Metropolis Sampler Transition Rule.
@@ -83,10 +88,10 @@ class MetropolisRule(abc.ABC):
     @abc.abstractmethod
     def transition(
         self,
-        sampler: "MetropolisSampler",  # noqa: F821
+        sampler: "sampler.MetropolisSampler",  # noqa: F821
         machine: nn.Module,
         params: PyTree,
-        sampler_state: "SamplerState",  # noqa: F821
+        sampler_state: "sampler.SamplerState",  # noqa: F821
         key: PRNGKeyT,
         σ: jnp.ndarray,
     ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
@@ -118,10 +123,10 @@ class MetropolisRule(abc.ABC):
 
     def random_state(
         self,
-        sampler: "MetropolisSampler",  # noqa: F821
+        sampler: "sampler.MetropolisSampler",  # noqa: F821
         machine: nn.Module,
         params: PyTree,
-        sampler_state: "SamplerState",  # noqa: F821
+        sampler_state: "sampler.SamplerState",  # noqa: F821
         key: PRNGKeyT,
     ):
         """

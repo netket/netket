@@ -66,7 +66,7 @@ class DenseSymmMatrix(Module):
     param_dtype: Any = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_equivariant_initializer
     """Initializer for the kernel. Defaults to Lecun normal."""
@@ -291,7 +291,7 @@ class DenseEquivariantFFT(Module):
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_equivariant_initializer
     """Initializer for the kernel. Defaults to Lecun normal."""
@@ -417,7 +417,7 @@ class DenseEquivariantIrrep(Module):
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_equivariant_initializer
     """Initializer for the kernel. Defaults to Lecun normal."""
@@ -569,7 +569,7 @@ class DenseEquivariantMatrix(Module):
     param_dtype: Any = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     kernel_init: NNInitFunc = default_equivariant_initializer
     """Initializer for the kernel. Defaults to Lecun normal."""
@@ -733,8 +733,8 @@ def DenseEquivariant(
     Group elements that differ by the same symmetry operation (i.e. :math:`g = xh`
     and :math:`g' = xh'`) are connected by the same filter.
 
-    This layer maps an input of shape `(..., in_features, n_sites)` to an
-    output of shape `(..., features, num_symm)`.
+    This layer maps an input of shape :code:`(..., in_features, n_sites)` to an
+    output of shape :code:`(..., features, num_symm)`.
 
     Args:
         symmetries: A specification of the symmetry group. Can be given by a
@@ -753,7 +753,7 @@ def DenseEquivariant(
             that can be used to give the kernel a particular shape.
         param_dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
-            see `jax.lax.Precision`for details.
+            see :class:`jax.lax.Precision` for details.
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.
         bias_init: Optional bias initialization function. Defaults to zero initialization.
     """
