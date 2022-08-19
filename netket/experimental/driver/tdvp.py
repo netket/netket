@@ -38,7 +38,10 @@ from netket.utils.types import PyTree
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 
 from netket.experimental.dynamics import RKIntegratorConfig
-from netket.experimental.dynamics._rk_solver import euclidean_norm, maximum_norm
+from netket.experimental.dynamics._rk_solver_structures import (
+    euclidean_norm,
+    maximum_norm,
+)
 
 
 class TDVP(AbstractVariationalDriver):
@@ -57,7 +60,7 @@ class TDVP(AbstractVariationalDriver):
         t0: float = 0.0,
         propagation_type="real",
         qgt: LinearOperator = None,
-        linear_solver=None,
+        linear_solver=nk.optimizer.solver.svd,
         linear_solver_restart: bool = False,
         error_norm: Union[str, Callable] = "euclidean",
     ):
@@ -74,6 +77,12 @@ class TDVP(AbstractVariationalDriver):
                 real-time Schrödinger equation (SE), "imag" for the imaginary-time SE.
             qgt: The QGT specification.
             linear_solver: The solver for solving the linear system determining the time evolution.
+                This must be a jax-jittable function :code:`f(A,b) -> x` that accepts a Matrix-like, Linear Operator
+                PyTree object :math:`A` and a vector-like PyTree :math:`b` and returns the PyTree :math:`x` solving
+                the system :math:`Ax=b`.
+                Defaults to :ref:`nk.optimizer.solver.svd` with the default svd threshold of 1e-10.
+                To change the svd threshold you can use :ref:`functools.partial` as follows:
+                :code:`functools.partial(nk.optimizer.solver.svd, rcond=1e-4)`.
             linear_solver_restart: If False (default), the last solution of the linear system
                 is used as initial value in subsequent steps.
             error_norm: Norm function used to calculate the error with adaptive integrators.
@@ -89,8 +98,6 @@ class TDVP(AbstractVariationalDriver):
         """
         self._t0 = t0
 
-        if linear_solver is None:
-            linear_solver = nk.optimizer.solver.svd
         if qgt is None:
             qgt = QGTAuto(solver=linear_solver)
 

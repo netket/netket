@@ -83,11 +83,12 @@ class HDF5Log:
     The logger has support for scalar numbers, NumPy/JAX arrays, and netket.stats.Stats objects.
     These are stored as individual groups within a HDF5 file, under the main group `data/`:
 
-    - scalars are stored as a group with one dataset values of shape (n_steps,) containing the logged values,
-    - arrays are stored in the same way, but with values having shape (n_steps, *array_shape),
-    - netket.stats.Stats are stored as a group containing each field (Mean, Variance, etc...) as a separate dataset.
+    - scalars are stored as a group with one dataset values of shape :code:`(n_steps,)` containing the logged values,
+    - arrays are stored in the same way, but with values having shape :code:`(n_steps, *array_shape)`,
+    - netket.stats.Stats are stored as a group containing each field :code:`(Mean, Variance, etc...)` as a separate dataset.
 
-    Importantly, each group has a dataset `iters`, which tracks the iteration number of the logged quantity.
+    Importantly, each group has a dataset :code:`iters`, which tracks the
+    iteration number of the logged quantity.
 
     If the model state is serialized, then it is serialized as a dataset in the group `variational_state/`.
     The target of the serialization is the parameters PyTree of the variational state (stored in the group
