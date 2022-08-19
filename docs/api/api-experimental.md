@@ -39,11 +39,11 @@ several CPUs, but you have to start jax with a specific environment variable.
    :template: class
    :nosignatures:
 
-   netket.experimental.sampler.MetropolisPtSampler
-   netket.experimental.sampler.MetropolisLocalPt
-   netket.experimental.sampler.MetropolisExchangePt
+   sampler.MetropolisPtSampler
+   sampler.MetropolisLocalPt
+   sampler.MetropolisExchangePt
 
-   netket.experimental.sampler.MetropolisSamplerPmap
+   sampler.MetropolisSamplerPmap
 ```
 
 (experimental-variational-api)=
@@ -51,7 +51,7 @@ several CPUs, but you have to start jax with a specific environment variable.
 ## Logging
 
 ```{eval-rst}
-.. currentmodule:: netket.experimental.logging
+.. currentmodule:: netket.experimental
 
 ```
 
@@ -63,7 +63,7 @@ This module contains experimental loggers that can be used with the optimization
    :toctree: _generated/experimental/logging
    :nosignatures:
 
-   HDF5Log
+   logging.HDF5Log
 
 ```
 
@@ -72,7 +72,7 @@ This module contains experimental loggers that can be used with the optimization
 ## Variational State Interface
 
 ```{eval-rst}
-.. currentmodule:: netket
+.. currentmodule:: netket.experimental
 ```
 
 ```{eval-rst}
@@ -80,15 +80,15 @@ This module contains experimental loggers that can be used with the optimization
   :toctree: _generated/experimental/variational
   :nosignatures:
 
-  netket.experimental.vqs.variables_from_file
-  netket.experimental.vqs.variables_from_tar
+  vqs.variables_from_file
+  vqs.variables_from_tar
 
 ```
 
 ## Time Evolution Driver
 
 ```{eval-rst}
-.. currentmodule:: netket
+.. currentmodule:: netket.experimental
 ```
 
 ```{eval-rst}
@@ -96,7 +96,7 @@ This module contains experimental loggers that can be used with the optimization
   :toctree: _generated/experimental/dynamics
   :nosignatures:
 
-  netket.experimental.driver.TDVP
+  TDVP
 
 ```
 
@@ -106,7 +106,7 @@ This is a collection of ODE integrators that can be used with the TDVP
 driver above.
 
 ```{eval-rst}
-.. currentmodule:: netket
+.. currentmodule:: netket.experimental
 ```
 
 ```{eval-rst}
@@ -114,13 +114,13 @@ driver above.
    :toctree: _generated/experimental/dynamics
    :nosignatures:
 
-   netket.experimental.dynamics.Euler
-   netket.experimental.dynamics.Heun
-   netket.experimental.dynamics.Midpoint
-   netket.experimental.dynamics.RK12
-   netket.experimental.dynamics.RK23
-   netket.experimental.dynamics.RK4
-   netket.experimental.dynamics.RK45
+   dynamics.Euler
+   dynamics.Heun
+   dynamics.Midpoint
+   dynamics.RK12
+   dynamics.RK23
+   dynamics.RK4
+   dynamics.RK45
 ```
 
 ## Fermions
@@ -129,7 +129,7 @@ This modules contains hilbert space and operator implementations of fermions in 
 It is experimental until it has been thoroughly tested by the community, meaning feedback is welcome.
 
 ```{eval-rst}
-.. currentmodule:: netket
+.. currentmodule:: netket.experimental
 ```
 
 ```{eval-rst}
@@ -138,7 +138,7 @@ It is experimental until it has been thoroughly tested by the community, meaning
    :template: class
    :nosignatures:
 
-   netket.experimental.hilbert.SpinOrbitalFermions
+   hilbert.SpinOrbitalFermions
 ```
 
 ```{eval-rst}
@@ -147,8 +147,8 @@ It is experimental until it has been thoroughly tested by the community, meaning
    :template: class
    :nosignatures:
 
-   netket.experimental.operator.FermionOperator2nd
-   netket.experimental.operator.fermion.create
-   netket.experimental.operator.fermion.destroy
-   netket.experimental.operator.fermion.number
+   operator.FermionOperator2nd
+   operator.fermion.create
+   operator.fermion.destroy
+   operator.fermion.number
 ```

@@ -73,6 +73,6 @@ Read more about the design goal of this module in their [README](https://github.
    :toctree: _generated/nn
    :nosignatures:
 
-    MLP
+    blocks.MLP
 
 ```

@@ -12,414 +12,109 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import IntFlag, auto
-from functools import partial
-from typing import Callable, Optional, Tuple, Union
-
-import jax
-import jax.numpy as jnp
-
-import netket as nk
-from netket.utils.mpi.primitives import mpi_all_jax
-from netket.utils.struct import dataclass, field
-from netket.utils.types import Array, PyTree
-
 from . import _rk_tableau as rkt
+from ._rk_solver_structures import RKIntegratorConfig
+
+args_fixed_dt_docstring = """
+    Args:
+        dt: Timestep (floating-point number).
+"""
+
+args_adaptive_docstring = """
+    Args:
+        dt: Timestep (floating-point number). When :code:`adaptive==False` this value
+            is never changed, when :code:`adaptive == True` this is the initial timestep.
+        adaptive: Whether to use adaptive timestepping (Defaults to False).
+            Not all integrators support adaptive timestepping.
+        atol: Maximum absolute error at every time-step during adaptive timestepping.
+            A larger value will lead to larger timestep. This option is ignored if
+            `adaptive=False`. A value of 0 means it is ignored. Note that the `norm` used
+            to compute the error can be  changed in the :ref:`netket.experimental.TDVP`
+            driver. (Defaults to 0).
+        rtol: Maximum relative error at every time-step during adaptive timestepping.
+            A larger value will lead to larger timestep. This option is ignored if
+            `adaptive=False`. Note that the `norm` used to compute the error can be
+            changed in the :ref:`netket.experimental.TDVP` driver. (Defaults to 1e-7)
+        dt_limits: A length-2 tuple of minimum and maximum timesteps considered by
+            adaptive time-stepping. A value of None signals that there is no bound.
+            Defaults to :code:`(None, 10*dt)`.
+"""
 
 
-class SolverFlags(IntFlag):
+def append_docstring(doc):
     """
-    Enum class containing flags for signaling solver information from within `jax.jit`ed code.
+    Decorator that appends the string `doc` to the decorated function.
+
+    This is needed here because docstrings cannot be f-strings or manipulated strings.
     """
 
-    NONE = 0
-    INFO_STEP_ACCEPTED = auto()
-    WARN_MIN_DT = auto()
-    WARN_MAX_DT = auto()
-    ERROR_INVALID_DT = auto()
+    def _append_docstring(fun):
+        fun.__doc__ = fun.__doc__ + doc
+        return fun
 
-    WARNINGS_FLAGS = WARN_MIN_DT | WARN_MAX_DT
-    ERROR_FLAGS = ERROR_INVALID_DT
-
-    __MESSAGES__ = {
-        INFO_STEP_ACCEPTED: "Step accepted",
-        WARN_MIN_DT: "dt reached lower bound",
-        WARN_MAX_DT: "dt reached upper bound",
-        ERROR_INVALID_DT: "Invalid value of dt",
-    }
-
-    def message(self) -> str:
-        """Returns a string with a description of the currently set flags."""
-        msg = self.__MESSAGES__
-        return ", ".join(msg[flag] for flag in msg.keys() if flag & self != 0)
+    return _append_docstring
 
 
-def set_flag_jax(condition, flags, flag):
+@append_docstring(args_fixed_dt_docstring)
+def Euler(dt):
+    r"""
+    The canonical first-order forward Euler method. Fixed timestep only.
+
     """
-    If `condition` is true, `flags` is updated by setting `flag` to 1.
-    This is equivalent to the following code, but compatible with jax.jit:
-        if condition:
-            flags |= flag
+    return RKIntegratorConfig(dt, tableau=rkt.bt_feuler)
+
+
+@append_docstring(args_fixed_dt_docstring)
+def Midpoint(dt):
+    r"""
+    The second order midpoint method. Fixed timestep only.
+
     """
-    return jax.lax.cond(
-        condition,
-        lambda x: x | flag,
-        lambda x: x,
-        flags,
-    )
+    return RKIntegratorConfig(dt, tableau=rkt.bt_midpoint)
 
 
-def euclidean_norm(x: Union[PyTree, Array]):
+@append_docstring(args_fixed_dt_docstring)
+def Heun(dt):
+    r"""
+    The second order Heun's method. Fixed timestep only.
+
     """
-    Computes the Euclidean L2 norm of the Array or PyTree intended as a flattened array
+    return RKIntegratorConfig(dt, tableau=rkt.bt_heun)
+
+
+@append_docstring(args_fixed_dt_docstring)
+def RK4(dt):
+    r"""
+    The canonical Runge-Kutta Order 4 method. Fixed timestep only.
+
     """
-    if isinstance(x, jnp.ndarray):
-        return jnp.sqrt(jnp.sum(jnp.abs(x) ** 2))
-    else:
-        return jnp.sqrt(
-            jax.tree_util.tree_reduce(
-                lambda x, y: x + y,
-                jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 2), x),
-            )
-        )
+    return RKIntegratorConfig(dt, tableau=rkt.bt_rk4)
 
 
-def maximum_norm(x: Union[PyTree, Array]):
+@append_docstring(args_adaptive_docstring)
+def RK12(dt, **kwargs):
+    r"""
+    The second order Heun's method. Uses embedded Euler method for adaptivity.
+    Also known as Heun-Euler method.
+
     """
-    Computes the maximum norm of the Array or PyTree intended as a flattened array
+    return RKIntegratorConfig(dt, tableau=rkt.bt_rk12, **kwargs)
+
+
+@append_docstring(args_adaptive_docstring)
+def RK23(dt, **kwargs):
+    r"""
+    2nd order adaptive solver with 3rd order error control,
+    using the Bogacki–Shampine coefficients
+
     """
-    if isinstance(x, jnp.ndarray):
-        return jnp.max(jnp.abs(x))
-    else:
-        return jnp.sqrt(
-            jax.tree_util.tree_reduce(
-                jnp.maximum,
-                jax.tree_map(lambda x: jnp.max(jnp.abs(x)), x),
-            )
-        )
+    return RKIntegratorConfig(dt, tableau=rkt.bt_rk23, **kwargs)
 
 
-@dataclass
-class RungeKuttaState:
-    step_no: int
-    """Number of successful steps since the start of the iteration."""
-    step_no_total: int
-    """Number of steps since the start of the iteration, including rejected steps."""
-    t: nk.utils.KahanSum
-    """Current time."""
-    y: Array
-    """Solution at current time."""
-    dt: float
-    """Current step size."""
-    last_norm: Optional[float] = None
-    """Solution norm at previous time step."""
-    flags: SolverFlags = SolverFlags.INFO_STEP_ACCEPTED
-    """Flags containing information on the solver state."""
+@append_docstring(args_adaptive_docstring)
+def RK45(dt, **kwargs):
+    r"""
+    Dormand-Prince's 5/4 Runge-Kutta method. (free 4th order interpolant).
 
-    def __repr__(self):
-        return "RKState(step_no(total)={}({}), t={}, dt={:.2e}{}{})".format(
-            self.step_no,
-            self.step_no_total,
-            self.t.value,
-            self.dt,
-            f", {self.last_norm:.2e}" if self.last_norm is not None else "",
-            f", {'A' if self.accepted else 'R'}",
-        )
-
-    @property
-    def accepted(self):
-        return SolverFlags.INFO_STEP_ACCEPTED & self.flags != 0
-
-
-def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn):
-    norm_y = norm_fn(y)
-    scale = (atol + jnp.maximum(norm_y, last_norm_y) * rtol) / nk.jax.tree_size(y_err)
-    return norm_fn(y_err) / scale, norm_y
-
-
-LimitsType = Tuple[Optional[float], Optional[float]]
-"""Type of the dt limits field, having independently optional upper and lower bounds."""
-
-
-def propose_time_step(
-    dt: float, scaled_error: float, error_order: int, limits: LimitsType
-):
     """
-    Propose an updated dt based on the scheme suggested in Numerical Recipes, 3rd ed.
-    """
-    SAFETY_FACTOR = 0.95
-    err_exponent = -1.0 / (1 + error_order)
-    return jnp.clip(
-        dt * SAFETY_FACTOR * scaled_error**err_exponent,
-        limits[0],
-        limits[1],
-    )
-
-
-@partial(jax.jit, static_argnames=["f", "norm_fn", "dt_limits"])
-def general_time_step_adaptive(
-    tableau: rkt.TableauRKExplicit,
-    f: Callable,
-    rk_state: RungeKuttaState,
-    atol: float,
-    rtol: float,
-    norm_fn: Callable,
-    max_dt: Optional[float],
-    dt_limits: LimitsType,
-):
-    flags = SolverFlags(0)
-
-    if max_dt is None:
-        actual_dt = rk_state.dt
-    else:
-        actual_dt = jnp.minimum(rk_state.dt, max_dt)
-
-    y_tp1, y_err = tableau.step_with_error(f, rk_state.t.value, actual_dt, rk_state.y)
-
-    scaled_err, norm_y = scaled_error(
-        y_tp1,
-        y_err,
-        atol,
-        rtol,
-        last_norm_y=rk_state.last_norm,
-        norm_fn=norm_fn,
-    )
-
-    # Propose the next time step, but limited within [0.1 dt, 5 dt] and potential
-    # global limits in dt_limits. Not used when actual_dt < rk_state.dt (i.e., the
-    # integrator is doing a smaller step to hit a specific stop).
-    next_dt = propose_time_step(
-        actual_dt,
-        scaled_err,
-        tableau.error_order,
-        limits=(
-            jnp.maximum(0.1 * rk_state.dt, dt_limits[0])
-            if dt_limits[0]
-            else 0.1 * rk_state.dt,
-            jnp.minimum(5.0 * rk_state.dt, dt_limits[1])
-            if dt_limits[1]
-            else 5.0 * rk_state.dt,
-        ),
-    )
-
-    # check if next dt is NaN
-    flags = set_flag_jax(~jnp.isfinite(next_dt), flags, SolverFlags.ERROR_INVALID_DT)
-
-    # check if we are at lower bound for dt
-    if dt_limits[0] is not None:
-        is_at_min_dt = jnp.isclose(next_dt, dt_limits[0])
-        flags = set_flag_jax(is_at_min_dt, flags, SolverFlags.WARN_MIN_DT)
-    else:
-        is_at_min_dt = False
-    if dt_limits[1] is not None:
-        is_at_max_dt = jnp.isclose(next_dt, dt_limits[1])
-        flags = set_flag_jax(is_at_max_dt, flags, SolverFlags.WARN_MAX_DT)
-
-    # accept if error is within tolerances or we are already at the minimal step
-    accept_step = jnp.logical_or(scaled_err < 1.0, is_at_min_dt)
-    # accept the time step iff it is accepted by all MPI processes
-    accept_step, _ = mpi_all_jax(accept_step)
-
-    return jax.lax.cond(
-        accept_step,
-        # step accepted
-        lambda _: rk_state.replace(
-            step_no=rk_state.step_no + 1,
-            step_no_total=rk_state.step_no_total + 1,
-            y=y_tp1,
-            t=rk_state.t + actual_dt,
-            dt=jax.lax.cond(
-                actual_dt == rk_state.dt,
-                lambda _: next_dt,
-                lambda _: rk_state.dt,
-                None,
-            ),
-            last_norm=norm_y,
-            flags=flags | SolverFlags.INFO_STEP_ACCEPTED,
-        ),
-        # step rejected, repeat with lower dt
-        lambda _: rk_state.replace(
-            step_no_total=rk_state.step_no_total + 1,
-            dt=next_dt,
-            flags=flags,
-        ),
-        None,
-    )
-
-
-@partial(jax.jit, static_argnames=["f"])
-def general_time_step_fixed(
-    tableau: rkt.TableauRKExplicit,
-    f: Callable,
-    rk_state: RungeKuttaState,
-    max_dt: Optional[float],
-):
-    if max_dt is None:
-        actual_dt = rk_state.dt
-    else:
-        actual_dt = jnp.minimum(rk_state.dt, max_dt)
-
-    y_tp1 = tableau.step(f, rk_state.t.value, actual_dt, rk_state.y)
-
-    return rk_state.replace(
-        step_no=rk_state.step_no + 1,
-        step_no_total=rk_state.step_no_total + 1,
-        t=rk_state.t + actual_dt,
-        y=y_tp1,
-        flags=SolverFlags.INFO_STEP_ACCEPTED,
-    )
-
-
-@dataclass(_frozen=False)
-class RungeKuttaIntegrator:
-    tableau: rkt.NamedTableau
-
-    f: Callable = field(repr=False)
-    t0: float
-    y0: Array = field(repr=False)
-
-    initial_dt: float
-
-    use_adaptive: bool
-    norm: Callable
-
-    atol: float = 0.0
-    rtol: float = 1e-7
-    dt_limits: Optional[LimitsType] = None
-
-    def __post_init__(self):
-        if self.use_adaptive and not self.tableau.data.is_adaptive:
-            raise RuntimeError(
-                f"Solver {self.tableau} does not support adaptive step size"
-            )
-        if self.use_adaptive:
-            self._do_step = self._do_step_adaptive
-        else:
-            self._do_step = self._do_step_fixed
-
-        if self.norm is None:
-            self.norm = euclidean_norm
-
-        if self.dt_limits is None:
-            self.dt_limits = (None, 10 * self.initial_dt)
-
-        self._rkstate = RungeKuttaState(
-            step_no=0,
-            step_no_total=0,
-            t=nk.utils.KahanSum(self.t0),
-            y=self.y0,
-            dt=self.initial_dt,
-            last_norm=0.0 if self.use_adaptive else None,
-            flags=SolverFlags(0),
-        )
-
-    def step(self, max_dt=None):
-        """
-        Perform one full Runge-Kutta step by min(self.dt, max_dt).
-
-
-        Returns:
-            A boolean indicating whether the step was successful or
-            was rejected by the step controller and should be retried.
-
-            Note that the step size can be adjusted by the step controller
-            in both cases, so the integrator state will have changed
-            even after a rejected step.
-        """
-        self._rkstate = self._do_step(self._rkstate, max_dt)
-        return self._rkstate.accepted
-
-    def _do_step_fixed(self, rk_state, max_dt=None):
-        return general_time_step_fixed(
-            self.tableau.data,
-            self.f,
-            rk_state,
-            max_dt=max_dt,
-        )
-
-    def _do_step_adaptive(self, rk_state, max_dt=None):
-        return general_time_step_adaptive(
-            self.tableau.data,
-            self.f,
-            rk_state,
-            atol=self.atol,
-            rtol=self.rtol,
-            norm_fn=self.norm,
-            max_dt=max_dt,
-            dt_limits=self.dt_limits,
-        )
-
-    @property
-    def t(self):
-        return self._rkstate.t.value
-
-    @property
-    def y(self):
-        return self._rkstate.y
-
-    @property
-    def dt(self):
-        return self._rkstate.dt
-
-    def _get_solver_flags(self, intersect=SolverFlags.NONE) -> SolverFlags:
-        """Returns the currently set flags of the solver, intersected with `intersect`."""
-        # _rkstate.flags is turned into an int-valued DeviceArray by JAX,
-        # so we convert it back.
-        return SolverFlags(int(self._rkstate.flags) & intersect)
-
-    @property
-    def errors(self) -> SolverFlags:
-        """Returns the currently set error flags of the solver."""
-        return self._get_solver_flags(SolverFlags.ERROR_FLAGS)
-
-    @property
-    def warnings(self) -> SolverFlags:
-        """Returns the currently set warning flags of the solver."""
-        return self._get_solver_flags(SolverFlags.WARNINGS_FLAGS)
-
-
-class RKIntegratorConfig:
-    def __init__(self, dt, tableau, *, adaptive=False, **kwargs):
-        self.dt = dt
-        self.tableau = tableau
-        self.adaptive = adaptive
-        self.kwargs = kwargs
-
-    def __call__(self, f, t0, y0, *, norm=None):
-        return RungeKuttaIntegrator(
-            self.tableau,
-            f,
-            t0,
-            y0,
-            initial_dt=self.dt,
-            use_adaptive=self.adaptive,
-            norm=norm,
-            **self.kwargs,
-        )
-
-    def __repr__(self):
-        return "{}(tableau={}, dt={}, adaptive={}{})".format(
-            "RKIntegratorConfig",
-            self.tableau,
-            self.dt,
-            self.adaptive,
-            f", **kwargs={self.kwargs}" if self.kwargs else "",
-        )
-
-
-# Solvers with preset tableaus
-
-Euler = partial(RKIntegratorConfig, tableau=rkt.bt_feuler)
-"""First-order Euler solver"""
-Midpoint = partial(RKIntegratorConfig, tableau=rkt.bt_midpoint)
-"""Second-order midpoint method solver"""
-Heun = partial(RKIntegratorConfig, tableau=rkt.bt_heun)
-"""Second-order Heun solver"""
-RK4 = partial(RKIntegratorConfig, tableau=rkt.bt_rk4)
-"""Fourth-order Runge-Kutta solver"""
-RK12 = partial(RKIntegratorConfig, tableau=rkt.bt_rk12)
-"""Heun-Euler solver (adaptive)"""
-RK23 = partial(RKIntegratorConfig, tableau=rkt.bt_rk23)
-"""Bogacki–Shampine method solver (adaptive)"""
-RK45 = partial(RKIntegratorConfig, tableau=rkt.bt_rk4_dopri)
-"""Dormand-Prince (dopri) method solver (adaptive)"""
+    return RKIntegratorConfig(dt, tableau=rkt.bt_rk4_dopri, **kwargs)
