@@ -75,5 +75,6 @@ Read more about the design goal of this module in their [README](https://github.
    :nosignatures:
 
     blocks.MLP
+    blocks.DeepSetMLP
 
 ```
