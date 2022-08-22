@@ -50,7 +50,7 @@ def default_qgt_matrix(variational_state, solver=False, **kwargs):
     if isinstance(variational_state, ExactState):
         return partial(QGTJacobianPyTree, **kwargs)
 
-    n_param_leaves = len(jax.tree_leaves(variational_state.parameters))
+    n_param_leaves = len(jax.tree_util.tree_leaves(variational_state.parameters))
     n_params = variational_state.n_parameters
 
     # those require dense matrix that is known to be faster for this qgt

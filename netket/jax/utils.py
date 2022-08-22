@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial, reduce
+from functools import reduce
 from typing import Optional, Tuple, Callable
 
 import numpy as np
@@ -93,14 +93,14 @@ def tree_leaf_iscomplex(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has complex dtype.
     """
-    return any(jax.tree_leaves(jax.tree_map(is_complex, pars)))
+    return any(jax.tree_util.tree_leaves(jax.tree_map(is_complex, pars)))
 
 
 def tree_leaf_isreal(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has real dtype.
     """
-    return any(jax.tree_leaves(jax.tree_map(is_real, pars)))
+    return any(jax.tree_util.tree_leaves(jax.tree_map(is_real, pars)))
 
 
 def is_complex_dtype(typ):
