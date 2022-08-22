@@ -163,10 +163,10 @@ def vjp_chunked(
         chunk_size = None
 
     if chunk_size is not None:
-        n_elements = jax.tree_leaves(primals[chunk_argnums[0]])[0].shape[0]
+        n_elements = jax.tree_util.tree_leaves(primals[chunk_argnums[0]])[0].shape[0]
 
         # check that they are all the same size
-        chunk_leaves = jax.tree_leaves([primals[i] for i in chunk_argnums])
+        chunk_leaves = jax.tree_util.tree_leaves([primals[i] for i in chunk_argnums])
         if not all(map(lambda x: x.shape[0] == n_elements, chunk_leaves)):
             raise ValueError(
                 "The chunked arguments have inconsistent leading array dimensions"

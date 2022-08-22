@@ -18,7 +18,7 @@ def _chunk_vmapped_function(vmapped_fun, chunk_size, argnums=0):
 
     def _fun(*args, **kwargs):
 
-        n_elements = jax.tree_leaves(args[argnums[0]])[0].shape[0]
+        n_elements = jax.tree_util.tree_leaves(args[argnums[0]])[0].shape[0]
         n_chunks, n_rest = divmod(n_elements, chunk_size)
 
         if n_chunks == 0 or chunk_size >= n_elements:

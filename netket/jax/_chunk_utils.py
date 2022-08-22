@@ -31,7 +31,7 @@ def _chunk(x, chunk_size=None):
 
 
 def _chunk_size(x):
-    b = set(map(lambda x: x.shape[:2], jax.tree_leaves(x)))
+    b = set(map(lambda x: x.shape[:2], jax.tree_util.tree_leaves(x)))
     if len(b) != 1:
         raise ValueError(
             "The arrays in x have inconsistent chunk_size or number of chunks"
