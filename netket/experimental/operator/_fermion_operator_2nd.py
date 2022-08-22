@@ -37,7 +37,7 @@ from ._fermion_operator_2nd_utils import (
     _herm_conj,
     _is_diag_term,
     _make_tuple_tree,
-    _reduce_operators,
+    _remove_dict_zeros,
 )
 
 
@@ -248,9 +248,9 @@ class FermionOperator2nd(DiscreteOperator):
         op._operators = dict(zip(terms, weights))
         return op
 
-    def _reduce(self):
-        """Reduce the number of operators by bringing them to normal form and grouping equivalent terms"""
-        op_dict = _reduce_operators(self._operators, self.dtype)
+    def _remove_zeros(self):
+        """Reduce the number of operators by removing unnecessary zeros"""
+        op_dict = _remove_dict_zeros(self._operators)
         terms = list(op_dict.keys())
         weights = list(op_dict.values())
         op = FermionOperator2nd(
@@ -481,11 +481,9 @@ class FermionOperator2nd(DiscreteOperator):
                 weights.append(w * self._constant)
         constant = self._constant * other._constant
 
-        self._operators = dict(zip(terms, weights))
+        self._operators = _remove_dict_zeros(dict(zip(terms, weights)))
         self._constant = constant
         self._reset_caches()
-        # self.reduce()
-
         return self
 
     def _op__matmul__(self, other):
@@ -529,8 +527,8 @@ class FermionOperator2nd(DiscreteOperator):
             else:
                 self._operators[t] = w
         self._constant += other._constant
+        self._operators = _remove_dict_zeros(self._operators)
         self._reset_caches()
-        # self.reduce()
         return self
 
     def __sub__(self, other):
@@ -555,10 +553,10 @@ class FermionOperator2nd(DiscreteOperator):
                 f"to operator with dtype {self.dtype}"
             )
         scalar = np.array(scalar, dtype=self.dtype).item()
-        self._operators = tree_map(lambda x: x * scalar, self._operators)
+        _operators = tree_map(lambda x: x * scalar, self._operators)
+        self._operators = _remove_dict_zeros(_operators)
         self._constant *= scalar
         self._reset_caches()
-        # self.reduce()
         return self
 
     def __mul__(self, scalar):
