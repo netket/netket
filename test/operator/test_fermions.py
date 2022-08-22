@@ -238,6 +238,15 @@ def test_operations_fermions():
     assert np.allclose(op8.conjugate().to_dense(), op8_trueconj.to_dense())
 
 
+def test_fermion_reduction():
+    hi = nkx.hilbert.SpinOrbitalFermions(3)
+    op1 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0", "0^ 0", "1^", "1^"), weights=(1.0, 2.0, 1.0, -1.0)
+    )
+    op2 = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0",), weights=(3.0,))
+    assert np.allclose(op1._reduce().to_dense(), op2.to_dense())
+
+
 def test_fermion_op_matmul():
     hi = nkx.hilbert.SpinOrbitalFermions(3)
     op1 = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0", "1^ 2"), weights=(0.3, 2))
@@ -261,6 +270,13 @@ def test_fermion_op_matmul():
         terms=("0^ 0 1^ 1", "0^ 0 0^ 2", "1^ 2 1^ 1", "1^ 2 0^ 2"),
         weights=(0.3 * (1 + 1j), 0.3 * 0.5, 2 * (1 + 1j), 2 * 0.5),
     )
+    print(op1.operator_string())
+    print("and")
+    print(op2.operator_string())
+    print("--")
+    print((op1 @ op2).operator_string())
+    print("vs")
+    print(op2b.operator_string())
     assert np.allclose(
         (op1 @ op2).to_dense(),
         op2b.to_dense(),
@@ -451,3 +467,115 @@ def test_identity_zero():
 
     assert np.allclose(op0.to_dense(), np.zeros(((8**2, 8**2))))
     assert np.allclose(op1.to_dense(), np.identity(8**2))
+
+
+def test_fermion_max_conn_size():
+    def _compute_max_conn_size(op):
+        mat = op.to_dense()
+        mat = ~np.isclose(mat, 0)
+        conn = np.sum(mat, axis=-1)
+        return np.max(conn)
+
+    hi = nkx.hilbert.SpinOrbitalFermions(3)
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0", "1^ 1"), weights=(0.3, 2), constant=2
+    )
+    assert op.max_conn_size <= 3
+    assert _compute_max_conn_size(op) == 1
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0", "1^ 1"), weights=(0.3, 2), constant=0
+    )
+    assert op.max_conn_size == 1
+    assert _compute_max_conn_size(op) == 1
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 1", "1^ 0"), weights=(1, 1), constant=0
+    )
+    assert op.max_conn_size <= 2
+    assert _compute_max_conn_size(op) == 1
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 1", "1^ 0"), weights=(1, 0.5), constant=0
+    )
+    assert op.max_conn_size <= 2
+    assert _compute_max_conn_size(op) == 1
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0 1^",), weights=(0.3,), constant=0
+    )
+    assert op.max_conn_size <= 1
+    assert _compute_max_conn_size(op) == 1
+
+    op = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0 1^", "1 0^ 0"), weights=(0.3, 0.3), constant=0
+    )
+    assert op.max_conn_size <= 2
+    assert _compute_max_conn_size(op) == 1
+
+
+def test_openfermion_conversion():
+    # skip test if openfermion not installed
+    pytest.importorskip("openfermion")
+    from openfermion.ops import QubitOperator, FermionOperator
+
+    # first term is a constant
+    of_qubit_operator = (
+        QubitOperator("") + 0.5 * QubitOperator("X0 X3") + 0.3 * QubitOperator("Z0")
+    )
+
+    # no extra info given
+    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator)
+    assert isinstance(ps, nk.operator.PauliStrings)
+    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
+    assert ps.hilbert.size == 4
+
+    # number of qubits given
+    ps = nk.operator.PauliStrings.from_openfermion(of_qubit_operator, n_qubits=6)
+    assert isinstance(ps, nk.operator.PauliStrings)
+    # check default
+    assert isinstance(ps.hilbert, nk.hilbert.Qubit)
+    assert ps.hilbert.size == 6
+
+    # with hilbert
+    hilbert = nk.hilbert.Spin(1 / 2, 6)
+    ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
+    assert ps.hilbert == hilbert
+    assert ps.hilbert.size == 6
+
+    # FermionOperator
+    of_fermion_operator = (
+        FermionOperator("")  # todo
+        + FermionOperator("0^ 3", 0.5 + 0.3j)
+        + FermionOperator("3^ 0", 0.5 - 0.3j)
+    )
+
+    # no extra info given
+    fo2 = nkx.operator.FermionOperator2nd.from_openfermion(of_fermion_operator)
+    assert fo2.hilbert.size == 4
+
+    # number of orbitals given
+    fo2 = nkx.operator.FermionOperator2nd.from_openfermion(
+        of_fermion_operator, n_orbitals=4
+    )
+    assert isinstance(fo2, nkx.operator.FermionOperator2nd)
+    assert isinstance(fo2.hilbert, nkx.hilbert.SpinOrbitalFermions)
+    assert fo2.hilbert.size == 4
+
+    # with hilbert
+    hilbert = nkx.hilbert.SpinOrbitalFermions(6)
+    fo2 = nkx.operator.FermionOperator2nd.from_openfermion(hilbert, of_fermion_operator)
+    assert fo2.hilbert == hilbert
+    assert fo2.hilbert.size == 6
+
+    # to check that the constraints are met (convention wrt ordering of states with different spin)
+    from openfermion.hamiltonians import fermi_hubbard
+
+    hilbert = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions=(2, 1))
+    of_fermion_operator = fermi_hubbard(1, 3, tunneling=1, coulomb=0, spinless=False)
+    fo2 = nkx.operator.FermionOperator2nd.from_openfermion(
+        hilbert, of_fermion_operator, convert_spin_blocks=True
+    )
+    assert fo2.hilbert.size == 3 * 2
+    # will fail of we go outside of the allowed states with openfermion operators
+    fo2.to_dense()

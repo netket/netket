@@ -248,10 +248,15 @@ class FermionOperator2nd(DiscreteOperator):
         op._operators = dict(zip(terms, weights))
         return op
 
-    def reduce(self):
+    def _reduce(self):
         """Reduce the number of operators by bringing them to normal form and grouping equivalent terms"""
-        self._operators = _reduce_operators(self._operators, self.dtype)
-        return self
+        op_dict = _reduce_operators(self._operators, self.dtype)
+        terms = list(op_dict.keys())
+        weights = list(op_dict.values())
+        op = FermionOperator2nd(
+            self.hilbert, terms, weights, constant=self._constant, dtype=self.dtype
+        )
+        return op
 
     @property
     def max_conn_size(self) -> int:
@@ -479,7 +484,7 @@ class FermionOperator2nd(DiscreteOperator):
         self._operators = dict(zip(terms, weights))
         self._constant = constant
         self._reset_caches()
-        self.reduce()
+        # self.reduce()
 
         return self
 
@@ -525,7 +530,7 @@ class FermionOperator2nd(DiscreteOperator):
                 self._operators[t] = w
         self._constant += other._constant
         self._reset_caches()
-        self.reduce()
+        # self.reduce()
         return self
 
     def __sub__(self, other):
@@ -553,7 +558,7 @@ class FermionOperator2nd(DiscreteOperator):
         self._operators = tree_map(lambda x: x * scalar, self._operators)
         self._constant *= scalar
         self._reset_caches()
-        self.reduce()
+        # self.reduce()
         return self
 
     def __mul__(self, scalar):
