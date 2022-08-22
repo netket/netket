@@ -479,6 +479,7 @@ class FermionOperator2nd(DiscreteOperator):
         self._operators = dict(zip(terms, weights))
         self._constant = constant
         self._reset_caches()
+        self.reduce()
 
         return self
 
@@ -524,6 +525,7 @@ class FermionOperator2nd(DiscreteOperator):
                 self._operators[t] = w
         self._constant += other._constant
         self._reset_caches()
+        self.reduce()
         return self
 
     def __sub__(self, other):
@@ -551,6 +553,7 @@ class FermionOperator2nd(DiscreteOperator):
         self._operators = tree_map(lambda x: x * scalar, self._operators)
         self._constant *= scalar
         self._reset_caches()
+        self.reduce()
         return self
 
     def __mul__(self, scalar):

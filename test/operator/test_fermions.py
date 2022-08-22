@@ -1,7 +1,7 @@
 import netket as nk
 import numpy as np
 import netket.experimental as nkx
-from netket.experimental.operator._fermions_2nd._fermion_utils import (
+from netket.experimental.operator._fermion_operator_2nd_utils import (
     _convert_terms_to_spin_blocks,
 )
 from netket.experimental.operator.fermion import destroy, create, number
