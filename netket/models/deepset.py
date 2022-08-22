@@ -12,36 +12,11 @@ from jax.nn.initializers import (
 
 from netket.utils import deprecate_dtype
 from netket.hilbert import ContinuousHilbert
-from .mlp import MLP
+import netket.nn as nknn
+from netket.nn.blocks.deepset import check_features_length
 
 
-def check_features_length(features, n_layers, name):
-    if len(features) != n_layers:
-        raise ValueError(
-            f"The number of {name} layers ({n_layers}) does not match "
-            f"the length of the features list ({len(features)})."
-        )
-
-
-def _process_features(features):
-    """
-    Convert some inputs to a consistent format of features.
-    Returns output dimension and hidden features of the MLP
-    """
-    if features is None:
-        feat, out = None, None
-    elif isinstance(features, int):
-        feat, out = None, features
-    elif len(features) == 0:
-        feat, out = None, None
-    elif len(features) == 1:
-        feat, out = None, features[0]
-    else:
-        feat, out = features[:-1], features[-1]
-    return feat, out
-
-
-class DeepSet(nn.Module):
+class DeepSetMLP(nn.Module):
     r"""Implements the DeepSets architecture, which is permutation invariant.
 
     .. math ::
@@ -54,11 +29,12 @@ class DeepSet(nn.Module):
 
     """
 
-    features_phi: Tuple[int]
+    features_phi: Tuple[int] = None
     """Number of features in each layer for phi network."""
-    features_rho: Tuple[int]
+    features_rho: Tuple[int] = None
     """
     Number of features in each layer for rho network.
+    Should include final dimension of size 1.
     """
 
     param_dtype: Any = jnp.float64
@@ -82,49 +58,26 @@ class DeepSet(nn.Module):
     precision: Any = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
-    squeeze_output: bool = False
-    """ Whether to remove the 1 dimension in the output, if present """
-
-    def setup(self):
-        def _create_mlp(features, output_activation, name):
-            hidden_dims, out_dim = _process_features(features)
-            if out_dim is None:
-                return None
-            else:
-                return MLP(
-                    output_dim=out_dim,
-                    hidden_dims=hidden_dims,
-                    param_dtype=self.param_dtype,
-                    hidden_activations=self.hidden_activation,
-                    output_activation=output_activation,
-                    use_hidden_bias=self.use_bias,
-                    use_output_bias=self.use_bias,
-                    kernel_init=self.kernel_init,
-                    squeeze_output=False,
-                    name=name,
-                )
-
-        self.phi = _create_mlp(self.features_phi, self.hidden_activation, "ds_phi")
-        self.rho = _create_mlp(self.features_rho, self.output_activation, "ds_rho")
-
     @nn.compact
-    def __call__(self, x):
-        """The input shape must have an axis that is reshaped to (..., N, D), where we pool over N."""
-
-        if self.phi:
-            x = self.phi(x)
-        if self.pooling:
-            x = self.pooling(x, axis=-2)
-        if self.rho:
-            x = self.rho(x)
-
-        if self.squeeze_output:
-            if x.shape[-1] != 1:
-                raise ValueError(
-                    f"cannot squeeze the output of deepset with output dimension {x.shape[-1]}"
-                )
-            x = x.squeeze(-1)
-
+    def __call__(self, input):
+        ds = nknn.blocks.DeepSetMLP(
+            features_phi=self.features_phi,
+            features_rho=self.features_rho,
+            param_dtype=self.param_dtype,
+            hidden_activation=self.hidden_activation,
+            output_activation=self.output_activation,
+            pooling=self.pooling,
+            use_bias=self.use_bias,
+            kernel_init=self.kernel_init,
+            bias_init=self.bias_init,
+            precision=self.precision,
+        )
+        x = ds(input)
+        if x.shape[-1] != 1:
+            raise ValueError(
+                f"deepset model should have output dimension 1, but found {x.shape[-1]}"
+            )
+        x = x.squeeze(-1)
         return x
 
 
@@ -210,7 +163,7 @@ class DeepSetRelDistance(nn.Module):
         check_features_length(features_rho, self.layers_rho, "rho")
         assert features_rho[-1] == 1
 
-        self.deepset = DeepSet(
+        self.deepset = DeepSetMLP(
             features_phi,
             features_rho,
             param_dtype=self.param_dtype,
@@ -220,7 +173,6 @@ class DeepSetRelDistance(nn.Module):
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
-            squeeze_output=True,
         )
 
     def distance(self, x, sdim, L):

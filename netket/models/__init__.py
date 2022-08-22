@@ -18,7 +18,7 @@ from .full_space import LogStateVector
 from .jastrow import Jastrow
 from .mps import MPSPeriodic
 from .gaussian import Gaussian
-from .deepset import DeepSetRelDistance, DeepSet
+from .deepset import DeepSetRelDistance, DeepSetMLP
 from .ndm import NDM
 from .autoreg import AbstractARNN, ARNNDense, ARNNConv1D, ARNNConv2D as _ARNNConv2D
 from .fast_autoreg import (
