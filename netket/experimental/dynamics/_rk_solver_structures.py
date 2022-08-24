@@ -37,7 +37,7 @@ def maybe_jax_jit(fun, *args, **kwargs):
     if config.netket_experimental_disable_ode_jit:
         return fun
     else:
-        return jax.jit(*args, **kwargs)
+        return jax.jit(fun, *args, **kwargs)
 
 
 class SolverFlags(IntFlag):
