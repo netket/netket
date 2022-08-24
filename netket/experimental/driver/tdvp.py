@@ -24,6 +24,7 @@ import numpy as np
 from tqdm import tqdm
 
 import netket as nk
+from netket import config
 from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
 from netket.driver.vmc_common import info
@@ -49,6 +50,15 @@ class TDVP(AbstractVariationalDriver):
     Variational time evolution based on the time-dependent variational principle which,
     when used with Monte Carlo sampling via :class:`netket.vqs.MCState`, is the time-dependent VMC
     (t-VMC) method.
+
+    .. note::
+        This TDVP Driver uses the time-integrators from the `nkx.dynamics` module, which are
+        automatically executed under a `jax.jit` context.
+
+        When running computations on GPU, this can lead to infinite hangs or extremely long
+        compilation times. In those cases, you might try setting the configuration variable
+        :py:`nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
+
     """
 
     def __init__(
@@ -569,6 +579,9 @@ def odefun_host_callback(state, driver, *args, **kwargs):
     Calls odefun through a host callback in order to make the rest of the
     ODE solver jit-able.
     """
+    if config.netket_experimental_disable_ode_jit:
+        return odefun(state, driver, *args, **kwargs)
+
     result_shape = jax.tree_map(
         lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
         state.parameters,
@@ -580,3 +593,4 @@ def odefun_host_callback(state, driver, *args, **kwargs):
         (args, kwargs),
         result_shape=result_shape,
     )
+    return odefun(state, driver, *args, **kwargs)

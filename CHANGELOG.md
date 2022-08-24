@@ -6,6 +6,7 @@
 ## NetKet 3.6 (In development)
 
 ### New features
+* Added a new configuration option `nk.config.netket_experimental_disable_ode_jit` to disable jitting of the ODE solvers. This can be useful to avoid hangs that might happen when working on GPUs with some particular systems [#13XX](https://github.com/netket/netket/pull/13XX).
 
 ### Bug Fixes
 

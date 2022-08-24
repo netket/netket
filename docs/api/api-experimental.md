@@ -82,6 +82,18 @@ This module contains experimental loggers that can be used with the optimization
 
 ## Time Evolution Driver
 
+````{admonition} Apple ARM (M1) processors 
+:class: warning
+
+Those drivers are automatically jitted with `jax.jit`. To disable jitting set 
+```python
+netket.config.netket_disable_ode_jit = True
+```
+or set the equivalent environment variable.
+
+````
+
+
 ```{eval-rst}
 .. currentmodule:: netket.experimental
 ```
@@ -97,8 +109,18 @@ This module contains experimental loggers that can be used with the optimization
 
 ## ODE Integrators
 
-This is a collection of ODE integrators that can be used with the TDVP
-driver above.
+This is a collection of ODE integrators that can be used with the TDVP driver above.
+
+````{admonition} Apple ARM (M1) processors 
+:class: warning
+
+Those drivers are automatically jitted with `jax.jit`. To disable jitting set 
+```python
+netket.config.netket_disable_ode_jit = True
+```
+or set the equivalent environment variable.
+
+````
 
 ```{eval-rst}
 .. currentmodule:: netket.experimental
