@@ -38,6 +38,7 @@ from ._fermion_operator_2nd_utils import (
     _is_diag_term,
     _make_tuple_tree,
     _remove_dict_zeros,
+    OperatorDict,
 )
 
 
@@ -274,7 +275,7 @@ class FermionOperator2nd(DiscreteOperator):
             self._is_hermitian = _check_hermitian(terms, weights)
         return self._is_hermitian
 
-    def operator_string(self):
+    def operator_string(self) -> str:
         """Return a readable string describing all the operator terms"""
         op_string = []
         if not _isclose(self._constant, 0.0):
@@ -586,7 +587,7 @@ class FermionOperator2nd(DiscreteOperator):
         return new
 
 
-def _pack_internals(operators, dtype):
+def _pack_internals(operators: OperatorDict, dtype: DType):
     """
     Create the internal structures to compute the matrix elements
     Processes and adds a single term such that we can compute its matrix elements, in tuple format ((1,1), (2,0))

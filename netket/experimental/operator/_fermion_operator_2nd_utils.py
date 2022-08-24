@@ -2,14 +2,31 @@ import numbers
 import re
 from collections import defaultdict
 import numpy as np
-from typing import List, Union
+from typing import List, Union, Tuple
 import copy
 
-from netket.utils.types import DType, Array
+from netket.utils.types import DType, Array, PyTree
 from netket.operator._discrete_operator import DiscreteOperator
 
+OperatorTuple = Tuple[int, int]
+r""" Creation and annihilation operators at mode i are encoded as
+:math:`\hat{a}_i^\dagger`: (i, 1)
+:math:`\hat{a}`: (i, 0)
+"""
 
-def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1.0):
+OperatorTerm = Tuple[OperatorTuple, ...]
+r""" A term of the form :math:`\hat{a}_1^\dagger \hat{a}_2` would take the form
+`((1,1), (2,0))`, where (1,1) represents :math:`\hat{a}_1^\dagger` and (2,0)
+represents :math:`\hat{a}_2`."""
+
+OperatorList = List[OperatorTerm]
+""" A list of operators that would e.g. describe a Hamiltonian """
+
+OperatorDict = dict[OperatorTerm, Union[float, complex]]
+""" A dict containing OperatorTerm as key and weights as the values """
+
+
+def _order_fun(term: OperatorTerm, weight: Union[float, complex] = 1.0):
     """
     Return a normal ordered single term of the fermion operator.
     Normal ordering corresponds to placing the operator acting on the
@@ -65,9 +82,7 @@ def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1.0):
     return ordered_terms, ordered_weights
 
 
-def _normal_ordering(
-    terms: List[List[List[int]]], weights: List[Union[float, complex]] = 1
-):
+def _normal_ordering(terms: OperatorList, weights: List[Union[float, complex]] = 1.0):
     """
     Returns the normal ordered terms and weights of the fermion operator.
     We use the following normal ordering convention: we order the terms with
@@ -86,8 +101,8 @@ def _normal_ordering(
 
 
 def _check_hermitian(
-    terms: List[List[List[int]]], weights: Union[float, complex] = 1.0
-):
+    terms: OperatorList, weights: List[Union[float, complex]] = 1.0
+) -> bool:
     """
     Check whether a set of terms and weights for a hermitian operator
     The terms are ordered into a canonical form with daggers and high orbital numbers to the left.
@@ -120,7 +135,7 @@ def _check_hermitian(
     return is_hermitian
 
 
-def _herm_conj(terms: List[List[List[int]]], weights: List[Union[float, complex]] = 1):
+def _herm_conj(terms: OperatorList, weights: List[Union[float, complex]] = 1):
     """Returns the hermitian conjugate of the terms and weights."""
     conj_term = []
     conj_weight = []
@@ -131,7 +146,9 @@ def _herm_conj(terms: List[List[List[int]]], weights: List[Union[float, complex]
     return conj_term, conj_weight
 
 
-def _convert_terms_to_spin_blocks(terms, n_orbitals: int, n_spin_components: int):
+def _convert_terms_to_spin_blocks(
+    terms: OperatorList, n_orbitals: int, n_spin_components: int
+):
     """
     See explanation in from_openfermion in conversion between conventions of netket
     and openfermion.
@@ -159,7 +176,7 @@ def _convert_terms_to_spin_blocks(terms, n_orbitals: int, n_spin_components: int
     return tuple(list(map(_convert_term, terms)))
 
 
-def _collect_constants(terms, weights):
+def _collect_constants(terms: OperatorList, weights: List[Union[float, complex]]):
     """
     Openfermion has the convention to store constants as empty terms
     Returns new terms and weights list, and the collected constants
@@ -177,8 +194,14 @@ def _collect_constants(terms, weights):
 
 
 def _canonicalize_input(terms, weights, constant, dtype):
-    """The canonical form is a tree tuple with a tuple pair of integers at the
-    lowest level"""
+    r"""
+    The canonical form is a tree tuple with a tuple pair of integers at the
+    lowest level
+
+    A term of the form :math:`\hat{a}_1^\dagger \hat{a}_2` would take the form
+        `((1,1), (2,0))`, where (1,1) represents :math:`\hat{a}_1^\dagger` and (2,0)
+        represents :math:`\hat{a}_2`.
+    """
     if isinstance(terms, str):
         terms = (terms,)
 
@@ -218,13 +241,13 @@ def _canonicalize_input(terms, weights, constant, dtype):
     return operators, constant, dtype
 
 
-def _remove_dict_zeros(d):
+def _remove_dict_zeros(d: dict):
     """Remove redundant zero values from a dictionary"""
     return {k: v for k, v in d.items() if not np.isclose(v, 0.0)}
 
 
-def _parse_term_tree(terms):
-    """convert the terms tree into a canonical form of tuple tree of depth 3"""
+def _parse_term_tree(terms) -> OperatorList:
+    """Convert the terms tree into a canonical form of tuple tree of depth 3"""
 
     def _parse_branch(t):
         if isinstance(t, str):
@@ -237,8 +260,8 @@ def _parse_term_tree(terms):
     return _parse_branch(terms)
 
 
-def _parse_string(s):
-    """parse strings such as '1^ 2' into a term form ((1, 1), (2, 0))"""
+def _parse_string(s: str) -> OperatorTerm:
+    """Parse strings such as '1^ 2' into a term form ((1, 1), (2, 0))"""
     s = s.strip()
     if s == "":
         return ()
@@ -256,8 +279,11 @@ def _parse_string(s):
     return tuple(processed_terms)
 
 
-def _dict_compare(d1, d2):
-    """Compare two dicts and return True if their keys and values are all the same (up to some tolerance)"""
+def _dict_compare(d1: dict, d2: dict) -> bool:
+    """
+    Compare two dicts and return True if their keys and values
+    are all the same (up to some tolerance)
+    """
     d1 = _remove_dict_zeros(d1)
     d2 = _remove_dict_zeros(d2)
     d1_keys = set(d1.keys())
@@ -268,8 +294,12 @@ def _dict_compare(d1, d2):
     return all(np.isclose(d1[o], d2[o]) for o in d1_keys)
 
 
-def _make_tuple_tree(terms):
-    """make tuples, so terms are hashable"""
+def _make_tuple_tree(terms: PyTree) -> PyTree:
+    """Make tuples, so terms are hashable.
+
+    Input could be e.g. a pytree of lists of lists,
+    which we convert to tuples of tuples.
+    """
 
     def _make_tuple(branch):
         if hasattr(branch, "__len__"):
@@ -280,8 +310,11 @@ def _make_tuple_tree(terms):
     return _make_tuple(terms)
 
 
-def _check_tree_structure(terms):
-    """Check whether the terms structure is depth 3 everywhere and contains pairs of (idx, dagger) everywhere"""
+def _check_tree_structure(terms) -> OperatorList:
+    """
+    Check whether the terms structure is depth 3 everywhere
+    and contains pairs of (idx, dagger) everywhere
+    """
 
     def _descend(tree, current_depth, depths, pairs):
         if current_depth == 2 and hasattr(tree, "__len__"):
@@ -301,7 +334,7 @@ def _check_tree_structure(terms):
         raise ValueError("terms should be provided in (i, dag) pairs")
 
 
-def _is_diag_term(term):
+def _is_diag_term(term: OperatorTerm) -> bool:
     """
     Check whether this term changes the sample or not
     """
@@ -334,8 +367,10 @@ def _dtype(
         raise TypeError(f"cannot deduce dtype of object type {type(obj)}: {obj}")
 
 
-def _reduce_operators(operators, dtype):
-    """reduce the operators by adding equivalent terms together"""
+def _reduce_operators(operators: OperatorDict, dtype: DType) -> OperatorDict:
+    """
+    Reduce the operators by adding equivalent terms together
+    """
 
     def dtype_init():
         return np.array(0, dtype=dtype)
