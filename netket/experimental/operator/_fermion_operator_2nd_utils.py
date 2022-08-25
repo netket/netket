@@ -2,7 +2,7 @@ import numbers
 import re
 from collections import defaultdict
 import numpy as np
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Dict
 import copy
 
 from netket.utils.types import DType, Array, PyTree
@@ -22,7 +22,7 @@ represents :math:`\hat{a}_2`."""
 OperatorList = List[OperatorTerm]
 """ A list of operators that would e.g. describe a Hamiltonian """
 
-OperatorDict = dict[OperatorTerm, Union[float, complex]]
+OperatorDict = Dict[OperatorTerm, Union[float, complex]]
 """ A dict containing OperatorTerm as key and weights as the values """
 
 
@@ -227,8 +227,6 @@ def _canonicalize_input(terms, weights, constant, dtype):
 
     _check_tree_structure(terms)
 
-    operators = dict(zip(terms, weights))
-
     # add the weights of terms that occur multiple times
     def dtype_init():
         return np.array(0, dtype=dtype)
@@ -241,7 +239,7 @@ def _canonicalize_input(terms, weights, constant, dtype):
     return operators, constant, dtype
 
 
-def _remove_dict_zeros(d: dict):
+def _remove_dict_zeros(d: Dict):
     """Remove redundant zero values from a dictionary"""
     return {k: v for k, v in d.items() if not np.isclose(v, 0.0)}
 
@@ -279,7 +277,7 @@ def _parse_string(s: str) -> OperatorTerm:
     return tuple(processed_terms)
 
 
-def _dict_compare(d1: dict, d2: dict) -> bool:
+def _dict_compare(d1: Dict, d2: Dict) -> bool:
     """
     Compare two dicts and return True if their keys and values
     are all the same (up to some tolerance)

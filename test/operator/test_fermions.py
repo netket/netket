@@ -149,6 +149,25 @@ def test_add_fermions():
     assert np.allclose((op1 + op2).to_dense(), op3.to_dense())
     assert np.allclose(op4.to_dense(), op5.to_dense())
 
+    op1 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0"), weights=(1.0,), constant=0.3
+    )
+    op2 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0"), weights=(1.1,), constant=0.4
+    )
+    op3 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0"), weights=(2.1,), constant=0.7
+    )
+    assert np.allclose((op1 + op2).to_dense(), op3.to_dense())
+
+    op1 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0", "0^ 0"), weights=(1.0, 2.0), constant=0.3
+    )
+    op2 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 0"), weights=(3.0,), constant=0.3
+    )
+    assert np.allclose(op1.to_dense(), op2.to_dense())
+
 
 def test_create_annihil_number():
     hi = nkx.hilbert.SpinOrbitalFermions(5)
