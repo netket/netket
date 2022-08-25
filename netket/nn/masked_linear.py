@@ -40,6 +40,7 @@ def wrap_kernel_init(kernel_init, mask):
     return wrapped_kernel_init
 
 
+# This is copy-pasted from flax.linen.linear in order to vendor it
 def _conv_dimension_numbers(input_shape):
     """Computes the dimension numbers based on the input shape."""
     ndim = len(input_shape)
