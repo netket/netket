@@ -173,7 +173,7 @@ class ARNNSequential(AbstractARNN):
         x = jnp.expand_dims(inputs, axis=-1)
 
         for i in range(len(self._layers)):
-            if i > 0:
+            if i > 0 and hasattr(self, "activation"):
                 x = self.activation(x)
             x = self._layers[i](x)
 

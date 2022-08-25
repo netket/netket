@@ -34,18 +34,18 @@ def skip(request):
 partial_model_pairs = [
     pytest.param(
         (
-            lambda hilbert, dtype, machine_pow: nk.models.ARNNDense(
+            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNDense(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, dtype, machine_pow: nk.models.FastARNNDense(
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNDense(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
         ),
@@ -53,20 +53,20 @@ partial_model_pairs = [
     ),
     pytest.param(
         (
-            lambda hilbert, dtype, machine_pow: nk.models.ARNNConv1D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv1D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=2,
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, dtype, machine_pow: nk.models.FastARNNConv1D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv1D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=2,
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
         ),
@@ -74,22 +74,22 @@ partial_model_pairs = [
     ),
     pytest.param(
         (
-            lambda hilbert, dtype, machine_pow: nk.models.ARNNConv1D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv1D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=2,
                 kernel_dilation=2,
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, dtype, machine_pow: nk.models.FastARNNConv1D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv1D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=2,
                 kernel_dilation=2,
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
         ),
@@ -97,20 +97,20 @@ partial_model_pairs = [
     ),
     pytest.param(
         (
-            lambda hilbert, dtype, machine_pow: nk.models.ARNNConv2D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv2D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=(2, 3),
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, dtype, machine_pow: nk.models.FastARNNConv2D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv2D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=(2, 3),
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
         ),
@@ -118,22 +118,22 @@ partial_model_pairs = [
     ),
     pytest.param(
         (
-            lambda hilbert, dtype, machine_pow: nk.models.ARNNConv2D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv2D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=(2, 3),
                 kernel_dilation=(2, 2),
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, dtype, machine_pow: nk.models.FastARNNConv2D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv2D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 kernel_size=(2, 3),
                 kernel_dilation=(2, 2),
-                param_dtype=dtype,
+                param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
         ),
@@ -149,9 +149,34 @@ partial_models += [
     for param in partial_model_pairs
 ]
 
+partial_models += [
+    pytest.param(
+        lambda hilbert, param_dtype, machine_pow: nk.models.RNN(
+            hilbert=hilbert,
+            Layer=nk.nn.LSTMLayer1D,
+            layers=3,
+            features=5,
+            param_dtype=param_dtype,
+            machine_pow=machine_pow,
+        ),
+        id="rnn_lstm",
+    ),
+    pytest.param(
+        lambda hilbert, param_dtype, machine_pow: nk.models.RNN(
+            hilbert=hilbert,
+            Layer=nk.nn.GRULayer1D,
+            layers=3,
+            features=5,
+            param_dtype=param_dtype,
+            machine_pow=machine_pow,
+        ),
+        id="rnn_gru",
+    ),
+]
+
 
 @pytest.mark.parametrize("machine_pow", [1, 2])
-@pytest.mark.parametrize("dtype", [jnp.float64, jnp.complex128])
+@pytest.mark.parametrize("param_dtype", [jnp.float64, jnp.complex128])
 @pytest.mark.parametrize(
     "hilbert",
     [
@@ -171,10 +196,10 @@ partial_models += [
 )
 class TestARNN:
     @pytest.mark.parametrize("partial_model", partial_models)
-    def test_norm_autoreg(self, partial_model, hilbert, dtype, machine_pow, skip):
+    def test_norm_autoreg(self, partial_model, hilbert, param_dtype, machine_pow, skip):
         batch_size = 3
 
-        model = partial_model(hilbert, dtype, machine_pow)
+        model = partial_model(hilbert, param_dtype, machine_pow)
 
         key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
         spins = hilbert.random_state(key_spins, size=batch_size)
@@ -200,11 +225,11 @@ class TestARNN:
                 np.testing.assert_allclose(p_new, p, err_msg=f"i={i} j={j}")
 
     @pytest.mark.parametrize("partial_model_pair", partial_model_pairs)
-    def test_same(self, partial_model_pair, hilbert, dtype, machine_pow, skip):
+    def test_same(self, partial_model_pair, hilbert, param_dtype, machine_pow, skip):
         batch_size = 3
 
-        model1 = partial_model_pair[0](hilbert, dtype, machine_pow)
-        model2 = partial_model_pair[1](hilbert, dtype, machine_pow)
+        model1 = partial_model_pair[0](hilbert, param_dtype, machine_pow)
+        model2 = partial_model_pair[1](hilbert, param_dtype, machine_pow)
 
         key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
         spins = hilbert.random_state(key_spins, size=batch_size)
