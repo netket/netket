@@ -47,7 +47,7 @@ class FastARNNDense(AbstractARNN):
     layers: int
     """number of layers."""
     features: Union[Iterable[int], int]
-    """number of features in each layer. If a single number is given,
+    """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     activation: Callable[[Array], Array] = jax.nn.selu
     """the nonlinear activation function between hidden layers (default: selu)."""
@@ -107,7 +107,7 @@ class FastARNNConv1D(AbstractARNN):
     layers: int
     """number of layers."""
     features: Union[Iterable[int], int]
-    """number of features in each layer. If a single number is given,
+    """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     kernel_size: int
     """length of the convolutional kernel."""
@@ -171,7 +171,7 @@ class FastARNNConv2D(AbstractARNN):
     layers: int
     """number of layers."""
     features: Union[Iterable[int], int]
-    """number of features in each layer. If a single number is given,
+    """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     kernel_size: Tuple[int, int]
     """shape of the convolutional kernel `(h, w)`. Typically, `h = w // 2 + 1`."""

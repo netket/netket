@@ -47,7 +47,7 @@ class FastMaskedDense1D(nn.Module):
     size: int
     """number of sites."""
     features: int
-    """number of output features, should be the last dimension."""
+    """output feature density, should be the last dimension."""
     exclusive: bool
     """True if an output element does not depend on the input element at the same index."""
     use_bias: bool = True
