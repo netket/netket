@@ -63,7 +63,7 @@ class AbstractARNN(nn.Module):
         Computes the log of the conditional wave-functions for each site to take each value.
 
         Args:
-          inputs: configurations with dimensions (batch, Hilbert.size).
+          inputs: configurations with dimensions (batch, Hilbert.size) and unordered layout.
 
         Returns:
           The log psi with dimensions (batch, Hilbert.size, Hilbert.local_size).
@@ -74,7 +74,7 @@ class AbstractARNN(nn.Module):
         Computes the conditional probabilities for each site to take each value.
 
         Args:
-          inputs: configurations with dimensions (batch, Hilbert.size).
+          inputs: configurations with dimensions (batch, Hilbert.size) and unordered layout.
 
         Returns:
           The probabilities with dimensions (batch, Hilbert.size, Hilbert.local_size).
@@ -106,8 +106,8 @@ class AbstractARNN(nn.Module):
         as in the autoregressive sampling procedure.
 
         Args:
-          inputs: configurations of partially sampled sites with dimensions (batch, Hilbert.size),
-            where the sites that `index` depends on must be already sampled.
+          inputs: configurations of partially sampled sites with dimensions (batch, Hilbert.size)
+            and unordered layout, where the sites that `index` depends on must be already sampled.
           index: index of the site being queried.
 
         Returns:
@@ -130,7 +130,7 @@ class AbstractARNN(nn.Module):
         Computes the log wave-functions for input configurations.
 
         Args:
-          inputs: configurations with dimensions (batch, Hilbert.size).
+          inputs: configurations with dimensions (batch, Hilbert.size) and unordered layout.
 
         Returns:
           The log psi with dimension (batch,).
@@ -205,7 +205,7 @@ class ARNNSequential(AbstractARNN):
 
     def inverse_reorder(self, inputs: Array) -> Array:
         """
-        Transforms an array from unordered to ordered. See `reorder`.
+        Transforms an array from ordered to unordered. See `reorder`.
         """
         return inputs
 

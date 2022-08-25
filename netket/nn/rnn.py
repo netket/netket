@@ -20,12 +20,12 @@ from flax.linen.dtypes import promote_dtype
 
 from jax import lax
 from jax import numpy as jnp
-from jax.nn.initializers import orthogonal, zeros
+from jax.nn.initializers import lecun_normal, zeros
 
 from netket.utils import deprecate_dtype
-from netket.utils.types import Array, DType, NNInitFunc
+from netket.utils.types import _DeviceArray, Array, DType, NNInitFunc
 
-default_kernel_init = orthogonal()
+default_kernel_init = lecun_normal()
 
 
 def check_reorder_idx(reorder_idx: Array, inv_reorder_idx: Array):
@@ -48,7 +48,10 @@ def check_reorder_idx(reorder_idx: Array, inv_reorder_idx: Array):
         )
 
     idx = reorder_idx[inv_reorder_idx]
-    if not np.array_equal(idx, np.arange(reorder_idx.size)):
+    # We can access idx's value only if it's not traced
+    if isinstance(idx, (np.ndarray, _DeviceArray)) and not np.array_equal(
+        idx, np.arange(idx.size, dtype=idx.dtype)
+    ):
         raise ValueError("`inv_reorder_idx` is not the inverse of `reorder_idx`.")
 
 
@@ -89,22 +92,24 @@ class RNNLayer(nn.Module):
         )
         return kernel, bias
 
-
-class RNNLayer1D(RNNLayer):
-    """Base class for 1D recurrent neural network layers."""
-
     def _get_recur_func(
         self, inputs: Array
     ) -> Callable[[Array, Array, Array], Tuple[Array, Array]]:
         raise NotImplementedError
 
+
+class RNNLayer1D(RNNLayer):
+    """Base class for 1D recurrent neural network layers."""
+
     @nn.compact
     def __call__(self, inputs: Array) -> Array:
         """
         Applies the RNN cell to a batch of input sequences.
+        See :class:`netket.models.AbstractARNN` for the explanation of
+        autoregressive ordering.
 
         Args:
-          inputs: input data with dimensions (batch, length, features).
+          inputs: input data with dimensions (batch, length, features) and unordered layout.
 
         Returns:
           The output sequences.
@@ -114,6 +119,7 @@ class RNNLayer1D(RNNLayer):
 
         # (batch, length, features) -> (length, batch, features)
         inputs = inputs.transpose((1, 0, 2))
+        # Unordered -> ordered
         if self.reorder_idx is not None:
             inputs = inputs[self.reorder_idx]
 
@@ -132,7 +138,6 @@ class RNNLayer1D(RNNLayer):
 
         if self.inv_reorder_idx is not None:
             outputs = outputs[self.inv_reorder_idx]
-        # (length, batch, features) -> (batch, length, features)
         outputs = outputs.transpose((1, 0, 2))
         return outputs
 

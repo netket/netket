@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
+
 import jax
 import netket as nk
 import numpy as np
@@ -151,26 +153,34 @@ partial_models += [
 
 partial_models += [
     pytest.param(
-        lambda hilbert, param_dtype, machine_pow: nk.models.RNN(
+        lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet1D(
             hilbert=hilbert,
-            Layer=nk.nn.LSTMLayer1D,
             layers=3,
             features=5,
             param_dtype=param_dtype,
             machine_pow=machine_pow,
         ),
-        id="rnn_lstm",
+        id="lstm1d",
     ),
     pytest.param(
-        lambda hilbert, param_dtype, machine_pow: nk.models.RNN(
+        lambda hilbert, param_dtype, machine_pow: nk.models.GRUNet1D(
             hilbert=hilbert,
-            Layer=nk.nn.GRULayer1D,
             layers=3,
             features=5,
             param_dtype=param_dtype,
             machine_pow=machine_pow,
         ),
-        id="rnn_gru",
+        id="gru1d",
+    ),
+    pytest.param(
+        lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet2D(
+            hilbert=hilbert,
+            layers=3,
+            features=5,
+            param_dtype=param_dtype,
+            machine_pow=machine_pow,
+        ),
+        id="lstm2d",
     ),
 ]
 
@@ -203,11 +213,19 @@ class TestARNN:
 
         key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
         spins = hilbert.random_state(key_spins, size=batch_size)
-        p, params = model.init_with_output(key_model, spins, method=model.conditionals)
+        p, variables = model.init_with_output(
+            key_model, spins, method=model.conditionals
+        )
+
+        @partial(jax.jit, static_argnums=(0,))
+        def apply(method, inputs):
+            return model.apply(variables, inputs, method=method)
+
+        p = apply(model.reorder, p)
 
         # Test if the model is normalized
         # The result may not be very accurate, because it is in exp space
-        psi = nk.nn.to_array(hilbert, model.apply, params, normalize=False)
+        psi = nk.nn.to_array(hilbert, model.apply, variables, normalize=False)
         assert (jnp.abs(psi) ** machine_pow).sum() == pytest.approx(
             1, rel=1e-5, abs=1e-5
         )
@@ -216,8 +234,12 @@ class TestARNN:
         for i in range(batch_size):
             for j in range(hilbert.size):
                 # Change one input element at a time
-                spins_new = spins.at[i, j].set(-spins[i, j])
-                p_new = model.apply(params, spins_new, method=model.conditionals)
+                spins_new = apply(model.reorder, spins)
+                spins_new = spins_new.at[i, j].multiply(-1)
+                spins_new = apply(model.inverse_reorder, spins_new)
+
+                p_new = apply(model.conditionals, spins_new)
+                p_new = apply(model.reorder, p_new)
 
                 # Sites after j can change, so we reset them before comparison
                 p_new = p_new.at[i, j + 1 :].set(p[i, j + 1 :])
@@ -274,7 +296,7 @@ def test_throwing():
     with pytest.raises(ValueError):
         hilbert = nk.hilbert.Spin(s=1 / 2, N=4)
         hilbert = nk.hilbert.DoubledHilbert(hilbert)
-        build_model(None)
+        build_model(hilbert)
 
     # Only unconstrained Hilbert spaces are supported
     with pytest.raises(ValueError):
