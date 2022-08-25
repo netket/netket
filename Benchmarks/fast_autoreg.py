@@ -62,13 +62,13 @@ ma = model_type(
 )
 
 # Autoregressive direct sampling
-sa = nk.sampler.ARDirectSampler(hi, n_chains=args.batch_size, dtype=dtype)
+sa = nk.sampler.ARDirectSampler(hi, dtype=dtype)
 
 # Variational state
 # With direct sampling, we don't need many samples in each step to form a
 # Markov chain, and we don't need to discard samples
 vs = nk.vqs.MCState(sa, ma, n_samples=args.batch_size)
-assert vs.chain_length == 1
+assert vs.chain_length == args.batch_size
 assert vs.n_discard_per_chain == 0
 
 # n_parameters also takes masked parameters into account
