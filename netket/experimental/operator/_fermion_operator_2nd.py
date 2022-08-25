@@ -408,9 +408,7 @@ class FermionOperator2nd(DiscreteOperator):
                 for orb_idx, dagger in zip(
                     orb_idxs_list[term_idx], daggers_list[term_idx]
                 ):
-                    new_xt, new_mel, op_has_xp = _apply_operator(
-                        xt, orb_idx, dagger, mel
-                    )
+                    _, mel, op_has_xp = _apply_operator(xt, orb_idx, dagger, mel)
                     if not op_has_xp:
                         has_xp = False
                         continue

@@ -635,6 +635,15 @@ def test_fermion_matrices():
 
     # without fermion constraints
     hi = nkx.hilbert.SpinOrbitalFermions(2)
+    op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0",), weights=(2,))
+    mat = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 2]])
+    assert np.allclose(mat, op.to_dense())
+
+    hi = nkx.hilbert.SpinOrbitalFermions(2)
+    op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0 1^ 1",), weights=(2,))
+    mat = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 2]])
+    assert np.allclose(mat, op.to_dense())
+
     op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 1", "1^ 0"), weights=(2, 1))
     mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 1, 0, 0], [0, 0, 0, 0]])
     assert np.allclose(mat, op.to_dense())
