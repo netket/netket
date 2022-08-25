@@ -208,18 +208,18 @@ class TDVP(AbstractVariationalDriver):
         elif error_norm == "maximum":
             self._error_norm = maximum_norm
         elif error_norm == "qgt":
-            error_norm = (HashablePartial(qgt_norm, self),)
-            if not config.netket_experimental_disable_ode_jit:
-                # QGT norm is called via host callback since it accesses the driver
-                # TODO: make this also an hashablepartial on self to reduce recompilation
+            if config.netket_experimental_disable_ode_jit:
+                self._error_norm = HashablePartial(qgt_norm, self)
+            else:
                 w = self.state.parameters
                 norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
-                error_norm = lambda x: hcb.call(
-                    error_norm,
+                # QGT norm is called via host callback since it accesses the driver
+                # TODO: make this also an hashablepartial on self to reduce recompilation
+                self._error_norm = lambda x: hcb.call(
+                    HashablePartial(qgt_norm, self),
                     x,
                     result_shape=jax.ShapeDtypeStruct((), norm_dtype),
                 )
-            self._error_norm = error_norm
         else:
             raise ValueError(
                 "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum',"

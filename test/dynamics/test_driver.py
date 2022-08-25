@@ -107,10 +107,10 @@ def l4_norm(x):
     ) ** (1.0 / 4.0)
 
 
-@pytest.mark.parametrize("disable_jit", [False, True])
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("integrator", adaptive_step_integrators)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
+@pytest.mark.parametrize("disable_jit", [False, True])
 def test_one_adaptive_step(integrator, error_norm, propagation_type, disable_jit):
     with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", disable_jit):
         ha, vstate, _ = _setup_system(L=2)

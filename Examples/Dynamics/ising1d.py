@@ -14,6 +14,7 @@
 
 import netket as nk
 import numpy as np
+from functools import partial
 
 import netket.experimental as nkx
 
@@ -30,16 +31,20 @@ ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 
 # RBM Spin Machine
 ma = nk.models.RBM(alpha=1, use_visible_bias=True, param_dtype=complex)
+ma = nk.models.RBMModPhase(alpha=2)
+
+# ma = nk.models.ARNNDense(hilbert=hi, layers=3, features=2, param_dtype=complex, activation=nk.nn.activation.reim_selu)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisHamiltonian(hi, ha, n_chains=16)
+# sa = nk.sampler.ARDirectSampler(hi)
 
 # Variational state
 vs = nk.vqs.MCState(sa, ma, n_samples=1024, n_discard_per_chain=16)
 
 # Optimizer
 op = nk.optimizer.Sgd(0.01)
-sr = nk.optimizer.SR(diag_shift=1e-4)
+sr = nk.optimizer.SR(diag_shift=1e-4, holomorphic=False)
 
 # Variational monte carlo driver
 gs = nk.VMC(ha, op, variational_state=vs, n_samples=1000, n_discard_per_chain=50)
@@ -49,10 +54,14 @@ Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
 
 # Run the optimization for 300 iterations to determine the ground state, used as
 # initial state of the time-evolution
-gs.run(n_iter=300, out="example_ising1d_GS", obs={"Sx": Sx})
+gs.run(n_iter=100, out="example_ising1d_GS", obs={"Sx": Sx})
+
+del gs
+p0 = vs.parameters
 
 # Create integrator for time propagation
 integrator = nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-3, atol=1e-3)
+integrator = nkx.dynamics.Midpoint(dt=0.001)
 print(integrator)
 
 # Quenched hamiltonian: this has a different transverse field than `ha`
@@ -62,8 +71,9 @@ te = nkx.TDVP(
     variational_state=vs,
     integrator=integrator,
     t0=0.0,
-    qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True, diag_shift=1e-4),
+    qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=False, diag_shift=0.0),
     error_norm="qgt",
+    linear_solver=partial(nk.optimizer.solver.svd, rcond=1e-7),
 )
 
 log = nk.logging.JsonLog("example_ising1d_TE")
@@ -74,5 +84,5 @@ te.run(
     out=log,
     show_progress=True,
     obs={"Sx": Sx},
-    tstops=np.linspace(0.0, 1.0, 101, endpoint=True),
+    tstops=np.linspace(0.0, 1.0, 1001, endpoint=True),
 )
