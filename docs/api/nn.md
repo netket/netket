@@ -23,11 +23,16 @@ Read more about the design goal of this module in their [README](https://github.
    MaskedDense1D
    MaskedConv1D
    MaskedConv2D
-
    FastMaskedDense1D
    FastMaskedConv1D
    FastMaskedConv2D
 
+   GRULayer1D
+   LSTMLayer1D
+   LSTMLayer2D
+   FastGRULayer1D
+   FastLSTMLayer1D
+   FastLSTMLayer2D
 ```
 
 ## Activation functions

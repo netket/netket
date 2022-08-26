@@ -130,32 +130,25 @@ def _get_snake_ordering(V):
     return a, a
 
 
-class _LSTMNet2D(RNN):
+@deprecate_dtype
+class LSTMNet2D(RNN):
+    """2D long short-term memory network with snake ordering."""
+
     def setup(self):
+        if self.reorder_idx is not None or self.inv_reorder_idx is not None:
+            raise ValueError("`LSTMNet2D` only supports snake ordering")
+        reorder_idx, inv_reorder_idx = _get_snake_ordering(self.hilbert.size)
+
         features = _get_feature_list(self)
         self._layers = [
             LSTMLayer2D(
                 features=features[i],
                 exclusive=(i == 0),
-                reorder_idx=self.reorder_idx,
-                inv_reorder_idx=self.inv_reorder_idx,
+                reorder_idx=reorder_idx,
+                inv_reorder_idx=inv_reorder_idx,
                 param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
             for i in range(self.layers)
         ]
-
-
-@deprecate_dtype
-def LSTMNet2D(hilbert, *args, **kwargs):
-    """2D long short-term memory network with snake ordering."""
-
-    if "reorder_idx" in kwargs or "inv_reorder_idx" in kwargs:
-        raise ValueError("`LSTMNet2D` only supports snake ordering")
-
-    reorder_idx, inv_reorder_idx = _get_snake_ordering(hilbert.size)
-    kwargs["reorder_idx"] = reorder_idx
-    kwargs["inv_reorder_idx"] = inv_reorder_idx
-
-    return _LSTMNet2D(hilbert, *args, **kwargs)

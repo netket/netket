@@ -30,6 +30,12 @@ neural quantum states.
    ARNNConv2D
    FastARNNConv1D
    FastARNNConv2D
+   GRUNet1D
+   LSTMNet1D
+   LSTMNet2D
+   FastGRUNet1D
+   FastLSTMNet1D
+   FastLSTMNet2D
    DeepSetMLP
    MLP
 

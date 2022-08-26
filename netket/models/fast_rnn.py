@@ -133,10 +133,17 @@ class FastGRUNet1D(FastRNN):
         ]
 
 
-class _FastLSTMNet2D(FastRNN):
+@deprecate_dtype
+class FastLSTMNet2D(FastRNN):
+    """2D long short-term memory network with snake ordering."""
+
     def setup(self):
         L = int(sqrt(self.hilbert.size))
         assert L**2 == self.hilbert.size
+
+        if self.reorder_idx is not None or self.inv_reorder_idx is not None:
+            raise ValueError("`FastLSTMNet2D` only supports snake ordering")
+        reorder_idx, inv_reorder_idx = _get_snake_ordering(self.hilbert.size)
 
         features = _get_feature_list(self)
         self._layers = [
@@ -144,25 +151,11 @@ class _FastLSTMNet2D(FastRNN):
                 L=L,
                 features=features[i],
                 exclusive=(i == 0),
-                reorder_idx=self.reorder_idx,
-                inv_reorder_idx=self.inv_reorder_idx,
+                reorder_idx=reorder_idx,
+                inv_reorder_idx=inv_reorder_idx,
                 param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
             for i in range(self.layers)
         ]
-
-
-@deprecate_dtype
-def FastLSTMNet2D(hilbert, *args, **kwargs):
-    """2D long short-term memory network with snake ordering."""
-
-    if "reorder_idx" in kwargs or "inv_reorder_idx" in kwargs:
-        raise ValueError("`FastLSTMNet2D` only supports snake ordering")
-
-    reorder_idx, inv_reorder_idx = _get_snake_ordering(hilbert.size)
-    kwargs["reorder_idx"] = reorder_idx
-    kwargs["inv_reorder_idx"] = inv_reorder_idx
-
-    return _FastLSTMNet2D(hilbert, *args, **kwargs)

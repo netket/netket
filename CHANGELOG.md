@@ -66,6 +66,7 @@ Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.MultipleRules` has been added, which can be used to pick from different transition proposals according to a certain probability distribution.
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.TensorRule` has been added, which can be used to combine different transition proposals acting on different subspaces of the Hilbert space together.
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.FixedRule` has been added, which does not change the configuration.
+* Recurrent neural networks and layers have been added to `models` and `nn` [#1305](https://github.com/netket/netket/pull/1305).
 
 ### Deprecations
 * The non-public API function to select the default QGT mode for `QGTJacobian`, located at `nk.optimizer.qgt.qgt_jacobian_common.choose_jacobian_mode` has been renamed and made part of the public API of as `nk.jax.jacobian_default_mode`. If you were using this function, please update your codes [#1473](https://github.com/netket/netket/pull/1473).
@@ -187,7 +188,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 ### Deprecations
 
 * `nk.nn.Module` and `nk.nn.compact` have been deprecated. Please use the {class}`flax.linen.Module` and {func}`flax.linen.compact` instead.
-* `nk.nn.Dense(dtype=mydtype)` and related Modules (`Conv`, `DenseGeneral` and `ConvGeneral`) are deprecated. Please use `flax.linen.***(param_dtype=mydtype)` instead. Before flax v0.5 they did not support complex numbers properly within their modules, but starting with flax 0.5 they now do so we have removed our linear module wrappers and encourage you to use them. Please notice that the `dtype` argument previously used by netket should be changed to `param_dtype` to maintain the same effect. [#...](https://github.com/netket/netket/pull/...)  
+* `nk.nn.Dense(dtype=mydtype)` and related Modules (`Conv`, `DenseGeneral` and `ConvGeneral`) are deprecated. Please use `flax.linen.***(param_dtype=mydtype)` instead. Before flax v0.5 they did not support complex numbers properly within their modules, but starting with flax 0.5 they now do so we have removed our linear module wrappers and encourage you to use them. Please notice that the `dtype` argument previously used by netket should be changed to `param_dtype` to maintain the same effect. [#...](https://github.com/netket/netket/pull/...)
 
 ### Bug Fixes
 * Fixed bug where a `nk.operator.LocalOperator` representing the identity would lead to a crash. [#1197](https://github.com/netket/netket/pull/1197)
