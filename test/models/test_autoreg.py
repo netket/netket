@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial
-
 import jax
 import netket as nk
 import numpy as np
@@ -141,9 +139,6 @@ partial_model_pairs = [
         ),
         id="conv2d_dilation",
     ),
-]
-
-partial_model_pairs = [
     pytest.param(
         (
             lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet1D(
@@ -182,6 +177,25 @@ partial_model_pairs = [
         ),
         id="gru1d",
     ),
+    pytest.param(
+        (
+            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet2D(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet2D(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+        ),
+        id="lstm2d",
+    ),
 ]
 
 partial_models = [
@@ -190,19 +204,6 @@ partial_models = [
 partial_models += [
     pytest.param(param.values[0][1], id="fast_" + param.id)
     for param in partial_model_pairs
-]
-
-partial_models += [
-    pytest.param(
-        lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet2D(
-            hilbert=hilbert,
-            layers=3,
-            features=5,
-            param_dtype=param_dtype,
-            machine_pow=machine_pow,
-        ),
-        id="lstm2d",
-    ),
 ]
 
 
@@ -238,11 +239,19 @@ class TestARNN:
             key_model, spins, method=model.conditionals
         )
 
-        @partial(jax.jit, static_argnums=(0,))
-        def apply(method, inputs):
-            return model.apply(variables, inputs, method=method)
+        @jax.jit
+        def conditionals(inputs):
+            return model.apply(variables, inputs, method=model.conditionals)
 
-        p = apply(model.reorder, p)
+        @jax.jit
+        def reorder(inputs):
+            return model.apply(variables, inputs, method=model.reorder)
+
+        @jax.jit
+        def inverse_reorder(inputs):
+            return model.apply(variables, inputs, method=model.inverse_reorder)
+
+        p = reorder(p)
 
         # Test if the model is normalized
         # The result may not be very accurate, because it is in exp space
@@ -255,12 +264,12 @@ class TestARNN:
         for i in range(batch_size):
             for j in range(hilbert.size):
                 # Change one input element at a time
-                spins_new = apply(model.reorder, spins)
+                spins_new = reorder(spins)
                 spins_new = spins_new.at[i, j].multiply(-1)
-                spins_new = apply(model.inverse_reorder, spins_new)
+                spins_new = inverse_reorder(spins_new)
 
-                p_new = apply(model.conditionals, spins_new)
-                p_new = apply(model.reorder, p_new)
+                p_new = conditionals(spins_new)
+                p_new = reorder(p_new)
 
                 # Sites after j can change, so we reset them before comparison
                 p_new = p_new.at[i, j + 1 :].set(p[i, j + 1 :])

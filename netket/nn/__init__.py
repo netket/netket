@@ -51,6 +51,7 @@ from .fast_masked_linear import FastMaskedDense1D, FastMaskedConv1D, FastMaskedC
 from .rnn import LSTMLayer1D, GRULayer1D
 from .rnn_2d import LSTMLayer2D
 from .fast_rnn import FastLSTMLayer1D, FastGRULayer1D
+from .fast_rnn_2d import FastLSTMLayer2D
 
 from .initializers import zeros, ones
 
