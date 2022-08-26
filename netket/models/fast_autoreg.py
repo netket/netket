@@ -18,7 +18,7 @@ from typing import Any, Callable, Union
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.models.autoreg import ARNNSequential, _normalize
+from netket.models.autoreg import ARNNSequential, _get_feature_list, _normalize
 from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
 from netket.nn import activation as nkactivation
 from netket.nn.masked_linear import default_kernel_init
@@ -87,13 +87,7 @@ class FastARNNDense(FastARNNSequential):
     """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
+        features = _get_feature_list(self)
         self._layers = [
             FastMaskedDense1D(
                 size=self.hilbert.size,
@@ -142,13 +136,7 @@ class FastARNNConv1D(FastARNNSequential):
     """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
+        features = _get_feature_list(self)
         self._layers = [
             FastMaskedConv1D(
                 features=features[i],
@@ -201,13 +189,7 @@ class FastARNNConv2D(FastARNNSequential):
         self.L = int(sqrt(self.hilbert.size))
         assert self.L**2 == self.hilbert.size
 
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
+        features = _get_feature_list(self)
         self._layers = [
             FastMaskedConv2D(
                 L=self.L,

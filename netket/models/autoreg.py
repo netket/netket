@@ -210,6 +210,16 @@ class ARNNSequential(AbstractARNN):
         return inputs
 
 
+def _get_feature_list(model):
+    if isinstance(model.features, int):
+        features = [model.features] * (model.layers - 1) + [model.hilbert.local_size]
+    else:
+        features = model.features
+    assert len(features) == model.layers
+    assert features[-1] == model.hilbert.local_size
+    return features
+
+
 @deprecate_dtype
 class ARNNDense(ARNNSequential):
     """Autoregressive neural network with dense layers."""
@@ -235,13 +245,7 @@ class ARNNDense(ARNNSequential):
     """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
+        features = _get_feature_list(self)
         self._layers = [
             MaskedDense1D(
                 features=features[i],
@@ -285,13 +289,7 @@ class ARNNConv1D(ARNNSequential):
     """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
+        features = _get_feature_list(self)
         self._layers = [
             MaskedConv1D(
                 features=features[i],
@@ -340,13 +338,7 @@ class ARNNConv2D(ARNNSequential):
         self.L = int(sqrt(self.hilbert.size))
         assert self.L**2 == self.hilbert.size
 
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
+        features = _get_feature_list(self)
         self._layers = [
             MaskedConv2D(
                 features=features[i],

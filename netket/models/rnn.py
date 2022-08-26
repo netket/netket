@@ -13,14 +13,14 @@
 # limitations under the License.
 
 from math import sqrt
-from typing import Iterable, Optional, Type, Union
+from typing import Iterable, Optional, Union
 
 import numpy as np
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.models.autoreg import AbstractARNN, _call, _conditionals
-from netket.nn.rnn import GRULayer1D, LSTMLayer1D, RNNLayer, default_kernel_init
+from netket.models.autoreg import AbstractARNN, _call, _conditionals, _get_feature_list
+from netket.nn.rnn import GRULayer1D, LSTMLayer1D, default_kernel_init
 from netket.nn.rnn_2d import LSTMLayer2D
 from netket.utils import deprecate_dtype
 from netket.utils.types import Array, DType, NNInitFunc
@@ -29,8 +29,6 @@ from netket.utils.types import Array, DType, NNInitFunc
 class RNN(AbstractARNN):
     """Base class for recurrent neural networks."""
 
-    Layer: Type[RNNLayer]
-    """type of layers."""
     layers: int
     """number of layers."""
     features: Union[Iterable[int], int]
@@ -50,25 +48,7 @@ class RNN(AbstractARNN):
     """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
-        self._layers = [
-            self.Layer(
-                features=features[i],
-                exclusive=(i == 0),
-                reorder_idx=self.reorder_idx,
-                inv_reorder_idx=self.inv_reorder_idx,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
-            )
-            for i in range(self.layers)
-        ]
+        raise NotImplementedError
 
     def conditionals(self, inputs: Array) -> Array:
         return _conditionals(self, inputs)
@@ -96,17 +76,43 @@ class RNN(AbstractARNN):
 
 
 @deprecate_dtype
-def LSTMNet1D(*args, **kwargs):
+class LSTMNet1D(RNN):
     """1D long short-term memory network."""
-    kwargs["Layer"] = LSTMLayer1D
-    return RNN(*args, **kwargs)
+
+    def setup(self):
+        features = _get_feature_list(self)
+        self._layers = [
+            LSTMLayer1D(
+                features=features[i],
+                exclusive=(i == 0),
+                reorder_idx=self.reorder_idx,
+                inv_reorder_idx=self.inv_reorder_idx,
+                param_dtype=self.param_dtype,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )
+            for i in range(self.layers)
+        ]
 
 
 @deprecate_dtype
-def GRUNet1D(*args, **kwargs):
+class GRUNet1D(RNN):
     """1D gated recurrent unit network."""
-    kwargs["Layer"] = GRULayer1D
-    return RNN(*args, **kwargs)
+
+    def setup(self):
+        features = _get_feature_list(self)
+        self._layers = [
+            GRULayer1D(
+                features=features[i],
+                exclusive=(i == 0),
+                reorder_idx=self.reorder_idx,
+                inv_reorder_idx=self.inv_reorder_idx,
+                param_dtype=self.param_dtype,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )
+            for i in range(self.layers)
+        ]
 
 
 def _get_snake_ordering(V):
@@ -124,10 +130,26 @@ def _get_snake_ordering(V):
     return a, a
 
 
+class _LSTMNet2D(RNN):
+    def setup(self):
+        features = _get_feature_list(self)
+        self._layers = [
+            LSTMLayer2D(
+                features=features[i],
+                exclusive=(i == 0),
+                reorder_idx=self.reorder_idx,
+                inv_reorder_idx=self.inv_reorder_idx,
+                param_dtype=self.param_dtype,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )
+            for i in range(self.layers)
+        ]
+
+
 @deprecate_dtype
 def LSTMNet2D(hilbert, *args, **kwargs):
     """2D long short-term memory network with snake ordering."""
-    kwargs["Layer"] = LSTMLayer2D
 
     if "reorder_idx" in kwargs or "inv_reorder_idx" in kwargs:
         raise ValueError("`LSTMNet2D` only supports snake ordering")
@@ -136,4 +158,4 @@ def LSTMNet2D(hilbert, *args, **kwargs):
     kwargs["reorder_idx"] = reorder_idx
     kwargs["inv_reorder_idx"] = inv_reorder_idx
 
-    return RNN(hilbert, *args, **kwargs)
+    return _LSTMNet2D(hilbert, *args, **kwargs)
