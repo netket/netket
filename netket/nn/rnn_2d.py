@@ -88,7 +88,7 @@ class RNNLayer2D(RNNLayer):
         Returns:
           The output sequences.
         """
-        batch_size, V, in_features = inputs.shape
+        batch_size, V, _ = inputs.shape
         L = int(sqrt(V))
         recur_func = self._get_recur_func(inputs)
 
@@ -105,7 +105,7 @@ class RNNLayer2D(RNNLayer):
                 # Get the inputs at the previous site in the autoregressive order,
                 # or zeros for the first site
                 inputs_i = inputs[:, self.reorder_idx[k - 1], :]
-                zeros = jnp.zeros((batch_size, in_features), dtype=inputs.dtype)
+                zeros = jnp.zeros_like(inputs_i)
                 inputs_i = jnp.where(k == 0, zeros, inputs_i)
             else:
                 inputs_i = inputs[:, index, :]

@@ -28,6 +28,7 @@ from .fast_autoreg import (
 )
 from .mlp import MLP
 from .rnn import LSTMNet1D, GRUNet1D, LSTMNet2D
+from .fast_rnn import FastLSTMNet1D, FastGRUNet1D
 from .utils import update_GCNN_parity
 
 

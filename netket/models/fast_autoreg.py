@@ -30,8 +30,8 @@ class FastARNNSequential(ARNNSequential):
     """
     Implementation of a fast ARNN that sequentially calls its layers and activation function.
 
-    Subclasses must implement `activation` as a field or a method,
-    and assign a list of fast ARNN layers to `self._layers` in `setup`.
+    Subclasses must assign a list of fast ARNN layers to `self._layers` in `setup,
+    and they may implement `activation` as a field or a method.
     """
 
     def conditional(self, inputs: Array, index: int) -> Array:
@@ -42,11 +42,11 @@ class FastARNNSequential(ARNNSequential):
         if inputs.ndim == 1:
             inputs = jnp.expand_dims(inputs, axis=0)
 
-        # When `index = 0`, it doesn't matter which site we take
-        x = inputs[:, index - 1, None]
+        x = jnp.expand_dims(inputs, axis=-1)
+        x = self.take_prev_input_site(x, index)
 
         for i in range(len(self._layers)):
-            if i > 0:
+            if i > 0 and hasattr(self, "activation"):
                 x = self.activation(x)
             x = self._layers[i].update_site(x, index)
 

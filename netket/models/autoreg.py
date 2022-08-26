@@ -209,6 +209,10 @@ class ARNNSequential(AbstractARNN):
         """
         return inputs
 
+    def take_prev_input_site(self, inputs: Array, index: int) -> Array:
+        # When `index = 0`, it doesn't matter which site we take
+        return inputs[:, index - 1]
+
 
 def _get_feature_list(model):
     if isinstance(model.features, int):

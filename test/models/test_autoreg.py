@@ -143,6 +143,47 @@ partial_model_pairs = [
     ),
 ]
 
+partial_model_pairs = [
+    pytest.param(
+        (
+            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet1D(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet1D(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+        ),
+        id="lstm1d",
+    ),
+    pytest.param(
+        (
+            lambda hilbert, param_dtype, machine_pow: nk.models.GRUNet1D(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastGRUNet1D(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+        ),
+        id="gru1d",
+    ),
+]
+
 partial_models = [
     pytest.param(param.values[0][0], id=param.id) for param in partial_model_pairs
 ]
@@ -152,26 +193,6 @@ partial_models += [
 ]
 
 partial_models += [
-    pytest.param(
-        lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet1D(
-            hilbert=hilbert,
-            layers=3,
-            features=5,
-            param_dtype=param_dtype,
-            machine_pow=machine_pow,
-        ),
-        id="lstm1d",
-    ),
-    pytest.param(
-        lambda hilbert, param_dtype, machine_pow: nk.models.GRUNet1D(
-            hilbert=hilbert,
-            layers=3,
-            features=5,
-            param_dtype=param_dtype,
-            machine_pow=machine_pow,
-        ),
-        id="gru1d",
-    ),
     pytest.param(
         lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet2D(
             hilbert=hilbert,
@@ -266,8 +287,10 @@ class TestARNN:
         p3 = jnp.zeros_like(p1)
         params = variables["params"]
         cache = variables["cache"]
-        for i in range(hilbert.size):
-            variables = {"params": params, "cache": cache}
+        indices = jnp.arange(hilbert.size)
+        indices = model2.apply(variables, indices, method=model2.reorder)
+        for i in indices:
+            variables = freeze({"params": params, "cache": cache})
             p_i, mutables = model2.apply(
                 variables,
                 spins,
