@@ -34,7 +34,7 @@ def _tree_where(cond, xs, ys):
 
 def _get_h_xy_single(hiddens: Array, index: int, L: int) -> Tuple[Array, Array]:
     """
-    Hard-coded snake ordering.
+    Hard-coded snake ordering for square lattice.
 
     Given the index (i, j) of the current site, returns the hidden memories at
     the two previous neighboring sites (i, j ± 1) and (i - 1, j), or zeros if

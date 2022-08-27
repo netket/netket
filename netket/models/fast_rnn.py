@@ -135,15 +135,19 @@ class FastGRUNet1D(FastRNN):
 
 @deprecate_dtype
 class FastLSTMNet2D(FastRNN):
-    """2D long short-term memory network with snake ordering."""
+    """2D long short-term memory network with snake ordering for square lattice."""
 
     def setup(self):
         L = int(sqrt(self.hilbert.size))
         assert L**2 == self.hilbert.size
 
         if self.reorder_idx is not None or self.inv_reorder_idx is not None:
-            raise ValueError("`FastLSTMNet2D` only supports snake ordering")
-        reorder_idx, inv_reorder_idx = _get_snake_ordering(self.hilbert.size)
+            raise ValueError(
+                "`FastLSTMNet2D` only supports snake ordering for square lattice"
+            )
+        self._reorder_idx, self._inv_reorder_idx = _get_snake_ordering(
+            self.hilbert.size
+        )
 
         features = _get_feature_list(self)
         self._layers = [
@@ -151,11 +155,27 @@ class FastLSTMNet2D(FastRNN):
                 L=L,
                 features=features[i],
                 exclusive=(i == 0),
-                reorder_idx=reorder_idx,
-                inv_reorder_idx=inv_reorder_idx,
+                reorder_idx=self._reorder_idx,
+                inv_reorder_idx=self._inv_reorder_idx,
                 param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
             for i in range(self.layers)
         ]
+
+    @property
+    def reorder_idx(self) -> Optional[Array]:
+        return self._reorder_idx
+
+    @reorder_idx.setter
+    def reorder_idx(self, value: Optional[Array]):
+        self._reorder_idx = value
+
+    @property
+    def inv_reorder_idx(self) -> Array:
+        return self._inv_reorder_idx
+
+    @inv_reorder_idx.setter
+    def inv_reorder_idx(self, value: Optional[Array]):
+        self._inv_reorder_idx = value

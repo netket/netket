@@ -132,23 +132,43 @@ def _get_snake_ordering(V):
 
 @deprecate_dtype
 class LSTMNet2D(RNN):
-    """2D long short-term memory network with snake ordering."""
+    """2D long short-term memory network with snake ordering for square lattice."""
 
     def setup(self):
         if self.reorder_idx is not None or self.inv_reorder_idx is not None:
-            raise ValueError("`LSTMNet2D` only supports snake ordering")
-        reorder_idx, inv_reorder_idx = _get_snake_ordering(self.hilbert.size)
+            raise ValueError(
+                "`LSTMNet2D` only supports snake ordering for square lattice"
+            )
+        self._reorder_idx, self._inv_reorder_idx = _get_snake_ordering(
+            self.hilbert.size
+        )
 
         features = _get_feature_list(self)
         self._layers = [
             LSTMLayer2D(
                 features=features[i],
                 exclusive=(i == 0),
-                reorder_idx=reorder_idx,
-                inv_reorder_idx=inv_reorder_idx,
+                reorder_idx=self._reorder_idx,
+                inv_reorder_idx=self._inv_reorder_idx,
                 param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
             )
             for i in range(self.layers)
         ]
+
+    @property
+    def reorder_idx(self) -> Optional[Array]:
+        return self._reorder_idx
+
+    @reorder_idx.setter
+    def reorder_idx(self, value: Optional[Array]):
+        self._reorder_idx = value
+
+    @property
+    def inv_reorder_idx(self) -> Array:
+        return self._inv_reorder_idx
+
+    @inv_reorder_idx.setter
+    def inv_reorder_idx(self, value: Optional[Array]):
+        self._inv_reorder_idx = value
