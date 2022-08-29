@@ -286,6 +286,9 @@ def prepare_centered_oks(
         gradf_dense = jacobian_fun(f, params, σ)
         return gradf_dense
 
+    # jacobians has shape:
+    # - (n_samples, 2, n_pars) if mode complex, holding the real and imaginary jacobian
+    # - (n_samples, n_pars) if mode real/holomorphic
     jacobians = nkjax.vmap_chunked(gradf_fun, in_axes=(None, 0), chunk_size=chunk_size)(
         params, samples
     )
@@ -295,6 +298,7 @@ def prepare_centered_oks(
         n_samp
     )  # maintain weak type!
 
+    # here the jacobian is reshaped and the real/complex part are concatenated.
     centered_oks = centered_oks.reshape(-1, centered_oks.shape[-1])
 
     if rescale_shift:
