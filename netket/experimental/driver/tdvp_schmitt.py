@@ -1,0 +1,695 @@
+# Copyright 2020, 2021  The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import Callable, Optional, Sequence, Union
+import warnings
+
+from functools import partial
+
+import jax
+import jax.numpy as jnp
+import jax.experimental.host_callback as hcb
+import numpy as np
+from tqdm import tqdm
+
+import netket as nk
+from netket import config, stats
+from netket.driver import AbstractVariationalDriver
+from netket.driver.abstract_variational_driver import _to_iterable
+from netket.driver.vmc_common import info
+from netket.jax import HashablePartial, tree_ravel
+from netket.logging.json_log import JsonLog
+from netket.operator import AbstractOperator
+from netket.optimizer.qgt import QGTJacobianDense
+from netket.optimizer.qgt.qgt_jacobian_dense_logic import vec_to_real
+from netket.utils import mpi
+from netket.utils.dispatch import dispatch
+from netket.utils.types import PyTree
+from netket.vqs import VariationalState, VariationalMixedState, MCState
+
+from netket.experimental.dynamics import RKIntegratorConfig
+from netket.experimental.dynamics._rk_solver_structures import (
+    euclidean_norm,
+    maximum_norm,
+)
+
+
+class TDVPSchmitt(AbstractVariationalDriver):
+    r"""
+    Variational time evolution based on the time-dependent variational principle which,
+    when used with Monte Carlo sampling via :class:`netket.vqs.MCState`, is the time-dependent VMC
+    (t-VMC) method.
+
+    This driver, which only works with standard MCState variational states, uses the regularization
+    procedure described in `M. Schmitt's PRL 125 <https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.125.100503>`_ .
+
+    With the force vector
+
+        :math:`F_k=\langle \mathcal O_{\theta_k}^* E_{loc}^{\theta}\rangle_c`
+
+    and the quantum Fisher matrix
+
+        :math:`S_{k,k'} = \langle \mathcal O_{\theta_k} (\mathcal O_{\theta_{k'}})^*\rangle_c`
+
+    and for real parameters :math:`\theta\in\mathbb R`, the TDVP equation reads
+
+        :math:`q\big[S_{k,k'}\big]\theta_{k'} = -q\big[xF_k\big]`
+
+    Here, either :math:`q=\text{Re}` or :math:`q=\text{Im}` and :math:`x=1` for ground state
+    search or :math:`x=i` (the imaginary unit) for real time dynamics.
+
+    For ground state search a regularization controlled by a parameter :math:`\rho` can be included
+    by increasing the diagonal entries and solving
+
+        :math:`q\big[(1+\rho\delta_{k,k'})S_{k,k'}\big]\theta_{k'} = -q\big[F_k\big]`
+
+    The `TDVP` class solves the TDVP equation by computing a pseudo-inverse of :math:`S` via
+    eigendecomposition yielding
+
+        :math:`S = V\Sigma V^\dagger`
+
+    with a diagonal matrix :math:`\Sigma_{kk}=\sigma_k`
+    Assuming that :math:`\sigma_1` is the smallest eigenvalue, the pseudo-inverse is constructed
+    from the regularized inverted eigenvalues
+
+        :math:`\tilde\sigma_k^{-1}=\frac{1}{\Big(1+\big(\frac{\epsilon_{SVD}}{\sigma_j/\sigma_1}\big)^6\Big)\Big(1+\big(\frac{\epsilon_{SNR}}{\text{SNR}(\rho_k)}\big)^6\Big)}`
+
+    with :math:`\text{SNR}(\rho_k)` the signal-to-noise ratio of :math:`\rho_k=V_{k,k'}^{\dagger}F_{k'}` (see `[arXiv:1912.08828] <https://arxiv.org/pdf/1912.08828.pdf>`_ for details).
+
+
+    .. note::
+        This TDVP Driver uses the time-integrators from the `nkx.dynamics` module, which are
+        automatically executed under a `jax.jit` context.
+
+        When running computations on GPU, this can lead to infinite hangs or extremely long
+        compilation times. In those cases, you might try setting the configuration variable
+        :py:`nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
+
+    """
+
+    def __init__(
+        self,
+        operator: AbstractOperator,
+        variational_state: VariationalState,
+        integrator: RKIntegratorConfig,
+        *,
+        t0: float = 0.0,
+        propagation_type="real",
+        holomorphic: bool = None,
+        diag_shift: float = 0.0,
+        rescale_shift: bool = False,
+        error_norm: Union[str, Callable] = "qgt",
+        num_tol: float = 1e-14,
+        svd_tol: float = 1e-8,
+        snr_tol: float = 1,
+    ):
+        r"""
+        Initializes the time evolution driver.
+
+        Args:
+            operator: The generator of the dynamics (Hamiltonian for pure states,
+                Lindbladian for density operators).
+            variational_state: The variational state.
+            integrator: Configuration of the algorithm used for solving the ODE.
+            t0: Initial time at the start of the time evolution.
+            propagation_type: Determines the equation of motion: "real"  for the
+                real-time Schrödinger equation (SE), "imag" for the imaginary-time SE.
+            error_norm: Norm function used to calculate the error with adaptive integrators.
+                Can be either "euclidean" for the standard L2 vector norm :math:`w^\dagger w`,
+                "maximum" for the maximum norm :math:`\max_i |w_i|`
+                or "qgt", in which case the scalar product induced by the QGT :math:`S` is used
+                to compute the norm :math:`\Vert w \Vert^2_S = w^\dagger S w` as suggested
+                in PRL 125, 100503 (2020).
+                Additionally, it possible to pass a custom function with signature
+                :code:`norm(x: PyTree) -> float`
+                which maps a PyTree of parameters :code:`x` to the corresponding norm.
+                Note that norm is used in jax.jit-compiled code.
+            holomorphic: a flag to indicate that the wavefunction is holomorphic.
+            diag_shift: diagonal shift of the quantum geometric tensor (QGT)
+            rescale_shift: If True rescales the diagonal shift of the QGT
+            svd_tol: Regularization parameter :math:`\epsilon_{SVD}`, see above.
+            snr_tol: Regularization parameter :math:`\epsilon_{SNR}`, see above.
+
+        """
+        self._t0 = t0
+
+        super().__init__(
+            variational_state, optimizer=None, minimized_quantity_name="Generator"
+        )
+
+        self._generator_repr = repr(operator)
+        if isinstance(operator, AbstractOperator):
+            op = operator.collect()
+            self._generator = lambda _: op
+        else:
+            self._generator = operator
+
+        self.propagation_type = propagation_type
+        if isinstance(variational_state, VariationalMixedState):
+            # assuming Lindblad Dynamics
+            # TODO: support density-matrix imaginary time evolution
+            if propagation_type == "real":
+                self._loss_grad_factor = 1.0
+            else:
+                raise ValueError(
+                    "only real-time Lindblad evolution is supported for " "mixed states"
+                )
+        else:
+            if propagation_type == "real":
+                self._loss_grad_factor = -1.0j
+            elif propagation_type == "imag":
+                self._loss_grad_factor = -1.0
+            else:
+                raise ValueError("propagation_type must be one of 'real', 'imag'")
+
+        self._dw = None  # type: PyTree
+        self._last_qgt = None
+        self._integrator = None
+        self._integrator_constructor = None
+
+        self._odefun = HashablePartial(odefun_host_callback, self.state, self)
+
+        self.error_norm = error_norm
+        self.integrator = integrator
+
+        self._stop_count = 0
+        self._postfix = {}
+
+        self.num_tol = num_tol
+        self.svd_tol = svd_tol
+        self.snr_tol = snr_tol
+
+        self.diag_shift = diag_shift
+        self.holomorphic = holomorphic
+        self.rescale_shift = rescale_shift
+
+    @property
+    def integrator(self):
+        """
+        The underlying integrator which computes the time steps.
+        """
+        return self._integrator
+
+    @integrator.setter
+    def integrator(self, integrator):
+        if self._integrator is None:
+            t0 = self.t0
+        else:
+            t0 = self.t
+
+        self._integrator_constructor = integrator
+
+        self._integrator = integrator(
+            self._odefun,
+            t0,
+            self.state.parameters,
+            norm=self.error_norm,
+        )
+
+    @property
+    def generator(self) -> Callable:
+        """
+        The generator of the dynamics as a function with signature
+            generator(t: float) -> AbstractOperator
+        """
+        return self._generator
+
+    @property
+    def error_norm(self) -> Callable:
+        """
+        Returns the Callable function computing the error of the norm used for adaptive
+        timestepping by the integrator.
+
+        Can be set to a Callable accepting a pytree and returning a real scalar, or
+        a string between 'euclidean', 'maximum' or 'qgt'.
+        """
+        return self._error_norm
+
+    @error_norm.setter
+    def error_norm(self, error_norm: Union[str, Callable]):
+        if isinstance(error_norm, Callable):
+            self._error_norm = error_norm
+        elif error_norm == "euclidean":
+            self._error_norm = euclidean_norm
+        elif error_norm == "maximum":
+            self._error_norm = maximum_norm
+        elif error_norm == "qgt":
+            if config.netket_experimental_disable_ode_jit:
+                self._error_norm = HashablePartial(qgt_norm, self)
+            else:
+                w = self.state.parameters
+                norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
+                # QGT norm is called via host callback since it accesses the driver
+                # TODO: make this also an hashablepartial on self to reduce recompilation
+                self._error_norm = lambda x: hcb.call(
+                    HashablePartial(qgt_norm, self),
+                    x,
+                    result_shape=jax.ShapeDtypeStruct((), norm_dtype),
+                )
+        else:
+            raise ValueError(
+                "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum',"
+                f" but {error_norm} was passed."
+            )
+
+        if self.integrator is not None:
+            self.integrator.norm = self._error_norm
+
+    def advance(self, T: float):
+        """
+        Advance the time propagation by :code:`T` to :code:`self.t + T`.
+
+        Args:
+            T: Length of the integration interval.
+        """
+        for _ in self.iter(T):
+            pass
+
+    def iter(self, T: float, *, tstops: Optional[Sequence[float]] = None):
+        """
+        Returns a generator which advances the time evolution for an interval
+        of length :code:`T`, stopping at :code:`tstops`.
+
+        Args:
+            T: Length of the integration interval.
+            tstops: A sequence of stopping times, each within the interval :code:`[self.t0, self.t0 + T]`,
+                at which this method will stop and yield. By default, a stop is performed
+                after each time step (at potentially varying step size if an adaptive
+                integrator is used).
+        Yields:
+            The current step count.
+        """
+        yield from self._iter(T, tstops)
+
+    def _iter(
+        self,
+        T: float,
+        tstops: Optional[Sequence[float]] = None,
+        callback: Callable = None,
+    ):
+        """
+        Implementation of :code:`iter`. This method accepts and additional `callback` object, which
+        is called after every accepted step.
+        """
+        t_end = self.t + T
+        if tstops is not None and (
+            np.any(np.less(tstops, self.t)) or np.any(np.greater(tstops, t_end))
+        ):
+            raise ValueError(f"All tstops must be in range [t, t + T]=[{self.t}, {T}]")
+
+        if tstops is not None and len(tstops) > 0:
+            tstops = np.sort(tstops)
+            always_stop = False
+        else:
+            tstops = []
+            always_stop = True
+
+        while self.t < t_end:
+            if always_stop or (
+                len(tstops) > 0
+                and (np.isclose(self.t, tstops[0]) or self.t > tstops[0])
+            ):
+                self._stop_count += 1
+                yield self.t
+                tstops = tstops[1:]
+
+            step_accepted = False
+            while not step_accepted:
+                if not always_stop and len(tstops) > 0:
+                    max_dt = tstops[0] - self.t
+                else:
+                    max_dt = None
+                step_accepted = self._integrator.step(max_dt=max_dt)
+                if self._integrator.errors:
+                    raise RuntimeError(
+                        f"RK solver: {self._integrator.errors.message()}"
+                    )
+                elif self._integrator.warnings:
+                    warnings.warn(
+                        f"RK solver: {self._integrator.warnings.message()}",
+                        UserWarning,
+                    )
+            self._step_count += 1
+            # optionally call callback
+            if callback:
+                callback()
+
+        # Yield one last time if the remaining tstop is at t_end
+        if (always_stop and np.isclose(self.t, t_end)) or (
+            len(tstops) > 0 and np.isclose(tstops[0], t_end)
+        ):
+            yield self.t
+
+    def run(
+        self,
+        T,
+        out=None,
+        obs=None,
+        *,
+        tstops=None,
+        show_progress=True,
+        callback=None,
+    ):
+        """
+        Runs the time evolution.
+
+        By default uses :class:`netket.logging.JsonLog`. To know about the output format
+        check it's documentation. The logger object is also returned at the end of this function
+        so that you can inspect the results without reading the json output.
+
+        Args:
+            T: The integration time period.
+            out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
+                If this argument is a string, it will be used as output prefix for the standard JSON logger.
+            obs: An iterable containing the observables that should be computed.
+            tstops: A sequence of stopping times, each within the interval :code:`[self.t0, self.t0 + T]`,
+                at which the driver will stop and perform estimation of observables, logging, and execute
+                the callback function. By default, a stop is performed after each time step (at potentially
+                varying step size if an adaptive integrator is used).
+            show_progress: If true displays a progress bar (default=True)
+            callback: Callable or list of callable callback functions to be executed at each
+                stopping time.
+        """
+        if obs is None:
+            obs = {}
+
+        if callback is None:
+            callback = lambda *_args, **_kwargs: True
+
+        # Log only non-root nodes
+        if self._mynode == 0:
+            if out is None:
+                loggers = ()
+            # if out is a path, create an overwriting Json Log for output
+            elif isinstance(out, str):
+                loggers = (JsonLog(out, "w"),)
+            else:
+                loggers = _to_iterable(out)
+        else:
+            loggers = tuple()
+            show_progress = False
+
+        callbacks = _to_iterable(callback)
+        callback_stop = False
+
+        with tqdm(
+            total=np.asarray(self.t + T),
+            disable=not show_progress,
+            unit_scale=True,
+        ) as pbar:
+            first_step = True
+
+            # We need a closure to pass to self._iter in order to update the progress bar even if
+            # there are no tstops
+            def update_progress_bar():
+                # Reset the timing of tqdm after the first step to ignore compilation time
+                nonlocal first_step
+                if first_step:
+                    first_step = False
+                    pbar.unpause()
+
+                pbar.n = np.asarray(self._integrator.t)
+                self._postfix["n"] = self.step_count
+                self._postfix.update(
+                    {
+                        self._loss_name: str(self._loss_stats),
+                    }
+                )
+
+                pbar.set_postfix(self._postfix)
+                pbar.refresh()
+
+            for step in self._iter(T, tstops=tstops, callback=update_progress_bar):
+                log_data = self.estimate(obs)
+                self._log_additional_data(log_data, step)
+
+                self._postfix = {"n": self.step_count}
+                # if the cost-function is defined then report it in the progress bar
+                if self._loss_stats is not None:
+                    self._postfix.update(
+                        {
+                            self._loss_name: str(self._loss_stats),
+                        }
+                    )
+                    log_data[self._loss_name] = self._loss_stats
+                pbar.set_postfix(self._postfix)
+
+                # Execute callbacks before loggers because they can append to log_data
+                for callback in callbacks:
+                    if not callback(step, log_data, self):
+                        callback_stop = True
+
+                for logger in loggers:
+                    logger(self.step_value, log_data, self.state)
+
+                if len(callbacks) > 0:
+                    if mpi.mpi_any(callback_stop):
+                        break
+                update_progress_bar()
+
+            # Final update so that it shows up filled.
+            update_progress_bar()
+
+        # flush at the end of the evolution so that final values are saved to
+        # file
+        for logger in loggers:
+            logger.flush(self.state)
+
+        return loggers
+
+    def _log_additional_data(self, log_dict, step):
+        log_dict["t"] = self.t
+
+    @property
+    def _default_step_size(self):
+        # Essentially means
+        return None
+
+    @property
+    def step_value(self):
+        return self.t
+
+    @property
+    def dt(self):
+        """Current time step."""
+        return self._integrator.dt
+
+    @property
+    def t(self):
+        """Current time."""
+        return self._integrator.t
+
+    @t.setter
+    def t(self, t):
+        self._integrator.t = jnp.array(t, dtype=self._integrator.t)
+
+    @property
+    def t0(self):
+        """
+        The initial time set when the driver was created.
+        """
+        return self._t0
+
+    def __repr__(self):
+        return f"{type(self).__name__}(step_count={self.step_count}, t={self.t})"
+
+    def info(self, depth=0):
+        lines = [
+            "{}: {}".format(name, info(obj, depth=depth + 1))
+            for name, obj in [
+                ("generator     ", self._generator_repr),
+                ("integrator    ", self._integrator),
+                ("state         ", self.state),
+            ]
+        ]
+        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)
+
+    def ode(self, t=None, w=None):
+        r"""
+        Evaluates the TDVP equation of motion
+
+        .. math::
+
+            G(w) \dot w = \gamma F(w, t)
+
+        where :math:`G(w)` is the QGT, :math:`F(w, t)` the gradient of :code:`self.generator`
+        and :math:`\gamma` one of
+        :math:`\gamma = -1` (imaginary-time dynamics for :code:`MCState`),
+        :math:`\gamma = -i` (real-time dynamics for :code:`MCState`), or
+        :math:`\gamma = 1` (real-time dynamics for :code:`MCMixedState`).
+
+        Args:
+            t: Time (defaults to :code:`self.t`).
+            w: Variational parameters (defaults to :code:`self.state.parameters`).
+
+        Returns:
+            The time-derivative :math:`\dot w`.
+        """
+        if t is None:
+            t = self.t
+        if w is None:
+            w = self.state.parameters
+        return self._odefun(t, w)
+
+
+def qgt_norm(driver: TDVPSchmitt, x: PyTree):
+    """
+    Computes the norm induced by the QGT :math:`S`, i.e, :math:`x^\\dagger S x`.
+    """
+    y = driver._last_qgt @ x  # pylint: disable=protected-access
+    xc_dot_y = nk.jax.tree_dot(nk.jax.tree_conj(x), y)
+    return jnp.sqrt(jnp.real(xc_dot_y))
+
+
+@dispatch
+def odefun(state, driver, t, w, **kwargs):
+    # pylint: disable=unused-argument
+    raise NotImplementedError(f"odefun not implemented for {type(state)}")
+
+
+@partial(jax.jit, static_argnames=("n_samples"))
+def _impl(parameters, n_samples, E_loc, S, rhs_coeff, num_tol, svd_tol, snr_tol):
+    E = stats.statistics(E_loc)
+    ΔE_loc = E_loc.T.reshape(-1, 1) - E.mean
+
+    split_complex_params = S.mode != "holomorphic"
+    stack_jacobian = S.mode == "complex"
+
+    O = S.O / jnp.sqrt(n_samples)  # already divided by jnp.sqrt(n_s)
+    if stack_jacobian:
+        O = O.reshape(-1, 2, S.O.shape[-1])
+        O = O[:, 0, :] + 1j * O[:, 1, :]
+
+    Sd = S.to_dense()
+    ev, V = jnp.linalg.eigh(Sd)
+
+    OEdata = O.conj() * ΔE_loc
+    F = stats.sum(OEdata, axis=0)
+
+    Q = jnp.tensordot(V.conj().T, O.T, axes=1).T
+    QEdata = Q.conj() * ΔE_loc
+    rho = V.conj().T @ F
+
+    # plot
+    snr = jnp.abs(rho) * jnp.sqrt(n_samples) / jnp.sqrt(stats.var(QEdata, axis=0))
+
+    # Discard eigenvalues below numerical precision
+    ev_inv = jnp.where(jnp.abs(ev / ev[-1]) > num_tol, 1.0 / ev, 0.0)
+    # Set regularizer for singular value cutoff
+    regularizer = 1.0 / (1.0 + (svd_tol / jnp.abs(ev / ev[-1])) ** 6)
+    # if p is None:
+    # Construct a soft cutoff based on the SNR
+    regularizer2 = regularizer * (1.0 / (1.0 + (snr_tol / snr) ** 6))
+
+    # solve the linear system by hand
+    eta_p = ev_inv * regularizer2 * rhs_coeff * rho
+    # convert back to the parameter space
+    update = V @ eta_p
+
+    # remainder of the solution
+    rmd = jnp.linalg.norm(Sd.dot(update) - rhs_coeff * F) / jnp.linalg.norm(F)
+
+    y, unravel = tree_ravel(parameters)
+    if split_complex_params:
+        y, reassemble = vec_to_real(y)
+
+    update = update if jnp.iscomplexobj(y) else update.real
+    if split_complex_params:
+        update = reassemble(update)
+    update_tree = unravel(update)
+
+    # If parameters are real, then take only real part of the gradient (if it's complex)
+    dw = jax.tree_map(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
+        update_tree,
+        parameters,
+    )
+
+    return E, dw, rmd, snr
+
+
+@dispatch
+def odefun(state: MCState, self: TDVPSchmitt, t, w, *, stage=0):  # noqa: F811
+    # pylint: disable=protected-access
+
+    state.parameters = w
+    state.reset()
+
+    op_t = self.generator(t)
+
+    E_loc = state.local_estimators(op_t)
+
+    self._S = QGTJacobianDense(
+        state,
+        diag_shift=self.diag_shift,
+        holomorphic=self.holomorphic,
+        rescale_shift=self.rescale_shift,
+    )
+    self._loss_stats
+
+    self._loss_stats, self._dw, self._rmd, self._snr = _impl(
+        state.parameters,
+        state.n_samples,
+        E_loc,
+        self._S,
+        self._loss_grad_factor,
+        self.num_tol,
+        self.svd_tol,
+        self.snr_tol,
+    )
+
+    if stage == 0:  # TODO: This does not work with FSAL.
+        self._last_qgt = self._S
+
+    return self._dw
+
+
+@partial(jax.jit, static_argnums=(3, 4))
+def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, state_T):
+
+    forces = jax.tree_map(
+        lambda x, target: loss_grad_factor * x,
+        forces,
+        parameters,
+    )
+
+    forces = jax.tree_map(
+        lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
+        forces,
+        parameters,
+    )
+
+    return forces
+
+
+def odefun_host_callback(state, driver, *args, **kwargs):
+    """
+    Calls odefun through a host callback in order to make the rest of the
+    ODE solver jit-able.
+    """
+    if config.netket_experimental_disable_ode_jit:
+        return odefun(state, driver, *args, **kwargs)
+
+    result_shape = jax.tree_map(
+        lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
+        state.parameters,
+    )
+
+    return hcb.call(
+        lambda args_and_kw: odefun(state, driver, *args_and_kw[0], **args_and_kw[1]),
+        # pack args and kwargs together, since host_callback passes a single argument:
+        (args, kwargs),
+        result_shape=result_shape,
+    )
+    return odefun(state, driver, *args, **kwargs)

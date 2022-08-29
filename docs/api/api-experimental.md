@@ -104,7 +104,7 @@ or set the equivalent environment variable.
   :nosignatures:
 
   TDVP
-
+  driver.TDVPSchmitt
 ```
 
 ## ODE Integrators
