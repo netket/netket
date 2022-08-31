@@ -596,4 +596,3 @@ def odefun_host_callback(state, driver, *args, **kwargs):
         (args, kwargs),
         result_shape=result_shape,
     )
-    return odefun(state, driver, *args, **kwargs)
