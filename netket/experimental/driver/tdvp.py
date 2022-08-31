@@ -36,7 +36,7 @@ from netket.optimizer.qgt import QGTAuto
 from netket.utils import mpi
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
-from netket.vqs import VariationalState, VariationalMixedState, MCState
+from netket.vqs import VariationalState, VariationalMixedState, MCState, ExactState
 
 from netket.experimental.dynamics import RKIntegratorConfig
 from netket.experimental.dynamics._rk_solver_structures import (
@@ -523,7 +523,9 @@ def odefun(state, driver, t, w, **kwargs):
 
 
 @dispatch
-def odefun(state: MCState, driver: TDVP, t, w, *, stage=0):  # noqa: F811
+def odefun(  # noqa: F811
+    state: Union[MCState, ExactState], driver: TDVP, t, w, *, stage=0
+):
     # pylint: disable=protected-access
 
     state.parameters = w
