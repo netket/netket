@@ -19,7 +19,6 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-import jax.experimental.host_callback as hcb
 import numpy as np
 from tqdm import tqdm
 
@@ -33,7 +32,7 @@ from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
-from netket.utils import mpi
+from netket.utils import mpi, module_version
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState, VariationalMixedState, MCState, ExactState
@@ -43,6 +42,12 @@ from netket.experimental.dynamics._rk_solver_structures import (
     euclidean_norm,
     maximum_norm,
 )
+
+# TODO: remove the switch when we support only jax >= 0.3.17
+if module_version("jax") >= (0, 3, 17):
+    from jax import pure_callback
+else:
+    from jax.experimental.host_callback import call as pure_callback
 
 
 class TDVP(AbstractVariationalDriver):
@@ -215,7 +220,7 @@ class TDVP(AbstractVariationalDriver):
                 norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
                 # QGT norm is called via host callback since it accesses the driver
                 # TODO: make this also an hashablepartial on self to reduce recompilation
-                self._error_norm = lambda x: hcb.call(
+                self._error_norm = lambda x: pure_callback(
                     HashablePartial(qgt_norm, self),
                     x,
                     result_shape=jax.ShapeDtypeStruct((), norm_dtype),
@@ -592,9 +597,9 @@ def odefun_host_callback(state, driver, *args, **kwargs):
         state.parameters,
     )
 
-    return hcb.call(
+    return pure_callback(
         lambda args_and_kw: odefun(state, driver, *args_and_kw[0], **args_and_kw[1]),
-        # pack args and kwargs together, since host_callback passes a single argument:
+        # TODO: once we support only jax>0.3.17 pass directly args and kwargs
         (args, kwargs),
         result_shape=result_shape,
     )

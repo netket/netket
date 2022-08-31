@@ -18,6 +18,13 @@ from jax import numpy as jnp
 
 from netket.hilbert import Spin
 from netket.utils.dispatch import dispatch
+from netket.utils import module_version
+
+# TODO: remove the switch when we support only jax >= 0.3.17
+if module_version("jax") >= (0, 3, 17):
+    from jax import pure_callback
+else:
+    from jax.experimental.host_callback import call as pure_callback
 
 
 @dispatch
@@ -63,9 +70,7 @@ def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
         # if constrained and S != 1/2, then use a slow fallback algorithm
         # TODO: find better, faster way to smaple constrained arbitrary spaces.
         else:
-            from jax.experimental import host_callback as hcb
-
-            state = hcb.call(
+            state = pure_callback(
                 lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype),
                 key,
                 result_shape=jax.ShapeDtypeStruct(shape, dtype),

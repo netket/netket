@@ -18,6 +18,13 @@ from jax import numpy as jnp
 
 from netket.hilbert import Fock
 from netket.utils.dispatch import dispatch
+from netket.utils import module_version
+
+# TODO: remove the switch when we support only jax >= 0.3.17
+if module_version("jax") >= (0, 3, 17):
+    from jax import pure_callback
+else:
+    from jax.experimental.host_callback import call as pure_callback
 
 
 @dispatch
@@ -30,9 +37,7 @@ def random_state(hilb: Fock, key, batches: int, *, dtype=np.float32):
         return jnp.asarray(rs, dtype=dtype)
 
     else:
-        from jax.experimental import host_callback as hcb
-
-        state = hcb.call(
+        state = pure_callback(
             lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype),
             key,
             result_shape=jax.ShapeDtypeStruct(shape, dtype),

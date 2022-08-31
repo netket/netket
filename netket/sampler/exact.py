@@ -18,12 +18,18 @@ from functools import partial
 import jax
 from flax import linen as nn
 from jax import numpy as jnp
-from jax.experimental import host_callback as hcb
 
 from netket.nn import to_array
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, SeedT
+from netket.utils import module_version
+
+# TODO: remove the switch when we support only jax >= 0.3.17
+if module_version("jax") >= (0, 3, 17):
+    from jax import pure_callback
+else:
+    from jax.experimental.host_callback import call as pure_callback
 
 from .base import Sampler, SamplerState
 
@@ -113,7 +119,7 @@ class ExactSampler(Sampler):
         # For future investigators:
         # this will lead to a crash if numbers_to_state throws.
         # it throws if we feed it nans!
-        samples = hcb.call(
+        samples = pure_callback(
             lambda numbers: sampler.hilbert.numbers_to_states(numbers),
             numbers,
             result_shape=jax.ShapeDtypeStruct(
