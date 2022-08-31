@@ -75,7 +75,7 @@ This part of the API is not public, and can change without notice.
 
   chunk
   unchunk
-  chunk_vectorized
+  apply_chunked
   vmap_chunked
   vjp_chunked
 ```

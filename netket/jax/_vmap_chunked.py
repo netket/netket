@@ -73,7 +73,7 @@ def _parse_in_axes(in_axes):
     return in_axes, argnums
 
 
-def chunk_vectorized(f: Callable, in_axes=0, *, chunk_size: Optional[int]) -> Callable:
+def apply_chunked(f: Callable, in_axes=0, *, chunk_size: Optional[int]) -> Callable:
     """
     Takes an implicitly vmapped function over the axis 0 and uses scan to
     do the computations in smaller chunks over the 0-th axis of all input arguments.
@@ -112,7 +112,7 @@ def vmap_chunked(f: Callable, in_axes=0, *, chunk_size: Optional[int]) -> Callab
 
     .. code-block:: python
 
-        nk.jax.chunk_vectorized(jax.vmap(f, in_axes), in_axes, chunk_size)
+        nk.jax.apply_chunked(jax.vmap(f, in_axes), in_axes, chunk_size)
 
     Some limitations to `in_axes` apply.
 
