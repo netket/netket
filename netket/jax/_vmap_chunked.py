@@ -58,7 +58,7 @@ def _chunk_vmapped_function(vmapped_fun, chunk_size, argnums=0):
 
 
 def _parse_in_axes(in_axes):
-    
+
     if isinstance(in_axes, int):
         in_axes = (in_axes,)
 
