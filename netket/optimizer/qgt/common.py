@@ -19,6 +19,7 @@ from jax import numpy as jnp
 
 from netket.utils.types import PyTree
 from netket.utils.errors import ComplexDomainError
+from netket.jax.utils import RealImagTuple
 
 
 def check_valid_vector_type(x: PyTree, target: PyTree):
@@ -28,14 +29,11 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
     anyhow.
     """
 
-    def check(x, target):
+    def check(x, target, target_im=None):
         par_iscomplex = jnp.iscomplexobj(x)
 
         # Account for split real-imaginary part in Jacobian*** methods
-        if isinstance(target, tuple):
-            vec_iscomplex = True if len(target) == 2 else False
-        else:
-            vec_iscomplex = jnp.iscomplexobj(target)
+        vec_iscomplex = target_im is not None or jnp.iscomplexobj(target)
 
         if not par_iscomplex and vec_iscomplex:
             raise ComplexDomainError(
@@ -69,7 +67,10 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
             )
 
     try:
-        jax.tree_map(check, x, target)
+        if isinstance(target, RealImagTuple):
+            jax.tree_map(check, x, target.real, target.imag)
+        else:
+            jax.tree_map(check, x, target)
     except ValueError:
         # catches jax tree map errors
         pars_struct = jax.tree_map(lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), x)
