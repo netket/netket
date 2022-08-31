@@ -109,7 +109,7 @@ def QGTJacobianPyTree(
     )
 
     return QGTJacobianPyTreeT(
-        O=O, scale=scale, params=vstate.parameters, mode=mode, **kwargs
+        O=O, scale=scale, _params_structure=vstate.parameters, mode=mode, **kwargs
     )
 
 
@@ -136,9 +136,6 @@ class QGTJacobianPyTreeT(LinearOperator):
     i.e., the sqrt of the diagonal elements of the S matrix
     """
 
-    params: PyTree = Uninitialized
-    """Parameters of the network. Its only purpose is to represent its own shape when scale is None"""
-
     mode: str = struct.field(pytree_node=False, default=Uninitialized)
     """Differentiation mode:
         - "real": for real-valued R->R and C->R Ansätze, splits the complex inputs
@@ -148,6 +145,9 @@ class QGTJacobianPyTreeT(LinearOperator):
         - "holomorphic": for any Ansätze. Does not split complex values.
         - "auto": autoselect real or complex.
     """
+
+    _params_structure: PyTree = struct.field(default=Uninitialized)
+    """Parameters of the network. Its only purpose is to represent its own shape."""
 
     _in_solve: bool = struct.field(pytree_node=False, default=False)
     """Internal flag used to signal that we are inside the _solve method and matmul should
@@ -194,18 +194,18 @@ def _matmul(
 ) -> Union[PyTree, Array]:
     # Turn vector RHS into PyTree
     if hasattr(vec, "ndim"):
-        _, unravel = nkjax.tree_ravel(self.params)
+        _, unravel = nkjax.tree_ravel(self._params_structure)
         vec = unravel(vec)
         ravel = True
     else:
         ravel = False
 
+    check_valid_vector_type(self._params_structure, vec)
+
     # Real-imaginary split RHS in R→R and R→C modes
     reassemble = None
     if self.mode != "holomorphic" and not self._in_solve:
         vec, reassemble = nkjax.tree_to_real(vec)
-
-    check_valid_vector_type(self.params, vec)
 
     if self.scale is not None:
         vec = jax.tree_map(jnp.multiply, vec, self.scale)
@@ -231,13 +231,13 @@ def _solve(
     self: QGTJacobianPyTreeT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
 ) -> PyTree:
 
+    check_valid_vector_type(self._params_structure, y)
+
     # Real-imaginary split RHS in R→R and R→C modes
     if self.mode != "holomorphic":
         y, reassemble = nkjax.tree_to_real(y)
         if x0 is not None:
             x0, _ = nkjax.tree_to_real(x0)
-
-    check_valid_vector_type(self.params, y)
 
     if self.scale is not None:
         y = jax.tree_map(jnp.divide, y, self.scale)

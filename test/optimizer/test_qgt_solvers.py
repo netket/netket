@@ -27,7 +27,7 @@ from .. import common  # noqa: F401
 
 QGT_types = {}
 QGT_types["QGTOnTheFly"] = nk.optimizer.qgt.QGTOnTheFly
-# QGT_types["QGTJacobianDense"] = nk.optimizer.qgt.QGTJacobianDense
+QGT_types["QGTJacobianDense"] = nk.optimizer.qgt.QGTJacobianDense
 QGT_types["QGTJacobianPyTree"] = nk.optimizer.qgt.QGTJacobianPyTree
 
 QGT_objects = {}
