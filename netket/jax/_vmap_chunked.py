@@ -57,6 +57,24 @@ def _chunk_vmapped_function(vmapped_fun, chunk_size, argnums=0):
     return _fun
 
 
+def apply_chunked(f: Callable, in_axes=0, *, chunk_size: Optional[int]):
+    """
+    Takes a (explicitly or implicitly) vmapped function and uses scan to
+    do the computations in smaller chunks.
+    """
+    if isinstance(in_axes, int):
+        in_axes = (in_axes,)
+
+    if not set(in_axes).issubset((0, None)):
+        raise NotImplementedError("Only in_axes 0/None are currently supported")
+
+    argnums = tuple(
+        map(lambda ix: ix[0], filter(lambda ix: ix[1] is not None, enumerate(in_axes)))
+    )
+
+    return _chunk_vmapped_function(f, chunk_size, argnums)
+
+
 def vmap_chunked(f: Callable, in_axes=0, *, chunk_size: Optional[int]):
     """
     Behaves like jax.vmap but uses scan to chunk the computations in smaller chunks.
