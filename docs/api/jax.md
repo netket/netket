@@ -75,8 +75,9 @@ This part of the API is not public, and can change without notice.
 
   chunk
   unchunk
-  vjp_chunked
+  apply_chunked
   vmap_chunked
+  vjp_chunked
 ```
 
 
