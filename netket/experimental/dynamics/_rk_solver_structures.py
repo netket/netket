@@ -13,18 +13,40 @@
 # limitations under the License.
 
 from enum import IntFlag, auto
-from functools import partial
+from functools import partial, wraps
 from typing import Callable, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 
 import netket as nk
+from netket import config
 from netket.utils.mpi.primitives import mpi_all_jax
 from netket.utils.struct import dataclass, field
 from netket.utils.types import Array, PyTree
 
 from . import _rk_tableau as rkt
+
+
+def maybe_jax_jit(fun, *jit_args, **jit_kwargs):
+    """
+    Only jit if `config.netket_experimental_disable_ode_jit` is False.
+
+    This is used to disable jitting when this config is set. The switch is
+    performed at runtime so that the flag can be changed as desired.
+    """
+
+    # jit the function only once:
+    jitted_fun = jax.jit(fun, *jit_args, **jit_kwargs)
+
+    @wraps(fun)
+    def _maybe_jitted_fun(*args, **kwargs):
+        if config.netket_experimental_disable_ode_jit:
+            return fun(*args, **kwargs)
+        else:
+            return jitted_fun(*args, **kwargs)
+
+    return _maybe_jitted_fun
 
 
 class SolverFlags(IntFlag):
@@ -156,7 +178,7 @@ def propose_time_step(
     )
 
 
-@partial(jax.jit, static_argnames=["f", "norm_fn", "dt_limits"])
+@partial(maybe_jax_jit, static_argnames=["f", "norm_fn", "dt_limits"])
 def general_time_step_adaptive(
     tableau: rkt.TableauRKExplicit,
     f: Callable,
@@ -247,7 +269,7 @@ def general_time_step_adaptive(
     )
 
 
-@partial(jax.jit, static_argnames=["f"])
+@partial(maybe_jax_jit, static_argnames=["f"])
 def general_time_step_fixed(
     tableau: rkt.TableauRKExplicit,
     f: Callable,

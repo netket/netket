@@ -22,6 +22,8 @@ import numpy as np
 import netket as nk
 import netket.experimental as nkx
 
+from .. import common
+
 
 SEED = 214748364
 
@@ -108,18 +110,20 @@ def l4_norm(x):
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
 @pytest.mark.parametrize("integrator", adaptive_step_integrators)
 @pytest.mark.parametrize("propagation_type", ["real", "imag"])
-def test_one_adaptive_step(integrator, error_norm, propagation_type):
-    ha, vstate, _ = _setup_system(L=2)
-    te = nkx.TDVP(
-        ha,
-        vstate,
-        integrator,
-        qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
-        propagation_type=propagation_type,
-        error_norm=error_norm,
-    )
-    te.run(T=0.01, callback=_stop_after_one_step)
-    assert te.t > 0.0
+@pytest.mark.parametrize("disable_jit", [False, True])
+def test_one_adaptive_step(integrator, error_norm, propagation_type, disable_jit):
+    with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", disable_jit):
+        ha, vstate, _ = _setup_system(L=2)
+        te = nkx.TDVP(
+            ha,
+            vstate,
+            integrator,
+            qgt=nk.optimizer.qgt.QGTJacobianDense(holomorphic=True),
+            propagation_type=propagation_type,
+            error_norm=error_norm,
+        )
+        te.run(T=0.01, callback=_stop_after_one_step)
+        assert te.t > 0.0
 
 
 @pytest.mark.parametrize("integrator", all_integrators)

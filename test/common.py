@@ -1,9 +1,13 @@
 # File containing common commands for NetKet Test infrastructure
 
-import pytest
-import netket as nk
+from typing import Any
 
+from functools import partial
 import os
+
+import pytest
+
+import netket as nk
 
 
 def _is_true(x):
@@ -94,26 +98,32 @@ class netket_disable_mpi:
         nk.utils.mpi.primitives.n_nodes = self._orig_nodes
 
 
-class netket_experimental_fft_autocorrelation:
+class set_config:
     """
-    Temporarily enables the experimental fft autocorrelation logic
+    Temporarily changes the value of the configuration `name`.
 
     Example:
 
-    >>> with netket_experimental_fft_autocorrelation(True):
+    >>> with set_config("netket_experimental_disable_ode_jit", True):
     >>>     run_code
 
     """
 
-    def __init__(self, val):
-        self._value = val
+    def __init__(self, name: str, value: Any):
+        self._name = name.upper()
+        self._value = value
 
     def __enter__(self):
-        self._orig_value = nk.config.netket_experimental_fft_autocorrelation
-        nk.config.update("NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION", self._value)
+        self._orig_value = nk.config.FLAGS[self._name]
+        nk.config.update(self._name, self._value)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        nk.config.update("NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION", self._orig_value)
+        nk.config.update(self._name, self._orig_value)
+
+
+netket_experimental_fft_autocorrelation = partial(
+    set_config, "NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"
+)
 
 
 def hash_for_seed(obj):

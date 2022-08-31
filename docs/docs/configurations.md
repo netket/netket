@@ -89,6 +89,12 @@ Please keep in mind that all options related to experimental or internal functio
     (see [here](https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#autocorr) for a good
     discussion).
 
+* - `NETKET_EXPERIMENTAL_DISABLE_ODE_JIT`
+  - True/**[False]**
+  - yes
+  - Disables the jitting of the whole ode solver, mainly used within TDVP solvers.
+    The jitting is sometimes incompatible with GPU-based calculations, and on large calculations it gives negligible speedups so it might be beneficial to disable it.
+
 * - `NETKET_SPHINX_BUILD`
   - True/**[False]**
   - no

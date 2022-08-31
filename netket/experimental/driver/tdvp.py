@@ -24,6 +24,7 @@ import numpy as np
 from tqdm import tqdm
 
 import netket as nk
+from netket import config
 from netket.driver import AbstractVariationalDriver
 from netket.driver.abstract_variational_driver import _to_iterable
 from netket.driver.vmc_common import info
@@ -49,6 +50,15 @@ class TDVP(AbstractVariationalDriver):
     Variational time evolution based on the time-dependent variational principle which,
     when used with Monte Carlo sampling via :class:`netket.vqs.MCState`, is the time-dependent VMC
     (t-VMC) method.
+
+    .. note::
+        This TDVP Driver uses the time-integrators from the `nkx.dynamics` module, which are
+        automatically executed under a `jax.jit` context.
+
+        When running computations on GPU, this can lead to infinite hangs or extremely long
+        compilation times. In those cases, you might try setting the configuration variable
+        :py:`nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
+
     """
 
     def __init__(
@@ -198,15 +208,18 @@ class TDVP(AbstractVariationalDriver):
         elif error_norm == "maximum":
             self._error_norm = maximum_norm
         elif error_norm == "qgt":
-            w = self.state.parameters
-            norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
-            # QGT norm is called via host callback since it accesses the driver
-            # TODO: make this also an hashablepartial on self to reduce recompilation
-            self._error_norm = lambda x: hcb.call(
-                HashablePartial(qgt_norm, self),
-                x,
-                result_shape=jax.ShapeDtypeStruct((), norm_dtype),
-            )
+            if config.netket_experimental_disable_ode_jit:
+                self._error_norm = HashablePartial(qgt_norm, self)
+            else:
+                w = self.state.parameters
+                norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
+                # QGT norm is called via host callback since it accesses the driver
+                # TODO: make this also an hashablepartial on self to reduce recompilation
+                self._error_norm = lambda x: hcb.call(
+                    HashablePartial(qgt_norm, self),
+                    x,
+                    result_shape=jax.ShapeDtypeStruct((), norm_dtype),
+                )
         else:
             raise ValueError(
                 "error_norm must be a callable or one of 'euclidean', 'qgt', 'maximum',"
@@ -569,6 +582,9 @@ def odefun_host_callback(state, driver, *args, **kwargs):
     Calls odefun through a host callback in order to make the rest of the
     ODE solver jit-able.
     """
+    if config.netket_experimental_disable_ode_jit:
+        return odefun(state, driver, *args, **kwargs)
+
     result_shape = jax.tree_map(
         lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype),
         state.parameters,
