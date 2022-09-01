@@ -75,13 +75,6 @@ def tree_size(tree: PyTree) -> int:
     return sum(tree_leaves(tree_map(lambda x: x.size, tree)))
 
 
-
-def is_real(x):
-    """
-    Returns True if x has a floating point real dtype
-    """
-    return jnp.issubdtype(x.dtype, jnp.floating)
-
 def tree_leaf_iscomplex(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has complex dtype.
@@ -93,7 +86,7 @@ def tree_leaf_isreal(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has real dtype.
     """
-    return any(jax.tree_util.tree_leaves(jax.tree_map(is_real, pars)))
+    return any(jax.tree_util.tree_leaves(jax.tree_map(jnp.isrealobj, pars)))
 
 
 def is_complex_dtype(typ):
