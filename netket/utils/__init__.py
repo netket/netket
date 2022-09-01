@@ -19,6 +19,7 @@ from . import struct
 from . import numbers
 from . import types
 from . import float
+from . import errors
 
 from .array import HashableArray
 from .partial import HashablePartial
@@ -46,5 +47,7 @@ from . import mpi
 from . import _dependencies_check
 
 _hide_submodules(
-    __name__, remove_self=False, ignore=["numbers", "types", "float", "dispatch"]
+    __name__,
+    remove_self=False,
+    ignore=["numbers", "types", "float", "dispatch", "errors"],
 )

@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .qgt_jacobian_dense import QGTJacobianDense
-from .qgt_jacobian_pytree import QGTJacobianPyTree
-from .qgt_onthefly import QGTOnTheFly
 
-from .default import QGTAuto
+class ComplexDomainError(Exception):
+    """
+    Error to be used when a complex value is used where a real value
+    was expected.
+    """
 
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+    pass

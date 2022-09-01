@@ -18,6 +18,7 @@ import jax
 from jax import numpy as jnp
 
 from netket.utils.types import PyTree
+from netket.utils.errors import ComplexDomainError
 
 
 def check_valid_vector_type(x: PyTree, target: PyTree):
@@ -37,15 +38,48 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
             vec_iscomplex = jnp.iscomplexobj(target)
 
         if not par_iscomplex and vec_iscomplex:
-            raise TypeError(
+            raise ComplexDomainError(
                 dedent(
                     """
                     Cannot multiply the (real part of the) QGT by a complex vector.
                     You should either take the real part of the vector, or perform
                     the multiplication against the real and imaginary part of the
                     vector separately and then recomposing the two.
+
+                    This is happening because you have real parameters or a non-holomorphic
+                    complex wave function. In this case, the Quantum Geometric Tensor object
+                    only stores the real part of the QGT.
+
+                    If you were executing a matmul `G@vec`, try using:
+
+                       >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+                       >>> G@vec_real
+
+                    If you used the QGT in a linear solver, try using:
+
+                       >>> vec_real = jax.tree_map(lambda x: x.real, vec)
+                       >>> G.solve(linear_solver, vec_real)
+
+                    to fix this error.
+
+                    Be careful whether you need the real or imaginary part
+                    of the vector in your equations!
                     """
                 )
             )
 
-    jax.tree_map(check, x, target)
+    try:
+        jax.tree_map(check, x, target)
+    except ValueError:
+        # catches jax tree map errors
+        pars_struct = jax.tree_map(lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), x)
+        vec_struct = jax.tree_map(
+            lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), target
+        )
+
+        raise ValueError(
+            "PyTree mismatch: Parameters have shape \n\n"
+            f"{pars_struct}\n\n"
+            "but the vector has shape \n\n"
+            f"{vec_struct}\n\n"
+        )

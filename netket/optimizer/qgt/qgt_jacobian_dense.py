@@ -25,6 +25,7 @@ import netket.jax as nkjax
 
 from ..linear_operator import LinearOperator, Uninitialized
 
+from .common import check_valid_vector_type
 from .qgt_jacobian_dense_logic import prepare_centered_oks, vec_to_real
 from .qgt_jacobian_common import choose_jacobian_mode
 
@@ -100,7 +101,13 @@ def QGTJacobianDense(
         chunk_size,
     )
 
-    return QGTJacobianDenseT(O=O, scale=scale, mode=mode, **kwargs)
+    pars_struct = jax.tree_map(
+        lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), vstate.parameters
+    )
+
+    return QGTJacobianDenseT(
+        O=O, scale=scale, mode=mode, _params_structure=pars_struct, **kwargs
+    )
 
 
 @struct.dataclass
@@ -141,6 +148,8 @@ class QGTJacobianDenseT(LinearOperator):
     """Internal flag used to signal that we are inside the _solve method and matmul should
     not take apart into real and complex parts the other vector"""
 
+    _params_structure: PyTree = struct.field(pytree_node=False, default=Uninitialized)
+
     def __matmul__(self, vec: Union[PyTree, jnp.ndarray]) -> Union[PyTree, jnp.ndarray]:
         return _matmul(self, vec)
 
@@ -174,7 +183,8 @@ def _matmul(
 ) -> Union[PyTree, jnp.ndarray]:
 
     unravel = None
-    if not hasattr(vec, "ndim"):
+    if not hasattr(vec, "ndim") and not self._in_solve:
+        check_valid_vector_type(self._params_structure, vec)
         vec, unravel = nkjax.tree_ravel(vec)
 
     # Real-imaginary split RHS in R→R and R→C modes
@@ -206,6 +216,9 @@ def _matmul(
 def _solve(
     self: QGTJacobianDenseT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
 ) -> PyTree:
+    if not hasattr(y, "ndim"):
+        check_valid_vector_type(self._params_structure, y)
+
     # Ravel input PyTrees, record unravelling function too
     y, unravel = nkjax.tree_ravel(y)
 
