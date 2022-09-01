@@ -2,11 +2,9 @@ import jax
 import jax.numpy as jnp
 
 from jax import linear_util as lu
-from jax.api_util import argnums_partial as _argnums_partial
+from jax.api_util import argnums_partial
 
-from functools import partial, wraps
-
-from netket.utils import module_version
+from functools import partial
 
 _tree_add = partial(jax.tree_map, jax.lax.add)
 _tree_zeros_like = partial(jax.tree_map, lambda x: jnp.zeros(x.shape, dtype=x.dtype))
@@ -18,19 +16,6 @@ def _multimap(f, *args):
         return tuple(map(lambda a: f(*a), zip(*args)))
     except TypeError:
         return f(*args)
-
-
-# TODO: When minimum jax is v0.2.22, remove this function and import directly
-# argnums_partial.
-# This works around onled argnums_partial implementations that did not have
-# require_static_args_hashable kwarg (which was implicitly False).
-if module_version(jax) >= (0, 2, 22):
-    argnums_partial = _argnums_partial
-else:
-
-    @wraps(_argnums_partial)
-    def argnums_partial(*args, require_static_args_hashable=True, **kwargs):
-        return _argnums_partial(*args, **kwargs)
 
 
 def scan_append_reduce(f, x, append_cond, op=_tree_add):

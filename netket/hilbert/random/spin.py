@@ -18,6 +18,7 @@ from jax import numpy as jnp
 
 from netket.hilbert import Spin
 from netket.utils.dispatch import dispatch
+from netket.utils import pure_callback
 
 
 @dispatch
@@ -63,12 +64,10 @@ def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
         # if constrained and S != 1/2, then use a slow fallback algorithm
         # TODO: find better, faster way to smaple constrained arbitrary spaces.
         else:
-            from jax.experimental import host_callback as hcb
-
-            state = hcb.call(
+            state = pure_callback(
                 lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype),
+                jax.ShapeDtypeStruct(shape, dtype),
                 key,
-                result_shape=jax.ShapeDtypeStruct(shape, dtype),
             )
 
             return state
@@ -77,7 +76,7 @@ def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
 # TODO: could numba-jit this
 def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
     out = np.full((n_batches, hilb.size), -round(2 * hilb._s), dtype=dtype)
-    rgen = np.random.default_rng(rngkey)
+    rgen = np.random.default_rng(np.asarray(rngkey))
 
     for b in range(n_batches):
         sites = list(range(hilb.size))

@@ -18,6 +18,7 @@ from jax import numpy as jnp
 
 from netket.hilbert import Fock
 from netket.utils.dispatch import dispatch
+from netket.utils import pure_callback
 
 
 @dispatch
@@ -30,12 +31,10 @@ def random_state(hilb: Fock, key, batches: int, *, dtype=np.float32):
         return jnp.asarray(rs, dtype=dtype)
 
     else:
-        from jax.experimental import host_callback as hcb
-
-        state = hcb.call(
+        state = pure_callback(
             lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype),
+            jax.ShapeDtypeStruct(shape, dtype),
             key,
-            result_shape=jax.ShapeDtypeStruct(shape, dtype),
         )
 
         return state
@@ -43,7 +42,7 @@ def random_state(hilb: Fock, key, batches: int, *, dtype=np.float32):
 
 def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
     out = np.zeros((n_batches, hilb.size), dtype=dtype)
-    rgen = np.random.default_rng(rngkey)
+    rgen = np.random.default_rng(np.asarray(rngkey))
 
     for b in range(n_batches):
         sites = list(range(hilb.size))
