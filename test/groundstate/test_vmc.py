@@ -161,7 +161,7 @@ def central_diff_grad(func, x, eps, *args):
     for i in range(len(x)):
         assert not np.any(np.isnan(x + epsd))
         grad_r = 0.5 * (func(x + epsd, *args) - func(x - epsd, *args))
-        if nk.jax.is_complex(x):
+        if jnp.iscomplexobj(x):
             grad_i = 0.5 * (func(x + 1j * epsd, *args) - func(x - 1j * epsd, *args))
             grad[i] = 0.5 * grad_r + 0.5j * grad_i
         else:

@@ -35,8 +35,8 @@ def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorph
             raise ValueError(
                 dedent(
                     """
-                A function with real parameters cannot be holomorphic. 
-                
+                A function with real parameters cannot be holomorphic.
+
                 Please remove the kw-arg `holomorphic=True`.
                 """
                 )
@@ -55,7 +55,7 @@ def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorph
             )
             mode = "holomorphic"
     else:
-        complex_output = nkjax.is_complex(
+        complex_output = jax.numpy.iscomplexobj(
             jax.eval_shape(
                 apply_fun,
                 {"params": pars, **model_state},

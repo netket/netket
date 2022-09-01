@@ -206,7 +206,7 @@ def _to_dense(self: QGTOnTheFlyT) -> jnp.ndarray:
     else:
         out = jax.vmap(lambda x: self @ x, in_axes=0)(I)
 
-    if nkjax.is_complex(out):
+    if jnp.iscomplexobj(out):
         out = out.T
 
     return out

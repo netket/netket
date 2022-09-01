@@ -45,7 +45,7 @@ def vec_to_real(vec: Array) -> Tuple[Array, Callable]:
     Args:
         vec: a dense vector
     """
-    if nkjax.is_complex(vec):
+    if jnp.iscomplexobj(vec):
         out, reassemble = nkjax.tree_to_real(vec)
         out = jnp.concatenate([out.real, out.imag], axis=0)
 

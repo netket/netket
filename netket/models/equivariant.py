@@ -26,7 +26,7 @@ from netket.utils import HashableArray, warn_deprecation, deprecate_dtype
 from netket.utils.types import NNInitFunc
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
-from netket.jax import logsumexp_cplx, is_complex, is_complex_dtype
+from netket.jax import logsumexp_cplx, is_complex_dtype
 from netket.nn.activation import reim_selu
 from netket.nn.symmetric_linear import (
     DenseSymmMatrix,
@@ -708,7 +708,7 @@ def GCNN(
         characters = HashableArray(np.ones(len(np.asarray(sg))))
     else:
         if (
-            not is_complex(characters)
+            not jnp.iscomplexobj(characters)
             and not is_complex_dtype(param_dtype)
             and not complex_output
             and jnp.any(characters < 0)

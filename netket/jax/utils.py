@@ -75,12 +75,6 @@ def tree_size(tree: PyTree) -> int:
     return sum(tree_leaves(tree_map(lambda x: x.size, tree)))
 
 
-def is_complex(x):
-    """
-    Returns True if x has a complex dtype
-    """
-    return jax.numpy.iscomplexobj(x)
-
 
 def is_real(x):
     """
@@ -88,12 +82,11 @@ def is_real(x):
     """
     return jnp.issubdtype(x.dtype, jnp.floating)
 
-
 def tree_leaf_iscomplex(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has complex dtype.
     """
-    return any(jax.tree_util.tree_leaves(jax.tree_map(is_complex, pars)))
+    return any(jax.tree_util.tree_leaves(jax.tree_map(jnp.iscomplexobj, pars)))
 
 
 def tree_leaf_isreal(pars: PyTree) -> bool:
@@ -105,14 +98,20 @@ def tree_leaf_isreal(pars: PyTree) -> bool:
 
 def is_complex_dtype(typ):
     """
-    Returns True if typ is a complex dtype
+    Returns True if typ is a complex dtype.
+
+    This is almost equivalent to `jnp.iscomplexobj` but also handles types such as
+    `float`, `complex` and `int`, which are used throught netket.
     """
     return jnp.issubdtype(typ, jnp.complexfloating)
 
 
 def is_real_dtype(typ):
     """
-    Returns True if typ is a floating real dtype
+    Returns True if typ is a floating real dtype.
+
+    This is almost equivalent to `jnp.isrealobj` but also handles types such as
+    `float`, `complex` and `int`, which are used throught netket.
     """
     return jnp.issubdtype(typ, jnp.floating)
 
