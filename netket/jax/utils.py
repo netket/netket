@@ -75,44 +75,36 @@ def tree_size(tree: PyTree) -> int:
     return sum(tree_leaves(tree_map(lambda x: x.size, tree)))
 
 
-def is_complex(x):
-    """
-    Returns True if x has a complex dtype
-    """
-    return jnp.issubdtype(x.dtype, jnp.complexfloating)
-
-
-def is_real(x):
-    """
-    Returns True if x has a floating point real dtype
-    """
-    return jnp.issubdtype(x.dtype, jnp.floating)
-
-
 def tree_leaf_iscomplex(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has complex dtype.
     """
-    return any(jax.tree_util.tree_leaves(jax.tree_map(is_complex, pars)))
+    return any(jax.tree_util.tree_leaves(jax.tree_map(jnp.iscomplexobj, pars)))
 
 
 def tree_leaf_isreal(pars: PyTree) -> bool:
     """
     Returns true if at least one leaf in the tree has real dtype.
     """
-    return any(jax.tree_util.tree_leaves(jax.tree_map(is_real, pars)))
+    return any(jax.tree_util.tree_leaves(jax.tree_map(jnp.isrealobj, pars)))
 
 
 def is_complex_dtype(typ):
     """
-    Returns True if typ is a complex dtype
+    Returns True if typ is a complex dtype.
+
+    This is almost equivalent to `jnp.iscomplexobj` but also handles types such as
+    `float`, `complex` and `int`, which are used throught netket.
     """
     return jnp.issubdtype(typ, jnp.complexfloating)
 
 
 def is_real_dtype(typ):
     """
-    Returns True if typ is a floating real dtype
+    Returns True if typ is a floating real dtype.
+
+    This is almost equivalent to `jnp.isrealobj` but also handles types such as
+    `float`, `complex` and `int`, which are used throught netket.
     """
     return jnp.issubdtype(typ, jnp.floating)
 
@@ -242,7 +234,13 @@ class RealImagTuple(tuple):
     Behaves like a regular tuple.
     """
 
-    pass
+    @property
+    def real(self):
+        return self[0]
+
+    @property
+    def imag(self):
+        return self[1]
 
 
 register_pytree_node(
@@ -252,31 +250,23 @@ register_pytree_node(
 )
 
 
-def _complex_to_real(x):
-    if jnp.iscomplexobj(x):
-        return RealImagTuple((x.real, x.imag))
-    else:
-        return x
-
-
-def _real_to_complex(x):
-    # jax.lax.complex would convert scalars to arrays
-    _complex = lambda re, im: re + 1j * im
-    if isinstance(x, RealImagTuple):
-        return _complex(*x)
-    else:
-        return x
-
-
 def _tree_to_real(x):
-    return jax.tree_map(_complex_to_real, x)
+    if tree_leaf_iscomplex(x):
+        # TODO find a way to make it a nop?
+        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
+        r = jax.tree_map(lambda x: x.real if jnp.iscomplexobj(x) else x, x)
+        i = jax.tree_map(lambda x: x.imag if jnp.iscomplexobj(x) else None, x)
+        return RealImagTuple((r, i))
+    else:
+        return x
 
 
 def _tree_to_real_inverse(x):
-    # undoes _tree_to_real
-    return jax.tree_map(
-        _real_to_complex, x, is_leaf=lambda x: isinstance(x, RealImagTuple)
-    )
+    if isinstance(x, RealImagTuple):
+        # not using jax.lax.complex because it would convert scalars to arrays
+        return jax.tree_map(lambda re, im: re + 1j * im if im is not None else re, *x)
+    else:
+        return x
 
 
 def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:

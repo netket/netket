@@ -13,13 +13,13 @@
 # limitations under the License.
 
 from typing import Callable, Tuple, Any, Union, Sequence
-
 import operator
 
 import jax
+import jax.numpy as jnp
 from jax.util import safe_map
 
-from .utils import is_complex, tree_leaf_iscomplex, eval_shape
+from .utils import tree_leaf_iscomplex, eval_shape
 
 map = safe_map
 
@@ -138,7 +138,7 @@ def value_and_grad(
 
         # only check if derivable arguments are complex
         if tree_leaf_iscomplex([args[i] for i in _args_iterable]):
-            if is_complex(out_shape):  # C -> C
+            if jnp.iscomplexobj(out_shape):  # C -> C
                 return jax.value_and_grad(
                     fun,
                     argnums=argnums,
@@ -149,7 +149,7 @@ def value_and_grad(
             else:  # C -> R
                 raise RuntimeError("C->R function detected, but not supported.")
         else:
-            if is_complex(out_shape):  # R -> C
+            if jnp.iscomplexobj(out_shape):  # R -> C
 
                 def grad_rc(*args, **kwargs):
                     if has_aux:

@@ -16,7 +16,6 @@ from netket.utils import HashablePartial
 
 from .utils import (
     tree_ravel,
-    is_complex,
     is_complex_dtype,
     tree_size,
     eval_shape,

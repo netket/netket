@@ -33,53 +33,6 @@ from .qgt_jacobian_pytree_logic import (
 from netket.jax.utils import RealImagTuple
 
 
-# Utilities for splitting real and imaginary part
-def _to_re(x):
-    if jnp.iscomplexobj(x):
-        return x.real
-        # TODO find a way to make it a nop?
-        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
-    else:
-        return x
-
-
-def _to_im(x):
-    if jnp.iscomplexobj(x):
-        return x.imag
-        # TODO find a way to make it a nop?
-        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
-    else:
-        return None
-
-
-def _tree_to_reim(x):
-    return (jax.tree_map(_to_re, x), jax.tree_map(_to_im, x))
-
-
-def _tree_reassemble_complex(x, target, fun=_tree_to_reim):
-    (res,) = jax.linear_transpose(fun, target)(x)
-    return nkjax.tree_conj(res)
-
-
-# This function differs from tree_to_real because once ravelled
-# the real parts are all contiguous and then stacked on top of
-# the complex parts.
-def tree_to_reim(pytree: PyTree) -> Tuple[PyTree, Callable]:
-    """Replace the PyTree with a tuple of PyTrees with the same
-    structure but containing only the real and imaginary part
-    of the leaves. Real leaves are not duplicated.
-
-    Args:
-      pytree: a pytree to convert to real
-
-    Returns:
-      A pair where the first element is the tuple of pytrees,
-      and the second element is a callable for converting back the tuple of
-      pytrees to a complex pytree of the same structure as the input pytree.
-    """
-    return _tree_to_reim(pytree), partial(_tree_reassemble_complex, target=pytree)
-
-
 def vec_to_real(vec: Array) -> Tuple[Array, Callable]:
     """
     If the input vector is real, splits the vector into real
@@ -92,24 +45,21 @@ def vec_to_real(vec: Array) -> Tuple[Array, Callable]:
     Args:
         vec: a dense vector
     """
-    out, reassemble = nkjax.tree_to_real(vec)
-
-    if nkjax.is_complex(vec):
-        re, im = out
-
-        out = jnp.concatenate([re, im], axis=0)
+    if jnp.iscomplexobj(vec):
+        out, reassemble = nkjax.tree_to_real(vec)
+        out = jnp.concatenate([out.real, out.imag], axis=0)
 
         def reassemble_concat(x):
             x = RealImagTuple(jnp.split(x, 2, axis=0))
             return reassemble(x)
 
+        return out, reassemble_concat
+
     else:
-        reassemble_concat = reassemble
-
-    return out, reassemble_concat
+        return vec, lambda x: x
 
 
-#  TODO thos 3 functions are the same as those in qgt_jac_pytree_logic.py
+# TODO those 3 functions are the same as those in qgt_jac_pytree_logic.py
 # but without the vmap.
 # we should cleanup and de-duplicate the code.
 
@@ -274,7 +224,7 @@ def prepare_centered_oks(
     # Stored as contiguous real stacked on top of contiguous imaginary (SOA)
     if split_complex_params:
         # doesn't do anything if the params are already real
-        params, reassemble = tree_to_reim(params)
+        params, reassemble = nkjax.tree_to_real(params)
 
         def f(W, σ):
             return forward_fn(reassemble(W), σ)

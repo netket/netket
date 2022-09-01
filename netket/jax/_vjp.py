@@ -20,7 +20,7 @@ from jax import numpy as jnp
 from jax.tree_util import tree_map
 
 
-from .utils import is_complex, tree_leaf_iscomplex, eval_shape
+from .utils import tree_leaf_iscomplex, eval_shape
 
 
 # _grad_CC, _RR and _RC are the chunked gradient functions for machines going
@@ -65,7 +65,7 @@ def vjp_rr(
         """
         function computing the vjp product for a R->R function.
         """
-        if not is_complex(ȳ):
+        if not jnp.iscomplexobj(ȳ):
             out = _vjp_fun(jnp.asarray(ȳ, dtype=primals_out.dtype))
         else:
             out_r = _vjp_fun(jnp.asarray(ȳ.real, dtype=primals_out.dtype))
@@ -149,12 +149,12 @@ def vjp(
     out_shape = eval_shape(fun, *primals, has_aux=has_aux)
 
     if tree_leaf_iscomplex(primals):
-        if is_complex(out_shape):  # C -> C
+        if jnp.iscomplexobj(out_shape):  # C -> C
             return vjp_cc(fun, *primals, has_aux=has_aux, conjugate=conjugate)
         else:  # C -> R
             return vjp_cc(fun, *primals, has_aux=has_aux, conjugate=conjugate)
     else:
-        if is_complex(out_shape):  # R -> C
+        if jnp.iscomplexobj(out_shape):  # R -> C
             return vjp_rc(fun, *primals, has_aux=has_aux, conjugate=conjugate)
         else:  # R -> R
             return vjp_rr(fun, *primals, has_aux=has_aux, conjugate=conjugate)
