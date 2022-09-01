@@ -47,25 +47,23 @@ def check_valid_vector_type(x: PyTree, target: PyTree):
                     vector separately and then recomposing the two.
 
                     This is happening because you have real parameters or a non-holomorphic
-                    complex wavefunction. In this case, the Quantum Geometric Tensor is
-                    actually only the real part of it.
+                    complex wave function. In this case, the Quantum Geometric Tensor object
+                    only stores the real part of the QGT.
 
                     If you were executing a matmul `G@vec`, try using:
 
                        >>> vec_real = jax.tree_map(lambda x: x.real, vec)
                        >>> G@vec_real
 
-                    or
+                    If you used the QGT in a linear solver, try using:
 
                        >>> vec_real = jax.tree_map(lambda x: x.real, vec)
                        >>> G.solve(linear_solver, vec_real)
 
                     to fix this error.
 
-                    NOTE!!!
-                    You probably should pay attention whever you need the real or imaginary part
+                    Be careful whether you need the real or imaginary part
                     of the vector in your equations!
-
                     """
                 )
             )
