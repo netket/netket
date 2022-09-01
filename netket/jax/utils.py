@@ -258,44 +258,21 @@ register_pytree_node(
 )
 
 
-def _to_re(x):
-    if jnp.iscomplexobj(x):
-        return x.real
-        # TODO find a way to make it a nop?
-        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
-    else:
-        return x
-
-
-def _to_im(x):
-    if jnp.iscomplexobj(x):
-        return x.imag
-        # TODO find a way to make it a nop?
-        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
-    else:
-        return None
-
-
 def _tree_to_real(x):
     if tree_leaf_iscomplex(x):
-        r = jax.tree_map(_to_re, x)
-        i = jax.tree_map(_to_im, x)
+        # TODO find a way to make it a nop?
+        # return jax.vmap(lambda y: jnp.array((y.real, y.imag)))(x)
+        r = jax.tree_map(lambda x: x.real if jnp.iscomplexobj(x) else x, x)
+        i = jax.tree_map(lambda x: x.imag if jnp.iscomplexobj(x) else None, x)
         return RealImagTuple((r, i))
     else:
         return x
 
 
-def _reim_to_complex_single(re, im):
-    # jax.lax.complex would convert scalars to arrays
-    if im is not None:
-        return re + 1j * im
-    else:
-        return re
-
-
 def _tree_to_real_inverse(x):
     if isinstance(x, RealImagTuple):
-        return jax.tree_map(_reim_to_complex_single, *x)
+        # not using jax.lax.complex because it would convert scalars to arrays
+        return jax.tree_map(lambda re, im: re + 1j * im if im is not None else re, *x)
     else:
         return x
 
