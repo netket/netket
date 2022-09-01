@@ -32,6 +32,7 @@ from .deprecation import (
     deprecated,
     deprecated_new_name,
     deprecate_dtype,
+    pure_callback,
 )
 from .moduletools import _hide_submodules, rename_class, auto_export as _auto_export
 from .version_check import module_version

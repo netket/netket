@@ -23,13 +23,7 @@ from netket.nn import to_array
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, SeedT
-from netket.utils import module_version
-
-# TODO: remove the switch when we support only jax >= 0.3.17
-if module_version("jax") >= (0, 3, 17):
-    from jax import pure_callback
-else:
-    from jax.experimental.host_callback import call as pure_callback
+from netket.utils import pure_callback
 
 from .base import Sampler, SamplerState
 
@@ -121,11 +115,11 @@ class ExactSampler(Sampler):
         # it throws if we feed it nans!
         samples = pure_callback(
             lambda numbers: sampler.hilbert.numbers_to_states(numbers),
-            numbers,
-            result_shape=jax.ShapeDtypeStruct(
+            jax.ShapeDtypeStruct(
                 (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
                 jnp.float64,
             ),
+            numbers,
         )
         samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
             chain_length, sampler.n_chains_per_rank, sampler.hilbert.size
