@@ -76,7 +76,7 @@ def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
 # TODO: could numba-jit this
 def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
     out = np.full((n_batches, hilb.size), -round(2 * hilb._s), dtype=dtype)
-    rgen = np.random.default_rng(rngkey)
+    rgen = np.random.default_rng(np.asarray(rngkey))
 
     for b in range(n_batches):
         sites = list(range(hilb.size))

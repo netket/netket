@@ -42,7 +42,7 @@ def random_state(hilb: Fock, key, batches: int, *, dtype=np.float32):
 
 def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
     out = np.zeros((n_batches, hilb.size), dtype=dtype)
-    rgen = np.random.default_rng(rngkey)
+    rgen = np.random.default_rng(np.asarray(rngkey))
 
     for b in range(n_batches):
         sites = list(range(hilb.size))
