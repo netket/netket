@@ -60,6 +60,7 @@ def test_expect():
     np.testing.assert_allclose(0.1975164, sol.mean, atol=10 ** (-3))
     np.testing.assert_allclose(-0.140256, O_grad, atol=10 ** (-3))
 
+
 def test_expect_chunked():
     vs_continuous.chunk_size = 100
     vs_continuous2.chunk_size = 100
