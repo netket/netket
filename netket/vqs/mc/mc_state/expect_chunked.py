@@ -59,7 +59,7 @@ def _local_continuous_kernel(kernel, logpsi, pars, σ, args, *, chunk_size=None)
     def _kernel(σ):
         return kernel(logpsi, pars, σ, args)
 
-    return nkjax.vmap_chunked(_kernel, in_axes=0, chunk_size=chunk_size)(σ)
+    return nkjax.apply_chunked(_kernel, in_axes=0, chunk_size=chunk_size)(σ)
 
 
 @dispatch
