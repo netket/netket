@@ -18,25 +18,13 @@ import jax as _jax
 import jaxlib as _jaxlib
 import numpy as _np
 
-# TODO: remove when jaxlib 0.1.61 is required and M1 jax/netket runs on m1 natively.
-# compatibility with jaxlib<=0.1.61
-# we don't really support this old jaxlib, because previous
-# versions had bugs and dont work with mpi4jax, but some people
-# do use that because of old computer without AVX so...
-# eventually delete this.
-try:
-    _DeviceArray = _jaxlib.xla_extension.DeviceArray
-except AttributeError:
-    _DeviceArray = _jax.interpreters.xla._DeviceArray
-
-
 PRNGKeyT = Any
 SeedT = Union[int, PRNGKeyT]
 
 Shape = Sequence[int]
 DType = Any  # this could be a real type?
 
-Array = Union[_np.ndarray, _DeviceArray, _jax.core.Tracer]
+Array = Union[_np.ndarray, _jaxlib.xla_extension.DeviceArray, _jax.core.Tracer]
 ArrayLike = Any  # Objects that are valid inputs to (np|jnp).asarray.
 
 NNInitFunc = Callable[[PRNGKeyT, Shape, DType], Array]
