@@ -49,7 +49,7 @@ Sx = sum([nk.operator.spin.sigmax(hi, i) for i in range(L)])
 
 # Run the optimization for 300 iterations to determine the ground state, used as
 # initial state of the time-evolution
-gs.run(n_iter=300, out="example_ising1d_GS", obs={"Sx": Sx})
+# gs.run(n_iter=300, out="example_ising1d_GS", obs={"Sx": Sx})
 
 # Create integrator for time propagation
 integrator = nkx.dynamics.RK23(dt=0.01, adaptive=True, rtol=1e-3, atol=1e-3)
