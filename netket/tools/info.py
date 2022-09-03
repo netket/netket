@@ -56,7 +56,7 @@ def info():
     the environment has been set up correctly.
     """
     print("====================================================")
-    print("==         NetKet Diagnostic Informations         ==")
+    print("==         NetKet Diagnostic Information          ==")
     print("====================================================")
 
     # try to import version without import netket itself
@@ -73,7 +73,7 @@ def info():
     print()
 
     # Try to detect platform
-    print("# Host informations")
+    print("# Host information")
     printfmt("System      ", platform.platform(), indent=1)
     printfmt("Architecture", platform.machine(), indent=1)
 

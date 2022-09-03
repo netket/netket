@@ -335,7 +335,7 @@ def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):
     as first argument and the leafs of tree2 as second argument
     Any additional argument after the first two is forwarded to the function call.
 
-    This is usefull e.g. to sum the leafs of two trees
+    This is useful e.g. to sum the leafs of two trees
 
     Args:
         fun: the function to apply to all leafs

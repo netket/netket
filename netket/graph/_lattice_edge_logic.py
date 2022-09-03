@@ -155,7 +155,7 @@ def get_custom_edges(
             Every tuple must contain two sublattice indices (integers), a distance vector
             and can optionally include an integer to represent the color of that edge.
 
-            Check the docstring of `nk.graph.Lattice` for more informations.
+            Check the docstring of `nk.graph.Lattice` for more information.
             """
             )
         )

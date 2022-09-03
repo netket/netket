@@ -192,7 +192,7 @@ Common options for the Hilbert space are {class}`~nk.hilbert.Spin`,  {class}`~nk
 Those classes are contained in the [Hilbert submodule](hilbert.md).
 
 The [operator sub-module](netket_operator_api) contains several pre-built hamiltonian, such as {class}`~nk.operator.Ising` and {class}`~nk.operator.Bose-Hubbard`, but you can also build the operators yourself by summing all the local terms. 
-See the [Operators](operator.md) documentation for more informations.
+See the [Operators](operator.md) documentation for more information.
 
 ```python
 ma = nk.models.RBM(alpha=1, param_dtype=float)
@@ -202,7 +202,7 @@ sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 Then, one must chose the model to use as a Neural Quantum State. Netket provides
 a few pre-built models in the [Models sub-module](netket_models_api).
-Netket models are simply [Flax] modules: check out the [defining custom models section](custom-models) for more informations on how to define or use custom models.
+Netket models are simply [Flax] modules: check out the [defining custom models section](custom-models) for more information on how to define or use custom models.
 We specify {code}`param_dtype=float` (which is the default, but we want to show
 it to you) which means that weights will be stored as double-precision.
 We advise you that Jax (and therefore netket) does not follow completely the standard NumPy promotion rules, instead treating {code}`float` as a weak double-precision type

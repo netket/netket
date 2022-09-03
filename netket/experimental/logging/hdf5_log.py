@@ -28,7 +28,7 @@ def tree_log(tree, root, data, *, iter=None):
         tree: a pytree where the leaf nodes contain data
         root: the root of the tags used to log to HDF5
         data: an HDF5 file modified in place
-        iter: an interger number specifying at which iteration the data was generated
+        iter: an integer number specifying at which iteration the data was generated
     """
 
     if tree is None:

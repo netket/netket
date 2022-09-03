@@ -46,7 +46,7 @@ class MetropolisRule(abc.ABC):
         Initialises the optional internal state of the Metropolis sampler transition
         rule.
 
-        The provided key is unique and does not need to be splitted.
+        The provided key is unique and does not need to be split.
 
         It should return an immutable data structure.
 
@@ -80,7 +80,7 @@ class MetropolisRule(abc.ABC):
             sampler_state: The current state of the sampler. Should not modify it.
 
         Returns:
-           A resetted, state of the rule. This returns the same type of
+           A reset state of the rule. This returns the same type of
            :py:meth:`~nk.sampler.rule.MetropolisRule.rule_state` and might be `None`.
         """
         return sampler_state.rule_state

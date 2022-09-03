@@ -166,8 +166,8 @@ class QGTJacobianPyTreeT(LinearOperator):
 
         Returns:
             x: the PyTree solving the system.
-            info: optional additional informations provided by the solver. Might be
-                None if there are no additional informations provided.
+            info: optional additional information provided by the solver. Might be
+                None if there are no additional information provided.
         """
         return _solve(self, solve_fun, y, x0=x0)
 

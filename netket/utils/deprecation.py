@@ -102,9 +102,9 @@ def deprecate_dtype(clz):
     This decorator also adds a deprecated field `dtype` to the class, which
     returns `param_dtype`.
     """
-    # Sphinx is terrible at understanding wrappers of classses, so we detect
+    # Sphinx is terrible at understanding wrappers of classes, so we detect
     # this env variable set by us sphinx's conf.py, and we do not apply the
-    # deecorator if that's the case.
+    # decorator if that's the case.
     if config.netket_sphinx_build:
         return clz
 

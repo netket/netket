@@ -74,7 +74,7 @@ def test_matmul():
 ```
 
 For simplicity, you can also use the fixtures `_mpi_size`, `_mpi_rank` and `_mpi_comm` as inputs to your test 
-functions to get easily those informations. See the example below:
+functions to get easily those information. See the example below:
 
 ```python
 

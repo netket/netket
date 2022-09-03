@@ -102,7 +102,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     @property
     def local_states(self) -> Optional[List[float]]:
-        r"""A list of discreet local quantum numbers.
+        r"""A list of discrete local quantum numbers.
         If the local states are infinitely many, None is returned."""
         return self._local_states
 

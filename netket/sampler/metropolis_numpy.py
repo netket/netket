@@ -131,7 +131,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
     However, some transition rules don't work on GPU, and some samplers (Hamiltonian) work
     very poorly on jax so this is a good workaround.
 
-    See :ref:`netket.sampler.MetropolisSampler` for more informations.
+    See :ref:`netket.sampler.MetropolisSampler` for more information.
     """
 
     def _init_state(sampler, machine, parameters, key):
