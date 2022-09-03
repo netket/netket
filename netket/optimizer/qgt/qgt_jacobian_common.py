@@ -98,7 +98,7 @@ def choose_jacobian_mode(afun, pars, state, samples, *, mode, holomorphic):
     """
     Select an implementation of Jacobian
     """
-    i = _choose_jacobian_mode(afun, pars, state, samples, mode, holomorphic).item()
+    i = int(_choose_jacobian_mode(afun, pars, state, samples, mode, holomorphic))
     if i == 0:
         return "real"
     elif i == 1:
