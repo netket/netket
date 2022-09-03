@@ -1,9 +1,5 @@
 import pytest
 
-import jax
-import jax.numpy as jnp
-import numpy as np
-
 import netket as nk
 import netket.nn as nknn
 

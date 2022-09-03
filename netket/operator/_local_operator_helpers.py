@@ -244,7 +244,7 @@ def _multiply_operators(
                 if site < supp_A_min:
                     _support_A = [site] + _support_A
                     _A = np.kron(I, _A)
-                else:  #  site > actmax
+                else:  # site > actmax
                     _support_A = _support_A + [site]
                     _A = np.kron(_A, I)
 

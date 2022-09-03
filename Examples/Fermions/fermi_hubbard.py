@@ -2,7 +2,6 @@ import netket as nk
 import numpy as np
 import matplotlib.pyplot as plt
 import json
-import jax
 
 from netket import experimental as nkx
 
@@ -17,6 +16,7 @@ n_sites = g.n_nodes
 
 # create a hilbert space with 2 up and 2 down spins
 hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions=(2, 2))
+
 
 # create an operator representing fermi hubbard interactions
 # -t (i^ j + h.c.) + U (i^ i j^ j)

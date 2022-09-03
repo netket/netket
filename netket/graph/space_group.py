@@ -310,7 +310,6 @@ class SpaceGroupBuilder:
         """
         # Convert k to reciprocal lattice vectors
         k = _ensure_iterable(k)
-        k_rec = self.lattice.to_reciprocal_lattice(k) * (2 * pi / self.lattice.extent)
         # Little-group irrep factors
         # Phase factor for non-symmorphic symmetries is exp(-i w_g . p(k))
         point_group_factors = self._little_group_irreps(k) * np.exp(

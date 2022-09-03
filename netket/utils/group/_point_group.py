@@ -602,7 +602,7 @@ def product(A: PointGroup, B: PointGroup):  # noqa: F811
 
 
 @dispatch
-def product(G: PointGroup, x: Array):
+def product(G: PointGroup, x: Array):  # noqa: F811
     return np.moveaxis(
         np.tensordot(x, G.matrices().transpose(2, 0, 1), axes=1) + G.translations(),
         -2,
