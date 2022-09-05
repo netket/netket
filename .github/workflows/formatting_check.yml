@@ -51,5 +51,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -v flake8==5.0.4
 
-      - name: Black Code Formatter
+      - name: Run Flake8
         run: flake8 --verbose --exclude=Examples/Legacy Examples netket
