@@ -12,23 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
 import time
 
+from netket.utils import struct
 
+
+# Mark this class a NetKet dataclass so that it can automatically be serialized by Flax.
+@struct.dataclass(_frozen=False)
 class Timeout:
-    """A simple callback to stop NetKet after some time has passed."""
+    """A simple callback to stop NetKet after some time has passed.
 
-    def __init__(self, timeout):
-        """
-        Constructs a new Timeout object that monitors whether a driver has been training
-        for more than a given timeout in order to hard stop training.
+    This callback monitors whether a driver has been training for more
+    than a given timeout in order to hard stop training.
+    """
 
-        Args:
-            timeout: Number of seconds to wait before hard stopping training.
-        """
-        assert timeout > 0
-        self.__timeout = timeout
-        self.__init_time = None
+    timeout: float
+    """Number of seconds to wait before the training will be stopped."""
+
+    _init_time: Optional[float] = None
+    """
+    Internal field storing the time at which the first iteration has been
+    performed.
+    """
+
+    def __post_init__(self):
+        if not self.timeout > 0:
+            raise ValueError("`timeout` must be larger than 0.")
 
     def reset(self):
         """Resets the initial time of the training"""
@@ -49,10 +59,10 @@ class Timeout:
         Note:
             This callback does not make use of `step`, `log_data` nor `driver`.
         """
-        if self.__init_time is None:
-            self.__init_time = time.time()
+        if self._init_time is None:
+            self._init_time = time.time()
+
+        if time.time() - self._init_time >= self.timeout:
+            return False
         else:
-            print(time.time() - self.__init_time)
-            if time.time() - self.__init_time >= self.__timeout:
-                return False
-        return True
+            return True

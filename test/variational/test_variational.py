@@ -321,12 +321,23 @@ def test_serialization(vstate):
     assert vstate.n_discard_per_chain == old_ndiscard
     assert vstate.chunk_size == old_chunksize
 
-    # test samples before serailziation
-    old_samples = vstate.samples
-    bdata = serialization.to_bytes(vstate)
-    vstate = serialization.from_bytes(vstate, bdata)
+    # test sample before serialization matches
+    vstate.sample()
+    vstate2 = serialization.from_bytes(vstate, serialization.to_bytes(vstate))
+    np.testing.assert_allclose(vstate.samples, vstate2.samples)
 
-    np.testing.assert_allclose(vstate.samples, old_samples)
+    # test samples after reset
+    vstate.reset()
+    vstate2 = serialization.from_bytes(vstate, serialization.to_bytes(vstate))
+    np.testing.assert_allclose(vstate.samples, vstate2.samples)
+
+    # test loading-reset-samples
+    vstate.sample()
+    vstate2 = serialization.from_bytes(vstate, serialization.to_bytes(vstate))
+
+    vstate.reset()
+    vstate2.reset()
+    np.testing.assert_allclose(vstate.samples, vstate2.samples)
 
 
 @common.skipif_mpi

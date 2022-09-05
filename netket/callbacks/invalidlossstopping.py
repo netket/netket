@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass
 from typing import Union
-
 import numpy as np
 
+from netket.utils import struct
 
-@dataclass
+
+# Mark this class a NetKet dataclass so that it can automatically be serialized by Flax.
+@struct.dataclass(_frozen=False)
 class InvalidLossStopping:
     """A simple callback to stop NetKet if there are no more improvements in the training.
     based on `driver._loss_name`."""
@@ -28,8 +29,8 @@ class InvalidLossStopping:
     patience: Union[int, float] = 0
     """Number of epochs with invalid loss after which training will be stopped."""
 
-    def __post_init__(self):
-        self._last_valid_iter = 0
+    _last_valid_iter: int = 0
+    """Last valid iteration, to check against patience"""
 
     def __call__(self, step, log_data, driver):
         """

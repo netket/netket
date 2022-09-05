@@ -16,6 +16,7 @@ from functools import partial
 from collections import namedtuple
 
 from netket.utils.numbers import is_scalar
+from netket.utils import struct
 
 import jax
 
@@ -53,8 +54,7 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
         The SR parameter structure.
     """
 
-    #  try to understand if this is the old API or new
-    # API
+    # try to understand if this is the old API or new API
 
     old_api = False
     # new_api = False
@@ -130,6 +130,7 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
     return _SR(*args, solver_restart=solver_restart, **kwargs)
 
 
+@struct.dataclass(_frozen=False)
 class SR(LinearPreconditioner):
     pass
 

@@ -753,12 +753,20 @@ def local_estimators(
 
 # serialization
 def serialize_MCState(vstate):
+    # If there are no _samples we have already reset() so current state is
+    # valid to generate new samples.
+    has_samples = vstate._samples is not None
+    sampler_state = (
+        vstate._sampler_state_previous if has_samples else vstate.sampler_state
+    )
+
     state_dict = {
         "variables": serialization.to_state_dict(vstate.variables),
-        "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
+        "sampler_state": serialization.to_state_dict(sampler_state),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,
         "chunk_size": vstate.chunk_size,
+        "has_samples": has_samples,
     }
     return state_dict
 
@@ -778,6 +786,17 @@ def deserialize_MCState(vstate, state_dict):
     new_vstate.n_samples = state_dict["n_samples"]
     new_vstate.n_discard_per_chain = state_dict["n_discard_per_chain"]
     new_vstate.chunk_size = state_dict["chunk_size"]
+
+    # In order to sync the state and not complicate the logic, we generate
+    # samples if, before, there were samples.
+    # This could be avoided by complicating the logic in the sampler and storing
+    # /deserialising both `samplerstate` and `sampler_state_previous`, but for
+    # now we opt for this simpler solution.
+
+    # TODO: The get is there for backward compatibility. Eventually remove and
+    # assume the field is present
+    if state_dict.get("has_samples", False):
+        new_vstate.sample()
 
     return new_vstate
 

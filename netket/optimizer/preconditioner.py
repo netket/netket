@@ -14,8 +14,7 @@
 
 from typing import Callable, Optional, Any
 
-from dataclasses import dataclass
-
+from netket.utils import struct
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState
 
@@ -34,16 +33,16 @@ def identity_preconditioner(vstate: VariationalState, gradient: PyTree):
     return gradient
 
 
-@dataclass
+@struct.dataclass(_frozen=False)
 class LinearPreconditioner:
     """Linear Preconditioner for the gradient. Needs a function to construct the LHS of
     the Linear System and a solver to solve the linear system.
     """
 
-    lhs_constructor: LHSConstructorT
+    lhs_constructor: LHSConstructorT = struct.field(pytree_node=False)
     """Constructor of the LHS of the linear system starting from the variational state."""
 
-    solver: SolverT
+    solver: SolverT = struct.field(pytree_node=False)
     """Function used to solve the linear system."""
 
     solver_restart: bool = False
@@ -58,11 +57,6 @@ class LinearPreconditioner:
 
     _lhs: LinearOperator = None
     """LHS of the last linear system solved."""
-
-    def __init__(self, lhs_constructor, solver, *, solver_restart=False):
-        self.lhs_constructor = lhs_constructor
-        self.solver = solver
-        self.solver_restart = solver_restart
 
     def __call__(self, vstate: VariationalState, gradient: PyTree) -> PyTree:
 
