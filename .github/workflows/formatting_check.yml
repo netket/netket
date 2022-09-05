@@ -30,6 +30,7 @@ jobs:
       - name: Black Code Formatter
         run: black --check --diff --color .
 
+  flakes:
     name: Check Flake8
 
     # The type of runner that the job will run on
