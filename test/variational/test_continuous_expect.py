@@ -80,3 +80,15 @@ def test_expect_chunked():
     """
     np.testing.assert_allclose(0.1975164, sol.mean, atol=10 ** (-3))
     np.testing.assert_allclose(-0.140256, O_grad, atol=10 ** (-3))
+
+    vs_continuous.chunk_size = None
+    vs_continuous2.chunk_size = None
+
+    assert vs_continuous.chunk_size is None
+    assert vs_continuous2.chunk_size is None
+
+    sol_nc = vs_continuous.expect(pot)
+    O_stat_nc, O_grad_nc = vs_continuous2.expect_and_grad(e)
+    O_grad_nc, _ = nk.jax.tree_ravel(O_grad_nc)
+    np.testing.assert_allclose(sol_nc.mean, sol.mean, atol=10 ** (-8))
+    np.testing.assert_allclose(O_grad_nc, O_grad, atol=10 ** (-8))
