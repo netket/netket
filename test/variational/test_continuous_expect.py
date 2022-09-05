@@ -47,48 +47,30 @@ vs_continuous2 = nk.vqs.MCState(
 
 
 def test_expect():
+    assert vs_continuous.chunk_size is None
+    assert vs_continuous2.chunk_size is None
     # x = vs_continuous2.samples.reshape(-1, 1)
-    sol = vs_continuous.expect(pot)
-    O_stat, O_grad = vs_continuous2.expect_and_grad(e)
-    O_grad, _ = nk.jax.tree_ravel(O_grad)
+    sol_nc = vs_continuous.expect(pot)
+    O_stat_nc, O_grad_nc = vs_continuous2.expect_and_grad(e)
+    O_grad_nc, _ = nk.jax.tree_ravel(O_grad_nc)
 
     # O_grad_exact = 2 * jnp.dot(x.T, (v1(x) - jnp.mean(v1(x), axis=0))) / x.shape[0]
     r"""
     :math:`<V> = \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = 0.1975164 (\psi = 1)`
     :math:`<\nabla V> = \nabla_p \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = -0.140256 (\psi = \exp(p^2 x))`
     """
-    np.testing.assert_allclose(0.1975164, sol.mean, atol=10 ** (-3))
-    np.testing.assert_allclose(-0.140256, O_grad, atol=10 ** (-3))
+    np.testing.assert_allclose(0.1975164, sol_nc.mean, atol=10 ** (-3))
+    np.testing.assert_allclose(-0.140256, O_grad_nc, atol=10 ** (-3))
 
-
-def test_expect_chunked():
     vs_continuous.chunk_size = 100
     vs_continuous2.chunk_size = 100
 
     assert vs_continuous.chunk_size == 100
     assert vs_continuous2.chunk_size == 100
 
-    # x = vs_continuous2.samples.reshape(-1, 1)
     sol = vs_continuous.expect(pot)
     O_stat, O_grad = vs_continuous2.expect_and_grad(e)
     O_grad, _ = nk.jax.tree_ravel(O_grad)
 
-    # O_grad_exact = 2 * jnp.dot(x.T, (v1(x) - jnp.mean(v1(x), axis=0))) / x.shape[0]
-    r"""
-    :math:`<V> = \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = 0.1975164 (\psi = 1)`
-    :math:`<\nabla V> = \nabla_p \int_0^5 dx V(x) |\psi(x)|^2 / \int_0^5 |\psi(x)|^2 = -0.140256 (\psi = \exp(p^2 x))`
-    """
-    np.testing.assert_allclose(0.1975164, sol.mean, atol=10 ** (-3))
-    np.testing.assert_allclose(-0.140256, O_grad, atol=10 ** (-3))
-
-    vs_continuous.chunk_size = None
-    vs_continuous2.chunk_size = None
-
-    assert vs_continuous.chunk_size is None
-    assert vs_continuous2.chunk_size is None
-
-    sol_nc = vs_continuous.expect(pot)
-    O_stat_nc, O_grad_nc = vs_continuous2.expect_and_grad(e)
-    O_grad_nc, _ = nk.jax.tree_ravel(O_grad_nc)
     np.testing.assert_allclose(sol_nc.mean, sol.mean, atol=10 ** (-8))
     np.testing.assert_allclose(O_grad_nc, O_grad, atol=10 ** (-8))
