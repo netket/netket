@@ -14,12 +14,14 @@
 
 import abc
 import numbers
+import warnings
 from functools import partial
 
 from tqdm import tqdm
 
 import jax
-from jax.tree_util import tree_map
+
+from flax import serialization
 
 from netket.logging import JsonLog
 from netket.utils import mpi
@@ -302,7 +304,7 @@ class AbstractVariationalDriver(abc.ABC):
             A pytree of the same structure as the input, containing MCMC statistics
             for the corresponding operators as leaves.
         """
-        return tree_map(self._estimate_stats, observables)
+        return jax.tree_util.tree_map(self._estimate_stats, observables)
 
     def update_parameters(self, dp):
         """
@@ -340,3 +342,47 @@ def apply_gradient(optimizer_fun, optimizer_state, dp, params):
 
     new_params = optax.apply_updates(params, updates)
     return new_optimizer_state, new_params
+
+
+def serialize_AbstractVariationalDriver(driver):
+    state_dict = {
+        "state": serialization.to_state_dict(driver.state),
+        "optimizer_state": serialization.to_state_dict(driver._optimizer_state),
+        "_loss_stats": serialization.to_state_dict(driver._loss_stats),
+        "_step_count": driver.step_count,
+        "_mpi_nodes": driver._mpi_nodes,
+    }
+    return state_dict
+
+
+def deserialize_AbstractVariationalDriver(driver, state_dict):
+    import copy
+
+    new_driver = copy.copy(driver)
+
+    new_driver._variational_state = serialization.from_state_dict(
+        driver.state, state_dict["state"]
+    )
+    new_driver._optimizer_state = serialization.from_state_dict(
+        driver._optimizer_state, state_dict["optimizer_state"]
+    )
+    new_driver._step_count = state_dict["_step_count"]
+    new_driver._loss_stats = serialization.from_state_dict(
+        driver._optimizer_state, state_dict["_loss_stats"]
+    )
+
+    if driver._mpi_nodes != driver._mpi_nodes:
+        warnings.warn(
+            "The serialized driver had {state_dict['_mpi_nodes']} MPI nodes, but "
+            "the current session has only {driver._mpi_nodes} MPI nodes. \n\n"
+            "The state of the driver and variational state was correctly restored, but"
+            "the mismatch in MPI nodes will lead to a different result."
+        )
+    return new_driver
+
+
+serialization.register_serialization_state(
+    AbstractVariationalDriver,
+    serialize_AbstractVariationalDriver,
+    deserialize_AbstractVariationalDriver,
+)

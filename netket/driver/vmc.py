@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from textwrap import dedent
+import warnings
+
 import jax
 import jax.numpy as jnp
 
-from textwrap import dedent
+from flax import serialization
 
 from netket.utils.types import PyTree
 from netket.operator import AbstractOperator
@@ -79,7 +82,7 @@ class VMC(AbstractVariationalDriver):
         if sr is not None:
             if preconditioner is not None:
                 raise ValueError(
-                    "sr is deprecated in favour of preconditioner kwarg. You should not pass both"
+                    "sr is deprecated in favour of preconditioner kwarg. You should not pass both."
                 )
             else:
                 preconditioner = sr
@@ -170,3 +173,52 @@ class VMC(AbstractVariationalDriver):
             ]
         ]
         return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)
+
+
+def serialize_VMC(driver):
+    state_dict = {
+        "state": serialization.to_state_dict(driver.state),
+        "optimizer_state": serialization.to_state_dict(driver._optimizer_state),
+        "_loss_stats": serialization.to_state_dict(driver._loss_stats),
+        "_step_count": driver._step_count,
+        "_mpi_nodes": driver._mpi_nodes,
+        "preconditioner": serialization.to_state_dict(driver.preconditioner),
+    }
+    return state_dict
+
+
+def deserialize_VMC(driver, state_dict):
+    import copy
+
+    new_driver = copy.copy(driver)
+
+    new_driver._variational_state = serialization.from_state_dict(
+        driver.state, state_dict["state"]
+    )
+    new_driver._optimizer_state = serialization.from_state_dict(
+        driver._optimizer_state, state_dict["optimizer_state"]
+    )
+    new_driver._loss_stats = serialization.from_state_dict(
+        driver._loss_stats, state_dict["_loss_stats"]
+    )
+    new_driver._step_count = state_dict["_step_count"]
+
+    new_driver.preconditioner = serialization.from_state_dict(
+        driver.preconditioner, state_dict["preconditioner"]
+    )
+
+    if driver._mpi_nodes != driver._mpi_nodes:
+        warnings.warn(
+            "The serialized driver had {state_dict['_mpi_nodes']} MPI nodes, but "
+            "the current session has only {driver._mpi_nodes} MPI nodes. \n\n"
+            "The state of the driver and variational state was correctly restored, but"
+            "the mismatch in MPI nodes will lead to a different result."
+        )
+    return new_driver
+
+
+serialization.register_serialization_state(
+    VMC,
+    serialize_VMC,
+    deserialize_VMC,
+)
