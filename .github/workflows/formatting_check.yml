@@ -52,4 +52,4 @@ jobs:
           pip install -v flake8==5.0.4
 
       - name: Black Code Formatter
-        run: flake8 --exclude=Examples/Legacy Examples netket
+        run: flake8 --verbose --exclude=Examples/Legacy Examples netket
