@@ -14,7 +14,10 @@
 
 from typing import Callable
 
+import jax
 import jax.numpy as jnp
+
+from flax import serialization
 
 from .partial import HashablePartial
 from . import struct
@@ -84,3 +87,21 @@ def wrap_to_support_scalar(fun):
         return res
 
     return HashablePartial(maybe_scalar_fun, fun)
+
+
+# jax.tree_util.Partial does not support flax serialization
+# should be upstreamed to Flax
+serialization.register_serialization_state(
+    jax.tree_util.Partial,
+    lambda x: (
+        {
+            "args": serialization.to_state_dict(x.args),
+            "keywords": serialization.to_state_dict(x.keywords),
+        }
+    ),
+    lambda x, sd: jax.tree_util.Partial(
+        x.func,
+        *serialization.from_state_dict(x.args, sd["args"]),
+        **serialization.from_state_dict(x.keywords, sd["keywords"]),
+    ),
+)
