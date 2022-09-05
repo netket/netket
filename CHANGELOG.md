@@ -9,7 +9,7 @@
 * Added a new configuration option `nk.config.netket_experimental_disable_ode_jit` to disable jitting of the ODE solvers. This can be useful to avoid hangs that might happen when working on GPUs with some particular systems [#1304](https://github.com/netket/netket/pull/1304).
 
 ### Bug Fixes
-
+* Continuous operatorors now work correctly when `chunk_size != None`. This was broken in v3.5 [#1316](https://github.com/netket/netket/pull/1316).
 
 ## NetKet 3.5 (☀️ 18 August 2022)
 
