@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jax.numpy as jnp
 import pytest
 import numpy as np
 
@@ -20,7 +19,6 @@ import scipy.integrate as sci
 
 from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
 from netket.experimental.dynamics._rk_tableau import (
-    NamedTableau,
     bt_feuler,
     bt_heun,
     bt_midpoint,

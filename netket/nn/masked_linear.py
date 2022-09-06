@@ -14,7 +14,6 @@
 
 from typing import Any, Tuple
 
-import flax
 import numpy as np
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype

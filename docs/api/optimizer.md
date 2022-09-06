@@ -16,7 +16,7 @@ Optimizers in NetKet are simple wrappers of [optax](https://github.com/deepmind/
 optimizers. If you want to write a custom optimizer or use more advanced ones, we suggest
 you have a look at optax documentation.
 
-Check it out for up-to-date informations on available optimisers.
+Check it out for up-to-date information on available optimisers.
 
 :::{warning}
 Even if optimisers in `netket.optimizer` are optax optimisers, they have slightly different

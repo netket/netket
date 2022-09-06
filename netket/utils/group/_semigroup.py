@@ -179,5 +179,5 @@ def product(A: FiniteSemiGroup, B: FiniteSemiGroup):  # noqa: F811
 
 
 @dispatch
-def product(self: FiniteSemiGroup, initial: Array):
+def product(self: FiniteSemiGroup, initial: Array):  # noqa: F811
     return np.array([np.apply_along_axis(elem, -1, initial) for elem in self.elems])

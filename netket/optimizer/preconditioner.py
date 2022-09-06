@@ -54,7 +54,7 @@ class LinearPreconditioner:
     """Solution of the last linear system solved."""
 
     info: Any = None
-    """Additional informations returned by the solver when solving the last linear system."""
+    """Additional information returned by the solver when solving the last linear system."""
 
     _lhs: LinearOperator = None
     """LHS of the last linear system solved."""

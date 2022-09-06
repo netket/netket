@@ -42,7 +42,7 @@ from .state import MCState
 
 
 # Implementation of expect_and_grad for `use_covariance == True` (due to the TrueT
-# type in the singature).` This case is equivalent to the composition of the
+# type in the signature).` This case is equivalent to the composition of the
 # `expect_and_forces` and `_force_to_grad` functions.
 @expect_and_grad.dispatch
 def expect_and_grad_covariance(

@@ -88,7 +88,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
             n_sweeps: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
                     (the size of the input vector s to the machine).
-            reset_chains: If False the state configuration is not resetted when reset() is called.
+            reset_chains: If False the state configuration is not reset when reset() is called.
             n_chains: The total number of Markov Chain to be run in parallel on a the available devices.
                 This will be rounded to the nearest multiple of `len(jax.devices())`
             n_chains_per_device: The number of chains to be run in parallel on one device.

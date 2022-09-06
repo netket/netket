@@ -94,7 +94,7 @@ def is_complex_dtype(typ):
     Returns True if typ is a complex dtype.
 
     This is almost equivalent to `jnp.iscomplexobj` but also handles types such as
-    `float`, `complex` and `int`, which are used throught netket.
+    `float`, `complex` and `int`, which are used throughout netket.
     """
     return jnp.issubdtype(typ, jnp.complexfloating)
 
@@ -104,7 +104,7 @@ def is_real_dtype(typ):
     Returns True if typ is a floating real dtype.
 
     This is almost equivalent to `jnp.isrealobj` but also handles types such as
-    `float`, `complex` and `int`, which are used throught netket.
+    `float`, `complex` and `int`, which are used throughout netket.
     """
     return jnp.issubdtype(typ, jnp.floating)
 

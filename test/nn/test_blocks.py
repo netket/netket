@@ -56,7 +56,7 @@ def _eval_model(ma):
     # test input, only throws errors when init or apply is called
     x = np.zeros((1024, 16))
     pars = ma.init(nk.jax.PRNGKey(), x)
-    out = ma.apply(pars, x)
+    _ = ma.apply(pars, x)
 
 
 def test_mlp_input():

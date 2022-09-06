@@ -224,5 +224,5 @@ def product(A: PermutationGroup, B: PermutationGroup):  # noqa: F811
 
 
 @dispatch
-def product(G: PermutationGroup, x: Array):
+def product(G: PermutationGroup, x: Array):  # noqa: F811
     return np.moveaxis(x[..., G.to_array()], -2, 0)

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-
 from netket.utils.moduletools import export, hide_unexported
 
 from .axial import inversion_group as _inv_group
@@ -30,7 +28,7 @@ __all__ = [
 
 
 @export
-def I() -> PointGroup:
+def I() -> PointGroup:  # noqa: E743
     """
     Rotational symmetries of an icosahedron with two vertices on z axis
     and two others in the xz plane.

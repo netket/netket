@@ -588,7 +588,7 @@ def _canonicalize_input(terms, weights, constant, dtype):
     if weights is None:
         weights = [1.0] * len(terms)
 
-    # promote dtype iwth constant
+    # promote dtype with constant
     if dtype is None:
         constant_dtype = np.array(constant).dtype
         weights_dtype = np.array(weights).dtype
