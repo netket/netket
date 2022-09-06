@@ -247,4 +247,4 @@ class DiscreteHilbert(AbstractHilbert):
                 if res is not NotImplemented:
                     return res
 
-            return TensorHilbert(self) * other
+            return TensorHilbert(self, other)

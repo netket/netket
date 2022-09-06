@@ -502,3 +502,9 @@ def test_no_particles():
     with pytest.raises(ValueError):
         # also test negative particles
         _ = Fock(n_max=3, n_particles=-1, N=4)
+
+
+def test_tensor_no_recursion():
+    # Issue https://github.com/netket/netket/issues/1101
+    hi = nk.hilbert.Fock(3) * nk.hilbert.Spin(0.5, 2, total_sz=0.0)
+    assert isinstance(hi, nk.hilbert.TensorHilbert)
