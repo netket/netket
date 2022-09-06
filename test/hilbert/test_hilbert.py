@@ -508,3 +508,14 @@ def test_tensor_no_recursion():
     # Issue https://github.com/netket/netket/issues/1101
     hi = nk.hilbert.Fock(3) * nk.hilbert.Spin(0.5, 2, total_sz=0.0)
     assert isinstance(hi, nk.hilbert.TensorHilbert)
+
+
+def test_tensor_combination():
+    hi1 = Spin(s=1 / 2, N=2) * Spin(s=1, N=2) * Fock(n_max=3, N=1)
+    hi2 = Fock(n_max=3, N=1) * Spin(s=1, N=2) * Spin(s=1 / 2, N=2)
+    hit = hi1 * hi2
+    assert isinstance(hit, nk.hilbert.TensorHilbert)
+    assert np.allclose(hit.shape, np.hstack([hi1.shape, hi2.shape]))
+    assert hit.n_states == hi1.n_states * hi2.n_states
+    assert len(hit._hilbert_spaces) == 5
+    repr(hit)
