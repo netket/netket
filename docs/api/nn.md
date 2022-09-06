@@ -36,12 +36,12 @@ Read more about the design goal of this module in their [README](https://github.
 .. autosummary::
     :toctree: _generated/nn
 
-    reim
-    reim_relu
-    reim_selu
-    log_cosh
-    log_sinh
-    log_tanh
+    activation.reim
+    activation.reim_relu
+    activation.reim_selu
+    activation.log_cosh
+    activation.log_sinh
+    activation.log_tanh
 
 ```
 
