@@ -35,7 +35,7 @@ class TensorHilbert(DiscreteHilbert):
         Couple a bosonic mode with spins
 
         >>> from netket.hilbert import Spin, Fock
-        >>> Fock(3)*Spin(0.5, 5)
+        >>> Fock(3)⊗Spin(0.5, 5)
         Fock(n_max=3, N=1)*Spin(s=1/2, N=5)
         >>> type(_)
         <class 'netket.hilbert.tensor_hilbert.TensorHilbert'>
