@@ -34,10 +34,10 @@ class LogStateVector(nn.Module):
     hilbert: DiscreteHilbert
     """The Hilbert space."""
 
-    dtype: DType = jnp.complex128
+    param_dtype: DType = jnp.complex128
     """The dtype of the weights."""
 
-    logstate_init: NNInitFunc = nn.initializers.uniform()
+    logstate_init: NNInitFunc = nn.initializers.ones
     """Initializer for the weights."""
 
     def setup(self):
@@ -47,7 +47,7 @@ class LogStateVector(nn.Module):
             )
 
         self.logstate = self.param(
-            "logstate", self.logstate_init, (self.hilbert.n_states,), self.dtype
+            "logstate", self.logstate_init, (self.hilbert.n_states,), self.param_dtype
         )
 
     def __call__(self, x_in: Array):
