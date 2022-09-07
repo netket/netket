@@ -15,8 +15,6 @@
 import flax.linen as nn
 import jax.numpy as jnp
 
-from jax.nn.initializers import normal
-
 from netket.hilbert import DiscreteHilbert
 from netket.nn import states_to_numbers
 from netket.utils.types import DType, Array, NNInitFunc
@@ -24,18 +22,22 @@ from netket.utils.types import DType, Array, NNInitFunc
 
 class LogStateVector(nn.Module):
     r"""
-    Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`.
+    _Exact_ ansatz storing the logarithm of the full, exponentially-large
+    wavefunction coefficients.
 
-    The W matrix is stored as a non-symmetric matrix, and symmetrized
-    during computation by doing :code:`W = W + W.T` in the computation.
+    This Ansatz can only be used with hilbert spaces which are small enough to
+    be indexable.
+
+    By default it initialises as a uniform state.
     """
 
     hilbert: DiscreteHilbert
+    """The Hilbert space."""
 
     dtype: DType = jnp.complex128
     """The dtype of the weights."""
 
-    logstate_init: NNInitFunc = normal()
+    logstate_init: NNInitFunc = nn.initializers.uniform()
     """Initializer for the weights."""
 
     def setup(self):
