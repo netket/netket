@@ -1,13 +1,29 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from functools import partial, reduce
 from typing import Tuple, Optional
 import operator
 
-import numpy as np
+import jax
 from jax import numpy as jnp
-from netket.utils import get_afun_if_module, mpi
+import numpy as np
+
+from netket.utils import get_afun_if_module, mpi, module_version
 from netket.utils.types import Array
 from netket.hilbert import DiscreteHilbert
-import jax
+
 from flax.traverse_util import flatten_dict, unflatten_dict
 from flax.core import unfreeze
 
@@ -214,3 +230,41 @@ def binary_encoding(
     return binarised_states.reshape(
         *binarised_states.shape[:-2], _prod(binarised_states.shape[-2:])
     )[..., output_idx]
+
+
+def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
+    """
+    Converts the configuration σ to a 64-bit integer labelling the Hilbert Space.
+
+    .. Note::
+
+        Requires jax >= 0.3.17 and will crash on older versions.
+
+
+    Args:
+        hilbert: The Hilbert space
+        σ: A single or a batch of configurations
+
+    Returns:
+        a single integer or a batch of integer indices.
+    """
+    if module_version("jax") < (0, 3, 17):
+        raise RuntimeError(
+            "The jitted conversion of bit-strings to hilbert numbers"
+            "is only supported with jax.__version__ >= 0.3.17, but you "
+            f"have {module_version('jax')}"
+        )
+
+    if not hasattr(hilbert, "is_indexable"):
+        raise TypeError(f"Hilbert space {hilbert} cannot be indexed.")
+
+    if not hilbert.is_indexable:
+        raise ValueError(f"Hilbert space {hilbert} is too large to be indexed.")
+
+    # calls back into python
+    return jax.pure_callback(
+        hilbert.states_to_numbers,
+        jax.ShapeDtypeStruct(σ.shape[:-1], jnp.int64),
+        σ,
+        vectorized=True,
+    )

@@ -15,22 +15,11 @@
 import flax.linen as nn
 import jax.numpy as jnp
 
-import jax
 from jax.nn.initializers import normal
 
-import jax.experimental.host_callback as hcb
-
 from netket.hilbert import DiscreteHilbert
+from netket.nn import states_to_numbers
 from netket.utils.types import DType, Array, NNInitFunc
-
-
-def states_to_numbers(hilbert, σ):
-    # calls back into python
-    return hcb.call(
-        hilbert.states_to_numbers,
-        σ,
-        result_shape=jax.ShapeDtypeStruct(σ.shape[:-1], jnp.int64),
-    )
 
 
 class LogStateVector(nn.Module):
@@ -56,7 +45,7 @@ class LogStateVector(nn.Module):
             )
 
         self.logstate = self.param(
-            "logstate", self.logstate_init, (self.hilbert.n_states, ), self.dtype
+            "logstate", self.logstate_init, (self.hilbert.n_states,), self.dtype
         )
 
     def __call__(self, x_in: Array):
