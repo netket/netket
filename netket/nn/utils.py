@@ -255,11 +255,11 @@ def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
             f"have {module_version('jax')}"
         )
 
-    if not hasattr(hilbert, "is_indexable"):
-        raise TypeError(f"Hilbert space {hilbert} cannot be indexed.")
-
     if not hilbert.is_indexable:
-        raise ValueError(f"Hilbert space {hilbert} is too large to be indexed.")
+        raise ValueError(
+            f"Hilbert space {hilbert} is too large to be indexed or "
+            f"cannot be indexed at all."
+        )
 
     # calls back into python
     return jax.pure_callback(

@@ -17,12 +17,16 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from jax.nn.initializers import uniform
+from netket.utils import module_version
 
 from .test_nn import _setup_symm
 
 import pytest
 
 
+@pytest.mark.skipif(
+    module_version("jax") < (0, 3, 17), reason="Needs jax.pure_callback"
+)
 def test_logstatevec():
     hi = nk.hilbert.Fock(3, 4)
     x = hi.random_state(nk.jax.PRNGKey(3), (3, 4))
