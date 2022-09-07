@@ -184,6 +184,9 @@ def test_states_to_numbers(hilbert):
     np.testing.assert_allclose(i, np.arange(hilbert.n_states))
 
 
+@pytest.mark.skipif(
+    module_version("jax") < (0, 3, 17), reason="Needs jax.pure_callback"
+)
 def test_states_to_numbers_fails():
     with pytest.raises(ValueError):
         nk.nn.states_to_numbers(nk.hilbert.Particle(3, 2, True), 1.0)
