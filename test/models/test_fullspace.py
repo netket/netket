@@ -39,3 +39,19 @@ def test_logstatevec():
 
     np.testing.assert_allclose(s1, s2)
     np.testing.assert_allclose(pars["params"]["logstate"][hi.states_to_numbers(x)], s1)
+    
+@pytest.mark.skipif(
+    module_version("jax") < (0, 3, 17), reason="Needs jax.pure_callback"
+)
+def test_groundstate():
+    g = nk.graph.Chain(8)
+    hi = nk.hilbert.Spin(1/2, g.n_nodes)
+    ham = nk.operator.Ising(hi, g, h=0.5)
+
+    w, v = nk.exact.lanczos_ed(ham, compute_eigenvectors=True)
+
+    mod = nk.models.LogStateVector(hi, param_dtype=float)
+    vs = nk.vqs.ExactState(hi, mod)
+    vs.parameters = {"logstate": np.log(v[:, 0])}
+
+    assert np.allclose(vs.expect(ham).mean, w[0])
