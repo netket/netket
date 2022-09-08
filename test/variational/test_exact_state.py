@@ -139,7 +139,17 @@ def test_derivatives_agree(machine):
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=1)
     vs = nk.vqs.ExactState(hi, machine)
 
-    _, grads_exact = vs.expect_and_grad(ha)
+    e_expect = vs.expect(ha)
+    assert isinstance(e_expect, nk.stats.Stats)
+    np.testing.assert_almost_equal(e_expect.error_of_mean, 0)
+
+    e, grads_exact = vs.expect_and_grad(ha)
+    assert isinstance(e, nk.stats.Stats)
+    np.testing.assert_almost_equal(e.error_of_mean, 0)
+
+    # check that energies match
+    np.testing.assert_almost_equal(e_expect.mean, e.mean)
+    np.testing.assert_almost_equal(e_expect.variance, e.variance)
 
     # Prepare the exact estimations
     pars_0 = vs.parameters
