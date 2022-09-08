@@ -227,7 +227,7 @@ def test_TFIM_energy_strictly_decreases(
     log = nk.logging.RuntimeLog()
     gs.run(n_iter=n_iterations, out=log)
 
-    energies = log.data["Energy"]["value"]
+    energies = log.data["Energy"]["Mean"]
 
     for i in range(len(energies) - 1):
         assert energies[i + 1] < energies[i]
