@@ -235,7 +235,7 @@ def binary_encoding(
 def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
     """
     Converts the configuration σ to a 64-bit integer denoting its index in the full Hilbert space.
-    
+
     This function calls `hilbert.states_to_numbers` as a JAX pure callback and can thus be used within
     `jax.jit`.
 
