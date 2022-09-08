@@ -21,6 +21,7 @@ import jax.flatten_util
 from jax.nn.initializers import normal
 
 import netket as nk
+from netket.utils import module_version
 from netket.optimizer import qgt
 
 from .. import common  # noqa: F401
