@@ -79,7 +79,7 @@ def expect_and_forces(
     Ψ = vstate.to_array()
     OΨ = O @ Ψ
 
-    _, Ō_grad, expval_O, new_model_state = _exp_forces(
+    expval_O, Ō_grad, new_model_state = _exp_forces(
         vstate._apply_fun,
         mutable,
         vstate.parameters,
@@ -108,6 +108,8 @@ def _exp_forces(
     is_mutable = mutable is not False
 
     expval_O = (Ψ.conj() * OΨ).sum()
+    variance = jnp.sum(jnp.abs(OΨ - expval_O * Ψ) ** 2)
+
     ΔOΨ = (OΨ - expval_O * Ψ).conj() * Ψ
 
     _, vjp_fun, *new_model_state = nkjax.vjp(
@@ -122,9 +124,8 @@ def _exp_forces(
     new_model_state = new_model_state[0] if is_mutable else None
 
     return (
-        None,
+        Stats(mean=expval_O, error_of_mean=0.0, variance=variance),
         Ō_grad,
-        expval_O,
         new_model_state,
     )
 

@@ -9,7 +9,7 @@
 * Added a new 'Full statevector' model {class}`nk.models.LogStateVector` that stores the exponentially large state and can be used as an exact ansatz [#1324](https://github.com/netket/netket/pull/1324).
 
 ### Bug Fixes
-
+* {class}`nk.vqs.ExactState` `expect_and_grad` returned a scalar while `expect` returned a {class}`nk.stats.Stats` object with 0 error. The inconsistency has been addressed and now they both return a `Stats` object. This changes the format of the files logged when running `VMC`, which will now store the average under `Mean` instead of `value` [#1325](https://github.com/netket/netket/pull/1325).
 
 
 ## NetKet 3.5.1 (Bug Fixes)
@@ -20,6 +20,7 @@
 ### Bug Fixes
 * Continuous operatorors now work correctly when `chunk_size != None`. This was broken in v3.5 [#1316](https://github.com/netket/netket/pull/1316).
 * Fixed a bug ([#1101](https://github.com/netket/netket/pull/1101)) that crashed NetKet when trying to take the product of two different Hilber spaces. It happened because the logic to build a `TensorHilbert` was ending in an endless loop. [#1321](https://github.com/netket/netket/pull/1321).
+
 
 ## NetKet 3.5 (☀️ 18 August 2022)
 
