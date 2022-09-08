@@ -15,6 +15,7 @@ neural quantum states.
    :template: flax_model
    :nosignatures:
 
+   LogStateVector
    RBM
    RBMModPhase
    RBMMultiVal

@@ -52,6 +52,7 @@ Read more about the design goal of this module in their [README](https://github.
     :toctree: _generated/nn
 
     binary_encoding
+    states_to_numbers
 ```
 
 ## Utility functions

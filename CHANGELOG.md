@@ -6,6 +6,7 @@
 ## NetKet 3.6 (In development)
 
 ### New features
+* Added a new 'Full statevector' model {class}`nk.models.LogStateVector` that stores the exponentially large state and can be used as an exact ansatz [#1324](https://github.com/netket/netket/pull/1324).
 
 ### Bug Fixes
 

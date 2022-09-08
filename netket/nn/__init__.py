@@ -57,6 +57,7 @@ from .utils import (
     split_array_mpi,
     update_dense_symm,
     binary_encoding,
+    states_to_numbers,
 )
 
 from .deprecation import (
