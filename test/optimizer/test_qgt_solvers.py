@@ -99,3 +99,21 @@ def test_qgt_throws(SType):
 
     with pytest.raises(nk.utils.errors.ComplexDomainError, match="Cannot multiply the"):
         S @ g_cmplx
+
+
+@common.skipif_mpi
+@pytest.mark.parametrize(
+    "SType", [pytest.param(T, id=name) for name, T in QGT_types.items()]
+)
+def test_qgt_nondiff_sigma(SType):
+    # Test that we dont attempt to differentiate through the samples
+    # by testing a model that would fail in that case because its
+    # nondifferentiable.
+
+    hi = nk.hilbert.Spin(s=1 / 2, N=5)
+    ma = nk.models.LogStateVector(hi)
+    sa = nk.sampler.MetropolisLocal(hi, n_chains=2, reset_chains=False)
+    vs = nk.vqs.MCState(sa, ma, n_samples=2, n_discard_per_chain=0)
+
+    S = vs.quantum_geometric_tensor(SType)
+    S @ vs.parameters

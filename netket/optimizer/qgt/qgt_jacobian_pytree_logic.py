@@ -71,8 +71,10 @@ def jacobian_real_holo(
     """
 
     def _jacobian_real_holo(forward_fn, params, samples):
-        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
-        res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+        y, vjp_fun = jax.vjp(
+            lambda pars: single_sample(forward_fn)(pars, samples), params
+        )
+        (res,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
         return res
 
     return vmap_chunked(
@@ -100,9 +102,11 @@ def jacobian_cplx(
     """
 
     def _jacobian_cplx(forward_fn, params, samples, _build_fn):
-        y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
-        gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-        gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
+        y, vjp_fun = jax.vjp(
+            lambda pars: single_sample(forward_fn)(pars, samples), params
+        )
+        (gr,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+        (gi,) = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
         return _build_fn(gr, gi)
 
     return vmap_chunked(
@@ -182,7 +186,8 @@ def _jvp(oks: PyTree, v: PyTree) -> Array:
     Compute the matrix-vector product between the pytree jacobian oks and the pytree vector v
     """
     td = lambda x, y: jnp.tensordot(x, y, axes=y.ndim)
-    return jax.tree_util.tree_reduce(jnp.add, jax.tree_map(td, oks, v))
+    t = jax.tree_map(td, oks, v)
+    return jax.tree_util.tree_reduce(jnp.add, t)
 
 
 def _vjp(oks: PyTree, w: Array) -> PyTree:
