@@ -22,10 +22,11 @@ from netket.utils.types import DType, Array, NNInitFunc
 
 class LogStateVector(nn.Module):
     r"""
-    _Exact_ ansatz storing the logarithm of the full, exponentially-large
-    wavefunction coefficients.
+    _Exact_ ansatz storing the logarithm of the full, exponentially large
+    wavefunction coefficients. As with other models, coefficients do not need
+    to be normalised.
 
-    This Ansatz can only be used with hilbert spaces which are small enough to
+    This ansatz can only be used with Hilbert spaces which are small enough to
     be indexable.
 
     By default it initialises as a uniform state.
