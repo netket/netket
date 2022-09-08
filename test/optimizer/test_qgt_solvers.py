@@ -102,6 +102,9 @@ def test_qgt_throws(SType):
 
 
 @common.skipif_mpi
+@pytest.mark.skipif(
+    module_version("jax") < (0, 3, 17), reason="Needs jax.pure_callback"
+)
 @pytest.mark.parametrize(
     "SType", [pytest.param(T, id=name) for name, T in QGT_types.items()]
 )
