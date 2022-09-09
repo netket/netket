@@ -76,13 +76,13 @@ def jacobian_real_holo(forward_fn: Callable, params: PyTree, σ: Array) -> PyTre
     Returns:
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
-    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, σ)
-    res, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+    y, vjp_fun = jax.vjp(lambda pars: single_sample(forward_fn)(pars, σ), params)
+    (res,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     return res
 
 
 def _jacobian_cplx(
-    forward_fn: Callable, params: PyTree, samples: Array, _build_fn: Callable
+    forward_fn: Callable, params: PyTree, σ: Array, _build_fn: Callable
 ) -> PyTree:
     """Calculates one Jacobian entry.
     Assumes the function is R→C, backpropagates 1 and -1j
@@ -95,9 +95,9 @@ def _jacobian_cplx(
     Returns:
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
-    y, vjp_fun = jax.vjp(single_sample(forward_fn), params, samples)
-    gr, _ = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-    gi, _ = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
+    y, vjp_fun = jax.vjp(lambda pars: single_sample(forward_fn)(pars, σ), params)
+    (gr,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
+    (gi,) = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
     return _build_fn(gr, gi)
 
 
