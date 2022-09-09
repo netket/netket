@@ -28,17 +28,20 @@ from netket.utils.dispatch import dispatch
 
 
 class Element(ABC):
-    """Base element of a FiniteSemiGroup.
+    """Base element of a :class:`netket.utils.group.FiniteSemiGroup`.
 
     Every element must define at least a dispatch rule
     to determine how it is applied to a ket as follows:
 
-    @nk.utils.dispatch.dispatch
-    def product(A: MyElement, b: nk.utils.types.Array):
-        return A*b
+    .. code:
+
+        @nk.utils.dispatch.dispatch
+        def product(A: MyElement, b: nk.utils.types.Array):
+            return A*b
 
     An element can also define dispatch rules to combine
-    itself with other elements
+    itself with other elements.
+
     """
 
     def __call__(self, ket):
@@ -79,8 +82,8 @@ def product(a: Element, _: Identity):  # noqa: F811
 @dataclass(frozen=True)
 class Composite(Element):
     """
-    Composition of two elements of a finite group, representing
-    `left@right`
+    Composition of two :class:`netket.utils.group.Element` of a finite group,
+    representing `left@right`
     """
 
     left: Element

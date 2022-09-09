@@ -31,11 +31,11 @@ from ._semigroup import Element
 class Permutation(Element):
     def __init__(self, permutation: Array, name: Optional[str] = None):
         r"""
-        Creates a `Permutation` from an array of preimages of :code:`range(N)`
+        Creates a `Permutation` from an array of preimages of :code:`range(N)`.
 
         Arguments:
             permutation: 1D array listing :math:`g^{-1}(x)` for all :math:`0\le x < N`
-                (i.e., `V[permutation]` permutes the elements of `V` as desired)
+                (i.e., :code:`V[permutation]` permutes the elements of `V` as desired)
             name: optional, custom name for the permutation
 
         Returns:
@@ -87,12 +87,13 @@ class PermutationGroup(FiniteGroup):
     r"""
     Collection of permutation operations acting on sequences of length :code:`degree`.
 
-    Group elements need not all be of type :ref:`netket.utils.group.Permutation`,
+    Group elements need not all be of type :class:`netket.utils.group.Permutation`,
     only act as such on a sequence when called.
 
     The class can contain elements that are distinct as objects (e.g.,
     :code:`Identity()` and :code:`Translation((0,))`) but have identical action.
-    Those can be removed by calling :code:`remove_duplicates`.
+    Those can be removed by calling
+    :meth:`~netket.utils.group.PermutationGroup.remove_duplicates`.
     """
 
     degree: int
@@ -201,7 +202,7 @@ class PermutationGroup(FiniteGroup):
     @property
     def shape(self) -> Shape:
         r"""
-        Tuple `(<# of group elements>, <degree>)`.
+        Tuple :code:`(<# of group elements>, <degree>)`.
 
         Equivalent to :code:`self.to_array().shape`.
         """
