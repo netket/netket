@@ -135,6 +135,8 @@ class RungeKuttaState:
     """Current step size."""
     last_norm: Optional[float] = None
     """Solution norm at previous time step."""
+    last_scaled_error: Optional[float] = None
+    """Error of the TDVP integrator at the last time step."""
     flags: SolverFlags = SolverFlags.INFO_STEP_ACCEPTED
     """Flags containing information on the solver state."""
 
@@ -257,6 +259,7 @@ def general_time_step_adaptive(
                 None,
             ),
             last_norm=norm_y,
+            last_scaled_error=scaled_err,
             flags=flags | SolverFlags.INFO_STEP_ACCEPTED,
         ),
         # step rejected, repeat with lower dt
@@ -332,6 +335,7 @@ class RungeKuttaIntegrator:
             y=self.y0,
             dt=self.initial_dt,
             last_norm=0.0 if self.use_adaptive else None,
+            last_scaled_error=0.0 if self.use_adaptive else None,
             flags=SolverFlags(0),
         )
 
