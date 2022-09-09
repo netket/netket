@@ -9,7 +9,7 @@ from netket.experimental.operator.fermion import destroy, create, number
 import pytest
 
 op_ferm = {}
-hi = nkx.hilbert.SpinOrbitalFermions(3)
+hi = nkx.hilbert.SpinOrbitalFermions(4)
 op_ferm["FermionOperator2nd_hermitian"] = (
     nkx.operator.FermionOperator2nd(
         hi, terms=(((0, 0), (1, 1)), ((1, 0), (0, 1))), weights=(1.0 + 1j, 1 - 1j)
@@ -666,3 +666,13 @@ def test_fermion_matrices():
         ]
     )
     assert np.allclose(mat1, op1.to_dense())
+
+
+def test_fermion_mode_indices():
+    hi = nkx.hilbert.SpinOrbitalFermions(5)
+    op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 4", "2", "3"))
+
+    with pytest.raises(ValueError):
+        op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 5",))
+    with pytest.raises(ValueError):
+        op = nkx.operator.FermionOperator2nd(hi, terms=(((-1, 0)),))

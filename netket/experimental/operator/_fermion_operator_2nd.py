@@ -38,6 +38,7 @@ from ._fermion_operator_2nd_utils import (
     _is_diag_term,
     _make_tuple_tree,
     _remove_dict_zeros,
+    _verify_input,
     OperatorDict,
 )
 
@@ -108,6 +109,7 @@ class FermionOperator2nd(DiscreteOperator):
         _operators, _constant, dtype = _canonicalize_input(
             terms, weights, constant, dtype
         )
+        _verify_input(hilbert, _operators, raise_error=True)
         self._dtype = dtype
 
         # we keep the input, in order to be able to add terms later
@@ -186,8 +188,8 @@ class FermionOperator2nd(DiscreteOperator):
 
         if hilbert is None:
             raise ValueError(
-                "The first argument `from_openfermion` must either be an"
-                "openfermion operator or an Hilbert space, followed by"
+                "The first argument `from_openfermion` must either be an "
+                "openfermion operator or an Hilbert space, followed by "
                 "an openfermion operator"
             )
 

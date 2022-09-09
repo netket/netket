@@ -228,15 +228,39 @@ def _canonicalize_input(terms, weights, constant, dtype):
     _check_tree_structure(terms)
 
     # add the weights of terms that occur multiple times
-    def dtype_init():
-        return np.array(0, dtype=dtype)
-
-    operators = defaultdict(dtype_init)
+    operators = zero_defaultdict(dtype)
     for t, w in zip(terms, weights):
         operators[t] += w
     operators = _remove_dict_zeros(dict(operators))
 
     return operators, constant, dtype
+
+
+def _verify_input(hilbert, operators, raise_error=True):
+    """Check whether all input is valid"""
+    terms = list(operators.keys())
+
+    def _check_op(fop):
+        v1 = 0 <= fop[0] < hilbert.size
+        if not v1:
+            if raise_error:
+                raise ValueError(
+                    f"Found invalid orbital index {fop[0]} for hilbert space {hilbert} of size {hilbert.size}"
+                )
+            return False
+        v2 = fop[1] in (0, 1)
+        if not v2:
+            if raise_error:
+                raise ValueError(
+                    f"Found invalid character {fop[1]} for dagger, which should be 0 (no dagger) or 1 (dagger)."
+                )
+            return False
+        return True
+
+    def _check_term(term):
+        return all(_check_op(t) for t in term)
+
+    return all(_check_term(term) for term in terms)
 
 
 def _remove_dict_zeros(d: Dict):
@@ -370,13 +394,21 @@ def _reduce_operators(operators: OperatorDict, dtype: DType) -> OperatorDict:
     Reduce the operators by adding equivalent terms together
     """
 
-    def dtype_init():
-        return np.array(0, dtype=dtype)
-
-    red_ops = defaultdict(dtype_init)
+    red_ops = zero_defaultdict(dtype)
     terms = list(operators.keys())
     weights = list(operators.values())
     for term, weight in zip(*_normal_ordering(terms, weights)):
         red_ops[term] += weight
     red_ops = _remove_dict_zeros(dict(red_ops))
     return red_ops
+
+
+def zero_defaultdict(dtype):
+    """
+    Temporary function to make sure we get a good initializer for each dtype
+    """
+
+    def _dtype_init():
+        return np.array(0, dtype=dtype).item()
+
+    return defaultdict(_dtype_init)
