@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List, Optional, Tuple, Union
 from functools import partial
 
 import numpy as np
@@ -22,8 +23,7 @@ from numba import njit
 
 from netket import jax as nkjax
 from netket.operator import AbstractOperator, LocalOperator
-from netket.stats import Stats
-from netket.vqs import MCState
+from netket.vqs import VariationalState
 from netket.optimizer import (
     identity_preconditioner,
     PreconditionerT,
@@ -33,6 +33,8 @@ from netket.utils.types import PyTree
 
 from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
+
+BaseType = Union[AbstractOperator, np.ndarray, str]
 
 
 def _build_rotation(hi, basis, dtype=complex):
@@ -53,7 +55,7 @@ def _build_rotation(hi, basis, dtype=complex):
     return localop
 
 
-def _check_bases_type(Us):
+def _check_bases_type(Us: Union[List[BaseType], np.ndarray]) -> List[AbstractOperator]:
     """Checks if the given bases are valid for the Qsr driver.
 
     Args:
@@ -228,7 +230,7 @@ def grad_local_value_rotated(log_psi, pars, model_state, sigma_p, mel, secs, MAX
 
 @jax.jit
 def compose_grads(grad_neg, grad_pos):
-    return jax.tree_util.tree_multimap(
+    return jax.tree_util.tree_map(
         lambda x, y: 2.0 * jnp.conj(x - y),
         grad_neg,
         grad_pos,
@@ -264,30 +266,28 @@ class QSR(AbstractVariationalDriver):
 
     def __init__(
         self,
-        training_data,
-        training_batch_size,
+        training_data: Tuple[List, List],
+        training_batch_size: int,
         optimizer,
-        *args,
-        variational_state=None,
+        *variational_state: VariationalState,
         preconditioner: PreconditionerT = identity_preconditioner,
-        seed=None,
-        **kwargs,
+        seed: Optional[int] = None,
     ):
         """Initializes the QSR driver class.
 
         Args:
-            training_data (Tuple): A tuple of two lists.
-            training_batch_size (int): The trainign batch size.
-            optimizer (optax.GradientTransformation): The optimizer to use. You can use optax optimizers or choose from the predefined optimizers netket offers.
-            variational_state (nk.vqs.VariationalState, optional): The Variational state. Defaults to None and will initialize a MCState in that case
-            preconditioner (netket.optimizer.PreconditionerT, optional): The preconditioner to use. Defaults to identity_preconditioner.
-            seed (int, optional): The RNG seed. Defaults to None.
+            training_data: A tuple of two lists.
+            training_batch_size: The trainign batch size.
+            optimizer: The optimizer to use. You can use optax optimizers or
+                choose from the predefined optimizers netket offers.
+            variational_state: The Variational state to optimise
+            preconditioner: The preconditioner to use.
+                Defaults to identity_preconditioner.
+            seed: The RNG seed. Defaults to None.
 
         Raises:
             TypeError: If the training data is not a 2 element tuple.
         """
-        if variational_state is None:
-            variational_state = MCState(*args, **kwargs)
 
         super().__init__(variational_state, optimizer)
 
@@ -359,7 +359,7 @@ class QSR(AbstractVariationalDriver):
         self._dp = self.preconditioner(self.state, self._loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
-        self._dp = jax.tree_multimap(
+        self._dp = jax.tree_map(
             lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
             self._dp,
             self.state.parameters,
@@ -368,6 +368,13 @@ class QSR(AbstractVariationalDriver):
         return self._dp
 
     def nll(self):
+        """
+        Compute the Negative-Log-Likelihood.
+
+        .. warn::
+
+            Exponentially expensive in the hilbert space size!
+        """
         log_val_rot = local_value_rotated_amplitude(
             self.state._apply_fun,
             self.state.variables,
@@ -391,14 +398,6 @@ class QSR(AbstractVariationalDriver):
     def _log_additional_data(self, log_dict, step):
         log_dict["loss_grad_norm"] = tree_norm(self._loss_grad)
         log_dict["dp_norm"] = tree_norm(self._dp)
-
-    @property
-    def energy(self) -> Stats:
-        """
-        Return MCMC statistics for the expectation value of observables in the
-        current state of the driver.
-        """
-        return self._loss_stats
 
     def __repr__(self):
         return (
