@@ -269,7 +269,8 @@ class QSR(AbstractVariationalDriver):
         training_data: Tuple[List, List],
         training_batch_size: int,
         optimizer,
-        *variational_state: VariationalState,
+        *,
+        variational_state: VariationalState,
         preconditioner: PreconditionerT = identity_preconditioner,
         seed: Optional[int] = None,
     ):
