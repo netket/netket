@@ -183,13 +183,7 @@ def _avg_O(afun, pars, model_state, sigma):
 ####
 
 
-@partial(jax.vmap, in_axes=(None, None, 0, 0, None), out_axes=0)
-def map_masked_offset(fun, arr, offset, size, MAX_SIZE):
-    masked_fun = jax.mask(fun, ("l",), "")
-    return masked_fun((jax.lax.dynamic_slice(arr, [offset], [MAX_SIZE]),), dict(l=size))
-
-
-def sum_sections(arr, secs, MAX_SIZE):
+def sum_sections(arr, secs):
     """
     Equivalent to
     for i in range(secs.size-1):
@@ -200,22 +194,29 @@ def sum_sections(arr, secs, MAX_SIZE):
     """
     offsets = secs[:-1]
     sizes = secs[1:] - offsets
-    return map_masked_offset(jnp.sum, arr, offsets, sizes, MAX_SIZE)
+
+    N_rows = secs.size - 1
+    # Construct the indices necessary to perform the segment_sum
+    indices = jnp.repeat(jnp.arange(N_rows), sizes, total_repeat_length=arr.size)
+
+    return jax.ops.segment_sum(
+        arr, indices, num_segments=N_rows, indices_are_sorted=True
+    )
 
 
-@partial(jax.jit, static_argnums=(0, 5))
-def local_value_rotated_kernel(log_psi, pars, sigma_p, mel, secs, MAX_LEN):
+@partial(jax.jit, static_argnums=(0,))
+def local_value_rotated_kernel(log_psi, pars, sigma_p, mel, secs):
     log_psi_sigma_p = log_psi(pars, sigma_p)
     U_sigma_sigma_p_psi_sigma_p = mel * jnp.exp(log_psi_sigma_p)
 
-    return jnp.log(sum_sections(U_sigma_sigma_p_psi_sigma_p, secs, MAX_LEN))
+    return jnp.log(sum_sections(U_sigma_sigma_p_psi_sigma_p, secs))
 
 
-@partial(jax.jit, static_argnums=(0, 6))
-def grad_local_value_rotated(log_psi, pars, model_state, sigma_p, mel, secs, MAX_LEN):
+@partial(jax.jit, static_argnums=(0,))
+def grad_local_value_rotated(log_psi, pars, model_state, sigma_p, mel, secs):
     log_val_rotated, vjp = nkjax.vjp(
         lambda W: local_value_rotated_kernel(
-            log_psi, {"params": W, **model_state}, sigma_p, mel, secs, MAX_LEN
+            log_psi, {"params": W, **model_state}, sigma_p, mel, secs
         ),
         pars,
     )
@@ -238,14 +239,12 @@ def compose_grads(grad_neg, grad_pos):
 
 
 # for nll
-@partial(jax.jit, static_argnums=(0, 5))
-def local_value_rotated_amplitude(log_psi, pars, sigma_p, mel, secs, MAX_LEN):
+@partial(jax.jit, static_argnums=(0,))
+def local_value_rotated_amplitude(log_psi, pars, sigma_p, mel, secs):
     log_psi_sigma_p = log_psi(pars, sigma_p)
     U_sigma_sigma_p_psi_sigma_p = mel * jnp.exp(log_psi_sigma_p)
 
-    return jnp.log(
-        jnp.abs(sum_sections(U_sigma_sigma_p_psi_sigma_p, secs, MAX_LEN)) ** 2
-    )
+    return jnp.log(jnp.abs(sum_sections(U_sigma_sigma_p_psi_sigma_p, secs)) ** 2)
 
 
 #####
@@ -350,7 +349,6 @@ class QSR(AbstractVariationalDriver):
             self._sigma_p,
             self._mels,
             self._secs,
-            self._maxlen,
         )
 
         self._loss_grad = compose_grads(self._grad_neg, self._grad_pos)
@@ -382,7 +380,6 @@ class QSR(AbstractVariationalDriver):
             self._sigma_p,
             self._mels,
             self._secs,
-            self._maxlen,
         )
 
         ce = jnp.mean(log_val_rot)
