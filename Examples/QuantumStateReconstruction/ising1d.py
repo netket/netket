@@ -59,4 +59,4 @@ def cb(step, logvals, driver):
     return True
 
 
-(out,) = qst.run(n_iter=2000, obs=obs, callback=cb)
+out = qst.run(n_iter=2000, obs=obs, callback=cb)

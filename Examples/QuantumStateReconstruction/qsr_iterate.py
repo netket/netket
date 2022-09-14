@@ -75,6 +75,6 @@ def cb(step, logvals, driver):
     return True
 
 
-(log,) = qst.run(
+log = qst.run(
     n_iter=2000, obs=obs, callback=cb, step_size=5, out=nk.logging.RuntimeLog()
 )
