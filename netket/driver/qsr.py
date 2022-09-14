@@ -35,6 +35,24 @@ from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
 
 
+def _build_rotation(hi, basis, dtype=complex):
+    localop = LocalOperator(hi, constant=1.0, dtype=dtype)
+    U_X = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, 1.0], [1.0, -1.0]])
+    U_Y = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, -1j], [1.0, 1j]])
+
+    assert len(basis) == hi.size
+
+    for (j, base) in enumerate(basis):
+        if base == "X":
+            localop *= LocalOperator(hi, U_X, [j])
+        elif base == "Y":
+            localop *= LocalOperator(hi, U_Y, [j])
+        elif base == "Z" or base == "I":
+            pass
+
+    return localop
+
+
 def _check_bases_type(Us):
     """Checks if the given bases are valid for the Qsr driver.
 
@@ -52,6 +70,23 @@ def _check_bases_type(Us):
 
     if isinstance(Us[0], AbstractOperator):
         return Us
+
+    if isinstance(Us[0], str):
+        from netket.hilbert import Spin
+
+        hilbert = Spin(0.5, N=len(Us[0]))
+        N_samples = len(Us)
+
+        _cache = {}
+        _bases = np.empty(N_samples, dtype=object)
+
+        for (i, basis) in enumerate(Us):
+            if basis not in _cache:
+                U = _build_rotation(hilbert, basis)
+                _cache[basis] = U
+
+            _bases[i] = _cache[basis]
+        return _bases
 
     raise TypeError("Unknown type of measurement basis.")
 
