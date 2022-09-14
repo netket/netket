@@ -25,8 +25,8 @@ N = 3
 hi, rotations, training_samples, ha, psi = generate(N, n_basis=2 * N, n_shots=500)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, dtype=complex)
-# ma = nk.models.RBMModPhase(alpha=1, dtype=float)
+ma = nk.models.RBM(alpha=1, param_dtype=complex)
+# ma = nk.models.RBMModPhase(alpha=1, param_dtype=float)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
@@ -38,7 +38,7 @@ op = nk.optimizer.Sgd(learning_rate=0.01)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
 # Variational state
-vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
+vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=100)
 
 ## Quantum State Reconstruction
 qst = nk.driver.QSR(

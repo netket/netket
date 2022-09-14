@@ -25,8 +25,8 @@ N = 3
 hi, rotations, training_samples, ha, psi = generate(N, n_basis=2 * N, n_shots=500)
 
 # RBM Spin Machine
-ma = nk.models.RBM(alpha=1, dtype=complex)
-# ma = nk.models.RBMModPhase(alpha=1, dtype=float)
+ma = nk.models.RBM(alpha=1, param_dtype=complex)
+# ma = nk.models.RBMModPhase(alpha=1, param_dtype=float)
 
 # Metropolis Local Sampling
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
