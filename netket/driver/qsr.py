@@ -126,8 +126,8 @@ def _convert_data(sigma_s, Us):
     # last
     sigma_p.resize((last_i + MAX_LEN, N))
     mels.resize((last_i + MAX_LEN,))
-    sigma_p[last_i + Nc:, :] = 0.0
-    mels[last_i + Nc:] = 0.0
+    sigma_p[last_i + Nc :, :] = 0.0
+    mels[last_i + Nc :] = 0.0
     secs[-1] = last_i  # + MAX_LEN
 
     return sigma_p, mels, secs, MAX_LEN
@@ -151,8 +151,8 @@ def _compose_sampled_data(
         len_i = end_i - start_i
 
         # print(f"{n}, {i}, {last_i}, {start_i}, {end_i}")
-        _sigma_p[last_i: last_i + len_i, :] = sigma_p[start_i:end_i, :]
-        _mels[last_i: last_i + len_i] = mels[start_i:end_i]
+        _sigma_p[last_i : last_i + len_i, :] = sigma_p[start_i:end_i, :]
+        _mels[last_i : last_i + len_i] = mels[start_i:end_i]
 
         last_i = last_i + len_i
         _secs[n + 1] = last_i
@@ -173,8 +173,7 @@ def _compose_sampled_data(
 @partial(jax.jit, static_argnums=0)
 def _avg_O(afun, pars, model_state, sigma):
     sigma = sigma.reshape((-1, sigma.shape[-1]))
-    _, vjp = nkjax.vjp(lambda W: afun(
-        {"params": W, **model_state}, sigma), pars)
+    _, vjp = nkjax.vjp(lambda W: afun({"params": W, **model_state}, sigma), pars)
     (O_avg,) = vjp(jnp.ones(sigma.shape[0]) / sigma.shape[0])
     return jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], O_avg)
 
@@ -242,7 +241,9 @@ def local_value_rotated_amplitude(log_psi, pars, sigma_p, mel, secs, MAX_LEN):
     log_psi_sigma_p = log_psi(pars, sigma_p)
     U_sigma_sigma_p_psi_sigma_p = mel * jnp.exp(log_psi_sigma_p)
 
-    return jnp.log(jnp.abs(sum_sections(U_sigma_sigma_p_psi_sigma_p, secs, MAX_LEN)) ** 2)
+    return jnp.log(
+        jnp.abs(sum_sections(U_sigma_sigma_p_psi_sigma_p, secs, MAX_LEN)) ** 2
+    )
 
 
 #####
