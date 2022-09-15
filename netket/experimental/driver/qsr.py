@@ -22,6 +22,8 @@ import jax.numpy as jnp
 from numba import njit
 
 from netket import jax as nkjax
+from netket.driver import AbstractVariationalDriver
+from netket.driver.vmc_common import info
 from netket.operator import AbstractOperator, LocalOperator
 from netket.vqs import VariationalState
 from netket.optimizer import (
@@ -30,9 +32,6 @@ from netket.optimizer import (
 )
 from netket.utils import mpi
 from netket.utils.types import PyTree
-
-from .vmc_common import info
-from .abstract_variational_driver import AbstractVariationalDriver
 
 BaseType = Union[AbstractOperator, np.ndarray, str]
 

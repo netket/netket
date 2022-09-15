@@ -14,6 +14,8 @@
 
 
 import netket as nk
+import netket.experimental as nkx
+
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -41,7 +43,7 @@ sr = nk.optimizer.SR(diag_shift=0.01)
 vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=100)
 
 ## Quantum State Reconstruction
-qst = nk.driver.QSR(
+qst = nkx.driver.QSR(
     training_data=(training_samples, rotations),
     training_batch_size=500,
     optimizer=op,
