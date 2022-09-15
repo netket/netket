@@ -80,9 +80,27 @@ This module contains experimental loggers that can be used with the optimization
 
 ```
 
+## Quantum State Reconstruction
+
+The driver needed to reconstruct a quantum state from some dataset of measurements (sometimes called, improperly, Quantum State Tomography). 
+
+```{eval-rst}
+.. currentmodule:: netket.experimental
+```
+
+```{eval-rst}
+.. autosummary::
+  :toctree: _generated/experimental/dynamics
+  :nosignatures:
+
+  driver.QSR
+
+```
+
+
 ## Time Evolution Driver
 
-````{admonition} Apple ARM (M1) processors 
+````{admonition} Warning 
 :class: warning
 
 Those drivers are automatically jitted with `jax.jit`. To disable jitting set 
