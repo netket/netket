@@ -246,14 +246,6 @@ def local_value_rotated_amplitude(log_psi, pars, sigma_p, mel, secs):
     return jnp.log(jnp.abs(sum_sections(U_sigma_sigma_p_psi_sigma_p, secs)) ** 2)
 
 
-#####
-
-
-@jax.jit
-def tree_norm(a):
-    return nkjax.tree_dot(jax.tree_map(jnp.conj, a), a)
-
-
 ####
 
 
@@ -372,6 +364,7 @@ class QSR(AbstractVariationalDriver):
         .. warn::
 
             Exponentially expensive in the hilbert space size!
+
         """
         log_val_rot = local_value_rotated_amplitude(
             self.state._apply_fun,
@@ -393,8 +386,8 @@ class QSR(AbstractVariationalDriver):
         return log_n - ce
 
     def _log_additional_data(self, log_dict, step):
-        log_dict["loss_grad_norm"] = tree_norm(self._loss_grad)
-        log_dict["dp_norm"] = tree_norm(self._dp)
+        log_dict["loss_grad_norm"] = nkjax.tree_norm(self._loss_grad)
+        log_dict["dp_norm"] = nkjax.tree_norm(self._dp)
 
     def __repr__(self):
         return (

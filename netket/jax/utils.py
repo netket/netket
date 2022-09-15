@@ -188,6 +188,24 @@ def tree_dot(a: PyTree, b: PyTree) -> Scalar:
     )
 
 
+@jax.jit
+def tree_norm(a: PyTree, *, p: int = 2) -> Scalar:
+    r"""
+    compute the L-p vector norm of a PyTree, interpreted as a vector.
+
+    Args:
+        a: A PyTree vector
+        p: the order of the norm to compute. Defaults to 2 (the L2 or Froebnius norm).
+
+    Returns:
+        A scalar.
+    """
+    if p != 2:
+        raise NotImplementedError("Tree_norm for p!=2 not yet implemented.")
+
+    return jnp.sqrt(tree_dot(tree_conj(a), a))
+
+
 def tree_cast(x: PyTree, target: PyTree) -> PyTree:
     r"""
     cast x the types of target

@@ -26,6 +26,7 @@ from .utils import (
     maybe_promote_to_complex,
     tree_conj,
     tree_dot,
+    tree_norm,
     tree_cast,
     tree_axpy,
     tree_to_real,
