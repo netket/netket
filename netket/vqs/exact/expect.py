@@ -13,10 +13,12 @@
 # limitations under the License.
 
 from functools import partial, lru_cache
-from typing import Callable, Any, Tuple
+from typing import Callable, Tuple
 
 import jax
 from jax import numpy as jnp
+from flax.core.scope import CollectionFilter
+
 from netket import jax as nkjax
 from netket.operator import Squared
 from netket.stats import Stats
@@ -68,7 +70,7 @@ def expect_and_forces(
     vstate: ExactState,
     Ô: DiscreteOperator,
     *,
-    mutable: Any,
+    mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
     if isinstance(Ô, Squared):
         raise NotImplementedError("expect_and_forces not yet implemented for `Squared`")
@@ -98,7 +100,7 @@ def expect_and_forces(
 @partial(jax.jit, static_argnums=(0, 1))
 def _exp_forces(
     model_apply_fun: Callable,
-    mutable: bool,
+    mutable: CollectionFilter,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
@@ -136,7 +138,7 @@ def expect_and_grad(
     Ô: DiscreteOperator,
     use_covariance: TrueT,
     *,
-    mutable: Any,
+    mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
     Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
     Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)

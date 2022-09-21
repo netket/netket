@@ -23,6 +23,7 @@ from jax import numpy as jnp
 
 import flax
 from flax import serialization
+from flax.core.scope import CollectionFilter
 
 from netket import jax as nkjax
 from netket import nn
@@ -147,7 +148,7 @@ class MCState(VariationalState):
         sample_fun: Callable = None,
         seed: Optional[SeedT] = None,
         sampler_seed: Optional[SeedT] = None,
-        mutable: bool = False,
+        mutable: CollectionFilter = False,
         training_kwargs: Dict = {},
     ):
         """
@@ -164,7 +165,7 @@ class MCState(VariationalState):
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
-            mutable: Dict specifying mutable arguments. Use it to specify if the model has a state that can change
+            mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
                 during evaluation, but that should not be optimised. See also flax.linen.module.apply documentation
                 (default=False)
             init_fun: Function of the signature f(model, shape, rng_key, dtype) -> Optional_state, parameters used to
@@ -606,7 +607,7 @@ class MCState(VariationalState):
         self,
         Ô: AbstractOperator,
         *,
-        mutable: Optional[Any] = None,
+        mutable: Optional[CollectionFilter] = None,
         use_covariance: Optional[bool] = None,
     ) -> Tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient for a given operator O.
@@ -639,7 +640,7 @@ class MCState(VariationalState):
         self,
         Ô: AbstractOperator,
         *,
-        mutable: Optional[Any] = None,
+        mutable: Optional[CollectionFilter] = None,
     ) -> Tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and the corresponding force vector for a given operator O.
 

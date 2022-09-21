@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -23,6 +23,7 @@ from jax.nn.initializers import normal
 
 import flax
 from flax.core.frozen_dict import FrozenDict
+from flax.core.scope import CollectionFilter
 
 import netket.jax as nkjax
 from netket.operator import AbstractOperator, Squared
@@ -168,7 +169,7 @@ class VariationalState(abc.ABC):
         Ô,
         *,
         use_covariance: Optional[bool] = None,
-        mutable: Optional[Any] = None,
+        mutable: Optional[CollectionFilter] = None,
     ) -> PyTree:
         r"""Estimates the gradient of the quantum expectation value of a given operator O.
 
@@ -187,7 +188,7 @@ class VariationalState(abc.ABC):
         self,
         Ô: AbstractOperator,
         *,
-        mutable: Optional[Any] = None,
+        mutable: Optional[CollectionFilter] = None,
         use_covariance: Optional[bool] = None,
     ) -> Tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient for a given operator O.
@@ -217,7 +218,7 @@ class VariationalState(abc.ABC):
         self,
         Ô: AbstractOperator,
         *,
-        mutable: Optional[Any] = None,
+        mutable: Optional[CollectionFilter] = None,
     ) -> Tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and corresponding force vector for a given operator O.
 
@@ -362,7 +363,7 @@ def expect_and_grad(
     operator: AbstractOperator,
     use_covariance: Optional[bool],
     *args,
-    mutable=None,
+    mutable: CollectionFilter,
     **kwargs,
 ):
     r"""Estimates the quantum expectation value and its gradient for a given operator O.
@@ -391,9 +392,6 @@ def expect_and_grad(
         else:
             use_covariance = TrueT() if operator.is_hermitian else FalseT()
 
-    if mutable is None:
-        mutable = vstate.mutable
-
     return expect_and_grad(
         vstate, operator, use_covariance, *args, mutable=mutable, **kwargs
     )
@@ -404,7 +402,7 @@ def expect_and_forces(
     vstate: VariationalState,
     operator: AbstractOperator,
     *args,
-    mutable=None,
+    mutable: CollectionFilter,
     **kwargs,
 ):
     r"""Estimates the quantum expectation value and corresponding force vector for a given operator O.

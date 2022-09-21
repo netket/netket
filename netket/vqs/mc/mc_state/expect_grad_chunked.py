@@ -17,6 +17,7 @@ import warnings
 
 import jax
 from jax import numpy as jnp
+from flax.core.scope import CollectionFilter
 
 from netket.operator import AbstractOperator
 from netket.stats import Stats
@@ -68,7 +69,7 @@ def expect_and_grad_covariance_chunked(  # noqa: F811
     use_covariance: TrueT,
     chunk_size: int,
     *,
-    mutable: Any,
+    mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
 
     Ō, Ō_grad = expect_and_forces(vstate, Ô, chunk_size, mutable=mutable)
