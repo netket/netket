@@ -15,7 +15,7 @@
 import abc
 
 from netket.utils.types import DType
-from netket.utils import deprecated, numbers
+from netket.utils import deprecated
 
 from netket.hilbert import AbstractHilbert
 
@@ -112,8 +112,3 @@ class AbstractOperator(abc.ABC):
 
     def __repr__(self):
         return f"{type(self).__name__}(hilbert={self.hilbert}, dtype={self.dtype})"
-
-
-@numbers.dtype.dispatch
-def dtype(x: AbstractOperator):  # noqa: F811, E0102
-    return x.dtype
