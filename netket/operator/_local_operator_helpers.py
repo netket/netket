@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple, Union
+from typing import Tuple
 
 import functools
 import numbers
@@ -24,8 +24,6 @@ from scipy.sparse import spmatrix
 from netket.hilbert import AbstractHilbert, Fock
 from netket.utils.types import DType, Array
 from netket.utils.numbers import dtype as _dtype
-
-from ._discrete_operator import AbstractOperator
 
 
 def cast_operator_matrix_dtype(matrix: Array, dtype: DType):

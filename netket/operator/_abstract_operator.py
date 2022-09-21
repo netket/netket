@@ -117,4 +117,3 @@ class AbstractOperator(abc.ABC):
 @numbers.dtype.dispatch
 def dtype(x: AbstractOperator):  # noqa: F811, E0102
     return x.dtype
-

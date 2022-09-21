@@ -15,9 +15,11 @@ def dtype(x: Number):
 def dtype(x: Array):  # noqa: F811, E0102
     return x.dtype
 
+
 @dispatch
 def dtype(x: Any):  # noqa: F811, E0102
     raise TypeError(f"cannot deduce dtype of object type {type(x)}: {x}")
+
 
 @dispatch
 def is_scalar(_: Any):
