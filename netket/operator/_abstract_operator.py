@@ -15,7 +15,6 @@
 import abc
 
 from netket.utils.types import DType
-from netket.utils
 from netket.utils import deprecated, numbers
 
 from netket.hilbert import AbstractHilbert
