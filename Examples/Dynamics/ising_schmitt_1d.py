@@ -13,12 +13,6 @@
 # limitations under the License.
 
 import netket as nk
-import numpy as np
-
-from matplotlib import pyplot as plt
-
-plt.ion()
-
 import netket.experimental as nkx
 
 # 1D chain
