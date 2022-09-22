@@ -172,8 +172,8 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                 # TODO: make this also an hashablepartial on self to reduce recompilation
                 self._error_norm = lambda x: pure_callback(
                     HashablePartial(qgt_norm, self),
+                    jax.ShapeDtypeStruct((), norm_dtype),
                     x,
-                    result_shape=jax.ShapeDtypeStruct((), norm_dtype),
                 )
         else:
             raise ValueError(
