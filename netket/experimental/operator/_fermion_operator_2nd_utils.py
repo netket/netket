@@ -1,12 +1,10 @@
-import numbers
 import re
 from collections import defaultdict
 import numpy as np
 from typing import List, Union, Tuple, Dict
 import copy
 
-from netket.utils.types import DType, Array, PyTree
-from netket.operator._discrete_operator import DiscreteOperator
+from netket.utils.types import DType, PyTree
 
 OperatorTuple = Tuple[int, int]
 r""" Creation and annihilation operators at mode i are encoded as
