@@ -17,6 +17,13 @@ def dtype(x: Array):  # noqa: F811, E0102
 
 
 @dispatch
+def dtype(x: Any):  # noqa: F811, E0102
+    if hasattr(x, "dtype"):
+        return x.dtype
+    raise TypeError(f"cannot deduce dtype of object type {type(x)}: {x}")
+
+
+@dispatch
 def is_scalar(_: Any):
     return False
 

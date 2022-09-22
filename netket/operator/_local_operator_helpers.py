@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple, Union
+from typing import Tuple
 
 import functools
 import numbers
@@ -23,25 +23,10 @@ from scipy.sparse import spmatrix
 
 from netket.hilbert import AbstractHilbert, Fock
 from netket.utils.types import DType, Array
-
-from ._discrete_operator import AbstractOperator
-
-
-def _dtype(obj: Union[numbers.Number, Array, AbstractOperator]) -> DType:
-    """
-    Returns the dtype of the input object
-    """
-    if isinstance(obj, numbers.Number):
-        return type(obj)
-    elif isinstance(obj, AbstractOperator):
-        return obj.dtype
-    elif isinstance(obj, np.ndarray):
-        return obj.dtype
-    else:
-        raise TypeError(f"cannot deduce dtype of object type {type(obj)}: {obj}")
+from netket.utils.numbers import dtype as _dtype
 
 
-def cast_operator_matrix_dtype(matrix, dtype):
+def cast_operator_matrix_dtype(matrix: Array, dtype: DType):
     """
     Changes the dtype of a matrix, without changing the structural type of the object.
 

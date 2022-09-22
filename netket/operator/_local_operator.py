@@ -23,12 +23,12 @@ import numba
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType, Array
+from netket.utils.numbers import dtype as _dtype
 
 from ._discrete_operator import DiscreteOperator
 from ._lazy import Transpose
 
 from ._local_operator_helpers import (
-    _dtype,
     canonicalize_input,
     _multiply_operators,
     cast_operator_matrix_dtype,
