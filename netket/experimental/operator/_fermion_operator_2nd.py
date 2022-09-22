@@ -24,7 +24,7 @@ from netket.utils.types import DType
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
-from netket.utils.numbers import is_scalar
+from netket.utils.numbers import is_scalar, dtype as _dtype
 
 from netket.experimental.hilbert import SpinOrbitalFermions
 
@@ -33,7 +33,6 @@ from ._fermion_operator_2nd_utils import (
     _collect_constants,
     _canonicalize_input,
     _check_hermitian,
-    _dtype,
     _herm_conj,
     _is_diag_term,
     _make_tuple_tree,

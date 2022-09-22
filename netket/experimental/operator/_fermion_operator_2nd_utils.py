@@ -373,22 +373,6 @@ def _is_diag_term(term: OperatorTerm) -> bool:
     return all((x[0] == x[1]) for x in ops.values())
 
 
-def _dtype(
-    obj: Union[numbers.Number, Array, "FermionOperator2nd"]  # noqa: F821
-) -> DType:
-    """
-    Returns the dtype of the input object
-    """
-    if isinstance(obj, numbers.Number):
-        return type(obj)
-    elif isinstance(obj, DiscreteOperator):
-        return obj.dtype
-    elif isinstance(obj, np.ndarray):
-        return obj.dtype
-    else:
-        raise TypeError(f"cannot deduce dtype of object type {type(obj)}: {obj}")
-
-
 def _reduce_operators(operators: OperatorDict, dtype: DType) -> OperatorDict:
     """
     Reduce the operators by adding equivalent terms together
