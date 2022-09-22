@@ -13,10 +13,11 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable, Tuple
+from typing import Callable, Tuple
 
 import jax
 from jax import numpy as jnp
+from flax.core.scope import CollectionFilter
 
 from netket import jax as nkjax
 from netket import config
@@ -50,7 +51,7 @@ def expect_and_grad_covariance(
     Ô: AbstractOperator,
     use_covariance: TrueT,
     *,
-    mutable: Any,
+    mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
     Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
     Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
@@ -87,7 +88,7 @@ def expect_and_grad_nonherm(
     Ô,
     use_covariance,
     *,
-    mutable: Any,
+    mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
 
     if not isinstance(Ô, Squared) and not config.netket_experimental:
@@ -128,7 +129,7 @@ def grad_expect_operator_kernel(
     local_value_kernel: Callable,
     model_apply_fun: Callable,
     machine_pow: int,
-    mutable: bool,
+    mutable: CollectionFilter,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,

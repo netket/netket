@@ -13,10 +13,11 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable, Tuple
+from typing import Callable, Tuple
 
 import jax
 from jax import numpy as jnp
+from flax.core.scope import CollectionFilter
 
 from netket import jax as nkjax
 from netket.stats import Stats, statistics
@@ -41,7 +42,7 @@ def expect_and_forces(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
     *,
-    mutable: Any,
+    mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
@@ -67,7 +68,7 @@ def expect_and_forces(  # noqa: F811
 def forces_expect_hermitian(
     local_value_kernel: Callable,
     model_apply_fun: Callable,
-    mutable: bool,
+    mutable: CollectionFilter,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,

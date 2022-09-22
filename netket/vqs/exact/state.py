@@ -20,6 +20,7 @@ from jax import numpy as jnp
 
 import flax
 from flax import serialization
+from flax.core.scope import CollectionFilter
 
 from netket import jax as nkjax
 from netket import nn
@@ -70,7 +71,7 @@ class ExactState(VariationalState):
         init_fun: NNInitFunc = None,
         apply_fun: Callable = None,
         seed: Optional[SeedT] = None,
-        mutable: bool = False,
+        mutable: CollectionFilter = False,
         training_kwargs: Dict = {},
         dtype=float,
     ):
@@ -82,7 +83,7 @@ class ExactState(VariationalState):
             model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
-            mutable: Dict specifying mutable arguments. Use it to specify if the model has a state that can change
+            mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
                 during evaluation, but that should not be optimised. See also flax.linen.module.apply documentation
                 (default=False)
             init_fun: Function of the signature f(model, shape, rng_key, dtype) -> Optional_state, parameters used to

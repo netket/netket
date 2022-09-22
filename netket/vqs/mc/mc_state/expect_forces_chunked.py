@@ -19,6 +19,7 @@ import warnings
 import jax
 from jax import numpy as jnp
 from jax import tree_map
+from flax.core.scope import CollectionFilter
 
 from netket import jax as nkjax
 from netket.operator import AbstractOperator
@@ -71,7 +72,7 @@ def expect_and_forces_impl(  # noqa: F811
     Ô: AbstractOperator,
     chunk_size: int,
     *,
-    mutable: Any,
+    mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
@@ -99,7 +100,7 @@ def forces_expect_hermitian_chunked(
     chunk_size: int,
     local_value_kernel_chunked: Callable,
     model_apply_fun: Callable,
-    mutable: bool,
+    mutable: CollectionFilter,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
