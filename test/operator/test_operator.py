@@ -364,6 +364,7 @@ def test_pauli(hilbert):
 
     assert op.to_sparse().shape == op_l.to_sparse().shape
 
+
 def test_pauli_subtraction():
     op = nk.operator.PauliStrings("XY")
     np.testing.assert_allclose(-op.to_dense(), (-op).to_dense())
