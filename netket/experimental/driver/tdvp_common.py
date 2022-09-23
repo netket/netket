@@ -480,8 +480,8 @@ def odefun_host_callback(state, driver, *args, **kwargs):
 
     return pure_callback(
         lambda args_and_kw: odefun(state, driver, *args_and_kw[0], **args_and_kw[1]),
+        result_shape,
         # pack args and kwargs together, since host_callback passes a single argument:
         (args, kwargs),
-        result_shape=result_shape,
     )
     return odefun(state, driver, *args, **kwargs)
