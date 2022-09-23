@@ -351,6 +351,15 @@ class PauliStrings(DiscreteOperator):
             cutoff=self._cutoff,
         )
 
+    def __sub__(self, other):
+        return self + (-other)
+
+    def __rsub__(self, other):
+        return other + (-self)
+
+    def __neg__(self):
+        return -1 * self
+
     def __radd__(self, other):
         return self + other
 
