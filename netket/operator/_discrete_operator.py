@@ -135,7 +135,7 @@ class DiscreteOperator(AbstractOperator):
 
         """
         if out is None:
-            out = np.empty(x.shape[0], dtype=np.intc)
+            out = np.empty(x.shape[0], dtype=np.int32)
         self.get_conn_flattened(x, out)
         out = self._n_conn_from_sections(out)
 

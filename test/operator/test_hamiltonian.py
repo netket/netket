@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import pytest
 
 import netket as nk
@@ -60,3 +61,108 @@ def test_Heisenberg():
     ha2 = nk.operator.Heisenberg(hi, graph=g, J=[1, 0.5], sign_rule=[True, False])
 
     assert gs_energy(ha1) == pytest.approx(gs_energy(ha2))
+
+
+def _colored_graph(graph):
+    return nk.graph.Graph(edges=[(i, j, i % 2) for i, j in graph.edges()])
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pytest.param(np.float32, id="float32"),
+        pytest.param(np.float64, id="float64"),
+    ],
+)
+@pytest.mark.parametrize(
+    "partial_H_pair",
+    [
+        pytest.param(
+            (
+                lambda hi, g: nk.operator.Ising(hi, g, h=0),
+                lambda hi, g: nk.operator.IsingJax(hi, g, h=0),
+            ),
+            id="ising_zero_h",
+        ),
+        pytest.param(
+            (
+                lambda hi, g: nk.operator.Ising(hi, g, h=1),
+                lambda hi, g: nk.operator.IsingJax(hi, g, h=1),
+            ),
+            id="ising",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "partial_hilbert",
+    [
+        pytest.param(lambda g: nk.hilbert.Spin(0.5, g.n_nodes), id="spin"),
+        pytest.param(lambda g: nk.hilbert.Qubit(g.n_nodes), id="qubit"),
+    ],
+)
+@pytest.mark.parametrize(
+    "graph",
+    [
+        pytest.param(nk.graph.Hypercube(4, 1, pbc=False), id="4"),
+        pytest.param(nk.graph.Hypercube(5, 1), id="5"),
+        pytest.param(nk.graph.Hypercube(3, 2), id="3x3"),
+        pytest.param(nk.graph.Hypercube(4, 2), id="4x4"),
+    ],
+)
+def test_jax_conn(graph, partial_hilbert, partial_H_pair, dtype):
+    hilbert = partial_hilbert(graph)
+    H1 = partial_H_pair[0](hilbert, graph)
+    H2 = partial_H_pair[1](hilbert, graph)
+
+    if isinstance(hilbert, nk.hilbert.Qubit) and isinstance(H1, nk.operator.Ising):
+        pytest.skip("The original Ising only supports Spin")
+
+    σ = hilbert.random_state(nk.jax.PRNGKey(0), size=(10,), dtype=dtype)
+    σp1, mels1 = H1.get_conn_padded(σ)
+    σp2, mels2 = H2.get_conn_padded(σ)
+    n_conn1 = H1.n_conn(σ)
+    n_conn2 = H2.n_conn(σ)
+
+    assert isinstance(σp1, np.ndarray)
+    assert isinstance(mels1, np.ndarray)
+    assert isinstance(n_conn1, np.ndarray)
+    σp2 = np.asarray(σp2)
+    mels2 = np.asarray(mels2)
+    n_conn2 = np.asarray(n_conn2)
+
+    assert n_conn1.shape == n_conn2.shape
+    assert n_conn1.dtype == n_conn2.dtype
+    # LocalOperator.n_conn and Ising.n_conn do not consider that mels[0] can be 0,
+    # so n_conn1 can be n_conn2 + 1
+    delta = n_conn1 - n_conn2
+    assert (
+        (delta == 0) | ((delta == 1) & (mels2[:, 0] == 0))
+    ).all(), f"n_conn1:\n{n_conn1}\nn_conn2:\n{n_conn2}"
+
+    # Shapes of σp and mels can be different because of padding
+    assert σp1.dtype == σp2.dtype
+    assert mels1.dtype == mels2.dtype
+
+    # Filter out zero mels and sort σp lexicographically before comparing
+    def canonize(σp, mels):
+        assert σp.shape[0] == mels.size
+
+        idx = mels != 0
+        σp = σp[idx]
+        mels = mels[idx]
+
+        idx = np.lexsort(σp.T)
+        σp = σp[idx]
+        mels = mels[idx]
+        return σp, mels
+
+    # Compare each sample in the batch
+    σp1 = σp1.reshape((-1, *σp1.shape[-2:]))
+    σp2 = σp2.reshape((-1, *σp2.shape[-2:]))
+    mels1 = mels1.reshape((-1, mels1.shape[-1]))
+    mels2 = mels2.reshape((-1, mels2.shape[-1]))
+    for σp1_i, σp2_i, mels1_i, mels2_i in zip(σp1, σp2, mels1, mels2):
+        σp1_i, mels1_i = canonize(σp1_i, mels1_i)
+        σp2_i, mels2_i = canonize(σp2_i, mels2_i)
+        np.testing.assert_equal(σp1_i, σp2_i)
+        np.testing.assert_equal(mels1_i, mels2_i)

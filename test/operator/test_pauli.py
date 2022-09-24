@@ -16,7 +16,6 @@ import numpy as np
 import pytest
 
 import netket as nk
-import netket.experimental as nkx
 
 
 def test_deduced_hilbert_pauli():
@@ -241,7 +240,7 @@ def test_pauli_zero():
 def test_openfermion_conversion():
     # skip test if openfermion not installed
     pytest.importorskip("openfermion")
-    from openfermion.ops import QubitOperator, FermionOperator
+    from openfermion.ops import QubitOperator
 
     # first term is a constant
     of_qubit_operator = (
