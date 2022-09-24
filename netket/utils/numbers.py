@@ -17,6 +17,11 @@ def dtype(x: Array):  # noqa: F811, E0102
 
 
 @dispatch
+def dtype(x: None):  # noqa: F811, E0102
+    return None
+
+
+@dispatch
 def dtype(x: Any):  # noqa: F811, E0102
     if hasattr(x, "dtype"):
         return x.dtype
