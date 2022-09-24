@@ -101,6 +101,10 @@ def test_fermion_operator_with_strings():
 
 
 def test_openfermion_conversion():
+    # skip test if openfermion not installed
+    pytest.importorskip("openfermion")
+    from openfermion.ops import QubitOperator, FermionOperator
+
     # FermionOperator
     of_fermion_operator = (
         FermionOperator("")  # todo
