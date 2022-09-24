@@ -13,18 +13,23 @@
 # limitations under the License.
 
 import re
+from functools import partial, wraps
+from itertools import product
 from typing import List, Union
-from netket.utils.types import DType
 
 import numpy as np
 from numba import jit
-from itertools import product
+
+import jax
+from jax import numpy as jnp
 
 from netket.hilbert import Qubit, AbstractHilbert
 from netket.utils.numbers import is_scalar
+from netket.utils.types import DType
 
 from ._abstract_operator import AbstractOperator
 from ._discrete_operator import DiscreteOperator
+from ._ising import _ising_conn_states_jax
 
 valid_pauli_regex = re.compile(r"^[XYZI]+$")
 
@@ -300,8 +305,11 @@ class PauliStrings(DiscreteOperator):
         print_list = []
         for op, w in zip(self._orig_operators, self._orig_weights):
             print_list.append("    {} : {}".format(op, str(w)))
-        s = "PauliStrings(hilbert={}, n_strings={}, dict(operators:weights)=\n{}\n)".format(
-            self.hilbert, len(self._orig_operators), ",\n".join(print_list)
+        s = "{}(hilbert={}, n_strings={}, dict(operators:weights)=\n{}\n)".format(
+            type(self).__name__,
+            self.hilbert,
+            len(self._orig_operators),
+            ",\n".join(print_list),
         )
         return s
 
@@ -660,3 +668,97 @@ def _matmul(op_arr1, w_arr1, op_arr2, w_arr2):
     operators, weights = np.array(operators), np.array(weights)
     operators, weights = _reduce_pauli_string(operators, weights)
     return operators, weights
+
+
+def _broadcast_arange(a):
+    return np.broadcast_to(np.arange(a.shape[-1]), a.shape)
+
+
+def _get_mask(z_check, nz_check, n_op):
+    mask1 = _broadcast_arange(z_check) < np.expand_dims(nz_check, 2)
+    mask2_ = _broadcast_arange(nz_check) < np.expand_dims(n_op, 1)
+    mask2 = np.expand_dims(mask2_, 2)
+    mask = mask1 & mask2
+    return mask, mask2_
+
+
+def _get_sindmask(sites, ns):
+    smask = _broadcast_arange(sites) < np.expand_dims(ns, 1)
+    a = np.arange(sites.shape[1]) + 1
+    sindmask = (
+        (np.expand_dims(a, (1, 2)) == np.expand_dims((sites + 1) * smask, 0))
+        .any(axis=2)
+        .T
+    )
+    return sindmask
+
+
+def sindmask(ha):
+    return _get_sindmask(ha._sites, ha._ns)[:, : ha.hilbert.size]
+
+
+def mask_mask2(ha):
+    return _get_mask(ha._z_check, ha._nz_check, ha._n_op)
+
+
+@partial(jax.vmap, in_axes=(0,) + (None,) * 5)
+def _pauli_strings_mels_jax(x, mask, mask2, z_check, weights, local_states):
+    n_z = (mask * (x[z_check] == local_states[1])).sum(axis=-1)
+    mels = (mask2 * weights * (-1) ** n_z).sum(axis=1)
+    return mels
+
+
+@partial(jax.jit, static_argnames="local_states")
+def _pauli_strings_kernel_jax(
+    x, mask, mask2, sindmask, z_check, weights, cutoff, local_states
+):
+    batch_shape = x.shape[:-1]
+    x = x.reshape((-1, x.shape[-1]))
+
+    mels = _pauli_strings_mels_jax(x, mask, mask2, z_check, weights, local_states)
+    mels = mels.reshape(batch_shape + mels.shape[1:])
+
+    # Same function as Ising
+    x_prime = _ising_conn_states_jax(x, sindmask, local_states)
+    x_prime = x_prime.reshape(batch_shape + x_prime.shape[1:])
+
+    cutoff_mask = jnp.abs(mels) > cutoff
+    mels *= cutoff_mask
+    x_prime *= jnp.expand_dims(cutoff_mask, -1)
+
+    return x_prime, mels
+
+
+@partial(jax.jit, static_argnames="local_states")
+def _pauli_strings_n_conn_jax(x, mask, mask2, z_check, weights, cutoff, local_states):
+    # TODO avoid computing mels twice
+    mels = _pauli_strings_mels_jax(x, mask, mask2, z_check, weights, local_states)
+    return (jnp.abs(mels) > cutoff).sum(axis=-1, dtype=jnp.int32)
+
+
+class PauliStringsJax(PauliStrings):
+    @wraps(PauliStrings.__init__)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._setup()
+
+        m, m2 = mask_mask2(self)
+        sm = sindmask(self)
+        self._masks = jax.tree_map(jnp.asarray, (m, m2, sm))
+        self._args_jax = jax.tree_map(jnp.asarray, (self._z_check, self._weights))
+
+        if len(self.hilbert.local_states) != 2:
+            raise ValueError(
+                "PauliStringsJax only supports Hamiltonians with two local states"
+            )
+        self._hi_local_states = tuple(self.hilbert.local_states)
+
+    def n_conn(self, x):
+        return _pauli_strings_n_conn_jax(
+            x, *self._masks[:-1], *self._args_jax, self._cutoff, self._hi_local_states
+        )
+
+    def get_conn_padded(self, x):
+        return _pauli_strings_kernel_jax(
+            x, *self._masks, *self._args_jax, self._cutoff, self._hi_local_states
+        )

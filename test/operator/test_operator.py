@@ -17,6 +17,7 @@ operators["Ising 1D Jax"] = nk.operator.IsingJax(hi, g, h=1.321)
 g = nk.graph.Hypercube(length=10, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, total_sz=0, N=g.n_nodes)
 operators["Heisenberg 1D"] = nk.operator.Heisenberg(hilbert=hi, graph=g)
+operators["Heisenberg 1D Jax"] = nk.operator.HeisenbergJax(hilbert=hi, graph=g)
 
 # Bose Hubbard
 g = nk.graph.Hypercube(length=3, n_dim=2, pbc=True)
@@ -66,6 +67,9 @@ operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
 operators["Heisenberg (colored edges)"] = nk.operator.Heisenberg(
     hi, g, J=[1, 2], sign_rule=[True, False]
 )
+operators["Heisenberg (colored edges) Jax"] = nk.operator.HeisenbergJax(
+    hi, g, J=[1, 2], sign_rule=[True, False]
+)
 
 # Custom Hamiltonian
 sx = [[0, 1], [1, 0]]
@@ -91,6 +95,9 @@ operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
 
 operators["Pauli Hamiltonian (XX)"] = nk.operator.PauliStrings(["XX"], [0.1])
 operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
+    ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
+)
+operators["Pauli Hamiltonian Jax"] = nk.operator.PauliStringsJax(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
 

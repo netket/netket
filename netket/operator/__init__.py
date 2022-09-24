@@ -17,9 +17,9 @@ from ._abstract_operator import AbstractOperator
 from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
 from ._graph_operator import GraphOperator
-from ._pauli_strings import PauliStrings
+from ._pauli_strings import PauliStrings, PauliStringsJax
 from ._lazy import Adjoint, Transpose, Squared
-from ._heisenberg import Heisenberg
+from ._heisenberg import Heisenberg, HeisenbergJax
 from ._ising import Ising, IsingJax
 from ._bose_hubbard import BoseHubbard
 

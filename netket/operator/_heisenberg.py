@@ -12,14 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Sequence, Union
+from functools import partial, wraps
+from typing import List, Optional, Sequence, Union
 
 import numpy as np
+
+import jax
+from jax import numpy as jnp
 
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import AbstractHilbert
 
 from ._graph_operator import GraphOperator
+from ._ising import _ising_conn_states_jax
 
 
 class Heisenberg(GraphOperator):
@@ -32,7 +37,7 @@ class Heisenberg(GraphOperator):
         hilbert: AbstractHilbert,
         graph: AbstractGraph,
         J: Union[float, Sequence[float]] = 1.0,
-        sign_rule=None,
+        sign_rule: Optional[Union[bool, Sequence[bool]]] = None,
         *,
         acting_on_subspace: Union[List[int], int] = None,
     ):
@@ -137,4 +142,90 @@ class Heisenberg(GraphOperator):
         return self._sign_rule
 
     def __repr__(self):
-        return f"Heisenberg(J={self._J}, sign_rule={self._sign_rule}; dim={self.hilbert.size})"
+        return f"{type(self).__name__}(J={self._J}, sign_rule={self._sign_rule}; dim={self.hilbert.size})"
+
+
+@partial(jax.vmap, in_axes=(0, None, None, None))
+def _heisenberg_mels_jax(x, edges, J, signs):
+    max_conn_size = edges.shape[0] + 1
+
+    same_spins = x[edges[:, 0]] == x[edges[:, 1]]
+    mels = jnp.empty((max_conn_size,), dtype=J.dtype)
+    mels = mels.at[0].set((J * (2 * same_spins - 1)).sum())
+    mels = mels.at[1:].set(2 * (-2 * signs + 1) * J * (1 - same_spins))
+    return mels
+
+
+@partial(jax.jit, static_argnames=("local_states"))
+def _heisenberg_kernel_jax(x, edges, flip, J, signs, local_states):
+    batch_shape = x.shape[:-1]
+    x = x.reshape((-1, x.shape[-1]))
+
+    mels = _heisenberg_mels_jax(x, edges, J, signs)
+    mels = mels.reshape(batch_shape + mels.shape[1:])
+
+    # Same function as Ising
+    x_prime = _ising_conn_states_jax(x, flip, local_states)
+    x_prime = x_prime.reshape(batch_shape + x_prime.shape[1:])
+
+    return x_prime, mels
+
+
+@jax.jit
+@partial(jax.vmap, in_axes=(0, None, None))
+def _heisenberg_n_conn_jax(x, edges, J):
+    same_spins = x[edges[:, 0]] == x[edges[:, 1]]
+    n_conn_XY = (~same_spins).sum(dtype=jnp.int32)
+    # TODO duplicated with _heisenberg_mels_jax
+    mels_ZZ = (J * (2 * same_spins - 1)).sum()
+    n_conn_ZZ = mels_ZZ != 0
+    return n_conn_XY + n_conn_ZZ
+
+
+class HeisenbergJax(Heisenberg):
+    @wraps(Heisenberg.__init__)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._edges_jax = jnp.asarray(self.acting_on, dtype=jnp.int32)
+
+        flip = np.zeros((self.max_conn_size, self.hilbert.size), dtype=bool)
+        for k, (i, j) in enumerate(self.acting_on, 1):
+            flip[k, i] = True
+            flip[k, j] = True
+        self._flip = jnp.asarray(flip)
+
+        if isinstance(self.J, Sequence):
+            J = [self.J[color] for _, _, color in self.graph.edges(return_color=True)]
+        else:
+            J = [self.J] * self.graph.n_edges
+        self._J_jax = jnp.asarray(J, dtype=self.dtype)
+
+        if isinstance(self.uses_sign_rule, Sequence):
+            signs = [
+                self.uses_sign_rule[color]
+                for _, _, color in self.graph.edges(return_color=True)
+            ]
+        else:
+            signs = [self.uses_sign_rule] * self.graph.n_edges
+        self._signs_jax = jnp.asarray(signs, dtype=bool)
+
+        if len(self.hilbert.local_states) != 2:
+            raise ValueError(
+                "HeisenbergJax only supports Hamiltonians with two local states"
+            )
+        # self._local_states is assigned in LocalOperator
+        self._hi_local_states = tuple(self.hilbert.local_states)
+
+    def n_conn(self, x):
+        return _heisenberg_n_conn_jax(x, self._edges_jax, self._J_jax)
+
+    def get_conn_padded(self, x):
+        return _heisenberg_kernel_jax(
+            x,
+            self._edges_jax,
+            self._flip,
+            self._J_jax,
+            self._signs_jax,
+            self._hi_local_states,
+        )
