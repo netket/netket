@@ -100,6 +100,45 @@ def test_fermion_operator_with_strings():
     assert np.allclose(op1.to_dense(), op2.to_dense())
 
 
+def test_openfermion_conversion():
+    # FermionOperator
+    of_fermion_operator = (
+        FermionOperator("")  # todo
+        + FermionOperator("0^ 3", 0.5 + 0.3j)
+        + FermionOperator("3^ 0", 0.5 - 0.3j)
+    )
+
+    # no extra info given
+    fo2 = nkx.operator.FermionOperator2nd.from_openfermion(of_fermion_operator)
+    assert fo2.hilbert.size == 4
+
+    # number of orbitals given
+    fo2 = nkx.operator.FermionOperator2nd.from_openfermion(
+        of_fermion_operator, n_orbitals=4
+    )
+    assert isinstance(fo2, nkx.operator.FermionOperator2nd)
+    assert isinstance(fo2.hilbert, nkx.hilbert.SpinOrbitalFermions)
+    assert fo2.hilbert.size == 4
+
+    # with hilbert
+    hilbert = nkx.hilbert.SpinOrbitalFermions(6)
+    fo2 = nkx.operator.FermionOperator2nd.from_openfermion(hilbert, of_fermion_operator)
+    assert fo2.hilbert == hilbert
+    assert fo2.hilbert.size == 6
+
+    # to check that the constraints are met (convention wrt ordering of states with different spin)
+    from openfermion.hamiltonians import fermi_hubbard
+
+    hilbert = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions=(2, 1))
+    of_fermion_operator = fermi_hubbard(1, 3, tunneling=1, coulomb=0, spinless=False)
+    fo2 = nkx.operator.FermionOperator2nd.from_openfermion(
+        hilbert, of_fermion_operator, convert_spin_blocks=True
+    )
+    assert fo2.hilbert.size == 3 * 2
+    # will fail of we go outside of the allowed states with openfermion operators
+    fo2.to_dense()
+
+
 def compare_openfermion_fermions():
     # skip test if openfermion not installed
     pytest.importorskip("openfermion")
