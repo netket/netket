@@ -112,7 +112,7 @@ class Ising(SpecialHamiltonian):
 
     @staticmethod
     @jit(nopython=True)
-    def n_conn(x, out):
+    def n_conn(x, out):  # pragma: no cover
         r"""Return the number of states connected to x.
 
         Args:
@@ -183,7 +183,7 @@ class Ising(SpecialHamiltonian):
 
     @staticmethod
     @jit(nopython=True)
-    def _flattened_kernel(x, sections, edges, h, J):
+    def _flattened_kernel(x, sections, edges, h, J):  # pragma: no cover
         n_sites = x.shape[1]
         n_conn = n_sites + 1
 
@@ -252,7 +252,7 @@ class Ising(SpecialHamiltonian):
         _J = self._J
         fun = self._flattened_kernel
 
-        def gccf_fun(x, sections):
+        def gccf_fun(x, sections):  # pragma: no cover
             return fun(x, sections, _edges, _h, _J)
 
         return jit(nopython=True)(gccf_fun)

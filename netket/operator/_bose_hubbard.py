@@ -190,7 +190,7 @@ class BoseHubbard(SpecialHamiltonian):
 
     @staticmethod
     @jit(nopython=True)
-    def _flattened_kernel(
+    def _flattened_kernel(  # pragma: no cover
         x,
         sections,
         edges,
@@ -336,7 +336,7 @@ class BoseHubbard(SpecialHamiltonian):
 
         # do not pass the preallocated self._max_mels and self._max_xprime because they are frozen in a closure
         # and become read only
-        def gccf_fun(x, sections):
+        def gccf_fun(x, sections):  # pragma: no cover
             return fun(
                 x,
                 sections,
