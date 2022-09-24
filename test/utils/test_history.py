@@ -19,6 +19,8 @@ import jax
 import jax.numpy as jnp
 from dataclasses import dataclass
 
+import flax
+
 from .. import common
 
 pytestmark = common.skipif_mpi
@@ -54,6 +56,7 @@ def create_mock_data_iter(iter):
         "npint": np.array(iter),
         "jaxcomplex": jnp.array(iter + 1j * iter),
         "dict": {"int": iter},
+        "frozendict": flax.core.freeze({"sub":{"int": iter}}),
         "compound": MockCompoundType(iter, iter * 10),
         "mockdict": MockDictType(iter, iter * 10),
         "mock": MockClass(iter),
@@ -78,6 +81,9 @@ def test_accum_mvhistory():
 
     # test that repr does not fail
     repr(tree)
+
+    # check frozen
+    np.testing.assert_allclose(np.array(tree["frozendict"]["sub"]["int"]), np.arange(10))
 
 
 def test_append():
