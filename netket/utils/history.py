@@ -18,6 +18,8 @@ from numbers import Number
 
 import numpy as np
 
+from flax.core import FrozenDict
+
 from .dispatch import dispatch
 from .numbers import is_scalar
 from .types import Array, DType
@@ -366,7 +368,7 @@ def accum_in_tree(fun, tree_accum, tree, compound=True, **kwargs):
             accum_in_tree(fun, _accum, _tree, **kwargs)
             for _accum, _tree in zip(tree_accum, tree)
         )
-    elif isinstance(tree, dict):
+    elif isinstance(tree, (dict, FrozenDict)):
         if tree_accum is None:
             tree_accum = {}
 
