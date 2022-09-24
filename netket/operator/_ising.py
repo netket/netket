@@ -183,13 +183,7 @@ class Ising(SpecialHamiltonian):
 
     @staticmethod
     @jit(nopython=True)
-    def _flattened_kernel(
-        x,
-        sections,
-        edges,
-        h,
-        J,
-    ):
+    def _flattened_kernel(x, sections, edges, h, J):
         n_sites = x.shape[1]
         n_conn = n_sites + 1
 
@@ -224,17 +218,13 @@ class Ising(SpecialHamiltonian):
 
         return x_prime, mels
 
-    def get_conn_flattened(
-        self,
-        x,
-        sections,
-        pad=False,
-    ):
+    def get_conn_flattened( self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator. Starting
         from a given quantum number x, it finds all other quantum numbers x' such
         that the matrix element :math:`O(x,x')` is different from zero. In general there
         will be several different connected states x' satisfying this
-        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
+        condition, and they are denoted here :math:`x'(k)`, for 
+        :math:`k=0,1...N_{\mathrm{connected}}`.
 
         This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
 
