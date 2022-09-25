@@ -326,7 +326,7 @@ class RungeKuttaIntegrator:
             self.norm = euclidean_norm
 
         if self.dt_limits is None:
-            self.dt_limits = (None, 10 * self.initial_dt)
+            self.dt_limits = (0.01 * self.initial_dt, 10 * self.initial_dt)
 
         self._rkstate = RungeKuttaState(
             step_no=0,
