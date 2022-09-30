@@ -207,7 +207,7 @@ config.define(
 config.define(
     "NETKET_EXPERIMENTAL_DISABLE_ODE_JIT",
     bool,
-    default=False,
+    default=True,
     help=dedent(
         """
         Disables the jitting of the whole ode solver, mainly used within TDVP solvers.

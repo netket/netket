@@ -126,6 +126,21 @@ def test_one_adaptive_step(integrator, error_norm, propagation_type, disable_jit
         assert te.t > 0.0
 
 
+@pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])
+@pytest.mark.parametrize("integrator", adaptive_step_integrators)
+def test_one_adaptive_schmitt(integrator, error_norm):
+    with common.set_config("NETKET_EXPERIMENTAL_DISABLE_ODE_JIT", True):
+        ha, vstate, _ = _setup_system(L=2)
+        te = nkx.driver.TDVPSchmitt(
+            ha,
+            vstate,
+            integrator,
+            error_norm=error_norm,
+        )
+        te.run(T=0.01, callback=_stop_after_one_step)
+        assert te.t > 0.0
+
+
 @pytest.mark.parametrize("integrator", all_integrators)
 def test_one_step_lindbladian(integrator):
     def _setup_lindbladian_system():
