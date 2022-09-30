@@ -38,6 +38,7 @@ def QGTJacobianPyTree(
     mode: str = None,
     holomorphic: bool = None,
     rescale_shift=False,
+    chunk_size=None,
     **kwargs,
 ) -> "QGTJacobianPyTreeT":
     """
@@ -92,10 +93,8 @@ def QGTJacobianPyTree(
     elif holomorphic is not None:
         raise ValueError("Cannot specify both `mode` and `holomorphic`.")
 
-    if hasattr(vstate, "chunk_size"):
+    if chunk_size is None and hasattr(vstate, "chunk_size"):
         chunk_size = vstate.chunk_size
-    else:
-        chunk_size = None
 
     O, scale = prepare_centered_oks(
         vstate._apply_fun,
