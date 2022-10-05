@@ -101,16 +101,6 @@ def _multiply_by_pdf(oks, pdf):
     )
 
 
-def stack_jacobian(centered_oks: PyTree) -> PyTree:
-    """
-    Return the real and imaginary parts of ΔOⱼₖ stacked along the sample axis
-    Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
-    """
-    return jax.tree_map(
-        lambda x: jnp.concatenate([x.real, x.imag], axis=0), centered_oks
-    )
-
-
 def stack_jacobian_tuple(centered_oks_re_im):
     """
     stack the real and imaginary parts of ΔOⱼₖ along the sample axis
