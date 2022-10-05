@@ -22,6 +22,8 @@ from flax import struct
 import netket.jax as nkjax
 from netket.utils.types import PyTree
 
+from netket.nn import split_array_mpi
+
 from .common import check_valid_vector_type
 from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
 
@@ -60,15 +62,18 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
     from netket.vqs import ExactState
 
     if isinstance(vstate, ExactState):
-        raise TypeError("Only QGTJacobianPyTree works with ExactState.")
-
-    if jnp.ndim(vstate.samples) == 2:
-        samples = vstate.samples
+        samples = split_array_mpi(vstate._all_states)
+        pdf = split_array_mpi(vstate.probability_distribution())
     else:
-        samples = vstate.samples.reshape((-1, vstate.samples.shape[-1]))
+        if jnp.ndim(vstate.samples) == 2:
+            samples = vstate.samples
+        else:
+            samples = vstate.samples.reshape((-1, vstate.samples.shape[-1]))
+        pdf = None
 
     if chunk_size is None and hasattr(vstate, "chunk_size"):
         chunk_size = vstate.chunk_size
+
     n_samples = samples.shape[0]
 
     if chunk_size is None or chunk_size >= n_samples:
@@ -84,6 +89,7 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
         params=vstate.parameters,
         model_state=vstate.model_state,
         samples=samples,
+        pdf=pdf,
     )
     return QGTOnTheFlyT(
         _mat_vec=mat_vec,

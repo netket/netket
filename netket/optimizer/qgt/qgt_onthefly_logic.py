@@ -38,14 +38,18 @@ from netket.jax import (
 # jitted; the arguments of mat_vec are outputs of jax.linearize, which are pytrees
 
 
-def mat_vec(jvp_fn, v, diag_shift):
+def mat_vec(jvp_fn, v, diag_shift, pdf=None):
     # Save linearisation work
     # TODO move to mat_vec_factory after jax v0.2.19
     vjp_fn = jax.linear_transpose(jvp_fn, v)
 
     w = jvp_fn(v)
-    w = w * (1.0 / (w.size * mpi.n_nodes))
-    w = subtract_mean(w)  # w/ MPI
+    if pdf is None:
+        w = w * (1.0 / (w.size * mpi.n_nodes))
+        w = subtract_mean(w)  # w/ MPI
+    else:
+        w = jvp_fn(v)
+        w = pdf * (w - mpi.mpi_sum_jax(pdf @ w)[0])
     # Oᴴw = (wᴴO)ᴴ = (w* O)* since 1D arrays are not transposed
     # vjp_fn packages output into a length-1 tuple
     (res,) = tree_conj(vjp_fn(w.conjugate()))
@@ -55,13 +59,13 @@ def mat_vec(jvp_fn, v, diag_shift):
 
 
 @partial(jax.jit, static_argnums=0)
-def mat_vec_factory(forward_fn, params, model_state, samples):
+def mat_vec_factory(forward_fn, params, model_state, samples, pdf=None):
     # "forward function" that maps params to outputs
     def fun(W):
         return forward_fn({"params": W, **model_state}, samples)
 
     _, jvp_fn = jax.linearize(fun, params)
-    return Partial(mat_vec, jvp_fn)
+    return Partial(mat_vec, jvp_fn, pdf=pdf)
 
 
 # -------------------------------------------------------------------------------
@@ -87,42 +91,48 @@ def OH_w(forward_fn, params, samples, w):
     return tree_conj(O_vjp(forward_fn, params, samples, w.conjugate()))
 
 
-def Odagger_DeltaO_v(forward_fn, params, samples, v):
+def Odagger_DeltaO_v(forward_fn, params, samples, v, pdf=None):
     w = O_jvp(forward_fn, params, samples, v)
-    w = w * (1.0 / (samples.shape[0] * samples.shape[1] * mpi.n_nodes))
-    w_, chunk_fn = unchunk(w)
-    w = chunk_fn(subtract_mean(w_))  # w/ MPI
+    if pdf is None:
+        w = w * (1.0 / (samples.shape[0] * samples.shape[1] * mpi.n_nodes))
+        w_, chunk_fn = unchunk(w)
+        w = chunk_fn(subtract_mean(w_))  # w/ MPI
+    else:
+        # here we assume pdf is NOT chunked
+        w_, chunk_fn = unchunk(w)
+        w_ = pdf * (w_ - mpi.mpi_sum_jax(pdf @ w_)[0])
+        w = chunk_fn(w_)
     res = OH_w(forward_fn, params, samples, w)
     return jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
 
 
 # @partial(jax.jit, static_argnums=1)
-def mat_vec_chunked(forward_fn, params, samples, v, diag_shift):
-    res = Odagger_DeltaO_v(forward_fn, params, samples, v)
+def mat_vec_chunked(forward_fn, params, samples, v, diag_shift, pdf=None):
+    res = Odagger_DeltaO_v(forward_fn, params, samples, v, pdf)
     return tree_axpy(diag_shift, v, res)
 
 
-def matvec_chunked_transposable(forward_fn, params, samples, v, diag_shift):
-    extra_args = (params, samples, diag_shift)
+def matvec_chunked_transposable(forward_fn, params, samples, v, diag_shift, pdf=None):
+    extra_args = (params, samples, diag_shift, pdf)
 
     def _mv(extra_args, x):
-        params, samples, diag_shift = extra_args
-        return mat_vec_chunked(forward_fn, params, samples, x, diag_shift)
+        params, samples, diag_shift, pdf = extra_args
+        return mat_vec_chunked(forward_fn, params, samples, x, diag_shift, pdf)
 
     def _mv_trans(extra_args, y):
         # the linear operator is hermitian
-        params, samples, diag_shift = extra_args
+        params, samples, diag_shift, pdf = extra_args
         return tree_conj(
-            mat_vec_chunked(forward_fn, params, samples, tree_conj(y), diag_shift)
+            mat_vec_chunked(forward_fn, params, samples, tree_conj(y), diag_shift, pdf)
         )
 
     return jax.custom_derivatives.linear_call(_mv, _mv_trans, extra_args, v)
 
 
 @partial(jax.jit, static_argnums=0)
-def mat_vec_chunked_factory(forward_fn, params, model_state, samples):
+def mat_vec_chunked_factory(forward_fn, params, model_state, samples, pdf=None):
     def fun(W, samples):
         return forward_fn({"params": W, **model_state}, samples)
 
-    return Partial(partial(matvec_chunked_transposable, fun), params, samples)
+    return Partial(partial(matvec_chunked_transposable, fun), params, samples, pdf)
     # return Partial(lambda f, *args: jax.jit(f)(*args), Partial(partial(mat_vec_chunked, fun), params, samples))
