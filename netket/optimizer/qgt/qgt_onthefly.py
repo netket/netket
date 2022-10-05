@@ -42,6 +42,9 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
 
     Args:
         vstate: The variational State.
+        chunk_size: If supplied, overrides the chunk size of the variational state
+                    (useful for models where the backward pass requires more
+                    memory than the forward pass).
     """
     if vstate is None:
         return partial(QGTOnTheFly, **kwargs)

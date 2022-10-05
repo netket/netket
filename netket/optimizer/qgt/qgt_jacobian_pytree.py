@@ -60,6 +60,9 @@ def QGTJacobianPyTree(
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
         rescale_shift: If True rescales the diagonal shift.
+        chunk_size: If supplied, overrides the chunk size of the variational state
+                    (useful for models where the backward pass requires more
+                    memory than the forward pass).
     """
     if vstate is None:
         return partial(
