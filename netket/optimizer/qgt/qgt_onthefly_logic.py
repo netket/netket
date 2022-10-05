@@ -133,5 +133,5 @@ def mat_vec_chunked_factory(forward_fn, params, model_state, samples, pdf=None):
     def fun(W, samples):
         return forward_fn({"params": W, **model_state}, samples)
 
-    return Partial(partial(matvec_chunked_transposable, fun), params, samples, pdf)
+    return Partial(partial(matvec_chunked_transposable, fun), params, samples, pdf=pdf)
     # return Partial(lambda f, *args: jax.jit(f)(*args), Partial(partial(mat_vec_chunked, fun), params, samples))
