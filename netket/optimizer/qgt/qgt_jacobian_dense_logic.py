@@ -24,10 +24,10 @@ from netket.utils.types import Array, PyTree, Scalar
 from netket.utils import mpi
 import netket.jax as nkjax
 
+from .qgt_jacobian_common import rescale
 from .qgt_jacobian_pytree_logic import (
     jacobian_real_holo,
     jacobian_cplx,
-    _rescale,
 )
 
 from netket.jax.utils import RealImagTuple
@@ -175,7 +175,7 @@ def prepare_centered_oks(
 
     if rescale_shift:
         ndims = 1 if mode != "complex" else 2
-        return _rescale(centered_jacs, ndims=ndims)
+        return rescale(centered_jacs, ndims=ndims)
     else:
         return centered_jacs, None
 

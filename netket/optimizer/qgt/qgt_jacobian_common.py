@@ -17,8 +17,10 @@ import warnings
 from textwrap import dedent
 
 import jax
+import jax.numpy as jnp
 
 import netket.jax as nkjax
+from netket.utils import mpi
 
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
@@ -107,3 +109,31 @@ def choose_jacobian_mode(afun, pars, state, samples, *, mode, holomorphic):
         return "holomorphic"
     else:
         raise ValueError(f"unknown mode {i}")
+
+
+def rescale(centered_oks, *, ndims: int = 1):
+    """
+    compute ΔOₖ/√Sₖₖ and √Sₖₖ
+    to do scale-invariant regularization (Becca & Sorella 2017, pp. 143)
+    Sₖₗ/(√Sₖₖ√Sₗₗ) = ΔOₖᴴΔOₗ/(√Sₖₖ√Sₗₗ) = (ΔOₖ/√Sₖₖ)ᴴ(ΔOₗ/√Sₗₗ)
+
+    Args:
+        centered_oks: A mean-zero Jacobian.
+        ndims: A number of leading dimensions to use to compute the
+            rescale factor. Those should be all the non-parameters
+            axes in the jacobian (so it should be 1 normally, 2 for
+            non holomorphic stacked jacobians).
+    """
+    # should be (0,) for standard, (0,1) when we have 2 jacobians in complex mode
+    axis = tuple(range(ndims))
+
+    scale = jax.tree_map(
+        lambda x: mpi.mpi_sum_jax(
+            jnp.sum((x * x.conj()).real, axis=axis, keepdims=True)
+        )[0]
+        ** 0.5,
+        centered_oks,
+    )
+    centered_oks = jax.tree_map(jnp.divide, centered_oks, scale)
+    scale = jax.tree_map(partial(jnp.squeeze, axis=axis), scale)
+    return centered_oks, scale

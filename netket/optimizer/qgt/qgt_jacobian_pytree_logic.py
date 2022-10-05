@@ -34,6 +34,8 @@ from netket.jax import (
     vmap_chunked,
 )
 
+from .qgt_jacobian_common import rescale
+
 
 # TODO better name and move it somewhere sensible
 def single_sample(forward_fn):
@@ -111,27 +113,6 @@ def stack_jacobian_tuple(centered_oks_re_im):
         centered_oks_re_im : a tuple (ΔOᵣ, ΔOᵢ) of two PyTrees representing the real and imag part of ΔOⱼₖ
     """
     return jax.tree_map(lambda re, im: jnp.stack([re, im], axis=0), *centered_oks_re_im)
-
-
-def _rescale(centered_oks, *, ndims: int = 1):
-    """
-    compute ΔOₖ/√Sₖₖ and √Sₖₖ
-    to do scale-invariant regularization (Becca & Sorella 2017, pp. 143)
-    Sₖₗ/(√Sₖₖ√Sₗₗ) = ΔOₖᴴΔOₗ/(√Sₖₖ√Sₗₗ) = (ΔOₖ/√Sₖₖ)ᴴ(ΔOₗ/√Sₗₗ)
-    """
-    # should be (0,) for standard, (0,1) when we have 2 jacobians in complex mode
-    axis = tuple(range(ndims))
-
-    scale = jax.tree_map(
-        lambda x: mpi.mpi_sum_jax(
-            jnp.sum((x * x.conj()).real, axis=axis, keepdims=True)
-        )[0]
-        ** 0.5,
-        centered_oks,
-    )
-    centered_oks = jax.tree_map(jnp.divide, centered_oks, scale)
-    scale = jax.tree_map(partial(jnp.squeeze, axis=axis), scale)
-    return centered_oks, scale
 
 
 def _jvp(oks: PyTree, v: PyTree) -> Array:
@@ -258,7 +239,7 @@ def prepare_centered_oks(
 
     if rescale_shift:
         ndims = 1 if mode != "complex" else 2
-        return _rescale(centered_jacs, ndims=ndims)
+        return rescale(centered_jacs, ndims=ndims)
     else:
         return centered_jacs, None
 
