@@ -36,6 +36,7 @@ def QGTJacobianDense(
     mode: str = None,
     holomorphic: bool = None,
     rescale_shift=False,
+    chunk_size=None,
     **kwargs,
 ) -> "QGTJacobianDenseT":
     """
@@ -56,7 +57,10 @@ def QGTJacobianDense(
               models. holomorphic works for any function assuming it's holomorphic
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
-        rescale_shift: If True rescales the diagonal shift
+        rescale_shift: If True rescales the diagonal shift.
+        chunk_size: If supplied, overrides the chunk size of the variational state
+                    (useful for models where the backward pass requires more
+                    memory than the forward pass).
     """
 
     if vstate is None:
@@ -86,10 +90,8 @@ def QGTJacobianDense(
     elif holomorphic is not None:
         raise ValueError("Cannot specify both `mode` and `holomorphic`.")
 
-    if hasattr(vstate, "chunk_size"):
+    if chunk_size is None and hasattr(vstate, "chunk_size"):
         chunk_size = vstate.chunk_size
-    else:
-        chunk_size = None
 
     O, scale = prepare_centered_oks(
         vstate._apply_fun,

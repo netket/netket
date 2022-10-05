@@ -29,7 +29,7 @@ from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
+def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
     """
     Lazy representation of an S Matrix computed by performing 2 jvp
     and 1 vjp products, using the variational state's model, the
@@ -42,6 +42,9 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
 
     Args:
         vstate: The variational State.
+        chunk_size: If supplied, overrides the chunk size of the variational state
+                    (useful for models where the backward pass requires more
+                    memory than the forward pass).
     """
     if vstate is None:
         return partial(QGTOnTheFly, **kwargs)
@@ -63,7 +66,8 @@ def QGTOnTheFly(vstate=None, **kwargs) -> "QGTOnTheFlyT":
     else:
         samples = vstate.samples.reshape((-1, vstate.samples.shape[-1]))
 
-    chunk_size = vstate.chunk_size
+    if chunk_size is None and hasattr(vstate, "chunk_size"):
+        chunk_size = vstate.chunk_size
     n_samples = samples.shape[0]
 
     if chunk_size is None or chunk_size >= n_samples:

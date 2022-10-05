@@ -204,13 +204,14 @@ def test_qgt_solve_with_x0(qgt, vstate):
     [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
 )
 @pytest.mark.parametrize("chunk_size", [None, 16])
-def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
+@pytest.mark.parametrize("qgt_chunk_size", [None, 8])
+def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank, qgt_chunk_size):
     if is_complex_failing(vstate, qgt):
         return
 
     rtol, atol = matmul_tol[nk.jax.dtype_real(vstate.model.dtype)]
 
-    S = qgt(vstate)
+    S = qgt(vstate, chunk_size=qgt_chunk_size)
     rng = nkjax.PRNGSeq(0)
     y = jax.tree_map(
         lambda x: 0.001 * jax.random.normal(rng.next(), x.shape, dtype=x.dtype),
@@ -245,7 +246,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
             assert samples.shape == (_mpi_size, *vstate.samples.shape)
             vstate._samples = samples.reshape((-1, *vstate.samples.shape[1:]))
 
-            S = qgt(vstate)
+            S = qgt(vstate, chunk_size=qgt_chunk_size)
             x_all = S @ y
 
             jax.tree_map(
