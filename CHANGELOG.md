@@ -8,6 +8,7 @@
 ### New features
 * Added a new 'Full statevector' model {class}`nk.models.LogStateVector` that stores the exponentially large state and can be used as an exact ansatz [#1324](https://github.com/netket/netket/pull/1324).
 * Added a new `nkx.driver.TDVPSchmitt` driver, implementing the signal-to-noise ratio TDVP regularisation by Schmitt and Heyl [#1306](https://github.com/netket/netket/pull/1306).
+* QGT classes accept a `chunk_size` parameter that overrides the `chunk_size` set by the variational state object [#1347](https://github.com/netket/netket/pull/1347).
 
 ### Bug Fixes
 * {class}`nk.vqs.ExactState` `expect_and_grad` returned a scalar while `expect` returned a {class}`nk.stats.Stats` object with 0 error. The inconsistency has been addressed and now they both return a `Stats` object. This changes the format of the files logged when running `VMC`, which will now store the average under `Mean` instead of `value` [#1325](https://github.com/netket/netket/pull/1325).
