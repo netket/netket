@@ -20,14 +20,14 @@ import jax
 from jax import numpy as jnp
 
 from netket.stats import subtract_mean
-from netket.utils.types import PyTree, Array
+from netket.utils.types import Array, PyTree, Scalar
 from netket.utils import mpi
 import netket.jax as nkjax
 
 from .qgt_jacobian_pytree_logic import (
     jacobian_real_holo,
     jacobian_cplx,
-    _rescale_leaf as _rescale,
+    _rescale,
 )
 
 from netket.jax.utils import RealImagTuple
@@ -171,9 +171,16 @@ def prepare_centered_oks(
     )  # maintain weak type!
 
     # here the jacobian is reshaped and the real/complex part are concatenated.
-    centered_jacs = centered_jacs.reshape(-1, centered_jacs.shape[-1])
+    # centered_jacs = centered_jacs.reshape(-1, centered_jacs.shape[-1])
 
     if rescale_shift:
-        return _rescale(centered_jacs)
+        ndims = 1 if mode != "complex" else 2
+        return _rescale(centered_jacs, ndims=ndims)
     else:
         return centered_jacs, None
+
+
+def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar) -> PyTree:
+    w = O @ v
+    res = jnp.tensordot(w.conj(), O, axes=w.ndim).conj()
+    return mpi.mpi_sum_jax(res)[0] + diag_shift * v

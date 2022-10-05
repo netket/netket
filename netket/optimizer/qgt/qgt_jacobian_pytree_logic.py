@@ -113,24 +113,25 @@ def stack_jacobian_tuple(centered_oks_re_im):
     return jax.tree_map(lambda re, im: jnp.stack([re, im], axis=0), *centered_oks_re_im)
 
 
-def _rescale_leaf(centered_oks):
+def _rescale(centered_oks, *, ndims: int = 1):
     """
     compute ΔOₖ/√Sₖₖ and √Sₖₖ
     to do scale-invariant regularization (Becca & Sorella 2017, pp. 143)
     Sₖₗ/(√Sₖₖ√Sₗₗ) = ΔOₖᴴΔOₗ/(√Sₖₖ√Sₗₗ) = (ΔOₖ/√Sₖₖ)ᴴ(ΔOₗ/√Sₗₗ)
     """
-    scale = (
-        mpi.mpi_sum_jax(
-            jnp.sum((centered_oks * centered_oks.conj()).real, axis=0, keepdims=True)
+    # should be (0,) for standard, (0,1) when we have 2 jacobians in complex mode
+    axis = tuple(range(ndims))
+
+    scale = jax.tree_map(
+        lambda x: mpi.mpi_sum_jax(
+            jnp.sum((x * x.conj()).real, axis=axis, keepdims=True)
         )[0]
-        ** 0.5
+        ** 0.5,
+        centered_oks,
     )
-    centered_oks = jnp.divide(centered_oks, scale)
-    scale = jnp.squeeze(scale, axis=0)
+    centered_oks = jax.tree_map(jnp.divide, centered_oks, scale)
+    scale = jax.tree_map(partial(jnp.squeeze, axis=axis), scale)
     return centered_oks, scale
-
-
-_rescale = partial(jax.tree_map, _rescale_leaf)
 
 
 def _jvp(oks: PyTree, v: PyTree) -> Array:
@@ -254,8 +255,10 @@ def prepare_centered_oks(
         centered_jacs = jax.tree_map(lambda x, y: x - y, jacobians, jacobians_avg)
 
         centered_jacs = _multiply_by_pdf(centered_jacs, jnp.sqrt(pdf))
+
     if rescale_shift:
-        return _rescale(centered_jacs)
+        ndims = 1 if mode != "complex" else 2
+        return _rescale(centered_jacs, ndims=ndims)
     else:
         return centered_jacs, None
 

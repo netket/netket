@@ -26,7 +26,7 @@ import netket.jax as nkjax
 from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
-from .qgt_jacobian_dense_logic import prepare_centered_oks, vec_to_real
+from .qgt_jacobian_dense_logic import prepare_centered_oks, vec_to_real, mat_vec
 from .qgt_jacobian_common import choose_jacobian_mode
 
 
@@ -198,10 +198,7 @@ def _matmul(
     if self.scale is not None:
         vec = vec * self.scale
 
-    result = (
-        mpi.mpi_sum_jax(((self.O @ vec).T.conj() @ self.O).T.conj())[0]
-        + self.diag_shift * vec
-    )
+    result = mat_vec(vec, self.O, self.diag_shift)
 
     if self.scale is not None:
         result = result * self.scale
@@ -259,9 +256,11 @@ def _solve(
 def _to_dense(self: QGTJacobianDenseT) -> jnp.ndarray:
     if self.scale is None:
         O = self.O
-        diag = jnp.eye(self.O.shape[1])
+        diag = jnp.eye(self.O.shape[-1])
     else:
         O = self.O * self.scale[jnp.newaxis, :]
         diag = jnp.diag(self.scale**2)
 
-    return mpi.mpi_sum_jax(O.T.conj() @ O)[0] + self.diag_shift * diag
+    # concatenate samples with real/Imaginary dimension
+    O = O.reshape(-1, O.shape[-1])
+    return mpi.mpi_sum_jax(O.conj().T @ O)[0] + self.diag_shift * diag
