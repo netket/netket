@@ -85,6 +85,9 @@ dense_jacobian_real_holo = nkjax.compose(ravel, jacobian_real_holo)
 dense_jacobian_cplx = nkjax.compose(stack_jacobian_tuple, jacobian_cplx)
 
 
+# TODO: This function is identical to the one in JacobianPyTree, with
+# the only difference in the `jacobian_fun` that can be selected.
+# The two should be unified.
 @partial(jax.jit, static_argnames=("apply_fun", "mode", "rescale_shift", "chunk_size"))
 def prepare_centered_oks(
     apply_fun: Callable,
