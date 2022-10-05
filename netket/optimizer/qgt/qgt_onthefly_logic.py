@@ -48,7 +48,6 @@ def mat_vec(jvp_fn, v, diag_shift, pdf=None):
         w = w * (1.0 / (w.size * mpi.n_nodes))
         w = subtract_mean(w)  # w/ MPI
     else:
-        w = jvp_fn(v)
         w = pdf * (w - mpi.mpi_sum_jax(pdf @ w)[0])
     # Oᴴw = (wᴴO)ᴴ = (w* O)* since 1D arrays are not transposed
     # vjp_fn packages output into a length-1 tuple
