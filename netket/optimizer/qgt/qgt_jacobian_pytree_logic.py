@@ -226,11 +226,7 @@ def prepare_centered_oks(
 
         # avoid converting to complex and then back
         # by passing around the oks as a tuple of two pytrees representing the real and imag parts
-        jacobian_fun = compose(
-            stack_jacobian_tuple,
-            jacobian_cplx,
-        )
-
+        jacobian_fun = compose(stack_jacobian_tuple, jacobian_cplx)
     elif mode == "holomorphic":
         split_complex_params = False
         jacobian_fun = jacobian_real_holo
@@ -244,10 +240,7 @@ def prepare_centered_oks(
     if split_complex_params:
         # doesn't do anything if the params are already real
         params, reassemble = tree_to_real(params)
-
-        def f(W, σ):
-            return forward_fn(reassemble(W), σ)
-
+        f = lambda W, σ: forward_fn(reassemble(W), σ)
     else:
         f = forward_fn
 

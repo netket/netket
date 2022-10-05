@@ -133,7 +133,6 @@ def prepare_centered_oks(
         jacobian_fun = dense_jacobian_real_holo
     elif mode == "complex":
         split_complex_params = True  # convert C→C and R&C→C to R→C
-        # centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
 
         # avoid converting to complex and then back
         # by passing around the oks as a tuple of two pytrees representing the real and imag parts
@@ -152,19 +151,16 @@ def prepare_centered_oks(
     if split_complex_params:
         # doesn't do anything if the params are already real
         params, reassemble = nkjax.tree_to_real(params)
-
-        def f(W, σ):
-            return forward_fn(reassemble(W), σ)
-
+        f = lambda W, σ: forward_fn(reassemble(W), σ)
     else:
         f = forward_fn
 
     # jacobians has shape:
     # - (n_samples, 2, n_pars) if mode complex, holding the real and imaginary jacobian
     # - (n_samples, n_pars) if mode real/holomorphic
-    jacobians = nkjax.vmap_chunked(jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size)(
-        f, params, samples
-    )
+    jacobians = nkjax.vmap_chunked(
+        jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
+    )(f, params, samples)
 
     n_samp = samples.shape[0] * mpi.n_nodes
     centered_jacs = subtract_mean(jacobians, axis=0) / math.sqrt(
