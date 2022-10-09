@@ -27,7 +27,11 @@ from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
 from .qgt_jacobian_dense_logic import prepare_centered_oks, vec_to_real, mat_vec
-from .qgt_jacobian_common import choose_jacobian_mode
+from .qgt_jacobian_common import (
+    choose_jacobian_mode,
+    sanitize_diag_shift,
+    to_shift_offset,
+)
 
 
 def QGTJacobianDense(
@@ -35,7 +39,9 @@ def QGTJacobianDense(
     *,
     mode: str = None,
     holomorphic: bool = None,
-    rescale_shift=False,
+    diag_shift=None,
+    diag_scale=None,
+    rescale_shift=None,
     chunk_size=None,
     **kwargs,
 ) -> "QGTJacobianDenseT":
@@ -57,11 +63,13 @@ def QGTJacobianDense(
               models. holomorphic works for any function assuming it's holomorphic
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
-        rescale_shift: If True rescales the diagonal shift.
+        diag_shift: Constant shift added to diagonal entries.
+        diag_scale: Fractional shift added to diagonal entries.
         chunk_size: If supplied, overrides the chunk size of the variational state
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
+    diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
 
     if vstate is None:
         return partial(
@@ -91,6 +99,8 @@ def QGTJacobianDense(
     elif holomorphic is not None:
         raise ValueError("Cannot specify both `mode` and `holomorphic`.")
 
+    shift, offset = to_shift_offset(diag_shift, diag_scale)
+
     if chunk_size is None and hasattr(vstate, "chunk_size"):
         chunk_size = vstate.chunk_size
 
@@ -100,7 +110,7 @@ def QGTJacobianDense(
         vstate.samples.reshape(-1, vstate.samples.shape[-1]),
         vstate.model_state,
         mode,
-        rescale_shift,
+        offset,
         chunk_size,
     )
 
@@ -109,7 +119,12 @@ def QGTJacobianDense(
     )
 
     return QGTJacobianDenseT(
-        O=O, scale=scale, mode=mode, _params_structure=pars_struct, **kwargs
+        O=O,
+        scale=scale,
+        mode=mode,
+        _params_structure=pars_struct,
+        diag_shift=shift,
+        **kwargs,
     )
 
 

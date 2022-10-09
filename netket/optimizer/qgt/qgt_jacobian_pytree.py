@@ -28,7 +28,11 @@ from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
 from .qgt_jacobian_pytree_logic import mat_vec, prepare_centered_oks
-from .qgt_jacobian_common import choose_jacobian_mode
+from .qgt_jacobian_common import (
+    choose_jacobian_mode,
+    sanitize_diag_shift,
+    to_shift_offset,
+)
 
 
 def QGTJacobianPyTree(
@@ -36,7 +40,9 @@ def QGTJacobianPyTree(
     *,
     mode: str = None,
     holomorphic: bool = None,
-    rescale_shift=False,
+    diag_shift=None,
+    diag_scale=None,
+    rescale_shift=None,
     chunk_size=None,
     **kwargs,
 ) -> "QGTJacobianPyTreeT":
@@ -58,18 +64,21 @@ def QGTJacobianPyTree(
               models. holomorphic works for any function assuming it's holomorphic
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
-        rescale_shift: If True rescales the diagonal shift.
+        diag_shift: Constant shift added to diagonal entries.
+        diag_scale: Fractional shift added to diagonal entries.
         chunk_size: If supplied, overrides the chunk size of the variational state
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
+    diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
+
     if vstate is None:
         return partial(
             QGTJacobianPyTree,
             mode=mode,
             holomorphic=holomorphic,
-            rescale_shift=rescale_shift,
-            chunk_size=chunk_size,
+            diag_shift=diag_shift,
+            diag_scale=diag_scale,
             **kwargs,
         )
 
@@ -96,6 +105,8 @@ def QGTJacobianPyTree(
     elif holomorphic is not None:
         raise ValueError("Cannot specify both `mode` and `holomorphic`.")
 
+    shift, offset = to_shift_offset(diag_shift, diag_scale)
+
     if chunk_size is None and hasattr(vstate, "chunk_size"):
         chunk_size = vstate.chunk_size
 
@@ -105,13 +116,18 @@ def QGTJacobianPyTree(
         samples.reshape(-1, samples.shape[-1]),
         vstate.model_state,
         mode,
-        rescale_shift,
+        offset,
         pdf,
         chunk_size,
     )
 
     return QGTJacobianPyTreeT(
-        O=O, scale=scale, _params_structure=vstate.parameters, mode=mode, **kwargs
+        O=O,
+        scale=scale,
+        _params_structure=vstate.parameters,
+        mode=mode,
+        diag_shift=shift,
+        **kwargs,
     )
 
 
