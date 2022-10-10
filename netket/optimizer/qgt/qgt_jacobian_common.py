@@ -120,7 +120,7 @@ def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):
     if diag_shift is None:
         diag_shift = 0.01 if diag_scale is None else 0.0
 
-    if rescale_shift == False:
+    if rescale_shift is False:
         warn_deprecation(
             "`rescale_shift` is deprecated, please do not specify `rescale_shift=False`."
         )
@@ -130,7 +130,7 @@ def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):
             )
 
         return diag_shift, 0.0
-    elif rescale_shift == True:
+    elif rescale_shift is True:
         warn_deprecation(
             f"`rescale_shift` is deprecated, use `diag_scale={diag_shift}, diag_shift=0` instead."
         )
