@@ -484,6 +484,7 @@ def test_scale_invariant_regularization(e_offset, outdtype, pardtype, offset):
         ((0.02, None, True), (0.0, 0.02)),
         ((None, 0.02, True), "error"),
         ((0.01, 0.02, True), "error"),
+        ((None, None, 0.0), "error"),
     ],
 )
 def test_sanitize_diag_shift(inputs, expected):
