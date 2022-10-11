@@ -322,7 +322,10 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
     diag_shift = S.diag_shift
     if isinstance(S, (QGTJacobianPyTreeT, QGTJacobianDenseT)):
         # extract the necessary shape for the diag_shift
-        t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0], S.O))
+        if S.mode == "complex":
+            t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0, 0], S.O))
+        else:
+            t = jax.eval_shape(partial(jax.tree_map, lambda x: x[0], S.O))
     else:
         t = v
     diag_shift_tree = jax.tree_map(
