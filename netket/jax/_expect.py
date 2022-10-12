@@ -20,7 +20,7 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
-from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
+from netket.stats import statistics as mpi_statistics, Stats
 from netket.utils.types import PyTree
 
 from ._vjp import vjp as nkvjp
@@ -95,7 +95,7 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
         return out
 
     _, pb = nkvjp(f, pars, σ, *cost_args)
-    grad_f = pb(jnp.ones_like(_))
+    grad_f = pb(dL̄)
     return grad_f
 
 

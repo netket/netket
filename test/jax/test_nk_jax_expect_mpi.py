@@ -57,7 +57,7 @@ def test_expect_grad_mpi():
     H = nk.operator.Ising(hi, g, h=2, J=-1.0)
     model = nk.models.RBM(alpha=1, param_dtype=complex)
 
-    n_samples = 1008
+    n_samples = 320 * nk.utils.mpi.n_nodes
     r = nk.utils.mpi.rank
 
     with netket_disable_mpi():
