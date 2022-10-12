@@ -14,7 +14,6 @@ from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
 import numpy as np
 
 
-########################## Redefinition of nk.jax.expect ##########################
 def expect(
     log_pdf: Callable[[PyTree, jnp.ndarray], jnp.ndarray],
     expected_fun: Callable[[PyTree, jnp.ndarray], jnp.ndarray],
@@ -88,7 +87,6 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
 _expect.defvjp(_expect_fwd, _expect_bwd)
 
 
-########################## Expectation value with nk.jax.expect  ##########################
 def expval_grad(vstate, op):
 
     sigma, args = nk.vqs.get_local_kernel_arguments(vstate, op)
@@ -125,7 +123,6 @@ def expval_grad_inner(apply_fun, e_loc, params, model_state, sigma, args):
     return Ē, E_grad
 
 
-########################## Expectation value with the new expect ##########################
 def expval_grad_new(vstate, op):
 
     sigma, args = nk.vqs.get_local_kernel_arguments(vstate, op)
