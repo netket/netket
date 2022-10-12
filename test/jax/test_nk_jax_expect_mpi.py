@@ -14,7 +14,6 @@ from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
 import numpy as np
 
 
-
 ########################## Redefinition of nk.jax.expect ##########################
 def expect(
     log_pdf: Callable[[PyTree, jnp.ndarray], jnp.ndarray],
@@ -89,7 +88,6 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
 _expect.defvjp(_expect_fwd, _expect_bwd)
 
 
-
 ########################## Expectation value with nk.jax.expect  ##########################
 def expval_grad(vstate, op):
 
@@ -123,7 +121,7 @@ def expval_grad_inner(apply_fun, e_loc, params, model_state, sigma, args):
     Ē, E_vjp = nk.jax.vjp(expval_pars, params)
     E_grad = E_vjp(jnp.ones_like(Ē))[0]
     E_grad = jax.tree_map(lambda x: nk.utils.mpi.mpi_mean_jax(x)[0], E_grad)
- 
+
     return Ē, E_grad
 
 
@@ -164,8 +162,6 @@ def expval_grad_new_inner(apply_fun, e_loc, params, model_state, sigma, args):
     return Ē, E_grad
 
 
-
-
 def test_expect_grad_mpi():
     N = 10
     hi = nk.hilbert.Spin(0.5, N)
@@ -185,20 +181,17 @@ def test_expect_grad_mpi():
         samples = vstate.sample()
 
         expval_no_mpi, grad_no_mpi = expval_grad(vstate, H)
-        expval_no_mpi_new, grad_no_mpi_new =  expval_grad_new(vstate, H)
-
+        expval_no_mpi_new, grad_no_mpi_new = expval_grad_new(vstate, H)
 
     nc = samples.shape[1] // nk.utils.mpi.n_nodes
     samples_rank = samples[:, r * nc : (r + 1) * nc, :]
     vstate._samples = samples_rank
 
     expval_mpi, grad_mpi = expval_grad(vstate, H)
-    expval_mpi_new, grad_mpi_new =  expval_grad_new(vstate, H)
-
+    expval_mpi_new, grad_mpi_new = expval_grad_new(vstate, H)
 
     np.testing.assert_allclose(expval_no_mpi, expval_mpi)
     np.testing.assert_allclose(expval_no_mpi_new, expval_mpi_new)
-
 
     jax.tree_map(
         lambda x, y: np.testing.assert_allclose(x, y),
@@ -206,12 +199,8 @@ def test_expect_grad_mpi():
         grad_mpi_new,
     )
 
-
-
     jax.tree_map(
         lambda x, y: np.testing.assert_allclose(x, y),
         grad_no_mpi,
         grad_mpi,
     )
-
-
