@@ -89,12 +89,13 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
         log_p = log_pdf(pars, σ)
         term1 = jax.vmap(jnp.multiply)(ΔL_σ, log_p)
         term2 = expected_fun(pars, σ, *cost_args)
-        out = mpi_mean(term1 + term2, axis=0)
-        out = out.sum()
+        out = term1 + term2
+        out = out.mean()
+
         return out
 
     _, pb = nkvjp(f, pars, σ, *cost_args)
-    grad_f = pb(dL̄)
+    grad_f = pb(jnp.ones_like(_))
     return grad_f
 
 
