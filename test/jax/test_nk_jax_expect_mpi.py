@@ -14,7 +14,6 @@ from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
 import numpy as np
 
 
-
 ########################## Redefinition of nk.jax.expect ##########################
 def expect(
     log_pdf: Callable[[PyTree, jnp.ndarray], jnp.ndarray],
@@ -79,7 +78,6 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
 
         return out
 
-
     _, pb = nkvjp(f, pars, σ, *cost_args)
 
     grad_f = pb(jnp.ones_like(_))
@@ -90,33 +88,35 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
 _expect.defvjp(_expect_fwd, _expect_bwd)
 
 
-
-
 ########################## Expectation value with the new expect ##########################
 def expval_new(vstate, op):
-    
+
     sigma, args = nk.vqs.get_local_kernel_arguments(vstate, op)
     e_loc = nk.vqs.get_local_kernel(vstate, op)
 
-    return expval_new_inner(vstate._apply_fun, e_loc, vstate.parameters, vstate.model_state, sigma, args)
+    return expval_new_inner(
+        vstate._apply_fun, e_loc, vstate.parameters, vstate.model_state, sigma, args
+    )
 
 
-@partial(jax.jit, static_argnames = ("apply_fun", "e_loc"))
+@partial(jax.jit, static_argnames=("apply_fun", "e_loc"))
 def expval_new_inner(apply_fun, e_loc, params, model_state, sigma, args):
-    
+
     N = sigma.shape[-1]
     n_chains = sigma.shape[1]
     sigma = sigma.reshape(-1, N)
 
     def expval_new_pars(params):
 
-        e_loc_ = lambda params_, sigma_: e_loc(apply_fun, {"params" : params_, **model_state}, sigma_, args)
+        e_loc_ = lambda params_, sigma_: e_loc(
+            apply_fun, {"params": params_, **model_state}, sigma_, args
+        )
 
-        logpdf = lambda params_, sigma_: jnp.log(jnp.square(jnp.absolute(jnp.exp(apply_fun({"params": params_}, sigma_)))))
+        logpdf = lambda params_, sigma_: jnp.log(
+            jnp.square(jnp.absolute(jnp.exp(apply_fun({"params": params_}, sigma_))))
+        )
 
         return expect(logpdf, e_loc_, params, sigma)[0]
-
-
 
     E_vals, E_vjp = nk.jax.vjp(expval_new_pars, params)
     E_grad = E_vjp(jnp.ones_like(E_vals))[0]
@@ -125,33 +125,35 @@ def expval_new_inner(apply_fun, e_loc, params, model_state, sigma, args):
     return E_grad
 
 
-
-
 ########################## Expectation value with nk.jax.expect  ##########################
 def expval(vstate, op):
-    
+
     sigma, args = nk.vqs.get_local_kernel_arguments(vstate, op)
     e_loc = nk.vqs.get_local_kernel(vstate, op)
 
-    return expval_inner(vstate._apply_fun, e_loc, vstate.parameters, vstate.model_state, sigma, args)
+    return expval_inner(
+        vstate._apply_fun, e_loc, vstate.parameters, vstate.model_state, sigma, args
+    )
 
 
-@partial(jax.jit, static_argnames = ("apply_fun", "e_loc"))
+@partial(jax.jit, static_argnames=("apply_fun", "e_loc"))
 def expval_inner(apply_fun, e_loc, params, model_state, sigma, args):
-    
+
     N = sigma.shape[-1]
     n_chains = sigma.shape[1]
     sigma = sigma.reshape(-1, N)
 
     def expval_pars(params):
 
-        e_loc_ = lambda params_, sigma_: e_loc(apply_fun, {"params" : params_, **model_state}, sigma_, args)
+        e_loc_ = lambda params_, sigma_: e_loc(
+            apply_fun, {"params": params_, **model_state}, sigma_, args
+        )
 
-        logpdf = lambda params_, sigma_: jnp.log(jnp.square(jnp.absolute(jnp.exp(apply_fun({"params": params_}, sigma_)))))
+        logpdf = lambda params_, sigma_: jnp.log(
+            jnp.square(jnp.absolute(jnp.exp(apply_fun({"params": params_}, sigma_))))
+        )
 
         return nk.jax.expect(logpdf, e_loc_, params, sigma)[0]
-
-
 
     E_vals, E_vjp = nk.jax.vjp(expval_pars, params)
     E_grad = E_vjp(jnp.ones_like(E_vals))[0]
@@ -160,40 +162,39 @@ def expval_inner(apply_fun, e_loc, params, model_state, sigma, args):
     return E_grad
 
 
-
-
-
 def expect_expect_grad_mpi():
     N = 10
-    hi = nk.hilbert.Spin(0.5, N);
+    hi = nk.hilbert.Spin(0.5, N)
     g = nk.graph.Hypercube(length=N, n_dim=1, pbc=True)
-    H = nk.operator.Ising(hi, g, h = 2, J = -1.0)
-    model = nk.models.RBM(alpha=1, param_dtype = complex)
+    H = nk.operator.Ising(hi, g, h=2, J=-1.0)
+    model = nk.models.RBM(alpha=1, param_dtype=complex)
 
-    n_samples= 1008
+    n_samples = 1008
     r = nk.utils.mpi.rank
 
     with netket_disable_mpi():
-        sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains = 16)
-        vstate = nk.vqs.MCState(sampler = sampler, model = model, n_samples= n_samples, seed = 1234)
+        sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
+        vstate = nk.vqs.MCState(
+            sampler=sampler, model=model, n_samples=n_samples, seed=1234
+        )
         vstate.n_samples = n_samples
         samples = vstate.sample()
 
-    
-        jax.tree_map(lambda x, y: np.testing.assert_allclose(x, y), expval(vstate, H), expval_new(vstate, H))
+        jax.tree_map(
+            lambda x, y: np.testing.assert_allclose(x, y),
+            expval(vstate, H),
+            expval_new(vstate, H),
+        )
 
-
-    nc = samples.shape[1]//nk.utils.mpi.n_nodes
-    samples_rank = samples[:,r*nc:(r+1)*nc,:]
+    nc = samples.shape[1] // nk.utils.mpi.n_nodes
+    samples_rank = samples[:, r * nc : (r + 1) * nc, :]
     vstate._samples = samples_rank
 
-    jax.tree_map(lambda x, y: np.testing.assert_allclose(x, y), expval(vstate, H), expval_new(vstate, H))
-
-
-
-
-
-
+    jax.tree_map(
+        lambda x, y: np.testing.assert_allclose(x, y),
+        expval(vstate, H),
+        expval_new(vstate, H),
+    )
 
 
 expect_expect_grad_mpi()
