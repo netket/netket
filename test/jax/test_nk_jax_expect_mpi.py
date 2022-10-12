@@ -14,6 +14,7 @@ from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
 import numpy as np
 
 
+
 ########################## Redefinition of nk.jax.expect ##########################
 def expect(
     log_pdf: Callable[[PyTree, jnp.ndarray], jnp.ndarray],
@@ -88,56 +89,20 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
 _expect.defvjp(_expect_fwd, _expect_bwd)
 
 
-########################## Expectation value with the new expect ##########################
-def expval_new(vstate, op):
-
-    sigma, args = nk.vqs.get_local_kernel_arguments(vstate, op)
-    e_loc = nk.vqs.get_local_kernel(vstate, op)
-
-    return expval_new_inner(
-        vstate._apply_fun, e_loc, vstate.parameters, vstate.model_state, sigma, args
-    )
-
-
-@partial(jax.jit, static_argnames=("apply_fun", "e_loc"))
-def expval_new_inner(apply_fun, e_loc, params, model_state, sigma, args):
-
-    N = sigma.shape[-1]
-    n_chains = sigma.shape[1]
-    sigma = sigma.reshape(-1, N)
-
-    def expval_new_pars(params):
-
-        e_loc_ = lambda params_, sigma_: e_loc(
-            apply_fun, {"params": params_, **model_state}, sigma_, args
-        )
-
-        logpdf = lambda params_, sigma_: jnp.log(
-            jnp.square(jnp.absolute(jnp.exp(apply_fun({"params": params_}, sigma_))))
-        )
-
-        return expect(logpdf, e_loc_, params, sigma)[0]
-
-    E_vals, E_vjp = nk.jax.vjp(expval_new_pars, params)
-    E_grad = E_vjp(jnp.ones_like(E_vals))[0]
-    E_grad = jax.tree_map(lambda x: nk.utils.mpi.mpi_mean_jax(x)[0], E_grad)
-
-    return E_grad
-
 
 ########################## Expectation value with nk.jax.expect  ##########################
-def expval(vstate, op):
+def expval_grad(vstate, op):
 
     sigma, args = nk.vqs.get_local_kernel_arguments(vstate, op)
     e_loc = nk.vqs.get_local_kernel(vstate, op)
 
-    return expval_inner(
+    return expval_grad_inner(
         vstate._apply_fun, e_loc, vstate.parameters, vstate.model_state, sigma, args
     )
 
 
 @partial(jax.jit, static_argnames=("apply_fun", "e_loc"))
-def expval_inner(apply_fun, e_loc, params, model_state, sigma, args):
+def expval_grad_inner(apply_fun, e_loc, params, model_state, sigma, args):
 
     N = sigma.shape[-1]
     n_chains = sigma.shape[1]
@@ -155,14 +120,53 @@ def expval_inner(apply_fun, e_loc, params, model_state, sigma, args):
 
         return nk.jax.expect(logpdf, e_loc_, params, sigma)[0]
 
-    E_vals, E_vjp = nk.jax.vjp(expval_pars, params)
-    E_grad = E_vjp(jnp.ones_like(E_vals))[0]
+    Ē, E_vjp = nk.jax.vjp(expval_pars, params)
+    E_grad = E_vjp(jnp.ones_like(Ē))[0]
+    E_grad = jax.tree_map(lambda x: nk.utils.mpi.mpi_mean_jax(x)[0], E_grad)
+ 
+    return Ē, E_grad
+
+
+########################## Expectation value with the new expect ##########################
+def expval_grad_new(vstate, op):
+
+    sigma, args = nk.vqs.get_local_kernel_arguments(vstate, op)
+    e_loc = nk.vqs.get_local_kernel(vstate, op)
+
+    return expval_grad_new_inner(
+        vstate._apply_fun, e_loc, vstate.parameters, vstate.model_state, sigma, args
+    )
+
+
+@partial(jax.jit, static_argnames=("apply_fun", "e_loc"))
+def expval_grad_new_inner(apply_fun, e_loc, params, model_state, sigma, args):
+
+    N = sigma.shape[-1]
+    n_chains = sigma.shape[1]
+    sigma = sigma.reshape(-1, N)
+
+    def expval_new_pars(params):
+
+        e_loc_ = lambda params_, sigma_: e_loc(
+            apply_fun, {"params": params_, **model_state}, sigma_, args
+        )
+
+        logpdf = lambda params_, sigma_: jnp.log(
+            jnp.square(jnp.absolute(jnp.exp(apply_fun({"params": params_}, sigma_))))
+        )
+
+        return expect(logpdf, e_loc_, params, sigma)[0]
+
+    Ē, E_vjp = nk.jax.vjp(expval_new_pars, params)
+    E_grad = E_vjp(jnp.ones_like(Ē))[0]
     E_grad = jax.tree_map(lambda x: nk.utils.mpi.mpi_mean_jax(x)[0], E_grad)
 
-    return E_grad
+    return Ē, E_grad
 
 
-def expect_expect_grad_mpi():
+
+
+def test_expect_grad_mpi():
     N = 10
     hi = nk.hilbert.Spin(0.5, N)
     g = nk.graph.Hypercube(length=N, n_dim=1, pbc=True)
@@ -180,21 +184,34 @@ def expect_expect_grad_mpi():
         vstate.n_samples = n_samples
         samples = vstate.sample()
 
-        jax.tree_map(
-            lambda x, y: np.testing.assert_allclose(x, y),
-            expval(vstate, H),
-            expval_new(vstate, H),
-        )
+        expval_no_mpi, grad_no_mpi = expval_grad(vstate, H)
+        expval_no_mpi_new, grad_no_mpi_new =  expval_grad_new(vstate, H)
+
 
     nc = samples.shape[1] // nk.utils.mpi.n_nodes
     samples_rank = samples[:, r * nc : (r + 1) * nc, :]
     vstate._samples = samples_rank
 
+    expval_mpi, grad_mpi = expval_grad(vstate, H)
+    expval_mpi_new, grad_mpi_new =  expval_grad_new(vstate, H)
+
+
+    np.testing.assert_allclose(expval_no_mpi, expval_mpi)
+    np.testing.assert_allclose(expval_no_mpi_new, expval_mpi_new)
+
+
     jax.tree_map(
         lambda x, y: np.testing.assert_allclose(x, y),
-        expval(vstate, H),
-        expval_new(vstate, H),
+        grad_no_mpi_new,
+        grad_mpi_new,
     )
 
 
-expect_expect_grad_mpi()
+
+    jax.tree_map(
+        lambda x, y: np.testing.assert_allclose(x, y),
+        grad_no_mpi,
+        grad_mpi,
+    )
+
+
