@@ -20,9 +20,8 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
-from netket.stats import statistics as mpi_statistics, Stats
+from netket.stats import statistics as mpi_statistics, sum as mpi_sum, Stats
 from netket.utils.types import PyTree
-from netket.utils.mpi import mpi_mean_jax
 from ._vjp import vjp as nkvjp
 
 
@@ -89,14 +88,13 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
         log_p = log_pdf(pars, σ)
         term1 = jax.vmap(jnp.multiply)(ΔL_σ, log_p)
         term2 = expected_fun(pars, σ, *cost_args)
-        out = term1 + term2
-        out = out.mean()
+        out = mpi_sum(term1 + term2, axis=0)
+        out = out.sum()
 
         return out
 
     _, pb = nkvjp(f, pars, σ, *cost_args)
     grad_f = pb(dL̄)
-    grad_f = jax.tree_map(lambda x: mpi_mean_jax(x)[0], grad_f)
 
     return grad_f
 
