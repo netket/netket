@@ -70,6 +70,7 @@ def QGTJacobianPyTree(
             mode=mode,
             holomorphic=holomorphic,
             rescale_shift=rescale_shift,
+            chunk_size=chunk_size,
             **kwargs,
         )
 

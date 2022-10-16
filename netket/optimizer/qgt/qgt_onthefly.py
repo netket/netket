@@ -47,7 +47,7 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
                     memory than the forward pass).
     """
     if vstate is None:
-        return partial(QGTOnTheFly, **kwargs)
+        return partial(QGTOnTheFly, chunk_size=chunk_size, **kwargs)
 
     if "centered" in kwargs:
         warn_deprecation(
