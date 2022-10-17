@@ -15,16 +15,27 @@
 # test qgt_onthefly_logic with inhomogeneous parameters
 
 import pytest
+from functools import partial
+
+import math
+import numpy as np
 
 import jax
 import jax.numpy as jnp
 import jax.flatten_util
-from netket.optimizer.qgt import qgt_onthefly_logic, qgt_jacobian_pytree_logic
 
 from functools import partial
 import itertools
 
+import netket as nk
 from netket import jax as nkjax
+from netket import stats as nkstats
+from netket.utils import mpi
+from netket.optimizer.qgt import (
+    qgt_onthefly_logic,
+    qgt_jacobian_pytree_logic,
+    qgt_jacobian_common,
+)
 
 from .. import common
 
@@ -66,9 +77,22 @@ def reassemble_complex(x, target, fun=tree_toreal_flat):
     return nkjax.tree_cast(res, target)
 
 
-def tree_allclose(t1, t2):
-    t = jax.tree_map(jnp.allclose, t1, t2)
-    return all(jax.tree_util.tree_flatten(t)[0])
+def assert_tree_allclose(t1, t2, rtol=None, atol=0):
+    t1_s = jax.tree_util.tree_structure(t1)
+    t2_s = jax.tree_util.tree_structure(t1)
+    assert t1_s == t2_s
+
+    def assert_allclose(x, y, rtol, atol):
+        if rtol is None:
+            if x.dtype == np.dtype("float32"):
+                rtol = 1e-5
+            elif x.dtype == np.dtype("complex64"):
+                rtol = 1e-5
+            else:
+                rtol = 1e-6
+        np.testing.assert_allclose(x, y, rtol, atol)
+
+    jax.tree_map(lambda x, y: assert_allclose(x, y, rtol=rtol, atol=atol), t1, t2)
 
 
 def tree_samedtypes(t1, t2):
@@ -83,7 +107,7 @@ def random_split_like_tree(rng_key, target=None, treedef=None):
     if treedef is None:
         treedef = jax.tree_util.tree_structure(target)
     keys = jax.random.split(rng_key, treedef.num_leaves)
-    return jax.tree_unflatten(treedef, keys)
+    return jax.tree_util.tree_unflatten(treedef, keys)
 
 
 def tree_random_normal_like(rng_key, target):
@@ -104,6 +128,16 @@ def astype_unsafe(x, dtype):
     if not nkjax.is_complex_dtype(dtype):
         x = x.real
     return x.astype(dtype)
+
+
+def tree_subtract_mean(tree):
+    return jax.tree_map(lambda x: nkstats.subtract_mean(x, axis=0), tree)
+
+
+def divide_by_sqrt_n_samp(oks, samples):
+    n_samp = samples.shape[0] * mpi.n_nodes  # MPI
+    sqrt_n = math.sqrt(n_samp)  # enforce weak type
+    return jax.tree_map(lambda x: x / sqrt_n, oks)
 
 
 class Example:
@@ -196,6 +230,19 @@ class Example:
         self.S_real_scaled = self.S_real / (jnp.outer(self.scale, self.scale))
 
 
+def centered_jacobian_cplx(fun, params, samples):
+    oks = qgt_jacobian_pytree_logic.jacobian_cplx(fun, params, samples)
+    centered_oks = tree_subtract_mean(oks)
+    return centered_oks
+
+
+def centered_jacobian_real_holo(fun, params, samples):
+    oks = qgt_jacobian_pytree_logic.jacobian_real_holo(fun, params, samples)
+
+    centered_oks = tree_subtract_mean(oks)
+    return centered_oks
+
+
 @pytest.fixture
 def e(n_samp, outdtype, pardtype, holomorphic, seed=123):
     return Example(n_samp, seed, outdtype, pardtype, holomorphic)
@@ -221,7 +268,7 @@ all_test_types = test_types + c_r_test_types + rc_r_test_types
 @pytest.mark.parametrize("n_samp", [0])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_reassemble_complex(e):
-    assert tree_allclose(
+    assert_tree_allclose(
         e.params, reassemble_complex(tree_toreal_flat(e.params), target=e.target)
     )
 
@@ -251,7 +298,7 @@ def test_matvec(e, jit, chunk_size):
     expected = reassemble_complex(
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
     )
-    assert tree_allclose(actual, expected)
+    assert_tree_allclose(actual, expected)
     tree_samedtypes(actual, expected)
 
 
@@ -294,7 +341,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
         )
     )
     # (expected,) = jax.linear_transpose(lambda v_: reassemble_complex(S_real @ tree_toreal_flat(v_), target=e.target), v)(v)
-    assert tree_allclose(actual, expected)
+    assert_tree_allclose(actual, expected)
     tree_samedtypes(actual, expected)
 
 
@@ -310,21 +357,27 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
     mv = qgt_jacobian_pytree_logic._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
-        centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_cplx
+        jacobian_fun = nkjax.compose(
+            qgt_jacobian_pytree_logic.stack_jacobian_tuple,
+            qgt_jacobian_pytree_logic.jacobian_cplx,
+        )
     else:
-        centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_real_holo
-    centered_jacobian_fun = partial(centered_jacobian_fun, chunk_size=chunk_size)
+        jacobian_fun = qgt_jacobian_pytree_logic.jacobian_real_holo
+
+    jacobian_fun = nkjax.vmap_chunked(
+        jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
+    )
+    centered_jacobian_fun = nkjax.compose(tree_subtract_mean, jacobian_fun)
+
     if jit:
         mv = jax.jit(mv)
         centered_jacobian_fun = jax.jit(centered_jacobian_fun, static_argnums=0)
 
     centered_oks = centered_jacobian_fun(e.f, e.params, e.samples)
-    centered_oks = qgt_jacobian_pytree_logic._divide_by_sqrt_n_samp(
-        centered_oks, e.samples
-    )
+    centered_oks = divide_by_sqrt_n_samp(centered_oks, e.samples)
     actual = mv(e.v, centered_oks)
     expected = reassemble_complex(e.S_real @ e.v_real_flat, target=e.target)
-    assert tree_allclose(actual, expected)
+    assert_tree_allclose(actual, expected)
     tree_samedtypes(actual, expected)
 
 
@@ -369,32 +422,40 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     expected = reassemble_complex(
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target
     )
-    assert tree_allclose(actual, expected)
+    assert_tree_allclose(actual, expected)
     tree_samedtypes(actual, expected)
 
 
 @pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize(
-    "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
+    "outdtype, pardtype",
+    r_c_test_types,  # r_r_test_types + c_c_test_types + r_c_test_types
 )
 def test_scale_invariant_regularization(e, outdtype, pardtype):
+    mv = qgt_jacobian_pytree_logic._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
-        centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_cplx
+        jacobian_fun = nkjax.compose(
+            qgt_jacobian_pytree_logic.stack_jacobian_tuple,
+            qgt_jacobian_pytree_logic.jacobian_cplx,
+        )
+        ndims = 2
     else:
-        centered_jacobian_fun = qgt_jacobian_pytree_logic.centered_jacobian_real_holo
+        jacobian_fun = qgt_jacobian_pytree_logic.jacobian_real_holo
+        ndims = 1
 
-    mv = qgt_jacobian_pytree_logic._mat_vec
+    jacobian_fun = jax.vmap(jacobian_fun, in_axes=(None, None, 0))
+    centered_jacobian_fun = nkjax.compose(tree_subtract_mean, jacobian_fun)
     centered_oks = centered_jacobian_fun(e.f, e.params, e.samples)
-    centered_oks = qgt_jacobian_pytree_logic._divide_by_sqrt_n_samp(
-        centered_oks, e.samples
-    )
+    centered_oks = divide_by_sqrt_n_samp(centered_oks, e.samples)
 
-    centered_oks_scaled, scale = qgt_jacobian_pytree_logic._rescale(centered_oks)
+    centered_oks_scaled, scale = qgt_jacobian_common.rescale(centered_oks, ndims=ndims)
     actual = mv(e.v, centered_oks_scaled)
     expected = reassemble_complex(e.S_real_scaled @ e.v_real_flat, target=e.target)
-    assert tree_allclose(actual, expected)
+
+    rtol = 1e-5 if pardtype is jnp.float32 else 1e-8
+    assert_tree_allclose(actual, expected, rtol=rtol)
     tree_samedtypes(actual, expected)
 
 

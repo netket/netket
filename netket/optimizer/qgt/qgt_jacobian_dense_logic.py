@@ -13,21 +13,21 @@
 # limitations under the License.
 
 from typing import Callable, Optional, Tuple
-from functools import partial, wraps
+from functools import partial
 import math
 
 import jax
 from jax import numpy as jnp
 
-import numpy as np
-
 from netket.stats import subtract_mean
-from netket.utils.types import PyTree, Array
+from netket.utils.types import Array, PyTree, Scalar
 from netket.utils import mpi
 import netket.jax as nkjax
 
+from .qgt_jacobian_common import rescale
 from .qgt_jacobian_pytree_logic import (
-    single_sample,
+    jacobian_real_holo,
+    jacobian_cplx,
 )
 
 from netket.jax.utils import RealImagTuple
@@ -59,53 +59,12 @@ def vec_to_real(vec: Array) -> Tuple[Array, Callable]:
         return vec, lambda x: x
 
 
-# TODO those 3 functions are the same as those in qgt_jac_pytree_logic.py
-# but without the vmap.
-# we should cleanup and de-duplicate the code.
-
-
-def jacobian_real_holo(forward_fn: Callable, params: PyTree, σ: Array) -> PyTree:
-    """Calculates one Jacobian entry.
-    Assumes the function is R→R or holomorphic C→C, so single vjp is enough.
-
-    Args:
-        forward_fn: the log wavefunction ln Ψ
-        params : a pytree of parameters p
-        σ : a single sample (vector)
-
-    Returns:
-        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
+def ravel(x: PyTree) -> Array:
     """
-    y, vjp_fun = jax.vjp(lambda pars: single_sample(forward_fn)(pars, σ), params)
-    (res,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-    return res
-
-
-def _jacobian_cplx(
-    forward_fn: Callable, params: PyTree, σ: Array, _build_fn: Callable
-) -> PyTree:
-    """Calculates one Jacobian entry.
-    Assumes the function is R→C, backpropagates 1 and -1j
-
-    Args:
-        forward_fn: the log wavefunction ln Ψ
-        params : a pytree of parameters p
-        σ : a single sample (vector)
-
-    Returns:
-        The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
+    shorthand for tree_ravel
     """
-    y, vjp_fun = jax.vjp(lambda pars: single_sample(forward_fn)(pars, σ), params)
-    (gr,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
-    (gi,) = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
-    return _build_fn(gr, gi)
-
-
-@partial(wraps(_jacobian_cplx))
-def jacobian_cplx(
-    forward_fn, params, samples, _build_fn=partial(jax.tree_map, jax.lax.complex)
-):
-    return _jacobian_cplx(forward_fn, params, samples, _build_fn)
+    dense, _ = nkjax.tree_ravel(x)
+    return dense
 
 
 def stack_jacobian_tuple(ok_re_im):
@@ -119,45 +78,16 @@ def stack_jacobian_tuple(ok_re_im):
         ok_re_im : a tuple (ΔOᵣ, ΔOᵢ) of two PyTrees representing the real and imag part of ΔOⱼₖ
     """
     re, im = ok_re_im
-
-    re_dense = ravel(re)
-    im_dense = ravel(im)
-    res = jnp.stack([re_dense, im_dense], axis=0)
-
-    return res
-
-
-def ravel(x: PyTree) -> Array:
-    """
-    shorthand for tree_ravel
-    """
-    dense, _ = nkjax.tree_ravel(x)
-    return dense
+    return jnp.stack([ravel(re), ravel(im)], axis=0)
 
 
 dense_jacobian_real_holo = nkjax.compose(ravel, jacobian_real_holo)
-dense_jacobian_cplx = nkjax.compose(
-    stack_jacobian_tuple, partial(jacobian_cplx, _build_fn=lambda *x: x)
-)
+dense_jacobian_cplx = nkjax.compose(stack_jacobian_tuple, jacobian_cplx)
 
 
-def _rescale(centered_oks):
-    """
-    compute ΔOₖ/√Sₖₖ and √Sₖₖ
-    to do scale-invariant regularization (Becca & Sorella 2017, pp. 143)
-    Sₖₗ/(√Sₖₖ√Sₗₗ) = ΔOₖᴴΔOₗ/(√Sₖₖ√Sₗₗ) = (ΔOₖ/√Sₖₖ)ᴴ(ΔOₗ/√Sₗₗ)
-    """
-    scale = (
-        mpi.mpi_sum_jax(
-            jnp.sum((centered_oks * centered_oks.conj()).real, axis=0, keepdims=True)
-        )[0]
-        ** 0.5
-    )
-    centered_oks = jnp.divide(centered_oks, scale)
-    scale = jnp.squeeze(scale, axis=0)
-    return centered_oks, scale
-
-
+# TODO: This function is identical to the one in JacobianPyTree, with
+# the only difference in the `jacobian_fun` that can be selected.
+# The two should be unified.
 @partial(jax.jit, static_argnames=("apply_fun", "mode", "rescale_shift", "chunk_size"))
 def prepare_centered_oks(
     apply_fun: Callable,
@@ -206,7 +136,6 @@ def prepare_centered_oks(
         jacobian_fun = dense_jacobian_real_holo
     elif mode == "complex":
         split_complex_params = True  # convert C→C and R&C→C to R→C
-        # centered_jacobian_fun = compose(stack_jacobian, centered_jacobian_cplx)
 
         # avoid converting to complex and then back
         # by passing around the oks as a tuple of two pytrees representing the real and imag parts
@@ -225,33 +154,33 @@ def prepare_centered_oks(
     if split_complex_params:
         # doesn't do anything if the params are already real
         params, reassemble = nkjax.tree_to_real(params)
-
-        def f(W, σ):
-            return forward_fn(reassemble(W), σ)
-
+        f = lambda W, σ: forward_fn(reassemble(W), σ)
     else:
         f = forward_fn
-
-    def gradf_fun(params, σ):
-        gradf_dense = jacobian_fun(f, params, σ)
-        return gradf_dense
 
     # jacobians has shape:
     # - (n_samples, 2, n_pars) if mode complex, holding the real and imaginary jacobian
     # - (n_samples, n_pars) if mode real/holomorphic
-    jacobians = nkjax.vmap_chunked(gradf_fun, in_axes=(None, 0), chunk_size=chunk_size)(
-        params, samples
-    )
+    jacobians = nkjax.vmap_chunked(
+        jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
+    )(f, params, samples)
 
     n_samp = samples.shape[0] * mpi.n_nodes
-    centered_oks = subtract_mean(jacobians, axis=0) / math.sqrt(
+    centered_jacs = subtract_mean(jacobians, axis=0) / math.sqrt(
         n_samp
     )  # maintain weak type!
 
     # here the jacobian is reshaped and the real/complex part are concatenated.
-    centered_oks = centered_oks.reshape(-1, centered_oks.shape[-1])
+    # centered_jacs = centered_jacs.reshape(-1, centered_jacs.shape[-1])
 
     if rescale_shift:
-        return _rescale(centered_oks)
+        ndims = 1 if mode != "complex" else 2
+        return rescale(centered_jacs, ndims=ndims)
     else:
-        return centered_oks, None
+        return centered_jacs, None
+
+
+def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar) -> PyTree:
+    w = O @ v
+    res = jnp.tensordot(w.conj(), O, axes=w.ndim).conj()
+    return mpi.mpi_sum_jax(res)[0] + diag_shift * v

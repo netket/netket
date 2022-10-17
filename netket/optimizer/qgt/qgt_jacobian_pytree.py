@@ -22,14 +22,13 @@ from flax import struct
 from netket.utils.types import PyTree, Array
 from netket.utils import mpi
 import netket.jax as nkjax
+from netket.nn import split_array_mpi
 
 from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
 from .qgt_jacobian_pytree_logic import mat_vec, prepare_centered_oks
 from .qgt_jacobian_common import choose_jacobian_mode
-
-from netket.nn import split_array_mpi
 
 
 def QGTJacobianPyTree(
@@ -267,7 +266,11 @@ def _solve(
 
 @jax.jit
 def _to_dense(self: QGTJacobianPyTreeT) -> jnp.ndarray:
-    O = jax.vmap(lambda l: nkjax.tree_ravel(l)[0])(self.O)
+    O = self.O
+    if self.mode == "complex":
+        # I want to iterate across the samples and real/imaginary part
+        O = jax.tree_map(lambda x: x.reshape(-1, *x.shape[2:]), O)
+    O = jax.vmap(lambda l: nkjax.tree_ravel(l)[0])(O)
 
     if self.scale is None:
         diag = jnp.eye(O.shape[1])
