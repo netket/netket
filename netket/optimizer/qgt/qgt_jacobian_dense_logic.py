@@ -173,7 +173,7 @@ def prepare_centered_oks(
     # here the jacobian is reshaped and the real/complex part are concatenated.
     # centered_jacs = centered_jacs.reshape(-1, centered_jacs.shape[-1])
 
-    if rescale_shift:
+    if offset is not None:
         ndims = 1 if mode != "complex" else 2
         return rescale(centered_jacs, offset, ndims=ndims)
     else:

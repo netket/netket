@@ -237,7 +237,7 @@ def prepare_centered_oks(
 
         centered_jacs = _multiply_by_pdf(centered_jacs, jnp.sqrt(pdf))
 
-    if offset:
+    if offset is not None:
         ndims = 1 if mode != "complex" else 2
         return rescale(centered_jacs, offset, ndims=ndims)
     else:

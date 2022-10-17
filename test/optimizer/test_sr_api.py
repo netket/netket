@@ -45,22 +45,33 @@ def test_deprecated_sr():
     "qgt", [nk.optimizer.qgt.QGTJacobianDense, nk.optimizer.qgt.QGTJacobianPyTree]
 )
 def test_qgt_partial_jacobian(qgt):
+    with pytest.raises(ValueError):
+        qgt(mode="real", holomorphic=True)
+
     # mode and holomorphic can't be both specified for an actual QGT
     # but we'll never create one
     args = {
         "mode": "real",
-        "holomorphic": False,
         "diag_shift": 0.03,
-        "rescale_shift": True,
+        "diag_scale": 0.02,
         "chunk_size": 16,
     }
     QGT = qgt(**args)
     assert isinstance(QGT, Callable)
-    assert QGT.keywords == args
+    for k, v in args.items():
+        assert k in QGT.keywords
+        assert QGT.keywords[k] == v
+
+    QGT = qgt(diag_shift=0.03, rescale_shift=True)
+    for k, v in {"diag_shift": 0.0, "diag_scale": 0.03}.items():
+        assert k in QGT.keywords
+        assert QGT.keywords[k] == v
 
 
 def test_qgt_partial_onthefly():
     args = {"diag_shift": 0.03, "chunk_size": 16}
     QGT = nk.optimizer.qgt.QGTOnTheFly(**args)
     assert isinstance(QGT, Callable)
-    assert QGT.keywords == args
+    for k, v in args.items():
+        assert k in QGT.keywords
+        assert QGT.keywords[k] == v

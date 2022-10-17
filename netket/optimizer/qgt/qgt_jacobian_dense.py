@@ -69,6 +69,9 @@ def QGTJacobianDense(
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
+    if mode is not None and holomorphic is not None:
+        raise ValueError("Cannot specify both `mode` and `holomorphic`.")
+
     diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
 
     if vstate is None:
@@ -76,8 +79,9 @@ def QGTJacobianDense(
             QGTJacobianDense,
             mode=mode,
             holomorphic=holomorphic,
-            rescale_shift=rescale_shift,
             chunk_size=chunk_size,
+            diag_shift=diag_shift,
+            diag_scale=diag_scale,
             **kwargs,
         )
 
@@ -96,13 +100,11 @@ def QGTJacobianDense(
             mode=mode,
             holomorphic=holomorphic,
         )
-    elif holomorphic is not None:
-        raise ValueError("Cannot specify both `mode` and `holomorphic`.")
-
-    shift, offset = to_shift_offset(diag_shift, diag_scale)
 
     if chunk_size is None and hasattr(vstate, "chunk_size"):
         chunk_size = vstate.chunk_size
+
+    shift, offset = to_shift_offset(diag_shift, diag_scale)
 
     O, scale = prepare_centered_oks(
         vstate._apply_fun,

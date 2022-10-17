@@ -173,7 +173,7 @@ def rescale(centered_oks, offset, *, ndims: int = 1):
 
     scale = jax.tree_map(
         lambda x: (
-            mpi.mpi_sum_jax(jnp.sum((x * x.conj()).real, axis=0, keepdims=True))[0]
+            mpi.mpi_sum_jax(jnp.sum((x * x.conj()).real, axis=axis, keepdims=True))[0]
             + offset
         )
         ** 0.5,
