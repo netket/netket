@@ -14,6 +14,8 @@
 
 import pytest
 
+from typing import Callable
+
 import netket as nk
 
 from .. import common
@@ -37,3 +39,28 @@ def test_deprecated_sr():
 
     with pytest.warns(FutureWarning):
         nk.optimizer.sr.SRLazyGMRES()
+
+
+@pytest.mark.parametrize(
+    "qgt", [nk.optimizer.qgt.QGTJacobianDense, nk.optimizer.qgt.QGTJacobianPyTree]
+)
+def test_qgt_partial_jacobian(qgt):
+    # mode and holomorphic can't be both specified for an actual QGT
+    # but we'll never create one
+    args = {
+        "mode": "real",
+        "holomorphic": False,
+        "diag_shift": 0.03,
+        "rescale_shift": True,
+        "chunk_size": 16,
+    }
+    QGT = qgt(**args)
+    assert isinstance(QGT, Callable)
+    assert QGT.keywords == args
+
+
+def test_qgt_partial_onthefly():
+    args = {"diag_shift": 0.03, "chunk_size": 16}
+    QGT = nk.optimizer.qgt.QGTOnTheFly(**args)
+    assert isinstance(QGT, Callable)
+    assert QGT.keywords == args
