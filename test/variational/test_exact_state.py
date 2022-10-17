@@ -271,3 +271,44 @@ def same_derivatives(der_log, num_der_log, abs_eps=1.0e-6, rel_eps=1.0e-6):
         rtol=rel_eps,
         atol=abs_eps,
     )
+
+
+@common.skipif_mpi
+def test_chunk_size_api(vstate, _mpi_size):
+    assert vstate.chunk_size is None
+
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = -1
+
+    # does not divide hi.n_states
+    with raises(
+        ValueError,
+    ):
+        vstate.chunk_size = 13
+
+    assert vstate.chunk_size is None
+
+    vstate.chunk_size = vstate.hilbert.n_states//4
+    assert vstate.chunk_size == vstate.hilbert.n_states//4
+
+
+
+@pytest.mark.parametrize(
+    "qgt", [pytest.param(qgt, id=name) for name, qgt in QGT_objects.items()]
+)
+@pytest.mark.parametrize("n_chunks", [1, 2])
+def test_qgt_chunking(vstate, qgt, n_chunks):
+    chunk_size = vstate.hilbert.n_states // n_chunks
+
+    vec = vstate.parameters
+    S_nonchunk = vstate.quantum_geometric_tensor(qgt)
+    eval_nochunk = S_nonchunk@vec
+    vstate.chunk_size = chunk_size
+    S_chunk = vstate.quantum_geometric_tensor(qgt)
+    eval_chunk = S_chunk@vec
+
+    jax.tree_map(
+        partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
+    )
