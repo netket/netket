@@ -81,6 +81,8 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
         chunking = False
     else:
         samples, _ = nkjax.chunk(samples, chunk_size)
+        if pdf is not None:
+            pdf, _ = nkjax.chunk(pdf, chunk_size)
         mv_factory = mat_vec_chunked_factory
         chunking = True
 

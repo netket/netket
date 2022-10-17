@@ -97,9 +97,11 @@ def Odagger_DeltaO_v(forward_fn, params, samples, v, pdf=None):
         w_, chunk_fn = unchunk(w)
         w = chunk_fn(subtract_mean(w_))  # w/ MPI
     else:
-        # here we assume pdf is NOT chunked
         w_, chunk_fn = unchunk(w)
-        w_ = pdf * (w_ - mpi.mpi_sum_jax(pdf @ w_)[0])
+        # here we assume pdf is chunked,
+        # which we undo as the flat vector is needed here
+        pdf_, _ = unchunk(pdf)
+        w_ = pdf_ * (w_ - mpi.mpi_sum_jax(pdf_ @ w_)[0])
         w = chunk_fn(w_)
     res = OH_w(forward_fn, params, samples, w)
     return jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], res)  # MPI
