@@ -179,8 +179,11 @@ def mat_vec_chunked_factory(forward_fn, params, model_state, samples, pdf=None):
         a function which does the SR matrix-vector product equal to
         lambda v,δ : (S + δ I) v
     """
+
     def fun(W, samples):
         return forward_fn({"params": W, **model_state}, samples)
 
-    return Partial(partial(_mat_vec_chunked_transposable, fun), params, samples, pdf=pdf)
+    return Partial(
+        partial(_mat_vec_chunked_transposable, fun), params, samples, pdf=pdf
+    )
     # return Partial(lambda f, *args: jax.jit(f)(*args), Partial(partial(_mat_vec_chunked, fun), params, samples))

@@ -290,9 +290,8 @@ def test_chunk_size_api(vstate, _mpi_size):
 
     assert vstate.chunk_size is None
 
-    vstate.chunk_size = vstate.hilbert.n_states//4
-    assert vstate.chunk_size == vstate.hilbert.n_states//4
-
+    vstate.chunk_size = vstate.hilbert.n_states // 4
+    assert vstate.chunk_size == vstate.hilbert.n_states // 4
 
 
 @pytest.mark.parametrize(
@@ -304,10 +303,10 @@ def test_qgt_chunking(vstate, qgt, n_chunks):
 
     vec = vstate.parameters
     S_nonchunk = vstate.quantum_geometric_tensor(qgt)
-    eval_nochunk = S_nonchunk@vec
+    eval_nochunk = S_nonchunk @ vec
     vstate.chunk_size = chunk_size
     S_chunk = vstate.quantum_geometric_tensor(qgt)
-    eval_chunk = S_chunk@vec
+    eval_chunk = S_chunk @ vec
 
     jax.tree_map(
         partial(np.testing.assert_allclose, atol=1e-13), eval_nochunk, eval_chunk
