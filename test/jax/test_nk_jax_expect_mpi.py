@@ -45,7 +45,7 @@ def expval_grad_inner(apply_fun, e_loc, params, model_state, sigma, args):
 
     Ē, E_vjp = nk.jax.vjp(expval_pars, params)
     E_grad = E_vjp(jnp.ones_like(Ē))[0]
-    E_grad = jax.tree_map(lambda x: mpi_mean_jax(x)[0], E_grad)
+    E_grad = jax.tree_map(lambda x: nk.utils.mpi.mpi_mean_jax(x)[0], E_grad)
 
     return Ē, E_grad
 
