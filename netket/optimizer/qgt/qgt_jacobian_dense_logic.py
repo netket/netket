@@ -99,6 +99,7 @@ def prepare_centered_oks(
     offset: Optional[float],
     pdf=None,
     chunk_size: int = None,
+    reweight=None,
 ) -> PyTree:
     """
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
@@ -167,6 +168,9 @@ def prepare_centered_oks(
     jacobians = nkjax.vmap_chunked(
         jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
     )(f, params, samples)
+
+    if reweight is not None:
+        jacobians = _multiply_by_pdf(jacobians, jnp.sqrt(reweight))
 
     if pdf is None:
         n_samp = samples.shape[0] * mpi.n_nodes
