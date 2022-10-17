@@ -59,6 +59,27 @@ def _mat_vec(jvp_fn, v, diag_shift, pdf=None):
 
 @partial(jax.jit, static_argnums=0)
 def mat_vec_factory(forward_fn, params, model_state, samples, pdf=None):
+    """
+    Prepare a function which computes the regularized SR matrix-vector product
+    S v = ⟨ΔO† ΔO⟩v + δ v = ∑ₗ ⟨ΔOₖᴴΔOₗ⟩ vₗ + δ vₗ
+    using jvp and vjp.
+    If pdf is provided uses the weighted expectation
+    ⟨A⟩ = ∑ₓ pdf(x) A(x)
+    otherwise uses the empirical estimate
+    ⟨A⟩ = 1/n ∑ₓ A(x)
+    Args:
+        forward_fn: The forward pass of the Ansatz
+        params : a pytree of parameters p
+        model_state: untrained state parameters of the model
+        samples : an array of (n in total) samples σ
+        pdf: a vector of weights/probabiltiy density function to weight each
+             sample in the expectation values;
+             Pass |ψ(x)|^2 if exact optimization is being used, else None
+    Returns:
+        a function which does the SR matrix-vector product equal to
+        lambda v,δ : (S + δ I) v
+    """
+
     # "forward function" that maps params to outputs
     def fun(W):
         return forward_fn({"params": W, **model_state}, samples)
@@ -132,6 +153,32 @@ def _mat_vec_chunked_transposable(forward_fn, params, samples, v, diag_shift, pd
 
 @partial(jax.jit, static_argnums=0)
 def mat_vec_chunked_factory(forward_fn, params, model_state, samples, pdf=None):
+    """
+
+    Prepare a function which computes the regularized SR matrix-vector product
+    S v = ⟨ΔO† ΔO⟩v + δ v = ∑ₗ ⟨ΔOₖᴴΔOₗ⟩ vₗ + δ vₗ
+    using jvp and vjp.
+    If pdf is provided uses the weighted expectation
+    ⟨A⟩ = ∑ₓ pdf(x) A(x)
+    otherwise uses the empirical estimate
+    ⟨A⟩ = 1/n ∑ₓ A(x)
+
+    Same as mat_vec_factory but assumes samples are chunked,
+    computations are performed in chunks.
+
+    Args:
+        forward_fn: The forward pass of the Ansatz
+        params : a pytree of parameters p
+        model_state: untrained state parameters of the model
+        samples : an array of (n in total) chunked samples σ
+        pdf: a vector of weights/probabiltiy density function to weight each
+             sample in the expectation values;
+             Pass |ψ(x)|^2 if exact optimization is being used, else None
+             pdf is assumed to be chunked in correspondence with samples
+    Returns:
+        a function which does the SR matrix-vector product equal to
+        lambda v,δ : (S + δ I) v
+    """
     def fun(W, samples):
         return forward_fn({"params": W, **model_state}, samples)
 
