@@ -87,17 +87,14 @@ def QGTJacobianDense(
         raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
 
     if vstate is None:
-        if diag_shift is not None:
-            kwargs["diag_shift"] = diag_shift
-        if diag_scale is not None:
-            kwargs["diag_scale"] = diag_scale
-        if rescale_shift is not None:
-            kwargs["rescale_shift"] = rescale_shift
         return partial(
             QGTJacobianDense,
             mode=mode,
             holomorphic=holomorphic,
             chunk_size=chunk_size,
+            diag_shift=diag_shift,
+            diag_scale=diag_scale,
+            rescale_shift=rescale_shift,
             **kwargs,
         )
 
