@@ -81,11 +81,12 @@ def QGTJacobianDense(
     :math:`\\epsilon_{1,2}` are specified using `diag_scale` and `diag_shift`,
     respectively. By default, `diag_scale=0.0`, `diag_shift=0.01`.
     """
+    if mode is not None and holomorphic is not None:
+        raise ValueError("Cannot specify both `mode` and `holomorphic`.")
+    if rescale_shift is not None and diag_scale is not None:
+        raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
+
     if vstate is None:
-        if mode is not None and holomorphic is not None:
-            raise ValueError("Cannot specify both `mode` and `holomorphic`.")
-        if rescale_shift is not None and diag_scale is not None:
-            raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
         if diag_shift is not None:
             kwargs["diag_shift"] = diag_shift
         if diag_scale is not None:
