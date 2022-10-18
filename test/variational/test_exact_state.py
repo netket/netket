@@ -55,12 +55,17 @@ machines["model:(C->C)"] = RBM(
     kernel_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),
 )
-machines["model:(C->C,α=5)"] = RBM(
+machines["model:(C->C,alpha=5)"] = RBM(
     alpha=5,
     dtype=complex,
     kernel_init=normal(stddev=0.3),
     hidden_bias_init=normal(stddev=0.3),
 )
+
+qgt_types = {
+    "QGTJacobianDense": nk.optimizer.qgt.QGTJacobianDense(),
+    "QGTJacobianPyTree": nk.optimizer.qgt.QGTJacobianPyTree(),
+}
 
 operators = {}
 
@@ -101,14 +106,19 @@ def test_init_parameters(vstate):
 @common.skipif_mpi
 def test_basic_methods(vstate):
     key1, key2 = jax.random.split(nk.jax.PRNGKey())
-
     s = vstate.hilbert.random_state(key1)
     assert np.shape(vstate.log_value(s)) == ()
 
     s = vstate.hilbert.random_state(key2, size=2)
     assert np.shape(vstate.log_value(s)) == (2,)
 
-    qgt = vstate.quantum_geometric_tensor()
+
+@common.skipif_mpi
+@pytest.mark.parametrize(
+    "qgtT", [pytest.param(qgtT, id=name) for name, qgtT in qgt_types.items()]
+)
+def test_basic_methods(vstate, qgtT):
+    qgt = vstate.quantum_geometric_tensor(qgtT)
     assert isinstance(qgt, LinearOperator)
 
 
@@ -202,13 +212,22 @@ def central_diff_grad(func, x, eps, *args, dtype=None):
 @common.skipif_mpi
 @pytest.mark.parametrize(
     "L,n_iterations,h",
-    [(4, 100, 1), (6, 100, 2), (8, 100, 3)],
+    [(4, 100, 1), (6, 100, 2)],
 )
 @pytest.mark.parametrize(
     "machine", [pytest.param(ma, id=name) for name, ma in machines.items()]
 )
+@pytest.mark.parametrize(
+    "qgtT", [pytest.param(qgtT, id=name) for name, qgtT in qgt_types.items()]
+)
 def test_TFIM_energy_strictly_decreases(
-    L, n_iterations, h, machine, abs_eps=1.0e-3, rel_eps=1.0e-4
+    L,
+    n_iterations,
+    h,
+    machine,
+    qgtT,
+    abs_eps=1.0e-3,
+    rel_eps=1.0e-4,
 ):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
@@ -221,7 +240,7 @@ def test_TFIM_energy_strictly_decreases(
         ha,
         op,
         variational_state=vs,
-        preconditioner=nk.optimizer.SR(qgt=nk.optimizer.qgt.QGTJacobianPyTree),
+        preconditioner=nk.optimizer.SR(qgt=qgtT),
     )
 
     log = nk.logging.RuntimeLog()

@@ -19,7 +19,7 @@ import math
 import jax
 from jax import numpy as jnp
 
-from netket.stats import subtract_mean
+from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils.types import Array, PyTree, Scalar
 from netket.utils import mpi
 import netket.jax as nkjax
@@ -28,6 +28,7 @@ from .qgt_jacobian_common import rescale
 from .qgt_jacobian_pytree_logic import (
     jacobian_real_holo,
     jacobian_cplx,
+    _multiply_by_pdf,
 )
 
 from netket.jax.utils import RealImagTuple
@@ -96,6 +97,7 @@ def prepare_centered_oks(
     model_state: Optional[PyTree],
     mode: str,
     offset: Optional[float],
+    pdf=None,
     chunk_size: int = None,
 ) -> PyTree:
     """
@@ -113,6 +115,7 @@ def prepare_centered_oks(
         model_state: untrained state parameters of the model
         mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
         rescale_shift: whether scale-invariant regularisation should be used (default: True)
+        pdf: |ψ(x)|^2 if exact optimization is being used else None
         chunk_size: an int specifying the size of the chunks the gradient should be computed in (default: None)
 
     Returns:
@@ -165,13 +168,15 @@ def prepare_centered_oks(
         jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
     )(f, params, samples)
 
-    n_samp = samples.shape[0] * mpi.n_nodes
-    centered_jacs = subtract_mean(jacobians, axis=0) / math.sqrt(
-        n_samp
-    )  # maintain weak type!
-
-    # here the jacobian is reshaped and the real/complex part are concatenated.
-    # centered_jacs = centered_jacs.reshape(-1, centered_jacs.shape[-1])
+    if pdf is None:
+        n_samp = samples.shape[0] * mpi.n_nodes
+        centered_jacs = subtract_mean(jacobians, axis=0) / math.sqrt(
+            n_samp
+        )  # maintain weak type!
+    else:
+        jacobians_avg = sum_mpi(_multiply_by_pdf(jacobians, pdf), axis=0)
+        centered_jacs = jacobians - jacobians_avg
+        centered_jacs = _multiply_by_pdf(centered_jacs, jnp.sqrt(pdf))
 
     if offset is not None:
         ndims = 1 if mode != "complex" else 2
