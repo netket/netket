@@ -22,6 +22,7 @@ from flax import struct
 from netket.utils.types import PyTree
 from netket.utils import mpi
 import netket.jax as nkjax
+from netket.nn import split_array_mpi
 
 from ..linear_operator import LinearOperator, Uninitialized
 
@@ -77,14 +78,18 @@ def QGTJacobianDense(
     from netket.vqs import ExactState
 
     if isinstance(vstate, ExactState):
-        raise TypeError("Only QGTJacobianPyTree works with ExactState.")
+        samples = split_array_mpi(vstate._all_states)
+        pdf = split_array_mpi(vstate.probability_distribution())
+    else:
+        samples = vstate.samples
+        pdf = None
 
     if mode is None:
         mode = choose_jacobian_mode(
             vstate._apply_fun,
             vstate.parameters,
             vstate.model_state,
-            vstate.samples,
+            samples,
             mode=mode,
             holomorphic=holomorphic,
         )
@@ -97,10 +102,11 @@ def QGTJacobianDense(
     O, scale = prepare_centered_oks(
         vstate._apply_fun,
         vstate.parameters,
-        vstate.samples.reshape(-1, vstate.samples.shape[-1]),
+        samples.reshape(-1, samples.shape[-1]),
         vstate.model_state,
         mode,
         rescale_shift,
+        pdf,
         chunk_size,
     )
 
