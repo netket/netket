@@ -115,8 +115,13 @@ def choose_jacobian_mode(afun, pars, state, samples, *, mode, holomorphic):
 def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):
     """Sanitises different inputs for diag_shift etc.
 
-    Output: diag_shift, diag_scale.
-    Raises deprecation warnings for `rescale_shift`."""
+
+    Also raises a deprecation warnings for `rescale_shift`.
+
+    Returns:
+        the tuple `(diag_shift, diag_scale)`.
+    """
+
     if diag_shift is None:
         diag_shift = 0.01 if diag_scale is None else 0.0
 
