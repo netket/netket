@@ -63,27 +63,44 @@ def QGTJacobianDense(
               models. holomorphic works for any function assuming it's holomorphic
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
-        diag_shift: Constant shift added to diagonal entries.
-        diag_scale: Fractional shift added to diagonal entries.
+        diag_scale: Fractional shift :math:`\epsilon_1` added to diagonal entries (see below)
+        diag_shift: Constant shift :math:`\epsilon_2` added to diagonal entries (see below)
         chunk_size: If supplied, overrides the chunk size of the variational state
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
+
+    Numerical estimates of the QGT are usually ill-conditioned and require
+    regularisation. The standard approach is to add a positive constant to the diagonal;
+    alternatively, Becca and Sorella (2017) propose scaling this offset with the
+    diagonal entry itself. NetKet allows using both in tandem:
+
+    .. math::
+
+        S_{ii} \mapsto S_{ii} + \epsilon_1 S_{ii} + \epsilon_2;
+
+    :math:`\epsilon_{1,2}` are specified using `diag_scale` and `diag_shift`,
+    respectively. By default, `diag_scale=0.0`, `diag_shift=0.01`.
     """
-    if mode is not None and holomorphic is not None:
-        raise ValueError("Cannot specify both `mode` and `holomorphic`.")
-
-    diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
-
     if vstate is None:
+        if mode is not None and holomorphic is not None:
+            raise ValueError("Cannot specify both `mode` and `holomorphic`.")
+        if rescale_shift is not None and diag_scale is not None:
+            raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
+        if diag_shift is not None:
+            kwargs["diag_shift"] = diag_shift
+        if diag_scale is not None:
+            kwargs["diag_scale"] = diag_scale
+        if rescale_shift is not None:
+            kwargs["rescale_shift"] = rescale_shift
         return partial(
             QGTJacobianDense,
             mode=mode,
             holomorphic=holomorphic,
             chunk_size=chunk_size,
-            diag_shift=diag_shift,
-            diag_scale=diag_scale,
             **kwargs,
         )
+
+    diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
 
     # TODO: Find a better way to handle this case
     from netket.vqs import ExactState
