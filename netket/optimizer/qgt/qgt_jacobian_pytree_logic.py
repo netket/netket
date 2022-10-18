@@ -224,9 +224,6 @@ def prepare_centered_oks(
         jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
     )(f, params, samples)
 
-    if reweight is not None:
-        jacobians = _multiply_by_pdf(jacobians, reweight)
-
     if pdf is None:
         sqrt_n_samp = math.sqrt(samples.shape[0] * mpi.n_nodes)  # maintain weak type
         centered_jacs = jax.tree_map(

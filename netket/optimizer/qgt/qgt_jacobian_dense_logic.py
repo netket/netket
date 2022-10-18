@@ -169,9 +169,6 @@ def prepare_centered_oks(
         jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
     )(f, params, samples)
 
-    if reweight is not None:
-        jacobians = _multiply_by_pdf(jacobians, jnp.sqrt(reweight))
-
     if pdf is None:
         n_samp = samples.shape[0] * mpi.n_nodes
         centered_jacs = subtract_mean(jacobians, axis=0) / math.sqrt(
