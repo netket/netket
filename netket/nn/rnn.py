@@ -21,9 +21,10 @@ from flax.linen.dtypes import promote_dtype
 from jax import lax
 from jax import numpy as jnp
 from jax.nn.initializers import lecun_normal, zeros
+from jaxlib.xla_extension import DeviceArray
 
 from netket.utils import deprecate_dtype
-from netket.utils.types import _DeviceArray, Array, DType, NNInitFunc
+from netket.utils.types import Array, DType, NNInitFunc
 
 default_kernel_init = lecun_normal()
 
@@ -49,7 +50,7 @@ def check_reorder_idx(reorder_idx: Array, inv_reorder_idx: Array):
 
     idx = reorder_idx[inv_reorder_idx]
     # We can access idx's value only if it's not traced
-    if isinstance(idx, (np.ndarray, _DeviceArray)) and not np.array_equal(
+    if isinstance(idx, (np.ndarray, DeviceArray)) and not np.array_equal(
         idx, np.arange(idx.size, dtype=idx.dtype)
     ):
         raise ValueError("`inv_reorder_idx` is not the inverse of `reorder_idx`.")
