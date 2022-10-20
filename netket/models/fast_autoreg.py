@@ -30,10 +30,10 @@ from netket.utils import deprecate_dtype
 
 
 class FastRecursiveARNN(AbstractRecursiveARNN):
-    def _conditional(self, inputs: Array, index: int) -> Array:
+    def conditional(self, inputs: Array, index: int) -> Array:
         """
         Computes the conditional probabilities for a site to take a given value.
-        See `AbstractARNN._conditional`.
+        See `AbstractARNN.conditional`.
         """
         if inputs.ndim == 1:
             inputs = jnp.expand_dims(inputs, axis=0)

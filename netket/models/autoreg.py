@@ -64,7 +64,7 @@ class AbstractARNN(nn.Module):
 
         Subtypes of `AbstractARNN` should implement at least this function and
         initialize eventual sublayers/parameters in `.setup()`. If desired, one
-        can also override the methods `.__call__` and `._conditionals`
+        can also override the methods `.__call__` and `.conditional`
 
         Args:
           inputs: configurations with dimensions (batch, Hilbert.size).
@@ -113,7 +113,7 @@ class AbstractARNN(nn.Module):
         p = jnp.exp(self.machine_pow * log_psi.real)
         return p
 
-    def _conditional(self, inputs: Array, index: int) -> Array:
+    def conditional(self, inputs: Array, index: int) -> Array:
         """
         Computes the conditional probabilities for a site to take a given value.
 

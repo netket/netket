@@ -56,13 +56,13 @@ class ARDirectSampler(Sampler):
     Direct sampler for autoregressive neural networks.
 
     This sampler only works with Flax models.
-    This flax model must expose a specific method, `model._conditional`, which given
+    This flax model must expose a specific method, `model.conditional`, which given
     a batch of samples and an index `i∈[0,self.hilbert.size]` must return the vector
     of partial probabilities at index `i` for the various (partial) samples provided.
 
     In short, if your model can be sampled according to a probability
     $ p(x) = p_1(x_1)p_2(x_2|x_1)\dots p_N(x_N|x_{N-1}\dots x_1) $ then
-    `model._conditional(x, i)` should return $p_i(x)$.
+    `model.conditional(x, i)` should return $p_i(x)$.
 
     NetKet implements some autoregressive networks that can be used together with this
     sampler.
@@ -106,7 +106,7 @@ class ARDirectSampler(Sampler):
         return True
 
     def _init_cache(sampler, model, σ, key):
-        variables = model.init(key, σ, 0, method=model._conditional)
+        variables = model.init(key, σ, 0, method=model.conditional)
         if "cache" in variables:
             cache = variables["cache"]
         else:
@@ -136,7 +136,7 @@ class ARDirectSampler(Sampler):
                 _variables,
                 σ,
                 index,
-                method=model._conditional,
+                method=model.conditional,
                 mutable=["cache"],
             )
             if "cache" in mutables:
