@@ -148,8 +148,7 @@ class AbstractARNN(nn.Module):
 class AbstractRecursiveARNN(AbstractARNN):
     def conditionals_log_psi(self, inputs: Array) -> Array:
         """
-        Computes the log of the conditional wave-functions for each site if it takes each value.
-        See `AbstractARNN.conditionals`.
+        Implementation of a ARNN that repeatedly calls a set of layers.
         """
         inputs = self._reshape_inputs(inputs)
 
