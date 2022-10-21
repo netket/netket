@@ -26,7 +26,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -U setuptools 'setuptools_scm[toml]' setuptools_scm_git_archive wheel twine 
+          python -m pip install --upgrade build
+          pip install -U build twine 
 
       - name: Build and publish
         env:
@@ -34,5 +35,5 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
 
         run: |
-          python setup.py bdist_wheel sdist
+          python -m build
           twine upload dist/*
