@@ -55,21 +55,6 @@ def QGTJacobianDense(
     The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contained in
     the field `sr`.
 
-    Args:
-        vstate: The variational state
-        mode: "real", "complex" or "holomorphic": specifies the implementation
-              used to compute the jacobian. "real" discards the imaginary part
-              of the output of the model. "complex" splits the real and imaginary
-              part of the parameters and output. It works also for non holomorphic
-              models. holomorphic works for any function assuming it's holomorphic
-              or real valued.
-        holomorphic: a flag to indicate that the function is holomorphic.
-        diag_scale: Fractional shift :math:`\\epsilon_1` added to diagonal entries (see below)
-        diag_shift: Constant shift :math:`\\epsilon_2` added to diagonal entries (see below)
-        chunk_size: If supplied, overrides the chunk size of the variational state
-                    (useful for models where the backward pass requires more
-                    memory than the forward pass).
-
     Numerical estimates of the QGT are usually ill-conditioned and require
     regularisation. The standard approach is to add a positive constant to the diagonal;
     alternatively, Becca and Sorella (2017) propose scaling this offset with the
@@ -81,6 +66,21 @@ def QGTJacobianDense(
 
     :math:`\\epsilon_{1,2}` are specified using `diag_scale` and `diag_shift`,
     respectively. By default, `diag_scale=0.0`, `diag_shift=0.01`.
+
+    Args:
+        vstate: The variational state
+        mode: "real", "complex" or "holomorphic": specifies the implementation
+              used to compute the jacobian. "real" discards the imaginary part
+              of the output of the model. "complex" splits the real and imaginary
+              part of the parameters and output. It works also for non holomorphic
+              models. holomorphic works for any function assuming it's holomorphic
+              or real valued.
+        holomorphic: a flag to indicate that the function is holomorphic.
+        diag_scale: Fractional shift :math:`\\epsilon_1` added to diagonal entries (see above)
+        diag_shift: Constant shift :math:`\\epsilon_2` added to diagonal entries (see above)
+        chunk_size: If supplied, overrides the chunk size of the variational state
+                    (useful for models where the backward pass requires more
+                    memory than the forward pass).
     """
     if mode is not None and holomorphic is not None:
         raise ValueError("Cannot specify both `mode` and `holomorphic`.")
