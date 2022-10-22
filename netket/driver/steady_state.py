@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
+
 import jax
 import jax.numpy as jnp
+
+from inspect import signature
 
 from netket.operator import Squared, AbstractSuperOperator
 from netket.vqs import MCMixedState
@@ -21,6 +25,7 @@ from netket.utils import warn_deprecation
 from netket.optimizer import (
     identity_preconditioner,
     PreconditionerT,
+    _DeprecatedPreconditionerSignature,
 )
 
 from .vmc_common import info
@@ -131,6 +136,39 @@ class SteadyState(AbstractVariationalDriver):
         )
 
         return self._dp
+
+    @property
+    def preconditioner(self):
+        """
+        The preconditioner used to modify the gradient.
+
+        This is a function with the following signature
+
+        .. code-block:: python
+
+            precondtioner(vstate: VariationalState,
+                          grad: PyTree,
+                          step: Optional[Scalar] = None)
+
+        Where the first argument is a variational state, the second argument
+        is the PyTree of the gradient to precondition and the last optional
+        argument is the step, used to change some parameters along the
+        optimisation.
+
+        Often, this is taken to be :ref:`nk.optimizer.SR`. If it is set to
+        `None`, then the identity is used.
+        """
+        return self._preconditioner
+
+    @preconditioner.setter
+    def preconditioner(self, val: Optional[PreconditionerT]):
+        if val is None:
+            val = identity_preconditioner
+
+        if len(signature(val).parameters) == 2:
+            val = _DeprecatedPreconditionerSignature(val)
+
+        self._preconditioner = val
 
     @property
     def ldagl(self):

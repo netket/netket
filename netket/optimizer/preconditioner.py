@@ -16,8 +16,10 @@ from typing import Callable, Optional, Any
 
 import abc
 from dataclasses import dataclass
+from textwrap import dedent
 
 from netket.utils.types import PyTree, Scalar
+from netket.utils import warn_deprecation
 from netket.vqs import VariationalState
 
 from .linear_operator import LinearOperator, SolverT
@@ -114,3 +116,36 @@ class LinearPreconditioner(AbstractLinearPreconditioner):
             + f"\n\tsolver_restart  = {self.solver_restart},"
             + ")"
         )
+
+
+class DeprecatedPreconditionerSignature:
+    """
+    Ignores the step argument for old-syntax preconditioners.
+    """
+
+    def __init__(self, fun):
+        self.preconditioner = fun
+        warn_deprecation(
+            dedent(
+                """
+
+            Preconditioners that only accept two arguments are deprecated since
+            version 3.7 and will no longer be supported in a future version.
+
+            Preconditioners should now accept 3 arguments, where the first two
+            are a Variational State and the gradient, while the last one is an
+            optional scalar value representing the current step along the
+            optimisation and which can be used to update some hyperparamter
+            along the optimisation.
+
+            To silence this deprecation warning, either modify your preconditioner
+            or do the following:
+
+            >>> driver.preconditioner = lambda state, grad, step=None: fun(state, grad)
+
+            """
+            )
+        )
+
+    def __call__(self, vstate: VariationalState, gradient: PyTree, step: Scalar = None):
+        return self.preconditioner(vstate, gradient)
