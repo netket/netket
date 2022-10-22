@@ -65,7 +65,7 @@ def QGTJacobianDense(
         S_{ii} \\mapsto S_{ii} + \\epsilon_1 S_{ii} + \\epsilon_2;
 
     :math:`\\epsilon_{1,2}` are specified using `diag_scale` and `diag_shift`,
-    respectively. By default, `diag_scale=0.0`, `diag_shift=0.01`.
+    respectively.
 
     Args:
         vstate: The variational state
@@ -76,8 +76,8 @@ def QGTJacobianDense(
               models. holomorphic works for any function assuming it's holomorphic
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
-        diag_scale: Fractional shift :math:`\\epsilon_1` added to diagonal entries (see above)
-        diag_shift: Constant shift :math:`\\epsilon_2` added to diagonal entries (see above)
+        diag_scale: Fractional shift :math:`\\epsilon_1` added to diagonal entries (see above).
+        diag_shift: Constant shift :math:`\\epsilon_2` added to diagonal entries (see above).
         chunk_size: If supplied, overrides the chunk size of the variational state
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
