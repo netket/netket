@@ -123,7 +123,7 @@ def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):
     """
 
     if diag_shift is None:
-        diag_shift = 0.01 if diag_scale is None else 0.0
+        diag_shift = 0.0
 
     if rescale_shift is False:
         warn_deprecation(

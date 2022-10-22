@@ -472,15 +472,15 @@ def test_scale_invariant_regularization(e_offset, outdtype, pardtype, offset):
 @pytest.mark.parametrize(
     "inputs, expected",
     [
-        ((None, None, None), (0.01, 0.0)),
+        ((None, None, None), (0.0, 0.0)),
         ((0.02, None, None), (0.02, 0.0)),
         ((None, 0.02, None), (0.0, 0.02)),
         ((0.01, 0.02, None), (0.01, 0.02)),
-        ((None, None, False), (0.01, 0.0)),
+        ((None, None, False), (0.0, 0.0)),
         ((0.02, None, False), (0.02, 0.0)),
         ((None, 0.02, False), "error"),
         ((0.01, 0.02, False), "error"),
-        ((None, None, True), (0.0, 0.01)),
+        ((None, None, True), (0.0, 0.0)),
         ((0.02, None, True), (0.0, 0.02)),
         ((None, 0.02, True), "error"),
         ((0.01, 0.02, True), "error"),
