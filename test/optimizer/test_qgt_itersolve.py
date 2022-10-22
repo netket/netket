@@ -40,16 +40,22 @@ QGT_objects["JacobianPyTree"] = partial(qgt.QGTJacobianPyTree, diag_shift=0.01)
 QGT_objects["JacobianPyTree(mode=holomorphic)"] = partial(
     qgt.QGTJacobianPyTree, holomorphic=True, diag_shift=0.01
 )
-QGT_objects["JacobianPyTree(rescale_shift=True)"] = partial(
-    qgt.QGTJacobianPyTree, rescale_shift=True, diag_shift=0.01
+QGT_objects["JacobianPyTree(diag_scale=0.01)"] = partial(
+    qgt.QGTJacobianPyTree, diag_scale=0.01, diag_shift=0.0
+)
+QGT_objects["JacobianPyTree(diag_scale=0.01, diag_shift=0.01)"] = partial(
+    qgt.QGTJacobianPyTree, diag_scale=0.01, diag_shift=0.01
 )
 
 QGT_objects["JacobianDense"] = partial(qgt.QGTJacobianDense, diag_shift=0.01)
 QGT_objects["JacobianDense(mode=holomorphic)"] = partial(
     qgt.QGTJacobianDense, holomorphic=True, diag_shift=0.01
 )
-QGT_objects["JacobianDense(rescale_shift=True)"] = partial(
-    qgt.QGTJacobianDense, rescale_shift=True, diag_shift=0.01
+QGT_objects["JacobianDense(diag_scale=0.01)"] = partial(
+    qgt.QGTJacobianDense, diag_scale=0.01, diag_shift=0.0
+)
+QGT_objects["JacobianDense(diag_scale=0.01, diag_shift=0.01)"] = partial(
+    qgt.QGTJacobianDense, diag_scale=0.01, diag_shift=0.01
 )
 
 solvers = {}

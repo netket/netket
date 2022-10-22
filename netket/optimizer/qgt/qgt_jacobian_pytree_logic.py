@@ -145,14 +145,14 @@ def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:
 # here the other modes are converted
 
 
-@partial(jax.jit, static_argnames=("apply_fun", "mode", "rescale_shift", "chunk_size"))
+@partial(jax.jit, static_argnames=("apply_fun", "mode", "chunk_size"))
 def prepare_centered_oks(
     apply_fun: Callable,
     params: PyTree,
     samples: Array,
     model_state: Optional[PyTree],
     mode: str,
-    rescale_shift: bool,
+    offset: Optional[float],
     pdf=None,
     chunk_size: int = None,
 ) -> PyTree:
@@ -237,9 +237,9 @@ def prepare_centered_oks(
 
         centered_jacs = _multiply_by_pdf(centered_jacs, jnp.sqrt(pdf))
 
-    if rescale_shift:
+    if offset is not None:
         ndims = 1 if mode != "complex" else 2
-        return rescale(centered_jacs, ndims=ndims)
+        return rescale(centered_jacs, offset, ndims=ndims)
     else:
         return centered_jacs, None
 

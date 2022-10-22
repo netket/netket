@@ -158,7 +158,7 @@ class Example:
     def n_samp(self):
         return len(self.samples)
 
-    def __init__(self, n_samp, seed, outdtype, pardtype, holomorphic):
+    def __init__(self, n_samp, seed, outdtype, pardtype, holomorphic, offset=0.0):
 
         self.dtype = outdtype
 
@@ -226,7 +226,7 @@ class Example:
         self.S_real = (
             self.dok_real.conjugate().transpose() @ self.dok_real / n_samp
         ).real
-        self.scale = jnp.sqrt(self.S_real.diagonal())
+        self.scale = jnp.sqrt(self.S_real.diagonal() + offset)
         self.S_real_scaled = self.S_real / (jnp.outer(self.scale, self.scale))
 
 
@@ -390,7 +390,8 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
 def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     diag_shift = 0.01
     model_state = {}
-    rescale_shift = False
+    # rescale_shift = False
+    offset = None
 
     def apply_fun(params, samples):
         return e.f(params["params"], samples)
@@ -416,7 +417,7 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
         mv = jax.jit(mv)
 
     centered_oks, _ = qgt_jacobian_pytree_logic.prepare_centered_oks(
-        apply_fun, e.params, e.samples, model_state, mode, rescale_shift
+        apply_fun, e.params, e.samples, model_state, mode, offset
     )
     actual = reassemble(mv(v, centered_oks, diag_shift))
     expected = reassemble_complex(
@@ -426,13 +427,20 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     tree_samedtypes(actual, expected)
 
 
+@pytest.fixture
+def e_offset(n_samp, outdtype, pardtype, holomorphic, offset, seed=123):
+    return Example(n_samp, seed, outdtype, pardtype, holomorphic, offset)
+
+
 @pytest.mark.parametrize("holomorphic", [True])
 @pytest.mark.parametrize("n_samp", [25, 1024])
 @pytest.mark.parametrize(
     "outdtype, pardtype",
     r_c_test_types,  # r_r_test_types + c_c_test_types + r_c_test_types
 )
-def test_scale_invariant_regularization(e, outdtype, pardtype):
+@pytest.mark.parametrize("offset", [0.0, 0.1])
+def test_scale_invariant_regularization(e_offset, outdtype, pardtype, offset):
+    e = e_offset
     mv = qgt_jacobian_pytree_logic._mat_vec
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
@@ -450,13 +458,42 @@ def test_scale_invariant_regularization(e, outdtype, pardtype):
     centered_oks = centered_jacobian_fun(e.f, e.params, e.samples)
     centered_oks = divide_by_sqrt_n_samp(centered_oks, e.samples)
 
-    centered_oks_scaled, scale = qgt_jacobian_common.rescale(centered_oks, ndims=ndims)
+    centered_oks_scaled, scale = qgt_jacobian_common.rescale(
+        centered_oks, offset, ndims=ndims
+    )
     actual = mv(e.v, centered_oks_scaled)
     expected = reassemble_complex(e.S_real_scaled @ e.v_real_flat, target=e.target)
 
     rtol = 1e-5 if pardtype is jnp.float32 else 1e-8
     assert_tree_allclose(actual, expected, rtol=rtol)
     tree_samedtypes(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "inputs, expected",
+    [
+        ((None, None, None), (0.01, 0.0)),
+        ((0.02, None, None), (0.02, 0.0)),
+        ((None, 0.02, None), (0.0, 0.02)),
+        ((0.01, 0.02, None), (0.01, 0.02)),
+        ((None, None, False), (0.01, 0.0)),
+        ((0.02, None, False), (0.02, 0.0)),
+        ((None, 0.02, False), "error"),
+        ((0.01, 0.02, False), "error"),
+        ((None, None, True), (0.0, 0.01)),
+        ((0.02, None, True), (0.0, 0.02)),
+        ((None, 0.02, True), "error"),
+        ((0.01, 0.02, True), "error"),
+        ((None, None, 0.0), "error"),
+    ],
+)
+def test_sanitize_diag_shift(inputs, expected):
+    if expected == "error":
+        with pytest.raises(ValueError):
+            qgt_jacobian_common.sanitize_diag_shift(*inputs)
+    else:
+        output = qgt_jacobian_common.sanitize_diag_shift(*inputs)
+        assert output == expected
 
 
 # TODO test with MPI

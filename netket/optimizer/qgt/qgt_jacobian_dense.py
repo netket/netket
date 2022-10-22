@@ -28,7 +28,11 @@ from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
 from .qgt_jacobian_dense_logic import prepare_centered_oks, vec_to_real, mat_vec
-from .qgt_jacobian_common import choose_jacobian_mode
+from .qgt_jacobian_common import (
+    choose_jacobian_mode,
+    sanitize_diag_shift,
+    to_shift_offset,
+)
 
 
 def QGTJacobianDense(
@@ -36,7 +40,9 @@ def QGTJacobianDense(
     *,
     mode: str = None,
     holomorphic: bool = None,
-    rescale_shift=False,
+    diag_shift=None,
+    diag_scale=None,
+    rescale_shift=None,
     chunk_size=None,
     **kwargs,
 ) -> "QGTJacobianDenseT":
@@ -49,6 +55,18 @@ def QGTJacobianDense(
     The details on how the ⟨S⟩⁻¹⟨F⟩ system is solved are contained in
     the field `sr`.
 
+    Numerical estimates of the QGT are usually ill-conditioned and require
+    regularisation. The standard approach is to add a positive constant to the diagonal;
+    alternatively, Becca and Sorella (2017) propose scaling this offset with the
+    diagonal entry itself. NetKet allows using both in tandem:
+
+    .. math::
+
+        S_{ii} \\mapsto S_{ii} + \\epsilon_1 S_{ii} + \\epsilon_2;
+
+    :math:`\\epsilon_{1,2}` are specified using `diag_scale` and `diag_shift`,
+    respectively.
+
     Args:
         vstate: The variational state
         mode: "real", "complex" or "holomorphic": specifies the implementation
@@ -58,21 +76,30 @@ def QGTJacobianDense(
               models. holomorphic works for any function assuming it's holomorphic
               or real valued.
         holomorphic: a flag to indicate that the function is holomorphic.
-        rescale_shift: If True rescales the diagonal shift.
+        diag_scale: Fractional shift :math:`\\epsilon_1` added to diagonal entries (see above).
+        diag_shift: Constant shift :math:`\\epsilon_2` added to diagonal entries (see above).
         chunk_size: If supplied, overrides the chunk size of the variational state
                     (useful for models where the backward pass requires more
                     memory than the forward pass).
     """
+    if mode is not None and holomorphic is not None:
+        raise ValueError("Cannot specify both `mode` and `holomorphic`.")
+    if rescale_shift is not None and diag_scale is not None:
+        raise ValueError("Cannot specify both `rescale_shift` and `diag_scale`.")
 
     if vstate is None:
         return partial(
             QGTJacobianDense,
             mode=mode,
             holomorphic=holomorphic,
-            rescale_shift=rescale_shift,
             chunk_size=chunk_size,
+            diag_shift=diag_shift,
+            diag_scale=diag_scale,
+            rescale_shift=rescale_shift,
             **kwargs,
         )
+
+    diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
 
     # TODO: Find a better way to handle this case
     from netket.vqs import ExactState
@@ -93,11 +120,11 @@ def QGTJacobianDense(
             mode=mode,
             holomorphic=holomorphic,
         )
-    elif holomorphic is not None:
-        raise ValueError("Cannot specify both `mode` and `holomorphic`.")
 
     if chunk_size is None and hasattr(vstate, "chunk_size"):
         chunk_size = vstate.chunk_size
+
+    shift, offset = to_shift_offset(diag_shift, diag_scale)
 
     O, scale = prepare_centered_oks(
         vstate._apply_fun,
@@ -105,7 +132,7 @@ def QGTJacobianDense(
         samples.reshape(-1, samples.shape[-1]),
         vstate.model_state,
         mode,
-        rescale_shift,
+        offset,
         pdf,
         chunk_size,
     )
@@ -115,7 +142,12 @@ def QGTJacobianDense(
     )
 
     return QGTJacobianDenseT(
-        O=O, scale=scale, mode=mode, _params_structure=pars_struct, **kwargs
+        O=O,
+        scale=scale,
+        mode=mode,
+        _params_structure=pars_struct,
+        diag_shift=shift,
+        **kwargs,
     )
 
 

@@ -21,6 +21,7 @@ import jax.numpy as jnp
 
 import netket.jax as nkjax
 from netket.utils import mpi
+from netket.utils import warn_deprecation
 
 
 @partial(jax.jit, static_argnums=(0, 4, 5))
@@ -111,7 +112,55 @@ def choose_jacobian_mode(afun, pars, state, samples, *, mode, holomorphic):
         raise ValueError(f"unknown mode {i}")
 
 
-def rescale(centered_oks, *, ndims: int = 1):
+def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):
+    """Sanitises different inputs for diag_shift etc.
+
+
+    Also raises a deprecation warnings for `rescale_shift`.
+
+    Returns:
+        the tuple `(diag_shift, diag_scale)`.
+    """
+
+    if diag_shift is None:
+        diag_shift = 0.01 if diag_scale is None else 0.0
+
+    if rescale_shift is False:
+        warn_deprecation(
+            "`rescale_shift` is deprecated, please do not specify `rescale_shift=False`."
+        )
+        if diag_scale is not None:
+            raise ValueError(
+                "`rescale_shift` and `diag_scale` must not be specified together."
+            )
+
+        return diag_shift, 0.0
+    elif rescale_shift is True:
+        warn_deprecation(
+            f"`rescale_shift` is deprecated, use `diag_scale={diag_shift}, diag_shift=0` instead."
+        )
+        if diag_scale is not None:
+            raise ValueError(
+                "`rescale_shift` and `diag_scale` must not be specified together."
+            )
+
+        return 0.0, diag_shift
+    elif rescale_shift is None:
+        if diag_scale is None:
+            diag_scale = 0.0
+        return diag_shift, diag_scale
+    else:
+        raise ValueError("`rescale_shift` must be boolean or None.")
+
+
+def to_shift_offset(diag_shift, diag_scale):
+    if diag_scale == 0.0:
+        return diag_shift, None
+    else:
+        return diag_scale, diag_shift / diag_scale
+
+
+def rescale(centered_oks, offset, *, ndims: int = 1):
     """
     compute ΔOₖ/√Sₖₖ and √Sₖₖ
     to do scale-invariant regularization (Becca & Sorella 2017, pp. 143)
@@ -128,9 +177,10 @@ def rescale(centered_oks, *, ndims: int = 1):
     axis = tuple(range(ndims))
 
     scale = jax.tree_map(
-        lambda x: mpi.mpi_sum_jax(
-            jnp.sum((x * x.conj()).real, axis=axis, keepdims=True)
-        )[0]
+        lambda x: (
+            mpi.mpi_sum_jax(jnp.sum((x * x.conj()).real, axis=axis, keepdims=True))[0]
+            + offset
+        )
         ** 0.5,
         centered_oks,
     )
