@@ -156,6 +156,10 @@ class SR(AbstractLinearPreconditioner):
     """Diagonal shift added to the S matrix. Can be a Scalar value, an
        `optax <https://optax.readthedocs.io>_` schedule or a Callable function."""
 
+    diag_scale: Optional[ScalarOrSchedule] = None
+    """Diagonal shift added to the S matrix. Can be a Scalar value, an
+       `optax <https://optax.readthedocs.io>_` schedule or a Callable function."""
+
     qgt_constructor: Callable = None
     """The Quantum Geometric Tensor type or a constructor."""
 
@@ -168,6 +172,7 @@ class SR(AbstractLinearPreconditioner):
         solver: Callable = jax.scipy.sparse.linalg.cg,
         *,
         diag_shift: ScalarOrSchedule = 0.01,
+        diag_scale: Optional[ScalarOrSchedule] = None,
         solver_restart: bool = False,
         **kwargs,
     ):
@@ -189,6 +194,10 @@ class SR(AbstractLinearPreconditioner):
             diag_shift: Diagonal shift added to the S matrix. Can be a Scalar
                 value, an `optax <https://optax.readthedocs.io>_` schedule
                 or a Callable function.
+            diag_shift: Scale of the shift proportional to the diagonal of the
+                S matrix added added to it. Can be a Scalar value, an
+                `optax <https://optax.readthedocs.io>_` schedule or a
+                Callable function.
             rescale_shift: Whether to rescale the diagonal offsets in SR according
                            to diagonal entries (only with precomputed gradients)
 
@@ -202,6 +211,7 @@ class SR(AbstractLinearPreconditioner):
         self.qgt_constructor = qgt
         self.qgt_kwargs = kwargs
         self.diag_shift = diag_shift
+        self.diag_scale = diag_scale
         super().__init__(solver, solver_restart=solver_restart)
 
     def lhs_constructor(self, vstate: VariationalState, step: Optional[Scalar] = None):
@@ -217,13 +227,27 @@ class SR(AbstractLinearPreconditioner):
                 )
             diag_shift = diag_shift(step)
 
-        return self.qgt_constructor(vstate, diag_shift=diag_shift, **self.qgt_kwargs)
+        diag_scale = self.diag_scale
+        if callable(self.diag_scale):
+            if step is None:
+                raise TypeError(
+                    "If you use a scheduled `diag_scale`, you must call"
+                    "the precoditioner with an extra argument `step`."
+                )
+            diag_scale = diag_scale(step)
+
+        return self.qgt_constructor(vstate, 
+                                    diag_shift=diag_shift,
+                                    diag_scale=diag_scale,
+                                    **self.qgt_kwargs,
+                                    )
 
     def __repr__(self):
         return (
             f"{type(self).__name__}("
             + f"\n  qgt_constructor = {self.qgt_constructor}, "
             + f"\n  diag_shift      = {self.diag_shift}, "
+            + f"\n  diag_scale      = {self.diag_scale}, "
             + f"\n  qgt_kwargs      = {self.qgt_kwargs}, "
             + f"\n  solver          = {self.solver}, "
             + f"\n  solver_restart  = {self.solver_restart}"

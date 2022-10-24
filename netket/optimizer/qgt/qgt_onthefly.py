@@ -55,6 +55,12 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
         )
         kwargs.pop("centered")
 
+    if kwargs.pop("diag_scale", None) is not None:
+        raise ValueError("`diag_scale` argument is not yet supported by QGTOnTheFly."
+                         "Please use `QGTJacobianPyTree` or `QGTJacobianDense`.\n\n"
+                         "You are also encouraged to nag the developers to support "
+                         "this feature.\n\n")
+
     # TODO: Find a better way to handle this case
     from netket.vqs import ExactState
 
