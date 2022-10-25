@@ -1,19 +1,23 @@
 [build-system]
-requires = ["setuptools>=58", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.8.0", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "NetKet"
+description="Netket : Machine Learning toolbox for many-body quantum systems."
 authors=[
     {name = "Giuseppe Carleo"},
     {name = "Filippo Vicentini"},
     {name = "The NetKet authors"},
 ]
 license = {text= "Apache 2.0"}
-description="Netket : Machine Learning techniques for many-body quantum systems."
 readme = "README.md"
-keywords = ["Machine Learning", "Quantum", "Neural Networks", 
-            "Neural Quantum States", "Jax", "Monte Carlo"]
+keywords = ["Machine Learning",
+            "Quantum",
+            "Neural Networks",
+            "Neural Quantum States",
+            "Jax",
+            "Monte Carlo"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Development Status :: 5 - Production/Stable",
@@ -71,11 +75,17 @@ dev = [
  repository = "https://github.com/netket/netket"
  changelog = "https://netket.readthedocs.io/en/latest/docs/changelog.html"
 
-[tool.setuptools.packages.find]
+[tool.hatch.build]
 include = ["netket*"]
 
-[tool.setuptools_scm]
-write_to = "netket/_version.py"
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "netket/_version.py"
+template = '''
+version = "{version}"
+'''
 
 
 # Development tools
