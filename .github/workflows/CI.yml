@@ -69,6 +69,7 @@ jobs:
       - name: Pip install oldest dependencies
         if: matrix.oldest_deps
         run: |
+          pip install --upgrade toml
           python conf/compute_oldest_dependencies.py
           pip install --upgrade -r oldest_requirements.txt
           pip install -e ".[dev,extra]"
