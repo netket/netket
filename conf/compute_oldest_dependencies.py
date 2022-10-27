@@ -1,8 +1,8 @@
 import pkg_resources
-import distutils.core
+import toml
 
-setup = distutils.core.run_setup("setup.py")
-requirements = [pkg_resources.Requirement(pkg) for pkg in setup.install_requires]
+project = toml.load("pyproject.toml")["project"]
+requirements = [pkg_resources.Requirement(pkg) for pkg in project["dependencies"]]
 
 oldest_dependencies = []
 
