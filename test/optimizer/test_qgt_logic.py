@@ -358,11 +358,11 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
         jacobian_fun = nkjax.compose(
-            qgt_jacobian_pytree_logic.stack_jacobian_tuple,
-            qgt_jacobian_pytree_logic.jacobian_cplx,
+            nkjax._jacobian.jacobian_pytree.stack_jacobian_tuple,
+            nkjax._jacobian.jacobian_pytree.jacobian_cplx,
         )
     else:
-        jacobian_fun = qgt_jacobian_pytree_logic.jacobian_real_holo
+        jacobian_fun = nkjax._jacobian.jacobian_pytree.jacobian_real_holo
 
     jacobian_fun = nkjax.vmap_chunked(
         jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
@@ -416,9 +416,16 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     if jit:
         mv = jax.jit(mv)
 
-    centered_oks, _ = qgt_jacobian_pytree_logic.prepare_centered_oks(
-        apply_fun, e.params, e.samples, model_state, mode, offset
+    centered_oks, _ = nkjax.jacobian(
+        apply_fun,
+        model_state,
+        e.params,
+        e.samples,
+        mode=mode,
+        dense=False,
     )
+    # TODO Apply offset if offset is not None
+
     actual = reassemble(mv(v, centered_oks, diag_shift))
     expected = reassemble_complex(
         e.S_real @ e.v_real_flat + diag_shift * e.v_real_flat, target=e.target

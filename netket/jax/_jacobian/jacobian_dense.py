@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Tuple
-from functools import partial
-import math
+from typing import Callable, Tuple
 
-import jax
 from jax import numpy as jnp
 
-from netket.stats import subtract_mean, sum as sum_mpi
-from netket.utils.types import Array, PyTree, Scalar
-from netket.utils import mpi
+from netket.utils.types import Array, PyTree
 import netket.jax as nkjax
 
-from .qgt_jacobian_common import rescale
+from .jacobian_pytree import (
+    jacobian_real_holo,
+    jacobian_cplx,
+)
 
 from netket.jax.utils import RealImagTuple
 
@@ -55,7 +53,27 @@ def vec_to_real(vec: Array) -> Tuple[Array, Callable]:
         return vec, lambda x: x
 
 
-def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar) -> PyTree:
-    w = O @ v
-    res = jnp.tensordot(w.conj(), O, axes=w.ndim).conj()
-    return mpi.mpi_sum_jax(res)[0] + diag_shift * v
+def ravel(x: PyTree) -> Array:
+    """
+    shorthand for tree_ravel
+    """
+    dense, _ = nkjax.tree_ravel(x)
+    return dense
+
+
+def stack_jacobian_tuple(ok_re_im):
+    """
+    stack the real and imaginary parts of ΔOⱼₖ along a new axis.
+    First all the real part then the imaginary part.
+
+    Re[S] = Re[(ΔOᵣ + i ΔOᵢ)ᴴ(ΔOᵣ + i ΔOᵢ)] = ΔOᵣᵀ ΔOᵣ + ΔOᵢᵀ ΔOᵢ = [ΔOᵣ ΔOᵢ]ᵀ [ΔOᵣ ΔOᵢ]
+
+    Args:
+        ok_re_im : a tuple (ΔOᵣ, ΔOᵢ) of two PyTrees representing the real and imag part of ΔOⱼₖ
+    """
+    re, im = ok_re_im
+    return jnp.stack([ravel(re), ravel(im)], axis=0)
+
+
+jacobian_real_holo_fun = nkjax.compose(ravel, jacobian_real_holo)
+jacobian_cplx_fun = nkjax.compose(stack_jacobian_tuple, jacobian_cplx)
