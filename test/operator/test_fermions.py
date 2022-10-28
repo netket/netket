@@ -719,3 +719,62 @@ def test_fermion_mode_indices():
         op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 5",))
     with pytest.raises(ValueError):
         op = nkx.operator.FermionOperator2nd(hi, terms=(((-1, 0)),))
+
+
+def test_fermion_create_annihilate():
+    # testing the example
+    hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2)
+
+    with pytest.raises(IndexError):
+        c1 = nkx.operator.fermion.create(hi, 2, sz=-1 / 2)  # index not in hilbert
+
+    c1 = nkx.operator.fermion.create(hi, 1, sz=-1 / 2)
+    c2 = nkx.operator.FermionOperator2nd(hi, terms=("1^",))
+    assert np.allclose(c1.to_dense(), c2.to_dense())
+
+    c1 = nkx.operator.fermion.destroy(hi, 1, sz=+1 / 2)
+    c2 = nkx.operator.FermionOperator2nd(hi, terms=("3",))
+    assert np.allclose(c1.to_dense(), c2.to_dense())
+
+    c1 = nkx.operator.fermion.number(hi, 0, sz=-1 / 2)
+    c2 = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0",))
+    assert np.allclose(c1.to_dense(), c2.to_dense())
+
+
+def test_fermi_hubbard():
+
+    L = 4  # take a 2x2 lattice
+    D = 2
+    t = 1  # tunneling/hopping
+    U = 0.01  # coulomb
+
+    # create the graph our fermions can hop on
+    g = nk.graph.Hypercube(length=L, n_dim=D, pbc=True)
+    n_sites = g.n_nodes
+
+    # create a hilbert space with 2 up and 2 down spins
+    hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions=(2, 2))
+
+    # create an operator representing fermi hubbard interactions
+    # -t (i^ j + h.c.) + U (i^ i j^ j)
+    # we will create a helper function to abbreviate the creation, destruction and number operators
+    # each operator has a site and spin projection (sz) in order to find the right position in the hilbert space samples
+    def c(site, sz):
+        return nkx.operator.fermion.create(hi, site, sz=sz)
+
+    def cdag(site, sz):
+        return nkx.operator.fermion.destroy(hi, site, sz=sz)
+
+    def nc(site, sz):
+        return nkx.operator.fermion.number(hi, site, sz=sz)
+
+    up = +1 / 2
+    down = -1 / 2
+    ham = 0.0
+    for sz in (up, down):
+        for u, v in g.edges():
+            ham += -t * cdag(u, sz) * c(v, sz) - t * cdag(v, sz) * c(u, sz)
+    for u in g.nodes():
+        ham += U * nc(u, up) * nc(u, down)
+
+    print("Hamiltonian =", ham.operator_string())

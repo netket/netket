@@ -80,7 +80,12 @@ def _get_index(hilbert: _AbstractHilbert, site: int, sz: float = None):
     elif not hasattr(hilbert, "spin"):
         raise ValueError("cannot specify sz for hilbert without spin property")
     elif hasattr(hilbert, "_get_index"):  # keep it general
-        return hilbert._get_index(site, sz)
+        idx = hilbert._get_index(site, sz)
+        if idx >= hilbert.size:
+            raise IndexError(
+                "requested site and sz combination is not present in the hilbert space"
+            )
+        return idx
     else:
         raise NotImplementedError(
             f"no method _get_index available for hilbert space {hilbert} that allows to find the position in hilbert space based on a spin projection value sz"
