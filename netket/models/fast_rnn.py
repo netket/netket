@@ -18,8 +18,8 @@ from typing import Iterable, Optional, Union
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.models.autoreg import AbstractARNN, _get_feature_list
-from netket.models.fast_autoreg import _conditional
+from netket.models.autoreg import _get_feature_list
+from netket.models.fast_autoreg import FastARNNSequential
 from netket.models.rnn import RNN, _get_snake_ordering
 from netket.nn.fast_rnn import FastGRULayer1D, FastLSTMLayer1D
 from netket.nn.fast_rnn_2d import FastLSTMLayer2D
@@ -28,7 +28,7 @@ from netket.utils import deprecate_dtype
 from netket.utils.types import Array, DType, NNInitFunc
 
 
-class FastRNN(AbstractARNN):
+class FastRNN(FastARNNSequential):
     """
     Base class for recurrent neural networks with fast sampling.
 
@@ -53,25 +53,13 @@ class FastRNN(AbstractARNN):
     machine_pow: int = 2
     """exponent to normalize the outputs of `__call__`."""
 
-    def setup(self):
-        raise NotImplementedError
-
-    def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditional(self, inputs, index)
-
-    def conditionals(self, inputs: Array) -> Array:
-        return RNN.conditionals(self, inputs)
-
-    def __call__(self, inputs: Array) -> Array:
-        return RNN.__call__(self, inputs)
-
     def reorder(self, inputs: Array) -> Array:
         return RNN.reorder(self, inputs)
 
     def inverse_reorder(self, inputs: Array) -> Array:
         return RNN.inverse_reorder(self, inputs)
 
-    def _take_prev_input_site(self, inputs: Array, index: int) -> Array:
+    def take_prev_site(self, inputs: Array, index: int) -> Array:
         if self.reorder_idx is None:
             k = index
             prev_index = k - 1

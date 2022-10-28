@@ -19,14 +19,14 @@ import numpy as np
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.models.autoreg import AbstractARNN, _call, _conditionals, _get_feature_list
+from netket.models.autoreg import ARNNSequential, _get_feature_list
 from netket.nn.rnn import GRULayer1D, LSTMLayer1D, default_kernel_init
 from netket.nn.rnn_2d import LSTMLayer2D
 from netket.utils import deprecate_dtype
 from netket.utils.types import Array, DType, NNInitFunc
 
 
-class RNN(AbstractARNN):
+class RNN(ARNNSequential):
     """Base class for recurrent neural networks."""
 
     layers: int
@@ -46,15 +46,6 @@ class RNN(AbstractARNN):
     """initializer for the biases."""
     machine_pow: int = 2
     """exponent to normalize the outputs of `__call__`."""
-
-    def setup(self):
-        raise NotImplementedError
-
-    def conditionals(self, inputs: Array) -> Array:
-        return _conditionals(self, inputs)
-
-    def __call__(self, inputs: Array) -> Array:
-        return _call(self, inputs)
 
     def reorder(self, inputs: Array) -> Array:
         if self.reorder_idx is None:

@@ -148,6 +148,25 @@ class AbstractARNN(nn.Module):
         log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
         return log_psi
 
+    def reorder(self, inputs: Array) -> Array:
+        """
+        Transforms an array from unordered to ordered.
+
+        We call a 1D array 'unordered' if we need non-trivial indexing to access
+        its elements in the autoregressive order, e.g., `a[0], a[1], a[3], a[2]`
+        for the snake ordering. Otherwise, we call it 'ordered'.
+
+        When `ndim >= 2`, this function acts on `axis = 1`, which is the spatial
+        dimension.
+        """
+        return inputs
+
+    def inverse_reorder(self, inputs: Array) -> Array:
+        """
+        Transforms an array from ordered to unordered. See `reorder`.
+        """
+        return inputs
+
 
 class ARNNSequential(AbstractARNN):
     """
@@ -187,31 +206,6 @@ class ARNNSequential(AbstractARNN):
         before sending them to the ARNN layers.
         """
         return inputs
-
-    def reorder(self, inputs: Array) -> Array:
-        """
-        Transforms an array from unordered to ordered.
-
-        We call a 1D array 'unordered' if we need non-trivial indexing to access
-        its elements in the autoregressive order, e.g., `a[0], a[1], a[3], a[2]`
-        for the snake ordering. Otherwise, we call it 'ordered'.
-
-        When `ndim >= 2`, this function acts on `axis = 1`, which is the spatial
-        dimension.
-
-        The default implementation is just an identity function.
-        """
-        return inputs
-
-    def inverse_reorder(self, inputs: Array) -> Array:
-        """
-        Transforms an array from ordered to unordered. See `reorder`.
-        """
-        return inputs
-
-    def take_prev_input_site(self, inputs: Array, index: int) -> Array:
-        # When `index = 0`, it doesn't matter which site we take
-        return inputs[:, index - 1]
 
 
 def _get_feature_list(model):

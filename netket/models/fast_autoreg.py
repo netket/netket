@@ -43,7 +43,7 @@ class FastARNNSequential(ARNNSequential):
             inputs = jnp.expand_dims(inputs, axis=0)
 
         x = jnp.expand_dims(inputs, axis=-1)
-        x = self.take_prev_input_site(x, index)
+        x = self.take_prev_site(x, index)
 
         for i in range(len(self._layers)):
             if i > 0 and hasattr(self, "activation"):
@@ -53,6 +53,13 @@ class FastARNNSequential(ARNNSequential):
         log_psi = _normalize(x, self.machine_pow)
         p = jnp.exp(self.machine_pow * log_psi.real)
         return p
+
+    def take_prev_site(self, inputs: Array, index: int) -> Array:
+        """
+        Takes the previous site in the autoregressive order.
+        """
+        # When `index = 0`, it doesn't matter which site we take
+        return inputs[:, index - 1]
 
 
 @deprecate_dtype
