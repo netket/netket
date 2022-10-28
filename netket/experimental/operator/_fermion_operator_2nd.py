@@ -13,23 +13,32 @@
 # limitations under the License.
 
 from typing import List, Union, Optional
-import re
-from collections import defaultdict
 
 import numpy as np
-from numba import jit
 from jax.tree_util import tree_map
-import numbers
 import copy
-import numba as nb
+import numba
 
-from netket.utils.types import DType, Array
+from netket.utils.types import DType
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
-from netket.utils.numbers import is_scalar
+from netket.utils.numbers import is_scalar, dtype as _dtype
 
 from netket.experimental.hilbert import SpinOrbitalFermions
+
+from ._fermion_operator_2nd_utils import (
+    _convert_terms_to_spin_blocks,
+    _collect_constants,
+    _canonicalize_input,
+    _check_hermitian,
+    _herm_conj,
+    _is_diag_term,
+    _make_tuple_tree,
+    _remove_dict_zeros,
+    _verify_input,
+    OperatorDict,
+)
 
 
 class FermionOperator2nd(DiscreteOperator):
@@ -98,6 +107,7 @@ class FermionOperator2nd(DiscreteOperator):
         _operators, _constant, dtype = _canonicalize_input(
             terms, weights, constant, dtype
         )
+        _verify_input(hilbert, _operators, raise_error=True)
         self._dtype = dtype
 
         # we keep the input, in order to be able to add terms later
@@ -106,6 +116,7 @@ class FermionOperator2nd(DiscreteOperator):
 
         self._initialized = False
         self._is_hermitian = None  # set when requested
+        self._max_conn_size = None
 
     def _reset_caches(self):
         """
@@ -113,6 +124,7 @@ class FermionOperator2nd(DiscreteOperator):
         """
         self._initialized = False
         self._is_hermitian = None
+        self._max_conn_size = None
 
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
@@ -121,7 +133,20 @@ class FermionOperator2nd(DiscreteOperator):
             # following lists will be used to compute matrix elements
             # they are filled in _add_term
             out = _pack_internals(self._operators, self._dtype)
-            self._orb_idxs, self._daggers, self._weights, self._term_ends = out
+            (
+                self._orb_idxs,
+                self._daggers,
+                self._weights,
+                self._diag_idxs,
+                self._off_diag_idxs,
+                self._term_split_idxs,
+            ) = out
+
+            self._max_conn_size = 0
+            if not _isclose(self._constant, 0) or len(self._diag_idxs) > 0:
+                self._max_conn_size += 1
+            # the following could be reduced further
+            self._max_conn_size += len(self._off_diag_idxs)
 
             self._initialized = True
 
@@ -161,8 +186,8 @@ class FermionOperator2nd(DiscreteOperator):
 
         if hilbert is None:
             raise ValueError(
-                "The first argument `from_openfermion` must either be an"
-                "openfermion operator or an Hilbert space, followed by"
+                "The first argument `from_openfermion` must either be an "
+                "openfermion operator or an Hilbert space, followed by "
                 "an openfermion operator"
             )
 
@@ -218,16 +243,28 @@ class FermionOperator2nd(DiscreteOperator):
         op = FermionOperator2nd(
             self.hilbert, [], [], constant=self._constant, dtype=dtype
         )
-        op._operators = copy.deepcopy(self._operators)
+        # careful to make sure we propagate the correct dtype
+        terms = copy.deepcopy(list(self._operators.keys()))
+        weights = np.array(list(self._operators.values()), dtype=dtype)
+        op._operators = dict(zip(terms, weights))
+        return op
+
+    def _remove_zeros(self):
+        """Reduce the number of operators by removing unnecessary zeros"""
+        op_dict = _remove_dict_zeros(self._operators)
+        terms = list(op_dict.keys())
+        weights = list(op_dict.values())
+        op = FermionOperator2nd(
+            self.hilbert, terms, weights, constant=self._constant, dtype=self.dtype
+        )
         return op
 
     @property
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        if _isclose(self._constant, 0):
-            return len(self._operators)
-        else:
-            return len(self._operators) + 1  # constant also can add a term
+        if self._max_conn_size is None:
+            self._setup()
+        return self._max_conn_size
 
     @property
     def is_hermitian(self) -> bool:
@@ -238,7 +275,7 @@ class FermionOperator2nd(DiscreteOperator):
             self._is_hermitian = _check_hermitian(terms, weights)
         return self._is_hermitian
 
-    def operator_string(self):
+    def operator_string(self) -> str:
         """Return a readable string describing all the operator terms"""
         op_string = []
         if not _isclose(self._constant, 0.0):
@@ -259,7 +296,10 @@ class FermionOperator2nd(DiscreteOperator):
         _orb_idxs = self._orb_idxs
         _daggers = self._daggers
         _weights = self._weights
-        _term_ends = self._term_ends
+        _diag_idxs = self._diag_idxs
+        _off_diag_idxs = self._off_diag_idxs
+        _term_split_idxs = self._term_split_idxs
+
         _constant = self._constant
         fun = self._flattened_kernel
 
@@ -271,11 +311,13 @@ class FermionOperator2nd(DiscreteOperator):
                 _orb_idxs,
                 _daggers,
                 _weights,
-                _term_ends,
+                _diag_idxs,
+                _off_diag_idxs,
+                _term_split_idxs,
                 _constant,
             )
 
-        return jit(nopython=True)(gccf_fun)
+        return numba.jit(nopython=True)(gccf_fun)
 
     def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator.
@@ -310,13 +352,15 @@ class FermionOperator2nd(DiscreteOperator):
             self._orb_idxs,
             self._daggers,
             self._weights,
-            self._term_ends,
+            self._diag_idxs,
+            self._off_diag_idxs,
+            self._term_split_idxs,
             self._constant,
             pad,
         )
 
     @staticmethod
-    @jit(nopython=True)
+    @numba.jit(nopython=True)
     def _flattened_kernel(
         x,
         sections,
@@ -324,18 +368,21 @@ class FermionOperator2nd(DiscreteOperator):
         orb_idxs,
         daggers,
         weights,
-        term_ends,
+        diag_idxs,
+        off_diag_idxs,
+        term_split_idxs,
         constant,
         pad=False,
     ):
         x_prime = np.empty((x.shape[0] * max_conn, x.shape[1]), dtype=x.dtype)
         mels = np.zeros((x.shape[0] * max_conn), dtype=weights.dtype)
 
-        def is_empty(site):
-            return _isclose(site, 0)
+        # do not split at the last one (gives empty array)
+        term_split_idxs = term_split_idxs[:-1]
+        orb_idxs_list = np.split(orb_idxs, term_split_idxs)
+        daggers_list = np.split(daggers, term_split_idxs)
 
-        def flip(site):
-            return 1 - site
+        has_constant = not _isclose(constant, 0.0)
 
         # loop over the batch dimension
         n_c = 0
@@ -347,49 +394,52 @@ class FermionOperator2nd(DiscreteOperator):
             if pad:
                 x_prime[b * max_conn : (b + 1) * max_conn, :] = np.copy(xb)
 
-            if not _isclose(constant, 0.0):
+            non_zero_diag = False
+            if has_constant:
+                non_zero_diag = True
                 x_prime[n_c, :] = np.copy(xb)
-                mels[n_c] = constant
+                mels[n_c] += constant
+
+            # first do the diagonal terms, they all generate just 1 term
+            for term_idx in diag_idxs:
+                mel = weights[term_idx]
+                xt = np.copy(xb)
+                has_xp = True
+                for orb_idx, dagger in zip(
+                    orb_idxs_list[term_idx], daggers_list[term_idx]
+                ):
+                    _, mel, op_has_xp = _apply_operator(xt, orb_idx, dagger, mel)
+                    if not op_has_xp:
+                        has_xp = False
+                        continue
+                if has_xp:
+                    x_prime[n_c, :] = np.copy(xb)  # should be untouched
+                    mels[n_c] += mel
+
+                non_zero_diag = non_zero_diag or has_xp
+
+            # end of the diagonal terms
+            if non_zero_diag:
                 n_c += 1
 
-            new_term = True
-            # loop over all terms and sum where necessary
-            for orb_idx, dagger, weight, term_end in zip(
-                orb_idxs, daggers, weights, term_ends
-            ):
-                if new_term:
-                    new_term = False
-                    xt = np.copy(xb)
-                    mel = weight
-                    has_xp = True
+            # now do the off-diagonal terms
+            for term_idx in off_diag_idxs:
+                mel = weights[term_idx]
+                xt = np.copy(xb)
+                has_xp = True
+                for orb_idx, dagger in zip(
+                    orb_idxs_list[term_idx], daggers_list[term_idx]
+                ):
+                    xt, mel, op_has_xp = _apply_operator(xt, orb_idx, dagger, mel)
+                    if not op_has_xp:  # detect zeros
+                        has_xp = False
+                        continue
+                if has_xp:
+                    x_prime[n_c, :] = np.copy(xt)  # should be different
+                    mels[n_c] += mel
+                    n_c += 1
 
-                if has_xp:  # previous term items made a zero, so skip
-
-                    empty_site = is_empty(xt[orb_idx])
-
-                    if dagger:
-                        if not empty_site:
-                            has_xp = False
-                        else:
-                            mel *= (-1) ** np.sum(xt[:orb_idx])  # jordan wigner sign
-                            xt[orb_idx] = flip(xt[orb_idx])
-                    else:
-                        if empty_site:
-                            has_xp = False
-                        else:
-                            mel *= (-1) ** np.sum(xt[:orb_idx])  # jordan wigner sign
-                            xt[orb_idx] = flip(xt[orb_idx])
-
-                # if this is the end of the term, we collect things
-                if term_end:
-
-                    if has_xp:
-                        x_prime[n_c, :] = xt
-                        mels[n_c] = mel
-                        n_c += 1
-
-                    new_term = True
-
+            # end of this sample
             if pad:
                 n_c = (b + 1) * max_conn
 
@@ -430,10 +480,9 @@ class FermionOperator2nd(DiscreteOperator):
                 weights.append(w * self._constant)
         constant = self._constant * other._constant
 
-        self._operators = dict(zip(terms, weights))
+        self._operators = _remove_dict_zeros(dict(zip(terms, weights)))
         self._constant = constant
         self._reset_caches()
-
         return self
 
     def _op__matmul__(self, other):
@@ -444,7 +493,7 @@ class FermionOperator2nd(DiscreteOperator):
         return op._op__imatmul__(other)
 
     def __radd__(self, other):
-        return self + other
+        return self.__add__(other)
 
     def __add__(self, other):
         dtype = np.promote_types(self.dtype, _dtype(other))
@@ -457,11 +506,14 @@ class FermionOperator2nd(DiscreteOperator):
                 self._constant += other
             return self
         if not isinstance(other, FermionOperator2nd):
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"In-place addition not implemented for {type(self)} "
+                f"and {type(other)}"
+            )
         if not self.hilbert == other.hilbert:
             raise ValueError(
                 f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, "
-                "B={other.hilbert})"
+                f"B={other.hilbert})"
             )
         if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
             raise ValueError(
@@ -474,6 +526,7 @@ class FermionOperator2nd(DiscreteOperator):
             else:
                 self._operators[t] = w
         self._constant += other._constant
+        self._operators = _remove_dict_zeros(self._operators)
         self._reset_caches()
         return self
 
@@ -499,7 +552,8 @@ class FermionOperator2nd(DiscreteOperator):
                 f"to operator with dtype {self.dtype}"
             )
         scalar = np.array(scalar, dtype=self.dtype).item()
-        self._operators = tree_map(lambda x: x * scalar, self._operators)
+        _operators = tree_map(lambda x: x * scalar, self._operators)
+        self._operators = _remove_dict_zeros(_operators)
         self._constant *= scalar
         self._reset_caches()
         return self
@@ -531,330 +585,92 @@ class FermionOperator2nd(DiscreteOperator):
         return new
 
 
-def _convert_terms_to_spin_blocks(terms, n_orbitals: int, n_spin_components: int):
-    """
-    See explanation in from_openfermion in conversion between conventions of netket
-    and openfermion.
-
-    Args:
-        terms: the operator terms in tuple tree format
-        n_orbitals: number of orbitals
-        n_spin_components: number of spin components (2*spin+1)
-
-    Returns:
-        new terms tree
-    """
-
-    if n_spin_components == 1:
-        return terms
-
-    def _convert_loc(of_loc):
-        orb_idx = of_loc // n_spin_components
-        spin_idx = of_loc % n_spin_components
-        return orb_idx + n_orbitals * spin_idx
-
-    def _convert_term(term):
-        return tuple([(_convert_loc(t[0]), t[1]) for t in term])
-
-    return tuple(list(map(_convert_term, terms)))
-
-
-def _collect_constants(terms, weights):
-    """
-    Openfermion has the convention to store constants as empty terms
-    Returns new terms and weights list, and the collected constants
-    """
-    new_terms = []
-    new_weights = []
-    constant = 0.0
-    for t, w in zip(terms, weights):
-        if len(t) == 0:
-            constant += w
-        else:
-            new_terms.append(t)
-            new_weights.append(w)
-    return new_terms, new_weights, constant
-
-
-def _canonicalize_input(terms, weights, constant, dtype):
-    """The canonical form is a tree tuple with a tuple pair of integers at the
-    lowest level"""
-    if isinstance(terms, str):
-        terms = (terms,)
-
-    if len(terms) > 0:
-        terms = _parse_term_tree(terms)
-
-    if weights is None:
-        weights = [1.0] * len(terms)
-
-    # promote dtype with constant
-    if dtype is None:
-        constant_dtype = np.array(constant).dtype
-        weights_dtype = np.array(weights).dtype
-        dtype = np.promote_types(constant_dtype, weights_dtype)
-
-    weights = np.array(weights, dtype=dtype).tolist()
-    constant = np.array(constant, dtype=dtype).item()
-
-    if not len(weights) == len(terms):
-        raise ValueError(
-            f"length of weights should be equal, but received {len(weights)} and {len(terms)}"
-        )
-
-    _check_tree_structure(terms)
-
-    operators = dict(zip(terms, weights))
-
-    return operators, constant, dtype
-
-
-def _parse_term_tree(terms):
-    """convert the terms tree into a canonical form of tuple tree of depth 3"""
-
-    def _parse_branch(t):
-        if isinstance(t, str):
-            return _parse_string(t)
-        elif hasattr(t, "__len__"):
-            return tuple([_parse_branch(b) for b in t])
-        else:
-            return int(t)
-
-    return _parse_branch(terms)
-
-
-def _parse_string(s):
-    """parse strings such as '1^ 2' into a term form ((1, 1), (2, 0))"""
-    s = s.strip()
-    if s == "":
-        return ()
-    s = re.sub(" +", " ", s)
-    terms = s.split(" ")
-    processed_terms = []
-    for term in terms:
-        if term[-1] == "^":
-            dagger = True
-            term = term[:-1]
-        else:
-            dagger = False
-        orb_nr = int(term)
-        processed_terms.append((orb_nr, int(dagger)))
-    return tuple(processed_terms)
-
-
-def _check_hermitian(
-    terms: List[List[List[int]]], weights: Union[float, complex] = 1.0
-):
-    """
-    Check whether a set of terms and weights for a hermitian operator
-    The terms are ordered into a canonical form with daggers and high orbital numbers to the left.
-    After conjugation, the result is again reordered into canonical form.
-    The result of both ordered lists of terms and weights are compared to be the same
-    """
-    # save in a dictionary the normal ordered terms and weights
-    normal_ordered = _normal_ordering(terms, weights)
-    dict_normal = defaultdict(complex)
-    for term, weight in zip(*normal_ordered):
-        dict_normal[tuple(term)] += weight
-
-    # take the hermitian conjugate of the terms
-    hc = _herm_conj(terms, weights)
-    # normal order the h.c. terms
-    hc_normal_ordered = _normal_ordering(*hc)
-
-    # save in a dictionary the normal ordered h.c. terms and weights
-    dict_hc_normal = defaultdict(complex)
-    for term_hc, weight_hc in zip(*hc_normal_ordered):
-        dict_hc_normal[tuple(term_hc)] += weight_hc
-
-    # check if hermitian by comparing the dictionaries
-    dict_normal = dict(dict_normal)
-    dict_hc_normal = dict(dict_hc_normal)
-
-    # compare dict up to a tolerance
-    is_hermitian = dict_compare(dict_normal, dict_hc_normal)
-
-    return is_hermitian
-
-
-def dict_compare(d1, d2):
-    """Compare two dicts and return True if their keys and values are all the same (up to some tolerance)"""
-    d1_keys = set(d1.keys())
-    d2_keys = set(d2.keys())
-    if d1_keys != d2_keys:
-        return False
-    # We checked that d1 and d2 have the same keys. Now check the values.
-    return all(np.isclose(d1[o], d2[o]) for o in d1_keys)
-
-
-def _order_fun(term: List[List[int]], weight: Union[float, complex] = 1.0):
-    """
-    Return a normal ordered single term of the fermion operator.
-    Normal ordering corresponds to placing the operator acting on the
-    highest index on the left and lowest index on the right. In addition,
-    the creation operators are placed on the left and annihilation on the right.
-    In this ordering, we make sure to account for the anti-commutation of operators.
-    """
-
-    parity = -1
-    term = copy.deepcopy(list(term))
-    weight = copy.copy(weight)
-    ordered_terms = []
-    ordered_weights = []
-    # the arguments given to this function will be transformed in a normal ordered way
-    # loop through all the operators in the single term from left to right and order them
-    # by swapping the term operators (and transform the weights by multiplying with the parity factors)
-    for i in range(1, len(term)):
-        for j in range(i, 0, -1):
-            right_term = term[j]
-            left_term = term[j - 1]
-
-            # exchange operators if creation operator is on the right and annihilation on the left
-            if right_term[1] and not left_term[1]:
-                term[j - 1] = right_term
-                term[j] = left_term
-                weight *= parity
-
-                # if same indices switch order (creation on the left), remember a a^ = 1 + a^ a
-                if right_term[0] == left_term[0]:
-                    new_term = term[: (j - 1)] + term[(j + 1) :]
-
-                    # ad the processed term
-                    o, w = _order_fun(tuple(new_term), parity * weight)
-                    ordered_terms += o
-                    ordered_weights += w
-
-            # if we have two creation or two annihilation operators
-            elif right_term[1] == left_term[1]:
-
-                # If same two Fermionic operators are repeated,
-                # evaluate to zero.
-                if parity == -1 and right_term[0] == left_term[0]:
-                    return ordered_terms, ordered_weights
-
-                # swap if same type but order is not correct
-                elif right_term[0] > left_term[0]:
-                    term[j - 1] = right_term
-                    term[j] = left_term
-                    weight *= parity
-
-    ordered_terms.append(term)
-    ordered_weights.append(weight)
-    return ordered_terms, ordered_weights
-
-
-def _normal_ordering(
-    terms: List[List[List[int]]], weights: List[Union[float, complex]] = 1
-):
-    """
-    Returns the normal ordered terms and weights of the fermion operator.
-    We use the following normal ordering convention: we order the terms with
-    the highest index of the operator on the left and the lowest index on the right. In addition,
-    creation operators are placed on the left and annihilation operators on the right.
-    """
-    ordered_terms = []
-    ordered_weights = []
-    # loop over all the terms and weights and order each single term with corresponding weight
-    for term, weight in zip(terms, weights):
-        ordered = _order_fun(term, weight)
-        ordered_terms += ordered[0]
-        ordered_weights += ordered[1]
-    ordered_terms = _make_tuple_tree(ordered_terms)
-    return ordered_terms, ordered_weights
-
-
-def _make_tuple_tree(terms):
-    """make tuples, so terms are hashable"""
-
-    def _make_tuple(branch):
-        if hasattr(branch, "__len__"):
-            return tuple([_make_tuple(t) for t in branch])
-        else:
-            return int(branch)
-
-    return _make_tuple(terms)
-
-
-def _herm_conj(terms: List[List[List[int]]], weights: List[Union[float, complex]] = 1):
-    """Returns the hermitian conjugate of the terms and weights."""
-    conj_term = []
-    conj_weight = []
-    # loop over all terms and weights and get the hermitian conjugate
-    for term, weight in zip(terms, weights):
-        conj_term.append([(op, 1 - int(dag)) for (op, dag) in reversed(term)])
-        conj_weight.append(np.conjugate(weight))
-    return conj_term, conj_weight
-
-
-def _check_tree_structure(terms):
-    """Check whether the terms structure is depth 3 everywhere and contains pairs of (idx, dagger) everywhere"""
-
-    def _descend(tree, current_depth, depths, pairs):
-        if current_depth == 2 and hasattr(tree, "__len__"):
-            pairs.append(len(tree) == 2)
-        if hasattr(tree, "__len__"):
-            for branch in tree:
-                _descend(branch, current_depth + 1, depths, pairs)
-        else:
-            depths.append(current_depth)
-
-    depths = []
-    pairs = []
-    _descend(terms, 0, depths, pairs)
-    if not np.all(np.array(depths) == 3):
-        raise ValueError(f"terms is not a depth 3 tree, found depths {depths}")
-    if not np.all(pairs):
-        raise ValueError("terms should be provided in (i, dag) pairs")
-
-
-def _pack_internals(operators, dtype):
+def _pack_internals(operators: OperatorDict, dtype: DType):
     """
     Create the internal structures to compute the matrix elements
     Processes and adds a single term such that we can compute its matrix elements, in tuple format ((1,1), (2,0))
     """
+    # properties of single-fermion operators, e.g. "0^"
     orb_idxs = []
     daggers = []
-    term_ends = []
+    # properties of multi-body operators, e.g. "0^ 1"
     weights = []
+    # herm_term = []
+    diag_idxs = []
+    off_diag_idxs = []
+    # below connect the second type to the first type (used to split single-fermion lists)
+    term_split_idxs = []
 
+    term_counter = 0
+    single_op_counter = 0
     for term, weight in operators.items():
         if len(term) == 0:
             raise ValueError("terms cannot be size 0")
         if not all(len(t) == 2 for t in term):
             raise ValueError(f"terms must contain (i, dag) pairs, but received {term}")
+
+        # fill some info about the term
+        weights.append(weight)
+        is_diag = _is_diag_term(term)
+        if is_diag:
+            diag_idxs.append(term_counter)
+        else:
+            off_diag_idxs.append(term_counter)
+
+        # single-fermion operators
         for orb_idx, dagger in reversed(term):
             # orb_idxs: holds the hilbert index of the orbital
             orb_idxs.append(orb_idx)
             # daggers: stores whether operator is creator or annihilator
             daggers.append(bool(dagger))
-            # weights: stores the weights corresponding to this term
-            weights.append(weight)
-            # term_ends keeps a flag that determines whether we've reached the end of this term and will start a new one after
-            term_ends.append(False)
-        term_ends[-1] = True
+            single_op_counter += 1
+
+        term_split_idxs.append(single_op_counter)
+        term_counter += 1
 
     orb_idxs = np.array(orb_idxs, dtype=np.intp)
     daggers = np.array(daggers, dtype=bool)
     weights = np.array(weights, dtype=dtype)
-    term_ends = np.array(term_ends, dtype=bool)
+    # term_ends = np.array(term_ends, dtype=bool)
+    # herm_term = np.array(herm_term, dtype=bool)
+    diag_idxs = np.array(diag_idxs, dtype=np.intp)
+    off_diag_idxs = np.array(off_diag_idxs, dtype=np.intp)
+    term_split_idxs = np.array(term_split_idxs, dtype=np.intp)
 
-    return orb_idxs, daggers, weights, term_ends
-
-
-def _dtype(obj: Union[numbers.Number, Array, "FermionOperator2nd"]) -> DType:
-    """
-    Returns the dtype of the input object
-    """
-    if isinstance(obj, numbers.Number):
-        return type(obj)
-    elif isinstance(obj, DiscreteOperator):
-        return obj.dtype
-    elif isinstance(obj, np.ndarray):
-        return obj.dtype
-    else:
-        raise TypeError(f"cannot deduce dtype of object type {type(obj)}: {obj}")
+    return orb_idxs, daggers, weights, diag_idxs, off_diag_idxs, term_split_idxs
 
 
-@nb.jit(nopython=True)
-def _isclose(a, b, cutoff=1e-6):
+@numba.jit(nopython=True)
+def _isclose(a, b, cutoff=1e-6):  # pragma: no cover
     return np.abs(a - b) < cutoff
+
+
+@numba.jit(nopython=True)
+def _is_empty(site):  # pragma: no cover
+    return _isclose(site, 0)
+
+
+@numba.jit(nopython=True)
+def _flip(site):  # pragma: no cover
+    return 1 - site
+
+
+@numba.jit(nopython=True)
+def _apply_operator(xt, orb_idx, dagger, mel):  # pragma: no cover
+    has_xp = True
+    empty_site = _is_empty(xt[orb_idx])
+    if dagger:
+        if not empty_site:
+            has_xp = False
+        else:
+            mel *= (-1) ** np.sum(xt[:orb_idx])  # jordan wigner sign
+            xt[orb_idx] = _flip(xt[orb_idx])
+    else:
+        if empty_site:
+            has_xp = False
+        else:
+            mel *= (-1) ** np.sum(xt[:orb_idx])  # jordan wigner sign
+            xt[orb_idx] = _flip(xt[orb_idx])
+    if _isclose(mel, 0):
+        has_xp = False
+    return xt, mel, has_xp
