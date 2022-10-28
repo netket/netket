@@ -43,27 +43,32 @@ RBMModPhase = partial(nk.models.RBMModPhase, hidden_bias_init=standard_init)
 
 nk.models.RBM(
     alpha=1,
-    dtype=complex,
+    param_dtype=complex,
     kernel_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(R->R)"] = RBM(
     alpha=1,
-    dtype=float,
+    param_dtype=float,
     kernel_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(R->C)"] = RBMModPhase(
     alpha=1,
-    dtype=float,
+    param_dtype=float,
     kernel_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(C->C)"] = RBM(
     alpha=1,
-    dtype=complex,
+    param_dtype=complex,
     kernel_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),
+)
+machines["model:(C->C,nonholo)"] = nk.models.RBM(
+    alpha=1,
+    param_dtype=complex,
+    activation=lambda x: nk.nn.log_cosh(0.3 * x * x + 0.6 * x.conj()),
 )
 
 operators = {}
@@ -90,13 +95,6 @@ for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmap(H.hilbert, i)
 
 operators["operator:(Non Hermitian)"] = H
-
-machines["model:(C->C)-nonholo"] = nk.models.ARNNDense(
-    layers=1,
-    features=2,
-    hilbert=hi,
-    dtype=complex,
-)
 
 
 @pytest.fixture(params=[pytest.param(ma, id=name) for name, ma in machines.items()])
@@ -547,9 +545,7 @@ def test_local_estimators(vstate, operator):
         assert st1.error_of_mean == pytest.approx(st2.error_of_mean)
 
     def inner_test():
-        print(vstate.samples.shape)
         oloc = vstate.local_estimators(operator)
-        print(oloc.shape)
         assert oloc.shape == (vstate.sampler.n_chains, vstate.n_samples)
 
         stats1 = nk.stats.statistics(oloc)
