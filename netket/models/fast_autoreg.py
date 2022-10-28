@@ -15,7 +15,6 @@
 from math import sqrt
 from typing import Any, Callable, Iterable, Tuple, Union
 
-import jax
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 from plum import dispatch
