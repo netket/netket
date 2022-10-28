@@ -34,15 +34,32 @@ LHSConstructorT = Callable[[VariationalState, Optional[Scalar]], LinearOperator]
 
 
 def identity_preconditioner(
-    vstate: VariationalState, gradient: PyTree, step: Scalar = 0
-):
+    vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = 0
+) -> PyTree:
     return gradient
 
 
 @dataclass
 class AbstractLinearPreconditioner:
-    """Linear Preconditioner for the gradient. Needs a function to construct the LHS of
-    the Linear System and a solver to solve the linear system.
+    """Base class for a Linear Preconditioner solving a system :math:`Sx = F`.
+
+    A LinearPreconditioner modifies the gradient :math:`F` in such a way that the new
+    gradient :math:`x` solves the linear system `:math:`Sx=F`. The linear operator 
+    :math:`S` is constructed from the variational state.
+
+    To subtype this class and provide a concrete implementation, one needs to define
+    at least the function 
+
+    .. code::
+    
+        @dataclass
+        class MyLinearPreconditioner(AbstractLinearPreconditioner):
+
+            def lhs_constructor(self, vstate: VariationalState, step: Optional[Scalar] = 0):
+                # here the lhs of the system should be constructed, for example by
+                # returning the geometric tensor or any other object
+                # return vstate.quantum_geometric_tensor()
+    
     """
 
     solver: SolverT
@@ -79,7 +96,8 @@ class AbstractLinearPreconditioner:
     @abc.abstractmethod
     def lhs_constructor(self, vstate: VariationalState, step: Optional[Scalar] = None):
         """
-        This method does things
+        This method should construct the left hand side of the linear system,
+        which should be a linear operator.
         """
 
     def __repr__(self):
@@ -97,7 +115,13 @@ class LinearPreconditioner(AbstractLinearPreconditioner):
     lhs_constructor: LHSConstructorT
     """Constructor of the LHS of the linear system starting from the variational state."""
 
-    def __init__(self, lhs_constructor, solver, *, solver_restart=False):
+    def __init__(
+        self,
+        lhs_constructor: LHSConstructorT,
+        solver: SolverT,
+        *,
+        solver_restart: bool = False,
+    ):
         self._lhs_constructor = lhs_constructor
         self.solver = solver
         self.solver_restart = solver_restart

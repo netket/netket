@@ -177,7 +177,7 @@ class SR(AbstractLinearPreconditioner):
         **kwargs,
     ):
         """
-        Construct the structure holding the parameters for using the
+        Constructs the structure holding the parameters for using the
         Stochastic Reconfiguration/Natural gradient method.
 
         Depending on the arguments, an implementation is chosen. For

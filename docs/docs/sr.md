@@ -127,8 +127,24 @@ If you don't specify the QGT format, NetKet will try to guess the best format.
 We recommend you experiment and specify the QGT format that gives you the best performance, which can be by passing it as an argument. Additional keyword arguments will be forwarded to the QGT constructor, as shown below:
 
 ```python
-sr = nk.optimizer.SR(QGTJacobianPyTree, solver=partial(jax.scipy.sparse.linalg.gmres, maxiter=1000, tol=1e-8)diag_shift=1e-3
+sr = nk.optimizer.SR(QGTJacobianPyTree, solver=partial(jax.scipy.sparse.linalg.gmres, maxiter=1000, tol=1e-8, diag_shift=1e-3)
 gs = nk.VMC(hamiltonian, optimizer, variational_state=vstate, preconditioner=sr)
 ```
 
 Since SR leads to an optimisation that approximates an imaginary time evolution, we find that in general it is not a good idea to couple SR with advanced optimisers like ADAM, which modify the gradient remarkably. Stochastic Gradient Descent is the best choice in general.
+
+#### SR regularisation schedules
+
+Stochastic Reconfiguration supports scheduling the `diagonal_shift` and the `diagonal_scale` variables along the optimisation. To use this feature, simply pass a function accepting as input the iteration number and returning the diagonal shift for that iteration.
+
+Moreover, [optax](https://optax.readthedocs.io) provides [several pre-built schedules](https://optax.readthedocs.io/en/latest/api.html#optimizer-schedules) such as [linear scheduling](https://optax.readthedocs.io/en/latest/api.html#optax.linear_schedule) interpolating from an initial shift to a final one, [exponential scheduling](https://optax.readthedocs.io/en/latest/api.html#optax.exponential_decay), [oscillating schedules](https://optax.readthedocs.io/en/latest/api.html#optax.cosine_decay_schedule) and many more. 
+
+To use them in practice, you can do something like the following. Check the documentation page of SR for more extensive discussion on what options can be scheduled.
+
+```python
+sr = nk.optimizer.SR(diag_shift=optax.linear_schedule(0.01, 0.0001, 100))
+gs = nk.VMC(hamiltonian, optimizer, variational_state=vstate, preconditioner=sr)
+```
+
+
+
