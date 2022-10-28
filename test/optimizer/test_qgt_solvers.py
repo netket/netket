@@ -134,3 +134,6 @@ def test_qgt_otf_scale_err():
     )
     with pytest.raises(NotImplementedError):
         nk.optimizer.qgt.QGTOnTheFly(vstate, diag_scale=0.01)
+
+
+def test_qgt_explicit_chunk_size(SType)

@@ -230,19 +230,6 @@ class Example:
         self.S_real_scaled = self.S_real / (jnp.outer(self.scale, self.scale))
 
 
-def centered_jacobian_cplx(fun, params, samples):
-    oks = qgt_jacobian_pytree_logic.jacobian_cplx(fun, params, samples)
-    centered_oks = tree_subtract_mean(oks)
-    return centered_oks
-
-
-def centered_jacobian_real_holo(fun, params, samples):
-    oks = qgt_jacobian_pytree_logic.jacobian_real_holo(fun, params, samples)
-
-    centered_oks = tree_subtract_mean(oks)
-    return centered_oks
-
-
 @pytest.fixture
 def e(n_samp, outdtype, pardtype, holomorphic, seed=123):
     return Example(n_samp, seed, outdtype, pardtype, holomorphic)
@@ -264,8 +251,8 @@ all_test_types = test_types + c_r_test_types + rc_r_test_types
 # tests
 
 
-@pytest.mark.parametrize("holomorphic", [True])
-@pytest.mark.parametrize("n_samp", [0])
+@common.named_parametrize("holomorphic", [True])
+@common.named_parametrize("n_samp", [0])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_reassemble_complex(e):
     assert_tree_allclose(
@@ -273,11 +260,11 @@ def test_reassemble_complex(e):
     )
 
 
-@pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [24, 1024])
-@pytest.mark.parametrize("jit", [True, False])
+@common.named_parametrize("holomorphic", [True, False])
+@common.named_parametrize("n_samp", [24, 1024])
+@common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
-@pytest.mark.parametrize("chunk_size", [8, None])
+@common.named_parametrize("chunk_size", [8, None])
 def test_matvec(e, jit, chunk_size):
     diag_shift = 0.01
 
@@ -302,11 +289,11 @@ def test_matvec(e, jit, chunk_size):
     tree_samedtypes(actual, expected)
 
 
-@pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [24, 1024])
-@pytest.mark.parametrize("jit", [True, False])
+@common.named_parametrize("holomorphic", [True, False])
+@common.named_parametrize("n_samp", [24, 1024])
+@common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
-@pytest.mark.parametrize("chunk_size", [8, None])
+@common.named_parametrize("chunk_size", [8, None])
 def test_matvec_linear_transpose(e, jit, chunk_size):
     def f(params_model_state, x):
         return e.f(params_model_state["params"], x)
@@ -346,10 +333,10 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
 
 
 # TODO separate test for prepare_centered_oks
-@pytest.mark.parametrize("holomorphic", [True])
-@pytest.mark.parametrize("n_samp", [25, 1024])
-@pytest.mark.parametrize("jit", [True, False])
-@pytest.mark.parametrize("chunk_size", [7, None])
+@common.named_parametrize("holomorphic", [True])
+@common.named_parametrize("n_samp", [25, 1024])
+@common.named_parametrize("jit", [True, False])
+@common.named_parametrize("chunk_size", [7, None])
 @pytest.mark.parametrize(
     "outdtype, pardtype", r_r_test_types + c_c_test_types + r_c_test_types
 )
@@ -383,9 +370,9 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
 
 # TODO separate test for prepare_centered_oks
 # TODO test C->R ?
-@pytest.mark.parametrize("holomorphic", [True, False])
-@pytest.mark.parametrize("n_samp", [25, 1024])
-@pytest.mark.parametrize("jit", [True, False])
+@common.named_parametrize("holomorphic", [True, False])
+@common.named_parametrize("n_samp", [25, 1024])
+@common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     diag_shift = 0.01
@@ -416,13 +403,14 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     if jit:
         mv = jax.jit(mv)
 
-    centered_oks, _ = nkjax.jacobian(
+    centered_oks = nkjax.jacobian(
         apply_fun,
         model_state,
         e.params,
         e.samples,
         mode=mode,
         dense=False,
+        center=True,
     )
     # TODO Apply offset if offset is not None
 
@@ -452,12 +440,12 @@ def test_scale_invariant_regularization(e_offset, outdtype, pardtype, offset):
 
     if not nkjax.is_complex_dtype(pardtype) and nkjax.is_complex_dtype(outdtype):
         jacobian_fun = nkjax.compose(
-            qgt_jacobian_pytree_logic.stack_jacobian_tuple,
-            qgt_jacobian_pytree_logic.jacobian_cplx,
+            nkjax._jacobian.jacobian_pytree.stack_jacobian_tuple,
+            nkjax._jacobian.jacobian_pytree.jacobian_cplx,
         )
         ndims = 2
     else:
-        jacobian_fun = qgt_jacobian_pytree_logic.jacobian_real_holo
+        jacobian_fun = nkjax._jacobian.jacobian_pytree.jacobian_real_holo
         ndims = 1
 
     jacobian_fun = jax.vmap(jacobian_fun, in_axes=(None, None, 0))

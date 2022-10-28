@@ -139,3 +139,8 @@ def hash_for_seed(obj):
     for b in bs:
         out = (out * 256 + b) % 4294967291  # Output in [0, 2**32 - 1]
     return out
+
+
+def named_parametrize(argname:str, values:list):
+    param_values = [pytest.param(obj, id=f"{argname}={obj}") for obj in values]
+    return pytest.mark.parametrize(argname, param_values)
