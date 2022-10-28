@@ -15,10 +15,9 @@
 from typing import List, Union, Optional
 
 import numpy as np
-from numba import jit
 from jax.tree_util import tree_map
 import copy
-import numba as nb
+import numba
 
 from netket.utils.types import DType
 from netket.operator._discrete_operator import DiscreteOperator
@@ -318,7 +317,7 @@ class FermionOperator2nd(DiscreteOperator):
                 _constant,
             )
 
-        return jit(nopython=True)(gccf_fun)
+        return numba.jit(nopython=True)(gccf_fun)
 
     def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator.
@@ -361,7 +360,7 @@ class FermionOperator2nd(DiscreteOperator):
         )
 
     @staticmethod
-    @jit(nopython=True)
+    @numba.jit(nopython=True)
     def _flattened_kernel(
         x,
         sections,
@@ -641,23 +640,23 @@ def _pack_internals(operators: OperatorDict, dtype: DType):
     return orb_idxs, daggers, weights, diag_idxs, off_diag_idxs, term_split_idxs
 
 
-@nb.jit(nopython=True)
-def _isclose(a, b, cutoff=1e-6):
+@numba.jit(nopython=True)
+def _isclose(a, b, cutoff=1e-6):  # pragma: no cover
     return np.abs(a - b) < cutoff
 
 
-@nb.jit(nopython=True)
-def _is_empty(site):
+@numba.jit(nopython=True)
+def _is_empty(site):  # pragma: no cover
     return _isclose(site, 0)
 
 
-@nb.jit(nopython=True)
-def _flip(site):
+@numba.jit(nopython=True)
+def _flip(site):  # pragma: no cover
     return 1 - site
 
 
-@nb.jit(nopython=True)
-def _apply_operator(xt, orb_idx, dagger, mel):
+@numba.jit(nopython=True)
+def _apply_operator(xt, orb_idx, dagger, mel):  # pragma: no cover
     has_xp = True
     empty_site = _is_empty(xt[orb_idx])
     if dagger:
