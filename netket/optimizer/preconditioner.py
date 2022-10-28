@@ -44,14 +44,14 @@ class AbstractLinearPreconditioner:
     """Base class for a Linear Preconditioner solving a system :math:`Sx = F`.
 
     A LinearPreconditioner modifies the gradient :math:`F` in such a way that the new
-    gradient :math:`x` solves the linear system `:math:`Sx=F`. The linear operator 
+    gradient :math:`x` solves the linear system `:math:`Sx=F`. The linear operator
     :math:`S` is constructed from the variational state.
 
     To subtype this class and provide a concrete implementation, one needs to define
-    at least the function 
+    at least the function
 
     .. code::
-    
+
         @dataclass
         class MyLinearPreconditioner(AbstractLinearPreconditioner):
 
@@ -59,7 +59,7 @@ class AbstractLinearPreconditioner:
                 # here the lhs of the system should be constructed, for example by
                 # returning the geometric tensor or any other object
                 # return vstate.quantum_geometric_tensor()
-    
+
     """
 
     solver: SolverT
