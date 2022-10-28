@@ -20,16 +20,23 @@ import netket as nk
 
 def test_deepset_model_output():
     # make sure that the output of a model is flattened
-    ma = nk.models.DeepSetMLP(features_rho=(16, 1))
+    ma = nk.models.DeepSetMLP(features_phi=(16,), features_rho=(16,))
     x = np.zeros((2, 1024, 16, 3))
 
     pars = ma.init(nk.jax.PRNGKey(), x)
     out = ma.apply(pars, x)
     assert out.shape == (2, 1024)
 
-    with pytest.raises(ValueError):
-        ma = nk.models.DeepSetMLP(features_rho=(16, 4))  # cannot be squeezed
-        x = np.zeros((2, 1024, 16, 3))
+    ma = nk.models.DeepSetMLP(features_phi=16, features_rho=16)
+    x = np.zeros((2, 1024, 16, 3))
 
-        pars = ma.init(nk.jax.PRNGKey(), x)
-        out = ma.apply(pars, x)
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    out = ma.apply(pars, x)
+    assert out.shape == (2, 1024)
+
+    ma = nk.models.DeepSetMLP(features_phi=None, features_rho=None)
+    x = np.zeros((2, 1024, 16, 3))
+
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    out = ma.apply(pars, x)
+    assert out.shape == (2, 1024)

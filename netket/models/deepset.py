@@ -1,9 +1,9 @@
-from typing import Union, Tuple, Any, Optional, Callable
+from typing import Union, Tuple, Optional, Callable
 
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
-from netket.utils.types import NNInitFunc
+from netket.utils.types import NNInitFunc, DType
 from jax.nn.initializers import (
     zeros,
     ones,
@@ -13,7 +13,6 @@ from jax.nn.initializers import (
 from netket.utils import deprecate_dtype
 from netket.hilbert import ContinuousHilbert
 import netket.nn as nknn
-from netket.nn.blocks.deepset import check_features_length
 
 
 class DeepSetMLP(nn.Module):
@@ -27,22 +26,28 @@ class DeepSetMLP(nn.Module):
 
     The input shape must have an axis that is reshaped to (..., N, D), where we pool over N.
 
+    See DeepSetRelDistance for the bosonic wave function ansatz in
+    https://arxiv.org/abs/1703.06114
     """
 
-    features_phi: Tuple[int] = None
-    """Number of features in each layer for phi network."""
-    features_rho: Tuple[int] = None
+    features_phi: Optional[Union[int, Tuple[int, ...]]] = None
+    """
+    Number of features in each layer for phi network.
+    When features_phi is None, no phi network is created.
+    """
+    features_rho: Optional[Union[int, Tuple[int, ...]]] = None
     """
     Number of features in each layer for rho network.
-    Should include final dimension of size 1.
+    Should not include the final layer of dimension 1, which is included automatically.
+    When features_rho is None, a single layer MLP with output 1 is created.
     """
 
-    param_dtype: Any = jnp.float64
+    param_dtype: DType = jnp.float64
     """The dtype of the weights."""
 
-    hidden_activation: Callable = jax.nn.gelu
+    hidden_activation: Optional[Callable] = jax.nn.gelu
     """The nonlinear activation function between hidden layers."""
-    output_activation: Callable = None
+    output_activation: Optional[Callable] = None
     """The nonlinear activation function at the output layer."""
 
     pooling: Callable = jnp.sum
@@ -55,14 +60,15 @@ class DeepSetMLP(nn.Module):
     """Initializer for the Dense layer matrix"""
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias"""
-    precision: Any = None
+    precision: Optional[jax.lax.Precision] = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
     @nn.compact
     def __call__(self, input):
+        features_rho = _process_features_rho(self.features_rho)
         ds = nknn.blocks.DeepSetMLP(
             features_phi=self.features_phi,
-            features_rho=self.features_rho,
+            features_rho=features_rho,
             param_dtype=self.param_dtype,
             hidden_activation=self.hidden_activation,
             output_activation=self.output_activation,
@@ -73,12 +79,19 @@ class DeepSetMLP(nn.Module):
             precision=self.precision,
         )
         x = ds(input)
-        if x.shape[-1] != 1:
-            raise ValueError(
-                f"deepset model should have output dimension 1, but found {x.shape[-1]}"
-            )
         x = x.squeeze(-1)
         return x
+
+
+def _process_features_rho(features_input):
+    if features_input is None:
+        return (1,)
+    elif isinstance(features_input, int):
+        return (features_input, 1)
+    else:
+        if not hasattr(features_input, "__len__"):
+            raise ValueError("features_rho must be a sequence of integers")
+        return tuple(features_input) + (1,)
 
 
 @deprecate_dtype
@@ -120,13 +133,13 @@ class DeepSetRelDistance(nn.Module):
     cusp_exponent: Optional[int] = None
     """exponent of Katos cusp condition"""
 
-    param_dtype: Any = jnp.float64
+    param_dtype: DType = jnp.float64
     """The dtype of the weights."""
 
-    activation: Any = jax.nn.gelu
+    activation: Callable = jax.nn.gelu
     """The nonlinear activation function between hidden layers."""
 
-    pooling: Any = jnp.sum
+    pooling: Callable = jnp.sum
     """The pooling operation to be used after the phi-transformation"""
 
     use_bias: bool = True
@@ -205,3 +218,11 @@ class DeepSetRelDistance(nn.Module):
         y = self.deepset(y)
 
         return (y + cusp).reshape(*batch_shape)
+
+
+def check_features_length(features, n_layers, name):
+    if len(features) != n_layers:
+        raise ValueError(
+            f"The number of {name} layers ({n_layers}) does not match "
+            f"the length of the features list ({len(features)})."
+        )

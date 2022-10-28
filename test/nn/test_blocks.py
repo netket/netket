@@ -143,7 +143,7 @@ def test_deepset():
         features_rho=None,
         output_activation=None,
         hidden_activation=None,
-        pooling=None,
+        pooling=jnp.prod,
         param_dtype=complex,
     )
     params = ds.init(key, x)

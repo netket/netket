@@ -1,9 +1,9 @@
-from typing import Tuple, Any, Callable
+from typing import Tuple, Callable, Union, Optional
 
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
-from netket.utils.types import NNInitFunc
+from netket.utils.types import NNInitFunc, DType
 from jax.nn.initializers import (
     zeros,
     lecun_normal,
@@ -12,18 +12,10 @@ from jax.nn.initializers import (
 from .mlp import MLP
 
 
-def check_features_length(features, n_layers, name):
-    if len(features) != n_layers:
-        raise ValueError(
-            f"The number of {name} layers ({n_layers}) does not match "
-            f"the length of the features list ({len(features)})."
-        )
-
-
-def _process_features(features):
+def _process_features(features) -> Tuple[Optional[Tuple[int, ...]], Optional[int]]:
     """
     Convert some inputs to a consistent format of features.
-    Returns output dimension and hidden features of the MLP
+    Returns hidden dimensions and output dimensions of the MLP separately.
     """
     if features is None:
         feat, out = None, None
@@ -34,7 +26,7 @@ def _process_features(features):
     elif len(features) == 1:
         feat, out = None, features[0]
     else:
-        feat, out = features[:-1], features[-1]
+        feat, out = tuple(features[:-1]), features[-1]
     return feat, out
 
 
@@ -51,20 +43,24 @@ class DeepSetMLP(nn.Module):
 
     """
 
-    features_phi: Tuple[int] = None
-    """Number of features in each layer for phi network."""
-    features_rho: Tuple[int] = None
+    features_phi: Optional[Union[int, Tuple[int, ...]]] = None
+    """
+    Number of features in each layer for phi network.
+    When features_phi is None, no phi network is created.
+    """
+    features_rho: Optional[Union[int, Tuple[int, ...]]] = None
     """
     Number of features in each layer for rho network.
-    Should include final dimension of size 1.
+    Should include final dimension of the network.
+    When features_rho is None, no rho network is created.
     """
 
-    param_dtype: Any = jnp.float64
+    param_dtype: DType = jnp.float64
     """The dtype of the weights."""
 
-    hidden_activation: Callable = jax.nn.gelu
+    hidden_activation: Optional[Callable] = jax.nn.gelu
     """The nonlinear activation function between hidden layers."""
-    output_activation: Callable = None
+    output_activation: Optional[Callable] = None
     """The nonlinear activation function at the output layer."""
 
     pooling: Callable = jnp.sum
@@ -77,7 +73,7 @@ class DeepSetMLP(nn.Module):
     """Initializer for the Dense layer matrix"""
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias"""
-    precision: Any = None
+    precision: Optional[jax.lax.Precision] = None
     """numerical precision of the computation see `jax.lax.Precision`for details."""
 
     def setup(self):
@@ -101,6 +97,9 @@ class DeepSetMLP(nn.Module):
         self.phi = _create_mlp(self.features_phi, self.hidden_activation, "ds_phi")
         self.rho = _create_mlp(self.features_rho, self.output_activation, "ds_rho")
 
+        if self.pooling is None:
+            raise ValueError("Must specifyc pooling function for a DeepSet")
+
     @nn.compact
     def __call__(self, x):
         """The input shape must have an axis that is reshaped to (..., N, D), where we pool over N."""
@@ -111,8 +110,7 @@ class DeepSetMLP(nn.Module):
 
         if self.phi:
             x = self.phi(x)
-        if self.pooling:
-            x = self.pooling(x, axis=-2)
+        x = self.pooling(x, axis=-2)
         if self.rho:
             x = self.rho(x)
 

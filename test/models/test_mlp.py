@@ -32,3 +32,16 @@ def test_mlp_model_output():
     pars = ma.init(nk.jax.PRNGKey(), x)
     out = ma.apply(pars, x)
     assert out.shape == (2, 1024)
+
+    ma = nk.models.MLP(
+        hidden_dims=None,
+        param_dtype=np.complex128,
+        hidden_activations=None,
+        output_activation=None,
+        use_output_bias=False,
+    )
+    x = np.zeros((2, 1024, 16))
+
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    out = ma.apply(pars, x)
+    assert out.shape == (2, 1024)
