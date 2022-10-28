@@ -84,7 +84,7 @@ def apply_chunked(f: Callable, in_axes=0, *, chunk_size: Optional[int]) -> Calla
 
     .. code-block:: python
 
-        assert f(x) == jnp.concatenate([f(x_i) for x_i in x], axis=0)`
+        assert f(x) == jnp.concatenate([f(x_i) for x_i in x], axis=0)
 
     which is automatically satisfied if `f` is obtained by vmapping a function,
     such as:

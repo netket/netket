@@ -34,9 +34,18 @@ default_iterative = "cg"
 
 
 def build_SR(*args, solver_restart: bool = False, **kwargs):
-    """
-    Construct the structure holding the parameters for using the
+    r"""
+    Constructs the structure holding the parameters for using the
     Stochastic Reconfiguration/Natural gradient method.
+
+    This preconditioner changes the gradient :math:`\nabla_i E` such that the
+    preconditioned gradient :math:`\delta_j` solves the system of equations
+
+    .. math::
+
+        S_{i,j}\delta_{j} = \nabla_i E
+
+    Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix).
 
     Depending on the arguments, an implementation is chosen. For
     details on all possible kwargs check the specific SR implementations
@@ -50,12 +59,15 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
             jittable function taking as input a pytree and outputting
             a tuple of the solution and extra data.
         diag_shift: Diagonal shift added to the S matrix. Can be a Scalar
-            value, an `optax <https://optax.readthedocs.io>_` schedule
+            value, an `optax <https://optax.readthedocs.io>`_ schedule
             or a Callable function.
-        rescale_shift: Whether to rescale the diagonal offsets in SR according
-                       to diagonal entries (only with precomputed gradients)
-
-    Additional args:
+        diag_scale: Scale of the shift proportional to the diagonal of the
+            S matrix added added to it. Can be a Scalar value, an
+            `optax <https://optax.readthedocs.io>`_ schedule or a
+            Callable function.
+        solver_restart: If False uses the last solution of the linear
+            system as a starting point for the solution of the next
+            (default=False).
         holomorphic: boolean indicating if the ansatz is boolean or not. May
             speed up computations for models with complex-valued parameters.
     """
@@ -154,11 +166,11 @@ class SR(AbstractLinearPreconditioner):
 
     diag_shift: ScalarOrSchedule = 0.01
     """Diagonal shift added to the S matrix. Can be a Scalar value, an
-       `optax <https://optax.readthedocs.io>_` schedule or a Callable function."""
+       `optax <https://optax.readthedocs.io>`_ schedule or a Callable function."""
 
     diag_scale: Optional[ScalarOrSchedule] = None
     """Diagonal shift added to the S matrix. Can be a Scalar value, an
-       `optax <https://optax.readthedocs.io>_` schedule or a Callable function."""
+       `optax <https://optax.readthedocs.io>`_ schedule or a Callable function."""
 
     qgt_constructor: Callable = None
     """The Quantum Geometric Tensor type or a constructor."""
@@ -192,16 +204,15 @@ class SR(AbstractLinearPreconditioner):
                 jittable function taking as input a pytree and outputting
                 a tuple of the solution and extra data.
             diag_shift: Diagonal shift added to the S matrix. Can be a Scalar
-                value, an `optax <https://optax.readthedocs.io>_` schedule
+                value, an `optax <https://optax.readthedocs.io>`_ schedule
                 or a Callable function.
-            diag_shift: Scale of the shift proportional to the diagonal of the
+            diag_scale: Scale of the shift proportional to the diagonal of the
                 S matrix added added to it. Can be a Scalar value, an
-                `optax <https://optax.readthedocs.io>_` schedule or a
+                `optax <https://optax.readthedocs.io>`_ schedule or a
                 Callable function.
-            rescale_shift: Whether to rescale the diagonal offsets in SR according
-                           to diagonal entries (only with precomputed gradients)
-
-        Additional args:
+            solver_restart: If False uses the last solution of the linear
+                system as a starting point for the solution of the next
+                (default=False).
             holomorphic: boolean indicating if the ansatz is boolean or not. May
                 speed up computations for models with complex-valued parameters.
         """

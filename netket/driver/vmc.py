@@ -140,7 +140,7 @@ class VMC(AbstractVariationalDriver):
         argument is the step, used to change some parameters along the
         optimisation.
 
-        Often, this is taken to be :ref:`nk.optimizer.SR`. If it is set to
+        Often, this is taken to be :func:`nk.optimizer.SR`. If it is set to
         `None`, then the identity is used.
         """
         return self._preconditioner

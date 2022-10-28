@@ -82,7 +82,7 @@ class TDVPSchmitt(TDVPBaseDriver):
 
         When running computations on GPU, this can lead to infinite hangs or extremely long
         compilation times. In those cases, you might try setting the configuration variable
-        :py:`nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
+        `nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
 
     """
 

@@ -42,7 +42,7 @@ class TDVP(TDVPBaseDriver):
 
         When running computations on GPU, this can lead to infinite hangs or extremely long
         compilation times. In those cases, you might try setting the configuration variable
-        :py:`nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
+        `nk.config.netket_experimental_disable_ode_jit = True` to mitigate those issues.
 
     """
 
@@ -75,8 +75,8 @@ class TDVP(TDVPBaseDriver):
                 This must be a jax-jittable function :code:`f(A,b) -> x` that accepts a Matrix-like, Linear Operator
                 PyTree object :math:`A` and a vector-like PyTree :math:`b` and returns the PyTree :math:`x` solving
                 the system :math:`Ax=b`.
-                Defaults to :ref:`nk.optimizer.solver.svd` with the default svd threshold of 1e-10.
-                To change the svd threshold you can use :ref:`functools.partial` as follows:
+                Defaults to :func:`nk.optimizer.solver.svd` with the default svd threshold of 1e-10.
+                To change the svd threshold you can use :func:`functools.partial` as follows:
                 :code:`functools.partial(nk.optimizer.solver.svd, rcond=1e-4)`.
             linear_solver_restart: If False (default), the last solution of the linear system
                 is used as initial value in subsequent steps.
