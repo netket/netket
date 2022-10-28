@@ -269,6 +269,69 @@ class ARNNConv2D(AbstractARNN):
         return _call(self, inputs)
 
 
+class ARNNDenseModPhase(AbstractARNN):
+    """Autoregressive neural network with separate dense layers for the modulus and phase of the wave function."""
+
+    layers: int
+    """number of layers."""
+    features: Union[Iterable[int], int]
+    """number of features in each layer. If a single number is given,
+    all layers except the last one will have the same number of features."""
+    activation: Callable[[Array], Array] = jax.nn.selu
+    """the nonlinear activation function between hidden layers (default: selu)."""
+    use_bias: bool = True
+    """whether to add a bias to the output (default: True)."""
+    param_dtype: DType = jnp.float64
+    """the dtype of the computation (default: float64)."""
+    precision: Any = None
+    """numerical precision of the computation, see `jax.lax.Precision` for details."""
+    kernel_init: NNInitFunc = default_kernel_init
+    """initializer for the weights."""
+    bias_init: NNInitFunc = zeros
+    """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
+
+    def setup(self):
+        if isinstance(self.features, int):
+            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
+        else:
+            features = self.features
+        assert len(features) == self.layers
+        assert features[-1] == self.hilbert.local_size
+
+        self._real_layers = [
+            MaskedDense1D(
+                features=features[i],
+                exclusive=(i == 0),
+                use_bias=self.use_bias,
+                param_dtype=self.param_dtype,
+                precision=self.precision,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )
+            for i in range(self.layers)
+        ]
+        self._imag_layers = [
+            MaskedDense1D(
+                features=features[i],
+                exclusive=(i == 0),
+                use_bias=self.use_bias,
+                param_dtype=self.param_dtype,
+                precision=self.precision,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )
+            for i in range(self.layers)
+        ]
+
+    def conditionals(self, inputs: Array) -> Array:
+        return _conditionals(self, inputs)
+
+    def __call__(self, inputs: Array) -> Array:
+        return _call(self, inputs)
+
+
 def _normalize(log_psi: Array, machine_pow: int) -> Array:
     """
     Normalizes log_psi to have L2-norm 1 along the last axis.
@@ -278,6 +341,31 @@ def _normalize(log_psi: Array, machine_pow: int) -> Array:
     )
 
 
+@dispatch
+def _conditionals_log_psi(model: ARNNDenseModPhase, inputs: Array) -> Array:
+    """
+    Computes the log of the conditional wave-functions for each site if it takes each value
+    for an ARNN model whose modulus and phase are given by different neural networks.
+    """
+
+    x = jnp.expand_dims(inputs, axis=-1)
+    x_imag = x
+
+    for i in range(model.layers):
+        if i > 0:
+            x = model.activation(x)
+            x_imag = model.activation(x_imag)
+        x = model._real_layers[i](x)
+        x_imag = model._imag_layers[i](x_imag)
+
+    x = x + 1j * x_imag
+
+    x = x.reshape((x.shape[0], -1, x.shape[-1]))
+    log_psi = _normalize(x, model.machine_pow)
+    return log_psi
+
+
+@dispatch
 def _conditionals_log_psi(model: AbstractARNN, inputs: Array) -> Array:
     """
     Computes the log of the conditional wave-functions for each site if it takes each value.
