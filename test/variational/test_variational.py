@@ -68,8 +68,8 @@ machines["model:(C->C)"] = RBM(
 machines["model:(C->C,nonholo)"] = nk.models.RBM(
     alpha=1,
     param_dtype=complex,
-    activation=lambda x: nk.nn.log_cosh(0.3*x*x+0.6*x.conj())
-    )
+    activation=lambda x: nk.nn.log_cosh(0.3 * x * x + 0.6 * x.conj()),
+)
 
 operators = {}
 
