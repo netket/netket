@@ -64,7 +64,7 @@ dev = [
     "networkx>=2.4, <3",
     "pre-commit>=2.7",
     "black==22.10.0",
-    "flake8==4.0.1",
+    "flake8==5.0.4",
     "wheel",
     "build",
 ]
