@@ -233,7 +233,7 @@ class SR(AbstractLinearPreconditioner):
         if callable(self.diag_shift):
             if step is None:
                 raise TypeError(
-                    "If you use a scheduled `diag_shift`, you must call"
+                    "If you use a scheduled `diag_shift`, you must call "
                     "the precoditioner with an extra argument `step`."
                 )
             diag_shift = diag_shift(step)
@@ -242,7 +242,7 @@ class SR(AbstractLinearPreconditioner):
         if callable(self.diag_scale):
             if step is None:
                 raise TypeError(
-                    "If you use a scheduled `diag_scale`, you must call"
+                    "If you use a scheduled `diag_scale`, you must call "
                     "the precoditioner with an extra argument `step`."
                 )
             diag_scale = diag_scale(step)

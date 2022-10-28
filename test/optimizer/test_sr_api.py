@@ -119,3 +119,20 @@ def test_diag_shift_schedule(diag_shift):
         # check that the diag_shift passed to the QGT is correct
         qgt = sr.lhs_constructor(vstate, step_value)
         assert qgt.diag_shift == expected_diag_shift(step_value)
+
+
+def test_schedule_err():
+    sr = nk.optimizer.SR(diag_shift=lambda _: 0.01)
+
+    with pytest.raises(TypeError):
+        sr(None, None)
+
+    sr = nk.optimizer.SR(diag_scale=lambda _: 0.01)
+
+    with pytest.raises(TypeError):
+        sr(None, None)
+
+
+def test_repr():
+    sr = nk.optimizer.SR(diag_shift=lambda _: 0.01, diag_scale=lambda _: 0.01)
+    assert "SR" in repr(sr)
