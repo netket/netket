@@ -82,7 +82,7 @@ def _get_index(hilbert: _AbstractHilbert, site: int, sz: float = None):
     elif hasattr(hilbert, "_get_index"):  # keep it general
         idx = hilbert._get_index(site, sz)
         if idx >= hilbert.size:
-            raise ValueError(
+            raise IndexError(
                 "requested site and sz combination is not present in the hilbert space"
             )
         return idx

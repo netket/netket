@@ -725,9 +725,8 @@ def test_fermion_create_annihilate():
     # testing the example
     hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(IndexError):
         c1 = nkx.operator.fermion.create(hi, 2, sz=-1 / 2)  # index not in hilbert
-        print("C1 = ", c1.operator_string())
 
     c1 = nkx.operator.fermion.create(hi, 1, sz=-1 / 2)
     c2 = nkx.operator.FermionOperator2nd(hi, terms=("1^",))
