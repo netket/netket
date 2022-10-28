@@ -25,7 +25,7 @@ def _setup_vmc(dtype=np.float32, sr=True):
     g = nk.graph.Hypercube(length=L, n_dim=1)
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
-    ma = nk.models.RBM(alpha=1, dtype=dtype)
+    ma = nk.models.RBM(alpha=1, param_dtype=dtype)
     sa = nk.sampler.ExactSampler(hilbert=hi)
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
@@ -237,6 +237,26 @@ def test_vmc_sr_legacy_api():
         driver = nk.VMC(
             ha, op, variational_state=vs, sr=sr_config, preconditioner=sr_config
         )
+
+
+def test_no_preconditioner_api():
+    ha, sx, ma, sampler, driver = _setup_vmc(sr=True)
+
+    driver.preconditioner = None
+    assert driver.preconditioner(None, 1) == 1
+    assert driver.preconditioner(None, 1, 2) == 1
+
+
+def test_preconditioner_deprecated_signature():
+    ha, sx, ma, sampler, driver = _setup_vmc(sr=True)
+
+    sr = driver.preconditioner
+    _sr = lambda vstate, grad: sr(vstate, grad)
+
+    with pytest.warns(FutureWarning):
+        driver.preconditioner = _sr
+
+    driver.run(1)
 
 
 def test_deprecated_vmc_name():

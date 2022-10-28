@@ -2,6 +2,9 @@
 
 # Quantum Geometric Tensor and Stochastic Reconfiguration
 
+
+## Mathematical Background
+
 The Quantum Geometric Tensor (QGT) is the Fubini-Study metric tensor of the manifold on which a variational state is defined.
 In the general case (and in practise for any NQS ansatz), the QGT varies depending on the current quantum state and thus needs to be computed when the variational parameters $W$ change.
 To give an example, we consider a variational ansatz $ \psi\colon \mathbb{R} \rightarrow \mathscr{H} $ which maps elements $W$ of the parameter space to vectors in Hilbert space (quantum states) $\psi_W$.
@@ -10,6 +13,9 @@ The parameter space has a simple Euclidean metric, therefore the distance betwee
 However, what we really are interested in when optimizing variational ansätze is not the (Euclidean) distance between those two points in parameter space, but rather the distance in the Hilbert space between the corresponding quantum states (which also properly takes into account gauge degrees of freedom).
 The quantum mechanical distance function for quantum states is the Fubini-Study distance $ d(\psi, \phi) = \cos^{-1} \sqrt{\frac{\langle\psi|\phi\rangle \langle\phi|\psi\rangle}{\langle\psi|\psi\rangle \langle\phi|\phi\rangle}} $.
 This can be expanded to second order in an infinitesimal parameter change $\delta W$ as $ d(\psi_W, \psi_{W + \delta W}) = (\delta W)^\dagger S \delta W $ where $ S $ is the QGT.
+
+## Using the QGT in NetKet
+
 In NetKet you can obtain (an approximation of) the quantum geometric tensor of a variational state by calling {attr}`~netket.vqs.VariationalState.quantum_geometric_tensor`.
 
 ```python
@@ -46,6 +52,8 @@ Lastly, you can solve the linear system $ Q_{i,j} x_j = F_i $ by calling the sol
 x, info = qgt.solve(jax.scipy.sparse.linalg.gmres, grad)
 x, info = qgt.solve(nk.optimizer.solver.cholesky, grad)
 ```
+
+## The different QGT implementations
 
 While mathematically those operations are all well defined, there are several ways to implement them in code, all with different performance characteristics. For that reason, we have several (3) different implementations of the same Quantum Geometric Tensor object.
 The 3 implementations are:
@@ -127,8 +135,24 @@ If you don't specify the QGT format, NetKet will try to guess the best format.
 We recommend you experiment and specify the QGT format that gives you the best performance, which can be by passing it as an argument. Additional keyword arguments will be forwarded to the QGT constructor, as shown below:
 
 ```python
-sr = nk.optimizer.SR(QGTJacobianPyTree, solver=partial(jax.scipy.sparse.linalg.gmres, maxiter=1000, tol=1e-8)diag_shift=1e-3
+sr = nk.optimizer.SR(QGTJacobianPyTree, solver=partial(jax.scipy.sparse.linalg.gmres, maxiter=1000, tol=1e-8, diag_shift=1e-3)
 gs = nk.VMC(hamiltonian, optimizer, variational_state=vstate, preconditioner=sr)
 ```
 
 Since SR leads to an optimisation that approximates an imaginary time evolution, we find that in general it is not a good idea to couple SR with advanced optimisers like ADAM, which modify the gradient remarkably. Stochastic Gradient Descent is the best choice in general.
+
+### SR regularisation schedules
+
+Stochastic Reconfiguration supports scheduling the `diagonal_shift` and the `diagonal_scale` variables along the optimisation. To use this feature, simply pass a function accepting as input the iteration number and returning the diagonal shift for that iteration.
+
+Moreover, [optax](https://optax.readthedocs.io) provides [several pre-built schedules](https://optax.readthedocs.io/en/latest/api.html#optimizer-schedules) such as [linear scheduling](https://optax.readthedocs.io/en/latest/api.html#optax.linear_schedule) interpolating from an initial shift to a final one, [exponential scheduling](https://optax.readthedocs.io/en/latest/api.html#optax.exponential_decay), [oscillating schedules](https://optax.readthedocs.io/en/latest/api.html#optax.cosine_decay_schedule) and many more. 
+
+To use them in practice, you can do something like the following. Check the documentation page of {func}`~netket.optimizer.SR` for more extensive discussion on what options can be scheduled.
+
+```python
+sr = nk.optimizer.SR(diag_shift=optax.linear_schedule(0.01, 0.0001, 100))
+gs = nk.VMC(hamiltonian, optimizer, variational_state=vstate, preconditioner=sr)
+```
+
+
+

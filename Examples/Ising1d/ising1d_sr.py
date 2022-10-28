@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import netket as nk
+import optax
 
 # 1D Lattice
 L = 20
@@ -34,7 +35,7 @@ sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 op = nk.optimizer.Sgd(learning_rate=0.1)
 
 # SR
-sr = nk.optimizer.SR(diag_shift=0.01)
+sr = nk.optimizer.SR(diag_shift=optax.linear_schedule(0.1, 0.01, 200))
 
 # Variational state
 vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)

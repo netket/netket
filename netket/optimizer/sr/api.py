@@ -12,15 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Callable, Optional
+
 from functools import partial
 from collections import namedtuple
+from dataclasses import dataclass
 
+from netket.vqs import VariationalState
 from netket.utils.numbers import is_scalar
+from netket.utils.types import Scalar, ScalarOrSchedule
 
 import jax
 
 from ..qgt import QGTAuto
-from ..preconditioner import LinearPreconditioner
+from ..preconditioner import AbstractLinearPreconditioner
 
 Preconditioner = namedtuple("Preconditioner", ["object", "solver"])
 
@@ -29,9 +34,18 @@ default_iterative = "cg"
 
 
 def build_SR(*args, solver_restart: bool = False, **kwargs):
-    """
-    Construct the structure holding the parameters for using the
+    r"""
+    Constructs the structure holding the parameters for using the
     Stochastic Reconfiguration/Natural gradient method.
+
+    This preconditioner changes the gradient :math:`\nabla_i E` such that the
+    preconditioned gradient :math:`\delta_j` solves the system of equations
+
+    .. math::
+
+        S_{i,j}\delta_{j} = \nabla_i E
+
+    Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix).
 
     Depending on the arguments, an implementation is chosen. For
     details on all possible kwargs check the specific SR implementations
@@ -40,20 +54,25 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
     You can also construct one of those structures directly.
 
     Args:
-        diag_shift: Diagonal shift added to the S matrix
-        method: (cg, gmres) The specific method.
-        iterative: Whether to use an iterative method or not.
-        jacobian: Differentiation mode to precompute gradients
-                  can be "holomorphic", "R2R", "R2C",
-                  None (if they shouldn't be precomputed)
-        rescale_shift: Whether to rescale the diagonal offsets in SR according
-                       to diagonal entries (only with precomputed gradients)
-
-    Returns:
-        The SR parameter structure.
+        qgt: The Quantum Geometric Tensor type to use.
+        solver: The method used to solve the linear system. Must be a jax-
+            jittable function taking as input a pytree and outputting
+            a tuple of the solution and extra data.
+        diag_shift: Diagonal shift added to the S matrix. Can be a Scalar
+            value, an `optax <https://optax.readthedocs.io>`_ schedule
+            or a Callable function.
+        diag_scale: Scale of the shift proportional to the diagonal of the
+            S matrix added added to it. Can be a Scalar value, an
+            `optax <https://optax.readthedocs.io>`_ schedule or a
+            Callable function.
+        solver_restart: If False uses the last solution of the linear
+            system as a starting point for the solution of the next
+            (default=False).
+        holomorphic: boolean indicating if the ansatz is boolean or not. May
+            speed up computations for models with complex-valued parameters.
     """
 
-    #  try to understand if this is the old API or new
+    # try to understand if this is the old API or new
     # API
 
     old_api = False
@@ -61,7 +80,7 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
 
     if "matrix" in kwargs:
         # new syntax
-        return _SR(*args, **kwargs)
+        return SR(*args, **kwargs)
 
     legacy_kwargs = ["iterative", "method"]
     legacy_solver_kwargs = ["tol", "atol", "maxiter", "M", "restart", "solve_method"]
@@ -127,56 +146,122 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
 
         kwargs["solver"] = solver
 
-    return _SR(*args, solver_restart=solver_restart, **kwargs)
+    return SR(*args, solver_restart=solver_restart, **kwargs)
 
 
-class SR(LinearPreconditioner):
-    pass
+@dataclass
+class SR(AbstractLinearPreconditioner):
+    r"""
+    Stochastic Reconfiguration or Natural Gradient preconditioner for the gradient.
 
+    This preconditioner changes the gradient :math:`\nabla_i E` such that the
+    preconditioned gradient :math:`\delta_j` solves the system of equations
 
-# This will become the future implementation once legacy and semi-legacy
-# behaviour is removed
-def _SR(
-    qgt=None,
-    solver=None,
-    *,
-    diag_shift: float = 0.01,
-    solver_restart: bool = False,
-    **kwargs,
-):
-    """
-    Construct the structure holding the parameters for using the
-    Stochastic Reconfiguration/Natural gradient method.
+        :math:`S_{i,j}\delta_{j} = \nabla_i E`
 
-    Depending on the arguments, an implementation is chosen. For
-    details on all possible kwargs check the specific SR implementations
-    in the documentation.
+    Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix).
 
-    You can also construct one of those structures directly.
-
-    Args:
-        qgt: The Quantum Geometric Tensor type to use.
-        diag_shift: Diagonal shift added to the S matrix
-        method: (cg, gmres) The specific method.
-        iterative: Whether to use an iterative method or not.
-        jacobian: Differentiation mode to precompute gradients
-                  can be "holomorphic", "R2R", "R2C",
-                         None (if they shouldn't be precomputed)
-        rescale_shift: Whether to rescale the diagonal offsets in SR according
-                       to diagonal entries (only with precomputed gradients)
-
-    Returns:
-        The SR parameter structure.
+    The algorithm used to solve the linear system must be a Jax-jittable function.
     """
 
-    if solver is None:
-        solver = jax.scipy.sparse.linalg.cg
+    diag_shift: ScalarOrSchedule = 0.01
+    """Diagonal shift added to the S matrix. Can be a Scalar value, an
+       `optax <https://optax.readthedocs.io>`_ schedule or a Callable function."""
 
-    if qgt is None:
-        qgt = QGTAuto(solver)
+    diag_scale: Optional[ScalarOrSchedule] = None
+    """Diagonal shift added to the S matrix. Can be a Scalar value, an
+       `optax <https://optax.readthedocs.io>`_ schedule or a Callable function."""
 
-    return SR(
-        partial(qgt, diag_shift=diag_shift, **kwargs),
-        solver=solver,
-        solver_restart=solver_restart,
-    )
+    qgt_constructor: Callable = None
+    """The Quantum Geometric Tensor type or a constructor."""
+
+    qgt_kwargs: dict = None
+    """The keyword arguments to be passed to the Geometric Tensor constructor."""
+
+    def __init__(
+        self,
+        qgt: Optional[Callable] = None,
+        solver: Callable = jax.scipy.sparse.linalg.cg,
+        *,
+        diag_shift: ScalarOrSchedule = 0.01,
+        diag_scale: Optional[ScalarOrSchedule] = None,
+        solver_restart: bool = False,
+        **kwargs,
+    ):
+        """
+        Constructs the structure holding the parameters for using the
+        Stochastic Reconfiguration/Natural gradient method.
+
+        Depending on the arguments, an implementation is chosen. For
+        details on all possible kwargs check the specific SR implementations
+        in the documentation.
+
+        You can also construct one of those structures directly.
+
+        Args:
+            qgt: The Quantum Geometric Tensor type to use.
+            solver: The method used to solve the linear system. Must be a jax-
+                jittable function taking as input a pytree and outputting
+                a tuple of the solution and extra data.
+            diag_shift: Diagonal shift added to the S matrix. Can be a Scalar
+                value, an `optax <https://optax.readthedocs.io>`_ schedule
+                or a Callable function.
+            diag_scale: Scale of the shift proportional to the diagonal of the
+                S matrix added added to it. Can be a Scalar value, an
+                `optax <https://optax.readthedocs.io>`_ schedule or a
+                Callable function.
+            solver_restart: If False uses the last solution of the linear
+                system as a starting point for the solution of the next
+                (default=False).
+            holomorphic: boolean indicating if the ansatz is boolean or not. May
+                speed up computations for models with complex-valued parameters.
+        """
+        if qgt is None:
+            qgt = QGTAuto(solver)
+
+        self.qgt_constructor = qgt
+        self.qgt_kwargs = kwargs
+        self.diag_shift = diag_shift
+        self.diag_scale = diag_scale
+        super().__init__(solver, solver_restart=solver_restart)
+
+    def lhs_constructor(self, vstate: VariationalState, step: Optional[Scalar] = None):
+        """
+        This method does things
+        """
+        diag_shift = self.diag_shift
+        if callable(self.diag_shift):
+            if step is None:
+                raise TypeError(
+                    "If you use a scheduled `diag_shift`, you must call "
+                    "the precoditioner with an extra argument `step`."
+                )
+            diag_shift = diag_shift(step)
+
+        diag_scale = self.diag_scale
+        if callable(self.diag_scale):
+            if step is None:
+                raise TypeError(
+                    "If you use a scheduled `diag_scale`, you must call "
+                    "the precoditioner with an extra argument `step`."
+                )
+            diag_scale = diag_scale(step)
+
+        return self.qgt_constructor(
+            vstate,
+            diag_shift=diag_shift,
+            diag_scale=diag_scale,
+            **self.qgt_kwargs,
+        )
+
+    def __repr__(self):
+        return (
+            f"{type(self).__name__}("
+            + f"\n  qgt_constructor = {self.qgt_constructor}, "
+            + f"\n  diag_shift      = {self.diag_shift}, "
+            + f"\n  diag_scale      = {self.diag_scale}, "
+            + f"\n  qgt_kwargs      = {self.qgt_kwargs}, "
+            + f"\n  solver          = {self.solver}, "
+            + f"\n  solver_restart  = {self.solver_restart}"
+            + ")"
+        )

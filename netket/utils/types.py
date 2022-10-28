@@ -14,6 +14,7 @@
 
 from typing import Any, Sequence, Callable, Union
 
+import optax as _optax
 import jax as _jax
 import jaxlib as _jaxlib
 import numpy as _np
@@ -32,3 +33,5 @@ NNInitFunc = Callable[[PRNGKeyT, Shape, DType], Array]
 PyTree = Any
 
 Scalar = Any
+
+ScalarOrSchedule = Union[Scalar, _optax.Schedule]

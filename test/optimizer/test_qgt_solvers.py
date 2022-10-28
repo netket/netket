@@ -121,3 +121,16 @@ def test_qgt_nondiff_sigma(SType):
 
     S = vs.quantum_geometric_tensor(SType)
     S @ vs.parameters
+
+
+@common.skipif_mpi
+def test_qgt_otf_scale_err():
+    N = 5
+    hi = nk.hilbert.Spin(1 / 2, N)
+    ma = nk.models.RBM()
+    vstate = nk.vqs.MCState(
+        nk.sampler.MetropolisLocal(hi),
+        ma,
+    )
+    with pytest.raises(NotImplementedError):
+        nk.optimizer.qgt.QGTOnTheFly(vstate, diag_scale=0.01)

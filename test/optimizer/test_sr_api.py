@@ -86,3 +86,53 @@ def test_qgt_partial_onthefly():
     for k, v in args.items():
         assert k in QGT.keywords
         assert QGT.keywords[k] == v
+
+
+@pytest.mark.parametrize(
+    "diag_shift", [0.01, lambda _: 0.01, lambda x: 1 / x, "pytree"]
+)
+def test_diag_shift_schedule(diag_shift):
+    # construct a vstate
+    N = 5
+    hi = nk.hilbert.Spin(1 / 2, N)
+    vstate = nk.vqs.MCState(
+        nk.sampler.MetropolisLocal(hi),
+        nk.models.RBM(alpha=1),
+    )
+    vstate.init_parameters()
+    vstate.sample()
+
+    if isinstance(diag_shift, str):
+        sr = nk.optimizer.SR(diag_shift=vstate.parameters)
+        expected_diag_shift = lambda _: vstate.parameters
+    else:
+        sr = nk.optimizer.SR(diag_shift=diag_shift)
+        if isinstance(diag_shift, Callable):
+            expected_diag_shift = diag_shift
+        else:
+            expected_diag_shift = lambda _: diag_shift
+
+    for step_value in [10, 20.0]:
+        # ensure that this call is valid
+        grad = sr(vstate, vstate.parameters, step_value)
+
+        # check that the diag_shift passed to the QGT is correct
+        qgt = sr.lhs_constructor(vstate, step_value)
+        assert qgt.diag_shift == expected_diag_shift(step_value)
+
+
+def test_schedule_err():
+    sr = nk.optimizer.SR(diag_shift=lambda _: 0.01)
+
+    with pytest.raises(TypeError):
+        sr(None, None)
+
+    sr = nk.optimizer.SR(diag_scale=lambda _: 0.01)
+
+    with pytest.raises(TypeError):
+        sr(None, None)
+
+
+def test_repr():
+    sr = nk.optimizer.SR(diag_shift=lambda _: 0.01, diag_scale=lambda _: 0.01)
+    assert "SR" in repr(sr)
