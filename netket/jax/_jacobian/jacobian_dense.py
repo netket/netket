@@ -27,32 +27,6 @@ from .jacobian_pytree import (
 from netket.jax.utils import RealImagTuple
 
 
-def vec_to_real(vec: Array) -> Tuple[Array, Callable]:
-    """
-    If the input vector is real, splits the vector into real
-    and imaginary parts and concatenates them along the 0-th
-    axis.
-
-    It is equivalent to changing the complex storage from AOS
-    to SOA.
-
-    Args:
-        vec: a dense vector
-    """
-    if jnp.iscomplexobj(vec):
-        out, reassemble = nkjax.tree_to_real(vec)
-        out = jnp.concatenate([out.real, out.imag], axis=0)
-
-        def reassemble_concat(x):
-            x = RealImagTuple(jnp.split(x, 2, axis=0))
-            return reassemble(x)
-
-        return out, reassemble_concat
-
-    else:
-        return vec, lambda x: x
-
-
 def ravel(x: PyTree) -> Array:
     """
     shorthand for tree_ravel

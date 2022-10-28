@@ -137,6 +137,7 @@ def QGTJacobianPyTree(
         pdf=pdf,
         chunk_size=chunk_size,
         dense=False,
+        center=True,
     )
 
     if offset is not None:

@@ -136,6 +136,7 @@ def QGTJacobianDense(
         pdf=pdf,
         chunk_size=chunk_size,
         dense=True,
+        center=True,
     )
 
     if offset is not None:

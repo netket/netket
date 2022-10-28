@@ -41,12 +41,13 @@ def jacobian(
     samples: Array,
     *,
     mode: str,
-    pdf=None,
+    pdf: Array = None,
     chunk_size: int = None,
     center: bool = False,
     dense: bool = False,
 ) -> PyTree:
     """
+    Computes the jacobian of a model
     compute ΔOⱼₖ = Oⱼₖ - ⟨Oₖ⟩ = ∂/∂pₖ ln Ψ(σⱼ) - ⟨∂/∂pₖ ln Ψ⟩
     divided by √n
 
@@ -56,20 +57,16 @@ def jacobian(
 
     Args:
         apply_fun: The forward pass of the Ansatz
+        model_state: untrained state parameters of the model
         params : a pytree of parameters p
         samples : an array of (n in total) batched samples σ
-        model_state: untrained state parameters of the model
-        mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'
+        mode: differentiation mode, must be one of 'real', 'complex', 'holomorphic'. `real`
+            truncates the imaginary part, `complex` splits the jacobian and conjugate-
+            jacobians if the ansatz is non-holomorphic, and `holomorphic` only works for
+            ansatzes that are holomorphic and have complex weights.
         pdf: |ψ(x)|^2 if exact optimization is being used else None
         chunk_size: an int specifying the size of the chunks the gradient should be computed in (default: None)
-
-    Returns:
-        if not rescale_shift:
-            a pytree representing the centered jacobian of ln Ψ evaluated at the samples σ, divided by √n;
-            None
-        else:
-            the same pytree, but the entries for each parameter normalised to unit norm;
-            pytree containing the norms that were divided out (same shape as params)
+        center: a boolean specifying if the jacobian should be centered.
 
     """
     # un-batch the samples
@@ -80,22 +77,22 @@ def jacobian(
         return apply_fun({"params": W, **model_state}, σ)
 
     if dense:
-        jac = jacobian_dense
+        jac_type = jacobian_dense
     else:
-        jac = jacobian_pytree
+        jac_type = jacobian_pytree
 
     if mode == "real":
         split_complex_params = True  # convert C→R and R&C→R to R→R
-        jacobian_fun = jac.jacobian_real_holo_fun
+        jacobian_fun = jac_type.jacobian_real_holo_fun
     elif mode == "complex":
         split_complex_params = True  # convert C→C and R&C→C to R→C
 
         # avoid converting to complex and then back
         # by passing around the oks as a tuple of two pytrees representing the real and imag parts
-        jacobian_fun = jac.jacobian_cplx_fun
+        jacobian_fun = jac_type.jacobian_cplx_fun
     elif mode == "holomorphic":
         split_complex_params = False
-        jacobian_fun = jac.jacobian_real_holo_fun
+        jacobian_fun = jac_type.jacobian_real_holo_fun
     else:
         raise NotImplementedError(
             'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(

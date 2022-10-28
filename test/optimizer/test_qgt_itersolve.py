@@ -149,7 +149,9 @@ def is_complex_failing(vstate, qgt_partial):
     "solver",
     [pytest.param(solver, id=name) for name, solver in solvers.items()],
 )
-@pytest.mark.parametrize("chunk_size", [None, 16])
+@pytest.mark.parametrize(
+    "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
+)
 def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
         with pytest.raises(ValueError):
@@ -209,15 +211,16 @@ def test_qgt_solve_with_x0(qgt, vstate):
     "qgt",
     [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
 )
-@pytest.mark.parametrize("chunk_size", [None, 16])
-@pytest.mark.parametrize("qgt_chunk_size", [None, 8])
-def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank, qgt_chunk_size):
+@pytest.mark.parametrize(
+    "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
+)
+def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
         return
 
     rtol, atol = matmul_tol[nk.jax.dtype_real(vstate.model.dtype)]
 
-    S = qgt(vstate, chunk_size=qgt_chunk_size)
+    S = qgt(vstate)
     rng = nkjax.PRNGSeq(0)
     y = jax.tree_map(
         lambda x: 0.001 * jax.random.normal(rng.next(), x.shape, dtype=x.dtype),
@@ -266,7 +269,9 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank, qgt_chunk_size):
     "qgt",
     [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
 )
-@pytest.mark.parametrize("chunk_size", [None, 16])
+@pytest.mark.parametrize(
+    "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
+)
 def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
         return
