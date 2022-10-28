@@ -1,11 +1,11 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
-
+# Copyright 2022 The NetKet Authors - All rights reserved.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #    http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -13,11 +13,36 @@
 # limitations under the License.
 
 import pytest
-
-import jax
+import numpy as np
 import jax.numpy as jnp
+import jax
 
 import netket as nk
+import netket.nn as nknn
+
+
+def test_deepset_model_output():
+    # make sure that the output of a model is flattened
+    ma = nk.models.DeepSetMLP(features_phi=(16,), features_rho=(16,))
+    x = np.zeros((2, 1024, 16, 3))
+
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    out = ma.apply(pars, x)
+    assert out.shape == (2, 1024)
+
+    ma = nk.models.DeepSetMLP(features_phi=16, features_rho=16)
+    x = np.zeros((2, 1024, 16, 3))
+
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    out = ma.apply(pars, x)
+    assert out.shape == (2, 1024)
+
+    ma = nk.models.DeepSetMLP(features_phi=None, features_rho=None)
+    x = np.zeros((2, 1024, 16, 3))
+
+    pars = ma.init(nk.jax.PRNGKey(), x)
+    out = ma.apply(pars, x)
+    assert out.shape == (2, 1024)
 
 
 @pytest.mark.parametrize(
@@ -31,7 +56,7 @@ import netket as nk
         pytest.param((1.0, 0.5), id="2D-Rectangle"),
     ],
 )
-def test_deepsets(cusp_exponent, L):
+def test_rel_dist_deepsets(cusp_exponent, L):
 
     hilb = nk.hilbert.Particle(N=2, L=L, pbc=True)
     sdim = len(hilb.extent)
@@ -50,7 +75,7 @@ def test_deepsets(cusp_exponent, L):
     assert jnp.allclose(ds.apply(p, x), ds.apply(p, xp))
 
 
-def test_deepsets_error():
+def test_rel_dist_deepsets_error():
     hilb = nk.hilbert.Particle(N=2, L=1.0, pbc=True)
     sdim = len(hilb.extent)
 
@@ -62,6 +87,7 @@ def test_deepsets_error():
         layers_rho=3,
         features_phi=(10, 10),
         features_rho=(10, 1),
+        output_activation=nknn.gelu,
     )
     with pytest.raises(ValueError):
         p = ds.init(jax.random.PRNGKey(42), x)

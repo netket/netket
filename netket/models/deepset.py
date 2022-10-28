@@ -1,9 +1,9 @@
-from typing import Union, Tuple, Any, Optional
+from typing import Union, Tuple, Optional, Callable
 
 import jax
 from jax import numpy as jnp
 from flax import linen as nn
-from netket.utils.types import NNInitFunc
+from netket.utils.types import NNInitFunc, DType
 from jax.nn.initializers import (
     zeros,
     ones,
@@ -12,14 +12,86 @@ from jax.nn.initializers import (
 
 from netket.utils import deprecate_dtype
 from netket.hilbert import ContinuousHilbert
+import netket.nn as nknn
 
 
-def check_features_length(features, n_layers, name):
-    if len(features) != n_layers:
-        raise ValueError(
-            f"The number of {name} layers ({n_layers}) does not match "
-            f"the length of the features list ({len(features)})."
+class DeepSetMLP(nn.Module):
+    r"""Implements the DeepSets architecture, which is permutation invariant.
+
+    .. math ::
+
+        f(x_1,...,x_N) = \rho\left(\sum_i \phi(x_i)\right)
+
+    that is suitable for the simulation of bosonic.
+
+    The input shape must have an axis that is reshaped to (..., N, D), where we pool over N.
+
+    See DeepSetRelDistance for the bosonic wave function ansatz in
+    https://arxiv.org/abs/1703.06114
+    """
+
+    features_phi: Optional[Union[int, Tuple[int, ...]]] = None
+    """
+    Number of features in each layer for phi network.
+    When features_phi is None, no phi network is created.
+    """
+    features_rho: Optional[Union[int, Tuple[int, ...]]] = None
+    """
+    Number of features in each layer for rho network.
+    Should not include the final layer of dimension 1, which is included automatically.
+    When features_rho is None, a single layer MLP with output 1 is created.
+    """
+
+    param_dtype: DType = jnp.float64
+    """The dtype of the weights."""
+
+    hidden_activation: Optional[Callable] = jax.nn.gelu
+    """The nonlinear activation function between hidden layers."""
+    output_activation: Optional[Callable] = None
+    """The nonlinear activation function at the output layer."""
+
+    pooling: Callable = jnp.sum
+    """The pooling operation to be used after the phi-transformation"""
+
+    use_bias: bool = True
+    """if True uses a bias in all layers."""
+
+    kernel_init: NNInitFunc = lecun_normal()
+    """Initializer for the Dense layer matrix"""
+    bias_init: NNInitFunc = zeros
+    """Initializer for the hidden bias"""
+    precision: Optional[jax.lax.Precision] = None
+    """numerical precision of the computation see `jax.lax.Precision`for details."""
+
+    @nn.compact
+    def __call__(self, input):
+        features_rho = _process_features_rho(self.features_rho)
+        ds = nknn.blocks.DeepSetMLP(
+            features_phi=self.features_phi,
+            features_rho=features_rho,
+            param_dtype=self.param_dtype,
+            hidden_activation=self.hidden_activation,
+            output_activation=self.output_activation,
+            pooling=self.pooling,
+            use_bias=self.use_bias,
+            kernel_init=self.kernel_init,
+            bias_init=self.bias_init,
+            precision=self.precision,
         )
+        x = ds(input)
+        x = x.squeeze(-1)
+        return x
+
+
+def _process_features_rho(features_input):
+    if features_input is None:
+        return (1,)
+    elif isinstance(features_input, int):
+        return (features_input, 1)
+    else:
+        if not hasattr(features_input, "__len__"):
+            raise ValueError("features_rho must be a sequence of integers")
+        return tuple(features_input) + (1,)
 
 
 @deprecate_dtype
@@ -61,13 +133,15 @@ class DeepSetRelDistance(nn.Module):
     cusp_exponent: Optional[int] = None
     """exponent of Katos cusp condition"""
 
-    param_dtype: Any = jnp.float64
+    param_dtype: DType = jnp.float64
     """The dtype of the weights."""
 
-    activation: Any = jax.nn.gelu
+    activation: Optional[Callable] = jax.nn.gelu
     """The nonlinear activation function between hidden layers."""
+    output_activation: Optional[Callable] = None
+    """The nonlinear activation function at the output layer."""
 
-    pooling: Any = jnp.sum
+    pooling: Callable = jnp.sum
     """The pooling operation to be used after the phi-transformation"""
 
     use_bias: bool = True
@@ -92,37 +166,29 @@ class DeepSetRelDistance(nn.Module):
         features_phi = self.features_phi
         if isinstance(features_phi, int):
             features_phi = [features_phi] * self.layers_phi
+        features_phi = tuple(features_phi)
 
         check_features_length(features_phi, self.layers_phi, "phi")
 
         features_rho = self.features_rho
         if isinstance(features_rho, int):
             features_rho = [features_rho] * (self.layers_rho - 1) + [1]
+        features_rho = tuple(features_rho)
 
         check_features_length(features_rho, self.layers_rho, "rho")
         assert features_rho[-1] == 1
 
-        self.phi = [
-            nn.Dense(
-                feat,
-                use_bias=self.use_bias,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
-            )
-            for feat in features_phi
-        ]
-
-        self.rho = [
-            nn.Dense(
-                feat,
-                use_bias=self.use_bias,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
-            )
-            for feat in features_rho
-        ]
+        self.deepset = DeepSetMLP(
+            features_phi,
+            features_rho,
+            param_dtype=self.param_dtype,
+            hidden_activation=self.activation,
+            output_activation=self.output_activation,
+            pooling=self.pooling,
+            use_bias=self.use_bias,
+            kernel_init=self.kernel_init,
+            bias_init=self.bias_init,
+        )
 
     def distance(self, x, sdim, L):
         n_particles = x.shape[0] // sdim
@@ -136,7 +202,7 @@ class DeepSetRelDistance(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        sha = x.shape
+        batch_shape = x.shape[:-1]
         param = self.param("cusp", self.params_init, (1,), self.param_dtype)
 
         L = jnp.array(self.hilbert.extent)
@@ -151,18 +217,14 @@ class DeepSetRelDistance(nn.Module):
 
         y = (d / L[jnp.newaxis, :]) ** 2
 
-        """ The phi transformation """
-        for layer in self.phi:
-            y = self.activation(layer(y))
+        y = self.deepset(y)
 
-        """ Pooling operation """
-        y = self.pooling(y, axis=-2)
+        return (y + cusp).reshape(*batch_shape)
 
-        """ The rho transformation """
-        for i, layer in enumerate(self.rho):
-            y = layer(y)
-            if i == len(self.rho) - 1:
-                break
-            y = self.activation(y)
 
-        return (y.reshape(-1) + cusp).reshape(sha[0])
+def check_features_length(features, n_layers, name):
+    if len(features) != n_layers:
+        raise ValueError(
+            f"The number of {name} layers ({n_layers}) does not match "
+            f"the length of the features list ({len(features)})."
+        )

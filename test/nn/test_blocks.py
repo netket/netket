@@ -14,8 +14,11 @@
 
 import pytest
 import numpy as np
+import jax
+import jax.numpy as jnp
 
 import netket as nk
+import netket.nn as nknn
 
 
 def test_mlp_alpha():
@@ -97,3 +100,50 @@ def test_mlp_input():
             output_dim=1, hidden_dims=(16, 32), hidden_dims_alpha=(1, 1)
         )
         _eval_model(ma)
+
+
+def test_deepset():
+    """Test the permutation invariance"""
+    L = (1.0, 1.0)
+    n_particles = 6
+    hilb = nk.hilbert.Particle(N=n_particles, L=L, pbc=True)
+    sdim = len(hilb.extent)
+    key = jax.random.PRNGKey(42)
+    x = hilb.random_state(key, size=1024)
+    x = x.reshape(x.shape[0], n_particles, sdim)
+
+    xp = jnp.roll(x, 2, axis=-2)  # permute the particles
+
+    ds = nk.nn.blocks.DeepSetMLP(features_phi=(16, 16), features_rho=(16, 1))
+    params = ds.init(key, x)
+    out = ds.apply(params, x)
+    outp = ds.apply(params, xp)
+    assert out.shape == outp.shape
+    assert out.shape[-1] == 1
+
+    assert jnp.allclose(out, outp)
+
+    ds = nk.nn.blocks.DeepSetMLP(
+        features_phi=16, features_rho=32, output_activation=nknn.gelu
+    )
+    params = ds.init(key, x)
+    out = ds.apply(params, x)
+    assert params["params"]["ds_phi"]["Dense_0"]["kernel"].shape == (x.shape[-1], 16)
+    assert params["params"]["ds_rho"]["Dense_0"]["kernel"].shape == (16, 32)
+
+    ds = nk.nn.blocks.DeepSetMLP(features_phi=(16,), features_rho=(16, 3))
+    params = ds.init(key, x)
+    out = ds.apply(params, x)
+    assert out.shape[-1] == 3
+
+    # flexible, should still work
+    ds = nk.nn.blocks.DeepSetMLP(
+        features_phi=None,
+        features_rho=None,
+        output_activation=None,
+        hidden_activation=None,
+        pooling=jnp.prod,
+        param_dtype=complex,
+    )
+    params = ds.init(key, x)
+    out = ds.apply(params, x)

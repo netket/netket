@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .mlp import MLP
+from .deepset import DeepSetMLP
 
 from netket.utils import _hide_submodules
 
