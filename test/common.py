@@ -141,6 +141,6 @@ def hash_for_seed(obj):
     return out
 
 
-def named_parametrize(argname:str, values:list):
+def named_parametrize(argname: str, values: list):
     param_values = [pytest.param(obj, id=f"{argname}={obj}") for obj in values]
     return pytest.mark.parametrize(argname, param_values)
