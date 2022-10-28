@@ -28,6 +28,7 @@ from netket.models.autoreg import (
     _reshape_inputs,
 )
 from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
+from netket.nn import activation as nkactivation
 from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils import deprecate_dtype
@@ -49,8 +50,8 @@ class FastARNNDense(AbstractARNN):
     features: Union[Iterable[int], int]
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
-    activation: Callable[[Array], Array] = jax.nn.selu
-    """the nonlinear activation function between hidden layers (default: selu)."""
+    activation: Callable[[Array], Array] = nkactivation.reim_selu
+    """the nonlinear activation function between hidden layers (default: reim_selu)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     param_dtype: DType = jnp.float64
@@ -113,8 +114,8 @@ class FastARNNConv1D(AbstractARNN):
     """length of the convolutional kernel."""
     kernel_dilation: int = 1
     """dilation factor of the convolution kernel (default: 1)."""
-    activation: Callable[[Array], Array] = jax.nn.selu
-    """the nonlinear activation function between hidden layers (default: selu)."""
+    activation: Callable[[Array], Array] = nkactivation.reim_selu
+    """the nonlinear activation function between hidden layers (default: reim_selu)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     param_dtype: DType = jnp.float64
@@ -178,8 +179,8 @@ class FastARNNConv2D(AbstractARNN):
     kernel_dilation: Tuple[int, int] = (1, 1)
     """a sequence of 2 integers, giving the dilation factor to
     apply in each spatial dimension of the convolution kernel (default: 1)."""
-    activation: Callable[[Array], Array] = jax.nn.selu
-    """the nonlinear activation function between hidden layers (default: selu)."""
+    activation: Callable[[Array], Array] = nkactivation.reim_selu
+    """the nonlinear activation function between hidden layers (default: reim_selu)."""
     use_bias: bool = True
     """whether to add a bias to the output (default: True)."""
     param_dtype: DType = jnp.float64
