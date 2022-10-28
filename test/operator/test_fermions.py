@@ -722,6 +722,27 @@ def test_fermion_mode_indices():
 
 
 def test_fermion_create_annihilate():
+    # testing the example
+    hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2)
+
+    with pytest.raises(ValueError):
+        c1 = nkx.operator.fermion.create(hi, 2, sz=-1 / 2)  # index not in hilbert
+        print("C1 = ", c1.operator_string())
+
+    c1 = nkx.operator.fermion.create(hi, 1, sz=-1 / 2)
+    c2 = nkx.operator.FermionOperator2nd(hi, terms=("1^",))
+    assert np.allclose(c1.to_dense(), c2.to_dense())
+
+    c1 = nkx.operator.fermion.destroy(hi, 1, sz=+1 / 2)
+    c2 = nkx.operator.FermionOperator2nd(hi, terms=("3",))
+    assert np.allclose(c1.to_dense(), c2.to_dense())
+
+    c1 = nkx.operator.fermion.number(hi, 0, sz=-1 / 2)
+    c2 = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0",))
+    assert np.allclose(c1.to_dense(), c2.to_dense())
+
+
+def test_fermi_hubbard():
 
     L = 4  # take a 2x2 lattice
     D = 2

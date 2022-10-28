@@ -168,5 +168,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
     def _get_index(self, orb: int, sz: float = None):
         """go from (site, spin_projection) indices to index in the hilbert space"""
+        if orb >= self.n_orbitals:
+            raise ValueError("requested orbital index outside of the hilbert space")
         spin_idx = self._spin_index(sz)
         return spin_idx * self.n_orbitals + orb
