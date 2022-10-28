@@ -18,10 +18,7 @@ from typing import Any, Callable, Iterable, Tuple, Union
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.models.autoreg import (
-    AbstractRecursiveARNN,
-    _normalize,
-)
+from netket.models.autoreg import ARNNSequential, _normalize
 from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
 from netket.nn import activation as nkactivation
 from netket.nn.masked_linear import default_kernel_init
@@ -29,10 +26,17 @@ from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils import deprecate_dtype
 
 
-class FastRecursiveARNN(AbstractRecursiveARNN):
+class FastARNNSequential(ARNNSequential):
+    """
+    Implementation of a fast ARNN that sequentially calls its layers and activation function.
+
+    Subclasses must implement `activation` as a field or a method,
+    and assign a list of fast ARNN layers to `self._layers` in `setup`.
+    """
+
     def conditional(self, inputs: Array, index: int) -> Array:
         """
-        Computes the conditional probabilities for a site to take a given value.
+        Computes the conditional probabilities for one site to take each value.
         See `AbstractARNN.conditional`.
         """
         if inputs.ndim == 1:
@@ -41,7 +45,7 @@ class FastRecursiveARNN(AbstractRecursiveARNN):
         # When `index = 0`, it doesn't matter which site we take
         x = inputs[:, index - 1, None]
 
-        for i in range(self.layers):
+        for i in range(len(self._layers)):
             if i > 0:
                 x = self.activation(x)
             x = self._layers[i].update_site(x, index)
@@ -52,7 +56,7 @@ class FastRecursiveARNN(AbstractRecursiveARNN):
 
 
 @deprecate_dtype
-class FastARNNDense(FastRecursiveARNN):
+class FastARNNDense(FastARNNSequential):
     """
     Fast autoregressive neural network with dense layers.
 
@@ -106,7 +110,7 @@ class FastARNNDense(FastRecursiveARNN):
 
 
 @deprecate_dtype
-class FastARNNConv1D(FastRecursiveARNN):
+class FastARNNConv1D(FastARNNSequential):
     """
     Fast autoregressive neural network with 1D convolution layers.
 
@@ -161,7 +165,7 @@ class FastARNNConv1D(FastRecursiveARNN):
         ]
 
 
-class FastARNNConv2D(FastRecursiveARNN):
+class FastARNNConv2D(FastARNNSequential):
     """
     Fast autoregressive neural network with 2D convolution layers.
 
@@ -220,5 +224,5 @@ class FastARNNConv2D(FastRecursiveARNN):
             for i in range(self.layers)
         ]
 
-    def _reshape_inputs(self, inputs: Array) -> Array:  # noqa: F811
+    def reshape_inputs(self, inputs: Array) -> Array:
         return inputs.reshape((inputs.shape[0], self.L, self.L))
