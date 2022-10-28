@@ -136,8 +136,10 @@ class DeepSetRelDistance(nn.Module):
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
 
-    activation: Callable = jax.nn.gelu
+    activation: Optional[Callable] = jax.nn.gelu
     """The nonlinear activation function between hidden layers."""
+    output_activation: Optional[Callable] = None
+    """The nonlinear activation function at the output layer."""
 
     pooling: Callable = jnp.sum
     """The pooling operation to be used after the phi-transformation"""
@@ -181,7 +183,7 @@ class DeepSetRelDistance(nn.Module):
             features_rho,
             param_dtype=self.param_dtype,
             hidden_activation=self.activation,
-            output_activation=None,
+            output_activation=self.output_activation,
             pooling=self.pooling,
             use_bias=self.use_bias,
             kernel_init=self.kernel_init,
