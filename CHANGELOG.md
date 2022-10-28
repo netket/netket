@@ -7,7 +7,7 @@
 
 ### New features
 * Added a new 'Full statevector' model {class}`netket.models.LogStateVector` that stores the exponentially large state and can be used as an exact ansatz [#1324](https://github.com/netket/netket/pull/1324).
-* Added a new {class}`netket.experimental.driver.TDVPSchmitt` driver, implementing the signal-to-noise ratio TDVP regularisation by Schmitt and Heyl [#1306](https://github.com/netket/netket/pull/1306).
+* Added a new experimental {class}`~netket.experimental.driver.TDVPSchmitt` driver, implementing the signal-to-noise ratio TDVP regularisation by Schmitt and Heyl [#1306](https://github.com/netket/netket/pull/1306).
 * QGT classes accept a `chunk_size` parameter that overrides the `chunk_size` set by the variational state object [#1347](https://github.com/netket/netket/pull/1347).
 * {func}`~netket.optimizer.qgt.QGTJacobianPyTree` and `QGTJacobianDense` support diagonal entry regularisation with constant and scale-invariant contributions. They accept a new `diag_scale` argument to pass the scale-invariant component [#1352](https://github.com/netket/netket/pull/1352).
 * {func}`~netket.optimizer.SR` preconditioner now supports scheduling of the diagonal shift and scale regularisations [#1364](https://github.com/netket/netket/pull/1364). 
@@ -17,7 +17,7 @@
 * Experimental RK solvers now store the error of the last timestep in the integrator state [#1328](https://github.com/netket/netket/pull/1328).
 * {class}`~netket.operator.PauliStrings` can now be constructed by passing a single string, instead of the previous requirement of a list of strings [#1331](https://github.com/netket/netket/pull/1331).
 * {class}`~netket.operator.PauliStrings` now support the subtraction operator [#1336](https://github.com/netket/netket/pull/1336).
-* {class}`flax.core.FrozenDict` can now be logged to netket's loggers, meaning that one does no longer need to unfreeze the parameters before logging them [#1338](https://github.com/netket/netket/pull/1338).
+* {class}`~flax.core.frozen_dict.FrozenDict` can now be logged to netket's loggers, meaning that one does no longer need to unfreeze the parameters before logging them [#1338](https://github.com/netket/netket/pull/1338).
 * Fermion operators are much more efficient and generate fewer connected elements [#1279](https://github.com/netket/netket/pull/1279).
 * NetKet now is completely PEP 621 compliant and does not have anymore a `setup.py` in favour of a `pyproject.toml` based on [hatchling](https://hatch.pypa.io/latest/). To install NetKet you should use a recent version of `pip` or a compatible tool such as poetry/hatch/flint [#1365](https://github.com/netket/netket/pull/1365).
 * {func}`~netket.optimizer.qgt.QGTJacobianDense` can now be used with {class}`~netket.vqs.ExactState` [#1358](https://github.com/netket/netket/pull/1358).
