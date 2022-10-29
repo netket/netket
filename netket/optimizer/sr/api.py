@@ -39,11 +39,11 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
     Stochastic Reconfiguration/Natural gradient method.
 
     This preconditioner changes the gradient :math:`\nabla_i E` such that the
-    preconditioned gradient :math:`\delta_j` solves the system of equations
+    preconditioned gradient :math:`\Delta_j` solves the system of equations
 
     .. math::
 
-        (S_{i,j} + \epsilon_1 S_{i,i} + \epsilon_2) \delta_{j} = \nabla_i E
+        (S_{i,j} + \delta_{i,j}(\epsilon_1 S_{i,i} + \epsilon_2)) \Delta_{j} = \nabla_i E
 
     Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix),
     preconditioned according to the diagonal scale :math:`\epsilon_1` (`diag_scale`)
@@ -158,11 +158,11 @@ class SR(AbstractLinearPreconditioner):
     Stochastic Reconfiguration or Natural Gradient preconditioner for the gradient.
 
     This preconditioner changes the gradient :math:`\nabla_i E` such that the
-    preconditioned gradient :math:`\delta_j` solves the system of equations
+    preconditioned gradient :math:`\Delta_j` solves the system of equations
 
     .. math::
 
-        (S_{i,j} + \epsilon_1 S_{i,i} + \epsilon_2) \delta_{j} = \nabla_i E
+        (S_{i,j} + \delta_{i,j}(\epsilon_1 S_{i,i} + \epsilon_2)) \Delta_{j} = \nabla_i E
 
     Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix),
     preconditioned according to the diagonal scale :math:`\epsilon_1` (`diag_scale`)
