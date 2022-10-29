@@ -54,6 +54,7 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
             "Please use `QGTJacobianPyTree` or `QGTJacobianDense`.\n\n"
             "You are also encouraged to nag the developers to support "
             "this feature.\n\n"
+            )
 
     # TODO: Find a better way to handle this case
     from netket.vqs import ExactState

@@ -24,6 +24,7 @@ from netket.utils.types import Scalar, ScalarOrSchedule
 from ..qgt import QGTAuto
 from ..preconditioner import AbstractLinearPreconditioner
 
+
 @dataclass
 class SR(AbstractLinearPreconditioner):
     r"""
