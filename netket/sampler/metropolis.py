@@ -451,7 +451,7 @@ def sample_next(
     return sampler.sample_next(machine, parameters, state)
 
 
-def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
+def MetropolisLocal(hilbert, **kwargs) -> MetropolisSampler:
     r"""
     Sampler acting on one local degree of freedom.
 
@@ -488,11 +488,11 @@ def MetropolisLocal(hilbert, *args, **kwargs) -> MetropolisSampler:
     """
     from .rules import LocalRule
 
-    return MetropolisSampler(hilbert, LocalRule(), *args, **kwargs)
+    return MetropolisSampler(hilbert, LocalRule(), **kwargs)
 
 
 def MetropolisExchange(
-    hilbert, *args, clusters=None, graph=None, d_max=1, **kwargs
+    hilbert, *, clusters=None, graph=None, d_max=1, **kwargs
 ) -> MetropolisSampler:
     r"""
     This sampler acts locally only on two local degree of freedom :math:`s_i` and :math:`s_j`,
@@ -545,10 +545,10 @@ def MetropolisExchange(
     from .rules import ExchangeRule
 
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
-    return MetropolisSampler(hilbert, rule, *args, **kwargs)
+    return MetropolisSampler(hilbert, rule, **kwargs)
 
 
-def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSampler:
+def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
     r"""
     Sampling based on the off-diagonal elements of a Hamiltonian (or a generic Operator).
     In this case, the transition matrix is taken to be:
@@ -597,10 +597,10 @@ def MetropolisHamiltonian(hilbert, hamiltonian, *args, **kwargs) -> MetropolisSa
     from .rules import HamiltonianRule
 
     rule = HamiltonianRule(hamiltonian)
-    return MetropolisSampler(hilbert, rule, *args, **kwargs)
+    return MetropolisSampler(hilbert, rule, **kwargs)
 
 
-def MetropolisGaussian(hilbert, sigma=1.0, *args, **kwargs) -> MetropolisSampler:
+def MetropolisGaussian(hilbert, sigma=1.0, **kwargs) -> MetropolisSampler:
     """This sampler acts on all particle positions simultaneously
     and proposes a new state according to a Gaussian distribution
     with width `sigma`.
@@ -622,4 +622,4 @@ def MetropolisGaussian(hilbert, sigma=1.0, *args, **kwargs) -> MetropolisSampler
     from .rules import GaussianRule
 
     rule = GaussianRule(sigma)
-    return MetropolisSampler(hilbert, rule, *args, **kwargs)
+    return MetropolisSampler(hilbert, rule, **kwargs)

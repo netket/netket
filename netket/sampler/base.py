@@ -116,9 +116,16 @@ class Sampler(abc.ABC):
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
         if not isinstance(self.hilbert, AbstractHilbert):
-            raise ValueError(
-                "hilbert must be a subtype of netket.hilbert.AbstractHilbert, "
-                + "instead, type {} is not.".format(type(self.hilbert))
+            raise TypeError(
+                "\n\nThe argument `hilbert` of a Sampler must be a subtype "
+                "of netket.hilbert.AbstractHilbert, but you passed in an object "
+                f"of type {type(self.hilbert)}, which is not an AbstractHilbert.\n\n"
+                "TO FIX THIS ERROR,\ndouble check the arguments passed to the "
+                "sampler when constructing it, and verify that they have the "
+                "correct types.\n\n"
+                "For more information, check the correct arguments in the API "
+                "reference at https://netket.readthedocs.io/en/latest/api/sampler.html"
+                "\n"
             )
 
         # workaround Jax bug under pmap

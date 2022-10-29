@@ -39,13 +39,16 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
     Stochastic Reconfiguration/Natural gradient method.
 
     This preconditioner changes the gradient :math:`\nabla_i E` such that the
-    preconditioned gradient :math:`\delta_j` solves the system of equations
+    preconditioned gradient :math:`\Delta_j` solves the system of equations
 
     .. math::
 
-        S_{i,j}\delta_{j} = \nabla_i E
+        (S_{i,j} + \delta_{i,j}(\epsilon_1 S_{i,i} + \epsilon_2)) \Delta_{j} = \nabla_i E
 
-    Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix).
+    Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix),
+    preconditioned according to the diagonal scale :math:`\epsilon_1` (`diag_scale`)
+    and the diagonal shift :math:`epsilon_2` (`diag_shift`). The default
+    regularisation takes :math:`\epsilon_1=0` and :math:`\epsilon_2=0.01`.
 
     Depending on the arguments, an implementation is chosen. For
     details on all possible kwargs check the specific SR implementations
@@ -58,12 +61,12 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
         solver: The method used to solve the linear system. Must be a jax-
             jittable function taking as input a pytree and outputting
             a tuple of the solution and extra data.
-        diag_shift: Diagonal shift added to the S matrix. Can be a Scalar
-            value, an `optax <https://optax.readthedocs.io>`_ schedule
+        diag_shift: (Default `0.01`) Diagonal shift added to the S matrix. Can be
+            a Scalar value, an `optax <https://optax.readthedocs.io>`_ schedule
             or a Callable function.
-        diag_scale: Scale of the shift proportional to the diagonal of the
-            S matrix added added to it. Can be a Scalar value, an
-            `optax <https://optax.readthedocs.io>`_ schedule or a
+        diag_scale: (Default `0`) Scale of the shift proportional to the
+            diagonal of the S matrix added added to it. Can be a Scalar value,
+            an `optax <https://optax.readthedocs.io>`_ schedule or a
             Callable function.
         solver_restart: If False uses the last solution of the linear
             system as a starting point for the solution of the next
@@ -155,13 +158,16 @@ class SR(AbstractLinearPreconditioner):
     Stochastic Reconfiguration or Natural Gradient preconditioner for the gradient.
 
     This preconditioner changes the gradient :math:`\nabla_i E` such that the
-    preconditioned gradient :math:`\delta_j` solves the system of equations
+    preconditioned gradient :math:`\Delta_j` solves the system of equations
 
-        :math:`S_{i,j}\delta_{j} = \nabla_i E`
+    .. math::
 
-    Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix).
+        (S_{i,j} + \delta_{i,j}(\epsilon_1 S_{i,i} + \epsilon_2)) \Delta_{j} = \nabla_i E
 
-    The algorithm used to solve the linear system must be a Jax-jittable function.
+    Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix),
+    preconditioned according to the diagonal scale :math:`\epsilon_1` (`diag_scale`)
+    and the diagonal shift :math:`epsilon_2` (`diag_shift`). The default
+    regularisation takes :math:`\epsilon_1=0` and :math:`\epsilon_2=0.01`.
     """
 
     diag_shift: ScalarOrSchedule = 0.01
@@ -203,12 +209,12 @@ class SR(AbstractLinearPreconditioner):
             solver: The method used to solve the linear system. Must be a jax-
                 jittable function taking as input a pytree and outputting
                 a tuple of the solution and extra data.
-            diag_shift: Diagonal shift added to the S matrix. Can be a Scalar
-                value, an `optax <https://optax.readthedocs.io>`_ schedule
+            diag_shift: (Default `0.01`) Diagonal shift added to the S matrix. Can be
+                a Scalar value, an `optax <https://optax.readthedocs.io>`_ schedule
                 or a Callable function.
-            diag_scale: Scale of the shift proportional to the diagonal of the
-                S matrix added added to it. Can be a Scalar value, an
-                `optax <https://optax.readthedocs.io>`_ schedule or a
+            diag_scale: (Default `0`) Scale of the shift proportional to the
+                diagonal of the S matrix added added to it. Can be a Scalar value,
+                an `optax <https://optax.readthedocs.io>`_ schedule or a
                 Callable function.
             solver_restart: If False uses the last solution of the linear
                 system as a starting point for the solution of the next

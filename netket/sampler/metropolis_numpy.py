@@ -281,24 +281,24 @@ def acceptance_kernel(
     return accepted
 
 
-def MetropolisLocalNumpy(hilbert: AbstractHilbert, *args, **kwargs):
+def MetropolisLocalNumpy(hilbert: AbstractHilbert, **kwargs):
     from .rules import LocalRuleNumpy
 
     rule = LocalRuleNumpy()
-    return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)
+    return MetropolisSamplerNumpy(hilbert, rule, **kwargs)
 
 
-def MetropolisHamiltonianNumpy(hilbert: AbstractHilbert, hamiltonian, *args, **kwargs):
+def MetropolisHamiltonianNumpy(hilbert: AbstractHilbert, hamiltonian, **kwargs):
     from .rules import HamiltonianRuleNumpy
 
     rule = HamiltonianRuleNumpy(hamiltonian)
-    return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)
+    return MetropolisSamplerNumpy(hilbert, rule, **kwargs)
 
 
 def MetropolisCustomNumpy(
-    hilbert: AbstractHilbert, move_operators, move_weights=None, *args, **kwargs
+    hilbert: AbstractHilbert, move_operators, move_weights=None, **kwargs
 ):
     from .rules import CustomRuleNumpy
 
     rule = CustomRuleNumpy(move_operators, move_weights)
-    return MetropolisSamplerNumpy(hilbert, rule, *args, **kwargs)
+    return MetropolisSamplerNumpy(hilbert, rule, **kwargs)

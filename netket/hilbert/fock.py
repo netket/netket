@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import List, Optional, Union
+from functools import partial
 
 import numpy as np
 from numba import jit
@@ -89,8 +90,7 @@ class Fock(HomogeneousHilbert):
                         with the given n_max."""
                     )
 
-            def constraints(x):
-                return _sum_constraint(x, n_particles)
+            constraints = partial(_sum_constraint, n_particles=n_particles)
 
         else:
             constraints = None
@@ -169,4 +169,4 @@ class Fock(HomogeneousHilbert):
 
     @property
     def _attrs(self):
-        return (self.size, self._n_max, self._constraint_fn)
+        return (self.size, self._n_max, self._n_particles)
