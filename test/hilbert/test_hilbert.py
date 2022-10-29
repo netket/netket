@@ -521,13 +521,21 @@ def test_tensor_combination():
     repr(hit)
 
 
-def test_constrained_equivalence():
+def test_constrained_eq_hash():
     hi1 = nk.hilbert.Spin(0.5, 4, total_sz=0)
     hi2 = nk.hilbert.Spin(0.5, 4, total_sz=0)
     assert hi1 == hi2
     assert hash(hi1) == hash(hi2)
 
+    hi2 = nk.hilbert.Spin(0.5, 4, total_sz=2)
+    assert hi1 != hi2
+    assert hash(hi1) != hash(hi2)
+
     hi1 = nk.hilbert.Fock(3, 4, n_particles=2)
     hi2 = nk.hilbert.Fock(3, 4, n_particles=2)
     assert hi1 == hi2
     assert hash(hi1) == hash(hi2)
+
+    hi2 = nk.hilbert.Fock(3, 4, n_particles=3)
+    assert hi1 != hi2
+    assert hash(hi1) != hash(hi2)
