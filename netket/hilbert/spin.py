@@ -14,6 +14,7 @@
 
 from fractions import Fraction
 from typing import Optional, List, Union
+from functools import partial
 
 import numpy as np
 from netket.graph import AbstractGraph
@@ -96,10 +97,7 @@ class Spin(HomogeneousHilbert):
 
         _check_total_sz(total_sz, s, N)
         if total_sz is not None:
-
-            def constraints(x):
-                return _sum_constraint(x, total_sz)
-
+            constraints = partial(_sum_constraint, total_sz=total_sz)
         else:
             constraints = None
 
@@ -158,4 +156,4 @@ class Spin(HomogeneousHilbert):
 
     @property
     def _attrs(self):
-        return (self.size, self._s, self._constraint_fn)
+        return (self.size, self._s, self._total_sz)
