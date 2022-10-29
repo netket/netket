@@ -18,10 +18,7 @@ from numbers import Real
 
 import jax.numpy as jnp
 
-from netket.graph import AbstractGraph
-
 from .homogeneous import HomogeneousHilbert
-from ._deprecations import graph_to_N_depwarn
 
 
 class CustomHilbert(HomogeneousHilbert):
@@ -32,7 +29,6 @@ class CustomHilbert(HomogeneousHilbert):
         local_states: Optional[List[Real]],
         N: int = 1,
         constraint_fn: Optional[Callable] = None,
-        graph: Optional[AbstractGraph] = None,
     ):
         r"""
         Constructs a new ``CustomHilbert`` given a list of eigenvalues of the states and
@@ -55,8 +51,6 @@ class CustomHilbert(HomogeneousHilbert):
            >>> print(hi.size)
            100
         """
-        N = graph_to_N_depwarn(N=N, graph=graph)
-
         super().__init__(local_states, N, constraint_fn)
 
     def states_to_local_indices(self, x):

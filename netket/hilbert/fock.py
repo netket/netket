@@ -18,10 +18,7 @@ from functools import partial
 import numpy as np
 from numba import jit
 
-from netket.graph import AbstractGraph
-
 from .homogeneous import HomogeneousHilbert
-from ._deprecations import graph_to_N_depwarn
 
 FOCK_MAX = np.iinfo(np.intp).max - 1
 """
@@ -44,7 +41,6 @@ class Fock(HomogeneousHilbert):
         n_max: Optional[int] = None,
         N: int = 1,
         n_particles: Optional[int] = None,
-        graph: Optional[AbstractGraph] = None,
     ):
         r"""
         Constructs a new ``Boson`` given a maximum occupation number, number of sites
@@ -56,8 +52,6 @@ class Fock(HomogeneousHilbert):
           N: number of bosonic modes (default = 1)
           n_particles: Constraint for the number of particles. If None, no constraint
             is imposed.
-          graph: (Deprecated, please use `N`) A graph, from which the number of nodes
-            is extracted.
 
         Examples:
            Simple boson hilbert space.
@@ -69,8 +63,6 @@ class Fock(HomogeneousHilbert):
            >>> print(hi.n_states)
            15
         """
-        N = graph_to_N_depwarn(N=N, graph=graph)
-
         self._n_max = n_max
 
         if n_particles is not None:

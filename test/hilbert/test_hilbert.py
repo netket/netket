@@ -359,17 +359,6 @@ def test_state_iteration():
         assert np.allclose(state, ref)
 
 
-def test_deprecations():
-    g = nk.graph.Edgeless(3)
-
-    with pytest.warns(FutureWarning):
-        Spin(s=0.5, graph=g)
-
-    with pytest.warns(FutureWarning):
-        with pytest.raises(ValueError):
-            Spin(s=0.5, graph=g, N=3)
-
-
 def test_composite_hilbert_spin():
     hi1 = Spin(s=1 / 2, N=8)
     hi2 = Spin(s=3 / 2, N=8)

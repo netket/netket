@@ -13,5 +13,3 @@
 # limitations under the License.
 
 from .api import build_SR as SR
-
-from .deprecations import SRLazyCG, SRLazyGMRES

@@ -23,7 +23,6 @@ import netket
 from netket import jax as nkjax
 from netket.sampler import Sampler
 from netket.stats import Stats
-from netket.utils import warn_deprecation
 from netket.utils.types import PyTree
 from netket.operator import AbstractOperator
 
@@ -53,7 +52,6 @@ class MCMixedState(VariationalMixedState, MCState):
         n_samples_diag: int = None,
         n_samples_per_rank_diag: Optional[int] = None,
         n_discard_per_chain_diag: Optional[int] = None,
-        n_discard_diag: Optional[int] = None,  # deprecated
         seed=None,
         sampler_seed: Optional[int] = None,
         variables=None,
@@ -123,24 +121,10 @@ class MCMixedState(VariationalMixedState, MCState):
 
         for kw in [
             "n_samples",
-            "n_discard",
             "n_discard_per_chain",
-        ]:  # TODO remove n_discard after deprecation.
+        ]:
             if kw in kwargs:
                 kwargs.pop(kw)
-
-        # TODO: remove deprecation.
-        if n_discard_diag is not None and n_discard_per_chain_diag is not None:
-            raise ValueError(
-                "`n_discard_diag` has been renamed to `n_discard_per_chain_diag` and deprecated."
-                "Specify only `n_discard_per_chain_diag`."
-            )
-        elif n_discard_diag is not None:
-            warn_deprecation(
-                "`n_discard_diag` has been renamed to `n_discard_per_chain_diag` and deprecated."
-                "Please update your code to `n_discard_per_chain_diag`."
-            )
-            n_discard_per_chain_diag = n_discard_diag
 
         self._diagonal = MCState(
             sampler_diag,
@@ -153,11 +137,6 @@ class MCMixedState(VariationalMixedState, MCState):
             sampler_seed=sampler_seed_diag,
             **kwargs,
         )
-
-        # build the
-
-    # def init(self, *args, **kwargs):
-    #    super().init(*args, **kwargs)
 
     @property
     def diagonal(self):
@@ -208,29 +187,6 @@ class MCMixedState(VariationalMixedState, MCState):
     @n_discard_per_chain_diag.setter
     def n_discard_per_chain_diag(self, n_discard_per_chain: Optional[int]):
         self.diagonal.n_discard_per_chain = n_discard_per_chain
-
-    # TODO: deprecate
-    @property
-    def n_discard_diag(self) -> int:
-        """
-        DEPRECATED: Use `n_discard_per_chain_diag` instead.
-
-        Number of discarded samples at the beginning of the markov chain.
-        """
-        warn_deprecation(
-            "`n_discard_diag` has been renamed to `n_discard_per_chain_diag` and deprecated."
-            "Please update your code to use `n_discard_per_chain_diag`."
-        )
-
-        return self.n_discard_per_chain_diag
-
-    @n_discard_diag.setter
-    def n_discard_diag(self, val) -> int:
-        warn_deprecation(
-            "`n_discard_diag` has been renamed to `n_discard_per_chain_diag` and deprecated."
-            "Please update your code to use `n_discard_per_chain_diag`."
-        )
-        self.n_discard_per_chain_diag = val
 
     @MCState.parameters.setter
     def parameters(self, pars: PyTree):

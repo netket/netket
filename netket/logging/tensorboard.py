@@ -14,8 +14,6 @@
 
 from numbers import Number
 
-from netket.utils import deprecated
-
 
 def tree_log(tree, root, data):
     """
@@ -160,12 +158,3 @@ class TensorBoardLog:
 
         if machine is not None:
             self._flush_params(machine)
-
-
-# TODO: deprecate in 3.1
-@deprecated(
-    "TBLog has been renamed to `TensorBoardLog` and will be removed in the next"
-    "minor release. Please update your usages."
-)
-def TBLog(*args, **kwargs):
-    return TensorBoardLog(*args, **kwargs)

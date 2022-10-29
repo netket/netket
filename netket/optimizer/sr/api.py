@@ -14,27 +14,21 @@
 
 from typing import Callable, Optional
 
-from functools import partial
-from collections import namedtuple
+import jax
+
 from dataclasses import dataclass
 
 from netket.vqs import VariationalState
-from netket.utils.numbers import is_scalar
 from netket.utils.types import Scalar, ScalarOrSchedule
-
-import jax
 
 from ..qgt import QGTAuto
 from ..preconditioner import AbstractLinearPreconditioner
 
-Preconditioner = namedtuple("Preconditioner", ["object", "solver"])
-
-default_iterative = "cg"
-# default_direct = "eigen"
-
-
-def build_SR(*args, solver_restart: bool = False, **kwargs):
+@dataclass
+class SR(AbstractLinearPreconditioner):
     r"""
+    Stochastic Reconfiguration or Natural Gradient preconditioner for the gradient.
+
     Constructs the structure holding the parameters for using the
     Stochastic Reconfiguration/Natural gradient method.
 
@@ -75,101 +69,6 @@ def build_SR(*args, solver_restart: bool = False, **kwargs):
             speed up computations for models with complex-valued parameters.
     """
 
-    # try to understand if this is the old API or new
-    # API
-
-    old_api = False
-    # new_api = False
-
-    if "matrix" in kwargs:
-        # new syntax
-        return SR(*args, **kwargs)
-
-    legacy_kwargs = ["iterative", "method"]
-    legacy_solver_kwargs = ["tol", "atol", "maxiter", "M", "restart", "solve_method"]
-    for key in legacy_kwargs + legacy_solver_kwargs:
-        if key in kwargs:
-            old_api = True
-            break
-
-    if len(args) > 0:
-        if is_scalar(args[0]):  # it's diag_shift
-            old_api = True
-        # else:
-        #    new_api = True
-
-        if len(args) > 1:
-            if isinstance(args[1], str):
-                old_api = True
-        #     else:
-        #        new_api = True
-
-    if old_api:
-        for (i, arg) in enumerate(args):
-            if i == 0:
-                # diag shift
-                kwargs["diag_shift"] = arg
-            elif i == 1:
-                kwargs["method"] = arg
-            else:
-                raise TypeError(
-                    "SR takes at most 2 positional arguments but len(args) where provided"
-                )
-
-        args = tuple()
-
-        solver = None
-        if "iterative" in kwargs:
-            kwargs.pop("iterative")
-        if "method" in kwargs:
-            legacy_solvers = {
-                "cg": jax.scipy.sparse.linalg.cg,
-                "gmres": jax.scipy.sparse.linalg.gmres,
-            }
-            if kwargs["method"] not in legacy_solvers:
-                raise ValueError(
-                    "The old API only supports cg and gmres solvers. "
-                    "Migrate to the new API and use any solver from"
-                    "jax.scipy.sparse.linalg"
-                )
-            solver = legacy_solvers[kwargs["method"]]
-            kwargs.pop("method")
-        else:
-            solver = jax.scipy.sparse.linalg.cg
-
-        solver_keys = {}
-        has_solver_kw = False
-        for key in legacy_solver_kwargs:
-            if key in kwargs:
-                solver_keys[key] = kwargs[key]
-                has_solver_kw = True
-
-        if has_solver_kw:
-            solver = partial(solver, **solver_keys)
-
-        kwargs["solver"] = solver
-
-    return SR(*args, solver_restart=solver_restart, **kwargs)
-
-
-@dataclass
-class SR(AbstractLinearPreconditioner):
-    r"""
-    Stochastic Reconfiguration or Natural Gradient preconditioner for the gradient.
-
-    This preconditioner changes the gradient :math:`\nabla_i E` such that the
-    preconditioned gradient :math:`\Delta_j` solves the system of equations
-
-    .. math::
-
-        (S_{i,j} + \delta_{i,j}(\epsilon_1 S_{i,i} + \epsilon_2)) \Delta_{j} = \nabla_i E
-
-    Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix),
-    preconditioned according to the diagonal scale :math:`\epsilon_1` (`diag_scale`)
-    and the diagonal shift :math:`epsilon_2` (`diag_shift`). The default
-    regularisation takes :math:`\epsilon_1=0` and :math:`\epsilon_2=0.01`.
-    """
-
     diag_shift: ScalarOrSchedule = 0.01
     """Diagonal shift added to the S matrix. Can be a Scalar value, an
        `optax <https://optax.readthedocs.io>`_ schedule or a Callable function."""
@@ -194,7 +93,7 @@ class SR(AbstractLinearPreconditioner):
         solver_restart: bool = False,
         **kwargs,
     ):
-        """
+        r"""
         Constructs the structure holding the parameters for using the
         Stochastic Reconfiguration/Natural gradient method.
 

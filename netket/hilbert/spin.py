@@ -17,11 +17,9 @@ from typing import Optional, List, Union
 from functools import partial
 
 import numpy as np
-from netket.graph import AbstractGraph
 from numba import jit
 
 from .homogeneous import HomogeneousHilbert
-from ._deprecations import graph_to_N_depwarn
 
 
 def _check_total_sz(total_sz, S, size):
@@ -65,7 +63,6 @@ class Spin(HomogeneousHilbert):
         s: float,
         N: int = 1,
         total_sz: Optional[float] = None,
-        graph: Optional[AbstractGraph] = None,
     ):
         r"""Hilbert space obtained as tensor product of local spin states.
 
@@ -74,7 +71,6 @@ class Spin(HomogeneousHilbert):
            N: Number of sites (default=1)
            total_sz: If given, constrains the total spin of system to a particular
                 value.
-           graph: (deprecated) a graph from which to extract the number of sites.
 
         Examples:
            Simple spin hilbert space.
@@ -84,8 +80,6 @@ class Spin(HomogeneousHilbert):
            >>> print(hi.size)
            4
         """
-        N = graph_to_N_depwarn(N=N, graph=graph)
-
         local_size = round(2 * s + 1)
         local_states = np.empty(local_size)
 

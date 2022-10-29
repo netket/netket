@@ -108,17 +108,6 @@ def vstate(request):
     return vs
 
 
-@common.skipif_mpi
-def test_deprecated_name():
-    with warns(FutureWarning):
-        nk.variational.expect
-
-    with raises(AttributeError):
-        nk.variational.accabalubba
-
-    assert dir(nk.vqs) == dir(nk.variational)
-
-
 def check_consistent(vstate, mpi_size):
     assert vstate.n_samples == vstate.n_samples_per_rank * mpi_size
     assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
@@ -229,41 +218,6 @@ def test_chunk_size_api(vstate, _mpi_size):
         ValueError,
     ):
         vstate.sample(n_samples=1008 + 16)
-
-
-@common.skipif_mpi
-def test_deprecations(vstate):
-    vstate.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains=16)
-
-    # deprecation
-    with pytest.warns(FutureWarning):
-        vstate.n_discard = 10
-
-    with pytest.warns(FutureWarning):
-        assert vstate.n_discard == 10
-
-    assert vstate.n_discard_per_chain == 10
-
-    with pytest.warns(FutureWarning):
-        vstate.n_discard_per_chain = 100
-        assert vstate.n_discard == 100
-
-    x = vstate.hilbert.numbers_to_states(1)
-    with pytest.warns(FutureWarning, match="MCState.log_value"):
-        np.testing.assert_equal(vstate.evaluate(x), vstate.log_value(x))
-
-
-@common.skipif_mpi
-def test_deprecations_constructor():
-    sampler = nk.sampler.MetropolisLocal(hilbert=hi)
-    model = nk.models.RBM()
-
-    with pytest.warns(FutureWarning):
-        vs = nk.vqs.MCState(sampler, model, n_discard=10)
-        assert vs.n_discard_per_chain == 10
-
-    with pytest.raises(ValueError, match="Specify only"):
-        vs = nk.vqs.MCState(sampler, model, n_discard=10, n_discard_per_chain=10)
 
 
 @common.skipif_mpi

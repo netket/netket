@@ -26,7 +26,6 @@ import jax
 from netket.hilbert import AbstractHilbert
 from netket.utils.mpi import mpi_sum, n_nodes
 from netket.utils.types import PyTree
-from netket.utils.deprecation import deprecated
 
 import netket.jax as nkjax
 
@@ -68,26 +67,6 @@ class MetropolisNumpySamplerState:
             return None
 
         return self.n_accepted / self.n_steps
-
-    @property
-    @deprecated(
-        """Please use the attribute `.acceptance` instead of
-        `.acceptance_ratio`. The new attribute `.acceptance` returns the
-        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
-        returning a percentage, which is a bug."""
-    )
-    def acceptance_ratio(self) -> float:
-        """DEPRECATED: Please use the attribute `.acceptance` instead of
-        `.acceptance_ratio`. The new attribute `.acceptance` returns the
-        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
-        returning a percentage, which is a bug.
-
-        The percentage of accepted moves across all chains and MPI processes.
-
-        The rate is computed since the last reset of the sampler.
-        Will return None if no sampling has been performed since then.
-        """
-        return self.acceptance * 100
 
     @property
     def n_steps(self) -> int:

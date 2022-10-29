@@ -23,24 +23,6 @@ from .. import common
 pytestmark = common.skipif_mpi
 
 
-def test_deprecated_name():
-    with pytest.warns(FutureWarning):
-        nk.optim.sr
-
-    with pytest.raises(AttributeError):
-        nk.optim.accabalubba
-
-    assert dir(nk.optim) == dir(nk.optimizer)
-
-
-def test_deprecated_sr():
-    with pytest.warns(FutureWarning):
-        nk.optimizer.sr.SRLazyCG()
-
-    with pytest.warns(FutureWarning):
-        nk.optimizer.sr.SRLazyGMRES()
-
-
 @pytest.mark.parametrize(
     "qgt", [nk.optimizer.qgt.QGTJacobianDense, nk.optimizer.qgt.QGTJacobianPyTree]
 )

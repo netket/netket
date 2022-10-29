@@ -16,21 +16,17 @@ from typing import Optional, Union, List
 
 import numpy as np
 
-from netket.graph import AbstractGraph
-
 from .homogeneous import HomogeneousHilbert
-from ._deprecations import graph_to_N_depwarn
 
 
 class Qubit(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local qubit states."""
 
-    def __init__(self, N: int = 1, graph: Optional[AbstractGraph] = None):
+    def __init__(self, N: int = 1):
         r"""Initializes a qubit hilbert space.
 
         Args:
             N: Number of qubits.
-            graph: (deprecated) a graph from which to extract the number of sites.
 
         Examples:
             Simple spin hilbert space.
@@ -40,8 +36,6 @@ class Qubit(HomogeneousHilbert):
             >>> print(hi.size)
             100
         """
-        N = graph_to_N_depwarn(N=N, graph=graph)
-
         super().__init__([0.0, 1.0], N)
 
     def states_to_local_indices(self, x):

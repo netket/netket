@@ -38,7 +38,7 @@ def variables_from_file(filename: str, variables: _PyTree):
        >>> import netket as nk
        >>> import flax
        >>> # construct an RBM model on 10 spins
-       >>> vstate = nk.variational.MCState(
+       >>> vstate = nk.vqs.MCState(
        ...      nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
        ...      nk.models.RBM())
        >>> with open("test.mpack", 'wb') as file:
@@ -50,11 +50,11 @@ def variables_from_file(filename: str, variables: _PyTree):
        >>>
        >>> del vstate
        >>> # construct an RBM model on 10 spins
-       >>> vstate2 = nk.variational.MCState(
+       >>> vstate2 = nk.vqs.MCState(
        ...      nk.sampler.MetropolisLocal(nk.hilbert.Spin(0.5)**10),
        ...      nk.models.RBM())
        >>> # Load the data by passing the model
-       >>> vars = nk.variational.experimental.variables_from_file("test.mpack",
+       >>> vars = nk.experimental.vqs.variables_from_file("test.mpack",
        ...                                                        vstate2.variables)
        >>> # update the variables of vstate with the loaded data.
        >>> vstate2.variables = vars

@@ -25,7 +25,7 @@ from netket.hilbert import AbstractHilbert, ContinuousHilbert
 from netket.utils import mpi, wrap_afun
 from netket.utils.types import PyTree
 
-from netket.utils.deprecation import deprecated, warn_deprecation
+from netket.utils.deprecation import deprecated
 from netket.utils import struct
 
 from .base import Sampler, SamplerState
@@ -70,26 +70,6 @@ class MetropolisSamplerState(SamplerState):
             return None
 
         return self.n_accepted / self.n_steps
-
-    @property
-    @deprecated(
-        """Please use the attribute `.acceptance` instead of
-        `.acceptance_ratio`. The new attribute `.acceptance` returns the
-        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
-        returning a percentage, which is a bug."""
-    )
-    def acceptance_ratio(self):
-        """DEPRECATED: Please use the attribute `.acceptance` instead of
-        `.acceptance_ratio`. The new attribute `.acceptance` returns the
-        acceptance ratio ∈ [0,1], instead of the current `acceptance_ratio`
-        returning a percentage, which is a bug.
-
-        The percentage of accepted moves across all chains and MPI processes.
-
-        The rate is computed since the last reset of the sampler.
-        Will return None if no sampling has been performed since then.
-        """
-        return self.acceptance * 100
 
     @property
     def n_steps(self) -> int:
@@ -215,13 +195,6 @@ class MetropolisSampler(Sampler):
         args, kwargs = super().__pre_init__(hilbert=hilbert, **kwargs)
 
         kwargs["rule"] = rule
-
-        # deprecation warnings
-        if "reset_chain" in kwargs:
-            warn_deprecation(
-                "The keyword argument `reset_chain` is deprecated in favour of `reset_chains`"
-            )
-            kwargs["reset_chains"] = kwargs.pop("reset_chain")
 
         return args, kwargs
 

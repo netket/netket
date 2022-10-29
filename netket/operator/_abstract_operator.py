@@ -15,7 +15,6 @@
 import abc
 
 from netket.utils.types import DType
-from netket.utils import deprecated
 
 from netket.hilbert import AbstractHilbert
 
@@ -35,13 +34,6 @@ class AbstractOperator(abc.ABC):
     def hilbert(self) -> AbstractHilbert:
         r"""The hilbert space associated to this operator."""
         return self._hilbert
-
-    # TODO: eventually remove this
-    @property
-    @deprecated(reason="Please use `operator.hilbert.size` instead.")
-    def size(self) -> int:
-        r"""The total number number of local degrees of freedom."""
-        return self._hilbert.size
 
     @property
     def is_hermitian(self) -> bool:

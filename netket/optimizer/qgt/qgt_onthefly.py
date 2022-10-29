@@ -21,7 +21,6 @@ from flax import struct
 
 import netket.jax as nkjax
 from netket.utils.types import PyTree
-from netket.utils import warn_deprecation
 
 from .common import check_valid_vector_type
 from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
@@ -49,19 +48,12 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
     if vstate is None:
         return partial(QGTOnTheFly, chunk_size=chunk_size, **kwargs)
 
-    if "centered" in kwargs:
-        warn_deprecation(
-            "The argument `centered` is deprecated. The implementation now always behaves as if centered=False."
-        )
-        kwargs.pop("centered")
-
     if kwargs.pop("diag_scale", None) is not None:
         raise NotImplementedError(
             "\n`diag_scale` argument is not yet supported by QGTOnTheFly."
             "Please use `QGTJacobianPyTree` or `QGTJacobianDense`.\n\n"
             "You are also encouraged to nag the developers to support "
             "this feature.\n\n"
-        )
 
     # TODO: Find a better way to handle this case
     from netket.vqs import ExactState
