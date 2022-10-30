@@ -26,6 +26,7 @@
 ### Bug Fixes
 * {meth}`netket.vqs.ExactState.expect_and_grad` returned a scalar while `expect` returned a {class}`nk.stats.Stats` object with 0 error. The inconsistency has been addressed and now they both return a `Stats` object. This changes the format of the files logged when running `VMC`, which will now store the average under `Mean` instead of `value` [#1325](https://github.com/netket/netket/pull/1325).
 * Autoregressive networks had a default activation function (`selu`) that did not act on the imaginary part of the inputs. We now changed that, and the activation function is `reim_selu`, which acts independently on the real and imaginary part. This changes nothing for real parameters, but improves the defaults for complex ones [#1371](https://github.com/netket/netket/pull/1371).
+* A **major performance degradation** that arose when using `~netket.operator.LocalOperator` has been addressed. The bug caused our operators to be recompiled every time they were queried, imposing a large overhead [1377](https://github.com/netket/netket/pull/1377).
 
 ### Deprecations
 * The `rescale_shift` argument of {class}`netket.optimizer.qgt.QGTJacobianPyTree` and `QGTJacobianDense` is deprecated inf avour the more flexible syntax with `diag_scale`. `rescale_shift=False` should be removed. `rescale_shift=True` should be replaced with `diag_scale=old_diag_shift`. [#1352](https://github.com/netket/netket/pull/1352).
