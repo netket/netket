@@ -9,6 +9,7 @@
 
 ### Bug Fixes
 * Autoregressive networks had a default activation function (`selu`) that did not act on the imaginary part of the inputs. We now changed that, and the activation function is `reim_selu`, which acts independently on the real and imaginary part. This changes nothing for real parameters, but improves the defaults for complex ones [#1371](https://github.com/netket/netket/pull/1371).
+* A **major performance degradation** that arose when using `~netket.operator.LocalOperator` has been addressed. The bug caused our operators to be recompiled every time they were queried, imposing a large overhead [1377](https://github.com/netket/netket/pull/1377).
 
 
 
