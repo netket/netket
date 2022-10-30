@@ -393,6 +393,7 @@ class LocalOperator(DiscreteOperator):
             self._basis = data["basis"]
             self._nonzero_diagonal = data["nonzero_diagonal"]
             self._max_conn_size = data["max_conn_size"]
+            self._initialized = True
 
     @property
     def max_conn_size(self) -> int:
