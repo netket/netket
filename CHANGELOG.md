@@ -16,7 +16,6 @@
 * {meth}`~netket.vqs.ExactState.expect_and_grad` now returns a `nk.stats.Stats` object that also contains the variance, as `MCState` does [#1325](https://github.com/netket/netket/pull/1325).
 * Experimental RK solvers now store the error of the last timestep in the integrator state [#1328](https://github.com/netket/netket/pull/1328).
 * {class}`~netket.operator.PauliStrings` can now be constructed by passing a single string, instead of the previous requirement of a list of strings [#1331](https://github.com/netket/netket/pull/1331).
-* {class}`~netket.operator.PauliStrings` now support the subtraction operator [#1336](https://github.com/netket/netket/pull/1336).
 * {class}`~flax.core.frozen_dict.FrozenDict` can now be logged to netket's loggers, meaning that one does no longer need to unfreeze the parameters before logging them [#1338](https://github.com/netket/netket/pull/1338).
 * Fermion operators are much more efficient and generate fewer connected elements [#1279](https://github.com/netket/netket/pull/1279).
 * NetKet now is completely PEP 621 compliant and does not have anymore a `setup.py` in favour of a `pyproject.toml` based on [hatchling](https://hatch.pypa.io/latest/). To install NetKet you should use a recent version of `pip` or a compatible tool such as poetry/hatch/flint [#1365](https://github.com/netket/netket/pull/1365).
@@ -25,12 +24,18 @@
 
 ### Bug Fixes
 * {meth}`netket.vqs.ExactState.expect_and_grad` returned a scalar while `expect` returned a {class}`nk.stats.Stats` object with 0 error. The inconsistency has been addressed and now they both return a `Stats` object. This changes the format of the files logged when running `VMC`, which will now store the average under `Mean` instead of `value` [#1325](https://github.com/netket/netket/pull/1325).
-* Autoregressive networks had a default activation function (`selu`) that did not act on the imaginary part of the inputs. We now changed that, and the activation function is `reim_selu`, which acts independently on the real and imaginary part. This changes nothing for real parameters, but improves the defaults for complex ones [#1371](https://github.com/netket/netket/pull/1371).
-* A **major performance degradation** that arose when using `~netket.operator.LocalOperator` has been addressed. The bug caused our operators to be recompiled every time they were queried, imposing a large overhead [1377](https://github.com/netket/netket/pull/1377).
 
 ### Deprecations
 * The `rescale_shift` argument of {class}`netket.optimizer.qgt.QGTJacobianPyTree` and `QGTJacobianDense` is deprecated inf avour the more flexible syntax with `diag_scale`. `rescale_shift=False` should be removed. `rescale_shift=True` should be replaced with `diag_scale=old_diag_shift`. [#1352](https://github.com/netket/netket/pull/1352).
 * The call signature of preconditioners passed to {class}`netket.VMC` and other drivers has changed as a consequence of scheduling, and preconditioners should now accept an extra optional argument `step`. The old signature is still supported but is deprecated and will eventually be removed [#1364](https://github.com/netket/netket/pull/1364).
+
+
+## NetKet 3.5.2 (Bug Fixes) - 30 October 2022
+
+### Bug Fixes
+* {class}`~netket.operator.PauliStrings` now support the subtraction operator [#1336](https://github.com/netket/netket/pull/1336).
+* Autoregressive networks had a default activation function (`selu`) that did not act on the imaginary part of the inputs. We now changed that, and the activation function is `reim_selu`, which acts independently on the real and imaginary part. This changes nothing for real parameters, but improves the defaults for complex ones [#1371](https://github.com/netket/netket/pull/1371).
+* A **major performance degradation** that arose when using `~netket.operator.LocalOperator` has been addressed. The bug caused our operators to be recompiled every time they were queried, imposing a large overhead [1377](https://github.com/netket/netket/pull/1377).
 
 
 ## NetKet 3.5.1 (Bug Fixes)
