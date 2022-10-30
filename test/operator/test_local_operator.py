@@ -504,3 +504,11 @@ def test_identity():
 
     X = bcreate(hi, 0)
     assert_same_matrices(I @ X, X)
+
+def test_not_recompiling():
+    hi = nk.hilbert.Fock(n_max=3) * nk.hilbert.Spin(1 / 2) * nk.hilbert.Fock(n_max=2)
+    op = bcreate(hi, 0)*bdestroy(hi, 2)
+
+    assert not op._initialized
+    op.get_conn_padded(hi.numbers_to_states(1))
+    assert op._initialized
