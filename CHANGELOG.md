@@ -8,6 +8,7 @@
 ### New features
 
 ### Bug Fixes
+* Autoregressive networks had a default activation function (`selu`) that did not act on the imaginary part of the inputs. We now changed that, and the activation function is `reim_selu`, which acts independently on the real and imaginary part. This changes nothing for real parameters, but improves the defaults for complex ones [#1371](https://github.com/netket/netket/pull/1371).
 
 
 
