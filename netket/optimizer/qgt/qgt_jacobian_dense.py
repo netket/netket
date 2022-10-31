@@ -129,9 +129,9 @@ def QGTJacobianDense(
 
     jacobians = nkjax.jacobian(
         vstate._apply_fun,
-        vstate.model_state,
         vstate.parameters,
         samples.reshape(-1, samples.shape[-1]),
+        vstate.model_state,
         mode=mode,
         pdf=pdf,
         chunk_size=chunk_size,

@@ -405,9 +405,9 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
 
     centered_oks = nkjax.jacobian(
         apply_fun,
-        model_state,
         e.params,
         e.samples,
+        model_state,
         mode=mode,
         dense=False,
         center=True,
