@@ -47,21 +47,21 @@ def jacobian(
     dense: bool = False,
 ) -> PyTree:
     r"""
-    Computes the jacobian of a NN model with respect to its parameters. This function differs from 
+    Computes the jacobian of a NN model with respect to its parameters. This function differs from
     :ref:`jax.jac_bwd` because it supports models with both real and complex parameters, as well as
     non-holomorphic models.
-    
+
     In the context of NQS, if you pass the log-wavefunction to to this function, it will compute the
     log-derivative of the wavefunction with respect to the parameters, i.e. the matrix commonly known
     as:
-    
+
     .. math::
 
         O_k(\sigma) = \frac{\partial \ln \Psi(\sigma)}{\partial \theta_k}
 
 
     This function has three modes of operation that must be specified through the ``mode`` keyword-argument:
-        - ``mode="real"``: The jacobian that is returned is real. The Imaginary part of 
+        - ``mode="real"``: The jacobian that is returned is real. The Imaginary part of
             :math:`\ln\Psi(\sigma)` is discarded if present. This mode is useful for models describing
             real-valued states with a sign. This coincides with the :math:`O_k(\sigma)` matrix for real-valued,
             real-output models.
@@ -72,14 +72,14 @@ def jacobian(
             and imaginary part of the parameters.
         - ``mode="holomorphic"``: returns correct results only if your model is holomorphic. Works like
             ``mode="real"``, but returns a complex valued jacobian.
-            
+
     The returned jacobian has the same PyTree structure as the parameters, with an additional leading
     dimension equal to the number of samples if ``mode=real/holomorphic`` or if you have real-valued parameters
     and use ``mode=complex``. If you have complex-valued parameters and use ``mode=complex``, the returned
     pytree will have two leading dimensions, the first iterating along the samples, and the second
-    with size 2, iterating along the real and imaginary part of the parameters (essentially giving the 
+    with size 2, iterating along the real and imaginary part of the parameters (essentially giving the
     jacobian and conjugate-jacobian).
-    
+
     If dense is True, the returned jacobian is a dense matrix, that is somewhat similar to what would be
     obtained by calling ``jax.vmap(jax.grad(apply_fun))(parameters)``.
 
@@ -100,7 +100,7 @@ def jacobian(
     """
     if samples.ndim != 2:
         raise ValueError("samples must be a 2D array")
-    
+
     if model_state is None:
         model_state = {}
 
@@ -129,7 +129,7 @@ def jacobian(
         )
 
     # pre-apply the model state
-    forward_fn = lambda W,σ: apply_fun({"params": W, **model_state}, σ)
+    forward_fn = lambda W, σ: apply_fun({"params": W, **model_state}, σ)
 
     if split_complex_params:
         # doesn't do anything if the params are already real

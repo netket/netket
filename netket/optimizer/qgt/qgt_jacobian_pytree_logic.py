@@ -12,29 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 from functools import partial
-import math
 
 import jax
 import jax.flatten_util
 import jax.numpy as jnp
 
-import numpy as np
-
-from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils import mpi
-from netket.utils.types import Array, Callable, PyTree, Scalar
+from netket.utils.types import Array, PyTree, Scalar
 from netket.jax import (
     tree_cast,
     tree_conj,
     tree_axpy,
-    tree_to_real,
-    compose,
-    vmap_chunked,
 )
-
-from .qgt_jacobian_common import rescale
 
 
 def _jvp(oks: PyTree, v: PyTree) -> Array:

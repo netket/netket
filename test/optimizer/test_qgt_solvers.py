@@ -136,7 +136,6 @@ def test_qgt_otf_scale_err():
         nk.optimizer.qgt.QGTOnTheFly(vstate, diag_scale=0.01)
 
 
-def test_qgt_explicit_chunk_size(SType)
 @pytest.mark.parametrize(
     "SType", [pytest.param(T, id=name) for name, T in QGT_types.items()]
 )

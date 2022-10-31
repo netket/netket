@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Tuple
-
 from jax import numpy as jnp
 
 from netket.utils.types import Array, PyTree
@@ -23,8 +21,6 @@ from .jacobian_pytree import (
     jacobian_real_holo,
     jacobian_cplx,
 )
-
-from netket.jax.utils import RealImagTuple
 
 
 def ravel(x: PyTree) -> Array:

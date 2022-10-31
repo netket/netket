@@ -12,19 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Tuple
-from functools import partial
-import math
+from typing import Callable, Tuple
 
-import jax
 from jax import numpy as jnp
 
-from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils.types import Array, PyTree, Scalar
 from netket.utils import mpi
 import netket.jax as nkjax
-
-from .qgt_jacobian_common import rescale
 
 from netket.jax.utils import RealImagTuple
 
