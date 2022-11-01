@@ -143,6 +143,6 @@ def test_qgt_explicit_chunk_size(SType):
     hi = nk.hilbert.Spin(s=1 / 2, N=5)
     ma = nk.models.RBMModPhase(alpha=1, dtype=float)
     sa = nk.sampler.MetropolisLocal(hi, n_chains=16, reset_chains=False)
-    vs = nk.vqs.MCState(sa, ma, n_samples=100, n_discard_per_chain=100)
+    vs = nk.vqs.MCState(sa, ma, n_samples=16 * 8, n_discard_per_chain=100)
 
-    S = SType(vs, chunk_size=50)
+    S = SType(vs, chunk_size=16 * 4)
