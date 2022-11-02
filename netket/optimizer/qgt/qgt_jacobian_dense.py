@@ -27,11 +27,12 @@ from netket.nn import split_array_mpi
 from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
-from .qgt_jacobian_dense_logic import prepare_centered_oks, vec_to_real, mat_vec
+from .qgt_jacobian_dense_logic import vec_to_real, mat_vec
 from .qgt_jacobian_common import (
     choose_jacobian_mode,
     sanitize_diag_shift,
     to_shift_offset,
+    rescale,
 )
 
 
@@ -126,23 +127,30 @@ def QGTJacobianDense(
 
     shift, offset = to_shift_offset(diag_shift, diag_scale)
 
-    O, scale = prepare_centered_oks(
+    jacobians = nkjax.jacobian(
         vstate._apply_fun,
         vstate.parameters,
         samples.reshape(-1, samples.shape[-1]),
         vstate.model_state,
-        mode,
-        offset,
-        pdf,
-        chunk_size,
+        mode=mode,
+        pdf=pdf,
+        chunk_size=chunk_size,
+        dense=True,
+        center=True,
     )
+
+    if offset is not None:
+        ndims = 1 if mode != "complex" else 2
+        jacobians, scale = rescale(jacobians, offset, ndims=ndims)
+    else:
+        scale = None
 
     pars_struct = jax.tree_map(
         lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), vstate.parameters
     )
 
     return QGTJacobianDenseT(
-        O=O,
+        O=jacobians,
         scale=scale,
         mode=mode,
         _params_structure=pars_struct,

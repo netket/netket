@@ -144,6 +144,7 @@ def _state_to_binary_list(random_state, bits_per_site):
     ]
 
 
+@common.skipif_mpi
 @pytest.mark.parametrize("hilbert_shape", [(2,), (2, 2), (2, 3), (4, 3, 2)])
 def test_binary_encoding(hilbert_shape):
     for hilbert in _create_hilbert_space(hilbert_shape):

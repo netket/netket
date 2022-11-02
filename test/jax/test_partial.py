@@ -1,6 +1,10 @@
 from functools import partial
 from netket.jax import HashablePartial
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 
 def test_hashable_partial_merges_with_partial():
     def f(a, b, c, d, e, f, g):

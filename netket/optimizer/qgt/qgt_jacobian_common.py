@@ -160,6 +160,7 @@ def to_shift_offset(diag_shift, diag_scale):
         return diag_scale, diag_shift / diag_scale
 
 
+@partial(jax.jit, static_argnames="ndims")
 def rescale(centered_oks, offset, *, ndims: int = 1):
     """
     compute ΔOₖ/√Sₖₖ and √Sₖₖ

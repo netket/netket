@@ -5,6 +5,10 @@ import netket as nk
 import numpy as np
 from functools import partial
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 
 @pytest.mark.parametrize("jit", [False, True])
 @pytest.mark.parametrize("chunk_size", [None, 16, 10000, 1000000])

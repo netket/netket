@@ -27,11 +27,12 @@ from netket.nn import split_array_mpi
 from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
-from .qgt_jacobian_pytree_logic import mat_vec, prepare_centered_oks
+from .qgt_jacobian_pytree_logic import mat_vec
 from .qgt_jacobian_common import (
     choose_jacobian_mode,
     sanitize_diag_shift,
     to_shift_offset,
+    rescale,
 )
 
 
@@ -127,19 +128,26 @@ def QGTJacobianPyTree(
 
     shift, offset = to_shift_offset(diag_shift, diag_scale)
 
-    O, scale = prepare_centered_oks(
+    jacobians = nkjax.jacobian(
         vstate._apply_fun,
         vstate.parameters,
         samples.reshape(-1, samples.shape[-1]),
         vstate.model_state,
-        mode,
-        offset,
-        pdf,
-        chunk_size,
+        mode=mode,
+        pdf=pdf,
+        chunk_size=chunk_size,
+        dense=False,
+        center=True,
     )
 
+    if offset is not None:
+        ndims = 1 if mode != "complex" else 2
+        jacobians, scale = rescale(jacobians, offset, ndims=ndims)
+    else:
+        scale = None
+
     return QGTJacobianPyTreeT(
-        O=O,
+        O=jacobians,
         scale=scale,
         _params_structure=vstate.parameters,
         mode=mode,
