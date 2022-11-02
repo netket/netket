@@ -215,7 +215,7 @@ def test_qgt_solve_with_x0(qgt, vstate):
     "chunk_size", [pytest.param(x, id=f"chunk={x}") for x in [None, 16]]
 )
 def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
-    if is_complex_failing(vstate, qgt, chunk_size):
+    if is_complex_failing(vstate, qgt):
         return
 
     rtol, atol = matmul_tol[nk.jax.dtype_real(vstate.model.dtype)]
