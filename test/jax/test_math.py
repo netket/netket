@@ -4,6 +4,10 @@ from netket.jax import logsumexp_cplx
 import jax.numpy as jnp
 from numpy.testing import assert_allclose
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 
 @pytest.mark.parametrize("a", [[1.0, 2.0], [1.0, -2.0], [1j, 2j]])
 @pytest.mark.parametrize("b", [None, [1.0, 2.0], [1.0, -1.0], [1j, -1j]])

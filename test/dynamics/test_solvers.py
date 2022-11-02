@@ -29,6 +29,10 @@ from netket.experimental.dynamics._rk_tableau import (
     bt_rk4_fehlberg,
 )
 
+from .. import common
+
+pytestmark = common.skipif_mpi
+
 
 tableaus = {
     "bt_feuler": bt_feuler,
