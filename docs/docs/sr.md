@@ -81,7 +81,7 @@ Given a a variational wavefunction $ \ket{\psi_W} $, we consider its first order
 We wish to determine the updates $ \delta_{\sigma,\eta} $ of the variational parameters that match a step of imaginary-time evolution, given by 
 
 \begin{equation}
-\ket{\phi} = U(\epsilon)\ket{\psi_W} = e^{\epsilon\hat{H}}\ket{\psi_W} \sim (\mathbb{I} - \epsilon \hat{H})\ket{\psi_W}
+\ket{\phi} = U(\epsilon)\ket{\psi_W} = e^{-\epsilon\hat{H}}\ket{\psi_W} \sim (\mathbb{I} - \epsilon \hat{H})\ket{\psi_W}
 \end{equation}
 
 It is possible to show that the updates $\delta W_k $ that minimise the norm of the state $\ket{\phi}-\ket{\psi_{W+\delta W}}$ can be determined by solving the linear system 
