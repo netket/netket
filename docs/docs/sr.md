@@ -59,12 +59,12 @@ While mathematically those operations are all well defined, there are several wa
 The 3 implementations are:
 
  - {ref}`netket.optimizer.qgt.QGTOnTheFly`, which uses jax automatic differentiation through two `vjp` and one `jvp` product to compute the action of quantum geometric tensor on a vector and operates natively on PyTrees. This method will essentially run AD every time you compute `QGT@vector`. This method shines if the parameters of your network are stored in a PyTree with few leaf nodes and/or you are not performing many iterations of the iterative solver. It can compute the full dense QGT but it is not efficient at doing it so we advise not to use it with dense solvers.
- - {ref}`netket.optimizer.qgt.QGTJacobianDense`, which precomputes the log derivatives ( $ O_k $ ) when it's constructed and converts it to a single dense array. If you have a high number of total parameters and/or many leaf nodes in your parameter PyTree, this implementation might perform better because everything is stored contiguously in memory. However, it has an high 'startup cost'. 
+ - {ref}`netket.optimizer.qgt.QGTJacobianDense`, which precomputes the log derivatives ( $ O_k $ ) when it's constructed and converts it to a single dense array. If you have a high number of total parameters and/or many leaf nodes in your parameter PyTree, this implementation might perform better because everything is stored contiguously in memory. However, it has an high 'startup cost'.
  - {ref}`netket.optimizer.qgt.QGTJacobianPyTree`, same as above, but the precomputed jacobian is not stored contiguously in memory but is stored as a PyTree. This might work better than `QGTJacobianDense` if there are few leaf nodes. We haven't studied the performance tradeoffs between the two Jacobian implementations and we would appreciate feedback.
 
 We also have an extra implementation, called `netket.optimizer.qgt.QGTAuto`, which uses some heuristics based on the parameters of the network to select the best QGT implementation. Be warned that the heuristics we use is very crude, and might not pick the best implementation all the time.
 
-All the QGT implementations listed above have several options that can affect their performance. 
+All the QGT implementations listed above have several options that can affect their performance.
 We advise you to have a look at them and experiment.
 We provide a lot of freedom because it's not yet clear to us what is the best implementation for which kind of problems.
 If you work with NetKet and determine that a particular implementation works best for certain types of networks, we would be glad to hear it! Let us know by opening a Discussion on our GitHub repository. We might use the insight to improve the automatic selection.
@@ -78,13 +78,13 @@ We would like to underline that SR can be derived (and therefore thought of) as 
 The derivation in the case of a variational optimization for the ground state, can be sketched as follows:
 
 Given a a variational wavefunction $ \ket{\psi_W} $, we consider its first order Taylor expansion around $ W $, $ \ket{\psi_{W+\delta W}} = \ket{\psi_W} + \delta W_k \hat{O}_k \ket{\psi_W} $, where $ \bra{\sigma}\hat{O}_k \ket{\eta} = \delta_{\sigma,\eta} \frac{d \log\psi_W(\sigma)}{dW_k}$.
-We wish to determine the updates $ \delta_{\sigma,\eta} $ of the variational parameters that match a step of imaginary-time evolution, given by 
+We wish to determine the updates $ \delta_{\sigma,\eta} $ of the variational parameters that match a step of imaginary-time evolution, given by
 
 \begin{equation}
-\ket{\phi} = U(\epsilon)\ket{\psi_W} = e^{\epsilon\hat{H}}\ket{\psi_W} \sim (\mathbb{I} - \epsilon \hat{H})\ket{\psi_W}
+\ket{\phi} = U(\epsilon)\ket{\psi_W} = e^{-\epsilon\hat{H}}\ket{\psi_W} \sim (\mathbb{I} - \epsilon \hat{H})\ket{\psi_W}
 \end{equation}
 
-It is possible to show that the updates $\delta W_k $ that minimise the norm of the state $\ket{\phi}-\ket{\psi_{W+\delta W}}$ can be determined by solving the linear system 
+It is possible to show that the updates $\delta W_k $ that minimise the norm of the state $\ket{\phi}-\ket{\psi_{W+\delta W}}$ can be determined by solving the linear system
 
 \begin{equation}
 S_{i,k} \delta W_k = F_i
@@ -98,8 +98,8 @@ The QGT is positive definite, therefore it can be inverted and the solution is f
 \end{equation}
 where bold fonts are used for vectors.
 A complication is given by the fact that the QGT is determined by Monte Carlo sampling and it might have several eigenvalues that are zero or very small, leading to numerical stability issues when inverting the matrix or in the resulting dynamics.
-The linear system can be solved with several methods. For the models with many parameters and to achieve the best performance, iterative solvers such as those found in [jax.scipy.sparse.linalg](https://jax.readthedocs.io/en/latest/jax.scipy.html#module-jax.scipy.sparse.linalg), such as {func}`jax.scipy.sparse.linalg.cg` {func}`jax.scipy.sparse.linalg.gmres` are the best choice. 
-Do note that to stabilize those algorithms it is often needed to add a small ($10^{-5} - 10^{-2}$) shift to the diagonal of the QGT. 
+The linear system can be solved with several methods. For the models with many parameters and to achieve the best performance, iterative solvers such as those found in [jax.scipy.sparse.linalg](https://jax.readthedocs.io/en/latest/jax.scipy.html#module-jax.scipy.sparse.linalg), such as {func}`jax.scipy.sparse.linalg.cg` {func}`jax.scipy.sparse.linalg.gmres` are the best choice.
+Do note that to stabilize those algorithms it is often needed to add a small ($10^{-5} - 10^{-2}$) shift to the diagonal of the QGT.
 This can be set with the keyword argument `diag_shift`.
 Those methods, combined with our lazy representations of the QGT, never instantiate the full matrix and therefore achieve a great performance.
 However, when the number of parameters is small (smaller than 1000-5000), it might make sense to solve the system by factorizing the QGT with cholesky or SVD.
@@ -115,7 +115,7 @@ gs = nk.VMC(hamiltonian, optimizer, variational_state=vstate, preconditioner=sr)
 ```
 
 By default this will use an appropriate QGT and the iterative solver `jax.scipy.sparse.linalg.cg`.
-It is possible to change the iterative solver by providing any solver from `jax.scipy.sparse.linalg` or one of the dense solvers in `netket.optimizer.solver` (such as svd/cholesky/LU) to the SR object. 
+It is possible to change the iterative solver by providing any solver from `jax.scipy.sparse.linalg` or one of the dense solvers in `netket.optimizer.solver` (such as svd/cholesky/LU) to the SR object.
 
 ```python
 sr = nk.optimizer.SR(solver=nk.optimizer.solver.cholesky)
@@ -145,7 +145,7 @@ Since SR leads to an optimisation that approximates an imaginary time evolution,
 
 Stochastic Reconfiguration supports scheduling the `diagonal_shift` and the `diagonal_scale` variables along the optimisation. To use this feature, simply pass a function accepting as input the iteration number and returning the diagonal shift for that iteration.
 
-Moreover, [optax](https://optax.readthedocs.io) provides [several pre-built schedules](https://optax.readthedocs.io/en/latest/api.html#optimizer-schedules) such as [linear scheduling](https://optax.readthedocs.io/en/latest/api.html#optax.linear_schedule) interpolating from an initial shift to a final one, [exponential scheduling](https://optax.readthedocs.io/en/latest/api.html#optax.exponential_decay), [oscillating schedules](https://optax.readthedocs.io/en/latest/api.html#optax.cosine_decay_schedule) and many more. 
+Moreover, [optax](https://optax.readthedocs.io) provides [several pre-built schedules](https://optax.readthedocs.io/en/latest/api.html#optimizer-schedules) such as [linear scheduling](https://optax.readthedocs.io/en/latest/api.html#optax.linear_schedule) interpolating from an initial shift to a final one, [exponential scheduling](https://optax.readthedocs.io/en/latest/api.html#optax.exponential_decay), [oscillating schedules](https://optax.readthedocs.io/en/latest/api.html#optax.cosine_decay_schedule) and many more.
 
 To use them in practice, you can do something like the following. Check the documentation page of {func}`~netket.optimizer.SR` for more extensive discussion on what options can be scheduled.
 
@@ -153,6 +153,3 @@ To use them in practice, you can do something like the following. Check the docu
 sr = nk.optimizer.SR(diag_shift=optax.linear_schedule(0.01, 0.0001, 100))
 gs = nk.VMC(hamiltonian, optimizer, variational_state=vstate, preconditioner=sr)
 ```
-
-
-
