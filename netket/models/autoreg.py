@@ -155,6 +155,16 @@ class ARNNSequential(AbstractARNN):
 
     Subclasses must implement `activation` as a field or a method,
     and assign a list of ARNN layers to `self._layers` in `setup`.
+
+    Note:
+        If you want to use real parameters and output a complex wave function, such as in
+        `Hibat-Allah et. {\\it al} <https://arxiv.org/abs/2002.02973>`_,
+        you can implement `conditionals_log_psi` differently, compute the modulus and the phase
+        using the output of the last RNN layer, and combine them into the wave function.
+
+        During the sampling, `conditionals_log_psi` is called and only the modulus is
+        needed, so the computation of the phase becomes an overhead. To avoid this
+        overhead, you can override `conditional` and only compute the modulus there.
     """
 
     def conditionals_log_psi(self, inputs: Array) -> Array:
