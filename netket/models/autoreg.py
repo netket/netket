@@ -119,8 +119,9 @@ class AbstractARNN(nn.Module):
 
             warn_deprecation(
                 "AbstractARNN._conditional has been renamed to AbstractARNN.conditional "
-                "as a public API. Please update you code to use fast AR sampling."
+                "as a public API. Please update your subclass to use fast AR sampling."
             )
+            return self._conditional(inputs, index)
 
         return self.conditionals(inputs)[:, index, :]
 
