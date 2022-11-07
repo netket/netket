@@ -17,6 +17,7 @@ import netket as nk
 import numpy as np
 import pytest
 from jax import numpy as jnp
+from netket.utils import HashableArray
 
 from .. import common
 
@@ -375,3 +376,68 @@ def test_reorder_idx(graph):
     prev_neighbors_1 = _get_prev_neighbors(graph, reorder_idx_1)
     prev_neighbors_2 = _get_prev_neighbors(graph, reorder_idx_2)
     assert prev_neighbors_1 == prev_neighbors_2
+
+
+def test_construct_rnn():
+    def build_model(
+        reorder_idx=None, inv_reorder_idx=None, prev_neighbors=None, graph=None
+    ):
+        model = nk.models.LSTMNet2D(
+            hilbert=nk.hilbert.Spin(s=1 / 2, N=4),
+            layers=3,
+            features=5,
+            reorder_idx=reorder_idx,
+            inv_reorder_idx=inv_reorder_idx,
+            prev_neighbors=prev_neighbors,
+            graph=graph,
+        )
+
+        # Call `setup` to check RNN layers
+        inputs = jnp.zeros(4)
+        model.init(nk.jax.PRNGKey(), inputs)
+
+    build_model()
+    build_model(
+        graph=nk.graph.Chain(4),
+    )
+    build_model(
+        reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
+        graph=nk.graph.Chain(4),
+    )
+    build_model(
+        inv_reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
+        graph=nk.graph.Chain(4),
+    )
+    build_model(
+        reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
+        inv_reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
+        prev_neighbors=HashableArray(np.array([[-1], [0], [1], [2]])),
+    )
+
+    # When `prev_neighbors` is provided, you must also provide either `reorder_idx` or `inv_reorder_idx`
+    with pytest.raises(ValueError):
+        build_model(
+            prev_neighbors=HashableArray(np.array([[-1], [0], [1], [2]])),
+        )
+
+    # When `reorder_idx` is provided, you must also provide either `prev_neighbors` or `graph`
+    with pytest.raises(ValueError):
+        build_model(
+            reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
+        )
+
+    # `inv_reorder_idx` is not the inverse of `reorder_idx`
+    with pytest.raises(ValueError):
+        build_model(
+            reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
+            inv_reorder_idx=HashableArray(np.array([0, 1, 3, 2])),
+            prev_neighbors=HashableArray(np.array([[-1], [0], [1], [2]])),
+        )
+
+    # Site {1} is not a previous neighbor of site {0}
+    with pytest.raises(ValueError):
+        build_model(
+            reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
+            inv_reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
+            prev_neighbors=HashableArray(np.array([[1], [0], [1], [2]])),
+        )

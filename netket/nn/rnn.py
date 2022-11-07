@@ -28,30 +28,59 @@ from netket.utils.types import Array, DType, NNInitFunc
 default_kernel_init = orthogonal()
 
 
-def check_reorder_idx(reorder_idx: Array, inv_reorder_idx: Array):
-    if reorder_idx is None and inv_reorder_idx is None:
+def _check_reorder_idx(
+    reorder_idx: Optional[HashableArray],
+    inv_reorder_idx: Optional[HashableArray],
+    prev_neighbors: Optional[HashableArray],
+):
+    if reorder_idx is None and inv_reorder_idx is None and prev_neighbors is None:
+        # There is a faster code path for 1D RNN
         return
 
-    if reorder_idx is None or inv_reorder_idx is None:
+    if reorder_idx is None or inv_reorder_idx is None or prev_neighbors is None:
         raise ValueError(
-            "`reorder_idx` and `inv_reorder_idx` must be provided at the same time."
+            "`reorder_idx`, `inv_reorder_idx`, and `prev_neighbors` must be "
+            "provided at the same time."
         )
+
+    reorder_idx = np.asarray(reorder_idx)
+    inv_reorder_idx = np.asarray(inv_reorder_idx)
+    prev_neighbors = np.asarray(prev_neighbors)
 
     if reorder_idx.ndim != 1:
         raise ValueError("`reorder_idx` must be 1D.")
     if inv_reorder_idx.ndim != 1:
         raise ValueError("`inv_reorder_idx` must be 1D.")
+    if prev_neighbors.ndim != 2:
+        raise ValueError("`prev_neighbors` must be 2D.")
 
-    if reorder_idx.size != inv_reorder_idx.size:
+    V = reorder_idx.size
+    if inv_reorder_idx.size != V:
         raise ValueError(
             "`reorder_idx` and `inv_reorder_idx` must have the same length."
         )
+    if prev_neighbors.shape[0] != V:
+        raise ValueError(
+            "`reorder_idx` and `prev_neighbors` must have the same length."
+        )
 
-    # We can access idx's value only if it's not traced
-    if isinstance(reorder_idx, HashableArray):
-        idx = np.asarray(reorder_idx)[inv_reorder_idx]
-        if not np.array_equal(idx, np.arange(idx.size)):
-            raise ValueError("`inv_reorder_idx` is not the inverse of `reorder_idx`.")
+    idx = reorder_idx[inv_reorder_idx]
+    if not np.array_equal(idx, np.arange(V)):
+        raise ValueError("`inv_reorder_idx` is not the inverse of `reorder_idx`.")
+
+    for i in range(V):
+        n = prev_neighbors[i]
+        for j in n:
+            if j < -1 or j >= V:
+                raise ValueError(f"Invaild neighbor {j} of site {i}")
+
+        n = [j for j in n if j >= 0]
+        if len(set(n)) != len(n):
+            raise ValueError(f"Duplicate neighbor {n} of site {i}")
+
+        for j in n:
+            if reorder_idx[j] >= reorder_idx[i]:
+                raise ValueError(f"Site {j} is not a previous neighbor of site {i}")
 
 
 class RNNLayer(nn.Module):
@@ -67,6 +96,8 @@ class RNNLayer(nn.Module):
     inv_reorder_idx: Optional[HashableArray] = None
     """indices to transform the inputs from ordered to unordered.
     See :meth:`netket.models.AbstractARNN.reorder` for details."""
+    prev_neighbors: Optional[HashableArray] = None
+    """previous neighbors of each site."""
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -76,7 +107,7 @@ class RNNLayer(nn.Module):
 
     def __post_init__(self):
         super().__post_init__()
-        check_reorder_idx(self.reorder_idx, self.inv_reorder_idx)
+        _check_reorder_idx(self.reorder_idx, self.inv_reorder_idx, self.prev_neighbors)
 
     def _dense_params(self, name: Optional[str], in_features: int, out_features: int):
         kernel = self.param(

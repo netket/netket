@@ -96,6 +96,7 @@ class LSTMNet1D(RNN):
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
                 inv_reorder_idx=self.inv_reorder_idx,
+                prev_neighbors=self.prev_neighbors,
                 param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -116,6 +117,7 @@ class GRUNet1D(RNN):
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
                 inv_reorder_idx=self.inv_reorder_idx,
+                prev_neighbors=self.prev_neighbors,
                 param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -243,7 +245,8 @@ def _ensure_prev_neighbors(kwargs):
             pass
         else:
             raise ValueError(
-                "When `prev_neighbors` is provided, you must also provide `reorder_idx`."
+                "When `prev_neighbors` is provided, you must also provide "
+                "either `reorder_idx` or `inv_reorder_idx`."
             )
     else:
         if prev_neighbors is None:
@@ -259,6 +262,8 @@ def _ensure_prev_neighbors(kwargs):
     kwargs["inv_reorder_idx"] = inv_reorder_idx
     kwargs["prev_neighbors"] = prev_neighbors
 
+    # Validity of the values will be checked by `_check_reorder_idx` in `RNNLayer`
+
 
 @deprecate_dtype
 class _LSTMNet2D(RNN):
@@ -270,6 +275,7 @@ class _LSTMNet2D(RNN):
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
                 inv_reorder_idx=self.inv_reorder_idx,
+                prev_neighbors=self.prev_neighbors,
                 param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
