@@ -131,12 +131,8 @@ class RNNLayer(nn.Module):
     ) -> Callable[[Array, Array, Array], Tuple[Array, Array]]:
         raise NotImplementedError
 
-
-class RNNLayer1D(RNNLayer):
-    """Base class for 1D recurrent neural network layers."""
-
     @nn.compact
-    def __call__(self, inputs: Array) -> Array:
+    def __call__(self, inputs):
         """
         Applies the RNN cell to a batch of input sequences.
 
@@ -146,37 +142,63 @@ class RNNLayer1D(RNNLayer):
         Returns:
           The output sequences.
         """
-        batch_size = inputs.shape[0]
-        recur_func = self._get_recur_func(inputs, self.features)
+        batch_size, V, _ = inputs.shape
 
-        # (batch, length, features) -> (length, batch, features)
-        inputs = inputs.transpose((1, 0, 2))
-        # Unordered -> ordered
-        if self.reorder_idx is not None:
-            inputs = inputs[self.reorder_idx]
+        if self.reorder_idx is None:
+            max_prev_neighbors = 1
+        else:
+            reorder_idx = jnp.asarray(self.reorder_idx)
+            prev_neighbors = jnp.asarray(self.prev_neighbors)
+            max_prev_neighbors = prev_neighbors.shape[1]
 
-        if self.exclusive:
-            inputs = inputs[:-1]
-            inputs = jnp.pad(inputs, ((1, 0), (0, 0), (0, 0)))
-
-        def scan_func(carry, inputs):
-            cell, hidden = carry
-            cell, hidden = recur_func(inputs, cell, hidden)
-            return (cell, hidden), hidden
-
+        recur_func = self._get_recur_func(inputs, max_prev_neighbors * self.features)
         inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
-        zeros = jnp.zeros((batch_size, self.features), dtype=inputs.dtype)
-        _, outputs = lax.scan(scan_func, (zeros, zeros), inputs)
 
-        if self.inv_reorder_idx is not None:
-            outputs = outputs[self.inv_reorder_idx]
-        outputs = outputs.transpose((1, 0, 2))
+        def scan_func(carry, k):
+            cell, outputs = carry
+            if self.reorder_idx is None:
+                index = k
+            else:
+                index = reorder_idx[k]
+
+            if self.exclusive:
+                # Get the inputs at the previous site in the autoregressive order,
+                # or zeros for the first site
+                if self.reorder_idx is None:
+                    inputs_i = inputs[:, k - 1, :]
+                else:
+                    inputs_i = inputs[:, reorder_idx[k - 1], :]
+                inputs_i = jnp.where(k == 0, 0, inputs_i)
+            else:
+                # Get the inputs at the current site
+                inputs_i = inputs[:, index, :]
+
+            if self.reorder_idx is None:
+                # Get the hidden memory at the previous site,
+                # or zeros for the first site
+                hidden = outputs[:, k - 1, :]
+                hidden = jnp.expand_dims(hidden, axis=-1)
+            else:
+                # Get the hidden memories at the previous neighbors,
+                # or zeros for boundaries
+                n = prev_neighbors[index]
+                hidden = outputs[:, n, :]
+                hidden = jnp.where(n[None, :, None] == -1, 0, hidden)
+
+            cell, hidden = recur_func(inputs_i, cell, hidden)
+
+            outputs = outputs.at[:, index, :].set(hidden)
+            return (cell, outputs), outputs
+
+        cell = jnp.zeros((batch_size, self.features), dtype=inputs.dtype)
+        outputs = jnp.zeros((batch_size, V, self.features), dtype=inputs.dtype)
+        (_, outputs), _ = lax.scan(scan_func, (cell, outputs), jnp.arange(V))
         return outputs
 
 
 @deprecate_dtype
-class LSTMLayer1D(RNNLayer1D):
-    """1D long short-term memory layer."""
+class LSTMLayer(RNNLayer):
+    """Long short-term memory layer."""
 
     def _get_recur_func(self, _inputs, hid_features):
         batch_size = _inputs.shape[0]
@@ -203,8 +225,8 @@ class LSTMLayer1D(RNNLayer1D):
 
 
 @deprecate_dtype
-class GRULayer1D(RNNLayer1D):
-    """1D gated recurrent unit layer."""
+class GRULayer1D(RNNLayer):
+    """Gated recurrent unit layer. Only supports one previous neighbor at each site."""
 
     def _get_recur_func(self, _inputs, hid_features):
         batch_size = _inputs.shape[0]

@@ -33,6 +33,8 @@ def skip(request):
         )
 
 
+graph_full = nk.graph.Graph([(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)])
+
 partial_model_pairs = [
     # pytest.param(
     #     (
@@ -143,14 +145,14 @@ partial_model_pairs = [
     ),
     pytest.param(
         (
-            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet1D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet1D(
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
@@ -158,7 +160,49 @@ partial_model_pairs = [
                 machine_pow=machine_pow,
             ),
         ),
-        id="lstm1d",
+        id="lstm",
+    ),
+    pytest.param(
+        (
+            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                graph=nk.graph.Square(2),
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                graph=nk.graph.Square(2),
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+        ),
+        id="lstm_square",
+    ),
+    pytest.param(
+        (
+            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                graph=graph_full,
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
+                hilbert=hilbert,
+                layers=3,
+                features=5,
+                graph=graph_full,
+                param_dtype=param_dtype,
+                machine_pow=machine_pow,
+            ),
+        ),
+        id="lstm_full",
     ),
     pytest.param(
         (
@@ -177,28 +221,7 @@ partial_model_pairs = [
                 machine_pow=machine_pow,
             ),
         ),
-        id="gru1d",
-    ),
-    pytest.param(
-        (
-            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet2D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                graph=nk.graph.Square(2),
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet2D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                graph=nk.graph.Square(2),
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-        ),
-        id="lstm2d",
+        id="gru",
     ),
 ]
 

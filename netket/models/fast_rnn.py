@@ -21,8 +21,7 @@ from netket.graph import AbstractGraph
 from netket.models.autoreg import _get_feature_list
 from netket.models.fast_autoreg import FastARNNSequential
 from netket.models.rnn import RNN, _ensure_prev_neighbors
-from netket.nn.fast_rnn import FastGRULayer1D, FastLSTMLayer1D
-from netket.nn.fast_rnn_2d import FastLSTMLayer2D
+from netket.nn.fast_rnn import FastGRULayer1D, FastLSTMLayer
 from netket.nn.rnn import default_kernel_init
 from netket.utils import deprecate_dtype, HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
@@ -81,11 +80,12 @@ class FastRNN(FastARNNSequential):
         return inputs_i
 
 
-class _FastLSTMNet1D(FastRNN):
+class _FastLSTMNet(FastRNN):
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
-            FastLSTMLayer1D(
+            FastLSTMLayer(
+                size=self.hilbert.size,
                 features=features[i],
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
@@ -104,24 +104,6 @@ class _FastGRUNet1D(FastRNN):
         features = _get_feature_list(self)
         self._layers = [
             FastGRULayer1D(
-                features=features[i],
-                exclusive=(i == 0),
-                reorder_idx=self.reorder_idx,
-                inv_reorder_idx=self.inv_reorder_idx,
-                prev_neighbors=self.prev_neighbors,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
-            )
-            for i in range(self.layers)
-        ]
-
-
-class _FastLSTMNet2D(FastRNN):
-    def setup(self):
-        features = _get_feature_list(self)
-        self._layers = [
-            FastLSTMLayer2D(
                 size=self.hilbert.size,
                 features=features[i],
                 exclusive=(i == 0),
@@ -137,33 +119,22 @@ class _FastLSTMNet2D(FastRNN):
 
 
 @deprecate_dtype
-def FastLSTMNet1D(*args, **kwargs):
+def FastLSTMNet(*args, **kwargs):
     """
-    1D long short-term memory network with fast sampling.
+    Long short-term memory network with fast sampling.
 
     See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
     _ensure_prev_neighbors(kwargs)
-    return _FastLSTMNet1D(*args, **kwargs)
+    return _FastLSTMNet(*args, **kwargs)
 
 
 @deprecate_dtype
 def FastGRUNet1D(*args, **kwargs):
     """
-    1D gated recurrent unit network with fast sampling.
+    Gated recurrent unit network with fast sampling. Only supports one previous neighbor at each site.
 
     See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
     _ensure_prev_neighbors(kwargs)
     return _FastGRUNet1D(*args, **kwargs)
-
-
-@deprecate_dtype
-def FastLSTMNet2D(*args, **kwargs):
-    """
-    2D long short-term memory network with snake ordering for square lattice and fast sampling.
-
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
-    """
-    _ensure_prev_neighbors(kwargs)
-    return _FastLSTMNet2D(*args, **kwargs)

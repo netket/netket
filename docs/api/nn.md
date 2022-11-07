@@ -27,12 +27,10 @@ Read more about the design goal of this module in their [README](https://github.
    FastMaskedConv1D
    FastMaskedConv2D
 
+   LSTMLayer
    GRULayer1D
-   LSTMLayer1D
-   LSTMLayer2D
+   FastLSTMLayer
    FastGRULayer1D
-   FastLSTMLayer1D
-   FastLSTMLayer2D
 ```
 
 ## Activation functions
