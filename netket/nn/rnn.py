@@ -91,8 +91,10 @@ class RNNLayer(nn.Module):
         )
         return kernel, bias
 
+    # We need to define the parameters outside lax.scan,
+    # and use the returned function inside lax.scan
     def _get_recur_func(
-        self, inputs: Array
+        self, inputs: Array, hid_features: int
     ) -> Callable[[Array, Array, Array], Tuple[Array, Array]]:
         raise NotImplementedError
 
@@ -114,7 +116,7 @@ class RNNLayer1D(RNNLayer):
           The output sequences.
         """
         batch_size = inputs.shape[0]
-        recur_func = self._get_recur_func(inputs)
+        recur_func = self._get_recur_func(inputs, self.features)
 
         # (batch, length, features) -> (length, batch, features)
         inputs = inputs.transpose((1, 0, 2))
@@ -145,10 +147,10 @@ class RNNLayer1D(RNNLayer):
 class LSTMLayer1D(RNNLayer1D):
     """1D long short-term memory layer."""
 
-    def _get_recur_func(self, inputs):
+    def _get_recur_func(self, inputs, hid_features):
         in_features = inputs.shape[-1]
         kernel, bias = self._dense_params(
-            None, in_features + self.features, self.features * 4
+            None, in_features + hid_features, self.features * 4
         )
         inputs, kernel, bias = promote_dtype(inputs, kernel, bias, dtype=None)
 
@@ -171,13 +173,13 @@ class LSTMLayer1D(RNNLayer1D):
 class GRULayer1D(RNNLayer1D):
     """1D gated recurrent unit layer."""
 
-    def _get_recur_func(self, inputs):
+    def _get_recur_func(self, inputs, hid_features):
         in_features = inputs.shape[-1]
         rz_kernel, rz_bias = self._dense_params(
-            "rz", in_features + self.features, self.features * 2
+            "rz", in_features + hid_features, self.features * 2
         )
         n_kernel, n_bias = self._dense_params(
-            "n", in_features + self.features, self.features
+            "n", in_features + hid_features, self.features
         )
         inputs, rz_kernel, rz_bias, n_kernel, n_bias = promote_dtype(
             inputs, rz_kernel, rz_bias, n_kernel, n_bias, dtype=None

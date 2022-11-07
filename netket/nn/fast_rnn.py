@@ -43,7 +43,7 @@ class FastRNNLayer1D(RNNLayer):
           The output site with dimensions (batch, features).
         """
         batch_size = inputs.shape[0]
-        recur_func = self._get_recur_func(inputs)
+        recur_func = self._get_recur_func(inputs, self.features)
 
         inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
 
@@ -75,8 +75,8 @@ class FastLSTMLayer1D(FastRNNLayer1D):
     See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
 
-    def _get_recur_func(self, inputs):
-        return LSTMLayer1D._get_recur_func(self, inputs)
+    def _get_recur_func(self, inputs, hid_features):
+        return LSTMLayer1D._get_recur_func(self, inputs, hid_features)
 
 
 @deprecate_dtype
@@ -87,5 +87,5 @@ class FastGRULayer1D(FastRNNLayer1D):
     See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
 
-    def _get_recur_func(self, inputs):
-        return GRULayer1D._get_recur_func(self, inputs)
+    def _get_recur_func(self, inputs, hid_features):
+        return GRULayer1D._get_recur_func(self, inputs, hid_features)

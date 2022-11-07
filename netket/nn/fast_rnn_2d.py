@@ -17,8 +17,8 @@ from flax.linen.dtypes import promote_dtype
 
 from jax.nn.initializers import zeros
 
-from netket.nn.rnn import RNNLayer
-from netket.nn.rnn_2d import LSTMLayer2D, RNNLayer2D, _get_h_xy
+from netket.nn.rnn import RNNLayer, LSTMLayer1D
+from netket.nn.rnn_2d import RNNLayer2D, _get_h_xy
 from netket.utils import deprecate_dtype
 from netket.utils.types import Array
 
@@ -47,7 +47,7 @@ class FastRNNLayer2D(RNNLayer):
           The output site with dimensions (batch, features).
         """
         batch_size = inputs.shape[0]
-        recur_func = self._get_recur_func(inputs)
+        recur_func = self._get_recur_func(inputs, self.features * 2)
 
         inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
 
@@ -63,8 +63,8 @@ class FastRNNLayer2D(RNNLayer):
             inputs.dtype,
         )
 
-        h_x, h_y = _get_h_xy(_outputs.value, index, self.L)
-        cell, hidden = recur_func(inputs, _cell.value, h_x, h_y)
+        hidden = _get_h_xy(_outputs.value, index, self.L)
+        cell, hidden = recur_func(inputs, _cell.value, hidden)
 
         initializing = self.is_mutable_collection("params")
         if not initializing:
@@ -85,5 +85,5 @@ class FastLSTMLayer2D(FastRNNLayer2D):
     See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
 
-    def _get_recur_func(self, inputs):
-        return LSTMLayer2D._get_recur_func(self, inputs)
+    def _get_recur_func(self, inputs, hid_features):
+        return LSTMLayer1D._get_recur_func(self, inputs, hid_features)

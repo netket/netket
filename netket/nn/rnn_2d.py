@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from math import sqrt
-from typing import Tuple
 
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype
@@ -22,7 +21,7 @@ import jax
 from jax import lax
 from jax import numpy as jnp
 
-from netket.nn.rnn import RNNLayer
+from netket.nn.rnn import RNNLayer, LSTMLayer1D
 from netket.utils import deprecate_dtype
 from netket.utils.types import Array
 
@@ -32,7 +31,7 @@ def _tree_where(cond, xs, ys):
     return jax.tree_util.tree_map(lambda x, y: jnp.where(cond, x, y), xs, ys)
 
 
-def _get_h_xy_single(hiddens: Array, index: int, L: int) -> Tuple[Array, Array]:
+def _get_h_xy_single(hiddens: Array, index: int, L: int) -> Array:
     """
     Hard-coded snake ordering for square lattice.
 
@@ -50,7 +49,7 @@ def _get_h_xy_single(hiddens: Array, index: int, L: int) -> Tuple[Array, Array]:
 
     i, j = divmod(index, L)
     zeros = jnp.zeros_like(h(0, 0))
-    return _tree_where(
+    h_x, h_y = _tree_where(
         i % 2 == 0,
         _tree_where(
             j == 0,
@@ -67,6 +66,8 @@ def _get_h_xy_single(hiddens: Array, index: int, L: int) -> Tuple[Array, Array]:
             (h(i, j + 1), h(i - 1, j)),
         ),
     )
+    hidden = jnp.concatenate([h_x, h_y], axis=-1)
+    return hidden
 
 
 _get_h_xy = jax.vmap(_get_h_xy_single, in_axes=(0, None, None))
@@ -90,7 +91,7 @@ class RNNLayer2D(RNNLayer):
         """
         batch_size, V, _ = inputs.shape
         L = int(sqrt(V))
-        recur_func = self._get_recur_func(inputs)
+        recur_func = self._get_recur_func(inputs, self.features * 2)
 
         inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
 
@@ -115,8 +116,8 @@ class RNNLayer2D(RNNLayer):
             else:
                 inputs_i = inputs[:, index, :]
 
-            h_x, h_y = _get_h_xy(outputs, index, L)
-            cell, hidden = recur_func(inputs_i, cell, h_x, h_y)
+            hidden = _get_h_xy(outputs, index, L)
+            cell, hidden = recur_func(inputs_i, cell, hidden)
 
             outputs = outputs.at[:, index, :].set(hidden)
             return (cell, outputs), outputs
@@ -131,23 +132,5 @@ class RNNLayer2D(RNNLayer):
 class LSTMLayer2D(RNNLayer2D):
     """2D long short-term memory layer."""
 
-    def _get_recur_func(self, inputs):
-        in_features = inputs.shape[-1]
-        kernel, bias = self._dense_params(
-            None, in_features + self.features * 2, self.features * 4
-        )
-        inputs, kernel, bias = promote_dtype(inputs, kernel, bias, dtype=None)
-
-        def recur_func(inputs, cell, h_x, h_y):
-            in_cat = jnp.concatenate([inputs, h_x, h_y], axis=-1)
-            ifgo = nn.sigmoid(in_cat @ kernel + bias)
-            i, f, g, o = ifgo.split(4, axis=-1)
-
-            # sigmoid -> tanh
-            g = g * 2 - 1
-
-            cell = f * cell + i * g
-            outputs = o * nn.tanh(cell)
-            return cell, outputs
-
-        return recur_func
+    def _get_recur_func(self, inputs, hid_features):
+        return LSTMLayer1D._get_recur_func(self, inputs, hid_features)
