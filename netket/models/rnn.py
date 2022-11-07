@@ -19,7 +19,7 @@ import numpy as np
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.graph import AbstractGraph
+from netket.graph import AbstractGraph, Lattice
 from netket.models.autoreg import ARNNSequential, _get_feature_list
 from netket.nn.rnn import GRULayer1D, LSTMLayer1D, default_kernel_init
 from netket.nn.rnn_2d import LSTMLayer2D
@@ -133,48 +133,91 @@ def _get_inv_idx(idx):
     return inv
 
 
-def _get_snake_ordering(graph):
+def _get_extent(graph):
     V = graph.n_nodes
-    L = int(sqrt(V))
-    assert L**2 == V
 
-    idx = np.arange(V, dtype=np.intp).reshape((L, L))
+    if isinstance(graph, Lattice):
+        assert len(graph.extent) == 2
+        L, M = graph.extent
+    else:
+        L = M = int(sqrt(V))
+    assert L * M == V
+
+    return V, L, M
+
+
+def _get_snake_inv_reorder_idx(graph):
+    V, L, M = _get_extent(graph)
+    idx = np.arange(V, dtype=np.intp).reshape((L, M))
     idx[1::2, :] = idx[1::2, ::-1]
     idx = idx.flatten()
     idx = HashableArray(idx)
     return idx
 
 
-def _get_autoreg_ordering(graph):
-    return _get_snake_ordering(graph)
+def _get_inv_reorder_idx(graph):
+    """
+    A greedy algorithm to determine an autoregressive order with good locality.
+    For any rectangular graph with OBC or PBC, it is consistent with the usual
+    snake ordering.
 
-
-def _get_snake_ordering_prev_neighbors(graph, idx):
+    Start from site 0;
+    at each step, choose the unvisited neighbor whose index is the closest to the last one;
+    if two neighbors have the same index distance, choose the one with the smaller index;
+    if there is no unvisited neighbor, choose the unvisited site with the smallest index.
+    """
     V = graph.n_nodes
-    L = int(sqrt(V))
-    assert L**2 == V
+    adj = graph.adjacency_list()
+    idx = np.empty(V, dtype=np.intp)
+    visited = np.zeros(V, dtype=bool)
+
+    idx[0] = 0
+    visited[0] = True
+    for i in range(1, V):
+        last_k = idx[i - 1]
+        neighbors = [x for x in adj[last_k] if not visited[x]]
+        if neighbors:
+            k = min([(abs(x - last_k), x) for x in neighbors])[1]
+        else:
+            k = next(x for x in range(V) if not visited[x])
+        idx[i] = k
+        visited[k] = True
+
+    idx = HashableArray(idx)
+    return idx
+
+
+def _get_snake_prev_neighbors(graph, _):
+    V, L, M = _get_extent(graph)
 
     def h(i, j):
-        if 0 <= i < L and 0 <= j < L:
+        if 0 <= i < L and 0 <= j < M:
             return i * L + j
         else:
             return -1
 
     def get_neighbors(k):
         i, j = divmod(k, L)
-        if i % 2 == 0:
-            return h(i, j - 1), h(i - 1, j)
-        else:
-            return h(i, j + 1), h(i - 1, j)
+        return h(i, j - 1 if i % 2 == 0 else j + 1), h(i - 1, j)
 
-    n = [get_neighbors(k) for k in range(V)]
-    n = np.asarray(n, dtype=idx.dtype)
+    # Sort and put -1 padding at the end
+    n = [sorted(get_neighbors(k), key=lambda x: (x < 0, x)) for k in range(V)]
+    n = np.asarray(n, dtype=np.intp)
     n = HashableArray(n)
     return n
 
 
-def _get_prev_neighbors(graph, idx):
-    return _get_snake_ordering_prev_neighbors(graph, idx)
+def _get_prev_neighbors(graph, reorder_idx):
+    adj = graph.adjacency_list()
+    reorder_idx = np.asarray(reorder_idx)
+
+    n = [[y for y in x if reorder_idx[y] < reorder_idx[i]] for i, x in enumerate(adj)]
+    max_n = max(len(x) for x in n)
+    n = [sorted(x) + [-1] * (max_n - len(x)) for x in n]
+
+    n = np.asarray(n, dtype=np.intp)
+    n = HashableArray(n)
+    return n
 
 
 def _ensure_prev_neighbors(kwargs):
@@ -183,11 +226,12 @@ def _ensure_prev_neighbors(kwargs):
     prev_neighbors = kwargs.get("prev_neighbors")
     graph = kwargs.get("graph")
 
+    if inv_reorder_idx is None and graph is not None:
+        inv_reorder_idx = _get_inv_reorder_idx(graph)
+
     if reorder_idx is None:
         if inv_reorder_idx is not None:
             reorder_idx = _get_inv_idx(inv_reorder_idx)
-        elif graph is not None:
-            reorder_idx = _get_autoreg_ordering(graph)
     else:
         if inv_reorder_idx is None:
             inv_reorder_idx = _get_inv_idx(reorder_idx)
@@ -209,7 +253,7 @@ def _ensure_prev_neighbors(kwargs):
                     "either `prev_neighbors` or `graph`."
                 )
             else:
-                prev_neighbors = _get_snake_ordering_prev_neighbors(graph, reorder_idx)
+                prev_neighbors = _get_prev_neighbors(graph, reorder_idx)
 
     kwargs["reorder_idx"] = reorder_idx
     kwargs["inv_reorder_idx"] = inv_reorder_idx

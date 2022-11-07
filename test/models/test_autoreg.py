@@ -334,3 +334,44 @@ def test_throwing():
     with pytest.raises(ValueError):
         hilbert = nk.hilbert.Fock(n_max=3, N=4, n_particles=3)
         build_model(hilbert)
+
+
+@pytest.mark.parametrize(
+    "graph",
+    [
+        pytest.param(
+            nk.graph.Grid(extent=[4, 4], pbc=True),
+            id="4x4_pbc",
+        ),
+        pytest.param(
+            nk.graph.Grid(extent=[3, 5], pbc=True),
+            id="3x5_pbc",
+        ),
+        pytest.param(
+            nk.graph.Grid(extent=[4, 4], pbc=False),
+            id="4x4_obc",
+        ),
+        pytest.param(
+            nk.graph.Grid(extent=[3, 5], pbc=False),
+            id="3x5_obc",
+        ),
+    ],
+)
+def test_reorder_idx(graph):
+    from netket.models.rnn import (
+        _get_inv_idx,
+        _get_inv_reorder_idx,
+        _get_prev_neighbors,
+        _get_snake_inv_reorder_idx,
+        _get_snake_prev_neighbors,
+    )
+
+    inv_reorder_idx_1 = _get_inv_reorder_idx(graph)
+    inv_reorder_idx_2 = _get_snake_inv_reorder_idx(graph)
+    assert inv_reorder_idx_1 == inv_reorder_idx_2
+
+    reorder_idx_1 = _get_inv_idx(inv_reorder_idx_1)
+    reorder_idx_2 = _get_inv_idx(inv_reorder_idx_2)
+    prev_neighbors_1 = _get_prev_neighbors(graph, reorder_idx_1)
+    prev_neighbors_2 = _get_prev_neighbors(graph, reorder_idx_2)
+    assert prev_neighbors_1 == prev_neighbors_2

@@ -109,8 +109,7 @@ class RNNLayer2D(RNNLayer):
                 # Get the inputs at the previous site in the autoregressive order,
                 # or zeros for the first site
                 inputs_i = inputs[:, indices[k - 1], :]
-                zeros = jnp.zeros_like(inputs_i)
-                inputs_i = jnp.where(k == 0, zeros, inputs_i)
+                inputs_i = jnp.where(k == 0, 0, inputs_i)
             else:
                 inputs_i = inputs[:, index, :]
 

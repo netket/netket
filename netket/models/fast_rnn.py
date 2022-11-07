@@ -78,8 +78,7 @@ class FastRNN(FastARNNSequential):
             prev_index = jnp.asarray(self.reorder_idx)[k - 1]
 
         inputs_i = inputs[:, prev_index, :]
-        zeros = jnp.zeros_like(inputs_i)
-        inputs_i = jnp.where(k == 0, zeros, inputs_i)
+        inputs_i = jnp.where(k == 0, 0, inputs_i)
         return inputs_i
 
 
