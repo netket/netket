@@ -19,6 +19,7 @@ import numpy as np
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
+from netket.graph import AbstractGraph
 from netket.models.autoreg import ARNNSequential, _get_feature_list
 from netket.nn.rnn import GRULayer1D, LSTMLayer1D, default_kernel_init
 from netket.nn.rnn_2d import LSTMLayer2D
@@ -27,7 +28,19 @@ from netket.utils.types import Array, DType, NNInitFunc
 
 
 class RNN(ARNNSequential):
-    """Base class for recurrent neural networks."""
+    """
+    Base class for recurrent neural networks.
+
+    If either one of `reorder_idx` and `inv_reorder_idx` is unspecified,
+    it can be deduced from another. If both are unspecified, they can be
+    determined from `graph`.
+
+    If `prev_neighbors` is unspecified, it can be determined from `graph` and
+    `reorder_idx`.
+
+    If all of `reorder_idx`, `inv_reorder_idx`, `prev_neighbors`, and `graph`
+    are unspecified, there is a faster code path for 1D RNN.
+    """
 
     layers: int
     """number of layers."""
@@ -35,9 +48,18 @@ class RNN(ARNNSequential):
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     reorder_idx: Optional[HashableArray] = None
-    """see :class:`netket.models.AbstractARNN`."""
+    """indices to transform the inputs from unordered to ordered.
+    See :meth:`netket.models.AbstractARNN.reorder` for details."""
     inv_reorder_idx: Optional[HashableArray] = None
-    """see :class:`netket.models.AbstractARNN`."""
+    """indices to transform the inputs from ordered to unordered.
+    See :meth:`netket.models.AbstractARNN.reorder` for details."""
+    prev_neighbors: Optional[HashableArray] = None
+    """previous neighbors of each site.
+    An integer array of shape `(hilbert.size, max_prev_neighbors)`.
+    When the actual number of previous neighbors of a site is less than `max_prev_neighbors`,
+    use -1 to denote zero paddings instead of memory from a neighbor."""
+    graph: Optional[AbstractGraph] = None
+    """graph of the physical system."""
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -102,19 +124,96 @@ class GRUNet1D(RNN):
         ]
 
 
-def _get_snake_ordering(V):
+def _get_inv_idx(idx):
+    idx = np.asarray(idx)
+    inv = np.empty_like(idx)
+    for i, k in enumerate(idx):
+        inv[k] = i
+    inv = HashableArray(inv)
+    return inv
+
+
+def _get_snake_ordering(graph):
+    V = graph.n_nodes
     L = int(sqrt(V))
-    if L**2 != V:
-        raise ValueError(f"Number of sites {V} is not a square number")
+    assert L**2 == V
 
-    a = np.arange(V, dtype=np.intp).reshape((L, L))
-    a[1::2, :] = a[1::2, ::-1]
-    a = a.flatten()
-    a = HashableArray(a)
+    idx = np.arange(V, dtype=np.intp).reshape((L, L))
+    idx[1::2, :] = idx[1::2, ::-1]
+    idx = idx.flatten()
+    idx = HashableArray(idx)
+    return idx
 
-    # Snake ordering has reorder_idx == inv_reorder_idx,
-    # but for a general ordering it's not always true
-    return a, a
+
+def _get_autoreg_ordering(graph):
+    return _get_snake_ordering(graph)
+
+
+def _get_snake_ordering_prev_neighbors(graph, idx):
+    V = graph.n_nodes
+    L = int(sqrt(V))
+    assert L**2 == V
+
+    def h(i, j):
+        if 0 <= i < L and 0 <= j < L:
+            return i * L + j
+        else:
+            return -1
+
+    def get_neighbors(k):
+        i, j = divmod(k, L)
+        if i % 2 == 0:
+            return h(i, j - 1), h(i - 1, j)
+        else:
+            return h(i, j + 1), h(i - 1, j)
+
+    n = [get_neighbors(k) for k in range(V)]
+    n = np.asarray(n, dtype=idx.dtype)
+    n = HashableArray(n)
+    return n
+
+
+def _get_prev_neighbors(graph, idx):
+    return _get_snake_ordering_prev_neighbors(graph, idx)
+
+
+def _ensure_prev_neighbors(kwargs):
+    reorder_idx = kwargs.get("reorder_idx")
+    inv_reorder_idx = kwargs.get("inv_reorder_idx")
+    prev_neighbors = kwargs.get("prev_neighbors")
+    graph = kwargs.get("graph")
+
+    if reorder_idx is None:
+        if inv_reorder_idx is not None:
+            reorder_idx = _get_inv_idx(inv_reorder_idx)
+        elif graph is not None:
+            reorder_idx = _get_autoreg_ordering(graph)
+    else:
+        if inv_reorder_idx is None:
+            inv_reorder_idx = _get_inv_idx(reorder_idx)
+    # Now reorder_idx and inv_reorder_idx must be both None or not None
+
+    if reorder_idx is None:
+        if prev_neighbors is None:
+            # There is a faster code path for 1D RNN
+            pass
+        else:
+            raise ValueError(
+                "When `prev_neighbors` is provided, you must also provide `reorder_idx`."
+            )
+    else:
+        if prev_neighbors is None:
+            if graph is None:
+                raise ValueError(
+                    "When `reorder_idx` is provided, you must also provide "
+                    "either `prev_neighbors` or `graph`."
+                )
+            else:
+                prev_neighbors = _get_snake_ordering_prev_neighbors(graph, reorder_idx)
+
+    kwargs["reorder_idx"] = reorder_idx
+    kwargs["inv_reorder_idx"] = inv_reorder_idx
+    kwargs["prev_neighbors"] = prev_neighbors
 
 
 @deprecate_dtype
@@ -135,14 +234,8 @@ class _LSTMNet2D(RNN):
         ]
 
 
-def LSTMNet2D(hilbert, *args, **kwargs):
+def LSTMNet2D(*args, **kwargs):
     """2D long short-term memory network with snake ordering for square lattice."""
 
-    reorder_idx = kwargs.pop("reorder_idx", None)
-    inv_reorder_idx = kwargs.pop("inv_reorder_idx", None)
-    if reorder_idx is not None or inv_reorder_idx is not None:
-        raise ValueError("`LSTMNet2D` only supports snake ordering for square lattice")
-    reorder_idx, inv_reorder_idx = _get_snake_ordering(hilbert.size)
-    kwargs["reorder_idx"] = reorder_idx
-    kwargs["inv_reorder_idx"] = inv_reorder_idx
-    return _LSTMNet2D(hilbert, *args, **kwargs)
+    _ensure_prev_neighbors(kwargs)
+    return _LSTMNet2D(*args, **kwargs)

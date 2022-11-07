@@ -80,8 +80,6 @@ class RNNLayer2D(RNNLayer):
     def __call__(self, inputs):
         """
         Applies the RNN cell to a batch of input sequences.
-        See :class:`netket.models.AbstractARNN` for the explanation of
-        autoregressive ordering.
 
         Args:
           inputs: input data with dimensions (batch, length, features).

@@ -34,7 +34,7 @@ def check_reorder_idx(reorder_idx: Array, inv_reorder_idx: Array):
 
     if reorder_idx is None or inv_reorder_idx is None:
         raise ValueError(
-            "`reorder_idx` and `inv_reorder_idx` must be set at the same time."
+            "`reorder_idx` and `inv_reorder_idx` must be provided at the same time."
         )
 
     if reorder_idx.ndim != 1:
@@ -62,9 +62,11 @@ class RNNLayer(nn.Module):
     exclusive: bool
     """True if an output element does not depend on the input element at the same index."""
     reorder_idx: Optional[HashableArray] = None
-    """see :class:`netket.models.AbstractARNN`."""
+    """indices to transform the inputs from unordered to ordered.
+    See :meth:`netket.models.AbstractARNN.reorder` for details."""
     inv_reorder_idx: Optional[HashableArray] = None
-    """see :class:`netket.models.AbstractARNN`."""
+    """indices to transform the inputs from ordered to unordered.
+    See :meth:`netket.models.AbstractARNN.reorder` for details."""
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -106,8 +108,6 @@ class RNNLayer1D(RNNLayer):
     def __call__(self, inputs: Array) -> Array:
         """
         Applies the RNN cell to a batch of input sequences.
-        See :class:`netket.models.AbstractARNN` for the explanation of
-        autoregressive ordering.
 
         Args:
           inputs: input data with dimensions (batch, length, features).

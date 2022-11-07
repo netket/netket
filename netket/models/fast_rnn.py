@@ -18,9 +18,10 @@ from typing import Iterable, Optional, Union
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
+from netket.graph import AbstractGraph
 from netket.models.autoreg import _get_feature_list
 from netket.models.fast_autoreg import FastARNNSequential
-from netket.models.rnn import RNN, _get_snake_ordering
+from netket.models.rnn import RNN, _ensure_prev_neighbors
 from netket.nn.fast_rnn import FastGRULayer1D, FastLSTMLayer1D
 from netket.nn.fast_rnn_2d import FastLSTMLayer2D
 from netket.nn.rnn import default_kernel_init
@@ -33,6 +34,9 @@ class FastRNN(FastARNNSequential):
     Base class for recurrent neural networks with fast sampling.
 
     See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+
+    See :class:`netket.models.RNN` for explanation of the arguments related to
+    the autoregressive order.
     """
 
     layers: int
@@ -41,9 +45,15 @@ class FastRNN(FastARNNSequential):
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     reorder_idx: Optional[HashableArray] = None
-    """see :class:`netket.models.AbstractARNN`."""
+    """indices to transform the inputs from unordered to ordered.
+    See :meth:`netket.models.AbstractARNN.reorder` for details."""
     inv_reorder_idx: Optional[HashableArray] = None
-    """see :class:`netket.models.AbstractARNN`."""
+    """indices to transform the inputs from ordered to unordered.
+    See :meth:`netket.models.AbstractARNN.reorder` for details."""
+    prev_neighbors: Optional[HashableArray] = None
+    """previous neighbors of each site."""
+    graph: Optional[AbstractGraph] = None
+    """graph of the physical system."""
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
     kernel_init: NNInitFunc = default_kernel_init
@@ -143,20 +153,11 @@ class _FastLSTMNet2D(FastRNN):
         ]
 
 
-def FastLSTMNet2D(hilbert, *args, **kwargs):
+def FastLSTMNet2D(*args, **kwargs):
     """
     2D long short-term memory network with snake ordering for square lattice and fast sampling.
 
     See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
-
-    reorder_idx = kwargs.pop("reorder_idx", None)
-    inv_reorder_idx = kwargs.pop("inv_reorder_idx", None)
-    if reorder_idx is not None or inv_reorder_idx is not None:
-        raise ValueError(
-            "`FastLSTMNet2D` only supports snake ordering for square lattice"
-        )
-    reorder_idx, inv_reorder_idx = _get_snake_ordering(hilbert.size)
-    kwargs["reorder_idx"] = reorder_idx
-    kwargs["inv_reorder_idx"] = inv_reorder_idx
-    return _FastLSTMNet2D(hilbert, *args, **kwargs)
+    _ensure_prev_neighbors(kwargs)
+    return _FastLSTMNet2D(*args, **kwargs)
