@@ -172,8 +172,8 @@ class ARNNSequential(AbstractARNN):
     """
     Implementation of an ARNN that sequentially calls its layers and activation function.
 
-    Subclasses must assign a list of fast ARNN layers to `self._layers` in `setup,
-    and they may implement `activation` as a field or a method.
+    Subclasses must implement `activation` as a field or a method,
+    and assign a list of ARNN layers to `self._layers` in `setup`.
 
     Note:
         If you want to use real parameters and output a complex wave function, such as in
