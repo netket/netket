@@ -110,7 +110,7 @@ class RNNLayer1D(RNNLayer):
         autoregressive ordering.
 
         Args:
-          inputs: input data with dimensions (batch, length, features) and unordered layout.
+          inputs: input data with dimensions (batch, length, features).
 
         Returns:
           The output sequences.
@@ -147,12 +147,12 @@ class RNNLayer1D(RNNLayer):
 class LSTMLayer1D(RNNLayer1D):
     """1D long short-term memory layer."""
 
-    def _get_recur_func(self, inputs, hid_features):
-        in_features = inputs.shape[-1]
+    def _get_recur_func(self, _inputs, hid_features):
+        in_features = _inputs.shape[-1]
         kernel, bias = self._dense_params(
             None, in_features + hid_features, self.features * 4
         )
-        inputs, kernel, bias = promote_dtype(inputs, kernel, bias, dtype=None)
+        _, kernel, bias = promote_dtype(_inputs, kernel, bias, dtype=None)
 
         def recur_func(inputs, cell, hidden):
             in_cat = jnp.concatenate([inputs, hidden], axis=-1)
@@ -173,16 +173,16 @@ class LSTMLayer1D(RNNLayer1D):
 class GRULayer1D(RNNLayer1D):
     """1D gated recurrent unit layer."""
 
-    def _get_recur_func(self, inputs, hid_features):
-        in_features = inputs.shape[-1]
+    def _get_recur_func(self, _inputs, hid_features):
+        in_features = _inputs.shape[-1]
         rz_kernel, rz_bias = self._dense_params(
             "rz", in_features + hid_features, self.features * 2
         )
         n_kernel, n_bias = self._dense_params(
             "n", in_features + hid_features, self.features
         )
-        inputs, rz_kernel, rz_bias, n_kernel, n_bias = promote_dtype(
-            inputs, rz_kernel, rz_bias, n_kernel, n_bias, dtype=None
+        _, rz_kernel, rz_bias, n_kernel, n_bias = promote_dtype(
+            _inputs, rz_kernel, rz_bias, n_kernel, n_bias, dtype=None
         )
 
         def recur_func(inputs, cell, hidden):

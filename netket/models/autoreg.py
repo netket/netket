@@ -34,7 +34,7 @@ class AbstractARNN(nn.Module):
     Base class for autoregressive neural networks.
 
     Subclasses must implement the method `conditionals_log_psi`, or override the methods
-    `__call__` and `conditional` if desired.
+    `__call__` and `conditionals` if desired.
 
     They can override `conditional` to implement the caching for fast autoregressive sampling.
     See :class:`netket.nn.FastARNNConv1D` for example.
@@ -63,7 +63,7 @@ class AbstractARNN(nn.Module):
         Computes the log of the conditional wave-functions for each site to take each value.
 
         Args:
-          inputs: configurations with dimensions (batch, Hilbert.size) and unordered layout.
+          inputs: configurations with dimensions (batch, Hilbert.size).
 
         Returns:
           The log psi with dimensions (batch, Hilbert.size, Hilbert.local_size).
@@ -74,7 +74,7 @@ class AbstractARNN(nn.Module):
         Computes the conditional probabilities for each site to take each value.
 
         Args:
-          inputs: configurations with dimensions (batch, Hilbert.size) and unordered layout.
+          inputs: configurations with dimensions (batch, Hilbert.size).
 
         Returns:
           The probabilities with dimensions (batch, Hilbert.size, Hilbert.local_size).
@@ -106,8 +106,8 @@ class AbstractARNN(nn.Module):
         as in the autoregressive sampling procedure.
 
         Args:
-          inputs: configurations of partially sampled sites with dimensions (batch, Hilbert.size)
-            and unordered layout, where the sites that `index` depends on must be already sampled.
+          inputs: configurations of partially sampled sites with dimensions (batch, Hilbert.size),
+            where the sites that `index` depends on must be already sampled.
           index: index of the site being queried.
 
         Returns:
@@ -130,7 +130,7 @@ class AbstractARNN(nn.Module):
         Computes the log wave-functions for input configurations.
 
         Args:
-          inputs: configurations with dimensions (batch, Hilbert.size) and unordered layout.
+          inputs: configurations with dimensions (batch, Hilbert.size).
 
         Returns:
           The log psi with dimension (batch,).
@@ -148,7 +148,7 @@ class AbstractARNN(nn.Module):
         log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
         return log_psi
 
-    def reorder(self, inputs: Array) -> Array:
+    def reorder(self, inputs: Array, axis: int = 0) -> Array:
         """
         Transforms an array from unordered to ordered.
 
@@ -156,12 +156,12 @@ class AbstractARNN(nn.Module):
         its elements in the autoregressive order, e.g., `a[0], a[1], a[3], a[2]`
         for the snake ordering. Otherwise, we call it 'ordered'.
 
-        When `ndim >= 2`, this function acts on `axis = 1`, which is the spatial
-        dimension.
+        The inputs of `conditionals_log_psi`, `conditionals`, `conditional`, and
+        `__call__` are assumed to have unordered layout.
         """
         return inputs
 
-    def inverse_reorder(self, inputs: Array) -> Array:
+    def inverse_reorder(self, inputs: Array, axis: int = 0) -> Array:
         """
         Transforms an array from ordered to unordered. See `reorder`.
         """

@@ -84,7 +84,7 @@ class RNNLayer2D(RNNLayer):
         autoregressive ordering.
 
         Args:
-          inputs: input data with dimensions (batch, length, features) and unordered layout.
+          inputs: input data with dimensions (batch, length, features).
 
         Returns:
           The output sequences.

@@ -53,11 +53,11 @@ class FastRNN(FastARNNSequential):
     machine_pow: int = 2
     """exponent to normalize the outputs of `__call__`."""
 
-    def reorder(self, inputs: Array) -> Array:
-        return RNN.reorder(self, inputs)
+    def reorder(self, inputs: Array, axis: int = 0) -> Array:
+        return RNN.reorder(self, inputs, axis)
 
-    def inverse_reorder(self, inputs: Array) -> Array:
-        return RNN.inverse_reorder(self, inputs)
+    def inverse_reorder(self, inputs: Array, axis: int = 0) -> Array:
+        return RNN.inverse_reorder(self, inputs, axis)
 
     def take_prev_site(self, inputs: Array, index: int) -> Array:
         if self.reorder_idx is None:

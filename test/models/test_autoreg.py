@@ -245,11 +245,11 @@ class TestARNN:
 
         @jax.jit
         def reorder(inputs):
-            return model.apply(variables, inputs, method=model.reorder)
+            return model.apply(variables, inputs, axis=1, method=model.reorder)
 
         @jax.jit
         def inverse_reorder(inputs):
-            return model.apply(variables, inputs, method=model.inverse_reorder)
+            return model.apply(variables, inputs, axis=1, method=model.inverse_reorder)
 
         p = reorder(p)
 

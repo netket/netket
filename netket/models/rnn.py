@@ -47,25 +47,19 @@ class RNN(ARNNSequential):
     machine_pow: int = 2
     """exponent to normalize the outputs of `__call__`."""
 
-    def reorder(self, inputs: Array) -> Array:
+    def reorder(self, inputs: Array, axis: int = 0) -> Array:
         if self.reorder_idx is None:
             return inputs
         else:
             idx = jnp.asarray(self.reorder_idx)
-            if inputs.ndim == 1:
-                return inputs[idx]
-            else:
-                return inputs[:, idx]
+            return inputs.take(idx, axis)
 
-    def inverse_reorder(self, inputs: Array) -> Array:
+    def inverse_reorder(self, inputs: Array, axis: int = 0) -> Array:
         if self.inv_reorder_idx is None:
             return inputs
         else:
             idx = jnp.asarray(self.inv_reorder_idx)
-            if inputs.ndim == 1:
-                return inputs[idx]
-            else:
-                return inputs[:, idx]
+            return inputs.take(idx, axis)
 
 
 @deprecate_dtype
