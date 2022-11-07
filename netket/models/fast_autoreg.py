@@ -17,15 +17,8 @@ from typing import Any, Callable, Iterable, Tuple, Union
 
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
-from plum import dispatch
 
-from netket.models.autoreg import (
-    AbstractARNN,
-    _call,
-    _conditionals,
-    _normalize,
-    _reshape_inputs,
-)
+from netket.models.autoreg import ARNNSequential, _normalize
 from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
 from netket.nn import activation as nkactivation
 from netket.nn.masked_linear import default_kernel_init
@@ -33,8 +26,37 @@ from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils import deprecate_dtype
 
 
+class FastARNNSequential(ARNNSequential):
+    """
+    Implementation of a fast ARNN that sequentially calls its layers and activation function.
+
+    Subclasses must implement `activation` as a field or a method,
+    and assign a list of fast ARNN layers to `self._layers` in `setup`.
+    """
+
+    def conditional(self, inputs: Array, index: int) -> Array:
+        """
+        Computes the conditional probabilities for one site to take each value.
+        See `AbstractARNN.conditional`.
+        """
+        if inputs.ndim == 1:
+            inputs = jnp.expand_dims(inputs, axis=0)
+
+        # When `index = 0`, it doesn't matter which site we take
+        x = inputs[:, index - 1, None]
+
+        for i in range(len(self._layers)):
+            if i > 0:
+                x = self.activation(x)
+            x = self._layers[i].update_site(x, index)
+
+        log_psi = _normalize(x, self.machine_pow)
+        p = jnp.exp(self.machine_pow * log_psi.real)
+        return p
+
+
 @deprecate_dtype
-class FastARNNDense(AbstractARNN):
+class FastARNNDense(FastARNNSequential):
     """
     Fast autoregressive neural network with dense layers.
 
@@ -86,18 +108,9 @@ class FastARNNDense(AbstractARNN):
             for i in range(self.layers)
         ]
 
-    def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditional(self, inputs, index)
-
-    def conditionals(self, inputs: Array) -> Array:
-        return _conditionals(self, inputs)
-
-    def __call__(self, inputs: Array) -> Array:
-        return _call(self, inputs)
-
 
 @deprecate_dtype
-class FastARNNConv1D(AbstractARNN):
+class FastARNNConv1D(FastARNNSequential):
     """
     Fast autoregressive neural network with 1D convolution layers.
 
@@ -151,17 +164,8 @@ class FastARNNConv1D(AbstractARNN):
             for i in range(self.layers)
         ]
 
-    def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditional(self, inputs, index)
 
-    def conditionals(self, inputs: Array) -> Array:
-        return _conditionals(self, inputs)
-
-    def __call__(self, inputs: Array) -> Array:
-        return _call(self, inputs)
-
-
-class FastARNNConv2D(AbstractARNN):
+class FastARNNConv2D(FastARNNSequential):
     """
     Fast autoregressive neural network with 2D convolution layers.
 
@@ -220,37 +224,5 @@ class FastARNNConv2D(AbstractARNN):
             for i in range(self.layers)
         ]
 
-    def _conditional(self, inputs: Array, index: int) -> Array:
-        return _conditional(self, inputs, index)
-
-    def conditionals(self, inputs: Array) -> Array:
-        return _conditionals(self, inputs)
-
-    def __call__(self, inputs: Array) -> Array:
-        return _call(self, inputs)
-
-
-def _conditional(model: AbstractARNN, inputs: Array, index: int) -> Array:
-    """
-    Computes the conditional probabilities for a site to take a given value.
-    See `AbstractARNN._conditional`.
-    """
-    if inputs.ndim == 1:
-        inputs = jnp.expand_dims(inputs, axis=0)
-
-    # When `index = 0`, it doesn't matter which site we take
-    x = inputs[:, index - 1, None]
-
-    for i in range(model.layers):
-        if i > 0:
-            x = model.activation(x)
-        x = model._layers[i].update_site(x, index)
-
-    log_psi = _normalize(x, model.machine_pow)
-    p = jnp.exp(model.machine_pow * log_psi.real)
-    return p
-
-
-@dispatch
-def _reshape_inputs(model: FastARNNConv2D, inputs: Array) -> Array:  # noqa: F811
-    return inputs.reshape((inputs.shape[0], model.L, model.L))
+    def reshape_inputs(self, inputs: Array) -> Array:
+        return inputs.reshape((inputs.shape[0], self.L, self.L))

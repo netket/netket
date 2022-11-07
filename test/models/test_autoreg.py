@@ -209,7 +209,7 @@ class TestARNN:
 
         key_spins, key_model = jax.random.split(jax.random.PRNGKey(0))
         spins = hilbert.random_state(key_spins, size=batch_size)
-        variables = model2.init(key_model, spins, 0, method=model2._conditional)
+        variables = model2.init(key_model, spins, 0, method=model2.conditional)
 
         p1 = model1.apply(variables, spins, method=model1.conditionals)
         p2 = model2.apply(variables, spins, method=model2.conditionals)
@@ -226,7 +226,7 @@ class TestARNN:
                 variables,
                 spins,
                 i,
-                method=model2._conditional,
+                method=model2.conditional,
                 mutable=["cache"],
             )
             cache = mutables["cache"]
