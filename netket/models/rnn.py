@@ -84,10 +84,7 @@ class RNN(ARNNSequential):
             return inputs.take(idx, axis)
 
 
-@deprecate_dtype
-class LSTMNet1D(RNN):
-    """1D long short-term memory network."""
-
+class _LSTMNet1D(RNN):
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
@@ -105,14 +102,29 @@ class LSTMNet1D(RNN):
         ]
 
 
-@deprecate_dtype
-class GRUNet1D(RNN):
-    """1D gated recurrent unit network."""
-
+class _GRUNet1D(RNN):
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
             GRULayer1D(
+                features=features[i],
+                exclusive=(i == 0),
+                reorder_idx=self.reorder_idx,
+                inv_reorder_idx=self.inv_reorder_idx,
+                prev_neighbors=self.prev_neighbors,
+                param_dtype=self.param_dtype,
+                kernel_init=self.kernel_init,
+                bias_init=self.bias_init,
+            )
+            for i in range(self.layers)
+        ]
+
+
+class _LSTMNet2D(RNN):
+    def setup(self):
+        features = _get_feature_list(self)
+        self._layers = [
+            LSTMLayer2D(
                 features=features[i],
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
@@ -266,24 +278,22 @@ def _ensure_prev_neighbors(kwargs):
 
 
 @deprecate_dtype
-class _LSTMNet2D(RNN):
-    def setup(self):
-        features = _get_feature_list(self)
-        self._layers = [
-            LSTMLayer2D(
-                features=features[i],
-                exclusive=(i == 0),
-                reorder_idx=self.reorder_idx,
-                inv_reorder_idx=self.inv_reorder_idx,
-                prev_neighbors=self.prev_neighbors,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
-            )
-            for i in range(self.layers)
-        ]
+def LSTMNet1D(*args, **kwargs):
+    """1D long short-term memory network."""
+
+    _ensure_prev_neighbors(kwargs)
+    return _LSTMNet1D(*args, **kwargs)
 
 
+@deprecate_dtype
+def GRUNet1D(*args, **kwargs):
+    """1D gated recurrent unit network."""
+
+    _ensure_prev_neighbors(kwargs)
+    return _GRUNet1D(*args, **kwargs)
+
+
+@deprecate_dtype
 def LSTMNet2D(*args, **kwargs):
     """2D long short-term memory network with snake ordering for square lattice."""
 

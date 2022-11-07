@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from math import sqrt
-
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype
 
@@ -56,14 +54,18 @@ def _get_h_xy_single(hiddens: Array, index: int, L: int) -> Array:
             _tree_where(
                 i == 0,
                 (zeros, zeros),
-                (zeros, h(i - 1, j)),
+                (h(i - 1, j), zeros),
             ),
-            (h(i, j - 1), h(i - 1, j)),
+            _tree_where(
+                i == 0,
+                (h(i, j - 1), zeros),
+                (h(i - 1, j), h(i, j - 1)),
+            ),
         ),
         _tree_where(
             j == L - 1,
-            (zeros, h(i - 1, j)),
-            (h(i, j + 1), h(i - 1, j)),
+            (h(i - 1, j), zeros),
+            (h(i - 1, j), h(i, j + 1)),
         ),
     )
     hidden = jnp.concatenate([h_x, h_y], axis=-1)
@@ -88,13 +90,16 @@ class RNNLayer2D(RNNLayer):
           The output sequences.
         """
         batch_size, V, _ = inputs.shape
-        L = int(sqrt(V))
-        recur_func = self._get_recur_func(inputs, self.features * 2)
+
+        if self.prev_neighbors is None:
+            max_prev_neighbors = 1
+        else:
+            prev_neighbors = jnp.asarray(self.prev_neighbors)
+            max_prev_neighbors = prev_neighbors.shape[1]
+        recur_func = self._get_recur_func(inputs, max_prev_neighbors * self.features)
 
         inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
 
-        # We do not reorder the inputs before the scan, because we need to
-        # access spatial neighbors
         arange = jnp.arange(V)
         if self.reorder_idx is None:
             indices = arange
@@ -113,7 +118,15 @@ class RNNLayer2D(RNNLayer):
             else:
                 inputs_i = inputs[:, index, :]
 
-            hidden = _get_h_xy(outputs, index, L)
+            if self.prev_neighbors is None:
+                hidden = outputs[:, k - 1, :]
+                hidden = jnp.where(k == 0, 0, hidden)
+                hidden = jnp.expand_dims(hidden, axis=-1)
+            else:
+                n = prev_neighbors[index]
+                hidden = outputs[:, n, :]
+                hidden = jnp.where(n[None, :, None] == -1, 0, hidden)
+
             cell, hidden = recur_func(inputs_i, cell, hidden)
 
             outputs = outputs.at[:, index, :].set(hidden)

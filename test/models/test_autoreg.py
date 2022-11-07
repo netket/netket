@@ -184,6 +184,7 @@ partial_model_pairs = [
                 hilbert=hilbert,
                 layers=3,
                 features=5,
+                graph=nk.graph.Square(2),
                 param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
@@ -191,6 +192,7 @@ partial_model_pairs = [
                 hilbert=hilbert,
                 layers=3,
                 features=5,
+                graph=nk.graph.Square(2),
                 param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
@@ -396,48 +398,41 @@ def test_construct_rnn():
         inputs = jnp.zeros(4)
         model.init(nk.jax.PRNGKey(), inputs)
 
+    reorder_idx = HashableArray(np.array([0, 1, 3, 2]))
+    inv_reorder_idx = HashableArray(np.array([0, 1, 3, 2]))
+    prev_neighbors = HashableArray(np.array([[-1, -1], [0, -1], [0, 3], [1, -1]]))
+    graph = nk.graph.Square(2)
+
     build_model()
+    build_model(graph=graph)
+    build_model(reorder_idx=reorder_idx, graph=graph)
+    build_model(inv_reorder_idx=inv_reorder_idx, graph=graph)
     build_model(
-        graph=nk.graph.Chain(4),
-    )
-    build_model(
-        reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
-        graph=nk.graph.Chain(4),
-    )
-    build_model(
-        inv_reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
-        graph=nk.graph.Chain(4),
-    )
-    build_model(
-        reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
-        inv_reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
-        prev_neighbors=HashableArray(np.array([[-1], [0], [1], [2]])),
+        reorder_idx=reorder_idx,
+        inv_reorder_idx=inv_reorder_idx,
+        prev_neighbors=prev_neighbors,
     )
 
     # When `prev_neighbors` is provided, you must also provide either `reorder_idx` or `inv_reorder_idx`
     with pytest.raises(ValueError):
-        build_model(
-            prev_neighbors=HashableArray(np.array([[-1], [0], [1], [2]])),
-        )
+        build_model(prev_neighbors=prev_neighbors)
 
     # When `reorder_idx` is provided, you must also provide either `prev_neighbors` or `graph`
     with pytest.raises(ValueError):
-        build_model(
-            reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
-        )
+        build_model(reorder_idx=reorder_idx)
 
     # `inv_reorder_idx` is not the inverse of `reorder_idx`
     with pytest.raises(ValueError):
         build_model(
             reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
-            inv_reorder_idx=HashableArray(np.array([0, 1, 3, 2])),
-            prev_neighbors=HashableArray(np.array([[-1], [0], [1], [2]])),
+            inv_reorder_idx=inv_reorder_idx,
+            prev_neighbors=prev_neighbors,
         )
 
-    # Site {1} is not a previous neighbor of site {0}
+    # Site 1 is not a previous neighbor of site 0
     with pytest.raises(ValueError):
         build_model(
-            reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
-            inv_reorder_idx=HashableArray(np.array([0, 1, 2, 3])),
-            prev_neighbors=HashableArray(np.array([[1], [0], [1], [2]])),
+            reorder_idx=reorder_idx,
+            inv_reorder_idx=inv_reorder_idx,
+            prev_neighbors=HashableArray(np.array([[1, -1], [0, -1], [0, 3], [1, -1]])),
         )

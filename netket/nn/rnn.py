@@ -179,6 +179,7 @@ class LSTMLayer1D(RNNLayer1D):
     """1D long short-term memory layer."""
 
     def _get_recur_func(self, _inputs, hid_features):
+        batch_size = _inputs.shape[0]
         in_features = _inputs.shape[-1]
         kernel, bias = self._dense_params(
             None, in_features + hid_features, self.features * 4
@@ -186,6 +187,7 @@ class LSTMLayer1D(RNNLayer1D):
         _, kernel, bias = promote_dtype(_inputs, kernel, bias, dtype=None)
 
         def recur_func(inputs, cell, hidden):
+            hidden = hidden.reshape((batch_size, -1))
             in_cat = jnp.concatenate([inputs, hidden], axis=-1)
             ifgo = nn.sigmoid(in_cat @ kernel + bias)
             i, f, g, o = ifgo.split(4, axis=-1)
@@ -205,6 +207,7 @@ class GRULayer1D(RNNLayer1D):
     """1D gated recurrent unit layer."""
 
     def _get_recur_func(self, _inputs, hid_features):
+        batch_size = _inputs.shape[0]
         in_features = _inputs.shape[-1]
         rz_kernel, rz_bias = self._dense_params(
             "rz", in_features + hid_features, self.features * 2
@@ -217,6 +220,7 @@ class GRULayer1D(RNNLayer1D):
         )
 
         def recur_func(inputs, cell, hidden):
+            hidden = hidden.reshape((batch_size, -1))
             in_cat = jnp.concatenate([inputs, hidden], axis=-1)
             rz = nn.sigmoid(in_cat @ rz_kernel + rz_bias)
             r, z = rz.split(2, axis=-1)
