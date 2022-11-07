@@ -20,12 +20,12 @@ from flax.linen.dtypes import promote_dtype
 
 from jax import lax
 from jax import numpy as jnp
-from jax.nn.initializers import lecun_normal, zeros
+from jax.nn.initializers import orthogonal, zeros
 
 from netket.utils import deprecate_dtype, HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 
-default_kernel_init = lecun_normal()
+default_kernel_init = orthogonal()
 
 
 def check_reorder_idx(reorder_idx: Array, inv_reorder_idx: Array):
