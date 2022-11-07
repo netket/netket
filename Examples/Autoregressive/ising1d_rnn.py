@@ -26,7 +26,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1)
 
 # Autoregressive neural network
-ma = nk.models.FastLSTMNet1D(hilbert=hi, layers=2, features=10)
+ma = nk.models.FastLSTMNet(hilbert=hi, layers=2, features=10)
 
 # Autoregressive direct sampling
 sa = nk.sampler.ARDirectSampler(hi)
