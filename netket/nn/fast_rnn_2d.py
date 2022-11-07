@@ -15,10 +15,11 @@
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype
 
+from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
 from netket.nn.rnn import RNNLayer, LSTMLayer1D
-from netket.nn.rnn_2d import RNNLayer2D, _get_h_xy
+from netket.nn.rnn_2d import RNNLayer2D
 from netket.utils import deprecate_dtype
 from netket.utils.types import Array
 
@@ -30,8 +31,8 @@ class FastRNNLayer2D(RNNLayer):
     See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
     """
 
-    L: int = None
-    """edge length of the 2D lattice."""
+    size: int = None
+    """number of sites."""
 
     @nn.compact
     def update_site(self, inputs: Array, index: int) -> Array:
@@ -47,8 +48,14 @@ class FastRNNLayer2D(RNNLayer):
           The output site with dimensions (batch, features).
         """
         batch_size = inputs.shape[0]
-        recur_func = self._get_recur_func(inputs, self.features * 2)
 
+        if self.reorder_idx is None:
+            max_prev_neighbors = 1
+        else:
+            prev_neighbors = jnp.asarray(self.prev_neighbors)
+            max_prev_neighbors = prev_neighbors.shape[1]
+
+        recur_func = self._get_recur_func(inputs, max_prev_neighbors * self.features)
         inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
 
         _cell = self.variable(
@@ -59,17 +66,29 @@ class FastRNNLayer2D(RNNLayer):
             "outputs",
             zeros,
             None,
-            (batch_size, self.L**2, self.features),
+            (batch_size, self.size, self.features),
             inputs.dtype,
         )
+        outputs = _outputs.value
 
-        hidden = _get_h_xy(_outputs.value, index, self.L)
+        if self.reorder_idx is None:
+            # Get the hidden memory at the previous site,
+            # or zeros for the first site
+            hidden = outputs[:, index - 1, :]
+            hidden = jnp.expand_dims(hidden, axis=-1)
+        else:
+            # Get the hidden memories at the previous neighbors,
+            # or zeros for boundaries
+            n = prev_neighbors[index]
+            hidden = outputs[:, n, :]
+            hidden = jnp.where(n[None, :, None] == -1, 0, hidden)
+
         cell, hidden = recur_func(inputs, _cell.value, hidden)
 
         initializing = self.is_mutable_collection("params")
         if not initializing:
             _cell.value = cell
-            _outputs.value = _outputs.value.at[:, index, :].set(hidden)
+            _outputs.value = outputs.at[:, index, :].set(hidden)
 
         return hidden
 

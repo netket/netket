@@ -15,64 +15,11 @@
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype
 
-import jax
 from jax import lax
 from jax import numpy as jnp
 
 from netket.nn.rnn import RNNLayer, LSTMLayer1D
 from netket.utils import deprecate_dtype
-from netket.utils.types import Array
-
-
-# TODO: Is there a util function for this?
-def _tree_where(cond, xs, ys):
-    return jax.tree_util.tree_map(lambda x, y: jnp.where(cond, x, y), xs, ys)
-
-
-def _get_h_xy_single(hiddens: Array, index: int, L: int) -> Array:
-    """
-    Hard-coded snake ordering for square lattice.
-
-    Given the index (i, j) of the current site, returns the hidden memories at
-    the two previous neighboring sites (i, j ± 1) and (i - 1, j), or zeros if
-    at the boundary.
-
-    Args:
-      hiddens: hidden memories with dimensions (length, features), unordered and
-        can be partially filled.
-    """
-
-    def h(i, j):
-        return hiddens[i * L + j]
-
-    i, j = divmod(index, L)
-    zeros = jnp.zeros_like(h(0, 0))
-    h_x, h_y = _tree_where(
-        i % 2 == 0,
-        _tree_where(
-            j == 0,
-            _tree_where(
-                i == 0,
-                (zeros, zeros),
-                (h(i - 1, j), zeros),
-            ),
-            _tree_where(
-                i == 0,
-                (h(i, j - 1), zeros),
-                (h(i - 1, j), h(i, j - 1)),
-            ),
-        ),
-        _tree_where(
-            j == L - 1,
-            (h(i - 1, j), zeros),
-            (h(i - 1, j), h(i, j + 1)),
-        ),
-    )
-    hidden = jnp.concatenate([h_x, h_y], axis=-1)
-    return hidden
-
-
-_get_h_xy = jax.vmap(_get_h_xy_single, in_axes=(0, None, None))
 
 
 class RNNLayer2D(RNNLayer):
@@ -91,38 +38,43 @@ class RNNLayer2D(RNNLayer):
         """
         batch_size, V, _ = inputs.shape
 
-        if self.prev_neighbors is None:
+        if self.reorder_idx is None:
             max_prev_neighbors = 1
         else:
+            reorder_idx = jnp.asarray(self.reorder_idx)
             prev_neighbors = jnp.asarray(self.prev_neighbors)
             max_prev_neighbors = prev_neighbors.shape[1]
+
         recur_func = self._get_recur_func(inputs, max_prev_neighbors * self.features)
-
         inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
-
-        arange = jnp.arange(V)
-        if self.reorder_idx is None:
-            indices = arange
-        else:
-            indices = jnp.asarray(self.reorder_idx)
 
         def scan_func(carry, k):
             cell, outputs = carry
-            index = indices[k]
+            if self.reorder_idx is None:
+                index = k
+            else:
+                index = reorder_idx[k]
 
             if self.exclusive:
                 # Get the inputs at the previous site in the autoregressive order,
                 # or zeros for the first site
-                inputs_i = inputs[:, indices[k - 1], :]
+                if self.reorder_idx is None:
+                    inputs_i = inputs[:, k - 1, :]
+                else:
+                    inputs_i = inputs[:, reorder_idx[k - 1], :]
                 inputs_i = jnp.where(k == 0, 0, inputs_i)
             else:
+                # Get the inputs at the current site
                 inputs_i = inputs[:, index, :]
 
-            if self.prev_neighbors is None:
+            if self.reorder_idx is None:
+                # Get the hidden memory at the previous site,
+                # or zeros for the first site
                 hidden = outputs[:, k - 1, :]
-                hidden = jnp.where(k == 0, 0, hidden)
                 hidden = jnp.expand_dims(hidden, axis=-1)
             else:
+                # Get the hidden memories at the previous neighbors,
+                # or zeros for boundaries
                 n = prev_neighbors[index]
                 hidden = outputs[:, n, :]
                 hidden = jnp.where(n[None, :, None] == -1, 0, hidden)
@@ -134,7 +86,7 @@ class RNNLayer2D(RNNLayer):
 
         cell = jnp.zeros((batch_size, self.features), dtype=inputs.dtype)
         outputs = jnp.zeros((batch_size, V, self.features), dtype=inputs.dtype)
-        (_, outputs), _ = lax.scan(scan_func, (cell, outputs), arange)
+        (_, outputs), _ = lax.scan(scan_func, (cell, outputs), jnp.arange(V))
         return outputs
 
 

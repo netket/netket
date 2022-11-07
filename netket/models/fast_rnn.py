@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from math import sqrt
 from typing import Iterable, Optional, Union
 
 from jax import numpy as jnp
@@ -82,14 +81,7 @@ class FastRNN(FastARNNSequential):
         return inputs_i
 
 
-@deprecate_dtype
-class FastLSTMNet1D(FastRNN):
-    """
-    1D long short-term memory network with fast sampling.
-
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
-    """
-
+class _FastLSTMNet1D(FastRNN):
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
@@ -107,14 +99,7 @@ class FastLSTMNet1D(FastRNN):
         ]
 
 
-@deprecate_dtype
-class FastGRUNet1D(FastRNN):
-    """
-    1D gated recurrent unit network with fast sampling.
-
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
-    """
-
+class _FastGRUNet1D(FastRNN):
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
@@ -132,16 +117,12 @@ class FastGRUNet1D(FastRNN):
         ]
 
 
-@deprecate_dtype
 class _FastLSTMNet2D(FastRNN):
     def setup(self):
-        L = int(sqrt(self.hilbert.size))
-        assert L**2 == self.hilbert.size
-
         features = _get_feature_list(self)
         self._layers = [
             FastLSTMLayer2D(
-                L=L,
+                size=self.hilbert.size,
                 features=features[i],
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
@@ -155,6 +136,29 @@ class _FastLSTMNet2D(FastRNN):
         ]
 
 
+@deprecate_dtype
+def FastLSTMNet1D(*args, **kwargs):
+    """
+    1D long short-term memory network with fast sampling.
+
+    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    """
+    _ensure_prev_neighbors(kwargs)
+    return _FastLSTMNet1D(*args, **kwargs)
+
+
+@deprecate_dtype
+def FastGRUNet1D(*args, **kwargs):
+    """
+    1D gated recurrent unit network with fast sampling.
+
+    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    """
+    _ensure_prev_neighbors(kwargs)
+    return _FastGRUNet1D(*args, **kwargs)
+
+
+@deprecate_dtype
 def FastLSTMNet2D(*args, **kwargs):
     """
     2D long short-term memory network with snake ordering for square lattice and fast sampling.
