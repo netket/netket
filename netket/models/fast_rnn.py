@@ -24,7 +24,7 @@ from netket.models.rnn import RNN, _get_snake_ordering
 from netket.nn.fast_rnn import FastGRULayer1D, FastLSTMLayer1D
 from netket.nn.fast_rnn_2d import FastLSTMLayer2D
 from netket.nn.rnn import default_kernel_init
-from netket.utils import deprecate_dtype
+from netket.utils import deprecate_dtype, HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 
 
@@ -40,9 +40,9 @@ class FastRNN(FastARNNSequential):
     features: Union[Iterable[int], int]
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
-    reorder_idx: Optional[jnp.ndarray] = None
+    reorder_idx: Optional[HashableArray] = None
     """see :class:`netket.models.AbstractARNN`."""
-    inv_reorder_idx: Optional[jnp.ndarray] = None
+    inv_reorder_idx: Optional[HashableArray] = None
     """see :class:`netket.models.AbstractARNN`."""
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
@@ -64,8 +64,8 @@ class FastRNN(FastARNNSequential):
             k = index
             prev_index = k - 1
         else:
-            k = self.inv_reorder_idx[index]
-            prev_index = self.reorder_idx[k - 1]
+            k = jnp.asarray(self.inv_reorder_idx)[index]
+            prev_index = jnp.asarray(self.reorder_idx)[k - 1]
 
         inputs_i = inputs[:, prev_index, :]
         zeros = jnp.zeros_like(inputs_i)
@@ -122,20 +122,10 @@ class FastGRUNet1D(FastRNN):
 
 
 @deprecate_dtype
-class FastLSTMNet2D(FastRNN):
-    """2D long short-term memory network with snake ordering for square lattice."""
-
+class _FastLSTMNet2D(FastRNN):
     def setup(self):
         L = int(sqrt(self.hilbert.size))
         assert L**2 == self.hilbert.size
-
-        if self.reorder_idx is not None or self.inv_reorder_idx is not None:
-            raise ValueError(
-                "`FastLSTMNet2D` only supports snake ordering for square lattice"
-            )
-        self._reorder_idx, self._inv_reorder_idx = _get_snake_ordering(
-            self.hilbert.size
-        )
 
         features = _get_feature_list(self)
         self._layers = [
@@ -143,8 +133,8 @@ class FastLSTMNet2D(FastRNN):
                 L=L,
                 features=features[i],
                 exclusive=(i == 0),
-                reorder_idx=self._reorder_idx,
-                inv_reorder_idx=self._inv_reorder_idx,
+                reorder_idx=self.reorder_idx,
+                inv_reorder_idx=self.inv_reorder_idx,
                 param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -152,18 +142,21 @@ class FastLSTMNet2D(FastRNN):
             for i in range(self.layers)
         ]
 
-    @property
-    def reorder_idx(self) -> Optional[Array]:
-        return self._reorder_idx
 
-    @reorder_idx.setter
-    def reorder_idx(self, value: Optional[Array]):
-        self._reorder_idx = value
+def FastLSTMNet2D(hilbert, *args, **kwargs):
+    """
+    2D long short-term memory network with snake ordering for square lattice and fast sampling.
 
-    @property
-    def inv_reorder_idx(self) -> Array:
-        return self._inv_reorder_idx
+    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    """
 
-    @inv_reorder_idx.setter
-    def inv_reorder_idx(self, value: Optional[Array]):
-        self._inv_reorder_idx = value
+    reorder_idx = kwargs.pop("reorder_idx", None)
+    inv_reorder_idx = kwargs.pop("inv_reorder_idx", None)
+    if reorder_idx is not None or inv_reorder_idx is not None:
+        raise ValueError(
+            "`FastLSTMNet2D` only supports snake ordering for square lattice"
+        )
+    reorder_idx, inv_reorder_idx = _get_snake_ordering(hilbert.size)
+    kwargs["reorder_idx"] = reorder_idx
+    kwargs["inv_reorder_idx"] = inv_reorder_idx
+    return _FastLSTMNet2D(hilbert, *args, **kwargs)

@@ -58,5 +58,17 @@ class HashableArray:
         return self.wrapped.__array__(dtype)
 
     @property
+    def dtype(self) -> DType:
+        return self.wrapped.dtype
+
+    @property
+    def size(self) -> int:
+        return self.wrapped.size
+
+    @property
+    def ndim(self) -> int:
+        return self.wrapped.ndim
+
+    @property
     def shape(self) -> Shape:
         return self.wrapped.shape

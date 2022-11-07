@@ -96,15 +96,20 @@ class RNNLayer2D(RNNLayer):
 
         # We do not reorder the inputs before the scan, because we need to
         # access spatial neighbors
+        arange = jnp.arange(V)
+        if self.reorder_idx is None:
+            indices = arange
+        else:
+            indices = jnp.asarray(self.reorder_idx)
 
         def scan_func(carry, k):
             cell, outputs = carry
-            index = self.reorder_idx[k]
+            index = indices[k]
 
             if self.exclusive:
                 # Get the inputs at the previous site in the autoregressive order,
                 # or zeros for the first site
-                inputs_i = inputs[:, self.reorder_idx[k - 1], :]
+                inputs_i = inputs[:, indices[k - 1], :]
                 zeros = jnp.zeros_like(inputs_i)
                 inputs_i = jnp.where(k == 0, zeros, inputs_i)
             else:
@@ -118,7 +123,7 @@ class RNNLayer2D(RNNLayer):
 
         cell = jnp.zeros((batch_size, self.features), dtype=inputs.dtype)
         outputs = jnp.zeros((batch_size, V, self.features), dtype=inputs.dtype)
-        (_, outputs), _ = lax.scan(scan_func, (cell, outputs), jnp.arange(V))
+        (_, outputs), _ = lax.scan(scan_func, (cell, outputs), arange)
         return outputs
 
 

@@ -22,7 +22,7 @@ from jax.nn.initializers import zeros
 from netket.models.autoreg import ARNNSequential, _get_feature_list
 from netket.nn.rnn import GRULayer1D, LSTMLayer1D, default_kernel_init
 from netket.nn.rnn_2d import LSTMLayer2D
-from netket.utils import deprecate_dtype
+from netket.utils import deprecate_dtype, HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 
 
@@ -34,9 +34,9 @@ class RNN(ARNNSequential):
     features: Union[Iterable[int], int]
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
-    reorder_idx: Optional[jnp.ndarray] = None
+    reorder_idx: Optional[HashableArray] = None
     """see :class:`netket.models.AbstractARNN`."""
-    inv_reorder_idx: Optional[jnp.ndarray] = None
+    inv_reorder_idx: Optional[HashableArray] = None
     """see :class:`netket.models.AbstractARNN`."""
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
@@ -51,19 +51,21 @@ class RNN(ARNNSequential):
         if self.reorder_idx is None:
             return inputs
         else:
+            idx = jnp.asarray(self.reorder_idx)
             if inputs.ndim == 1:
-                return inputs[self.reorder_idx]
+                return inputs[idx]
             else:
-                return inputs[:, self.reorder_idx]
+                return inputs[:, idx]
 
     def inverse_reorder(self, inputs: Array) -> Array:
         if self.inv_reorder_idx is None:
             return inputs
         else:
+            idx = jnp.asarray(self.inv_reorder_idx)
             if inputs.ndim == 1:
-                return inputs[self.inv_reorder_idx]
+                return inputs[idx]
             else:
-                return inputs[:, self.inv_reorder_idx]
+                return inputs[:, idx]
 
 
 @deprecate_dtype
@@ -114,7 +116,7 @@ def _get_snake_ordering(V):
     a = np.arange(V, dtype=np.intp).reshape((L, L))
     a[1::2, :] = a[1::2, ::-1]
     a = a.flatten()
-    a = jnp.asarray(a)
+    a = HashableArray(a)
 
     # Snake ordering has reorder_idx == inv_reorder_idx,
     # but for a general ordering it's not always true
@@ -122,25 +124,15 @@ def _get_snake_ordering(V):
 
 
 @deprecate_dtype
-class LSTMNet2D(RNN):
-    """2D long short-term memory network with snake ordering for square lattice."""
-
+class _LSTMNet2D(RNN):
     def setup(self):
-        if self.reorder_idx is not None or self.inv_reorder_idx is not None:
-            raise ValueError(
-                "`LSTMNet2D` only supports snake ordering for square lattice"
-            )
-        self._reorder_idx, self._inv_reorder_idx = _get_snake_ordering(
-            self.hilbert.size
-        )
-
         features = _get_feature_list(self)
         self._layers = [
             LSTMLayer2D(
                 features=features[i],
                 exclusive=(i == 0),
-                reorder_idx=self._reorder_idx,
-                inv_reorder_idx=self._inv_reorder_idx,
+                reorder_idx=self.reorder_idx,
+                inv_reorder_idx=self.inv_reorder_idx,
                 param_dtype=self.param_dtype,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
@@ -148,18 +140,15 @@ class LSTMNet2D(RNN):
             for i in range(self.layers)
         ]
 
-    @property
-    def reorder_idx(self) -> Optional[Array]:
-        return self._reorder_idx
 
-    @reorder_idx.setter
-    def reorder_idx(self, value: Optional[Array]):
-        self._reorder_idx = value
+def LSTMNet2D(hilbert, *args, **kwargs):
+    """2D long short-term memory network with snake ordering for square lattice."""
 
-    @property
-    def inv_reorder_idx(self) -> Array:
-        return self._inv_reorder_idx
-
-    @inv_reorder_idx.setter
-    def inv_reorder_idx(self, value: Optional[Array]):
-        self._inv_reorder_idx = value
+    reorder_idx = kwargs.pop("reorder_idx", None)
+    inv_reorder_idx = kwargs.pop("inv_reorder_idx", None)
+    if reorder_idx is not None or inv_reorder_idx is not None:
+        raise ValueError("`LSTMNet2D` only supports snake ordering for square lattice")
+    reorder_idx, inv_reorder_idx = _get_snake_ordering(hilbert.size)
+    kwargs["reorder_idx"] = reorder_idx
+    kwargs["inv_reorder_idx"] = inv_reorder_idx
+    return _LSTMNet2D(hilbert, *args, **kwargs)

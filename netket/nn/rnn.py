@@ -21,9 +21,8 @@ from flax.linen.dtypes import promote_dtype
 from jax import lax
 from jax import numpy as jnp
 from jax.nn.initializers import lecun_normal, zeros
-from jaxlib.xla_extension import DeviceArray
 
-from netket.utils import deprecate_dtype
+from netket.utils import deprecate_dtype, HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 
 default_kernel_init = lecun_normal()
@@ -48,12 +47,11 @@ def check_reorder_idx(reorder_idx: Array, inv_reorder_idx: Array):
             "`reorder_idx` and `inv_reorder_idx` must have the same length."
         )
 
-    idx = reorder_idx[inv_reorder_idx]
     # We can access idx's value only if it's not traced
-    if isinstance(idx, (np.ndarray, DeviceArray)) and not np.array_equal(
-        idx, np.arange(idx.size, dtype=idx.dtype)
-    ):
-        raise ValueError("`inv_reorder_idx` is not the inverse of `reorder_idx`.")
+    if isinstance(reorder_idx, HashableArray):
+        idx = np.asarray(reorder_idx)[inv_reorder_idx]
+        if not np.array_equal(idx, np.arange(idx.size)):
+            raise ValueError("`inv_reorder_idx` is not the inverse of `reorder_idx`.")
 
 
 class RNNLayer(nn.Module):
@@ -63,9 +61,9 @@ class RNNLayer(nn.Module):
     """output feature density, should be the last dimension."""
     exclusive: bool
     """True if an output element does not depend on the input element at the same index."""
-    reorder_idx: Optional[jnp.ndarray] = None
+    reorder_idx: Optional[HashableArray] = None
     """see :class:`netket.models.AbstractARNN`."""
-    inv_reorder_idx: Optional[jnp.ndarray] = None
+    inv_reorder_idx: Optional[HashableArray] = None
     """see :class:`netket.models.AbstractARNN`."""
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
