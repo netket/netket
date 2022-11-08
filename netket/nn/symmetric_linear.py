@@ -77,7 +77,7 @@ class DenseSymmMatrix(Module):
         # pylint: disable=attribute-defined-outside-init
         self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
         if self.mask is not None:
-            self.scaled_mask = _normalise_mask(self.mask, self.n_sites)
+            self.kernel_indices = jnp.nonzero(self.mask)[0]
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -110,23 +110,22 @@ class DenseSymmMatrix(Module):
             bias = None
 
         if self.mask is not None:
-            scaled_mask = self.scaled_mask
+            kernel_params = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, len(self.kernel_indices)),
+                self.dtype,
+            )
+
+            kernel = jnp.zeros([self.features, in_features, self.n_sites])
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
         else:
-            scaled_mask = None
-
-        kernel = self.param(
-            "kernel",
-            self.kernel_init,
-            (self.features, in_features, self.n_sites),
-            self.param_dtype,
-        )
-
-        x, scaled_mask, kernel, bias = promote_dtype(
-            x, scaled_mask, kernel, bias, dtype=None
-        )
-
-        if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(scaled_mask, (0, 1))
+            kernel = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, self.n_sites),
+                self.dtype,
+            )
 
         # Converts the convolutional kernel of shape (self.features, in_features, n_sites)
         # to a full dense kernel of shape (self.features, in_features, n_symm, n_sites).
@@ -180,7 +179,7 @@ class DenseSymmFFT(Module):
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
         if self.mask is not None:
-            self.scaled_mask = _normalise_mask(self.mask, sg.shape[1])
+            self.kernel_indices = jnp.nonzero(self.mask)[0]
 
         # maps (n_sites) dimension of kernels to (sites_per_cell, n_point, *shape)
         # as used in FFT-based group convolution
@@ -213,11 +212,6 @@ class DenseSymmFFT(Module):
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
-        if self.mask is not None:
-            scaled_mask = self.scaled_mask
-        else:
-            scaled_mask = None
-
         if self.use_bias:
             bias = self.param(
                 "bias", self.bias_init, (self.features,), self.param_dtype
@@ -225,21 +219,23 @@ class DenseSymmFFT(Module):
         else:
             bias = None
 
-        kernel = self.param(
-            "kernel",
-            self.kernel_init,
-            (self.features, in_features, self.n_cells * self.sites_per_cell),
-            self.param_dtype,
-        )
-
-        x, scaled_mask, kernel, bias = promote_dtype(
-            x, scaled_mask, kernel, bias, dtype=None
-        )
-        dtype = x.dtype
-
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(scaled_mask, (0, 1))
+            kernel_params = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, len(self.kernel_indices)),
+                self.dtype,
+            )
 
+            kernel = jnp.zeros([self.features, in_features, self.n_sites])
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
+        else:
+            kernel = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, self.n_sites),
+                self.dtype,
+            )
         # Converts the convolutional kernel of shape (features, in_features, n_sites)
         # to the expanded kernel of shape (features, in_features, sites_per_cell,
         # n_point, *shape) used in FFT-based group convolutions.
@@ -305,7 +301,7 @@ class DenseEquivariantFFT(Module):
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
         if self.mask is not None:
-            self.scaled_mask = _normalise_mask(self.mask, len(pt))
+            self.kernel_indices = jnp.nonzero(self.mask)[0]
 
         # maps (n_sites) dimension of kernels to (n_point, n_point, *shape)
         # as used in FFT-based group convolution
@@ -334,15 +330,23 @@ class DenseEquivariantFFT(Module):
         else:
             bias = None
 
-        kernel = self.param(
-            "kernel",
-            self.kernel_init,
-            (self.features, in_features, self.n_point * self.n_cells),
-            self.param_dtype,
-        )
-
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
+            kernel_params = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, len(self.kernel_indices)),
+                self.dtype,
+            )
+
+            kernel = jnp.zeros([self.features, in_features, self.n_sites])
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
+        else:
+            kernel = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, self.n_sites),
+                self.dtype,
+            )
 
         x, kernel, bias = promote_dtype(x, kernel, bias, dtype=None)
         dtype = x.dtype
@@ -427,7 +431,7 @@ class DenseEquivariantIrrep(Module):
     def setup(self):
         self.n_symm = self.irreps[0].shape[0]
         if self.mask is not None:
-            self.scaled_mask = _normalise_mask(self.mask, self.n_symm)
+            self.kernel_indices = jnp.nonzero(self.mask)[0]
 
         self.forward = jnp.concatenate(
             [jnp.asarray(irrep).reshape(self.n_symm, -1) for irrep in self.irreps],
@@ -516,15 +520,23 @@ class DenseEquivariantIrrep(Module):
         else:
             bias = None
 
-        kernel = self.param(
-            "kernel",
-            self.kernel_init,
-            (self.features, in_features, self.n_symm),
-            self.param_dtype,
-        )
-
         if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
+            kernel_params = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, len(self.kernel_indices)),
+                self.dtype,
+            )
+
+            kernel = jnp.zeros([self.features, in_features, self.n_sites])
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
+        else:
+            kernel = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, self.n_sites),
+                self.dtype,
+            )
 
         x, kernel, bias = promote_dtype(x, kernel, bias, dtype=None)
         dtype = x.dtype
@@ -579,7 +591,7 @@ class DenseEquivariantMatrix(Module):
     def setup(self):
         self.n_symm = np.asarray(self.product_table).shape[0]
         if self.mask is not None:
-            self.scaled_mask = _normalise_mask(self.mask, self.n_symm)
+            self.kernel_indices = jnp.nonzero(self.mask)[0]
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -591,12 +603,23 @@ class DenseEquivariantMatrix(Module):
         """
         in_features = x.shape[-2]
 
-        kernel = self.param(
-            "kernel",
-            self.kernel_init,
-            (self.features, in_features, self.n_symm),
-            self.param_dtype,
-        )
+        if self.mask is not None:
+            kernel_params = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, len(self.kernel_indices)),
+                self.dtype,
+            )
+
+            kernel = jnp.zeros([self.features, in_features, self.n_sites])
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
+        else:
+            kernel = self.param(
+                "kernel",
+                self.kernel_init,
+                (self.features, in_features, self.n_sites),
+                self.dtype,
+            )
 
         if self.use_bias:
             bias = self.param(
@@ -605,10 +628,8 @@ class DenseEquivariantMatrix(Module):
         else:
             bias = None
 
-        if self.mask is not None:
-            kernel = kernel * jnp.expand_dims(self.scaled_mask, (0, 1))
-
         kernel, bias, x = promote_dtype(kernel, bias, x, dtype=None)
+        dtype = x.dtype
 
         # Converts the convolutional kernel of shape (features, in_features, n_symm)
         # to a full dense kernel of shape (features, in_features, n_symm, n_symm)
