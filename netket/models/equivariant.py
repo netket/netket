@@ -76,6 +76,10 @@ class GCNN_FFT(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output. Defaults to the identity."""
+    input_mask: Optional[Array]
+    """mask for input to hidden weights"""
+    hidden_mask: Optional[Array]
+    """mask for hidden to hidden weights"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
     use_bias: bool = True
@@ -103,6 +107,7 @@ class GCNN_FFT(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
             precision=self.precision,
+            mask=self.input_mask,
         )
 
         self.equivariant_layers = [
@@ -115,6 +120,7 @@ class GCNN_FFT(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -189,6 +195,10 @@ class GCNN_Irrep(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
+    input_mask: Optional[Array]
+    """mask for input to hidden weights"""
+    hidden_mask: Optional[Array]
+    """mask for hidden to hidden weights"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
     use_bias: bool = True
@@ -215,6 +225,7 @@ class GCNN_Irrep(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
             precision=self.precision,
+            mask=self.input_mask,
         )
 
         self.equivariant_layers = [
@@ -226,6 +237,7 @@ class GCNN_Irrep(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -287,6 +299,10 @@ class GCNN_Parity_FFT(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
+    input_mask: Optional[Array]
+    """mask for input to hidden weights"""
+    hidden_mask: Optional[Array]
+    """mask for hidden to hidden weights"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
@@ -328,6 +344,7 @@ class GCNN_Parity_FFT(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
             precision=self.precision,
+            mask=self.input_mask,
         )
 
         self.equivariant_layers = [
@@ -340,6 +357,7 @@ class GCNN_Parity_FFT(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -463,6 +481,10 @@ class GCNN_Parity_Irrep(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
+    input_mask: Optional[Array]
+    """mask for input to hidden weights"""
+    hidden_mask: Optional[Array]
+    """mask for hidden to hidden weights"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
@@ -503,6 +525,7 @@ class GCNN_Parity_Irrep(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
             precision=self.precision,
+            mask=self.input_mask,
         )
 
         self.equivariant_layers = [
@@ -514,6 +537,7 @@ class GCNN_Parity_Irrep(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
