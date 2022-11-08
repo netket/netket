@@ -108,7 +108,7 @@ class DenseSymmMatrix(Module):
             )
         else:
             bias = None
-        
+
         if self.mask is not None:
             kernel_params = self.param(
                 "kernel",
@@ -117,8 +117,10 @@ class DenseSymmMatrix(Module):
                 self.param_dtype,
             )
 
-            kernel = jnp.zeros([self.features, in_features, self.n_sites],self.param_dtype)
-            kernel = kernel.at[:,:,self.kernel_indices].set(kernel_params)
+            kernel = jnp.zeros(
+                [self.features, in_features, self.n_sites], self.param_dtype
+            )
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
         else:
             kernel = self.param(
                 "kernel",
@@ -229,13 +231,16 @@ class DenseSymmFFT(Module):
                 self.param_dtype,
             )
 
-            kernel = jnp.zeros([self.features, in_features, self.n_cells*self.sites_per_cell],self.param_dtype)
-            kernel = kernel.at[:,:,self.kernel_indices].set(kernel_params)
+            kernel = jnp.zeros(
+                [self.features, in_features, self.n_cells * self.sites_per_cell],
+                self.param_dtype,
+            )
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
         else:
             kernel = self.param(
                 "kernel",
                 self.kernel_init,
-                (self.features, in_features, self.n_cells*self.sites_per_cell),
+                (self.features, in_features, self.n_cells * self.sites_per_cell),
                 self.param_dtype,
             )
 
@@ -344,13 +349,16 @@ class DenseEquivariantFFT(Module):
                 self.param_dtype,
             )
 
-            kernel = jnp.zeros([self.features, in_features, self.n_point*self.n_cells],self.param_dtype)
-            kernel = kernel.at[:,:,self.kernel_indices].set(kernel_params)
+            kernel = jnp.zeros(
+                [self.features, in_features, self.n_point * self.n_cells],
+                self.param_dtype,
+            )
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
         else:
             kernel = self.param(
                 "kernel",
                 self.kernel_init,
-                (self.features, in_features, self.n_point*self.n_cells),
+                (self.features, in_features, self.n_point * self.n_cells),
                 self.param_dtype,
             )
 
@@ -534,8 +542,10 @@ class DenseEquivariantIrrep(Module):
                 self.param_dtype,
             )
 
-            kernel = jnp.zeros([self.features, in_features, self.n_symm],self.param_dtype)
-            kernel = kernel.at[:,:,self.kernel_indices].set(kernel_params)
+            kernel = jnp.zeros(
+                [self.features, in_features, self.n_symm], self.param_dtype
+            )
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
         else:
             kernel = self.param(
                 "kernel",
@@ -617,8 +627,10 @@ class DenseEquivariantMatrix(Module):
                 self.param_dtype,
             )
 
-            kernel = jnp.zeros([self.features, in_features, self.n_symm],self.param_dtype)
-            kernel = kernel.at[:,:,self.kernel_indices].set(kernel_params)
+            kernel = jnp.zeros(
+                [self.features, in_features, self.n_symm], self.param_dtype
+            )
+            kernel = kernel.at[:, :, self.kernel_indices].set(kernel_params)
         else:
             kernel = self.param(
                 "kernel",
