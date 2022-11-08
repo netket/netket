@@ -202,13 +202,14 @@ def _get_snake_prev_neighbors(graph, _):
     return n
 
 
-def _get_prev_neighbors(graph, reorder_idx):
+def _get_prev_neighbors(graph, reorder_idx, max_prev_neighbors=None):
     adj = graph.adjacency_list()
     reorder_idx = np.asarray(reorder_idx)
 
     n = [[y for y in x if reorder_idx[y] < reorder_idx[i]] for i, x in enumerate(adj)]
-    max_n = max(len(x) for x in n)
-    n = [sorted(x) + [-1] * (max_n - len(x)) for x in n]
+    if max_prev_neighbors is None:
+        max_prev_neighbors = max(len(x) for x in n)
+    n = [sorted(x) + [-1] * (max_prev_neighbors - len(x)) for x in n]
 
     n = np.asarray(n, dtype=np.intp)
     n = HashableArray(n)
