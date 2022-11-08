@@ -23,7 +23,7 @@ from jax.nn.initializers import zeros, lecun_normal
 from jax.scipy.special import logsumexp
 
 from netket.utils import HashableArray, warn_deprecation, deprecate_dtype
-from netket.utils.types import NNInitFunc
+from netket.utils.types import NNInitFunc, Array
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
 from netket.jax import logsumexp_cplx, is_complex_dtype
@@ -76,9 +76,9 @@ class GCNN_FFT(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output. Defaults to the identity."""
-    input_mask: Optional[Array]
+    input_mask: Array = None
     """mask for input to hidden weights"""
-    hidden_mask: Optional[Array]
+    hidden_mask: Array = None
     """mask for hidden to hidden weights"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
@@ -195,9 +195,9 @@ class GCNN_Irrep(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
-    input_mask: Optional[Array]
+    input_mask: Array = None
     """mask for input to hidden weights"""
-    hidden_mask: Optional[Array]
+    hidden_mask: Array = None
     """mask for hidden to hidden weights"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
@@ -299,9 +299,9 @@ class GCNN_Parity_FFT(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
-    input_mask: Optional[Array]
+    input_mask: Array = None
     """mask for input to hidden weights"""
-    hidden_mask: Optional[Array]
+    hidden_mask: Array = None
     """mask for hidden to hidden weights"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
@@ -373,6 +373,7 @@ class GCNN_Parity_FFT(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -481,9 +482,9 @@ class GCNN_Parity_Irrep(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
-    input_mask: Optional[Array]
+    input_mask: Array = None
     """mask for input to hidden weights"""
-    hidden_mask: Optional[Array]
+    hidden_mask: Array = None
     """mask for hidden to hidden weights"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
@@ -552,6 +553,7 @@ class GCNN_Parity_Irrep(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
