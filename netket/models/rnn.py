@@ -209,6 +209,9 @@ def _get_prev_neighbors(graph, reorder_idx, max_prev_neighbors=None):
     n = [[y for y in x if reorder_idx[y] < reorder_idx[i]] for i, x in enumerate(adj)]
     if max_prev_neighbors is None:
         max_prev_neighbors = max(len(x) for x in n)
+    # When the actual number of previous neighbors is greater than `max_prev_neighbors`,
+    # select the neighbors with largest indices
+    n = [x[-max_prev_neighbors:] for x in n]
     n = [sorted(x) + [-1] * (max_prev_neighbors - len(x)) for x in n]
 
     n = np.asarray(n, dtype=np.intp)
