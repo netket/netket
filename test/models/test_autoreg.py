@@ -399,7 +399,7 @@ def test_reorder_idx(graph):
     reorder_idx_1 = _get_inv_idx(inv_reorder_idx_1)
     reorder_idx_2 = _get_inv_idx(inv_reorder_idx_2)
     prev_neighbors_1 = _get_prev_neighbors(graph, reorder_idx_1)
-    prev_neighbors_2 = _get_prev_neighbors(graph, reorder_idx_2)
+    prev_neighbors_2 = _get_snake_prev_neighbors(graph, reorder_idx_2)
     assert prev_neighbors_1 == prev_neighbors_2
 
 
