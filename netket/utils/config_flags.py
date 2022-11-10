@@ -15,6 +15,8 @@
 from typing import Union
 
 import os
+import sys
+import warnings
 from textwrap import dedent
 
 
@@ -67,7 +69,7 @@ class Config:
 
         self._readonly = ReadOnlyDict(self._values)
 
-    def define(self, name, type, default, *, help, runtime=False):  # noqa: W0613
+    def define(self, name, type, default, *, help, runtime=False, startup_callback=None):  # noqa: W0613
         """
         Defines a new flag
         """
@@ -77,6 +79,9 @@ class Config:
         self._types[name] = type
         self._editable_at_runtime[name] = runtime
         self._values[name] = get_env(name, type, default)
+
+        if startup_callback is not None:
+            startup_callback(self._values[name])
 
         @property
         def _read_config(self):
@@ -228,4 +233,30 @@ config.define(
         """
     ),
     runtime=True,
+)
+
+def _setup_xla_pmap(n_procs):
+    if n_procs >1:
+        if "jax" in sys.modules:
+            warnings.warn("must load NetKet before jax if using experimental n_prc")
+
+        flags = os.environ.get("XLA_FLAGS", "") 
+        flags = f"{flags} --xla_force_host_platform_device_count={n_procs}"
+        os.environ["XLA_FLAGS"] = flags
+
+config.define(
+    "NETKET_EXPERIMENTAL_PMAP",
+    int,
+    default=0,
+    help=dedent(
+        """
+        Set to >=1 to enable experimental pmap backend. If a value larger than 1 is used,
+        it also sets XLA_FLAGS='--xla_force_host_platform_device_count=#' environment
+        variable to use on CPU. Otherwise set to 1 to use on GPUs.
+
+        Disabled by default.
+        """
+    ),
+    runtime=False,
+    startup_callback=_setup_xla_pmap,
 )
