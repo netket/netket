@@ -57,7 +57,7 @@ class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, variational_state, optimizer, minimized_quantity_name=""):
-        self._mynode = mpi.node_number
+        self._mynode = mpi.rank
         self._mpi_nodes = mpi.n_nodes
         self._loss_stats = None
         self._loss_name = minimized_quantity_name

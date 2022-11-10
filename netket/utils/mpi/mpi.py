@@ -41,7 +41,6 @@ try:
     MPI_jax_comm = MPI.COMM_WORLD.Create(MPI.COMM_WORLD.Get_group())
 
     n_nodes = MPI_py_comm.Get_size()
-    node_number = MPI_py_comm.Get_rank()
     rank = MPI_py_comm.Get_rank()
 
     import mpi4jax
@@ -55,7 +54,6 @@ except ImportError:
     MPI_py_comm = None
     MPI_jax_comm = None
     n_nodes = 1
-    node_number = 0
     rank = 0
 
     class FakeMPI:

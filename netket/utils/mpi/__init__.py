@@ -18,7 +18,6 @@ from .mpi import (
     MPI_py_comm,
     MPI_jax_comm,
     n_nodes,
-    node_number,
     rank,
 )
 
