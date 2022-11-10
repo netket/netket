@@ -22,11 +22,12 @@ from jax import numpy as jnp
 
 from netket.hilbert import AbstractHilbert, ContinuousHilbert
 
-from netket.utils import mpi, wrap_afun
+from netket.utils import distributed, wrap_afun
 from netket.utils.types import PyTree
 
 from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
+from netket import jax as nkjax
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
@@ -94,13 +95,12 @@ class MetropolisSamplerState(SamplerState):
     @property
     def n_steps(self) -> int:
         """Total number of moves performed across all processes since the last reset."""
-        return self.n_steps_proc * mpi.n_nodes
+        return distributed.sum_jax(self.n_steps_proc)[0]
 
     @property
     def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        res, _ = mpi.mpi_sum_jax(self.n_accepted_proc)
-        return res
+        return distributed.sum_jax(self.n_accepted_proc)[0]
 
     def __repr__(self):
         if self.n_steps > 0:
@@ -264,6 +264,7 @@ class MetropolisSampler(Sampler):
 
         return sampler._sample_next(wrap_afun(machine), parameters, state)
 
+    @partial(nkjax.pmap, static_broadcasted_argnums=(1,))
     def _init_state(sampler, machine, params, key):
         key_state, key_rule = jax.random.split(key, 2)
         rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
@@ -288,6 +289,7 @@ class MetropolisSampler(Sampler):
 
         return state
 
+    @partial(nkjax.pmap, static_broadcasted_argnums=(1,))
     def _reset(sampler, machine, parameters, state):
         new_rng, rng = jax.random.split(state.rng)
 
@@ -373,7 +375,8 @@ class MetropolisSampler(Sampler):
 
         return new_state, new_state.σ
 
-    @partial(jax.jit, static_argnums=(1, 4))
+    #@partial(jax.jit, static_argnums=(1, 4))
+    @partial(nkjax.pmap, static_broadcasted_argnums=(1, 4))
     def _sample_chain(sampler, machine, parameters, state, chain_length):
         """
         Samples `chain_length` batches of samples along the chains.

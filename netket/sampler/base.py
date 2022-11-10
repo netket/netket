@@ -14,18 +14,20 @@
 
 import abc
 from typing import Optional, Union, Tuple, Callable, Iterator
+from functools import partial
 
 import numpy as np
 from flax import linen as nn
+from flax import jax_utils
 from jax import numpy as jnp
 
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
-from netket.utils import mpi, get_afun_if_module, wrap_afun
+from netket.utils import get_afun_if_module, wrap_afun
 from netket.utils.deprecation import deprecated
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
-from netket.utils import struct, numbers
+from netket.utils import struct, numbers, config, distributed
 
 fancy = []
 
@@ -94,14 +96,14 @@ class Sampler(abc.ABC):
                 # Default value
                 n_chains_per_rank = 1
             else:
-                n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
-                if mpi.n_nodes > 1 and mpi.rank == 0:
-                    if n_chains_per_rank * mpi.n_nodes != n_chains:
+                n_chains_per_rank = max(int(np.ceil(n_chains / distributed.n_nodes)), 1)
+                if distributed.n_nodes > 1 and distributed.rank == 0:
+                    if n_chains_per_rank * distributed.n_nodes != n_chains:
                         import warnings
 
                         warnings.warn(
-                            f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks "
-                            f"(total={n_chains_per_rank * mpi.n_nodes} instead of n_chains={n_chains}). "
+                            f"Using {n_chains_per_rank} chains per rank among {distributed.n_nodes} ranks "
+                            f"(total={n_chains_per_rank * distributed.n_nodes} instead of n_chains={n_chains}). "
                             f"To directly control the number of chains on every rank, specify "
                             f"`n_chains_per_rank` when constructing the sampler. "
                             f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
@@ -128,6 +130,10 @@ class Sampler(abc.ABC):
                 "\n"
             )
 
+        if config.netket_experimental_pmap:
+            if isinstance(self.machine_pow, int):
+                object.__setattr__(self, "machine_pow", jax_utils.replicate(self.machine_pow))
+        
         # workaround Jax bug under pmap
         # might be removed in the future
         if type(self.machine_pow) != object:
@@ -143,7 +149,7 @@ class Sampler(abc.ABC):
 
         If you are not using MPI, this is equal to :attr:`~Sampler.n_chains_per_rank`.
         """
-        return self.n_chains_per_rank * mpi.n_nodes
+        return self.n_chains_per_rank * distributed.n_nodes
 
     @property
     def n_batches(self) -> int:
@@ -217,8 +223,8 @@ class Sampler(abc.ABC):
             The structure holding the state of the sampler. In general you should not expect
             it to be in a valid state, and should reset it before use.
         """
-        key = nkjax.PRNGKey(seed)
-        key = nkjax.mpi_split(key)
+        key = distributed.PRNGKey(seed)
+        key = distributed.split_key(key)
 
         return sampler._init_state(wrap_afun(machine), parameters, key)
 
