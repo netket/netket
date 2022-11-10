@@ -22,7 +22,7 @@ from jax.nn.initializers import zeros
 from netket.graph import AbstractGraph, Lattice
 from netket.models.autoreg import ARNNSequential, _get_feature_list
 from netket.nn.rnn import GRULayer1D, LSTMLayer, default_kernel_init
-from netket.utils import deprecate_dtype, HashableArray
+from netket.utils import HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 
 
@@ -262,7 +262,6 @@ def _ensure_prev_neighbors(kwargs):
     # Validity of the values will be checked by `_check_reorder_idx` in `RNNLayer`
 
 
-@deprecate_dtype
 def LSTMNet(*args, **kwargs):
     """Long short-term memory network."""
 
@@ -270,7 +269,6 @@ def LSTMNet(*args, **kwargs):
     return _LSTMNet(*args, **kwargs)
 
 
-@deprecate_dtype
 def GRUNet1D(*args, **kwargs):
     """Gated recurrent unit network. Only supports one previous neighbor at each site."""
 

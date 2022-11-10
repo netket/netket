@@ -23,7 +23,7 @@ from netket.models.fast_autoreg import FastARNNSequential
 from netket.models.rnn import RNN, _ensure_prev_neighbors
 from netket.nn.fast_rnn import FastGRULayer1D, FastLSTMLayer
 from netket.nn.rnn import default_kernel_init
-from netket.utils import deprecate_dtype, HashableArray
+from netket.utils import HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 
 
@@ -118,7 +118,6 @@ class _FastGRUNet1D(FastRNN):
         ]
 
 
-@deprecate_dtype
 def FastLSTMNet(*args, **kwargs):
     """
     Long short-term memory network with fast sampling.
@@ -129,7 +128,6 @@ def FastLSTMNet(*args, **kwargs):
     return _FastLSTMNet(*args, **kwargs)
 
 
-@deprecate_dtype
 def FastGRUNet1D(*args, **kwargs):
     """
     Gated recurrent unit network with fast sampling. Only supports one previous neighbor at each site.

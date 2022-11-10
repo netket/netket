@@ -19,7 +19,6 @@ from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
 from netket.nn.rnn import GRULayer1D, LSTMLayer, RNNLayer
-from netket.utils import deprecate_dtype
 from netket.utils.types import Array
 
 
@@ -95,7 +94,6 @@ class FastRNNLayer(RNNLayer):
         return RNNLayer.__call__(self, inputs)
 
 
-@deprecate_dtype
 class FastLSTMLayer(FastRNNLayer):
     """
     Long short-term memory layer with fast sampling.
@@ -107,7 +105,6 @@ class FastLSTMLayer(FastRNNLayer):
         return LSTMLayer._get_recur_func(self, inputs, hid_features)
 
 
-@deprecate_dtype
 class FastGRULayer1D(FastRNNLayer):
     """
     Gated recurrent unit layer with fast sampling. Only supports one previous neighbor at each site.

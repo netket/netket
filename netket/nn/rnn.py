@@ -22,7 +22,7 @@ from jax import lax
 from jax import numpy as jnp
 from jax.nn.initializers import orthogonal, zeros
 
-from netket.utils import deprecate_dtype, HashableArray
+from netket.utils import HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 
 default_kernel_init = orthogonal()
@@ -196,7 +196,6 @@ class RNNLayer(nn.Module):
         return outputs
 
 
-@deprecate_dtype
 class LSTMLayer(RNNLayer):
     """Long short-term memory layer."""
 
@@ -224,7 +223,6 @@ class LSTMLayer(RNNLayer):
         return recur_func
 
 
-@deprecate_dtype
 class GRULayer1D(RNNLayer):
     """Gated recurrent unit layer. Only supports one previous neighbor at each site."""
 
