@@ -44,7 +44,7 @@ from netket.optimizer.qgt import QGTAuto
 
 from netket.vqs.base import VariationalState, expect, expect_and_grad, expect_and_forces
 from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
-
+from netket.utils import distributed
 
 def compute_chain_length(n_chains, n_samples):
     if n_samples <= 0:
@@ -289,7 +289,7 @@ class MCState(VariationalState):
         dummy_input = jnp.zeros((1, self.hilbert.size), dtype=dtype)
 
         variables = jit_evaluate(self._init_fun, {"params": key}, dummy_input)
-        self.variables = variables
+        self.variables = flax.jax_utils.replicate(variables)
 
     @property
     def model(self) -> Optional[Any]:
