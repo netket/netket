@@ -43,6 +43,12 @@ from .model_frameworks import maybe_wrap_module
 from .history import History, accum_in_tree, accum_histories_in_tree
 
 from . import mpi
+from . import pmap
+
+if config.netket_experimental_pmap:
+    from . import pmap as distributed
+else:
+    from . import mpi as distributed
 
 # error if old dependencies are detected
 from . import _dependencies_check

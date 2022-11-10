@@ -12,33 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .mpi import (
-    mpi4jax_available as available,
-    MPI,
-    MPI_py_comm,
-    MPI_jax_comm,
-    n_nodes,
-    rank,
-)
-
-from .primitives import (
-    mpi_all,
-    mpi_allgather,
-    mpi_any,
-    mpi_bcast,
-    mpi_max,
-    mpi_mean,
-    mpi_sum,
-)
-from .primitives import (
-    mpi_all_jax,
-    mpi_allgather_jax,
-    mpi_any_jax,
-    mpi_bcast_jax,
-    mpi_max_jax,
-    mpi_mean_jax,
-    mpi_sum_jax,
-)
+from .variables import n_devices as n_nodes
+from .variables import rank
 
 from .utils import PRNGKey, split_key
-from .primitives import mpi_sum_jax as sum_jax, mpi_mean_jax as mean_jax, mpi_max_jax as max_jax
+
+from .primitives import sum_jax, mean_jax, max_jax
+
+#    rank,
+
+#from .primitives import (
+#    mpi_all,
+#    mpi_allgather,
+#    mpi_any,
+#    mpi_bcast,
+#    mpi_max,
+#    mpi_mean,
+#    mpi_sum,
+#)
+#from .primitives import (
+#    mpi_all_jax,
+#    mpi_allgather_jax,
+#    mpi_any_jax,
+#    mpi_bcast_jax,
+#    mpi_max_jax,
+#    mpi_mean_jax,
+#    mpi_sum_jax,
+#)
+#

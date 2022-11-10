@@ -14,6 +14,8 @@
 
 from netket.utils import HashablePartial
 
+from ._maybe_pjit import pmap
+
 from .utils import (
     tree_ravel,
     is_complex_dtype,
