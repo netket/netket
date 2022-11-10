@@ -22,9 +22,7 @@ import numpy as np
 from netket import jax as nkjax
 from netket.utils import config
 
-from . import mean as _mean
-from . import var as _var
-from . import total_size as _total_size
+from .mpi_stats import mean as _mean, var as _var, total_size as _total_size
 from .mc_stats import Stats
 
 

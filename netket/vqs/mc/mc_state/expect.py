@@ -17,10 +17,13 @@ from functools import partial
 
 import jax
 from jax import numpy as jnp
+from flax.jax_utils import replicate
 
 from netket.stats import Stats, statistics as mpi_statistics
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
+from netket.utils import distributed, config
+from netket import jax as nkjax
 
 from netket.operator import (
     AbstractOperator,
@@ -45,6 +48,11 @@ def get_local_kernel_arguments(vstate: MCState, Ô: Squared):  # noqa: F811
 
     σ = vstate.samples
     σp, mels = Ô.parent.get_conn_padded(σ)
+
+    if config.netket_experimental_pmap:
+        σp = jax.device_put_sharded(list(σp), jax.devices())
+        mels = jax.device_put_sharded(list(mels), jax.devices())
+
     return σ, (σp, mels)
 
 
@@ -59,6 +67,11 @@ def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteOperator):  # noqa:
 
     σ = vstate.samples
     σp, mels = Ô.get_conn_padded(σ)
+
+    if config.netket_experimental_pmap:
+        σp = jax.device_put_sharded(list(σp), jax.devices())
+        mels = jax.device_put_sharded(list(mels), jax.devices())
+
     return σ, (σp, mels)
 
 
@@ -104,7 +117,7 @@ def expect(vstate: MCState, Ô: AbstractOperator) -> Stats:  # noqa: F811
     )
 
 
-@partial(jax.jit, static_argnums=(0, 1))
+@partial(nkjax.pmap, static_broadcasted_argnums=(0, 1))
 def _expect(
     local_value_kernel: Callable,
     model_apply_fun: Callable,
@@ -138,6 +151,9 @@ def _expect(
 
     L_σ = local_value_kernel(logpsi, parameters, σ, local_value_args)
     L_σ = L_σ.reshape((σ_shape[0], -1))
+    print(L_σ.shape)
+    L_2 = jax.lax.psum(L_σ.T, 'mpi')
+    print(f"{L_2.shape=}")
     Ō_stats = mpi_statistics(L_σ.T)
 
     return Ō_stats

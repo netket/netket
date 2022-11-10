@@ -21,7 +21,7 @@ from flax.core.scope import CollectionFilter
 
 from netket import jax as nkjax
 from netket.stats import Stats, statistics
-from netket.utils import mpi
+from netket.utils import distributed
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
@@ -64,7 +64,8 @@ def expect_and_forces(  # noqa: F811
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2))
+#@partial(jax.jit, static_argnums=(0, 1, 2))
+@partial(nkjax.pmap, static_broadcasted_argnums=(0, 1, 2))
 def forces_expect_hermitian(
     local_value_kernel: Callable,
     model_apply_fun: Callable,
@@ -79,7 +80,7 @@ def forces_expect_hermitian(
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    n_samples = σ.shape[0] * mpi.n_nodes
+    n_samples = σ.shape[0] * distributed.n_nodes
 
     O_loc = local_value_kernel(
         model_apply_fun,
@@ -106,4 +107,4 @@ def forces_expect_hermitian(
 
     new_model_state = new_model_state[0] if is_mutable else None
 
-    return Ō, jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
+    return Ō, jax.tree_map(lambda x: distributed.sum_jax(x)[0], Ō_grad), new_model_state

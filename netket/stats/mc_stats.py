@@ -19,7 +19,7 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 
-from netket.utils import config, mpi, struct
+from netket.utils import config, distributed, struct, distributed
 
 from . import mean as _mean
 from . import var as _var
@@ -47,6 +47,9 @@ _NaN = float("NaN")
 
 
 def _maybe_item(x):
+    if config.netket_experimental_pmap:
+        x = x[0]
+
     if hasattr(x, "shape") and x.shape == ():
         return x.item()
     else:
@@ -108,14 +111,16 @@ class Stats:
         return "Mean", self.to_dict()
 
     def __repr__(self):
-        mean, err, var = _format_decimal(self.mean, self.error_of_mean, self.variance)
-        if not math.isnan(self.R_hat):
-            ext = ", R̂={:.4f}".format(self.R_hat)
+        d = self.to_dict()
+
+        mean, err, var = _format_decimal(d["Mean"], d["Sigma"], d["Variance"])
+        if not math.isnan(d["R_hat"]):
+            ext = ", R̂={:.4f}".format(d["R_hat"])
         else:
             ext = ""
         if config.netket_experimental_fft_autocorrelation:
-            if not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
-                ext += ", τ={:.1f}<{:.1f}".format(self.tau_corr, self.tau_corr_max)
+            if not (math.isnan(d["TauCorr"]) and math.isnan(d["TauCorrMax"])):
+                ext += ", τ={:.1f}<{:.1f}".format(d["TauCorr"], d["TauCorrMax"])
         return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
 
     # Alias accessors
@@ -238,7 +243,7 @@ def statistics(data):
         return statistics_blocks(data)
 
 
-@jax.jit
+#@jax.jit
 def _statistics(data):
     data = jnp.atleast_1d(data)
     if data.ndim == 1:
@@ -251,8 +256,8 @@ def _statistics(data):
     variance = _var(data)
 
     taus = jax.vmap(integrated_time)(data)
-    tau_avg, _ = mpi.mpi_mean_jax(jnp.mean(taus))
-    tau_max, _ = mpi.mpi_max_jax(jnp.max(taus))
+    tau_avg, _ = distributed.mean_jax(jnp.mean(taus))
+    tau_max, _ = distributed.max_jax(jnp.max(taus))
 
     batch_var, n_batches = _batch_variance(data)
     if n_batches > 1:
