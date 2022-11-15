@@ -624,6 +624,8 @@ def GCNN(
     parity=None,
     param_dtype=np.float64,
     complex_output=True,
+    input_mask=None,
+    hidden_mask=None,
     **kwargs,
 ):
     r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
@@ -678,9 +680,17 @@ def GCNN(
         bias_init: Initializer for the biases of all layers.
         complex_output: If True, ensures that the network output is always complex.
             Necessary when network parameters are real but some `characters` are negative.
-
+        input_mask: Optional array of shape [n_sites] that used to restrict the convolutional
+        kernel in the input :math:'\rightarrow' hidden weights. Only parameters with mask :math:'\ne 0' are used.
+        hidden_mask: Optional array of shape [n_symm] that used to restrict the convolutional
+        kernel in the hidden :math:'\rightarrow' hidden. Only parameters with mask :math:'\ne 0' are used.
 
     """
+
+    if input_mask is not None:
+        input_mask = HashableArray(input_mask)
+    if hidden_mask is not None:
+        hidden_mask = HashableArray(hidden_mask)
 
     if isinstance(symmetries, Lattice) and (
         point_group is not None or symmetries._point_group is not None

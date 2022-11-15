@@ -700,8 +700,8 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
         features: The number of output features. The full output shape
             is :code:`[n_batch,features,n_symm]`.
         use_bias: A bool specifying whether to add a bias to the output (default: True).
-        mask: An optional array of shape [n_sites] consisting of ones and zeros
-            that can be used to give the kernel a particular shape.
+        input_mask: Optional array of shape [n_sites] that used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used.
         param_dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
             see {class}`jax.lax.Precision` for details.
@@ -788,8 +788,8 @@ def DenseEquivariant(
         features: The number of output features. The full output shape
             is [n_batch,features,n_symm].
         use_bias: A bool specifying whether to add a bias to the output (default: True).
-        mask: An optional array of shape [n_sites] consisting of ones and zeros
-            that can be used to give the kernel a particular shape.
+        input_mask: Optional array of shape [n_symm] that used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used.
         param_dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
             see :class:`jax.lax.Precision` for details.
