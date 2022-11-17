@@ -77,9 +77,13 @@ class GCNN_FFT(nn.Module):
     output_activation: Any = identity
     """The nonlinear activation before the output. Defaults to the identity."""
     input_mask: Array = None
-    """mask for input to hidden weights"""
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        boolean mask should be used."""
     hidden_mask: Array = None
-    """mask for hidden to hidden weights"""
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+        For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
     use_bias: bool = True
@@ -196,9 +200,13 @@ class GCNN_Irrep(nn.Module):
     output_activation: Any = identity
     """The nonlinear activation before the output."""
     input_mask: Array = None
-    """mask for input to hidden weights"""
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        boolean mask should be used."""
     hidden_mask: Array = None
-    """mask for hidden to hidden weights"""
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+        For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
     use_bias: bool = True
@@ -300,9 +308,13 @@ class GCNN_Parity_FFT(nn.Module):
     output_activation: Any = identity
     """The nonlinear activation before the output."""
     input_mask: Array = None
-    """mask for input to hidden weights"""
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        boolean mask should be used."""
     hidden_mask: Array = None
-    """mask for hidden to hidden weights"""
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+        For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
@@ -483,9 +495,13 @@ class GCNN_Parity_Irrep(nn.Module):
     output_activation: Any = identity
     """The nonlinear activation before the output."""
     input_mask: Array = None
-    """mask for input to hidden weights"""
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        boolean mask should be used."""
     hidden_mask: Array = None
-    """mask for hidden to hidden weights"""
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+        For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
@@ -681,9 +697,11 @@ def GCNN(
         complex_output: If True, ensures that the network output is always complex.
             Necessary when network parameters are real but some `characters` are negative.
         input_mask: Optional array of shape `(n_sites,)` used to restrict the convolutional
-        kernel in the input :math:'\rightarrow' hidden weights. Only parameters with mask :math:'\ne 0' are used.
-        hidden_mask: Optional array of shape `(n_symm,)` that used to restrict the convolutional
-        kernel in the hidden :math:'\rightarrow' hidden. Only parameters with mask :math:'\ne 0' are used.
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
+        boolean mask should be used.
+        hidden_mask: Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
+        For best performance a boolean mask should be used.
 
     """
 

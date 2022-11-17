@@ -32,11 +32,6 @@ from netket.graph import Graph, Lattice
 default_equivariant_initializer = lecun_normal(in_axis=1, out_axis=0)
 
 
-def _normalise_mask(mask, new_norm):
-    mask = jnp.asarray(mask)
-    return mask / jnp.linalg.norm(mask) * new_norm**0.5
-
-
 def symm_input_warning(x_shape, new_x_shape, name):
     warn_deprecation(
         (
@@ -62,7 +57,9 @@ class DenseSymmMatrix(Module):
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
-    """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        boolean mask should be used"""
     param_dtype: Any = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
@@ -165,7 +162,9 @@ class DenseSymmFFT(Module):
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
-    """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        boolean mask should be used"""
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
@@ -183,7 +182,7 @@ class DenseSymmFFT(Module):
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
         if self.mask is not None:
-            self.kernel_indices = jnp.nonzero(self.mask)[0]
+            (self.kernel_indices,) = np.nonzero(self.mask)
 
         # maps (n_sites) dimension of kernels to (sites_per_cell, n_point, *shape)
         # as used in FFT-based group convolution
@@ -294,7 +293,9 @@ class DenseEquivariantFFT(Module):
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
-    """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+        For best performance a boolean mask should be used"""
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
@@ -312,7 +313,7 @@ class DenseEquivariantFFT(Module):
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
         if self.mask is not None:
-            self.kernel_indices = jnp.nonzero(self.mask)[0]
+            (self.kernel_indices,) = np.nonzero(self.mask)
 
         # maps (n_sites) dimension of kernels to (n_point, n_point, *shape)
         # as used in FFT-based group convolution
@@ -430,7 +431,9 @@ class DenseEquivariantIrrep(Module):
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
-    """Mask that zeros out elements of the filter. Should be of shape [inp.shape[-1]]"""
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+        For best performance a boolean mask should be used"""
 
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
@@ -445,7 +448,7 @@ class DenseEquivariantIrrep(Module):
     def setup(self):
         self.n_symm = self.irreps[0].shape[0]
         if self.mask is not None:
-            self.kernel_indices = jnp.nonzero(self.mask)[0]
+            (self.kernel_indices,) = np.nonzero(self.mask)
 
         self.forward = jnp.concatenate(
             [jnp.asarray(irrep).reshape(self.n_symm, -1) for irrep in self.irreps],
@@ -593,7 +596,9 @@ class DenseEquivariantMatrix(Module):
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
-    """Whether to mask the filters to restrict the connectivity"""
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+        For best performance a boolean mask should be used"""
     param_dtype: Any = jnp.float64
     """The dtype of the weights."""
     precision: Any = None
@@ -607,7 +612,7 @@ class DenseEquivariantMatrix(Module):
     def setup(self):
         self.n_symm = np.asarray(self.product_table).shape[0]
         if self.mask is not None:
-            self.kernel_indices, = jnp.nonzero(self.mask)
+            (self.kernel_indices,) = np.nonzero(self.mask)
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -647,7 +652,6 @@ class DenseEquivariantMatrix(Module):
             bias = None
 
         kernel, bias, x = promote_dtype(kernel, bias, x, dtype=None)
-        dtype = x.dtype
 
         # Converts the convolutional kernel of shape (features, in_features, n_symm)
         # to a full dense kernel of shape (features, in_features, n_symm, n_symm)
@@ -700,8 +704,9 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
         features: The number of output features. The full output shape
             is :code:`[n_batch,features,n_symm]`.
         use_bias: A bool specifying whether to add a bias to the output (default: True).
-        input_mask: Optional array of shape [n_sites] that used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used.
+        mask: Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
+        boolean mask should be used.
         param_dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
             see {class}`jax.lax.Precision` for details.
@@ -788,8 +793,9 @@ def DenseEquivariant(
         features: The number of output features. The full output shape
             is [n_batch,features,n_symm].
         use_bias: A bool specifying whether to add a bias to the output (default: True).
-        input_mask: Optional array of shape [n_symm] that used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a boolean mask should be used.
+        mask: Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
+        For best performance a boolean mask should be used.
         param_dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
             see :class:`jax.lax.Precision` for details.
