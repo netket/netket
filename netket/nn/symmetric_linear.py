@@ -607,7 +607,7 @@ class DenseEquivariantMatrix(Module):
     def setup(self):
         self.n_symm = np.asarray(self.product_table).shape[0]
         if self.mask is not None:
-            self.kernel_indices = jnp.nonzero(self.mask)[0]
+            self.kernel_indices, = jnp.nonzero(self.mask)
 
     @compact
     def __call__(self, x: Array) -> Array:
