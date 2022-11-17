@@ -789,7 +789,7 @@ def DenseEquivariant(
             is [n_batch,features,n_symm].
         use_bias: A bool specifying whether to add a bias to the output (default: True).
         input_mask: Optional array of shape [n_symm] that used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used.
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a boolean mask should be used.
         param_dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
             see :class:`jax.lax.Precision` for details.
