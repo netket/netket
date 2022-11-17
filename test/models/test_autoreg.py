@@ -366,20 +366,16 @@ def test_throwing():
     "graph",
     [
         pytest.param(
-            nk.graph.Grid(extent=[4, 4], pbc=True),
-            id="4x4_pbc",
-        ),
-        pytest.param(
-            nk.graph.Grid(extent=[3, 5], pbc=True),
-            id="3x5_pbc",
-        ),
-        pytest.param(
             nk.graph.Grid(extent=[4, 4], pbc=False),
             id="4x4_obc",
         ),
         pytest.param(
             nk.graph.Grid(extent=[3, 5], pbc=False),
             id="3x5_obc",
+        ),
+        pytest.param(
+            nk.graph.Grid(extent=[5, 3], pbc=False),
+            id="5x3_obc",
         ),
     ],
 )

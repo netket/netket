@@ -153,8 +153,8 @@ def _get_snake_inv_reorder_idx(graph):
 def _get_inv_reorder_idx(graph):
     """
     A greedy algorithm to determine an autoregressive order with good locality.
-    For any rectangular graph with OBC or PBC, it is consistent with the usual
-    snake ordering.
+    For any rectangular graph with OBC, it is the same as the usual snake ordering.
+    For PBC, it is mostly the same except at the end of each row.
 
     Start from site 0;
     at each step, choose the unvisited neighbor whose index is the closest to the last one;
@@ -187,12 +187,12 @@ def _get_snake_prev_neighbors(graph, _):
 
     def h(i, j):
         if 0 <= i < L and 0 <= j < M:
-            return i * L + j
+            return i * M + j
         else:
             return -1
 
     def get_neighbors(k):
-        i, j = divmod(k, L)
+        i, j = divmod(k, M)
         return h(i, j - 1 if i % 2 == 0 else j + 1), h(i - 1, j)
 
     # Sort and put -1 padding at the end
@@ -207,10 +207,10 @@ def _get_prev_neighbors(graph, reorder_idx, max_prev_neighbors=None):
     reorder_idx = np.asarray(reorder_idx)
 
     n = [[y for y in x if reorder_idx[y] < reorder_idx[i]] for i, x in enumerate(adj)]
+    # By default we take the median number of previous neighbors, rounded up
     if max_prev_neighbors is None:
-        max_prev_neighbors = max(len(x) for x in n)
-    # When the actual number of previous neighbors is greater than `max_prev_neighbors`,
-    # select the neighbors with largest indices
+        max_prev_neighbors = int(np.median([len(x) for x in n]) + 0.5)
+    # When a site has more previous neighbors, select the ones with largest indices
     n = [x[-max_prev_neighbors:] for x in n]
     n = [sorted(x) + [-1] * (max_prev_neighbors - len(x)) for x in n]
 
