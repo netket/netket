@@ -78,11 +78,11 @@ class GCNN_FFT(nn.Module):
     """The nonlinear activation before the output. Defaults to the identity."""
     input_mask: Array = None
     """Optional array of shape `(n_sites,)` used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
         boolean mask should be used."""
     hidden_mask: Array = None
-    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
-        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
@@ -201,11 +201,11 @@ class GCNN_Irrep(nn.Module):
     """The nonlinear activation before the output."""
     input_mask: Array = None
     """Optional array of shape `(n_sites,)` used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
         boolean mask should be used."""
     hidden_mask: Array = None
-    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
-        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
@@ -309,11 +309,11 @@ class GCNN_Parity_FFT(nn.Module):
     """The nonlinear activation before the output."""
     input_mask: Array = None
     """Optional array of shape `(n_sites,)` used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
         boolean mask should be used."""
     hidden_mask: Array = None
-    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
-        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
@@ -496,11 +496,11 @@ class GCNN_Parity_Irrep(nn.Module):
     """The nonlinear activation before the output."""
     input_mask: Array = None
     """Optional array of shape `(n_sites,)` used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
         boolean mask should be used."""
     hidden_mask: Array = None
-    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
-        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""

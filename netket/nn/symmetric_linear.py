@@ -58,7 +58,7 @@ class DenseSymmMatrix(Module):
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
     """Optional array of shape `(n_sites,)` used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
         boolean mask should be used"""
     param_dtype: Any = jnp.float64
     """The dtype of the weights."""
@@ -126,7 +126,6 @@ class DenseSymmMatrix(Module):
                 self.param_dtype,
             )
         x, kernel, bias = promote_dtype(x, kernel, bias, dtype=None)
-        dtype = x.dtype
 
         # Converts the convolutional kernel of shape (self.features, in_features, n_sites)
         # to a full dense kernel of shape (self.features, in_features, n_symm, n_sites).
@@ -163,7 +162,7 @@ class DenseSymmFFT(Module):
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
     """Optional array of shape `(n_sites,)` used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a 
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
         boolean mask should be used"""
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
@@ -293,8 +292,8 @@ class DenseEquivariantFFT(Module):
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
-    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
-        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
@@ -431,8 +430,8 @@ class DenseEquivariantIrrep(Module):
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
-    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
-        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
 
     param_dtype: DType = jnp.float64
@@ -596,8 +595,8 @@ class DenseEquivariantMatrix(Module):
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
     mask: Optional[HashableArray] = None
-    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())` 
-        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used. 
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
         For best performance a boolean mask should be used"""
     param_dtype: Any = jnp.float64
     """The dtype of the weights."""
