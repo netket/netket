@@ -5,6 +5,13 @@
 
 ## NetKet 3.7 (⚙️ In development)
 
+### New features
+* Input and hidden layer masks can now be specified for {class}`netket.models.GCNN` [#1387](https://github.com/netket/netket/pull/1387).
+
+### Breaking Changes
+* Parameters of models {class}`netket.models.GCNN` and layers {class}`netket.nn.DenseSymm` and {class}`netket.nn.DenseEquivariant` are stored as an array of shape '[features,in_features,mask_size]'. Masked parameters are now excluded from the model instead of multiplied by zero [#1387](https://github.com/netket/netket/pull/1387).
+
+
 ### Improvements
 * The underlying extension API for Autoregressive models that can be used with Ancestral/Autoregressive samplers has been simplified and stabilized and will be documented as part of the public API. For most models, you should now inherit from `AbstractARNN` and define `conditionals_log_psi`. For additional performance, implementers can also redefine `__call__` and `conditional` but this should not be needed in general. This will cause some breaking changes if you were relying on the old undocumented interface [#1361](https://github.com/netket/netket/pull/1361).
 
@@ -13,6 +20,7 @@
 ### Deprecations
 * `AbstractARNN._conditional` has been removed from the API, and its use will throw a deprecation warning. Update your ARNN models accordingly! [#1361](https://github.com/netket/netket/pull/1361).
 * Several undocumented internal methods from `nk.models.ARNN` have been removed [#1361](https://github.com/netket/netket/pull/1361).
+* Parameter loading for  [#1361](https://github.com/netket/netket/pull/1361).
 
 
 ## NetKet 3.6 (🏔️ 6 November 2022)
