@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Any, Optional
 
 import jax
 import jax.numpy as jnp
@@ -118,9 +118,9 @@ class VMC(AbstractVariationalDriver):
 
         self.preconditioner = preconditioner
 
-        self._dp = None  # type: PyTree
-        self._S = None
-        self._sr_info = None
+        self._dp: PyTree = None
+        self._S: Optional[PreconditionerT] = None
+        self._sr_info: Optional[Any] = None
 
     @property
     def preconditioner(self):
