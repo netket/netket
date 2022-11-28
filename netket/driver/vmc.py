@@ -118,9 +118,9 @@ class VMC(AbstractVariationalDriver):
 
         self.preconditioner = preconditioner
 
-        self._dp : PyTree = None
-        self._S : Optional[PreconditionerT] = None
-        self._sr_info : Optional[Any] = None
+        self._dp: PyTree = None
+        self._S: Optional[PreconditionerT] = None
+        self._sr_info: Optional[Any] = None
 
     @property
     def preconditioner(self):
