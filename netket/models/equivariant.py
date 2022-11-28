@@ -23,7 +23,7 @@ from jax.nn.initializers import zeros, lecun_normal
 from jax.scipy.special import logsumexp
 
 from netket.utils import HashableArray, warn_deprecation, deprecate_dtype
-from netket.utils.types import NNInitFunc
+from netket.utils.types import NNInitFunc, Array
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
 from netket.jax import logsumexp_cplx, is_complex_dtype
@@ -76,6 +76,14 @@ class GCNN_FFT(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output. Defaults to the identity."""
+    input_mask: Array = None
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
+        boolean mask should be used."""
+    hidden_mask: Array = None
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
+        For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
     use_bias: bool = True
@@ -103,6 +111,7 @@ class GCNN_FFT(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
             precision=self.precision,
+            mask=self.input_mask,
         )
 
         self.equivariant_layers = [
@@ -115,6 +124,7 @@ class GCNN_FFT(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -189,6 +199,14 @@ class GCNN_Irrep(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
+    input_mask: Array = None
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
+        boolean mask should be used."""
+    hidden_mask: Array = None
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
+        For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting `Re[logψ] = 0`"""
     use_bias: bool = True
@@ -215,6 +233,7 @@ class GCNN_Irrep(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
             precision=self.precision,
+            mask=self.input_mask,
         )
 
         self.equivariant_layers = [
@@ -226,6 +245,7 @@ class GCNN_Irrep(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -287,6 +307,14 @@ class GCNN_Parity_FFT(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
+    input_mask: Array = None
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
+        boolean mask should be used."""
+    hidden_mask: Array = None
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
+        For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
@@ -328,6 +356,7 @@ class GCNN_Parity_FFT(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
             precision=self.precision,
+            mask=self.input_mask,
         )
 
         self.equivariant_layers = [
@@ -340,6 +369,7 @@ class GCNN_Parity_FFT(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -355,6 +385,7 @@ class GCNN_Parity_FFT(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -463,6 +494,14 @@ class GCNN_Parity_Irrep(nn.Module):
     """The nonlinear activation function between hidden layers."""
     output_activation: Any = identity
     """The nonlinear activation before the output."""
+    input_mask: Array = None
+    """Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
+        boolean mask should be used."""
+    hidden_mask: Array = None
+    """Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
+        For best performance a boolean mask should be used"""
     equal_amplitudes: bool = False
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
@@ -503,6 +542,7 @@ class GCNN_Parity_Irrep(nn.Module):
             kernel_init=self.kernel_init,
             bias_init=self.bias_init,
             precision=self.precision,
+            mask=self.input_mask,
         )
 
         self.equivariant_layers = [
@@ -514,6 +554,7 @@ class GCNN_Parity_Irrep(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -528,6 +569,7 @@ class GCNN_Parity_Irrep(nn.Module):
                 precision=self.precision,
                 kernel_init=self.kernel_init,
                 bias_init=self.bias_init,
+                mask=self.hidden_mask,
             )
             for layer in range(self.layers - 1)
         ]
@@ -598,6 +640,8 @@ def GCNN(
     parity=None,
     param_dtype=np.float64,
     complex_output=True,
+    input_mask=None,
+    hidden_mask=None,
     **kwargs,
 ):
     r"""Implements a Group Convolutional Neural Network (G-CNN) that outputs a wavefunction
@@ -652,9 +696,19 @@ def GCNN(
         bias_init: Initializer for the biases of all layers.
         complex_output: If True, ensures that the network output is always complex.
             Necessary when network parameters are real but some `characters` are negative.
-
+        input_mask: Optional array of shape `(n_sites,)` used to restrict the convolutional
+        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
+        boolean mask should be used.
+        hidden_mask: Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
+        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
+        For best performance a boolean mask should be used.
 
     """
+
+    if input_mask is not None:
+        input_mask = HashableArray(input_mask)
+    if hidden_mask is not None:
+        hidden_mask = HashableArray(hidden_mask)
 
     if isinstance(symmetries, Lattice) and (
         point_group is not None or symmetries._point_group is not None
