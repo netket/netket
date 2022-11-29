@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-from scipy.sparse.linalg import bicgstab
+import numpy as _np
+from scipy.sparse.linalg import bicgstab as _bicgstab
 
-from .operator import AbstractOperator
+from .operator import AbstractOperator as _AbstractOperator
 
 
 def lanczos_ed(
-    operator: AbstractOperator,
+    operator: _AbstractOperator,
     *,
     k: int = 1,
     compute_eigenvectors: bool = False,
@@ -81,7 +81,7 @@ def lanczos_ed(
         return result
 
 
-def full_ed(operator: AbstractOperator, *, compute_eigenvectors: bool = False):
+def full_ed(operator: _AbstractOperator, *, compute_eigenvectors: bool = False):
     """Computes all eigenvalues and, optionally, eigenvectors
     of a Hermitian operator by full diagonalization.
 
@@ -188,7 +188,7 @@ def steady_state(lindblad, *, sparse=True, method="ed", rho0=None, **kwargs):
         L = lindblad.to_linear_operator(sparse=sparse, append_trace=True)
 
         # Initial density matrix ( + trace condition)
-        Lrho_start = np.zeros((M**2 + 1), dtype=L.dtype)
+        Lrho_start = _np.zeros((M**2 + 1), dtype=L.dtype)
         if rho0 is None:
             Lrho_start[0] = 1.0
             Lrho_start[-1] = 1.0
@@ -197,12 +197,12 @@ def steady_state(lindblad, *, sparse=True, method="ed", rho0=None, **kwargs):
             Lrho_start[-1] = rho0.trace()
 
         # Target residual (everything 0 and trace 1)
-        Lrho_target = np.zeros((M**2 + 1), dtype=L.dtype)
+        Lrho_target = _np.zeros((M**2 + 1), dtype=L.dtype)
         Lrho_target[-1] = 1.0
 
         # Iterative solver
         print("Starting iterative solver...")
-        res, info = bicgstab(L, Lrho_target, x0=Lrho_start, **kwargs)
+        res, info = _bicgstab(L, Lrho_target, x0=Lrho_start, **kwargs)
 
         rho = res[:-1].reshape((M, M))
         if info == 0:
