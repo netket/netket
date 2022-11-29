@@ -49,7 +49,7 @@ class ContinuousHilbert(AbstractHilbert):
                 """`pbc` must be either a bool or a tuple indicating the periodicity of each spatial dimension."""
             )
 
-        if np.any(np.isinf(np.array(self._extent) * np.array(self._pbc))):
+        if np.any(np.logical_and(np.isinf(self._extent), pbc)):
             raise ValueError(
                 "If you do have periodic boundary conditions in a given direction the maximum of the quantum number "
                 "in that direction must be finite."

@@ -53,7 +53,8 @@ class Particle(ContinuousHilbert):
         if isinstance(pbc, bool):
             pbc = [pbc] * len(L)
 
-        if np.any(np.isinf(np.array(L) * np.array(pbc))):
+        #if np.any(np.isinf(np.array(L) * np.array(pbc))):
+        if np.any(np.logical_and(np.isinf(L), pbc)):
             raise ValueError(
                 "If you do have periodic boundary conditions the size of the box (L) "
                 "must be finite."
