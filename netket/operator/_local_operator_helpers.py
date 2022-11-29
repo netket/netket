@@ -85,6 +85,12 @@ def canonicalize_input(
         if max(map(max, acting_on)) >= hilbert.size or min(map(min, acting_on)) < 0:
             raise ValueError("An operator acts on an invalid set of sites.")
 
+        for i, aon in enumerate(acting_on):
+            if len(aon) != len(set(aon)):
+                raise ValueError(
+                    f"The operator at index {i} acts on duplicated sites {aon}"
+                )
+
     acting_on = [tuple(aon) for aon in acting_on]
     # operators = [np.asarray(operator) for operator in operators]
     operators = [_standardize_matrix_input_type(op) for op in operators]

@@ -513,3 +513,11 @@ def test_not_recompiling():
     assert not op._initialized
     op.get_conn_padded(hi.numbers_to_states(1))
     assert op._initialized
+
+
+def test_duplicate_sites():
+    hi = nk.hilbert.Spin(s=1 / 2, N=2)
+    mat = np.random.rand(4, 4)
+    # The operator at index 0 acts on duplicated sites [0, 0]
+    with raises(ValueError):
+        nk.operator.LocalOperator(hi, mat, [0, 0])
