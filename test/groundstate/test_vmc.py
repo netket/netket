@@ -210,35 +210,6 @@ def test_vmc_gradient(dtype):
     same_derivatives(grad_approx, grad_exact, abs_eps=err, rel_eps=1.0e-3)
 
 
-def test_vmc_sr_legacy_api():
-    ha, sx, ma, sampler, driver = _setup_vmc(sr=True)
-    op = driver.optimizer
-    vs = driver.state
-    sr_config = driver.preconditioner
-
-    with pytest.warns(FutureWarning):
-        driver = nk.VMC(
-            ha,
-            op,
-            variational_state=vs,
-            sr=sr_config,
-        )
-
-    with pytest.warns(FutureWarning):
-        driver = nk.VMC(
-            ha,
-            op,
-            variational_state=vs,
-            preconditioner=sr_config,
-            sr_restart=True,
-        )
-
-    with pytest.raises(ValueError):
-        driver = nk.VMC(
-            ha, op, variational_state=vs, sr=sr_config, preconditioner=sr_config
-        )
-
-
 def test_no_preconditioner_api():
     ha, sx, ma, sampler, driver = _setup_vmc(sr=True)
 
@@ -257,11 +228,3 @@ def test_preconditioner_deprecated_signature():
         driver.preconditioner = _sr
 
     driver.run(1)
-
-
-def test_deprecated_vmc_name():
-    ha, sx, ma, sa, driver = _setup_vmc()
-    op = nk.optimizer.Sgd(learning_rate=0.05)
-
-    with pytest.warns(FutureWarning):
-        driver = nk.Vmc(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)

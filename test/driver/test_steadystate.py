@@ -101,24 +101,6 @@ def test_steadystate_construction_vstate():
         driver = nk.SteadyState(ha2, op, variational_state=driver.state)
 
 
-def test_steadystate_steadystate_legacy_api():
-    lind, vs, driver = _setup_ss()
-    op = driver.optimizer
-    vs = driver.state
-    sr_config = driver.preconditioner
-
-    with pytest.raises(ValueError):
-        driver = nk.SteadyState(
-            lind, op, variational_state=vs, sr=sr_config, preconditioner=sr_config
-        )
-
-    with pytest.warns(FutureWarning):
-        driver = nk.SteadyState(
-            lind, op, variational_state=vs, sr=sr_config, sr_restart=True
-        )
-        assert driver.preconditioner == sr_config
-
-
 def test_no_preconditioner_api():
     lind, vs, driver = _setup_ss()
 

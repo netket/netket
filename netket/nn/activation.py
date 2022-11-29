@@ -103,21 +103,3 @@ r"""Returns the selu non-linearity, applied separately to the real and imaginary
 
 reim_relu = reim(relu)
 r"""Returns the relu non-linearity, applied separately to the real and imaginary parts"""
-
-
-# TODO: DEPRECATION 3.1
-@deprecated("Deprecated. Use log_cosh instead")
-def logcosh(x):
-    return log_cosh(x)
-
-
-# TODO: DEPRECATION 3.1
-@deprecated("Deprecated. Use log_tanh instead")
-def logtanh(x):
-    return log_tanh(x)
-
-
-# TODO: DEPRECATION 3.1
-@deprecated("Deprecated. Use log_sinh instead")
-def logsinh(x):
-    return log_sinh(x)

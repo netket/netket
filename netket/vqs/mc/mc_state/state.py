@@ -32,8 +32,6 @@ from netket.operator import AbstractOperator, Squared
 from netket.sampler import Sampler, SamplerState
 from netket.utils import (
     maybe_wrap_module,
-    deprecated,
-    warn_deprecation,
     mpi,
     wrap_afun,
     wrap_to_support_scalar,
@@ -139,7 +137,6 @@ class MCState(VariationalState):
         *,
         n_samples: int = None,
         n_samples_per_rank: Optional[int] = None,
-        n_discard: Optional[int] = None,  # deprecated
         n_discard_per_chain: Optional[int] = None,
         chunk_size: Optional[int] = None,
         variables: Optional[PyTree] = None,
@@ -177,7 +174,6 @@ class MCState(VariationalState):
             sample_fun: Optional function used to sample the state, if it is not the same as `apply_fun`.
             training_kwargs: a dict containing the optional keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
-            n_discard: DEPRECATED. Please use `n_discard_per_chain` which has the same behaviour.
         """
         super().__init__(sampler.hilbert)
 
@@ -229,18 +225,6 @@ class MCState(VariationalState):
                 "Only one argument between `n_samples` and `n_samples_per_rank`"
                 "can be specified at the same time."
             )
-
-        if n_discard is not None and n_discard_per_chain is not None:
-            raise ValueError(
-                "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
-                "Specify only `n_discard_per_chain`."
-            )
-        elif n_discard is not None:
-            warn_deprecation(
-                "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
-                "Please update your code to use `n_discard_per_chain`."
-            )
-            n_discard_per_chain = n_discard
 
         if sample_fun is not None:
             self._sample_fun = sample_fun
@@ -405,29 +389,6 @@ class MCState(VariationalState):
             if n_discard_per_chain is not None
             else self.n_samples // 10
         )
-
-    # TODO: deprecate
-    @property
-    def n_discard(self) -> int:
-        """
-        DEPRECATED: Use `n_discard_per_chain` instead.
-
-        Number of discarded samples at the beginning of the markov chain.
-        """
-        warn_deprecation(
-            "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
-            "Please update your code to use `n_discard_per_chain`."
-        )
-
-        return self.n_discard_per_chain
-
-    @n_discard.setter
-    def n_discard(self, val) -> int:
-        warn_deprecation(
-            "`n_discard` has been renamed to `n_discard_per_chain` and deprecated."
-            "Please update your code to use `n_discard_per_chain`."
-        )
-        self.n_discard_per_chain = val
 
     @property
     def chunk_size(self) -> int:
@@ -672,13 +633,6 @@ class MCState(VariationalState):
             mutable = self.mutable
 
         return expect_and_forces(self, Ô, self.chunk_size, mutable=mutable)
-
-    @deprecated("Use MCState.log_value(σ) instead.")
-    def evaluate(self, σ: jnp.ndarray) -> jnp.ndarray:
-        """
-        DEPRECATED: use log_value instead.
-        """
-        return self.log_value(σ)
 
     def quantum_geometric_tensor(
         self, qgt_T: LinearOperator = QGTAuto()

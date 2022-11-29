@@ -56,7 +56,6 @@ def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
                 axis=1,
             )
 
-            # deprecated: return jax.random.shuffle(key, x, axis=1)
             return jax.vmap(jax.random.permutation)(
                 jax.random.split(key, x.shape[0]), x
             )

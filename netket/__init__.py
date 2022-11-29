@@ -22,7 +22,7 @@ del config
 from ._version import version as __version__  # noqa: F401
 
 from . import utils
-from .utils import config, deprecated_new_name as _deprecated
+from .utils import config
 
 __all__ = [
     "exact",
@@ -61,13 +61,3 @@ from . import (
 # Main applications
 from .driver import VMC
 from .driver import SteadyState
-
-
-# Deprecations
-@_deprecated("VMC")
-def Vmc(*args, **kwargs):
-    return VMC(*args, **kwargs)
-
-
-from . import variational
-from . import optim

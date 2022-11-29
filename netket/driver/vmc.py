@@ -29,8 +29,6 @@ from netket.optimizer import (
     PreconditionerT,
     _DeprecatedPreconditionerSignature,
 )
-from netket.utils import warn_deprecation
-
 
 from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
@@ -41,16 +39,13 @@ class VMC(AbstractVariationalDriver):
     Energy minimization using Variational Monte Carlo (VMC).
     """
 
-    # TODO docstring
     def __init__(
         self,
         hamiltonian: AbstractOperator,
         optimizer,
         *args,
         variational_state=None,
-        preconditioner: PreconditionerT = None,
-        sr: PreconditionerT = None,
-        sr_restart: bool = None,
+        preconditioner: PreconditionerT = identity_preconditioner,
         **kwargs,
     ):
         """
@@ -79,38 +74,6 @@ class VMC(AbstractVariationalDriver):
                     """
                 )
             )
-
-        if sr is not None:
-            if preconditioner is not None:
-                raise ValueError(
-                    "sr is deprecated in favour of preconditioner kwarg. You should not pass both"
-                )
-            else:
-                preconditioner = sr
-                warn_deprecation(
-                    (
-                        "The `sr` keyword argument is deprecated in favour of `preconditioner`."
-                        "Please update your code to `VMC(.., preconditioner=your_sr)`"
-                    )
-                )
-        if sr_restart is not None:
-            if preconditioner is None:
-                raise ValueError(
-                    "sr_restart only makes sense if you have a preconditioner/SR."
-                )
-            else:
-                preconditioner.solver_restart = sr_restart
-                warn_deprecation(
-                    (
-                        "The `sr_restart` keyword argument is deprecated in favour of specifying "
-                        "`solver_restart` in the constructor of the SR object."
-                        "Please update your code to `VMC(.., preconditioner=nk.optimizer.SR(..., solver_restart=True/False))`"
-                    )
-                )
-
-        # move as kwarg once deprecations are removed
-        if preconditioner is None:
-            preconditioner = identity_preconditioner
 
         super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
 

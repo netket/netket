@@ -15,7 +15,6 @@
 from itertools import permutations
 from typing import Sequence, Union, Tuple
 import numpy as np
-import warnings
 
 from .lattice import Lattice
 
@@ -69,9 +68,8 @@ def _grid_point_group(
 
 
 def Grid(
-    extent: Sequence[int] = None,
+    extent: Sequence[int],
     *,
-    length: Sequence[int] = None,
     pbc: Union[bool, Sequence[bool]] = True,
     color_edges: bool = False,
     **kwargs,
@@ -107,23 +105,7 @@ def Grid(
         >>> print(g.n_nodes)
         12
     """
-    if extent is None:
-        if length is None:
-            raise TypeError("Required argument 'extent' missing")
-        else:
-            warnings.warn(
-                "'length' is deprecated and may be removed in future versions, "
-                "use 'extent' instead",
-                FutureWarning,
-            )
-            extent = np.asarray(length, dtype=int)
-    else:
-        if length is not None:
-            raise TypeError(
-                "'length' is a deprecated alias of 'extent', do not supply both"
-            )
-        else:
-            extent = np.asarray(extent, dtype=int)
+    extent = np.asarray(extent, dtype=int)
 
     ndim = len(extent)
     if isinstance(pbc, bool):

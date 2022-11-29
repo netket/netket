@@ -14,8 +14,6 @@
 
 from . import qgt, solver
 
-from .sr import SR
-
 from .linear_operator import LinearOperator
 from .preconditioner import (
     LinearPreconditioner,
@@ -24,9 +22,12 @@ from .preconditioner import (
     DeprecatedPreconditionerSignature as _DeprecatedPreconditionerSignature,
 )
 
-## Optimisers
+from .sr import SR
 
 from netket.utils import _hide_submodules
+
+
+## Optimisers
 
 
 def Sgd(learning_rate: float):
