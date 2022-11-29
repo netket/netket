@@ -71,5 +71,6 @@ def flip_state_scalar(hilb: Fock, key, σ, idx):
     r = jax.random.uniform(key)
     σi_new = jax.numpy.floor(r * (n_states - 1))
     σi_new = σi_new + (σi_new >= σi_old)
+    σi_new = σi_new.astype(σ.dtype)
 
     return σ.at[idx].set(σi_new), σi_old

@@ -119,11 +119,9 @@ class Fock(HomogeneousHilbert):
 
     def __pow__(self, n) -> "Fock":
         if self.n_particles is None:
-            n_particles = None
-        else:
-            n_particles = n_particles * n
+            return Fock(self.n_max, self.size * n)
 
-        return Fock(self.n_max, self.size * n, n_particles=n_particles)
+        return NotImplemented
 
     def _mul_sametype_(self, other: "Fock") -> "Fock":
         assert type(self) == type(other)
@@ -162,7 +160,7 @@ class Fock(HomogeneousHilbert):
             else ""
         )
         nmax = self._n_max if self._n_max < FOCK_MAX else "FOCK_MAX"
-        return "Fock(n_max={}{}, N={})".format(nmax, n_particles, self._size)
+        return "Fock(n_max={}{}, N={})".format(nmax, n_particles, self.size)
 
     def states_to_local_indices(self, x):
         return x.astype(np.int32)

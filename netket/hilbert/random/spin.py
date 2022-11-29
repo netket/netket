@@ -114,6 +114,7 @@ def _flipat_generic(key, x, i, s):
     r = jax.random.uniform(key)
     xi_new = jax.numpy.floor(r * (n_states - 1)) * 2 - (n_states - 1)
     xi_new = xi_new + 2 * (xi_new >= xi_old)
+    xi_new = xi_new.astype(x.dtype)
 
     new_state = x.at[i].set(xi_new)
     return new_state, xi_old

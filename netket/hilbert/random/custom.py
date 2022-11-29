@@ -21,7 +21,7 @@ from netket.utils.dispatch import dispatch
 
 @dispatch
 def random_state(hilb: CustomHilbert, key, batches: int, *, dtype):
-    if not hilb.is_finite or hilb._has_constraint:
+    if not hilb.is_finite or hilb.constrained:
         raise NotImplementedError()
 
     # Default version for discrete hilbert spaces without constraints.

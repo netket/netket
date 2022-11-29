@@ -24,11 +24,6 @@ from .hilbert_index import HilbertIndex
 
 
 @jit(nopython=True)
-def _gen_to_bare_numbers(conditions):
-    return np.nonzero(conditions)[0]
-
-
-@jit(nopython=True)
 def _to_constrained_numbers_kernel(bare_numbers, numbers):
     found = np.searchsorted(bare_numbers, numbers)
     if np.max(found) >= bare_numbers.shape[0]:
@@ -64,8 +59,6 @@ class HomogeneousHilbert(DiscreteHilbert):
         """
         assert isinstance(N, int)
 
-        self._size = N
-
         self._is_finite = local_states is not None
 
         if self._is_finite:
@@ -79,18 +72,18 @@ class HomogeneousHilbert(DiscreteHilbert):
             self._local_states_frozen = None
             self._local_size = np.iinfo(np.intp).max
 
-        self._has_constraint = constraint_fn is not None
         self._constraint_fn = constraint_fn
 
-        self._hilbert_index = None
+        self.__hilbert_index = None
+        self.__bare_numbers = None
 
-        shape = tuple(self._local_size for _ in range(self.size))
+        shape = tuple(self._local_size for _ in range(N))
         super().__init__(shape=shape)
 
     @property
     def size(self) -> int:
         r"""The total number number of degrees of freedom."""
-        return self._size
+        return len(self.shape)
 
     @property
     def local_size(self) -> int:
@@ -113,11 +106,8 @@ class HomogeneousHilbert(DiscreteHilbert):
     def n_states(self) -> int:
         r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
-
-        hind = self._get_hilbert_index()
-
-        if not self._has_constraint:
-            return hind.n_states
+        if not self.constrained:
+            return self._hilbert_index.n_states
         else:
             return self._bare_numbers.shape[0]
 
@@ -129,18 +119,18 @@ class HomogeneousHilbert(DiscreteHilbert):
     @property
     def constrained(self) -> bool:
         r"""Returns True if the hilbert space is constrained."""
-        return self._has_constraint
+        return self._constraint_fn is not None
 
     def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
-        hind = self._get_hilbert_index()
-        return hind.numbers_to_states(self._to_bare_numbers(numbers), out)
+        if self.constrained:
+            numbers = self._bare_numbers[numbers]
+
+        return self._hilbert_index.numbers_to_states(numbers, out)
 
     def _states_to_numbers(self, states, out):
-        hind = self._get_hilbert_index()
+        self._hilbert_index.states_to_numbers(states, out)
 
-        hind.states_to_numbers(states, out)
-
-        if self._has_constraint:
+        if self.constrained:
             out[:] = _to_constrained_numbers_kernel(
                 self._bare_numbers,
                 out,
@@ -148,36 +138,32 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         return out
 
-    def _get_hilbert_index(self):
-        if self._hilbert_index is None:
+    @property
+    def _hilbert_index(self):
+        if self.__hilbert_index is None:
             if not self.is_indexable:
                 raise RuntimeError("The hilbert space is too large to be indexed.")
 
-            self._hilbert_index = HilbertIndex(
+            self.__hilbert_index = HilbertIndex(
                 np.asarray(self.local_states, dtype=np.float64), self.size
             )
 
-            if self._has_constraint:
-                self._bare_numbers = _gen_to_bare_numbers(
-                    self._constraint_fn(self._hilbert_index.all_states())
-                )
-            else:
-                self._bare_numbers = np.empty(0, dtype=np.intp)
+        return self.__hilbert_index
 
-        return self._hilbert_index
+    @property
+    def _bare_numbers(self):
+        if not self.constrained:
+            return None
 
-    def _to_bare_numbers(self, numbers):
-        if self._constraint_fn is None:
-            return numbers
-        else:
-            return self._bare_numbers[numbers]
+        if self.__bare_numbers is None:
+            (self.__bare_numbers,) = np.nonzero(
+                self._constraint_fn(self._hilbert_index.all_states())
+            )
+
+        return self.__bare_numbers
 
     def __repr__(self):
-        constr = (
-            ", has_constraint={}".format(self._has_constraint)
-            if self._has_constraint
-            else ""
-        )
+        constr = ", constrained={}".format(self.constrained) if self.constrained else ""
 
         clsname = type(self).__name__
         return f"{clsname}(local_size={self._local_size}, N={self.size}{constr})"
@@ -188,6 +174,6 @@ class HomogeneousHilbert(DiscreteHilbert):
             self.size,
             self.local_size,
             self._local_states_frozen,
-            self._has_constraint,
+            self.constrained,
             self._constraint_fn,
         )
