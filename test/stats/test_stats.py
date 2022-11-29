@@ -53,7 +53,7 @@ def _setup():
 
     ham = nk.operator.Heisenberg(hi, graph=g)
 
-    ma = nk.models.RBM(alpha=2, dtype=np.complex64)
+    ma = nk.models.RBM(alpha=2, param_dtype=np.complex64)
 
     return hi, ham, ma
 
@@ -74,7 +74,6 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
     )
     assert samples.shape == (num_samples_per_chain, n_chains, hi.size)
 
-    # eloc = np.empty((num_samples_per_chain, n_chains), dtype=np.complex128)
     eloc = local_values(ma.apply, w, ham, samples)
     assert eloc.shape == (num_samples_per_chain, n_chains)
 

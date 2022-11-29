@@ -19,7 +19,7 @@ def vstate(request):
 
     ma = nk.models.RBM(
         alpha=1,
-        dtype=float,
+        param_dtype=float,
         hidden_bias_init=normal(),
         visible_bias_init=normal(),
     )

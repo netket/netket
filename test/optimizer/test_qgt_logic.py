@@ -16,6 +16,7 @@
 
 import pytest
 from functools import partial
+from contextlib import nullcontext as does_not_raise
 
 import math
 import numpy as np
@@ -483,11 +484,19 @@ def test_scale_invariant_regularization(e_offset, outdtype, pardtype, offset):
     ],
 )
 def test_sanitize_diag_shift(inputs, expected):
+    if inputs[2] is not None:
+        ctx = pytest.warns(FutureWarning)
+    else:
+        ctx = does_not_raise()
+
     if expected == "error":
         with pytest.raises(ValueError):
-            qgt_jacobian_common.sanitize_diag_shift(*inputs)
+            with ctx:
+                qgt_jacobian_common.sanitize_diag_shift(*inputs)
     else:
-        output = qgt_jacobian_common.sanitize_diag_shift(*inputs)
+        with ctx:
+            output = qgt_jacobian_common.sanitize_diag_shift(*inputs)
+
         assert output == expected
 
 

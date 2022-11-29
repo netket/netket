@@ -33,7 +33,7 @@ def _setup_system(L, *, model=None, dtype=np.complex128):
     hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
 
     if model is None:
-        model = nk.models.RBM(alpha=1, dtype=dtype)
+        model = nk.models.RBM(alpha=1, param_dtype=dtype)
 
     sa = nk.sampler.ExactSampler(hilbert=hi)
 
@@ -73,10 +73,7 @@ adaptive_step_integrators = [
 all_integrators = fixed_step_integrators + adaptive_step_integrators
 
 nqs_models = [
-    pytest.param(nk.models.RBM(alpha=1, dtype=np.complex128), id="RBM(complex128)"),
-    # pytest.param(
-    #    nk.models.RBMModPhase(alpha=1, dtype=np.float64), id="RBMModPhase(float64)"
-    # ),
+    pytest.param(nk.models.RBM(alpha=1, param_dtype=np.complex128), id="RBM(complex128)"),
 ]
 
 

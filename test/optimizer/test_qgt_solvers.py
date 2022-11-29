@@ -53,7 +53,7 @@ def vstate(request):
 
     ma = nk.models.RBM(
         alpha=1,
-        dtype=dtype,
+        param_dtype=dtype,
         hidden_bias_init=normal(),
         visible_bias_init=normal(),
     )
@@ -91,7 +91,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
 )
 def test_qgt_throws(SType):
     hi = nk.hilbert.Spin(s=1 / 2, N=5)
-    ma = nk.models.RBMModPhase(alpha=1, dtype=float)
+    ma = nk.models.RBMModPhase(alpha=1, param_dtype=float)
     sa = nk.sampler.MetropolisLocal(hi, n_chains=16, reset_chains=False)
     vs = nk.vqs.MCState(sa, ma, n_samples=100, n_discard_per_chain=100)
 
@@ -141,7 +141,7 @@ def test_qgt_otf_scale_err():
 )
 def test_qgt_explicit_chunk_size(SType):
     hi = nk.hilbert.Spin(s=1 / 2, N=5)
-    ma = nk.models.RBMModPhase(alpha=1, dtype=float)
+    ma = nk.models.RBMModPhase(alpha=1, param_dtype=float)
     sa = nk.sampler.MetropolisLocal(hi, n_chains=16, reset_chains=False)
     vs = nk.vqs.MCState(sa, ma, n_samples=16 * 8, n_discard_per_chain=100)
 
