@@ -242,9 +242,10 @@ class DiscreteHilbert(AbstractHilbert):
             res = self._mul_sametype_(other)
             if res is not NotImplemented:
                 return res
-                
+
         from .tensor_hilbert import TensorHilbert
+
         return TensorHilbert(self, other)
 
     def __pow__(self, n):
-        return reduce(lambda x,y: x*y, [self for _ in range(n)])
+        return reduce(lambda x, y: x * y, [self for _ in range(n)])
