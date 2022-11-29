@@ -101,13 +101,13 @@ class Spin(HomogeneousHilbert):
         else:
             constraints = None
 
-        self._total_sz = total_sz if total_sz is None else total_sz
+        self._total_sz = total_sz
         self._s = s
 
         super().__init__(local_states, N, constraints)
 
     def __pow__(self, n):
-        if self._total_sz is None:
+        if not self.constrained:
             return Spin(self._s, self.size * n)
 
         return NotImplemented
@@ -115,7 +115,7 @@ class Spin(HomogeneousHilbert):
     def _mul_sametype_(self, other):
         assert type(self) == type(other)
         if self._s == other._s:
-            if self._total_sz is None and other._total_sz is None:
+            if not self.constrained and not other.constrained:
                 return Spin(s=self._s, N=self.size + other.size)
 
         return NotImplemented
@@ -150,7 +150,7 @@ class Spin(HomogeneousHilbert):
         total_sz = (
             ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
         )
-        return "Spin(s={}{}, N={})".format(Fraction(self._s), total_sz, self._size)
+        return "Spin(s={}{}, N={})".format(Fraction(self._s), total_sz, self.size)
 
     @property
     def _attrs(self):

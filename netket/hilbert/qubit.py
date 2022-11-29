@@ -72,7 +72,7 @@ class Qubit(HomogeneousHilbert):
             return Qubit(N=self.size - Nsites)
 
     def __repr__(self):
-        return "Qubit(N={})".format(self._size)
+        return "Qubit(N={})".format(self.size)
 
     @property
     def _attrs(self):

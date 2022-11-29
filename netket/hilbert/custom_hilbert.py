@@ -69,7 +69,7 @@ class CustomHilbert(HomogeneousHilbert):
 
     def _mul_sametype_(self, other):
         assert type(self) == type(other)
-        if not self._has_constraint:
+        if not self.constrained:
             if self.local_states == other.local_states:
                 return CustomHilbert(self._local_states, self.size + other.size)
 
