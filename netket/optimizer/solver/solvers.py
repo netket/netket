@@ -90,7 +90,7 @@ def LU(A, b, trans=0, x0=None):
 
 # I believe this internally uses a smarter/more efficient way to
 # do cholesky
-def solve(A, b, sym_pos=True, x0=None):
+def solve(A, b, assume_a="pos", x0=None):
     """
     Solve the linear system.
     The diagonal shift on the matrix should be 0.
@@ -108,5 +108,5 @@ def solve(A, b, sym_pos=True, x0=None):
     A = A.to_dense()
     b, unravel = tree_ravel(b)
 
-    x = jsp.linalg.solve(A, b, sym_pos=sym_pos)
+    x = jsp.linalg.solve(A, b, assume_a="pos")
     return unravel(x), None

@@ -125,7 +125,7 @@ def model_and_weights(request):
             # Build RBM by default
             ma = nk.models.RBM(
                 alpha=1,
-                dtype=complex,
+                param_dtype=complex,
                 kernel_init=normal(stddev=0.1),
                 hidden_bias_init=normal(stddev=0.1),
             )

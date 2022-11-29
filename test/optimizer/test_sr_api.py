@@ -48,8 +48,7 @@ def test_qgt_partial_jacobian_sanitise(qgt):
         },
         {
             "holomorphic": True,
-            "diag_shift": 0.03,
-            "rescale_shift": True,
+            "diag_scale": 0.03,
         },
     ),
 )
