@@ -21,8 +21,8 @@ from dataclasses import dataclass
 from netket.vqs import VariationalState
 from netket.utils.types import Scalar, ScalarOrSchedule
 
-from ..qgt import QGTAuto
-from ..preconditioner import AbstractLinearPreconditioner
+from .qgt import QGTAuto
+from .preconditioner import AbstractLinearPreconditioner
 
 
 @dataclass
