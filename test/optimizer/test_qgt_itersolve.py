@@ -162,7 +162,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
 
     x, _ = S.solve(solver, vstate.parameters)
 
-    rtol, atol = solvers_tol[solver, nk.jax.dtype_real(vstate.model.dtype)]
+    rtol, atol = solvers_tol[solver, nk.jax.dtype_real(vstate.model.param_dtype)]
     jax.tree_map(
         partial(testing.assert_allclose, rtol=rtol, atol=atol),
         S @ x,
@@ -218,7 +218,7 @@ def test_qgt_matmul(qgt, vstate, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
         return
 
-    rtol, atol = matmul_tol[nk.jax.dtype_real(vstate.model.dtype)]
+    rtol, atol = matmul_tol[nk.jax.dtype_real(vstate.model.param_dtype)]
 
     S = qgt(vstate)
     rng = nkjax.PRNGSeq(0)
@@ -276,7 +276,7 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
         return
 
-    rtol, atol = dense_tol[nk.jax.dtype_real(vstate.model.dtype)]
+    rtol, atol = dense_tol[nk.jax.dtype_real(vstate.model.param_dtype)]
 
     S = qgt(vstate)
 

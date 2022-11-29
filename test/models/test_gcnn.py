@@ -219,7 +219,7 @@ def test_GCNN_creation(mode):
             features=4,
             complex_output=False,
             characters=char,
-            dtype=complex,
+            param_dtype=complex,
         )
     )
 

@@ -73,7 +73,9 @@ adaptive_step_integrators = [
 all_integrators = fixed_step_integrators + adaptive_step_integrators
 
 nqs_models = [
-    pytest.param(nk.models.RBM(alpha=1, param_dtype=np.complex128), id="RBM(complex128)"),
+    pytest.param(
+        nk.models.RBM(alpha=1, param_dtype=np.complex128), id="RBM(complex128)"
+    ),
 ]
 
 

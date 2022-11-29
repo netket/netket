@@ -96,7 +96,7 @@ class TDVPSchmitt(TDVPBaseDriver):
         propagation_type="real",
         holomorphic: bool = None,
         diag_shift: float = 0.0,
-        rescale_shift: bool = False,
+        diag_scale: float = None,
         error_norm: Union[str, Callable] = "qgt",
         num_tol: float = 1e-14,
         svd_tol: float = 1e-8,
@@ -125,7 +125,7 @@ class TDVPSchmitt(TDVPBaseDriver):
                 Note that norm is used in jax.jit-compiled code.
             holomorphic: a flag to indicate that the wavefunction is holomorphic.
             diag_shift: diagonal shift of the quantum geometric tensor (QGT)
-            rescale_shift: If True rescales the diagonal shift of the QGT
+            diag_scale: If not None rescales the diagonal shift of the QGT
             svd_tol: Regularization parameter :math:`\epsilon_{SVD}`, see above.
             snr_tol: Regularization parameter :math:`\epsilon_{SNR}`, see above.
 
@@ -154,7 +154,7 @@ class TDVPSchmitt(TDVPBaseDriver):
 
         self.diag_shift = diag_shift
         self.holomorphic = holomorphic
-        self.rescale_shift = rescale_shift
+        self.diag_scale = diag_scale
 
         super().__init__(
             operator, variational_state, integrator, t0=t0, error_norm=error_norm
@@ -256,8 +256,8 @@ def odefun_schmitt(state: MCState, self: TDVPSchmitt, t, w, *, stage=0):  # noqa
     self._S = QGTJacobianDense(
         state,
         diag_shift=self.diag_shift,
+        diag_scale=self.diag_scale,
         holomorphic=self.holomorphic,
-        rescale_shift=self.rescale_shift,
     )
     self._loss_stats
 
