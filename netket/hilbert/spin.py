@@ -101,7 +101,7 @@ class Spin(HomogeneousHilbert):
         else:
             constraints = None
 
-        self._total_sz = total_sz if total_sz is None else total_sz
+        self._total_sz = total_sz
         self._s = s
 
         super().__init__(local_states, N, constraints)
