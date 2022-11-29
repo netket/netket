@@ -14,6 +14,7 @@
 
 from typing import List, Tuple, Optional, Union, Iterator
 from textwrap import dedent
+from functools import reduce
 
 import numpy as np
 
@@ -237,14 +238,13 @@ class DiscreteHilbert(AbstractHilbert):
         return _is_indexable(self.shape)
 
     def __mul__(self, other: "DiscreteHilbert"):
-        if self == other:
-            return self**2
-        else:
-            from .tensor_hilbert import TensorHilbert
+        if type(self) == type(other):
+            res = self._mul_sametype_(other)
+            if res is not NotImplemented:
+                return res
+                
+        from .tensor_hilbert import TensorHilbert
+        return TensorHilbert(self, other)
 
-            if type(self) == type(other):
-                res = self._mul_sametype_(other)
-                if res is not NotImplemented:
-                    return res
-
-            return TensorHilbert(self, other)
+    def __pow__(self, n):
+        return reduce(lambda x,y: x*y, [self for _ in range(n)])

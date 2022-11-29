@@ -119,11 +119,9 @@ class Fock(HomogeneousHilbert):
 
     def __pow__(self, n) -> "Fock":
         if self.n_particles is None:
-            n_particles = None
-        else:
-            n_particles = n_particles * n
-
-        return Fock(self.n_max, self.size * n, n_particles=n_particles)
+            return Fock(self.n_max, self.size * n)
+        
+        return NotImplemented
 
     def _mul_sametype_(self, other: "Fock") -> "Fock":
         assert type(self) == type(other)

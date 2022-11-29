@@ -67,11 +67,10 @@ class CustomHilbert(HomogeneousHilbert):
         idxs = jnp.arange(self.local_size).reshape(local_states.shape)
         return jnp.sum(x_idmap * idxs, axis=-1)
 
-    def __pow__(self, n):
-        if self._has_constraint:
-            raise NotImplementedError(
-                """Cannot exponentiate a CustomHilbert with constraints.
-                Construct it from scratch instead."""
-            )
+    def _mul_sametype_(self, other):
+        assert type(self) == type(other)
+        if not self._has_constraint:
+            if self.local_states == other.local_states:
+                return CustomHilbert(self._local_states, self.size + other.size)
 
-        return CustomHilbert(self._local_states, self.size * n)
+        return NotImplemented

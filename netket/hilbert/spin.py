@@ -108,11 +108,9 @@ class Spin(HomogeneousHilbert):
 
     def __pow__(self, n):
         if self._total_sz is None:
-            total_sz = None
-        else:
-            total_sz = total_sz * n
+            return Spin(self._s, self.size * n)
 
-        return Spin(self._s, self.size * n, total_sz=total_sz)
+        return NotImplemented
 
     def _mul_sametype_(self, other):
         assert type(self) == type(other)
