@@ -145,25 +145,6 @@ class VMC(AbstractVariationalDriver):
         return self._dp
 
     @property
-    def preconditioner(self):
-        """
-        The preconditioner used to modify the gradient optimised by the current optimiser.
-
-        Must be a function `f(state: VariationalState, gradient: PyTree) -> PyTree` taking
-        as input the Variational State and the PyTree of the gradient, and returning a PyTree
-        with the same structure as gradient.
-
-        It can also be set to None, in which case it defaults to the identity.
-        """
-        return self._preconditioner
-
-    @preconditioner.setter
-    def preconditioner(self, v: PreconditionerT):
-        if v is None:
-            v = identity_preconditioner
-        self._preconditioner = v
-
-    @property
     def energy(self) -> Stats:
         """
         Return MCMC statistics for the expectation value of observables in the
