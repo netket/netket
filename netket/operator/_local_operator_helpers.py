@@ -87,7 +87,9 @@ def canonicalize_input(
 
         for i, aon in enumerate(acting_on):
             if len(aon) != len(set(aon)):
-                raise ValueError(f"The operator at index {i} acts on duplicated sites {aon}")
+                raise ValueError(
+                    f"The operator at index {i} acts on duplicated sites {aon}"
+                )
 
     acting_on = [tuple(aon) for aon in acting_on]
     # operators = [np.asarray(operator) for operator in operators]
