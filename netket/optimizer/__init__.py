@@ -29,6 +29,7 @@ from netket.utils import _hide_submodules
 
 ## Optimisers
 
+
 def Sgd(learning_rate: float):
     r"""Stochastic Gradient Descent Optimizer.
     The `Stochastic Gradient Descent <https://en.wikipedia.org/wiki/Stochastic_gradient_descent>`_
