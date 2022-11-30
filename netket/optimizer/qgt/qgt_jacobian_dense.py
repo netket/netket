@@ -203,7 +203,9 @@ class QGTJacobianDenseT(LinearOperator):
         if not hasattr(vec, "ndim") and not self._in_solve:
             check_valid_vector_type(self._params_structure, vec)
 
-        vec, reassemble = convert(vec, self.mode, disable=self._in_solve)
+        vec, reassemble = convert_tree_to_dense_format(
+            vec, self.mode, disable=self._in_solve
+        )
 
         if self.scale is not None:
             vec = vec * self.scale
@@ -220,10 +222,10 @@ class QGTJacobianDenseT(LinearOperator):
         if not hasattr(y, "ndim"):
             check_valid_vector_type(self._params_structure, y)
 
-        y, reassemble = convert(y, self.mode)
+        y, reassemble = convert_tree_to_dense_format(y, self.mode)
 
         if x0 is not None:
-            x0, _ = convert(x0, self.mode)
+            x0, _ = convert_tree_to_dense_format(x0, self.mode)
             if self.scale is not None:
                 x0 = x0 * self.scale
 
@@ -278,7 +280,7 @@ def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar) -> PyTree:
     return mpi.mpi_sum_jax(res)[0] + diag_shift * v
 
 
-def convert(vec, mode, *, disable=False):
+def convert_tree_to_dense_format(vec, mode, *, disable=False):
     """
     Converts an arbitrary PyTree/vector which might be real/complex
     to the dense-(maybe-real)-vector used for QGTJacobian.
