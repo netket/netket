@@ -31,7 +31,7 @@ dynamic = ["version"]
 
 requires-python = ">=3.7"
 dependencies = [
-    "numpy~=1.19",
+    "numpy~=1.20",
     "scipy>=1.5.3, <2",
     "tqdm>=4.60, <5",
     "plum-dispatch>=1.5.1, <2",
