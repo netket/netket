@@ -241,7 +241,6 @@ class QGTJacobianDenseT(LinearOperator):
 
         return reassemble(out), info
 
-
     @jax.jit
     def to_dense(self) -> jnp.ndarray:
         """
@@ -272,10 +271,12 @@ class QGTJacobianDenseT(LinearOperator):
 #####           QGT internal Logic          #####
 #################################################
 
+
 def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar) -> PyTree:
     w = O @ v
     res = jnp.tensordot(w.conj(), O, axes=w.ndim).conj()
     return mpi.mpi_sum_jax(res)[0] + diag_shift * v
+
 
 def convert(vec, mode, *, disable=False):
     """
@@ -288,8 +289,8 @@ def convert(vec, mode, *, disable=False):
     real and imaginary terms with a tree_ravel, we must do the same
     in here.
     """
-    unravel = lambda x:x
-    reassemble = lambda x:x
+    unravel = lambda x: x
+    reassemble = lambda x: x
     if not disable:
         if mode != "holomorphic":
             vec, reassemble = nkjax.tree_to_real(vec)
