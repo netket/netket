@@ -37,9 +37,9 @@ dependencies = [
     "plum-dispatch>=1.5.1, <2",
     "numba>=0.52, <0.57",
     "igraph>=0.9.8, <0.11.0",
-    "jax>=0.3.2, <0.4",
-    "jaxlib>=0.3, <0.4",
-    "flax>=0.5, <0.7",
+    "jax>=0.3.15, <0.4",
+    "jaxlib>=0.3.15, <0.4",
+    "flax>=0.6, <0.7",
     "orjson>=3.4, <4",
     "optax>=0.1.1, <0.2",
     "numba4jax>=0.0.10, <0.1",
@@ -48,7 +48,7 @@ dependencies = [
 [project.optional-dependencies]
 mpi = [
     "mpi4py>=3.0.1, <4", 
-    "mpi4jax>=0.3.1, <0.4"
+    "mpi4jax>=0.3.9, <0.4"
     ]
 extra = [
     "tensorboardx>=2.0.0",
