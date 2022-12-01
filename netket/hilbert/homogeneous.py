@@ -13,22 +13,43 @@
 # limitations under the License.
 
 from typing import Optional, List, Callable
+from functools import lru_cache
 
 from numbers import Real
 
 import numpy as np
-from numba import jit
 
 from .discrete_hilbert import DiscreteHilbert
 from .hilbert_index import HilbertIndex
 
 
-@jit(nopython=True)
-def _to_constrained_numbers_kernel(bare_numbers, numbers):
-    found = np.searchsorted(bare_numbers, numbers)
-    if np.max(found) >= bare_numbers.shape[0]:
-        raise RuntimeError("The required state does not satisfy the given constraints.")
-    return found
+# This function has exponential runtime in self.size, so we cache it in order to
+# only compute it once.
+# TODO: distribute over MPI... chose better chunk size
+@lru_cache(maxsize=5)
+def compute_constrained_to_bare_conversion_table(self, *, chunk_size: int = 100000):
+    """
+    Computes the conversion table that converts the 'constrained' indices
+    of an hilbert space to bare indices, so that routines generating
+    only values in an unconstrained space can be used.
+
+    This function operates on blocks of `chunk_size` states at a time in order
+    to lower the memory cost. The default chunk size has been chosen by instinct
+    and is likely wrong.
+    """
+    n_chunks = int(np.ceil(self._hilbert_index.n_states / chunk_size))
+    bare_number_chunks = []
+    for i in range(n_chunks):
+        id_start = chunk_size * i
+        id_end = np.minimum(chunk_size * (i + 1), self._hilbert_index.n_states)
+        ids = np.arange(id_start, id_end)
+
+        states = self._hilbert_index.numbers_to_states(ids)
+        is_constrained = self._constraint_fn(states)
+        (chunk_bare_number,) = np.nonzero(is_constrained)
+        bare_number_chunks.append(chunk_bare_number + id_start)
+
+    return np.concatenate(bare_number_chunks)
 
 
 class HomogeneousHilbert(DiscreteHilbert):
@@ -127,19 +148,25 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         return self._hilbert_index.numbers_to_states(numbers, out)
 
-    def _states_to_numbers(self, states, out):
+    def _states_to_numbers(self, states: np.ndarray, out: np.ndarray):
         self._hilbert_index.states_to_numbers(states, out)
 
         if self.constrained:
-            out[:] = _to_constrained_numbers_kernel(
-                self._bare_numbers,
-                out,
-            )
+            out[:] = np.searchsorted(self._bare_numbers, out)
+
+            if np.max(out) >= self.n_states:
+                raise RuntimeError(
+                    "The required state does not satisfy " "the given constraints."
+                )
 
         return out
 
     @property
-    def _hilbert_index(self):
+    def _hilbert_index(self) -> HilbertIndex:
+        """
+        Returns the `HilbertIndex` object, which is a numba jitclass used to convert
+        integers to states and vice-versa.
+        """
         if self.__hilbert_index is None:
             if not self.is_indexable:
                 raise RuntimeError("The hilbert space is too large to be indexed.")
@@ -151,14 +178,16 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self.__hilbert_index
 
     @property
-    def _bare_numbers(self):
+    def _bare_numbers(self) -> np.ndarray:
+        """
+        Returns the conversion table between indices in the constrained space and
+        the corresponding unconstrained space.
+        """
         if not self.constrained:
             return None
 
         if self.__bare_numbers is None:
-            (self.__bare_numbers,) = np.nonzero(
-                self._constraint_fn(self._hilbert_index.all_states())
-            )
+            self.__bare_numbers = compute_constrained_to_bare_conversion_table(self)
 
         return self.__bare_numbers
 
