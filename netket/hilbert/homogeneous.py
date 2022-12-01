@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Optional, List, Callable
+from functools import lru_cache
 
 from numbers import Real
 
@@ -29,6 +30,26 @@ def _to_constrained_numbers_kernel(bare_numbers, numbers):
     if np.max(found) >= bare_numbers.shape[0]:
         raise RuntimeError("The required state does not satisfy the given constraints.")
     return found
+
+# This function has exponential runtime in self.size, so we cache it in order to
+# only compute it once.
+@lru_cache(maxsize=5)
+def compute_bare_to_constrained_conversion_table(self):
+    # if has constraint: always True...
+    chunk_size = 100000
+    n_chunks = int(np.ceil(self._hilbert_index.n_states / chunk_size))
+    chunks = []
+    for i in range(n_chunks):
+        id_start = chunk_size * i
+        id_end = np.minimum(chunk_size * (i+1), self._hilbert_index.n_states)
+        ids = np.arange(id_start, id_end)
+
+        states = self._hilbert_index.numbers_to_states(ids)
+        is_constrained = self._constraint_fn(states)
+        chunk_bare_number, = np.nonzero(is_constrained)
+        chunks.append(chunk_bare_number + id_start)
+    return np.concatenate(chunks)
+
 
 
 class HomogeneousHilbert(DiscreteHilbert):
@@ -156,9 +177,7 @@ class HomogeneousHilbert(DiscreteHilbert):
             return None
 
         if self.__bare_numbers is None:
-            (self.__bare_numbers,) = np.nonzero(
-                self._constraint_fn(self._hilbert_index.all_states())
-            )
+            self.__bare_numbers = compute_bare_to_constrained_conversion_table(self)
 
         return self.__bare_numbers
 
