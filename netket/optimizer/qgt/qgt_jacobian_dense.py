@@ -19,7 +19,7 @@ import jax
 from jax import numpy as jnp
 from flax import struct
 
-from netket.utils.types import PyTree
+from netket.utils.types import Scalar, PyTree
 from netket.utils import mpi
 import netket.jax as nkjax
 from netket.nn import split_array_mpi
@@ -27,7 +27,6 @@ from netket.nn import split_array_mpi
 from ..linear_operator import LinearOperator, Uninitialized
 
 from .common import check_valid_vector_type
-from .qgt_jacobian_dense_logic import vec_to_real, mat_vec
 from .qgt_jacobian_common import (
     choose_jacobian_mode,
     sanitize_diag_shift,
@@ -199,12 +198,52 @@ class QGTJacobianDenseT(LinearOperator):
 
     _params_structure: PyTree = struct.field(pytree_node=False, default=Uninitialized)
 
+    @jax.jit
     def __matmul__(self, vec: Union[PyTree, jnp.ndarray]) -> Union[PyTree, jnp.ndarray]:
-        return _matmul(self, vec)
+        if not hasattr(vec, "ndim") and not self._in_solve:
+            check_valid_vector_type(self._params_structure, vec)
 
+        vec, reassemble = convert_tree_to_dense_format(
+            vec, self.mode, disable=self._in_solve
+        )
+
+        if self.scale is not None:
+            vec = vec * self.scale
+
+        result = mat_vec(vec, self.O, self.diag_shift)
+
+        if self.scale is not None:
+            result = result * self.scale
+
+        return reassemble(result)
+
+    @jax.jit
     def _solve(self, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None) -> PyTree:
-        return _solve(self, solve_fun, y, x0=x0)
+        if not hasattr(y, "ndim"):
+            check_valid_vector_type(self._params_structure, y)
 
+        y, reassemble = convert_tree_to_dense_format(y, self.mode)
+
+        if x0 is not None:
+            x0, _ = convert_tree_to_dense_format(x0, self.mode)
+            if self.scale is not None:
+                x0 = x0 * self.scale
+
+        if self.scale is not None:
+            y = y / self.scale
+
+        # to pass the object LinearOperator itself down
+        # but avoid rescaling, we pass down an object with
+        # scale = None
+        unscaled_self = self.replace(scale=None, _in_solve=True)
+        out, info = solve_fun(unscaled_self, y, x0=x0)
+
+        if self.scale is not None:
+            out = out / self.scale
+
+        return reassemble(out), info
+
+    @jax.jit
     def to_dense(self) -> jnp.ndarray:
         """
         Convert the lazy matrix representation to a dense matrix representation.
@@ -212,7 +251,16 @@ class QGTJacobianDenseT(LinearOperator):
         Returns:
             A dense matrix representation of this S matrix.
         """
-        return _to_dense(self)
+        if self.scale is None:
+            O = self.O
+            diag = jnp.eye(self.O.shape[-1])
+        else:
+            O = self.O * self.scale[jnp.newaxis, :]
+            diag = jnp.diag(self.scale**2)
+
+        # concatenate samples with real/Imaginary dimension
+        O = O.reshape(-1, O.shape[-1])
+        return mpi.mpi_sum_jax(O.conj().T @ O)[0] + self.diag_shift * diag
 
     def __repr__(self):
         return (
@@ -221,92 +269,34 @@ class QGTJacobianDenseT(LinearOperator):
         )
 
 
-########################################################################################
-#####                                  QGT Logic                                   #####
-########################################################################################
+#################################################
+#####           QGT internal Logic          #####
+#################################################
 
 
-@jax.jit
-def _matmul(
-    self: QGTJacobianDenseT, vec: Union[PyTree, jnp.ndarray]
-) -> Union[PyTree, jnp.ndarray]:
-
-    unravel = None
-    if not hasattr(vec, "ndim") and not self._in_solve:
-        check_valid_vector_type(self._params_structure, vec)
-        vec, unravel = nkjax.tree_ravel(vec)
-
-    # Real-imaginary split RHS in R→R and R→C modes
-    reassemble = None
-    if self.mode != "holomorphic" and not self._in_solve:
-        vec, reassemble = vec_to_real(vec)
-
-    if self.scale is not None:
-        vec = vec * self.scale
-
-    result = mat_vec(vec, self.O, self.diag_shift)
-
-    if self.scale is not None:
-        result = result * self.scale
-
-    if reassemble is not None:
-        result = reassemble(result)
-
-    if unravel is not None:
-        result = unravel(result)
-
-    return result
+def mat_vec(v: PyTree, O: PyTree, diag_shift: Scalar) -> PyTree:
+    w = O @ v
+    res = jnp.tensordot(w.conj(), O, axes=w.ndim).conj()
+    return mpi.mpi_sum_jax(res)[0] + diag_shift * v
 
 
-@jax.jit
-def _solve(
-    self: QGTJacobianDenseT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
-) -> PyTree:
-    if not hasattr(y, "ndim"):
-        check_valid_vector_type(self._params_structure, y)
+def convert_tree_to_dense_format(vec, mode, *, disable=False):
+    """
+    Converts an arbitrary PyTree/vector which might be real/complex
+    to the dense-(maybe-real)-vector used for QGTJacobian.
 
-    # Ravel input PyTrees, record unravelling function too
-    y, unravel = nkjax.tree_ravel(y)
+    The format is dictated by the sequence of operations chosen by
+    `nk.jax.jacobian(..., dense=True)`. As `nk.jax.jacobian` first
+    converts the pytree of parameters to real and then concatenates
+    real and imaginary terms with a tree_ravel, we must do the same
+    in here.
+    """
+    unravel = lambda x: x
+    reassemble = lambda x: x
+    if not disable:
+        if mode != "holomorphic":
+            vec, reassemble = nkjax.tree_to_real(vec)
+        if not hasattr(vec, "ndim"):
+            vec, unravel = nkjax.tree_ravel(vec)
 
-    if self.mode != "holomorphic":
-        y, reassemble = vec_to_real(y)
-
-    if x0 is not None:
-        x0, _ = nkjax.tree_ravel(x0)
-        if self.mode != "holomorphic":
-            x0, _ = vec_to_real(x0)
-
-        if self.scale is not None:
-            x0 = x0 * self.scale
-
-    if self.scale is not None:
-        y = y / self.scale
-
-    # to pass the object LinearOperator itself down
-    # but avoid rescaling, we pass down an object with
-    # scale = None
-    unscaled_self = self.replace(scale=None, _in_solve=True)
-
-    out, info = solve_fun(unscaled_self, y, x0=x0)
-
-    if self.scale is not None:
-        out = out / self.scale
-
-    if self.mode != "holomorphic":
-        out = reassemble(out)
-
-    return unravel(out), info
-
-
-@jax.jit
-def _to_dense(self: QGTJacobianDenseT) -> jnp.ndarray:
-    if self.scale is None:
-        O = self.O
-        diag = jnp.eye(self.O.shape[-1])
-    else:
-        O = self.O * self.scale[jnp.newaxis, :]
-        diag = jnp.diag(self.scale**2)
-
-    # concatenate samples with real/Imaginary dimension
-    O = O.reshape(-1, O.shape[-1])
-    return mpi.mpi_sum_jax(O.conj().T @ O)[0] + self.diag_shift * diag
+    return vec, lambda x: reassemble(unravel(x))

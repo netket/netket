@@ -21,10 +21,9 @@ import jax.numpy as jnp
 
 from netket import stats
 from netket.driver.vmc_common import info
-from netket.jax import tree_ravel
 from netket.operator import AbstractOperator
 from netket.optimizer.qgt import QGTJacobianDense
-from netket.optimizer.qgt.qgt_jacobian_dense_logic import vec_to_real
+from netket.optimizer.qgt.qgt_jacobian_dense import convert_tree_to_dense_format
 from netket.vqs import VariationalState, VariationalMixedState, MCState
 
 from netket.experimental.dynamics import RKIntegratorConfig
@@ -183,7 +182,6 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, num_tol, svd_tol, snr_tol)
     E = stats.statistics(E_loc)
     ΔE_loc = E_loc.T.reshape(-1, 1) - E.mean
 
-    split_complex_params = S.mode != "holomorphic"
     stack_jacobian = S.mode == "complex"
 
     O = S.O / jnp.sqrt(n_samples)  # already divided by jnp.sqrt(n_s)
@@ -223,14 +221,8 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, num_tol, svd_tol, snr_tol)
     # remainder of the solution
     rmd = jnp.linalg.norm(Sd.dot(update) - rhs_coeff * F) / jnp.linalg.norm(F)
 
-    y, unravel = tree_ravel(parameters)
-    if split_complex_params:
-        y, reassemble = vec_to_real(y)
-
-    update = update if jnp.iscomplexobj(y) else update.real
-    if split_complex_params:
-        update = reassemble(update)
-    update_tree = unravel(update)
+    y, reassemble = convert_tree_to_dense_format(parameters, S.mode)
+    update_tree = reassemble(update if jnp.iscomplexobj(y) else update.real)
 
     # If parameters are real, then take only real part of the gradient (if it's complex)
     dw = jax.tree_map(
@@ -259,7 +251,6 @@ def odefun_schmitt(state: MCState, self: TDVPSchmitt, t, w, *, stage=0):  # noqa
         diag_scale=self.diag_scale,
         holomorphic=self.holomorphic,
     )
-    self._loss_stats
 
     self._loss_stats, self._dw, self._rmd, self._snr = _impl(
         state.parameters,
