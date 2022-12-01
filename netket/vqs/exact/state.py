@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 
@@ -31,6 +32,7 @@ from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
 from ..base import VariationalState
+from ..mc.mc_state.state import check_chunk_size, _is_power_of_two
 
 
 @partial(jax.jit, static_argnums=0)
@@ -62,11 +64,14 @@ class ExactState(VariationalState):
     _apply_fun: Callable = None
     """The function used to evaluate the model"""
 
+    _chunk_size: Optional[int] = None
+
     def __init__(
         self,
         hilbert: AbstractHilbert,
         model=None,
         *,
+        chunk_size: Optional[int] = None,
         variables: Optional[PyTree] = None,
         init_fun: NNInitFunc = None,
         apply_fun: Callable = None,
@@ -157,6 +162,8 @@ class ExactState(VariationalState):
         Caches the output of `self.probability_distribution()`.
         """
 
+        self.chunk_size = chunk_size
+
     def init(self, seed=None, dtype=None):
         """
         Initialises the variational parameters of the variational state.
@@ -176,6 +183,49 @@ class ExactState(VariationalState):
 
         variables = jit_evaluate(self._init_fun, {"params": key}, dummy_input)
         self.variables = variables
+
+    @property
+    def chunk_size(self) -> int:
+        """
+        Suggested *maximum size* of the chunks used in forward and backward evaluations
+        of the Neural Network model. If your inputs are smaller than the chunk size
+        this setting is ignored.
+
+        This can be used to lower the memory required to run a computation with a very
+        high number of samples or on a very large lattice. Notice that inputs and
+        outputs must still fit in memory, but the intermediate computations will now
+        require less memory.
+
+        This option comes at an increased computational cost. While this cost should
+        be negligible for large-enough chunk sizes, don't use it unless you are memory
+        bound!
+
+        This option is an hint: only some operations support chunking. If you perform
+        an operation that is not implemented with chunking support, it will fall back
+        to no chunking. To check if this happened, set the environment variable
+        `NETKET_DEBUG=1`.
+        """
+        return self._chunk_size
+
+    @chunk_size.setter
+    def chunk_size(self, chunk_size: Optional[int]):
+        # disable chunks if it is None
+        if chunk_size is None:
+            self._chunk_size = None
+            return
+
+        if chunk_size <= 0:
+            raise ValueError("Chunk size must be a positive integer. ")
+
+        if not _is_power_of_two(chunk_size):
+            warnings.warn(
+                "For performance reasons, we suggest to use a power-of-two chunk size."
+            )
+
+        # TODO MPI aware check for valid size
+        check_chunk_size(self.hilbert.n_states, chunk_size)
+
+        self._chunk_size = chunk_size
 
     def reset(self):
         """
