@@ -25,27 +25,31 @@ from .hilbert_index import HilbertIndex
 
 # This function has exponential runtime in self.size, so we cache it in order to
 # only compute it once.
+# TODO: distribute over MPI... chose better chunk size
 @lru_cache(maxsize=5)
-def compute_constrained_to_bare_conversion_table(self):
+def compute_constrained_to_bare_conversion_table(self, *, chunk_size: int = 100000):
     """
     Computes the conversion table that converts the 'constrained' indices
     of an hilbert space to bare indices, so that routines generating
     only values in an unconstrained space can be used.
+
+    This function operates on blocks of `chunk_size` states at a time in order
+    to lower the memory cost. The default chunk size has been chosen by instinct
+    and is likely wrong.
     """
-    chunk_size = 100000
     n_chunks = int(np.ceil(self._hilbert_index.n_states / chunk_size))
-    chunks = []
+    bare_number_chunks = []
     for i in range(n_chunks):
         id_start = chunk_size * i
-        id_end = np.minimum(chunk_size * (i+1), self._hilbert_index.n_states)
+        id_end = np.minimum(chunk_size * (i + 1), self._hilbert_index.n_states)
         ids = np.arange(id_start, id_end)
 
         states = self._hilbert_index.numbers_to_states(ids)
         is_constrained = self._constraint_fn(states)
-        chunk_bare_number, = np.nonzero(is_constrained)
-        chunks.append(chunk_bare_number + id_start)
-    return np.concatenate(chunks)
+        (chunk_bare_number,) = np.nonzero(is_constrained)
+        bare_number_chunks.append(chunk_bare_number + id_start)
 
+    return np.concatenate(bare_number_chunks)
 
 
 class HomogeneousHilbert(DiscreteHilbert):
@@ -149,10 +153,11 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         if self.constrained:
             out[:] = np.searchsorted(self._bare_numbers, out)
-            
-            if np.max(found) >= bare_numbers.shape[0]:
-                raise RuntimeError("The required state does not satisfy "
-                                   "the given constraints.")
+
+            if np.max(out) >= self.n_states:
+                raise RuntimeError(
+                    "The required state does not satisfy " "the given constraints."
+                )
 
         return out
 
