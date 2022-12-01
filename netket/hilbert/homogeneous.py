@@ -18,24 +18,20 @@ from functools import lru_cache
 from numbers import Real
 
 import numpy as np
-from numba import jit
 
 from .discrete_hilbert import DiscreteHilbert
 from .hilbert_index import HilbertIndex
 
 
-@jit(nopython=True)
-def _to_constrained_numbers_kernel(bare_numbers, numbers):
-    found = np.searchsorted(bare_numbers, numbers)
-    if np.max(found) >= bare_numbers.shape[0]:
-        raise RuntimeError("The required state does not satisfy the given constraints.")
-    return found
-
 # This function has exponential runtime in self.size, so we cache it in order to
 # only compute it once.
 @lru_cache(maxsize=5)
-def compute_bare_to_constrained_conversion_table(self):
-    # if has constraint: always True...
+def compute_constrained_to_bare_conversion_table(self):
+    """
+    Computes the conversion table that converts the 'constrained' indices
+    of an hilbert space to bare indices, so that routines generating
+    only values in an unconstrained space can be used.
+    """
     chunk_size = 100000
     n_chunks = int(np.ceil(self._hilbert_index.n_states / chunk_size))
     chunks = []
@@ -148,19 +144,24 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         return self._hilbert_index.numbers_to_states(numbers, out)
 
-    def _states_to_numbers(self, states, out):
+    def _states_to_numbers(self, states: np.ndarray, out: np.ndarray):
         self._hilbert_index.states_to_numbers(states, out)
 
         if self.constrained:
-            out[:] = _to_constrained_numbers_kernel(
-                self._bare_numbers,
-                out,
-            )
+            out[:] = np.searchsorted(self._bare_numbers, out)
+            
+            if np.max(found) >= bare_numbers.shape[0]:
+                raise RuntimeError("The required state does not satisfy "
+                                   "the given constraints.")
 
         return out
 
     @property
-    def _hilbert_index(self):
+    def _hilbert_index(self) -> HilbertIndex:
+        """
+        Returns the `HilbertIndex` object, which is a numba jitclass used to convert
+        integers to states and vice-versa.
+        """
         if self.__hilbert_index is None:
             if not self.is_indexable:
                 raise RuntimeError("The hilbert space is too large to be indexed.")
@@ -172,12 +173,16 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self.__hilbert_index
 
     @property
-    def _bare_numbers(self):
+    def _bare_numbers(self) -> np.ndarray:
+        """
+        Returns the conversion table between indices in the constrained space and
+        the corresponding unconstrained space.
+        """
         if not self.constrained:
             return None
 
         if self.__bare_numbers is None:
-            self.__bare_numbers = compute_bare_to_constrained_conversion_table(self)
+            self.__bare_numbers = compute_constrained_to_bare_conversion_table(self)
 
         return self.__bare_numbers
 
