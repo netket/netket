@@ -128,6 +128,10 @@ hilberts["ContinuousSpaceHilbert"] = nk.hilbert.Particle(
     N=5, L=(np.inf, 10.0), pbc=(False, True)
 )
 
+N = 10
+hilberts["ContinuousHelium"] = nk.hilbert.Particle(
+    N=N, L=(N / (0.3 * 2.9673),), pbc=True
+)
 
 all_hilbert_params = [pytest.param(hi, id=name) for name, hi in hilberts.items()]
 discrete_hilbert_params = [
@@ -179,6 +183,10 @@ def test_random_states_discrete(hi: DiscreteHilbert):
     assert hi.random_state(jax.random.PRNGKey(13), size=10).shape == (10, hi.size)
     # assert hi.random_state(jax.random.PRNGKey(13), size=(10,)).shape == (10, hi.size)
     # assert hi.random_state(jax.random.PRNGKey(13), size=(10, 2)).shape == (10, 2, hi.size)
+    np.testing.assert_allclose(
+        hi.random_state(jax.random.PRNGKey(13)),
+        jax.jit(hi.random_state)(jax.random.PRNGKey(13)),
+    )
 
 
 @pytest.mark.parametrize("hi", homogeneous_hilbert_params)
@@ -208,6 +216,10 @@ def test_random_states_particle(hi: Particle):
     )
     assert hi.random_state(jax.random.PRNGKey(13), 10).shape == (10, hi.size)
     assert hi.random_state(jax.random.PRNGKey(13), size=10).shape == (10, hi.size)
+    np.testing.assert_allclose(
+        hi.random_state(jax.random.PRNGKey(13)),
+        jax.jit(hi.random_state)(jax.random.PRNGKey(13)),
+    )
 
     # check that boundary conditions are fulfilled if any are given
     state = hi.random_state(jax.random.PRNGKey(13))
