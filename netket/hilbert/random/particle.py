@@ -64,7 +64,7 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
 
     key = jax.random.split(key, num=batches)
     sdim = len(hilb.extent)
-    n = int(jnp.ceil(hilb.n_particles ** (1 / sdim)))
+    n = int(np.ceil(hilb.n_particles ** (1 / sdim)))
     xs = jnp.linspace(0, min(hilb.extent), n)
     uniform = jnp.array(jnp.meshgrid(*(sdim * [xs]))).reshape(-1, sdim)
     uniform = jnp.tile(uniform, (batches, 1, 1))
