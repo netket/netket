@@ -71,7 +71,7 @@ def test_exact_ss_ed(liouvillian, sparse):
 
     # mat = np.abs(dm_ss - dm_ss_d)
     # print(mat)
-    # assert np.all(mat == approx(0.0, rel=1e-4, abs=1e-4))
+    # np.testing.assert_allclose(mat, 0.0, rtol=1e-4, atol=1e-4)
 
 
 @pytest.mark.parametrize("sparse", [True, False])
