@@ -14,6 +14,7 @@
 
 ### Improvements
 * The underlying extension API for Autoregressive models that can be used with Ancestral/Autoregressive samplers has been simplified and stabilized and will be documented as part of the public API. For most models, you should now inherit from `AbstractARNN` and define `conditionals_log_psi`. For additional performance, implementers can also redefine `__call__` and `conditional` but this should not be needed in general. This will cause some breaking changes if you were relying on the old undocumented interface [#1361](https://github.com/netket/netket/pull/1361).
+* {class}`nk.operator.PauliStrings` now works with non-homogeneous Hilbert spaces, such as those obtained by taking the tensor product of multiple Hilbert spaces.
 
 ### Bug Fixes
 * Fixed a bug where {meth}`nk.hilbert.Particle.random_state` could not be jit-compiled, and therefore could not be used in the sampling [#1401](https://github.com/netket/netket/pull/1401).
