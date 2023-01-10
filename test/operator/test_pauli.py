@@ -27,6 +27,17 @@ def test_deduced_hilbert_pauli():
     assert np.allclose(op.hilbert.local_states, (0, 1))
 
 
+def test_pauli_tensorhilbert():
+    hi = nk.hilbert.Spin(0.5, 2, total_sz=0) * nk.hilbert.Spin(0.5, 1)
+    op = nk.operator.PauliStrings(hi, ["XXI", "YZX", "IZX"], [0.1, 0.2, -1.4])
+    assert op.hilbert.size == 3
+    s = hi.all_states()
+    sp, _ = op.get_conn_padded(s)
+    sp = sp.reshape(-1, 3)
+    for _s in sp:
+        assert _s in s
+
+
 @pytest.mark.parametrize(
     "hilbert",
     [

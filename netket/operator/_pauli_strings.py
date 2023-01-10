@@ -114,7 +114,7 @@ class PauliStrings(DiscreteOperator):
         if hilbert is None:
             hilbert = Qubit(_hilb_size)
 
-        if hilbert.local_size != 2:
+        if not np.allclose(hilbert.shape, 2):
             raise ValueError(
                 "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
             )
@@ -219,7 +219,13 @@ class PauliStrings(DiscreteOperator):
             self._mels_max = np.empty((n_operators), dtype=dtype)
             self._n_operators = n_operators
 
-            self._local_states = np.array(self.hilbert.local_states)
+            self._local_states = np.array(self.hilbert.states_at_index(0))
+            for i in range(1, self.hilbert.size):
+                if not np.allclose(self._local_states, self.hilbert.states_at_index(i)):
+                    raise ValueError(
+                        "Hilbert spaces with non homogeneous local_states are not "
+                        "yet supported."
+                    )
 
             self._initialized = True
 
