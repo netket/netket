@@ -220,11 +220,12 @@ class PauliStrings(DiscreteOperator):
             self._n_operators = n_operators
 
             self._local_states = np.array(self.hilbert.states_at_index(0))
-            for i in range(1,self.hilbert.size):
+            for i in range(1, self.hilbert.size):
                 if not np.allclose(self._local_states, self.hilbert.states_at_index(i)):
-                    raise ValueError("Hilbert spaces with non homogeneous local_states are not "
-                                     "yet supported.")
-
+                    raise ValueError(
+                        "Hilbert spaces with non homogeneous local_states are not "
+                        "yet supported."
+                    )
 
             self._initialized = True
 
