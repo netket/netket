@@ -31,6 +31,7 @@ from .metropolis import (
     MetropolisSamplerState,
     MetropolisHamiltonian,
     MetropolisGaussian,
+    MetropolisAdjustedLangevin,
     sample_next,
 )
 

@@ -596,3 +596,30 @@ def MetropolisGaussian(hilbert, sigma=1.0, **kwargs) -> MetropolisSampler:
 
     rule = GaussianRule(sigma)
     return MetropolisSampler(hilbert, rule, **kwargs)
+
+
+def MetropolisAdjustedLangevin(
+    hilbert, dt=0.001, chunk_size=None, **kwargs
+) -> MetropolisSampler:
+    """This sampler acts on all particle positions simultaneously
+    and takes a Langevin step.
+
+    Args:
+        hilbert: The continuous Hilbert space to sample.
+        dt: Time step size for the Langevin dynamics (noise with variance 2*dt).
+        chunk_size: Chunk size to compute the gradients of the log probability.
+        n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
+        n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+                This is equivalent to subsampling the Markov chain.
+        reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
+        machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+        dtype: The dtype of the states sampled (default = np.float64).
+    """
+    if not isinstance(hilbert, ContinuousHilbert):
+        raise ValueError("This sampler only works for Continuous Hilbert spaces.")
+
+    from .rules import LangevinRule
+
+    rule = LangevinRule(dt=dt, chunk_size=chunk_size)
+    return MetropolisSampler(hilbert, rule, **kwargs)
