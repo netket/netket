@@ -13,6 +13,11 @@ import netket.jax as nkjax
 class LangevinRule(MetropolisRule):
     r"""
     A transition rule that uses Langevin dynamics to update samples.
+
+    .. math::
+       x_{t+dt} = x_t + dt \nabla_x \log p(x) \vert_{x=x_t} + \sqrt{2 dt}\eta,
+
+    where  :math:`\eta` is normal distributed noise :math:`\eta \sim \mathcal{N}(0,1)`.
     """
 
     dt: float = 0.001

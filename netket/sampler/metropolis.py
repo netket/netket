@@ -602,7 +602,9 @@ def MetropolisAdjustedLangevin(
     hilbert, dt=0.001, chunk_size=None, **kwargs
 ) -> MetropolisSampler:
     """This sampler acts on all particle positions simultaneously
-    and takes a Langevin step.
+    and takes a Langevin step [1].
+
+    [1]: https://en.wikipedia.org/wiki/Metropolis-adjusted_Langevin_algorithm
 
     Args:
         hilbert: The continuous Hilbert space to sample.
