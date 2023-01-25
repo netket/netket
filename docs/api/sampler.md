@@ -116,6 +116,7 @@ Sampler. Rules with `Numpy` in their name can only be used with
   rules.ExchangeRule
   rules.HamiltonianRule
   rules.GaussianRule
+  rules.LangevinRule
   rules.HamiltonianRuleNumpy
   rules.CustomRuleNumpy
 

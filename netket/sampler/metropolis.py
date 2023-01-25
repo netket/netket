@@ -601,8 +601,14 @@ def MetropolisGaussian(hilbert, sigma=1.0, **kwargs) -> MetropolisSampler:
 def MetropolisAdjustedLangevin(
     hilbert, dt=0.001, chunk_size=None, **kwargs
 ) -> MetropolisSampler:
-    """This sampler acts on all particle positions simultaneously
-    and takes a Langevin step [1].
+    r"""This sampler acts on all particle positions simultaneously
+    and takes a Langevin step [1]:
+
+    .. math::
+       x_{t+dt} = x_t + dt \nabla_x \log p(x) \vert_{x=x_t} + \sqrt{2 dt}\eta,
+
+    where  :math:`\eta` is normal distributed noise :math:`\eta \sim \mathcal{N}(0,1)`.
+    This sampler only works for continuous Hilbert spaces.
 
     [1]: https://en.wikipedia.org/wiki/Metropolis-adjusted_Langevin_algorithm
 

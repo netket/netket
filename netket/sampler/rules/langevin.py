@@ -12,12 +12,15 @@ import netket.jax as nkjax
 @struct.dataclass
 class LangevinRule(MetropolisRule):
     r"""
-    A transition rule that uses Langevin dynamics to update samples.
+    A transition rule that uses Langevin dynamics [1] to update samples.
 
     .. math::
        x_{t+dt} = x_t + dt \nabla_x \log p(x) \vert_{x=x_t} + \sqrt{2 dt}\eta,
 
     where  :math:`\eta` is normal distributed noise :math:`\eta \sim \mathcal{N}(0,1)`.
+    This rule only works for continuous Hilbert spaces.
+
+    [1]: https://en.wikipedia.org/wiki/Metropolis-adjusted_Langevin_algorithm
     """
 
     dt: float = 0.001
@@ -62,11 +65,6 @@ class LangevinRule(MetropolisRule):
         return "LangevinRule(dt={})".format(self.dt)
 
 
-@partial(jax.jit, static_argnames=("axis",))
-def _norm_sqr(x, axis=None):
-    return jnp.sum(x**2, axis=axis)
-
-
 @partial(jax.jit, static_argnames=("apply_fun", "chunk_size", "return_log_corr"))
 def _langevin_step(
     key,
@@ -101,8 +99,8 @@ def _langevin_step(
     if not return_log_corr:
         return rp
     else:
-        log_q_xp = -0.5 * _norm_sqr(noise_vec, axis=-1)
+        log_q_xp = -0.5 * jnp.sum(noise_vec**2, axis=-1)
         grad_logp_rp = nkjax.vmap_chunked(_single_grad, chunk_size=chunk_size)(rp)
-        log_q_x = -_norm_sqr(r - rp - dt * grad_logp_rp, axis=-1) / (4 * dt)
+        log_q_x = -jnp.sum((r - rp - dt * grad_logp_rp) ** 2, axis=-1) / (4 * dt)
 
         return rp, log_q_x - log_q_xp
