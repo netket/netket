@@ -84,6 +84,8 @@ This is a list of shorthands that allow to construct a {class}`~netket.sampler.M
    MetropolisLocal
    MetropolisExchange
    MetropolisHamiltonian
+   MetropolisGaussian
+   MetropolisAdjustedLangevin
 ```
 
 ```{eval-rst}
@@ -116,6 +118,7 @@ Sampler. Rules with `Numpy` in their name can only be used with
   rules.ExchangeRule
   rules.HamiltonianRule
   rules.GaussianRule
+  rules.LangevinRule
   rules.HamiltonianRuleNumpy
   rules.CustomRuleNumpy
 
