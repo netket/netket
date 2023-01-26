@@ -49,7 +49,7 @@ jobs:
       - name: Pip install python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -v flake8==5.0.4
+          pip install -v flake8==6.0.0
 
       - name: Run Flake8
         run: flake8 --verbose --exclude=Examples/Legacy Examples netket
