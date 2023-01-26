@@ -26,11 +26,11 @@ Shape = Sequence[int]
 DType = Any  # this could be a real type?
 
 if not hasattr(_jax, "Array"):
-	# pre jax 0.4
-	Array = Union[_np.ndarray, _jaxlib.xla_extension.DeviceArray, _jax.core.Tracer]
+    # pre jax 0.4
+    Array = Union[_np.ndarray, _jaxlib.xla_extension.DeviceArray, _jax.core.Tracer]
 else:
-	# TODO keep only this after jax>=0.4 is required
-	Array = Union[_np.ndarray, _jax.Array]
+    # TODO keep only this after jax>=0.4 is required
+    Array = Union[_np.ndarray, _jax.Array]
 
 ArrayLike = Any  # Objects that are valid inputs to (np|jnp).asarray.
 
