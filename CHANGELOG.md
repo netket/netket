@@ -7,10 +7,11 @@
 
 ### New features
 * Input and hidden layer masks can now be specified for {class}`netket.models.GCNN` [#1387](https://github.com/netket/netket/pull/1387).
+* Support for Jax 0.4 added [#1416](https://github.com/netket/netket/pull/1416).
+* Added a continuous space langevin-dynamics transition rule {class}`netket.sampler.rules.LangevinRule` and its corresponding shorthand for constructing the MCMC sampler {func}`netket.sampler.MetropolisAdjustedLangevin` [#1413](https://github.com/netket/netket/pull/1413).
 
 ### Breaking Changes
 * Parameters of models {class}`netket.models.GCNN` and layers {class}`netket.nn.DenseSymm` and {class}`netket.nn.DenseEquivariant` are stored as an array of shape '[features,in_features,mask_size]'. Masked parameters are now excluded from the model instead of multiplied by zero [#1387](https://github.com/netket/netket/pull/1387).
-
 
 ### Improvements
 * The underlying extension API for Autoregressive models that can be used with Ancestral/Autoregressive samplers has been simplified and stabilized and will be documented as part of the public API. For most models, you should now inherit from `AbstractARNN` and define `conditionals_log_psi`. For additional performance, implementers can also redefine `__call__` and `conditional` but this should not be needed in general. This will cause some breaking changes if you were relying on the old undocumented interface [#1361](https://github.com/netket/netket/pull/1361).
