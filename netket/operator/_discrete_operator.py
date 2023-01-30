@@ -226,12 +226,7 @@ class DiscreteOperator(AbstractOperator):
         if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
-            if self == other and self.is_hermitian:
-                from ._lazy import Squared
-
-                return Squared(self)
-            else:
-                return self._op__matmul__(other)
+            return self._op__matmul__(other)
         else:
             return NotImplemented
 
@@ -244,12 +239,7 @@ class DiscreteOperator(AbstractOperator):
             # return self.apply(other)
             return NotImplemented
         elif isinstance(other, AbstractOperator):
-            if self == other and self.is_hermitian:
-                from ._lazy import Squared
-
-                return Squared(self)
-            else:
-                return self._op__rmatmul__(other)
+            return self._op__rmatmul__(other)
         else:
             return NotImplemented
 

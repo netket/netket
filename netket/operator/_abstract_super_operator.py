@@ -42,3 +42,33 @@ class AbstractSuperOperator(DiscreteOperator):
 
     def to_qobj(self):  # -> "qutip.Qobj"
         raise NotImplementedError("Superoperator to Qobj not yet implemented")
+
+    def __matmul__(self, other):
+        # Override DiscreteOperator to implement the Squared trick.
+        # Should eventually remove it as well.
+        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+            return self.apply(other)
+        elif isinstance(other, AbstractOperator):
+            if self == other and self.is_hermitian:
+                from ._lazy import Squared
+
+                return Squared(self)
+            else:
+                return self._op__matmul__(other)
+        else:
+            return NotImplemented
+
+    def __rmatmul__(self, other):
+        # override DiscreteOperator to implement the Squared trick.
+        # Should eventually remove it as well.
+        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+            return NotImplemented
+        elif isinstance(other, AbstractOperator):
+            if self == other and self.is_hermitian:
+                from ._lazy import Squared
+
+                return Squared(self)
+            else:
+                return self._op__rmatmul__(other)
+        else:
+            return NotImplemented
