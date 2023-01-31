@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._discrete_operator import DiscreteOperator
+import numpy as np
+import jax.numpy as jnp
+
 from netket.hilbert import DoubledHilbert, AbstractHilbert
+
+from ._discrete_operator import DiscreteOperator
 
 
 class AbstractSuperOperator(DiscreteOperator):
@@ -48,7 +52,7 @@ class AbstractSuperOperator(DiscreteOperator):
         # Should eventually remove it as well.
         if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
             return self.apply(other)
-        elif isinstance(other, AbstractOperator):
+        elif isinstance(other, AbstractSuperOperator):
             if self == other and self.is_hermitian:
                 from ._lazy import Squared
 
@@ -63,7 +67,7 @@ class AbstractSuperOperator(DiscreteOperator):
         # Should eventually remove it as well.
         if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
             return NotImplemented
-        elif isinstance(other, AbstractOperator):
+        elif isinstance(other, AbstractSuperOperator):
             if self == other and self.is_hermitian:
                 from ._lazy import Squared
 

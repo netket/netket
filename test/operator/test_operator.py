@@ -181,11 +181,11 @@ def test_lazy_hermitian(op):
 
 
 # We don't return squared anymore
-#@pytest.mark.parametrize(
+# @pytest.mark.parametrize(
 #    "op",
 #    [pytest.param(op, id=name) for name, op in op_finite_size.items()],
-#)
-#def test_lazy_squared(op):
+# )
+# def test_lazy_squared(op):
 #
 #    op2 = op.H @ op
 #    opd = op.to_dense()
