@@ -84,6 +84,7 @@ class LocalOperator(DiscreteOperator):
         super().__init__(hilbert)
         self.mel_cutoff = 1.0e-6
         self._initialized = None
+        self._is_hermitian = None
 
         if not all(
             [_is_sorted(hilbert.states_at_index(i)) for i in range(hilbert.size)]
@@ -160,7 +161,12 @@ class LocalOperator(DiscreteOperator):
         # TODO: (VolodyaCO) I guess that if we have an operator with diagonal elements equal to 1j*C+Y, some complex constant, and
         # self._constant=-1j*C, then the actual diagonal would be Y. How do we check hermiticity taking into account the diagonal
         # elements as well as the self._constant? For the moment I just check hermiticity of the added constant, which must be real.
-        return all(map(is_hermitian, self.operators)) and np.isreal(self._constant)
+        if self._is_hermitian is None:
+            self._is_hermitian = all(map(is_hermitian, self.operators)) and np.isreal(
+                self._constant
+            )
+
+        return self._is_hermitian
 
     @property
     def mel_cutoff(self) -> float:
@@ -363,7 +369,14 @@ class LocalOperator(DiscreteOperator):
                     )
                 )
 
+        is_hermitian_A = self._is_hermitian
+        is_hermitian_B = other._is_hermitian
+
         self._reset_caches()
+
+        if is_hermitian_A and is_hermitian_B:
+            self._is_hermitian = is_hermitian_A
+
         return self
 
     def _reset_caches(self):
@@ -371,6 +384,7 @@ class LocalOperator(DiscreteOperator):
         Cleans the internal caches built on the operator.
         """
         self._initialized = False
+        self._is_hermitian = None
 
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
