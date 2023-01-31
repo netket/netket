@@ -162,7 +162,9 @@ class LocalOperator(DiscreteOperator):
         # self._constant=-1j*C, then the actual diagonal would be Y. How do we check hermiticity taking into account the diagonal
         # elements as well as the self._constant? For the moment I just check hermiticity of the added constant, which must be real.
         if self._is_hermitian is None:
-            self._is_hermitian = all(map(is_hermitian, self.operators)) and np.isreal(self._constant)
+            self._is_hermitian = all(map(is_hermitian, self.operators)) and np.isreal(
+                self._constant
+            )
 
         return self._is_hermitian
 
