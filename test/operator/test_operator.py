@@ -180,21 +180,22 @@ def test_lazy_hermitian(op):
             assert isinstance(op.H, nk.operator.Transpose)
 
 
-@pytest.mark.parametrize(
-    "op",
-    [pytest.param(op, id=name) for name, op in op_finite_size.items()],
-)
-def test_lazy_squared(op):
-
-    op2 = op.H @ op
-    opd = op.to_dense()
-    op2d = opd.transpose().conjugate() @ opd
-    assert isinstance(op2, nk.operator.Squared)
-
-    op2_c = op2.collect()
-    assert isinstance(op2_c, nk.operator.AbstractOperator)
-    assert not isinstance(op2_c, nk.operator.Squared)
-    np.testing.assert_allclose(op2_c.to_dense(), op2d, atol=1e-13)
+# We don't return squared anymore
+# @pytest.mark.parametrize(
+#    "op",
+#    [pytest.param(op, id=name) for name, op in op_finite_size.items()],
+# )
+# def test_lazy_squared(op):
+#
+#    op2 = op.H @ op
+#    opd = op.to_dense()
+#    op2d = opd.transpose().conjugate() @ opd
+#    assert isinstance(op2, nk.operator.Squared)
+#
+#    op2_c = op2.collect()
+#    assert isinstance(op2_c, nk.operator.AbstractOperator)
+#    assert not isinstance(op2_c, nk.operator.Squared)
+#    np.testing.assert_allclose(op2_c.to_dense(), op2d, atol=1e-13)
 
 
 @pytest.mark.parametrize(
