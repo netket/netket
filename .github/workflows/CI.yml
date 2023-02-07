@@ -54,10 +54,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install MPI
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
         if: matrix.mpi != ''
-        run: |
-          sh ./conf/travis-install-mpi.sh ${{ matrix.mpi }}
+        with:
+          mpi: ${{ matrix.mpi }}
 
       - name: Get pip cache dir
         id: pip-cache
