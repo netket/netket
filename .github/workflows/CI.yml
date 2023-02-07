@@ -47,10 +47,10 @@ jobs:
       USE_MPI: ${{ matrix.mpi }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -103,5 +103,5 @@ jobs:
           mpirun -host localhost:2 -np 2 coverage run -m pytest -n 0 test
           coverage combine --append
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v1
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3

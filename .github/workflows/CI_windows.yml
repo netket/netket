@@ -21,10 +21,10 @@ jobs:
             python-version: "3.9"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -49,3 +49,6 @@ jobs:
           # Exit 0 to make the job successful even if tests fail,
           # and we can manually check the logs if needed
           exit 0
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
