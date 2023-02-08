@@ -28,13 +28,12 @@ from netket.operator import AbstractOperator, LocalOperator
 from netket.hilbert import AbstractHilbert, Spin
 from netket.vqs import VariationalState
 from netket.vqs import ExactState
-from netket import nn
 from netket.optimizer import (
     identity_preconditioner,
     PreconditionerT,
 )
 from netket.utils import mpi
-from netket.utils.types import PyTree, Scalar, DType, Array
+from netket.utils.types import DType, Array
 from netket.utils.dispatch import dispatch
 
 from netket.stats import statistics
@@ -321,7 +320,7 @@ def _avg_O_exact(hilbert: AbstractHilbert, afun, pars, model_state):
 
 
 @dispatch
-def _grad_negative(state_diag: ExactState):
+def _grad_negative(state_diag: ExactState):  # noqa: F811
     r"""
     Same as _grad_negative, but for ExactState.
     """
@@ -483,7 +482,7 @@ class QSR(AbstractVariationalDriver):
 
     where :math:`\theta` is the variational parameter, :math:`N_b` is the number of
     measurement basis, :math:`q_b(\sigma_b)` is the probability of obtaining the
-    outcome state :math:`\sigma_b` in the measurement basis :math:`b` given the 
+    outcome state :math:`\sigma_b` in the measurement basis :math:`b` given the
     target state, :math:`p_{b\theta}(\sigma_b)` is the probability of obtaining
     the outcome state :math:`\sigma_b` in the measurement basis :math:`b` given the
     variational state, and :math:`D_b` is the size of the dataset in the measurement
@@ -499,20 +498,20 @@ class QSR(AbstractVariationalDriver):
 
         \theta_{i+1} = \theta_{i} -\eta \left\{
         \underbrace{\nabla_\theta \left[\frac{1}{|B_i|}\sum_{\sigma_b\in B_i} \log p_{b\theta_i}(\sigma_b)\right]}_{\text{I: batch gradient}}
-        - \underbrace{\nabla_\theta \left[\frac{1}{|B_i|}\sum_{\sigma_b\in B_i} \log p_{b\tilde{\theta}_i}(\sigma_b)\right]}_{\text{II: control variate}} 
+        - \underbrace{\nabla_\theta \left[\frac{1}{|B_i|}\sum_{\sigma_b\in B_i} \log p_{b\tilde{\theta}_i}(\sigma_b)\right]}_{\text{II: control variate}}
         + \underbrace{\nabla_\theta \left[\frac{1}{N_b} \sum_{b=1}^{N_b} \frac{1}{|D_b|} \sum_{\sigma_b \in D_b} \log p_{b\tilde{\theta}_i}(\sigma_b)\right]}_{\text{III: expectation of control variate}}
         \right\},
 
     where term I is the normal batch gradient, term II is the control variate which
-    is the batch gradient evaluated with a set of previous parameters 
-    
-    .. math:: 
+    is the batch gradient evaluated with a set of previous parameters
 
-        \tilde{\theta}_i = \begin{cases} 
+    .. math::
+
+        \tilde{\theta}_i = \begin{cases}
         \theta_i,  &i=0 \mod m, \\
         \tilde{\theta}_{i-1}, &\text{otherwise},
         \end{cases}
-        
+
     updated for every :math:`m` iterations, and term III is the expectation value of
     the control variate since the mini-batch is sampled uniformly from the whole dataset.
     """
@@ -977,9 +976,9 @@ class QSR(AbstractVariationalDriver):
             target_state = target_state @ target_state.conj().T
         rotations = self._training_rotations[::n_shots]
         KL_list = []
-        try:
+        if self.mixed_states:
             vs = self.state.to_matrix(normalize=True)
-        except:
+        else:
             vs = self.state.to_array(normalize=True).reshape(-1, 1)
             vs = vs @ vs.conj().T
         for rot in rotations:

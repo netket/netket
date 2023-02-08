@@ -52,6 +52,7 @@ qsr = QSR(
     variational_state=vs,
 )
 
+
 # callback
 def callback(step, logvals, driver):
     state = driver.state

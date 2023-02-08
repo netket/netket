@@ -10,8 +10,6 @@ def build_rotation(hi, basis, dtype=np.complex64):
     U_X = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, 1.0], [1.0, -1.0]])
     U_Y = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, -1j], [1.0, 1j]])
 
-    N = hi.size
-
     assert len(basis) == hi.size
     for j in range(hi.size):
         if basis[j] == "X":

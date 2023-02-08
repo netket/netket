@@ -1,6 +1,7 @@
 import numpy as np
 from itertools import product
 
+
 # example basis generators
 class BasisGenerator:
     def __init__(self, N):
