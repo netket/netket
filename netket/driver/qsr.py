@@ -484,14 +484,14 @@ class QSR(AbstractVariationalDriver):
     where :math:`\theta` is the variational parameter, :math:`N_b` is the number of
     measurement basis, :math:`q_b(\sigma_b)` is the probability of obtaining the
     outcome state :math:`\sigma_b` in the measurement basis :math:`b` given the 
-    target state, and :math:`p_{b\theta}(\sigma_b)` is the probability of obtaining
+    target state, :math:`p_{b\theta}(\sigma_b)` is the probability of obtaining
     the outcome state :math:`\sigma_b` in the measurement basis :math:`b` given the
     variational state, and :math:`D_b` is the size of the dataset in the measurement
     basis :math:`b`.
 
     In practice, the noise introduced by mini-batch training hurts the convergence
     of accurate quantum state reconstruction. To alleviate this problem, we use a
-    control variate method called `stochastic variance reduced gradient (SVRG) <https://proceedings.neurips.cc/paper/2013/hash/ac1dd209cbcc5e5d1c6e28598e8cbbe8-Abstract.html>` to
+    control variate method called `stochastic variance reduced gradient (SVRG) <https://proceedings.neurips.cc/paper/2013/hash/ac1dd209cbcc5e5d1c6e28598e8cbbe8-Abstract.html>`_ to
     reduce the variance of the gradient estimator. Specifically, we update the parameters
     :math:`\theta` according to
 
@@ -511,7 +511,7 @@ class QSR(AbstractVariationalDriver):
         \tilde{\theta}_i = \begin{cases} 
         \theta_i,  &i=0 \mod m, \\
         \tilde{\theta}_{i-1}, &\text{otherwise},
-        \end{cases}$ 
+        \end{cases}
         
     updated for every :math:`m` iterations, and term III is the expectation value of
     the control variate since the mini-batch is sampled uniformly from the whole dataset.
@@ -553,7 +553,7 @@ class QSR(AbstractVariationalDriver):
             chunk_size: The chunk size for the control variates. Defaults to None.
 
         Raises:
-            Warning: If the chunk size is not divisor of the training data size.
+            Warning: If the chunk size is not a divisor of the training data size.
             TypeError: If the training data is not a 2 element tuple.
         """
 
