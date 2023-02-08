@@ -468,7 +468,7 @@ def _local_value_rotated_amplitude(log_psi, pars, sigma_p, mel, secs):
 
 
 class QSR(AbstractVariationalDriver):
-    """
+    r"""
     Quantum state reconstruction driver minimizing KL divergence.
 
     This driver variationally reconstructs a target state given the measurement data.
@@ -535,7 +535,7 @@ class QSR(AbstractVariationalDriver):
         ] = None,
         chunk_size: Optional[int] = None,
     ):
-        """Initializes the QSR driver class.
+        r"""Initializes the QSR driver class.
 
         Args:
             training_data: A tuple of two arrays (sigma_s, Us). sigma_s is a the
