@@ -469,7 +469,52 @@ def _local_value_rotated_amplitude(log_psi, pars, sigma_p, mel, secs):
 
 class QSR(AbstractVariationalDriver):
     """
-    The quantum state reconstruction driver minimizing KL divergence.
+    Quantum state reconstruction driver minimizing KL divergence.
+
+    This driver variationally reconstructs a target state given the measurement data.
+    It's achieved by minimizing the average negative log-likelihood, or equivalently,
+    the KL divergence between the distributions given by the data and the variational
+    state:
+
+    .. math::
+
+        &\min_\theta \frac{1}{N_b} \sum_{b=1}^{N_b} \sum_{\sigma_b} q_b(\sigma_b) \log \left[ \frac{q_b(\sigma_b)}{p_{b\theta}(\sigma_b)} \right] \\
+        &\approx \min_\theta \frac{1}{N_b} \sum_{b=1}^{N_b} \frac{1}{|D_b|} \sum_{\sigma_b \in D_b} [-\log p_{b\theta}(\sigma_b)],
+
+    where :math:`\theta` is the variational parameter, :math:`N_b` is the number of
+    measurement basis, :math:`q_b(\sigma_b)` is the probability of obtaining the
+    outcome state :math:`\sigma_b` in the measurement basis :math:`b` given the 
+    target state, and :math:`p_{b\theta}(\sigma_b)` is the probability of obtaining
+    the outcome state :math:`\sigma_b` in the measurement basis :math:`b` given the
+    variational state, and :math:`D_b` is the size of the dataset in the measurement
+    basis :math:`b`.
+
+    In practice, the noise introduced by mini-batch training hurts the convergence
+    of accurate quantum state reconstruction. To alleviate this problem, we use a
+    control variate method called `stochastic variance reduced gradient (SVRG) <https://proceedings.neurips.cc/paper/2013/hash/ac1dd209cbcc5e5d1c6e28598e8cbbe8-Abstract.html>` to
+    reduce the variance of the gradient estimator. Specifically, we update the parameters
+    :math:`\theta` according to
+
+    .. math::
+
+        \theta_{i+1} = \theta_{i} -\eta \left\{
+        \underbrace{\nabla_\theta \left[\frac{1}{|B_i|}\sum_{\sigma_b\in B_i} \log p_{b\theta_i}(\sigma_b)\right]}_{\text{I: batch gradient}}
+        - \underbrace{\nabla_\theta \left[\frac{1}{|B_i|}\sum_{\sigma_b\in B_i} \log p_{b\tilde{\theta}_i}(\sigma_b)\right]}_{\text{II: control variate}} 
+        + \underbrace{\nabla_\theta \left[\frac{1}{N_b} \sum_{b=1}^{N_b} \frac{1}{|D_b|} \sum_{\sigma_b \in D_b} \log p_{b\tilde{\theta}_i}(\sigma_b)\right]}_{\text{III: expectation of control variate}}
+        \right\},
+
+    where term I is the normal batch gradient, term II is the control variate which
+    is the batch gradient evaluated with a set of previous parameters 
+    
+    .. math:: 
+
+        \tilde{\theta}_i = \begin{cases} 
+        \theta_i,  &i=0 \mod m, \\
+        \tilde{\theta}_{i-1}, &\text{otherwise},
+        \end{cases}$ 
+        
+    updated for every :math:`m` iterations, and term III is the expectation value of
+    the control variate since the mini-batch is sampled uniformly from the whole dataset.
     """
 
     def __init__(
