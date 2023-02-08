@@ -3,10 +3,11 @@
 In this section we will briefly describe the capabilities of the drivers API.
 This page assumes that you have already read and are familiar with the [`VariationalState` interface](varstate).
 
-In Netket there are two drivers, even though you can define your own; those are:
+In Netket there are three drivers, even though you can define your own; those are:
 
 1. {class}`~netket.driver.VMC`, to find the ground state of an Hamiltonian
 2. {class}`~netket.driver.SteadyState`, to find the steady-state of a liouvillian
+3. {class}`~netket.driver.QSR`, to reconstruct quantum states from measurement data
 
 A driver, will run your optimisation loop, computing the loss function and the gradient,
 using the gradient to update the parameters, and logging to yours sinks any data that you

@@ -1,6 +1,6 @@
 import netket as nk
 import numpy as np
-from netket.driver import QSR
+from netket import QSR
 from basis_generators import BasisGeneratorFull
 from generate_data import generate
 

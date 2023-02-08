@@ -124,7 +124,7 @@ def _setup_driver(N, mode, control_variate_update_freq=10, chunk_size=97):
 
     op = nk.optimizer.Adam(learning_rate=0.01)
 
-    driver = nk.driver.QSR(
+    driver = nk.QSR(
         (training_samples, rotations),
         training_batch_size=100,
         optimizer=op,
