@@ -168,8 +168,8 @@ def _convert_data(
         if mixed_states:
             # size of the cartesian product sigma_p x sigma_p
             Nc = mels_i.size**2
-            sigma_p.resize((last_i + Nc, 2 * N))
-            mels.resize((last_i + Nc,))
+            sigma_p = np.resize(sigma_p, (last_i + Nc, 2 * N))
+            mels = np.resize(mels, (last_i + Nc,))
             # indices of the cartesian product
             x, y = np.meshgrid(np.arange(mels_i.size), np.arange(mels_i.size))
             sigma_p[last_i:, :] = np.hstack(
@@ -184,8 +184,8 @@ def _convert_data(
             )
         else:
             Nc = mels_i.size
-            sigma_p.resize((last_i + Nc, N))
-            mels.resize((last_i + Nc,))
+            sigma_p = np.resize(sigma_p, (last_i + Nc, N))
+            mels = np.resize(mels, (last_i + Nc,))
             sigma_p[last_i:, :] = sigma_p_i
             # <sigma_s|U|sigma_p>
             mels[last_i:] = mels_i
@@ -195,10 +195,10 @@ def _convert_data(
 
     # last
     if mixed_states:
-        sigma_p.resize((last_i + MAX_LEN, 2 * N))
+        sigma_p = np.resize(sigma_p, (last_i + MAX_LEN, 2 * N))
     else:
-        sigma_p.resize((last_i + MAX_LEN, N))
-    mels.resize((last_i + MAX_LEN,))
+        sigma_p = np.resize(sigma_p, (last_i + MAX_LEN, N))
+    mels = np.resize(mels, (last_i + MAX_LEN,))
     sigma_p[last_i + Nc :, :] = 0.0
     mels[last_i + Nc :] = 0.0
     secs[-1] = last_i  # + MAX_LEN
