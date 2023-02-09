@@ -40,6 +40,58 @@ def _setup_symm(symmetries, N, lattice=nk.graph.Chain):
     return g, hi, perms
 
 
+@pytest.mark.parametrize("mode", ["fft", "matrix"])
+def test_DenseSymm_matrixInput(mode):
+    g, hi, perms = _setup_symm("trans", N=8)
+    shape = tuple(g.extent)
+    perms_matrix = np.array(perms)
+    ma = nk.nn.DenseSymm(
+        symmetries=perms,
+        mode=mode,
+        features=2,
+        shape=shape,
+    )
+    ma_matrix = nk.nn.DenseSymm(
+        symmetries=perms_matrix,
+        mode=mode,
+        features=2,
+        shape=shape,
+    )
+
+    assert hash(ma) == hash(ma_matrix)
+
+    k = jax.random.PRNGKey(0)
+    x = hi.numbers_to_states(np.array([0, 1, 2])).reshape(3, 1, hi.size)
+    p1 = jax.jit(ma.init)(k, x)
+    p2 = jax.jit(ma_matrix.init)(k, x)
+    assert nk.jax.tree_size(p1) == nk.jax.tree_size(p2)
+
+    n_symm = perms_matrix.shape[0]
+    mask = np.zeros(n_symm)
+    mask[np.random.choice(n_symm, n_symm // 2, replace=False)] = 1
+
+    ma_masked = nk.nn.DenseSymm(
+        symmetries=perms,
+        mode=mode,
+        features=2,
+        shape=shape,
+        mask=mask,
+    )
+    p3 = jax.jit(ma_masked.init)(k, x)
+    assert nk.jax.tree_size(p3) < nk.jax.tree_size(p1)
+
+    ma_masked2 = nk.nn.DenseSymm(
+        symmetries=perms,
+        mode=mode,
+        features=2,
+        shape=shape,
+        mask=nk.utils.HashableArray(mask),
+    )
+    p4 = jax.jit(ma_masked2.init)(k, x)
+    assert nk.jax.tree_size(p4) == nk.jax.tree_size(p3)
+    assert hash(ma_masked) == hash(ma_masked2)
+
+
 @pytest.mark.parametrize("symmetries", ["trans", "space_group"])
 @pytest.mark.parametrize("use_bias", [True, False])
 @pytest.mark.parametrize("mode", ["fft", "matrix"])

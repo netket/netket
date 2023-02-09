@@ -74,7 +74,7 @@ class DenseSymmMatrix(Module):
         # pylint: disable=attribute-defined-outside-init
         self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
         if self.mask is not None:
-            self.kernel_indices = jnp.nonzero(self.mask)[0]
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -181,7 +181,7 @@ class DenseSymmFFT(Module):
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
         if self.mask is not None:
-            (self.kernel_indices,) = np.nonzero(self.mask)
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
         # maps (n_sites) dimension of kernels to (sites_per_cell, n_point, *shape)
         # as used in FFT-based group convolution
@@ -312,7 +312,7 @@ class DenseEquivariantFFT(Module):
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
         if self.mask is not None:
-            (self.kernel_indices,) = np.nonzero(self.mask)
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
         # maps (n_sites) dimension of kernels to (n_point, n_point, *shape)
         # as used in FFT-based group convolution
@@ -447,7 +447,7 @@ class DenseEquivariantIrrep(Module):
     def setup(self):
         self.n_symm = self.irreps[0].shape[0]
         if self.mask is not None:
-            (self.kernel_indices,) = np.nonzero(self.mask)
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
         self.forward = jnp.concatenate(
             [jnp.asarray(irrep).reshape(self.n_symm, -1) for irrep in self.irreps],
@@ -611,7 +611,7 @@ class DenseEquivariantMatrix(Module):
     def setup(self):
         self.n_symm = np.asarray(self.product_table).shape[0]
         if self.mask is not None:
-            (self.kernel_indices,) = np.nonzero(self.mask)
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
     @compact
     def __call__(self, x: Array) -> Array:
