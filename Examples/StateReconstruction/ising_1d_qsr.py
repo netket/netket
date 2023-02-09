@@ -51,6 +51,8 @@ qsr = nkx.QSR(
     training_batch_size=batch_size,
     optimizer=op,
     variational_state=vs,
+    control_variate_update_freq=10,
+    chunk_size=97,
 )
 
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .driver import QSR
+from .dataset import RawQuantumDataset
 
 from netket.utils import _hide_submodules
 

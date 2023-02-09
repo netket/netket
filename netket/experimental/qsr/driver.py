@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import List, Optional, Tuple, Union
+import warnings
 
 import numpy as np
 import jax
@@ -31,7 +32,7 @@ from netket.utils.types import Array
 
 from netket.stats import statistics
 
-from .input_helpers import _convert_data, _compose_sampled_data
+from .dataset import RawQuantumDataset
 from .logic_helpers import (
     _grad_local_value_rotated,
     _local_value_rotated_amplitude,
@@ -94,14 +95,14 @@ class QSR(AbstractVariationalDriver):
 
     def __init__(
         self,
-        training_data: Tuple[List, List],
+        training_data: Union[RawQuantumDataset, Tuple[List, List]],
         training_batch_size: int,
         optimizer,
         *,
         variational_state: VariationalState,
         preconditioner: Optional[PreconditionerT] = identity_preconditioner,
         seed: Optional[int] = None,
-        batch_sample_no_replace: Optional[bool] = False,
+        batch_sample_replace: Optional[bool] = True,
         control_variate_update_freq: Optional[
             Union[
                 int,
@@ -122,7 +123,7 @@ class QSR(AbstractVariationalDriver):
             preconditioner: The preconditioner to use.
                 Defaults to identity_preconditioner.
             seed: The RNG seed. Defaults to None.
-            batch_sample_no_replace: Whether to sample without replacement. Defaults to False.
+            batch_sample_replace: Whether to sample with replacement. Defaults to True.
             control_variate_update_freq: The frequency of updating the control variates. Defaults to None.
                 "Adaptive" for adaptive update frequency, i.e. n_samples // batch size.
             chunk_size: The chunk size for the control variates. Defaults to None.
@@ -131,13 +132,11 @@ class QSR(AbstractVariationalDriver):
             Warning: If the chunk size is not a divisor of the training data size.
             TypeError: If the training data is not a 2 element tuple.
         """
-
         super().__init__(variational_state, optimizer)
-
         self.preconditioner = preconditioner
 
-        if not isinstance(training_data, tuple) or len(training_data) != 2:
-            raise TypeError("not a tuple of length 2")
+        if not isinstance(training_data, RawQuantumDataset):
+            training_data = RawQuantumDataset(training_data)
 
         self._rng = np.random.default_rng(
             np.asarray(nkjax.mpi_split(nkjax.PRNGKey(seed)))
@@ -146,28 +145,24 @@ class QSR(AbstractVariationalDriver):
         # mixed states
         self.mixed_states = variational_state.__class__.__name__ in ["MCMixedState"]
 
-        self.batch_sample_no_replace = batch_sample_no_replace
-
-        sigma_p, mels, secs, MAX_LEN = _convert_data(*training_data, self.mixed_states)
-        self._training_rotations = training_data[1]
-        self._training_sigma_p = sigma_p
-        self._training_mels = mels
-        self._training_secs = secs
-        self._training_max_len = MAX_LEN
-        self._training_samples_n = len(secs) - 1
-
+        self.batch_sample_replace = batch_sample_replace
         self.training_batch_size = training_batch_size
+
+        self._raw_dataset = training_data
+        self._dataset = training_data.preprocess(
+            hilbert=self.state.hilbert, mixed_state_target=self.mixed_states
+        )
 
         # statistical constants
         self._entropy = None
 
         # control variates
         if control_variate_update_freq == "Adaptive":
-            if self._training_samples_n <= training_batch_size:
+            if self.dataset.size <= training_batch_size:
                 self._control_variate_update_freq = None
             else:
                 self._control_variate_update_freq = (
-                    self._training_samples_n // training_batch_size
+                    self.dataset.size // training_batch_size
                 )
         else:
             self._control_variate_update_freq = control_variate_update_freq
@@ -177,14 +172,18 @@ class QSR(AbstractVariationalDriver):
 
         # chunk
         if self._chunk_size is not None:
-            self.n_chunk = self._training_samples_n // self._chunk_size
-            if not self.n_chunk * self._chunk_size == self._training_samples_n:
-                print(
+            self.n_chunk = self.dataset.size // self._chunk_size
+            if not self.n_chunk * self._chunk_size == self.dataset.size:
+                warnings.warn(
                     "WARNING: chunk size does not divide the number of samples, the last few chunks will be smaller"
                 )
             self._chunked_indices = np.array_split(
-                np.arange(self._training_samples_n), self.n_chunk
+                np.arange(self.dataset.size), self.n_chunk
             )
+
+    @property
+    def dataset(self):
+        return self._dataset
 
     def _forward_and_backward(self):
         state = self.state
@@ -200,21 +199,10 @@ class QSR(AbstractVariationalDriver):
         self._grad_neg = _grad_negative(state_diag)
 
         # sample training data for pos grad
-        self._sampled_indices = np.sort(
-            self._rng.choice(
-                self._training_samples_n,
-                size=(self.training_batch_size,),
-                replace=not self.batch_sample_no_replace,
-            )
-        )
-
-        # compose data
-        self._sigma_p, self._mels, self._secs, self._maxlen = _compose_sampled_data(
-            self._training_sigma_p,
-            self._training_mels,
-            self._training_secs,
-            self._training_max_len,
-            self._sampled_indices,
+        self._batch_data = self.dataset.subsample(
+            self.training_batch_size,
+            rng=self._rng,
+            batch_sample_replace=self.batch_sample_replace,
         )
 
         # compute the pos gradient of log p
@@ -222,9 +210,9 @@ class QSR(AbstractVariationalDriver):
             state._apply_fun,
             state.parameters,
             state.model_state,
-            self._sigma_p,
-            self._mels,
-            self._secs,
+            self._batch_data.sigma_p,
+            self._batch_data.mels,
+            self._batch_data.secs,
         )
 
         # control variates
@@ -233,59 +221,42 @@ class QSR(AbstractVariationalDriver):
             if self.step_count % self._control_variate_update_freq == 0:
                 if self._chunk_size is not None:
                     for i in range(self.n_chunk):
-                        (
-                            sigma_p_chunk,
-                            mels_chunk,
-                            secs_chunk,
-                            _,
-                        ) = _compose_sampled_data(
-                            self._training_sigma_p,
-                            self._training_mels,
-                            self._training_secs,
-                            self._training_max_len,
-                            self._chunked_indices[i],
+                        chunk_data = self.dataset[self._chunked_indices[i]]
+                        _, data = _grad_local_value_rotated(
+                            state._apply_fun,
+                            state.parameters,
+                            state.model_state,
+                            chunk_data.sigma_p,
+                            chunk_data.mels,
+                            chunk_data.secs,
                         )
+                        _N = len(self._chunked_indices[i])
+
                         if i == 0:
-                            # chunking: initialize variable
                             self._control_variate_expectation = jax.tree_util.tree_map(
-                                lambda y: y * len(self._chunked_indices[i]),
-                                _grad_local_value_rotated(
-                                    state._apply_fun,
-                                    state.parameters,
-                                    state.model_state,
-                                    sigma_p_chunk,
-                                    mels_chunk,
-                                    secs_chunk,
-                                )[1],
+                                jnp.zeros_like, data
                             )
-                        else:
-                            # chunking: accumulate
-                            self._control_variate_expectation = jax.tree_util.tree_map(
-                                lambda x, y: x + y * len(self._chunked_indices[i]),
-                                self._control_variate_expectation,
-                                _grad_local_value_rotated(
-                                    state._apply_fun,
-                                    state.parameters,
-                                    state.model_state,
-                                    sigma_p_chunk,
-                                    mels_chunk,
-                                    secs_chunk,
-                                )[1],
-                            )
+                        # chunking: accumulate
+                        self._control_variate_expectation = jax.tree_util.tree_map(
+                            lambda x, y: x + y * _N,
+                            self._control_variate_expectation,
+                            data,
+                        )
+
                     # chunking: average
                     self._control_variate_expectation = jax.tree_util.tree_map(
-                        lambda x: x / self._training_samples_n,
+                        lambda x: x / self.dataset.size,
                         self._control_variate_expectation,
                     )
                 else:
-                    self._control_variate_expectation = _grad_local_value_rotated(
+                    _, self._control_variate_expectation = _grad_local_value_rotated(
                         state._apply_fun,
                         state.parameters,
                         state.model_state,
-                        self._training_sigma_p,
-                        self._training_mels,
-                        self._training_secs,
-                    )[1]
+                        self.dataset.sigma_p,
+                        self.dataset.mels,
+                        self.dataset.secs,
+                    )
                 self._control_variate_params = state.parameters
 
             # control variate gradient
@@ -294,9 +265,9 @@ class QSR(AbstractVariationalDriver):
                 state._apply_fun,
                 self._control_variate_params,
                 state.model_state,
-                self._sigma_p,
-                self._mels,
-                self._secs,
+                self._batch_data.sigma_p,
+                self._batch_data.mels,
+                self._batch_data.secs,
             )
 
             # gather gradient
@@ -351,9 +322,9 @@ class QSR(AbstractVariationalDriver):
         log_val_rot = _local_value_rotated_amplitude(
             self.state._apply_fun,
             self.state.variables,
-            self._sigma_p,
-            self._mels,
-            self._secs,
+            self.dataset.sigma_p,
+            self.dataset.mels,
+            self.dataset.secs,
         )
         if self.mixed_states:
             log_val_rot /= 2
@@ -388,44 +359,26 @@ class QSR(AbstractVariationalDriver):
             Exponentially expensive in the hilbert space size!
         """
         if self._chunk_size is not None:
+            log_val_rot = []
             for i in range(self.n_chunk):
-                sigma_p_chunk, mels_chunk, secs_chunk, _ = _compose_sampled_data(
-                    self._training_sigma_p,
-                    self._training_mels,
-                    self._training_secs,
-                    self._training_max_len,
-                    self._chunked_indices[i],
-                )
-                if i == 0:
-                    # chunking: initialize variable
-                    log_val_rot = _local_value_rotated_amplitude(
+                chunk_data = self.dataset[self._chunked_indices[i]]
+                log_val_rot.append(
+                    _local_value_rotated_amplitude(
                         self.state._apply_fun,
                         self.state.variables,
-                        sigma_p_chunk,
-                        mels_chunk,
-                        secs_chunk,
+                        chunk_data.sigma_p,
+                        chunk_data.mels,
+                        chunk_data.secs,
                     )
-                else:
-                    # chunking: accumulate
-                    log_val_rot = jnp.concatenate(
-                        [
-                            log_val_rot,
-                            _local_value_rotated_amplitude(
-                                self.state._apply_fun,
-                                self.state.variables,
-                                sigma_p_chunk,
-                                mels_chunk,
-                                secs_chunk,
-                            ),
-                        ]
-                    )
+                )
+            log_val_rot = jnp.concatenate(log_val_rot)
         else:
             log_val_rot = _local_value_rotated_amplitude(
                 self.state._apply_fun,
                 self.state.variables,
-                self._training_sigma_p,
-                self._training_mels,
-                self._training_secs,
+                self.dataset.sigma_p,
+                self.dataset.mels,
+                self.dataset.secs,
             )
 
         # square root <sigma|rho|sigma> to keep in line with the pure state case
@@ -477,7 +430,7 @@ class QSR(AbstractVariationalDriver):
             target_state = target_state @ target_state.conj().T
         if self._entropy is not None and not no_cache:
             return self._entropy
-        rotations = self._training_rotations[::n_shots]
+        rotations = self._raw_dataset.bases[::n_shots]
         entropy_list = []
         for rot in rotations:
             rho_rot = (rot @ (rot @ target_state).conj().T).conj().T
@@ -550,7 +503,7 @@ class QSR(AbstractVariationalDriver):
         if len(target_state.shape) == 1:
             target_state = target_state.reshape(-1, 1)
             target_state = target_state @ target_state.conj().T
-        rotations = self._training_rotations[::n_shots]
+        rotations = self._raw_dataset.bases[::n_shots]
         KL_list = []
         if self.mixed_states:
             vs = self.state.to_matrix(normalize=True)

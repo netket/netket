@@ -3,6 +3,7 @@ from pytest import raises
 
 import numpy as np
 import netket as nk
+import netket.experimental as nkx
 import netket.exact as exact
 import netket.hilbert as hs
 import netket.operator as op
@@ -92,7 +93,7 @@ def _generate_data(
     return hi, rotations, training_samples, rho
 
 
-def _setup_measurements(N, mode):
+def _setup_measurements(N, mode, n_basis=20):
     g = gr.Hypercube(length=N, n_dim=1, pbc=False)
     hi = hs.Spin(1 / 2, N=g.n_nodes)
     ha = op.Ising(hilbert=hi, h=1, graph=g)
@@ -104,67 +105,25 @@ def _setup_measurements(N, mode):
         rho = _thermal_state(ha, beta=1.0)
     else:
         raise ValueError("Invalid mode")
-    hi, rotations, training_samples, rho = _generate_data(hi, rho)
+    hi, rotations, training_samples, rho = _generate_data(hi, rho, n_basis=n_basis)
     return hi, rotations, training_samples, rho
 
 
-def _setup_driver(N, mode, control_variate_update_freq=10, chunk_size=97):
-    hi, rotations, training_samples, rho = _setup_measurements(N, mode)
+def test_raw_dataset():
+    hi, rotations, training_samples, rho = _setup_measurements(3, "pure", n_basis=20)
 
-    if mode == "pure":
-        ma = nk.models.RBM(alpha=1, param_dtype=complex)
-        sa = nk.sampler.MetropolisLocal(hilbert=hi.physical)
-        vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
-    elif mode == "mixed":
-        ma = nk.models.NDM(alpha=1, param_dtype=complex)
-        sa = nk.sampler.MetropolisLocal(hilbert=hi)
-        vs = nk.vqs.MCMixedState(sa, ma, n_samples=1000, seed=SEED)
-    else:
-        raise ValueError("Invalid mode")
-
-    op = nk.optimizer.Adam(learning_rate=0.01)
-
-    driver = nk.QSR(
-        (training_samples, rotations),
-        training_batch_size=100,
-        optimizer=op,
-        variational_state=vs,
-        control_variate_update_freq=control_variate_update_freq,
-        chunk_size=chunk_size,
-    )
-    return driver, rho
+    dataset = nkx.qsr.RawQuantumDataset((training_samples, rotations))
+    assert len(dataset) == len(rotations)
+    assert len(dataset.unique_bases()) == 20
+    assert isinstance(repr(dataset), str)
 
 
-####
+def test_raw_dataset_preprocess():
+    hi, rotations, training_samples, rho = _setup_measurements(3, "pure", n_basis=20)
 
+    dataset = nkx.qsr.RawQuantumDataset((training_samples, rotations))
+    dataset_processed = dataset.preprocess()
+    assert len(dataset_processed) == dataset_processed.size
+    assert len(dataset_processed) == len(dataset)
 
-def test_pure_qsr():
-    N = 3
-    driver, rho = _setup_driver(N, "pure")
-    assert driver.mixed_states == False
-    driver.run(n_iter=20, out="test_pure_qsr.out")
-
-
-def test_mixed_qsr():
-    N = 3
-    driver, rho = _setup_driver(N, "mixed")
-    assert driver.mixed_states == True
-    driver.run(n_iter=20, out="test_pure_qsr.out")
-
-
-def test_pure_KL():
-    N = 3
-    driver, rho = _setup_driver(N, "pure")
-    driver.run(n_iter=20, out="test_pure_qsr.out")
-    kl = driver.KL(rho, n_shots=100)
-    kl_whole = driver.KL_whole_training_set(rho, n_shots=100)
-    kl_exact = driver.KL_exact(rho, n_shots=100)
-
-
-def test_mixed_KL():
-    N = 3
-    driver, rho = _setup_driver(N, "mixed")
-    driver.run(n_iter=20, out="test_pure_qsr.out")
-    kl = driver.KL(rho, n_shots=100)
-    kl_whole = driver.KL_whole_training_set(rho, n_shots=100)
-    kl_exact = driver.KL_exact(rho, n_shots=100)
+    assert isinstance(dataset_processed[1], type(dataset_processed))

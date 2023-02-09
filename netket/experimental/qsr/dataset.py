@@ -13,14 +13,30 @@
 # limitations under the License.
 
 from typing import List, Optional, Tuple, Union
+from functools import partial
 
 import numpy as np
+import jax
+import jax.numpy as jnp
+
 from numba import njit
 
+from netket import jax as nkjax
+from netket.driver import AbstractVariationalDriver
+from netket.driver.vmc_common import info
 from netket.operator import AbstractOperator, LocalOperator
-from netket.hilbert import Spin
-from netket.utils.types import DType
+from netket.hilbert import AbstractHilbert, Spin, Qubit
+from netket.vqs import VariationalState
+from netket.vqs import ExactState
+from netket.optimizer import (
+    identity_preconditioner,
+    PreconditionerT,
+)
+from netket.utils import mpi, struct, numbers
+from netket.utils.types import DType, Array
+from netket.utils.dispatch import dispatch
 
+from netket.stats import statistics
 
 BaseType = Union[AbstractOperator, np.ndarray, str]
 
@@ -56,7 +72,9 @@ def _build_rotation(
     return localop
 
 
-def _check_bases_type(Us: Union[List[BaseType], np.ndarray]) -> List[AbstractOperator]:
+def _canonicalize_bases_type(
+    Us: Union[List[BaseType], np.ndarray]
+) -> List[AbstractOperator]:
     r"""
     Check if the given bases are valid for the quantum state reconstruction driver.
 
@@ -124,7 +142,7 @@ def _convert_data(
         secs (np.ndarray): Indices of sigma_p and Us that divide different sigma_s.
         MAX_LEN (int): The maximum number of connected states.
     """
-    Us = _check_bases_type(Us)
+    Us = _canonicalize_bases_type(Us)
 
     # Error message when user tries to convert less or more sigmas than Us
     assert (
@@ -242,3 +260,164 @@ def _compose_sampled_data(
     _mels = _mels[:padded_size]
 
     return _sigma_p, _mels, _secs, _maxlen
+
+
+class RawQuantumDataset:
+    """
+    Class used to store a dataset of Quantum shots, usually taken from a quantum computer
+    or simulator.
+    """
+
+    def __init__(self, dataset: Tuple[List, List]):
+        if not isinstance(dataset, tuple) or len(dataset) != 2:
+            raise TypeError("not a tuple of length 2")
+
+        measurements, bases = dataset
+        bases = _canonicalize_bases_type(bases)
+
+        if measurements.ndim != 2:
+            raise ValueError(
+                "Measurements should be an array with 2 dimensions, where"
+                "(measurement_i, N_qubits)."
+            )
+
+        # Error message when user tries to convert less or more sigmas than Us
+        if measurements.shape[0] != len(bases):
+            raise ValueError(
+                f"The number of measurements ({measurements.shape[0]}) "
+                f"should be equal to the number of rotations ({len(bases)})."
+            )
+
+        self._measurements = measurements
+        self._bases = bases
+
+    @property
+    def bases(self):
+        """
+        Returns a 1D numpy array of the bases used to measure the respective measurement
+        returned by the `{self.measurements}` property.
+        """
+        return self._bases
+
+    @property
+    def measurements(self):
+        """
+        Returns a 2D numpy array containing the measurement outcome in the respective basis
+        given by `{self.bases}` property.
+        """
+        return self._measurements
+
+    def __len__(self):
+        return len(self.bases)
+
+    def unique_bases(self):
+        """
+        Returns the list of unique bases present in {ref}`self.bases`.
+        """
+        unique_bases = []
+        _last_basis = None
+        for b in self.bases:
+            if b == _last_basis:
+                continue
+            elif b in unique_bases:
+                continue
+            else:
+                unique_bases.append(b)
+        return np.array(unique_bases)
+
+    def preprocess(
+        self, *, mixed_state_target: bool = False, hilbert: AbstractHilbert = None
+    ):
+        """
+        Constructs the `ProcessedQuantumDataset` object with the entirety of this dataset.
+
+        The `ProcessedQuantumDataset` holds the measurements and operators in a format that
+        can be more efficiently used to compute and optimise the KL.
+        """
+        sigma_p, mels, secs, MAX_LEN = _convert_data(
+            self.measurements, self.bases, mixed_state_target
+        )
+
+        if hilbert is None:
+            hilbert = Spin(0.5, sigma_p.shape[-1])
+
+        return ProcessedQuantumDataset(
+            hilbert, sigma_p, mels, secs, MAX_LEN, mixed_state_target
+        )
+
+    def __repr__(self):
+        return f"RawQuantumDataset(N_measurements={len(self)})"
+
+
+@struct.dataclass
+class ProcessedQuantumDataset:
+
+    hilbert: AbstractHilbert
+    """
+    The global computational basis of those measurements
+    """
+
+    sigma_p: jax.Array
+    """
+    The precomputed connected elements of the rotations for the measured bitstrings
+    """
+
+    mels: jax.Array
+    """
+    The precomputed matrix elements of the rotations for the measured bitstrings
+    """
+
+    secs: jax.Array
+    """The secs"""
+
+    max_len: int = struct.field(pytree_node=False)
+
+    # training_samples_n : int = struct.field(pytree_node=False)
+
+    mixed_state_target: bool = struct.field(pytree_node=False)
+
+    @property
+    def size(self) -> int:
+        return len(self.secs) - 1
+
+    def subsample(self, batch_size, *, rng, batch_sample_replace: bool = True):
+        # sample training data for pos grad
+        sampled_indices = np.sort(
+            rng.choice(
+                self.size,
+                size=(batch_size,),
+                replace=batch_sample_replace,
+            )
+        )
+
+        return self[sampled_indices]
+
+    def __len__(self):
+        return len(self.secs) - 1
+
+    def __getitem__(self, idx):
+        if isinstance(idx, int):
+            idx = np.array([idx])
+        elif isinstance(idx, list):
+            idx = np.array(idx)
+        elif not isinstance(idx, np.ndarray):
+            raise TypeError(
+                "fThe accessor only works with scalars and 1D-arrays, but it was a `{type(idx)}`."
+            )
+
+        if idx.ndim != 1:
+            raise TypeError(
+                f"The indices must be a 1D array, but it was `idx.shape={idx.shape}`."
+            )
+
+        sigma_p, mels, secs, maxlen = _compose_sampled_data(
+            self.sigma_p,
+            self.mels,
+            self.secs,
+            self.max_len,
+            idx,
+        )
+
+        return ProcessedQuantumDataset(
+            self.hilbert, sigma_p, mels, secs, maxlen, self.mixed_state_target
+        )
