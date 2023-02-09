@@ -20,6 +20,7 @@
 
 ### Bug Fixes
 * Fixed a bug where {meth}`nk.hilbert.Particle.random_state` could not be jit-compiled, and therefore could not be used in the sampling [#1401](https://github.com/netket/netket/pull/1401).
+* Fixed bug [#1405](https://github.com/netket/netket/pull/1405) where {meth}`nk.nn.DenseSymm` and {meth}`nk.models.GCNN` did not work or correctly consider masks [#1428](https://github.com/netket/netket/pull/1428).
 
 ### Deprecations
 * `AbstractARNN._conditional` has been removed from the API, and its use will throw a deprecation warning. Update your ARNN models accordingly! [#1361](https://github.com/netket/netket/pull/1361).
