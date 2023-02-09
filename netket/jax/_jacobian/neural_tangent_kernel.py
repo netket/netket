@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from os import truncate
 from jax import numpy as jnp
 
 import jax
@@ -50,3 +51,19 @@ def NeuralTangentKernel(
     jac = jacobian(apply_fun, params, samples, mode=mode)
 
     return OuterProduct(jac)
+
+
+@partial(jax.jit, static_argnames=("apply_fun", "mode", "r_cond"))
+def NeuralTangentKernelInverse(
+    apply_fun: Callable,
+    params: PyTree,
+    samples: Array,
+    mode: str,
+    r_cond: float = 1e-12,
+) -> Array:
+
+    jac = jacobian(apply_fun, params, samples, mode=mode)
+
+    jac = OuterProduct(jac)
+
+    return jnp.linalg.pinv(jac, rcond=r_cond, hermitian=True)
