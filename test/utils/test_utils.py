@@ -63,6 +63,12 @@ def test_HashableArray(numpy):
     assert_equal(wa.wrapped, np.asarray(wa))
     assert wa.wrapped is not wa
 
+    # test construction from hashable array
+    wa2 = HashableArray(a)
+    assert hash(wa) == hash(wa2)
+    assert wa == wa2
+    assert_equal(wa2.wrapped, np.asarray(wa))
+
 
 def test_Kahan_sum():
     ksum1 = KahanSum(0.0)
