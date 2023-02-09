@@ -22,7 +22,7 @@ from numba import njit
 from netket.operator import AbstractOperator, LocalOperator
 from netket.hilbert import AbstractHilbert, Spin
 from netket.utils import struct
-from netket.utils.types import DType
+from netket.utils.types import Array, DType
 
 BaseType = Union[AbstractOperator, np.ndarray, str]
 
@@ -343,17 +343,17 @@ class ProcessedQuantumDataset:
     The global computational basis of those measurements
     """
 
-    sigma_p: jax.Array
+    sigma_p: Array
     """
     The precomputed connected elements of the rotations for the measured bitstrings
     """
 
-    mels: jax.Array
+    mels: Array
     """
     The precomputed matrix elements of the rotations for the measured bitstrings
     """
 
-    secs: jax.Array
+    secs: Array
     """The secs"""
 
     max_len: int = struct.field(pytree_node=False)
