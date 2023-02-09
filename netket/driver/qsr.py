@@ -114,7 +114,7 @@ def _check_bases_type(Us: Union[List[BaseType], np.ndarray]) -> List[AbstractOpe
 def _convert_data(
     sigma_s: np.ndarray,
     Us: Union[List[BaseType], np.ndarray],
-    mixed_states: Optional[bool] = False,
+    mixed_state_target: Optional[bool] = False,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     r"""
     Convert sampled states and rotation operators to a more direct computational format.
@@ -131,7 +131,7 @@ def _convert_data(
     Args:
         sigma_s (np.ndarray): The states
         Us (np.ndarray or list): The list of rotations
-        mixed_states (bool): Whether to use mixed states or not
+        mixed_state_target (bool): Whether to use mixed states or not
 
     Returns:
         sigma_p (np.ndarray): All the states that have non-zero matrix elements
@@ -150,13 +150,11 @@ def _convert_data(
     N = sigma_s.shape[-1]
     sigma_s = sigma_s.reshape(-1, N)
     Nb = sigma_s.shape[0]
+    N_target = N + N*mixed_state_target # N or 2N if mixed state
 
     # constant number of connected states per operator
     Nc = Us[0].hilbert.local_size
-    if mixed_states:
-        sigma_p = np.zeros((0, 2 * N), dtype=sigma_s.dtype)
-    else:
-        sigma_p = np.zeros((0, N), dtype=sigma_s.dtype)
+    sigma_p = np.zeros((0, N_target), dtype=sigma_s.dtype)
     mels = np.zeros((0,), dtype=Us[0].dtype)
     secs = np.zeros(Nb + 1, dtype=np.intp)
     MAX_LEN = 0
@@ -164,11 +162,21 @@ def _convert_data(
     last_i = 0
     for (i, (sigma, U)) in enumerate(zip(sigma_s, Us)):
         sigma_p_i, mels_i = U.get_conn(sigma)
-        if mixed_states:
+
+        if not mixed_state_target:
+            Nc = mels_i.size
+        else:
             # size of the cartesian product sigma_p x sigma_p
-            Nc = mels_i.size**2
-            sigma_p = np.resize(sigma_p, (last_i + Nc, 2 * N))
-            mels = np.resize(mels, (last_i + Nc,))
+            Nc =  mels_i.size**2
+
+        sigma_p = np.resize(sigma_p, (last_i + Nc, N_target))
+        mels = np.resize(mels, (last_i + Nc,))
+
+        if not mixed_state_target:
+            sigma_p[last_i:, :] = sigma_p_i
+            # <sigma_s|U|sigma_p>
+            mels[last_i:] = mels_i
+        else:
             # indices of the cartesian product
             x, y = np.meshgrid(np.arange(mels_i.size), np.arange(mels_i.size))
             sigma_p[last_i:, :] = np.hstack(
@@ -181,29 +189,18 @@ def _convert_data(
                 ),
                 axis=-1,
             )
-        else:
-            Nc = mels_i.size
-            sigma_p = np.resize(sigma_p, (last_i + Nc, N))
-            mels = np.resize(mels, (last_i + Nc,))
-            sigma_p[last_i:, :] = sigma_p_i
-            # <sigma_s|U|sigma_p>
-            mels[last_i:] = mels_i
+
         secs[i] = last_i
         last_i = last_i + Nc
         MAX_LEN = max(Nc, MAX_LEN)
 
-    # last
-    if mixed_states:
-        sigma_p = np.resize(sigma_p, (last_i + MAX_LEN, 2 * N))
-    else:
-        sigma_p = np.resize(sigma_p, (last_i + MAX_LEN, N))
+    sigma_p = np.resize(sigma_p, (last_i + MAX_LEN, N_target))
     mels = np.resize(mels, (last_i + MAX_LEN,))
     sigma_p[last_i + Nc :, :] = 0.0
     mels[last_i + Nc :] = 0.0
     secs[-1] = last_i  # + MAX_LEN
 
     return sigma_p, mels, secs, MAX_LEN
-
 
 @njit
 def _compose_sampled_data(
