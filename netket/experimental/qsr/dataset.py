@@ -15,7 +15,6 @@
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
-import jax
 
 from numba import njit
 
