@@ -220,6 +220,10 @@ class QSR(AbstractVariationalDriver):
             # update control variate
             if self.step_count % self._control_variate_update_freq == 0:
                 if self._chunk_size is not None:
+                    self._control_variate_expectation = jax.tree_util.tree_map(
+                        jnp.zeros_like, self._grad_pos
+                    )
+
                     for i in range(self.n_chunk):
                         chunk_data = self.dataset[self._chunked_indices[i]]
                         _, data = _grad_local_value_rotated(
@@ -230,24 +234,14 @@ class QSR(AbstractVariationalDriver):
                             chunk_data.mels,
                             chunk_data.secs,
                         )
-                        _N = len(self._chunked_indices[i])
-
-                        if i == 0:
-                            self._control_variate_expectation = jax.tree_util.tree_map(
-                                jnp.zeros_like, data
-                            )
+                        coeff = len(chunk_data) / len(self.dataset)
                         # chunking: accumulate
                         self._control_variate_expectation = jax.tree_util.tree_map(
-                            lambda x, y: x + y * _N,
+                            lambda x, y: x + coeff * y,
                             self._control_variate_expectation,
                             data,
                         )
 
-                    # chunking: average
-                    self._control_variate_expectation = jax.tree_util.tree_map(
-                        lambda x: x / self.dataset.size,
-                        self._control_variate_expectation,
-                    )
                 else:
                     _, self._control_variate_expectation = _grad_local_value_rotated(
                         state._apply_fun,

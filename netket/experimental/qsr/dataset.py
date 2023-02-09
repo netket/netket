@@ -13,30 +13,16 @@
 # limitations under the License.
 
 from typing import List, Optional, Tuple, Union
-from functools import partial
 
 import numpy as np
 import jax
-import jax.numpy as jnp
 
 from numba import njit
 
-from netket import jax as nkjax
-from netket.driver import AbstractVariationalDriver
-from netket.driver.vmc_common import info
 from netket.operator import AbstractOperator, LocalOperator
-from netket.hilbert import AbstractHilbert, Spin, Qubit
-from netket.vqs import VariationalState
-from netket.vqs import ExactState
-from netket.optimizer import (
-    identity_preconditioner,
-    PreconditionerT,
-)
-from netket.utils import mpi, struct, numbers
-from netket.utils.types import DType, Array
-from netket.utils.dispatch import dispatch
-
-from netket.stats import statistics
+from netket.hilbert import AbstractHilbert, Spin
+from netket.utils import struct
+from netket.utils.types import DType
 
 BaseType = Union[AbstractOperator, np.ndarray, str]
 

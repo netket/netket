@@ -127,3 +127,5 @@ def test_raw_dataset_preprocess():
     assert len(dataset_processed) == len(dataset)
 
     assert isinstance(dataset_processed[1], type(dataset_processed))
+    assert len(dataset_processed[1]) == 1
+    assert len(dataset_processed[[1, 2]]) == 2
