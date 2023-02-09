@@ -7,6 +7,7 @@ In Netket there are three drivers, even though you can define your own; those ar
 
 1. {class}`~netket.driver.VMC`, to find the ground state of an Hamiltonian
 2. {class}`~netket.driver.SteadyState`, to find the steady-state of a liouvillian
+3. {class}`~netket.experimental.qsr.QSR`, to reconstruct quantum states from measurement data
 
 A driver, will run your optimisation loop, computing the loss function and the gradient,
 using the gradient to update the parameters, and logging to yours sinks any data that you
