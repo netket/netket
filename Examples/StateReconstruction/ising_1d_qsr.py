@@ -1,8 +1,9 @@
 import netket as nk
 import numpy as np
-from netket import QSR
 from basis_generators import BasisGeneratorFull
 from generate_data import generate
+
+import netket.experimental as nkx
 
 import matplotlib.pyplot as plt
 
@@ -45,7 +46,7 @@ op = nk.optimizer.Adam(learning_rate=lr)
 vs = nk.vqs.MCState(sa, ma, n_samples=n_samples, n_discard_per_chain=n_discard)
 
 # define driver
-qsr = QSR(
+qsr = nkx.QSR(
     training_data=(training_samples, rotations),
     training_batch_size=batch_size,
     optimizer=op,

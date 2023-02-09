@@ -35,7 +35,6 @@ Those are the optimization drivers already implemented in Netket:
 
    VMC
    SteadyState
-   QSR
 
 ```
 
