@@ -150,7 +150,7 @@ def _convert_data(
     N = sigma_s.shape[-1]
     sigma_s = sigma_s.reshape(-1, N)
     Nb = sigma_s.shape[0]
-    N_target = N + N*mixed_state_target # N or 2N if mixed state
+    N_target = N + N * mixed_state_target  # N or 2N if mixed state
 
     # constant number of connected states per operator
     Nc = Us[0].hilbert.local_size
@@ -167,7 +167,7 @@ def _convert_data(
             Nc = mels_i.size
         else:
             # size of the cartesian product sigma_p x sigma_p
-            Nc =  mels_i.size**2
+            Nc = mels_i.size**2
 
         sigma_p = np.resize(sigma_p, (last_i + Nc, N_target))
         mels = np.resize(mels, (last_i + Nc,))
@@ -201,6 +201,7 @@ def _convert_data(
     secs[-1] = last_i  # + MAX_LEN
 
     return sigma_p, mels, secs, MAX_LEN
+
 
 @njit
 def _compose_sampled_data(
