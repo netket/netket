@@ -59,7 +59,7 @@ def NeuralTangentKernel(
         r_cond: A value such that all eigenvalues v below r_cond*v_max are truncated 
 
     Returns:
-        The neural tangent kernel N_{s,s'}
+        The neural tangent kernel
     """
 
     
@@ -95,7 +95,7 @@ def NeuralTangentKernelInverse(
         r_cond: A value such that all eigenvalues v below r_cond*v_max are truncated 
 
     Returns:
-        The pseudo-inverse of the neural tangent kernel N^{-1}_{s,s'}
+        The pseudo-inverse of the neural tangent kernel 
     """
     
   
