@@ -44,6 +44,18 @@ def expect_and_MinSR(  # noqa: F811
     *,
     mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
+    
+    """Calculates the expectation value of an operator and the gradient update 
+    according to the MinSR algorithm in `Chen et al. <https://arxiv.org/pdf/2302.01941.pdf>`
+    
+    Args:
+        vstate: the variational state 
+        Ô : a hermitian operator
+        chunk_size : An integer over which expect and the final VJP are chunked
+    Returns:
+        A tuple containing the expectation value of Ô and the update according to MinSR
+    """
+    
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
