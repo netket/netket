@@ -26,7 +26,7 @@ from .logic import jacobian
 
 
 def OuterProduct(x: PyTree) -> Array:
-    """Computes A A^T where A is stored as a pytree of parameters
+    r"""Computes A A^T where A is stored as a pytree of parameters
 
     Args:
         x: A pytree of arrays with equal first dimension dim0
@@ -46,7 +46,7 @@ def OuterProduct(x: PyTree) -> Array:
 @partial(jax.jit, static_argnames=("apply_fun", "mode"))
 def NeuralTangentKernel(
     
-    """Computes the neural tangent kernel which is defined as follows
+    r"""Computes the neural tangent kernel which is defined as follows
     
     .. math ::
         N_{s,s'} = \sum_{\theta} \frac{d log(\psi_s)}{d \theta} \frac{d log(\psi_s')}{d \theta}
@@ -82,7 +82,7 @@ def NeuralTangentKernelInverse(
 ) -> Array:
     
     
-    """Computes the pseudo-inverse of the neural tangent kernel which is defined as follows
+    r"""Computes the pseudo-inverse of the neural tangent kernel which is defined as follows
     
     .. math ::
         N_{s,s'} = \sum_{\theta} \frac{d log(\psi_s)}{d \theta} \frac{d log(\psi_s')}{d \theta}
