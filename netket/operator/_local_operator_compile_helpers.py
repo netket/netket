@@ -19,6 +19,7 @@ operators.
 
 import numpy as np
 import numba
+from scipy import sparse
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType
@@ -101,9 +102,10 @@ def pack_internals(
             basis[i, s] = ba
             ba *= hilbert.shape[aon[aon_size - s - 1]]
 
-        # eventually could support sparse matrices
-        # if isinstance(op, sparse.spmatrix):
-        #    op = op.todense()
+        if sparse.issparse(op):
+            # TODO: exploit the sparse structure in here.
+            #    op = op.todense()
+            op = op.todense()
 
         _append_matrix(
             op,
@@ -123,6 +125,9 @@ def pack_internals(
 
     max_conn_size = 1 if nonzero_diagonal else 0
     for op in operators:
+        # TODO: exploit the sparse structure in here.
+        if sparse.issparse(op):
+            op = op.todense()
         nnz_mat = np.abs(op) > mel_cutoff
         nnz_mat[np.diag_indices(nnz_mat.shape[0])] = False
         nnz_rows = np.sum(nnz_mat, axis=1)

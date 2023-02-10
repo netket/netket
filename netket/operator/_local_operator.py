@@ -20,6 +20,7 @@ from textwrap import dedent
 
 import numpy as np
 import numba
+from scipy.sparse import issparse
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType, Array
@@ -37,7 +38,10 @@ from ._local_operator_compile_helpers import pack_internals
 
 
 def is_hermitian(a: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
-    return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
+    if issparse(a):
+        return np.allclose(a.todense(), a.T.conj().todense(), rtol=rtol, atol=atol)
+    else:
+        return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
 
 
 def _is_sorted(a):
@@ -66,10 +70,15 @@ class LocalOperator(DiscreteOperator):
         specified) a constant level shift.
 
         Args:
-           hilbert (netket.AbstractHilbert): Hilbert space the operator acts on.
-           operators (list(numpy.array) or numpy.array): A list of operators, in matrix form.
-           acting_on (list(numpy.array) or numpy.array): A list of sites, which the corresponding operators act on.
-           constant (float): Level shift for operator. Default is 0.0.
+           hilbert: Hilbert space the operator acts on.
+           operators: A list of operators, in matrix form. Supports numpy dense or scipy
+           sparse format
+           acting_on: A list of list of sites, which the corresponding operators act on. This
+                should be constructed such that :code:`operators[i]` acts on the sites :code:`acting_on[i]`.
+                If operators is not a list of operators, acting_on should just be the list of
+                corresponding sites.
+           constant: Constant diagonal shift of the operator, equivalent to
+                :math:`+\text{c}\hat{I}`. Default is 0.0.
 
         Examples:
            Constructs a ``LocalOperator`` without any operators.
