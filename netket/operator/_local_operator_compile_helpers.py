@@ -125,6 +125,9 @@ def pack_internals(
 
     max_conn_size = 1 if nonzero_diagonal else 0
     for op in operators:
+        # TODO: exploit the sparse structure in here.
+        if sparse.issparse(op):
+            op = op.todense()
         nnz_mat = np.abs(op) > mel_cutoff
         nnz_mat[np.diag_indices(nnz_mat.shape[0])] = False
         nnz_rows = np.sum(nnz_mat, axis=1)
