@@ -31,9 +31,9 @@ from . import jacobian_dense
 from . import jacobian_pytree
 
 
-@partial(
-    jax.jit, static_argnames=("apply_fun", "mode", "chunk_size", "center", "dense")
-)
+#@partial(
+#    jax.jit, static_argnames=("apply_fun", "mode", "chunk_size", "center", "dense")
+#)
 def jacobian(
     apply_fun: Callable,
     params: PyTree,

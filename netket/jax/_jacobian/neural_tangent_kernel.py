@@ -47,10 +47,9 @@ def OuterProduct(x: PyTree) -> Array:
 def NeuralTangentKernel(
     apply_fun: Callable, params: PyTree, samples: Array, mode: str
 ) -> Array:
+    
+    return OuterProduct(jacobian(apply_fun, params, samples, mode=mode, center=True))
 
-    jac = jacobian(apply_fun, params, samples, mode=mode, center=True)
-
-    return OuterProduct(jac)
 
 
 @partial(jax.jit, static_argnames=("apply_fun", "mode", "r_cond"))
@@ -61,9 +60,7 @@ def NeuralTangentKernelInverse(
     mode: str,
     r_cond: float = 1e-12,
 ) -> Array:
-
-    jac = jacobian(apply_fun, params, samples, mode=mode, center=True)
-
-    jac = OuterProduct(jac)
+  
+    OuterProduct(jacobian(apply_fun, params, samples, mode=mode, center=True))
 
     return jnp.linalg.pinv(jac, rcond=r_cond, hermitian=True)
