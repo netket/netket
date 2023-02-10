@@ -58,12 +58,12 @@ generic_operators["sigma +/-"] = (sm_hat, sp_hat)
 def assert_same_matrices(matl, matr, eps=1.0e-6):
     if isinstance(matl, AbstractOperator):
         matl = matl.to_dense()
-    elif isinstance(matl, sparse.csr_matrix):
+    elif sparse.issparse(matl):
         matl = matl.todense()
 
     if isinstance(matr, AbstractOperator):
         matr = matr.to_dense()
-    elif isinstance(matr, sparse.csr_matrix):
+    elif sparse.issparse(matr):
         matr = matr.todense()
 
     np.testing.assert_allclose(matl, matr, atol=eps, rtol=eps)

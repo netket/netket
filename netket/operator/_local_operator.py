@@ -20,6 +20,7 @@ from textwrap import dedent
 
 import numpy as np
 import numba
+from scipy.sparse import issparse
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType, Array
@@ -37,7 +38,10 @@ from ._local_operator_compile_helpers import pack_internals
 
 
 def is_hermitian(a: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
-    return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
+    if issparse(a):
+        return np.allclose(a.todense(), a.T.conj().todense(), rtol=rtol, atol=atol)
+    else:
+        return np.allclose(a, a.T.conj(), rtol=rtol, atol=atol)
 
 
 def _is_sorted(a):
