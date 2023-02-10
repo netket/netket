@@ -63,6 +63,7 @@ This part of the API is not public, and can change without notice.
 
   expect
   vjp
+  jacobian
 ```
 
 ## Chunked operations
@@ -79,4 +80,12 @@ This part of the API is not public, and can change without notice.
   vjp_chunked
 ```
 
+## Math
+
+```{eval-rst}
+  :toctree: _generated/jax
+  :nosignatures:
+
+  logsumexp_cplx
+```
 
