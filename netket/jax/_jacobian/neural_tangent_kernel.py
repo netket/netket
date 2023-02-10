@@ -49,6 +49,7 @@ def NeuralTangentKernel(
 ) -> Array:
     
     jac = jacobian(apply_fun, params, samples, mode=mode, center=True,dense=True)
+    jac = jac.reshape(jac.shape[0],-1)
     
     return jnp.matmul(jac.conj(),jac.T) 
 
@@ -64,6 +65,7 @@ def NeuralTangentKernelInverse(
 ) -> Array:
   
     jac = jacobian(apply_fun, params, samples, mode=mode, center=True,dense=True)
+    jac = jac.reshape(jac.shape[0],-1)
 
     jac = jnp.matmul(jac.conj(),jac.T)
 
