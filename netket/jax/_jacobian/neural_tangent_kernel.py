@@ -61,6 +61,6 @@ def NeuralTangentKernelInverse(
     r_cond: float = 1e-12,
 ) -> Array:
   
-    OuterProduct(jacobian(apply_fun, params, samples, mode=mode, center=True))
+    jac = OuterProduct(jacobian(apply_fun, params, samples, mode=mode, center=True))
 
     return jnp.linalg.pinv(jac, rcond=r_cond, hermitian=True)
