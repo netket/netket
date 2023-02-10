@@ -26,10 +26,10 @@ from .logic import jacobian
 
 
 def OuterProduct(x: PyTree) -> Array:
-    """Sums over A^T
+    """Computes A A^T where A is stored as a pytree of parameters
 
     Args:
-        x: A pytree of arrays with equal lengths dim0
+        x: A pytree of arrays with equal first dimension dim0
 
     Returns:
         An array of shape [dim0,dim0] summed over all other dimensions
@@ -45,6 +45,24 @@ def OuterProduct(x: PyTree) -> Array:
 
 @partial(jax.jit, static_argnames=("apply_fun", "mode"))
 def NeuralTangentKernel(
+    
+    """Computes the neural tangent kernel which is defined as follows
+    
+    .. math ::
+        N_{s,s'} = \sum_{\theta} \frac{d log(\psi_s)}{d \theta} \frac{d log(\psi_s')}{d \theta}
+
+    Args:
+        apply_fun: A function that takes a basis state s as input and returns the log amplitude of the wavefunction
+        params: A PyTree with the differential parameters of apply_fun
+        samples: The samples s at which the neural tangent kernel is evaluated
+        mode: A specification of the differentiation properties of the function as detailed in :def:`netket.jax.jacobian`
+        r_cond: A value such that all eigenvalues v below r_cond*v_max are truncated 
+
+    Returns:
+        The neural tangent kernel N_{s,s'}
+    """
+
+    
     apply_fun: Callable, params: PyTree, samples: Array, mode: str
 ) -> Array:
     
@@ -62,6 +80,24 @@ def NeuralTangentKernelInverse(
     mode: str,
     r_cond: float = 1e-12,
 ) -> Array:
+    
+    
+    """Computes the pseudo-inverse of the neural tangent kernel which is defined as follows
+    
+    .. math ::
+        N_{s,s'} = \sum_{\theta} \frac{d log(\psi_s)}{d \theta} \frac{d log(\psi_s')}{d \theta}
+
+    Args:
+        apply_fun: A function that takes a basis state s as input and returns the log amplitude of the wavefunction
+        params: A PyTree with the differential parameters of apply_fun
+        samples: The samples s at which the neural tangent kernel is evaluated
+        mode: A specification of the differentiation properties of the function as detailed in :def:`netket.jax.jacobian`
+        r_cond: A value such that all eigenvalues v below r_cond*v_max are truncated 
+
+    Returns:
+        The pseudo-inverse of the neural tangent kernel N^{-1}_{s,s'}
+    """
+    
   
     jac = jacobian(apply_fun, params, samples, mode=mode, center=True)
     jac = OuterProduct(jac)
