@@ -70,10 +70,15 @@ class LocalOperator(DiscreteOperator):
         specified) a constant level shift.
 
         Args:
-           hilbert (netket.AbstractHilbert): Hilbert space the operator acts on.
-           operators (list(numpy.array) or numpy.array): A list of operators, in matrix form.
-           acting_on (list(numpy.array) or numpy.array): A list of sites, which the corresponding operators act on.
-           constant (float): Level shift for operator. Default is 0.0.
+           hilbert: Hilbert space the operator acts on.
+           operators: A list of operators, in matrix form. Supports numpy dense or scipy
+           sparse format
+           acting_on: A list of list of sites, which the corresponding operators act on. This
+                should be constructed such that :code:`operators[i]` acts on the sites :code:`acting_on[i]`.
+                If operators is not a list of operators, acting_on should just be the list of
+                corresponding sites.
+           constant: Constant diagonal shift of the operator, equivalent to
+                :math:`+\text{c}\hat{I}`. Default is 0.0.
 
         Examples:
            Constructs a ``LocalOperator`` without any operators.

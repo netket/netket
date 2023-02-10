@@ -15,17 +15,17 @@
 * Parameters of models {class}`netket.models.GCNN` and layers {class}`netket.nn.DenseSymm` and {class}`netket.nn.DenseEquivariant` are stored as an array of shape '[features,in_features,mask_size]'. Masked parameters are now excluded from the model instead of multiplied by zero [#1387](https://github.com/netket/netket/pull/1387).
 
 ### Improvements
-* The underlying extension API for Autoregressive models that can be used with Ancestral/Autoregressive samplers has been simplified and stabilized and will be documented as part of the public API. For most models, you should now inherit from `AbstractARNN` and define `conditionals_log_psi`. For additional performance, implementers can also redefine `__call__` and `conditional` but this should not be needed in general. This will cause some breaking changes if you were relying on the old undocumented interface [#1361](https://github.com/netket/netket/pull/1361).
-* {class}`nk.operator.PauliStrings` now works with non-homogeneous Hilbert spaces, such as those obtained by taking the tensor product of multiple Hilbert spaces.
-* When multiplying an operator by it's conjugate transpose NetKet does not return anymore a lazy `Squared` object if the operator is hermitian. This avoids checking if the object is hermitian which greatly speeds up algebric manipulations of operators, and returns more unbiased epectation values [#1423](https://github.com/netket/netket/pull/1423). 
+* The underlying extension API for Autoregressive models that can be used with Ancestral/Autoregressive samplers has been simplified and stabilized and will be documented as part of the public API. For most models, you should now inherit from {class}`netket.models.AbstractARNN` and define the method {meth}`~netket.models.AbstractARNN.conditionals_log_psi`. For additional performance, implementers can also redefine {meth}`~netket.models.AbstractARNN.__call__` and {meth}`~netket.models.AbstractARNN.conditional` but this should not be needed in general. This will cause some breaking changes if you were relying on the old undocumented interface [#1361](https://github.com/netket/netket/pull/1361).
+* {class}`netket.operator.PauliStrings` now works with non-homogeneous Hilbert spaces, such as those obtained by taking the tensor product of multiple Hilbert spaces [#1411](https://github.com/netket/netket/pull/1411).
+* The {class}`netket.operator.LocalOperator` now keep sparse matrices sparse, leading to faster algebraic manipulations of those objects. The overall computational and memory cost is, however, equivalent, when running VMC calculations. All pre-constructed operators such as {func}`netket.operator.spin.sigmax` and {func}`netket.operator.boson.create` now build sparse-operators [#1422](https://github.com/netket/netket/pull/1422).
+* When multiplying an operator by it's conjugate transpose NetKet does not return anymore a lazy {class}`~netket.operator.Squared` object if the operator is hermitian. This avoids checking if the object is hermitian which greatly speeds up algebric manipulations of operators, and returns more unbiased epectation values [#1423](https://github.com/netket/netket/pull/1423). 
 
 ### Bug Fixes
-* Fixed a bug where {meth}`nk.hilbert.Particle.random_state` could not be jit-compiled, and therefore could not be used in the sampling [#1401](https://github.com/netket/netket/pull/1401).
+* Fixed a bug where {meth}`netket.hilbert.Particle.random_state` could not be jit-compiled, and therefore could not be used in the sampling [#1401](https://github.com/netket/netket/pull/1401).
 
 ### Deprecations
-* `AbstractARNN._conditional` has been removed from the API, and its use will throw a deprecation warning. Update your ARNN models accordingly! [#1361](https://github.com/netket/netket/pull/1361).
-* Several undocumented internal methods from `nk.models.ARNN` have been removed [#1361](https://github.com/netket/netket/pull/1361).
-* Parameter loading for  [#1361](https://github.com/netket/netket/pull/1361).
+* {meth}`netket.models.AbstractARNN._conditional` has been removed from the API, and its use will throw a deprecation warning. Update your ARNN models accordingly! [#1361](https://github.com/netket/netket/pull/1361).
+* Several undocumented internal methods from {class}`netket.models.AbstractARNN` have been removed [#1361](https://github.com/netket/netket/pull/1361).
 
 
 ## NetKet 3.6 (🏔️ 6 November 2022)
@@ -33,12 +33,13 @@
 ### New features
 * Added a new 'Full statevector' model {class}`netket.models.LogStateVector` that stores the exponentially large state and can be used as an exact ansatz [#1324](https://github.com/netket/netket/pull/1324).
 * Added a new experimental {class}`~netket.experimental.driver.TDVPSchmitt` driver, implementing the signal-to-noise ratio TDVP regularisation by Schmitt and Heyl [#1306](https://github.com/netket/netket/pull/1306).
+* Added a new experimental {class}`~netket.experimental.driver.TDVPSchmitt` driver, implementing the signal-to-noise ratio TDVP regularisation by Schmitt and Heyl [#1306](https://github.com/netket/netket/pull/1306).
 * QGT classes accept a `chunk_size` parameter that overrides the `chunk_size` set by the variational state object [#1347](https://github.com/netket/netket/pull/1347).
 * {func}`~netket.optimizer.qgt.QGTJacobianPyTree` and {func}`~netket.optimizer.qgt.QGTJacobianDense` support diagonal entry regularisation with constant and scale-invariant contributions. They accept a new `diag_scale` argument to pass the scale-invariant component [#1352](https://github.com/netket/netket/pull/1352).
 * {func}`~netket.optimizer.SR` preconditioner now supports scheduling of the diagonal shift and scale regularisations [#1364](https://github.com/netket/netket/pull/1364). 
 
 ### Improvements
-* {meth}`~netket.vqs.ExactState.expect_and_grad` now returns a `nk.stats.Stats` object that also contains the variance, as `MCState` does [#1325](https://github.com/netket/netket/pull/1325).
+* {meth}`~netket.vqs.ExactState.expect_and_grad` now returns a {class}`netket.stats.Stats` object that also contains the variance, as {class}`~netket.vqs.MCState` does [#1325](https://github.com/netket/netket/pull/1325).
 * Experimental RK solvers now store the error of the last timestep in the integrator state [#1328](https://github.com/netket/netket/pull/1328).
 * {class}`~netket.operator.PauliStrings` can now be constructed by passing a single string, instead of the previous requirement of a list of strings [#1331](https://github.com/netket/netket/pull/1331).
 * {class}`~flax.core.frozen_dict.FrozenDict` can now be logged to netket's loggers, meaning that one does no longer need to unfreeze the parameters before logging them [#1338](https://github.com/netket/netket/pull/1338).
@@ -48,7 +49,8 @@
 
 
 ### Bug Fixes
-* {meth}`netket.vqs.ExactState.expect_and_grad` returned a scalar while {meth}`~netket.vqs.ExactState.expect` returned a {class}`nk.stats.Stats` object with 0 error. The inconsistency has been addressed and now they both return a `Stats` object. This changes the format of the files logged when running `VMC`, which will now store the average under `Mean` instead of `value` [#1325](https://github.com/netket/netket/pull/1325).
+* {meth}`netket.vqs.ExactState.expect_and_grad` returned a scalar while {meth}`~netket.vqs.ExactState.expect` returned a {class}`netket.stats.Stats` object with 0 error. The inconsistency has been addressed and now they both return a `Stats` object. This changes the format of the files logged when running `VMC`, which will now store the average under `Mean` instead of `value` [#1325](https://github.com/netket/netket/pull/1325).
+* {func}`netket.optimizer.qgt.QGTJacobianDense` now returns the correct output for models with mixed real and complex parameters [#1397](https://github.com/netket/netket/pull/1397)
 
 ### Deprecations
 * The `rescale_shift` argument of {func}`~netket.optimizer.qgt.QGTJacobianPyTree` and {func}`~netket.optimizer.qgt.QGTJacobianDense` is deprecated inf avour the more flexible syntax with `diag_scale`. `rescale_shift=False` should be removed. `rescale_shift=True` should be replaced with `diag_scale=old_diag_shift`. [#1352](https://github.com/netket/netket/pull/1352).
@@ -66,7 +68,7 @@
 ## NetKet 3.5.1 (Bug Fixes)
 
 ### New features
-* Added a new configuration option `nk.config.netket_experimental_disable_ode_jit` to disable jitting of the ODE solvers. This can be useful to avoid hangs that might happen when working on GPUs with some particular systems [#1304](https://github.com/netket/netket/pull/1304).
+* Added a new configuration option `netket.config.netket_experimental_disable_ode_jit` to disable jitting of the ODE solvers. This can be useful to avoid hangs that might happen when working on GPUs with some particular systems [#1304](https://github.com/netket/netket/pull/1304).
 
 ### Bug Fixes
 * Continuous operatorors now work correctly when `chunk_size != None`. This was broken in v3.5 [#1316](https://github.com/netket/netket/pull/1316).
@@ -85,7 +87,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 
 ### New features
 
-* The method {meth}`~nk.vqs.MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
+* The method {meth}`~netket.vqs.MCState.local_estimators` has been added, which returns the local estimators `O_loc(s) = 〈s|O|ψ〉 / 〈s|ψ〉` (which are known as local energies if `O` is the Hamiltonian). [#1179](https://github.com/netket/netket/pull/1179)
 * The permutation equivariant {class}`nk.models.DeepSetRelDistance` for use with particles in periodic potentials has been added together with an example. [#1199](https://github.com/netket/netket/pull/1199)
 * The class {class}`HDF5Log` has been added to the experimental submodule. This logger writes log data and variational state variables into a single HDF5 file. [#1200](https://github.com/netket/netket/issues/1200)
 * Added a new method {meth}`~nk.logging.RuntimeLog.serialize` to store the content of the logger to disk [#1255](https://github.com/netket/netket/issues/1255).
@@ -266,7 +268,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 ### Breaking Changes
 * The default initializer for `netket.models.GCNN` has been changed to from `jax.nn.selu` to `netket.nn.reim_selu` [#892](https://github.com/netket/netket/pull/892)
 * `netket.nn.initializers` has been deprecated in favor of `jax.nn.initializers` [#935](https://github.com/netket/netket/pull/935).
-* Subclasses of `AbstractARNN` must define the field `machine_pow` [#940](https://github.com/netket/netket/pull/940)
+* Subclasses of {class}`netket.models.AbstractARNN` must define the field `machine_pow` [#940](https://github.com/netket/netket/pull/940)
 * `nk.hilbert.HilbertIndex` and `nk.operator.spin.DType` are now unexported (they where never intended to be visible).  [#904](https://github.com/netket/netket/pull/904)
 * `AbstractOperator`s have been renamed `DiscreteOperator`s. `AbstractOperator`s still exist, but have almost no functionality and they are intended as the base class for more arbitrary (eg. continuous space) operators. If you have defined a custom operator inheriting from `AbstractOperator` you should change it to derive from `DiscreteOperator`. [#929](https://github.com/netket/netket/pull/929)
 
