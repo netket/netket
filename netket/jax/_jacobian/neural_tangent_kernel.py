@@ -44,7 +44,7 @@ def OuterProduct(x: PyTree) -> Array:
 
 
 @partial(jax.jit, static_argnames=("apply_fun", "mode"))
-def NeuralTangentKernel(
+def NeuralTangentKernel(apply_fun: Callable, params: PyTree, samples: Array, mode: str) -> Array:
     
     r"""Computes the neural tangent kernel which is defined as follows
     
@@ -62,11 +62,7 @@ def NeuralTangentKernel(
         The neural tangent kernel
         
     """
-
-    
-    apply_fun: Callable, params: PyTree, samples: Array, mode: str
-) -> Array:
-    
+        
     jac = jacobian(apply_fun, params, samples, mode=mode, center=True)
     
     return OuterProduct(jac)
@@ -98,8 +94,7 @@ def NeuralTangentKernelInverse(
     Returns:
         The pseudo-inverse of the neural tangent kernel 
         
-    """
-    
+    """    
   
     jac = jacobian(apply_fun, params, samples, mode=mode, center=True)
     jac = OuterProduct(jac)
