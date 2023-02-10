@@ -60,6 +60,7 @@ def NeuralTangentKernel(
 
     Returns:
         The neural tangent kernel
+        
     """
 
     
@@ -96,6 +97,7 @@ def NeuralTangentKernelInverse(
 
     Returns:
         The pseudo-inverse of the neural tangent kernel 
+        
     """
     
   
