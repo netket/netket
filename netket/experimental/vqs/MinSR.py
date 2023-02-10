@@ -103,8 +103,14 @@ def expect_and_MinSR_chunked(
     # Code is a bit more complex than a standard one because we support
     # mutable state (if it's there)
     if mutable is False:
+
+        def centered_apply(w, σ):
+            out = model_apply_fun({"params": w, **model_state}, σ)
+
+            return out - jnp.mean(out)
+
         vjp_fun_chunked = nkjax.vjp_chunked(
-            lambda w, σ: model_apply_fun({"params": w, **model_state}, σ),
+            centered_apply,
             parameters,
             σ,
             conjugate=True,
@@ -116,8 +122,9 @@ def expect_and_MinSR_chunked(
     else:
         raise NotImplementedError
 
+    # why is conjugate true on VJP func and O_loc is conjugated?
     Ō_grad = vjp_fun_chunked(
-        jnp.conjugate(O_loc),
+        jnp.conj(O_loc / n_samples),
     )[0]
 
     return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
