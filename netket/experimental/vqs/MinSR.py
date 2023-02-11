@@ -33,7 +33,7 @@ from netket.vqs.mc import (
     get_local_kernel_arguments,
 )
 
-from netket.jax._jacobian.neural_tangent_kernel import NeuralTangentKernelInverse
+from netket.jax._jacobian.neural_tangent_kernel import NeuralTangentKernel
 from netket.vqs import MCState
 
 
@@ -41,8 +41,9 @@ def expect_and_MinSR(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
     chunk_size: int,
+    jacobian_chunk_size: int,
+    r_cond: float=1e-12,
     *,
-    mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
     
     """Calculates the expectation value of an operator and the gradient update 
@@ -52,6 +53,8 @@ def expect_and_MinSR(  # noqa: F811
         vstate: the variational state 
         Ô : a hermitian operator
         chunk_size : An integer over which expect and the final VJP are chunked
+        jacobian_chunk_size : An integer over which expect and the final VJP are chunked
+
     Returns:
         A tuple containing the expectation value of Ô and the update according to MinSR
     """
@@ -62,9 +65,10 @@ def expect_and_MinSR(  # noqa: F811
 
     Ō, Ō_grad, new_model_state = expect_and_MinSR_chunked(
         chunk_size,
+        jacobian_chunk_size,
+        r_cond,
         local_estimator_fun,
         vstate._apply_fun,
-        mutable,
         vstate.parameters,
         vstate.model_state,
         σ,
@@ -80,9 +84,10 @@ def expect_and_MinSR(  # noqa: F811
 @partial(jax.jit, static_argnums=(0, 1, 2, 3))
 def expect_and_MinSR_chunked(
     chunk_size: int,
+    jcs: int,
+    r_cond: float,
     local_value_kernel_chunked: Callable,
     model_apply_fun: Callable,
-    mutable: CollectionFilter,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
@@ -107,36 +112,52 @@ def expect_and_MinSR_chunked(
 
     O_loc -= Ō.mean
 
-    NTKI = NeuralTangentKernelInverse(model_apply_fun, parameters, σ, "complex")
+    #Compute <∇O> 
+    def mean_grad(w, σ):
 
-    O_loc = jnp.matmul(NTKI, O_loc)
+        return jnp.mean(model_apply_fun({"params": w, **model_state}, σ))
+    
+    vjp_fun_chunked = nkjax.vjp_chunked(
+        mean_grad,
+        parameters,
+        σ,
+        conjugate=True,
+        chunk_size=chunk_size,
+        chunk_argnums=1,
+        nondiff_argnums=1,
+    )
 
-    # Then compute the vjp.
-    # Code is a bit more complex than a standard one because we support
-    # mutable state (if it's there)
-    if mutable is False:
+    ∇O_mean = vjp_fun_chunked(
+        jnp.ones_like(O_loc),
+    )[0]
+    
+    NTK = jnp.zeros([n_samples,n_samples])
+    
+    for i in range(n_samples//jcs):
+        for j in range(n_samples//jcs):
+            NTK.at[i*jcs:(i+1)*jcs,j*jcs:(j+1)*jcs].set(NeuralTangentKernel(model_apply_fun, parameters, ∇O_mean, σ[i*jcs:(i+1)*jcs], σ[j*jcs:(j+1)*jcs], "complex"))
 
-        def centered_apply(w, σ):
-            out = model_apply_fun({"params": w, **model_state}, σ)
+    NTK = jnp.linalg.pinv(NTK,rcond=r_cond)
+    
+    O_loc = jnp.matmul(NTK, O_loc)
 
-            return out - jnp.mean(out)
+    def centered_apply(w, σ):
+        out = model_apply_fun({"params": w, **model_state}, σ)
 
-        vjp_fun_chunked = nkjax.vjp_chunked(
-            centered_apply,
-            parameters,
-            σ,
-            conjugate=True,
-            chunk_size=chunk_size,
-            chunk_argnums=1,
-            nondiff_argnums=1,
-        )
-        new_model_state = None
-    else:
-        raise NotImplementedError
+        return out - jnp.mean(out)
 
-    # why is conjugate true on VJP func and O_loc is conjugated?
+    vjp_fun_chunked = nkjax.vjp_chunked(
+        centered_apply,
+        parameters,
+        σ,
+        conjugate=False,
+        chunk_size=chunk_size,
+        chunk_argnums=1,
+        nondiff_argnums=1,
+    )
+
     Ō_grad = vjp_fun_chunked(
-        jnp.conj(O_loc / n_samples),
+        O_loc / n_samples,
     )[0]
 
-    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
+    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), None
