@@ -141,7 +141,7 @@ def expect_and_MinSR_chunked(
                 )
             )
 
-    NTK = jnp.linalg.pinv(NTK.conj() / n_samples, rcond=r_cond, hermitian=True)
+    NTK = jnp.linalg.pinv(NTK.real / n_samples, rcond=r_cond, hermitian=True)
 
     O_loc = jnp.matmul(NTK, O_loc)
 
