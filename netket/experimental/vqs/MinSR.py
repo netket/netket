@@ -139,7 +139,7 @@ def expect_and_MinSR_chunked(
 
     NTK = jnp.linalg.pinv(NTK,rcond=r_cond)
     
-    O_loc = jnp.matmul(NTK, O_loc)
+    O_loc = jnp.matmul(NTK, O_loc, hermitian=True)
 
     def centered_apply(w, σ):
         out = model_apply_fun({"params": w, **model_state}, σ)
