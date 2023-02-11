@@ -77,7 +77,7 @@ def expect_and_MinSR(  # noqa: F811
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3, 4))
+# @partial(jax.jit, static_argnums=(0, 1, 2, 3, 4))
 def expect_and_MinSR_chunked(
     chunk_size: int,
     jcs: int,
@@ -154,7 +154,7 @@ def expect_and_MinSR_chunked(
         centered_apply,
         parameters,
         σ,
-        conjugate=True,
+        conjugate=False,
         chunk_size=chunk_size,
         chunk_argnums=1,
         nondiff_argnums=1,

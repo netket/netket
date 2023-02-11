@@ -45,7 +45,7 @@ def OuterProduct(x: PyTree, x2: PyTree) -> Array:
     return tree_reduce(add, tree_map(array_outer, x, x2))
 
 
-@partial(jax.jit, static_argnames=("apply_fun", "mode"))
+# @partial(jax.jit, static_argnames=("apply_fun", "mode"))
 def NeuralTangentKernel(
     apply_fun: Callable, params: PyTree, offset: PyTree, σ1: Array, σ2: Array, mode: str
 ) -> Array:
