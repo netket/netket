@@ -135,7 +135,7 @@ def expect_and_MinSR_chunked(
     
     for i in range(n_samples//jcs):
         for j in range(n_samples//jcs):
-            NTK.at[i*jcs:(i+1)*jcs,j*jcs:(j+1)*jcs].set(NeuralTangentKernel(model_apply_fun, parameters, ∇O_mean, σ[i*jcs:(i+1)*jcs], σ[j*jcs:(j+1)*jcs], "complex"))
+            NTK = NTK.at[i*jcs:(i+1)*jcs,j*jcs:(j+1)*jcs].set(NeuralTangentKernel(model_apply_fun, parameters, ∇O_mean, σ[i*jcs:(i+1)*jcs], σ[j*jcs:(j+1)*jcs], "complex"))
 
     NTK = jnp.linalg.pinv(NTK,rcond=r_cond)
     
