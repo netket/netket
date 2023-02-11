@@ -154,7 +154,7 @@ def expect_and_MinSR_chunked(
         centered_apply,
         parameters,
         σ,
-        conjugate=False,
+        conjugate=True,
         chunk_size=chunk_size,
         chunk_argnums=1,
         nondiff_argnums=1,
