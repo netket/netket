@@ -25,28 +25,30 @@ from functools import partial
 from .logic import jacobian
 
 
-def OuterProduct(x: PyTree) -> Array:
-    r"""Computes A A^T where A is stored as a pytree of parameters
+def OuterProduct(x: PyTree, x2: PyTree) -> Array:
+    r"""Computes A B^T where A and B are represent the pytrees of x and x2 
+    flattened over all but the first dimension
 
     Args:
-        x: A pytree of arrays with equal first dimension dim0
+        x: A pytree of arrays with equal first dimension 
+        x2: A pytree of arrays with dimensions to x outside of the first dimension 
 
     Returns:
-        An array of shape [dim0,dim0] summed over all other dimensions
-        in the pytree arrays
+        An array of shape [len(x),len(x2)] where len measures the first dimension in the pytree
     """
 
-    def array_outer(x):
+    def array_outer(x,x2):
         x = x.reshape(x.shape[0], -1)
-        return jnp.matmul(x.conj(), x.T)
+        x2 = x2.reshape(x2.shape[0], -1)
+        return jnp.matmul(x, x2.conj().T)
 
-    return tree_reduce(add, tree_map(array_outer, x))
+    return tree_reduce(add, tree_map(array_outer, x, x2))
 
 
 @partial(jax.jit, static_argnames=("apply_fun", "mode"))
-def NeuralTangentKernel(apply_fun: Callable, params: PyTree, samples: Array, mode: str) -> Array:
+def NeuralTangentKernel(apply_fun: Callable, params: PyTree,  offset: PyTree, σ1: Array, σ2: Array, mode: str) -> Array:
     
-    r"""Computes the neural tangent kernel which is defined as follows
+    r"""Computes the neural tangent kernel with respect to two sets of samples σ1 and σ2 where the jacobians are offset 
     
     .. math ::
         N_{s,s'} = \sum_{\theta} \frac{d log(\psi_s)}{d \theta} \frac{d log(\psi_s')}{d \theta}
@@ -54,7 +56,8 @@ def NeuralTangentKernel(apply_fun: Callable, params: PyTree, samples: Array, mod
     Args:
         apply_fun: A function that takes a basis state s as input and returns the log amplitude of the wavefunction
         params: A PyTree with the differential parameters of apply_fun
-        samples: The samples s at which the neural tangent kernel is evaluated
+        offset: An offset that is subtracted from each of the Jacobians.  
+        σ1, σ2: The samples at which the neural tangent kernel is evaluated
         mode: A specification of the differentiation properties of the function as detailed in :def:`netket.jax.jacobian`
         r_cond: A value such that all eigenvalues v below r_cond*v_max are truncated 
 
@@ -62,41 +65,15 @@ def NeuralTangentKernel(apply_fun: Callable, params: PyTree, samples: Array, mod
         The neural tangent kernel
         
     """
-        
-    jac = jacobian(apply_fun, params, samples, mode=mode, center=True)
     
-    return OuterProduct(jac)
-
-
-
-@partial(jax.jit, static_argnames=("apply_fun", "mode", "r_cond"))
-def NeuralTangentKernelInverse(
-    apply_fun: Callable,
-    params: PyTree,
-    samples: Array,
-    mode: str,
-    r_cond: float = 1e-12,
-) -> Array:
+    def subtract_mean(j,mean):
+        return tree_map(lambda x,y: x - jnp.expand_dims(y,0),j,mean)
     
+            
+    jac = subtract_mean(jacobian(apply_fun, params, samples1, mode=mode, center=True),offset)
+    jac2 = subtract_mean(jacobian(apply_fun, params, samples2, mode=mode, center=True),offset)
     
-    r"""Computes the pseudo-inverse of the neural tangent kernel which is defined as follows
-    
-    .. math ::
-        N_{s,s'} = \sum_{\theta} \frac{d log(\psi_s)}{d \theta} \frac{d log(\psi_s')}{d \theta}
+    return OuterProduct(jac, jac2)
 
-    Args:
-        apply_fun: A function that takes a basis state s as input and returns the log amplitude of the wavefunction
-        params: A PyTree with the differential parameters of apply_fun
-        samples: The samples s at which the neural tangent kernel is evaluated
-        mode: A specification of the differentiation properties of the function as detailed in :def:`netket.jax.jacobian`
-        r_cond: A value such that all eigenvalues v below r_cond*v_max are truncated 
 
-    Returns:
-        The pseudo-inverse of the neural tangent kernel 
-        
-    """    
-  
-    jac = jacobian(apply_fun, params, samples, mode=mode, center=True)
-    jac = OuterProduct(jac)
 
-    return jnp.linalg.pinv(jac, rcond=r_cond, hermitian=True)
