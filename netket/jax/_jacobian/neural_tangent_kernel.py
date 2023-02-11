@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from os import truncate
-from jax import numpy as jnp
+from jax import jvp, numpy as jnp
 
 import jax
 from netket.utils.types import Array, Callable, PyTree
@@ -69,7 +69,9 @@ def NeuralTangentKernel(
     """
 
     def subtract_mean(j, mean):
-        return tree_map(lambda x, y: x - jnp.expand_dims(y, 0), j, mean)
+        return tree_map(
+            lambda x, y: x[:, 0] + 1j * x[:, 1] - jnp.expand_dims(y, 0), j, mean
+        )
 
     jac = subtract_mean(jacobian(apply_fun, params, σ1, mode=mode), offset)
     jac2 = subtract_mean(jacobian(apply_fun, params, σ2, mode=mode), offset)

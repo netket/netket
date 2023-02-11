@@ -116,7 +116,7 @@ def expect_and_MinSR_chunked(
         grad,
         parameters,
         σ,
-        conjugate=True,
+        conjugate=False,
         chunk_size=chunk_size,
         chunk_argnums=1,
         nondiff_argnums=1,
@@ -143,7 +143,7 @@ def expect_and_MinSR_chunked(
 
     NTK = jnp.linalg.pinv(NTK / n_samples, rcond=r_cond, hermitian=True)
 
-    O_loc = jnp.matmul(NTK, O_loc)
+    O_loc = jnp.matmul(NTK, jnp.conj(O_loc))
 
     def centered_apply(w, σ):
         out = model_apply_fun({"params": w, **model_state}, σ)
@@ -161,7 +161,7 @@ def expect_and_MinSR_chunked(
     )
 
     Ō_grad = vjp_fun_chunked(
-        jnp.conj(O_loc / n_samples),
+        O_loc / n_samples,
     )[0]
 
     return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), None
