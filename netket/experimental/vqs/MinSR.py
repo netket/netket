@@ -42,15 +42,14 @@ def expect_and_MinSR(  # noqa: F811
     Ô: AbstractOperator,
     chunk_size: int,
     jacobian_chunk_size: int,
-    r_cond: float=1e-12,
-    *,
+    r_cond: float = 1e-12,
 ) -> Tuple[Stats, PyTree]:
-    
-    """Calculates the expectation value of an operator and the gradient update 
+
+    """Calculates the expectation value of an operator and the gradient update
     according to the MinSR algorithm in `Chen et al. <https://arxiv.org/pdf/2302.01941.pdf>`
-    
+
     Args:
-        vstate: the variational state 
+        vstate: the variational state
         Ô : a hermitian operator
         chunk_size : An integer over which expect and the final VJP are chunked
         jacobian_chunk_size : An integer over which expect and the final VJP are chunked
@@ -58,7 +57,7 @@ def expect_and_MinSR(  # noqa: F811
     Returns:
         A tuple containing the expectation value of Ô and the update according to MinSR
     """
-    
+
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
@@ -75,13 +74,10 @@ def expect_and_MinSR(  # noqa: F811
         args,
     )
 
-    if mutable is not False:
-        vstate.model_state = new_model_state
-
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3))
+@partial(jax.jit, static_argnums=(0, 1, 2, 3, 4))
 def expect_and_MinSR_chunked(
     chunk_size: int,
     jcs: int,
@@ -112,13 +108,12 @@ def expect_and_MinSR_chunked(
 
     O_loc -= Ō.mean
 
-    #Compute <∇O> 
-    def mean_grad(w, σ):
+    def grad(w, σ):
 
-        return jnp.mean(model_apply_fun({"params": w, **model_state}, σ))
-    
+        return model_apply_fun({"params": w, **model_state}, σ) / n_samples
+
     vjp_fun_chunked = nkjax.vjp_chunked(
-        mean_grad,
+        grad,
         parameters,
         σ,
         conjugate=True,
@@ -127,19 +122,28 @@ def expect_and_MinSR_chunked(
         nondiff_argnums=1,
     )
 
-    ∇O_mean = vjp_fun_chunked(
+    grad_O_mean = vjp_fun_chunked(
         jnp.ones_like(O_loc),
     )[0]
-    
-    NTK = jnp.zeros([n_samples,n_samples])
-    
-    for i in range(n_samples//jcs):
-        for j in range(n_samples//jcs):
-            NTK = NTK.at[i*jcs:(i+1)*jcs,j*jcs:(j+1)*jcs].set(NeuralTangentKernel(model_apply_fun, parameters, ∇O_mean, σ[i*jcs:(i+1)*jcs], σ[j*jcs:(j+1)*jcs], "complex"))
 
-    NTK = jnp.linalg.pinv(NTK,rcond=r_cond)
-    
-    O_loc = jnp.matmul(NTK, O_loc, hermitian=True)
+    NTK = jnp.zeros([n_samples, n_samples], dtype="complex")
+
+    for i in range(n_samples // jcs):
+        for j in range(n_samples // jcs):
+            NTK = NTK.at[i * jcs : (i + 1) * jcs, j * jcs : (j + 1) * jcs].set(
+                NeuralTangentKernel(
+                    model_apply_fun,
+                    parameters,
+                    grad_O_mean,
+                    σ[i * jcs : (i + 1) * jcs],
+                    σ[j * jcs : (j + 1) * jcs],
+                    "complex",
+                )
+            )
+
+    NTK = jnp.linalg.pinv(NTK / n_samples, rcond=r_cond, hermitian=True)
+
+    O_loc = jnp.matmul(NTK, O_loc)
 
     def centered_apply(w, σ):
         out = model_apply_fun({"params": w, **model_state}, σ)
@@ -150,14 +154,14 @@ def expect_and_MinSR_chunked(
         centered_apply,
         parameters,
         σ,
-        conjugate=False,
+        conjugate=True,
         chunk_size=chunk_size,
         chunk_argnums=1,
         nondiff_argnums=1,
     )
 
     Ō_grad = vjp_fun_chunked(
-        O_loc / n_samples,
+        jnp.conj(O_loc / n_samples),
     )[0]
 
     return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), None
