@@ -35,6 +35,7 @@ from netket.vqs.mc import (
 
 from netket.jax._jacobian.neural_tangent_kernel import NeuralTangentKernel
 from netket.vqs import MCState
+from numpy import int16
 
 
 def expect_and_MinSR(  # noqa: F811
@@ -62,7 +63,10 @@ def expect_and_MinSR(  # noqa: F811
 
     local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
 
-    Ō, elocs = expect_MinSR(
+    if jnp.ndim(σ) != 2:
+        σ = σ.reshape((-1, σ.shape[-1]))
+
+    Ō, elocs, grad_mean = expect_MinSR(
         chunk_size,
         local_estimator_fun,
         vstate._apply_fun,
@@ -71,12 +75,30 @@ def expect_and_MinSR(  # noqa: F811
         σ,
         args,
     )
-    
-    NTK = NTKInv(chunk_size,vstate._apply_fun,vstate.parameters,vstate.model_state,σ)
 
-    Ō_grad = MinSR(chunk_size,jacobian_chunk_size,r_cond,vstate._apply_fun,elocs,NTK,vstate.parameters,vstate.model_state,σ)
-    
+    NTK = compute_NTK(
+        chunk_size,
+        jacobian_chunk_size,
+        vstate._apply_fun,
+        vstate.parameters,
+        vstate.model_state,
+        σ,
+        grad_mean,
+    )
+
+    Ō_grad = grad_MinSR(
+        chunk_size,
+        r_cond,
+        vstate._apply_fun,
+        elocs,
+        NTK,
+        vstate.parameters,
+        vstate.model_state,
+        σ,
+    )
+
     return Ō, Ō_grad
+
 
 @partial(jax.jit, static_argnums=(0, 1, 2))
 def expect_MinSR(
@@ -89,10 +111,6 @@ def expect_MinSR(
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree]:
 
-    σ_shape = σ.shape
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
-
     n_samples = σ.shape[0] * mpi.n_nodes
 
     O_loc = local_value_kernel_chunked(
@@ -103,19 +121,9 @@ def expect_MinSR(
         chunk_size=chunk_size,
     )
 
-    Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
+    Ō = statistics(O_loc.reshape(σ.shape[:-1]).T)
 
     O_loc -= Ō.mean
-
-    return Ō, O_loc
-
-def NTKInv(
-    chunk_size: int,
-    model_apply_fun: Callable,
-    parameters: PyTree,
-    model_state: PyTree,
-    σ: jnp.ndarray,
-) -> Tuple[PyTree, PyTree]:
 
     def grad(w, σ):
 
@@ -131,9 +139,24 @@ def NTKInv(
         nondiff_argnums=1,
     )
 
-    grad_O_mean = vjp_fun_chunked(
+    grad_mean = vjp_fun_chunked(
         jnp.ones_like(O_loc),
     )[0]
+
+    return Ō, O_loc / n_samples, grad_mean
+
+
+def compute_NTK(
+    chunk_size: int,
+    jcs: int,
+    model_apply_fun: Callable,
+    parameters: PyTree,
+    model_state: PyTree,
+    σ: jnp.ndarray,
+    grad_mean: jnp.ndarray,
+) -> Tuple[PyTree, PyTree]:
+
+    n_samples = len(σ)
 
     NTK = jnp.zeros([n_samples, n_samples], dtype="complex")
 
@@ -143,29 +166,29 @@ def NTKInv(
                 NeuralTangentKernel(
                     model_apply_fun,
                     parameters,
-                    grad_O_mean,
+                    grad_mean,
                     σ[i * jcs : (i + 1) * jcs],
                     σ[j * jcs : (j + 1) * jcs],
                     "complex",
                 )
             )
 
-    NTK = jnp.linalg.pinv(NTK / n_samples, rcond=r_cond, hermitian=True)
+    return NTK / n_samples
 
-    return NTK
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3))
-def MinSR(
+@partial(jax.jit, static_argnums=(0, 1, 2))
+def grad_MinSR(
     chunk_size: int,
-    jcs: int,
     r_cond: float,
     model_apply_fun: Callable,
-    elocs: Array
-    NTK: Array
+    elocs: jnp.ndarray,
+    NTK: jnp.ndarray,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
 ) -> Tuple[PyTree, PyTree]:
+
+    NTK = jnp.linalg.pinv(NTK, rcond=r_cond, hermitian=True)
 
     elocs = jnp.matmul(jnp.conj(NTK), jnp.conj(elocs))
 
@@ -185,7 +208,7 @@ def MinSR(
     )
 
     Ō_grad = vjp_fun_chunked(
-        O_loc / n_samples,
+        elocs,
     )[0]
 
-    return Ō, tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), None
+    return tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)
