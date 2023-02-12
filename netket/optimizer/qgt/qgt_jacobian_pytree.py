@@ -119,7 +119,6 @@ def QGTJacobianPyTree(
             vstate.parameters,
             vstate.model_state,
             samples,
-            mode=mode,
             holomorphic=holomorphic,
         )
 
