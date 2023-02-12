@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from scipy import sparse as _sparse
+
 from netket.utils.types import DType as _DType
 
 from netket.hilbert import AbstractHilbert as _AbstractHilbert
@@ -42,6 +44,7 @@ def destroy(
 
     D = np.array([np.sqrt(m) for m in np.arange(1, N)])
     mat = np.diag(D, 1)
+    mat = _sparse.coo_matrix(mat)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
@@ -68,6 +71,7 @@ def create(
 
     D = np.array([np.sqrt(m) for m in np.arange(1, N)])
     mat = np.diag(D, -1)
+    mat = _sparse.coo_matrix(mat)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
@@ -94,6 +98,7 @@ def number(
 
     D = np.array([m for m in np.arange(0, N)])
     mat = np.diag(D, 0)
+    mat = _sparse.coo_matrix(mat)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
@@ -126,4 +131,5 @@ def proj(
     D = np.array([0 for m in np.arange(0, N)])
     D[n] = 1
     mat = np.diag(D, 0)
+    mat = _sparse.coo_matrix(mat)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)

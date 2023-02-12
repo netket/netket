@@ -19,6 +19,7 @@ import numbers
 
 import numpy as np
 
+from scipy import sparse
 from scipy.sparse import spmatrix
 
 from netket.hilbert import AbstractHilbert, Fock
@@ -46,10 +47,25 @@ def _standardize_matrix_input_type(op):
     """
     if isinstance(op, list):
         return np.asarray(op)
-    elif isinstance(op, spmatrix):
-        return op.todense()
+    elif sparse.issparse(op):
+        return op.tocoo()
     else:
         return op
+
+
+def _kron(A, B):
+    if isinstance(A, spmatrix) and isinstance(B, spmatrix):
+        res = sparse.kron(A, B, format="coo")
+    else:
+        res = np.kron(np.asarray(A), np.asarray(B))
+    return res
+
+
+def _eye_like(size, *, dtype, like):
+    if sparse.issparse(like):
+        return sparse.eye(size, dtype=dtype)
+    else:
+        return np.eye(size, dtype=dtype)
 
 
 def canonicalize_input(
@@ -184,7 +200,17 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
     n_unsorted = hi_unsorted_subspace.states_to_numbers(v_unsorted)
 
     # reorder the matrix
-    mat_sorted = mat[n_unsorted, :][:, n_unsorted]
+    if sparse.issparse(mat):
+        # covert the indices from going from old -> new to new->old
+        idxs = np.argsort(n_unsorted)
+
+        # sparse matrices don't support indexing, and can be sorted more
+        # quickly
+        mat_sorted = mat.copy()
+        mat_sorted.row[:] = idxs[mat.row]
+        mat_sorted.col[:] = idxs[mat.col]
+    else:
+        mat_sorted = mat[n_unsorted, :][:, n_unsorted]
 
     return mat_sorted, tuple(acting_on_sorted)
 
@@ -207,7 +233,7 @@ def _multiply_operators(
     elif inters.size == 0:
         # disjoint supports
         support = tuple(np.concatenate([support_A, support_B]))
-        operator = np.kron(A, B)
+        operator = _kron(A, B)
         operator, support = _reorder_kronecker_product(hilbert, operator, support)
         return tuple(support), operator
     else:
@@ -220,24 +246,24 @@ def _multiply_operators(
         supp_B_min = min(support_B)
         for site in support_A:
             if site not in support_B:
-                I = np.eye(hilbert.shape[site], dtype=dtype)
+                I = _eye_like(hilbert.shape[site], dtype=dtype, like=B)
                 if site < supp_B_min:
                     _support_B = [site] + _support_B
-                    _B = np.kron(I, _B)
+                    _B = _kron(I, _B)
                 else:  # site > actmax
                     _support_B = _support_B + [site]
-                    _B = np.kron(_B, I)
+                    _B = _kron(_B, I)
 
         supp_A_min = min(support_A)
         for site in support_B:
             if site not in support_A:
-                I = np.eye(hilbert.shape[site], dtype=dtype)
+                I = _eye_like(hilbert.shape[site], dtype=dtype, like=A)
                 if site < supp_A_min:
                     _support_A = [site] + _support_A
-                    _A = np.kron(I, _A)
+                    _A = _kron(I, _A)
                 else:  # site > actmax
                     _support_A = _support_A + [site]
-                    _A = np.kron(_A, I)
+                    _A = _kron(_A, I)
 
         # reorder
         _A, _support_A = _reorder_kronecker_product(hilbert, _A, _support_A)

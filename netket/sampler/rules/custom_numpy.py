@@ -130,6 +130,7 @@ def _choose_and_return(σp, x_prime, mels, sections, log_prob_corr, rnd_uniform)
 
 def _check_operators(operators):
     for op in operators:
+        op = op.todense()
         assert op.imag.max() < 1.0e-10
         assert op.min() >= 0
         assert np.allclose(op.sum(axis=0), 1.0)

@@ -15,6 +15,19 @@ import netket as nk
 import netket.experimental as nkx
 ```
 
+(experimental-qsr-api)=
+## Quantum State Reconstruction
+The Quantum State Reconstruction algorithm performs an approximate tomographic reconstruction of measurement data coming from a quantum computer (or similar device) using a Pure or Mixed quantum state.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/experimental/qsr
+   :template: class
+   :nosignatures:
+
+   QSR
+```
+
 (experimental-sampler-api)=
 ## Samplers
 

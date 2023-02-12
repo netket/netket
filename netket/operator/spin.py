@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from scipy import sparse as _sparse
+
 from netket.utils.types import DType as _DType
 
 from netket.hilbert import AbstractHilbert as _AbstractHilbert
@@ -40,6 +42,7 @@ def sigmax(
 
     D = [np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)]
     mat = np.diag(D, 1) + np.diag(D, -1)
+    mat = _sparse.coo_matrix(mat)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
@@ -78,6 +81,7 @@ def sigmay(
 
     D = np.array([1j * np.sqrt((S + 1) * 2 * a - a * (a + 1)) for a in np.arange(1, N)])
     mat = np.diag(D, -1) + np.diag(-D, 1)
+    mat = _sparse.coo_matrix(mat)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
@@ -102,6 +106,7 @@ def sigmaz(
 
     D = np.array([2 * m for m in np.arange(S, -(S + 1), -1)])
     mat = np.diag(D, 0)
+    mat = _sparse.coo_matrix(mat)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
@@ -127,6 +132,7 @@ def sigmam(
     S2 = (S + 1) * S
     D = np.array([np.sqrt(S2 - m * (m - 1)) for m in np.arange(S, -S, -1)])
     mat = np.diag(D, -1)
+    mat = _sparse.coo_matrix(mat)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
 
 
@@ -152,4 +158,5 @@ def sigmap(
     S2 = (S + 1) * S
     D = np.array([np.sqrt(S2 - m * (m + 1)) for m in np.arange(S - 1, -(S + 1), -1)])
     mat = np.diag(D, 1)
+    mat = _sparse.coo_matrix(mat)
     return _LocalOperator(hilbert, mat, [site], dtype=dtype)
