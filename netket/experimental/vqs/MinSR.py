@@ -62,10 +62,8 @@ def expect_and_MinSR(  # noqa: F811
 
     local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
 
-    Ō, Ō_grad, new_model_state = expect_and_MinSR_chunked(
+    Ō, elocs = expect_MinSR(
         chunk_size,
-        jacobian_chunk_size,
-        r_cond,
         local_estimator_fun,
         vstate._apply_fun,
         vstate.parameters,
@@ -73,15 +71,16 @@ def expect_and_MinSR(  # noqa: F811
         σ,
         args,
     )
+    
+    NTK = NTKInv(chunk_size,vstate._apply_fun,vstate.parameters,vstate.model_state,σ)
 
+    Ō_grad = MinSR(chunk_size,jacobian_chunk_size,r_cond,vstate._apply_fun,elocs,NTK,vstate.parameters,vstate.model_state,σ)
+    
     return Ō, Ō_grad
 
-
-@partial(jax.jit, static_argnums=(0, 1, 2, 3, 4))
-def expect_and_MinSR_chunked(
+@partial(jax.jit, static_argnums=(0, 1, 2))
+def expect_MinSR(
     chunk_size: int,
-    jcs: int,
-    r_cond: float,
     local_value_kernel_chunked: Callable,
     model_apply_fun: Callable,
     parameters: PyTree,
@@ -107,6 +106,16 @@ def expect_and_MinSR_chunked(
     Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
 
     O_loc -= Ō.mean
+
+    return Ō, O_loc
+
+def NTKInv(
+    chunk_size: int,
+    model_apply_fun: Callable,
+    parameters: PyTree,
+    model_state: PyTree,
+    σ: jnp.ndarray,
+) -> Tuple[PyTree, PyTree]:
 
     def grad(w, σ):
 
@@ -143,7 +152,22 @@ def expect_and_MinSR_chunked(
 
     NTK = jnp.linalg.pinv(NTK / n_samples, rcond=r_cond, hermitian=True)
 
-    O_loc = jnp.matmul(jnp.conj(NTK), jnp.conj(O_loc))
+    return NTK
+
+@partial(jax.jit, static_argnums=(0, 1, 2, 3))
+def MinSR(
+    chunk_size: int,
+    jcs: int,
+    r_cond: float,
+    model_apply_fun: Callable,
+    elocs: Array
+    NTK: Array
+    parameters: PyTree,
+    model_state: PyTree,
+    σ: jnp.ndarray,
+) -> Tuple[PyTree, PyTree]:
+
+    elocs = jnp.matmul(jnp.conj(NTK), jnp.conj(elocs))
 
     def centered_apply(w, σ):
         out = model_apply_fun({"params": w, **model_state}, σ)
