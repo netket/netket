@@ -21,7 +21,8 @@
 * When multiplying an operator by it's conjugate transpose NetKet does not return anymore a lazy {class}`~netket.operator.Squared` object if the operator is hermitian. This avoids checking if the object is hermitian which greatly speeds up algebric manipulations of operators, and returns more unbiased epectation values [#1423](https://github.com/netket/netket/pull/1423). 
 
 ### Bug Fixes
-* Fixed a bug where {meth}`netket.hilbert.Particle.random_state` could not be jit-compiled, and therefore could not be used in the sampling [#1401](https://github.com/netket/netket/pull/1401).
+* Fixed a bug where {meth}`nk.hilbert.Particle.random_state` could not be jit-compiled, and therefore could not be used in the sampling [#1401](https://github.com/netket/netket/pull/1401).
+* Fixed bug [#1405](https://github.com/netket/netket/pull/1405) where {meth}`nk.nn.DenseSymm` and {meth}`nk.models.GCNN` did not work or correctly consider masks [#1428](https://github.com/netket/netket/pull/1428).
 
 ### Deprecations
 * {meth}`netket.models.AbstractARNN._conditional` has been removed from the API, and its use will throw a deprecation warning. Update your ARNN models accordingly! [#1361](https://github.com/netket/netket/pull/1361).

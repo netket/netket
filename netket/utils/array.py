@@ -32,10 +32,12 @@ class HashableArray:
     """The wrapped array. Note that this array is read-only."""
 
     def __pre_init__(self, wrapped):
-        wrapped = wrapped.copy()
-
-        if isinstance(wrapped, np.ndarray):
-            wrapped.flags.writeable = False
+        if isinstance(wrapped, HashableArray):
+            wrapped = wrapped.wrapped
+        else:
+            wrapped = wrapped.copy()
+            if isinstance(wrapped, np.ndarray):
+                wrapped.flags.writeable = False
 
         return (wrapped,), {}
 

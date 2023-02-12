@@ -74,7 +74,7 @@ class DenseSymmMatrix(Module):
         # pylint: disable=attribute-defined-outside-init
         self.n_symm, self.n_sites = np.asarray(self.symmetries).shape
         if self.mask is not None:
-            self.kernel_indices = jnp.nonzero(self.mask)[0]
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -181,7 +181,7 @@ class DenseSymmFFT(Module):
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
         if self.mask is not None:
-            (self.kernel_indices,) = np.nonzero(self.mask)
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
         # maps (n_sites) dimension of kernels to (sites_per_cell, n_point, *shape)
         # as used in FFT-based group convolution
@@ -312,7 +312,7 @@ class DenseEquivariantFFT(Module):
         self.n_cells = np.product(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
         if self.mask is not None:
-            (self.kernel_indices,) = np.nonzero(self.mask)
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
         # maps (n_sites) dimension of kernels to (n_point, n_point, *shape)
         # as used in FFT-based group convolution
@@ -447,7 +447,7 @@ class DenseEquivariantIrrep(Module):
     def setup(self):
         self.n_symm = self.irreps[0].shape[0]
         if self.mask is not None:
-            (self.kernel_indices,) = np.nonzero(self.mask)
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
         self.forward = jnp.concatenate(
             [jnp.asarray(irrep).reshape(self.n_symm, -1) for irrep in self.irreps],
@@ -611,7 +611,7 @@ class DenseEquivariantMatrix(Module):
     def setup(self):
         self.n_symm = np.asarray(self.product_table).shape[0]
         if self.mask is not None:
-            (self.kernel_indices,) = np.nonzero(self.mask)
+            (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
     @compact
     def __call__(self, x: Array) -> Array:
@@ -674,7 +674,9 @@ class DenseEquivariantMatrix(Module):
 
 
 @deprecate_dtype
-def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
+def DenseSymm(
+    symmetries, point_group=None, mode="auto", shape=None, mask=None, **kwargs
+):
     r"""
     Implements a projection onto a symmetry group. The output will be
     equivariant with respect to the symmetry operations in the group and can
@@ -713,6 +715,9 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
         bias_init: Optional bias initialization function. Defaults to zero initialization.
 
     """
+    if mask is not None:
+        mask = HashableArray(mask)
+
     if isinstance(symmetries, Lattice) and (
         point_group is not None or symmetries._point_group is not None
     ):
@@ -740,9 +745,9 @@ def DenseSymm(symmetries, point_group=None, mode="auto", shape=None, **kwargs):
                 "the symmetries keyword argument."
             )
         else:
-            return DenseSymmFFT(sym, shape=shape, **kwargs)
+            return DenseSymmFFT(sym, shape=shape, mask=mask, **kwargs)
     elif mode in ["matrix", "auto"]:
-        return DenseSymmMatrix(sym, **kwargs)
+        return DenseSymmMatrix(sym, mask=mask, **kwargs)
     else:
         raise ValueError(
             f"Unknown mode={mode}. Valid modes are 'fft', 'matrix', or 'auto'."
@@ -757,6 +762,7 @@ def DenseEquivariant(
     shape=None,
     point_group=None,
     in_features=None,
+    mask=None,
     **kwargs,
 ):
     r"""A group convolution operation that is equivariant over a symmetry group.
@@ -801,6 +807,9 @@ def DenseEquivariant(
         kernel_init: Optional kernel initialization function. Defaults to variance scaling.
         bias_init: Optional bias initialization function. Defaults to zero initialization.
     """
+    if mask is not None:
+        mask = HashableArray(mask)
+
     # deprecate in_features
     if in_features is not None:
         warn_deprecation(
@@ -851,13 +860,13 @@ def DenseEquivariant(
     elif isinstance(symmetries, Sequence):
         if mode not in ["irreps", "auto"]:
             raise ValueError("Specification of symmetries incompatible with mode")
-        return DenseEquivariantIrrep(symmetries, **kwargs)
+        return DenseEquivariantIrrep(symmetries, mask=mask, **kwargs)
     else:
         if symmetries.ndim == 2 and symmetries.shape[0] == symmetries.shape[1]:
             if mode == "irreps":
                 raise ValueError("Specification of symmetries incompatible with mode")
             elif mode == "matrix":
-                return DenseEquivariantMatrix(symmetries, **kwargs)
+                return DenseEquivariantMatrix(symmetries, mask=mask, **kwargs)
             else:
                 if shape is None:
                     raise TypeError(
@@ -866,7 +875,9 @@ def DenseEquivariant(
                         "the symmetries keyword argument."
                     )
                 else:
-                    return DenseEquivariantFFT(symmetries, shape=shape, **kwargs)
+                    return DenseEquivariantFFT(
+                        symmetries, mask=mask, shape=shape, **kwargs
+                    )
         return ValueError("Invalid Specification of Symmetries")
 
     if mode == "fft":
@@ -878,13 +889,15 @@ def DenseEquivariant(
             )
         else:
             return DenseEquivariantFFT(
-                HashableArray(sg.product_table), shape=shape, **kwargs
+                HashableArray(sg.product_table), mask=mask, shape=shape, **kwargs
             )
     elif mode in ["irreps", "auto"]:
         irreps = tuple(HashableArray(irrep) for irrep in sg.irrep_matrices())
-        return DenseEquivariantIrrep(irreps, **kwargs)
+        return DenseEquivariantIrrep(irreps, mask=mask, **kwargs)
     elif mode == "matrix":
-        return DenseEquivariantMatrix(HashableArray(sg.product_table), **kwargs)
+        return DenseEquivariantMatrix(
+            HashableArray(sg.product_table), mask=mask, **kwargs
+        )
     else:
         raise ValueError(
             f"Unknown mode={mode}. Valid modes are 'fft', 'matrix', 'irreps' or 'auto'."

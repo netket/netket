@@ -789,6 +789,8 @@ def GCNN(
                 parity=parity,
                 param_dtype=param_dtype,
                 complex_output=complex_output,
+                hidden_mask=hidden_mask,
+                input_mask=input_mask,
                 **kwargs,
             )
         else:
@@ -801,6 +803,8 @@ def GCNN(
                 shape=shape,
                 param_dtype=param_dtype,
                 complex_output=complex_output,
+                hidden_mask=hidden_mask,
+                input_mask=input_mask,
                 **kwargs,
             )
     elif mode in ["irreps", "auto"]:
@@ -819,6 +823,8 @@ def GCNN(
                 parity=parity,
                 param_dtype=param_dtype,
                 complex_output=complex_output,
+                hidden_mask=hidden_mask,
+                input_mask=input_mask,
                 **kwargs,
             )
         else:
@@ -830,6 +836,8 @@ def GCNN(
                 characters=characters,
                 param_dtype=param_dtype,
                 complex_output=complex_output,
+                hidden_mask=hidden_mask,
+                input_mask=input_mask,
                 **kwargs,
             )
     else:

@@ -94,6 +94,52 @@ def test_gcnn(mode, complex_output):
     vmc.advance(1)
 
 
+def n_parameters(ma):
+    params = ma.init(jax.random.PRNGKey(0), np.zeros(4))
+
+
+def test_gcnn_mask():
+
+    g = nk.graph.Chain(4)
+
+    hi = nk.hilbert.Spin(s=1 / 2, total_sz=0, N=g.n_nodes)
+    sa = nk.sampler.MetropolisExchange(hilbert=hi, graph=g)
+
+    input_mask = np.concatenate((np.zeros(2), np.ones(2)), 0)
+    hidden_mask = np.concatenate((np.zeros(4), np.ones(4)), 0)
+
+    ma1 = nk.models.GCNN(
+        symmetries=g,
+        layers=2,
+        features=2,
+        input_mask=None,
+        hidden_mask=None,
+    )
+
+    ma2 = nk.models.GCNN(
+        symmetries=g,
+        layers=2,
+        features=2,
+        input_mask=input_mask,
+        hidden_mask=None,
+    )
+
+    ma3 = nk.models.GCNN(
+        symmetries=g,
+        layers=2,
+        features=2,
+        input_mask=None,
+        hidden_mask=hidden_mask,
+    )
+
+    vstate1 = nk.vqs.MCState(sampler=sa, model=ma1)
+    vstate2 = nk.vqs.MCState(sampler=sa, model=ma2)
+    vstate3 = nk.vqs.MCState(sampler=sa, model=ma3)
+
+    assert vstate1.n_parameters - vstate2.n_parameters == 4
+    assert vstate1.n_parameters - vstate3.n_parameters == 16
+
+
 @pytest.mark.parametrize("mode", ["fft", "irreps"])
 def test_GCNN_creation(mode):
 
