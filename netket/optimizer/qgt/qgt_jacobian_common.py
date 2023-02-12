@@ -20,19 +20,55 @@ import jax
 import jax.numpy as jnp
 
 import netket.jax as nkjax
-from netket.utils import mpi
-from netket.utils import warn_deprecation
+from netket.utils import mpi, struct, warn_deprecation
 
 
-@partial(jax.jit, static_argnums=(0, 4, 5))
-def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorphic):
+@struct.dataclass
+class JacobianMode:
+    """
+    Jax-compatible string type, used to return static information from a jax-jitted
+    function.
+    """
+
+    name: str = struct.field(pytree_node=False)
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f"JacobianMode({self.name})"
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, o):
+        if isinstance(o, JacobianMode):
+            o = o.name
+        return self.name == o
+
+
+RealMode = JacobianMode("real")
+ComplexMode = JacobianMode("complex")
+HolomorphicMode = JacobianMode("holomorphic")
+
+
+@partial(jax.jit, static_argnames=("apply_fun", "holomorphic"))
+def choose_jacobian_mode(
+    apply_fun, pars, model_state, samples, *, holomorphic
+) -> JacobianMode:
+    """
+    Select an implementation of Jacobian. Returns a Jax-compatible
+    (static) string type between
+
+    "real", "complex", "holomorphic"
+    """
     homogeneous_vars = nkjax.tree_ishomogeneous(pars)
     leaf_iscomplex = nkjax.tree_leaf_iscomplex(pars)
 
     if holomorphic is True:
         if homogeneous_vars and leaf_iscomplex:
             ## all complex parameters
-            mode = "holomorphic"
+            mode = HolomorphicMode
         elif homogeneous_vars and not leaf_iscomplex:
             # all real parameters
             raise ValueError(
@@ -56,7 +92,7 @@ def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorph
                     """
                 )
             )
-            mode = "holomorphic"
+            mode = HolomorphicMode
     else:
         complex_output = jax.numpy.iscomplexobj(
             jax.eval_shape(
@@ -81,35 +117,12 @@ def _choose_jacobian_mode(apply_fun, pars, model_state, samples, mode, holomorph
                         ),
                         UserWarning,
                     )
-                mode = "complex"
+                mode = ComplexMode
             else:
-                mode = "complex"
+                mode = ComplexMode
         else:
-            mode = "real"
-
-    if mode == "real":
-        return 0
-    elif mode == "complex":
-        return 1
-    elif mode == "holomorphic":
-        return 2
-    else:
-        raise ValueError(f"unknown mode {mode}")
-
-
-def choose_jacobian_mode(afun, pars, state, samples, *, mode, holomorphic):
-    """
-    Select an implementation of Jacobian
-    """
-    i = int(_choose_jacobian_mode(afun, pars, state, samples, mode, holomorphic))
-    if i == 0:
-        return "real"
-    elif i == 1:
-        return "complex"
-    elif i == 2:
-        return "holomorphic"
-    else:
-        raise ValueError(f"unknown mode {i}")
+            mode = RealMode
+    return mode
 
 
 def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):
