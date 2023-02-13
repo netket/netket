@@ -76,5 +76,6 @@ Read more about the design goal of this module in their [README](https://github.
 
     blocks.MLP
     blocks.DeepSetMLP
+    blocks.SymmExpSum
 
 ```
