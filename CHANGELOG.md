@@ -10,6 +10,7 @@
 * Support for Jax 0.4 added [#1416](https://github.com/netket/netket/pull/1416).
 * Added a continuous space langevin-dynamics transition rule {class}`netket.sampler.rules.LangevinRule` and its corresponding shorthand for constructing the MCMC sampler {func}`netket.sampler.MetropolisAdjustedLangevin` [#1413](https://github.com/netket/netket/pull/1413).
 * Added an experimental Quantum State Reconstruction driver at {class}`netket.experimental.QSR` to reconstruct states from data coming from quantum computers or simulators [#1427](https://github.com/netket/netket/pull/1427).
+* Added `netket.nn.blocks.SymmExpSum` flax module that symmetrizes a bare neural network module by summing the wave-function over all possible symmetry-permutations given by a certain symmetry group [#14XX](https://github.com/netket/netket/pull/14XX).
 
 ### Breaking Changes
 * Parameters of models {class}`netket.models.GCNN` and layers {class}`netket.nn.DenseSymm` and {class}`netket.nn.DenseEquivariant` are stored as an array of shape '[features,in_features,mask_size]'. Masked parameters are now excluded from the model instead of multiplied by zero [#1387](https://github.com/netket/netket/pull/1387).
