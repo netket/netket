@@ -21,6 +21,7 @@ from flax import linen as nn
 
 from netket.jax import logsumexp_cplx
 from netket.utils.group import PermutationGroup
+from netket.utils.typing import Array
 
 
 class SymmExpSum(nn.Module):
@@ -97,7 +98,7 @@ class SymmExpSum(nn.Module):
     """
 
     @nn.compact
-    def __call__(self, x: jax.Array):
+    def __call__(self, x: Array):
         # apply the group and obtain a x_symm of shape (N_symm, ...)
         x_symm = self.symm_group @ x
         # reshape it to (-1, N_sites)
