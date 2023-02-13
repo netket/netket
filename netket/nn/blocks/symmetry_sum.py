@@ -21,7 +21,7 @@ from flax import linen as nn
 
 from netket.jax import logsumexp_cplx
 from netket.utils.group import PermutationGroup
-from netket.utils.typing import Array
+from netket.utils.types import Array
 
 
 class SymmExpSum(nn.Module):
@@ -102,8 +102,9 @@ class SymmExpSum(nn.Module):
         # apply the group and obtain a x_symm of shape (N_symm, ...)
         x_symm = self.symm_group @ x
         # reshape it to (-1, N_sites)
-        x_symm_shape = x.shape
-        x_symm = x.reshape(-1, x.shape[-1])
+        x_symm_shape = x_symm.shape
+        x_symm = x_symm.reshape(-1, x.shape[-1])
+
         # Compute the log-wavefunction obtaining (-1,) and reshape to (N_symm, ...)
         psi_symm = self.module(x_symm).reshape(*x_symm_shape[:-1])
 
@@ -112,6 +113,7 @@ class SymmExpSum(nn.Module):
             characters = np.ones(len(np.asarray(self.symm_group)))
         else:
             characters = self.symm_group.character_table()[self.character_id]
+        characters = characters.reshape(-1, 1)
         # If those are all positive, then use standard logsumexp that returns a
         # real-valued, positive logsumexp
         logsumexp_fun = (
@@ -120,5 +122,4 @@ class SymmExpSum(nn.Module):
 
         # log (sum_i ( c_i* exp(psi[sigma_i])))
         psi = logsumexp_fun(psi_symm, axis=0, b=characters)
-
         return psi
