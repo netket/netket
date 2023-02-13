@@ -29,8 +29,13 @@ character_ids["Char=None"] = None
 character_ids["Char=0"] = 0
 character_ids["Char=1"] = 1
 
-@pytest.mark.parametrize("bare_module", [pytest.param(v, id=k) for k,v in bare_modules.items()])
-@pytest.mark.parametrize("character_id", [pytest.param(v, id=k) for k,v in character_ids.items()])
+
+@pytest.mark.parametrize(
+    "bare_module", [pytest.param(v, id=k) for k, v in bare_modules.items()]
+)
+@pytest.mark.parametrize(
+    "character_id", [pytest.param(v, id=k) for k, v in character_ids.items()]
+)
 def test_symmexpsum(bare_module, character_id):
     graph = nk.graph.Square(3)
     g = graph.translation_group()
@@ -44,5 +49,5 @@ def test_symmexpsum(bare_module, character_id):
     assert np.all(np.isfinite(log_psi))
 
     if character_id != 1:
-        for Tg in g:          
-            np.testing.assert_allclose(log_psi, vs.log_value(Tg@hi.all_states()))
+        for Tg in g:
+            np.testing.assert_allclose(log_psi, vs.log_value(Tg @ hi.all_states()))
