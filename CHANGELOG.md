@@ -3,7 +3,11 @@
 
 # Change Log
 
-## NetKet 3.7 (⚙️ In development)
+## NetKet 3.8 (⚙️ In development)
+
+
+
+## NetKet 3.7 (💘 13 february 2023)
 
 ### New features
 * Input and hidden layer masks can now be specified for {class}`netket.models.GCNN` [#1387](https://github.com/netket/netket/pull/1387).
