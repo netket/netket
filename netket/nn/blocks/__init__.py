@@ -14,6 +14,7 @@
 
 from .mlp import MLP
 from .deepset import DeepSetMLP
+from .symmetry_sum import SymmExpSum
 
 from netket.utils import _hide_submodules
 
