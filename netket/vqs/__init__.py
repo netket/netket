@@ -23,6 +23,8 @@ from .base import (
 from .mc import MCState, MCMixedState, get_local_kernel_arguments, get_local_kernel
 from .full_summ import FullSumState
 
+from .mc import MCPOVMState
+
 _deprecations = {
     # May 2023
     "ExactState": (
