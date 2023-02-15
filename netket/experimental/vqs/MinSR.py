@@ -190,7 +190,7 @@ def grad_MinSR(
 
     NTK = jnp.linalg.pinv(NTK, rcond=r_cond, hermitian=True)
 
-    elocs = jnp.matmul(jnp.conj(NTK), jnp.conj(elocs))
+    elocs = jnp.matmul(NTK, elocs)
 
     def centered_apply(w, σ):
         out = model_apply_fun({"params": w, **model_state}, σ)
@@ -208,7 +208,7 @@ def grad_MinSR(
     )
 
     Ō_grad = vjp_fun_chunked(
-        elocs,
+        elocs.conj(),
     )[0]
 
     return tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad)
