@@ -68,6 +68,7 @@ def expect_and_MinSR(  # noqa: F811
 
     Ō, elocs, grad_mean = expect_MinSR(
         chunk_size,
+        jacobian_chunk_size,
         local_estimator_fun,
         vstate._apply_fun,
         vstate.parameters,
@@ -77,7 +78,6 @@ def expect_and_MinSR(  # noqa: F811
     )
 
     NTK = compute_NTK(
-        chunk_size,
         jacobian_chunk_size,
         vstate._apply_fun,
         vstate.parameters,
@@ -87,7 +87,7 @@ def expect_and_MinSR(  # noqa: F811
     )
 
     Ō_grad = grad_MinSR(
-        chunk_size,
+        jacobian_chunk_size,
         r_cond,
         vstate._apply_fun,
         elocs,
@@ -100,9 +100,10 @@ def expect_and_MinSR(  # noqa: F811
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2))
+@partial(jax.jit, static_argnums=(0, 1, 2, 3))
 def expect_MinSR(
     chunk_size: int,
+    jcs: int,
     local_value_kernel_chunked: Callable,
     model_apply_fun: Callable,
     parameters: PyTree,
@@ -134,7 +135,7 @@ def expect_MinSR(
         parameters,
         σ,
         conjugate=False,
-        chunk_size=chunk_size,
+        chunk_size=jcs,
         chunk_argnums=1,
         nondiff_argnums=1,
     )
@@ -147,7 +148,6 @@ def expect_MinSR(
 
 
 def compute_NTK(
-    chunk_size: int,
     jcs: int,
     model_apply_fun: Callable,
     parameters: PyTree,
@@ -178,7 +178,7 @@ def compute_NTK(
 
 @partial(jax.jit, static_argnums=(0, 1, 2))
 def grad_MinSR(
-    chunk_size: int,
+    jcs: int,
     r_cond: float,
     model_apply_fun: Callable,
     elocs: jnp.ndarray,
@@ -202,7 +202,7 @@ def grad_MinSR(
         parameters,
         σ,
         conjugate=True,
-        chunk_size=chunk_size,
+        chunk_size=jcs,
         chunk_argnums=1,
         nondiff_argnums=1,
     )
