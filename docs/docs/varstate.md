@@ -8,6 +8,7 @@ As of now, NetKet has two types of Variational state implementations:
 
 - {class}`~netket.vqs.MCState`, which is a classical variational approximation of a pure state.
 - {class}`~netket.vqs.MCMixedState`, which is a classical variational approximation of a mixed state.
+- {class}`~netket.vqs.ExactState`, which is a version of {class}`~netket.vqs.MCState` without sampling, performing the full summation over the whole Hilbert space and computing expectation values and gradients exactly.
 
 It is our plan to build upon this interface for new kind of variational states in the future. For example, we
 are interested in implementing a new kind of variational state that encodes a state into a Qiskit circuit.
@@ -276,7 +277,7 @@ with open("parameters.mpack", 'rb') as file:
 
 ## Using ExactState for testing
 
-In order to check the performance of a given model on small test systems, it is possible to use {class}`~netket.vqs.exact.ExactState` which can be used in place of {class}`~netket.vqs.MCState` and computes quantities not by stochastic sampling but by evaluation of the ansatz over the full Hilbert space basis. (Therefore, it is infeasible to use for system sizes beyond ED.)
+In order to check the performance of a given model on small test systems, it is possible to use {class}`~netket.vqs.ExactState` which can be used in place of {class}`~netket.vqs.MCState` and computes quantities not by stochastic sampling but by evaluation of the ansatz over the full Hilbert space basis. (Therefore, it is infeasible to use for system sizes beyond ED.)
 This can be helpful to diagnose potential errors arising from Monte Carlo sampling.
 
 ```python
