@@ -95,6 +95,7 @@ def expect_and_MinSR(  # noqa: F811
         vstate.parameters,
         vstate.model_state,
         σ,
+        grad_mean,
     )
 
     return Ō, Ō_grad
@@ -186,19 +187,20 @@ def grad_MinSR(
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
+    grad_mean: PyTree,
 ) -> Tuple[PyTree, PyTree]:
 
     NTK = jnp.linalg.pinv(NTK, rcond=r_cond, hermitian=True)
 
     elocs = jnp.matmul(NTK, elocs)
 
-    def centered_apply(w, σ):
+    def forward(w, σ):
         out = model_apply_fun({"params": w, **model_state}, σ)
 
-        return out - jnp.mean(out)
+        return out
 
     vjp_fun_chunked = nkjax.vjp_chunked(
-        centered_apply,
+        forward,
         parameters,
         σ,
         conjugate=True,
