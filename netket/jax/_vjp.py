@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Callable, Tuple, Any, Union
+from functools import partial
 
 import jax
 
@@ -27,6 +28,26 @@ from .utils import tree_leaf_iscomplex, eval_shape
 # from R -> C, R->R and R->C. Ditto for vjp
 # Thee reason why R->C is more complicated is that it splits the calculation
 # into the real and complex part in order to be more efficient.
+
+
+def _cmplx(re, im, conj=False):
+    """
+    Safely convert real and imaginary part to a complex number, considering
+    `float0` dtypes which cannot be summed upon.
+
+    Those types appear when computing the `vjp` of functions with integer
+    inputs.
+    """
+    # detect tangent-0 dtypes
+    is_re_0 = jax.dtypes.issubdtype(re.dtype, jax.dtypes.float0)
+    is_im_0 = jax.dtypes.issubdtype(re.dtype, jax.dtypes.float0)
+    if is_re_0 or is_im_0:
+        return re
+    else:
+        if conj:
+            return re - 1j * im
+        else:
+            return re + 1j * im
 
 
 def vjp_cc(
@@ -70,10 +91,7 @@ def vjp_rr(
         else:
             out_r = _vjp_fun(jnp.asarray(ȳ.real, dtype=primals_out.dtype))
             out_i = _vjp_fun(jnp.asarray(ȳ.imag, dtype=primals_out.dtype))
-            if conjugate:
-                out = tree_map(lambda re, im: re - 1j * im, out_r, out_i)
-            else:
-                out = tree_map(lambda re, im: re + 1j * im, out_r, out_i)
+            out = tree_map(partial(_cmplx, conj=conjugate), out_r, out_i)
 
         return out
 
@@ -121,13 +139,9 @@ def vjp_rc(
         vr_jj = vjp_j_fun(jnp.asarray(ȳ_r, dtype=vals_j.dtype))
         vj_jj = vjp_j_fun(jnp.asarray(ȳ_j, dtype=vals_j.dtype))
 
-        r = tree_map(
-            lambda re, im: re + 1j * im,
-            vr_jr,
-            vj_jr,
-        )
-        i = tree_map(lambda re, im: re + 1j * im, vr_jj, vj_jj)
-        out = tree_map(lambda re, im: re + 1j * im, r, i)
+        r = tree_map(_cmplx, vr_jr, vj_jr)
+        i = tree_map(_cmplx, vr_jj, vj_jj)
+        out = tree_map(_cmplx, r, i)
 
         if conjugate:
             out = tree_map(jnp.conjugate, out)
@@ -140,7 +154,7 @@ def vjp_rc(
         return primals_out, vjp_fun
 
 
-#  This function dispatches to the right
+# This function dispatches to the right
 def vjp(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
 ) -> Union[Tuple[Any, Callable], Tuple[Any, Callable, Any]]:

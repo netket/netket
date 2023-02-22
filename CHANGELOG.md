@@ -5,6 +5,8 @@
 
 ## NetKet 3.8 (⚙️ In development)
 
+### Bug Fixes
+* Fix issue [#1435](https://github.com/netket/netket/issues/1435), where a 0-tangent originating from integer samples was not correctly handled by {func}`nk.jax.vjp` [#1436](https://github.com/netket/netket/pull/1436).
 
 
 ## NetKet 3.7 (💘 13 february 2023)
