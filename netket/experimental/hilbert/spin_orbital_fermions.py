@@ -18,7 +18,7 @@ import numpy as np
 from fractions import Fraction
 
 from netket.hilbert.fock import Fock
-from netket.hilbert.tensor_hilbert import TensorHilbert
+from netket.hilbert.tensor_hilbert_discrete import TensorDiscreteHilbert
 from netket.hilbert.homogeneous import HomogeneousHilbert
 
 
@@ -92,7 +92,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             spin_hilberts = [
                 Fock(n_max=1, N=n_orbitals, n_particles=Nf) for Nf in n_fermions
             ]
-            hilbert = TensorHilbert(*spin_hilberts)
+            hilbert = TensorDiscreteHilbert(*spin_hilberts)
 
         self._fock = hilbert
         """Internal representation of this Hilbert space (Fock or TensorHilbert)."""

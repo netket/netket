@@ -127,6 +127,10 @@ hilberts["SpinOrbitalFermions (polarized)"] = nkx.hilbert.SpinOrbitalFermions(
 hilberts["ContinuousSpaceHilbert"] = nk.hilbert.Particle(
     N=5, L=(np.inf, 10.0), pbc=(False, True)
 )
+hilberts["TensorContinuous"] = nk.hilbert.Particle(
+    N=2, L=(np.inf, 10.0), pbc=(False, True)
+) * nk.hilbert.Particle(N=3, L=(np.inf, 10.0), pbc=(False, True))
+
 
 N = 10
 hilberts["ContinuousHelium"] = nk.hilbert.Particle(
@@ -508,18 +512,28 @@ def test_no_particles():
 def test_tensor_no_recursion():
     # Issue https://github.com/netket/netket/issues/1101
     hi = nk.hilbert.Fock(3) * nk.hilbert.Spin(0.5, 2, total_sz=0.0)
-    assert isinstance(hi, nk.hilbert.TensorHilbert)
+    assert isinstance(hi, nk.hilbert.TensorDiscreteHilbert)
 
 
 def test_tensor_combination():
     hi1 = Spin(s=1 / 2, N=2) * Spin(s=1, N=2) * Fock(n_max=3, N=1)
     hi2 = Fock(n_max=3, N=1) * Spin(s=1, N=2) * Spin(s=1 / 2, N=2)
     hit = hi1 * hi2
-    assert isinstance(hit, nk.hilbert.TensorHilbert)
+    assert isinstance(hit, nk.hilbert.TensorDiscreteHilbert)
     assert np.allclose(hit.shape, np.hstack([hi1.shape, hi2.shape]))
     assert hit.n_states == hi1.n_states * hi2.n_states
     assert len(hit._hilbert_spaces) == 5
     repr(hit)
+
+    hi3 = nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+    hit2 = hi1 * hi3
+    assert isinstance(hit2, nk.hilbert.TensorHilbert)
+    assert np.allclose(hit2.size, hi1.size + hi3.size)
+    assert len(hit2._hilbert_spaces) == 4
+
+    hit3 = hit * hi3
+    assert isinstance(hit3, nk.hilbert.TensorHilbert)
+    assert len(hit3._hilbert_spaces) == 6
 
 
 def test_constrained_eq_hash():
