@@ -50,7 +50,7 @@ class DiscreteHilbert(AbstractHilbert):
             shape: The local dimension of the Hilbert space for each degree
                 of freedom.
         """
-        self._shape = shape
+        self._shape = tuple(shape)
 
         super().__init__()
 

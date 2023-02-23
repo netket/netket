@@ -13,10 +13,8 @@
 # limitations under the License.
 
 from typing import Optional, List, Union, Iterable, Tuple
-from functools import reduce
 
 import numpy as np
-import jax.numpy as jnp
 
 from .abstract_hilbert import AbstractHilbert
 
@@ -29,18 +27,8 @@ class AbstractTensorHilbert:
     simply multiply different hilbert spaces together. In this case, Python's
     `*` operator will be interpreted as a tensor product.
 
-    This Hilbert can be used as a replacement anywhere a Uniform Hilbert space
-    is not required.
-
-    Examples:
-        Couple a bosonic mode with spins
-
-        >>> from netket.hilbert import Spin, Fock
-        >>> Fock(3)*Spin(0.5, 5)
-        Fock(n_max=3, N=1)⊗Spin(s=1/2, N=5)
-        >>> type(_)
-        <class 'netket.hilbert.tensor_hilbert.TensorHilbert'>
-
+    This is an abstract mixing class that should be inherited from, together
+    with another class that inherits from `AbstractHilbert`.
     """
 
     def __init__(self, hilb_spaces: Iterable[AbstractHilbert], *args, **kwargs):
@@ -58,7 +46,7 @@ class AbstractTensorHilbert:
                 _hilb_spaces_flat.append(hi)
         hilb_spaces = _hilb_spaces_flat
 
-        self._hilbert_spaces = hilb_spaces
+        self._hilbert_spaces = tuple(hilb_spaces)
         self._n_hilbert_spaces = len(hilb_spaces)
         self._hilbert_i = np.concatenate(
             [[i for _ in range(hi.size)] for (i, hi) in enumerate(hilb_spaces)]
@@ -157,14 +145,6 @@ class AbstractTensorHilbert:
 
 
 class TensorHilbert(AbstractTensorHilbert, AbstractHilbert):
-    def __init__(self, *hilb_spaces: AbstractHilbert):
-        r"""Constructs a tensor Hilbert space
-
-        Args:
-            *hilb: An iterable object containing at least 1 hilbert space.
-        """
-        print("init  tensor general")
-
     def __init__(self, *hilb_spaces: AbstractHilbert):
         super().__init__(hilb_spaces)
 

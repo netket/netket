@@ -132,20 +132,20 @@ class AbstractHilbert(abc.ABC):
         return TensorHilbert(other, self)
 
     def _mul_sametype_(self, other: "AbstractHilbert") -> "AbstractHilbert":
-        """This function can be implemented by subclasses to 
+        """This function can be implemented by subclasses to
         specify how to multiply two Hilbert spaces of the same type.
-        
+
         This can be used as an optimization to avoid creating a TensorHilbert
         object when possible, instead returning a new Hilbert space type.
-        
-        If it is not possible to combine the two Hilbert spaces, 
+
+        If it is not possible to combine the two Hilbert spaces,
         it should return NotImplemented.
 
         Args:
             other: other Hilbert space to combine with.
 
         Returns:
-            An Hilbert space combining the two. 
+            An Hilbert space combining the two.
         """
         return NotImplemented
 
