@@ -1,5 +1,3 @@
-
-import jax
 import jax.numpy as jnp
 
 from netket import nn
@@ -10,6 +8,7 @@ from ..mc_state import MCState
 
 class MCPOVMState(MCState):
     def __init__(self, sampler: Sampler, model=None, **kwargs):
+        sampler = sampler.replace(machine_pow=1)
         super().__init__(sampler, model, **kwargs)
 
     def to_array(self, normalize: bool = False) -> jnp.ndarray:
