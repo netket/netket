@@ -25,12 +25,29 @@ def _trash_tuple_elements(t, nums=()):
 
 
 def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False):
-    y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate)
+
+    # we pass a closure to vjp, capturing the nondiff_argnums
+    # this is necessary to avoid errors when using integer arguments
+    # resulting in float0 tangents, which nkvjp tries to conjugate, resulting in an error
+    # If we were to use the standard jax.vjp we could just trash the output at the end...
+
+    diff_args = tuple(a for i, a in enumerate(primals) if i not in nondiff_argnums)
+    nondiff_args = tuple(a for i, a in enumerate(primals) if i in nondiff_argnums)
+
+    def _fun(nondiff_argnums, nondiff_args, *diff_args):
+        n_args = len(nondiff_args) + len(diff_args)
+        it_nondiff = iter(nondiff_args)
+        it_diff = iter(diff_args)
+        args = tuple(
+            next(it_nondiff) if i in nondiff_argnums else next(it_diff)
+            for i in range(n_args)
+        )
+        return fun(*args)
+
+    y, vjp_fun = nkvjp(
+        partial(_fun, nondiff_argnums, nondiff_args), *diff_args, conjugate=conjugate
+    )
     res = vjp_fun(cotangents)
-    # trash non-needed tuple elements  of the output here
-    # since xla is probably not able to optimize it away through the scan/loop if its trashed at the end
-    # TODO pass closure to vjp instead ?
-    res = _trash_tuple_elements(res, nondiff_argnums)
     return (y,) + res
 
 
