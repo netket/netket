@@ -14,14 +14,21 @@
 
 from typing import Optional, List, Union, Iterable, Tuple
 
+from abc import ABC
+
 import numpy as np
 
 from .abstract_hilbert import AbstractHilbert
 
 
-class AbstractTensorHilbert:
+class TensorHilbert(ABC):
     r"""Abstract base class for the tensor product of several sub-spaces,
-    representing the space
+    representing the space.
+
+    This class can also be used to construct the correct type of TensorHilbert
+    subclass given the input types: if all input types are Generic hilbert spaces,
+    `TensorGeneralHilbert` will be constructed, while if they all are `DiscreteHilbert`
+    a `TensorDiscreteHilbert` will be created.
 
     In general you should not construct this object directly, but you should
     simply multiply different hilbert spaces together. In this case, Python's
@@ -30,6 +37,19 @@ class AbstractTensorHilbert:
     This is an abstract mixing class that should be inherited from, together
     with another class that inherits from `AbstractHilbert`.
     """
+
+    def __new__(cls, *args, **kwargs):
+        # This logic overrides the constructor, such that if someone tries to 
+        # construct this class directly by calling `TensorHilbert(...)`
+        # it will construct either a DiscreteHilbert or TensorDiscreteHilbert
+        from .tensor_hilbert_discrete import TensorDiscreteHilbert, DiscreteHilbert
+        if cls is TensorHilbert:
+            if all(isinstance(hi, DiscreteHilbert) for hi in args):
+                cls = TensorDiscreteHilbert
+            else:
+                cls = TensorGenericHilbert
+
+        return super(TensorHilbert, cls).__new__(cls)
 
     def __init__(self, hilb_spaces: Iterable[AbstractHilbert], *args, **kwargs):
         r"""Constructs a tensor Hilbert space.
@@ -40,7 +60,7 @@ class AbstractTensorHilbert:
         # Flatten "TensorHilberts" found inside hilb_spaces
         _hilb_spaces_flat = []
         for hi in hilb_spaces:
-            if isinstance(hi, AbstractTensorHilbert):
+            if isinstance(hi, TensorHilbert):
                 _hilb_spaces_flat.extend(hi.subspaces)
             else:
                 _hilb_spaces_flat.append(hi)
@@ -144,8 +164,12 @@ class AbstractTensorHilbert:
         return _str
 
 
-class TensorHilbert(AbstractTensorHilbert, AbstractHilbert):
+class TensorGenericHilbert(TensorHilbert, AbstractHilbert):
     def __init__(self, *hilb_spaces: AbstractHilbert):
+        if not all(isinstance(hi, AbstractHilbert) for hi in hilb_spaces):
+            raise TypeError("Arguments to TensorHilbert must all be subtypes of "
+                            "AbstractHilbert. However the types are:\n\n"
+                            f"{list(type(hi) for hi in hilb_spaces)}\n")
         super().__init__(hilb_spaces)
 
     def __mul__(self, other):
@@ -166,4 +190,4 @@ class TensorHilbert(AbstractTensorHilbert, AbstractHilbert):
         else:
             spaces_center = (spaces_center,)
 
-        return TensorHilbert(*spaces_l, *spaces_center, *spaces_r)
+        return TensorGenericHilbert(*spaces_l, *spaces_center, *spaces_r)

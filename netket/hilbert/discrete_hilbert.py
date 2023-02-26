@@ -229,9 +229,9 @@ class DiscreteHilbert(AbstractHilbert):
 
             return TensorDiscreteHilbert(self, other)
         elif isinstance(other, AbstractHilbert):
-            from .tensor_hilbert import TensorHilbert
+            from .tensor_hilbert import TensorGenericHilbert
 
-            return TensorHilbert(self, other)
+            return TensorGenericHilbert(self, other)
 
         return NotImplemented
 

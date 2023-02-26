@@ -15,12 +15,12 @@
 import jax
 from jax import numpy as jnp
 
-from netket.hilbert import AbstractTensorHilbert
+from netket.hilbert import TensorHilbert
 from netket.utils.dispatch import dispatch
 
 
 @dispatch
-def random_state(hilb: AbstractTensorHilbert, key, batches: int, *, dtype):
+def random_state(hilb: TensorHilbert, key, batches: int, *, dtype):
     keys = jax.random.split(key, hilb._n_hilbert_spaces)
 
     vs = [
@@ -50,7 +50,7 @@ def _make_subfun(hilb, i, sub_hi):
 
 
 @dispatch
-def flip_state_scalar(hilb: AbstractTensorHilbert, key, state, index):
+def flip_state_scalar(hilb: TensorHilbert, key, state, index):
 
     subfuns = []
     for (i, sub_hi) in enumerate(hilb._hilbert_spaces):

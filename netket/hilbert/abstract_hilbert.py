@@ -110,7 +110,7 @@ class AbstractHilbert(abc.ABC):
         hash of this Hilbert space
         """
 
-    def __mul__(self, other: "AbstractHilbert"):
+    def __mul__(self, other: "AbstractHilbert") -> "AbstractHilbert":
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 
@@ -119,17 +119,17 @@ class AbstractHilbert(abc.ABC):
             if res is not NotImplemented:
                 return res
 
-        from .tensor_hilbert import TensorHilbert
+        from .tensor_hilbert import TensorGenericHilbert
 
-        return TensorHilbert(self, other)
+        return TensorGenericHilbert(self, other)
 
-    def __rmul__(self, other: "AbstractHilbert"):
+    def __rmul__(self, other: "AbstractHilbert") -> "TensorGenericHilbert":
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 
-        from .tensor_hilbert import TensorHilbert
+        from .tensor_hilbert import TensorGenericHilbert
 
-        return TensorHilbert(other, self)
+        return TensorGenericHilbert(other, self)
 
     def _mul_sametype_(self, other: "AbstractHilbert") -> "AbstractHilbert":
         """This function can be implemented by subclasses to
