@@ -47,9 +47,11 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
             *hilb: An iterable object containing at least 1 hilbert space.
         """
         if not all(isinstance(hi, DiscreteHilbert) for hi in hilb_spaces):
-            raise TypeError("Arguments to TensorDiscreteHilbert must all be "
-                            "subtypes of DiscreteHilbert. However the types are:\n\n"
-                            f"{list(type(hi) for hi in hilb_spaces)}\n")
+            raise TypeError(
+                "Arguments to TensorDiscreteHilbert must all be "
+                "subtypes of DiscreteHilbert. However the types are:\n\n"
+                f"{list(type(hi) for hi in hilb_spaces)}\n"
+            )
 
         shape = np.concatenate([hi.shape for hi in hilb_spaces])
 

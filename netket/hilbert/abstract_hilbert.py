@@ -123,7 +123,7 @@ class AbstractHilbert(abc.ABC):
 
         return TensorGenericHilbert(self, other)
 
-    def __rmul__(self, other: "AbstractHilbert") -> "TensorGenericHilbert":
+    def __rmul__(self, other: "AbstractHilbert") -> "AbstractHilbert":
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 

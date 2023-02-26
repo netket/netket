@@ -39,10 +39,11 @@ class TensorHilbert(ABC):
     """
 
     def __new__(cls, *args, **kwargs):
-        # This logic overrides the constructor, such that if someone tries to 
+        # This logic overrides the constructor, such that if someone tries to
         # construct this class directly by calling `TensorHilbert(...)`
         # it will construct either a DiscreteHilbert or TensorDiscreteHilbert
         from .tensor_hilbert_discrete import TensorDiscreteHilbert, DiscreteHilbert
+
         if cls is TensorHilbert:
             if all(isinstance(hi, DiscreteHilbert) for hi in args):
                 cls = TensorDiscreteHilbert
@@ -167,9 +168,11 @@ class TensorHilbert(ABC):
 class TensorGenericHilbert(TensorHilbert, AbstractHilbert):
     def __init__(self, *hilb_spaces: AbstractHilbert):
         if not all(isinstance(hi, AbstractHilbert) for hi in hilb_spaces):
-            raise TypeError("Arguments to TensorHilbert must all be subtypes of "
-                            "AbstractHilbert. However the types are:\n\n"
-                            f"{list(type(hi) for hi in hilb_spaces)}\n")
+            raise TypeError(
+                "Arguments to TensorHilbert must all be subtypes of "
+                "AbstractHilbert. However the types are:\n\n"
+                f"{list(type(hi) for hi in hilb_spaces)}\n"
+            )
         super().__init__(hilb_spaces)
 
     def __mul__(self, other):
