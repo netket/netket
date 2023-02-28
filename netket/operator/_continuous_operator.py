@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import abc
-from typing import Optional, Callable
+from typing import Callable, Hashable, Optional, Tuple
 
 from netket.utils.types import DType, PyTree, Array
 
@@ -74,7 +74,7 @@ class ContinuousOperator(AbstractOperator):
         individual particles."""
 
     @abc.abstractproperty
-    def _attrs(self):
+    def _attrs(self) -> Tuple[Hashable, ...]:
         """This must return a tuple of (hashable) attributes used to compare two operators of
         the same type and that is hashed to compute the hash of the operator.
 
