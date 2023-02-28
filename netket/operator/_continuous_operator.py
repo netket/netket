@@ -38,6 +38,7 @@ class ContinuousOperator(AbstractOperator):
         """
 
         self._dtype = dtype
+        self._hash = None
         super().__init__(hilbert)
 
     @property
@@ -72,6 +73,14 @@ class ContinuousOperator(AbstractOperator):
         For example for the kinetic energy this method would return the masses of the
         individual particles."""
 
+    @abc.abstractproperty
+    def _attrs(self):
+        """This must return a tuple of (hashable) attributes used to compare two operators of
+        the same type and that is hashed to compute the hash of the operator.
+
+        To hash arrays you can return them as `nk.utils.HashableArray`.
+        """
+
     def __add__(self, other):
         if isinstance(self, ContinuousOperator) and isinstance(
             other, ContinuousOperator
@@ -104,3 +113,13 @@ class ContinuousOperator(AbstractOperator):
 
     def __neg__(self):
         return -1.0 * self
+
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash((type(self), self._attrs))
+        return self._hash
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, type(self)):
+            return self._attrs == other._attrs
+        return False

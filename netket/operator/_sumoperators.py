@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Union, List, Optional, Callable
+from typing import Union, List, Optional, Callable, Any, Tuple
 
 from netket.jax.utils import is_scalar
 from netket.utils.types import DType, PyTree, Array
@@ -19,8 +19,16 @@ from netket.utils.types import DType, PyTree, Array
 import functools
 
 from netket.operator import ContinuousOperator
+from netket.utils import struct, HashableArray
 
 import jax.numpy as jnp
+
+
+@struct.dataclass
+class SumOperatorPyTree:
+    ops: Tuple[ContinuousOperator, ...] = struct.field(pytree_node=False)
+    coeffs: Array
+    op_data: Any
 
 
 class SumOperator(ContinuousOperator):
@@ -57,7 +65,7 @@ class SumOperator(ContinuousOperator):
         new_coeffs = []
         for op, c in zip(operators, coefficients):
             if isinstance(op, SumOperator):
-                new_operators = new_operators + op._ops
+                new_operators = new_operators + list(op._ops)
                 new_coeffs = new_coeffs + list(c * op._coeff)
             else:
                 new_operators.append(op)
@@ -66,7 +74,7 @@ class SumOperator(ContinuousOperator):
         operators = new_operators
         coefficients = jnp.asarray(new_coeffs, dtype=dtype)
 
-        self._ops = operators
+        self._ops = tuple(operators)
         self._coeff = coefficients
 
         if dtype is None:
@@ -76,25 +84,49 @@ class SumOperator(ContinuousOperator):
         super().__init__(hil[0], dtype)
 
         self._is_hermitian = all([op.is_hermitian for op in operators])
+        self._hash = None
+        self.__attrs = None
 
     @property
     def is_hermitian(self):
         return self._is_hermitian
 
+    @property
+    def operators(self):
+        return self._ops
+
+    @property
+    def coefficients(self):
+        return self._coeff
+
+    @staticmethod
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+        logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
     ):
-        term_coefficients, term_datas = data
         result = [
-            term_coefficients[i] * op._expect_kernel(logpsi, params, x, term_datas[i])
-            for i, op in enumerate(self._ops)
+            data.coeffs[i] * op._expect_kernel(logpsi, params, x, op_data)
+            for i, (op, op_data) in enumerate(zip(data.ops, data.op_data))
         ]
 
         return sum(result)
 
     def _pack_arguments(self):
+        return SumOperatorPyTree(
+            self._ops, self._coeff, tuple(op._pack_arguments() for op in self._ops)
+        )
 
-        return self._coeff, [op._pack_arguments() for op in self._ops]
+    @property
+    def _attrs(self):
+        if self.__attrs is None:
+            self.__attrs = (
+                self.hilbert,
+                self._ops,
+                self.dtype,
+                HashableArray(self._coeff),
+            )
+        return self.__attrs
 
     def __repr__(self):
-        return f"SumOperator(coefficients={self._coeff})"
+        return (
+            f"SumOperator(operators={self.operators}, coefficients={self.coefficients})"
+        )
