@@ -50,7 +50,7 @@ class DiscreteHilbert(AbstractHilbert):
             shape: The local dimension of the Hilbert space for each degree
                 of freedom.
         """
-        self._shape = shape
+        self._shape = tuple(shape)
 
         super().__init__()
 
@@ -224,9 +224,16 @@ class DiscreteHilbert(AbstractHilbert):
             if res is not NotImplemented:
                 return res
 
-        from .tensor_hilbert import TensorHilbert
+        if isinstance(other, DiscreteHilbert):
+            from .tensor_hilbert_discrete import TensorDiscreteHilbert
 
-        return TensorHilbert(self, other)
+            return TensorDiscreteHilbert(self, other)
+        elif isinstance(other, AbstractHilbert):
+            from .tensor_hilbert import TensorGenericHilbert
+
+            return TensorGenericHilbert(self, other)
+
+        return NotImplemented
 
     def __pow__(self, n):
         return reduce(lambda x, y: x * y, [self for _ in range(n)])

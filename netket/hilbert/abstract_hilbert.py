@@ -110,6 +110,45 @@ class AbstractHilbert(abc.ABC):
         hash of this Hilbert space
         """
 
+    def __mul__(self, other: "AbstractHilbert") -> "AbstractHilbert":
+        if not isinstance(other, AbstractHilbert):
+            return NotImplemented
+
+        if type(self) == type(other):
+            res = self._mul_sametype_(other)
+            if res is not NotImplemented:
+                return res
+
+        from .tensor_hilbert import TensorGenericHilbert
+
+        return TensorGenericHilbert(self, other)
+
+    def __rmul__(self, other: "AbstractHilbert") -> "AbstractHilbert":
+        if not isinstance(other, AbstractHilbert):
+            return NotImplemented
+
+        from .tensor_hilbert import TensorGenericHilbert
+
+        return TensorGenericHilbert(other, self)
+
+    def _mul_sametype_(self, other: "AbstractHilbert") -> "AbstractHilbert":
+        """This function can be implemented by subclasses to
+        specify how to multiply two Hilbert spaces of the same type.
+
+        This can be used as an optimization to avoid creating a TensorHilbert
+        object when possible, instead returning a new Hilbert space type.
+
+        If it is not possible to combine the two Hilbert spaces,
+        it should return NotImplemented.
+
+        Args:
+            other: other Hilbert space to combine with.
+
+        Returns:
+            An Hilbert space combining the two.
+        """
+        return NotImplemented
+
     def __eq__(self, other) -> bool:
         if isinstance(other, type(self)):
             return self._attrs == other._attrs

@@ -127,6 +127,10 @@ hilberts["SpinOrbitalFermions (polarized)"] = nkx.hilbert.SpinOrbitalFermions(
 hilberts["ContinuousSpaceHilbert"] = nk.hilbert.Particle(
     N=5, L=(np.inf, 10.0), pbc=(False, True)
 )
+hilberts["TensorContinuous"] = nk.hilbert.Particle(
+    N=2, L=(np.inf, 10.0), pbc=(False, True)
+) * nk.hilbert.Particle(N=3, L=(np.inf, 10.0), pbc=(False, True))
+
 
 N = 10
 hilberts["ContinuousHelium"] = nk.hilbert.Particle(
@@ -516,10 +520,92 @@ def test_tensor_combination():
     hi2 = Fock(n_max=3, N=1) * Spin(s=1, N=2) * Spin(s=1 / 2, N=2)
     hit = hi1 * hi2
     assert isinstance(hit, nk.hilbert.TensorHilbert)
+    assert isinstance(hit, nk.hilbert._tensor_hilbert_discrete.TensorDiscreteHilbert)
     assert np.allclose(hit.shape, np.hstack([hi1.shape, hi2.shape]))
     assert hit.n_states == hi1.n_states * hi2.n_states
     assert len(hit._hilbert_spaces) == 5
-    repr(hit)
+    assert isinstance(repr(hit), str)
+
+    hi3 = nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+    hit2 = hi1 * hi3
+    assert isinstance(hit2, nk.hilbert.TensorHilbert)
+    assert np.allclose(hit2.size, hi1.size + hi3.size)
+    assert len(hit2._hilbert_spaces) == 4
+    assert isinstance(repr(hit2), str)
+    assert hit2 == nk.hilbert.TensorHilbert(hi1, hi3)
+
+    hit3 = hit * hi3
+    assert isinstance(hit3, nk.hilbert.TensorHilbert)
+    assert len(hit3._hilbert_spaces) == 6
+    assert isinstance(repr(hit3), str)
+    assert hit3 == nk.hilbert.TensorHilbert(hit, hi3)
+
+    hit3 = Spin(s=1 / 2, N=2) * hi3
+    assert isinstance(hit3, nk.hilbert.TensorHilbert)
+    assert len(hit3._hilbert_spaces) == 2
+    assert isinstance(repr(hit3), str)
+    assert hit3 == nk.hilbert.TensorHilbert(Spin(s=1 / 2, N=2), hi3)
+
+    hit3 = Spin(s=1 / 2, N=2) * nk.hilbert.TensorHilbert(hi3)
+    assert isinstance(hit3, nk.hilbert.TensorHilbert)
+    assert len(hit3._hilbert_spaces) == 2
+    assert isinstance(repr(hit3), str)
+    assert hit3 == nk.hilbert.TensorHilbert(Spin(s=1 / 2, N=2), hi3)
+
+    hit3 = nk.hilbert.TensorHilbert(hi3) * nk.hilbert.TensorHilbert(hi3)
+    assert isinstance(hit3, nk.hilbert.TensorHilbert)
+    assert len(hit3._hilbert_spaces) == 2
+    assert isinstance(repr(hit3), str)
+    assert hit3 == nk.hilbert.TensorHilbert(hi3, hi3)
+
+    hit = hi3 * hi3
+    assert isinstance(hit, nk.hilbert.TensorHilbert)
+    assert len(hit._hilbert_spaces) == 2
+    assert isinstance(repr(hit), str)
+    assert hit == nk.hilbert.TensorHilbert(hi3, hi3)
+
+    hit = (hi3 * hi3) * hi3
+    assert isinstance(hit, nk.hilbert.TensorHilbert)
+    assert len(hit._hilbert_spaces) == 3
+    assert isinstance(repr(hit), str)
+    assert hit == nk.hilbert.TensorHilbert(hi3 * hi3, hi3)
+
+    hit = hi3 * (hi3 * hi3)
+    assert isinstance(hit, nk.hilbert.TensorHilbert)
+    assert len(hit._hilbert_spaces) == 3
+    assert isinstance(repr(hit), str)
+    assert hit == nk.hilbert.TensorHilbert(hi3, hi3 * hi3)
+
+    hit = nk.hilbert.TensorHilbert(Spin(s=1 / 2, N=2))
+    assert isinstance(hit, nk.hilbert._tensor_hilbert_discrete.TensorDiscreteHilbert)
+    assert len(hit._hilbert_spaces) == 1
+    assert isinstance(repr(hit), str)
+
+    hit = nk.hilbert.TensorHilbert(
+        nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+    )
+    assert isinstance(hit, nk.hilbert._tensor_hilbert.TensorGenericHilbert)
+    assert len(hit._hilbert_spaces) == 1
+    assert isinstance(repr(hit), str)
+
+
+def test_errors():
+    hi = Spin(s=1 / 2, N=2)
+    with pytest.raises(TypeError):
+        1 * hi
+    with pytest.raises(TypeError):
+        hi * 1
+
+    hi = nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+    with pytest.raises(TypeError):
+        1 * hi
+    with pytest.raises(TypeError):
+        hi * 1
+
+
+def test_pow():
+    hi = Spin(s=1 / 2, N=2)
+    assert hi**5 == Spin(1 / 2, N=10)
 
 
 def test_constrained_eq_hash():

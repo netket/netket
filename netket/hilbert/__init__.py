@@ -26,7 +26,7 @@ from .qubit import Qubit
 from .particle import Particle
 
 from .tensor_hilbert import TensorHilbert
-
+from . import tensor_hilbert_discrete
 
 from netket.utils import _hide_submodules
 
