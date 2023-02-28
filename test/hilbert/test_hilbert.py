@@ -588,8 +588,9 @@ def test_tensor_combination():
     assert len(hit._hilbert_spaces) == 1
     assert isinstance(repr(hit), str)
 
+
 def test_errors():
-    hi = Spin(s=1 / 2, N=2) 
+    hi = Spin(s=1 / 2, N=2)
     with pytest.raises(TypeError):
         1 * hi
     with pytest.raises(TypeError):
@@ -601,9 +602,11 @@ def test_errors():
     with pytest.raises(TypeError):
         hi * 1
 
+
 def test_pow():
-    hi = Spin(s=1 / 2, N=2) 
-    assert hi**5 == Spin(1/2, N=10)
+    hi = Spin(s=1 / 2, N=2)
+    assert hi**5 == Spin(1 / 2, N=10)
+
 
 def test_constrained_eq_hash():
     hi1 = nk.hilbert.Spin(0.5, 4, total_sz=0)
