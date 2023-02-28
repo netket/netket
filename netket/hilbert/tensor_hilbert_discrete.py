@@ -32,11 +32,15 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
     Examples:
         Couple a bosonic mode with spins
 
+        >>> import netket as nk
         >>> from netket.hilbert import Spin, Fock
-        >>> Fock(3)*Spin(0.5, 5)
+        >>> hi = Fock(3)*Spin(0.5, 5)
+        >>> print(hi)
         Fock(n_max=3, N=1)⊗Spin(s=1/2, N=5)
-        >>> type(_)
-        <class 'netket.hilbert.tensor_hilbert.TensorHilbert'>
+        >>> isinstance(hi, nk.hilbert.TensorHilbert)
+        True
+        >>> type(hi)
+        <class 'netket.hilbert.tensor_hilbert_discrete.TensorDiscreteHilbert'>
 
     """
 
