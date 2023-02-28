@@ -73,9 +73,7 @@ class SumOperator(ContinuousOperator):
             dtype = functools.reduce(
                 lambda dt, op: jnp.promote_types(dt, op.dtype), operators, float
             )
-        self._dtype = dtype
-
-        super().__init__(hil[0], self._dtype)
+        super().__init__(hil[0], dtype)
 
         self._is_hermitian = all([op.is_hermitian for op in operators])
 
