@@ -540,6 +540,24 @@ def test_tensor_combination():
     assert isinstance(repr(hit3), str)
     assert hit3 == nk.hilbert.TensorHilbert(hit, hi3)
 
+    hit3 = Spin(s=1 / 2, N=2) * hi3
+    assert isinstance(hit3, nk.hilbert.TensorHilbert)
+    assert len(hit3._hilbert_spaces) == 2
+    assert isinstance(repr(hit3), str)
+    assert hit3 == nk.hilbert.TensorHilbert(Spin(s=1 / 2, N=2), hi3)
+
+    hit3 = Spin(s=1 / 2, N=2) * nk.hilbert.TensorHilbert(hi3)
+    assert isinstance(hit3, nk.hilbert.TensorHilbert)
+    assert len(hit3._hilbert_spaces) == 2
+    assert isinstance(repr(hit3), str)
+    assert hit3 == nk.hilbert.TensorHilbert(Spin(s=1 / 2, N=2), hi3)
+
+    hit3 = nk.hilbert.TensorHilbert(hi3) * nk.hilbert.TensorHilbert(hi3)
+    assert isinstance(hit3, nk.hilbert.TensorHilbert)
+    assert len(hit3._hilbert_spaces) == 2
+    assert isinstance(repr(hit3), str)
+    assert hit3 == nk.hilbert.TensorHilbert(hi3, hi3)
+
     hit = hi3 * hi3
     assert isinstance(hit, nk.hilbert.TensorHilbert)
     assert len(hit._hilbert_spaces) == 2
@@ -570,6 +588,22 @@ def test_tensor_combination():
     assert len(hit._hilbert_spaces) == 1
     assert isinstance(repr(hit), str)
 
+def test_errors():
+    hi = Spin(s=1 / 2, N=2) 
+    with pytest.raises(TypeError):
+        1 * hi
+    with pytest.raises(TypeError):
+        hi * 1
+
+    hi = nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+    with pytest.raises(TypeError):
+        1 * hi
+    with pytest.raises(TypeError):
+        hi * 1
+
+def test_pow():
+    hi = Spin(s=1 / 2, N=2) 
+    assert hi**5 == Spin(1/2, N=10)
 
 def test_constrained_eq_hash():
     hi1 = nk.hilbert.Spin(0.5, 4, total_sz=0)
