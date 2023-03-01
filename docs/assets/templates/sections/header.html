@@ -1,53 +1,49 @@
-
-<!-- NAVBAR From boostrap 4.5 and old netket -->
-  <nav class="navbar navbar-custom navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-custom navbar-top navbar-expand-md fixed-top bd-navbar flex-md navbar-dark bg-light">
     <div class="container container-navbar">
-      <a class="navbar-brand navbar-custom-brand" href="{{ pathto(*navbar_link) }}">
+        <a class="navbar-brand navbar-custom-brand" href="{{ pathto(*navbar_link) }}">
         {%- block sidebarlogo %}
           {%- if navbar_logo %}
-            <img src="{{ pathto('_static/' + navbar_logo, 1) }}" width="50" height="50" class="navbar-brand-logo d-inline-block align-center" alt="" loading="lazy">
+          <img class="navbar-brand-logo d-inline-block align-center" src="{{ pathto('_static/' + navbar_logo, 1) }}" loading="lazy">
           {%- endif %}
         {%- endblock %}
-        <div class="navbar-brand-text d-inline-block align-center">
+          <div class="navbar-brand-text d-inline-block align-center">
         {% if navbar_title -%}{{ navbar_title|e }}{%- else -%}{{ project|e }}{%- endif -%}
+          </div>
+        </a>
+
+        <!-- Button showing on small screens to show the navbar content -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <!-- /Button showing on small screens to show the navbar content -->
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              {% if navbar_links %}
+                {%- for link in navbar_links %}
+                  <li class="nav-item mx-auto">
+                    <a class="nav-link" href="{{ pathto(*link[1:]) }}">{{ link[0] }}</a>
+                  </li>
+                {%- endfor %}
+              {% endif %}
+            </ul>
+            <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
+              {% if navbar_links_right %}
+                {%- for link in navbar_links_right %}
+                  <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="{{ pathto(*link[1:]) }}">{{ link[0] }}</a>
+                  </li>
+                {%- endfor %}
+              {% endif %}
+              {% if navbar_download_button %}
+
+                <!-- Download button -->
+                <li class="nav-item">
+                    <a class="btn btn-bd-download d-none d-lg-inline-block mb-3 mb-md-0 ms-md-3" href="{{ pathto(*navbar_download_button[1:]) }}">{{ navbar_download_button[0] }}</a>
+                </li>
+              {% endif %}
+
+            </ul>
         </div>
-      </a>
-      <span class="navbar-text navbar-version pull-left"><b>{{ version|e }}</b></span>
-
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <!-- Active class kept here for posterity
-          <li class="nav-item active">
-            <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
-          </li>
-          -->
-          {% if navbar_links %}
-            {%- for link in navbar_links %}
-              <li class="nav-item">
-                <a class="nav-link" href="{{ pathto(*link[1:]) }}">{{ link[0] }}</a>
-              </li>
-            {%- endfor %}
-          {% endif %}
-        </ul>
-        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
-          {% if navbar_links_right %}
-            {%- for link in navbar_links_right %}
-              <li class="nav-item">
-                <a class="nav-link" href="{{ pathto(*link[1:]) }}">{{ link[0] }}</a>
-              </li>
-            {%- endfor %}
-          {% endif %}
-          {% if navbar_download_button %}
-            <li class="nav-item">
-              <a class="btn btn-bd-download d-none d-lg-inline-block mb-3 mb-md-0 ms-md-3" href="{{ pathto(*navbar_download_button[1:]) }}">{{ navbar_download_button[0] }}</a>
-            </li>
-          {% endif %}
-        </ul>
-      </div>
     </div>
-  </nav>
-<!-- /end NAVBAR From boostrap 4.5 and old netket -->
+</nav>
