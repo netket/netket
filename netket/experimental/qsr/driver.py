@@ -308,7 +308,7 @@ class QSR(AbstractVariationalDriver):
         Args:
             return_stats: if True, return the statistics.
 
-        .. warn::
+        .. warning::
 
             Exponentially expensive in the hilbert space size!
 
@@ -348,7 +348,7 @@ class QSR(AbstractVariationalDriver):
         Args:
             return_stats: if True, return the statistics.
 
-        .. warn::
+        .. warning::
 
             Exponentially expensive in the hilbert space size!
         """
@@ -412,7 +412,7 @@ class QSR(AbstractVariationalDriver):
             n_shots: number of shots per measurement basis.
             no_cache: if True, do not use the cached value.
 
-        .. warn::
+        .. warning::
 
             Exponentially expensive in the hilbert space size!
 
@@ -444,7 +444,7 @@ class QSR(AbstractVariationalDriver):
             target_state: the target state.
             n_shots: number of shots per measurement basis.
 
-        .. warn::
+        .. warning::
 
             Exponentially expensive in the hilbert space size!
 
@@ -465,7 +465,7 @@ class QSR(AbstractVariationalDriver):
             target_state: the target state.
             n_shots: number of shots per measurement basis.
 
-        .. warn::
+        .. warning::
 
             Exponentially expensive in the hilbert space size!
 
@@ -487,7 +487,7 @@ class QSR(AbstractVariationalDriver):
             target_state: the target state.
             n_shots: number of shots per measurement basis.
 
-        .. warn::
+        .. warning::
 
             Exponentially expensive in the hilbert space size!
 
