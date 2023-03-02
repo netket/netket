@@ -22,7 +22,7 @@
               {% if navbar_links %}
                 {%- for link in navbar_links %}
                   <li class="nav-item mx-auto">
-                    <a class="nav-link" href="{{ pathto(*link[1:]) }}">{{ link[0] }}</a>
+                    <a class="nav-link nav-link-custom" href="{{ pathto(*link[1:]) }}">{{ link[0] }}</a>
                   </li>
                 {%- endfor %}
               {% endif %}
@@ -31,7 +31,7 @@
               {% if navbar_links_right %}
                 {%- for link in navbar_links_right %}
                   <li class="nav-item">
-                    <a class="nav-link" aria-current="page" href="{{ pathto(*link[1:]) }}">{{ link[0] }}</a>
+                    <a class="nav-link nav-link-custom" aria-current="page" href="{{ pathto(*link[1:]) }}">{{ link[0] }}</a>
                   </li>
                 {%- endfor %}
               {% endif %}
@@ -39,7 +39,7 @@
 
                 <!-- Download button -->
                 <li class="nav-item">
-                    <a class="btn btn-bd-download d-none d-lg-inline-block mb-3 mb-md-0 ms-md-3" href="{{ pathto(*navbar_download_button[1:]) }}">{{ navbar_download_button[0] }}</a>
+                    <a class="btn btn-bd-download btn-custom d-none d-lg-inline-block mb-3 mb-md-0 ms-md-3" href="{{ pathto(*navbar_download_button[1:]) }}">{{ navbar_download_button[0] }}</a>
                 </li>
               {% endif %}
 

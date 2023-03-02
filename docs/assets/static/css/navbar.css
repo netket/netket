@@ -77,6 +77,18 @@ img.navbar-brand-logo {
   z-index: 9999;
 }
 
+.navbar-custom-brand {
+  display: block !important;
+}
+
+.nav-link-custom {
+  color: rgba(255,255,255,.55) !important;
+}
+
+.btn-custom {
+  color: rgb(255, 228, 132) !important;
+}
+
 .sticky-top {
   z-index: 9999;
 }
