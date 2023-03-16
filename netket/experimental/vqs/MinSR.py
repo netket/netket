@@ -194,6 +194,8 @@ def grad_MinSR(
     grad_mean: PyTree,
 ) -> Tuple[PyTree, PyTree]:
 
+    n_samples = len(σ)
+    
     NTK = jnp.linalg.pinv(NTK, rcond=r_cond, hermitian=True)
 
     elocs = jnp.matmul(NTK, elocs)
