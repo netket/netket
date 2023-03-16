@@ -162,17 +162,21 @@ def compute_NTK(
     NTK = jnp.zeros([n_samples, n_samples], dtype="complex")
 
     for i in range(n_samples // jcs):
-        for j in range(n_samples // jcs):
-            NTK = NTK.at[i * jcs : (i + 1) * jcs, j * jcs : (j + 1) * jcs].set(
-                NeuralTangentKernel(
+        for j in range(i+1):
+            ntk_local = NeuralTangentKernel(
                     model_apply_fun,
                     parameters,
                     grad_mean,
                     σ[i * jcs : (i + 1) * jcs],
                     σ[j * jcs : (j + 1) * jcs],
                     "complex",
-                )
             )
+
+
+            NTK = NTK.at[i * jcs : (i + 1) * jcs, j * jcs : (j + 1) * jcs].set(ntk_local)
+
+            if not i == j:
+                NTK = NTK.at[j * jcs : (j + 1) * jcs, i * jcs : (i + 1) * jcs].set(ntk_local.T.conj())
 
     return NTK / n_samples
 
