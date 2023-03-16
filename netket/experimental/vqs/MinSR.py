@@ -145,7 +145,7 @@ def expect_MinSR(
         jnp.ones_like(O_loc),
     )[0]
 
-    return Ō, O_loc / n_samples, grad_mean
+    return Ō, O_loc / n_samples**0.5, grad_mean
 
 
 def compute_NTK(
@@ -199,7 +199,7 @@ def grad_MinSR(
     elocs = jnp.matmul(NTK, elocs)
 
     def forward(w, σ):
-        out = model_apply_fun({"params": w, **model_state}, σ)
+        out = model_apply_fun({"params": w, **model_state}, σ)/n_samples**0.5
 
         return out
 
