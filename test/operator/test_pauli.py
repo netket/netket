@@ -355,3 +355,30 @@ def test_pauliY_dtype():
 def test_pauli_empty_constructor_error():
     with pytest.raises(ValueError, match=r".*the hilbert space must be specified.*"):
         nk.operator.PauliStrings([])
+
+
+operators_to_test = [
+    pytest.param(nk.operator.PauliStrings("X", dtype=np.float32), id="X"),
+    pytest.param(nk.operator.PauliStrings("Z", dtype=np.complex64), id="Z_complex"),
+    pytest.param(nk.operator.PauliStrings("Y", dtype=np.complex64), id="Y"),
+    pytest.param(nk.operator.PauliStrings("X", [1j], dtype=np.complex64), id="X_1j"),
+]
+
+
+@pytest.mark.parametrize("b", operators_to_test)
+@pytest.mark.parametrize("a", operators_to_test)
+def test_pauli_inplace(a, b):
+    if a.dtype == np.float32 and b.dtype == np.complex64:
+        with pytest.raises(TypeError):
+            a += b
+    else:
+        a1 = a.copy()
+        a1 += b
+        assert a1.dtype == a.dtype
+        np.testing.assert_allclose(a1.to_dense(), (a + b).to_dense())
+
+    # Currently DiscreteOperator does not implement __imatmul__,
+    # so imatmul will call __matmul__ and may change dtype
+    a1 = a.copy()
+    a1 @= b
+    np.testing.assert_allclose(a1.to_dense(), (a @ b).to_dense())

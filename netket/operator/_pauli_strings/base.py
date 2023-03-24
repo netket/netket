@@ -584,7 +584,7 @@ def _matmul(op_arr1, w_arr1, op_arr2, w_arr2, *, dtype):
         weights.append(w)
     # so here we recast to the desired dtype
     operators, weights = np.array(operators), np.array(weights)
-    # explicit real part ot avoid warning
+    # explicit real part to avoid warning
     if not nkjax.is_complex_dtype(dtype):
         weights = weights.real
     weights = weights.astype(dtype)
