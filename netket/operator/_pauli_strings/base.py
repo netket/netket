@@ -100,8 +100,9 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
         )
 
     weights = _standardize_matrix_input_type(weights)
-
     operators = np.asarray(operators, dtype=str)
+
+    operators, weights = _reduce_pauli_string(operators, weights)
 
     # When there is an odd number of 'Y' in any string, the whole operator must be complex
     op_is_complex = any(s.count("Y") % 2 == 1 for s in operators)
