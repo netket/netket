@@ -80,6 +80,7 @@ class BoseHubbard(SpecialHamiltonian):
             dtype = jnp.promote_types(_dtype(U), _dtype(V))
             dtype = jnp.promote_types(dtype, _dtype(J))
             dtype = jnp.promote_types(dtype, _dtype(mu))
+        dtype = jnp.promote_types(float, dtype)
         dtype = np.empty((), dtype=dtype).dtype
         self._dtype = dtype
 
