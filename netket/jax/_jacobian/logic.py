@@ -48,7 +48,7 @@ def jacobian(
 ) -> PyTree:
     r"""
     Computes the jacobian of a NN model with respect to its parameters. This function differs from
-    :ref:`jax.jac_bwd` because it supports models with both real and complex parameters, as well as
+    :ref:`jax.jacrev` because it supports models with both real and complex parameters, as well as
     non-holomorphic models.
 
     In the context of NQS, if you pass the log-wavefunction to to this function, it will compute the

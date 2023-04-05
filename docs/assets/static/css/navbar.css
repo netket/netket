@@ -44,6 +44,9 @@ It's probably a bad idea.
 
 .navbar {
     background-color: #2c3e50 !important;
+    padding-top: .5rem;
+    padding-bottom: .25rem;
+
 }
 
 .navbar-brand {
@@ -54,6 +57,7 @@ It's probably a bad idea.
 
 .navbar-brand {
     color: white !important;
+    margin-right: 1rem;
 }
 
 .navbar-brand-text {
@@ -73,8 +77,21 @@ img.navbar-brand-logo {
 
 .navbar-custom {
   position: static;
+  width:100%;
   background-color: #2c3e50  !important;
   z-index: 9999;
+}
+
+.navbar-custom-brand {
+  display: block !important;
+}
+
+.nav-link-custom {
+  color: rgba(255,255,255,.55) !important;
+}
+
+.btn-custom {
+  color: rgb(255, 228, 132) !important;
 }
 
 .sticky-top {
