@@ -8,7 +8,7 @@
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/netket/badges/version.svg)](https://anaconda.org/conda-forge/netket)
 [![Paper (v3)](https://img.shields.io/badge/paper%20%28v3%29-arXiv%3A2112.10526-B31B1B)](https://scipost.org/SciPostPhysCodeb.7/pdf)
 [![codecov](https://codecov.io/gh/netket/netket/branch/master/graph/badge.svg?token=gzcOlpO5lB)](https://codecov.io/gh/netket/netket)
-[![Slack](https://img.shields.io/badge/slack-chat-green.svg)](https://join.slack.com/t/mlquantum/shared_invite/zt-19wibmfdv-LLRI6i43wrLev6oQX0OfOw) 
+[![Slack](https://img.shields.io/badge/slack-chat-green.svg)](https://join.slack.com/t/mlquantum/shared_invite/zt-19wibmfdv-LLRI6i43wrLev6oQX0OfOw)
 
 NetKet is an open-source project delivering cutting-edge methods for the study
 of many-body quantum systems with artificial neural networks and machine learning techniques.
@@ -78,12 +78,12 @@ True
 
 We suggest to use Windows Subsystem for Linux (WSL), on which you can install NetKet following the same instructions as above, and CUDA and MPI work as intended.
 
-However, if you just want to quickly get started with NetKet, it is also possible to install it natively on Windows. First, download an unofficial `jaxlib` wheel from [cloudhan/jax-windows-builder](https://github.com/cloudhan/jax-windows-builder):
+However, if you just want to quickly get started with NetKet, it is also possible to install it natively on Windows. First, download an unofficial build of `jax` from [cloudhan/jax-windows-builder](https://github.com/cloudhan/jax-windows-builder):
 ```sh
 pip install --upgrade pip
-pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
+pip install "jax[cpu]===0.3.25" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
 ```
-Alternatively, you may specify a wheel version with CUDA support.
+Alternatively, you may specify a version with CUDA support.
 
 Then install NetKet as usual:
 ```sh
