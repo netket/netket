@@ -9,6 +9,9 @@ h1 {
   display: block !important;
 }
 
+.bd-article> section >h1 {
+  word-wrap: break-word;
+}
 
 .py.function {
   border-style: groove;
