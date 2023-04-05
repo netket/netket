@@ -119,7 +119,6 @@ html_title = "NetKet"
 html_logo = "assets/static/logo_transparent.png"
 
 html_theme_options = {
-    #"logo_only": True,
     "home_page_in_toc": False,
     "show_navbar_depth": 1,
     "show_toc_level": 3,
@@ -128,7 +127,6 @@ html_theme_options = {
     "use_issues_button": True,
     "path_to_docs": "docs",
     "launch_buttons": {"colab_url": "https://colab.research.google.com"},
-    #"extra_navbar": "",
 }
 
 html_context = {
