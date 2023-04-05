@@ -100,14 +100,14 @@ class DiscreteOperator(AbstractOperator):
         that the matrix element :math:`O(x,x')` is different from zero. In general there
         will be several different connected states x' satisfying this
         condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
-        
+
         Args:
             x: An array of shape `(hilbert.size, )` containing the quantum numbers x.
-        
+
         Returns:
             matrix: The connected states x' of shape (N_connected,hilbert.size)
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-        
+
         Raise:
             ValueError: If the given quantum number is not compatible with the hilbert space.
         """
