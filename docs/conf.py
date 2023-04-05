@@ -116,7 +116,7 @@ intersphinx_mapping = {
 # (Optional) Logo. Should be small enough to fit the navbar (ideally 24x24).
 # Path should be relative to the ``_static`` files directory.
 html_title = "NetKet"
-html_logo = "assets/static/logo_simple.jpg"
+html_logo = "assets/static/logo_transparent.png"
 
 html_theme_options = {
     #"logo_only": True,
