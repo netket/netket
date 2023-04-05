@@ -271,6 +271,13 @@ def test_to_local_operator(op):
     np.testing.assert_allclose(op.to_dense(), op_l.to_dense(), atol=1e-13)
 
 
+def test_enforce_float_BoseHubbard():
+    g = nk.graph.Hypercube(5, 1)
+    hi = nk.hilbert.Fock(N=g.n_nodes, n_particles=3)
+    op = nk.operator.BoseHubbard(hilbert=hi, graph=g, J=1, U=2, V=3, mu=4)
+    assert np.issubdtype(op.dtype, np.floating)
+
+
 def test_no_segfault():
     g = nk.graph.Hypercube(8, 1)
     hi = nk.hilbert.Spin(0.5, N=g.n_nodes)
