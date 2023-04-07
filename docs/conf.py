@@ -1,8 +1,13 @@
 # -- Set env variables to correctly detect sphinx in NetKet
 import os
+import sys
+import pathlib
 
 os.environ["NETKET_SPHINX_BUILD"] = "1"
 import netket as nk
+
+# add the folder with sphinx extensions
+sys.path.append(str(pathlib.PosixPath(os.getcwd())/"sphinx_extensions"))
 
 # -- Project information -----------------------------------------------------
 
@@ -19,6 +24,8 @@ release = nk.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    #"myst_parser",
+    "myst_nb",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
@@ -28,9 +35,8 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
-    "myst_nb",
     "sphinx.ext.graphviz",
-    "btd.sphinx.inheritance_diagram",  # this is a custom patched version because of bug sphinx#2484
+    "custom_inheritance_diagram.inheritance_diagram",  # this is a custom patched version because of bug sphinx#2484
 ]
 
 # inheritance_graph_attrs = dict(rankdir="TB", size='""')
