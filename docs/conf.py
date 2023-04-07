@@ -7,7 +7,7 @@ os.environ["NETKET_SPHINX_BUILD"] = "1"
 import netket as nk
 
 # add the folder with sphinx extensions
-sys.path.append(str(pathlib.PosixPath(os.getcwd())/"sphinx_extensions"))
+sys.path.append(str(pathlib.PosixPath(os.getcwd()) / "sphinx_extensions"))
 
 # -- Project information -----------------------------------------------------
 
@@ -24,7 +24,7 @@ release = nk.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    #"myst_parser",
+    # "myst_parser",
     "myst_nb",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
