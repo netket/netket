@@ -70,6 +70,17 @@ dev = [
     "wheel",
     "build",
 ]
+docs = [
+    "Sphinx~=5.3.0",
+    "sphinx-autodoc-typehints~=1.22",
+    "sphinxcontrib-fulltoc~=1.2.0",
+    "sphinxcontrib-jsmath~=1.0.1",
+    "sphinxcontrib-napoleon==0.7",
+    "myst-parser~=0.18.1",
+    "nbsphinx~=0.9.1",
+    "myst-nb~=0.17.1",
+    "sphinx-book-theme~=1.0.1",
+]
 
 [project.urls]
  homepage = "https://www.netket.org"

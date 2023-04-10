@@ -17,6 +17,7 @@ pip-wheel-metadata
 .ipynb_checkpoints
 .pytest_cache
 .mypy_cache
+.virtual_documents
 oldest_requirements.txt
 
 # Packages #
