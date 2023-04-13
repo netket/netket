@@ -79,15 +79,18 @@ def test_potential_energy():
 
 
 def test_kinetic_energy():
-    x = jnp.array([[1, 2, 3], [1, 2, 3]], dtype=float)
-    energy1 = kin1._expect_kernel(model2, 0.0, x, kin1._pack_arguments())
-    energy2 = kin1._expect_kernel(model3, 1.0 + 1.0j, x, kin1._pack_arguments())
-    kinen1 = kinexact(x) / kin1.mass
-    kinen2 = kinexact2(1.0 + 1.0j, x) / kin1.mass
-    np.testing.assert_allclose(energy1, kinen1)
-    np.testing.assert_allclose(energy2, kinen2)
-    np.testing.assert_allclose(kin1.mass * kin1._pack_arguments(), 1.0)
-    np.testing.assert_equal("KineticEnergy(m=20.0)", repr(kin1))
+    for dtype in (jnp.float32, jnp.float64):
+        x = jnp.array([[1, 2, 3], [1, 2, 3]], dtype=dtype)
+        energy1 = kin1._expect_kernel(model2, 0.0, x, kin1._pack_arguments())
+        assert energy1.dtype == dtype
+        # dtype changes here
+        energy2 = kin1._expect_kernel(model3, 1.0 + 1.0j, x, kin1._pack_arguments())
+        kinen1 = kinexact(x) / kin1.mass
+        kinen2 = kinexact2(1.0 + 1.0j, x) / kin1.mass
+        np.testing.assert_allclose(energy1, kinen1)
+        np.testing.assert_allclose(energy2, kinen2)
+        np.testing.assert_allclose(kin1.mass * kin1._pack_arguments(), 1.0)
+        np.testing.assert_equal("KineticEnergy(m=20.0)", repr(kin1))
 
 
 def test_sumoperator():

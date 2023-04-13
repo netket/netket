@@ -29,10 +29,10 @@ def jacrev(f):
     def jacfun(x):
         y, vjp_fun = nkjax.vjp(f, x)
         if y.size == 1:
-            eye = jnp.eye(y.size)[0]
+            eye = jnp.eye(y.size, dtype=x.dtype)[0]
             J = jax.vmap(vjp_fun, in_axes=0)(eye)
         else:
-            eye = jnp.eye(y.size)
+            eye = jnp.eye(y.size, dtype=x.dtype)
             J = jax.vmap(vjp_fun, in_axes=0)(eye)
         return J
 
@@ -42,7 +42,7 @@ def jacrev(f):
 def jacfwd(f):
     def jacfun(x):
         jvp_fun = lambda s: jax.jvp(f, (x,), (s,))[1]
-        eye = jnp.eye(len(x))
+        eye = jnp.eye(len(x), dtype=x.dtype)
         J = jax.vmap(jvp_fun, in_axes=0)(eye)
         return J
 
