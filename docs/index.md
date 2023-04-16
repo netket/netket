@@ -52,6 +52,7 @@ docs/install
 :caption: Tutorials
 :maxdepth: 2
 
+tutorials/variational_intro
 tutorials/gs-ising
 tutorials/gs-heisenberg
 tutorials/gs-j1j2
