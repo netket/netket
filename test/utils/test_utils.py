@@ -61,6 +61,7 @@ def test_HashableArray(numpy):
     assert wa != wb
 
     assert_equal(wa.wrapped, np.asarray(wa))
+    assert_equal(wa.wrapped, jnp.asarray(wa))
     assert wa.wrapped is not wa
 
     # test construction from hashable array
@@ -68,6 +69,14 @@ def test_HashableArray(numpy):
     assert hash(wa) == hash(wa2)
     assert wa == wa2
     assert_equal(wa2.wrapped, np.asarray(wa))
+    assert_equal(wa2.wrapped, jnp.asarray(wa))
+
+    # test construction from jax array
+    wa3 = HashableArray(jnp.array(a))
+    assert hash(wa) == hash(wa3)
+    assert wa == wa3
+    assert_equal(wa3.wrapped, np.asarray(wa))
+    assert_equal(wa3.wrapped, jnp.asarray(wa))
 
 
 def test_Kahan_sum():

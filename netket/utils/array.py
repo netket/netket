@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from .types import Array, DType, Shape
+from .types import Array, DType, Shape, JaxArray
 from .struct import dataclass
 
 
@@ -35,7 +35,11 @@ class HashableArray:
         if isinstance(wrapped, HashableArray):
             wrapped = wrapped.wrapped
         else:
-            wrapped = wrapped.copy()
+            if isinstance(wrapped, JaxArray):
+                # __array__ only works if it's a numpy array.
+                wrapped = np.array(wrapped)
+            else:
+                wrapped = wrapped.copy()
             if isinstance(wrapped, np.ndarray):
                 wrapped.flags.writeable = False
 
