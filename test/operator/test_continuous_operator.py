@@ -51,6 +51,27 @@ kinexact = lambda x: -0.5 * jnp.sum((3 * x**2) ** 2 + 6 * x, axis=-1)
 kinexact2 = lambda p, x: -0.5 * jnp.sum((3 * p * x**2) ** 2 + 6 * p * x, axis=-1)
 
 
+def test_equality():
+    ops = [
+        (
+            netket.operator.PotentialEnergy(hilb, v1),
+            netket.operator.PotentialEnergy(hilb, v1),
+            netket.operator.PotentialEnergy(hilb, v2),
+        ),
+        (
+            netket.operator.KineticEnergy(hilb, mass=20.0),
+            netket.operator.KineticEnergy(hilb, mass=20.0),
+            netket.operator.KineticEnergy(hilb, mass=2.0),
+        ),
+        (0.3 * pot1 + 0.2 * kin2, 0.3 * pot1 + 0.2 * kin2, 0.3 * pot1 + 0.2 * kin1),
+    ]
+    for op1a, op1b, op2 in ops:
+        assert hash(op1a) == hash(op1b)
+        assert hash(op1a) != hash(op2)
+        assert op1a == op1b
+        assert op1a != op2
+
+
 def test_is_hermitean():
     epot = netket.operator.PotentialEnergy(hilb, v1)
     ekin = netket.operator.KineticEnergy(hilb, mass=20.0)

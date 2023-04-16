@@ -23,6 +23,7 @@ from netket.utils.types import DType, PyTree, Array
 import netket.jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinuousOperator
+from netket.utils import HashableArray
 
 
 def jacrev(f):
@@ -69,6 +70,7 @@ class KineticEnergy(ContinuousOperator):
         self._mass = jnp.asarray(mass, dtype=dtype)
 
         self._is_hermitian = np.allclose(self._mass.imag, 0.0)
+        self.__attrs = None
 
         super().__init__(hilbert, self._mass.dtype)
 
@@ -101,6 +103,12 @@ class KineticEnergy(ContinuousOperator):
 
     def _pack_arguments(self) -> PyTree:
         return 1.0 / self._mass
+
+    @property
+    def _attrs(self):
+        if self.__attrs is None:
+            self.__attrs = (self.hilbert, self.dtype, HashableArray(self.mass))
+        return self.__attrs
 
     def __repr__(self):
         return f"KineticEnergy(m={self._mass})"

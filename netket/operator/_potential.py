@@ -11,16 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Callable
-from functools import partial
+from typing import Callable, Hashable, Optional, Tuple
 
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinuousOperator
+from netket.utils import struct, HashableArray
 
 import jax
 import jax.numpy as jnp
+
+
+@struct.dataclass
+class PotentialOperatorPyTree:
+    """Internal class used to pass data from the operator to the jax kernel.
+
+    This is used such that we can pass a PyTree containing some static data.
+    We could avoid this if the operator itself was a pytree, but as this is not
+    the case we need to pass as a separte object all fields that are used in
+    the kernel.
+
+    We could forego this, but then the kernel could not be marked as
+    @staticmethod and we would recompile every time we construct a new operator,
+    even if it is identical
+    """
+
+    potential_fun: Callable = struct.field(pytree_node=False)
+    coefficient: Array
 
 
 class PotentialEnergy(ContinuousOperator):
@@ -42,28 +60,39 @@ class PotentialEnergy(ContinuousOperator):
         """
 
         self._afun = afun
+        self._coefficient = jnp.array(coefficient, dtype=dtype)
 
-        self.coefficient = jnp.array(coefficient, dtype=dtype)
+        self.__attrs = None
 
         super().__init__(hilbert, self.coefficient.dtype)
 
-    def _expect_kernel_single(
-        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
-    ):
-        return coefficient * self._afun(x)
-
-    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
-    def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
-    ):
-        return self._expect_kernel_single(logpsi, params, x, coefficient)
+    @property
+    def coefficient(self) -> Array:
+        return self._coefficient
 
     @property
-    def is_hermitian(self):
+    def is_hermitian(self) -> bool:
         return True
 
-    def _pack_arguments(self):
-        return self.coefficient
+    @staticmethod
+    def _expect_kernel(
+        logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+    ) -> Array:
+        return data.coefficient * jax.vmap(data.potential_fun, in_axes=(0,))(x)
+
+    def _pack_arguments(self) -> PotentialOperatorPyTree:
+        return PotentialOperatorPyTree(self._afun, self.coefficient)
+
+    @property
+    def _attrs(self) -> Tuple[Hashable, ...]:
+        if self.__attrs is None:
+            self.__attrs = (
+                self.hilbert,
+                self._afun,
+                self.dtype,
+                HashableArray(self.coefficient),
+            )
+        return self.__attrs
 
     def __repr__(self):
         return f"Potential(coefficient={self.coefficient}, function={self._afun})"
