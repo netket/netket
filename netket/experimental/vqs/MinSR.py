@@ -42,7 +42,7 @@ def expect_and_MinSR(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
     chunk_size: int,
-    jacobian_chunk_size: int,
+    grad_chunk_size: int,
     r_cond: float = 1e-12,
 ) -> Tuple[Stats, PyTree]:
 
@@ -52,11 +52,12 @@ def expect_and_MinSR(  # noqa: F811
     Args:
         vstate: the variational state
         Ô : a hermitian operator
-        chunk_size : An integer over which expect and the final VJP are chunked
-        jacobian_chunk_size : An integer over which expect and the final VJP are chunked
+        chunk_size : An integer over which the forward pass is chunked
+        grad_chunk_size : An integer over which the forward and backward pass are chunked
+        r_cond: The lowest value eigenvalues of the NTK that are kept
 
     Returns:
-        A tuple containing the expectation value of Ô and the update according to MinSR
+        A tuple containing the statistics of Ô and the gradient update according to the MinSR algorithm
     """
 
     σ, args = get_local_kernel_arguments(vstate, Ô)
@@ -145,7 +146,7 @@ def expect_MinSR(
         jnp.ones_like(O_loc),
     )[0]
 
-    return Ō, O_loc / n_samples**0.5, grad_mean
+    return Ō, O_loc / n_samples, grad_mean
 
 
 def compute_NTK(
@@ -162,21 +163,24 @@ def compute_NTK(
     NTK = jnp.zeros([n_samples, n_samples], dtype="complex")
 
     for i in range(n_samples // jcs):
-        for j in range(i+1):
+        for j in range(i + 1):
             ntk_local = NeuralTangentKernel(
-                    model_apply_fun,
-                    parameters,
-                    grad_mean,
-                    σ[i * jcs : (i + 1) * jcs],
-                    σ[j * jcs : (j + 1) * jcs],
-                    "complex",
+                model_apply_fun,
+                parameters,
+                grad_mean,
+                σ[i * jcs : (i + 1) * jcs],
+                σ[j * jcs : (j + 1) * jcs],
+                "complex",
             )
 
-
-            NTK = NTK.at[i * jcs : (i + 1) * jcs, j * jcs : (j + 1) * jcs].set(ntk_local)
+            NTK = NTK.at[i * jcs : (i + 1) * jcs, j * jcs : (j + 1) * jcs].set(
+                ntk_local
+            )
 
             if not i == j:
-                NTK = NTK.at[j * jcs : (j + 1) * jcs, i * jcs : (i + 1) * jcs].set(ntk_local.T.conj())
+                NTK = NTK.at[j * jcs : (j + 1) * jcs, i * jcs : (i + 1) * jcs].set(
+                    ntk_local.T.conj()
+                )
 
     return NTK / n_samples
 
@@ -195,13 +199,13 @@ def grad_MinSR(
 ) -> Tuple[PyTree, PyTree]:
 
     n_samples = len(σ)
-    
+
     NTK = jnp.linalg.pinv(NTK, rcond=r_cond, hermitian=True)
 
     elocs = jnp.matmul(NTK, elocs)
 
     def forward(w, σ):
-        out = model_apply_fun({"params": w, **model_state}, σ)/n_samples**0.5
+        out = model_apply_fun({"params": w, **model_state}, σ)
 
         return out
 

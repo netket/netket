@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from os import truncate
+from os import XATTR_SIZE_MAX, truncate
 from jax import jvp, numpy as jnp
 
 import jax
@@ -61,17 +61,23 @@ def NeuralTangentKernel(
         offset: An offset that is subtracted from each of the Jacobians.
         σ1, σ2: The samples at which the neural tangent kernel is evaluated
         mode: A specification of the differentiation properties of the function as detailed in :def:`netket.jax.jacobian`
-        r_cond: A value such that all eigenvalues v below r_cond*v_max are truncated
 
     Returns:
-        The neural tangent kernel
-
+        The neural tangent kernel of apply_fun evaluated with respect to σ1 and σ2
+        with offset subtracted
     """
 
-    def subtract_mean(j, mean):
-        return tree_map(
-            lambda x, y: x[:, 0] + 1j * x[:, 1] - jnp.expand_dims(y, 0), j, mean
-        )
+    if mode == "complex":
+
+        def subtract_mean(j, mean):
+            return tree_map(
+                lambda x, y: x[:, 0] + 1j * x[:, 1] - jnp.expand_dims(y, 0), j, mean
+            )
+
+    else:
+
+        def subtract_mean(j, mean):
+            return tree_map(lambda x, y: x - jnp.expand_dims(y, 0), j, mean)
 
     jac = subtract_mean(jacobian(apply_fun, params, σ1, mode=mode), offset)
     jac2 = subtract_mean(jacobian(apply_fun, params, σ2, mode=mode), offset)
