@@ -21,6 +21,7 @@ from .hamiltonian import HamiltonianRule
 from .continuous_gaussian import GaussianRule
 from .langevin import LangevinRule
 from .tensor import tensorRule as TensorRule
+from .weighted import weightedRule as WeightedRule
 
 # numpy backend
 from .local_numpy import LocalRuleNumpy
