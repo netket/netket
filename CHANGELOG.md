@@ -7,9 +7,11 @@
 
 ### New features
 * {class}`netket.hilbert.TensorHilbert` has been generalised and now works with both discrete, continuous or a combination of discrete and continuous hilbert spaces [#1437](https://github.com/netket/netket/pull/1437).
+* NetKet is now compatible with Numba 0.57 and therefore with Python 3.11 [#1462](https://github.com/netket/netket/pull/1462).
 
 ### Bug Fixes
 * Fix issue [#1435](https://github.com/netket/netket/issues/1435), where a 0-tangent originating from integer samples was not correctly handled by {func}`nk.jax.vjp` [#1436](https://github.com/netket/netket/pull/1436).
+* Fixed a bug in {class}`netket.sampler.rules.LangevinRule` when setting `chunk_size` [#1465](https://github.com/netket/netket/pull/1465).
 
 ### Improvements
 * {class}`netket.operator.ContinuousOperator` has been improved and now they correctly test for equality and generate a consistent hash. Moreover, the internal logic of {class}`netket.operator.SumOperator` and {class}`netket.operator.Potential` has been improved, and they lead to less recompilations when constructed again but identical. A few new attributes for those operators have also been exposed. [#1440](https://github.com/netket/netket/pull/1440).
