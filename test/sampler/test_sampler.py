@@ -113,6 +113,9 @@ samplers[
 ] = nk.sampler.MetropolisAdjustedLangevin(
     hi_particles, dt=0.1, n_sweeps=hi_particles.size
 )
+samplers[
+    "Metropolis(AdjustedLangevin): AdjustedLangevin chunk_size"
+] = nk.sampler.MetropolisAdjustedLangevin(hi_particles, dt=0.1, chunk_size=16)
 
 
 # The following fixture initialises a model and it's weights
