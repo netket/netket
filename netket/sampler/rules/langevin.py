@@ -27,7 +27,7 @@ class LangevinRule(MetropolisRule):
     """
     Time step in the Langevin dynamics
     """
-    chunk_size: int = None
+    chunk_size: int = struct.field(pytree_node=False, default=None)
     """
     Chunk size for computing gradients of the ansatz
     """
@@ -89,7 +89,8 @@ def _langevin_step(
 
     def _single_grad(x):
         """Derivative of log_prob with respect to a single sample x"""
-        g = nkjax.grad(_log_prob)(x)
+        x = x.reshape(x.shape[-1])
+        g = nkjax.grad(lambda xi: _log_prob(xi).ravel()[0])(x)
         return g if jnp.iscomplexobj(r) else g.real
 
     grad_logp_r = nkjax.vmap_chunked(_single_grad, chunk_size=chunk_size)(r)
