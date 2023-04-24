@@ -8,6 +8,9 @@
 ### New features
 * {class}`netket.hilbert.TensorHilbert` has been generalised and now works with both discrete, continuous or a combination of discrete and continuous hilbert spaces [#1437](https://github.com/netket/netket/pull/1437).
 * NetKet is now compatible with Numba 0.57 and therefore with Python 3.11 [#1462](https://github.com/netket/netket/pull/1462).
+* The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.MultipleRules` has been added, which can be used to pick from different transition proposals according to a certain probability distribution. 
+* The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.TensorRule` has been added, which can be used to combine different transition proposals acting on different subspaces of the Hilbert space together.
+* The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.FixedRule` has been added, which does not change the configuration.
 
 ### Bug Fixes
 * Fix issue [#1435](https://github.com/netket/netket/issues/1435), where a 0-tangent originating from integer samples was not correctly handled by {func}`nk.jax.vjp` [#1436](https://github.com/netket/netket/pull/1436).

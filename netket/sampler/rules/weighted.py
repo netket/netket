@@ -21,7 +21,6 @@ from flax import struct
 from flax import linen as nn
 
 from netket import config
-from netket.hilbert import TensorHilbert
 from netket.utils.types import Array, PyTree, PRNGKeyT
 
 # Necessary for the type annotation to work
@@ -31,7 +30,7 @@ if config.netket_sphinx_build:
 from .base import MetropolisRule
 
 
-def weightedRule(
+def multipleRules(
     rules: Tuple[MetropolisRule, ...], probabilities: Array
 ) -> MetropolisRule:
     r"""A Metropolis sampling rule that can be used to pick a rule from a list of rules
@@ -43,8 +42,7 @@ def weightedRule(
         rules: A list of rules, one for each subspace of the tensor hilbert space.
         probabilities: A list of probabilities, one for each rule.
     """
-    if not isinstance(probabilities, jax.Array):
-        probabilities = jnp.array(probabilities)
+    probabilities = jnp.asarray(probabilities)
 
     if not jnp.allclose(jnp.sum(probabilities), 1.0):
         raise ValueError(
@@ -64,11 +62,11 @@ def weightedRule(
             f"has length {len(probabilities)} , rules has length {len(rules)}."
         )
 
-    return WeightedRule(rules, probabilities)
+    return MultipleRules(rules, probabilities)
 
 
 @struct.dataclass
-class WeightedRule(MetropolisRule):
+class MultipleRules(MetropolisRule):
     r"""A Metropolis sampling rule that can be used to pick a rule from a list of rules
     with a given probability.
 
@@ -145,4 +143,4 @@ class WeightedRule(MetropolisRule):
         return σp, log_prob_corr
 
     def __repr__(self):
-        return "WeightedRule(probabilities={self.probabilities}, rules={self.rules})"
+        return "MultipleRules(probabilities={self.probabilities}, rules={self.rules})"

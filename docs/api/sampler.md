@@ -133,7 +133,7 @@ There are also a few additional rules that can be used to compose other rules to
   :toctree: _generated/samplers
 
   rules.TensorRule
-  rules.WeightedRule
+  rules.MultipleRules
 
 ```
 
