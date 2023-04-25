@@ -50,7 +50,9 @@ def multipleRules(
             f"{jnp.sum(probabilities)}."
         )
 
-    if not isinstance(rules, (tuple, list)) or not all(isinstance(r, MetropolisRule) for r in rules):
+    if not isinstance(rules, (tuple, list)) or not all(
+        isinstance(r, MetropolisRule) for r in rules
+    ):
         raise TypeError(
             "The first argument (rules) must be a tuple of `MetropolisRule` "
             f"rules, but you have passed {type(rules)}."
@@ -134,7 +136,10 @@ class MultipleRules(MetropolisRule):
         # if not all log_prob_corr are 0, convert the Nones to 0s
         if any(x is not None for x in log_prob_corrs):
             log_prob_corrs = jnp.stack(
-                [x if x is not None else jnp.zeros((sampler.n_chains_per_rank,)) for x in log_prob_corrs]
+                [
+                    x if x is not None else jnp.zeros((sampler.n_chains_per_rank,))
+                    for x in log_prob_corrs
+                ]
             )
             log_prob_corr = batch_select(log_prob_corrs, indices)
         else:

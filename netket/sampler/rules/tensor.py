@@ -51,7 +51,9 @@ def tensorRule(
             "which is constructed as a product of different Hilbert spaces."
         )
 
-    if not isinstance(rules, (tuple, list)) or not all(isinstance(r, MetropolisRule) for r in rules):
+    if not isinstance(rules, (tuple, list)) or not all(
+        isinstance(r, MetropolisRule) for r in rules
+    ):
         raise TypeError(
             "The second argument (rules) must be a tuple of `MetropolisRule` "
             f"rules, but you have passed {type(rules)}."

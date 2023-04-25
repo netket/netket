@@ -97,9 +97,7 @@ samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
 )
 
 # MultipleRules sampler
-samplers[
-    "Metropolis(MultipleRules[Local,Local]): Spin"
-] = nk.sampler.MetropolisSampler(
+samplers["Metropolis(MultipleRules[Local,Local]): Spin"] = nk.sampler.MetropolisSampler(
     hi,
     nk.sampler.rules.MultipleRules(
         [nk.sampler.rules.LocalRule(), nk.sampler.rules.LocalRule()], [0.8, 0.2]
@@ -461,6 +459,7 @@ def test_throwing(model_and_weights):
 
         sampler.sample(ma, w, seed=SAMPLER_SEED)
 
+
 def test_setup_throwing_tensorrule():
     # TensorHilbert sampler
     hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
@@ -477,10 +476,11 @@ def test_setup_throwing_tensorrule():
         nk.sampler.rules.TensorRule(hi, rule1)
     with pytest.raises(TypeError):
         # Not good types
-        nk.sampler.rules.TensorRule(hi, [rule1,2])
+        nk.sampler.rules.TensorRule(hi, [rule1, 2])
     with pytest.raises(ValueError):
         # length mismatch
         nk.sampler.rules.TensorRule(hi, [rule1, rule1, rule2])
+
 
 def test_setup_throwing_multiplerules():
     rule1 = nk.sampler.rules.LocalRule()
