@@ -23,7 +23,7 @@ from jax.nn.initializers import normal
 
 import flax
 from flax.core.frozen_dict import FrozenDict
-from flax.core.scope import CollectionFilter
+from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 import netket.jax as nkjax
 from netket.operator import AbstractOperator, Squared

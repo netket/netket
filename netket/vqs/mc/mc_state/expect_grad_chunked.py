@@ -17,7 +17,7 @@ import warnings
 
 import jax
 from jax import numpy as jnp
-from flax.core.scope import CollectionFilter
+from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket.operator import AbstractOperator
 from netket.stats import Stats

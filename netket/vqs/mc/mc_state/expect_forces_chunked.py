@@ -19,7 +19,7 @@ import warnings
 import jax
 from jax import numpy as jnp
 from jax import tree_map
-from flax.core.scope import CollectionFilter
+from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
 from netket.operator import AbstractOperator
