@@ -117,6 +117,12 @@ samplers[
     "Metropolis(AdjustedLangevin): AdjustedLangevin chunk_size"
 ] = nk.sampler.MetropolisAdjustedLangevin(hi_particles, dt=0.1, chunk_size=16)
 
+# TensorHilbert sampler
+hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
+samplers["Metropolis(TensorRule): Spin x Fock"] = nk.sampler.MetropolisSampler(
+    hi, nk.sampler.rules.TensorRule(hi, 
+        [nk.sampler.rules.LocalRule(), nk.sampler.rules.LocalRule()]))
+
 
 # The following fixture initialises a model and it's weights
 # for tests that require it.

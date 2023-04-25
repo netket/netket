@@ -63,7 +63,7 @@ def tensorRule(
             f"has {len(hilbert.subspaces)} subpsaces, but you specified {len(rules)}."
         )
 
-    return TensorRule(hilbert, rules)
+    return TensorRule(hilbert, tuple(rules))
 
 
 @struct.dataclass
@@ -115,7 +115,7 @@ class TensorRule(MetropolisRule):
             _sampler = sampler.replace(hilbert=self.hilbert.subspaces[i])
             _state = sampler_state.replace(rule_state=sampler_state.rule_state[i])
 
-            rule_states.append(self.rules.reset(_sampler, machine, params, _state))
+            rule_states.append(self.rules[i].reset(_sampler, machine, params, _state))
         return tuple(rule_states)
 
     def transition(self, sampler, machine, parameters, state, key, σ):
