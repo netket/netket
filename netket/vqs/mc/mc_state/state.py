@@ -23,7 +23,7 @@ from jax import numpy as jnp
 
 import flax
 from flax import serialization
-from flax.core.scope import CollectionFilter
+from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
 from netket import nn
