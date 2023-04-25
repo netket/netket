@@ -86,7 +86,7 @@ class ExactSampler(Sampler):
 
         return state.replace(pdf=pdf)
 
-    @partial(jax.jit, static_argnums=(1, 4))
+    @partial(jax.jit, static_argnums=(4,))
     def _sample_chain(
         sampler,
         machine: nn.Module,

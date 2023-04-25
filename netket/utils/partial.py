@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
+
 import sys
 
-from functools import partial
+import jax
 
 
 class HashablePartial(partial):
@@ -67,8 +69,8 @@ class HashablePartial(partial):
         return f"<hashable partial {self.func.__name__} with args={self.args} and kwargs={self.keywords}, hash={hash(self)}>"
 
 
-# jax.tree_util.register_pytree_node(
-#    HashablePartial,
-#    lambda partial_: ((), (partial_.func, partial_.args, partial_.keywords)),
-#    lambda args, _: StaticPartial(args[0], *args[1], **args[2]),
-# )
+jax.tree_util.register_pytree_node(
+    HashablePartial,
+    lambda partial_: ((), (partial_.func, partial_.args, partial_.keywords)),
+    lambda args, _: HashablePartial(args[0], *args[1], **args[2]),
+)

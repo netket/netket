@@ -346,7 +346,7 @@ class MetropolisSampler(Sampler):
 
         return new_state, new_state.σ
 
-    @partial(jax.jit, static_argnums=(1, 4))
+    @partial(jax.jit, static_argnums=(4,))
     def _sample_chain(sampler, machine, parameters, state, chain_length):
         """
         Samples `chain_length` batches of samples along the chains.

@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable
+from typing import Any, Callable
 
+import jax
 import jax.numpy as jnp
+
+import flax.linen as nn
 
 from .partial import HashablePartial
 from . import struct
@@ -43,10 +46,22 @@ def wrap_afun(mod_or_fun):
     """Wraps a callable to be a module-like object with the method `apply`.
     Does nothing if it already has an apply method.
     """
-    if hasattr(mod_or_fun, "apply"):
-        return mod_or_fun
+    if isinstance(mod_or_fun, WrappedApplyFun):
+        res = mod_or_fun
+    elif isinstance(mod_or_fun, nn.Module):
+        res = PyTreeWrapper(mod_or_fun)
+    elif hasattr(mod_or_fun, "apply"):
+        if not isinstance(mod_or_fun, (jax.tree_util.Partial, PyTreeWrapper)):
+            res = PyTreeWrapper(mod_or_fun)
+        else:
+            res = mod_or_fun
     else:
-        return WrappedApplyFun(mod_or_fun)
+        if not isinstance(
+            mod_or_fun, (jax.tree_util.Partial, PyTreeWrapper, HashablePartial)
+        ):
+            mod_or_fun = PyTreeWrapper(mod_or_fun)
+        res = WrappedApplyFun(mod_or_fun)
+    return res
 
 
 def wrap_to_support_scalar(fun):
@@ -84,3 +99,22 @@ def wrap_to_support_scalar(fun):
         return res
 
     return HashablePartial(maybe_scalar_fun, fun)
+
+
+@struct.dataclass
+class PyTreeWrapper:
+    """
+    Wraps an object which is not a Pytree, but which is Hashable and comparable, into
+    an object that is a PyTree.
+
+    All attribute access alls are forwarded to the inner object.
+
+    The use-case of this is to be able to pass functions as arguments to Jax
+    without specifying `static_argnums`, as it is automatically handled by the
+    PyTreeWrapper unpacking logic.
+    """
+
+    __value: Any = struct.field(pytree_node=False)
+
+    def __getattr__(self, attr):
+        return getattr(self.__value, attr)
