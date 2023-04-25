@@ -146,7 +146,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         if self.constrained:
             numbers = self._bare_numbers[numbers]
 
-        return self._hilbert_index.numbers_to_states(numbers, out)
+        return self._hilbert_index.numbers_to_states(np.asarray(numbers), out)
 
     def _states_to_numbers(self, states: np.ndarray, out: np.ndarray):
         self._hilbert_index.states_to_numbers(states, out)

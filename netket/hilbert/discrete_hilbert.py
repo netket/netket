@@ -19,6 +19,7 @@ from functools import reduce
 import numpy as np
 
 from netket.utils.types import Array
+from netket.utils.numbers import is_scalar
 
 from .abstract_hilbert import AbstractHilbert
 
@@ -126,7 +127,7 @@ class DiscreteHilbert(AbstractHilbert):
         if np.any(numbers >= self.n_states):
             raise ValueError("numbers outside the range of allowed states")
 
-        if np.isscalar(numbers):
+        if is_scalar(numbers):
             return self._numbers_to_states(np.atleast_1d(numbers), out=out)[0, :]
         else:
             return self._numbers_to_states(numbers, out=out)

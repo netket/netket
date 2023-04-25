@@ -143,6 +143,12 @@ discrete_hilbert_params = [
     for name, hi in hilberts.items()
     if isinstance(hi, DiscreteHilbert)
 ]
+discrete_indexable_hilbert_params = [
+    pytest.param(hi, id=name)
+    for name, hi in hilberts.items()
+    if (isinstance(hi, DiscreteHilbert) and hi.is_indexable)
+]
+
 homogeneous_hilbert_params = [
     pytest.param(hi, id=name)
     for name, hi in hilberts.items()
@@ -344,6 +350,17 @@ def test_hilbert_index_discrete(hi: DiscreteHilbert):
         op.to_dense()
     with pytest.raises(RuntimeError):
         op.to_sparse()
+
+
+@pytest.mark.parametrize("hi", discrete_indexable_hilbert_params)
+def test_hilbert_indexing_jax_array(hi: DiscreteHilbert):
+    x_np = hi.numbers_to_states(np.array(0))
+    x_jnp = hi.numbers_to_states(jnp.array(0))
+    np.testing.assert_allclose(x_np, x_jnp)
+
+    i_np = hi.states_to_numbers(x_np)
+    i_jnp = hi.states_to_numbers(jnp.array(x_np))
+    np.testing.assert_allclose(i_np, i_jnp)
 
 
 @partial(jax.jit, static_argnums=0)

@@ -14,6 +14,12 @@
 
 from .config_flags import config
 
+from .moduletools import _hide_submodules, rename_class, auto_export as _auto_export
+from .version_check import module_version
+
+# error if old dependencies are detected
+from . import _dependencies_check
+
 from . import dispatch
 from . import struct
 from . import numbers
@@ -35,17 +41,12 @@ from .deprecation import (
     deprecate_dtype,
     pure_callback,
 )
-from .moduletools import _hide_submodules, rename_class, auto_export as _auto_export
-from .version_check import module_version
 
 from .model_frameworks import maybe_wrap_module
 
 from .history import History, accum_in_tree, accum_histories_in_tree
 
 from . import mpi
-
-# error if old dependencies are detected
-from . import _dependencies_check
 
 _hide_submodules(
     __name__,

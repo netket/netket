@@ -14,8 +14,21 @@
 
 import numpy as np
 
+from netket.utils import module_version
+
 from .types import Array, DType, Shape
 from .struct import dataclass
+
+# TODO keep only  jax>=0.4 is required
+if module_version("jax") >= (0, 4, 0):
+    import jax
+
+    JaxArray = jax.Array
+else:
+    # pre jax 0.4
+    import jaxlib
+
+    JaxArray = jaxlib.xla_extension.DeviceArray
 
 
 @dataclass(cache_hash=True)
@@ -35,7 +48,11 @@ class HashableArray:
         if isinstance(wrapped, HashableArray):
             wrapped = wrapped.wrapped
         else:
-            wrapped = wrapped.copy()
+            if isinstance(wrapped, JaxArray):
+                # __array__ only works if it's a numpy array.
+                wrapped = np.array(wrapped)
+            else:
+                wrapped = wrapped.copy()
             if isinstance(wrapped, np.ndarray):
                 wrapped.flags.writeable = False
 
