@@ -96,6 +96,23 @@ samplers["Metropolis(Custom: Sx): Spin"] = nk.sampler.MetropolisCustom(
     hi, move_operators=move_op
 )
 
+# MultipleRules sampler
+samplers["Metropolis(MultipleRules[Local,Local]): Spin"] = nk.sampler.MetropolisSampler(
+    hi,
+    nk.sampler.rules.MultipleRules(
+        [nk.sampler.rules.LocalRule(), nk.sampler.rules.LocalRule()], [0.8, 0.2]
+    ),
+)
+samplers[
+    "Metropolis(MultipleRules[Local,Hamiltonian]): Spin"
+] = nk.sampler.MetropolisSampler(
+    hi,
+    nk.sampler.rules.MultipleRules(
+        [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)], [0.8, 0.2]
+    ),
+)
+
+
 # samplers["MetropolisPT(Custom: Sx): Spin"] = nkx.sampler.MetropolisCustomPt(hi, move_operators=move_op, n_replicas=4)
 
 samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi)
@@ -116,6 +133,25 @@ samplers[
 samplers[
     "Metropolis(AdjustedLangevin): AdjustedLangevin chunk_size"
 ] = nk.sampler.MetropolisAdjustedLangevin(hi_particles, dt=0.1, chunk_size=16)
+
+# TensorHilbert sampler
+hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
+samplers["Metropolis(TensorRule): Spin x Fock"] = nk.sampler.MetropolisSampler(
+    hi,
+    nk.sampler.rules.TensorRule(
+        hi, [nk.sampler.rules.LocalRule(), nk.sampler.rules.LocalRule()]
+    ),
+)
+
+# TensorHilbert sampler
+hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
+ha = sum(nk.operator.spin.sigmax(nk.hilbert.Spin(0.5, 4), i) for i in range(4))
+samplers["Metropolis(TensorRule): Spin x Fock"] = nk.sampler.MetropolisSampler(
+    hi,
+    nk.sampler.rules.TensorRule(
+        hi, [nk.sampler.rules.HamiltonianRule(ha), nk.sampler.rules.LocalRule()]
+    ),
+)
 
 
 # The following fixture initialises a model and it's weights
@@ -422,6 +458,46 @@ def test_throwing(model_and_weights):
         ma, w = model_and_weights(hi)
 
         sampler.sample(ma, w, seed=SAMPLER_SEED)
+
+
+def test_setup_throwing_tensorrule():
+    # TensorHilbert sampler
+    hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
+    ha = sum(nk.operator.spin.sigmax(nk.hilbert.Spin(0.5, 4), i) for i in range(4))
+
+    rule1 = nk.sampler.rules.HamiltonianRule(ha)
+    rule2 = nk.sampler.rules.LocalRule()
+
+    with pytest.raises(TypeError):
+        # Hilbert not TensorHilbert
+        nk.sampler.rules.TensorRule(nk.hilbert.Spin(0.5, 5), [rule1, rule1, rule2])
+    with pytest.raises(TypeError):
+        # not list of rules
+        nk.sampler.rules.TensorRule(hi, rule1)
+    with pytest.raises(TypeError):
+        # Not good types
+        nk.sampler.rules.TensorRule(hi, [rule1, 2])
+    with pytest.raises(ValueError):
+        # length mismatch
+        nk.sampler.rules.TensorRule(hi, [rule1, rule1, rule2])
+
+
+def test_setup_throwing_multiplerules():
+    rule1 = nk.sampler.rules.LocalRule()
+    rule2 = nk.sampler.rules.LocalRule()
+
+    with pytest.raises(ValueError):
+        # length mismatch
+        nk.sampler.rules.MultipleRules([rule1, rule2], [0.5, 0.25, 0.25])
+    with pytest.raises(ValueError):
+        # not summing to 1
+        nk.sampler.rules.MultipleRules([rule1, rule2], [0.5, 0.25])
+    with pytest.raises(TypeError):
+        # wrong types
+        nk.sampler.rules.MultipleRules([rule1, 2], [0.5, 0.5])
+    with pytest.raises(TypeError):
+        # wrong types
+        nk.sampler.rules.MultipleRules(rule1, [0.5, 0.5])
 
 
 def test_exact_sampler(sampler):

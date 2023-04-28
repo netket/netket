@@ -115,12 +115,25 @@ Sampler. Rules with `Numpy` in their name can only be used with
 
   rules.MetropolisRule
   rules.LocalRule
+  rules.CustomRuleNumpy
   rules.ExchangeRule
+  rules.FixedRule
   rules.HamiltonianRule
+  rules.HamiltonianRuleNumpy
   rules.GaussianRule
   rules.LangevinRule
-  rules.HamiltonianRuleNumpy
-  rules.CustomRuleNumpy
+
+```
+
+There are also a few additional rules that can be used to compose other rules together.
+```
+.. currentmodule:: netket.sampler
+
+.. autosummary::
+  :toctree: _generated/samplers
+
+  rules.TensorRule
+  rules.MultipleRules
 
 ```
 

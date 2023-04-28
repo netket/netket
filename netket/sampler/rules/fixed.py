@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from flax import struct
+
 from .base import MetropolisRule
 
-from .fixed import FixedRule
-from .local import LocalRule
-from .exchange import ExchangeRule
-from .hamiltonian import HamiltonianRule
-from .continuous_gaussian import GaussianRule
-from .langevin import LangevinRule
-from .tensor import tensorRule as TensorRule
-from .multiple import multipleRules as MultipleRules
 
-# numpy backend
-from .local_numpy import LocalRuleNumpy
-from .hamiltonian_numpy import HamiltonianRuleNumpy
-from .custom_numpy import CustomRuleNumpy
+@struct.dataclass
+class FixedRule(MetropolisRule):
+    r"""
+    A transition rule relaxing and doing nothing.
 
-from netket.utils import _hide_submodules
+    You can use it to make a CombinedRule not act on a certain subspace at all.
+    """
 
-_hide_submodules(__name__)
+    def transition(rule, sampler, machine, parameters, state, key, σ):
+        return σ, None
+
+    def __repr__(self):
+        return "FixedRule()"
