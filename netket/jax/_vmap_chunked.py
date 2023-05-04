@@ -6,6 +6,42 @@ import jax.numpy as jnp
 from ._chunk_utils import _chunk, _unchunk
 from ._scanmap import scanmap, scan_append
 
+from netket.utils import HashablePartial
+
+
+def _fun(vmapped_fun, chunk_size, argnums, *args, **kwargs):
+    n_elements = jax.tree_util.tree_leaves(args[argnums[0]])[0].shape[0]
+    n_chunks, n_rest = divmod(n_elements, chunk_size)
+
+    if n_chunks == 0 or chunk_size >= n_elements:
+        y = vmapped_fun(*args, **kwargs)
+    else:
+        # split inputs
+        def _get_chunks(x):
+            x_chunks = jax.tree_map(lambda x_: x_[: n_elements - n_rest, ...], x)
+            x_chunks = _chunk(x_chunks, chunk_size)
+            return x_chunks
+
+        def _get_rest(x):
+            x_rest = jax.tree_map(lambda x_: x_[n_elements - n_rest :, ...], x)
+            return x_rest
+
+        args_chunks = [
+            _get_chunks(a) if i in argnums else a for i, a in enumerate(args)
+        ]
+        args_rest = [_get_rest(a) if i in argnums else a for i, a in enumerate(args)]
+
+        y_chunks = _unchunk(
+            scanmap(vmapped_fun, scan_append, argnums)(*args_chunks, **kwargs)
+        )
+
+        if n_rest == 0:
+            y = y_chunks
+        else:
+            y_rest = vmapped_fun(*args_rest, **kwargs)
+            y = jax.tree_map(lambda y1, y2: jnp.concatenate((y1, y2)), y_chunks, y_rest)
+    return y
+
 
 def _chunk_vmapped_function(
     vmapped_fun: Callable, chunk_size: Optional[int], argnums=0
@@ -18,49 +54,10 @@ def _chunk_vmapped_function(
     if isinstance(argnums, int):
         argnums = (argnums,)
 
-    def _fun(*args, **kwargs):
-
-        n_elements = jax.tree_util.tree_leaves(args[argnums[0]])[0].shape[0]
-        n_chunks, n_rest = divmod(n_elements, chunk_size)
-
-        if n_chunks == 0 or chunk_size >= n_elements:
-            y = vmapped_fun(*args, **kwargs)
-        else:
-            # split inputs
-            def _get_chunks(x):
-                x_chunks = jax.tree_map(lambda x_: x_[: n_elements - n_rest, ...], x)
-                x_chunks = _chunk(x_chunks, chunk_size)
-                return x_chunks
-
-            def _get_rest(x):
-                x_rest = jax.tree_map(lambda x_: x_[n_elements - n_rest :, ...], x)
-                return x_rest
-
-            args_chunks = [
-                _get_chunks(a) if i in argnums else a for i, a in enumerate(args)
-            ]
-            args_rest = [
-                _get_rest(a) if i in argnums else a for i, a in enumerate(args)
-            ]
-
-            y_chunks = _unchunk(
-                scanmap(vmapped_fun, scan_append, argnums)(*args_chunks, **kwargs)
-            )
-
-            if n_rest == 0:
-                y = y_chunks
-            else:
-                y_rest = vmapped_fun(*args_rest, **kwargs)
-                y = jax.tree_map(
-                    lambda y1, y2: jnp.concatenate((y1, y2)), y_chunks, y_rest
-                )
-        return y
-
-    return _fun
+    return HashablePartial(_fun, vmapped_fun, chunk_size, argnums)
 
 
 def _parse_in_axes(in_axes):
-
     if isinstance(in_axes, int):
         in_axes = (in_axes,)
 
