@@ -51,7 +51,7 @@ def split_array_mpi(array):
     return array[states_per_rank[mpi.rank]]
 
 
-def to_array(hilbert, apply_fun, variables, normalize=True, allgather=True):
+def to_array(hilbert, apply_fun, variables, normalize=True, allgather=True, chunk_size=None):
     """
     Computes `apply_fun(variables, states)` on all states of `hilbert` and returns
       the results as a vector.
@@ -77,11 +77,11 @@ def to_array(hilbert, apply_fun, variables, normalize=True, allgather=True):
 
     xs = hilbert.numbers_to_states(states_per_rank[mpi.rank])
 
-    return _to_array_rank(apply_fun, variables, xs, n_states, normalize, allgather)
+    return _to_array_rank(apply_fun, variables, xs, n_states, normalize, allgather, chunk_size)
 
 
-@partial(jax.jit, static_argnums=(0, 3, 4, 5))
-def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize, allgather):
+@partial(jax.jit, static_argnums=(0, 3, 4, 5, 6))
+def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize, allgather, chunk_size):
     """
     Computes apply_fun(variables, σ_rank) and gathers all results across all ranks.
     The input σ_rank should be a slice of all states in the hilbert space of equal
@@ -90,6 +90,11 @@ def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize, allgather
     Args:
         n_states: total number of elements in the hilbert space.
     """
+    
+    if chunk_size is not None:
+        apply_fun = nk.jax.apply_chunked(apply_fun, in_axes=(None, 0), chunk_size=chunk_size)
+
+    
     # number of 'fake' states, in the last rank.
     n_fake_states = σ_rank.shape[0] * mpi.n_nodes - n_states
 

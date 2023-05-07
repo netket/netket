@@ -653,7 +653,7 @@ class MCState(VariationalState):
     def to_array(self, normalize: bool = True) -> jnp.ndarray:
 
         return nn.to_array(
-            self.hilbert, nkjax.apply_chunked(self._apply_fun, in_axes=(None, 0), chunk_size=self.chunk_size), self.variables, normalize=normalize
+            self.hilbert, self._apply_fun, self.variables, normalize=normalize, chunk_size=self.chunk_size
         )
 
 
