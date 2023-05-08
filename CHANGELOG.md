@@ -3,7 +3,13 @@
 
 # Change Log
 
-## NetKet 3.8 (⚙️ In development)
+## NetKet 3.9 (⚙️ In development)
+
+
+## NetKet 3.8 (⚙️ 8 May 2023)
+
+This is the last NetKet release to support Python 3.7 and Jax 0.3.
+Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python 3.8 (and soon 3.9).
 
 ### New features
 * {class}`netket.hilbert.TensorHilbert` has been generalised and now works with both discrete, continuous or a combination of discrete and continuous hilbert spaces [#1437](https://github.com/netket/netket/pull/1437).
@@ -12,12 +18,16 @@
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.TensorRule` has been added, which can be used to combine different transition proposals acting on different subspaces of the Hilbert space together.
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.FixedRule` has been added, which does not change the configuration.
 
+### Deprecations
+* The non-public API function to select the default QGT mode for `QGTJacobian`, located at `nk.optimizer.qgt.qgt_jacobian_common.choose_jacobian_mode` has been renamed and made part of the public API of as `nk.jax.jacobian_default_mode`. If you were using this function, please update your codes [#1473](https://github.com/netket/netket/pull/1473).
+
 ### Bug Fixes
 * Fix issue [#1435](https://github.com/netket/netket/issues/1435), where a 0-tangent originating from integer samples was not correctly handled by {func}`nk.jax.vjp` [#1436](https://github.com/netket/netket/pull/1436).
 * Fixed a bug in {class}`netket.sampler.rules.LangevinRule` when setting `chunk_size` [#1465](https://github.com/netket/netket/pull/1465).
 
 ### Improvements
-* {class}`netket.operator.ContinuousOperator` has been improved and now they correctly test for equality and generate a consistent hash. Moreover, the internal logic of {class}`netket.operator.SumOperator` and {class}`netket.operator.Potential` has been improved, and they lead to less recompilations when constructed again but identical. A few new attributes for those operators have also been exposed. [#1440](https://github.com/netket/netket/pull/1440).
+* {class}`netket.operator.ContinuousOperator` has been improved and now they correctly test for equality and generate a consistent hash. Moreover, the internal logic of {class}`netket.operator.SumOperator` and {class}`netket.operator.Potential` has been improved, and they lead to less recompilations when constructed again but identical. A few new attributes for those operators have also been exposed [#1440](https://github.com/netket/netket/pull/1440).
+* {func}`nk.nn.to_array` accepts an optional keyword argument `chunk_size`, and related methods on variational states now use the chunking specified in the variational state when generating the dense array [#1470](https://github.com/netket/netket/pull/1470).
 
 
 
