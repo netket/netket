@@ -55,9 +55,9 @@ def vstate(request):
 @pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize("chunk_size", [None, 4])
 def test_to_array(vstate, normalize, chunk_size):
-    
+
     vstate.chunk_size = chunk_size
-    
+
     psi = vstate.to_array(normalize=normalize)
 
     if normalize:

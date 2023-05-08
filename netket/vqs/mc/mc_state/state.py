@@ -653,9 +653,12 @@ class MCState(VariationalState):
     def to_array(self, normalize: bool = True) -> jnp.ndarray:
 
         return nn.to_array(
-            self.hilbert, self._apply_fun, self.variables, normalize=normalize, chunk_size=self.chunk_size
+            self.hilbert,
+            self._apply_fun,
+            self.variables,
+            normalize=normalize,
+            chunk_size=self.chunk_size,
         )
-
 
     def __repr__(self):
         return (

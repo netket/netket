@@ -283,7 +283,7 @@ class ExactState(VariationalState):
                 self.variables,
                 normalize=normalize,
                 allgather=allgather,
-                chunk_size=self.chunk_size, 
+                chunk_size=self.chunk_size,
             )
 
         if normalize:
