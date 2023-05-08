@@ -13,22 +13,23 @@
 # limitations under the License.
 
 from functools import partial, reduce
-from typing import Tuple, Optional
+from typing import Callable, Optional, Tuple
 import operator
 
 import jax
 from jax import numpy as jnp
 import numpy as np
 
+from netket import jax as nkjax
 from netket.utils import get_afun_if_module, mpi, module_version
-from netket.utils.types import Array
+from netket.utils.types import Array, PyTree
 from netket.hilbert import DiscreteHilbert
 
 from flax.traverse_util import flatten_dict, unflatten_dict
 from flax.core import unfreeze
 
 
-def split_array_mpi(array):
+def split_array_mpi(array: Array) -> Array:
     """
     Splits the first dimension of the input array among mpi processes.
     Works like `mpi.scatter`, but assumes that the input array is available and
@@ -51,7 +52,15 @@ def split_array_mpi(array):
     return array[states_per_rank[mpi.rank]]
 
 
-def to_array(hilbert, apply_fun, variables, normalize=True, allgather=True):
+def to_array(
+    hilbert: DiscreteHilbert,
+    apply_fun: Callable[[PyTree, Array], Array],
+    variables: PyTree,
+    *,
+    normalize: bool = True,
+    allgather: bool = True,
+    chunk_size: Optional[int] = None,
+) -> Array:
     """
     Computes `apply_fun(variables, states)` on all states of `hilbert` and returns
       the results as a vector.
@@ -59,6 +68,9 @@ def to_array(hilbert, apply_fun, variables, normalize=True, allgather=True):
     Args:
         normalize: If True, the vector is normalized to have L2-norm 1.
         allgather: If True, the final wave function is stored in full at all MPI ranks.
+        chunk_size: Optional integer to specify the largest chunks of samples that
+            the model will be evaluated upon. By default it is `None`, and when specified
+            samples are split into chunks of at most `chunk_size`.
     """
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
@@ -77,11 +89,15 @@ def to_array(hilbert, apply_fun, variables, normalize=True, allgather=True):
 
     xs = hilbert.numbers_to_states(states_per_rank[mpi.rank])
 
-    return _to_array_rank(apply_fun, variables, xs, n_states, normalize, allgather)
+    return _to_array_rank(
+        apply_fun, variables, xs, n_states, normalize, allgather, chunk_size
+    )
 
 
-@partial(jax.jit, static_argnums=(0, 3, 4, 5))
-def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize, allgather):
+@partial(jax.jit, static_argnums=(0, 3, 4, 5, 6))
+def _to_array_rank(
+    apply_fun, variables, σ_rank, n_states, normalize, allgather, chunk_size
+):
     """
     Computes apply_fun(variables, σ_rank) and gathers all results across all ranks.
     The input σ_rank should be a slice of all states in the hilbert space of equal
@@ -90,6 +106,12 @@ def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize, allgather
     Args:
         n_states: total number of elements in the hilbert space.
     """
+
+    if chunk_size is not None:
+        apply_fun = nkjax.apply_chunked(
+            apply_fun, in_axes=(None, 0), chunk_size=chunk_size
+        )
+
     # number of 'fake' states, in the last rank.
     n_fake_states = σ_rank.shape[0] * mpi.n_nodes - n_states
 
@@ -124,12 +146,19 @@ def _to_array_rank(apply_fun, variables, σ_rank, n_states, normalize, allgather
     return psi
 
 
-def to_matrix(hilbert, machine, params, normalize=True):
+def to_matrix(
+    hilbert: DiscreteHilbert,
+    machine: Callable[[PyTree, Array], Array],
+    params: PyTree,
+    *,
+    normalize: bool = True,
+    chunk_size: Optional[int] = None,
+) -> Array:
 
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
 
-    psi = to_array(hilbert, machine, params, normalize=False)
+    psi = to_array(hilbert, machine, params, normalize=False, chunk_size=chunk_size)
 
     L = hilbert.physical.n_states
     rho = psi.reshape((L, L))
