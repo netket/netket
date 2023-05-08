@@ -3,7 +3,10 @@
 
 # Change Log
 
-## NetKet 3.8 (⚙️ In development)
+## NetKet 3.9 (⚙️ In development)
+
+
+## NetKet 3.8 (⚙️ 8 May 2023)
 
 This is the last NetKet release to support Python 3.7 and Jax 0.3.
 Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python 3.8 (and soon 3.9).
