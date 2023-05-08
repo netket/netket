@@ -47,7 +47,7 @@ from ._vmap_chunked import apply_chunked, vmap_chunked
 
 from ._math import logsumexp_cplx
 
-from ._jacobian import jacobian
+from ._jacobian import jacobian, jacobian_default_mode
 
 from netket.utils import _hide_submodules
 
