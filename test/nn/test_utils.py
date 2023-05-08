@@ -162,9 +162,6 @@ def test_binary_encoding(hilbert_shape):
         np.testing.assert_allclose(encoded_with_hilbert, desired_state)
 
 
-@pytest.mark.skipif(
-    module_version("jax") < (0, 3, 17), reason="Needs jax.pure_callback"
-)
 @pytest.mark.parametrize(
     "hilbert",
     [
@@ -189,15 +186,11 @@ def test_states_to_numbers(hilbert):
     np.testing.assert_allclose(i, np.arange(hilbert.n_states))
 
 
-@pytest.mark.skipif(
-    module_version("jax") < (0, 3, 17), reason="Needs jax.pure_callback"
-)
 def test_states_to_numbers_fails():
     with pytest.raises(ValueError):
         nk.nn.states_to_numbers(nk.hilbert.Particle(3, 2, True), 1.0)
 
 
-@pytest.mark.skipif(module_version("jax") >= (0, 3, 17), reason="Testing older jax")
 def test_states_error_on_old_jax():
     with pytest.raises(RuntimeError):
         nk.nn.states_to_numbers(nk.hilbert.Spin(0.5, 3), 1.0)

@@ -27,7 +27,7 @@ from netket.driver.abstract_variational_driver import _to_iterable
 from netket.jax import HashablePartial
 from netket.logging.json_log import JsonLog
 from netket.operator import AbstractOperator
-from netket.utils import mpi, pure_callback
+from netket.utils import mpi
 from netket.utils.dispatch import dispatch
 from netket.utils.types import PyTree
 from netket.vqs import VariationalState
@@ -170,7 +170,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                 norm_dtype = nk.jax.dtype_real(nk.jax.tree_dot(w, w))
                 # QGT norm is called via host callback since it accesses the driver
                 # TODO: make this also an hashablepartial on self to reduce recompilation
-                self._error_norm = lambda x: pure_callback(
+                self._error_norm = lambda x: jax.pure_callback(
                     HashablePartial(qgt_norm, self),
                     jax.ShapeDtypeStruct((), norm_dtype),
                     x,
@@ -479,7 +479,7 @@ def odefun_host_callback(state, driver, *args, **kwargs):
         state.parameters,
     )
 
-    return pure_callback(
+    return jax.pure_callback(
         lambda args_and_kw: odefun(state, driver, *args_and_kw[0], **args_and_kw[1]),
         result_shape,
         # pack args and kwargs together, since host_callback passes a single argument:

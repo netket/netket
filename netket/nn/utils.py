@@ -21,7 +21,7 @@ from jax import numpy as jnp
 import numpy as np
 
 from netket import jax as nkjax
-from netket.utils import get_afun_if_module, mpi, module_version
+from netket.utils import get_afun_if_module, mpi
 from netket.utils.types import Array, PyTree
 from netket.hilbert import DiscreteHilbert
 
@@ -218,7 +218,7 @@ def _separate_binary_indices(
 
 
 def _prod(iterable):
-    # This is a workaround for math.prod which is not defined for Python 3.7
+    # This is a workaround for math.prod which is not defined for Python 3.8
     return reduce(operator.mul, iterable, 1)
 
 
@@ -280,13 +280,6 @@ def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
     Returns:
         a single integer or a batch of integer indices.
     """
-    if module_version("jax") < (0, 3, 17):
-        raise RuntimeError(
-            "The jitted conversion of bit-strings to hilbert numbers"
-            "is only supported with jax.__version__ >= 0.3.17, but you "
-            f"have {module_version('jax')}"
-        )
-
     if not hilbert.is_indexable:
         raise ValueError(
             f"Hilbert space {hilbert} is too large to be indexed or "
