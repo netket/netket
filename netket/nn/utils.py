@@ -152,12 +152,13 @@ def to_matrix(
     params: PyTree,
     *,
     normalize: bool = True,
+    chunk_size: Optional[int] = None,
 ) -> Array:
 
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
 
-    psi = to_array(hilbert, machine, params, normalize=False)
+    psi = to_array(hilbert, machine, params, normalize=False, chunk_size=chunk_size)
 
     L = hilbert.physical.n_states
     rho = psi.reshape((L, L))
