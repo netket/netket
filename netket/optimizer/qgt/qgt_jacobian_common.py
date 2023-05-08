@@ -13,116 +13,31 @@
 # limitations under the License.
 
 from functools import partial
-import warnings
-from textwrap import dedent
 
 import jax
 import jax.numpy as jnp
 
-import netket.jax as nkjax
-from netket.utils import mpi, struct, warn_deprecation
+from netket.utils import mpi, warn_deprecation, deprecated
 
 
-@struct.dataclass
-class JacobianMode:
+@deprecated(
     """
-    Jax-compatible string type, used to return static information from a jax-jitted
-    function.
+    It seems you're using the internal function
+
+        nk.optimizer.qgt.qgt_jacobian_common.choose_jacobian_mode
+
+    which has been moved to
+
+        nk.jax.jacobian_default_mode
+
+    please update the import location.
+    This deprecation warning will become an error in NetKet 3.9
     """
+)
+def choose_jacobian_mode(*args, **kwargs):
+    from netket.jax import jacobian_default_mode
 
-    name: str = struct.field(pytree_node=False)
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return f"JacobianMode({self.name})"
-
-    def __hash__(self):
-        return hash(self.name)
-
-    def __eq__(self, o):
-        if isinstance(o, JacobianMode):
-            o = o.name
-        return self.name == o
-
-
-RealMode = JacobianMode("real")
-ComplexMode = JacobianMode("complex")
-HolomorphicMode = JacobianMode("holomorphic")
-
-
-@partial(jax.jit, static_argnames=("apply_fun", "holomorphic"))
-def choose_jacobian_mode(
-    apply_fun, pars, model_state, samples, *, holomorphic
-) -> JacobianMode:
-    """
-    Select an implementation of Jacobian. Returns a Jax-compatible
-    (static) string type between
-
-    "real", "complex", "holomorphic"
-    """
-    homogeneous_vars = nkjax.tree_ishomogeneous(pars)
-    leaf_iscomplex = nkjax.tree_leaf_iscomplex(pars)
-
-    if holomorphic is True:
-        if homogeneous_vars and leaf_iscomplex:
-            ## all complex parameters
-            mode = HolomorphicMode
-        elif homogeneous_vars and not leaf_iscomplex:
-            # all real parameters
-            raise ValueError(
-                dedent(
-                    """
-                A function with real parameters cannot be holomorphic.
-
-                Please remove the kw-arg `holomorphic=True`.
-                """
-                )
-            )
-        else:
-            # mixed complex and real parameters
-            warnings.warn(
-                dedent(
-                    """The ansatz has non homogeneous variables, which might not behave well with the
-                       holomorhic implementation.
-
-                       Use `holomorphic=False` or mode='complex' for more accurate results but
-                       lower performance.
-                    """
-                )
-            )
-            mode = HolomorphicMode
-    else:
-        complex_output = jax.numpy.iscomplexobj(
-            jax.eval_shape(
-                apply_fun,
-                {"params": pars, **model_state},
-                samples.reshape(-1, samples.shape[-1]),
-            )
-        )
-
-        if complex_output:
-            if leaf_iscomplex:
-                if holomorphic is None:
-                    warnings.warn(
-                        dedent(
-                            """
-                                Complex-to-Complex model detected. Defaulting to `holomorphic=False` for
-                                the implementation of QGTJacobianDense.
-                                If your model is holomorphic, specify `holomorphic=True` to use a more
-                                performant implementation.
-                                To suppress this warning specify `holomorphic`.
-                                """
-                        ),
-                        UserWarning,
-                    )
-                mode = ComplexMode
-            else:
-                mode = ComplexMode
-        else:
-            mode = RealMode
-    return mode
+    return jacobian_default_mode(*args, **kwargs)
 
 
 def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):

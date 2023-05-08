@@ -29,7 +29,6 @@ from ..linear_operator import LinearOperator, Uninitialized
 from .common import check_valid_vector_type
 from .qgt_jacobian_pytree_logic import mat_vec
 from .qgt_jacobian_common import (
-    choose_jacobian_mode,
     sanitize_diag_shift,
     to_shift_offset,
     rescale,
@@ -114,7 +113,7 @@ def QGTJacobianPyTree(
 
     # Choose sensible default mode
     if mode is None:
-        mode = choose_jacobian_mode(
+        mode = nkjax.jacobian_default_mode(
             vstate._apply_fun,
             vstate.parameters,
             vstate.model_state,

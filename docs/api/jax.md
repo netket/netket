@@ -64,6 +64,7 @@ This part of the API is not public, and can change without notice.
   expect
   vjp
   jacobian
+  jacobian_default_mode
 ```
 
 ## Chunked operations
