@@ -189,8 +189,3 @@ def test_states_to_numbers(hilbert):
 def test_states_to_numbers_fails():
     with pytest.raises(ValueError):
         nk.nn.states_to_numbers(nk.hilbert.Particle(3, 2, True), 1.0)
-
-
-def test_states_error_on_old_jax():
-    with pytest.raises(RuntimeError):
-        nk.nn.states_to_numbers(nk.hilbert.Spin(0.5, 3), 1.0)
