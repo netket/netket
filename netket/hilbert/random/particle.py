@@ -32,10 +32,12 @@ def take_sub(key, x, n):
 @dispatch
 def random_state(hilb: Particle, key, batches: int, *, dtype):
     """If no periodic boundary conditions are present particles are positioned normally distributed around the origin.
+    
     If periodic boundary conditions are present the particles are positioned uniformly inside the box and a small
     gaussian noise is added on top.
     If periodic boundary conditions are chosen only for certain dimensions, the periodic initialization is used for
-    all of those dimensions and the free initialization is used for all the other ones."""
+    all of those dimensions and the free initialization is used for all the other ones.
+    """
     pbc = np.array(hilb.n_particles * hilb.pbc)
     boundary = np.tile(pbc, (batches, 1))
 

@@ -31,7 +31,19 @@ neural quantum states.
    FastARNNConv1D
    FastARNNConv2D
    DeepSetMLP
-   DeepSetRelDistance
    MLP
 
+```
+
+The following models are particularly suited for systems with continuous degrees of freedom (:class:`nk.hilbert.Particle`)
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/models
+   :template: flax_model
+   :nosignatures:
+
+
+   Gaussian
+   DeepSetRelDistance
 ```

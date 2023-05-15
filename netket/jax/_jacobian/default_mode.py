@@ -77,8 +77,8 @@ def jacobian_default_mode(
        `ComplexMode`, which will force the calculation of both the jacobian
        and adjoint jacobian. See the documentation of{func}`nk.jax.jacobian`
        for more details.
-        - If `holomorphic==True`, it will compute only the complex-valued
-        jacobian, and assumes the adjoint-jacobian to be zero.
+       - If `holomorphic==True`, it will compute only the complex-valued
+       jacobian, and assumes the adjoint-jacobian to be zero.
 
     This function will also raise an error if `holomorphic` is not specified
     but the output is complex.
@@ -91,6 +91,7 @@ def jacobian_default_mode(
         samples: An array of samples.
         holomorphic: A boolean specifying whether `apply_fun` is
             holomorphic or not (`None` by default).
+
     """
     homogeneous_vars = nkjax.tree_ishomogeneous(pars)
     leaf_iscomplex = nkjax.tree_leaf_iscomplex(pars)

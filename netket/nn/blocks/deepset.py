@@ -31,15 +31,14 @@ def _process_features(features) -> Tuple[Optional[Tuple[int, ...]], Optional[int
 
 
 class DeepSetMLP(nn.Module):
-    r"""Implements the DeepSets architecture, which is permutation invariant.
+    r"""Implements the DeepSets architecture, which is permutation invariant
+    and is suitable for the encoding of bosonic systems.
 
-    .. math ::
+    .. math::
 
         f(x_1,...,x_N) = \rho\left(\sum_i \phi(x_i)\right)
 
-    that is suitable for the simulation of bosonic.
-
-    The input shape must have an axis that is reshaped to (..., N, D), where we pool over N.
+    The input shape must have an axis that is reshaped to `(..., N, D)`, where we pool over N.
 
     """
 
@@ -74,7 +73,7 @@ class DeepSetMLP(nn.Module):
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias"""
     precision: Optional[jax.lax.Precision] = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see {ref}`jax.lax.Precision`for details."""
 
     def setup(self):
         def _create_mlp(features, output_activation, name):
