@@ -21,11 +21,14 @@ from .base import (
 )
 
 from .mc import MCState, MCMixedState, get_local_kernel_arguments, get_local_kernel
-from .exact import FullSummationState
+from .full_summ import FullSummationState
 
 # TODO: this is deprecated in favour of netket.experimental.vqs
 # eventually remove this file and import
 from . import experimental
+
+# TODO: deprecated on May 2023
+from .deprecated import ExactState
 
 from netket.utils import _hide_submodules
 
