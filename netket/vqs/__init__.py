@@ -21,7 +21,7 @@ from .base import (
 )
 
 from .mc import MCState, MCMixedState, get_local_kernel_arguments, get_local_kernel
-from .exact import ExactState
+from .exact import FullSummationState
 
 # TODO: this is deprecated in favour of netket.experimental.vqs
 # eventually remove this file and import

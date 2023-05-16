@@ -101,9 +101,9 @@ def QGTJacobianDense(
     diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
 
     # TODO: Find a better way to handle this case
-    from netket.vqs import ExactState
+    from netket.vqs import FullSummationState
 
-    if isinstance(vstate, ExactState):
+    if isinstance(vstate, FullSummationState):
         samples = split_array_mpi(vstate._all_states)
         pdf = split_array_mpi(vstate.probability_distribution())
     else:

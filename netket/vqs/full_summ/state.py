@@ -47,7 +47,7 @@ def jit_evaluate(fun: Callable, *args):
     return fun(*args)
 
 
-class ExactState(VariationalState):
+class FullSummationState(VariationalState):
     """Variational State for a variational quantum state computed on the whole
     Hilbert space without Monte Carlo sampling.
 
@@ -81,7 +81,7 @@ class ExactState(VariationalState):
         dtype=float,
     ):
         """
-        Constructs the ExactState.
+        Constructs the FullSummationState.
 
         Args:
             hilbert: The Hilbert space
@@ -315,26 +315,26 @@ class ExactState(VariationalState):
 
     def __repr__(self):
         return (
-            "ExactState("
+            "FullSummationState("
             + "\n  hilbert = {},".format(self.hilbert)
             + "\n  n_parameters = {})".format(self.n_parameters)
         )
 
     def __str__(self):
-        return "ExactState(" + "hilbert = {}, ".format(self.hilbert)
+        return "FullSummationState(" + "hilbert = {}, ".format(self.hilbert)
 
 
 # serialization
 
 
-def serialize_ExactState(vstate):
+def serialize_FullSummationState(vstate):
     state_dict = {
         "variables": serialization.to_state_dict(vstate.variables),
     }
     return state_dict
 
 
-def deserialize_ExactState(vstate, state_dict):
+def deserialize_FullSummationState(vstate, state_dict):
     import copy
 
     new_vstate = copy.copy(vstate)
@@ -347,7 +347,7 @@ def deserialize_ExactState(vstate, state_dict):
 
 
 serialization.register_serialization_state(
-    ExactState,
-    serialize_ExactState,
-    deserialize_ExactState,
+    FullSummationState,
+    serialize_FullSummationState,
+    deserialize_FullSummationState,
 )

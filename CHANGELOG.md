@@ -5,6 +5,10 @@
 
 ## NetKet 3.9 (⚙️ In development)
 
+### Deprecations
+
+* `netket.vqs.ExactState` has been renamed to {class}`netket.vqs.FullSummationState` to better reflect what it does. Using the old name will now raise a warning [#14XX](https://github.com/netket/netket/pull/14XX).
+
 
 ## NetKet 3.8 (⚙️ 8 May 2023)
 

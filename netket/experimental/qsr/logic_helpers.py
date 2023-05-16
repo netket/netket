@@ -22,7 +22,7 @@ import jax.numpy as jnp
 from netket import jax as nkjax
 from netket.operator import AbstractOperator
 from netket.hilbert import AbstractHilbert
-from netket.vqs import ExactState
+from netket.vqs import FullSummationState
 from netket.utils import mpi
 from netket.utils.types import Array
 from netket.utils.dispatch import dispatch
@@ -76,7 +76,7 @@ def _grad_negative(state_diag):
 @partial(jax.jit, static_argnums=(0, 1))
 def _avg_O_exact(hilbert: AbstractHilbert, afun, pars, model_state):
     r"""
-    Same as _avg_O, but for ExactState.
+    Same as _avg_O, but for FullSummationState.
     """
     sigma = hilbert.all_states()
     sigma = sigma.reshape((-1, sigma.shape[-1]))
@@ -88,9 +88,9 @@ def _avg_O_exact(hilbert: AbstractHilbert, afun, pars, model_state):
 
 
 @dispatch
-def _grad_negative(state_diag: ExactState):  # noqa: F811
+def _grad_negative(state_diag: FullSummationState):  # noqa: F811
     r"""
-    Same as _grad_negative, but for ExactState.
+    Same as _grad_negative, but for FullSummationState.
     """
     return _avg_O_exact(
         state_diag._hilbert,

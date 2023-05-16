@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .state import ExactState
+from .state import FullSummationState
 
 from . import expect
 
