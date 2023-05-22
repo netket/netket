@@ -1,13 +1,13 @@
 from netket.utils import deprecated_new_name
-from .full_summ import FullSummationState
+from .full_summ import FullSumState
 
 
 @deprecated_new_name(
-    "nk.vqs.FullSummationState",
+    "nk.vqs.FullSumState",
     reason="""
-    ExactState has been renamed to FullSummationState to better
+    ExactState has been renamed to FullSumState to better
     reflect its purpose.
     """,
 )
 def ExactState(*args, **kwargs):
-    return FullSummationState(*args, **kwargs)
+    return FullSumState(*args, **kwargs)

@@ -47,7 +47,7 @@ def jit_evaluate(fun: Callable, *args):
     return fun(*args)
 
 
-class FullSummationState(VariationalState):
+class FullSumState(VariationalState):
     """Variational State for a variational quantum state computed on the whole
     Hilbert space without Monte Carlo sampling.
 
@@ -81,7 +81,7 @@ class FullSummationState(VariationalState):
         dtype=float,
     ):
         """
-        Constructs the FullSummationState.
+        Constructs the FullSumState.
 
         Args:
             hilbert: The Hilbert space
@@ -315,26 +315,26 @@ class FullSummationState(VariationalState):
 
     def __repr__(self):
         return (
-            "FullSummationState("
+            "FullSumState("
             + "\n  hilbert = {},".format(self.hilbert)
             + "\n  n_parameters = {})".format(self.n_parameters)
         )
 
     def __str__(self):
-        return "FullSummationState(" + "hilbert = {}, ".format(self.hilbert)
+        return "FullSumState(" + "hilbert = {}, ".format(self.hilbert)
 
 
 # serialization
 
 
-def serialize_FullSummationState(vstate):
+def serialize_FullSumState(vstate):
     state_dict = {
         "variables": serialization.to_state_dict(vstate.variables),
     }
     return state_dict
 
 
-def deserialize_FullSummationState(vstate, state_dict):
+def deserialize_FullSumState(vstate, state_dict):
     import copy
 
     new_vstate = copy.copy(vstate)
@@ -347,7 +347,7 @@ def deserialize_FullSummationState(vstate, state_dict):
 
 
 serialization.register_serialization_state(
-    FullSummationState,
-    serialize_FullSummationState,
-    deserialize_FullSummationState,
+    FullSumState,
+    serialize_FullSumState,
+    deserialize_FullSumState,
 )

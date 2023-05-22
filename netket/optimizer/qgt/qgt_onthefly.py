@@ -59,9 +59,9 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
         )
 
     # TODO: Find a better way to handle this case
-    from netket.vqs import FullSummationState
+    from netket.vqs import FullSumState
 
-    if isinstance(vstate, FullSummationState):
+    if isinstance(vstate, FullSumState):
         samples = split_array_mpi(vstate._all_states)
         pdf = split_array_mpi(vstate.probability_distribution())
     else:

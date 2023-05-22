@@ -27,7 +27,7 @@ from netket.vqs import (
     VariationalState,
     VariationalMixedState,
     MCState,
-    FullSummationState,
+    FullSumState,
 )
 
 from netket.experimental.dynamics import RKIntegratorConfig
@@ -140,7 +140,7 @@ class TDVP(TDVPBaseDriver):
 
 @odefun.dispatch
 def odefun_tdvp(  # noqa: F811
-    state: Union[MCState, FullSummationState], driver: TDVP, t, w, *, stage=0
+    state: Union[MCState, FullSumState], driver: TDVP, t, w, *, stage=0
 ):
     # pylint: disable=protected-access
 

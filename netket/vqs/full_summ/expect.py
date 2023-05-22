@@ -28,7 +28,7 @@ from netket.utils.dispatch import dispatch, TrueT
 from netket.operator import DiscreteOperator
 
 
-from .state import FullSummationState
+from .state import FullSumState
 
 
 def _check_hilbert(A, B):
@@ -49,7 +49,7 @@ def sparsify(Ô):
 
 
 @dispatch
-def expect(vstate: FullSummationState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
+def expect(vstate: FullSumState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     _check_hilbert(vstate, Ô)
 
     O = sparsify(Ô)
@@ -67,7 +67,7 @@ def expect(vstate: FullSummationState, Ô: DiscreteOperator) -> Stats:  # noqa:
 
 @dispatch
 def expect_and_forces(
-    vstate: FullSummationState,
+    vstate: FullSumState,
     Ô: DiscreteOperator,
     *,
     mutable: CollectionFilter,
@@ -134,7 +134,7 @@ def _exp_forces(
 
 @dispatch
 def expect_and_grad(
-    vstate: FullSummationState,
+    vstate: FullSumState,
     Ô: DiscreteOperator,
     use_covariance: TrueT,
     *,

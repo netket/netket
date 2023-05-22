@@ -102,9 +102,9 @@ def QGTJacobianPyTree(
     diag_shift, diag_scale = sanitize_diag_shift(diag_shift, diag_scale, rescale_shift)
 
     # TODO: Find a better way to handle this case
-    from netket.vqs import FullSummationState
+    from netket.vqs import FullSumState
 
-    if isinstance(vstate, FullSummationState):
+    if isinstance(vstate, FullSumState):
         samples = split_array_mpi(vstate._all_states)
         pdf = split_array_mpi(vstate.probability_distribution())
     else:
