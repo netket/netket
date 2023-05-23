@@ -126,7 +126,8 @@ Sampler. Rules with `Numpy` in their name can only be used with
 ```
 
 There are also a few additional rules that can be used to compose other rules together.
-```
+
+```{eval-rst}
 .. currentmodule:: netket.sampler
 
 .. autosummary::
