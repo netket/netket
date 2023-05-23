@@ -94,7 +94,7 @@ QGT_objects["JacobianPyTree"] = nk.optimizer.qgt.QGTJacobianPyTree
 def vstate(request):
     ma = request.param
 
-    return nk.vqs.ExactState(hi, ma)
+    return nk.vqs.FullSumState(hi, ma)
 
 
 @common.skipif_mpi
@@ -154,7 +154,7 @@ def test_derivatives_agree(machine):
     g = nk.graph.Chain(length=8, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=1)
-    vs = nk.vqs.ExactState(hi, machine)
+    vs = nk.vqs.FullSumState(hi, machine)
 
     e_expect = vs.expect(ha)
     assert isinstance(e_expect, nk.stats.Stats)
@@ -239,7 +239,7 @@ def test_TFIM_energy_strictly_decreases(
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
     ha = nk.operator.Ising(hilbert=hi, graph=g, h=h)
-    vs = nk.vqs.ExactState(hi, machine)
+    vs = nk.vqs.FullSumState(hi, machine)
 
     op = nk.optimizer.Sgd(learning_rate=0.003)
 

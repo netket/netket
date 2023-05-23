@@ -34,7 +34,7 @@ This module defines the variational states, the heart of NetKet itself.
   :toctree: _generated/vqs
   :nosignatures:
 
-  ExactState
+  FullSumState
   MCState
   MCMixedState
 ```

@@ -52,7 +52,7 @@ def test_groundstate():
     w, v = nk.exact.lanczos_ed(ham, compute_eigenvectors=True)
 
     mod = nk.models.LogStateVector(hi, param_dtype=float)
-    vs = nk.vqs.ExactState(hi, mod)
+    vs = nk.vqs.FullSumState(hi, mod)
     vs.parameters = {"logstate": np.log(v[:, 0])}
 
     assert np.allclose(vs.expect(ham).mean, w[0])
