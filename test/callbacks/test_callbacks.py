@@ -1,5 +1,6 @@
 import netket as nk
 import time
+import numpy as np
 
 SEED = 3141592
 L = 8
@@ -66,12 +67,40 @@ def test_timeout():
 
 
 def test_earlystopping_doesnt_get_stuck_with_patience():
-    loss_values = [10] + [9] * 11 + [1] * 4
+    loss_values = [10] + [9] * 12 + [1] * 4
     es = nk.callbacks.EarlyStopping(patience=10)
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        print(es)
+        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+
+    assert step == 12
+    assert es._best_iter == 1
+    assert es._best_val == 9
+
+
+def test_earlystopping_doesnt_get_stuck_with_patience_reltol():
+    loss_values = np.array([11] + [10] * 12 + [9] * 4, dtype=float)
+    loss_values[1:13] = 10.0 - 1e-3 * np.arange(12)
+    es = nk.callbacks.EarlyStopping(patience=10, min_reldelta=1.5e-3)
     driver = DummyDriver()
     for step in range(len(loss_values)):
         if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
             break
+
+    assert step == 12
+    assert es._best_iter == 1
+    assert es._best_val == 10.0
+
+    es = nk.callbacks.EarlyStopping(patience=10, min_reldelta=1e-4)
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+
+    assert step == 16
+    assert es._best_iter == 13
     assert es._best_val == 9
 
 
