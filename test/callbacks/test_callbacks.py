@@ -113,3 +113,24 @@ def test_invalid_loss_stopping():
             break
     assert ils._last_valid_iter == 3
     assert step == 13
+
+
+def test_convergence_stopping():
+    loss_values = [10] + [9] * 12 + [1] * 4
+    es = nk.callbacks.ConvergenceStopping(target=9.0, patience=10, smoothing_window=1)
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        print(es)
+        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+
+    assert step == 11
+
+    es = nk.callbacks.ConvergenceStopping(target=9.0, patience=10, smoothing_window=3)
+    driver = DummyDriver()
+    for step in range(len(loss_values)):
+        print(es)
+        if not es(step, {"loss": DummyLogEntry(loss_values[step])}, driver):
+            break
+
+    assert step == 13
