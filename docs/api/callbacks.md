@@ -14,5 +14,7 @@ Those callbacks can be used with the optimisation drivers.
    :nosignatures:
 
    EarlyStopping
+   ConvergenceStopping
+   InvalidLossStopping
    Timeout
 ```
