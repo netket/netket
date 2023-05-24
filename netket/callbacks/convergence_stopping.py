@@ -21,7 +21,7 @@ import numpy as np
 
 @dataclass
 class ConvergenceStopping:
-    """A simple callback to stop the optimisation if a value gets below a certain threshold.
+    """A simple callback to stop the optimisation if the loss gets below a certain threshold.
     based on `driver._loss_name`."""
 
     target: float
