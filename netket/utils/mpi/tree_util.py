@@ -12,33 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .mpi import (
-    mpi4jax_available as available,
-    MPI,
-    MPI_py_comm,
-    MPI_jax_comm,
-    n_nodes,
-    node_number,
-    rank,
-)
+import jax
 
-from .primitives import (
-    mpi_all,
-    mpi_allgather,
-    mpi_any,
-    mpi_bcast,
-    mpi_max,
-    mpi_mean,
-    mpi_sum,
-)
-from .primitives import (
-    mpi_all_jax,
-    mpi_allgather_jax,
-    mpi_any_jax,
-    mpi_bcast_jax,
-    mpi_max_jax,
-    mpi_mean_jax,
-    mpi_sum_jax,
-)
 
-from .tree_util import mpi_tree_map
+def mpi_tree_map(f, tree, *rest, is_leaf=None, token=None, **kwargs):
+
+    leaves, treedef = jax.tree_util.tree_flatten(tree, is_leaf)
+    all_leaves = [leaves] + [treedef.flatten_up_to(r) for r in rest]
+    out_leaves = []
+    for xs in zip(*all_leaves):
+        y, token = f(*xs, token=token, **kwargs)
+        out_leaves.append(y)
+    return treedef.unflatten(out_leaves), token
