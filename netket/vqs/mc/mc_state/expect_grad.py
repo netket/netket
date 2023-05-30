@@ -17,6 +17,7 @@ from typing import Callable, Tuple
 
 import jax
 from jax import numpy as jnp
+from flax.core.frozen_dict import FrozenDict
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
@@ -90,7 +91,6 @@ def expect_and_grad_nonherm(
     *,
     mutable: CollectionFilter,
 ) -> Tuple[Stats, PyTree]:
-
     if not isinstance(Ô, Squared) and not config.netket_experimental:
         raise RuntimeError(
             """
@@ -112,6 +112,7 @@ def expect_and_grad_nonherm(
         vstate._apply_fun,
         vstate.sampler.machine_pow,
         mutable,
+        vstate.training_kwargs,
         vstate.parameters,
         vstate.model_state,
         σ,
@@ -124,28 +125,29 @@ def expect_and_grad_nonherm(
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3))
+@partial(jax.jit, static_argnums=(0, 1, 2, 3, 4))
 def grad_expect_operator_kernel(
     local_value_kernel: Callable,
     model_apply_fun: Callable,
     machine_pow: int,
     mutable: CollectionFilter,
+    training_kwargs: FrozenDict,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree, Stats]:
-
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
     is_mutable = mutable is not False
     logpsi = lambda w, σ: model_apply_fun(
-        {"params": w, **model_state}, σ, mutable=mutable
+        {"params": w, **model_state}, σ, mutable=mutable, **training_kwargs
     )
     log_pdf = (
-        lambda w, σ: machine_pow * model_apply_fun({"params": w, **model_state}, σ).real
+        lambda w, σ: machine_pow
+        * model_apply_fun({"params": w, **model_state}, σ, **training_kwargs).real
     )
 
     def expect_closure_pars(pars):

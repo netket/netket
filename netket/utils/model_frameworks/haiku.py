@@ -52,7 +52,6 @@ class HaikuWrapper:
 
 @framework
 class HaikuFramework(ModuleFramework):
-
     name: str = "Haiku"
 
     @staticmethod
