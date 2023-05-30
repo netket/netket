@@ -180,6 +180,6 @@ def grad_expect_operator_kernel(
 
     return (
         Ō_stats,
-        jax.tree_map(lambda x: mpi.mpi_mean_jax(x)[0], Ō_pars_grad),
+        mpi.mpi_tree_map(mpi.mpi_mean_jax, Ō_pars_grad)[0],
         new_model_state,
     )

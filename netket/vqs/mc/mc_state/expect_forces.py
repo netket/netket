@@ -106,4 +106,4 @@ def forces_expect_hermitian(
 
     new_model_state = new_model_state[0] if is_mutable else None
 
-    return Ō, jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad), new_model_state
+    return Ō, mpi.mpi_tree_map(mpi.mpi_sum_jax, Ō_grad)[0], new_model_state
