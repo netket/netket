@@ -152,22 +152,24 @@ def _get_blocks(data, block_size):
     return data[:, 0 : n_blocks * block_size].reshape((-1, block_size)).mean(axis=1)
 
 
-def _block_variance(data, l):
+def _block_variance(data, l, *, token=None):
     blocks = _get_blocks(data, l)
     ts = _total_size(blocks)
     if ts > 0:
-        return _var(blocks), ts
+        res, token = _var(blocks, token=token)
+        return res, ts, token
     else:
-        return jnp.nan, 0
+        return jnp.nan, 0, token
 
 
-def _batch_variance(data):
+def _batch_variance(data, *, token=None):
     b_means = data.mean(axis=1)
     ts = _total_size(b_means)
-    return _var(b_means), ts
+    res, token = _var(b_means, token=token)
+    return res, ts, token
 
 
-def _split_R_hat(data, W):
+def _split_R_hat(data, W, *, token=None):
     N = data.shape[-1]
     if not config.netket_use_plain_rhat:
         # compute split-chain batch variance
@@ -175,19 +177,22 @@ def _split_R_hat(data, W):
         if N % 2 == 0:
             # split each chain in the middle,
             # like [[1 2 3 4]] -> [[1 2][3 4]]
-            batch_var, _ = _batch_variance(data.reshape(2 * local_batch_size, N // 2))
+            batch_var, _, token = _batch_variance(
+                data.reshape(2 * local_batch_size, N // 2), token=token
+            )
         else:
             # drop the last sample of each chain for an even split,
             # like [[1 2 3 4 5]] -> [[1 2][3 4]]
-            batch_var, _ = _batch_variance(
-                data[:, :-1].reshape(2 * local_batch_size, N // 2)
+            batch_var, _, token = _batch_variance(
+                data[:, :-1].reshape(2 * local_batch_size, N // 2),
+                token=token,
             )
 
     # V_loc = _np.var(data, axis=-1, ddof=0)
     # W_loc = _np.mean(V_loc)
     # W = _mean(W_loc)
     # # This approximation seems to hold well enough for larger n_samples
-    return jnp.sqrt((N - 1) / N + batch_var / W)
+    return jnp.sqrt((N - 1) / N + batch_var / W), token
 
 
 BLOCK_SIZE = 32
@@ -239,7 +244,7 @@ def statistics(data):
 
 
 @jax.jit
-def _statistics(data):
+def _statistics(data, *, token=None):
     data = jnp.atleast_1d(data)
     if data.ndim == 1:
         data = data.reshape((1, -1))
@@ -247,23 +252,23 @@ def _statistics(data):
     if data.ndim > 2:
         raise NotImplementedError("Statistics are implemented only for ndim<=2")
 
-    mean = _mean(data)
-    variance = _var(data)
+    mean, token = _mean(data, token=token)
+    variance, token = _var(data, token=token)
 
     taus = jax.vmap(integrated_time)(data)
-    tau_avg, _ = mpi.mpi_mean_jax(jnp.mean(taus))
-    tau_max, _ = mpi.mpi_max_jax(jnp.max(taus))
+    tau_avg, token = mpi.mpi_mean_jax(jnp.mean(taus), token=token)
+    tau_max, token = mpi.mpi_max_jax(jnp.max(taus), token=token)
 
-    batch_var, n_batches = _batch_variance(data)
+    batch_var, n_batches, token = _batch_variance(data, token=token)
     if n_batches > 1:
         error_of_mean = jnp.sqrt(batch_var / n_batches)
-        R_hat = _split_R_hat(data, variance)
+        R_hat, token = _split_R_hat(data, variance, token=token)
     else:
         l_block = max(1, data.shape[1] // BLOCK_SIZE)
-        block_var, n_blocks = _block_variance(data, l_block)
+        block_var, n_blocks, token = _block_variance(data, l_block, token=token)
         error_of_mean = jnp.sqrt(block_var / n_blocks)
         R_hat = jnp.nan
 
     res = Stats(mean, error_of_mean, variance, tau_avg, R_hat, tau_max)
 
-    return res
+    return res, token
