@@ -132,7 +132,7 @@ def astype_unsafe(x, dtype):
 
 
 def tree_subtract_mean(tree):
-    return jax.tree_map(lambda x: nkstats.subtract_mean(x, axis=0), tree)
+    return jax.tree_map(lambda x: nkstats.subtract_mean(x, axis=0)[0], tree)
 
 
 def divide_by_sqrt_n_samp(oks, samples):

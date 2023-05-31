@@ -46,7 +46,7 @@ def _mat_vec(jvp_fn, v, diag_shift, pdf=None):
     w = jvp_fn(v)
     if pdf is None:
         w = w * (1.0 / (w.size * mpi.n_nodes))
-        w = subtract_mean(w)  # w/ MPI
+        w, _ = subtract_mean(w)  # w/ MPI
     else:
         w = pdf * (w - mpi.mpi_sum_jax(pdf @ w)[0])
     # Oᴴw = (wᴴO)ᴴ = (w* O)* since 1D arrays are not transposed
@@ -116,7 +116,7 @@ def _Odagger_DeltaO_v(forward_fn, params, samples, v, pdf=None):
     if pdf is None:
         w = w * (1.0 / (samples.shape[0] * samples.shape[1] * mpi.n_nodes))
         w_, chunk_fn = unchunk(w)
-        w = chunk_fn(subtract_mean(w_))  # w/ MPI
+        w = chunk_fn(subtract_mean(w_)[0])  # w/ MPI
     else:
         w_, chunk_fn = unchunk(w)
         # here we assume pdf is chunked,

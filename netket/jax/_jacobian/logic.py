@@ -149,7 +149,7 @@ def jacobian(
         sqrt_n_samp = math.sqrt(samples.shape[0] * mpi.n_nodes)  # maintain weak type
         if center:
             jacobians = jax.tree_map(
-                lambda x: subtract_mean(x, axis=0) / sqrt_n_samp, jacobians
+                lambda x: subtract_mean(x, axis=0)[0] / sqrt_n_samp, jacobians
             )
 
     else:
