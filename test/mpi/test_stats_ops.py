@@ -43,9 +43,9 @@ def test_mc_stats(_mpi_comm, _mpi_rank, _mpi_size):
 
     mydata = np.copy(data[_mpi_rank])
 
-    stats = nk.stats.statistics(mydata)
+    stats, _ = nk.stats.statistics(mydata)
 
-    assert nk.stats.mean(data) == approx(ref_mean)
+    assert nk.stats.mean(data)[0] == approx(ref_mean)
     assert stats.mean == approx(ref_mean)
     assert stats.variance == approx(ref_var)
     assert stats.R_hat == approx(ref_R)
@@ -59,25 +59,25 @@ def test_mean(_mpi_comm, _mpi_rank, _mpi_size):
 
     for axis in None, 0, 1, 2:
         ref_mean = np.mean(data.mean(0), axis=axis)
-        nk_mean = nk.stats.mean(mydata, axis=axis)
+        nk_mean, _ = nk.stats.mean(mydata, axis=axis)
 
         assert nk_mean.shape == ref_mean.shape, "axis={}".format(axis)
         assert nk_mean == approx(ref_mean), "axis={}".format(axis)
 
     # Test with out
-    out = nk.stats.mean(mydata)
+    out, _ = nk.stats.mean(mydata)
     assert out == approx(np.mean(data))
 
     # Test with out and axis
-    out = nk.stats.mean(mydata, axis=0)
+    out, _ = nk.stats.mean(mydata, axis=0)
     assert out == approx(np.mean(data.mean(0), axis=0))
 
     # Test with complex dtype
-    out = nk.stats.mean(1j * mydata, axis=0)
+    out, _ = nk.stats.mean(1j * mydata, axis=0)
     assert out == approx(np.mean(1j * data.mean(0), axis=0))
 
     # Test with keepdims
-    out = nk.stats.mean(mydata, keepdims=True)
+    out, _ = nk.stats.mean(mydata, keepdims=True)
     assert out == approx(np.mean(data.mean(0), keepdims=True))
 
 
@@ -89,8 +89,8 @@ def test_sum(_mpi_comm, _mpi_rank, _mpi_size):
 
     for axis in None, 0, 1, 2:
         ref_sum = np.sum(data.sum(axis=0), axis=axis)
-        nk_sum = nk.stats.sum(mydata, axis=axis)
-        nk_sum_kd = nk.stats.sum(mydata, axis=axis, keepdims=True)
+        nk_sum, _ = nk.stats.sum(mydata, axis=axis)
+        nk_sum_kd, _ = nk.stats.sum(mydata, axis=axis, keepdims=True)
         ref_sum_kd = np.sum(data.sum(axis=0), axis=axis, keepdims=True)
 
         assert nk_sum.shape == ref_sum.shape, "axis={}".format(axis)
@@ -101,15 +101,15 @@ def test_sum(_mpi_comm, _mpi_rank, _mpi_size):
         assert np.all(nk_sum_kd == ref_sum_kd), "axis={}, keepdims=True".format(axis)
 
     # Test with out
-    out = nk.stats.sum(mydata)
+    out, _ = nk.stats.sum(mydata)
     np.testing.assert_almost_equal(out, np.sum(data))
 
     # Test with out and axis
-    out = nk.stats.sum(mydata, axis=0)
+    out, _ = nk.stats.sum(mydata, axis=0)
     np.testing.assert_almost_equal(out, np.sum(data.sum(axis=0), axis=0))
 
     # Test with complex dtype
-    out = nk.stats.sum(1j * mydata, axis=0)
+    out, _ = nk.stats.sum(1j * mydata, axis=0)
     np.testing.assert_almost_equal(out, np.sum(1j * data.sum(axis=0), axis=0))
 
 
@@ -129,13 +129,13 @@ def test_var(_mpi_comm, _mpi_rank, _mpi_size):
         else:
             ref_var = np.var(data, ddof=ddof)
 
-        nk_var = nk.stats.var(mydata, axis=axis, ddof=ddof)
+        nk_var, _ = nk.stats.var(mydata, axis=axis, ddof=ddof)
 
         assert nk_var.shape == ref_var.shape, "axis={},ddof={}".format(axis, ddof)
         assert nk_var == approx(ref_var), "axis={},ddof={}".format(axis, ddof)
 
     # Test with out
-    out = nk.stats.var(mydata)
+    out, _ = nk.stats.var(mydata)
     assert out == approx(np.var(data))
 
 
@@ -145,8 +145,8 @@ def test_subtract_mean(_mpi_rank, _mpi_size, _mpi_comm):
     data = _mpi_comm.bcast(data)
     mydata = np.copy(data[_mpi_rank])
 
-    ref_mean = nk.stats.mean(mydata, axis=0)
+    ref_mean, _ = nk.stats.mean(mydata, axis=0)
     ref_data = mydata - ref_mean[np.newaxis, :, :]
 
-    mydata = nk.stats.subtract_mean(mydata, axis=0)
+    mydata, _ = nk.stats.subtract_mean(mydata, axis=0)
     assert mydata == approx(ref_data)
