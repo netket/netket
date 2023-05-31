@@ -155,7 +155,8 @@ def jacobian(
     else:
         if center:
             jacobians_avg = jax.tree_map(
-                partial(sum_mpi, axis=0), _multiply_by_pdf(jacobians, pdf)
+                lambda *x: partial(sum_mpi, axis=0)(*x)[0],
+                _multiply_by_pdf(jacobians, pdf),
             )
             jacobians = jax.tree_map(lambda x, y: x - y, jacobians, jacobians_avg)
 

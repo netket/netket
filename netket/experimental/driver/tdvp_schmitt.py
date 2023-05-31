@@ -193,7 +193,7 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, num_tol, svd_tol, snr_tol)
     ev, V = jnp.linalg.eigh(Sd)
 
     OEdata = O.conj() * ΔE_loc
-    F = stats.sum(OEdata, axis=0)
+    F, _ = stats.sum(OEdata, axis=0)
 
     # Note: this implementation differs from Eq. 20 in Markus's paper, which I would
     # implement as `rho = mpi.mean(QEdata, axis=0)`. However, this is different from
@@ -204,7 +204,7 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, num_tol, svd_tol, snr_tol)
     rho = V.conj().T @ F
 
     # Compute the SNR according to Eq. 21
-    snr = jnp.abs(rho) * jnp.sqrt(n_samples) / jnp.sqrt(stats.var(QEdata, axis=0))
+    snr = jnp.abs(rho) * jnp.sqrt(n_samples) / jnp.sqrt(stats.var(QEdata, axis=0)[0])
 
     # Discard eigenvalues below numerical precision
     ev_inv = jnp.where(jnp.abs(ev / ev[-1]) > num_tol, 1.0 / ev, 0.0)

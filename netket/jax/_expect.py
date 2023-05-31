@@ -89,7 +89,7 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
         log_p = log_pdf(pars, σ)
         term1 = jax.vmap(jnp.multiply)(ΔL_σ, log_p)
         term2 = expected_fun(pars, σ, *cost_args)
-        out = mpi_mean(term1 + term2, axis=0)
+        out, _ = mpi_mean(term1 + term2, axis=0)
         out = out.sum()
         return out
 
