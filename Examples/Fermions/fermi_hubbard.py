@@ -23,11 +23,11 @@ hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions=(2, 2))
 # we will create a helper function to abbreviate the creation, destruction and number operators
 # each operator has a site and spin projection (sz) in order to find the right position in the hilbert space samples
 def c(site, sz):
-    return nkx.operator.fermion.create(hi, site, sz=sz)
+    return nkx.operator.fermion.destroy(hi, site, sz=sz)
 
 
 def cdag(site, sz):
-    return nkx.operator.fermion.destroy(hi, site, sz=sz)
+    return nkx.operator.fermion.create(hi, site, sz=sz)
 
 
 def nc(site, sz):
