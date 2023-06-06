@@ -198,7 +198,7 @@ def _split_R_hat(data, W, *, token=None):
 BLOCK_SIZE = 32
 
 
-def statistics(data):
+def statistics(data, *, token=None, return_token=False):
     r"""
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
@@ -236,11 +236,15 @@ def statistics(data):
         or Vehtari et al., `arXiv:1903.08008 <https://arxiv.org/abs/1903.08008>`_.)
     """
     if config.netket_experimental_fft_autocorrelation:
-        return _statistics(data)
+        res, token = _statistics(data, token=token)
+        if return_token:
+            return res, token
+        else:
+            return res
     else:
         from .mc_stats_old import statistics as statistics_blocks
 
-        return statistics_blocks(data)
+        return statistics_blocks(data, token=token, return_token=return_token)
 
 
 @jax.jit

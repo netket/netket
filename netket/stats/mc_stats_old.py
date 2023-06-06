@@ -54,7 +54,7 @@ def _batch_variance(data, *, token=None):
 
 
 # this is not batch_size maybe?
-def statistics(data, batch_size=32):
+def statistics(data, batch_size=32, token=None, return_token=False):
     r"""
     Returns statistics of a given array (or matrix, see below) containing a stream of data.
     This is particularly useful to analyze Markov Chain data, but it can be used
@@ -86,7 +86,11 @@ def statistics(data, batch_size=32):
              Gelman et al., `Bayesian Data Analysis <http://www.stat.columbia.edu/~gelman/book/>`_,
              or Vehtari et al., `arXiv:1903.08008 <https://arxiv.org/abs/1903.08008>`_.)
     """
-    return _statistics(data, batch_size)
+    res, token = _statistics(data, batch_size, token=token)
+    if return_token:
+        return res, token
+    else:
+        return res
 
 
 @partial(jax.jit, static_argnums=1)
