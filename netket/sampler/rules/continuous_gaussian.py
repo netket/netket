@@ -59,4 +59,4 @@ class GaussianRule(MetropolisRule):
         return rp, None
 
     def __repr__(self):
-        return "GaussianRule(sigma={})".format(self.sigma)
+        return f"GaussianRule(sigma={self.sigma})"

@@ -46,7 +46,7 @@ from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
 
 def compute_chain_length(n_chains, n_samples):
     if n_samples <= 0:
-        raise ValueError("Invalid number of samples: n_samples={}".format(n_samples))
+        raise ValueError(f"Invalid number of samples: n_samples={n_samples}")
 
     chain_length = int(np.ceil(n_samples / n_chains))
 
@@ -663,20 +663,20 @@ class MCState(VariationalState):
     def __repr__(self):
         return (
             "MCState("
-            + "\n  hilbert = {},".format(self.hilbert)
-            + "\n  sampler = {},".format(self.sampler)
-            + "\n  n_samples = {},".format(self.n_samples)
-            + "\n  n_discard_per_chain = {},".format(self.n_discard_per_chain)
-            + "\n  sampler_state = {},".format(self.sampler_state)
-            + "\n  n_parameters = {})".format(self.n_parameters)
+            + f"\n  hilbert = {self.hilbert},"
+            + f"\n  sampler = {self.sampler},"
+            + f"\n  n_samples = {self.n_samples},"
+            + f"\n  n_discard_per_chain = {self.n_discard_per_chain},"
+            + f"\n  sampler_state = {self.sampler_state},"
+            + f"\n  n_parameters = {self.n_parameters})"
         )
 
     def __str__(self):
         return (
             "MCState("
-            + "hilbert = {}, ".format(self.hilbert)
-            + "sampler = {}, ".format(self.sampler)
-            + "n_samples = {})".format(self.n_samples)
+            + f"hilbert = {self.hilbert}, "
+            + f"sampler = {self.sampler}, "
+            + f"n_samples = {self.n_samples})"
         )
 
 

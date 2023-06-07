@@ -275,7 +275,7 @@ class PauliStrings(DiscreteOperator):
             for loc, op in operator:
                 assert (
                     loc < n_qubits
-                ), "operator index {} is longer than n_qubits={}".format(loc, n_qubits)
+                ), f"operator index {loc} is longer than n_qubits={n_qubits}"
                 s[loc] = op
             operators.append("".join(s))
             weights.append(weight)
@@ -305,7 +305,7 @@ class PauliStrings(DiscreteOperator):
     def __repr__(self):
         print_list = []
         for op, w in zip(self._orig_operators, self._orig_weights):
-            print_list.append("    {} : {}".format(op, str(w)))
+            print_list.append(f"    {op} : {str(w)}")
         s = "PauliStrings(hilbert={}, n_strings={}, dict(operators:weights)=\n{}\n)".format(
             self.hilbert, len(self._orig_operators), ",\n".join(print_list)
         )

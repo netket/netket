@@ -163,7 +163,7 @@ class Adjoint(WrappedOperator):
         return self.parent
 
     def __repr__(self):
-        return "Adjoint({})".format(self.parent)
+        return f"Adjoint({self.parent})"
 
     def __mul__(self, other):
         if self.parent == other:
@@ -228,7 +228,7 @@ class Squared(WrappedOperator):
         return True
 
     def __repr__(self):
-        return "Squared({})".format(self.parent)
+        return f"Squared({self.parent})"
 
     def __mul__(self, other):
         return self.collect() * other

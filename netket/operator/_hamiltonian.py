@@ -18,7 +18,7 @@ from ._discrete_operator import DiscreteOperator
 class SpecialHamiltonian(DiscreteOperator):
     def to_local_operator(self):
         raise NotImplementedError(
-            "Must implemented to_local_operator for {}".format(type(self))
+            f"Must implemented to_local_operator for {type(self)}"
         )
 
     def conjugate(self, *, concrete: bool = True):

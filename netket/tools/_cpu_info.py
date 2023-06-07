@@ -24,7 +24,7 @@ def available_cpus():
                 res = bin(int(m.group(1).replace(",", ""), 16)).count("1")
                 if res > 0:
                     return res
-        except IOError:
+        except OSError:
             pass
     else:
         import multiprocessing
@@ -96,7 +96,7 @@ PCPUINFO_KEY_TRANSLATIONS = {
 
 
 def get_proc_cpuinfo():
-    with open("/proc/cpuinfo", "rt") as fobj:
+    with open("/proc/cpuinfo") as fobj:
         pci_lines = fobj.readlines()
     info = {}
     for line in pci_lines:

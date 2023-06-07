@@ -34,13 +34,11 @@ default_equivariant_initializer = lecun_normal(in_axis=1, out_axis=0)
 
 def symm_input_warning(x_shape, new_x_shape, name):
     warn_deprecation(
-        (
-            f"{len(x_shape)}-dimensional input to {name} layer is deprecated.\n"
-            f"Input shape {x_shape} has been reshaped to {new_x_shape}, where "
-            "the middle dimension encodes different input channels.\n"
-            "Please provide a 3-dimensional input.\nThis warning will become an "
-            "error in the future."
-        )
+        f"{len(x_shape)}-dimensional input to {name} layer is deprecated.\n"
+        f"Input shape {x_shape} has been reshaped to {new_x_shape}, where "
+        "the middle dimension encodes different input channels.\n"
+        "Please provide a 3-dimensional input.\nThis warning will become an "
+        "error in the future."
     )
 
 
@@ -813,10 +811,8 @@ def DenseEquivariant(
     # deprecate in_features
     if in_features is not None:
         warn_deprecation(
-            (
-                "`in_features` is now automatically detected from the input and deprecated."
-                "Please remove it when calling `DenseEquivariant`."
-            )
+            "`in_features` is now automatically detected from the input and deprecated."
+            "Please remove it when calling `DenseEquivariant`."
         )
     if "out_features" in kwargs:
         warn_deprecation(

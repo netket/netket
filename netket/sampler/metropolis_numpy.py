@@ -219,24 +219,24 @@ class MetropolisSamplerNumpy(MetropolisSampler):
     def __repr__(sampler):
         return (
             "MetropolisSamplerNumpy("
-            + "\n  hilbert = {},".format(sampler.hilbert)
-            + "\n  rule = {},".format(sampler.rule)
-            + "\n  n_chains = {},".format(sampler.n_chains)
-            + "\n  machine_power = {},".format(sampler.machine_pow)
-            + "\n  reset_chains = {},".format(sampler.reset_chains)
-            + "\n  n_sweeps = {},".format(sampler.n_sweeps)
-            + "\n  dtype = {},".format(sampler.dtype)
+            + f"\n  hilbert = {sampler.hilbert},"
+            + f"\n  rule = {sampler.rule},"
+            + f"\n  n_chains = {sampler.n_chains},"
+            + f"\n  machine_power = {sampler.machine_pow},"
+            + f"\n  reset_chains = {sampler.reset_chains},"
+            + f"\n  n_sweeps = {sampler.n_sweeps},"
+            + f"\n  dtype = {sampler.dtype},"
             + ")"
         )
 
     def __str__(sampler):
         return (
             "MetropolisSamplerNumpy("
-            + "rule = {}, ".format(sampler.rule)
-            + "n_chains = {}, ".format(sampler.n_chains)
-            + "machine_power = {}, ".format(sampler.machine_pow)
-            + "n_sweeps = {}, ".format(sampler.n_sweeps)
-            + "dtype = {})".format(sampler.dtype)
+            + f"rule = {sampler.rule}, "
+            + f"n_chains = {sampler.n_chains}, "
+            + f"machine_power = {sampler.machine_pow}, "
+            + f"n_sweeps = {sampler.n_sweeps}, "
+            + f"dtype = {sampler.dtype})"
         )
 
 
