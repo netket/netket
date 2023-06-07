@@ -41,7 +41,7 @@ def _vjp(oks: PyTree, w: Array) -> PyTree:
     Compute the vector-matrix product between the vector w and the pytree jacobian oks
     """
     res = jax.tree_map(partial(jnp.tensordot, w, axes=w.ndim), oks)
-    return mpi.mpi_tree_map(mpi.mpi_sum_jax, res)[0]  # MPI
+    return mpi.mpi_tree_sum(res)  # MPI
 
 
 def _mat_vec(v: PyTree, oks: PyTree) -> PyTree:

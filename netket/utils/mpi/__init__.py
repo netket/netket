@@ -42,3 +42,4 @@ from .primitives import (
 )
 
 from .tree_util import mpi_tree_map
+from .tree_sum import mpi_tree_sum
