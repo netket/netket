@@ -43,7 +43,7 @@ def test_mc_stats(_mpi_comm, _mpi_rank, _mpi_size):
 
     mydata = np.copy(data[_mpi_rank])
 
-    stats, _ = nk.stats.statistics(mydata)
+    stats = nk.stats.statistics(mydata)
 
     assert nk.stats.mean(data)[0] == approx(ref_mean)
     assert stats.mean == approx(ref_mean)
