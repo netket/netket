@@ -317,7 +317,7 @@ class MetropolisSampler(Sampler):
 
             # do_accept must match ndim of proposal and state (which is 2)
             s["σ"] = jnp.where(do_accept.reshape(-1, 1), σp, s["σ"])
-            s["accepted"] += do_accept.sum()
+            s["accepted"] += do_accept
 
             s["log_prob"] = jax.numpy.where(
                 do_accept.reshape(-1), proposal_log_prob, s["log_prob"]
@@ -332,14 +332,14 @@ class MetropolisSampler(Sampler):
             "σ": state.σ,
             "log_prob": sampler.machine_pow * machine.apply(parameters, state.σ).real,
             # for logging
-            "accepted": state.n_accepted_proc,
+            "accepted": jnp.zeros(state.σ.shape[0], dtype=jnp.int64),
         }
         s = jax.lax.fori_loop(0, sampler.n_sweeps, loop_body, s)
 
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
-            n_accepted_proc=s["accepted"],
+            n_accepted_proc=state.n_accepted_proc + s["accepted"].sum(),
             n_steps_proc=state.n_steps_proc
             + sampler.n_sweeps * sampler.n_chains_per_rank,
         )
