@@ -40,3 +40,5 @@ from .primitives import (
     mpi_mean_jax,
     mpi_sum_jax,
 )
+
+from ._logsumexp import mpi_logsumexp
