@@ -50,9 +50,15 @@ def test_key_split(_mpi_size, _mpi_comm, _mpi_rank):
 
 
 @common.onlyif_mpi
-def test_mpi_logsumexp(_mpi_size, _mpi_comm, _mpi_rank):
-    a = jax.random.uniform(jax.random.PRNGKey(123), shape=(16 * _mpi_size, 3, 2))
-    b = jax.random.uniform(jax.random.PRNGKey(234), shape=(16 * _mpi_size, 3, 2))
+@common.named_parametrize("complex_", [False, True])
+def test_mpi_logsumexp(_mpi_size, _mpi_comm, _mpi_rank, complex_):
+    s = (16 * _mpi_size, 3, 2)
+    k1, k2, k3, k4 = jax.random.split(jax.random.PRNGKey(123), 4)
+    a = jax.random.uniform(k1, shape=s)
+    b = jax.random.uniform(k2, shape=s)
+    if complex_:
+        a = jax.lax.complex(a, jax.random.uniform(k3, shape=s))
+        b = jax.lax.complex(b, jax.random.uniform(k4, shape=s))
 
     a_ = a.reshape(
         (
