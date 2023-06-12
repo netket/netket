@@ -221,7 +221,7 @@ def mpi_max(x, *, comm=MPI_py_comm):
 
     if np.iscomplexobj(x):
         raise ValueError(
-            f'mpi_max_jax is not compatible with complex types (got {x.dtype if hasattr(x, "dtype") else type(x)}).'
+            f'mpi_max is not compatible with complex types (got {x.dtype if hasattr(x, "dtype") else type(x)}).'
         )
 
     ar = np.asarray(x)
