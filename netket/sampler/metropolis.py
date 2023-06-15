@@ -266,7 +266,9 @@ class MetropolisSampler(Sampler):
         return state
 
     def _reset(sampler, machine, parameters, state):
-        new_rng, rng = jax.random.split(state.rng)
+        new_rng, rng = jax.jit(jax.random.split)(
+            state.rng
+        )  # use jit so that we can do it on global shared array
 
         if sampler.reset_chains:
             σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
