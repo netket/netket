@@ -122,7 +122,7 @@ def dtype_real(typ):
         elif typ == np.dtype("complex128"):
             return np.dtype("float64")
         else:
-            raise TypeError("Unknown complex floating type {}".format(typ))
+            raise TypeError(f"Unknown complex floating type {typ}")
     else:
         return typ
 
@@ -146,7 +146,7 @@ def dtype_complex(typ):
     elif typ == np.dtype("float64"):
         return np.dtype("complex128")
     else:
-        raise TypeError("Unknown complex type for {}".format(typ))
+        raise TypeError(f"Unknown complex type for {typ}")
 
 
 def maybe_promote_to_complex(*types):

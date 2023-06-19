@@ -316,12 +316,12 @@ class FullSumState(VariationalState):
     def __repr__(self):
         return (
             "FullSumState("
-            + "\n  hilbert = {},".format(self.hilbert)
-            + "\n  n_parameters = {})".format(self.n_parameters)
+            + f"\n  hilbert = {self.hilbert},"
+            + f"\n  n_parameters = {self.n_parameters})"
         )
 
     def __str__(self):
-        return "FullSumState(" + "hilbert = {}, ".format(self.hilbert)
+        return "FullSumState(" + f"hilbert = {self.hilbert}, "
 
 
 # serialization

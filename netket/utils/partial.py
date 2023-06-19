@@ -42,7 +42,7 @@ class HashablePartial(partial):
             func = original_func.func
             args = original_func.args + args
             keywords = {**original_func.keywords, **keywords}
-        return super(HashablePartial, cls).__new__(cls, func, *args, **keywords)
+        return super().__new__(cls, func, *args, **keywords)
 
     def __init__(self, *args, **kwargs):
         self._hash = None

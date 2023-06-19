@@ -218,24 +218,24 @@ class MCMixedState(VariationalMixedState, MCState):
     def __repr__(self):
         return (
             "MCMixedState("
-            + "\n  hilbert = {},".format(self.hilbert)
-            + "\n  sampler = {},".format(self.sampler)
-            + "\n  n_samples = {},".format(self.n_samples)
-            + "\n  n_discard_per_chain = {},".format(self.n_discard_per_chain)
-            + "\n  sampler_state = {},".format(self.sampler_state)
-            + "\n  sampler_diag = {},".format(self.sampler_diag)
-            + "\n  n_samples_diag = {},".format(self.n_samples_diag)
-            + "\n  n_discard_per_chain_diag = {},".format(self.n_discard_per_chain_diag)
-            + "\n  sampler_state_diag = {},".format(self.diagonal.sampler_state)
-            + "\n  n_parameters = {})".format(self.n_parameters)
+            + f"\n  hilbert = {self.hilbert},"
+            + f"\n  sampler = {self.sampler},"
+            + f"\n  n_samples = {self.n_samples},"
+            + f"\n  n_discard_per_chain = {self.n_discard_per_chain},"
+            + f"\n  sampler_state = {self.sampler_state},"
+            + f"\n  sampler_diag = {self.sampler_diag},"
+            + f"\n  n_samples_diag = {self.n_samples_diag},"
+            + f"\n  n_discard_per_chain_diag = {self.n_discard_per_chain_diag},"
+            + f"\n  sampler_state_diag = {self.diagonal.sampler_state},"
+            + f"\n  n_parameters = {self.n_parameters})"
         )
 
     def __str__(self):
         return (
             "MCMixedState("
-            + "hilbert = {}, ".format(self.hilbert)
-            + "sampler = {}, ".format(self.sampler)
-            + "n_samples = {})".format(self.n_samples)
+            + f"hilbert = {self.hilbert}, "
+            + f"sampler = {self.sampler}, "
+            + f"n_samples = {self.n_samples})"
         )
 
 
