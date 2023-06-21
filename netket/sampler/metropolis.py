@@ -54,8 +54,10 @@ class MetropolisSamplerState(SamplerState):
         default_factory=lambda: jnp.zeros((), dtype=jnp.int64)
     )
     """Number of moves performed along the chains in this process since the last reset."""
-    n_accepted_proc: int = struct.field(
-        default_factory=lambda: jnp.zeros((), dtype=jnp.int64)
+    n_accepted_proc: jnp.ndarray = struct.field(
+        default_factory=lambda: jnp.zeros(
+            (), dtype=jnp.int64
+        )  # TODO (c): initialize with shape σ.shape[0] to avoid recompilation
     )
     """Number of accepted transitions among the chains in this process since the last reset."""
 
@@ -79,7 +81,7 @@ class MetropolisSamplerState(SamplerState):
     @property
     def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        res, _ = mpi.mpi_sum_jax(self.n_accepted_proc)
+        res, _ = mpi.mpi_sum_jax(jnp.sum(self.n_accepted_proc))
         return res
 
     def __repr__(self):
@@ -278,7 +280,11 @@ class MetropolisSampler(Sampler):
         rule_state = sampler.rule.reset(sampler, machine, parameters, state)
 
         return state.replace(
-            σ=σ, rng=new_rng, rule_state=rule_state, n_steps_proc=0, n_accepted_proc=0
+            σ=σ,
+            rng=new_rng,
+            rule_state=rule_state,
+            n_steps_proc=0,
+            n_accepted_proc=jnp.zeros(σ.shape[0], dtype=jnp.int64),
         )
 
     def _sample_next(sampler, machine, parameters, state):
@@ -339,7 +345,7 @@ class MetropolisSampler(Sampler):
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
-            n_accepted_proc=state.n_accepted_proc + s["accepted"].sum(),
+            n_accepted_proc=state.n_accepted_proc + s["accepted"],
             n_steps_proc=state.n_steps_proc
             + sampler.n_sweeps * sampler.n_chains_per_rank,
         )
