@@ -75,9 +75,9 @@ def forces_expect_hermitian(
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree]:
 
-    σ_shape = σ.shape
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
+    n_chains = σ.shape[0]
+    if σ.ndim >= 3:
+        σ = jax.lax.collapse(σ, 0, 2)
 
     n_samples = σ.shape[0] * mpi.n_nodes
 
@@ -88,7 +88,7 @@ def forces_expect_hermitian(
         local_value_args,
     )
 
-    Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
+    Ō = statistics(O_loc.reshape((n_chains, -1)))
 
     O_loc -= Ō.mean
 

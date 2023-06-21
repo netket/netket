@@ -214,6 +214,9 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             state, σ = sampler.sample_next(machine, parameters, state)
             samples[i] = σ
 
+        # make it (n_chains, n_samples_per_chain) as expected by netket.stats.statistics
+        samples = np.swapaxes(samples, 0, 1)
+
         return samples, state
 
     def __repr__(sampler):

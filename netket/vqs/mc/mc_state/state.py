@@ -684,9 +684,7 @@ class MCState(VariationalState):
 def _local_estimators_kernel(kernel, apply_fun, shape, variables, samples, extra_args):
     O_loc = kernel(apply_fun, variables, samples, extra_args)
 
-    # transpose O_loc so it matches the (n_chains, n_samples_per_chain) shape
-    # expected by netket.stats.statistics.
-    return O_loc.reshape(shape).T
+    return O_loc.reshape(shape)
 
 
 def local_estimators(
