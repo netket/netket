@@ -324,15 +324,15 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
             )
 
             assert samples.shape == (
-                n_samples // 100,
                 sampler.n_chains,
+                n_samples // 100,
                 hi.size,
             )
             samples, sampler_state = sampler.sample(
                 ma, w, state=sampler_state, chain_length=n_samples
             )
 
-            assert samples.shape == (n_samples, sampler.n_chains, hi.size)
+            assert samples.shape == (sampler.n_chains, n_samples, hi.size)
 
             sttn = hi.states_to_numbers(np.asarray(samples.reshape(-1, hi.size)))
             n_s = sttn.size
@@ -368,8 +368,8 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
             )
 
             assert samples.shape == (
-                n_discard,
                 sampler.n_chains,
+                n_discard,
                 hi.size,
             )
             samples, sampler_state = sampler.sample(
@@ -379,7 +379,7 @@ def test_correct_sampling(sampler_c, model_and_weights, set_pdf_power):
                 chain_length=n_samples,
             )
 
-            assert samples.shape == (n_samples, sampler.n_chains, hi.size)
+            assert samples.shape == (sampler.n_chains, n_samples, hi.size)
 
             samples = samples.reshape(-1, samples.shape[-1])
 
