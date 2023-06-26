@@ -37,9 +37,9 @@ def _format_decimal(value, std, var):
         )
     else:
         return (
-            "{0:.3e}".format(value),
-            "{0:.3e}".format(std),
-            "{0:.3e}".format(var),
+            f"{value:.3e}",
+            f"{std:.3e}",
+            f"{var:.3e}",
         )
 
 
@@ -110,13 +110,13 @@ class Stats:
     def __repr__(self):
         mean, err, var = _format_decimal(self.mean, self.error_of_mean, self.variance)
         if not math.isnan(self.R_hat):
-            ext = ", R̂={:.4f}".format(self.R_hat)
+            ext = f", R̂={self.R_hat:.4f}"
         else:
             ext = ""
         if config.netket_experimental_fft_autocorrelation:
             if not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
-                ext += ", τ={:.1f}<{:.1f}".format(self.tau_corr, self.tau_corr_max)
-        return "{} ± {} [σ²={}{}]".format(mean, err, var, ext)
+                ext += f", τ={self.tau_corr:.1f}<{self.tau_corr_max:.1f}"
+        return f"{mean} ± {err} [σ²={var}{ext}]"
 
     # Alias accessors
     def __getattr__(self, name):
@@ -133,9 +133,7 @@ class Stats:
         elif name in ("tau_corr_max", "TauCorrMax"):
             return self.tau_corr_max
         else:
-            raise AttributeError(
-                "'Stats' object object has no attribute '{}'".format(name)
-            )
+            raise AttributeError(f"'Stats' object object has no attribute '{name}'")
 
     def real(self):
         return self.replace(mean=np.real(self.mean))

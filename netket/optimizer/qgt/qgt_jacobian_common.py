@@ -17,27 +17,7 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
-from netket.utils import mpi, warn_deprecation, deprecated
-
-
-@deprecated(
-    """
-    It seems you're using the internal function
-
-        nk.optimizer.qgt.qgt_jacobian_common.choose_jacobian_mode
-
-    which has been moved to
-
-        nk.jax.jacobian_default_mode
-
-    please update the import location.
-    This deprecation warning will become an error in NetKet 3.9
-    """
-)
-def choose_jacobian_mode(*args, **kwargs):
-    from netket.jax import jacobian_default_mode
-
-    return jacobian_default_mode(*args, **kwargs)
+from netket.utils import mpi, warn_deprecation
 
 
 def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):

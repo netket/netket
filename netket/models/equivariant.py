@@ -338,11 +338,9 @@ class GCNN_Parity_FFT(nn.Module):
         # supports a deprecated attribute
         if self.extra_bias:
             warn_deprecation(
-                (
-                    "`extra_bias` is detrimental for performance and is deprecated. "
-                    "Please switch to the default `extra_bias=False`. Previously saved "
-                    "parameters can be migrated using `nk.models.update_GCNN_parity`."
-                )
+                "`extra_bias` is detrimental for performance and is deprecated. "
+                "Please switch to the default `extra_bias=False`. Previously saved "
+                "parameters can be migrated using `nk.models.update_GCNN_parity`."
             )
 
         self.n_symm = np.asarray(self.symmetries).shape[0]
@@ -525,11 +523,9 @@ class GCNN_Parity_Irrep(nn.Module):
         # supports a deprecated attribute
         if self.extra_bias:
             warn_deprecation(
-                (
-                    "`extra_bias` is detrimental for performance and is deprecated. "
-                    "Please switch to the default `extra_bias=False`. Previously saved "
-                    "parameters can be migrated using `nk.models.update_GCNN_parity`."
-                )
+                "`extra_bias` is detrimental for performance and is deprecated. "
+                "Please switch to the default `extra_bias=False`. Previously saved "
+                "parameters can be migrated using `nk.models.update_GCNN_parity`."
             )
 
         self.n_symm = np.asarray(self.symmetries).shape[0]

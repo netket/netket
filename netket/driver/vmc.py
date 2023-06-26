@@ -161,7 +161,7 @@ class VMC(AbstractVariationalDriver):
 
     def info(self, depth=0):
         lines = [
-            "{}: {}".format(name, info(obj, depth=depth + 1))
+            f"{name}: {info(obj, depth=depth + 1)}"
             for name, obj in [
                 ("Hamiltonian    ", self._ham),
                 ("Optimizer      ", self._optimizer),

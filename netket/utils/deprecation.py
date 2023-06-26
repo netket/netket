@@ -19,7 +19,6 @@ import inspect
 from textwrap import dedent
 
 from .config_flags import config
-from .version_check import module_version
 
 
 def deprecated(reason=None, func_name=None):
@@ -142,17 +141,3 @@ def deprecate_dtype(clz):
         return res
 
     return helper
-
-
-# TODO: remove the switch when we support only jax >= 0.3.17
-
-
-def pure_callback(callback, result_shape_dtypes, *args):
-    if module_version("jax") >= (0, 3, 17):
-        from jax import pure_callback
-
-        return pure_callback(callback, result_shape_dtypes, *args)
-    else:
-        from jax.experimental.host_callback import call
-
-        return call(callback, *args, result_shape=result_shape_dtypes)

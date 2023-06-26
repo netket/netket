@@ -22,8 +22,6 @@ from textwrap import dedent
 
 from .version_check import module_version, version_string
 
-# Check optax support for complex numbers.
-
 
 def create_msg(pkg_name, cur_version, desired_version, extra_msg=""):
     return dedent(
@@ -49,6 +47,10 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg=""):
         """
     )
 
+
+if not module_version("jax") >= (0, 4, 0):
+    cur_version = version_string("optax")
+    raise ImportError(create_msg("jax", cur_version, "0.4"))
 
 if not module_version("optax") >= (0, 1, 1):
     cur_version = version_string("optax")

@@ -24,9 +24,6 @@ from .test_nn import _setup_symm
 import pytest
 
 
-@pytest.mark.skipif(
-    module_version("jax") < (0, 3, 17), reason="Needs jax.pure_callback"
-)
 def test_logstatevec():
     hi = nk.hilbert.Fock(3, 4)
     x = hi.random_state(nk.jax.PRNGKey(3), (3, 4))
@@ -41,9 +38,6 @@ def test_logstatevec():
     np.testing.assert_allclose(pars["params"]["logstate"][hi.states_to_numbers(x)], s1)
 
 
-@pytest.mark.skipif(
-    module_version("jax") < (0, 3, 17), reason="Needs jax.pure_callback"
-)
 def test_groundstate():
     g = nk.graph.Chain(8)
     hi = nk.hilbert.Spin(1 / 2, g.n_nodes)

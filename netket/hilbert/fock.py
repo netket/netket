@@ -147,12 +147,12 @@ class Fock(HomogeneousHilbert):
 
     def __repr__(self):
         n_particles = (
-            ", n_particles={}".format(self._n_particles)
+            f", n_particles={self._n_particles}"
             if self._n_particles is not None
             else ""
         )
         nmax = self._n_max if self._n_max < FOCK_MAX else "FOCK_MAX"
-        return "Fock(n_max={}{}, N={})".format(nmax, n_particles, self.size)
+        return f"Fock(n_max={nmax}{n_particles}, N={self.size})"
 
     def states_to_local_indices(self, x):
         return x.astype(np.int32)

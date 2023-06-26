@@ -62,7 +62,7 @@ class LangevinRule(MetropolisRule):
         return rp, log_corr
 
     def __repr__(self):
-        return "LangevinRule(dt={})".format(self.dt)
+        return f"LangevinRule(dt={self.dt})"
 
 
 @partial(jax.jit, static_argnames=("apply_fun", "chunk_size", "return_log_corr"))

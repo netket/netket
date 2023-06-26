@@ -4,18 +4,18 @@
 # Change Log
 
 ## NetKet 3.9 (⚙️ In development)
+This release requires Python 3.8 and Jax 0.4.
 
 ### New Features
 * `netket.callbacks.EarlyStopping` now supports relative tolerances for determining when to stop [#14XX](https://github.com/netket/netket/pull/1481).
 * `netket.callbacks.ConvergenceStopping` has been added, which can stop a driver when the loss function reaches a certain threshold [#14XX](https://github.com/netket/netket/pull/1481).
 
-
 ### Deprecations
-
 * `netket.vqs.ExactState` has been renamed to {class}`netket.vqs.FullSumState` to better reflect what it does. Using the old name will now raise a warning [#1477](https://github.com/netket/netket/pull/1477).
 
 
-## NetKet 3.8 (⚙️ 8 May 2023)
+
+## NetKet 3.8 (8 May 2023)
 
 This is the last NetKet release to support Python 3.7 and Jax 0.3.
 Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python 3.8 (and soon 3.9).
@@ -38,6 +38,8 @@ Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python
 * {class}`netket.operator.ContinuousOperator` has been improved and now they correctly test for equality and generate a consistent hash. Moreover, the internal logic of {class}`netket.operator.SumOperator` and {class}`netket.operator.Potential` has been improved, and they lead to less recompilations when constructed again but identical. A few new attributes for those operators have also been exposed [#1440](https://github.com/netket/netket/pull/1440).
 * {func}`nk.nn.to_array` accepts an optional keyword argument `chunk_size`, and related methods on variational states now use the chunking specified in the variational state when generating the dense array [#1470](https://github.com/netket/netket/pull/1470).
 
+### Breaking Changes
+* Jax version `0.4` is now required, meaning that NetKet no longer works on Python 3.7. 
 
 
 ## NetKet 3.7 (💘 13 february 2023)

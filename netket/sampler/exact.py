@@ -23,7 +23,6 @@ from netket.nn import to_array
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, SeedT
-from netket.utils import pure_callback
 
 from .base import Sampler, SamplerState
 
@@ -113,7 +112,7 @@ class ExactSampler(Sampler):
         # For future investigators:
         # this will lead to a crash if numbers_to_state throws.
         # it throws if we feed it nans!
-        samples = pure_callback(
+        samples = jax.pure_callback(
             lambda numbers: sampler.hilbert.numbers_to_states(numbers),
             jax.ShapeDtypeStruct(
                 (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),

@@ -141,10 +141,8 @@ class Spin(HomogeneousHilbert):
         return numbers.astype(np.int32)
 
     def __repr__(self):
-        total_sz = (
-            ", total_sz={}".format(self._total_sz) if self._total_sz is not None else ""
-        )
-        return "Spin(s={}{}, N={})".format(Fraction(self._s), total_sz, self.size)
+        total_sz = f", total_sz={self._total_sz}" if self._total_sz is not None else ""
+        return f"Spin(s={Fraction(self._s)}{total_sz}, N={self.size})"
 
     @property
     def _attrs(self):

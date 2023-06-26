@@ -45,15 +45,9 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         else:
             acc_string = ""
 
-        text = (
-            "MetropolisNumpySamplerState("
-            + acc_string
-            + "rng state={})".format(self.rng)
-        )
+        text = "MetropolisNumpySamplerState(" + acc_string + f"rng state={self.rng})"
 
-        text = (
-            "MetropolisPtSamplerState(" + acc_string + "rng state={}".format(self.rng)
-        )
+        text = "MetropolisPtSamplerState(" + acc_string + f"rng state={self.rng}"
         return text
 
 
@@ -161,7 +155,7 @@ class MetropolisPtSampler(MetropolisSampler):
                 (sampler.n_chains, sampler.n_replicas), dtype=jnp.int64
             ),
             beta_position=jnp.zeros((sampler.n_chains,)),
-            beta_diffusion=jnp.zeros((sampler.n_chains)),
+            beta_diffusion=jnp.zeros(sampler.n_chains),
             exchange_steps=0,
             # beta=beta,
             # beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int64),

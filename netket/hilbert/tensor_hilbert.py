@@ -50,7 +50,7 @@ class TensorHilbert(ABC):
             else:
                 cls = TensorGenericHilbert
 
-        return super(TensorHilbert, cls).__new__(cls)
+        return super().__new__(cls)
 
     def __init__(self, hilb_spaces: Iterable[AbstractHilbert], *args, **kwargs):
         r"""Constructs a tensor Hilbert space.
@@ -158,9 +158,9 @@ class TensorHilbert(ABC):
         if len(self._hilbert_spaces) == 1:
             return f"{type(self).__name__}({self._hilbert_spaces[0]})"
 
-        _str = "{}".format(self._hilbert_spaces[0])
+        _str = f"{self._hilbert_spaces[0]}"
         for hi in self._hilbert_spaces[1:]:
-            _str += "⊗{}".format(hi)
+            _str += f"⊗{hi}"
 
         return _str
 

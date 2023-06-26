@@ -16,7 +16,6 @@ from typing import Any, Sequence, Callable, Union
 
 import optax as _optax
 import jax as _jax
-import jaxlib as _jaxlib
 import numpy as _np
 
 PRNGKeyT = Any
@@ -25,12 +24,8 @@ SeedT = Union[int, PRNGKeyT]
 Shape = Sequence[int]
 DType = Any  # this could be a real type?
 
-if not hasattr(_jax, "Array"):
-    # pre jax 0.4
-    Array = Union[_np.ndarray, _jaxlib.xla_extension.DeviceArray, _jax.core.Tracer]
-else:
-    # TODO keep only this after jax>=0.4 is required
-    Array = Union[_np.ndarray, _jax.Array]
+Array = Union[_np.ndarray, _jax.Array]
+JaxArray = _jax.Array
 
 ArrayLike = Any  # Objects that are valid inputs to (np|jnp).asarray.
 

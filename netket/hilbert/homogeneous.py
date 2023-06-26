@@ -192,7 +192,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self.__bare_numbers
 
     def __repr__(self):
-        constr = ", constrained={}".format(self.constrained) if self.constrained else ""
+        constr = f", constrained={self.constrained}" if self.constrained else ""
 
         clsname = type(self).__name__
         return f"{clsname}(local_size={self._local_size}, N={self.size}{constr})"
