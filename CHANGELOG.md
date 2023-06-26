@@ -4,12 +4,14 @@
 # Change Log
 
 ## NetKet 3.9 (⚙️ In development)
-
 This release requires Python 3.8 and Jax 0.4.
 
-### Deprecations
+### New Features
+* `netket.callbacks.EarlyStopping` now supports relative tolerances for determining when to stop [#14XX](https://github.com/netket/netket/pull/1481).
+* `netket.callbacks.ConvergenceStopping` has been added, which can stop a driver when the loss function reaches a certain threshold [#14XX](https://github.com/netket/netket/pull/1481).
 
-* `netket.vqs.ExactState` has been renamed to {class}`netket.vqs.FullSumState` to better reflect what it does. Using the old name will now raise a warning [#14XX](https://github.com/netket/netket/pull/14XX).
+### Deprecations
+* `netket.vqs.ExactState` has been renamed to {class}`netket.vqs.FullSumState` to better reflect what it does. Using the old name will now raise a warning [#1477](https://github.com/netket/netket/pull/1477).
 
 
 

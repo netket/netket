@@ -25,6 +25,12 @@ class EarlyStopping:
 
     min_delta: float = 0.0
     """Minimum change in the monitored quantity to qualify as an improvement."""
+    min_reldelta: float = 0.0
+    """Minimum relative change in the monitored quantity to qualify as an improvement.
+
+    This behaves similarly to `min_delta` but is more useful for intensive quantities that
+    converge to 0, where absolute tolerances might not be effective.
+    """
     patience: Union[int, float] = 0
     """Number of epochs with no improvement after which training will be stopped."""
     baseline: Optional[float] = None
@@ -33,8 +39,12 @@ class EarlyStopping:
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
 
     def __post_init__(self):
-        self._best_val = np.infty
-        self._best_iter = 0
+        self._best_val: float = np.infty
+        """Stores the best loss seen so far"""
+        self._best_iter: int = 0
+        """Stores the iteration at which we've seen the best loss so far"""
+        self._best_patience_counter: int = 0
+        """Stores the iteration at which we've seen the best loss so far"""
 
     def __call__(self, step, log_data, driver):
         """
@@ -49,16 +59,28 @@ class EarlyStopping:
             A boolean. If True, training continues, else, it does not.
         """
         loss = np.real(getattr(log_data[driver._loss_name], self.monitor))
-        if loss < self._best_val:
+
+        self._best_patience_counter += 1
+        if self._is_improvement(loss, self._best_val):
             self._best_val = loss
             self._best_iter = step
-        if self.baseline is not None:
-            if loss <= self.baseline:
-                return False
-        if (
-            step - self._best_iter >= self.patience
-            and loss >= self._best_val - self.min_delta
-        ):
+
+            if self.baseline is None:
+                self._best_patience_counter = 0
+            elif self._is_improvement(loss, self.baseline):
+                # If using baseline, update patience only if we are better than baseline
+                self._best_patience_counter = 0
+
+        if self._best_patience_counter > self.patience:
             return False
-        else:
-            return True
+
+        return True
+
+    def _is_improvement(self, loss, target):
+        # minimal value for absolute and relative improvement
+        abs_minval = target - self.min_delta
+        rel_minval = target * (1 - self.min_reldelta)
+        # minimval value that qualify as an improvement
+        minval = min(abs_minval, rel_minval)
+
+        return loss < minval
