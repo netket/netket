@@ -83,7 +83,8 @@ class MetropolisSamplerState(SamplerState):
     @property
     def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        res, _ = mpi.mpi_sum_jax(jnp.sum(self.n_accepted_proc))
+        # jit sum for gda
+        res, _ = mpi.mpi_sum_jax(jax.jit(jnp.sum)(self.n_accepted_proc))
         return res
 
     def __repr__(self):
