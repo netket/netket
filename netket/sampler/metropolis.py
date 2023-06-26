@@ -54,12 +54,14 @@ class MetropolisSamplerState(SamplerState):
         default_factory=lambda: jnp.zeros((), dtype=jnp.int64)
     )
     """Number of moves performed along the chains in this process since the last reset."""
-    n_accepted_proc: jnp.ndarray = struct.field(
-        default_factory=lambda: jnp.zeros(
-            (), dtype=jnp.int64
-        )  # TODO (c): initialize with shape σ.shape[0] to avoid recompilation
-    )
+    n_accepted_proc: jnp.ndarray = None
     """Number of accepted transitions among the chains in this process since the last reset."""
+
+    def __post_init__(self):
+        if self.n_accepted_proc is None:
+            object.__setattr__(
+                self, "n_accepted_proc", jnp.zeros(self.σ.shape[0], dtype=jnp.int64)
+            )
 
     @property
     def acceptance(self) -> float:
@@ -283,8 +285,8 @@ class MetropolisSampler(Sampler):
             σ=σ,
             rng=new_rng,
             rule_state=rule_state,
-            n_steps_proc=0,
-            n_accepted_proc=jnp.zeros(σ.shape[0], dtype=jnp.int64),
+            n_steps_proc=jnp.zeros_like(state.n_steps_proc),
+            n_accepted_proc=jnp.zeros_like(state.n_accepted_proc),
         )
 
     def _sample_next(sampler, machine, parameters, state):
@@ -338,14 +340,14 @@ class MetropolisSampler(Sampler):
             "σ": state.σ,
             "log_prob": sampler.machine_pow * machine.apply(parameters, state.σ).real,
             # for logging
-            "accepted": jnp.zeros(state.σ.shape[0], dtype=jnp.int64),
+            "accepted": state.n_accepted_proc,
         }
         s = jax.lax.fori_loop(0, sampler.n_sweeps, loop_body, s)
 
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
-            n_accepted_proc=state.n_accepted_proc + s["accepted"],
+            n_accepted_proc=s["accepted"],
             n_steps_proc=state.n_steps_proc
             + sampler.n_sweeps * sampler.n_chains_per_rank,
         )
