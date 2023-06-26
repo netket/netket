@@ -9,8 +9,10 @@ This release requires Python 3.8 and Jax 0.4.
 
 ### Deprecations
 
-* `netket.vqs.ExactState` has been renamed to {class}`netket.vqs.FullSumState` to better reflect what it does. Using the old name will now raise a warning [#14XX](https://github.com/netket/netket/pull/14XX).
+* `netket.vqs.ExactState` has been renamed to {class}`netket.vqs.FullSumState` to better reflect what it does. Using the old name will now raise a warning [#1477](https://github.com/netket/netket/pull/1477).
 
+### Breaking Changes
+* The first two axes in the output of the samplers have been swapped, samples are now of shape `(n_chains, n_samples_per_chain, ...)` consistent with `netket.stats.statistics`. Custom samplers need to be updated to return arrays of shape `(n_chains, n_samples_per_chain, ...)` instead of `(n_samples_per_chain, n_chains, ...)`. [#1502](https://github.com/netket/netket/pull/1502)
 
 
 ## NetKet 3.8 (8 May 2023)
