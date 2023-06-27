@@ -17,6 +17,7 @@ from typing import Callable, Tuple
 
 import jax
 from jax import numpy as jnp
+from flax.core.frozen_dict import FrozenDict
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
@@ -84,6 +85,7 @@ def expect_and_forces(
     expval_O, Ō_grad, new_model_state = _exp_forces(
         vstate._apply_fun,
         mutable,
+        vstate.training_kwargs,
         vstate.parameters,
         vstate.model_state,
         vstate._all_states,
@@ -97,10 +99,11 @@ def expect_and_forces(
     return expval_O, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1))
+@partial(jax.jit, static_argnums=(0, 1, 2))
 def _exp_forces(
     model_apply_fun: Callable,
     mutable: CollectionFilter,
+    training_kwargs: FrozenDict,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
@@ -115,7 +118,9 @@ def _exp_forces(
     ΔOΨ = (OΨ - expval_O * Ψ).conj() * Ψ
 
     _, vjp_fun, *new_model_state = nkjax.vjp(
-        lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
+        lambda w: model_apply_fun(
+            {"params": w, **model_state}, σ, mutable=mutable, **training_kwargs
+        ),
         parameters,
         conjugate=True,
         has_aux=is_mutable,

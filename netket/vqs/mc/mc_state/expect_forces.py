@@ -17,6 +17,7 @@ from typing import Callable, Tuple
 
 import jax
 from jax import numpy as jnp
+from flax.core.frozen_dict import FrozenDict
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
@@ -52,6 +53,7 @@ def expect_and_forces(  # noqa: F811
         local_estimator_fun,
         vstate._apply_fun,
         mutable,
+        vstate.training_kwargs,
         vstate.parameters,
         vstate.model_state,
         σ,
@@ -64,17 +66,17 @@ def expect_and_forces(  # noqa: F811
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2))
+@partial(jax.jit, static_argnums=(0, 1, 2, 3))
 def forces_expect_hermitian(
     local_value_kernel: Callable,
     model_apply_fun: Callable,
     mutable: CollectionFilter,
+    training_kwargs: FrozenDict,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree]:
-
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
@@ -83,7 +85,7 @@ def forces_expect_hermitian(
 
     O_loc = local_value_kernel(
         model_apply_fun,
-        {"params": parameters, **model_state},
+        {"params": parameters, **model_state, **training_kwargs},
         σ,
         local_value_args,
     )
@@ -97,7 +99,9 @@ def forces_expect_hermitian(
     # mutable state (if it's there)
     is_mutable = mutable is not False
     _, vjp_fun, *new_model_state = nkjax.vjp(
-        lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
+        lambda w: model_apply_fun(
+            {"params": w, **model_state}, σ, mutable=mutable, **training_kwargs
+        ),
         parameters,
         conjugate=True,
         has_aux=is_mutable,

@@ -19,6 +19,7 @@ import warnings
 import jax
 from jax import numpy as jnp
 from jax import tree_map
+from flax.core.frozen_dict import FrozenDict
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
@@ -83,6 +84,7 @@ def expect_and_forces_impl(  # noqa: F811
         local_estimator_fun,
         vstate._apply_fun,
         mutable,
+        vstate.training_kwargs,
         vstate.parameters,
         vstate.model_state,
         σ,
@@ -95,18 +97,18 @@ def expect_and_forces_impl(  # noqa: F811
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3))
+@partial(jax.jit, static_argnums=(0, 1, 2, 3, 4))
 def forces_expect_hermitian_chunked(
     chunk_size: int,
     local_value_kernel_chunked: Callable,
     model_apply_fun: Callable,
     mutable: CollectionFilter,
+    training_kwargs: FrozenDict,
     parameters: PyTree,
     model_state: PyTree,
     σ: jnp.ndarray,
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree]:
-
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
@@ -115,7 +117,7 @@ def forces_expect_hermitian_chunked(
 
     O_loc = local_value_kernel_chunked(
         model_apply_fun,
-        {"params": parameters, **model_state},
+        {"params": parameters, **model_state, **training_kwargs},
         σ,
         local_value_args,
         chunk_size=chunk_size,
@@ -130,7 +132,9 @@ def forces_expect_hermitian_chunked(
     # mutable state (if it's there)
     if mutable is False:
         vjp_fun_chunked = nkjax.vjp_chunked(
-            lambda w, σ: model_apply_fun({"params": w, **model_state}, σ),
+            lambda w, σ: model_apply_fun(
+                {"params": w, **model_state}, σ, **training_kwargs
+            ),
             parameters,
             σ,
             conjugate=True,
