@@ -114,10 +114,10 @@ def _expect(
     σ: jnp.ndarray,
     local_value_args: PyTree,
 ) -> Stats:
-    σ_shape = σ.shape
 
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
+    n_chains = σ.shape[0]
+    if σ.ndim >= 3:
+        σ = jax.lax.collapse(σ, 0, 2)
 
     def logpsi(w, σ):
         return model_apply_fun({"params": w, **model_state}, σ)
@@ -133,11 +133,10 @@ def _expect(
     #    parameters,
     #    σ,
     #    local_value_args,
-    #    n_chains=σ_shape[0],
+    #    n_chains=n_chains,
     # )
 
     L_σ = local_value_kernel(logpsi, parameters, σ, local_value_args)
-    L_σ = L_σ.reshape((σ_shape[0], -1))
-    Ō_stats = mpi_statistics(L_σ.T)
+    Ō_stats = mpi_statistics(L_σ.reshape((n_chains, -1)))
 
     return Ō_stats

@@ -378,7 +378,8 @@ class MetropolisSampler(Sampler):
             xs=None,
             length=chain_length,
         )
-
+        # make it (n_chains, n_samples_per_chain) as expected by netket.stats.statistics
+        samples = jnp.swapaxes(samples, 0, 1)
         return samples, state
 
     def __repr__(sampler):

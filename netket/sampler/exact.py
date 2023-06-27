@@ -115,13 +115,13 @@ class ExactSampler(Sampler):
         samples = jax.pure_callback(
             lambda numbers: sampler.hilbert.numbers_to_states(numbers),
             jax.ShapeDtypeStruct(
-                (chain_length * sampler.n_chains_per_rank, sampler.hilbert.size),
+                (sampler.n_chains_per_rank * chain_length, sampler.hilbert.size),
                 jnp.float64,
             ),
             numbers,
         )
         samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
-            chain_length, sampler.n_chains_per_rank, sampler.hilbert.size
+            sampler.n_chains_per_rank, chain_length, sampler.hilbert.size
         )
 
         return samples, state.replace(rng=new_rng)

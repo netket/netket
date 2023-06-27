@@ -199,7 +199,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
             n_steps_proc=state.n_steps_proc,
             n_accepted_proc=state.n_accepted_proc,
         )
-        return samples.reshape(samples.shape[0], -1, samples.shape[-1]), state
+        return samples.reshape((-1,) + samples.shape[-2:]), state
 
     def _repr_pretty_(sampler, p, cycle):
         super()._repr_pretty_(p, cycle)
@@ -232,7 +232,7 @@ def _sample_next_pmap(sampler, machine, parameters, state):
 @partial(
     jax.pmap,
     in_axes=(None, None, None, 0, None),
-    out_axes=(1, 0),
+    out_axes=(0, 0),
     static_broadcasted_argnums=(1, 4),
 )
 def _sample_chain_pmap(sampler, machine, parameters, state, chain_length):

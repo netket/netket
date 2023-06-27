@@ -300,7 +300,7 @@ class Sampler(abc.ABC):
 
         for i in range(chain_length):
             samples, state = sampler._sample_chain(machine, parameters, state, 1)
-            yield samples[0, :, :]
+            yield samples[:, 0, :]
 
     @abc.abstractmethod
     def _sample_chain(

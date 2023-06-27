@@ -72,10 +72,10 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
     samples, state = sampler.sample(
         ma, w, chain_length=num_samples_per_chain, state=state
     )
-    assert samples.shape == (num_samples_per_chain, n_chains, hi.size)
+    assert samples.shape == (n_chains, num_samples_per_chain, hi.size)
 
     eloc = local_values(ma.apply, w, ham, samples)
-    assert eloc.shape == (num_samples_per_chain, n_chains)
+    assert eloc.shape == (n_chains, num_samples_per_chain)
 
     stats = statistics(eloc.T)
 

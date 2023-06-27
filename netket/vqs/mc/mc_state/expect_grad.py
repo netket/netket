@@ -136,9 +136,9 @@ def grad_expect_operator_kernel(
     local_value_args: PyTree,
 ) -> Tuple[PyTree, PyTree, Stats]:
 
-    σ_shape = σ.shape
-    if jnp.ndim(σ) != 2:
-        σ = σ.reshape((-1, σ_shape[-1]))
+    n_chains = σ.shape[0]
+    if σ.ndim >= 3:
+        σ = jax.lax.collapse(σ, 0, 2)
 
     is_mutable = mutable is not False
     logpsi = lambda w, σ: model_apply_fun(
@@ -155,7 +155,7 @@ def grad_expect_operator_kernel(
             pars,
             σ,
             local_value_args,
-            n_chains=σ_shape[0],
+            n_chains=n_chains,
         )
 
     Ō, Ō_pb, Ō_stats = nkjax.vjp(

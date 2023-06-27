@@ -141,17 +141,17 @@ def test_n_samples_api(vstate, _mpi_size):
     vstate.n_samples = 3
     check_consistent(vstate, _mpi_size)
     assert vstate.samples.shape[0:2] == (
-        int(np.ceil(3 / _mpi_size)),
         vstate.sampler.n_chains_per_rank,
+        int(np.ceil(3 / _mpi_size)),
     )
 
     vstate.n_samples_per_rank = 4
     check_consistent(vstate, _mpi_size)
-    assert vstate.samples.shape[0:2] == (4, vstate.sampler.n_chains_per_rank)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 4)
 
     vstate.chain_length = 2
     check_consistent(vstate, _mpi_size)
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 2)
 
     vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
@@ -170,16 +170,16 @@ def test_n_samples_api(vstate, _mpi_size):
     vstate.n_samples = 3
     check_consistent(vstate, _mpi_size)
     # `n_samples` is rounded up
-    assert vstate.samples.shape[0:2] == (1, vstate.sampler.n_chains_per_rank)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 1)
 
     vstate.n_samples_per_rank = 16 // _mpi_size + 1
     check_consistent(vstate, _mpi_size)
     # `n_samples` is rounded up
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 2)
 
     vstate.chain_length = 2
     check_consistent(vstate, _mpi_size)
-    assert vstate.samples.shape[0:2] == (2, vstate.sampler.n_chains_per_rank)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 2)
 
 
 @common.skipif_mpi
