@@ -117,7 +117,8 @@ class DiscreteOperator(AbstractOperator):
             )
         if x.shape[0] != self.hilbert.size:
             raise ValueError(
-                "The given quantum numbers do not match the hilbert space."
+                "The given quantum numbers do not match the hilbert space because"
+                f"it has shape {x.shape} of which[0] but expected {self.hilbert.size}."
             )
 
         return self.get_conn_flattened(
