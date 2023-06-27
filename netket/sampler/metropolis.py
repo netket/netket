@@ -83,7 +83,8 @@ class MetropolisSamplerState(SamplerState):
     @property
     def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        res, _ = mpi.mpi_sum_jax(jnp.sum(self.n_accepted_proc))
+        # jit sum for gda
+        res, _ = mpi.mpi_sum_jax(jax.jit(jnp.sum)(self.n_accepted_proc))
         return res
 
     def __repr__(self):
@@ -266,7 +267,9 @@ class MetropolisSampler(Sampler):
         return state
 
     def _reset(sampler, machine, parameters, state):
-        new_rng, rng = jax.random.split(state.rng)
+        new_rng, rng = jax.jit(jax.random.split)(
+            state.rng
+        )  # use jit so that we can do it on global shared array
 
         if sampler.reset_chains:
             σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)

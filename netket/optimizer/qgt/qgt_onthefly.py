@@ -65,10 +65,10 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
         samples = split_array_mpi(vstate._all_states)
         pdf = split_array_mpi(vstate.probability_distribution())
     else:
-        if jnp.ndim(vstate.samples) == 2:
-            samples = vstate.samples
-        else:
-            samples = vstate.samples.reshape((-1, vstate.samples.shape[-1]))
+        samples = vstate.samples
+        if samples.ndim >= 3:
+            # use jit so that we can do it on global shared array
+            samples = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(samples, 0, 2)
         pdf = None
 
     if chunk_size is None and hasattr(vstate, "chunk_size"):
