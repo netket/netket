@@ -22,7 +22,7 @@ from netket.graph import AbstractGraph
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType
 
-from ._base import IsingBase
+from .base import IsingBase
 
 
 class Ising(IsingBase):

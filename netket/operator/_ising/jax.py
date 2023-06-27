@@ -26,7 +26,7 @@ from netket.utils.types import DType
 
 from .._discrete_jax_operator import DiscreteJaxOperator
 
-from ._base import IsingBase
+from .base import IsingBase
 
 
 @register_pytree_node_class

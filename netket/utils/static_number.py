@@ -36,9 +36,7 @@ class StaticZero(Number):
     shape = property(lambda _: ())
     ndim = property(lambda _: 1)
     weak_dtype = property(lambda _: True)
-    aval = property(
-        lambda self: jax.ShapeDtypeStruct(self.shape, self.dtype)
-    )
+    aval = property(lambda self: jax.ShapeDtypeStruct(self.shape, self.dtype))
 
     __add__ = lambda self, o: self if isinstance(o, StaticZero) else o
     __radd__ = lambda self, o: self if isinstance(o, StaticZero) else o
