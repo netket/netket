@@ -54,10 +54,14 @@ class MetropolisSamplerState(SamplerState):
         default_factory=lambda: jnp.zeros((), dtype=jnp.int64)
     )
     """Number of moves performed along the chains in this process since the last reset."""
-    n_accepted_proc: int = struct.field(
-        default_factory=lambda: jnp.zeros((), dtype=jnp.int64)
-    )
+    n_accepted_proc: jnp.ndarray = None
     """Number of accepted transitions among the chains in this process since the last reset."""
+
+    def __post_init__(self):
+        if self.n_accepted_proc is None:
+            object.__setattr__(
+                self, "n_accepted_proc", jnp.zeros(self.σ.shape[0], dtype=jnp.int64)
+            )
 
     @property
     def acceptance(self) -> float:
@@ -79,7 +83,7 @@ class MetropolisSamplerState(SamplerState):
     @property
     def n_accepted(self) -> int:
         """Total number of moves accepted across all processes since the last reset."""
-        res, _ = mpi.mpi_sum_jax(self.n_accepted_proc)
+        res, _ = mpi.mpi_sum_jax(jnp.sum(self.n_accepted_proc))
         return res
 
     def __repr__(self):
@@ -278,7 +282,11 @@ class MetropolisSampler(Sampler):
         rule_state = sampler.rule.reset(sampler, machine, parameters, state)
 
         return state.replace(
-            σ=σ, rng=new_rng, rule_state=rule_state, n_steps_proc=0, n_accepted_proc=0
+            σ=σ,
+            rng=new_rng,
+            rule_state=rule_state,
+            n_steps_proc=jnp.zeros_like(state.n_steps_proc),
+            n_accepted_proc=jnp.zeros_like(state.n_accepted_proc),
         )
 
     def _sample_next(sampler, machine, parameters, state):
@@ -317,7 +325,7 @@ class MetropolisSampler(Sampler):
 
             # do_accept must match ndim of proposal and state (which is 2)
             s["σ"] = jnp.where(do_accept.reshape(-1, 1), σp, s["σ"])
-            s["accepted"] += do_accept.sum()
+            s["accepted"] += do_accept
 
             s["log_prob"] = jax.numpy.where(
                 do_accept.reshape(-1), proposal_log_prob, s["log_prob"]
