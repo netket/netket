@@ -70,8 +70,8 @@ class HamiltonianRule(MetropolisRule):
 
         @njit4jax(
             (
-                jax.ShapeDtypeStruct(σ.shape, σ.dtype),
-                jax.ShapeDtypeStruct((σ.shape[0],), σ.dtype),
+                jax.abstract_arrays.ShapedArray(σ.shape, σ.dtype),
+                jax.abstract_arrays.ShapedArray((σ.shape[0],), σ.dtype),
             )
         )
         def _transition(args):

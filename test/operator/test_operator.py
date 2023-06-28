@@ -1,6 +1,7 @@
 import netket as nk
 import numpy as np
 import netket.experimental as nkx
+from netket.operator import DiscreteJaxOperator
 
 import pytest
 import jax
@@ -114,6 +115,10 @@ for name, op in operators.items():
     if hi.is_finite and hi.n_states < 2**14:
         op_finite_size[name] = op
 
+operators_numba = {}
+for name, op in operators.items():
+    if not isinstance(op, DiscreteJaxOperator):
+        operators_numba[name] = op
 
 op_jax_compatible = {}
 for name, op in op_finite_size.items():
@@ -213,7 +218,7 @@ def test_repr(op):
 
 
 @pytest.mark.parametrize(
-    "op", [pytest.param(op, id=name) for name, op in operators.items()]
+    "op", [pytest.param(op, id=name) for name, op in operators_numba.items()]
 )
 def test_get_conn_numpy_closure(op):
     hi = op.hilbert
