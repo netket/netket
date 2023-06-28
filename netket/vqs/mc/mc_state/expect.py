@@ -27,6 +27,7 @@ from netket.operator import (
     DiscreteOperator,
     Squared,
     ContinuousOperator,
+    DiscreteJaxOperator,
 )
 
 from netket.vqs.mc import (
@@ -65,6 +66,19 @@ def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteOperator):  # noqa:
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: DiscreteOperator):  # noqa: F811
     return kernels.local_value_kernel
+
+
+@dispatch
+def get_local_kernel_arguments(vstate: MCState, Ô: DiscreteJaxOperator):  # noqa: F811
+    check_hilbert(vstate.hilbert, Ô.hilbert)
+
+    σ = vstate.samples
+    return σ, Ô
+
+
+@dispatch
+def get_local_kernel(vstate: MCState, Ô: DiscreteJaxOperator):  # noqa: F811
+    return kernels.local_value_kernel_jax
 
 
 @dispatch

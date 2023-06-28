@@ -24,6 +24,7 @@ import jax.numpy as jnp
 
 from netket.utils.types import PyTree, Array
 import netket.jax as nkjax
+from netket.operator import DiscreteJaxOperator
 
 
 def batch_discrete_kernel(kernel):
@@ -57,6 +58,18 @@ def local_value_kernel(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
     """
     σp, mel = args
     return jnp.sum(mel * jnp.exp(logpsi(pars, σp) - logpsi(pars, σ)))
+
+
+def local_value_kernel_jax(
+    logpsi: Callable, pars: PyTree, σ: Array, O: DiscreteJaxOperator
+):
+    """
+    local_value kernel for MCState for jax-compatible operators
+    """
+    σp, mel = O.get_conn_padded(σ)
+    logpsi_σ = logpsi(pars, σ)
+    logpsi_σp = logpsi(pars, σp)
+    return jnp.sum(mel * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1)
 
 
 def local_value_squared_kernel(logpsi: Callable, pars: PyTree, σ: Array, args: PyTree):
@@ -157,3 +170,23 @@ def local_value_op_op_cost_chunked(
     return local_value_kernel_chunked(
         logpsi, pars, σ_σ, (σ_σp, mels), chunk_size=chunk_size
     )
+
+
+def local_value_kernel_jax_chunked(
+    logpsi: Callable,
+    pars: PyTree,
+    σ: Array,
+    O: DiscreteJaxOperator,
+    *,
+    chunk_size: Optional[int] = None,
+):
+    """
+    local_value kernel for MCState and jaxcoompatible operators
+    """
+    local_value_kernel = lambda s: local_value_kernel_jax(logpsi, pars, s, O)
+
+    local_value_chunked = nkjax.vmap_chunked(
+        local_value_kernel, in_axes=0, chunk_size=chunk_size
+    )
+
+    return local_value_chunked(σ)

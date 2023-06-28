@@ -27,6 +27,7 @@ from netket.utils.dispatch import dispatch
 from netket.operator import (
     AbstractOperator,
     DiscreteOperator,
+    DiscreteJaxOperator,
     ContinuousOperator,
     Squared,
 )
@@ -46,6 +47,13 @@ from .state import MCState
 @dispatch
 def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):  # noqa: F811
     return kernels.local_value_squared_kernel_chunked
+
+
+@dispatch
+def get_local_kernel(
+    vstate: MCState, Ô: DiscreteJaxOperator, chunk_size: int  # noqa: F811
+):  # noqa: F811
+    return kernels.local_value_kernel_jax_chunked
 
 
 @dispatch
