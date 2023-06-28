@@ -25,6 +25,7 @@ from scipy.sparse import issparse
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType, Array
 from netket.utils.numbers import dtype as _dtype, is_scalar
+from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from ._discrete_operator import DiscreteOperator
 from ._lazy import Transpose
@@ -449,8 +450,15 @@ class LocalOperator(DiscreteOperator):
         """
         self._setup()
 
+        x = concrete_or_error(
+            np.asarray,
+            x,
+            NumbaOperatorGetConnDuringTracingError,
+            self,
+        )
+
         return self._get_conn_flattened_kernel(
-            np.asarray(x),
+            x,
             sections,
             self._local_states,
             self._basis,
@@ -629,6 +637,14 @@ class LocalOperator(DiscreteOperator):
 
         """
         self._setup()
+
+        x = concrete_or_error(
+            np.asarray,
+            x,
+            NumbaOperatorGetConnDuringTracingError,
+            self,
+        )
+
         return self._get_conn_filtered_kernel(
             x,
             sections,

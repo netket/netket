@@ -23,6 +23,7 @@ from numba import jit
 from netket.graph import AbstractGraph
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType
+from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from .base import IsingBase
 
@@ -134,9 +135,14 @@ class Ising(IsingBase):
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-        return self._flattened_kernel(
-            np.asarray(x), sections, self.edges, self._h, self._J
+        x = concrete_or_error(
+            np.asarray,
+            x,
+            NumbaOperatorGetConnDuringTracingError,
+            self,
         )
+
+        return self._flattened_kernel(x, sections, self.edges, self._h, self._J)
 
     def _get_conn_flattened_closure(self):
         _edges = self._edges
