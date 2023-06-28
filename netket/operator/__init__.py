@@ -18,7 +18,7 @@ from ._discrete_operator import DiscreteOperator
 from ._discrete_operator_jax import DiscreteJaxOperator
 from ._local_operator import LocalOperator
 from ._graph_operator import GraphOperator
-from ._pauli_strings import PauliStrings
+from ._pauli_strings import PauliStrings, PauliStringsJax
 from ._lazy import Adjoint, Transpose, Squared
 from ._heisenberg import Heisenberg
 from ._ising import Ising, IsingJax
