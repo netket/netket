@@ -249,7 +249,7 @@ class DiscreteOperator(AbstractOperator):
 
     def apply(self, v: np.ndarray) -> np.ndarray:
         op = self.to_linear_operator()
-        return op.dot(v)
+        return op @ v
 
     def __matmul__(self, other):
         if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):

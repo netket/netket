@@ -79,6 +79,7 @@ hi = nk.hilbert.Spin(s=0.5, N=L)
 
 H = nk.operator.Ising(hi, graph=g, h=1.0)
 operators["operator:(Hermitian Real)"] = H
+operators["operator:(IsingJax)"] = H.to_jax_operator()
 
 H2 = H @ H
 operators["operator:(Hermitian Real Squared)"] = H2
