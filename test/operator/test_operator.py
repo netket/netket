@@ -115,6 +115,11 @@ for name, op in operators.items():
         op_finite_size[name] = op
 
 
+op_jax_compatible = {}
+for name, op in op_finite_size.items():
+    if hasattr(op, "to_jax_operator"):
+        op_jax_compatible[name] = op
+
 @pytest.mark.parametrize("attr", ["get_conn", "get_conn_padded"])
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
@@ -315,3 +320,45 @@ def test_operator_on_subspace():
 
     h4 = nk.operator.Heisenberg(hi, g, acting_on_subspace=0)
     assert h4.acting_on == h1.acting_on
+
+@pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
+)
+def test_operator_jax_conversion(op):
+    op_jax = op.to_jax_operator()
+    op_numba = op_jax.to_numba_operator()
+
+    # check round_tripping
+    np.testing.assert_allclose(op_numba.to_dense(), op.to_dense())
+
+    np.testing.assert_allclose(op_numba.to_dense(), op_jax.to_dense())
+
+    # test packing unpacking
+    data, structure = jax.tree_util.tree_flatten(op_jax)
+    op_jax2 = jax.tree_util.tree_unflatten(structure, data)
+    op_numba2 = op_jax2.to_numba_operator()
+    np.testing.assert_allclose(op_numba2.to_dense(), op.to_dense())
+
+    # check that it is hash stable
+    _, structure2 = jax.tree_util.tree_flatten(op.to_jax_operator())
+    assert hash(structure) == hash(structure2)
+    assert structure == structure2
+
+@pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
+)
+def test_operator_jax_getconn(op):
+    op_jax = op.to_jax_operator()
+
+    all_states = op.hilbert.all_states()
+
+    @jax.jit
+    def _get_conn_padded(op, s):
+        return op_jax.get_conn_padded(s)
+
+    sp, mels = op.get_conn_padded(all_states)
+    sp_j, mels_j = _get_conn_padded(op_jax, all_states)
+
+    np.testing.assert_allclose(sp, sp_j)
+    np.testing.assert_allclose(mels, mels_j)
+

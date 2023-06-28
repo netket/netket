@@ -118,4 +118,4 @@ class DiscreteJaxOperator(DiscreteOperator):
         return BCOO((a, ij), shape=(n, n))
 
     def to_dense(self) -> np.ndarray:
-        return self.to_sparse().todense().A
+        return self.to_sparse().todense()

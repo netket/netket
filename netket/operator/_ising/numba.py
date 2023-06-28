@@ -15,6 +15,8 @@
 from functools import wraps
 from typing import Optional
 
+import jax
+
 import numpy as np
 from numba import jit
 
@@ -63,13 +65,15 @@ class Ising(IsingBase):
         """
         h = np.array(h, dtype=dtype)
         J = np.array(J, dtype=dtype)
+        if isinstance(graph, jax.Array):
+            graph = np.asarray(graph) 
         super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
 
     def to_jax_operator(self):
         from .jax import IsingJax
 
         return IsingJax(
-            self.hilbert, graph=self.graph, h=self.h, J=self.J, dtype=self.dtype
+            self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
         )
 
     @staticmethod
@@ -127,7 +131,7 @@ class Ising(IsingBase):
 
         """
         return self._flattened_kernel(
-            np.asarray(x), sections, self._edges, self._h, self._J
+            np.asarray(x), sections, self.edges, self._h, self._J
         )
 
     def _get_conn_flattened_closure(self):
