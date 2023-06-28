@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 
@@ -21,7 +21,7 @@ from jax import numpy as jnp
 from netket.graph import AbstractGraph
 from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import dtype as _dtype
-from netket.utils.types import DType
+from netket.utils.types import Array, DType
 
 from .. import spin
 from .._hamiltonian import SpecialHamiltonian
@@ -38,9 +38,9 @@ class IsingBase(SpecialHamiltonian):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        graph: AbstractGraph,
-        h,
-        J,
+        graph: Union[AbstractGraph, Array],
+        h: float,
+        J: float,
         dtype: DType,
     ):
         r"""

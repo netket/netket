@@ -69,7 +69,11 @@ class Ising(IsingBase):
             graph = np.asarray(graph)
         super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
 
-    def to_jax_operator(self):
+    def to_jax_operator(self) -> "IsingJax":  # noqa: F821
+        """
+        Returns the jax-compatible version of this operator, which is an
+        instance of {class}`nk.operator.IsingJax`.
+        """
         from .jax import IsingJax
 
         return IsingJax(

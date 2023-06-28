@@ -50,8 +50,8 @@ def get_local_kernel(vstate: MCState, Ô: Squared, chunk_size: int):  # noqa: F
 
 
 @dispatch
-def get_local_kernel(
-    vstate: MCState, Ô: DiscreteJaxOperator, chunk_size: int  # noqa: F811
+def get_local_kernel(  # noqa: F811
+    vstate: MCState, Ô: DiscreteJaxOperator, chunk_size: int
 ):  # noqa: F811
     return kernels.local_value_kernel_jax_chunked
 

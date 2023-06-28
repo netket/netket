@@ -24,10 +24,40 @@ from netket.operator import DiscreteOperator
 
 
 class DiscreteJaxOperator(DiscreteOperator):
-    r"""This class is the base class for operators defined on a
-    discrete Hilbert space. Users interested in implementing new
-    quantum Operators for discrete Hilbert spaces should derive
-    their own class from this class
+    r"""This class should be inherited by DiscreteOperators which
+    wish to declare jax-compatibility.
+
+    `DiscreteJaxOperator`s should be declared following a scheme like
+
+    Examples:
+
+        from jax.tree_util import register_pytree_node_class
+        @register_pytree_node_class
+        class MyJaxOperator(DiscreteJaxOperator):
+            def __init__(hilbert, ...):
+                super().__init__(hilbert)
+
+            def tree_flatten(self):
+                array_data = ( ... ) # all arrays
+                struct_data = {'hilbert': self.hilbert,
+                                ... # all constant data
+                                }
+                return array_data, struct_data
+
+            @classmethod
+            def tree_unflatten(cls, struct_data, array_data):
+                ...
+                return cls(array_data['hilbert'], ...)
+
+            @property
+            def max_conn_size(self) -> int:
+                return ...
+
+            def get_conn_padded(self, x):
+                ...
+                return xp, mels
+
+
     """
 
     @property

@@ -58,12 +58,26 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         self._hi_local_states = tuple(self.hilbert.local_states)
 
     @jax.jit
+    @wraps(IsingBase.n_conn)
     def n_conn(self, x):
         return _ising_n_conn_jax(x, self._edges, self.h, self.J)
 
     @jax.jit
+    @wraps(IsingBase.get_conn_padded)
     def get_conn_padded(self, x):
         return _ising_kernel_jax(x, self._edges, self.h, self.J, self._hi_local_states)
+
+    def to_numba_operator(self) -> "Ising":  # noqa: F821
+        """
+        Returns the standard (numba) version of this operator, which is an
+        instance of {class}`nk.operator.Ising`.
+        """
+
+        from .numba import Ising
+
+        return Ising(
+            self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
+        )
 
     def tree_flatten(self):
         data = (self.h, self.J, self.edges)
@@ -78,22 +92,6 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
 
         return cls(hi, h=h, J=J, graph=edges, dtype=dtype)
 
-    @classmethod
-    def from_operator(cls, operator):
-        return cls(
-            operator.hilbert,
-            graph=operator.graph,
-            h=operator.h,
-            J=operator.J,
-            dtype=operator.dtype,
-        )
-
-    def to_numba_operator(self):
-        from .numba import Ising
-
-        return Ising(
-            self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
-        )
 
 
 def _ising_mels_jax(x, edges, h, J):
