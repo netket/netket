@@ -120,6 +120,7 @@ for name, op in op_finite_size.items():
     if hasattr(op, "to_jax_operator"):
         op_jax_compatible[name] = op
 
+
 @pytest.mark.parametrize("attr", ["get_conn", "get_conn_padded"])
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in operators.items()]
@@ -321,6 +322,7 @@ def test_operator_on_subspace():
     h4 = nk.operator.Heisenberg(hi, g, acting_on_subspace=0)
     assert h4.acting_on == h1.acting_on
 
+
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
 )
@@ -344,6 +346,7 @@ def test_operator_jax_conversion(op):
     assert hash(structure) == hash(structure2)
     assert structure == structure2
 
+
 @pytest.mark.parametrize(
     "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
 )
@@ -361,4 +364,3 @@ def test_operator_jax_getconn(op):
 
     np.testing.assert_allclose(sp, sp_j)
     np.testing.assert_allclose(mels, mels_j)
-

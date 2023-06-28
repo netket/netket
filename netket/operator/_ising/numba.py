@@ -66,7 +66,7 @@ class Ising(IsingBase):
         h = np.array(h, dtype=dtype)
         J = np.array(J, dtype=dtype)
         if isinstance(graph, jax.Array):
-            graph = np.asarray(graph) 
+            graph = np.asarray(graph)
         super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
 
     def to_jax_operator(self):
