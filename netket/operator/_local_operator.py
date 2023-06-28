@@ -24,7 +24,7 @@ from scipy.sparse import issparse
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType, Array
-from netket.utils.numbers import dtype as _dtype
+from netket.utils.numbers import dtype as _dtype, is_scalar
 
 from ._discrete_operator import DiscreteOperator
 from ._lazy import Transpose
@@ -275,7 +275,7 @@ class LocalOperator(DiscreteOperator):
 
             self._reset_caches()
             return self
-        if isinstance(other, numbers.Number):
+        if is_scalar(other):
             if not np.can_cast(type(other), self.dtype, casting="same_kind"):
                 raise ValueError(
                     f"Cannot add inplace operator with dtype {type(other)} "
@@ -289,7 +289,7 @@ class LocalOperator(DiscreteOperator):
         return NotImplemented
 
     def __truediv__(self, other):
-        if not isinstance(other, numbers.Number):
+        if not is_scalar(other):
             raise TypeError("Only division by a scalar number is supported.")
 
         if other == 0:
@@ -303,7 +303,7 @@ class LocalOperator(DiscreteOperator):
         if isinstance(other, DiscreteOperator):
             op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
             return op.__imatmul__(other)
-        elif isinstance(other, numbers.Number):
+        elif is_scalar(other):
             op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
             return op.__imul__(other)
         return NotImplemented
@@ -311,12 +311,13 @@ class LocalOperator(DiscreteOperator):
     def __imul__(self, other):
         if isinstance(other, DiscreteOperator):
             return self.__imatmul__(other)
-        elif isinstance(other, numbers.Number):
-            if not np.can_cast(type(other), self.dtype, casting="same_kind"):
+        elif is_scalar(other):
+            if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
                 raise ValueError(
-                    f"Cannot add inplace operator with dtype {type(other)} "
-                    f"to operator with dtype {self.dtype}"
+                    f"Cannot add inplace operator of type {type(other)} and "
+                    f"dtype {_dtype(other)} to operator with dtype {self.dtype}"
                 )
+            other = np.asarray(other, dtype=np.promote_types(self.dtype, _dtype(other)))
 
             self._constant *= other
             if np.abs(other) <= self.mel_cutoff:

@@ -23,7 +23,7 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.11"
             mpi: ""
-            doctest: true
+            main_tests: true
             oldest_deps: false
 
           - os: macos-latest

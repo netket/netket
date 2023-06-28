@@ -1,4 +1,17 @@
-import abc
+# Copyright 2021-2023 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Tuple
 import numpy as np
 import jax.numpy as jnp
@@ -64,7 +77,6 @@ class DiscreteOperator(AbstractOperator):
 
         return x_primes_r, mels_r
 
-    @abc.abstractmethod
     def get_conn_flattened(
         self, x: np.ndarray, sections: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
@@ -93,6 +105,19 @@ class DiscreteOperator(AbstractOperator):
                 associated to each x'.
 
         """
+        raise NotImplementedError(
+            f"""
+            The method get_conn_flattened has not been implemented for the object of
+            type {type(self)}.
+
+            This may happen if you defined a custom class inheriting from DiscreteOperator
+            and you have not implemented this method. In that case, you should define
+            `get_conn_flattened(self, x: array, sections: array)` according to the
+            docstring provided on the documentation.
+
+            Otherwise, please open an issue on netket's github repository.
+            """
+        )
 
     def get_conn(self, x: np.ndarray):
         r"""Finds the connected elements of the Operator. Starting
@@ -117,7 +142,8 @@ class DiscreteOperator(AbstractOperator):
             )
         if x.shape[0] != self.hilbert.size:
             raise ValueError(
-                "The given quantum numbers do not match the hilbert space."
+                "The given quantum numbers do not match the hilbert space because"
+                f"it has shape {x.shape} of which[0] but expected {self.hilbert.size}."
             )
 
         return self.get_conn_flattened(
@@ -138,7 +164,7 @@ class DiscreteOperator(AbstractOperator):
 
         """
         if out is None:
-            out = np.empty(x.shape[0], dtype=np.intc)
+            out = np.empty(x.shape[0], dtype=np.int32)
         self.get_conn_flattened(x, out)
         out = self._n_conn_from_sections(out)
 
@@ -223,7 +249,7 @@ class DiscreteOperator(AbstractOperator):
 
     def apply(self, v: np.ndarray) -> np.ndarray:
         op = self.to_linear_operator()
-        return op.dot(v)
+        return op @ v
 
     def __matmul__(self, other):
         if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):

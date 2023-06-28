@@ -12,29 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import wraps
 from typing import Optional
-from numba import jit
+
+import jax
 
 import numpy as np
-import jax.numpy as jnp
+from numba import jit
 
-from netket.graph import AbstractGraph, Graph
+from netket.graph import AbstractGraph
 from netket.hilbert import AbstractHilbert
-from netket.utils.numbers import dtype as _dtype
 from netket.utils.types import DType
 
-from . import spin
-from ._local_operator import LocalOperator
-from ._hamiltonian import SpecialHamiltonian
+from .base import IsingBase
 
 
-class Ising(SpecialHamiltonian):
+class Ising(IsingBase):
     r"""
     The Transverse-Field Ising Hamiltonian :math:`-h\sum_i \sigma_i^{(x)} +J\sum_{\langle i,j\rangle} \sigma_i^{(z)}\sigma_j^{(z)}`.
 
     This implementation is considerably faster than the Ising hamiltonian constructed by summing :class:`~netket.operator.LocalOperator` s.
     """
 
+    @wraps(IsingBase.__init__)
     def __init__(
         self,
         hilbert: AbstractHilbert,
@@ -63,123 +63,22 @@ class Ising(SpecialHamiltonian):
             >>> print(op)
             Ising(J=0.5, h=1.321; dim=20)
         """
-        assert (
-            graph.n_nodes == hilbert.size
-        ), "The size of the graph must match the hilbert space"
+        h = np.array(h, dtype=dtype)
+        J = np.array(J, dtype=dtype)
+        if isinstance(graph, jax.Array):
+            graph = np.asarray(graph)
+        super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
 
-        super().__init__(hilbert)
-
-        if dtype is None:
-            dtype = jnp.promote_types(_dtype(h), _dtype(J))
-        dtype = np.empty((), dtype=dtype).dtype
-        self._dtype = dtype
-
-        self._h = np.array(h, dtype=dtype)
-        self._J = np.array(J, dtype=dtype)
-        self._edges = np.asarray(
-            [[u, v] for u, v in graph.edges()],
-            dtype=np.intp,
-        )
-
-    @property
-    def h(self) -> float:
-        """The magnitude of the transverse field"""
-        return self._h
-
-    @property
-    def J(self) -> float:
-        """The magnitude of the hopping"""
-        return self._J
-
-    @property
-    def edges(self) -> np.ndarray:
-        return self._edges
-
-    @property
-    def is_hermitian(self) -> bool:
-        return True
-
-    @property
-    def dtype(self) -> DType:
-        return self._dtype
-
-    def conjugate(self, *, concrete=True):
-        # if real
-        if isinstance(self.h, float) and isinstance(self.J, float):
-            return self
-        else:
-            raise NotImplementedError
-
-    @staticmethod
-    @jit(nopython=True)
-    def n_conn(x, out):  # pragma: no cover
-        r"""Return the number of states connected to x.
-
-        Args:
-            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                        the batch of quantum numbers x.
-            out (array): If None an output array is allocated.
-
-        Returns:
-            array: The number of connected states x' for each x[i].
-
+    def to_jax_operator(self) -> "IsingJax":  # noqa: F821
         """
-        if out is None:
-            out = np.empty(
-                x.shape[0],
-                dtype=np.int32,
-            )
+        Returns the jax-compatible version of this operator, which is an
+        instance of {class}`nk.operator.IsingJax`.
+        """
+        from .jax import IsingJax
 
-        out.fill(x.shape[1] + 1)
-
-        return out
-
-    @property
-    def max_conn_size(self) -> int:
-        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        return self.hilbert.size + 1
-
-    def copy(self, *, dtype: Optional[DType] = None):
-        if dtype is None:
-            dtype = self.dtype
-
-        graph = Graph(edges=[list(edge) for edge in self.edges])
-        return Ising(hilbert=self.hilbert, graph=graph, J=self.J, h=self.h, dtype=dtype)
-
-    def to_local_operator(self):
-        # The hamiltonian
-        ha = LocalOperator(self.hilbert, dtype=self.dtype)
-
-        if self.h != 0:
-            for i in range(self.hilbert.size):
-                ha -= self.h * spin.sigmax(self.hilbert, i, dtype=self.dtype)
-
-        if self.J != 0:
-            for (i, j) in self.edges:
-                ha += self.J * (
-                    spin.sigmaz(self.hilbert, i, dtype=self.dtype)
-                    * spin.sigmaz(self.hilbert, j, dtype=self.dtype)
-                )
-
-        return ha
-
-    def _iadd_same_hamiltonian(self, other):
-        if self.hilbert != other.hilbert:
-            raise NotImplementedError(
-                "Cannot add hamiltonians on different hilbert spaces"
-            )
-
-        self._h += other.h
-        self._J += other.J
-
-    def _isub_same_hamiltonian(self, other):
-        if self.hilbert != other.hilbert:
-            raise NotImplementedError(
-                "Cannot add hamiltonians on different hilbert spaces"
-            )
-
-        self._h -= other.h
-        self._J -= other.J
+        return IsingJax(
+            self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
+        )
 
     @staticmethod
     @jit(nopython=True)
@@ -187,13 +86,7 @@ class Ising(SpecialHamiltonian):
         n_sites = x.shape[1]
         n_conn = n_sites + 1
 
-        x_prime = np.empty(
-            (
-                x.shape[0] * n_conn,
-                n_sites,
-            ),
-            dtype=x.dtype,
-        )
+        x_prime = np.empty((x.shape[0] * n_conn, n_sites), dtype=x.dtype)
         mels = np.empty(x.shape[0] * n_conn, dtype=h.dtype)
 
         diag_ind = 0
@@ -241,9 +134,8 @@ class Ising(SpecialHamiltonian):
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
 
         """
-
         return self._flattened_kernel(
-            np.asarray(x), sections, self._edges, self._h, self._J
+            np.asarray(x), sections, self.edges, self._h, self._J
         )
 
     def _get_conn_flattened_closure(self):
@@ -256,6 +148,3 @@ class Ising(SpecialHamiltonian):
             return fun(x, sections, _edges, _h, _J)
 
         return jit(nopython=True)(gccf_fun)
-
-    def __repr__(self):
-        return f"Ising(J={self._J}, h={self._h}; dim={self.hilbert.size})"

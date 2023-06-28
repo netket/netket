@@ -34,7 +34,7 @@ class SymmExpSum(nn.Module):
 
         \log\psi_\theta(\sigma) = \log\sum_{g\in G}\chi_g\exp[\log\psi_\theta(T_{g}\sigma)]
 
-    For the ground-state, it is usually found that :math:`\chi_g=1: :math:\forall g\in G`.
+    For the ground-state, it is usually found that :math:`\chi_g=1 \forall g\in G`.
 
     To construct this network, one has to specify the module, the symmetry group and (optionally)
     the id of the character to consider. The symmetry

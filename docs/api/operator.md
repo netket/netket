@@ -34,6 +34,7 @@ Those classes cannot be directly instantiated, but you can inherit from one of t
    AbstractOperator
    AbstractSuperOperator
    DiscreteOperator
+   DiscreteJaxOperator
    ContinuousOperator
 ```
 
@@ -52,6 +53,7 @@ Below you find a list of all concrete Operators that you can create on {class}`~
    GraphOperator
    LocalOperator
    Ising
+   IsingJax
    Heisenberg
    PauliStrings
    LocalLiouvillian
