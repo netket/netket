@@ -141,6 +141,16 @@ class DiscreteJaxOperator(DiscreteOperator):
         return out
 
     def to_sparse(self) -> JAXSparse:
+        r"""Returns the sparse matrix representation of the operator. Note that,
+        in general, the size of the matrix is exponential in the number of quantum
+        numbers, and this operation should thus only be performed for
+        low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+        This method requires an indexable Hilbert space.
+
+        Returns:
+            The sparse jax matrix representation of the operator.
+        """
         x = self.hilbert.all_states()
         n = x.shape[0]
         xp, mels = self.get_conn_padded(x)
@@ -151,4 +161,14 @@ class DiscreteJaxOperator(DiscreteOperator):
         return BCOO((a, ij), shape=(n, n))
 
     def to_dense(self) -> np.ndarray:
+        r"""Returns the dense matrix representation of the operator. Note that,
+        in general, the size of the matrix is exponential in the number of quantum
+        numbers, and this operation should thus only be performed for
+        low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+        This method requires an indexable Hilbert space.
+
+        Returns:
+            The dense matrix representation of the operator as a jax Array.
+        """
         return self.to_sparse().todense()
