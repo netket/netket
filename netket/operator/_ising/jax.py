@@ -111,7 +111,6 @@ def _ising_mels_jax(x, edges, h, J):
     return mels
 
 
-@partial(jax.vmap, in_axes=(0, None, None))
 def _ising_conn_states_jax(x, cond, local_states):
     # TODO here we could special-case for qubit / ising
     # by taking -x / 1 - x
@@ -144,7 +143,7 @@ def _ising_kernel_jax(x, edges, h, J, local_states):
     else:
         max_conn_size = hilb_size + 1
         flip = jnp.eye(max_conn_size, hilb_size, k=-1, dtype=bool)
-        x_prime = _ising_conn_states_jax(x, flip, local_states)
+        x_prime = _ising_conn_states_jax(x[..., None, :], flip, local_states)
 
     x_prime = x_prime.reshape(batch_shape + x_prime.shape[1:])
 
@@ -152,11 +151,10 @@ def _ising_kernel_jax(x, edges, h, J, local_states):
 
 
 @jax.jit
-@partial(jax.vmap, in_axes=(0, None, None, None))
 def _ising_n_conn_jax(x, edges, h, J):
     n_conn_X = 0 if isinstance(h, StaticZero) else x.shape[-1]
-    same_spins = x[edges[:, 0]] == x[edges[:, 1]]
+    same_spins = x[..., edges[:, 0]] == x[..., edges[:, 1]]
     # TODO duplicated with _ising_mels_jax
-    mels_ZZ = J * (2 * same_spins - 1).sum()
+    mels_ZZ = J * (2 * same_spins - 1).sum(axis=-1)
     n_conn_ZZ = jnp.asarray(mels_ZZ != 0, dtype=jnp.int32)
     return n_conn_X + n_conn_ZZ
