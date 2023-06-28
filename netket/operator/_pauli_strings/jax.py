@@ -1,3 +1,17 @@
+# Copyright 2023 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from functools import partial, wraps
 from typing import List, Union
 
@@ -7,9 +21,11 @@ import jax
 from jax import numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
+from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.utils.types import DType
 
-from netket.hilbert import AbstractHilbert, HomogeneousHilbert
+from .._discrete_operator_jax import DiscreteJaxOperator
+
 from .base import PauliStringsBase
 from .numba import pack_internals
 
@@ -81,7 +97,7 @@ def _pauli_strings_n_conn_jax(x, mask, mask2, z_check, weights, cutoff, local_st
 
 
 @register_pytree_node_class
-class PauliStringsJax(PauliStringsBase):
+class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     """
     Jax-compatible version of :class:`netket.operator.PauliStrings`.
     """

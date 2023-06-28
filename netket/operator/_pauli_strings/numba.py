@@ -14,13 +14,14 @@
 
 import re
 from typing import List, Union
-from netket.utils.types import DType
+from functools import wraps
 
 import numpy as np
 from numba import jit
 
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
+from netket.utils.types import DType
 
 from .base import PauliStringsBase
 

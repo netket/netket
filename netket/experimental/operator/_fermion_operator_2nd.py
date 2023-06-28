@@ -21,7 +21,7 @@ import numba
 
 from netket.utils.types import DType
 from netket.operator._discrete_operator import DiscreteOperator
-from netket.operator._pauli_strings import _count_of_locations
+from netket.operator._pauli_strings.base import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
