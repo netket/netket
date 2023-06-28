@@ -93,7 +93,6 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         return cls(hi, h=h, J=J, graph=edges, dtype=dtype)
 
 
-
 def _ising_mels_jax(x, edges, h, J):
     batch_dims = x.shape[:-1]
     if isinstance(h, StaticZero):
