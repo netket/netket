@@ -27,35 +27,44 @@ class DiscreteJaxOperator(DiscreteOperator):
     r"""This class should be inherited by DiscreteOperators which
     wish to declare jax-compatibility.
 
-    `DiscreteJaxOperator`s should be declared following a scheme like
+    Discrete Jax Operators can safely be treated as standard
+    PyTrees and passed as standard arguments to jax-transformed
+    functions.
 
-    Examples:
+    Classes inheriting from `DiscreteJaxOperator`` should be
+    declared following a scheme like the following. Do notice
+    in particular the declaration of the pytree flattening and
+    unflattening, following the standard APIs of Jax discussed
+    in the `Jax Pytree documentation <https://jax.readthedocs.io/en/latest/pytrees.html#custom-pytrees-and-initialization>`_.
 
-        from jax.tree_util import register_pytree_node_class
-        @register_pytree_node_class
-        class MyJaxOperator(DiscreteJaxOperator):
-            def __init__(hilbert, ...):
-                super().__init__(hilbert)
+    .. code-block:: python
 
-            def tree_flatten(self):
-                array_data = ( ... ) # all arrays
-                struct_data = {'hilbert': self.hilbert,
-                                ... # all constant data
-                                }
-                return array_data, struct_data
-
-            @classmethod
-            def tree_unflatten(cls, struct_data, array_data):
-                ...
-                return cls(array_data['hilbert'], ...)
-
-            @property
-            def max_conn_size(self) -> int:
-                return ...
-
-            def get_conn_padded(self, x):
-                ...
-                return xp, mels
+         from jax.tree_util import register_pytree_node_class
+         
+         @register_pytree_node_class
+         class MyJaxOperator(DiscreteJaxOperator):
+             def __init__(hilbert, ...):
+                 super().__init__(hilbert)
+         
+             def tree_flatten(self):
+                 array_data = ( ... ) # all arrays
+                 struct_data = {'hilbert': self.hilbert,
+                                 ... # all constant data
+                                 }
+                 return array_data, struct_data
+         
+             @classmethod
+             def tree_unflatten(cls, struct_data, array_data):
+                 ...
+                 return cls(array_data['hilbert'], ...)
+         
+             @property
+             def max_conn_size(self) -> int:
+                 return ...
+         
+             def get_conn_padded(self, x):
+                 ...
+                 return xp, mels
 
 
     """
@@ -67,7 +76,8 @@ class DiscreteJaxOperator(DiscreteOperator):
 
     @abc.abstractmethod
     def get_conn_padded(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        r"""Finds the connected elements of the Operator.
+        r"""Finds the connected elements of the Operator. This method
+        can be executed inside of a Jax function transformation.
 
         Starting from a batch of quantum numbers :math:`x={x_1, ... x_n}` of
         size :math:`B \times M` where :math:`B` size of the batch and :math:`M`

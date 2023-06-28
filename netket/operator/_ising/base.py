@@ -113,14 +113,19 @@ class IsingBase(SpecialHamiltonian):
 
     @property
     def edges(self) -> np.ndarray:
+        """The (N_conns, 2) matrix of edges on which the interaction term
+        is non-zero.
+        """
         return self._edges
 
     @property
     def is_hermitian(self) -> bool:
+        """A boolean stating whether this hamiltonian is hermitian."""
         return True
 
     @property
     def dtype(self) -> DType:
+        """The dtype of the matrix elements."""
         return jnp.promote_types(_dtype(self.h), _dtype(self.J))
 
     def conjugate(self, *, concrete=True):
