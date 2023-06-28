@@ -16,7 +16,7 @@ import abc
 from typing import Tuple
 import numpy as np
 
-from scipy.sparse import csr_matrix as _csr_matrix
+from jax.experimental.sparse import JAXSparse, BCOO
 
 from netket.operator import DiscreteOperator
 
@@ -107,8 +107,15 @@ class DiscreteJaxOperator(DiscreteOperator):
 
         return out
 
-    def to_sparse(self) -> _csr_matrix:
-        raise NotImplementedError
+    def to_sparse(self) -> JAXSparse:
+        x = self.hilbert.all_states()
+        n = x.shape[0]
+        xp, mels = self.get_conn_padded(x)
+        a = mels.ravel()
+        i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
+        j = sefl.hilbert.states_to_numbers(xp).ravel()
+        ij = np.concatenate((i[:, None], j[:, None]), axis=1)
+        return BCOO((a, ij), shape=(n,n))
 
     def to_dense(self) -> np.ndarray:
         return self.to_sparse().todense().A
