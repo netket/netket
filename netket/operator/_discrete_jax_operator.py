@@ -14,7 +14,9 @@
 
 import abc
 from typing import Tuple
+
 import numpy as np
+import jax.numpy as jnp
 
 from jax.experimental.sparse import JAXSparse, BCOO
 
@@ -103,8 +105,9 @@ class DiscreteJaxOperator(DiscreteOperator):
 
         """
         if out is None:
-            out = np.full(x.shape[0], self.max_conn_size, dtype=np.int32)
-
+            out = jnp.full(x.shape[0], self.max_conn_size, dtype=np.int32)
+        else:
+            out[:] = self.max_conn_size
         return out
 
     def to_sparse(self) -> JAXSparse:

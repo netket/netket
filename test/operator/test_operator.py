@@ -351,6 +351,8 @@ def test_operator_jax_conversion(op):
     "op", [pytest.param(op, id=name) for name, op in op_jax_compatible.items()]
 )
 def test_operator_jax_getconn(op):
+    """Check that get_conn returns the same result for jax and numba operators
+    """
     op_jax = op.to_jax_operator()
 
     all_states = op.hilbert.all_states()
