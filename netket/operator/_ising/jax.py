@@ -96,18 +96,18 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         )
 
 
-@partial(jax.vmap, in_axes=(0, None, None, None))
 def _ising_mels_jax(x, edges, h, J):
+    batch_dims = x.shape[:-1]
     if isinstance(h, StaticZero):
         max_conn_size = 1
     else:
-        max_conn_size = x.size + 1
-    mels = jnp.empty((max_conn_size,), dtype=J.dtype)
+        max_conn_size = x.shape[-1] + 1
+    mels = jnp.zeros(batch_dims + (max_conn_size,), dtype=J.dtype)
 
-    same_spins = x[edges[:, 0]] == x[edges[:, 1]]
-    mels = mels.at[0].set(J * (2 * same_spins - 1).sum())
+    same_spins = x[..., edges[:, 0]] == x[..., edges[:, 1]]
+    mels = mels.at[..., 0].set(J * (2 * same_spins - 1).sum(axis=-1))
     if not isinstance(h, StaticZero):
-        mels = mels.at[1:].set(-h)
+        mels = mels.at[..., 1:].set(-h)
     return mels
 
 
