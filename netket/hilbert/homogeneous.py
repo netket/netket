@@ -143,12 +143,24 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self._constraint_fn is not None
 
     def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
+
+        # this is guaranteed
+        # numbers = concrete_or_error(
+        #    np.asarray, numbers, HilbertIndexingDuringTracingError
+        # )
+
         if self.constrained:
             numbers = self._bare_numbers[numbers]
 
-        return self._hilbert_index.numbers_to_states(np.asarray(numbers), out)
+        return self._hilbert_index.numbers_to_states(numbers, out)
 
     def _states_to_numbers(self, states: np.ndarray, out: np.ndarray):
+
+        # guaranteed
+        # states = concrete_or_error(
+        #    np.asarray, states, HilbertIndexingDuringTracingError
+        # )
+
         self._hilbert_index.states_to_numbers(states, out)
 
         if self.constrained:

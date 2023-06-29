@@ -16,22 +16,22 @@ This page lists the documentation of all sub-packages of NetKet.
 ```{toctree}
 :maxdepth: 1
 
+callbacks
+drivers
+errors
+exact
 graph
 hilbert
-operator
-exact
-sampler
-stats
+jax
+logging
 models
 nn
-jax
-vqs
-drivers
+operator
 optimizer
-logging
-callbacks
+sampler
+stats
 utils
-
+vqs
 ```
 
 ## Default drivers
