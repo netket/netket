@@ -521,3 +521,58 @@ def test_duplicate_sites():
     # The operator at index 0 acts on duplicated sites [0, 0]
     with raises(ValueError):
         nk.operator.LocalOperator(hi, mat, [0, 0])
+
+
+def test_pauli_strings_conversion():
+    hi = nk.hilbert.Spin(1 / 2, N=5)
+
+    op_dict = {
+        "X": lambda idx: nk.operator.spin.sigmax(hi, idx, dtype=complex),
+        "Y": lambda idx: nk.operator.spin.sigmay(hi, idx, dtype=complex),
+        "Z": lambda idx: nk.operator.spin.sigmaz(hi, idx, dtype=complex),
+    }
+
+    def _convert(operators, weights, constant):
+        ps = nk.operator.PauliStrings(
+            hi, operators + ["I" * hi.size], weights + [constant], dtype=complex
+        )
+        lo = nk.operator.LocalOperator(hi, dtype=complex)
+        for op, w in zip(operators, weights):
+            _lo = None
+            for i, gate in enumerate(op):
+                if gate == "I":
+                    continue
+                gate_lo = op_dict[gate](i)
+                if _lo is None:
+                    _lo = gate_lo
+                else:
+                    _lo = _lo @ gate_lo
+            if _lo is None:  # identity
+                lo += w
+            else:
+                lo += w * _lo
+        lo += constant
+        ps_conv = lo.to_pauli_strings()
+        return ps, lo, ps_conv
+
+    operators = ["ZIIII", "IIIYI", "IIXII", "IIIII"]
+    weights = [1.0, 1j, 3, 1]
+
+    ps_true, lo, ps_conv = _convert(operators, weights, 9.0)
+    assert np.allclose(ps_true.to_dense(), ps_conv.to_dense())
+    assert np.allclose(lo.to_dense(), ps_conv.to_dense())
+
+    operators = [
+        "IZZII",
+        "IZYII",
+        "IIIIX",
+        "IIZZY",
+        "IIZXI",
+        "IIZZI",
+        "IXYXY",
+    ]
+    weights = [1.0, 1j, 3, 1, 7, 9.5, 6.6]
+
+    ps_true, lo, ps_conv = _convert(operators, weights, 1.1)
+    assert np.allclose(ps_true.to_dense(), ps_conv.to_dense())
+    assert np.allclose(lo.to_dense(), ps_conv.to_dense())
