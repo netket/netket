@@ -191,7 +191,7 @@ class Graph(AbstractGraph):
     # Graph algorithms
     # ------------------------------------------------------------------------
     def distances(self) -> List[List]:
-        return np.array(self._igraph.shortest_paths())
+        return np.array(self._igraph.distances())
 
     def _compute_automorphisms(self):
         """
