@@ -158,6 +158,13 @@ class PauliStrings(PauliStringsBase):
             cutoff=self._cutoff,
         )
 
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        # 1 connection for every operator X, Y, Z...
+        self._setup()
+        return self._n_operators
+
     def _setup(self, force=False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:

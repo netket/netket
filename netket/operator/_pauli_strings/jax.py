@@ -134,6 +134,13 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         self._hi_local_states = tuple(self.hilbert.local_states)
         self._initialized = False
 
+    @property
+    def max_conn_size(self) -> int:
+        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
+        # 1 connection for every operator X, Y, Z...
+        self._setup()
+        return self._n_operators
+
     def _setup(self, force=False):
         if force or not self._initialized:
             # use the numba packer internally, much easier...
@@ -151,6 +158,8 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             self._args_jax = jax.tree_map(
                 jnp.asarray, (data["z_check"], data["weights_numba"])
             )
+
+            self._n_operators = data["n_operators"]
 
             self._initialized = True
 
@@ -214,5 +223,5 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             self.operators,
             self.weights,
             dtype=self.dtype,
-            cutoff=self.cutoff,
+            cutoff=self._cutoff,
         )

@@ -22,7 +22,6 @@ from itertools import product
 
 from netket.hilbert import Qubit, AbstractHilbert
 from netket.utils.numbers import is_scalar
-from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from .._abstract_operator import AbstractOperator
 from .._discrete_operator import DiscreteOperator
@@ -249,12 +248,6 @@ class PauliStringsBase(DiscreteOperator):
             self._is_hermitian = np.allclose(self._weights.imag, 0.0)
         return self._is_hermitian
 
-    @property
-    def max_conn_size(self) -> int:
-        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        # 1 connection for every operator X, Y, Z...
-        return len(self.operators)
-
     def __repr__(self):
         print_list = []
         for op, w in zip(self._operators, self._weights):
@@ -373,146 +366,6 @@ class PauliStringsBase(DiscreteOperator):
             cutoff=self._cutoff,
         )
 
-<<<<<<< 76670da2a8cd1ffcf290c683bbeebf5d93a93f6c:netket/operator/_pauli_strings.py
-    @staticmethod
-    @jit(nopython=True)
-    def _flattened_kernel(
-        x,
-        sections,
-        x_prime,
-        mels,
-        sites,
-        ns,
-        n_op,
-        weights,
-        nz_check,
-        z_check,
-        cutoff,
-        max_conn,
-        local_states,
-        pad=False,
-    ):
-        x_prime = np.empty((x.shape[0] * max_conn, x_prime.shape[1]), dtype=x.dtype)
-        mels = np.zeros((x.shape[0] * max_conn), dtype=mels.dtype)
-        state_1 = local_states[-1]
-
-        n_c = 0
-        for b in range(x.shape[0]):
-            xb = x[b]
-            # initialize
-            x_prime[b * max_conn : (b + 1) * max_conn, :] = np.copy(xb)
-
-            for i in range(sites.shape[0]):
-                mel = 0.0
-                for j in range(n_op[i]):
-                    if nz_check[i, j] > 0:
-                        to_check = z_check[i, j, : nz_check[i, j]]
-                        n_z = np.count_nonzero(xb[to_check] == state_1)
-                    else:
-                        n_z = 0
-
-                    mel += weights[i, j] * (-1.0) ** n_z
-
-                if abs(mel) > cutoff:
-                    x_prime[n_c] = np.copy(xb)
-                    for site in sites[i, : ns[i]]:
-                        new_state_idx = int(x_prime[n_c, site] == local_states[0])
-                        x_prime[n_c, site] = local_states[new_state_idx]
-                    mels[n_c] = mel
-                    n_c += 1
-
-            if pad:
-                n_c = (b + 1) * max_conn
-
-            sections[b] = n_c
-        return x_prime[:n_c], mels[:n_c]
-
-    def get_conn_flattened(self, x, sections, pad=False):
-        r"""Finds the connected elements of the Operator. Starting
-        from a given quantum number x, it finds all other quantum numbers x' such
-        that the matrix element :math:`O(x,x')` is different from zero. In general there
-        will be several different connected states x' satisfying this
-        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
-
-        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
-
-        Args:
-            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                        the batch of quantum numbers x.
-            sections (array): An array of size (batch_size) useful to unflatten
-                        the output of this function.
-                        See numpy.split for the meaning of sections.
-
-        Returns:
-            matrix: The connected states x', flattened together in a single matrix.
-            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-
-        """
-        self._setup()
-
-        x = concrete_or_error(
-            np.asarray,
-            x,
-            NumbaOperatorGetConnDuringTracingError,
-            self,
-        )
-
-        assert (
-            x.shape[-1] == self.hilbert.size
-        ), "size of hilbert space does not match size of x"
-        return self._flattened_kernel(
-            x,
-            sections,
-            self._x_prime_max,
-            self._mels_max,
-            self._sites,
-            self._ns,
-            self._n_op,
-            self._weights,
-            self._nz_check,
-            self._z_check,
-            self._cutoff,
-            self._n_operators,
-            self._local_states,
-            pad,
-        )
-
-    def _get_conn_flattened_closure(self):
-        self._setup()
-        _x_prime_max = self._x_prime_max
-        _mels_max = self._mels_max
-        _sites = self._sites
-        _ns = self._ns
-        _n_op = self._n_op
-        _weights = self._weights
-        _nz_check = self._nz_check
-        _z_check = self._z_check
-        _cutoff = self._cutoff
-        _n_operators = self._n_operators
-        fun = self._flattened_kernel
-        _local_states = self._local_states
-
-        def gccf_fun(x, sections):
-            return fun(
-                x,
-                sections,
-                _x_prime_max,
-                _mels_max,
-                _sites,
-                _ns,
-                _n_op,
-                _weights,
-                _nz_check,
-                _z_check,
-                _cutoff,
-                _n_operators,
-                _local_states,
-            )
-
-        return jit(nopython=True)(gccf_fun)
-
-=======
->>>>>>> cleanup:netket/operator/_pauli_strings/base.py
 
 def _count_of_locations(of_qubit_operator):
     """Obtain the number of qubits in the openfermion QubitOperator. Openfermion builds operators from terms that store operators locations.
