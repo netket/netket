@@ -22,6 +22,7 @@ from itertools import product
 
 from netket.hilbert import Qubit, AbstractHilbert
 from netket.utils.numbers import is_scalar
+from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from ._abstract_operator import AbstractOperator
 from ._discrete_operator import DiscreteOperator
@@ -467,7 +468,14 @@ class PauliStrings(DiscreteOperator):
 
         """
         self._setup()
-        x = np.array(x)
+
+        x = concrete_or_error(
+            np.asarray,
+            x,
+            NumbaOperatorGetConnDuringTracingError,
+            self,
+        )
+
         assert (
             x.shape[-1] == self.hilbert.size
         ), "size of hilbert space does not match size of x"

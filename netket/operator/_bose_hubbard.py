@@ -23,6 +23,7 @@ from netket.graph import AbstractGraph, Graph
 from netket.hilbert import Fock
 from netket.utils.types import DType
 from netket.utils.numbers import dtype as _dtype
+from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from . import boson
 from ._local_operator import LocalOperator
@@ -310,8 +311,15 @@ class BoseHubbard(SpecialHamiltonian):
         elif x.dtype != self._max_xprime.dtype:
             self._max_xprime = self._max_xprime.astype(x.dtype)
 
+        x = concrete_or_error(
+            np.asarray,
+            x,
+            NumbaOperatorGetConnDuringTracingError,
+            self,
+        )
+
         return self._flattened_kernel(
-            np.asarray(x),
+            x,
             sections,
             self._edges,
             self._U,

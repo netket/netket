@@ -49,4 +49,4 @@ def test_groundstate():
     vs = nk.vqs.FullSumState(hi, mod)
     vs.parameters = {"logstate": np.log(v[:, 0])}
 
-    assert np.allclose(vs.expect(ham).mean, w[0])
+    np.testing.assert_allclose(vs.expect(ham).mean, w[0])
