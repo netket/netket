@@ -43,8 +43,8 @@ def _get_basis_till_n(n=1):
 
 
 @jax.jit
-def _hilbert_schmitt(A, basis_element):
-    """Hilbert schmitt product where the basis elements are hermitian"""
+def _hilbert_schmidt(A, basis_element):
+    """Hilbert schmidt product where the basis elements are hermitian"""
     return jnp.trace(basis_element @ A)
 
 
@@ -59,12 +59,12 @@ def _make_basis_strings(n_acting):
 def _project_matrix(A, basis_set):
     """
     Project matrix onto basis of tensorproduct of Paulis
-    according to hilbert-schmitt product
+    according to hilbert-schmidt product
     """
     assert A.ndim == 2
     assert A.shape[0] == A.shape[1]
     size = A.shape[0]
-    return jax.vmap(_hilbert_schmitt, in_axes=(None, 0))(A, basis_set) / size
+    return jax.vmap(_hilbert_schmidt, in_axes=(None, 0))(A, basis_set) / size
 
 
 def _create_pauli_string(substr, acting_on, hilbert_size):
