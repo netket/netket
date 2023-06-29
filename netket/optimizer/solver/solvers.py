@@ -18,6 +18,39 @@ import jax.scipy as jsp
 from netket.jax import tree_ravel
 
 
+def pinv(A, b, rtol=1e-14, atol=1e-14, x0=None):
+    r"""
+
+    Args:
+        A: LinearOperator (matrix)
+        b: vector or Pytree
+        rtol : relative tolerance used to cutoff singular values according
+            to the formula :math:`\frac{1}{1+\epsilon_{rtol}/...}`
+        atol : absolute cutoff for eigenvalues of A.
+    """
+    del x0
+
+    A = A.to_dense()
+    b, unravel = tree_ravel(b)
+
+    Σ, U = jnp.linalg.eigh(A)
+
+    # Discard eigenvalues below numerical precision
+    Σ_inv = jnp.where(
+                jnp.abs(
+                    Σ / Σ[-1]
+                    ) > atol, jnp.reciprocal(Σ), 0.)
+    
+    # Set regularizer for singular value cutoff
+    regularizer = 1. / (1. + (rtol / jnp.abs(Σ / Σ[-1]))**6)
+
+    Σ_inv = Σ_inv*regularizer
+
+    x = U@(Σ_inv*(U.conj().T@b))
+
+    return unravel(x), None
+
+
 def svd(A, b, rcond=None, x0=None):
     """
     Solve the linear system using Singular Value Decomposition.
