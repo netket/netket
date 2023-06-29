@@ -34,7 +34,7 @@ class StaticZero(Number):
     dtype: DType = struct.field(pytree_node=False, default=bool)
 
     shape = property(lambda _: ())
-    ndim = property(lambda _: 1)
+    ndim = property(lambda _: 0)
     weak_dtype = property(lambda _: True)
     aval = property(lambda self: jax.ShapeDtypeStruct(self.shape, self.dtype))
 

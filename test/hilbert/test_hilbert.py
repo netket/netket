@@ -653,6 +653,7 @@ def test_hilbert_numba_throws(hi):
     @partial(jax.jit, static_argnums=0)
     def numbers_to_states(hi, s):
         return hi.numbers_to_states(s)
+
     @partial(jax.jit, static_argnums=0)
     def states_to_numbers(hi, s):
         return hi.states_to_numbers(s)
@@ -661,4 +662,3 @@ def test_hilbert_numba_throws(hi):
         numbers_to_states(hi, 1)
     with pytest.raises(HilbertIndexingDuringTracingError):
         states_to_numbers(hi, jnp.zeros((hi.size,)))()
-
