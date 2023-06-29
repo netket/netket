@@ -375,6 +375,7 @@ def test_operator_jax_getconn(op):
     # check on all states
     sp, mels = op.get_conn_padded(states)
     sp_j, mels_j = _get_conn_padded(op_jax, states)
+    assert mels.shape[-1] <= op.max_conn_size
 
     np.testing.assert_allclose(sp, sp_j)
     np.testing.assert_allclose(mels, mels_j)
@@ -384,6 +385,7 @@ def test_operator_jax_getconn(op):
 
         sp, mels = op.get_conn_padded(states)
         sp_j, mels_j = _get_conn_padded(op_jax, states)
+        assert mels_j.shape[-1] <= op.max_conn_size
 
         np.testing.assert_allclose(sp, sp_j)
         np.testing.assert_allclose(mels, mels_j)
