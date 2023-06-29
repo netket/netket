@@ -19,8 +19,6 @@ from numbers import Real
 
 import numpy as np
 
-from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
-
 from .discrete_hilbert import DiscreteHilbert
 from .hilbert_index import HilbertIndex
 
@@ -146,9 +144,10 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
 
-        numbers = concrete_or_error(
-            np.asarray, numbers, HilbertIndexingDuringTracingError
-        )
+        # this is guaranteed
+        #numbers = concrete_or_error(
+        #    np.asarray, numbers, HilbertIndexingDuringTracingError
+        #)
 
         if self.constrained:
             numbers = self._bare_numbers[numbers]
@@ -157,9 +156,10 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     def _states_to_numbers(self, states: np.ndarray, out: np.ndarray):
 
-        states = concrete_or_error(
-            np.asarray, states, HilbertIndexingDuringTracingError
-        )
+        # guaranteed
+        #states = concrete_or_error(
+        #    np.asarray, states, HilbertIndexingDuringTracingError
+        #)
 
         self._hilbert_index.states_to_numbers(states, out)
 

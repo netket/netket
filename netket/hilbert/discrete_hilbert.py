@@ -20,6 +20,7 @@ import numpy as np
 
 from netket.utils.types import Array
 from netket.utils.numbers import is_scalar
+from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
 
 from .abstract_hilbert import AbstractHilbert
 
@@ -121,6 +122,11 @@ class DiscreteHilbert(AbstractHilbert):
                 quantum numbers.
             out: Optional Array of quantum numbers corresponding to numbers.
         """
+
+        numbers = concrete_or_error(
+            np.asarray, numbers, HilbertIndexingDuringTracingError
+        )
+
         if out is None:
             out = np.empty((np.atleast_1d(numbers).shape[0], self.size))
 
@@ -152,6 +158,10 @@ class DiscreteHilbert(AbstractHilbert):
                 f"Size of this state ({states.shape[-1]}) not"
                 f"corresponding to this hilbert space {self.size}"
             )
+
+        states = concrete_or_error(
+            np.asarray, states, HilbertIndexingDuringTracingError
+        )
 
         states_r = np.asarray(np.reshape(states, (-1, states.shape[-1])))
 
