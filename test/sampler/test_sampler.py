@@ -80,7 +80,9 @@ samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange
     hib, graph=g
 )
 
-samplers["Metropolis(Hamiltonian,numba operator): Spin"] = nk.sampler.MetropolisHamiltonian(
+samplers[
+    "Metropolis(Hamiltonian,numba operator): Spin"
+] = nk.sampler.MetropolisHamiltonian(
     hi,
     hamiltonian=ha,
     reset_chains=True,
@@ -94,7 +96,9 @@ samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltoni
 
 ha_jax = nk.operator.IsingJax(hilbert=hi, graph=g, h=1.0)
 
-samplers["Metropolis(Hamiltonian, jax operator): Spin"] = nk.sampler.MetropolisHamiltonian(
+samplers[
+    "Metropolis(Hamiltonian, jax operator): Spin"
+] = nk.sampler.MetropolisHamiltonian(
     hi,
     hamiltonian=ha_jax,
     reset_chains=True,
