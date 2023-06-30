@@ -195,6 +195,10 @@ class LocalOperator(DiscreteOperator):
     def constant(self) -> numbers.Number:
         return self._constant
 
+    def to_pauli_strings(self) -> "PauliStrings":  # noqa: F821
+        """Convert to PauliStrings object"""
+        return local_operators_to_pauli_strings(self)
+
     def copy(self, *, dtype: Optional[DType] = None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
@@ -747,10 +751,6 @@ class LocalOperator(DiscreteOperator):
                 c += n_conn_i
 
         return x_prime, mels
-
-    def to_pauli_strings(self):
-        """Convert to PauliStrings object"""
-        return local_operators_to_pauli_strings(self)
 
     def __repr__(self):
         ao = self.acting_on
