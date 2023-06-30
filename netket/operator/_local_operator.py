@@ -29,6 +29,7 @@ from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingEr
 
 from ._discrete_operator import DiscreteOperator
 from ._lazy import Transpose
+from ._local_operator_convert import local_operators_to_pauli_strings
 
 from ._local_operator_helpers import (
     canonicalize_input,
@@ -193,6 +194,10 @@ class LocalOperator(DiscreteOperator):
     @property
     def constant(self) -> numbers.Number:
         return self._constant
+
+    def to_pauli_strings(self) -> "PauliStrings":  # noqa: F821
+        """Convert to PauliStrings object"""
+        return local_operators_to_pauli_strings(self)
 
     def copy(self, *, dtype: Optional[DType] = None):
         """Returns a copy of the operator, while optionally changing the dtype
