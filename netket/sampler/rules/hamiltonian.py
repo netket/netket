@@ -23,25 +23,15 @@ from flax import struct
 from numba import jit
 from numba4jax import njit4jax
 
-from netket.operator import AbstractOperator
+from netket.operator import AbstractOperator, DiscreteJaxOperator
 
 from .base import MetropolisRule
 
 
 @struct.dataclass
-class HamiltonianRule(MetropolisRule):
+class HamiltonianRuleBase(MetropolisRule):
     """
     Rule proposing moves according to the terms in an operator.
-
-    In this case, the transition matrix is taken to be:
-
-    .. math::
-
-       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
-
-    This rule only works on CPU! If you want to use it on GPU, you
-    must use the numpy variant :class:`netket.sampler.rules.HamiltonianRuleNumpy`
-    together with the numpy metropolis sampler :class:`netket.sampler.MetropolisSamplerNumpy`.
     """
 
     operator: AbstractOperator = struct.field(pytree_node=False)
@@ -64,6 +54,26 @@ class HamiltonianRule(MetropolisRule):
                 "Argument to HamiltonianRule must be a valid operator, "
                 f"but operator is a {type(self.operator)}."
             )
+
+    def __repr__(self):
+        return f"HamiltonianRuleNumba({self.operator})"
+
+
+@struct.dataclass
+class HamiltonianRuleNumba(HamiltonianRuleBase):
+    """
+    Rule proposing moves according to the terms in an operator.
+
+    In this case, the transition matrix is taken to be:
+
+    .. math::
+
+       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
+
+    This rule only works on CPU! If you want to use it on GPU, you
+    must use the numpy variant :class:`netket.sampler.rules.HamiltonianRuleNumpy`
+    together with the numpy metropolis sampler :class:`netket.sampler.MetropolisSamplerNumpy`.
+    """
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
 
@@ -105,7 +115,7 @@ class HamiltonianRule(MetropolisRule):
         return σp, log_prob_correction
 
     def __repr__(self):
-        return f"HamiltonianRule({self.operator})"
+        return f"HamiltonianRuleNumba({self.operator})"
 
 
 @jit(nopython=True)
@@ -119,7 +129,7 @@ def _choose(vp, sections, rand_vec, out, w):
 
 
 @struct.dataclass
-class HamiltonianRuleJax(HamiltonianRule):
+class HamiltonianRuleJax(HamiltonianRuleBase):
     """
     Rule proposing moves according to the terms in an operator.
 
@@ -183,3 +193,19 @@ class HamiltonianRuleJax(HamiltonianRule):
 
     def __repr__(self):
         return f"HamiltonianRuleJax({self.operator})"
+
+
+def HamiltonianRule(operator):
+    """
+    Rule proposing moves according to the terms in an operator.
+
+    In this case, the transition matrix is taken to be:
+
+    .. math::
+
+       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
+    """
+    if isinstance(operator, DiscreteJaxOperator):
+        return HamiltonianRuleJax(operator)
+    else:
+        return HamiltonianRuleNumba(operator)
