@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
 from typing import List, Union
 from functools import wraps
 
@@ -24,71 +23,44 @@ from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingEr
 from netket.utils.types import DType
 
 from .base import PauliStringsBase
+from .jax import pack_internals
 
-valid_pauli_regex = re.compile(r"^[XYZI]+$")
 
-
-def pack_internals(
+def pack_internals_numba(
     hilbert: AbstractHilbert,
     operators: dict,
     weights,
     dtype: DType,
-    cutoff: float,
+    cutoff: float,  # unused
 ):
-    n_operators = len(operators)
 
-    b_to_change = [] * n_operators
-    b_z_check = [] * n_operators
+    acting = pack_internals(operators, weights)
 
-    acting = {}
-
-    def find_char(s, ch):
-        return [i for i, ltr in enumerate(s) if ltr == ch]
-
-    def append(key, k):
-        # convert list to tuple
-        key = tuple(sorted(key))  # order of X and Y does not matter
-        if key in acting:
-            acting[key].append(k)
-        else:
-            acting[key] = [k]
-
+    # the most Z we need to do anywhere
     _n_z_check_max = 0
+    for v in acting.values():
+        for _, b_z_check in v:
+            _n_z_check_max = max(_n_z_check_max, len(b_z_check))
 
-    for i, op in enumerate(operators):
-        b_to_change = []
-        b_z_check = []
-        b_weights = weights[i]
-
-        x_ops = find_char(op, "X")
-        if len(x_ops):
-            b_to_change += x_ops
-
-        y_ops = find_char(op, "Y")
-        if len(y_ops):
-            b_to_change += y_ops
-            b_weights *= (-1.0j) ** (len(y_ops))
-            b_z_check += y_ops
-
-        z_ops = find_char(op, "Z")
-        if len(z_ops):
-            b_z_check += z_ops
-
-        _n_z_check_max = max(_n_z_check_max, len(b_z_check))
-        append(b_to_change, (b_weights, b_z_check))
-
-    # now group together operators with same final state
     n_operators = len(acting)
+    # maximum number of strings which have the same sites to act on with X, but have different sites for Z
     _n_op_max = max(
         list(map(lambda x: len(x), list(acting.values()))), default=n_operators
     )
 
     # unpacking the dictionary into fixed-size arrays
+
+    # the sites each X string is acting on, padded
     _sites = np.empty((n_operators, hilbert.size), dtype=np.intp)
+    # number of sites each X string is acting on
     _ns = np.empty((n_operators), dtype=np.intp)
+    # the number of operators for the same X string, with different sites we need to apply Z on
     _n_op = np.empty(n_operators, dtype=np.intp)
+    # weights, padded
     _weights = np.empty((n_operators, _n_op_max), dtype=dtype)
+    # the number of Z sites in each operators of the X strings, padded
     _nz_check = np.empty((n_operators, _n_op_max), dtype=np.intp)
+    # sites to act on with Z for each operators of the X strings, padded
     _z_check = np.empty((n_operators, _n_op_max, _n_z_check_max), dtype=np.intp)
 
     for i, act in enumerate(acting.items()):
@@ -168,7 +140,7 @@ class PauliStrings(PauliStringsBase):
     def _setup(self, force=False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
-            data = pack_internals(
+            data = pack_internals_numba(
                 self.hilbert, self.operators, self.weights, self.dtype, self._cutoff
             )
 
@@ -212,22 +184,25 @@ class PauliStrings(PauliStringsBase):
         n_c = 0
         for b in range(x.shape[0]):
             xb = x[b]
-            # initialize
+            # initialize with the old state
             x_prime[b * max_conn : (b + 1) * max_conn, :] = np.copy(xb)
 
-            for i in range(sites.shape[0]):
+            for i in range(sites.shape[0]):  # iterate over the X strings
                 mel = 0.0
+                # iterate over the Z substrings
                 for j in range(n_op[i]):
+                    # apply all the Z (check the qubits at all affected sites)
                     if nz_check[i, j] > 0:
                         to_check = z_check[i, j, : nz_check[i, j]]
                         n_z = np.count_nonzero(xb[to_check] == state_1)
                     else:
                         n_z = 0
-
+                    # multiply with -1 for every site we did Z which was state_1
                     mel += weights[i, j] * (-1.0) ** n_z
 
                 if abs(mel) > cutoff:
                     x_prime[n_c] = np.copy(xb)
+                    # now flip all the sites in the X string
                     for site in sites[i, : ns[i]]:
                         new_state_idx = int(x_prime[n_c, site] == local_states[0])
                         x_prime[n_c, site] = local_states[new_state_idx]

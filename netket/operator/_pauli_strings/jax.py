@@ -27,73 +27,219 @@ from netket.utils.types import DType
 from .._discrete_operator_jax import DiscreteJaxOperator
 
 from .base import PauliStringsBase
-from .numba import pack_internals
+
+from netket.operator._ising.jax import _ising_conn_states_jax
+
+# pauli-strings operator written in nJax
+# the general idea is the following:
+
+# observe that that Y = -i Z X
+# therefore for every pauli in a given operator we
+# (1.) apply X  (flip site)                  -- if it is X or Y
+# (2.) absorb -i to the weights              -- if it is Y
+# (3.) apply Z (pick up -1. if site is up/1) -- if it is Y or Z
 
 
-@partial(jax.vmap, in_axes=(0, None, None))
-def _ising_conn_states_jax(x, cond, local_states):
-    was_state_0 = x == local_states[0]
-    state_0 = jnp.asarray(local_states[0], dtype=x.dtype)
-    state_1 = jnp.asarray(local_states[1], dtype=x.dtype)
-    return jnp.where(cond ^ was_state_0, state_0, state_1)
+# TODO implement cutoff
+# TODO special case for the diagonal
+# TODO eventually also implement _ising_conn_states_jax with indexing instead of mask
+# TODO eventually add version with sparse jax arrays (achieving the same as indexing)
 
 
-def _broadcast_arange(a):
-    return np.broadcast_to(np.arange(a.shape[-1]), a.shape)
+def pack_internals(operators, weights, cutoff=0):
+
+    # here we group together operators with same final state
+    #
+    # The final state is determined by the sites we flip,
+    # we store this in the keys of `acting`
+    #
+    # Each value of `acting` contains a list, with an entry for of the opeartors
+    # which does the same flips (given by the key). Each entry contains
+    # 1. a weight
+    # 2. list of sites we apply the Z on (those are the sites we
+    #    will need to check in the operator to determine if the sign is flipped or not)
+
+    acting = {}
+
+    def find_char(s, ch):
+        return [i for i, ltr in enumerate(s) if ltr == ch]
+
+    def append(key, k):
+        # convert list to tuple
+        key = tuple(sorted(key))  # order of X and Y does not matter
+        if key in acting:
+            acting[key].append(k)
+        else:
+            acting[key] = [k]
+
+    for i, op in enumerate(operators):
+
+        b_to_change = []  # list of all the sites we will need to act on with X
+        b_z_check = []  # list of all the sites we act on with Z
+        b_weight = weights[i]
+
+        if abs(b_weight) <= cutoff:
+            continue
+
+        x_ops = find_char(op, "X")  # find sites we act on with X w/ op
+        if len(x_ops):
+            b_to_change += x_ops
+
+        y_ops = find_char(op, "Y")  # find sites we act on with Y w/ op
+        if len(y_ops):
+            b_to_change += y_ops
+            b_weight *= (-1.0j) ** (len(y_ops))  # absorb the -i into weights
+            b_z_check += y_ops
+
+        z_ops = find_char(op, "Z")  # find sites we act on with Z w/ op
+        if len(z_ops):
+            b_z_check += z_ops
+
+        # by appending we concat all (b_weights, b_z_check) which have the same b_to_change
+        # i.e. the one which we act on with X on the same sites (also X coming from Y obviously)
+
+        # sort b_z_check in ascending order, for better locality
+        b_z_check = list(sorted(b_z_check))
+
+        append(b_to_change, (b_weight, b_z_check))
+    return acting
 
 
-def _get_mask(z_check, nz_check, n_op):
-    mask1 = _broadcast_arange(z_check) < np.expand_dims(nz_check, 2)
-    mask2_ = _broadcast_arange(nz_check) < np.expand_dims(n_op, 1)
-    mask2 = np.expand_dims(mask2_, 2)
-    mask = mask1 & mask2
-    return mask, mask2_
+def sites_to_mask(sites, n_sites, dtype=bool):
+    mask = np.zeros(n_sites, dtype=dtype)
+    mask[(sites,)] = 1
+    return mask
 
 
-def _get_sindmask(sites, ns):
-    smask = _broadcast_arange(sites) < np.expand_dims(ns, 1)
-    a = np.arange(sites.shape[1]) + 1
-    sindmask = (
-        (np.expand_dims(a, (1, 2)) == np.expand_dims((sites + 1) * smask, 0))
-        .any(axis=2)
-        .T
-    )
-    return sindmask
-
-
-@partial(jax.vmap, in_axes=(0,) + (None,) * 5)
-def _pauli_strings_mels_jax(x, mask, mask2, z_check, weights, local_states):
-    n_z = (mask * (x[z_check] == local_states[1])).sum(axis=-1)
-    mels = (mask2 * weights * (-1) ** n_z).sum(axis=1)
-    return mels
-
-
-@partial(jax.jit, static_argnames="local_states")
-def _pauli_strings_kernel_jax(
-    x, mask, mask2, sindmask, z_check, weights, cutoff, local_states
+def pack_internals_jax(
+    operators,
+    weights,
+    mask_dtype=jnp.bool_,
+    index_dtype=jnp.int32,
+    weight_dtype=None,
+    mode="mask",
 ):
-    batch_shape = x.shape[:-1]
-    x = x.reshape((-1, x.shape[-1]))
+    # index_dtype needs to be signed (we use -1 for padding)
+    # mode can be either index or mask
+    assert mode in ["index", "mask"]
 
-    mels = _pauli_strings_mels_jax(x, mask, mask2, z_check, weights, local_states)
-    mels = mels.reshape(batch_shape + mels.shape[1:])
+    # group together operators with same final state (i.e. those which flip the same sites)
+    # see code of pack_internals for more details
+    acting = pack_internals(operators, weights)
 
-    # Same function as Ising
-    x_prime = _ising_conn_states_jax(x, sindmask, local_states)
-    x_prime = x_prime.reshape(batch_shape + x_prime.shape[1:])
+    n_sites = len(operators[0])
 
-    cutoff_mask = jnp.abs(mels) > cutoff
-    mels *= cutoff_mask
-    x_prime *= jnp.expand_dims(cutoff_mask, -1)
+    # now group those ones which have the same number of operators for a given final state
+    acting_by_num_ops = {}
+    for k, v in acting.items():
+        num = len(v)
+        acting_by_num_ops[num] = acting_by_num_ops.get(num, []) + [(k, v)]
 
+    x_flip_masks = {}
+    weights = {}
+    z_sign_masks = {}
+    z_sign_indices = {}
+    z_sign_indices_masks = {}
+
+    for l, ops in acting_by_num_ops.items():
+
+        x_flip_masks_l = []
+        weights_l = []
+        z_sign_masks_l = []  # if we decide to use masks
+        z_sign_indices_l = []  # if we decide to use indexing
+
+        for sites_to_flip, rest in ops:
+            w = [r[0] for r in rest]
+            sites_for_sgn = [r[1] for r in rest]
+            x_flip_mask = sites_to_mask(sites_to_flip, n_sites)
+            z_sign_mask = list(
+                map(partial(sites_to_mask, n_sites=n_sites), sites_for_sgn)
+            )
+
+            x_flip_masks_l.append(x_flip_mask)
+            weights_l.append(w)
+            z_sign_masks_l.append(z_sign_mask)
+            z_sign_indices_l.append(sites_for_sgn)
+
+        # turn into arrays
+        x_flip_masks[l] = jnp.array(x_flip_masks_l, dtype=mask_dtype)
+        if weight_dtype is not None:
+            weights[l] = jnp.array(weights_l, dtype=weight_dtype)
+        else:
+            weights[l] = jnp.array(weights_l)
+
+        z_sign_masks[l] = jnp.array(z_sign_masks_l, dtype=mask_dtype)
+
+        # prepare index arrays if we are indexing
+        num_z = [len(y) for x in z_sign_indices_l for y in x]
+        maxlen = max(num_z, default=0)
+        pad = maxlen != min(num_z, default=0)
+        if pad:
+            # arbitrarily fill with -1
+            tmp1 = np.full((len(z_sign_indices_l), l, maxlen), -1, dtype=index_dtype)
+            tmp2 = np.full((len(z_sign_indices_l), l, maxlen), False, dtype=mask_dtype)
+            for i, inds in enumerate(z_sign_indices_l):
+                for j, ind in enumerate(inds):
+                    tmp1[i, j, : len(ind)] = ind
+                    tmp2[i, j, : len(ind)] = True
+            z_sign_indices[l] = jnp.array(tmp1)
+            z_sign_indices_masks[l] = jnp.array(tmp2)
+        else:  # no padding needed, all have the same length
+            z_sign_indices[l] = jnp.array(z_sign_indices_l, dtype=index_dtype)
+            z_sign_indices_masks[l] = None
+
+    # transform the arrays into lists so that we have consistent ordering
+    # as we will concatenate the results in the operator
+    keys = sorted(x_flip_masks.keys())
+    x_flip_masks = [x_flip_masks[k] for k in keys]
+    weights = [weights[k] for k in keys]
+    # TODO here would be the place we could decide wether to use index or mask
+    # depending on how much we padded, use a hybrid scheme etc
+    z_sign_masks = [z_sign_masks[k] if (mode == "mask") else None for k in keys]
+    z_sign_indices = [z_sign_indices[k] if (mode == "index") else None for k in keys]
+    z_sign_indices_masks = [
+        z_sign_indices_masks[k] if (mode == "index") else None for k in keys
+    ]
+
+    x_flip_masks_stacked = jnp.concatenate(x_flip_masks, axis=0)
+    z_data = (weights, z_sign_masks, z_sign_indices, z_sign_indices_masks)
+    return x_flip_masks_stacked, z_data
+
+
+@jax.jit
+def _pauli_strings_mels_jax(local_states, z_data, x):
+    # supports both masks and indexing (can be padded, so also with a mask but smaller)
+    # which path is taken is flexible, and can be fully determined by z_data
+    # z_data: a list of tuples weights, z_sign_mask, z_sign_indices, z_sign_indexmask
+    state1 = local_states[1]
+    was_state_1 = x == state1
+    mels = []
+    for w, z_sign_mask, z_sign_indices, z_sign_indexmask in zip(*z_data):
+        if z_sign_mask is not None:  # use masks
+            was_state = was_state_1[..., None, None, :]
+            mask = z_sign_mask
+        else:  # use indexing
+            assert z_sign_indices is not None
+            was_state = x[..., z_sign_indices] == state1
+            if z_sign_indexmask is None:  # no padding, so no mask necessary
+                mask = 1
+            else:
+                mask = z_sign_indexmask
+        # sgn = (-1)**(was_state*mask).sum(axis=-1)
+        sgn = (1 - 2 * (was_state * mask).astype(np.int8)).prod(
+            axis=-1, promote_integers=False
+        )
+        mels.append(jnp.einsum("...ab,ab->...a", sgn, w))
+        return jnp.concatenate(mels, axis=-1)
+
+
+@jax.jit
+def _pauli_strings_kernel_jax(local_states, x_flip_masks_all, z_data, x):
+    # can re-use function from Ising
+    x_prime = _ising_conn_states_jax(x[..., None, :], x_flip_masks_all, local_states)
+    mels = _pauli_strings_mels_jax(local_states, z_data, x)
+    # TODO do we want a cutoff?
     return x_prime, mels
-
-
-@partial(jax.jit, static_argnames="local_states")
-def _pauli_strings_n_conn_jax(x, mask, mask2, z_check, weights, cutoff, local_states):
-    # TODO avoid computing mels twice
-    mels = _pauli_strings_mels_jax(x, mask, mask2, z_check, weights, local_states)
-    return (jnp.abs(mels) > cutoff).sum(axis=-1, dtype=jnp.int32)
 
 
 @register_pytree_node_class
@@ -109,7 +255,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         operators: Union[str, List[str]] = None,
         weights: Union[float, complex, List[Union[float, complex]]] = None,
         *,
-        cutoff: float = 1.0e-10,
+        cutoff: float = 0.0,
         dtype: DType = complex,
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
@@ -131,64 +277,48 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
                     "yet supported by PauliStrings."
                 )
 
+        if cutoff > 0:
+            raise NotImplementedError(
+                "nonzero cuttof is not yet implemented in PauliStringsJax"
+            )
+        # private variable for setting the mode
+        # depending on performance tests we might expose or remove it
+        self._mode = "mask"
         self._hi_local_states = tuple(self.hilbert.local_states)
         self._initialized = False
 
     @property
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        # 1 connection for every operator X, Y, Z...
         self._setup()
-        return self._n_operators
+        return self._x_flip_masks_stacked.shape[0]
 
     def _setup(self, force=False):
         if force or not self._initialized:
-            # use the numba packer internally, much easier...
-            data = pack_internals(
-                self.hilbert, self.operators, self.weights, self.dtype, self._cutoff
+            x_flip_masks_stacked, z_data = pack_internals_jax(
+                self.operators, self.weights, weight_dtype=self.dtype, mode=self._mode
             )
-
-            mask, mask2 = _get_mask(data["z_check"], data["nz_check"], data["n_op"])
-            sindmask = _get_sindmask(data["sites"], data["ns"])[:, : self.hilbert.size]
-
-            self._mask = jnp.asarray(mask)
-            self._mask2 = jnp.asarray(mask2)
-            self._sindmask = jnp.asarray(sindmask)
-            self._masks = jax.tree_map(jnp.asarray, (mask, mask2, sindmask))
-            self._args_jax = jax.tree_map(
-                jnp.asarray, (data["z_check"], data["weights_numba"])
-            )
-
-            self._n_operators = data["n_operators"]
-
+            self._x_flip_masks_stacked = x_flip_masks_stacked
+            self._z_data = z_data
             self._initialized = True
 
     def n_conn(self, x):
-        self._setup()
-
-        local_states = tuple(self.hilbert.local_states)
-        return _pauli_strings_n_conn_jax(
-            x, self._mask, self._mask2, *self._args_jax, self._cutoff, local_states
-        )
+        # TODO implement it once we have cutoff
+        return jnp.full(x.shape[:-1], self.max_conn_size, dtype=np.int32)
 
     def get_conn_padded(self, x):
         self._setup()
-
-        local_states = tuple(self.hilbert.local_states)
         return _pauli_strings_kernel_jax(
+            self._hi_local_states,
+            self._x_flip_masks_stacked,
+            self._z_data,
             x,
-            self._mask,
-            self._mask2,
-            self._sindmask,
-            *self._args_jax,
-            self._cutoff,
-            local_states,
         )
 
     def tree_flatten(self):
         self._setup()
 
-        data = (self.weights, self._mask, self._mask2, self._sindmask, self._args_jax)
+        data = (self.weights, self._x_flip_masks_stacked, self._z_data)
         metadata = {
             "hilbert": self.hilbert,
             "operators": self.operators,
@@ -198,16 +328,14 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
 
     @classmethod
     def tree_unflatten(cls, metadata, data):
-        (weights, m, m2, sm, args) = data
+        (weights, xm, zd) = data
         hi = metadata["hilbert"]
         operators = metadata["operators"]
         dtype = metadata["dtype"]
 
         op = cls(hi, operators, weights, dtype=dtype)
-        op._mask = m
-        op._mask2 = m2
-        op._sindmask = sm
-        op._args_jax = args
+        op._x_flip_masks_stacked = xm
+        op._z_data = zd
         op._initialized = True
         return op
 
