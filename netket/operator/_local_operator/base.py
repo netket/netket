@@ -27,16 +27,16 @@ from netket.utils.types import DType, Array
 from netket.utils.numbers import dtype as _dtype, is_scalar
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
-from ._discrete_operator import DiscreteOperator
-from ._lazy import Transpose
-from ._local_operator_convert import local_operators_to_pauli_strings
+from .._discrete_operator import DiscreteOperator
+from .._lazy import Transpose
 
-from ._local_operator_helpers import (
+from .helpers import (
     canonicalize_input,
     _multiply_operators,
     cast_operator_matrix_dtype,
 )
-from ._local_operator_compile_helpers import pack_internals
+from .compile_helpers import pack_internals
+from .convert import local_operators_to_pauli_strings
 
 
 def is_hermitian(a: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
