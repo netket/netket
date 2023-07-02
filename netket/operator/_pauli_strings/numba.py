@@ -127,7 +127,8 @@ class PauliStrings(PauliStringsBase):
             self.operators,
             self.weights,
             dtype=self.dtype,
-            cutoff=self._cutoff,
+            # TODO: don't ignore the cutoff.
+            # cutoff=self._cutoff,
         )
 
     @property
