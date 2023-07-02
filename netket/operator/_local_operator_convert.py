@@ -145,8 +145,6 @@ def local_operators_to_pauli_strings(hilbert, operators, acting_on, constant, dt
     weights = []
 
     if len(operators) > 0:
-
-        mats = map(_convert_to_dense, operators)
         # maximum number of non-identity operators
         n_max = max(list(map(len, acting_on)))
 
