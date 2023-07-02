@@ -159,6 +159,10 @@ class PauliStrings(PauliStringsBase):
             self._local_states = np.array(self.hilbert.states_at_index(0))
             self._initialized = True
 
+    def _reset_caches(self):
+        super()._reset_caches()
+        self._initialized = False
+
     @staticmethod
     @jit(nopython=True)
     def _flattened_kernel(

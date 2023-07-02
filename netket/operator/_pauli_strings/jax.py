@@ -347,6 +347,10 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             self._z_data = z_data
             self._initialized = True
 
+    def _reset_caches(self):
+        super()._reset_caches()
+        self._initialized = False
+
     def n_conn(self, x):
         # TODO implement it once we have cutoff
         return jnp.full(x.shape[:-1], self.max_conn_size, dtype=np.int32)
