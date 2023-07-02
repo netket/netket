@@ -23,12 +23,12 @@ from jax.tree_util import register_pytree_node_class
 
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.utils.types import DType
+from netket.errors import concrete_or_error, JaxOperatorSetupDuringTracingError
 
 from .._discrete_operator_jax import DiscreteJaxOperator
+from .._ising.jax import _ising_conn_states_jax
 
 from .base import PauliStringsBase
-
-from netket.operator._ising.jax import _ising_conn_states_jax
 
 # pauli-strings operator written in nJax
 # the general idea is the following:
@@ -310,8 +310,15 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
 
     def _setup(self, force=False):
         if force or not self._initialized:
+            weights = concrete_or_error(
+                np.asarray,
+                self.weights,
+                JaxOperatorSetupDuringTracingError,
+                self,
+            )
+
             x_flip_masks_stacked, z_data = pack_internals_jax(
-                self.operators, self.weights, weight_dtype=self.dtype, mode=self._mode
+                self.operators, weights, weight_dtype=self.dtype, mode=self._mode
             )
             self._x_flip_masks_stacked = x_flip_masks_stacked
             self._z_data = z_data
