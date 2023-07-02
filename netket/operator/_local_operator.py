@@ -197,7 +197,9 @@ class LocalOperator(DiscreteOperator):
 
     def to_pauli_strings(self) -> "PauliStrings":  # noqa: F821
         """Convert to PauliStrings object"""
-        return local_operators_to_pauli_strings(self)
+        return local_operators_to_pauli_strings(
+            self.hilbert, self.operators, self.acting_on, self.constant, self.dtype
+        )
 
     def copy(self, *, dtype: Optional[DType] = None):
         """Returns a copy of the operator, while optionally changing the dtype

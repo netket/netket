@@ -128,7 +128,11 @@ def _local_operator_to_pauli_strings(
     return list(operators), list(weights)
 
 
-def local_operators_to_pauli_strings(op):
+def _convert_to_dense(m):
+    return m.todense() if issparse(m) else m
+
+
+def local_operators_to_pauli_strings(hilbert, operators, acting_on, constant, dtype):
     """Convert a LocalOperator into PauliStrings
 
     Args:
@@ -137,19 +141,12 @@ def local_operators_to_pauli_strings(op):
     Returns:
         PauliStrings
     """
-    mats = op.operators
-    acting_on = op.acting_on
-
-    operators = []
+    pauli_strings = []
     weights = []
 
-    if len(op.mats) > 0:
+    if len(operators) > 0:
 
-        def _convert_to_dense(m):
-            return m.todense() if issparse(m) else m
-
-        # convert to dense-numpy as we later use jax which does not support sparse.
-        mats = map(_convert_to_dense, mats)
+        mats = map(_convert_to_dense, operators)
         # maximum number of non-identity operators
         n_max = max(list(map(len, acting_on)))
 
@@ -158,18 +155,24 @@ def local_operators_to_pauli_strings(op):
         bases_strs = _get_paulistrings_till_n(n=n_max)
 
         # loop trough operators and convert to Pauli strings by projecting
-        for op, act in zip(mats, acting_on):
+        for op, act in zip(operators, acting_on):
+
+            # convert to dense-numpy as we later use jax which does not support sparse.
+            op = _convert_to_dense(op)
+
             n_paulis = len(act)
+
             op_list, w_list = _local_operator_to_pauli_strings(
-                op, act, bases[n_paulis], bases_strs[n_paulis], op.hilbert.size
+                op, act, bases[n_paulis], bases_strs[n_paulis], hilbert.size
             )
-            operators += op_list
+            pauli_strings += op_list
             weights += w_list
 
-        # add the constant
-        operators.append("I" * op.hilbert.size)
-        weights.append(op.constant)
+    # add the constant if it's not zero
+    if np.abs(constant) > 1e-13:
+        pauli_strings.append("I" * hilbert.size)
+        weights.append(constant)
 
     return nk.operator.PauliStrings(
-        op.hilbert, operators=operators, weights=weights, dtype=op.dtype
+        hilbert, operators=pauli_strings, weights=weights, dtype=dtype
     )
