@@ -128,7 +128,7 @@ def pack_internals_jax(
     vector of real or complex coefficients (`weights`).
 
     `weights` must be a numpy-array with statically known values otherwise an error
-    is thrown. 
+    is thrown.
 
     Returns a dictionary with all the data fields
     """
