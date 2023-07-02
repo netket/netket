@@ -33,7 +33,7 @@ from netket.operator._ising.jax import _ising_conn_states_jax
 # pauli-strings operator written in nJax
 # the general idea is the following:
 
-# observe that that Y = -i Z X
+# observe that Y = -i Z X
 # therefore for every pauli in a given operator we
 # (1.) apply X  (flip site)                  -- if it is X or Y
 # (2.) absorb -i to the weights              -- if it is Y
@@ -119,6 +119,20 @@ def pack_internals_jax(
     weight_dtype=None,
     mode="mask",
 ):
+    """
+    Take the internal lazy representation of a paulistrings operator and returns the
+    arrays needed for the jax implementation.
+
+    This takes as input a numpy array of strings (`operators`) of equal lengths
+    containing only the characters 'X', 'Y', 'Z' or 'I',  and an equal length
+    vector of real or complex coefficients (`weights`).
+
+    `weights` must be a numpy-array with statically known values otherwise an error
+    is thrown. 
+
+    Returns a dictionary with all the data fields
+    """
+
     # index_dtype needs to be signed (we use -1 for padding)
     # mode can be either index or mask
     assert mode in ["index", "mask"]
@@ -193,6 +207,7 @@ def pack_internals_jax(
     keys = sorted(x_flip_masks.keys())
     x_flip_masks = [x_flip_masks[k] for k in keys]
     weights = [weights[k] for k in keys]
+
     # TODO here would be the place we could decide wether to use index or mask
     # depending on how much we padded, use a hybrid scheme etc
     z_sign_masks = [z_sign_masks[k] if (mode == "mask") else None for k in keys]

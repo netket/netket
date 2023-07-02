@@ -17,5 +17,6 @@ Netket has the following classes of errors.
   :nosignatures:
 
   NumbaOperatorGetConnDuringTracingError
+  JaxOperatorSetupDuringTracingError
   HilbertIndexingDuringTracingError
 ```
