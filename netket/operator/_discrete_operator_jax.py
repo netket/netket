@@ -24,12 +24,50 @@ from netket.operator import DiscreteOperator
 
 
 class DiscreteJaxOperator(DiscreteOperator):
-    r"""This class should be inherited by DiscreteOperators which
-    wish to declare jax-compatibility.
+    r"""Abstract base class for discrete operators that can
+    be manipulated inside of jax function transformations.
 
-    Discrete Jax Operators can safely be treated as standard
-    PyTrees and passed as standard arguments to jax-transformed
-    functions.
+    Any operator inheriting from this base class follows the
+    :class:`netket.operator.DiscreteOperator` interface but
+    can additionally be used inside of :func:`jax.jit`,
+    :func:`jax.grad`, :func:`jax.vmap` or similar transformations.
+    When passed to those functions, jax-compatible operators
+    must not be passed as static arguments but as standard
+    arguments, and they will not trigger recompilation if
+    only the coefficients have changed.
+
+    Some operators, such as :class:`netket.operator.Ising` or
+    :class:`netket.operator.PauliStrings` can be converted to
+    their jax-enabled counterparts by calling the method
+    :meth:`~netket.operator.PauliStrings.to_jax_operator`.
+    Not all operators support this conversion, but as
+    :class:`netket.operator.PauliStrings` are flexible, if you
+    can convert or write your hamiltonian as a sum of pauli
+    strings you will be able to use
+    :class:`netket.operator.PauliStringsJax`.
+
+
+    .. note::
+
+        Jax does not support dynamically varying shapes, so not
+        all operators can be written as jax operators, and even
+        if they could be written as such, they might generate
+        more connected elements than their Numba counterpart.
+
+
+    .. note::
+
+        :class:`netket.operator.DiscreteJaxOperator` require a
+        particular version of the hamiltonian sampling rule,
+        :func:`netket.sampler.rules.HamiltonianRuleJax`, that is
+        compatible with Jax.
+
+
+    Defining custom discrete operators that are Jax-compatible
+    ----------------------------------------------------------
+
+    This class should be inherited by DiscreteOperators which
+    wish to declare jax-compatibility.
 
     Classes inheriting from `DiscreteJaxOperator`` should be
     declared following a scheme like the following. Do notice
@@ -72,7 +110,7 @@ class DiscreteJaxOperator(DiscreteOperator):
     @property
     def max_conn_size(self) -> int:
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     @abc.abstractmethod
     def get_conn_padded(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

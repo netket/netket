@@ -64,7 +64,11 @@ class HamiltonianRule(MetropolisRule):
             )
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
-
+        """
+        This implements the transition rule for `DiscreteOperator`s that are
+        implemented in Numba, relying on the `_get_conn_flattened_closure`
+        hack to make it work in numba.
+        """
         get_conn_flattened = rule.operator._get_conn_flattened_closure()
         n_conn_from_sections = rule.operator._n_conn_from_sections
 

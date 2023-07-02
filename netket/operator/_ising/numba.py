@@ -73,7 +73,7 @@ class Ising(IsingBase):
     def to_jax_operator(self) -> "IsingJax":  # noqa: F821
         """
         Returns the jax-compatible version of this operator, which is an
-        instance of {class}`nk.operator.IsingJax`.
+        instance of :class:`netket.operator.IsingJax`.
         """
         from .jax import IsingJax
 

@@ -94,6 +94,9 @@ operators["Pauli Hamiltonian (XX)"] = nk.operator.PauliStrings(["XX"], [0.1])
 operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
+operators["Pauli Hamiltonian Jax"] = nk.operator.PauliStringsJax(
+    ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
+)
 
 hi = nkx.hilbert.SpinOrbitalFermions(5)
 operators["FermionOperator2nd"] = nkx.operator.FermionOperator2nd(
@@ -368,6 +371,7 @@ def test_operator_jax_getconn(op):
     # check on all states
     sp, mels = op.get_conn_padded(states)
     sp_j, mels_j = _get_conn_padded(op_jax, states)
+    assert mels.shape[-1] <= op.max_conn_size
 
     np.testing.assert_allclose(sp, sp_j)
     np.testing.assert_allclose(mels, mels_j)
@@ -377,6 +381,7 @@ def test_operator_jax_getconn(op):
 
         sp, mels = op.get_conn_padded(states)
         sp_j, mels_j = _get_conn_padded(op_jax, states)
+        assert mels_j.shape[-1] <= op.max_conn_size
 
         np.testing.assert_allclose(sp, sp_j)
         np.testing.assert_allclose(mels, mels_j)
