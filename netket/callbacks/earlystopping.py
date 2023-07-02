@@ -12,16 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass
 from typing import Optional, Union
 
 import numpy as np
 
+from netket.utils import struct
 
-@dataclass
+
+# Mark this class a NetKet dataclass so that it can automatically be serialized by Flax.
+@struct.dataclass(_frozen=False)
 class EarlyStopping:
     """A simple callback to stop NetKet if there are no more improvements in the training.
-    based on `driver._loss_name`."""
+    based on `driver._loss_name`.
+    """
 
     min_delta: float = 0.0
     """Minimum change in the monitored quantity to qualify as an improvement."""
@@ -38,13 +41,15 @@ class EarlyStopping:
     monitor: str = "mean"
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
 
-    def __post_init__(self):
-        self._best_val: float = np.infty
-        """Stores the best loss seen so far"""
-        self._best_iter: int = 0
-        """Stores the iteration at which we've seen the best loss so far"""
-        self._best_patience_counter: int = 0
-        """Stores the iteration at which we've seen the best loss so far"""
+    # The quantities below are internal and should not be edited directly
+    # by the user
+
+    _best_val: float = np.infty
+    """Best value of the loss observed up to this iteration. """
+    _best_iter: int = 0
+    """Iteration at which the `_best_val` was observed."""
+    _best_patience_counter: int = 0
+    """Stores the iteration at which we've seen the best loss so far"""
 
     def __call__(self, step, log_data, driver):
         """
