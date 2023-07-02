@@ -26,7 +26,6 @@ from netket.utils.types import DType
 from netket.errors import concrete_or_error, JaxOperatorSetupDuringTracingError
 
 from .._discrete_operator_jax import DiscreteJaxOperator
-from .._ising.jax import _ising_conn_states_jax
 
 from .base import PauliStringsBase
 
@@ -44,6 +43,14 @@ from .base import PauliStringsBase
 # TODO special case for the diagonal
 # TODO eventually also implement _ising_conn_states_jax with indexing instead of mask
 # TODO eventually add version with sparse jax arrays (achieving the same as indexing)
+
+
+# duplicated from ising
+def _ising_conn_states_jax(x, cond, local_states):
+    was_state_0 = x == local_states[0]
+    state_0 = jnp.asarray(local_states[0], dtype=x.dtype)
+    state_1 = jnp.asarray(local_states[1], dtype=x.dtype)
+    return jnp.where(cond ^ was_state_0, state_0, state_1)
 
 
 def pack_internals(operators, weights, cutoff=0):
