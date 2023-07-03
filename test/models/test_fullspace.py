@@ -45,16 +45,10 @@ def test_groundstate():
 
     w, v = nk.exact.lanczos_ed(ham, compute_eigenvectors=True)
 
-    print("w is: ", w)
-    print("v is: ", v)
-
     mod = nk.models.LogStateVector(hi, param_dtype=float)
     vs = nk.vqs.FullSumState(hi, mod)
-    vs.parameters = {"logstate": np.log(v[:, 0])}
-
-    print("pars: ", vs.parameters)
-    print('expval', vs.expect(ham))
-    print('values:', vs.log_value(hi.all_states()))
-    print('array:', vs.to_array())
+    # use abs because we know the gs can be positive, and in some
+    # scipy version we get negative phase.
+    vs.parameters = {"logstate": np.log(np.abs(v[:, 0]))}
 
     np.testing.assert_allclose(vs.expect(ham).mean, w[0])

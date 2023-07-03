@@ -104,4 +104,5 @@ jobs:
           coverage combine --append
 
       - name: Upload coverage reports to Codecov
+        if: always()
         uses: codecov/codecov-action@v3
