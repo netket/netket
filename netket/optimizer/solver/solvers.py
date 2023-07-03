@@ -18,15 +18,33 @@ import jax.scipy as jsp
 from netket.jax import tree_ravel
 
 
-def pinv(A, b, rtol=1e-14, atol=1e-14, x0=None):
+def eigh(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
     r"""
+    Solve the linear system by building a pseudo-inverse from the
+    eigendecomposition obtained from :func:`jax.numpy.linalg.eigh`.
+
+    The eigenvalues :math:`\lambda_i` smaller than
+    :math:`r_\text{cond} \lambda_0` are truncated (where :math:`\lambda_0`
+    is the largest eigenvalue).
+
+    The eigenvalues are further smoothed with another filter given by
+    the following equation
+
+    .. math::
+
+        \tilde\lambda_i^{-1}=\frac{\lambda_i^{-1}}{1+\big(\epsilon\frac{\lambda_\text{max}}{\lambda_i}\big)^6}
+
 
     Args:
         A: LinearOperator (matrix)
         b: vector or Pytree
-        rtol : relative tolerance used to cutoff singular values according
-            to the formula :math:`\frac{1}{1+\epsilon_{rtol}/...}`
-        atol : absolute cutoff for eigenvalues of A.
+        rcond : Cut-off ratio for small singular values of :code:`A`. For
+            the purposes of rank determination, singular values are treated
+            as zero if they are smaller than rcond times the largest
+            singular value of :code:`A`.
+        rcond_smooth : regularization parameter used with a similar effect to `rcond`
+            but with a softer curve. See :math:`\epsilon` in the formula
+            above.
     """
     del x0
 
@@ -36,17 +54,14 @@ def pinv(A, b, rtol=1e-14, atol=1e-14, x0=None):
     Σ, U = jnp.linalg.eigh(A)
 
     # Discard eigenvalues below numerical precision
-    Σ_inv = jnp.where(
-                jnp.abs(
-                    Σ / Σ[-1]
-                    ) > atol, jnp.reciprocal(Σ), 0.)
-    
+    Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rcond, jnp.reciprocal(Σ), 0.0)
+
     # Set regularizer for singular value cutoff
-    regularizer = 1. / (1. + (rtol / jnp.abs(Σ / Σ[-1]))**6)
+    regularizer = 1.0 / (1.0 + (rcond_smooth / jnp.abs(Σ / Σ[-1])) ** 6)
 
-    Σ_inv = Σ_inv*regularizer
+    Σ_inv = Σ_inv * regularizer
 
-    x = U@(Σ_inv*(U.conj().T@b))
+    x = U @ (Σ_inv * (U.conj().T @ b))
 
     return unravel(x), None
 
