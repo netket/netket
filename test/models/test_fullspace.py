@@ -39,14 +39,22 @@ def test_logstatevec():
 
 
 def test_groundstate():
-    g = nk.graph.Chain(8)
+    g = nk.graph.Chain(6)
     hi = nk.hilbert.Spin(1 / 2, g.n_nodes)
     ham = nk.operator.Ising(hi, g, h=0.5)
 
     w, v = nk.exact.lanczos_ed(ham, compute_eigenvectors=True)
 
+    print("w is: ", w)
+    print("v is: ", v)
+
     mod = nk.models.LogStateVector(hi, param_dtype=float)
     vs = nk.vqs.FullSumState(hi, mod)
     vs.parameters = {"logstate": np.log(v[:, 0])}
+
+    print("pars: ", vs.parameters)
+    print('expval', vs.expect(ham))
+    print('values:', vs.log_value(hi.all_states()))
+    print('array:', vs.to_array())
 
     np.testing.assert_allclose(vs.expect(ham).mean, w[0])
