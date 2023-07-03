@@ -23,7 +23,6 @@ from functools import partial
 import netket as nk
 from netket.stats import statistics
 from scipy.optimize import curve_fit
-import numba
 
 from .. import common
 

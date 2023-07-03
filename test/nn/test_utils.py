@@ -24,7 +24,6 @@ from jax.nn.initializers import normal
 
 import netket as nk
 from netket.nn import binary_encoding
-from netket.utils import module_version
 
 from .. import common  # noqa: F401
 

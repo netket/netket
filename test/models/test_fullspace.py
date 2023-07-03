@@ -15,13 +15,6 @@
 import netket as nk
 import numpy as np
 import jax
-import jax.numpy as jnp
-from jax.nn.initializers import uniform
-from netket.utils import module_version
-
-from .test_nn import _setup_symm
-
-import pytest
 
 
 def test_logstatevec():

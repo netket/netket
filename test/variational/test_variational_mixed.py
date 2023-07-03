@@ -15,7 +15,7 @@
 from functools import partial
 
 import pytest
-from pytest import approx, raises, warns
+from pytest import approx, raises
 
 import numpy as np
 import jax

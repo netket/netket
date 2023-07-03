@@ -127,7 +127,7 @@ def benchmark(n_nodes, n_samples, n_layers, width, pytree_safe=True):
         _benchmark(n_nodes, n_samples, n_layers, width)
 
 
-print(f"# Nodes\tLayers\tSamples\tSampling\tJitting\tSR cycle\tSolve")
+print("# Nodes\tLayers\tSamples\tSampling\tJitting\tSR cycle\tSolve")
 
 # Different network widths/system sizes
 benchmark(256, 256, 4, 256)

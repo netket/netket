@@ -65,8 +65,7 @@ dev = [
     "coverage>=5",
     "pre-commit>=2.7",
     "black==22.10.0",
-    "flake8==6.0.0; python_version >= '3.8'",
-    "flake8==5.0.4; python_version < '3.8'",
+    "ruff==0.0.276",
     "wheel",
     "build",
 ]
@@ -140,3 +139,16 @@ filterwarnings = [
 testpaths = [
     "test",
 ]
+
+[tool.ruff]
+select = ["E", "F", "W"]
+fixable = ["E", "F", "W"]
+ignore = ["E501", "E731", "E741"]
+#ignore = ["E266"]
+line-length = 88
+exclude = ["Examples/Legacy"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["E402","F401"]
+"netket/nn/activation.py" = ["F401"]
+"Examples/" = ["F401"]

@@ -12,7 +12,6 @@
 # limitations under the License.
 
 import numpy as np
-import math as m
 import netket.graph as gr
 import netket.hilbert as hs
 

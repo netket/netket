@@ -1,4 +1,3 @@
-import netket as nk
 from netket.utils.numbers import StaticZero
 import numpy as np
 
@@ -41,7 +40,6 @@ def test_array_interface():
 def test_binary_ops():
     a = StaticZero()
     a2 = StaticZero()
-    b = 2.0
 
     assert -a == a
     assert a + a2 == a

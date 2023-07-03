@@ -94,10 +94,6 @@ def test_gcnn(mode, complex_output):
     vmc.advance(1)
 
 
-def n_parameters(ma):
-    params = ma.init(jax.random.PRNGKey(0), np.zeros(4))
-
-
 def test_gcnn_mask():
 
     g = nk.graph.Chain(4)

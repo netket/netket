@@ -137,7 +137,7 @@ def test_sumoperator():
     np.testing.assert_allclose(enertot2, enerexact)
 
     with pytest.raises(AssertionError):
-        ha = netket.operator.SumOperator(
+        netket.operator.SumOperator(
             etot,
             etot2,
             coefficients=[

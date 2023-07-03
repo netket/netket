@@ -15,7 +15,7 @@
 from functools import partial
 
 import pytest
-from pytest import approx, raises, warns
+from pytest import raises
 
 import numpy as np
 import jax
@@ -124,7 +124,7 @@ def test_basic_methods(vstate):
 @pytest.mark.parametrize(
     "qgtT", [pytest.param(qgtT, id=name) for name, qgtT in qgt_types.items()]
 )
-def test_basic_methods(vstate, qgtT):
+def test_qgt_construction(vstate, qgtT):
     qgt = vstate.quantum_geometric_tensor(qgtT)
     assert isinstance(qgt, LinearOperator)
 

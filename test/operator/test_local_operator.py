@@ -402,7 +402,7 @@ def test_is_hermitian(op):
     "ops",
     [pytest.param(op, id=name) for name, op in generic_operators.items()],
 )
-def test_is_hermitian(ops):
+def test_is_hermitian_generic_op(ops):
     op, oph = ops
 
     assert not op.is_hermitian

@@ -1,5 +1,4 @@
 import pytest
-from pytest import raises
 
 import numpy as np
 import netket as nk
@@ -21,8 +20,6 @@ def _build_rotation(hi, basis, dtype=np.complex64):
     localop = op.LocalOperator(hi, constant=1.0, dtype=dtype)
     U_X = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, 1.0], [1.0, -1.0]])
     U_Y = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, -1j], [1.0, 1j]])
-
-    N = hi.size
 
     assert len(basis) == hi.size
     for j in range(hi.size):
@@ -143,14 +140,14 @@ def _setup_driver(N, mode, control_variate_update_freq=10, chunk_size=97):
 def test_pure_qsr(chunk_size):
     N = 3
     driver, rho = _setup_driver(N, "pure", chunk_size=chunk_size)
-    assert driver.mixed_states == False
+    assert driver.mixed_states is False
     driver.run(n_iter=20, out="test_pure_qsr.out")
 
 
 def test_mixed_qsr():
     N = 3
     driver, rho = _setup_driver(N, "mixed")
-    assert driver.mixed_states == True
+    assert driver.mixed_states is True
     driver.run(n_iter=20, out="test_pure_qsr.out")
 
 
@@ -158,15 +155,15 @@ def test_pure_KL():
     N = 3
     driver, rho = _setup_driver(N, "pure")
     driver.run(n_iter=20, out="test_pure_qsr.out")
-    kl = driver.KL(rho, n_shots=100)
-    kl_whole = driver.KL_whole_training_set(rho, n_shots=100)
-    kl_exact = driver.KL_exact(rho, n_shots=100)
+    driver.KL(rho, n_shots=100)
+    driver.KL_whole_training_set(rho, n_shots=100)
+    driver.KL_exact(rho, n_shots=100)
 
 
 def test_mixed_KL():
     N = 3
     driver, rho = _setup_driver(N, "mixed")
     driver.run(n_iter=20, out="test_pure_qsr.out")
-    kl = driver.KL(rho, n_shots=100)
-    kl_whole = driver.KL_whole_training_set(rho, n_shots=100)
-    kl_exact = driver.KL_exact(rho, n_shots=100)
+    driver.KL(rho, n_shots=100)
+    driver.KL_whole_training_set(rho, n_shots=100)
+    driver.KL_exact(rho, n_shots=100)

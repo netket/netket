@@ -1,8 +1,4 @@
-import pytest
-from pytest import raises
-
 import numpy as np
-import netket as nk
 import netket.experimental as nkx
 import netket.exact as exact
 import netket.hilbert as hs
@@ -21,8 +17,6 @@ def _build_rotation(hi, basis, dtype=np.complex64):
     localop = op.LocalOperator(hi, constant=1.0, dtype=dtype)
     U_X = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, 1.0], [1.0, -1.0]])
     U_Y = 1.0 / (np.sqrt(2)) * np.asarray([[1.0, -1j], [1.0, 1j]])
-
-    N = hi.size
 
     assert len(basis) == hi.size
     for j in range(hi.size):

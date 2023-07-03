@@ -1,10 +1,5 @@
 import netket as nk
-import numpy as np
 import time
-import jax
-from jax.config import config
-from functools import partial
-from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 # config.update("jax_log_compiles", 1)
 

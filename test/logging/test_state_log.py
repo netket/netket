@@ -117,7 +117,7 @@ def test_lazy_init(tmp_path):
     path = str(tmp_path) + "/dir1/dir2"
 
     # check that overwriting works
-    log = nk.logging.StateLog(path, "w", tar=False, save_every=1)
+    nk.logging.StateLog(path, "w", tar=False, save_every=1)
 
     files = glob.glob(path + "/*")
     assert len(files) == 0

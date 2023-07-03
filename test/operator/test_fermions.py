@@ -606,7 +606,7 @@ def test_fermion_max_conn_size():
     assert _compute_max_conn_size(op) == 1
 
 
-def test_openfermion_conversion():
+def test_openfermion_conversion_2():
     # skip test if openfermion not installed
     pytest.importorskip("openfermion")
     from openfermion.ops import QubitOperator, FermionOperator
@@ -713,12 +713,12 @@ def test_fermion_matrices():
 
 def test_fermion_mode_indices():
     hi = nkx.hilbert.SpinOrbitalFermions(5)
-    op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 4", "2", "3"))
+    nkx.operator.FermionOperator2nd(hi, terms=("0^ 4", "2", "3"))
 
     with pytest.raises(ValueError):
-        op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 5",))
+        nkx.operator.FermionOperator2nd(hi, terms=("0^ 5",))
     with pytest.raises(ValueError):
-        op = nkx.operator.FermionOperator2nd(hi, terms=(((-1, 0)),))
+        nkx.operator.FermionOperator2nd(hi, terms=(((-1, 0)),))
 
 
 def test_fermion_create_annihilate():
