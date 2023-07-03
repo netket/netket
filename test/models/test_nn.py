@@ -18,7 +18,6 @@ import jax
 import jax.numpy as jnp
 import jax.random as random
 import numpy as np
-import scipy.sparse
 from jax.nn.initializers import uniform
 from netket.utils.group import PermutationGroup
 
@@ -398,18 +397,18 @@ def test_deprecated_inout_features_DenseEquivariant():
 
     with pytest.warns(FutureWarning):
         with pytest.raises(ValueError):
-            ma_irreps = nk.nn.DenseEquivariant(
+            nk.nn.DenseEquivariant(
                 symmetries=perms, mode="irreps", out_features=1, features=2
             )
 
     with pytest.warns(FutureWarning):
-        ma_irreps = nk.nn.DenseEquivariant(
+        nk.nn.DenseEquivariant(
             symmetries=perms,
             mode="irreps",
             out_features=1,
         )
 
     with pytest.warns(FutureWarning):
-        ma_irreps = nk.nn.DenseEquivariant(
+        nk.nn.DenseEquivariant(
             symmetries=perms, mode="irreps", in_features=3, features=1
         )

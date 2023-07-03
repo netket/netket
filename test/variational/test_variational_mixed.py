@@ -15,7 +15,7 @@
 from functools import partial
 
 import pytest
-from pytest import approx, raises, warns
+from pytest import approx, raises
 
 import numpy as np
 import jax
@@ -37,13 +37,13 @@ NDM = partial(nk.models.NDM, bias_init=standard_init, visible_bias_init=standard
 machines["model:(R->C)"] = NDM(
     alpha=1,
     beta=1,
-    dtype=float,
+    param_dtype=float,
     kernel_init=normal(stddev=0.1),
     bias_init=normal(stddev=0.1),
 )
 machines["model:(C->C)"] = nk.models.RBM(
     alpha=1,
-    dtype=complex,
+    param_dtype=complex,
     kernel_init=normal(stddev=0.1),
     visible_bias_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),

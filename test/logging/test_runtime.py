@@ -1,10 +1,8 @@
 import pytest
 
-import glob
 
 import numpy as np
 import netket as nk
-import netket.experimental as nkx
 from jax.nn.initializers import normal
 from jax import numpy as jnp
 

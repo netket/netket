@@ -56,6 +56,7 @@ Below you find a list of all concrete Operators that you can create on {class}`~
    IsingJax
    Heisenberg
    PauliStrings
+   PauliStringsJax
    LocalLiouvillian
 
 ```

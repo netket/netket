@@ -95,7 +95,7 @@ def test_diag_shift_schedule(diag_shift):
 
     for step_value in [10, 20.0]:
         # ensure that this call is valid
-        grad = sr(vstate, vstate.parameters, step_value)
+        sr(vstate, vstate.parameters, step_value)
 
         # check that the diag_shift passed to the QGT is correct
         qgt = sr.lhs_constructor(vstate, step_value)

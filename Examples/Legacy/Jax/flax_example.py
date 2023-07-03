@@ -1,9 +1,7 @@
 from netket import legacy as nk
-import flax
 from flax import linen as nn
 import jax
 from jax import numpy as jnp
-import numpy as np
 
 
 # 1D Lattice

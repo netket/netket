@@ -25,16 +25,18 @@ from scipy.sparse import issparse
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType, Array
 from netket.utils.numbers import dtype as _dtype, is_scalar
+from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
-from ._discrete_operator import DiscreteOperator
-from ._lazy import Transpose
+from .._discrete_operator import DiscreteOperator
+from .._lazy import Transpose
 
-from ._local_operator_helpers import (
+from .helpers import (
     canonicalize_input,
     _multiply_operators,
     cast_operator_matrix_dtype,
 )
-from ._local_operator_compile_helpers import pack_internals
+from .compile_helpers import pack_internals
+from .convert import local_operators_to_pauli_strings
 
 
 def is_hermitian(a: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
@@ -192,6 +194,12 @@ class LocalOperator(DiscreteOperator):
     @property
     def constant(self) -> numbers.Number:
         return self._constant
+
+    def to_pauli_strings(self) -> "PauliStrings":  # noqa: F821
+        """Convert to PauliStrings object"""
+        return local_operators_to_pauli_strings(
+            self.hilbert, self.operators, self.acting_on, self.constant, self.dtype
+        )
 
     def copy(self, *, dtype: Optional[DType] = None):
         """Returns a copy of the operator, while optionally changing the dtype
@@ -449,8 +457,15 @@ class LocalOperator(DiscreteOperator):
         """
         self._setup()
 
+        x = concrete_or_error(
+            np.asarray,
+            x,
+            NumbaOperatorGetConnDuringTracingError,
+            self,
+        )
+
         return self._get_conn_flattened_kernel(
-            np.asarray(x),
+            x,
             sections,
             self._local_states,
             self._basis,
@@ -629,6 +644,14 @@ class LocalOperator(DiscreteOperator):
 
         """
         self._setup()
+
+        x = concrete_or_error(
+            np.asarray,
+            x,
+            NumbaOperatorGetConnDuringTracingError,
+            self,
+        )
+
         return self._get_conn_filtered_kernel(
             x,
             sections,

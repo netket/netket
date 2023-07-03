@@ -14,7 +14,6 @@
 
 from netket import legacy as nk
 import torch
-import numpy as np
 
 # 1D Lattice
 g = nk.graph.Hypercube(length=20, n_dim=1, pbc=True)

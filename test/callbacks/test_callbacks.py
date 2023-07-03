@@ -22,7 +22,7 @@ def _vmc(n_iter=20):
 
     ha = nk.operator.Ising(hi, nk.graph.Hypercube(length=L, n_dim=1), h=1.0)
     sa = nk.sampler.MetropolisLocal(hi)
-    vs = nk.vqs.MCState(sa, ma, n_samples=500, seed=SEED)
+    vs = nk.vqs.MCState(sa, ma, n_samples=512, seed=SEED)
 
     op = nk.optimizer.Sgd(learning_rate=0.1)
 

@@ -1,4 +1,3 @@
-from functools import partial
 from io import StringIO
 
 import pytest

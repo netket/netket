@@ -15,7 +15,7 @@
 from functools import partial
 
 import pytest
-from pytest import approx, raises, warns
+from pytest import raises
 
 import numpy as np
 import jax
@@ -39,25 +39,25 @@ RBMModPhase = partial(nk.models.RBMModPhase, hidden_bias_init=standard_init)
 
 machines["model:(R->R)"] = RBM(
     alpha=1,
-    dtype=float,
+    param_dtype=float,
     kernel_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(R->C)"] = RBMModPhase(
     alpha=1,
-    dtype=float,
+    param_dtype=float,
     kernel_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(C->C)"] = RBM(
     alpha=1,
-    dtype=complex,
+    param_dtype=complex,
     kernel_init=normal(stddev=0.1),
     hidden_bias_init=normal(stddev=0.1),
 )
 machines["model:(C->C,alpha=5)"] = RBM(
     alpha=5,
-    dtype=complex,
+    param_dtype=complex,
     kernel_init=normal(stddev=0.3),
     hidden_bias_init=normal(stddev=0.3),
 )
@@ -124,7 +124,7 @@ def test_basic_methods(vstate):
 @pytest.mark.parametrize(
     "qgtT", [pytest.param(qgtT, id=name) for name, qgtT in qgt_types.items()]
 )
-def test_basic_methods(vstate, qgtT):
+def test_qgt_construction(vstate, qgtT):
     qgt = vstate.quantum_geometric_tensor(qgtT)
     assert isinstance(qgt, LinearOperator)
 

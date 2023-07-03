@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import re
-from typing import List, Union
-from netket.utils.types import DType
+from typing import Iterable, List, Union, Optional
+from netket.utils.types import DType, Array
 
 import numpy as np
 from numba import jit
@@ -23,13 +23,88 @@ from itertools import product
 from netket.hilbert import Qubit, AbstractHilbert
 from netket.utils.numbers import is_scalar
 
-from ._abstract_operator import AbstractOperator
-from ._discrete_operator import DiscreteOperator
+from .._abstract_operator import AbstractOperator
+from .._discrete_operator import DiscreteOperator
 
 valid_pauli_regex = re.compile(r"^[XYZI]+$")
 
 
-class PauliStrings(DiscreteOperator):
+def _standardize_matrix_input_type(op):
+    """
+    Standardize the structural type of operators stored in LocalOperator.
+
+    Eventually, we could also support spmatrices (but some work will be needed.)
+    """
+    if isinstance(op, list):
+        return np.asarray(op)
+    else:
+        return op
+
+
+def cast_operator_matrix_dtype(matrix: Array, dtype: DType):
+    """
+    Changes the dtype of a matrix, without changing the structural type of the object.
+
+    This makes sure that if you pass sparse arrays to a LocalOperator, they remain
+    sparse even if you change the dtype
+    """
+    # must copy
+    # return np.asarray(matrix, dtype=dtype)
+    return matrix.astype(dtype)
+
+
+def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=None):
+    if operators is None:
+        raise ValueError(
+            "None valued operators passed. (Might arise when passing None valued hilbert explicitly)"
+        )
+
+    # Support single-operator
+    if isinstance(operators, str):
+        operators = [operators]
+
+    if len(operators) == 0:
+        raise ValueError("No Pauli operators passed.")
+
+    # default weight is 1
+    if weights is None:
+        weights = True
+
+    if is_scalar(weights):
+        weights = [weights for _ in operators]
+
+    if len(weights) != len(operators):
+        raise ValueError("weights should have the same length as operators.")
+
+    _hilb_size = len(operators[0])
+    consistent = all(len(op) == _hilb_size for op in operators)
+    if not consistent:
+        raise ValueError("Pauli strings have inhomogeneous lengths.")
+
+    consistent = all(bool(valid_pauli_regex.search(op)) for op in operators)
+    if not consistent:
+        raise ValueError(
+            """Operators in string must be one of
+            the Pauli operators X,Y,Z, or the identity I"""
+        )
+
+    if hilbert is None:
+        hilbert = Qubit(_hilb_size)
+
+    if not np.allclose(hilbert.shape, 2):
+        raise ValueError(
+            "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
+        )
+
+    weights = _standardize_matrix_input_type(weights)
+    weights = cast_operator_matrix_dtype(weights, dtype=dtype)
+
+    operators = np.asarray(operators, dtype=str)
+
+    return hilbert, operators, weights, weights.dtype
+
+
+class PauliStringsBase(DiscreteOperator):
     """A Hamiltonian consisting of the sum of products of Pauli operators."""
 
     def __init__(
@@ -39,7 +114,7 @@ class PauliStrings(DiscreteOperator):
         weights: Union[float, complex, List[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
-        dtype: DType = complex,
+        dtype: Optional[DType] = None,
     ):
         """
         Constructs a new ``PauliStrings`` operator given a set of Pauli operators.
@@ -70,172 +145,48 @@ class PauliStrings(DiscreteOperator):
         if hilbert is None:
             raise ValueError("None-valued hilbert passed.")
 
+        # if first argument is not Hilbert, then shift all arguments by one
+        # to support not declaring the Hilbert space
         if not isinstance(hilbert, AbstractHilbert):
-            # if first argument is not Hilbert, then shift all arguments by one
             hilbert, operators, weights = None, hilbert, operators
 
-        if operators is None:
-            raise ValueError(
-                "None valued operators passed. (Might arise when passing None valued hilbert explicitly)"
-            )
-
-        # Support single-operator
-        if isinstance(operators, str):
-            operators = [operators]
-
-        if len(operators) == 0:
-            raise ValueError("No Pauli operators passed.")
-
-        # default weight is 1
-        if weights is None:
-            weights = True
-
-        if is_scalar(weights):
-            weights = [weights for _ in operators]
-
-        if len(weights) != len(operators):
-            raise ValueError("weights should have the same length as operators.")
+        hilbert, operators, weights, dtype = canonicalize_input(
+            hilbert, operators, weights, dtype=dtype
+        )
 
         if not np.isscalar(cutoff) or cutoff < 0:
             raise ValueError("invalid cutoff in PauliStrings.")
 
-        _hilb_size = len(operators[0])
-        consistent = all(len(op) == _hilb_size for op in operators)
-        if not consistent:
-            raise ValueError("Pauli strings have inhomogeneous lengths.")
-
-        consistent = all(bool(valid_pauli_regex.search(op)) for op in operators)
-        if not consistent:
-            raise ValueError(
-                """Operators in string must be one of
-                the Pauli operators X,Y,Z, or the identity I"""
-            )
-
-        if hilbert is None:
-            hilbert = Qubit(_hilb_size)
-
-        if not np.allclose(hilbert.shape, 2):
-            raise ValueError(
-                "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
-            )
         super().__init__(hilbert)
 
-        self._cutoff = cutoff
-        b_weights = np.asarray(weights, dtype=dtype)
-        self._is_hermitian = np.allclose(b_weights.imag, 0.0)
-
-        self._orig_operators = np.array(operators, dtype=str)
-        self._orig_weights = np.array(weights, dtype=dtype)
+        self._operators = operators
+        self._weights = weights
         self._dtype = dtype
 
-        self._initialized = False
+        self._cutoff = cutoff
 
-    @staticmethod
-    def identity(hilbert: AbstractHilbert, **kwargs):
-        return PauliStrings(hilbert, "I" * hilbert.size, **kwargs)
+        self._is_hermitian = None
 
-    def _setup(self, force=False):
-        """Analyze the operator strings and precompute arrays for get_conn inference"""
-        if force or not self._initialized:
+    @property
+    def operators(self) -> Iterable[str]:
+        return self._operators
 
-            dtype = self._dtype
-            n_operators = len(self._orig_operators)
-            hilb_size = self.hilbert.size
+    @property
+    def weights(self) -> Iterable[str]:
+        return self._weights
 
-            b_to_change = [] * n_operators
-            b_z_check = [] * n_operators
+    @classmethod
+    def identity(cls, hilbert: AbstractHilbert, **kwargs):
+        return cls(hilbert, "I" * hilbert.size, **kwargs)
 
-            acting = {}
-
-            def find_char(s, ch):
-                return [i for i, ltr in enumerate(s) if ltr == ch]
-
-            def append(key, k):
-                # convert list to tuple
-                key = tuple(sorted(key))  # order of X and Y does not matter
-                if key in acting:
-                    acting[key].append(k)
-                else:
-                    acting[key] = [k]
-
-            _n_z_check_max = 0
-
-            for i, op in enumerate(self._orig_operators):
-                b_to_change = []
-                b_z_check = []
-                b_weights = self._orig_weights[i]
-
-                x_ops = find_char(op, "X")
-                if len(x_ops):
-                    b_to_change += x_ops
-
-                y_ops = find_char(op, "Y")
-                if len(y_ops):
-                    b_to_change += y_ops
-                    b_weights *= (-1.0j) ** (len(y_ops))
-                    b_z_check += y_ops
-
-                z_ops = find_char(op, "Z")
-                if len(z_ops):
-                    b_z_check += z_ops
-
-                _n_z_check_max = max(_n_z_check_max, len(b_z_check))
-                append(b_to_change, (b_weights, b_z_check))
-
-            # now group together operators with same final state
-            n_operators = len(acting)
-            _n_op_max = max(
-                list(map(lambda x: len(x), list(acting.values()))), default=n_operators
-            )
-
-            # unpacking the dictionary into fixed-size arrays
-            _sites = np.empty((n_operators, hilb_size), dtype=np.intp)
-            _ns = np.empty((n_operators), dtype=np.intp)
-            _n_op = np.empty(n_operators, dtype=np.intp)
-            _weights = np.empty((n_operators, _n_op_max), dtype=dtype)
-            _nz_check = np.empty((n_operators, _n_op_max), dtype=np.intp)
-            _z_check = np.empty((n_operators, _n_op_max, _n_z_check_max), dtype=np.intp)
-
-            for i, act in enumerate(acting.items()):
-                sites = act[0]
-                nsi = len(sites)
-                _sites[i, :nsi] = sites
-                _ns[i] = nsi
-                values = act[1]
-                _n_op[i] = len(values)
-                for j in range(_n_op[i]):
-                    _weights[i, j] = values[j][0]
-                    _nz_check[i, j] = len(values[j][1])
-                    _z_check[i, j, : _nz_check[i, j]] = values[j][1]
-
-            self._sites = _sites
-            self._ns = _ns
-            self._n_op = _n_op
-            self._weights = _weights
-            self._nz_check = _nz_check
-            self._z_check = _z_check
-
-            self._x_prime_max = np.empty((n_operators, hilb_size))
-            self._mels_max = np.empty((n_operators), dtype=dtype)
-            self._n_operators = n_operators
-
-            self._local_states = np.array(self.hilbert.states_at_index(0))
-            for i in range(1, self.hilbert.size):
-                if not np.allclose(self._local_states, self.hilbert.states_at_index(i)):
-                    raise ValueError(
-                        "Hilbert spaces with non homogeneous local_states are not "
-                        "yet supported."
-                    )
-
-            self._initialized = True
-
-    @staticmethod
+    @classmethod
     def from_openfermion(
+        cls,
         hilbert: AbstractHilbert,
         of_qubit_operator=None,  # : "openfermion.ops.QubitOperator" type
         *,
         n_qubits: int = None,
-    ) -> "PauliStrings":
+    ) -> "PauliStringsBase":
         r"""
         Converts an openfermion QubitOperator into a netket PauliStrings.
 
@@ -283,7 +234,7 @@ class PauliStrings(DiscreteOperator):
         ps_args = (operators, weights)
         if hilbert is not None:
             ps_args = (hilbert,) + ps_args
-        return PauliStrings(*ps_args)
+        return cls(*ps_args)
 
     @property
     def dtype(self) -> DType:
@@ -293,38 +244,61 @@ class PauliStrings(DiscreteOperator):
     @property
     def is_hermitian(self) -> bool:
         """Returns true if this operator is hermitian."""
+        if self._is_hermitian is None:
+            self._is_hermitian = np.allclose(self._weights.imag, 0.0)
         return self._is_hermitian
-
-    @property
-    def max_conn_size(self) -> int:
-        """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
-        # 1 connection for every operator X, Y, Z...
-        self._setup()
-        return self._n_operators
 
     def __repr__(self):
         print_list = []
-        for op, w in zip(self._orig_operators, self._orig_weights):
+        for op, w in zip(self._operators, self._weights):
             print_list.append(f"    {op} : {str(w)}")
-        s = "PauliStrings(hilbert={}, n_strings={}, dict(operators:weights)=\n{}\n)".format(
-            self.hilbert, len(self._orig_operators), ",\n".join(print_list)
+        s = "{}(hilbert={}, n_strings={}, dict(operators:weights)=\n{}\n)".format(
+            type(self).__name__,
+            self.hilbert,
+            len(self._operators),
+            ",\n".join(print_list),
         )
         return s
 
+    def copy(self, *, dtype: Optional[DType] = None):
+        """Returns a copy of the operator, while optionally changing the dtype
+        of the operator.
+
+        Args:
+            dtype: optional dtype
+        """
+
+        if dtype is None:
+            dtype = self.dtype
+
+        if not np.can_cast(self.dtype, dtype, casting="same_kind"):
+            raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
+
+        new = type(self)(self.hilbert, dtype=dtype)
+        new.mel_cutoff = self.mel_cutoff
+        new._operators = self._operators
+
+        if dtype == self.dtype:
+            new._weights = self._weights.copy()
+        else:
+            new._weights = cast_operator_matrix_dtype(self._weights, dtype)
+
+        return new
+
     def _op__matmul__(self, other):
-        if not isinstance(other, PauliStrings):
+        if not isinstance(other, PauliStringsBase):
             return NotImplementedError
         if not self.hilbert == other.hilbert:
             raise ValueError(
                 f"Can only multiply identical hilbert spaces (got A@B, A={self.hilbert}, B={other.hilbert})"
             )
         operators, weights = _matmul(
-            self._orig_operators,
-            self._orig_weights,
-            other._orig_operators,
-            other._orig_weights,
+            self._operators,
+            self._weights,
+            other._operators,
+            other._weights,
         )
-        return PauliStrings(
+        return type(self)(
             self.hilbert,
             operators,
             weights,
@@ -348,10 +322,10 @@ class PauliStrings(DiscreteOperator):
 
         if not np.issubdtype(type(scalar), np.number):
             raise NotImplementedError
-        weights = self._orig_weights * scalar
-        return PauliStrings(
+        weights = self._weights * scalar
+        return type(self)(
             self.hilbert,
-            self._orig_operators,
+            self._operators,
             weights,
             dtype=self.dtype,
             cutoff=self._cutoff,
@@ -373,154 +347,24 @@ class PauliStrings(DiscreteOperator):
         if np.issubdtype(type(other), np.number):
             if other != 0.0:
                 # adding a constant = adding IIII...III with weight being the constant
-                return self + PauliStrings.identity(self.hilbert) * other
+                return self + self.identity(self.hilbert) * other
             return self
-        if not isinstance(other, PauliStrings):
+        if not isinstance(other, PauliStringsBase):
             raise NotImplementedError
         if not self.hilbert == other.hilbert:
             raise ValueError(
                 f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, B={other.hilbert})"
             )
-        operators = np.concatenate((self._orig_operators, other._orig_operators))
-        weights = np.concatenate((self._orig_weights, other._orig_weights))
+        operators = np.concatenate((self._operators, other._operators))
+        weights = np.concatenate((self._weights, other._weights))
         operators, weights = _reduce_pauli_string(operators, weights)
-        return PauliStrings(
+        return type(self)(
             self.hilbert,
             operators,
             weights,
             dtype=self.dtype,
             cutoff=self._cutoff,
         )
-
-    @staticmethod
-    @jit(nopython=True)
-    def _flattened_kernel(
-        x,
-        sections,
-        x_prime,
-        mels,
-        sites,
-        ns,
-        n_op,
-        weights,
-        nz_check,
-        z_check,
-        cutoff,
-        max_conn,
-        local_states,
-        pad=False,
-    ):
-        x_prime = np.empty((x.shape[0] * max_conn, x_prime.shape[1]), dtype=x.dtype)
-        mels = np.zeros((x.shape[0] * max_conn), dtype=mels.dtype)
-        state_1 = local_states[-1]
-
-        n_c = 0
-        for b in range(x.shape[0]):
-            xb = x[b]
-            # initialize
-            x_prime[b * max_conn : (b + 1) * max_conn, :] = np.copy(xb)
-
-            for i in range(sites.shape[0]):
-                mel = 0.0
-                for j in range(n_op[i]):
-                    if nz_check[i, j] > 0:
-                        to_check = z_check[i, j, : nz_check[i, j]]
-                        n_z = np.count_nonzero(xb[to_check] == state_1)
-                    else:
-                        n_z = 0
-
-                    mel += weights[i, j] * (-1.0) ** n_z
-
-                if abs(mel) > cutoff:
-                    x_prime[n_c] = np.copy(xb)
-                    for site in sites[i, : ns[i]]:
-                        new_state_idx = int(x_prime[n_c, site] == local_states[0])
-                        x_prime[n_c, site] = local_states[new_state_idx]
-                    mels[n_c] = mel
-                    n_c += 1
-
-            if pad:
-                n_c = (b + 1) * max_conn
-
-            sections[b] = n_c
-        return x_prime[:n_c], mels[:n_c]
-
-    def get_conn_flattened(self, x, sections, pad=False):
-        r"""Finds the connected elements of the Operator. Starting
-        from a given quantum number x, it finds all other quantum numbers x' such
-        that the matrix element :math:`O(x,x')` is different from zero. In general there
-        will be several different connected states x' satisfying this
-        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
-
-        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
-
-        Args:
-            x (matrix): A matrix of shape (batch_size,hilbert.size) containing
-                        the batch of quantum numbers x.
-            sections (array): An array of size (batch_size) useful to unflatten
-                        the output of this function.
-                        See numpy.split for the meaning of sections.
-
-        Returns:
-            matrix: The connected states x', flattened together in a single matrix.
-            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-
-        """
-        self._setup()
-        x = np.array(x)
-        assert (
-            x.shape[-1] == self.hilbert.size
-        ), "size of hilbert space does not match size of x"
-        return self._flattened_kernel(
-            x,
-            sections,
-            self._x_prime_max,
-            self._mels_max,
-            self._sites,
-            self._ns,
-            self._n_op,
-            self._weights,
-            self._nz_check,
-            self._z_check,
-            self._cutoff,
-            self._n_operators,
-            self._local_states,
-            pad,
-        )
-
-    def _get_conn_flattened_closure(self):
-        self._setup()
-        _x_prime_max = self._x_prime_max
-        _mels_max = self._mels_max
-        _sites = self._sites
-        _ns = self._ns
-        _n_op = self._n_op
-        _weights = self._weights
-        _nz_check = self._nz_check
-        _z_check = self._z_check
-        _cutoff = self._cutoff
-        _n_operators = self._n_operators
-        fun = self._flattened_kernel
-        _local_states = self._local_states
-
-        def gccf_fun(x, sections):
-            return fun(
-                x,
-                sections,
-                _x_prime_max,
-                _mels_max,
-                _sites,
-                _ns,
-                _n_op,
-                _weights,
-                _nz_check,
-                _z_check,
-                _cutoff,
-                _n_operators,
-                _local_states,
-            )
-
-        return jit(nopython=True)(gccf_fun)
 
 
 def _count_of_locations(of_qubit_operator):

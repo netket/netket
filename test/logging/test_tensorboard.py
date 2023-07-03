@@ -1,6 +1,5 @@
 import pytest
 
-import tarfile
 import glob
 
 import netket as nk
@@ -54,7 +53,7 @@ def test_lazy_init(tmp_path):
 
     path = str(tmp_path) + "/dir1"
 
-    log = nk.logging.TensorBoardLog(path)
+    nk.logging.TensorBoardLog(path)
 
     files = glob.glob(path + "/*")
     assert len(files) == 0

@@ -21,7 +21,6 @@ import jax.flatten_util
 from jax.nn.initializers import normal
 
 import netket as nk
-from netket.utils import module_version
 from netket.optimizer import qgt
 
 from .. import common  # noqa: F401
@@ -142,4 +141,4 @@ def test_qgt_explicit_chunk_size(SType):
     sa = nk.sampler.MetropolisLocal(hi, n_chains=16, reset_chains=False)
     vs = nk.vqs.MCState(sa, ma, n_samples=16 * 8, n_discard_per_chain=100)
 
-    S = SType(vs, chunk_size=16 * 4)
+    SType(vs, chunk_size=16 * 4)

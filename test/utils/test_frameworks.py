@@ -32,7 +32,7 @@ def test_jax_framework_works_without_haiku():
 
     hi = nk.hilbert.Qubit(8)
     sampler = nk.sampler.MetropolisLocal(hi)
-    vstate = nk.vqs.MCState(sampler, model=(init, apply))
+    nk.vqs.MCState(sampler, model=(init, apply))
 
 
 def test_haiku_framework():

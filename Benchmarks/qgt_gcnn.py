@@ -1,14 +1,7 @@
 import netket as nk
 from netket.optimizer import qgt
-from flax.core import unfreeze
-from flax import linen as nn
-from flax.linen.initializers import normal, variance_scaling
 import jax
-from jax import numpy as jnp
 from jax.scipy.sparse.linalg import cg
-import numpy as np
-from typing import Any
-from netket.utils.types import NNInitFunc
 import timeit
 
 from sys import argv
@@ -101,7 +94,7 @@ def benchmark(side, n_samples, layers, features):
 
 
 print(f"# GCNN mode {argv[2]}")
-print(f"# Side length\tFeatures\tLayers\tSamples\tSampling\tJitting\tSR cycle\tSolve")
+print("# Side length\tFeatures\tLayers\tSamples\tSampling\tJitting\tSR cycle\tSolve")
 
 # Different system sizes
 benchmark(6, 256, 4, 4)

@@ -14,12 +14,12 @@ pytestmark = common.skipif_mpi
 def test_deprecated_stuff():
     with pytest.warns(FutureWarning):
 
-        class TestModule(nknn.Module):
+        class TestModule1(nknn.Module):
             pass
 
     with pytest.warns(FutureWarning):
 
-        class TestModule(nn.Module):
+        class TestModule2(nn.Module):
             @nknn.compact
             def __call__(self, x):
                 pass

@@ -76,14 +76,18 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
     """
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
-
+        """
+        This implements the transition rule for `DiscreteOperator`s that are
+        implemented in Numba, relying on the `_get_conn_flattened_closure`
+        hack to make it work in numba.
+        """
         get_conn_flattened = rule.operator._get_conn_flattened_closure()
         n_conn_from_sections = rule.operator._n_conn_from_sections
 
         @njit4jax(
             (
-                jax.abstract_arrays.ShapedArray(σ.shape, σ.dtype),
-                jax.abstract_arrays.ShapedArray((σ.shape[0],), σ.dtype),
+                jax.core.ShapedArray(σ.shape, σ.dtype),
+                jax.core.ShapedArray((σ.shape[0],), σ.dtype),
             )
         )
         def _transition(args):

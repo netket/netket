@@ -21,9 +21,10 @@ import numba
 
 from netket.utils.types import DType
 from netket.operator._discrete_operator import DiscreteOperator
-from netket.operator._pauli_strings import _count_of_locations
+from netket.operator._pauli_strings.base import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
+from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from netket.experimental.hilbert import SpinOrbitalFermions
 
@@ -341,7 +342,14 @@ class FermionOperator2nd(DiscreteOperator):
             array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
         """
         self._setup()
-        x = np.array(x)
+
+        x = concrete_or_error(
+            np.asarray,
+            x,
+            NumbaOperatorGetConnDuringTracingError,
+            self,
+        )
+
         assert (
             x.shape[-1] == self.hilbert.size
         ), "size of hilbert space does not match size of x"

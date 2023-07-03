@@ -1,6 +1,4 @@
 from netket import legacy as nk
-import jax
-from jax.experimental.optimizers import sgd as JaxSgd
 
 # 1D Lattice
 L = 20

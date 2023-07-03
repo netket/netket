@@ -94,6 +94,9 @@ operators["Pauli Hamiltonian (XX)"] = nk.operator.PauliStrings(["XX"], [0.1])
 operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
+operators["Pauli Hamiltonian Jax"] = nk.operator.PauliStringsJax(
+    ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
+)
 
 hi = nkx.hilbert.SpinOrbitalFermions(5)
 operators["FermionOperator2nd"] = nkx.operator.FermionOperator2nd(
@@ -359,14 +362,43 @@ def test_operator_jax_getconn(op):
     """Check that get_conn returns the same result for jax and numba operators"""
     op_jax = op.to_jax_operator()
 
-    all_states = op.hilbert.all_states()
+    states = op.hilbert.all_states()
 
     @jax.jit
     def _get_conn_padded(op, s):
-        return op_jax.get_conn_padded(s)
+        return op.get_conn_padded(s)
 
-    sp, mels = op.get_conn_padded(all_states)
-    sp_j, mels_j = _get_conn_padded(op_jax, all_states)
+    # check on all states
+    sp, mels = op.get_conn_padded(states)
+    sp_j, mels_j = _get_conn_padded(op_jax, states)
+    assert mels.shape[-1] <= op.max_conn_size
 
     np.testing.assert_allclose(sp, sp_j)
     np.testing.assert_allclose(mels, mels_j)
+
+    for shape in [None, (1,), (2, 2)]:
+        states = op.hilbert.random_state(jax.random.PRNGKey(1), shape)
+
+        sp, mels = op.get_conn_padded(states)
+        sp_j, mels_j = _get_conn_padded(op_jax, states)
+        assert mels_j.shape[-1] <= op.max_conn_size
+
+        np.testing.assert_allclose(sp, sp_j)
+        np.testing.assert_allclose(mels, mels_j)
+
+
+@pytest.mark.parametrize(
+    "op", [pytest.param(op, id=name) for name, op in operators_numba.items()]
+)
+def test_operator_numba_throws(op):
+    """Check that get conn throws an error"""
+    from netket.errors import NumbaOperatorGetConnDuringTracingError
+
+    state = op.hilbert.random_state(jax.random.PRNGKey(1))
+
+    @jax.jit
+    def _get_conn_padded(s):
+        return op.get_conn_padded(s)
+
+    with pytest.raises(NumbaOperatorGetConnDuringTracingError):
+        _get_conn_padded(state)

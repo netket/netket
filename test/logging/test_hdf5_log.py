@@ -65,7 +65,7 @@ def test_lazy_init(tmp_path):
 
     path = str(tmp_path) + "/dir1"
 
-    log = nkx.logging.HDF5Log(path)
+    nkx.logging.HDF5Log(path)
 
     files = glob.glob(path + "/*")
     assert len(files) == 0

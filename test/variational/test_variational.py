@@ -15,7 +15,7 @@
 from functools import partial
 
 import pytest
-from pytest import approx, raises, warns
+from pytest import approx, raises
 
 import flax
 import flax.linen as nn

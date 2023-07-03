@@ -25,10 +25,8 @@ import jax
 import jax.numpy as jnp
 import jax.flatten_util
 
-from functools import partial
 import itertools
 
-import netket as nk
 from netket import jax as nkjax
 from netket import stats as nkstats
 from netket.utils import mpi
@@ -379,7 +377,6 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
     diag_shift = 0.01
     model_state = {}
     # rescale_shift = False
-    offset = None
 
     def apply_fun(params, samples):
         return e.f(params["params"], samples)

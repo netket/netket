@@ -41,7 +41,7 @@ def _setup_ss(dtype=np.float32, sr=True):
     sa = nk.sampler.MetropolisLocal(hilbert=nk.hilbert.DoubledHilbert(hi))
     sa_obs = nk.sampler.MetropolisLocal(hilbert=hi)
 
-    vs = nk.vqs.MCMixedState(sa, ma, sampler_diag=sa_obs, n_samples=1000, seed=SEED)
+    vs = nk.vqs.MCMixedState(sa, ma, sampler_diag=sa_obs, n_samples=1008, seed=SEED)
 
     op = nk.optimizer.Sgd(learning_rate=0.05)
     if sr:
@@ -90,7 +90,7 @@ def test_steadystate_construction_vstate():
     sa = vs.sampler
     op = nk.optimizer.Sgd(learning_rate=0.05)
 
-    driver = nk.SteadyState(lind, op, sa, nk.models.NDM(), n_samples=1000, seed=SEED)
+    driver = nk.SteadyState(lind, op, sa, nk.models.NDM(), n_samples=1008, seed=SEED)
 
     driver.run(1)
 

@@ -80,7 +80,7 @@ def test_rel_dist_deepsets_error():
     sdim = len(hilb.extent)
 
     x = jnp.hstack([jnp.ones(4), -jnp.ones(4)]).reshape(1, -1)
-    xp = jnp.roll(x, sdim)
+    jnp.roll(x, sdim)
     ds = nk.models.DeepSetRelDistance(
         hilbert=hilb,
         layers_phi=3,
@@ -90,7 +90,7 @@ def test_rel_dist_deepsets_error():
         output_activation=nknn.gelu,
     )
     with pytest.raises(ValueError):
-        p = ds.init(jax.random.PRNGKey(42), x)
+        ds.init(jax.random.PRNGKey(42), x)
 
     with pytest.raises(AssertionError):
         ds = nk.models.DeepSetRelDistance(
@@ -100,7 +100,7 @@ def test_rel_dist_deepsets_error():
             features_phi=(10, 10),
             features_rho=(10, 2),
         )
-        p = ds.init(jax.random.PRNGKey(42), x)
+        ds.init(jax.random.PRNGKey(42), x)
 
     with pytest.raises(ValueError):
         ds = nk.models.DeepSetRelDistance(
@@ -110,4 +110,4 @@ def test_rel_dist_deepsets_error():
             features_phi=(10, 10),
             features_rho=(10, 2),
         )
-        p = ds.init(jax.random.PRNGKey(42), x)
+        ds.init(jax.random.PRNGKey(42), x)

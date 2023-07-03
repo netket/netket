@@ -190,7 +190,7 @@ def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
             )
 
 
-@pytest.mark.skipif_mpi
+@common.skipif_mpi
 @pytest.mark.parametrize(
     "qgt",
     [pytest.param(sr, id=name) for name, sr in QGT_objects.items()],
@@ -313,7 +313,7 @@ def test_qgt_dense(qgt, vstate, _mpi_size, _mpi_rank):
             np.testing.assert_allclose(Sd_all, Sd, rtol=rtol, atol=atol)
 
 
-@pytest.mark.skipif_mpi
+@common.skipif_mpi
 @pytest.mark.parametrize(
     "qgt", [pytest.param(sr, id=name) for name, sr in QGT_objects.items()]
 )
@@ -347,7 +347,7 @@ def test_qgt_pytree_diag_shift(qgt, vstate):
     jax.tree_map(lambda a, b: np.testing.assert_allclose(a, b), res, expected)
 
 
-@pytest.mark.skipif_mpi
+@common.skipif_mpi
 def test_qgt_holomorphic_real_pars_throws():
     hi = nk.hilbert.Spin(1 / 2, 5)
     vstate = nk.vqs.MCState(

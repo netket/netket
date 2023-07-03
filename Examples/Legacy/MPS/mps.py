@@ -1,6 +1,4 @@
 from netket import legacy as nk
-import numpy as np
-import jax
 from jax.experimental.optimizers import adam as Adam
 
 # 1D Lattice
