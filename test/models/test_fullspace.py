@@ -39,7 +39,7 @@ def test_logstatevec():
 
 
 def test_groundstate():
-    g = nk.graph.Chain(8)
+    g = nk.graph.Chain(6)
     hi = nk.hilbert.Spin(1 / 2, g.n_nodes)
     ham = nk.operator.Ising(hi, g, h=0.5)
 
@@ -47,6 +47,8 @@ def test_groundstate():
 
     mod = nk.models.LogStateVector(hi, param_dtype=float)
     vs = nk.vqs.FullSumState(hi, mod)
-    vs.parameters = {"logstate": np.log(v[:, 0])}
+    # use abs because we know the gs can be positive, and in some
+    # scipy version we get negative phase.
+    vs.parameters = {"logstate": np.log(np.abs(v[:, 0]))}
 
     np.testing.assert_allclose(vs.expect(ham).mean, w[0])
