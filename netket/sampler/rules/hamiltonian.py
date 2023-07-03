@@ -207,7 +207,7 @@ def HamiltonianRule(operator):
 
     This is a thin wrapper on top of the constructors of :class:`netket.sampler.rules.HamiltonianRuleJax` and
     :class:`netket.sampler.rules.HamiltonianRuleNumba`, which dispatches on one of the two implementations
-    depending on whether the operator specified is jax-compatible (:class:`netket.operator.DiscreteJaxOperator`) 
+    depending on whether the operator specified is jax-compatible (:class:`netket.operator.DiscreteJaxOperator`)
     or not.
     """
     if isinstance(operator, DiscreteJaxOperator):
