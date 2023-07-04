@@ -17,7 +17,7 @@ from scipy.sparse.linalg import bicgstab as _bicgstab
 from scipy.sparse.linalg import LinearOperator as _LinearOperator
 
 from .operator import AbstractOperator as _AbstractOperator
-from .operator import DiscreteJaxOperator as _DiscreteJaxOperator
+from jax.experimental.sparse import JAXSparse as _JAXSparse
 
 
 def lanczos_ed(
@@ -81,9 +81,9 @@ def lanczos_ed(
         )
     else:
         A = operator.to_sparse()
-        if isinstance(operator, _DiscreteJaxOperator):
+        if isinstance(A, _JAXSparse):
             # jax sparse arrays are not compatible with scipy eigsh.
-            # wrap them in a scipy linear operator
+            # wrap them in a scipy.sparse.linalg.LinearOperator
             A = _LinearOperator(A.shape, A.__matmul__, dtype=A.dtype)
 
     result = eigsh(A, **actual_scipy_args)
