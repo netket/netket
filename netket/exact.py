@@ -72,7 +72,6 @@ def lanczos_ed(
 
     if matrix_free:
         # wrap the operator.to_linear_operator() in a scipy.sparse.linalg.LinearOperator
-        # raise NotImplementedError
         n = operator.hilbert.n_states
         A = _LinearOperator(
             (n, n),
