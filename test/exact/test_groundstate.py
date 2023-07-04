@@ -1,3 +1,4 @@
+import pytest
 from pytest import approx
 import netket as nk
 import numpy as np
@@ -7,11 +8,19 @@ from .. import common
 pytestmark = common.skipif_mpi
 
 
-def test_ed():
+operators = {}
+
+g = nk.graph.Chain(8)
+hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+operators["Ising 1D"] = nk.operator.Ising(graph=g, h=1.0, hilbert=hi)
+operators["Ising 1D Jax"] = nk.operator.IsingJax(graph=g, h=1.0, hilbert=hi)
+
+
+@pytest.mark.parametrize(
+    "ha", [pytest.param(op, id=name) for name, op in operators.items()]
+)
+def test_ed(ha):
     first_n = 3
-    g = nk.graph.Chain(8)
-    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
-    ha = nk.operator.Ising(graph=g, h=1.0, hilbert=hi)
 
     def expval(op, v):
         return np.vdot(v, op(v))
