@@ -78,8 +78,8 @@ And the following dense solvers for Stochastic Reconfiguration:
    :nosignatures:
 
    solver.cholesky
-   solver.eigh
    solver.LU
+   solver.pinv_smooth
    solver.solve
    solver.svd
 ```

@@ -18,7 +18,7 @@ import jax.scipy as jsp
 from netket.jax import tree_ravel
 
 
-def eigh(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
+def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
     r"""
     Solve the linear system by building a pseudo-inverse from the
     eigendecomposition obtained from :func:`jax.numpy.linalg.eigh`.
@@ -27,8 +27,9 @@ def eigh(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
     :math:`r_\text{cond} \lambda_0` are truncated (where :math:`\lambda_0`
     is the largest eigenvalue).
 
-    The eigenvalues are further smoothed with another filter given by
-    the following equation
+    The eigenvalues are further smoothed with another filter, originally introduced in
+    `Medvidovic, Sels arXiv:2212.11289 (2022) <https://arxiv.org/abs/2212.11289>`_,
+    given by the following equation
 
     .. math::
 
