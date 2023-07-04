@@ -16,6 +16,7 @@ import numpy as _np
 from scipy.sparse.linalg import bicgstab as _bicgstab
 
 from .operator import AbstractOperator as _AbstractOperator
+from .operator import DiscreteJaxOperator as _DiscreteJaxOperator
 
 
 def lanczos_ed(
@@ -67,6 +68,13 @@ def lanczos_ed(
     actual_scipy_args["which"] = "SA"
     actual_scipy_args["k"] = k
     actual_scipy_args["return_eigenvectors"] = compute_eigenvectors
+
+    if isinstance(operator, _DiscreteJaxOperator):
+        # Use the matrix free code path, as jax sparse arrays are not compatible
+        # with scipy eigsh.
+        # The default DiscreteOperator to_linear_operator implementation
+        # internally uses the sparse matrix matmul anyway.
+        matrix_free = True
 
     result = eigsh(
         operator.to_linear_operator() if matrix_free else operator.to_sparse(),
