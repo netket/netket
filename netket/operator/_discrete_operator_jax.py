@@ -208,7 +208,6 @@ class DiscreteJaxOperator(DiscreteOperator):
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
         return BCOO((a, ij), shape=(n, n))
 
-
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
