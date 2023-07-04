@@ -18,6 +18,55 @@ import jax.scipy as jsp
 from netket.jax import tree_ravel
 
 
+def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
+    r"""
+    Solve the linear system by building a pseudo-inverse from the
+    eigendecomposition obtained from :func:`jax.numpy.linalg.eigh`.
+
+    The eigenvalues :math:`\lambda_i` smaller than
+    :math:`r_\text{cond} \lambda_\text{max}` are truncated (where
+    :math:`\lambda_\text{max}` is the largest eigenvalue).
+
+    The eigenvalues are further smoothed with another filter, originally introduced in
+    `Medvidovic, Sels arXiv:2212.11289 (2022) <https://arxiv.org/abs/2212.11289>`_,
+    given by the following equation
+
+    .. math::
+
+        \tilde\lambda_i^{-1}=\frac{\lambda_i^{-1}}{1+\big(\epsilon\frac{\lambda_\text{max}}{\lambda_i}\big)^6}
+
+
+    Args:
+        A: LinearOperator (matrix)
+        b: vector or Pytree
+        rcond : Cut-off ratio for small singular values of :code:`A`. For
+            the purposes of rank determination, singular values are treated
+            as zero if they are smaller than rcond times the largest
+            singular value of :code:`A`.
+        rcond_smooth : regularization parameter used with a similar effect to `rcond`
+            but with a softer curve. See :math:`\epsilon` in the formula
+            above.
+    """
+    del x0
+
+    A = A.to_dense()
+    b, unravel = tree_ravel(b)
+
+    Σ, U = jnp.linalg.eigh(A)
+
+    # Discard eigenvalues below numerical precision
+    Σ_inv = jnp.where(jnp.abs(Σ / Σ[-1]) > rcond, jnp.reciprocal(Σ), 0.0)
+
+    # Set regularizer for singular value cutoff
+    regularizer = 1.0 / (1.0 + (rcond_smooth / jnp.abs(Σ / Σ[-1])) ** 6)
+
+    Σ_inv = Σ_inv * regularizer
+
+    x = U @ (Σ_inv * (U.conj().T @ b))
+
+    return unravel(x), None
+
+
 def svd(A, b, rcond=None, x0=None):
     """
     Solve the linear system using Singular Value Decomposition.

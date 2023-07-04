@@ -77,8 +77,9 @@ And the following dense solvers for Stochastic Reconfiguration:
    :toctree: _generated/optim
    :nosignatures:
 
-   solver.svd
    solver.cholesky
    solver.LU
+   solver.pinv_smooth
    solver.solve
+   solver.svd
 ```
