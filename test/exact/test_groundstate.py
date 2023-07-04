@@ -17,16 +17,21 @@ operators["Ising 1D Jax"] = nk.operator.IsingJax(graph=g, h=1.0, hilbert=hi)
 
 
 @pytest.mark.parametrize(
+    "matrix_free", [pytest.param(x, id=f"matrix_free={x}") for x in [False, True]]
+)
+@pytest.mark.parametrize(
     "ha", [pytest.param(op, id=name) for name, op in operators.items()]
 )
-def test_ed(ha):
+def test_ed(ha, matrix_free):
     first_n = 3
 
     def expval(op, v):
         return np.vdot(v, op(v))
 
     # Test Lanczos ED with eigenvectors
-    w, v = nk.exact.lanczos_ed(ha, k=first_n, compute_eigenvectors=True)
+    w, v = nk.exact.lanczos_ed(
+        ha, k=first_n, compute_eigenvectors=True, matrix_free=matrix_free
+    )
     assert w.shape == (first_n,)
     assert v.shape == (hi.n_states, first_n)
     gse = expval(ha, v[:, 0])
@@ -35,7 +40,9 @@ def test_ed(ha):
     assert fse == approx(w[1], rel=1e-14, abs=1e-14)
 
     # Test Lanczos ED without eigenvectors
-    w = nk.exact.lanczos_ed(ha, k=first_n, compute_eigenvectors=False)
+    w = nk.exact.lanczos_ed(
+        ha, k=first_n, compute_eigenvectors=False, matrix_free=matrix_free
+    )
     assert w.shape == (first_n,)
 
     # Test Lanczos ED with custom options
@@ -43,6 +50,7 @@ def test_ed(ha):
         ha,
         k=first_n,
         scipy_args={"tol": 1e-9, "maxiter": 1000},
+        matrix_free=matrix_free,
     )
     assert w_tol.shape == (first_n,)
     assert w_tol == approx(w)
