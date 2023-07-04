@@ -14,8 +14,10 @@
 
 import numpy as _np
 from scipy.sparse.linalg import bicgstab as _bicgstab
+from scipy.sparse.linalg import LinearOperator as _LinearOperator
 
 from .operator import AbstractOperator as _AbstractOperator
+from jax.experimental.sparse import JAXSparse as _JAXSparse
 
 
 def lanczos_ed(
@@ -68,10 +70,23 @@ def lanczos_ed(
     actual_scipy_args["k"] = k
     actual_scipy_args["return_eigenvectors"] = compute_eigenvectors
 
-    result = eigsh(
-        operator.to_linear_operator() if matrix_free else operator.to_sparse(),
-        **actual_scipy_args,
-    )
+    if matrix_free:
+        # wrap the operator.to_linear_operator() in a scipy.sparse.linalg.LinearOperator
+        n = operator.hilbert.n_states
+        A = _LinearOperator(
+            (n, n),
+            operator.to_linear_operator().__matmul__,
+            dtype=operator.dtype,
+        )
+    else:
+        A = operator.to_sparse()
+        if isinstance(A, _JAXSparse):
+            # jax sparse arrays are not compatible with scipy eigsh.
+            # wrap them in a scipy.sparse.linalg.LinearOperator
+            A = _LinearOperator(A.shape, A.__matmul__, dtype=A.dtype)
+
+    result = eigsh(A, **actual_scipy_args)
+
     if not compute_eigenvectors:
         # The sort order of eigenvalues returned by scipy changes based on
         # `return_eigenvalues`. Therefore we invert the order here so that the
