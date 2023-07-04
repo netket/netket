@@ -189,7 +189,7 @@ class DiscreteJaxOperator(DiscreteOperator):
             out[:] = self.max_conn_size
         return out
 
-    def _to_sparse_jax(self) -> JAXSparse:
+    def to_sparse(self) -> JAXSparse:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -209,7 +209,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
         return BCOO((a, ij), shape=(n, n))
 
-    def to_sparse(self) -> csr_matrix:
+    def _to_sparse_scipy(self) -> csr_matrix:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -241,4 +241,4 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             The dense matrix representation of the operator as a jax Array.
         """
-        return self._to_sparse_jax().todense()
+        return self.to_sparse().todense()
