@@ -19,7 +19,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from jax.experimental.sparse import JAXSparse, BCOO
-from scipy.sparse import coo_array, csr_array
+from scipy.sparse import coo_matrix, csr_matrix
 
 from netket.operator import DiscreteOperator
 
@@ -209,7 +209,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
         return BCOO((a, ij), shape=(n, n))
 
-    def to_sparse(self) -> csr_array:
+    def to_sparse(self) -> csr_matrix:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -226,7 +226,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         a = mels.ravel()
         i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
         j = self.hilbert.states_to_numbers(xp).ravel()
-        A = coo_array((a, (i, j)), shape=(n, n))
+        A = coo_matrix((a, (i, j)), shape=(n, n))
         A.eliminate_zeros()
         return A.tocsr()
 
