@@ -19,6 +19,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from jax.experimental.sparse import JAXSparse, BCOO
+from scipy.sparse import coo_array, csr_array
 
 from netket.operator import DiscreteOperator
 
@@ -188,7 +189,7 @@ class DiscreteJaxOperator(DiscreteOperator):
             out[:] = self.max_conn_size
         return out
 
-    def to_sparse(self) -> JAXSparse:
+    def _to_sparse_jax(self) -> JAXSparse:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
         numbers, and this operation should thus only be performed for
@@ -208,6 +209,27 @@ class DiscreteJaxOperator(DiscreteOperator):
         ij = np.concatenate((i[:, None], j[:, None]), axis=1)
         return BCOO((a, ij), shape=(n, n))
 
+    def to_sparse(self) -> csr_array:
+        r"""Returns the sparse matrix representation of the operator. Note that,
+        in general, the size of the matrix is exponential in the number of quantum
+        numbers, and this operation should thus only be performed for
+        low-dimensional Hilbert spaces or sufficiently sparse operators.
+
+        This method requires an indexable Hilbert space.
+
+        Returns:
+            The sparse scipy matrix representation of the operator.
+        """
+        x = self.hilbert.all_states()
+        n = x.shape[0]
+        xp, mels = self.get_conn_padded(x)
+        a = mels.ravel()
+        i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
+        j = self.hilbert.states_to_numbers(xp).ravel()
+        A = coo_array((a, (i, j)), shape=(n, n))
+        A.eliminate_zeros()
+        return A.tocsr()
+
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
@@ -219,4 +241,4 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             The dense matrix representation of the operator as a jax Array.
         """
-        return self.to_sparse().todense()
+        return self._to_sparse_jax().todense()
