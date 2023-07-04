@@ -18,7 +18,6 @@ import jax.numpy as jnp
 
 from numba import jit
 from scipy.sparse import csr_matrix as _csr_matrix
-from scipy.sparse.linalg import LinearOperator as scipy_LinearOperator
 
 from netket.hilbert import DiscreteHilbert
 from netket.operator import AbstractOperator
@@ -278,18 +277,7 @@ class DiscreteOperator(AbstractOperator):
         return NotImplemented
 
     def to_linear_operator(self):
-        """
-        Convert the operator to a scipy.sparse.linalg.LinearOperator
-
-        Default implementation which uses the sparse matrix representation
-        internally.
-        """
-        A = self.to_sparse()
-        return scipy_LinearOperator(
-            A.shape,
-            A.__matmul__,
-            dtype=A.dtype,
-        )
+        return self.to_sparse()
 
     def _get_conn_flattened_closure(self):
         raise NotImplementedError(
