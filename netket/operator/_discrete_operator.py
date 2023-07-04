@@ -281,14 +281,13 @@ class DiscreteOperator(AbstractOperator):
         """
         Convert the operator to a scipy.sparse.linalg.LinearOperator
 
-        Default implementation which uses the sparse representation internally.
+        Default implementation which uses the sparse matrix representation
+        internally.
         """
         A = self.to_sparse()
         return scipy_LinearOperator(
             A.shape,
             A.__matmul__,
-            rmatvec=A.__rmatmul__,
-            rmatmat=A.__rmatmul__,
             dtype=A.dtype,
         )
 
