@@ -119,7 +119,6 @@ def test_ode_solver(method):
     t = []
     y_t = []
     for _ in range(n_steps):
-        print(solv.t, solv.y)
         t.append(solv.t)
         y_t.append(solv.y)
         solv.step()
@@ -153,7 +152,6 @@ def test_adaptive_solver(solver):
     y_t = []
     last_step = -1
     while solv.t <= 2.0:
-        print(solv._rkstate)
         if solv._rkstate.step_no != last_step:
             last_step = solv._rkstate.step_no
             t.append(solv.t)
@@ -161,7 +159,6 @@ def test_adaptive_solver(solver):
         solv.step()
     y_t = np.asarray(y_t)
 
-    print(t)
     sol = sci.solve_ivp(
         ode, (0.0, 2.0), y0, t_eval=t, atol=0.0, rtol=tol, method="RK45"
     )
