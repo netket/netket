@@ -141,7 +141,7 @@ class TDVPSchmitt(TDVPBaseDriver):
             diag_shift: diagonal shift of the quantum geometric tensor (QGT)
             diag_scale: If not None rescales the diagonal shift of the QGT
             rcond : Cut-off ratio for small singular :math:`\sigma_k` values of the
-                Quantum Geometric Tensor :code:`A`. For the purposes of rank determination,
+                Quantum Geometric Tensor. For the purposes of rank determination,
                 singular values are treated as zero if they are smaller than rcond times
                 the largest singular value :code:`\sigma_{max}`.
             rcond_smooth : Smooth cut-off ratio for singular values of the Quantum Geometric
