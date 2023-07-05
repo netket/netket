@@ -17,18 +17,12 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+      - uses: psf/black@stable
         with:
-          python-version: "3.10"
-
-      - name: Pip install python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -v black==22.10.0
-
-      - name: Black Code Formatter
-        run: black --check --diff --color .
+          options: "--check --diff --color --verbose"
+          src: "."
+          jupyter: false
+          version: "~= 22.0"
 
   ruff:
     name: Code (ruff)
@@ -41,8 +35,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
-      - name: Set up Python 3.10
-        uses: chartboost/ruff-action@v1
+      - uses: chartboost/ruff-action@v1
         with:
           version: 0.0.276
           args: --config pyproject.toml
