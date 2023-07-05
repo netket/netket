@@ -66,9 +66,9 @@ te = nkx.driver.TDVPSchmitt(
     integrator=integrator,
     t0=0.0,
     error_norm="qgt",
-    # snr_tol=1e-10,
-    # svd_tol=1e-8,
-    # num_tol=1e-14,
+    # snr_atol = 1e-10,
+    # rcond_smooth = 1e-8,
+    # rcond = 1e-14,
 )
 
 log = nk.logging.JsonLog("example_ising1d_TE")
