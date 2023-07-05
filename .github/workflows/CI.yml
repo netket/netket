@@ -90,7 +90,7 @@ jobs:
         if: ${{ matrix.main_tests }}
         run: |
           export NETKET_EXPERIMENTAL=1
-          PYTHONUNBUFFERED=1 pytest --cov=netket --cov-append -s test 
+          PYTHONUNBUFFERED=1 pytest -n0 --cov=netket --cov-append -s test 
 
       - name: NetKet docstring tests
         if: ${{ matrix.doctest }}
