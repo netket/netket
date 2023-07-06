@@ -17,9 +17,9 @@
 
 
 """NetKet error classes.
-(Inspired by Flax error classes)
+(Inspired by NetKet error classes)
 
-=== When to create a Flax error class?
+=== When to create a NetKet error class?
 
 If an error message requires more explanation than a one-liner, it is useful to
 add it as a separate error class. This may lead to some duplication with
@@ -44,7 +44,7 @@ from the error docstring directly.
 
 === Copy/pastable template for new error messages:
 
-class Template(FlaxError):
+class Template(NetketError):
   "" "
 
   "" "
@@ -68,6 +68,28 @@ class NetketError(Exception):
             f"\n\t {error_dir}/{module_name}.{class_name}.html"
             f"\n"
             f"or the list of all common errors at"
+            f"\n\t {error_index}"
+            f"\n-------------------------------------------------------"
+            f"\n"
+        )
+        super().__init__(error_msg)
+
+
+class NetketWarning(Warning):
+    def __init__(self, message):
+        error_index = "https://netket.readthedocs.io/en/latest/api/errors.html"
+        error_dir = "https://netket.readthedocs.io/en/latest/api/_generated/errors"
+        module_name = self.__class__.__module__
+        class_name = self.__class__.__name__
+        error_msg = (
+            f"{message}"
+            f"\n"
+            f"\n-------------------------------------------------------"
+            f"\n"
+            f"For more detailed informations, visit the following link:"
+            f"\n\t {error_dir}/{module_name}.{class_name}.html"
+            f"\n"
+            f"or the list of all common errors and warnings at"
             f"\n\t {error_index}"
             f"\n-------------------------------------------------------"
             f"\n"
@@ -324,6 +346,41 @@ class JaxOperatorSetupDuringTracingError(NetketError):
             f"\n\n"
             f"To avoid this error, construct the operator outside of the jax"
             f"function and pass it to it as a standard argument."
+        )
+
+
+#################################################
+# Jacobian and QGT errors                       #
+#################################################
+
+
+class IllegalHolomorphicDeclarationForRealParametersError(NetketError):
+    """Illegal attempt to declare a function holomorphic when it has some
+    or all real parameters, which makes it automatically non-holomorphic.
+
+    This error may arise when computing the Jacobian directly or when
+    constructing the Quantum Geometric Tensor, which internally constructs
+    the Jacobian of your variational function.
+
+    In general we could silence this error automatically and ignore the
+    :code:`holomorphic=True` argument, but we wish to stress with the users
+    the importance of correctly declaring this argument.
+
+    To solve this error, simply stop declaring :code:`holomorphic=True`, by
+    either removing it or specifying :code:`holomorphic=False`.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+        A function with real parameters is not holomorphic.
+
+        You declared `holomorphic=True` when computing the Jacobian, Quantum
+        Geometric Tensor or a similar, but your variational function has
+        real parameters, so it cannot be holomorphic.
+
+        To fix this error, remove the keyword argument `holomorphic=True`.
+        """
         )
 
 
