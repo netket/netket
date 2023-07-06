@@ -43,15 +43,21 @@ class TDVPSchmitt(TDVPBaseDriver):
 
     With the force vector
 
-        :math:`F_k=\langle \mathcal O_{\theta_k}^* E_{loc}^{\theta}\rangle_c`
+    .. math::
+
+        F_k=\langle \mathcal O_{\theta_k}^* E_{loc}^{\theta}\rangle_c
 
     and the quantum Fisher matrix
 
-        :math:`S_{k,k'} = \langle \mathcal O_{\theta_k} (\mathcal O_{\theta_{k'}})^*\rangle_c`
+    .. math::
+
+        S_{k,k'} = \langle \mathcal O_{\theta_k} (\mathcal O_{\theta_{k'}})^*\rangle_c
 
     and for real parameters :math:`\theta\in\mathbb R`, the TDVP equation reads
 
-        :math:`q\big[S_{k,k'}\big]\theta_{k'} = -q\big[xF_k\big]`
+    .. math::
+
+        q\big[S_{k,k'}\big]\theta_{k'} = -q\big[xF_k\big]
 
     Here, either :math:`q=\text{Re}` or :math:`q=\text{Im}` and :math:`x=1` for ground state
     search or :math:`x=i` (the imaginary unit) for real time dynamics.
@@ -59,23 +65,32 @@ class TDVPSchmitt(TDVPBaseDriver):
     For ground state search a regularization controlled by a parameter :math:`\rho` can be included
     by increasing the diagonal entries and solving
 
-        :math:`q\big[(1+\rho\delta_{k,k'})S_{k,k'}\big]\theta_{k'} = -q\big[F_k\big]`
+    .. math::
+
+        q\big[(1+\rho\delta_{k,k'})S_{k,k'}\big]\theta_{k'} = -q\big[F_k\big]
 
     The `TDVP` class solves the TDVP equation by computing a pseudo-inverse of :math:`S` via
     eigendecomposition yielding
 
-        :math:`S = V\Sigma V^\dagger`
+    .. math::
+
+        S = V\Sigma V^\dagger
 
     with a diagonal matrix :math:`\Sigma_{kk}=\sigma_k`
     Assuming that :math:`\sigma_1` is the smallest eigenvalue, the pseudo-inverse is constructed
     from the regularized inverted eigenvalues
 
-        :math:`\tilde\sigma_k^{-1}=\frac{1}{\Big(1+\big(\frac{\epsilon_{SVD}}{\sigma_j/\sigma_1}\big)^6\Big)\Big(1+\big(\frac{\epsilon_{SNR}}{\text{SNR}(\rho_k)}\big)^6\Big)}`
+    .. math::
 
-    with :math:`\text{SNR}(\rho_k)` the signal-to-noise ratio of :math:`\rho_k=V_{k,k'}^{\dagger}F_{k'}` (see `[arXiv:1912.08828] <https://arxiv.org/pdf/1912.08828.pdf>`_ for details).
+        \tilde\sigma_k^{-1}=\frac{1}{\Big(1+\big(\frac{\epsilon_{SVD}}{\sigma_j/\sigma_1}\big)^6\Big)\Big(1+\big(\frac{\epsilon_{SNR}}{\text{SNR}(\rho_k)}\big)^6\Big)}
+
+    with :math:`\text{SNR}(\rho_k)` the signal-to-noise ratio of
+    :math:`\rho_k=V_{k,k'}^{\dagger}F_{k'}` (see
+    `[arXiv:1912.08828] <https://arxiv.org/pdf/1912.08828.pdf>`_ for details).
 
 
     .. note::
+
         This TDVP Driver uses the time-integrators from the `nkx.dynamics` module, which are
         automatically executed under a `jax.jit` context.
 
@@ -97,9 +112,9 @@ class TDVPSchmitt(TDVPBaseDriver):
         diag_shift: float = 0.0,
         diag_scale: float = None,
         error_norm: Union[str, Callable] = "qgt",
-        num_tol: float = 1e-14,
-        svd_tol: float = 1e-8,
-        snr_tol: float = 1,
+        rcond: float = 1e-14,
+        rcond_smooth: float = 1e-8,
+        snr_atol: float = 1,
     ):
         r"""
         Initializes the time evolution driver.
@@ -125,8 +140,17 @@ class TDVPSchmitt(TDVPBaseDriver):
             holomorphic: a flag to indicate that the wavefunction is holomorphic.
             diag_shift: diagonal shift of the quantum geometric tensor (QGT)
             diag_scale: If not None rescales the diagonal shift of the QGT
-            svd_tol: Regularization parameter :math:`\epsilon_{SVD}`, see above.
-            snr_tol: Regularization parameter :math:`\epsilon_{SNR}`, see above.
+            rcond : Cut-off ratio for small singular :math:`\sigma_k` values of the
+                Quantum Geometric Tensor. For the purposes of rank determination,
+                singular values are treated as zero if they are smaller than rcond times
+                the largest singular value :code:`\sigma_{max}`.
+            rcond_smooth : Smooth cut-off ratio for singular values of the Quantum Geometric
+                Tensor. This regularization parameter used with a similar effect to `rcond`
+                but with a softer curve. See :math:`\epsilon_{SVD}` in the formula
+                above.
+            snr_atol: Noise regularisation absolute tolerance, meaning that eigenvalues of
+                the S matrix that have a signal to noise ratio above this quantity will be
+                (soft) truncated. This is :math:`\epsilon_{SNR}` in the formulas above.
 
         """
         self.propagation_type = propagation_type
@@ -147,9 +171,9 @@ class TDVPSchmitt(TDVPBaseDriver):
             else:
                 raise ValueError("propagation_type must be one of 'real', 'imag'")
 
-        self.num_tol = num_tol
-        self.svd_tol = svd_tol
-        self.snr_tol = snr_tol
+        self.rcond = rcond
+        self.rcond_smooth = rcond_smooth
+        self.snr_atol = snr_atol
 
         self.diag_shift = diag_shift
         self.holomorphic = holomorphic
@@ -178,7 +202,7 @@ class TDVPSchmitt(TDVPBaseDriver):
 
 
 @partial(jax.jit, static_argnames=("n_samples"))
-def _impl(parameters, n_samples, E_loc, S, rhs_coeff, num_tol, svd_tol, snr_tol):
+def _impl(parameters, n_samples, E_loc, S, rhs_coeff, rcond, rcond_smooth, snr_atol):
     E = stats.statistics(E_loc)
     ΔE_loc = E_loc.T.reshape(-1, 1) - E.mean
 
@@ -207,11 +231,11 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, num_tol, svd_tol, snr_tol)
     snr = jnp.abs(rho) * jnp.sqrt(n_samples) / jnp.sqrt(stats.var(QEdata, axis=0))
 
     # Discard eigenvalues below numerical precision
-    ev_inv = jnp.where(jnp.abs(ev / ev[-1]) > num_tol, 1.0 / ev, 0.0)
+    ev_inv = jnp.where(jnp.abs(ev / ev[-1]) > rcond, 1.0 / ev, 0.0)
     # Set regularizer for singular value cutoff
-    regularizer = 1.0 / (1.0 + (svd_tol / jnp.abs(ev / ev[-1])) ** 6)
+    regularizer = 1.0 / (1.0 + (rcond_smooth / jnp.abs(ev / ev[-1])) ** 6)
     # Construct a soft cutoff based on the SNR
-    regularizer2 = regularizer * (1.0 / (1.0 + (snr_tol / snr) ** 6))
+    regularizer2 = regularizer * (1.0 / (1.0 + (snr_atol / snr) ** 6))
 
     # solve the linear system by hand
     eta_p = ev_inv * regularizer2 * rhs_coeff * rho
@@ -258,9 +282,9 @@ def odefun_schmitt(state: MCState, self: TDVPSchmitt, t, w, *, stage=0):  # noqa
         E_loc,
         self._S,
         self._loss_grad_factor,
-        self.num_tol,
-        self.svd_tol,
-        self.snr_tol,
+        self.rcond,
+        self.rcond_smooth,
+        self.snr_atol,
     )
 
     if stage == 0:  # TODO: This does not work with FSAL.
