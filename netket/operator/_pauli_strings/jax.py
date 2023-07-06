@@ -118,6 +118,16 @@ def sites_to_mask(sites, n_sites, dtype=bool):
     return mask
 
 
+_available_modes = ["index", "mask"]
+
+
+def _check_mode(mode):
+    if mode not in _available_modes:
+        raise ValueError(
+            f"unknown mode {mode}. Available modes are {_available_modes}."
+        )
+
+
 def pack_internals_jax(
     operators,
     weights,
@@ -141,8 +151,8 @@ def pack_internals_jax(
     """
 
     # index_dtype needs to be signed (we use -1 for padding)
-    # mode can be either index or mask
-    assert mode in ["index", "mask"]
+
+    _check_mode(mode)
 
     # group together operators with same final state (i.e. those which flip the same sites)
     # see code of pack_internals for more details
@@ -279,6 +289,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         *,
         cutoff: float = 0.0,
         dtype: DType = complex,
+        _mode: str = "index",
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
 
@@ -305,7 +316,8 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             )
         # private variable for setting the mode
         # depending on performance tests we might expose or remove it
-        self._mode = "mask"
+        _check_mode(_mode)
+        self._mode = _mode
         self._hi_local_states = tuple(self.hilbert.local_states)
         self._initialized = False
 
