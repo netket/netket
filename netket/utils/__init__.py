@@ -34,6 +34,8 @@ from .optional_deps import tensorboard_available
 from .seed import random_seed
 from .summation import KahanSum
 
+from .holomorphic import is_probably_holomorphic
+
 from .deprecation import (
     warn_deprecation,
     deprecated,
