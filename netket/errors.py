@@ -326,11 +326,11 @@ class JaxOperatorSetupDuringTracingError(NetketError):
 
         Most operators lazily initialise the fields used to compute the connected elements only
         when needed. To check whether an operator was initialized you can probe the boolean flag
-        :code:py:`operator._initialized`. If `operator._initialized` is True, you can safely call
+        :code:`operator._initialized`. If :code:`operator._initialized` is True, you can safely call
         :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded` and similar methods. If it is
         False, then the setup procedure will be handled by an internal method usually called
-        `operator._setup()`. If you see this error, it means that this method internally uses dynamically
-        determined shapes, and it is what should be converted to be jax-friendly.
+        :code:`operator._setup()`. If you see this error, it means that this method internally
+        uses dynamically determined shapes, and it is what should be converted to be jax-friendly.
 
 
     """
