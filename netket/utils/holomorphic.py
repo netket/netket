@@ -35,20 +35,20 @@ def is_probably_holomorphic(
 
     The check is done by verifying if the function satisfies on the provided
     samples the
-    `Cauchy-Riemann equations <https://en.wikipedia.org/wiki/Cauchy–Riemann_equations>_`.
+    `Cauchy-Riemann equations <https://en.wikipedia.org/wiki/Cauchy–Riemann_equations>`_.
     In particular, assuming that the function is complex-valued
     :math:`\psi(\theta, x) = \psi_r(\theta, x) + i \psi_i(\theta, x)`
-    where :math:`\psi_r` and :math:`\psi_i`are it's real and imaginary part,
+    where :math:`\psi_r` and :math:`\psi_i` are it's real and imaginary part,
     and the parameters can also be split in real and imaginary part according to
     :math:`\theta = \theta_r + i\theta_i`, the conditions real
 
     .. math::
 
-        \frac{\partial \psi_r(\theta, x)]}{\partial \theta_r} =
-        \frac{\partial \psi_i(\theta, x)]}{\partial \theta_i}
+        \frac{\partial \psi_r(\theta, x)}{\partial \theta_r} =
+        \frac{\partial \psi_i(\theta, x)}{\partial \theta_i}
         \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,
-        \frac{\partial \psi_r(\theta, x)]}{\partial \theta_i} =
-        -\frac{\partial \psi_i(\theta, x)]}{\partial \theta_r}
+        \frac{\partial \psi_r(\theta, x)}{\partial \theta_i} =
+        -\frac{\partial \psi_i(\theta, x)}{\partial \theta_r}
 
     Those conditions are always not verified if the parameters are
     real (:math:`\theta_i=0`), in which case we automatically return False.
@@ -64,22 +64,22 @@ def is_probably_holomorphic(
         If you are working with NetKet, you are most likely pretty good at math. In that
         case, instead of relying on the computer to tell you if the function is holomorphic
         or not you can do it by yourself! It's quite easy: the Cauchy-Riemann conditions
-        can be rewritten using `Wirtinger derivatives <https://en.wikipedia.org/wiki/Wirtinger_derivatives>_
-        (where we treat the complex conjugate variables :math:`\theta`and :math:`theta^\star`
+        can be rewritten using `Wirtinger derivatives <https://en.wikipedia.org/wiki/Wirtinger_derivatives>`_
+        (where we treat the complex conjugate variables :math:`\theta` and :math:`\theta^\star`
         as linearly independent) as
 
         .. math::
 
             \frac{\partial \psi(\theta, x)]}{\partial \theta^\star} = 0 .
 
-        Practically, this can be read as _if the function :math:`\psi` depends on
-        :math:`\theta^\star` it will not be holomorphic. In practice, this means that
-        a very easy way to spot non-holomorphic functions is to verify if any operation
+        Practically, this can be read as *if the function :math:`\psi` depends on
+        :math:`\theta^\star` it will not be holomorphic.* Therefore, a very
+        easy way to spot non-holomorphic functions is to verify if any operation
         among the following appear in the function:
 
-            - complex conjugation
-            - absolute value
-            - real or imaginary part
+        * complex conjugation
+        * absolute value
+        * real or imaginary part
 
 
     .. Note::
@@ -97,7 +97,7 @@ def is_probably_holomorphic(
             accepting two inputs, the first being the parameters as a dictionary with at least
             a key :code:`params`, and possibly other keys given by the :code:`model_state`. The
             second argument to :code:`apply_fun` will be the samples.
-        params : a pytree of parameters to be passed as the first argument to the :code:`apply_fun`.
+        parameters : a pytree of parameters to be passed as the first argument to the :code:`apply_fun`.
             We will check if the ansatz is holomoprhic with respect to the derivatives of those
             parameters.
         samples : a set of samples.

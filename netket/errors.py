@@ -448,7 +448,7 @@ class HolomorphicUndeclaredWarning(NetketWarning):
 
     If you are unsure whether your variational function is holomorphic or not,
     you should check if it satisfies the
-    `Cauchy-Riemann equations <https://en.wikipedia.org/wiki/Cauchy–Riemann_equations>_`.
+    `Cauchy-Riemann equations <https://en.wikipedia.org/wiki/Cauchy–Riemann_equations>`_.
 
     To check numerically those conditions on a random set of samples you can use the
     function :func:`netket.utils.is_probably_holomorphic`. If this function returns
@@ -471,12 +471,14 @@ class HolomorphicUndeclaredWarning(NetketWarning):
                                          vs.samples,
                                          model_state = vs.model_state)
 
+    To suppress this warning correctly specify the keyword argument
+    `holomorphic`.
+
     .. note::
         a  detailed discussion, explaining how to easily check those conditions
         analitically is found in the documentation of
         :func:`netket.utils.is_probably_holomorphic`).
 
-    To suppress this warning specify `holomorphic`.
     """
 
     def __init__(self):
@@ -499,7 +501,7 @@ class HolomorphicUndeclaredWarning(NetketWarning):
                nk.utils.is_probably_holomorphic(vs._apply_fun, vs.parameters, vs.samples, vs.model_state)
             ```
 
-            if `nk.utils.is_probably_holomorphic`returns False, then your function is not holomorphic.
+            if `nk.utils.is_probably_holomorphic` returns False, then your function is not holomorphic.
             If it returns True, it is probably holomorphic.
             """
         )

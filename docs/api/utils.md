@@ -5,6 +5,19 @@
 .. currentmodule:: netket.utils
 
 ```
+## Generic functions
+
+Utility functions and classes.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/utils
+   :nosignatures:
+
+   is_probably_holomorphic
+   
+```
+
 ## Utils
 
 Utility functions and classes.
