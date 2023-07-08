@@ -47,13 +47,13 @@ def jacobian(
     dense: bool = False,
 ) -> PyTree:
     r"""
-    Computes the jacobian of a NN model with respect to its parameters. This function differs from
-    :func:`jax.jacrev` because it supports models with both real and complex parameters, as well as
-    non-holomorphic models.
+    Computes the jacobian of a NN model with respect to its parameters. This function
+    differs from :func:`jax.jacrev` because it supports models with both real and
+    complex parameters, as well as non-holomorphic models.
 
-    In the context of NQS, if you pass the log-wavefunction to to this function, it will compute the
-    log-derivative of the wavefunction with respect to the parameters, i.e. the matrix commonly known
-    as:
+    In the context of NQS, if you pass the log-wavefunction to to this function, it
+    will compute the log-derivative of the wavefunction with respect to the
+    parameters, i.e. the matrix commonly known as:
 
     .. math::
 
