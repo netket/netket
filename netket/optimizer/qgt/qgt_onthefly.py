@@ -14,6 +14,7 @@
 
 from typing import Callable, Optional, Union
 from functools import partial
+import warnings
 
 import jax
 from jax import numpy as jnp
@@ -22,6 +23,11 @@ from flax import struct
 import netket.jax as nkjax
 from netket.utils.types import PyTree
 
+from netket.errors import (
+    IllegalHolomorphicDeclarationForRealParametersError,
+    NonHolomorphicQGTOnTheFlyDenseRepresentationError,
+    HolomorphicUndeclaredWarning,
+)
 from netket.nn import split_array_mpi
 
 from .common import check_valid_vector_type
@@ -89,7 +95,19 @@ def QGTOnTheFly(
         chunking = True
 
     # check if holomorphic or not
-    mode = nkjax.jacobian_default_mode(
+    if holomorphic:
+        if nkjax.tree_leaf_isreal(vstate.parameters):
+            raise IllegalHolomorphicDeclarationForRealParametersError()
+        else:
+            mode = "holomorphic"
+    else:
+        if not nkjax.tree_leaf_iscomplex(vstate.parameters):
+            mode = "real"
+            warnings.warn(HolomorphicUndeclaredWarning(), UserWarning)
+        else:
+            mode = "complex"
+
+    nkjax.jacobian_default_mode(
         vstate._apply_fun,
         vstate.parameters,
         vstate.model_state,
@@ -168,29 +186,7 @@ class QGTOnTheFlyT(LinearOperator):
         # We must check this because the AD implementation will compute the wrong
         # QGT in that case
         if self._mode == "complex":
-            raise ValueError(
-                """
-                QGTOnTheFly cannot be converted to a dense matrix for non-holomorphic
-                functions which have complex parameters.
-
-                This limitation does not apply if the parameters are all real.
-
-                This error might have happened for two reasons:
-                 - you specified `holomorphic=False` because your ansatz is non-holomorphic.
-                   In that case you should use `QGTJacobianPyTree` or `QGTJacobianDense`
-                   implementations.
-
-                 - you did not specify `holomorphic`, which leads to the default value of
-                   `holomorphic=False` (in that case, you should have seen a warning). If
-                   that is the case, you should carefully check if your ansatz is holomorhic
-                   almost everywhere, and if that is the case, specify `holomorphic=True`.
-                   If your ansatz is not-holomorphic, the same suggestion as above applies.
-
-                Be warned that if you specify `holomorphic=True` when your ansatz is mathematically
-                not holomorphic is a surprisingly bad idea and will lead to numerically wrong results,
-                so I'd invite you not to lie to your computer.
-                """
-            )
+            raise NonHolomorphicQGTOnTheFlyDenseRepresentationError()
 
         return _to_dense(self)
 

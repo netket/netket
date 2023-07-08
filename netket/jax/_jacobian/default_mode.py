@@ -15,14 +15,16 @@
 from typing import Callable, Optional
 from functools import partial
 import warnings
-from textwrap import dedent
 
 import jax
 
 import netket.jax as nkjax
 from netket.utils import struct
 from netket.utils.types import PyTree, Array
-from netket.errors import IllegalHolomorphicDeclarationForRealParametersError
+from netket.errors import (
+    HolomorphicUndeclaredWarning,
+    IllegalHolomorphicDeclarationForRealParametersError,
+)
 
 
 @struct.dataclass
@@ -118,15 +120,7 @@ def jacobian_default_mode(
             if not leaf_isreal:
                 if holomorphic is None:
                     warnings.warn(
-                        dedent(
-                            """
-                                Complex-to-Complex model detected. Defaulting to `holomorphic=False` for
-                                the calculation of its jacobian.
-                                If your model is holomorphic, specify `holomorphic=True` to use a more
-                                performant implementation.
-                                To suppress this warning specify `holomorphic`.
-                                """
-                        ),
+                        HolomorphicUndeclaredWarning(),
                         UserWarning,
                     )
                 mode = ComplexMode
