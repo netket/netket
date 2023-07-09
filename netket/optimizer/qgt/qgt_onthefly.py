@@ -56,7 +56,9 @@ def QGTOnTheFly(
                     memory than the forward pass).
     """
     if vstate is None:
-        return partial(QGTOnTheFly, chunk_size=chunk_size, **kwargs)
+        return partial(
+            QGTOnTheFly, chunk_size=chunk_size, holomorphic=holomorphic, **kwargs
+        )
 
     if kwargs.pop("diag_scale", None) is not None:
         raise NotImplementedError(
