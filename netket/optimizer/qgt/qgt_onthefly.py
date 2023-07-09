@@ -103,8 +103,9 @@ def QGTOnTheFly(
     else:
         if not nkjax.tree_leaf_iscomplex(vstate.parameters):
             mode = "real"
-            warnings.warn(HolomorphicUndeclaredWarning(), UserWarning)
         else:
+            if holomorphic is None:
+                warnings.warn(HolomorphicUndeclaredWarning(), UserWarning)
             mode = "complex"
 
     nkjax.jacobian_default_mode(
