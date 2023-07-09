@@ -60,7 +60,7 @@ class TDVP(TDVPBaseDriver):
         t0: float = 0.0,
         propagation_type="real",
         qgt: LinearOperator = None,
-        linear_solver=nk.optimizer.solver.svd,
+        linear_solver=nk.optimizer.solver.pinv_smooth,
         linear_solver_restart: bool = False,
         error_norm: Union[str, Callable] = "euclidean",
     ):
@@ -80,9 +80,9 @@ class TDVP(TDVPBaseDriver):
                 This must be a jax-jittable function :code:`f(A,b) -> x` that accepts a Matrix-like, Linear Operator
                 PyTree object :math:`A` and a vector-like PyTree :math:`b` and returns the PyTree :math:`x` solving
                 the system :math:`Ax=b`.
-                Defaults to :func:`nk.optimizer.solver.svd` with the default svd threshold of 1e-10.
+                Defaults to :func:`nk.optimizer.solver.pinv_smooth` with the default svd threshold of 1e-10.
                 To change the svd threshold you can use :func:`functools.partial` as follows:
-                :code:`functools.partial(nk.optimizer.solver.svd, rcond=1e-4)`.
+                :code:`functools.partial(nk.optimizer.solver.pinv_smooth, rcond_smooth=1e-5)`.
             linear_solver_restart: If False (default), the last solution of the linear system
                 is used as initial value in subsequent steps.
             error_norm: Norm function used to calculate the error with adaptive integrators.
