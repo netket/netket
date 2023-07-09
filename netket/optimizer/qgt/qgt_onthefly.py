@@ -14,6 +14,7 @@
 
 from typing import Callable, Optional, Union
 from functools import partial
+import warnings
 
 import jax
 from jax import numpy as jnp
@@ -22,6 +23,11 @@ from flax import struct
 import netket.jax as nkjax
 from netket.utils.types import PyTree
 
+from netket.errors import (
+    IllegalHolomorphicDeclarationForRealParametersError,
+    NonHolomorphicQGTOnTheFlyDenseRepresentationError,
+    HolomorphicUndeclaredWarning,
+)
 from netket.nn import split_array_mpi
 
 from .common import check_valid_vector_type
@@ -30,7 +36,9 @@ from .qgt_onthefly_logic import mat_vec_factory, mat_vec_chunked_factory
 from ..linear_operator import LinearOperator, Uninitialized
 
 
-def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
+def QGTOnTheFly(
+    vstate=None, *, chunk_size=None, holomorphic: bool = None, **kwargs
+) -> "QGTOnTheFlyT":
     """
     Lazy representation of an S Matrix computed by performing 2 jvp
     and 1 vjp products, using the variational state's model, the
@@ -86,6 +94,28 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
         mv_factory = mat_vec_chunked_factory
         chunking = True
 
+    # check if holomorphic or not
+    if holomorphic:
+        if nkjax.tree_leaf_isreal(vstate.parameters):
+            raise IllegalHolomorphicDeclarationForRealParametersError()
+        else:
+            mode = "holomorphic"
+    else:
+        if not nkjax.tree_leaf_iscomplex(vstate.parameters):
+            mode = "real"
+        else:
+            if holomorphic is None:
+                warnings.warn(HolomorphicUndeclaredWarning(), UserWarning)
+            mode = "complex"
+
+    nkjax.jacobian_default_mode(
+        vstate._apply_fun,
+        vstate.parameters,
+        vstate.model_state,
+        samples,
+        holomorphic=holomorphic,
+    )
+
     mat_vec = mv_factory(
         forward_fn=vstate._apply_fun,
         params=vstate.parameters,
@@ -97,6 +127,7 @@ def QGTOnTheFly(vstate=None, *, chunk_size=None, **kwargs) -> "QGTOnTheFlyT":
         _mat_vec=mat_vec,
         _params=vstate.parameters,
         _chunking=chunking,
+        _mode=mode,
         **kwargs,
     )
 
@@ -125,6 +156,16 @@ class QGTOnTheFlyT(LinearOperator):
     _chunking: bool = struct.field(pytree_node=False, default=False)
     """Whether the implementation with chunks is used which currently does not support vmapping over it"""
 
+    _mode: str = struct.field(pytree_node=False, default=None)
+    """Differentiation mode:
+        - "real": for real-valued R->R and C->R Ansätze, splits the complex inputs
+                  into real and imaginary part.
+        - "complex": for complex-valued R->C and C->C Ansätze, splits the complex
+                  inputs and outputs into real and imaginary part
+        - "holomorphic": for any Ansätze. Does not split complex values.
+        - "auto": autoselect real or complex.
+    """
+
     def __matmul__(self, y):
         return onthefly_mat_treevec(self, y)
 
@@ -138,6 +179,16 @@ class QGTOnTheFlyT(LinearOperator):
         Returns:
             A dense matrix representation of this S matrix.
         """
+        # This condition will be true if the user specified `holomorphic=False` and
+        # if the parameters are complex. If the parameters are real and the user
+        # did not specify holomorphic we will have mode==real and if holomorphic is
+        # True mode==holomorphic.
+        #
+        # We must check this because the AD implementation will compute the wrong
+        # QGT in that case
+        if self._mode == "complex":
+            raise NonHolomorphicQGTOnTheFlyDenseRepresentationError()
+
         return _to_dense(self)
 
     def __repr__(self):

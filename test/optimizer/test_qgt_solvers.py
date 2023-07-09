@@ -78,7 +78,8 @@ def vstate(request):
     [pytest.param(solver, id=name) for name, solver in solvers.items()],
 )
 def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
-    S = qgt(vstate)
+    is_holo = nk.jax.is_complex_dtype(vstate.model.param_dtype)
+    S = qgt(vstate, holomorphic=is_holo)
 
     x, _ = S.solve(solver, vstate.parameters)
 
@@ -116,7 +117,7 @@ def test_qgt_nondiff_sigma(SType):
     sa = nk.sampler.MetropolisLocal(hi, n_chains=2, reset_chains=False)
     vs = nk.vqs.MCState(sa, ma, n_samples=2, n_discard_per_chain=0)
 
-    S = vs.quantum_geometric_tensor(SType)
+    S = SType(vs, holomorphic=True)
     S @ vs.parameters
 
 

@@ -15,13 +15,16 @@
 from typing import Callable, Optional
 from functools import partial
 import warnings
-from textwrap import dedent
 
 import jax
 
 import netket.jax as nkjax
 from netket.utils import struct
 from netket.utils.types import PyTree, Array
+from netket.errors import (
+    HolomorphicUndeclaredWarning,
+    IllegalHolomorphicDeclarationForRealParametersError,
+)
 
 
 @struct.dataclass
@@ -93,36 +96,16 @@ def jacobian_default_mode(
             holomorphic or not (`None` by default).
 
     """
-    homogeneous_vars = nkjax.tree_ishomogeneous(pars)
-    leaf_iscomplex = nkjax.tree_leaf_iscomplex(pars)
+    nkjax.tree_ishomogeneous(pars)
+    nkjax.tree_leaf_iscomplex(pars)
+    leaf_isreal = nkjax.tree_leaf_isreal(pars)
 
     if holomorphic is True:
-        if homogeneous_vars and leaf_iscomplex:
-            ## all complex parameters
-            mode = HolomorphicMode
-        elif homogeneous_vars and not leaf_iscomplex:
-            # all real parameters
-            raise ValueError(
-                dedent(
-                    """
-                A function with real parameters cannot be holomorphic.
-
-                Please remove the kw-arg `holomorphic=True`.
-                """
-                )
-            )
+        if leaf_isreal:
+            # all real or mixed real/complex parameters. It's not holomorphic
+            raise IllegalHolomorphicDeclarationForRealParametersError()
         else:
-            # mixed complex and real parameters
-            warnings.warn(
-                dedent(
-                    """The ansatz has non homogeneous variables, which might not behave well with the
-                       holomorhic implementation.
-
-                       Use `holomorphic=False` or mode='complex' for more accurate results but
-                       lower performance.
-                    """
-                )
-            )
+            ## all complex parameters
             mode = HolomorphicMode
     else:
         complex_output = jax.numpy.iscomplexobj(
@@ -134,19 +117,12 @@ def jacobian_default_mode(
         )
 
         if complex_output:
-            if leaf_iscomplex:
+            if not leaf_isreal:
                 if holomorphic is None:
                     warnings.warn(
-                        dedent(
-                            """
-                                Complex-to-Complex model detected. Defaulting to `holomorphic=False` for
-                                the calculation of its jacobian.
-                                If your model is holomorphic, specify `holomorphic=True` to use a more
-                                performant implementation.
-                                To suppress this warning specify `holomorphic`.
-                                """
-                        ),
+                        HolomorphicUndeclaredWarning(),
                         UserWarning,
+                        stacklevel=2,
                     )
                 mode = ComplexMode
             else:

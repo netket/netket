@@ -15,11 +15,12 @@
 # Use an empty top-level docstring so Sphinx won't output the one below.
 """"""
 
+from textwrap import dedent as _dedent
 
 """NetKet error classes.
-(Inspired by Flax error classes)
+(Inspired by NetKet error classes)
 
-=== When to create a Flax error class?
+=== When to create a NetKet error class?
 
 If an error message requires more explanation than a one-liner, it is useful to
 add it as a separate error class. This may lead to some duplication with
@@ -44,7 +45,7 @@ from the error docstring directly.
 
 === Copy/pastable template for new error messages:
 
-class Template(FlaxError):
+class Template(NetketError):
   "" "
 
   "" "
@@ -60,7 +61,7 @@ class NetketError(Exception):
         module_name = self.__class__.__module__
         class_name = self.__class__.__name__
         error_msg = (
-            f"{message}"
+            f"{_dedent(message)}"
             f"\n"
             f"\n-------------------------------------------------------"
             f"\n"
@@ -68,6 +69,29 @@ class NetketError(Exception):
             f"\n\t {error_dir}/{module_name}.{class_name}.html"
             f"\n"
             f"or the list of all common errors at"
+            f"\n\t {error_index}"
+            f"\n-------------------------------------------------------"
+            f"\n"
+        )
+        super().__init__(error_msg)
+
+
+class NetketWarning(Warning):
+    def __init__(self, message):
+        error_index = "https://netket.readthedocs.io/en/latest/api/errors.html"
+        error_dir = "https://netket.readthedocs.io/en/latest/api/_generated/errors"
+        module_name = self.__class__.__module__
+        class_name = self.__class__.__name__
+
+        error_msg = (
+            f"{_dedent(message)}"
+            f"\n"
+            f"\n-------------------------------------------------------"
+            f"\n"
+            f"For more detailed informations, visit the following link:"
+            f"\n\t {error_dir}/{module_name}.{class_name}.html"
+            f"\n"
+            f"or the list of all common errors and warnings at"
             f"\n\t {error_index}"
             f"\n-------------------------------------------------------"
             f"\n"
@@ -302,11 +326,11 @@ class JaxOperatorSetupDuringTracingError(NetketError):
 
         Most operators lazily initialise the fields used to compute the connected elements only
         when needed. To check whether an operator was initialized you can probe the boolean flag
-        :code:py:`operator._initialized`. If `operator._initialized` is True, you can safely call
+        :code:`operator._initialized`. If :code:`operator._initialized` is True, you can safely call
         :meth:`~netket.operator.DiscreteJaxOperator.get_conn_padded` and similar methods. If it is
         False, then the setup procedure will be handled by an internal method usually called
-        `operator._setup()`. If you see this error, it means that this method internally uses dynamically
-        determined shapes, and it is what should be converted to be jax-friendly.
+        :code:`operator._setup()`. If you see this error, it means that this method internally
+        uses dynamically determined shapes, and it is what should be converted to be jax-friendly.
 
 
     """
@@ -324,6 +348,162 @@ class JaxOperatorSetupDuringTracingError(NetketError):
             f"\n\n"
             f"To avoid this error, construct the operator outside of the jax"
             f"function and pass it to it as a standard argument."
+        )
+
+
+#################################################
+# Jacobian and QGT errors                       #
+#################################################
+
+
+class IllegalHolomorphicDeclarationForRealParametersError(NetketError):
+    """Illegal attempt to declare a function holomorphic when it has some
+    or all real parameters, which makes it automatically non-holomorphic.
+
+    This error may arise when computing the Jacobian directly or when
+    constructing the Quantum Geometric Tensor, which internally constructs
+    the Jacobian of your variational function.
+
+    In general we could silence this error automatically and ignore the
+    :code:`holomorphic=True` argument, but we wish to stress with the users
+    the importance of correctly declaring this argument.
+
+    To solve this error, simply stop declaring :code:`holomorphic=True`, by
+    either removing it or specifying :code:`holomorphic=False`.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+        A function with real parameters is not holomorphic.
+
+        You declared `holomorphic=True` when computing the Jacobian, Quantum
+        Geometric Tensor or a similar, but your variational function has
+        real parameters, so it cannot be holomorphic.
+
+        To fix this error, remove the keyword argument `holomorphic=True`.
+        """
+        )
+
+
+class NonHolomorphicQGTOnTheFlyDenseRepresentationError(NetketError):
+    """
+    QGTOnTheFly cannot be converted to a dense matrix for non-holomorphic
+    functions which have complex parameters.
+
+    This limitation does not apply if the parameters are all real.
+
+    This error might have happened for two reasons:
+     - you specified `holomorphic=False` because your ansatz is non-holomorphic.
+       In that case you should use `QGTJacobianPyTree` or `QGTJacobianDense`
+       implementations.
+
+     - you did not specify `holomorphic`, which leads to the default value of
+       `holomorphic=False` (in that case, you should have seen a warning). If
+       that is the case, you should carefully check if your ansatz is holomorhic
+       almost everywhere, and if that is the case, specify `holomorphic=True`.
+       If your ansatz is not-holomorphic, the same suggestion as above applies.
+
+    Be warned that if you specify `holomorphic=True` when your ansatz is mathematically
+    not holomorphic is a surprisingly bad idea and will lead to numerically wrong results,
+    so I'd invite you not to lie to your computer.
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+            QGTOnTheFly cannot be converted to a dense matrix for non-holomorphic
+            functions which have complex parameters.
+
+            This limitation does not apply if the parameters are all real.
+
+            This error might have happened for two reasons:
+             - you specified `holomorphic=False` because your ansatz is non-holomorphic.
+               In that case you should use `QGTJacobianPyTree` or `QGTJacobianDense`
+               implementations.
+
+             - you did not specify `holomorphic`, which leads to the default value of
+               `holomorphic=False` (in that case, you should have seen a warning). If
+               that is the case, you should carefully check if your ansatz is holomorhic
+               almost everywhere, and if that is the case, specify `holomorphic=True`.
+               If your ansatz is not-holomorphic, the same suggestion as above applies.
+
+            Be warned that if you specify `holomorphic=True` when your ansatz is mathematically
+            not holomorphic is a surprisingly bad idea and will lead to numerically wrong results,
+            so I'd invite you not to lie to your computer.
+            """
+        )
+
+
+class HolomorphicUndeclaredWarning(NetketWarning):
+    """
+    Complex-to-Complex model detected. Defaulting to :code:`holomorphic = False`
+    for the calculation of its jacobian.
+
+    However, :code:`holomorphic = False` might lead to slightly increased
+    computational cost, some disabled features and/or worse quality of
+    solutions found with iterative solvers.
+    If your model is actually holomorphic, you should specify :code:`holomorphic = True`
+    to unblock some extra, possibly more performant algorithms.
+
+    If you are unsure whether your variational function is holomorphic or not,
+    you should check if it satisfies the
+    `Cauchy-Riemann equations <https://en.wikipedia.org/wiki/Cauchy–Riemann_equations>`_.
+
+    To check numerically those conditions on a random set of samples you can use the
+    function :func:`netket.utils.is_probably_holomorphic`. If this function returns
+    False then your ansatz is surely not holomorphic, while if it returns True your
+    ansatz is likely but not guaranteed to be holomorphic.
+
+    To check those conditions numerically, you can check by following this
+    example:
+
+    .. code:: python
+
+        hi = nk.hilbert.Spin(0.5, 2)
+        sa = nk.sampler.MetropolisLocal(hi)
+        ma = nk.models.RBM(param_dtype=complex)
+        # construct the variational state
+        vs = nk.vqs.MCState(sa, ma)
+
+        nk.utils.is_probably_holomorphic(vs._apply_fun,
+                                         vs.parameters,
+                                         vs.samples,
+                                         model_state = vs.model_state)
+
+    To suppress this warning correctly specify the keyword argument
+    `holomorphic`.
+
+    .. note::
+        a  detailed discussion, explaining how to easily check those conditions
+        analitically is found in the documentation of
+        :func:`netket.utils.is_probably_holomorphic`).
+
+    """
+
+    def __init__(self):
+        super().__init__(
+            """
+            Defaulting to `holomorphic=False`, but this might lead to increased
+            computational cost or disabled features. Check if your variational
+            function is holomorphic, and if so specify `holomorphic=True`as an extra
+            keyword argument.
+
+            To silence this warning, specify the `holomorphic=False/True` keyword
+            argument.
+
+            To numerically check whether your variational function is or not holomorphic
+            you can use the following snippet:
+
+            ```python
+               vs = nk.vqs.MCState(...)
+
+               nk.utils.is_probably_holomorphic(vs._apply_fun, vs.parameters, vs.samples, vs.model_state)
+            ```
+
+            if `nk.utils.is_probably_holomorphic` returns False, then your function is not holomorphic.
+            If it returns True, it is probably holomorphic.
+            """
         )
 
 

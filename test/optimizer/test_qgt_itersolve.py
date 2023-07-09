@@ -35,6 +35,7 @@ from .. import common
 QGT_objects = {}
 
 QGT_objects["OnTheFly"] = partial(qgt.QGTOnTheFly, diag_shift=0.01)
+QGT_objects["OnTheFly"] = partial(qgt.QGTOnTheFly, diag_shift=0.01, holomorphic=True)
 
 QGT_objects["JacobianPyTree"] = partial(qgt.QGTJacobianPyTree, diag_shift=0.01)
 QGT_objects["JacobianPyTree(mode=holomorphic)"] = partial(
@@ -154,7 +155,9 @@ def is_complex_failing(vstate, qgt_partial):
 )
 def test_qgt_solve(qgt, vstate, solver, _mpi_size, _mpi_rank):
     if is_complex_failing(vstate, qgt):
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            nk.errors.IllegalHolomorphicDeclarationForRealParametersError
+        ):
             S = qgt(vstate)
         return
     else:
@@ -355,9 +358,9 @@ def test_qgt_holomorphic_real_pars_throws():
         nk.models.RBM(param_dtype=float),
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(nk.errors.IllegalHolomorphicDeclarationForRealParametersError):
         vstate.quantum_geometric_tensor(qgt.QGTJacobianPyTree(holomorphic=True))
-    with pytest.raises(ValueError):
+    with pytest.raises(nk.errors.IllegalHolomorphicDeclarationForRealParametersError):
         vstate.quantum_geometric_tensor(qgt.QGTJacobianDense(holomorphic=True))
 
     return vstate

@@ -16,7 +16,9 @@ Netket has the following classes of errors.
   :toctree: _generated/errors
   :nosignatures:
 
-  NumbaOperatorGetConnDuringTracingError
-  JaxOperatorSetupDuringTracingError
   HilbertIndexingDuringTracingError
+  HolomorphicUndeclaredWarning
+  JaxOperatorSetupDuringTracingError
+  NonHolomorphicQGTOnTheFlyDenseRepresentationError
+  NumbaOperatorGetConnDuringTracingError
 ```

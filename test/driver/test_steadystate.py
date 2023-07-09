@@ -45,7 +45,7 @@ def _setup_ss(dtype=np.float32, sr=True):
 
     op = nk.optimizer.Sgd(learning_rate=0.05)
     if sr:
-        sr_config = nk.optimizer.SR()
+        sr_config = nk.optimizer.SR(holomorphic=False)
     else:
         sr_config = None
 

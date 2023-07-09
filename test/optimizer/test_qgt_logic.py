@@ -497,4 +497,19 @@ def test_sanitize_diag_shift(inputs, expected):
         assert output == expected
 
 
+def test_qgt_onthefly_dense_nonholo_error():
+    import netket as nk
+
+    hi = nk.hilbert.Spin(0.5, 2)
+    ma = nk.models.RBM(param_dtype=complex)
+    vs = nk.vqs.FullSumState(hi, ma)
+    with pytest.raises(nk.errors.NonHolomorphicQGTOnTheFlyDenseRepresentationError):
+        qgt = nk.optimizer.qgt.QGTOnTheFly(vs)
+        qgt.to_dense()
+
+    with pytest.raises(nk.errors.NonHolomorphicQGTOnTheFlyDenseRepresentationError):
+        qgt = nk.optimizer.qgt.QGTOnTheFly(vs, holomorphic=False)
+        qgt.to_dense()
+
+
 # TODO test with MPI
