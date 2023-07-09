@@ -23,9 +23,17 @@ from .qgt_jacobian_dense import QGTJacobianDense
 from .qgt_jacobian_pytree import QGTJacobianPyTree
 from .qgt_onthefly import QGTOnTheFly
 
-from ..solver import cholesky, svd, LU, solve
+from .. import solver as nk_solver_module
 
-solvers = [cholesky, svd, LU, solve]
+solvers = []
+
+for solver in dir(nk_solver_module):
+    # only add solvers, not random
+    # useless things
+    if solver[:2] == "__":
+        continue
+    else:
+        solvers.append(getattr(nk_solver_module, solver))
 
 
 def _is_dense_solver(solver: Any) -> bool:

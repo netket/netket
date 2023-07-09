@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import qgt, solver
+from . import solver
+from . import qgt
 
 from .linear_operator import LinearOperator
 from .preconditioner import (
