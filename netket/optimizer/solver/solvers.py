@@ -36,6 +36,16 @@ def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
         \tilde\lambda_i^{-1}=\frac{\lambda_i^{-1}}{1+\big(\epsilon\frac{\lambda_\text{max}}{\lambda_i}\big)^6}
 
 
+    .. note::
+
+        In general, we found that this custom implementation of
+        the pseudo-inverse outperform
+        jax's :func:`~jax.numpy.linalg.pinv`.
+
+        For that reason, we suggest you use this solver instead of
+        :obj:`~netket.optimizer.solver.pinv`.
+
+
     Args:
         A: LinearOperator (matrix)
         b: vector or Pytree
@@ -63,6 +73,47 @@ def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
     Σ_inv = Σ_inv * regularizer
 
     x = U @ (Σ_inv * (U.conj().T @ b))
+
+    return unravel(x), None
+
+
+def pinv(A, b, rcond=1e-12, x0=None):
+    """
+    Solve the linear system using jax's implementation of the
+    pseudo-inverse.
+
+    .. note::
+
+        In general, we found that our custom implementation of
+        the pseudo-inverse
+        :func:`netket.optimizer.solver.pinv_smooth` (which
+        internally uses hermitian diagonaliation) outperform
+        jax's :ref:`~jax.numpy.linalg.pinv`.
+
+        For that reason, we suggest to use
+        :func:`~netket.optimizer.solver.pinv_smooth` instead of
+        :obj:`~netket.optimizer.solver.pinv`.
+
+
+    The diagonal shift on the matrix can be 0 and the
+    **rcond** variable can be used to truncate small
+    eigenvalues.
+
+    Internally uses :obj:`jax.numpy.linalg.pinv`.
+
+    Args:
+        A: the matrix A in Ax=b
+        b: the vector b in Ax=b
+        rcond: The condition number
+    """
+    del x0
+
+    A = A.to_dense()
+    b, unravel = tree_ravel(b)
+
+    x, residuals, rank, s = jnp.linalg.lstsq(A, b, rcond=rcond)
+    A_inv = jnp.linalg.pinv(A, rcond=rcond, hermitian=True)
+    x = jnp.dot(A_inv, b)
 
     return unravel(x), None
 

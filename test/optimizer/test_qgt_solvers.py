@@ -39,7 +39,8 @@ solvers["svd"] = nk.optimizer.solver.svd
 solvers["cholesky"] = nk.optimizer.solver.cholesky
 solvers["LU"] = nk.optimizer.solver.LU
 solvers["solve"] = nk.optimizer.solver.solve
-solvers["eigh"] = nk.optimizer.solver.pinv_smooth
+solvers["pinv"] = nk.optimizer.solver.pinv
+solvers["pinv_smooth"] = nk.optimizer.solver.pinv_smooth
 
 dtypes = {"float": float, "complex": complex}
 
