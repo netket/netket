@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 from functools import partial
 
 import jax
@@ -24,7 +24,7 @@ from netket.utils.types import Array, PyTree
 
 @partial(jax.jit, static_argnames=("apply_fun"))
 def is_probably_holomorphic(
-    apply_fun: Callable[Union[PyTree, Array], Array],
+    apply_fun: Callable[[PyTree, Array], Array],
     parameters: PyTree,
     samples: Array,
     model_state: Optional[PyTree] = None,
