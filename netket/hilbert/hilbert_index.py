@@ -42,6 +42,10 @@ class HilbertIndex:
         return np.searchsorted(self.local_states, x)
 
     @property
+    def size(self) -> int:
+        return self._size
+
+    @property
     def n_states(self):
         return self._local_size**self._size
 
@@ -49,19 +53,9 @@ class HilbertIndex:
     def local_states(self):
         return self._local_states
 
-    def state_to_number(self, state):
-        if state.ndim != 1:
-            raise RuntimeError("Invalid input shape, expecting a 1d array.")
-
-        # Converts a vector of quantum numbers into the unique integer identifier
-        number = 0
-
-        for i in range(self._size):
-            number += (
-                self._local_state_number(state[self._size - i - 1]) * self._basis[i]
-            )
-
-        return number
+    @property
+    def local_size(self) -> int:
+        return self._local_size
 
     def number_to_state(self, number, out=None):
 
