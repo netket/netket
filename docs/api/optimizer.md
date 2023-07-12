@@ -79,6 +79,7 @@ And the following dense solvers for Stochastic Reconfiguration:
 
    solver.cholesky
    solver.LU
+   solver.pinv
    solver.pinv_smooth
    solver.solve
    solver.svd
