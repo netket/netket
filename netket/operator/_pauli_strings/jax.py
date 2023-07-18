@@ -315,6 +315,13 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
                 "nonzero cuttof is not yet implemented in PauliStringsJax"
             )
         # private variable for setting the mode
+        # currently there are two modes:
+        # 1. index: indexes into the vector to flip qubits and compute the sign
+        #           faster if the strings act only on a few qubits
+        # 2. mask: uses masks to flip qubits and compute the sign
+        #          faster if the strings act on many of the qubits
+        #          (and possibly on gpu)
+        # By adapting pack_internals_jax hybrid approaches are also possible.
         # depending on performance tests we might expose or remove it
         _check_mode(_mode)
         self._mode = _mode
