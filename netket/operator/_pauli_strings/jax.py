@@ -318,7 +318,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         # currently there are two modes:
         # 1. index: indexes into the vector to flip qubits and compute the sign
         #           faster if the strings act only on a few qubits
-        # 2. mask: uses masks to flip qubits and compute the sign
+        # mask: uses masks to flip qubits and compute the sign
         #          faster if the strings act on many of the qubits
         #          (and possibly on gpu)
         # By adapting pack_internals_jax hybrid approaches are also possible.
