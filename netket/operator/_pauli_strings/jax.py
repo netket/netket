@@ -316,7 +316,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             )
         # private variable for setting the mode
         # currently there are two modes:
-        # 1. index: indexes into the vector to flip qubits and compute the sign
+        # index: indexes into the vector to flip qubits and compute the sign
         #           faster if the strings act only on a few qubits
         # mask: uses masks to flip qubits and compute the sign
         #          faster if the strings act on many of the qubits
