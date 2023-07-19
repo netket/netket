@@ -106,17 +106,9 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         self.n_orbitals = n_orbitals
 
         # we copy the respective functions, independent of what hilbert space they are
-        # self._numbers_to_states = self._fock._numbers_to_states
-        # self._states_to_numbers = self._fock._states_to_numbers
-        # self.all_states = self._fock.all_states
-
-    @property
-    def _hilbert_index(self):
-        """
-        Returns the `HilbertIndex` object, which is a numba jitclass used to convert
-        integers to states and vice-versa.
-        """
-        return self._fock._hilbert_index
+        self._numbers_to_states = self._fock._numbers_to_states
+        self._states_to_numbers = self._fock._states_to_numbers
+        self.all_states = self._fock.all_states
 
     def __repr__(self):
         _str = f"SpinOrbitalFermions(n_orbitals={self.n_orbitals}"
