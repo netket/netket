@@ -28,7 +28,7 @@ spec = [
 @jitclass(spec)
 class HilbertIndex:
     def __init__(self, local_states, size):
-        self._local_states = np.sort(local_states)
+        self._local_states = np.sort(local_states).astype(np.float64)
         self._local_size = len(self._local_states)
         self._size = size
 

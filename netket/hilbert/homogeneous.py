@@ -19,8 +19,7 @@ from numbers import Real
 import numpy as np
 
 from .discrete_hilbert import DiscreteHilbert
-from .hilbert_index import HilbertIndex
-from .hilbert_index_constrained import ConstrainedHilbertIndex
+from .index import HilbertIndex, ConstrainedHilbertIndex
 
 
 class HomogeneousHilbert(DiscreteHilbert):
@@ -128,6 +127,20 @@ class HomogeneousHilbert(DiscreteHilbert):
         self._hilbert_index.states_to_numbers(states, out)
 
         return out
+
+    def all_states(self, out: Optional[np.ndarray] = None) -> np.ndarray:
+        r"""Returns all valid states of the Hilbert space.
+
+        Throws an exception if the space is not indexable.
+
+        Args:
+            out: an optional pre-allocated output array
+
+        Returns:
+            A (n_states x size) batch of states. this corresponds
+            to the pre-allocated array if it was passed.
+        """
+        return self._hilbert_index.all_states(out)
 
     @property
     def _hilbert_index(self) -> HilbertIndex:
