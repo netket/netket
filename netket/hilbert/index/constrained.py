@@ -108,7 +108,7 @@ class ConstrainedHilbertIndex:
         numbers = self._bare_numbers[numbers]
 
         if out is None:
-            out = np.empty((numbers.shape[0], self._size))
+            out = np.empty((numbers.shape[0], self.size))
 
         for i in range(numbers.shape[0]):
             out[i] = self._unconstrained_index.number_to_state(numbers[i])

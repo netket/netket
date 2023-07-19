@@ -99,15 +99,24 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         # local states are the occupation numbers (0, 1)
         local_states = np.array((0.0, 1.0))
 
-        # we use the constraints from the Fock spaces, and override is_constrained later
+        # we use the constraints from the Fock spaces, and override `constrained`
         super().__init__(local_states, N=total_size, constraint_fn=None)
         self._s = s
         self.n_fermions = n_fermions
-        self._is_constrained = n_fermions is not None
         self.n_orbitals = n_orbitals
+
         # we copy the respective functions, independent of what hilbert space they are
-        self._numbers_to_states = self._fock._numbers_to_states
-        self._states_to_numbers = self._fock._states_to_numbers
+        # self._numbers_to_states = self._fock._numbers_to_states
+        # self._states_to_numbers = self._fock._states_to_numbers
+        # self.all_states = self._fock.all_states
+
+    @property
+    def _hilbert_index(self):
+        """
+        Returns the `HilbertIndex` object, which is a numba jitclass used to convert
+        integers to states and vice-versa.
+        """
+        return self._fock._hilbert_index
 
     def __repr__(self):
         _str = f"SpinOrbitalFermions(n_orbitals={self.n_orbitals}"
@@ -134,8 +143,8 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         return (self.spin, self.n_fermions, self.n_orbitals)
 
     @property
-    def is_constrained(self):
-        return self._is_constrained
+    def constrained(self):
+        return self.n_fermions is not None
 
     @property
     def is_finite(self) -> bool:
