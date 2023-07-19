@@ -7,14 +7,16 @@
 This release requires Python 3.8 and Jax 0.4.
 
 ### New Features
-* `netket.callbacks.EarlyStopping` now supports relative tolerances for determining when to stop [#1481](https://github.com/netket/netket/pull/1481).
-* `netket.callbacks.ConvergenceStopping` has been added, which can stop a driver when the loss function reaches a certain threshold [#14XX](https://github.com/netket/netket/pull/1481).
+* {class}`netket.callbacks.EarlyStopping` now supports relative tolerances for determining when to stop [#1481](https://github.com/netket/netket/pull/1481).
+* {class}`netket.callbacks.ConvergenceStopping` has been added, which can stop a driver when the loss function reaches a certain threshold [#1481](https://github.com/netket/netket/pull/1481).
 * A new base class {class}`netket.operator.DiscreteJaxOperator` has been added, which will be used as a base class for a set of operators that are jax-compatible [#1506](https://github.com/netket/netket/pull/1506).
 * {func}`netket.sampler.rules.HamiltonianRule` has been split into two implementations, {class}`netket.sampler.rules.HamiltonianRuleJax` and {class}`netket.sampler.rules.HamiltonianRuleNumba`, which are to be used for {class}`~netket.operator.DiscreteJaxOperator` and standard numba-based {class}`~netket.operator.DiscreteOperator`s. The user-facing API is unchanged, but the returned type might now depend on the input operator [#1514](https://github.com/netket/netket/pull/1514).
 * {class}`netket.operator.PauliStringsJax` is a new operator that behaves as `netket.operator.PauliStrings` but is Jax-compatible, meaning that it can be used inside of jax-jitted contexts and works better with chunking. It can also be constructed starting from a standard Ising operator by calling `operator.to_jax_operator()` [#1506](https://github.com/netket/netket/pull/1506).
 * {class}`netket.operator.IsingJax` is a new operator that behaves as `netket.operator.Ising` but is Jax-compatible, meaning that it can be used inside of jax-jitted contexts and works better with chunking. It can also be constructed starting from a standard Ising operator by calling `operator.to_jax_operator()` [#1506](https://github.com/netket/netket/pull/1506).
 * Added a new method {meth}`netket.operator.LocalOperator.to_pauli_strings` to convert {class}`netket.operator.LocalOperator` to {class}`netket.operator.PauliStrings`. As PauliStrings can be converted to Jax-operators, this now allows to convert arbitrary operators to Jax-compatible ones [#1515](https://github.com/netket/netket/pull/1515).
 * The constructor of {meth}`~netket.optimizer.qgt.QGTOnTheFly` now takes an optional boolean argument `holomorphic : Optional[bool]` in line with the other geometric tensor implementations. This flag does not affect the computation algorithm, but will be used to raise an error if the user attempts to call {meth}`~netket.optimizer.qgt.QGTOnTheFly.to_dense()` with a non-holomorphic ansatz. While this might break past code, the numerical results were incorrect.
+* A new variational mixed state that performs full summation over the whole Hilbert space has been added. It can be constructed with {class}`nk.vqs.FullSumMixedState` and supports the same Jax neural networks as {class}`nk.vqs.MCMixedState`. [#1513](https://github.com/netket/netket/pull/1513)
+
 
 ### Breaking Changes
 * The first two axes in the output of the samplers have been swapped, samples are now of shape `(n_chains, n_samples_per_chain, ...)` consistent with `netket.stats.statistics`. Custom samplers need to be updated to return arrays of shape `(n_chains, n_samples_per_chain, ...)` instead of `(n_samples_per_chain, n_chains, ...)`. [#1502](https://github.com/netket/netket/pull/1502)

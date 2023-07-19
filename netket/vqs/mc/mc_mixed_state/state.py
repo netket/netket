@@ -212,7 +212,11 @@ class MCMixedState(VariationalMixedState, MCState):
 
     def to_matrix(self, normalize: bool = True) -> jnp.ndarray:
         return netket.nn.to_matrix(
-            self.hilbert, self._apply_fun, self.variables, normalize=normalize
+            self.hilbert,
+            self._apply_fun,
+            self.variables,
+            normalize=normalize,
+            chunk_size=self.chunk_size,
         )
 
     def __repr__(self):
