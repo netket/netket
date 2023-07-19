@@ -19,7 +19,10 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 
-from netket.utils import config, mpi, struct
+from netket.utils import config, display, mpi, struct
+
+from rich.markdown import Text
+from rich.style import Style
 
 from . import mean as _mean
 from . import var as _var
@@ -46,6 +49,20 @@ def _format_decimal(value, std, var):
 _NaN = float("NaN")
 
 
+@jax.jit
+def _color_curve(R_hat, k=5):
+    """
+    Takes the value of R_hat and return a value between 0 and 1.
+
+    The k higher the k variable the faster the output will get to 1.
+    The value of 5 has been chosen empirically.
+    """
+    # center from 0...1...2 to 0...\inf
+    x = abs(1 - R_hat)
+    # sigmoid
+    return 2 * (jnp.exp(k * x) / (1 + jnp.exp(k * x)) - 0.5)
+
+
 def _maybe_item(x):
     if hasattr(x, "shape") and x.shape == ():
         return x.item()
@@ -53,6 +70,7 @@ def _maybe_item(x):
         return x
 
 
+@display.rich_repr
 @struct.dataclass
 class Stats:
     """A dict-compatible pytree containing the result of the statistics function."""
@@ -107,16 +125,36 @@ class Stats:
     def to_compound(self):
         return "Mean", self.to_dict()
 
-    def __repr__(self):
+    def __rich__(self) -> str:
         mean, err, var = _format_decimal(self.mean, self.error_of_mean, self.variance)
-        if not math.isnan(self.R_hat):
-            ext = f", R̂={self.R_hat:.4f}"
-        else:
-            ext = ""
+
+        txt = Text(f"{mean} ± {err} [σ²={var}")
+        if math.isfinite(self.R_hat):
+            txt.append(Text(", R̂="))
+            txt.append(
+                Text(
+                    "{:.4f}".format(self.R_hat),
+                    style=Style(
+                        color=display.color_good_bad(float(_color_curve(self.R_hat)))
+                    ),
+                )
+            )
         if config.netket_experimental_fft_autocorrelation:
             if not (math.isnan(self.tau_corr) and math.isnan(self.tau_corr_max)):
-                ext += f", τ={self.tau_corr:.1f}<{self.tau_corr_max:.1f}"
-        return f"{mean} ± {err} [σ²={var}{ext}]"
+                txt.append(Text(", τ="))
+                txt.append(
+                    Text(
+                        f"{self.tau_corr:.1f}<{self.tau_corr_max:.1f}",
+                        style=Style(
+                            color=display.color_good_bad(
+                                float(_color_curve(self.tau_corr))
+                            )
+                        ),
+                    )
+                )
+
+        txt.append("]")
+        return txt
 
     # Alias accessors
     def __getattr__(self, name):

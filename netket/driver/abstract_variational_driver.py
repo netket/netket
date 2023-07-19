@@ -16,13 +16,21 @@ import abc
 import numbers
 from functools import partial
 
-from tqdm import tqdm
 
 import jax
 from jax.tree_util import tree_map
 
 from netket.logging import JsonLog
 from netket.utils import mpi
+
+from netket.utils import display
+
+# Progress bar style for AbstractVariationalDriver
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TextColumn,
+)
 
 
 def _to_iterable(maybe_iterable):
@@ -37,6 +45,22 @@ def _to_iterable(maybe_iterable):
         surely_iterable = (maybe_iterable,)
 
     return surely_iterable
+
+
+def _progress_bar(**kwargs):
+    return Progress(
+        TextColumn("[bold blue]" "({task.percentage:>3.1f}%)", justify="right"),
+        BarColumn(bar_width=None),
+        "{task.completed}/{task.total}",
+        "[",
+        display.TimerColumn(),
+        "•",
+        display.ProgressSpeedColumn(),
+        "•",
+        display.StatsDisplayColumn(),
+        "]",
+        **kwargs,
+    )
 
 
 # Note: to implement a new Driver (see also _vmc.py for an example)
@@ -245,13 +269,14 @@ class AbstractVariationalDriver(abc.ABC):
         callbacks = _to_iterable(callback)
         callback_stop = False
 
-        with tqdm(
-            total=n_iter,
-            disable=not show_progress,
-            dynamic_ncols=True,
-        ) as pbar:
+        progress = _progress_bar(disable=not show_progress)
+        with progress:
             old_step = self.step_count
             first_step = True
+
+            task_id = progress.add_task(
+                "Optimizing", loss_name=self._loss_name, start=True, total=n_iter
+            )
 
             for step in self.iter(n_iter, step_size):
                 log_data = self.estimate(obs)
@@ -259,7 +284,7 @@ class AbstractVariationalDriver(abc.ABC):
 
                 # if the cost-function is defined then report it in the progress bar
                 if self._loss_stats is not None:
-                    pbar.set_postfix_str(self._loss_name + "=" + str(self._loss_stats))
+                    progress.update(task_id, loss_stats=self._loss_stats)
                     log_data[self._loss_name] = self._loss_stats
 
                 # Execute callbacks before loggers because they can append to log_data
@@ -277,14 +302,16 @@ class AbstractVariationalDriver(abc.ABC):
                 # Reset the timing of tqdm after the first step, to ignore compilation time
                 if first_step:
                     first_step = False
-                    pbar.unpause()
-
-                # Update the progress bar
-                pbar.update(self.step_count - old_step)
+                    progress.reset(
+                        task_id, start=True, completed=self.step_count - old_step
+                    )
+                else:
+                    # Update the progress bar
+                    progress.advance(task_id, self.step_count - old_step)
                 old_step = self.step_count
 
             # Final update so that it shows up filled.
-            pbar.update(self.step_count - old_step)
+            progress.advance(task_id, self.step_count - old_step)
 
         # flush at the end of the evolution so that final values are saved to
         # file
