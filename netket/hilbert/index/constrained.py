@@ -14,9 +14,9 @@
 
 from functools import lru_cache
 
-import numpy as np
+from .unconstrained import UnconstrainedHilbertIndex
 
-from .hilbert_index import HilbertIndex
+import numpy as np
 
 
 # This function has exponential runtime in self.size, so we cache it in order to
@@ -53,7 +53,7 @@ def compute_constrained_to_bare_conversion_table(
 
 class ConstrainedHilbertIndex:
     def __init__(self, local_states, size, constraint_fun):
-        self._unconstrained_index = HilbertIndex(local_states, size)
+        self._unconstrained_index = UnconstrainedHilbertIndex(local_states, size)
         self._constraint_fn = constraint_fun
 
         self.__bare_numbers = None

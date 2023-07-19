@@ -19,13 +19,30 @@ from numbers import Real
 import numpy as np
 
 from .discrete_hilbert import DiscreteHilbert
-from .index import HilbertIndex, ConstrainedHilbertIndex
+from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex
 
 
 class HomogeneousHilbert(DiscreteHilbert):
     r"""The Abstract base class for homogeneous hilbert spaces.
 
     This class should only be subclassed and should not be instantiated directly.
+
+    .. note::
+
+        To override the logic to index into constrained hilbert spaces, it is
+        possible to use an informal interface built on top of non-public
+        indexing classes.
+
+        In particular, you can override the following properties and methods:
+
+            - Do not specify the {code}`constraint_fn` keyword argument when
+              calling the init method of this abstract class.
+            - Override the property {prop}`~nk.hilbert.HomogeneousHilbert.is_constrained`,
+              to return `True` or `False`depending on your own logic.
+            - Override the property {code}`~nk.hilbert.HomogeneousHilbert._hilbert_index`
+              to return an hilbert index object (see the discussion in the source code of
+              the folder {code}`netket/hilbert/index/__init__.py`).
+
     """
 
     def __init__(
@@ -159,7 +176,7 @@ class HomogeneousHilbert(DiscreteHilbert):
                     self._constraint_fn,
                 )
             else:
-                self.__hilbert_index = HilbertIndex(
+                self.__hilbert_index = UnconstrainedHilbertIndex(
                     np.asarray(self.local_states, dtype=np.float64), self.size
                 )
 

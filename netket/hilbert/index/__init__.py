@@ -12,5 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .hilbert_index import HilbertIndex
-from .hilbert_index_constrained import ConstrainedHilbertIndex
+"""
+This module contains two classes used to index into hilbert spaces
+inheriting from `HomogeneousHilbert`.
+
+Those classes provide an informal API that can be used to extend or override
+netket's indexing logic, which is particularly relevant when working with
+constrained Hilbert spaces.
+
+----------------------------------------------------------------------------
+    This is not part of NetKet's public API and may change at any moment!
+----------------------------------------------------------------------------
+
+An hilbert indexing class should respect the `HilbertIndex` protocol
+defined in the file `base.py`.
+
+"""
+
+from .base import HilbertIndex
+from .unconstrained import UnconstrainedHilbertIndex
+from .constrained import ConstrainedHilbertIndex

@@ -26,7 +26,7 @@ spec = [
 
 
 @jitclass(spec)
-class HilbertIndex:
+class UnconstrainedHilbertIndex:
     def __init__(self, local_states, size):
         self._local_states = np.sort(local_states).astype(np.float64)
         self._local_size = len(self._local_states)
@@ -57,32 +57,12 @@ class HilbertIndex:
     def local_size(self) -> int:
         return self._local_size
 
-    def number_to_state(self, number, out=None):
-
-        if out is None:
-            out = np.empty(self._size)
-        # else:
-        #     assert out.size == self._size
-
-        out.fill(self._local_states[0])
-
-        ip = number
-        k = self._size - 1
-        while ip > 0:
-            out[k] = self._local_states[ip % self._local_size]
-            ip = ip // self._local_size
-            k -= 1
-
-        return out
-
     def states_to_numbers(self, states, out=None):
         if states.ndim != 2:
             raise RuntimeError("Invalid input shape, expecting a 2d array.")
 
         if out is None:
             out = np.empty(states.shape[0], np.int64)
-        # else:
-        #     assert out.size == states.shape[0]
 
         for i in range(states.shape[0]):
             out[i] = 0
@@ -99,18 +79,27 @@ class HilbertIndex:
 
         if out is None:
             out = np.empty((numbers.shape[0], self._size))
-        # else:
-        #     assert out.shape == (numbers.shape[0], self._size)
 
-        for i in range(numbers.shape[0]):
-            out[i] = self.number_to_state(numbers[i])
+        for i, n in enumerate(numbers):
+            out[i] = self.number_to_state(n)
+
+        return out
+
+    def number_to_state(self, number, out=None):
+
+        if out is None:
+            out = np.empty(self._size)
+
+        out.fill(self._local_states[0])
+
+        ip = number
+        k = self._size - 1
+        while ip > 0:
+            out[k] = self._local_states[ip % self._local_size]
+            ip = ip // self._local_size
+            k -= 1
 
         return out
 
     def all_states(self, out=None):
-        if out is None:
-            out = np.empty((self.n_states, self._size))
-
-        for i in range(self.n_states):
-            self.number_to_state(i, out[i])
-        return out
+        return self.numbers_to_states(range(self.n_states), out)
