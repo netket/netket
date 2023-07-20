@@ -44,6 +44,6 @@ jobs:
       - name: Set up Python 3.10
         uses: chartboost/ruff-action@v1
         with:
-          version: 0.0.277
+          version: 0.0.278
           args: --config pyproject.toml
           src: netket test Examples
