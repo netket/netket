@@ -21,6 +21,25 @@ args_fixed_dt_docstring = """
 """
 
 args_adaptive_docstring = """
+    This solver is adaptive, meaning that the time-step is changed at every
+    iteration in order to keep the error below a certain threshold.
+
+    In particular, given the variables at step :math:`t`, :math:`\\theta^{t}` and the
+    error at the same time-step, :math:`\\epsilon^t`, we compute a rescaled error by
+    using the absolute (**atol**) and relative (**reltol**) tolerances according
+    to this formula.
+
+    .. math::
+
+        \\epsilon^\\text{scaled} = \\text{Norm}(\\frac{\\epsilon^{t}}{\\epsilon_{atol} +
+            \\max(\\theta^t, \\theta^{t-1})\\epsilon_{reltol}}),
+
+    where :math:`\\text{Norm}` is a function that normalises the vector, usually a vector
+    norm but could be something else as well, and :math:`\\max` is an elementwise maximum
+    function (with lexicographical ordering for complex numbers).
+
+    Then, the integrator will attempt to keep `\\epsilon^\\text{scaled}<1`.
+
     Args:
         dt: Timestep (floating-point number). When :code:`adaptive==False` this value
             is never changed, when :code:`adaptive == True` this is the initial timestep.
@@ -38,7 +57,7 @@ args_adaptive_docstring = """
         dt_limits: A length-2 tuple of minimum and maximum timesteps considered by
             adaptive time-stepping. A value of None signals that there is no bound.
             Defaults to :code:`(None, 10*dt)`.
-"""
+    """
 
 
 def append_docstring(doc):

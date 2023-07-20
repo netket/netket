@@ -58,7 +58,9 @@ def compute_chain_length(n_chains, n_samples):
         warnings.warn(
             f"n_samples={n_samples} ({n_samples_per_rank} per MPI rank) does not "
             f"divide n_chains={n_chains}, increased to {n_samples_new} "
-            f"({n_samples_per_rank_new} per MPI rank)"
+            f"({n_samples_per_rank_new} per MPI rank)",
+            UserWarning,
+            stacklevel=3,
         )
 
     return chain_length
@@ -163,7 +165,7 @@ class MCState(VariationalState):
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
             mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
-                during evaluation, but that should not be optimised. See also flax.linen.module.apply documentation
+                during evaluation, but that should not be optimised. See also :meth:`flax.linen.Module.apply` documentation
                 (default=False)
             init_fun: Function of the signature f(model, shape, rng_key, dtype) -> Optional_state, parameters used to
                 initialise the parameters. Defaults to the standard flax initialiser. Only specify if your network has
@@ -380,7 +382,8 @@ class MCState(VariationalState):
         if self.sampler.is_exact:
             if n_discard_per_chain is not None and n_discard_per_chain > 0:
                 warnings.warn(
-                    "An exact sampler does not need to discard samples. Setting n_discard_per_chain to 0."
+                    "An exact sampler does not need to discard samples. Setting n_discard_per_chain to 0.",
+                    stacklevel=2,
                 )
             n_discard_per_chain = 0
 
@@ -425,7 +428,8 @@ class MCState(VariationalState):
 
         if not _is_power_of_two(chunk_size):
             warnings.warn(
-                "For performance reasons, we suggest to use a power-of-two chunk size."
+                "For performance reasons, we suggest to use a power-of-two chunk size.",
+                stacklevel=2,
             )
 
         check_chunk_size(self.n_samples, chunk_size)
@@ -635,7 +639,7 @@ class MCState(VariationalState):
         return expect_and_forces(self, Ô, self.chunk_size, mutable=mutable)
 
     def quantum_geometric_tensor(
-        self, qgt_T: LinearOperator = QGTAuto()
+        self, qgt_T: LinearOperator = QGTAuto
     ) -> LinearOperator:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector

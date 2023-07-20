@@ -89,7 +89,7 @@ class FullSumState(VariationalState):
             parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
-                during evaluation, but that should not be optimised. See also flax.linen.module.apply documentation
+                during evaluation, but that should not be optimised. See also :meth:`flax.linen.Module.apply` documentation
                 (default=False)
             init_fun: Function of the signature f(model, shape, rng_key, dtype) -> Optional_state, parameters used to
                 initialise the parameters. Defaults to the standard flax initialiser. Only specify if your network has

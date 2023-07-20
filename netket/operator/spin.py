@@ -72,7 +72,8 @@ def sigmay(
         warnings.warn(
             np.ComplexWarning(
                 f"A complex dtype is required (dtype={old_dtype} specified). "
-                f"Promoting to dtype={dtype}."
+                f"Promoting to dtype={dtype}.",
+                stacklevel=2,
             )
         )
 

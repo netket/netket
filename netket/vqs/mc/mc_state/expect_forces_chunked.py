@@ -60,7 +60,8 @@ def expect_and_forces_fallback(  # noqa: F811
     warnings.warn(
         f"Ignoring chunk_size={chunk_size} for expect_and_forces method with signature "
         f"({type(vstate)}, {type(operator)}) because no implementation supporting "
-        f"chunking for this signature exists."
+        f"chunking for this signature exists.",
+        stacklevel=2,
     )
 
     return expect_and_forces(vstate, operator, *args, **kwargs)

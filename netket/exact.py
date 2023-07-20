@@ -176,7 +176,9 @@ def steady_state(lindblad, *, sparse=True, method="ed", rho0=None, **kwargs):
                 since the update to numpy 1.9.
                 We suggest using sparse=True, however, if you wish not to, you have
                 been warned.
-                Your digits are your responsibility now."""
+                Your digits are your responsibility now.
+                """,
+                stacklevel=2,
             )
 
             lind_mat = lindblad.to_dense()
