@@ -26,9 +26,9 @@ spec = [
 
 
 @jitclass(spec)
-class HilbertIndex:
+class UnconstrainedHilbertIndex:
     def __init__(self, local_states, size):
-        self._local_states = np.sort(local_states)
+        self._local_states = np.sort(local_states).astype(np.float64)
         self._local_size = len(self._local_states)
         self._size = size
 
@@ -42,6 +42,10 @@ class HilbertIndex:
         return np.searchsorted(self.local_states, x)
 
     @property
+    def size(self) -> int:
+        return self._size
+
+    @property
     def n_states(self):
         return self._local_size**self._size
 
@@ -49,19 +53,9 @@ class HilbertIndex:
     def local_states(self):
         return self._local_states
 
-    def state_to_number(self, state):
-        if state.ndim != 1:
-            raise RuntimeError("Invalid input shape, expecting a 1d array.")
-
-        # Converts a vector of quantum numbers into the unique integer identifier
-        number = 0
-
-        for i in range(self._size):
-            number += (
-                self._local_state_number(state[self._size - i - 1]) * self._basis[i]
-            )
-
-        return number
+    @property
+    def local_size(self) -> int:
+        return self._local_size
 
     def number_to_state(self, number, out=None):
 
@@ -108,8 +102,8 @@ class HilbertIndex:
         # else:
         #     assert out.shape == (numbers.shape[0], self._size)
 
-        for i in range(numbers.shape[0]):
-            out[i] = self.number_to_state(numbers[i])
+        for i, n in enumerate(numbers):
+            out[i] = self.number_to_state(n)
 
         return out
 

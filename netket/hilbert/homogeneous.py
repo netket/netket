@@ -13,49 +13,36 @@
 # limitations under the License.
 
 from typing import Optional, List, Callable
-from functools import lru_cache
 
 from numbers import Real
 
 import numpy as np
 
 from .discrete_hilbert import DiscreteHilbert
-from .hilbert_index import HilbertIndex
-
-
-# This function has exponential runtime in self.size, so we cache it in order to
-# only compute it once.
-# TODO: distribute over MPI... chose better chunk size
-@lru_cache(maxsize=5)
-def compute_constrained_to_bare_conversion_table(self, *, chunk_size: int = 100000):
-    """
-    Computes the conversion table that converts the 'constrained' indices
-    of an hilbert space to bare indices, so that routines generating
-    only values in an unconstrained space can be used.
-
-    This function operates on blocks of `chunk_size` states at a time in order
-    to lower the memory cost. The default chunk size has been chosen by instinct
-    and is likely wrong.
-    """
-    n_chunks = int(np.ceil(self._hilbert_index.n_states / chunk_size))
-    bare_number_chunks = []
-    for i in range(n_chunks):
-        id_start = chunk_size * i
-        id_end = np.minimum(chunk_size * (i + 1), self._hilbert_index.n_states)
-        ids = np.arange(id_start, id_end)
-
-        states = self._hilbert_index.numbers_to_states(ids)
-        is_constrained = self._constraint_fn(states)
-        (chunk_bare_number,) = np.nonzero(is_constrained)
-        bare_number_chunks.append(chunk_bare_number + id_start)
-
-    return np.concatenate(bare_number_chunks)
+from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex
 
 
 class HomogeneousHilbert(DiscreteHilbert):
     r"""The Abstract base class for homogeneous hilbert spaces.
 
     This class should only be subclassed and should not be instantiated directly.
+
+    .. note::
+
+        To override the logic to index into constrained hilbert spaces, it is
+        possible to use an informal interface built on top of non-public
+        indexing classes.
+
+        In particular, you can override the following properties and methods:
+
+            - Do not specify the {code}`constraint_fn` keyword argument when
+              calling the init method of this abstract class.
+            - Override the property {prop}`~nk.hilbert.HomogeneousHilbert.is_constrained`,
+              to return `True` or `False`depending on your own logic.
+            - Override the property {code}`~nk.hilbert.HomogeneousHilbert._hilbert_index`
+              to return an hilbert index object (see the discussion in the source code of
+              the folder {code}`netket/hilbert/index/__init__.py`).
+
     """
 
     def __init__(
@@ -96,7 +83,6 @@ class HomogeneousHilbert(DiscreteHilbert):
         self._constraint_fn = constraint_fn
 
         self.__hilbert_index = None
-        self.__bare_numbers = None
 
         shape = tuple(self._local_size for _ in range(N))
         super().__init__(shape=shape)
@@ -127,10 +113,7 @@ class HomogeneousHilbert(DiscreteHilbert):
     def n_states(self) -> int:
         r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
-        if not self.constrained:
-            return self._hilbert_index.n_states
-        else:
-            return self._bare_numbers.shape[0]
+        return self._hilbert_index.n_states
 
     @property
     def is_finite(self) -> bool:
@@ -149,9 +132,6 @@ class HomogeneousHilbert(DiscreteHilbert):
         #    np.asarray, numbers, HilbertIndexingDuringTracingError
         # )
 
-        if self.constrained:
-            numbers = self._bare_numbers[numbers]
-
         return self._hilbert_index.numbers_to_states(numbers, out)
 
     def _states_to_numbers(self, states: np.ndarray, out: np.ndarray):
@@ -163,15 +143,21 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         self._hilbert_index.states_to_numbers(states, out)
 
-        if self.constrained:
-            out[:] = np.searchsorted(self._bare_numbers, out)
-
-            if np.max(out) >= self.n_states:
-                raise RuntimeError(
-                    "The required state does not satisfy " "the given constraints."
-                )
-
         return out
+
+    def all_states(self, out: Optional[np.ndarray] = None) -> np.ndarray:
+        r"""Returns all valid states of the Hilbert space.
+
+        Throws an exception if the space is not indexable.
+
+        Args:
+            out: an optional pre-allocated output array
+
+        Returns:
+            A (n_states x size) batch of states. this corresponds
+            to the pre-allocated array if it was passed.
+        """
+        return self._hilbert_index.all_states(out)
 
     @property
     def _hilbert_index(self) -> HilbertIndex:
@@ -183,25 +169,18 @@ class HomogeneousHilbert(DiscreteHilbert):
             if not self.is_indexable:
                 raise RuntimeError("The hilbert space is too large to be indexed.")
 
-            self.__hilbert_index = HilbertIndex(
-                np.asarray(self.local_states, dtype=np.float64), self.size
-            )
+            if self.constrained:
+                self.__hilbert_index = ConstrainedHilbertIndex(
+                    np.asarray(self.local_states, dtype=np.float64),
+                    self.size,
+                    self._constraint_fn,
+                )
+            else:
+                self.__hilbert_index = UnconstrainedHilbertIndex(
+                    np.asarray(self.local_states, dtype=np.float64), self.size
+                )
 
         return self.__hilbert_index
-
-    @property
-    def _bare_numbers(self) -> np.ndarray:
-        """
-        Returns the conversion table between indices in the constrained space and
-        the corresponding unconstrained space.
-        """
-        if not self.constrained:
-            return None
-
-        if self.__bare_numbers is None:
-            self.__bare_numbers = compute_constrained_to_bare_conversion_table(self)
-
-        return self.__bare_numbers
 
     def __repr__(self):
         constr = f", constrained={self.constrained}" if self.constrained else ""
