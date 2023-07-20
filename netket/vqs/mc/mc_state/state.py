@@ -509,6 +509,16 @@ class MCState(VariationalState):
             self.sample()
         return self._samples
 
+    def burn_in(self, n: int = 1):
+        """
+        Run the sampler n times to obtain samples that are better distributed
+        according to the Born distribution of the model.
+        Typically useful when a model is loaded from a parameter file.
+        """
+        for _ in range(n):
+            self.reset()
+            self.sample()
+
     def log_value(self, σ: jnp.ndarray) -> jnp.ndarray:
         """
         Evaluate the variational state for a batch of states and returns
