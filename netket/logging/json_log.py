@@ -124,7 +124,7 @@ class JsonLog(RuntimeLog):
         self._flush_log_time = 0.0
         self._flush_pars_time = 0.0
 
-    def __call__(self, step, item, variational_state):
+    def __call__(self, step, item, variational_state=None):
         old_step = self._old_step
         super().__call__(step, item, variational_state)
 
@@ -165,6 +165,8 @@ class JsonLog(RuntimeLog):
 
     def _flush_params(self, variational_state):
         if not self._save_params:
+            return
+        if variational_state is None:
             return
 
         _time = time.time()

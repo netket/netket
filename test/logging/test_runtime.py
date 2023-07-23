@@ -108,3 +108,7 @@ def test_serialize(vstate, tmp_path):
     assert np.array(data1["vals"]["complex_matrix"]["value"]["imag"]).shape == shape
 
     assert repr(log).startswith("RuntimeLog")
+
+    # check log without state specified.
+    log(23, {"energy": e})
+    assert len(log.data["energy"]["iters"] == 11)
