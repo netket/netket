@@ -170,7 +170,7 @@ def to_matrix(
 
 
 # TODO: Deprecate: remove
-def update_dense_symm(params, names=["dense_symm", "Dense"]):
+def update_dense_symm(params, names=("dense_symm", "Dense")):
     """Updates DenseSymm kernels in pre-PR#1030 parameter pytrees to the new
     3D convention.
 

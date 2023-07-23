@@ -73,7 +73,8 @@ def sigmay(
             np.ComplexWarning(
                 f"A complex dtype is required (dtype={old_dtype} specified). "
                 f"Promoting to dtype={dtype}."
-            )
+            ),
+            stacklevel=2,
         )
 
     N = hilbert.size_at_index(site)

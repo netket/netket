@@ -107,6 +107,7 @@ class Sampler(abc.ABC):
                             f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
                             f"that is a multiple of the number of MPI ranks.",
                             category=UserWarning,
+                            stacklevel=2,
                         )
 
             kwargs["n_chains_per_rank"] = n_chains_per_rank
@@ -298,7 +299,7 @@ class Sampler(abc.ABC):
 
         machine = wrap_afun(machine)
 
-        for i in range(chain_length):
+        for _i in range(chain_length):
             samples, state = sampler._sample_chain(machine, parameters, state, 1)
             yield samples[:, 0, :]
 

@@ -122,6 +122,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
                 f"Using {n_chains_per_device*n_devices} chains "
                 f"({n_chains_per_device} chains on each of {n_devices} devices).",
                 category=UserWarning,
+                stacklevel=2,
             )
 
         return args, kwargs
@@ -200,9 +201,6 @@ class MetropolisSamplerPmap(MetropolisSampler):
             n_accepted_proc=state.n_accepted_proc,
         )
         return samples.reshape((-1,) + samples.shape[-2:]), state
-
-    def _repr_pretty_(sampler, p, cycle):
-        super()._repr_pretty_(p, cycle)
 
 
 @partial(

@@ -27,7 +27,7 @@ from netket.utils.types import Array
 class SymmExpSum(nn.Module):
     r"""
     A flax module symmetrizing the log-wavefunction :math:`\log\psi_\theta(\sigma)` encoded
-    into another flax module (:ref:`flax.linen.Module`) by summing over all possible symmetries
+    into another flax module (:class:`flax.linen.Module`) by summing over all possible symmetries
     :math:`g` in a certain discrete permutation group :math:`G`.
 
     .. math::
@@ -77,7 +77,7 @@ class SymmExpSum(nn.Module):
     symm_group: PermutationGroup
     """The symmetry group to use. It should be a valid :ref:`netket.utils.group.PermutationGroup`
     object. Can be easily extracted from a :ref:`netket.graph.Graph` object by calling
-    :ref:`~netket.graph.Graph.point_group` or :ref:`~netket.graph.Graph.translation_group`
+    :meth:`~netket.graph.Graph.point_group` or :meth:`~netket.graph.Graph.translation_group`
 
     .. code::
 

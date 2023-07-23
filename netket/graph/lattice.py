@@ -320,6 +320,7 @@ class Lattice(Graph):
             raise ValueError("The number of primitive vectors must match their length")
         return basis_vectors
 
+    # TODO: remove atoms_coord argument.
     @staticmethod
     def _clean_site_offsets(site_offsets, atoms_coord, basis_vectors):
         """Check and convert `site_offsets` init argument."""
@@ -333,6 +334,7 @@ class Lattice(Graph):
                 "atoms_coord is deprecated and may be removed in future versions, "
                 "please use site_offsets instead",
                 FutureWarning,
+                stacklevel=3,
             )
             site_offsets = atoms_coord
 

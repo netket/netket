@@ -100,7 +100,9 @@ def test_qgt_throws(SType):
     S = vs.quantum_geometric_tensor(SType)
     g_cmplx = jax.tree_map(lambda x: x + x * 0.1j, vs.parameters)
 
-    with pytest.raises(nk.utils.errors.ComplexDomainError, match="Cannot multiply the"):
+    with pytest.raises(
+        nk.errors.RealQGTComplexDomainError, match="Cannot multiply the"
+    ):
         S @ g_cmplx
 
 

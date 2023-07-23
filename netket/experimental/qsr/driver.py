@@ -175,7 +175,8 @@ class QSR(AbstractVariationalDriver):
             self.n_chunk = self.dataset.size // self._chunk_size
             if not self.n_chunk * self._chunk_size == self.dataset.size:
                 warnings.warn(
-                    "WARNING: chunk size does not divide the number of samples, the last few chunks will be smaller"
+                    "WARNING: chunk size does not divide the number of samples, the last few chunks will be smaller",
+                    stacklevel=2,
                 )
             self._chunked_indices = np.array_split(
                 np.arange(self.dataset.size), self.n_chunk
