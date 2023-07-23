@@ -3,12 +3,17 @@
 
 # Change Log
 
-## NetKet 3.9 (⚙️ In development)
+## NetKet 3.10 (⚙️ In development)
+
+
+
+## NetKet 3.9 (🔥 24 July 2023)
+
 This release requires Python 3.8 and Jax 0.4.
 
 ### New Features
 * `netket.callbacks.EarlyStopping` now supports relative tolerances for determining when to stop [#1481](https://github.com/netket/netket/pull/1481).
-* `netket.callbacks.ConvergenceStopping` has been added, which can stop a driver when the loss function reaches a certain threshold [#14XX](https://github.com/netket/netket/pull/1481).
+* `netket.callbacks.ConvergenceStopping` has been added, which can stop a driver when the loss function reaches a certain threshold [#1481](https://github.com/netket/netket/pull/1481).
 * A new base class {class}`netket.operator.DiscreteJaxOperator` has been added, which will be used as a base class for a set of operators that are jax-compatible [#1506](https://github.com/netket/netket/pull/1506).
 * {func}`netket.sampler.rules.HamiltonianRule` has been split into two implementations, {class}`netket.sampler.rules.HamiltonianRuleJax` and {class}`netket.sampler.rules.HamiltonianRuleNumba`, which are to be used for {class}`~netket.operator.DiscreteJaxOperator` and standard numba-based {class}`~netket.operator.DiscreteOperator`s. The user-facing API is unchanged, but the returned type might now depend on the input operator [#1514](https://github.com/netket/netket/pull/1514).
 * {class}`netket.operator.PauliStringsJax` is a new operator that behaves as `netket.operator.PauliStrings` but is Jax-compatible, meaning that it can be used inside of jax-jitted contexts and works better with chunking. It can also be constructed starting from a standard Ising operator by calling `operator.to_jax_operator()` [#1506](https://github.com/netket/netket/pull/1506).
@@ -22,6 +27,10 @@ This release requires Python 3.8 and Jax 0.4.
 
 ### Deprecations
 * `netket.vqs.ExactState` has been renamed to {class}`netket.vqs.FullSumState` to better reflect what it does. Using the old name will now raise a warning [#1477](https://github.com/netket/netket/pull/1477).
+
+
+### Known Issues
+* The new `Jax`-friendly operators do not work with {class}`netket.vqs.FullSumState` because they are not hashable. This will be fixed in a minor patch (coming soon).
 
 
 ## NetKet 3.8 (8 May 2023)
