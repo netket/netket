@@ -1,3 +1,9 @@
+import warnings
+
+import numpy as np
+from scipy import sparse
+
+import netket as nk
 from netket.operator.boson import (
     create as bcreate,
     destroy as bdestroy,
@@ -5,12 +11,10 @@ from netket.operator.boson import (
 )
 from netket.operator.spin import sigmax, sigmay, sigmaz, sigmam, sigmap
 from netket.operator import AbstractOperator, LocalOperator
-import netket as nk
-import numpy as np
+
 import pytest
 from pytest import raises
 
-from scipy import sparse
 
 import jax
 
@@ -576,3 +580,9 @@ def test_pauli_strings_conversion():
     ps_true, lo, ps_conv = _convert(operators, weights, 1.1)
     assert np.allclose(ps_true.to_dense(), ps_conv.to_dense())
     assert np.allclose(lo.to_dense(), ps_conv.to_dense())
+
+
+def test_pauli_strings_conversion_no_warn():
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", category=np.ComplexWarning)
+        nk.operator.spin.sigmax(nk.hilbert.Spin(0.5, 3), 0).to_pauli_strings()
