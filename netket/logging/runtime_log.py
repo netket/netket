@@ -40,7 +40,7 @@ class RuntimeLog:
         self._data = None
         self._old_step = 0
 
-    def __call__(self, step, item, variational_state):
+    def __call__(self, step, item, variational_state=None):
         self._data = accum_histories_in_tree(self._data, item, step=step)
         self._old_step = step
 
