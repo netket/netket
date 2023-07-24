@@ -262,7 +262,7 @@ def _pauli_strings_mels_jax(local_states, z_data, x):
             axis=-1, promote_integers=False
         )
         mels.append(jnp.einsum("...ab,ab->...a", sgn, w))
-        return jnp.concatenate(mels, axis=-1)
+    return jnp.concatenate(mels, axis=-1)
 
 
 @jax.jit
