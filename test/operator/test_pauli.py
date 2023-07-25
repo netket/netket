@@ -276,3 +276,14 @@ def test_openfermion_conversion():
     ps = nk.operator.PauliStrings.from_openfermion(hilbert, of_qubit_operator)
     assert ps.hilbert == hilbert
     assert ps.hilbert.size == 6
+
+
+def test_pauli_jax_sparse_works():
+    hi = nk.hilbert.Spin(0.5, 9)
+    g = nk.graph.Square(3)
+    ham = nk.operator.Ising(hi, g, h=1.0)
+    ham_jax_sp = ham.to_local_operator().to_pauli_strings().to_jax_operator()
+    ham_jax_d = ham_jax_sp.to_sparse().todense()
+
+    ham_d = ham.to_dense()
+    np.testing.assert_allclose(ham_jax_d, ham_d)
