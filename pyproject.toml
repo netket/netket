@@ -70,7 +70,7 @@ dev = [
     "build",
 ]
 docs = [
-    "Sphinx>=5.3,<7.1",
+    "Sphinx>=5.3,<7.2",
     "sphinx-autodoc-typehints~=1.22",
     "sphinxcontrib-fulltoc~=1.2.0",
     "sphinxcontrib-jsmath~=1.0.1",
