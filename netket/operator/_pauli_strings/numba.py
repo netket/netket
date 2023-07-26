@@ -18,6 +18,8 @@ from functools import wraps
 import numpy as np
 from numba import jit
 
+import jax.numpy as jnp
+
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 from netket.utils.types import DType
@@ -46,6 +48,13 @@ def pack_internals_numba(
     _n_op_max = max(
         list(map(lambda x: len(x), list(acting.values()))), default=n_operators
     )
+
+    # Check if there are Y operators in the strings, and in that
+    # case uppromote float to complex
+    if not jnp.issubdtype(dtype, jnp.complexfloating):
+        # this checks if there is an Y in one of the strings
+        if np.any(np.char.find(operators, "Y") != -1):
+            dtype = jnp.promote_types(jnp.complex64, dtype)
 
     # unpacking the dictionary into fixed-size arrays
 
@@ -82,6 +91,7 @@ def pack_internals_numba(
         "nz_check": _nz_check,
         "z_check": _z_check,
         "n_operators": n_operators,
+        "mel_dtype": dtype,
     }
 
 
@@ -154,7 +164,7 @@ class PauliStrings(PauliStringsBase):
 
             # caches for execution
             self._x_prime_max = np.empty((self._n_operators, self.hilbert.size))
-            self._mels_max = np.empty((self._n_operators), dtype=self.dtype)
+            self._mels_max = np.empty((self._n_operators), dtype=data["mel_dtype"])
 
             self._local_states = np.array(self.hilbert.states_at_index(0))
             self._initialized = True

@@ -148,6 +148,13 @@ def pack_internals_jax(
     Returns a dictionary with all the data fields
     """
 
+    # Check if there are Y operators in the strings, and in that
+    # case uppromote float to complex
+    if not jnp.issubdtype(weight_dtype, jnp.complexfloating):
+        # this checks if there is an Y in one of the strings
+        if np.any(np.char.find(operators, "Y") != -1):
+            weight_dtype = jnp.promote_types(jnp.complex64, weight_dtype)
+
     # index_dtype needs to be signed (we use -1 for padding)
 
     _check_mode(mode)
