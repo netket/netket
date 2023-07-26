@@ -113,10 +113,12 @@ class ExactSampler(Sampler):
         # this will lead to a crash if numbers_to_state throws.
         # it throws if we feed it nans!
         samples = jax.pure_callback(
-            lambda numbers: sampler.hilbert.numbers_to_states(numbers),
+            lambda numbers: sampler.hilbert.numbers_to_states(numbers).astype(
+                sampler.dtype
+            ),
             jax.ShapeDtypeStruct(
                 (sampler.n_chains_per_rank * chain_length, sampler.hilbert.size),
-                jnp.float64,
+                sampler.dtype,
             ),
             numbers,
         )
