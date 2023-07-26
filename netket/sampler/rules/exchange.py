@@ -68,13 +68,13 @@ class ExchangeRule_(MetropolisRule):
             si = rule.clusters[cluster, 0]
             sj = rule.clusters[cluster, 1]
 
-            σp = σ.at[si].set(σ[sj])
-            return σp.at[sj].set(σ[si])
+            # log-probability correction
+            log_corr = jnp.log(σ[si] != σ[sj])
 
-        return (
-            jax.vmap(scalar_update_fun, in_axes=(0, 0), out_axes=0)(σ, cluster_id),
-            None,
-        )
+            σp = σ.at[si].set(σ[sj])
+            return σp.at[sj].set(σ[si]), log_corr
+
+        return jax.vmap(scalar_update_fun, in_axes=(0, 0), out_axes=0)(σ, cluster_id)
 
     def __repr__(self):
         return f"ExchangeRule(# of clusters: {len(self.clusters)})"
