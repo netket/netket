@@ -219,6 +219,18 @@ config.define(
 )
 
 config.define(
+    "NETKET_ENABLE_X64",
+    bool,
+    default=True,
+    help=dedent(
+        """
+        ....
+        """
+    ),
+    runtime=False,
+)
+
+config.define(
     "NETKET_SPHINX_BUILD",
     bool,
     default=False,
