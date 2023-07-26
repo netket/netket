@@ -18,11 +18,12 @@ from collections.abc import Iterable
 from netket.utils.types import DType, Array
 
 import numpy as np
+import jax.numpy as jnp
 from numba import jit
 from itertools import product
 
 from netket.hilbert import Qubit, AbstractHilbert
-from netket.utils.numbers import is_scalar
+from netket.utils.numbers import dtype as _dtype, is_scalar
 
 from .._abstract_operator import AbstractOperator
 from .._discrete_operator import DiscreteOperator
@@ -98,6 +99,13 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
         )
 
     weights = _standardize_matrix_input_type(weights)
+
+    # If we asked for a specific dtype, enforce it.
+    if dtype is None:
+        dtype = jnp.promote_types(np.float32, _dtype(weights))
+    # Fallback to float32 when float64 is disabled in JAX
+    dtype = jnp.empty((), dtype=dtype).dtype
+
     weights = cast_operator_matrix_dtype(weights, dtype=dtype)
 
     operators = np.asarray(operators, dtype=str)
@@ -151,9 +159,11 @@ class PauliStringsBase(DiscreteOperator):
         if not isinstance(hilbert, AbstractHilbert):
             hilbert, operators, weights = None, hilbert, operators
 
+        print(hilbert, operators, weights, dtype)
         hilbert, operators, weights, dtype = canonicalize_input(
             hilbert, operators, weights, dtype=dtype
         )
+        print(dtype)
 
         if not np.isscalar(cutoff) or cutoff < 0:
             raise ValueError("invalid cutoff in PauliStrings.")

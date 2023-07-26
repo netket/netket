@@ -96,7 +96,7 @@ class PauliStrings(PauliStringsBase):
         weights: Union[float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
-        dtype: DType = complex,
+        dtype: DType = None,
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
 

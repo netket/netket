@@ -285,7 +285,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         weights: Union[float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 0.0,
-        dtype: DType = complex,
+        dtype: DType = None,
         _mode: str = "index",
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
