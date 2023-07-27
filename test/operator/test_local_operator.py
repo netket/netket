@@ -380,6 +380,27 @@ def test_type_promotion():
     promoted_op = real_op + nk.operator.LocalOperator(hi, complex_mat, acting_on=[0])
     assert promoted_op.dtype == np.complex128
 
+    op = nk.operator.spin.sigmax(hi, 0, dtype=np.float32)
+    op2 = 2 * op
+    assert op2.dtype == np.float32
+    op2 = 2.0 * op
+    assert op2.dtype == np.float32
+    op2 = 2.0j * op
+    assert op2.dtype == np.complex64
+
+    op2 = 2 - op
+    assert op2.dtype == np.float32
+    op2 = 2.0 - op
+    assert op2.dtype == np.float32
+    op2 = 2.0j - op
+    assert op2.dtype == np.complex64
+
+    op = nk.operator.spin.sigmay(hi, 0, dtype=np.complex64)
+    op2 = 2 * op
+    assert op2.dtype == np.complex64
+    op2 = 2.0 * op
+    assert op2.dtype == np.complex64
+
 
 def test_empty_after_sum():
     a = nk.operator.spin.sigmaz(nk.hilbert.Spin(0.5), 0)
