@@ -257,10 +257,11 @@ class PauliStringsBase(DiscreteOperator):
         print_list = []
         for op, w in zip(self.operators, self.weights):
             print_list.append(f"    {op} : {str(w)}")
-        s = "{}(hilbert={}, n_strings={}, dict(operators:weights)=\n{}\n)".format(
+        s = "{}(hilbert={}, n_strings={}, dtype={}, dict(operators:weights)=\n{}\n)".format(
             type(self).__name__,
             self.hilbert,
             len(self.operators),
+            self.dtype,
             ",\n".join(print_list),
         )
         return s
