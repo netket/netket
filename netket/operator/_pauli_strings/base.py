@@ -339,7 +339,7 @@ class PauliStringsBase(DiscreteOperator):
                 "\n\n"
             )
         elif is_scalar(other):
-            op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
+            op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imul__(other)
 
         return NotImplemented
@@ -360,7 +360,9 @@ class PauliStringsBase(DiscreteOperator):
                     f"Cannot multiply inplace operator of type {type(self)} and "
                     f"dtype {self.dtype} to scalar with dtype {_dtype(other)}"
                 )
-            other = np.asarray(other, dtype=np.promote_types(self.dtype, _dtype(other)))
+            other = np.asarray(
+                other, dtype=jnp.promote_types(self.dtype, _dtype(other))
+            )
 
             self._weights = self.weights * other
             self._reset_caches()
@@ -384,7 +386,7 @@ class PauliStringsBase(DiscreteOperator):
         return self.__iadd__(-other)
 
     def __add__(self, other: Union["PauliStringsBase", Number]):
-        op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
+        op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
         op = op.__iadd__(other)
         return op
 
