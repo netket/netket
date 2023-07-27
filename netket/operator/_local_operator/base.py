@@ -19,6 +19,7 @@ import numbers
 from textwrap import dedent
 
 import numpy as np
+import jax.numpy as jnp
 import numba
 from scipy.sparse import issparse
 
@@ -261,7 +262,7 @@ class LocalOperator(DiscreteOperator):
         return -1 * self
 
     def __add__(self, other: Union["LocalOperator", numbers.Number]):
-        op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
+        op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
         op = op.__iadd__(other)
         return op
 
@@ -309,10 +310,10 @@ class LocalOperator(DiscreteOperator):
 
     def __mul__(self, other):
         if isinstance(other, DiscreteOperator):
-            op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
+            op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imatmul__(other)
         elif is_scalar(other):
-            op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
+            op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
             return op.__imul__(other)
         return NotImplemented
 
@@ -325,7 +326,9 @@ class LocalOperator(DiscreteOperator):
                     f"Cannot add inplace operator of type {type(other)} and "
                     f"dtype {_dtype(other)} to operator with dtype {self.dtype}"
                 )
-            other = np.asarray(other, dtype=np.promote_types(self.dtype, _dtype(other)))
+            other = np.asarray(
+                other, dtype=jnp.promote_types(self.dtype, _dtype(other))
+            )
 
             self._constant *= other
             if np.abs(other) <= self.mel_cutoff:
@@ -353,7 +356,7 @@ class LocalOperator(DiscreteOperator):
     def _op__matmul__(self, other: "LocalOperator") -> "LocalOperator":
         if not isinstance(other, LocalOperator):
             return NotImplemented
-        op = self.copy(dtype=np.promote_types(self.dtype, _dtype(other)))
+        op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
         return op._op_imatmul_(other)
 
     def _op_imatmul_(self, other: "LocalOperator") -> "LocalOperator":
