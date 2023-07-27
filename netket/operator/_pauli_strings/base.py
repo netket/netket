@@ -155,11 +155,9 @@ class PauliStringsBase(DiscreteOperator):
         if not isinstance(hilbert, AbstractHilbert):
             hilbert, operators, weights = None, hilbert, operators
 
-        print(hilbert, operators, weights, dtype)
         hilbert, operators, weights, dtype = canonicalize_input(
             hilbert, operators, weights, dtype=dtype
         )
-        print(dtype)
 
         if not np.isscalar(cutoff) or cutoff < 0:
             raise ValueError("invalid cutoff in PauliStrings.")
