@@ -245,7 +245,11 @@ class AbstractVariationalDriver(abc.ABC):
         callbacks = _to_iterable(callback)
         callback_stop = False
 
-        with tqdm(total=n_iter, disable=not show_progress) as pbar:
+        with tqdm(
+            total=n_iter,
+            disable=not show_progress,
+            dynamic_ncols=True,
+        ) as pbar:
             old_step = self.step_count
             first_step = True
 

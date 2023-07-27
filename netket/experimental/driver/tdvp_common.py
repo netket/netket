@@ -328,6 +328,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
             total=t_end,
             disable=not show_progress,
             unit_scale=True,
+            dynamic_ncols=True,
         ) as pbar:
             first_step = True
 
