@@ -5,7 +5,17 @@
 
 ## NetKet 3.10 (⚙️ In development)
 
+## NetKet 3.9.2
 
+### Bug Fixes
+
+* Fix a bug introduced in version 3.9 for {class}`netket.experimental.driver.TDVPSchmitt` which resulted in the wrong dynamics [#1551](https://github.com/netket/netket/pull/1551).
+
+## NetKet 3.9.1
+
+### Bug Fixes
+
+* Fix a bug in the construction of {class}`netket.operator.PauliStringsJax` in some cases [#1539](https://github.com/netket/netket/pull/1539).
 
 ## NetKet 3.9 (🔥 24 July 2023)
 
