@@ -65,7 +65,7 @@ dev = [
     "coverage>=5",
     "pre-commit>=2.7",
     "black==22.10.0",
-    "ruff==0.0.278",
+    "ruff==0.0.281",
     "wheel",
     "build",
 ]
