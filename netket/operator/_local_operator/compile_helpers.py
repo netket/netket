@@ -49,6 +49,8 @@ def pack_internals(
     """Analyze the operator strings and precompute arrays for get_conn inference"""
     acting_size = np.array([len(aon) for aon in op_acting_on], dtype=np.intp)
 
+    op_n_conns_offdiag = max_nonzero_per_row(operators, mel_cutoff)
+
     # Support empty LocalOperators such as the identity.
     if len(acting_size) > 0:
         max_acting_on_sz = np.max(acting_size)
@@ -56,7 +58,7 @@ def pack_internals(
             [max(map(hilbert.size_at_index, aon)) for aon in op_acting_on]
         )
         max_op_size = max(map(lambda x: x.shape[0], operators))
-        max_op_size_offdiag = max_nonzero_per_row(operators, mel_cutoff)
+        max_op_size_offdiag = np.max(op_n_conns_offdiag)
     else:
         max_acting_on_sz = 0
         max_local_hilbert_size = 0
@@ -140,14 +142,7 @@ def pack_internals(
     )
 
     max_conn_size = 1 if nonzero_diagonal else 0
-    for op in operators:
-        # TODO: exploit the sparse structure in here.
-        if sparse.issparse(op):
-            op = op.todense()
-        nnz_mat = np.abs(op) > mel_cutoff
-        nnz_mat[np.diag_indices(nnz_mat.shape[0])] = False
-        nnz_rows = np.sum(nnz_mat, axis=1)
-        max_conn_size += np.max(nnz_rows)
+    max_conn_size = max_conn_size + np.sum(op_n_conns_offdiag)
 
     return {
         "acting_on": acting_on,
@@ -269,12 +264,8 @@ def max_nonzero_per_row(operators, cutoff):
     This function has a computational overhead, as we have to iterate through all
     operators, but it allows us to be much happier in terms of memory cost.
     """
-    max_count = 0
+    max_counts = []
     for matrix in operators:
-        # Check if it's possible for this matrix to have a larger count
-        if min(matrix.shape) - 1 <= max_count:
-            continue
-
         # Check if the matrix is sparse
         if sparse.issparse(matrix):
             # simple implementation, raises warning
@@ -305,5 +296,6 @@ def max_nonzero_per_row(operators, cutoff):
             row_counts = np.count_nonzero(
                 mask, axis=1
             )  # Count non-zero entries in each row
-        max_count = max(max_count, np.max(row_counts))  # Update max count if necessary
-    return max_count
+
+        max_counts.append(np.max(row_counts))
+    return np.array(max_counts, dtype=np.int32)
