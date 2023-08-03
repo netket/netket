@@ -16,7 +16,6 @@ import jax
 import netket as nk
 import numpy as np
 import pytest
-from flax.core import freeze
 from jax import numpy as jnp
 
 from .. import common
@@ -221,7 +220,7 @@ class TestARNN:
         params = variables["params"]
         cache = variables["cache"]
         for i in range(hilbert.size):
-            variables = freeze({"params": params, "cache": cache})
+            variables = {"params": params, "cache": cache}
             p_i, mutables = model2.apply(
                 variables,
                 spins,

@@ -15,8 +15,6 @@
 import dataclasses
 import abc
 
-from flax.core import freeze
-
 
 @dataclasses.dataclass(frozen=True)
 class ModuleFramework(abc.ABC):
@@ -37,7 +35,7 @@ class ModuleFramework(abc.ABC):
 
     @staticmethod
     def wrap_params(variables):
-        return freeze({"params": variables})
+        return {"params": variables}
 
     @staticmethod
     @abc.abstractmethod

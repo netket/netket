@@ -15,8 +15,6 @@
 import sys
 import inspect
 
-from flax.core import freeze
-
 from .base import ModuleFramework, framework
 
 
@@ -28,7 +26,7 @@ class JaxWrapper:
 
     def init(self, keys, inpt):
         _, variables = self.ifun(keys["params"], inpt.shape)
-        return freeze({"params": variables})
+        return {"params": variables}
 
     def apply(
         self,
@@ -85,7 +83,7 @@ class JaxFramework(ModuleFramework):
 
     @staticmethod
     def wrap_params(variables):
-        return freeze({"params": variables})
+        return {"params": variables}
 
     @staticmethod
     def unwrap_params(wrapped_variables):

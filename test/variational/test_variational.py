@@ -17,7 +17,6 @@ from functools import partial
 import pytest
 from pytest import approx, raises
 
-import flax
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
@@ -465,9 +464,9 @@ def test_forces_gradient_rule():
     samp = nk.sampler.ExactSampler(hi)
     vs1 = nk.vqs.MCState(samp, model=ma1, n_samples=1024, sampler_seed=1234, seed=1234)
     vs2 = nk.vqs.MCState(samp, model=ma2, n_samples=1024, sampler_seed=1234, seed=1234)
-    vs1.parameters = flax.core.freeze(
-        {"weights": vs2.parameters["weights_re"] + 1j * vs2.parameters["weights_im"]}
-    )
+    vs1.parameters = {
+        "weights": vs2.parameters["weights_re"] + 1j * vs2.parameters["weights_im"]
+    }
 
     assert np.allclose(vs1.to_array(), vs2.to_array())
 
