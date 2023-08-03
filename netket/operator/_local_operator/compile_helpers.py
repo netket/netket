@@ -102,21 +102,38 @@ def pack_internals(
             ba *= hilbert.shape[aon[aon_size - s - 1]]
 
         if sparse.issparse(op):
-            # TODO: exploit the sparse structure in here.
-            #    op = op.todense()
-            op = op.todense()
+            # Extract the sparse matrix representation to numpy arrays
+            data = np.array(op.data, copy=False)
+            indices = np.array(op.indices, copy=False)
+            indptr = np.array(op.indptr, copy=False)
 
-        _append_matrix(
-            op,
-            diag_mels[i],
-            mels[i],
-            x_prime[i],
-            n_conns[i],
-            aon_size,
-            local_states[i],
-            mel_cutoff,
-            n_local_states_per_site,
-        )
+            _append_matrix_sparse(
+                data,
+                indices,
+                indptr,
+                aon_size,
+                local_states[i],
+                n_local_states_per_site,
+                mel_cutoff,
+                diag_mels[i],
+                mels[i],
+                x_prime[i],
+                n_conns[i],
+            )
+
+        else:
+
+            _append_matrix(
+                op,
+                aon_size,
+                local_states[i],
+                n_local_states_per_site,
+                mel_cutoff,
+                diag_mels[i],
+                mels[i],
+                x_prime[i],
+                n_conns[i],
+            )
 
     nonzero_diagonal = (
         np.any(np.abs(diag_mels) >= mel_cutoff) or np.abs(constant) >= mel_cutoff
@@ -149,15 +166,18 @@ def pack_internals(
 @numba.jit(nopython=True)
 def _append_matrix(
     operator,
+    acting_size,
+    local_states_per_site,
+    hilb_size_per_site,
+    epsilon,
     diag_mels,
     mels,
     x_prime,
     n_conns,
-    acting_size,
-    local_states_per_site,
-    epsilon,
-    hilb_size_per_site,
 ):
+    """
+    Appends
+    """
     op_size = operator.shape[0]
     assert op_size == operator.shape[1]
     for i in range(op_size):
@@ -167,6 +187,49 @@ def _append_matrix(
             if i != j and np.abs(operator[i, j]) > epsilon:
                 k_conn = n_conns[i]
                 mels[i, k_conn] = operator[i, j]
+                _number_to_state(
+                    j,
+                    hilb_size_per_site,
+                    local_states_per_site[:acting_size, :],
+                    x_prime[i, k_conn, :acting_size],
+                )
+                n_conns[i] += 1
+
+
+@numba.jit(nopython=True)
+def _append_matrix_sparse(
+    data,
+    indices,
+    indptr,
+    acting_size,
+    local_states_per_site,
+    hilb_size_per_site,
+    epsilon,
+    diag_mels,
+    mels,
+    x_prime,
+    n_conns,
+):
+    """
+    Equivalent to _append_matrix, but takes as input the three arrays
+    'data, indices, indptr' of the CSR sparse format instead of a numpy
+    dense matrix.
+    """
+    op_size = len(indptr) - 1
+
+    for i in range(op_size):
+        # If the diagonal element was not found in the data, set it to 0
+        diag_mels[i] = 0
+        for index in range(indptr[i], indptr[i + 1]):
+            j = indices[index]
+            val = data[index]
+
+            if i == j:  # Diagonal elements
+                diag_mels[i] = val
+
+            elif np.abs(val) > epsilon:  # Non-diagonal elements
+                k_conn = n_conns[i]
+                mels[i, k_conn] = val
                 _number_to_state(
                     j,
                     hilb_size_per_site,
@@ -199,6 +262,12 @@ def max_nonzero_per_row(operators, cutoff):
     """
     This function counts the maximum number of nonzero entries per row, excluding the
     diagonal, among all operators in a local operator.
+
+    Prior to this function, netket defaulted to returning the maximum shape of the
+    operators minus 1, but that was largely memory inefficient.
+
+    This function has a computational overhead, as we have to iterate through all
+    operators, but it allows us to be much happier in terms of memory cost.
     """
     max_count = 0
     for matrix in operators:
