@@ -86,7 +86,7 @@ def pack_internals(
         -1,
         dtype=np.float64,
     )
-    n_conns = np.full((n_operators, max_op_size), -1, dtype=np.intp)
+    n_conns = np.full((n_operators, max_op_size), 0, dtype=np.intp)
 
     for (i, (aon, op)) in enumerate(operators_dict.items()):
         aon_size = len(aon)
