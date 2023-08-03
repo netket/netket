@@ -104,6 +104,8 @@ def pack_internals(
             ba *= hilbert.shape[aon[aon_size - s - 1]]
 
         if sparse.issparse(op):
+            if not isinstance(op, sparse.csr_matrix):
+                op = op.tocsr()
             # Extract the sparse matrix representation to numpy arrays
             data = np.array(op.data, copy=False)
             indices = np.array(op.indices, copy=False)
@@ -288,7 +290,9 @@ def max_nonzero_per_row(operators, cutoff):
             for key in keys_to_delete:
                 del dok_matrix[key]
 
-            row_counts = matrix.getnnz(axis=1)  # Count non-zero entries in each row
+            row_counts = dok_matrix.tocsr().getnnz(
+                axis=1
+            )  # Count non-zero entries in each row
         else:
             matrix = matrix.copy()  # Make a copy to avoid modifying the original matrix
             mask = np.abs(matrix) >= cutoff  # Create a mask of entries above the cutoff
