@@ -16,6 +16,7 @@ from typing import Optional, Union
 
 import numpy as np
 
+import jax
 from jax import numpy as jnp
 
 from netket.graph import AbstractGraph
@@ -67,6 +68,8 @@ class IsingBase(SpecialHamiltonian):
 
         if dtype is None:
             dtype = jnp.promote_types(_dtype(h), _dtype(J))
+            # Fallback to float32 when float64 is disabled in JAX
+            dtype = jax.dtypes.canonicalize_dtype(dtype)
 
         if isinstance(graph, AbstractGraph):
             if graph.n_nodes != hilbert.size:
@@ -93,9 +96,6 @@ class IsingBase(SpecialHamiltonian):
                     - a (N,2) array of integers.
                 """
             )
-
-        # Fallback to float32 when float64 is disabled in JAX
-        dtype = jnp.empty((), dtype=dtype).dtype
 
         self._h = h.astype(dtype=dtype)
         self._J = J.astype(dtype=dtype)
