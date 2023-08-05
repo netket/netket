@@ -21,7 +21,7 @@ import jax
 import jax.numpy as jnp
 from jax.nn.initializers import normal
 
-from flax.core import pop as fpop
+from flax import core as fcore
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 import netket.jax as nkjax
@@ -68,7 +68,7 @@ class VariationalState(abc.ABC):
     @property
     def parameters(self) -> PyTree:
         r"""The pytree of the parameters of the model."""
-        return self._parameters
+        return fcore.copy(self._parameters, {})
 
     @property
     def n_parameters(self) -> int:
@@ -83,7 +83,7 @@ class VariationalState(abc.ABC):
     @property
     def model_state(self) -> Optional[PyTree]:
         r"""The optional pytree with the mutable state of the model."""
-        return self._model_state
+        return fcore.copy(self._model_state, {})
 
     @model_state.setter
     def model_state(self, state: PyTree):
@@ -99,7 +99,7 @@ class VariationalState(abc.ABC):
 
     @variables.setter
     def variables(self, var: PyTree):
-        self.model_state, self.parameters = fpop(var, "params")
+        self.model_state, self.parameters = fcore.pop(var, "params")
 
     def init_parameters(
         self, init_fun: Optional[NNInitFunc] = None, *, seed: Optional[PRNGKeyT] = None
