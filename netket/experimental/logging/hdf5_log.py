@@ -177,7 +177,7 @@ class HDF5Log:
             if isinstance(variables, FrozenDict):
                 variables = variables.unfreeze()
 
-            params = fpop(variables, "params")
+            _, params = fpop(variables, "params")
             binary_data = to_bytes(variables)
             tree = {"model_state": binary_data, "parameters": params, "iter": step}
             tree_log(tree, "variational_state", self._writer)
