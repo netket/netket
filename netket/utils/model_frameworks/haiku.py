@@ -15,7 +15,6 @@
 import sys
 
 from flax import serialization
-from flax.core import freeze
 
 from .base import ModuleFramework, framework
 
@@ -27,7 +26,7 @@ class HaikuWrapper:
 
     def init(self, rng, *args, **kwargs):
         variables = self.transformed.init(rng["params"], *args, **kwargs)
-        return freeze({"params": variables})
+        return {"params": variables}
 
     def apply(
         self,
@@ -79,7 +78,7 @@ class HaikuFramework(ModuleFramework):
 
     @staticmethod
     def wrap_params(variables):
-        return freeze({"params": variables})
+        return {"params": variables}
 
     @staticmethod
     def unwrap_params(wrapped_variables):

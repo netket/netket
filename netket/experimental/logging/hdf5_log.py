@@ -15,6 +15,7 @@
 import os
 import numpy as np
 from flax.serialization import to_bytes
+from flax.core import pop as fpop, FrozenDict
 
 _mode_shorthands = {"write": "w", "append": "a", "fail": "x"}
 
@@ -171,8 +172,12 @@ class HDF5Log:
         tree_log(log_data, "data", self._writer, iter=step)
 
         if self._steps_notsaved_params % self._save_params_every == 0:
-            variables = variational_state.variables.unfreeze()
-            params = variables.pop("params")
+            variables = variational_state.variables
+            # TODO: remove - FrozenDict are deprecated
+            if isinstance(variables, FrozenDict):
+                variables = variables.unfreeze()
+
+            _, params = fpop(variables, "params")
             binary_data = to_bytes(variables)
             tree = {"model_state": binary_data, "parameters": params, "iter": step}
             tree_log(tree, "variational_state", self._writer)

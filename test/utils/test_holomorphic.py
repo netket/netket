@@ -15,6 +15,7 @@
 import netket as nk
 
 import jax
+import flax
 
 
 from .. import common
@@ -31,21 +32,21 @@ def test_is_holomorphic():
 
     # real pars -> non holo
     ma = nk.models.RBM(param_dtype=float)
-    state, pars = ma.init(rng, s).pop("params")
+    state, pars = flax.core.pop(ma.init(rng, s), "params")
     assert not is_probably_holomorphic(ma.apply, pars, s)
 
     # complex pars -> holo
     ma = nk.models.RBM(param_dtype=complex)
-    state, pars = ma.init(rng, s).pop("params")
+    state, pars = flax.core.pop(ma.init(rng, s), "params")
     assert is_probably_holomorphic(ma.apply, pars, s)
 
     # complex pars, non holo fun -> holo
     ma = nk.models.RBM(activation=nk.nn.activation.reim_selu, param_dtype=complex)
-    state, pars = ma.init(rng, s).pop("params")
+    state, pars = flax.core.pop(ma.init(rng, s), "params")
     assert not is_probably_holomorphic(ma.apply, pars, s)
 
     ma = nk.models.ARNNDense(
         hi, 2, 2, param_dtype=complex, activation=nk.nn.activation.log_cosh
     )
-    state, pars = ma.init(rng, s).pop("params")
+    state, pars = flax.core.pop(ma.init(rng, s), "params")
     assert not is_probably_holomorphic(ma.apply, pars, s)
