@@ -325,7 +325,7 @@ class TestARNN:
         indices = jnp.arange(hilbert.size)
         indices = model2.apply(variables, indices, method=model2.reorder)
         for i in indices:
-            variables = freeze({"params": params, "cache": cache})
+            variables = {"params": params, "cache": cache}
             p_i, mutables = model2.apply(
                 variables,
                 spins,
