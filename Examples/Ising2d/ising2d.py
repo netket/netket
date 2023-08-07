@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import netket as nk
+import optax
+import jax
 
 # 2D Lattice
 g = nk.graph.Hypercube(length=5, n_dim=2, pbc=True)
@@ -30,14 +32,14 @@ ma = nk.models.RBM(alpha=1, use_visible_bias=True, param_dtype=float)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # The variational state
-vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
-vs.init_parameters(nk.nn.initializers.normal(stddev=0.01), seed=1234)
+vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
+vs.init_parameters(jax.nn.initializers.normal(stddev=0.01), seed=1234)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.01, 0.0001, 1000))
 
 # Stochastic Reconfiguration
-sr = nk.optimizer.SR(diag_shift=0.1)
+sr = nk.optimizer.SR(diag_shift=0.001)
 
 # Variational monte carlo driver
 gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
