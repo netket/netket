@@ -15,7 +15,7 @@
 import netket as nk
 
 # 1D Lattice
-L = 20  # 10
+L = 20  
 
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 
@@ -29,13 +29,16 @@ ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 ma = nk.models.RBM(alpha=1, use_visible_bias=True, param_dtype=float)
 
 # Metropolis Local Sampling
-sa = nk.sampler.MetropolisLocal(hi, n_chains=16, reset_chains=False)
+sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=0.02)
+
+# Variational State
+vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 
 # Variational monte carlo driver
-gs = nk.VMC(ha, op, sa, ma, n_samples=1000)
+gs = nk.VMC(ha, op, variational_state=vs)
 
-# Run the optimization for 300 iterations
-gs.run(n_iter=300, out="test")
+# Run the optimization for 1000 iterations
+gs.run(n_iter=1000, out="test")
