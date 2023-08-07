@@ -15,7 +15,7 @@
 import netket as nk
 
 # 1D Lattice
-L = 20  
+L = 20
 
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 

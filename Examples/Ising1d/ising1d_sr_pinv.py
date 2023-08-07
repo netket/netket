@@ -36,7 +36,9 @@ sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
 
 # SR
-sr = nk.optimizer.SR(solver=partial(nk.optimizer.solver.pinv,rcond=1.0e-6), diag_shift=0.01)
+sr = nk.optimizer.SR(
+    solver=partial(nk.optimizer.solver.pinv, rcond=1.0e-6), diag_shift=0.01
+)
 
 # Variational state
 vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
