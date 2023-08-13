@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Tuple, Any, Union, Sequence
+from typing import Callable, Any, Union
+from collections.abc import Sequence
 import operator
 
 import jax
@@ -24,7 +25,7 @@ from .utils import tree_leaf_iscomplex, eval_shape
 map = safe_map
 
 
-def _ensure_index(x: Any) -> Union[int, Tuple[int, ...]]:
+def _ensure_index(x: Any) -> Union[int, tuple[int, ...]]:
     """Ensure x is either an index or a tuple of indices."""
     try:
         return operator.index(x)
@@ -94,7 +95,7 @@ def value_and_grad(
     argnums: Union[int, Sequence[int]] = 0,
     has_aux: bool = False,
     allow_int: bool = False,
-) -> Callable[..., Tuple[Any, Any]]:
+) -> Callable[..., tuple[Any, Any]]:
     """Create a function which evaluates both ``fun`` and the gradient of ``fun``.
 
     Args:

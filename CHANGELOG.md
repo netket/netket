@@ -7,6 +7,8 @@
 
 ## NetKet 3.9.2
 
+This release requires at least Python 3.9 and Jax 0.4.
+
 ### Bug Fixes
 
 * Fix a bug introduced in version 3.9 for {class}`netket.experimental.driver.TDVPSchmitt` which resulted in the wrong dynamics [#1551](https://github.com/netket/netket/pull/1551).
@@ -51,7 +53,7 @@ Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python
 ### New features
 * {class}`netket.hilbert.TensorHilbert` has been generalised and now works with both discrete, continuous or a combination of discrete and continuous hilbert spaces [#1437](https://github.com/netket/netket/pull/1437).
 * NetKet is now compatible with Numba 0.57 and therefore with Python 3.11 [#1462](https://github.com/netket/netket/pull/1462).
-* The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.MultipleRules` has been added, which can be used to pick from different transition proposals according to a certain probability distribution. 
+* The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.MultipleRules` has been added, which can be used to pick from different transition proposals according to a certain probability distribution.
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.TensorRule` has been added, which can be used to combine different transition proposals acting on different subspaces of the Hilbert space together.
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.FixedRule` has been added, which does not change the configuration.
 
@@ -67,7 +69,7 @@ Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python
 * {func}`nk.nn.to_array` accepts an optional keyword argument `chunk_size`, and related methods on variational states now use the chunking specified in the variational state when generating the dense array [#1470](https://github.com/netket/netket/pull/1470).
 
 ### Breaking Changes
-* Jax version `0.4` is now required, meaning that NetKet no longer works on Python 3.7. 
+* Jax version `0.4` is now required, meaning that NetKet no longer works on Python 3.7.
 
 
 ## NetKet 3.7 (💘 13 february 2023)
@@ -86,7 +88,7 @@ Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python
 * The underlying extension API for Autoregressive models that can be used with Ancestral/Autoregressive samplers has been simplified and stabilized and will be documented as part of the public API. For most models, you should now inherit from {class}`netket.models.AbstractARNN` and define the method {meth}`~netket.models.AbstractARNN.conditionals_log_psi`. For additional performance, implementers can also redefine {meth}`~netket.models.AbstractARNN.__call__` and {meth}`~netket.models.AbstractARNN.conditional` but this should not be needed in general. This will cause some breaking changes if you were relying on the old undocumented interface [#1361](https://github.com/netket/netket/pull/1361).
 * {class}`netket.operator.PauliStrings` now works with non-homogeneous Hilbert spaces, such as those obtained by taking the tensor product of multiple Hilbert spaces [#1411](https://github.com/netket/netket/pull/1411).
 * The {class}`netket.operator.LocalOperator` now keep sparse matrices sparse, leading to faster algebraic manipulations of those objects. The overall computational and memory cost is, however, equivalent, when running VMC calculations. All pre-constructed operators such as {func}`netket.operator.spin.sigmax` and {func}`netket.operator.boson.create` now build sparse-operators [#1422](https://github.com/netket/netket/pull/1422).
-* When multiplying an operator by it's conjugate transpose NetKet does not return anymore a lazy {class}`~netket.operator.Squared` object if the operator is hermitian. This avoids checking if the object is hermitian which greatly speeds up algebric manipulations of operators, and returns more unbiased epectation values [#1423](https://github.com/netket/netket/pull/1423). 
+* When multiplying an operator by it's conjugate transpose NetKet does not return anymore a lazy {class}`~netket.operator.Squared` object if the operator is hermitian. This avoids checking if the object is hermitian which greatly speeds up algebric manipulations of operators, and returns more unbiased epectation values [#1423](https://github.com/netket/netket/pull/1423).
 
 ### Bug Fixes
 * Fixed a bug where {meth}`nk.hilbert.Particle.random_state` could not be jit-compiled, and therefore could not be used in the sampling [#1401](https://github.com/netket/netket/pull/1401).
@@ -105,7 +107,7 @@ Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python
 * Added a new experimental {class}`~netket.experimental.driver.TDVPSchmitt` driver, implementing the signal-to-noise ratio TDVP regularisation by Schmitt and Heyl [#1306](https://github.com/netket/netket/pull/1306).
 * QGT classes accept a `chunk_size` parameter that overrides the `chunk_size` set by the variational state object [#1347](https://github.com/netket/netket/pull/1347).
 * {func}`~netket.optimizer.qgt.QGTJacobianPyTree` and {func}`~netket.optimizer.qgt.QGTJacobianDense` support diagonal entry regularisation with constant and scale-invariant contributions. They accept a new `diag_scale` argument to pass the scale-invariant component [#1352](https://github.com/netket/netket/pull/1352).
-* {func}`~netket.optimizer.SR` preconditioner now supports scheduling of the diagonal shift and scale regularisations [#1364](https://github.com/netket/netket/pull/1364). 
+* {func}`~netket.optimizer.SR` preconditioner now supports scheduling of the diagonal shift and scale regularisations [#1364](https://github.com/netket/netket/pull/1364).
 
 ### Improvements
 * {meth}`~netket.vqs.ExactState.expect_and_grad` now returns a {class}`netket.stats.Stats` object that also contains the variance, as {class}`~netket.vqs.MCState` does [#1325](https://github.com/netket/netket/pull/1325).
@@ -246,7 +248,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 * The minimum [optax](https://github.com/deepmind/optax) version is now `0.1.1`, which finally correctly supports complex numbers. The internal implementation of Adam which was introduced in 3.3 ([#1069](https://github.com/netket/netket/pull/1069)) has been removed. If an older version of `optax` is detected, an import error is thrown to avoid providing wrong numerical results. Please update your optax version! [#1097](https://github.com/netket/netket/pull/1097)
 
 ### Bug Fixes
-* Allow `LazyOperator@densevector` for operators such as lazy `Adjoint`, `Transpose` and `Squared`. [#1068](https://github.com/netket/netket/pull/1068) 
+* Allow `LazyOperator@densevector` for operators such as lazy `Adjoint`, `Transpose` and `Squared`. [#1068](https://github.com/netket/netket/pull/1068)
 * The logic to update the progress bar in {class}`nk.experimental.TDVP` has been improved, and it should now display updates even if there are very sparse `save_steps`. [#1084](https://github.com/netket/netket/pull/1084)
 * The `nk.logging.TensorBoardLog` is now lazily initialized to better work in an MPI environment. [#1086](https://github.com/netket/netket/pull/1086)
 * Converting a `nk.operator.BoseHubbard` to a `nk.operator.LocalOperator` multiplied by 2 the nonlinearity `U`. This has now been fixed. [#1102](https://github.com/netket/netket/pull/1102)
@@ -259,7 +261,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 * Initialisation of all implementations of `DenseSymm`, `DenseEquivariant`, `GCNN` now defaults to truncated normals with Lecun variance scaling. For layers without masking, there should be no noticeable change in behaviour. For masked layers, the same variance scaling now works correctly. [#1045](https://github.com/netket/netket/pull/1045)
 * Fix bug that prevented gradients of non-hermitian operators to be computed. The feature is still marked as experimental but will now run (we do not guarantee that results are correct). [#1053](https://github.com/netket/netket/pull/1053)
 * Common lattice constructors such as `Honeycomb` now accepts the same keyword arguments as `Lattice`. [#1046](https://github.com/netket/netket/pull/1046)
-* Multiplying a `QGTOnTheFly` representing the real part of the QGT (showing up when the ansatz has real parameters) with a complex vector now throws an error. Previously the result would be wrong, as the imaginary part [was casted away](https://github.com/netket/netket/issues/789#issuecomment-871145119). [#885](https://github.com/netket/netket/pull/885) 
+* Multiplying a `QGTOnTheFly` representing the real part of the QGT (showing up when the ansatz has real parameters) with a complex vector now throws an error. Previously the result would be wrong, as the imaginary part [was casted away](https://github.com/netket/netket/issues/789#issuecomment-871145119). [#885](https://github.com/netket/netket/pull/885)
 
 
 ## NetKet 3.3 (🎁 20 December 2021)
