@@ -231,6 +231,10 @@ def _multiply_operators(
     inters = np.intersect1d(support_A, support_B, return_indices=False)
 
     if support_A.size == support_B.size and np.array_equal(support_A, support_B):
+        # TODO: Note: COO @ COO -> CSR, this may insert CSR matrices in our
+        # format. Should we enforce COO?
+        # If yes, the logic in the compilation can be simplified to always assume
+        # COO.
         return tuple(support_A), A @ B
     elif inters.size == 0:
         # disjoint supports
@@ -275,6 +279,7 @@ def _multiply_operators(
             _support_A, _support_B
         ):
             # back to the case of non-intersecting with same support
+            # TODO: Note: COO @ COO -> CSR
             return tuple(_support_A), _A @ _B
         else:
             raise ValueError("Something failed")
