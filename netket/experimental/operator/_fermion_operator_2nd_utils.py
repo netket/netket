@@ -1,26 +1,26 @@
 import re
 from collections import defaultdict
 import numpy as np
-from typing import List, Union, Tuple, Dict
+from typing import Union
 import copy
 
 from netket.utils.types import DType, PyTree
 
-OperatorTuple = Tuple[int, int]
+OperatorTuple = tuple[int, int]
 r""" Creation and annihilation operators at mode i are encoded as
 :math:`\hat{a}_i^\dagger`: (i, 1)
 :math:`\hat{a}`: (i, 0)
 """
 
-OperatorTerm = Tuple[OperatorTuple, ...]
+OperatorTerm = tuple[OperatorTuple, ...]
 r""" A term of the form :math:`\hat{a}_1^\dagger \hat{a}_2` would take the form
 `((1,1), (2,0))`, where (1,1) represents :math:`\hat{a}_1^\dagger` and (2,0)
 represents :math:`\hat{a}_2`."""
 
-OperatorList = List[OperatorTerm]
+OperatorList = list[OperatorTerm]
 """ A list of operators that would e.g. describe a Hamiltonian """
 
-OperatorDict = Dict[OperatorTerm, Union[float, complex]]
+OperatorDict = dict[OperatorTerm, Union[float, complex]]
 """ A dict containing OperatorTerm as key and weights as the values """
 
 
@@ -80,7 +80,7 @@ def _order_fun(term: OperatorTerm, weight: Union[float, complex] = 1.0):
     return ordered_terms, ordered_weights
 
 
-def _normal_ordering(terms: OperatorList, weights: List[Union[float, complex]] = 1.0):
+def _normal_ordering(terms: OperatorList, weights: list[Union[float, complex]] = 1.0):
     """
     Returns the normal ordered terms and weights of the fermion operator.
     We use the following normal ordering convention: we order the terms with
@@ -99,7 +99,7 @@ def _normal_ordering(terms: OperatorList, weights: List[Union[float, complex]] =
 
 
 def _check_hermitian(
-    terms: OperatorList, weights: List[Union[float, complex]] = 1.0
+    terms: OperatorList, weights: list[Union[float, complex]] = 1.0
 ) -> bool:
     """
     Check whether a set of terms and weights for a hermitian operator
@@ -133,7 +133,7 @@ def _check_hermitian(
     return is_hermitian
 
 
-def _herm_conj(terms: OperatorList, weights: List[Union[float, complex]] = 1):
+def _herm_conj(terms: OperatorList, weights: list[Union[float, complex]] = 1):
     """Returns the hermitian conjugate of the terms and weights."""
     conj_term = []
     conj_weight = []
@@ -174,7 +174,7 @@ def _convert_terms_to_spin_blocks(
     return tuple(list(map(_convert_term, terms)))
 
 
-def _collect_constants(terms: OperatorList, weights: List[Union[float, complex]]):
+def _collect_constants(terms: OperatorList, weights: list[Union[float, complex]]):
     """
     Openfermion has the convention to store constants as empty terms
     Returns new terms and weights list, and the collected constants
@@ -261,7 +261,7 @@ def _verify_input(hilbert, operators, raise_error=True):
     return all(_check_term(term) for term in terms)
 
 
-def _remove_dict_zeros(d: Dict):
+def _remove_dict_zeros(d: dict):
     """Remove redundant zero values from a dictionary"""
     return {k: v for k, v in d.items() if not np.isclose(v, 0.0)}
 
@@ -299,7 +299,7 @@ def _parse_string(s: str) -> OperatorTerm:
     return tuple(processed_terms)
 
 
-def _dict_compare(d1: Dict, d2: Dict) -> bool:
+def _dict_compare(d1: dict, d2: dict) -> bool:
     """
     Compare two dicts and return True if their keys and values
     are all the same (up to some tolerance)

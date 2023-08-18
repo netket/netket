@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Sequence, Union
+from typing import Union
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -34,7 +35,7 @@ class Heisenberg(GraphOperator):
         J: Union[float, Sequence[float]] = 1.0,
         sign_rule=None,
         *,
-        acting_on_subspace: Union[List[int], int] = None,
+        acting_on_subspace: Union[list[int], int] = None,
     ):
         """
         Constructs an Heisenberg operator given a hilbert space and a graph providing the

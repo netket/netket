@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Any, List, Tuple, Dict, Optional
+from typing import Union, Any, Optional
 from functools import partial
 from numbers import Number
 
@@ -198,7 +198,7 @@ class History:
     def __contains__(self, key: str) -> bool:
         return key in self._value_dict
 
-    def keys(self) -> List:
+    def keys(self) -> list:
         return self._keys
 
     def append(self, val: Any, it: Optional[Number] = None):
@@ -212,13 +212,13 @@ class History:
         """
         append(self, val, it)
 
-    def get(self) -> Tuple[Array, Array]:
+    def get(self) -> tuple[Array, Array]:
         """
         Returns a tuple containing times and values of this history object
         """
         return self.iters, self.values
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """
         Converts the history object to dict.
 

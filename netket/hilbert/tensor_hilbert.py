@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Union, Iterable, Tuple
+from typing import Optional, Union
+from collections.abc import Iterable
 
 from abc import ABC
 
@@ -89,7 +90,7 @@ class TensorHilbert(ABC):
         return self._size
 
     @property
-    def subspaces(self) -> Tuple[AbstractHilbert, ...]:
+    def subspaces(self) -> tuple[AbstractHilbert, ...]:
         """Tuplec ontaining all the subspaces of this tensor product of
         Hilbert spaces.
         """
@@ -113,7 +114,7 @@ class TensorHilbert(ABC):
     def _attrs(self):
         return self._hilbert_spaces
 
-    def ptrace(self, sites: Union[int, List]) -> Optional[AbstractHilbert]:
+    def ptrace(self, sites: Union[int, list]) -> Optional[AbstractHilbert]:
         if isinstance(sites, int):
             sites = [sites]
 

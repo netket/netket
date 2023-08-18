@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 
 import numpy as np
 
@@ -27,7 +27,7 @@ BaseType = Union[AbstractOperator, np.ndarray, str]
 
 
 def _build_rotation(
-    hi: Spin, basis: Union[List, str], dtype: Optional[DType] = np.complex64
+    hi: Spin, basis: Union[list, str], dtype: Optional[DType] = np.complex64
 ) -> AbstractOperator:
     r"""
     Construct basis rotation operators from a Pauli string of "X", "Y", "Z" and "I".
@@ -58,8 +58,8 @@ def _build_rotation(
 
 
 def _canonicalize_bases_type(
-    Us: Union[List[BaseType], np.ndarray]
-) -> List[AbstractOperator]:
+    Us: Union[list[BaseType], np.ndarray]
+) -> list[AbstractOperator]:
     r"""
     Check if the given bases are valid for the quantum state reconstruction driver.
 
@@ -100,9 +100,9 @@ def _canonicalize_bases_type(
 
 def _convert_data(
     sigma_s: np.ndarray,
-    Us: Union[List[BaseType], np.ndarray],
+    Us: Union[list[BaseType], np.ndarray],
     mixed_state_target: Optional[bool] = False,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     r"""
     Convert sampled states and rotation operators to a more direct computational format.
     Specifically, for each sampled state sigma_s, find all the states sigma_p that have non-zero
@@ -198,7 +198,7 @@ def _compose_sampled_data(
     MAX_LEN: int,
     sampled_indices: np.ndarray,
     min_padding_factor: Optional[int] = 128,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     r"""
     Given the sampled indices, select the corresponding data from sigma_p, mels and secs.
 
@@ -253,7 +253,7 @@ class RawQuantumDataset:
     or simulator.
     """
 
-    def __init__(self, dataset: Tuple[List, List]):
+    def __init__(self, dataset: tuple[list, list]):
         if not isinstance(dataset, tuple) or len(dataset) != 2:
             raise TypeError("not a tuple of length 2")
 

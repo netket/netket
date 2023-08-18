@@ -414,9 +414,7 @@ def test_is_connected():
             x = nx.dense_gnm_random_graph(i, j)
             y = Graph.from_networkx(x)
 
-            if len(x) == len(
-                set((i for (i, j) in x.edges)) | set((j for (i, j) in x.edges))
-            ):
+            if len(x) == len({i for (i, j) in x.edges} | {j for (i, j) in x.edges}):
                 assert y.is_connected() == nx.is_connected(x)
             else:
                 assert not nx.is_connected(x)
@@ -427,9 +425,7 @@ def test_is_bipartite():
         for j in range(1, i * i):
             x = nx.dense_gnm_random_graph(i, j)
             y = Graph.from_networkx(x)
-            if len(x) == len(
-                set((i for (i, j) in x.edges())) | set((j for (i, j) in x.edges()))
-            ):
+            if len(x) == len({i for (i, j) in x.edges()} | {j for (i, j) in x.edges()}):
                 assert y.is_bipartite() == nx.is_bipartite(x)
 
 
@@ -797,9 +793,9 @@ def test_lattice_k_neighbors():
     l1 = nk.graph.Chain(8, max_neighbor_order=2)
     l2 = nk.graph.Chain(8, max_neighbor_order=3)
 
-    colors = set(c for *_, c in l1.edges(return_color=True))
+    colors = {c for *_, c in l1.edges(return_color=True)}
     assert colors == {0, 1}
-    colors = set(c for *_, c in l2.edges(return_color=True))
+    colors = {c for *_, c in l2.edges(return_color=True)}
     assert colors == {0, 1, 2}
 
     assert set(l0.edges()) == set(l1.edges(filter_color=0))

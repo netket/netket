@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple, Sequence, Union
+from typing import Union
+from collections.abc import Sequence
 from textwrap import dedent
 
 import numpy as np
@@ -53,7 +54,7 @@ def site_to_idx(basis_coords, extent, site_offsets):
     basis_coords accepted as an array including sublattice coordinate in last column
     or as a tuple of unit cell coordinates and a shared sublattice index
     """
-    if isinstance(basis_coords, Tuple):
+    if isinstance(basis_coords, tuple):
         basis_coords, sl = basis_coords
     else:
         basis_coords, sl = basis_coords[:, :-1], basis_coords[:, -1]
@@ -138,7 +139,7 @@ def get_nn_edges(
 
 # Unit cell distribution logic
 
-CustomEdgeT = Union[Tuple[int, int, Array], Tuple[int, int, Array, int]]
+CustomEdgeT = Union[tuple[int, int, Array], tuple[int, int, Array, int]]
 
 
 def get_custom_edges(

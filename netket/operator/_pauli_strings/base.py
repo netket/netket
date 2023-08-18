@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import re
-from typing import Iterable, List, Union, Optional
+from typing import Union, Optional
+from collections.abc import Iterable
 from netket.utils.types import DType, Array
 
 import numpy as np
@@ -110,8 +111,8 @@ class PauliStringsBase(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[str, List[str]] = None,
-        weights: Union[float, complex, List[Union[float, complex]]] = None,
+        operators: Union[str, list[str]] = None,
+        weights: Union[float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
         dtype: Optional[DType] = None,

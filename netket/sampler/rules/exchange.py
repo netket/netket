@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Any
+from typing import Optional, Any
 
 import jax
 import numpy as np
@@ -99,7 +99,7 @@ def compute_clusters(graph, d_max):
 
 def ExchangeRule(
     *,
-    clusters: Optional[List[List[int]]] = None,
+    clusters: Optional[list[list[int]]] = None,
     graph: Optional[AbstractGraph] = None,
     d_max: int = 1,
 ):

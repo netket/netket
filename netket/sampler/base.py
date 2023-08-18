@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import abc
-from typing import Optional, Union, Tuple, Callable, Iterator
+from typing import Optional, Union, Callable
+from collections.abc import Iterator
 
 import numpy as np
 from flax import linen as nn
@@ -254,7 +255,7 @@ class Sampler(abc.ABC):
         *,
         state: Optional[SamplerState] = None,
         chain_length: int = 1,
-    ) -> Tuple[jnp.ndarray, SamplerState]:
+    ) -> tuple[jnp.ndarray, SamplerState]:
         """
         Samples `chain_length` batches of samples along the chains.
 
@@ -310,7 +311,7 @@ class Sampler(abc.ABC):
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
-    ) -> Tuple[jnp.ndarray, SamplerState]:
+    ) -> tuple[jnp.ndarray, SamplerState]:
         """
         Implementation of `sample` for subclasses of `Sampler`.
 
@@ -423,7 +424,7 @@ def sample(
     *,
     state: Optional[SamplerState] = None,
     chain_length: int = 1,
-) -> Tuple[jnp.ndarray, SamplerState]:
+) -> tuple[jnp.ndarray, SamplerState]:
     """
     Samples `chain_length` batches of samples along the chains.
 

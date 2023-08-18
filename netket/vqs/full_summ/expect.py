@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, lru_cache
-from typing import Callable, Tuple
+from typing import Callable
 
 import jax
 from jax import numpy as jnp
@@ -71,7 +71,7 @@ def expect_and_forces(
     Ô: DiscreteOperator,
     *,
     mutable: CollectionFilter,
-) -> Tuple[Stats, PyTree]:
+) -> tuple[Stats, PyTree]:
     if isinstance(Ô, Squared):
         raise NotImplementedError("expect_and_forces not yet implemented for `Squared`")
 
@@ -106,7 +106,7 @@ def _exp_forces(
     σ: jnp.ndarray,
     OΨ: jnp.ndarray,
     Ψ: jnp.ndarray,
-) -> Tuple[PyTree, PyTree]:
+) -> tuple[PyTree, PyTree]:
     is_mutable = mutable is not False
 
     expval_O = (Ψ.conj() * OΨ).sum()
@@ -139,7 +139,7 @@ def expect_and_grad(
     use_covariance: TrueT,
     *,
     mutable: CollectionFilter,
-) -> Tuple[Stats, PyTree]:
+) -> tuple[Stats, PyTree]:
     Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
     Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
     return Ō, Ō_grad

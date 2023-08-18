@@ -33,11 +33,11 @@ for i in range(L):
 
     for d in [0, 1]:
         # \sum_i J*sigma^z(i)*sigma^z(i+d)
-        mats.append((J[d] * mszsz))
+        mats.append(J[d] * mszsz)
         sites.append([i, (i + d + 1) % L])
 
         # \sum_i J*(sigma^x(i)*sigma^x(i+d) + sigma^y(i)*sigma^y(i+d))
-        mats.append(((-1.0) ** (d + 1) * J[d] * exchange))
+        mats.append((-1.0) ** (d + 1) * J[d] * exchange)
         sites.append([i, (i + d + 1) % L])
 
 # Custom Graph

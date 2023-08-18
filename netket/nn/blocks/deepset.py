@@ -1,4 +1,4 @@
-from typing import Tuple, Callable, Union, Optional
+from typing import Callable, Union, Optional
 
 import jax
 from jax import numpy as jnp
@@ -12,7 +12,7 @@ from jax.nn.initializers import (
 from .mlp import MLP
 
 
-def _process_features(features) -> Tuple[Optional[Tuple[int, ...]], Optional[int]]:
+def _process_features(features) -> tuple[Optional[tuple[int, ...]], Optional[int]]:
     """
     Convert some inputs to a consistent format of features.
     Returns hidden dimensions and output dimensions of the MLP separately.
@@ -42,12 +42,12 @@ class DeepSetMLP(nn.Module):
 
     """
 
-    features_phi: Optional[Union[int, Tuple[int, ...]]] = None
+    features_phi: Optional[Union[int, tuple[int, ...]]] = None
     """
     Number of features in each layer for phi network.
     When features_phi is None, no phi network is created.
     """
-    features_rho: Optional[Union[int, Tuple[int, ...]]] = None
+    features_rho: Optional[Union[int, tuple[int, ...]]] = None
     """
     Number of features in each layer for rho network.
     Should include final dimension of the network.

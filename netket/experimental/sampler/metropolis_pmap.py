@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Union, Tuple
+from typing import Callable, Union
 from functools import partial
 
 import jax
@@ -189,7 +189,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
-    ) -> Tuple[jnp.ndarray, SamplerState]:
+    ) -> tuple[jnp.ndarray, SamplerState]:
         samples, state = _sample_chain_pmap(
             self._sampler_device, machine, parameters, state, chain_length
         )

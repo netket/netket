@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Union
 from textwrap import dedent
 
 import jax
@@ -218,7 +218,7 @@ class MetropolisSampler(Sampler):
         machine: Union[Callable, nn.Module],
         parameters: PyTree,
         state: Optional[SamplerState] = None,
-    ) -> Tuple[SamplerState, jnp.ndarray]:
+    ) -> tuple[SamplerState, jnp.ndarray]:
         """
         Samples the next state in the Markov chain.
 
@@ -418,7 +418,7 @@ def sample_next(
     machine: Union[Callable, nn.Module],
     parameters: PyTree,
     state: Optional[SamplerState] = None,
-) -> Tuple[SamplerState, jnp.ndarray]:
+) -> tuple[SamplerState, jnp.ndarray]:
     """
     Samples the next state in the Markov chain.
 

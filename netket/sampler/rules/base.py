@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 import abc
 
 from flax import linen as nn
@@ -94,7 +94,7 @@ class MetropolisRule(abc.ABC):
         sampler_state: "sampler.SamplerState",  # noqa: F821
         key: PRNGKeyT,
         σ: jnp.ndarray,
-    ) -> Tuple[jnp.ndarray, Optional[jnp.ndarray]]:
+    ) -> tuple[jnp.ndarray, Optional[jnp.ndarray]]:
         r"""
         Proposes a new configuration set of configurations $\sigma'$ starting from the current
         chain configurations :math:`\sigma`.

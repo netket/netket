@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import abc
-from typing import List, Iterator, Sequence, Tuple, Union, Optional
+from typing import Union, Optional
+from collections.abc import Iterator, Sequence
 
 
-Edge = Tuple[int, int]
-ColoredEdge = Tuple[int, int, int]
+Edge = tuple[int, int]
+ColoredEdge = tuple[int, int, int]
 EdgeSequence = Union[Sequence[Edge], Sequence[ColoredEdge]]
 
 
@@ -64,7 +65,7 @@ class AbstractGraph(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def distances(self) -> List[List]:
+    def distances(self) -> list[list]:
         r"""List containing the distances between the nodes.
         The distance between unconnected nodes (no path exists between them) is set to -1
         """
@@ -87,7 +88,7 @@ class AbstractGraph(abc.ABC):
         return len(self.edges())
 
     @abc.abstractmethod
-    def adjacency_list(self) -> List[List]:
+    def adjacency_list(self) -> list[list]:
         r"""List containing the adjacency list of the graph where each node
         is represented by an integer in [0, n_nodes)"""
         raise NotImplementedError

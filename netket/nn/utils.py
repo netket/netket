@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, reduce
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 import operator
 
 import jax
@@ -195,8 +195,8 @@ def update_dense_symm(params, names=("dense_symm", "Dense")):
 
 
 def _get_output_idx(
-    shape: Tuple[int, ...], max_bits: Optional[int] = None
-) -> Tuple[Tuple[int, ...], int]:
+    shape: tuple[int, ...], max_bits: Optional[int] = None
+) -> tuple[tuple[int, ...], int]:
     bits_per_local_occupation = tuple(np.ceil(np.log2(shape)).astype(int))
     if max_bits is None:
         max_bits = max(bits_per_local_occupation)
@@ -210,8 +210,8 @@ def _get_output_idx(
 
 
 def _separate_binary_indices(
-    shape: Tuple[int, ...]
-) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    shape: tuple[int, ...]
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
     binary_indices = tuple([i for i in range(len(shape)) if shape[i] == 2])
     non_binary_indices = tuple([i for i in range(len(shape)) if shape[i] != 2])
     return binary_indices, non_binary_indices

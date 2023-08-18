@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Union
+from typing import Union
 
 from netket.utils.types import DType
 
@@ -55,7 +55,7 @@ class GraphOperator(LocalOperator):
         bond_ops_colors=[],
         dtype: DType = None,
         *,
-        acting_on_subspace: Union[List[int], int] = None,
+        acting_on_subspace: Union[list[int], int] = None,
     ):
         r"""
         A graph-based quantum operator. In its simplest terms, this is the sum of

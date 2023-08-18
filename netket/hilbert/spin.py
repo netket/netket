@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from fractions import Fraction
-from typing import Optional, List, Union
+from typing import Optional, Union
 from functools import partial
 
 import numpy as np
@@ -114,7 +114,7 @@ class Spin(HomogeneousHilbert):
 
         return NotImplemented
 
-    def ptrace(self, sites: Union[int, List]) -> Optional["Spin"]:
+    def ptrace(self, sites: Union[int, list]) -> Optional["Spin"]:
         if isinstance(sites, int):
             sites = [sites]
 

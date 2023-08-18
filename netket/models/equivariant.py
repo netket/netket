@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple, Any
+from typing import Any
 
 import numpy as np
 
@@ -61,11 +61,11 @@ class GCNN_FFT(nn.Module):
     """Product table describing the algebra of the symmetry group
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    shape: Tuple
+    shape: tuple
     """Shape of the translation group"""
     layers: int
     """Number of layers (not including sum layer over output)."""
-    features: Tuple
+    features: tuple
     """Number of features in each layer starting from the input. If a single number is given,
     all layers will have the same number of features."""
     characters: HashableArray
@@ -184,11 +184,11 @@ class GCNN_Irrep(nn.Module):
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    irreps: Tuple[HashableArray]
+    irreps: tuple[HashableArray]
     """List of irreducible representation matrices"""
     layers: int
     """Number of layers (not including sum layer over output)."""
-    features: Tuple
+    features: tuple
     """Number of features in each layer starting from the input. If a single number is given,
     all layers will have the same number of features."""
     characters: HashableArray
@@ -290,11 +290,11 @@ class GCNN_Parity_FFT(nn.Module):
     """Product table describing the algebra of the symmetry group
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    shape: Tuple
+    shape: tuple
     """Shape of the translation group"""
     layers: int
     """Number of layers (not including sum layer over output)."""
-    features: Tuple
+    features: tuple
     """Number of features in each layer starting from the input. If a single number is given,
     all layers will have the same number of features."""
     characters: HashableArray
@@ -475,11 +475,11 @@ class GCNN_Parity_Irrep(nn.Module):
     """A group of symmetry operations (or array of permutation indices) over which the network should be equivariant.
     Numpy/Jax arrays must be wrapped into an :class:`netket.utils.HashableArray`.
     """
-    irreps: Tuple[HashableArray]
+    irreps: tuple[HashableArray]
     """List of irreducible representation matrices"""
     layers: int
     """Number of layers (not including sum layer over output)."""
-    features: Tuple
+    features: tuple
     """Number of features in each layer starting from the input. If a single number is given,
     all layers will have the same number of features."""
     characters: HashableArray

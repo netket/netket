@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
 
 import functools
 import numbers
@@ -150,7 +149,7 @@ def check_valid_opmatrix(hi, mat, acting_on):
 
 
 # TODO: support sparse arrays without returning dense arrays
-def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
+def _reorder_kronecker_product(hi, mat, acting_on) -> tuple[Array, tuple]:
     """
     Reorders the matrix resulting from a kronecker product of several
     operators in such a way to sort acting_on.
@@ -219,8 +218,8 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
 
 # TODO: support sparse arrays without returning dense arrays
 def _multiply_operators(
-    hilbert, support_A: Tuple, A: Array, support_B: Tuple, B: Array, *, dtype
-) -> Tuple[Tuple, Array]:
+    hilbert, support_A: tuple, A: Array, support_B: tuple, B: Array, *, dtype
+) -> tuple[tuple, Array]:
     """
     Returns the `Tuple[acting_on, Matrix]` representing the operator obtained by
     multiplying the two input operators A and B.
