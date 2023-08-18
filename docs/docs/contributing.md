@@ -35,7 +35,7 @@ Follow these steps to contribute code:
    [repository page](http://www.github.com/netket/netket). This creates
    a copy of the NetKet repository in your own account.
 
-2. Install Python >=3.8 locally in order to run tests.
+2. Install Python >=3.9 locally in order to run tests.
 
 3. `pip` installing your fork from source with the development dependencies. 
    This allows you to modify the code and immediately test it out:

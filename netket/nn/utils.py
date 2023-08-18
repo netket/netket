@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial, reduce
+from functools import partial
 from typing import Callable, Optional
-import operator
 
 import jax
 from jax import numpy as jnp
 import numpy as np
+from math import prod
 
 from netket import jax as nkjax
 from netket.utils import get_afun_if_module, mpi
@@ -217,11 +217,6 @@ def _separate_binary_indices(
     return binary_indices, non_binary_indices
 
 
-def _prod(iterable):
-    # This is a workaround for math.prod which is not defined for Python 3.8
-    return reduce(operator.mul, iterable, 1)
-
-
 @partial(jax.jit, static_argnames=("hilbert", "max_bits"))
 def binary_encoding(
     hilbert: DiscreteHilbert,
@@ -257,7 +252,7 @@ def binary_encoding(
     for i in binary_indices:
         binarised_states = binarised_states.at[..., i, 0].set(x[..., i])
     return binarised_states.reshape(
-        *binarised_states.shape[:-2], _prod(binarised_states.shape[-2:])
+        *binarised_states.shape[:-2], prod(binarised_states.shape[-2:])
     )[..., output_idx]
 
 
@@ -267,11 +262,6 @@ def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
 
     This function calls `hilbert.states_to_numbers` as a JAX pure callback and can thus be used within
     `jax.jit`.
-
-    .. Note::
-
-        Requires jax >= 0.3.17 and will raise an exception on older versions.
-
 
     Args:
         hilbert: The Hilbert space

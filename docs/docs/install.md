@@ -4,7 +4,7 @@ Installing NetKet is very easy, but it has several complex and optional dependen
 
 ## Installing NetKet
 
-Netket requires `python>= 3.8` and can optionally benefit from a recent MPI install.
+Netket requires `python>= 3.9` and can optionally benefit from a recent MPI install.
 GPUs are supported on linux.
 
 Before attempting the installation, you should update `pip` to a recent version (`>=20.3`) to avoid getting a broken install.
