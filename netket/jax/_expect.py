@@ -14,7 +14,7 @@
 
 # The score function (REINFORCE) gradient estimator of an expectation
 
-from typing import Callable, Tuple
+from typing import Callable
 from functools import partial
 
 import jax
@@ -33,7 +33,7 @@ def expect(
     σ: jnp.ndarray,
     *expected_fun_args,
     n_chains: int = None,
-) -> Tuple[jnp.ndarray, Stats]:
+) -> tuple[jnp.ndarray, Stats]:
     """
     Computes the expectation value over a log-pdf.
 

@@ -33,13 +33,13 @@ jobs:
             oldest_deps: false
 
           - os: macos-latest
-            python-version: "3.8"
+            python-version: "3.9"
             mpi: ""
             main_tests: true
             oldest_deps: false
             env: NUMBA_BOUNDSCHECK=1
 
-        # python-version: [3.8, 3.9, 3.10]
+        # python-version: [3.9, 3.10, 3.11]
         # os: [ubuntu-latest, macos-latest]
 
     env:
