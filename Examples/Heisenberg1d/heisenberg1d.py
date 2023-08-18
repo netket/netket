@@ -32,7 +32,7 @@ ma = nk.models.RBMSymm(
     alpha=4,
     use_visible_bias=False,
     use_hidden_bias=True,
-    dtype=float,
+    param_dtype=float,
 )
 
 # Metropolis Local Sampling
@@ -43,7 +43,7 @@ op = nk.optimizer.Sgd(learning_rate=0.01)
 sr = nk.optimizer.SR(diag_shift=0.1)
 
 # Variational State
-vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
+vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 
 # Variational monte carlo driver
 gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)

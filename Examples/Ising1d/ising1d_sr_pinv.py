@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import netket as nk
+import optax
+from functools import partial
 
 # 1D Lattice
 L = 20
@@ -31,16 +33,18 @@ ma = nk.models.RBM(alpha=1, param_dtype=float)
 sa = nk.sampler.MetropolisLocal(hi, n_chains=16)
 
 # Optimizer
-op = nk.optimizer.Sgd(learning_rate=0.1)
+op = nk.optimizer.Sgd(learning_rate=optax.linear_schedule(0.1, 0.0001, 500))
 
 # SR
-sr = nk.optimizer.SR(solver=nk.optimizer.solver.cholesky, diag_shift=0.01)
+sr = nk.optimizer.SR(
+    solver=partial(nk.optimizer.solver.pinv, rcond=1.0e-6), diag_shift=0.01
+)
 
 # Variational state
-vs = nk.vqs.MCState(sa, ma, n_samples=1000, n_discard_per_chain=100)
+vs = nk.vqs.MCState(sa, ma, n_samples=1008, n_discard_per_chain=10)
 
 # Variational monte carlo driver with a variational state
 gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
 
-# Run the optimization for 300 iterations
-gs.run(n_iter=300, out=None)
+# Run the optimization for 500 iterations
+gs.run(n_iter=500, out="test")
