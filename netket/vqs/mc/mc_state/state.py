@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import numpy as np
 
@@ -148,7 +148,7 @@ class MCState(VariationalState):
         seed: Optional[SeedT] = None,
         sampler_seed: Optional[SeedT] = None,
         mutable: CollectionFilter = False,
-        training_kwargs: Dict = {},
+        training_kwargs: dict = {},
     ):
         """
         Constructs the MCState.
@@ -574,7 +574,7 @@ class MCState(VariationalState):
         *,
         mutable: Optional[CollectionFilter] = None,
         use_covariance: Optional[bool] = None,
-    ) -> Tuple[Stats, PyTree]:
+    ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient for a given operator O.
 
         Args:
@@ -606,7 +606,7 @@ class MCState(VariationalState):
         Ô: AbstractOperator,
         *,
         mutable: Optional[CollectionFilter] = None,
-    ) -> Tuple[Stats, PyTree]:
+    ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and the corresponding force vector for a given operator O.
 
         The force vector F_j is defined as the covariance of log-derivative of the trial wave function

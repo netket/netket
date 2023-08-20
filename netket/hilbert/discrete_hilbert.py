@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Tuple, Optional, Union, Iterator
+from typing import Optional, Union
+from collections.abc import Iterator
 from textwrap import dedent
 from functools import reduce
 
@@ -44,7 +45,7 @@ class DiscreteHilbert(AbstractHilbert):
     interact with hilbert spaces on lattices.
     """
 
-    def __init__(self, shape: Tuple[int, ...]):
+    def __init__(self, shape: tuple[int, ...]):
         """
         Initializes a discrete Hilbert space with a basis of given shape.
 
@@ -57,7 +58,7 @@ class DiscreteHilbert(AbstractHilbert):
         super().__init__()
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         r"""The size of the hilbert space on every site."""
         return self._shape
 
@@ -97,7 +98,7 @@ class DiscreteHilbert(AbstractHilbert):
         """
         return self.shape[i]  # pragma: no cover
 
-    def states_at_index(self, i: int) -> Optional[List[float]]:
+    def states_at_index(self, i: int) -> Optional[list[float]]:
         r"""A list of discrete local quantum numbers at the site i.
         If the local states are infinitely many, None is returned.
 

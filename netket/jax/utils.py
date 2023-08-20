@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import reduce
-from typing import Optional, Tuple, Callable
+from typing import Optional, Callable
 
 import numpy as np
 
@@ -34,7 +34,7 @@ from netket.utils.types import PyTree, PRNGKeyT, SeedT, Scalar
 from netket.utils.numbers import is_scalar
 
 
-def tree_ravel(pytree: PyTree) -> Tuple[jnp.ndarray, Callable]:
+def tree_ravel(pytree: PyTree) -> tuple[jnp.ndarray, Callable]:
     """Ravel (i.e. flatten) a pytree of arrays down to a 1D array.
 
     Args:
@@ -269,7 +269,7 @@ def _tree_to_real_inverse(x):
         return x
 
 
-def tree_to_real(pytree: PyTree) -> Tuple[PyTree, Callable]:
+def tree_to_real(pytree: PyTree) -> tuple[PyTree, Callable]:
     """Replace all complex leaves of a pytree with a RealImagTuple of 2 real leaves.
 
     Args:

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Union
+from typing import Union
 from functools import wraps
 
 import numpy as np
@@ -93,8 +93,8 @@ class PauliStrings(PauliStringsBase):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[str, List[str]] = None,
-        weights: Union[float, complex, List[Union[float, complex]]] = None,
+        operators: Union[str, list[str]] = None,
+        weights: Union[float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
         dtype: DType = complex,

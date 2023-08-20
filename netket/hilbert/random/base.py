@@ -13,14 +13,14 @@
 # limitations under the License.
 
 from textwrap import dedent
-from typing import Tuple, Union
+from typing import Union
 
 import jax
 import numpy as np
 
 from netket.utils.dispatch import dispatch
 
-Dim = Union[Tuple[int], Tuple[int, int], Tuple[int, int, int]]
+Dim = Union[tuple[int], tuple[int, int], tuple[int, int, int]]
 
 
 @dispatch

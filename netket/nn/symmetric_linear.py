@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 import jax.numpy as jnp
@@ -25,7 +25,7 @@ from flax.linen.dtypes import promote_dtype
 from netket.utils import HashableArray, warn_deprecation, deprecate_dtype
 from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils.group import PermutationGroup
-from typing import Sequence
+from collections.abc import Sequence
 from netket.graph import Graph, Lattice
 
 # All layers defined here have kernels of shape [out_features, in_features, n_symm]
@@ -154,7 +154,7 @@ class DenseSymmFFT(Module):
     """Array that lists the space group as permutations"""
     features: int
     """The number of output features. Will be the second dimension of the output."""
-    shape: Tuple
+    shape: tuple
     """Tuple that corresponds to shape of lattice"""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
@@ -285,7 +285,7 @@ class DenseEquivariantFFT(Module):
     """ product table for space group"""
     features: int
     """The number of output features. Will be the second dimension of the output."""
-    shape: Tuple
+    shape: tuple
     """Tuple that corresponds to shape of lattice"""
     use_bias: bool = True
     """Whether to add a bias to the output (default: True)."""
@@ -419,7 +419,7 @@ class DenseEquivariantIrrep(Module):
     stands for matrix multiplication.
     """
 
-    irreps: Tuple[HashableArray]
+    irreps: tuple[HashableArray]
     """Irrep matrices of the symmetry group. Each element of the list is an
     array of shape [n_symm, d, d]; irreps[i][j] is the representation of the
     jth group element in irrep #i."""
@@ -484,7 +484,7 @@ class DenseEquivariantIrrep(Module):
             for i, shape in enumerate(shapes)
         )
 
-    def forward_ft(self, inputs: Array) -> Tuple[Array]:
+    def forward_ft(self, inputs: Array) -> tuple[Array]:
         r"""Performs a forward group Fourier transform on the input.
         This is defined by
 
@@ -500,7 +500,7 @@ class DenseEquivariantIrrep(Module):
         """
         return self.disassemble(jnp.tensordot(inputs, self.forward, axes=1))
 
-    def inverse_ft(self, inputs: Tuple[Array]) -> Array:
+    def inverse_ft(self, inputs: tuple[Array]) -> Array:
         r"""Performs an inverse group Fourier transform on the input.
         This is defined by
 

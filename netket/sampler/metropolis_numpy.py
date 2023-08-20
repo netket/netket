@@ -16,7 +16,7 @@ import math
 from dataclasses import dataclass
 from functools import partial
 
-from typing import Any, Tuple, Callable
+from typing import Any, Callable
 
 import numpy as np
 from numba import jit
@@ -204,7 +204,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
         parameters: PyTree,
         state: MetropolisNumpySamplerState,
         chain_length: int,
-    ) -> Tuple[jnp.ndarray, MetropolisNumpySamplerState]:
+    ) -> tuple[jnp.ndarray, MetropolisNumpySamplerState]:
 
         samples = np.empty(
             (chain_length, sampler.n_chains, sampler.hilbert.size), dtype=sampler.dtype

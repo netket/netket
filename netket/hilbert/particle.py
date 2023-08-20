@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple, Union
+from typing import Union
 import numpy as np
 from .continuous_hilbert import ContinuousHilbert
 
@@ -22,9 +22,9 @@ class Particle(ContinuousHilbert):
 
     def __init__(
         self,
-        N: Union[int, Tuple[int, ...]],
-        L: Tuple[float, ...],
-        pbc: Union[bool, Tuple[bool, ...]],
+        N: Union[int, tuple[int, ...]],
+        L: tuple[float, ...],
+        pbc: Union[bool, tuple[bool, ...]],
     ):
         """
         Constructs new ``Particles`` given specifications
@@ -74,7 +74,7 @@ class Particle(ContinuousHilbert):
         return self._N
 
     @property
-    def n_per_spin(self) -> Tuple:
+    def n_per_spin(self) -> tuple:
         r"""Gives the number of particles in a specific spin projection.
         The length of this tuple indicates the total spin whereas the position in the
         tuple indicates the spin projection.

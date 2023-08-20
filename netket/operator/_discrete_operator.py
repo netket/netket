@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
 import numpy as np
 import jax.numpy as jnp
 
@@ -42,7 +41,7 @@ class DiscreteOperator(AbstractOperator):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         raise NotImplementedError
 
-    def get_conn_padded(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
         Starting from a batch of quantum numbers :math:`x={x_1, ... x_n}` of
@@ -79,7 +78,7 @@ class DiscreteOperator(AbstractOperator):
 
     def get_conn_flattened(
         self, x: np.ndarray, sections: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
         Starting from a given quantum number :math:`x`, it finds all

@@ -16,7 +16,8 @@ from dataclasses import dataclass
 from math import pi
 
 from netket.utils.types import Array
-from typing import Callable, Dict, Sequence, Tuple, Union, Optional, TYPE_CHECKING
+from typing import Callable, Union, Optional, TYPE_CHECKING
+from collections.abc import Sequence
 import warnings
 
 import numpy as _np
@@ -440,7 +441,7 @@ class Lattice(Graph):
 
     @staticmethod
     def _get_id_from_dict(
-        dict: Dict[HashableArray, int], key: Array
+        dict: dict[HashableArray, int], key: Array
     ) -> Union[int, Array]:
         try:
             if key.ndim == 1:
@@ -621,7 +622,7 @@ class Lattice(Graph):
     def draw(
         self,
         ax=None,
-        figsize: Optional[Tuple[Union[int, float]]] = None,
+        figsize: Optional[tuple[Union[int, float]]] = None,
         node_color: str = "#1f78b4",
         node_size: int = 300,
         edge_color: str = "k",

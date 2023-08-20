@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Union, Optional
+from typing import Union, Optional
 
 import numpy as np
 from jax.tree_util import tree_map
@@ -50,8 +50,8 @@ class FermionOperator2nd(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        terms: Union[List[str], List[List[List[int]]]],
-        weights: Optional[List[Union[float, complex]]] = None,
+        terms: Union[list[str], list[list[list[int]]]],
+        weights: Optional[list[Union[float, complex]]] = None,
         constant: Union[float, complex] = 0.0,
         dtype: DType = None,
     ):

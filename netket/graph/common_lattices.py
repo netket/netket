@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from itertools import permutations
-from typing import Sequence, Union, Tuple
+from typing import Union
+from collections.abc import Sequence
 import numpy as np
 
 from .lattice import Lattice
@@ -21,7 +22,7 @@ from .lattice import Lattice
 from netket.utils.group import PointGroup, PGSymmetry, planar, cubic, Identity
 
 
-def _perm_symm(perm: Tuple) -> PGSymmetry:
+def _perm_symm(perm: tuple) -> PGSymmetry:
     n = len(perm)
     M = np.zeros((n, n))
     M[range(n), perm] = 1

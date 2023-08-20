@@ -58,13 +58,13 @@ def run():
     for step in qst.iter(500, 50):
         obs = qst.get_observable_stats()
         if mpi_rank == 0:
-            print("step={}".format(step))
-            print("observables={}".format(obs))
+            print(f"step={step}")
+            print(f"observables={obs}")
 
             # Compute fidelity with exact state
             psima = ma.to_array(normalize=True)
             fidelity = np.abs(np.vdot(psima, psi))
-            print("fidelity={}".format(fidelity))
+            print(f"fidelity={fidelity}")
 
             # Compute NLL on training data
             nll = qst.nll(
@@ -73,7 +73,7 @@ def run():
                 bases=training_bases,
                 log_norm=ma.log_norm(),
             )
-            print("negative log likelihood={}".format(nll))
+            print(f"negative log likelihood={nll}")
 
             # Print output to the console immediately
             sys.stdout.flush()

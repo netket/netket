@@ -16,7 +16,6 @@
 # pylint: disable=function-redefined
 
 import itertools
-from typing import List, Tuple
 
 import numpy as np
 
@@ -172,7 +171,7 @@ class FiniteGroup(FiniteSemiGroup):
         return self.product_table[self.product_table, col_index]
 
     @struct.property_cached
-    def conjugacy_classes(self) -> Tuple[Array, Array, Array]:
+    def conjugacy_classes(self) -> tuple[Array, Array, Array]:
         r"""
         The conjugacy classes of the group.
 
@@ -273,7 +272,7 @@ class FiniteGroup(FiniteSemiGroup):
         CT = self.character_table_by_class
         return CT[:, inverse]
 
-    def character_table_readable(self) -> Tuple[List[str], Array]:
+    def character_table_readable(self) -> tuple[list[str], Array]:
         r"""
         Returns a conventional rendering of the character table.
 
@@ -295,7 +294,7 @@ class FiniteGroup(FiniteSemiGroup):
         return representatives, self.character_table_by_class
 
     @struct.property_cached
-    def _irrep_matrices(self) -> List[Array]:
+    def _irrep_matrices(self) -> list[Array]:
         # We use Dixon's algorithm (Math. Comp. 24 (1970), 707) to decompose
         # the regular representation of the group into its irreps.
         # We start with a Hermitian matrix E that commutes with every matrix in
@@ -369,7 +368,7 @@ class FiniteGroup(FiniteSemiGroup):
 
         return irreps
 
-    def irrep_matrices(self) -> List[Array]:
+    def irrep_matrices(self) -> list[Array]:
         """
         Returns matrices that realise all irreps of the group.
 

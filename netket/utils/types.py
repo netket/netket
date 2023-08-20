@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Sequence, Callable, Union
+from typing import Any, Callable, Union
+from collections.abc import Sequence
 
 import optax as _optax
 import jax as _jax

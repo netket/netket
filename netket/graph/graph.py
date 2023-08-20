@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Sequence, Union
+from typing import Optional, Union
+from collections.abc import Sequence
 
 import numpy as np
 import igraph
@@ -127,7 +128,7 @@ class Graph(AbstractGraph):
 
     # Graph properties
     # ------------------------------------------------------------------------
-    def adjacency_list(self) -> List[List]:
+    def adjacency_list(self) -> list[list]:
         return self._igraph.get_adjlist()
 
     def is_connected(self) -> bool:
@@ -190,7 +191,7 @@ class Graph(AbstractGraph):
 
     # Graph algorithms
     # ------------------------------------------------------------------------
-    def distances(self) -> List[List]:
+    def distances(self) -> list[list]:
         return np.array(self._igraph.distances())
 
     def _compute_automorphisms(self):

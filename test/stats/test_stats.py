@@ -141,7 +141,7 @@ def test_tau_corr_fft_logic(batch_size, sig_corr):
     n_samples = 2**20 // batch_size
 
     data = np.empty((batch_size, n_samples))
-    tau_fit = np.empty((batch_size))
+    tau_fit = np.empty(batch_size)
 
     for i in range(batch_size):
         data[i] = _gen_data(n_samples, log_f, sig_corr, i + batch_size)

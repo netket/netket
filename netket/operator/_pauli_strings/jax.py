@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
-from typing import List, Union
+from typing import Union
 
 import numpy as np
 
@@ -284,8 +284,8 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[str, List[str]] = None,
-        weights: Union[float, complex, List[Union[float, complex]]] = None,
+        operators: Union[str, list[str]] = None,
+        weights: Union[float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 0.0,
         dtype: DType = complex,

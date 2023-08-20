@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Optional, Union
+from collections.abc import Sequence
 import warnings
 
 import jax

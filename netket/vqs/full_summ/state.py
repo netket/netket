@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 import jax
 from jax import numpy as jnp
@@ -77,7 +77,7 @@ class FullSumState(VariationalState):
         apply_fun: Callable = None,
         seed: Optional[SeedT] = None,
         mutable: CollectionFilter = False,
-        training_kwargs: Dict = {},
+        training_kwargs: dict = {},
         dtype=float,
     ):
         """

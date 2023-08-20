@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Tuple, Any
+from typing import Callable, Optional, Any
 
 import jax
 from jax import numpy as jnp
@@ -27,7 +27,7 @@ class _Uninitialized:
 
 Uninitialized = _Uninitialized()
 
-SolverT = Callable[["LinearOperator", PyTree], Tuple[PyTree, Any]]
+SolverT = Callable[["LinearOperator", PyTree], tuple[PyTree, Any]]
 """Signature for the solver used by a linear operator."""
 
 

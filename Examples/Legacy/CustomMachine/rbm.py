@@ -42,7 +42,7 @@ class PyRbm(netket.machine.CxxMachine):
             use_hidden_bias: specifies whether to use a bias for hidden spins.
         """
         # NOTE: The following call to __init__ is important!
-        super(PyRbm, self).__init__(hilbert, dtype=complex)
+        super().__init__(hilbert, dtype=complex)
         n = hilbert.size
         if alpha < 0:
             raise ValueError("`alpha` should be non-negative")

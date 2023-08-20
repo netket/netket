@@ -76,7 +76,7 @@ gs.run(500, out=exp_name)
 
 ed_energies = np.linalg.eigvalsh(ham.to_dense())
 
-with open(f"{exp_name}.log", "r") as f:
+with open(f"{exp_name}.log") as f:
     data = json.load(f)
 
 x = data["Energy"]["iters"]

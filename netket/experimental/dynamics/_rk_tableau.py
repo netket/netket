@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 import jax
 import jax.numpy as jnp
@@ -59,7 +59,7 @@ class TableauRKExplicit:
     [2] J. Stoer and R. Bulirsch, Introduction to Numerical Analysis, Springer NY (2002).
     """
 
-    order: Tuple[int, int]
+    order: tuple[int, int]
     """The order of the tableau"""
     a: jax.numpy.ndarray
     b: jax.numpy.ndarray
