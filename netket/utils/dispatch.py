@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import Literal, Union
 
-from plum import dispatch, parametric, convert, Val  # noqa: F401
+from plum import dispatch, parametric, convert  # noqa: F401
 
 # Signature-types for True and False
-TrueT = Val[True]
-FalseT = Val[False]
+TrueT = Literal[True]
+FalseT = Literal[False]
 Bool = Union[TrueT, FalseT]
