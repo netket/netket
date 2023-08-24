@@ -12,7 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Literal, Union
+import sys
+
+from typing import Union
+
+# TODO: Remove when deprecating Python 3.10, and maybe the dependency
+if sys.version_info < (3, 11):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
 
 from plum import dispatch, parametric, convert  # noqa: F401
 
