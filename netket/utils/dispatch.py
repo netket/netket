@@ -12,19 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-
-from typing import Union
-
-# TODO: Remove when deprecating Python 3.10, and maybe the dependency
-if sys.version_info < (3, 11):
-    from typing_extensions import Literal
-else:
-    from typing import Literal
+from typing import Literal, Union
 
 from plum import dispatch, parametric, convert  # noqa: F401
 
-# Signature-types for True and False
-TrueT = Literal[True]
-FalseT = Literal[False]
-Bool = Union[TrueT, FalseT]
+# Deprecated signature-types for True and False
+# TrueT = Literal[True]
+# FalseT = Literal[False]
+# Bool = Union[TrueT, FalseT]
+
+# Todo: deprecated in netket 3.10/august 2023 . To eventually remove.
+def __getattr__(name):
+    if name in ["TrueT", "FalseT", "Bool"]:
+        from netket.utils import warn_deprecation as _warn_deprecation
+
+        _warn_deprecation(
+            """
+            The variables `nk.utils.dispatch.{TrueT|FalseT|Bool}` are deprecated. Their usages
+            should instead be replaced by the following objects:
+
+                `TrueT` should be replaced by `typing.Literal[True]`
+                `FalseT` should be replaced by `typing.Literal[False]`
+                `Bool` should be replaced by `bool`
+            """
+        )
+
+        if name == "TrueT":
+            return Literal[True]
+        elif name == "TrueT":
+            return Literal[False]
+        elif name == "Bool":
+            return Union[Literal[True], Literal[False]]
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")
