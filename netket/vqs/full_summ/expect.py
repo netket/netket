@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, lru_cache
-from typing import Callable
+from typing import Callable, Literal
 
 import jax
 from jax import numpy as jnp
@@ -23,7 +23,7 @@ from netket import jax as nkjax
 from netket.operator import Squared
 from netket.stats import Stats
 from netket.utils.types import PyTree
-from netket.utils.dispatch import dispatch, TrueT
+from netket.utils.dispatch import dispatch
 
 from netket.operator import DiscreteOperator
 
@@ -136,7 +136,7 @@ def _exp_forces(
 def expect_and_grad(
     vstate: FullSumState,
     Ô: DiscreteOperator,
-    use_covariance: TrueT,
+    use_covariance: Literal[True],
     *,
     mutable: CollectionFilter,
 ) -> tuple[Stats, PyTree]:

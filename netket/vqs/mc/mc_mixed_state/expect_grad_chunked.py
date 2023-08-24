@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Literal, Union
+
 from netket.operator import AbstractOperator
-from netket.utils.dispatch import Bool
 
 from netket.vqs import expect_and_grad, expect_and_forces
 
@@ -25,7 +26,7 @@ from .state import MCMixedState
 def expect_and_grad_nochunking(
     vstate: MCMixedState,
     operator: AbstractOperator,
-    use_covariance: Bool,
+    use_covariance: Union[Literal[True], Literal[False]],
     chunk_size: None,
     *args,
     **kwargs,

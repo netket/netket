@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+from typing import Any, Union, Literal
 import warnings
 
 import jax
@@ -22,7 +22,6 @@ from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 from netket.operator import AbstractOperator
 from netket.stats import Stats
 from netket.utils.types import PyTree
-from netket.utils.dispatch import TrueT, Bool
 
 from netket.vqs import expect_and_grad, expect_and_forces
 
@@ -34,7 +33,7 @@ from .state import MCState
 def expect_and_grad_nochunking(  # noqa: F811
     vstate: MCState,
     operator: AbstractOperator,
-    use_covariance: Bool,
+    use_covariance: Union[Literal[True], Literal[False]],
     chunk_size: None,
     *args,
     **kwargs,
@@ -47,7 +46,7 @@ def expect_and_grad_nochunking(  # noqa: F811
 def expect_and_grad_fallback(  # noqa: F811
     vstate: MCState,
     operator: AbstractOperator,
-    use_covariance: Bool,
+    use_covariance: Union[Literal[True], Literal[False]],
     chunk_size: Any,
     *args,
     **kwargs,
@@ -66,7 +65,7 @@ def expect_and_grad_fallback(  # noqa: F811
 def expect_and_grad_covariance_chunked(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
-    use_covariance: TrueT,
+    use_covariance: Literal[True],
     chunk_size: int,
     *,
     mutable: CollectionFilter,
