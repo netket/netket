@@ -16,14 +16,6 @@ from ._version import version as __version__  # noqa: F401
 
 from .utils import config
 
-if config.netket_enable_x64:
-    # enable x64 on jax by default
-    # must be done at startup.
-    from jax.config import config as jax_config
-
-    jax_config.update("jax_enable_x64", True)
-    del jax_config
-
 from . import utils
 from . import errors
 
