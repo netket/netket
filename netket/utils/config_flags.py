@@ -46,7 +46,7 @@ def get_env(varname: str, type, default: Union[int, bool]) -> Union[int, bool]:
     if type is int:
         return int_env(varname, default)
     elif type is bool:
-        return bool_env(varname, default)
+        return bool_env(varname, default)  # type: ignore
     else:
         raise TypeError(f"Unknown type {type}")
 
@@ -60,16 +60,30 @@ class ReadOnlyDict:
 
 
 class Config:
+    _HAS_DYNAMIC_ATTRIBUTES = True
+
     def __init__(self):
         self._values = {}
         self._types = {}
         self._editable_at_runtime = {}
 
         self._readonly = ReadOnlyDict(self._values)
+        self._callbacks = {}
 
-    def define(self, name, type, default, *, help, runtime=False):  # noqa: W0613
+    def define(
+        self, name, type, default, *, help, runtime=False, callback=None
+    ):  # noqa: W0613
         """
         Defines a new flag
+
+        Args:
+            name: the flag name, should be an uppercase string like "NETKET_XXX"
+            type: should be the type (bool, int) of the flag
+            default: default value
+            help: a string to use as description of this flag
+            runtime: whether the flag can be modified at runtime
+            callback: an optional callback function taking the value as argument
+                that is executed when the flag is changed
         """
         if name in self._values:
             raise KeyError(f"Flag {name} already defined.")
@@ -77,6 +91,7 @@ class Config:
         self._types[name] = type
         self._editable_at_runtime[name] = runtime
         self._values[name] = get_env(name, type, default)
+        self._callbacks[name] = callback
 
         @property
         def _read_config(self):
@@ -84,6 +99,8 @@ class Config:
 
         @_read_config.setter
         def _read_config(self, value):
+            if self._callbacks[name] is not None:
+                self._callbacks[name](value)
             self.update(name, value)
 
         setattr(Config, name.lower(), _read_config)
