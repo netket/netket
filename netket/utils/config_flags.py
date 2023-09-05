@@ -235,17 +235,28 @@ config.define(
     runtime=True,
 )
 
+
+def _update_x64(val):
+    import jax
+
+    jax.config.update("jax_enable_x64", val)
+
+
 config.define(
     "NETKET_ENABLE_X64",
     bool,
     default=True,
     help=dedent(
         """
-        ....
+        Enables double-precision for Jax. Equivalent to `JAX_ENABLE_X64` but defaults to
+        True instead of False, as it is required throughout NetKet. By setting this flag
+        to False NetKet will run without double-precision everywhere.
         """
     ),
-    runtime=False,
+    runtime=True,
+    callback=_update_x64,
 )
+
 
 config.define(
     "NETKET_SPHINX_BUILD",
