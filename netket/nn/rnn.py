@@ -211,7 +211,7 @@ class LSTMLayer(RNNLayer):
             hidden = hidden.reshape((batch_size, -1))
             in_cat = jnp.concatenate([inputs, hidden], axis=-1)
             ifgo = nn.sigmoid(in_cat @ kernel + bias)
-            i, f, g, o = ifgo.split(4, axis=-1)
+            i, f, g, o = jnp.split(ifgo, 4, axis=-1)
 
             # sigmoid -> tanh
             g = g * 2 - 1
@@ -243,7 +243,7 @@ class GRULayer1D(RNNLayer):
             hidden = hidden.reshape((batch_size, -1))
             in_cat = jnp.concatenate([inputs, hidden], axis=-1)
             rz = nn.sigmoid(in_cat @ rz_kernel + rz_bias)
-            r, z = rz.split(2, axis=-1)
+            r, z = jnp.split(rz, 2, axis=-1)
 
             in_cat = jnp.concatenate([inputs, r * hidden], axis=-1)
             n = nn.tanh(in_cat @ n_kernel + n_bias)
