@@ -93,6 +93,9 @@ class Config:
         self._values[name] = get_env(name, type, default)
         self._callbacks[name] = callback
 
+        if callback is not None:
+            callback(self._values[name])
+
         @property
         def _read_config(self):
             return self.FLAGS[name]
@@ -242,10 +245,14 @@ def _update_x64(val):
     jax.config.update("jax_enable_x64", val)
 
 
+# This flag is setup to mirror JAX_ENABLE_X64 with True default. any of the two
+# Can be explicitly set.
 config.define(
     "NETKET_ENABLE_X64",
     bool,
-    default=True,
+    default=bool_env(
+        "JAX_ENABLE_X64", True
+    ),  # respect explicit JAX_ENABLE_X64 settings
     help=dedent(
         """
         Enables double-precision for Jax. Equivalent to `JAX_ENABLE_X64` but defaults to
