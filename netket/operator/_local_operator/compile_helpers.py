@@ -72,7 +72,7 @@ def pack_internals(
     local_states = np.full(
         (n_operators, max_acting_on_sz, max_local_hilbert_size), np.nan
     )
-    basis = np.full((n_operators, max_acting_on_sz), 1e10, dtype=np.int64)
+    basis = np.full((n_operators, max_acting_on_sz), 0x7FFFFFFF, dtype=np.int64)
 
     diag_mels = np.full((n_operators, max_op_size), np.nan, dtype=dtype)
 

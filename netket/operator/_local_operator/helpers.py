@@ -17,7 +17,7 @@ import functools
 import numbers
 
 import numpy as np
-from jax import numpy as jnp
+import jax
 
 from scipy import sparse
 from scipy.sparse import spmatrix
@@ -118,7 +118,7 @@ def canonicalize_input(
             lambda dt, op: np.promote_types(dt, op.dtype), operators, dtype
         )
     # Fallback to float32 when float64 is disabled in JAX
-    dtype = jnp.empty((), dtype=dtype).dtype
+    dtype = jax.dtypes.canonicalize_dtype(dtype)
 
     canonicalized_operators = []
     canonicalized_acting_on = []

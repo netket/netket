@@ -68,7 +68,7 @@ class Sampler(abc.ABC):
     machine_pow: int = struct.field(default=2)
     """The power to which the machine should be exponentiated to generate the pdf."""
 
-    dtype: DType = struct.field(pytree_node=False, default=np.float64)
+    dtype: DType = struct.field(pytree_node=False, default=float)
     """The dtype of the states sampled."""
 
     def __pre_init__(
