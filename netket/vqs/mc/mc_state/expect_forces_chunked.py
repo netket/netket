@@ -107,7 +107,6 @@ def forces_expect_hermitian_chunked(
     σ: jnp.ndarray,
     local_value_args: PyTree,
 ) -> tuple[PyTree, PyTree]:
-
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))

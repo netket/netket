@@ -147,7 +147,6 @@ class HamiltonianRuleJax(HamiltonianRuleBase):
     """
 
     def transition(self, _0, _1, _2, _3, key, x):
-
         xp, mels = self.operator.get_conn_padded(x)
 
         n_conn = self.operator.n_conn(x)

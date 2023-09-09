@@ -54,7 +54,6 @@ def _ising_conn_states_jax(x, cond, local_states):
 
 
 def pack_internals(operators, weights, cutoff=0):
-
     # here we group together operators with same final state
     #
     # The final state is determined by the sites we flip,
@@ -80,7 +79,6 @@ def pack_internals(operators, weights, cutoff=0):
             acting[key] = [k]
 
     for i, op in enumerate(operators):
-
         b_to_change = []  # list of all the sites we will need to act on with X
         b_z_check = []  # list of all the sites we act on with Z
         b_weight = weights[i]
@@ -173,7 +171,6 @@ def pack_internals_jax(
     z_sign_indices_masks = {}
 
     for l, ops in acting_by_num_ops.items():
-
         x_flip_masks_l = []
         weights_l = []
         z_sign_masks_l = []  # if we decide to use masks

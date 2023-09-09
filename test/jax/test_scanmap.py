@@ -31,7 +31,6 @@ def test_scan_append_reduce(jit, N):
 @pytest.mark.parametrize("jit", [False, True])
 @pytest.mark.parametrize("N", [1, 100])
 def test_scanmap(jit, N):
-
     scan_fun = partial(nk.jax.scan_append_reduce, append_cond=(True, False, False))
 
     @partial(nk.jax.scanmap, scan_fun=scan_fun, argnums=1)

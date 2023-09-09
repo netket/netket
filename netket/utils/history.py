@@ -127,7 +127,7 @@ class History:
 
         value_dict = {"iters": iters}
         keys = []
-        for (key, val) in values.items():
+        for key, val in values.items():
             if key == "iters":
                 raise ValueError("cannot have a field called iters")
 

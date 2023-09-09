@@ -117,7 +117,7 @@ class LocalOperator(DiscreteOperator):
         self._constant = np.array(constant, dtype=dtype)
 
         self._operators_dict = {}
-        for (op, aon) in zip(operators, acting_on):
+        for op, aon in zip(operators, acting_on):
             self._add_operator(aon, op)
 
     def _add_operator(self, acting_on: tuple, operator: Array):
@@ -279,7 +279,7 @@ class LocalOperator(DiscreteOperator):
 
             assert other.mel_cutoff == self.mel_cutoff
             self._constant += other.constant.item()
-            for (aon, op) in other._operators_dict.items():
+            for aon, op in other._operators_dict.items():
                 self._add_operator(aon, op)
 
             self._reset_caches()
@@ -686,7 +686,6 @@ class LocalOperator(DiscreteOperator):
         acting_size,
         filters,
     ):
-
         batch_size = x.shape[0]
         n_sites = x.shape[1]
         dtype = all_mels.dtype

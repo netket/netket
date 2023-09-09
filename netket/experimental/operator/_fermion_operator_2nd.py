@@ -130,7 +130,6 @@ class FermionOperator2nd(DiscreteOperator):
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
-
             # following lists will be used to compute matrix elements
             # they are filled in _add_term
             out = _pack_internals(self._operators, self._dtype)
@@ -395,7 +394,6 @@ class FermionOperator2nd(DiscreteOperator):
         # loop over the batch dimension
         n_c = 0
         for b in range(x.shape[0]):
-
             xb = x[b, :]
 
             # we can already fill up with default values

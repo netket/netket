@@ -655,7 +655,6 @@ class MCState(VariationalState):
         return qgt_T(self)
 
     def to_array(self, normalize: bool = True) -> jnp.ndarray:
-
         return nn.to_array(
             self.hilbert,
             self._apply_fun,

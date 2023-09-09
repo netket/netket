@@ -64,8 +64,8 @@ dev = [
     "pytest-json-report>=1.3",
     "coverage>=5",
     "pre-commit>=2.7",
-    "black==22.10.0",
-    "ruff==0.0.284",
+    "black==23.9.0",
+    "ruff==0.0.287",
     "wheel",
     "build",
 ]
@@ -147,7 +147,7 @@ fixable = ["E", "F", "W"]
 ignore = ["E501", "E731", "E741"]
 #ignore = ["E266"]
 line-length = 88
-exclude = ["Examples/Legacy"]
+exclude = ["Examples/Legacy", "docs/conf.py"]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["E402","F401"]

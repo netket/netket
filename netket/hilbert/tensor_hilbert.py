@@ -106,7 +106,7 @@ class TensorHilbert(ABC):
             The index `j` such that self.subspaces[j] is the Hilbert space
             containing site `i`.
         """
-        for (j, sz) in enumerate(self._cum_sizes):
+        for j, sz in enumerate(self._cum_sizes):
             if i < sz:
                 return j
 

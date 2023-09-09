@@ -249,7 +249,6 @@ def test_particle_fail():
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_flip_state_discrete(hi: DiscreteHilbert):
-
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
 
@@ -270,7 +269,7 @@ def test_flip_state_discrete(hi: DiscreteHilbert):
     states_np = np.asarray(states)
     states_new_np = np.array(new_states)
 
-    for (row, col) in enumerate(ids):
+    for row, col in enumerate(ids):
         states_new_np[row, col] = states_np[row, col]
 
     np.testing.assert_allclose(states_np, states_new_np)
@@ -313,7 +312,7 @@ def test_flip_state_fock_infinite():
     states_np = np.asarray(states)
     states_new_np = np.array(new_states)
 
-    for (row, col) in enumerate(ids):
+    for row, col in enumerate(ids):
         states_new_np[row, col] = states_np[row, col]
 
     np.testing.assert_allclose(states_np, states_new_np)
@@ -370,7 +369,6 @@ def _states_to_local_indices_jit(hilb, x):
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_states_to_local_indices(hi):
-
     x = hi.random_state(jax.random.PRNGKey(3), (200))
     idxs = hi.states_to_local_indices(x)
     idxs_jit = _states_to_local_indices_jit(hi, x)

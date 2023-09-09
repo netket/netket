@@ -29,7 +29,7 @@ def tree_log(tree, root, data):
     if tree is None:
         return
     elif isinstance(tree, list):
-        for (i, val) in enumerate(tree):
+        for i, val in enumerate(tree):
             tree_log(val, root + f"/{i}", data)
 
     elif isinstance(tree, list) and hasattr(tree, "_fields"):
@@ -37,7 +37,7 @@ def tree_log(tree, root, data):
             tree_log(getattr(tree, key), root + f"/{key}", data)
 
     elif isinstance(tree, tuple):
-        for (i, val) in enumerate(tree):
+        for i, val in enumerate(tree):
             tree_log(val, root + f"/{i}", data)
 
     elif isinstance(tree, dict):

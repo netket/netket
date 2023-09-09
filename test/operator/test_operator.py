@@ -170,7 +170,6 @@ def test_is_hermitean(op):
         rstatet, mels = op.get_conn(rstate)
 
         for k, state in enumerate(rstatet):
-
             invstates, mels1 = op.get_conn(state)
 
             found = False

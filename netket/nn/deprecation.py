@@ -61,7 +61,6 @@ def deprecated_module(original_module, module_name):
     @wraps(original_module)
     def call_deprecated_module(*args, **kwargs):
         if "param_dtype" in kwargs:
-
             err_msg = f"""
                     *************************************************************************
                     Use `flax.linen.{module_name}` instead of `netket.nn.{module_name}`.

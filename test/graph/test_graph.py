@@ -549,7 +549,6 @@ def _check_symmgroups(graph):
 
 
 def test_grid_translations():
-
     for ndim in 1, 2:
         g = Grid([4] * ndim, pbc=True)
         translations = g.translation_group()
@@ -605,7 +604,6 @@ def test_grid_point_group_dim(n_dim):
 
 
 def test_grid_space_group():
-
     g = nk.graph.Chain(8)
     _check_symmgroups(g)
     assert g.rotation_group().elems == [group.Identity()]

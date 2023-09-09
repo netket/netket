@@ -122,7 +122,7 @@ def canonicalize_input(
 
     canonicalized_operators = []
     canonicalized_acting_on = []
-    for (operator, acting_on) in zip(operators, acting_on):
+    for operator, acting_on in zip(operators, acting_on):
         check_valid_opmatrix(hilbert, operator, acting_on)
 
         if operator.dtype is not dtype:
@@ -186,7 +186,7 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> tuple[Array, tuple]:
 
     # find how to map target ordering back to unordered
     acting_on_unsorted_ids = np.zeros(len(acting_on), dtype=np.intp)
-    for (i, site) in enumerate(acting_on):
+    for i, site in enumerate(acting_on):
         acting_on_unsorted_ids[i] = np.argmax(site == acting_on_sorted)
 
     # now it is valid that

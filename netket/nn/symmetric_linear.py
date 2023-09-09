@@ -304,7 +304,6 @@ class DenseEquivariantFFT(Module):
     """Initializer for the bias. Defaults to zero initialization."""
 
     def setup(self):
-
         pt = np.asarray(self.product_table)
 
         self.n_cells = np.product(np.asarray(self.shape))

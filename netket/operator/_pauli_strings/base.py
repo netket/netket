@@ -375,6 +375,7 @@ def _count_of_locations(of_qubit_operator):
     Returns:
         n_qubits (int): number of qubits in the operator, which we can use to create a suitable hilbert space
     """
+
     # we always start counting from 0, so we only determine the maximum location
     def max_or_default(x):
         x = list(x)

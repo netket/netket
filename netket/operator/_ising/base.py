@@ -174,7 +174,7 @@ class IsingBase(SpecialHamiltonian):
                 ha -= self.h * spin.sigmax(self.hilbert, int(i), dtype=self.dtype)
 
         if self.J != 0:
-            for (i, j) in self.edges:
+            for i, j in self.edges:
                 ha += self.J * (
                     spin.sigmaz(self.hilbert, int(i), dtype=self.dtype)
                     * spin.sigmaz(self.hilbert, int(j), dtype=self.dtype)
