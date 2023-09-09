@@ -128,7 +128,6 @@ def _expect(
     σ: jnp.ndarray,
     local_value_args: PyTree,
 ) -> Stats:
-
     n_chains = σ.shape[0]
     if σ.ndim >= 3:
         σ = jax.lax.collapse(σ, 0, 2)

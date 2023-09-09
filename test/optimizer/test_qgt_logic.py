@@ -158,7 +158,6 @@ class Example:
         return len(self.samples)
 
     def __init__(self, n_samp, seed, outdtype, pardtype, holomorphic, offset=0.0):
-
         self.dtype = outdtype
 
         self.target = {

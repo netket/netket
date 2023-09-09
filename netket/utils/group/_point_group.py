@@ -265,7 +265,6 @@ def _3D_name(W: Array, w: Optional[Array] = None) -> str:
                 return f"Screw({angle}°){_to_rational_vector(trans)}{origin}"
 
     elif _naming_isclose(np.linalg.det(W), -1.0):  # improper rotations
-
         if _naming_allclose(W, -np.eye(3)):  # inversion
             return f"Inv(){origin}"
 

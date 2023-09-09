@@ -144,6 +144,7 @@ class Lattice(Graph):
         and can be resolved into an id via
         :func:`~netket.graph.Lattice.id_from_basis_coords`.
     """
+
     # Initialization
     # ------------------------------------------------------------------------
     def __init__(
@@ -360,7 +361,6 @@ class Lattice(Graph):
         if _np.any(fractional_coords_int < comparable(0.0)) or _np.any(
             fractional_coords_int > comparable(1.0)
         ):
-
             warnings.warn(
                 "Some sites were specified outside the primitive unit cell. This may"
                 "cause errors in automatic edge finding.",

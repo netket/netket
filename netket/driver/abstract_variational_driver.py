@@ -254,7 +254,6 @@ class AbstractVariationalDriver(abc.ABC):
             first_step = True
 
             for step in self.iter(n_iter, step_size):
-
                 log_data = self.estimate(obs)
                 self._log_additional_data(log_data, step)
 

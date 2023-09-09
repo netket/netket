@@ -71,7 +71,6 @@ def expect_and_grad_covariance_chunked(  # noqa: F811
     *,
     mutable: CollectionFilter,
 ) -> tuple[Stats, PyTree]:
-
     Ō, Ō_grad = expect_and_forces(vstate, Ô, chunk_size, mutable=mutable)
     Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
     return Ō, Ō_grad

@@ -66,7 +66,7 @@ def pack_internals(
         max_op_size_offdiag = 0
 
     acting_on = np.full((n_operators, max_acting_on_sz), -1, dtype=np.intp)
-    for (i, aon) in enumerate(op_acting_on):
+    for i, aon in enumerate(op_acting_on):
         acting_on[i][: len(aon)] = aon
 
     local_states = np.full(
@@ -88,12 +88,12 @@ def pack_internals(
     )
     n_conns = np.full((n_operators, max_op_size), 0, dtype=np.intp)
 
-    for (i, (aon, op)) in enumerate(operators_dict.items()):
+    for i, (aon, op) in enumerate(operators_dict.items()):
         aon_size = len(aon)
         n_local_states_per_site = np.asarray([hilbert.size_at_index(i) for i in aon])
 
         ## add an operator to local_states
-        for (j, site) in enumerate(aon):
+        for j, site in enumerate(aon):
             local_states[i, j, : hilbert.shape[site]] = np.asarray(
                 hilbert.states_at_index(site)
             )
@@ -126,7 +126,6 @@ def pack_internals(
             )
 
         else:
-
             _append_matrix(
                 op,
                 aon_size,
@@ -238,7 +237,6 @@ def _append_matrix_sparse(
 
 @numba.jit(nopython=True)
 def _number_to_state(number, hilbert_size_per_site, local_states_per_site, out):
-
     out[:] = local_states_per_site[:, 0]
     size = out.shape[0]
 

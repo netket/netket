@@ -158,7 +158,6 @@ def vjp_rc(
 def vjp(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
 ) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
-
     # output dtype
     out_shape = eval_shape(fun, *primals, has_aux=has_aux)
 

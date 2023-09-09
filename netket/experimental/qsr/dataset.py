@@ -46,7 +46,7 @@ def _build_rotation(
 
     assert len(basis) == hi.size
 
-    for (j, base) in enumerate(basis):
+    for j, base in enumerate(basis):
         if base == "X":
             localop *= LocalOperator(hi, U_X, [j])
         elif base == "Y":
@@ -87,7 +87,7 @@ def _canonicalize_bases_type(
         _cache = {}
         _bases = np.empty(N_samples, dtype=object)
 
-        for (i, basis) in enumerate(Us):
+        for i, basis in enumerate(Us):
             if basis not in _cache:
                 U = _build_rotation(hilbert, basis)
                 _cache[basis] = U
@@ -147,7 +147,7 @@ def _convert_data(
     MAX_LEN = 0
 
     last_i = 0
-    for (i, (sigma, U)) in enumerate(zip(sigma_s, Us)):
+    for i, (sigma, U) in enumerate(zip(sigma_s, Us)):
         sigma_p_i, mels_i = U.get_conn(sigma)
 
         if not mixed_state_target:
@@ -223,7 +223,7 @@ def _compose_sampled_data(
     _maxlen = 0
 
     last_i = 0
-    for (n, i) in enumerate(sampled_indices):
+    for n, i in enumerate(sampled_indices):
         start_i, end_i = secs[i], secs[i + 1]
         len_i = end_i - start_i
 
@@ -336,7 +336,6 @@ class RawQuantumDataset:
 
 @struct.dataclass
 class ProcessedQuantumDataset:
-
     hilbert: AbstractHilbert
     """
     The global computational basis of those measurements

@@ -70,7 +70,6 @@ class MLP(nn.Module):
 
     @nn.compact
     def __call__(self, input):
-
         if self.hidden_dims is None:
             if self.hidden_dims_alpha is not None:
                 hidden_dims = [

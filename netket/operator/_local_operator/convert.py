@@ -171,7 +171,6 @@ def local_operators_to_pauli_strings(hilbert, operators, acting_on, constant, dt
 
         # loop trough operators and convert to Pauli strings by projecting
         for op, act in zip(operators, acting_on):
-
             # convert to dense-numpy as we later use jax which does not support sparse.
             op = _convert_to_dense(op)
 

@@ -58,7 +58,6 @@ class UnconstrainedHilbertIndex:
         return self._local_size
 
     def number_to_state(self, number, out=None):
-
         if out is None:
             out = np.empty(self._size)
         # else:

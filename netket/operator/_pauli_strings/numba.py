@@ -33,7 +33,6 @@ def pack_internals_numba(
     dtype: DType,
     cutoff: float,  # unused
 ):
-
     acting = pack_internals(operators, weights)
 
     # the most Z we need to do anywhere

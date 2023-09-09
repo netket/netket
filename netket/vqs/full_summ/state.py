@@ -275,7 +275,6 @@ class FullSumState(VariationalState):
         return qgt_T(self)
 
     def to_array(self, normalize: bool = True, allgather: bool = True) -> jnp.ndarray:
-
         if self._array is None and normalize:
             self._array = nn.to_array(
                 self.hilbert,

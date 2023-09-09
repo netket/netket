@@ -155,7 +155,6 @@ class DeepSetRelDistance(nn.Module):
     """Initializer for the parameter in the cusp"""
 
     def setup(self):
-
         if not all(self.hilbert.pbc):
             raise ValueError(
                 "The DeepSetRelDistance model only works with "

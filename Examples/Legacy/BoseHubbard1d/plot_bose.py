@@ -40,7 +40,6 @@ while True:
     nres = len(iters)
     cut = 100
     if nres > cut:
-
         fitx = iters[-cut // 2 : -1]
         fity = energy[-cut // 2 : -1]
         z = np.polyfit(fitx, fity, deg=0)

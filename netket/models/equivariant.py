@@ -99,7 +99,6 @@ class GCNN_FFT(nn.Module):
     `characters` are negative."""
 
     def setup(self):
-
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
         self.dense_symm = DenseSymmFFT(
@@ -222,7 +221,6 @@ class GCNN_Irrep(nn.Module):
     `characters` are negative."""
 
     def setup(self):
-
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
         self.dense_symm = DenseSymmMatrix(

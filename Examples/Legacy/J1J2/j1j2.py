@@ -30,7 +30,6 @@ L = 20
 mats = []
 sites = []
 for i in range(L):
-
     for d in [0, 1]:
         # \sum_i J*sigma^z(i)*sigma^z(i+d)
         mats.append(J[d] * mszsz)

@@ -150,7 +150,6 @@ def test_tau_corr_fft_logic(batch_size, sig_corr):
         tau_fit[i] = popt[0]
 
     with common.netket_experimental_fft_autocorrelation(True):
-
         tau_fit_mean = 1 + 2 * tau_fit.mean()
         tau_fit_max = 1 + 2 * tau_fit.max()
 

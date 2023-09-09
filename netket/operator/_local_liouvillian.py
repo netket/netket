@@ -238,7 +238,7 @@ class LocalLiouvillian(AbstractSuperOperator):
 
         sections_Lr = np.empty(batch_size * n_jops, dtype=np.int32)
         sections_Lc = np.empty(batch_size * n_jops, dtype=np.int32)
-        for (i, L) in enumerate(self._jump_ops):
+        for i, L in enumerate(self._jump_ops):
             L_xrp, L_mel_r = L.get_conn_flattened(
                 xr, sections_Lr[i * batch_size : (i + 1) * batch_size]
             )

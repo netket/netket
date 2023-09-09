@@ -295,7 +295,6 @@ def odefun_schmitt(state: MCState, self: TDVPSchmitt, t, w, *, stage=0):  # noqa
 
 @partial(jax.jit, static_argnums=(3, 4))
 def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, state_T):
-
     forces = jax.tree_map(
         lambda x, target: loss_grad_factor * x,
         forces,

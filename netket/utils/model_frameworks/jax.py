@@ -48,7 +48,6 @@ class JaxWrapper:
 
 @framework
 class JaxFramework(ModuleFramework):
-
     name: str = "Jax"
 
     @staticmethod

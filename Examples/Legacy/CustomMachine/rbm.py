@@ -78,7 +78,6 @@ class PyRbm(netket.machine.CxxMachine):
         # but the C++ implementation ignores the "constant factor"
 
     def _der_log(self, x, out):
-
         batch_size = x.shape[0]
 
         i = 0

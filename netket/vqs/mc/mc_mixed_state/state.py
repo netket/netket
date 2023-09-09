@@ -174,7 +174,6 @@ class MCMixedState(VariationalMixedState, MCState):
 
     @chain_length_diag.setter
     def chain_length_diag(self, length: int):
-
         self.diagonal.chain_length = length
 
     @property

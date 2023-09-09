@@ -63,7 +63,6 @@ def _order_fun(term: OperatorTerm, weight: Union[float, complex] = 1.0):
 
             # if we have two creation or two annihilation operators
             elif right_term[1] == left_term[1]:
-
                 # If same two Fermionic operators are repeated,
                 # evaluate to zero.
                 if parity == -1 and right_term[0] == left_term[0]:

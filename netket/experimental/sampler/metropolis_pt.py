@@ -28,7 +28,6 @@ from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
 
 @struct.dataclass
 class MetropolisPtSamplerState(MetropolisSamplerState):
-
     beta: jnp.ndarray = None
 
     n_accepted_per_beta: jnp.ndarray = None

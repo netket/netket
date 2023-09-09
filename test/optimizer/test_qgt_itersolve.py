@@ -102,7 +102,6 @@ models = {
     params=[pytest.param(modelT, id=name) for name, modelT in models.items()]
 )
 def model(request):
-
     modelT = request.param
 
     return modelT(alpha=1)

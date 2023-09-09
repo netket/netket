@@ -742,7 +742,6 @@ def test_fermion_create_annihilate():
 
 
 def test_fermi_hubbard():
-
     L = 4  # take a 2x2 lattice
     D = 2
     t = 1  # tunneling/hopping

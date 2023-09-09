@@ -154,7 +154,6 @@ def to_matrix(
     normalize: bool = True,
     chunk_size: Optional[int] = None,
 ) -> Array:
-
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
 

@@ -34,7 +34,6 @@ for L in [2, 4, 6, 8, 10]:
 # Test DenseEquivariant
 
 for L in [2, 4, 6, 8, 10]:
-
     graph = Square(L)
     sg = graph.space_group()
     irreps = sg.irrep_matrices()

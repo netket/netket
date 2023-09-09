@@ -22,7 +22,6 @@ from ._discrete_operator import DiscreteOperator
 
 
 class WrappedOperator(AbstractOperator):
-
     _parent: DiscreteOperator
     """The wrapped object"""
 

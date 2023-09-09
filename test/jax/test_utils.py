@@ -23,7 +23,6 @@ import operator
 )
 # @pytest.mark.parametrize("jit", [False, True])
 def test_tree_to_real(tree):
-
     tree_real, restore = nk.jax.tree_to_real(tree)
     tree_restored = restore(tree_real)
 
