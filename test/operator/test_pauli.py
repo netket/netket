@@ -304,3 +304,14 @@ def test_pauli_jax_sparse_works():
 
     ham_d = ham.to_dense()
     np.testing.assert_allclose(ham_jax_d, ham_d)
+
+
+def test_pauliY_promotion_to_complex():
+    ham = nk.operator.PauliStrings("XXX", dtype=np.float32)
+    assert ham.dtype == np.float32
+    ham = nk.operator.PauliStrings("XXY", dtype=np.float32)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.float32)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.complex64)
+    assert ham.dtype == np.complex64

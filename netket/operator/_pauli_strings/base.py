@@ -23,6 +23,7 @@ from numba import jit
 from itertools import product
 from numbers import Number
 
+from netket import jax as nkjax
 from netket.hilbert import Qubit, AbstractHilbert
 from netket.utils.numbers import dtype as _dtype, is_scalar
 
@@ -101,6 +102,12 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
         dtype = jnp.promote_types(np.float32, _dtype(weights))
     # Fallback to float32 when float64 is disabled in JAX
     dtype = jnp.empty((), dtype=dtype).dtype
+
+    # If real dtype but there is a 'Y' in the string, upconvert
+    # the dtype to complex
+    if not nkjax.is_complex_dtype(dtype):
+        if np.any(np.char.find(operators, "Y") != -1):
+            dtype = nkjax.dtype_complex(dtype)
 
     weights = cast_operator_matrix_dtype(weights, dtype=dtype)
 
