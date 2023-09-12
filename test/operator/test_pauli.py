@@ -315,3 +315,8 @@ def test_pauliY_promotion_to_complex():
     assert ham.dtype == np.complex64
     ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.complex64)
     assert ham.dtype == np.complex64
+
+
+def test_pauli_empty_constructor_error():
+    with pytest.raises(ValueError, match=r".*the hilbert space must be specified.*"):
+        nk.operator.PauliStrings([])

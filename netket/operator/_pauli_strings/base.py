@@ -75,9 +75,21 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
     if len(weights) != len(operators):
         raise ValueError("weights should have the same length as operators.")
 
-    _hilb_size = len(operators[0]) if len(operators) > 0 else hilbert.size
-    consistent = all(len(op) == _hilb_size for op in operators)
-    if not consistent:
+    if hilbert is None:
+        if len(operators) > 0:
+            hilbert = Qubit(len(operators[0]))
+        else:
+            raise ValueError(
+                "To construct an empty PauliString the hilbert space "
+                "must be specified."
+            )
+
+    if not np.allclose(hilbert.shape, 2):
+        raise ValueError(
+            "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
+        )
+
+    if any(len(op) != hilbert.size for op in operators):
         raise ValueError("Pauli strings have inhomogeneous lengths.")
 
     consistent = all(bool(valid_pauli_regex.search(op)) for op in operators)
@@ -85,14 +97,6 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
         raise ValueError(
             """Operators in string must be one of
             the Pauli operators X,Y,Z, or the identity I"""
-        )
-
-    if hilbert is None:
-        hilbert = Qubit(_hilb_size)
-
-    if not np.allclose(hilbert.shape, 2):
-        raise ValueError(
-            "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
         )
 
     weights = _standardize_matrix_input_type(weights)
