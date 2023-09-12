@@ -103,6 +103,8 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
     # Fallback to float32 when float64 is disabled in JAX
     dtype = jnp.empty((), dtype=dtype).dtype
 
+    operators = np.asarray(operators, dtype=str)
+
     # If real dtype but there is a 'Y' in the string, upconvert
     # the dtype to complex
     if not nkjax.is_complex_dtype(dtype):
@@ -110,8 +112,6 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
             dtype = nkjax.dtype_complex(dtype)
 
     weights = cast_operator_matrix_dtype(weights, dtype=dtype)
-
-    operators = np.asarray(operators, dtype=str)
 
     return hilbert, operators, weights, weights.dtype
 
