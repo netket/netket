@@ -63,7 +63,7 @@ vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=100, n_samples=512)
 
 # we will use sgd with Stochastic Reconfiguration
 opt = nk.optimizer.Sgd(learning_rate=0.01)
-sr = nk.optimizer.SR(diag_shift=0.1)
+sr = nk.optimizer.SR(diag_shift=0.1, holomorphic=True)
 
 gs = nk.driver.VMC(ham, opt, variational_state=vs, preconditioner=sr)
 
