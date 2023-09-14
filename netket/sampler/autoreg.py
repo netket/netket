@@ -17,31 +17,11 @@ from functools import partial
 import jax
 from jax import numpy as jnp
 
+from netket import jax as nkjax
 from netket.sampler import Sampler, SamplerState
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PRNGKeyT
-
-
-def batch_choice(key, a, p):
-    """
-    Batched version of `jax.random.choice`.
-
-    Attributes:
-      key: a PRNGKey used as the random key.
-      a: 1D array. Random samples are generated from its elements.
-      p: 2D array of shape `(batch_size, a.size)`. Each slice `p[i, :]` is
-        the probabilities associated with entries in `a` to generate a sample
-        at the index `i` of the output. Can be unnormalized.
-
-    Returns:
-      The generated samples as an 1D array of shape `(batch_size,)`.
-    """
-    p_cumsum = p.cumsum(axis=1)
-    r = p_cumsum[:, -1:] * jax.random.uniform(key, shape=(p.shape[0], 1))
-    indices = (r > p_cumsum).sum(axis=1)
-    out = a[indices]
-    return out
 
 
 @struct.dataclass
@@ -147,7 +127,7 @@ class ARDirectSampler(Sampler):
             local_states = jnp.asarray(
                 sampler.hilbert.local_states, dtype=sampler.dtype
             )
-            new_σ = batch_choice(key, local_states, p)
+            new_σ = nkjax.batch_choice(key, local_states, p)
             σ = σ.at[:, index].set(new_σ)
 
             return (σ, cache, new_key), None
