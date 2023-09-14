@@ -14,7 +14,7 @@
 from typing import Callable, Optional, Union
 from collections.abc import Hashable, Iterable
 
-from netket.jax.utils import is_scalar
+from netket.utils.numbers import is_scalar
 from netket.utils.types import DType, PyTree, Array
 
 import functools
