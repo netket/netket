@@ -15,7 +15,7 @@
 
 __all__ = ["FermionOperator2nd"]
 
-from ._fermion_operator_2nd import FermionOperator2nd
+from ._fermion_operator_2nd_numba import FermionOperator2nd
 from . import fermion
 
 from netket.utils import _auto_export
