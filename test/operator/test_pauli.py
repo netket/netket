@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
 import pytest
+
+import numpy as np
+import jax.numpy as jnp
 
 import netket as nk
 
@@ -210,6 +212,21 @@ def test_pauli_add_and_multiply():
     op_true_add_cte = nk.operator.PauliStrings(["X", "Y", "Z", "I"], [-1, 1, 1, 2])
     assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
 
+    # test multiplication and addition with numpy/jax scalar
+    op1 = np.array(0.5) * nk.operator.PauliStrings(["X"], [1])
+    op1_true = nk.operator.PauliStrings(["X"], [0.5])
+    assert np.allclose(op1.to_dense(), op1_true.to_dense())
+
+    op1 = jnp.array(0.5) * nk.operator.PauliStrings(["X"], [1])
+    assert np.allclose(op1.to_dense(), op1_true.to_dense())
+
+    op1 = np.array(0.5) + nk.operator.PauliStrings(["X"], [1])
+    op1_true = nk.operator.PauliStrings(["I", "X"], [0.5, 1])
+    assert np.allclose(op1.to_dense(), op1_true.to_dense())
+
+    op1 = jnp.array(0.5) + nk.operator.PauliStrings(["X"], [1])
+    assert np.allclose(op1.to_dense(), op1_true.to_dense())
+
 
 @pytest.mark.parametrize(
     "hilbert",
@@ -287,3 +304,19 @@ def test_pauli_jax_sparse_works():
 
     ham_d = ham.to_dense()
     np.testing.assert_allclose(ham_jax_d, ham_d)
+
+
+def test_pauliY_promotion_to_complex():
+    ham = nk.operator.PauliStrings("XXX", dtype=np.float32)
+    assert ham.dtype == np.float32
+    ham = nk.operator.PauliStrings("XXY", dtype=np.float32)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.float32)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+
+
+def test_pauli_empty_constructor_error():
+    with pytest.raises(ValueError, match=r".*the hilbert space must be specified.*"):
+        nk.operator.PauliStrings([])

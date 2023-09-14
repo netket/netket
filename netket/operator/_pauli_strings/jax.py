@@ -148,6 +148,19 @@ def pack_internals_jax(
     Returns a dictionary with all the data fields
     """
 
+    # Check if there are Y operators in the strings, and in that
+    # case uppromote float to complex
+    # Should never happen because we check in init...
+    if not jnp.issubdtype(weight_dtype, jnp.complexfloating):
+        # this checks if there is an Y in one of the strings
+        if np.any(np.char.find(operators, "Y") != -1):
+            # weight_dtype = jnp.promote_types(jnp.complex64, weight_dtype)
+            raise TypeError(
+                "Found PauliStringsJax with real dtype but with Y paulis.\n"
+                "This should not be happening.\n"
+                "Please open an issue on the netket repository.\n"
+            )
+
     # index_dtype needs to be signed (we use -1 for padding)
 
     _check_mode(mode)
@@ -285,7 +298,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         weights: Union[float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 0.0,
-        dtype: DType = complex,
+        dtype: DType = None,
         _mode: str = "index",
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
@@ -346,6 +359,10 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             self._x_flip_masks_stacked = x_flip_masks_stacked
             self._z_data = z_data
             self._initialized = True
+
+    def _reset_caches(self):
+        super()._reset_caches()
+        self._initialized = False
 
     def n_conn(self, x):
         # TODO implement it once we have cutoff
