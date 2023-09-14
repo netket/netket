@@ -20,7 +20,7 @@ import jax
 import jax.numpy as jnp
 from jax.util import safe_map
 
-from .utils import tree_leaf_iscomplex, eval_shape
+from ._utils_tree import tree_leaf_iscomplex, eval_shape
 
 map = safe_map
 

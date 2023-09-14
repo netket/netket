@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from functools import reduce
-from typing import Optional, Callable
+from typing import Callable
 
-import numpy as np
 
 import jax
 import netket.jax as nkjax
@@ -28,9 +27,7 @@ from jax.tree_util import (
     tree_leaves,
 )
 
-from netket.utils import random_seed, mpi
-from netket.utils.mpi import MPI_jax_comm
-from netket.utils.types import PyTree, PRNGKeyT, SeedT, Scalar
+from netket.utils.types import PyTree, Scalar
 from netket.utils.numbers import is_scalar
 
 
@@ -89,78 +86,11 @@ def tree_leaf_isreal(pars: PyTree) -> bool:
     return any(jax.tree_util.tree_leaves(jax.tree_map(jnp.isrealobj, pars)))
 
 
-def is_complex_dtype(typ):
-    """
-    Returns True if typ is a complex dtype.
-
-    This is almost equivalent to `jnp.iscomplexobj` but also handles types such as
-    `float`, `complex` and `int`, which are used throughout netket.
-    """
-    return jnp.issubdtype(typ, jnp.complexfloating)
-
-
-def is_real_dtype(typ):
-    """
-    Returns True if typ is a floating real dtype.
-
-    This is almost equivalent to `jnp.isrealobj` but also handles types such as
-    `float`, `complex` and `int`, which are used throughout netket.
-    """
-    return jnp.issubdtype(typ, jnp.floating)
-
-
-# Return the type holding the real part of the input type
-def dtype_real(typ):
-    """
-    If typ is a complex dtype returns the real counterpart of typ
-    (eg complex64 -> float32, complex128 ->float64).
-    Returns typ otherwise.
-    """
-    if np.issubdtype(typ, np.complexfloating):
-        if typ == np.dtype("complex64"):
-            return np.dtype("float32")
-        elif typ == np.dtype("complex128"):
-            return np.dtype("float64")
-        else:
-            raise TypeError(f"Unknown complex floating type {typ}")
-    else:
-        return typ
-
-
 def tree_ishomogeneous(pars: PyTree) -> bool:
     """
     Returns true if all leaves have real dtype or all leaves have complex dtype.
     """
     return not (tree_leaf_isreal(pars) and tree_leaf_iscomplex(pars))
-
-
-def dtype_complex(typ):
-    """
-    Return the complex dtype corresponding to the type passed in.
-    If it is already complex, do nothing
-    """
-    if is_complex_dtype(typ):
-        return typ
-    elif typ == np.dtype("float32"):
-        return np.dtype("complex64")
-    elif typ == np.dtype("float64"):
-        return np.dtype("complex128")
-    else:
-        raise TypeError(f"Unknown complex type for {typ}")
-
-
-def maybe_promote_to_complex(*types):
-    """
-    Maybe promotes the first argument to it's complex counterpart given by
-    dtype_complex(typ) if any of the arguments is complex
-    """
-    main_typ = types[0]
-
-    for typ in types:
-        if is_complex_dtype(typ):
-            return dtype_complex(main_typ)
-    else:
-        return main_typ
 
 
 def tree_conj(t: PyTree) -> PyTree:
@@ -294,76 +224,3 @@ def compose(*funcs):
         return lambda *args, **kwargs: f(g(*args, **kwargs))
 
     return reduce(_compose, funcs)
-
-
-def PRNGKey(
-    seed: Optional[SeedT] = None, *, root: int = 0, comm=MPI_jax_comm
-) -> PRNGKeyT:
-    """
-    Initialises a PRNGKey using an optional starting seed.
-    The same seed will be distributed to all processes.
-    """
-    if seed is None:
-        key = jax.random.PRNGKey(random_seed())
-    elif isinstance(seed, int):
-        key = jax.random.PRNGKey(seed)
-    else:
-        key = seed
-
-    key = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root, comm=comm)[0], key)
-
-    return key
-
-
-def mpi_split(key, *, root=0, comm=MPI_jax_comm) -> PRNGKeyT:
-    """
-    Split a key across MPI nodes in the communicator.
-    Only the input key on the root process matters.
-
-    Arguments:
-        key: The key to split. Only considered the one on the root process.
-        root: (default=0) The root rank from which to take the input key.
-        comm: (default=MPI.COMM_WORLD) The MPI communicator.
-
-    Returns:
-        A PRNGKey depending on rank number and key.
-    """
-
-    # Maybe add error/warning if in_key is not the same
-    # on all MPI nodes?
-    keys = jax.random.split(key, mpi.n_nodes)
-
-    keys = jax.tree_map(lambda k: mpi.mpi_bcast_jax(k, root=root)[0], keys)
-
-    return keys[mpi.rank]
-
-
-class PRNGSeq:
-    """
-    A sequence of PRNG keys generated based on an initial key.
-    """
-
-    def __init__(self, base_key: Optional[SeedT] = None):
-        if base_key is None:
-            base_key = PRNGKey()
-        elif isinstance(base_key, int):
-            base_key = PRNGKey(base_key)
-        self._current = base_key
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        self._current = jax.random.split(self._current, num=1)[0]
-        return self._current
-
-    def next(self):
-        return self.__next__()
-
-    def take(self, num: int):
-        """
-        Returns an array of `num` PRNG keys and advances the iterator accordingly.
-        """
-        keys = jax.random.split(self._current, num=num + 1)
-        self._current = keys[-1]
-        return keys[:-1]

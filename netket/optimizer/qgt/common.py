@@ -18,7 +18,7 @@ from jax import numpy as jnp
 
 from netket.utils.types import PyTree
 from netket.errors import RealQGTComplexDomainError
-from netket.jax.utils import RealImagTuple
+from netket.jax._utils_tree import RealImagTuple
 
 
 def check_valid_vector_type(x: PyTree, target: PyTree):

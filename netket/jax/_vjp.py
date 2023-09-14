@@ -21,7 +21,7 @@ from jax import numpy as jnp
 from jax.tree_util import tree_map
 
 
-from .utils import tree_leaf_iscomplex, eval_shape
+from ._utils_tree import tree_leaf_iscomplex, eval_shape
 
 
 # _grad_CC, _RR and _RC are the chunked gradient functions for machines going
