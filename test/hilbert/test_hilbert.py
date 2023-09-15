@@ -660,3 +660,21 @@ def test_hilbert_numba_throws(hi):
         numbers_to_states(hi, 1)
     with pytest.raises(HilbertIndexingDuringTracingError):
         states_to_numbers(hi, jnp.zeros((hi.size,)))()
+
+
+def test_particle_alternative_constructors():
+    hi1 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf), pbc=False)
+    hi2 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf))
+    assert hi1 == hi2
+
+    hi2 = nk.hilbert.Particle(N=5, D=2)
+    assert hi1 == hi2
+
+    with pytest.raises(ValueError, match=r"Must specify at least.*"):
+        nk.hilbert.Particle(N=5)
+
+    with pytest.raises(TypeError, match=r"Cannot specify at the same time.*"):
+        nk.hilbert.Particle(N=5, L=np.inf, D=1)
+
+    with pytest.raises(ValueError, match=r".*must be specified.*"):
+        nk.hilbert.Particle(N=5, L=3)
