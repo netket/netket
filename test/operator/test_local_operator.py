@@ -607,3 +607,8 @@ def test_pauli_strings_conversion_no_warn():
     with warnings.catch_warnings():
         warnings.filterwarnings("error", category=np.ComplexWarning)
         nk.operator.spin.sigmax(nk.hilbert.Spin(0.5, 3), 0).to_pauli_strings()
+
+    with pytest.raises(
+        TypeError, match=r".* hilbert spaces with local dimension != 2.*"
+    ):
+        nk.operator.spin.sigmax(nk.hilbert.Spin(1.0, 3), 0).to_pauli_strings()

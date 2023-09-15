@@ -158,6 +158,13 @@ def local_operators_to_pauli_strings(hilbert, operators, acting_on, constant, dt
     Returns:
         PauliStrings
     """
+
+    if any(d != 2 for d in hilbert.shape):
+        raise TypeError(
+            "Cannot convert to Pauli strings operators defined on hilbert spaces "
+            "with local dimension != 2"
+        )
+
     pauli_strings = []
     weights = []
 
