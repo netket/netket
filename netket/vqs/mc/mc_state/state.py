@@ -639,7 +639,7 @@ class MCState(VariationalState):
         return expect_and_forces(self, Ô, self.chunk_size, mutable=mutable)
 
     def quantum_geometric_tensor(
-        self, qgt_T: LinearOperator = QGTAuto
+        self, qgt_T: Optional[LinearOperator] = None
     ) -> LinearOperator:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector
@@ -652,6 +652,9 @@ class MCState(VariationalState):
         Returns:
             nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
+        if qgt_T is None:
+            qgt_T = QGTAuto()
+
         return qgt_T(self)
 
     def to_array(self, normalize: bool = True) -> jnp.ndarray:
