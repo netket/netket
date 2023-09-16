@@ -94,7 +94,7 @@ If you want MPI support, please follow the discussion in [mpi4jax](https://githu
 
 ## Getting Started
 
-To get started with NetKet, we recommend you give a look at our [tutorials page](https://netket.readthedocs.io/en/latest/tutorials/gs-ising.htmls), by running them on your computer or on [Google Colaboratory](https://colab.research.google.com).
+To get started with NetKet, we recommend you give a look at our [tutorials page](https://netket.readthedocs.io/en/latest/tutorials/gs-ising.html), by running them on your computer or on [Google Colaboratory](https://colab.research.google.com).
 There are also many example scripts that you can download, run and edit that showcase some use-cases of NetKet, although they are not commented.
 
 If you want to get in touch with us, feel free to open an issue or a discussion here on GitHub, or to join the MLQuantum slack group where several people involved with NetKet hang out. To join the slack channel just accept [this invitation](https://join.slack.com/t/mlquantum/shared_invite/zt-19wibmfdv-LLRI6i43wrLev6oQX0OfOw)
