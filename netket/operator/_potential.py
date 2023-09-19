@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Hashable, Optional, Tuple
+from typing import Callable, Optional
+from collections.abc import Hashable
 
 from netket.utils.types import DType, PyTree, Array
 
@@ -84,7 +85,7 @@ class PotentialEnergy(ContinuousOperator):
         return PotentialOperatorPyTree(self._afun, self.coefficient)
 
     @property
-    def _attrs(self) -> Tuple[Hashable, ...]:
+    def _attrs(self) -> tuple[Hashable, ...]:
         if self.__attrs is None:
             self.__attrs = (
                 self.hilbert,

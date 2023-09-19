@@ -557,7 +557,7 @@ def test_identity_zero():
     op0 = nkx.operator.fermion.zero(hi)
     op1 = nkx.operator.fermion.identity(hi)
 
-    assert np.allclose(op0.to_dense(), np.zeros(((8**2, 8**2))))
+    assert np.allclose(op0.to_dense(), np.zeros((8**2, 8**2)))
     assert np.allclose(op1.to_dense(), np.identity(8**2))
 
 
@@ -742,7 +742,6 @@ def test_fermion_create_annihilate():
 
 
 def test_fermi_hubbard():
-
     L = 4  # take a 2x2 lattice
     D = 2
     t = 1  # tunneling/hopping

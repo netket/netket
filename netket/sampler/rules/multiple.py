@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 import jax
 import jax.numpy as jnp
@@ -31,7 +31,7 @@ from .base import MetropolisRule
 
 
 def multipleRules(
-    rules: Tuple[MetropolisRule, ...], probabilities: Array
+    rules: tuple[MetropolisRule, ...], probabilities: Array
 ) -> MetropolisRule:
     r"""A Metropolis sampling rule that can be used to pick a rule from a list of rules
     with a given probability.
@@ -74,7 +74,7 @@ class MultipleRules(MetropolisRule):
 
     Each `rule[i]` will be selected with a probability `probabilities[i]`.
     """
-    rules: Tuple[MetropolisRule, ...]
+    rules: tuple[MetropolisRule, ...]
     probabilities: Array
 
     def init_state(

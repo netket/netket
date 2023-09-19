@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 import jax
 import jax.numpy as jnp
@@ -32,7 +32,7 @@ from .base import MetropolisRule
 
 
 def tensorRule(
-    hilbert: TensorHilbert, rules: Tuple[MetropolisRule, ...]
+    hilbert: TensorHilbert, rules: tuple[MetropolisRule, ...]
 ) -> "TensorRule":
     r"""A Metropolis sampling rule that can be used to combine different rules acting
     on different subspaces of the same tensor-hilbert space.
@@ -82,7 +82,7 @@ class TensorRule(MetropolisRule):
         rules: A list of rules, one for each subspace of the tensor hilbert space.
     """
     hilbert: TensorHilbert = struct.field(pytree_node=False)
-    rules: Tuple[MetropolisRule, ...]
+    rules: tuple[MetropolisRule, ...]
 
     def init_state(
         self,

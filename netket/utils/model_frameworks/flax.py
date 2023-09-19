@@ -19,7 +19,6 @@ from .base import ModuleFramework, framework
 
 @framework
 class FlaxFramework(ModuleFramework):
-
     name: str = "Flax"
 
     @staticmethod

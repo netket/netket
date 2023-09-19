@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
 
 import functools
 import numbers
 
 import numpy as np
-from jax import numpy as jnp
+import jax
 
 from scipy import sparse
 from scipy.sparse import spmatrix
@@ -119,11 +118,11 @@ def canonicalize_input(
             lambda dt, op: np.promote_types(dt, op.dtype), operators, dtype
         )
     # Fallback to float32 when float64 is disabled in JAX
-    dtype = jnp.empty((), dtype=dtype).dtype
+    dtype = jax.dtypes.canonicalize_dtype(dtype)
 
     canonicalized_operators = []
     canonicalized_acting_on = []
-    for (operator, acting_on) in zip(operators, acting_on):
+    for operator, acting_on in zip(operators, acting_on):
         check_valid_opmatrix(hilbert, operator, acting_on)
 
         if operator.dtype is not dtype:
@@ -150,7 +149,7 @@ def check_valid_opmatrix(hi, mat, acting_on):
 
 
 # TODO: support sparse arrays without returning dense arrays
-def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
+def _reorder_kronecker_product(hi, mat, acting_on) -> tuple[Array, tuple]:
     """
     Reorders the matrix resulting from a kronecker product of several
     operators in such a way to sort acting_on.
@@ -187,7 +186,7 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
 
     # find how to map target ordering back to unordered
     acting_on_unsorted_ids = np.zeros(len(acting_on), dtype=np.intp)
-    for (i, site) in enumerate(acting_on):
+    for i, site in enumerate(acting_on):
         acting_on_unsorted_ids[i] = np.argmax(site == acting_on_sorted)
 
     # now it is valid that
@@ -219,8 +218,8 @@ def _reorder_kronecker_product(hi, mat, acting_on) -> Tuple[Array, Tuple]:
 
 # TODO: support sparse arrays without returning dense arrays
 def _multiply_operators(
-    hilbert, support_A: Tuple, A: Array, support_B: Tuple, B: Array, *, dtype
-) -> Tuple[Tuple, Array]:
+    hilbert, support_A: tuple, A: Array, support_B: tuple, B: Array, *, dtype
+) -> tuple[tuple, Array]:
     """
     Returns the `Tuple[acting_on, Matrix]` representing the operator obtained by
     multiplying the two input operators A and B.
@@ -231,6 +230,10 @@ def _multiply_operators(
     inters = np.intersect1d(support_A, support_B, return_indices=False)
 
     if support_A.size == support_B.size and np.array_equal(support_A, support_B):
+        # TODO: Note: COO @ COO -> CSR, this may insert CSR matrices in our
+        # format. Should we enforce COO?
+        # If yes, the logic in the compilation can be simplified to always assume
+        # COO.
         return tuple(support_A), A @ B
     elif inters.size == 0:
         # disjoint supports
@@ -275,6 +278,7 @@ def _multiply_operators(
             _support_A, _support_B
         ):
             # back to the case of non-intersecting with same support
+            # TODO: Note: COO @ COO -> CSR
             return tuple(_support_A), _A @ _B
         else:
             raise ValueError("Something failed")

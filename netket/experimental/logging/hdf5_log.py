@@ -36,7 +36,7 @@ def tree_log(tree, root, data, *, iter=None):
         return
 
     elif isinstance(tree, list):
-        for (i, val) in enumerate(tree):
+        for i, val in enumerate(tree):
             tree_log(val, f"{root}/{i}", data, iter=iter)
 
     # handle namedtuples
@@ -47,7 +47,7 @@ def tree_log(tree, root, data, *, iter=None):
 
     elif isinstance(tree, tuple):
         tree_log(iter, f"{root}/iter", data)
-        for (i, val) in enumerate(tree):
+        for i, val in enumerate(tree):
             tree_log(val, f"{root}/{i}", data)
 
     elif isinstance(tree, dict):

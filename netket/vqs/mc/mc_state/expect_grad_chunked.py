@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Tuple
+from typing import Any
 import warnings
 
 import jax
@@ -70,8 +70,7 @@ def expect_and_grad_covariance_chunked(  # noqa: F811
     chunk_size: int,
     *,
     mutable: CollectionFilter,
-) -> Tuple[Stats, PyTree]:
-
+) -> tuple[Stats, PyTree]:
     Ō, Ō_grad = expect_and_forces(vstate, Ô, chunk_size, mutable=mutable)
     Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
     return Ō, Ō_grad

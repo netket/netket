@@ -61,8 +61,8 @@ def test_mean(_mpi_comm, _mpi_rank, _mpi_size):
         ref_mean = np.mean(data.mean(0), axis=axis)
         nk_mean = nk.stats.mean(mydata, axis=axis)
 
-        assert nk_mean.shape == ref_mean.shape, "axis={}".format(axis)
-        assert nk_mean == approx(ref_mean), "axis={}".format(axis)
+        assert nk_mean.shape == ref_mean.shape, f"axis={axis}"
+        assert nk_mean == approx(ref_mean), f"axis={axis}"
 
     # Test with out
     out = nk.stats.mean(mydata)
@@ -93,12 +93,12 @@ def test_sum(_mpi_comm, _mpi_rank, _mpi_size):
         nk_sum_kd = nk.stats.sum(mydata, axis=axis, keepdims=True)
         ref_sum_kd = np.sum(data.sum(axis=0), axis=axis, keepdims=True)
 
-        assert nk_sum.shape == ref_sum.shape, "axis={}".format(axis)
-        assert np.all(nk_sum == ref_sum), "axis={}".format(axis)
+        assert nk_sum.shape == ref_sum.shape, f"axis={axis}"
+        assert np.all(nk_sum == ref_sum), f"axis={axis}"
         assert nk_sum_kd.shape == ref_sum_kd.shape, "axis={}, keepdims=True".format(
             axis
         )
-        assert np.all(nk_sum_kd == ref_sum_kd), "axis={}, keepdims=True".format(axis)
+        assert np.all(nk_sum_kd == ref_sum_kd), f"axis={axis}, keepdims=True"
 
     # Test with out
     out = nk.stats.sum(mydata)
@@ -131,8 +131,8 @@ def test_var(_mpi_comm, _mpi_rank, _mpi_size):
 
         nk_var = nk.stats.var(mydata, axis=axis, ddof=ddof)
 
-        assert nk_var.shape == ref_var.shape, "axis={},ddof={}".format(axis, ddof)
-        assert nk_var == approx(ref_var), "axis={},ddof={}".format(axis, ddof)
+        assert nk_var.shape == ref_var.shape, f"axis={axis},ddof={ddof}"
+        assert nk_var == approx(ref_var), f"axis={axis},ddof={ddof}"
 
     # Test with out
     out = nk.stats.var(mydata)

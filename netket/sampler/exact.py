@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 from functools import partial
 
 import jax
@@ -92,7 +92,7 @@ class ExactSampler(Sampler):
         parameters: PyTree,
         state: SamplerState,
         chain_length: int,
-    ) -> Tuple[jnp.ndarray, SamplerState]:
+    ) -> tuple[jnp.ndarray, SamplerState]:
         # Reimplement sample_chain because we can sample the whole 'chain' in one
         # go, since it's not really a chain anyway. This will be much faster because
         # we call into python only once.
@@ -113,10 +113,12 @@ class ExactSampler(Sampler):
         # this will lead to a crash if numbers_to_state throws.
         # it throws if we feed it nans!
         samples = jax.pure_callback(
-            lambda numbers: sampler.hilbert.numbers_to_states(numbers),
+            lambda numbers: sampler.hilbert.numbers_to_states(numbers).astype(
+                sampler.dtype
+            ),
             jax.ShapeDtypeStruct(
                 (sampler.n_chains_per_rank * chain_length, sampler.hilbert.size),
-                jnp.float64,
+                sampler.dtype,
             ),
             numbers,
         )

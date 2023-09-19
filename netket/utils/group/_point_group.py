@@ -18,7 +18,7 @@
 import itertools
 from functools import partial
 from math import pi
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 from scipy.linalg import schur
@@ -54,7 +54,7 @@ class PGSymmetry(Element):
     structure [[W,w],[0,1]].
     """
 
-    def __pre_init__(self, W: Array, w: Optional[Array] = None) -> Tuple[Tuple, Dict]:
+    def __pre_init__(self, W: Array, w: Optional[Array] = None) -> tuple[tuple, dict]:
         W = np.asarray(W)
         if W.ndim != 2 or W.shape[0] != W.shape[1]:
             raise ValueError("W must be a 2D square matrix")
@@ -172,7 +172,7 @@ def _eig(W):
     return np.diag(e), v
 
 
-def _origin_trans(W: Array, w: Array) -> Tuple[Array, Array]:
+def _origin_trans(W: Array, w: Array) -> tuple[Array, Array]:
     """Decomposes a point group symmetry into a pure (improper) rotation around
     an origin and a translation along the axis/plane of the transformation.
     Returns the tuple (origin, translation)."""
@@ -265,7 +265,6 @@ def _3D_name(W: Array, w: Optional[Array] = None) -> str:
                 return f"Screw({angle}°){_to_rational_vector(trans)}{origin}"
 
     elif _naming_isclose(np.linalg.det(W), -1.0):  # improper rotations
-
         if _naming_allclose(W, -np.eye(3)):  # inversion
             return f"Inv(){origin}"
 
@@ -295,7 +294,7 @@ def _3D_name(W: Array, w: Optional[Array] = None) -> str:
         raise ValueError("W must be an orthogonal matrix")
 
 
-def __to_rational(x: float) -> Tuple[int, int]:
+def __to_rational(x: float) -> tuple[int, int]:
     denom = is_approx_int(x * np.arange(1, 100), atol=_naming_tol)
     if not denom.any():
         raise ValueError

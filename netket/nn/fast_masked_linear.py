@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Tuple
+from typing import Any
 
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype
@@ -312,9 +312,9 @@ class FastMaskedConv2D(nn.Module):
     """edge length of the 2D lattice."""
     features: int
     """number of convolution filters."""
-    kernel_size: Tuple[int, int]
+    kernel_size: tuple[int, int]
     """shape of the convolutional kernel `(h, w)`. Typically, :math:`h = w // 2 + 1`."""
-    kernel_dilation: Tuple[int, int]
+    kernel_dilation: tuple[int, int]
     """a sequence of 2 integers, giving the dilation factor to
     apply in each spatial dimension of the convolution kernel."""
     exclusive: bool

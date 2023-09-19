@@ -85,7 +85,6 @@ class AbstractLinearPreconditioner:
     def __call__(
         self, vstate: VariationalState, gradient: PyTree, step: Optional[Scalar] = None
     ) -> PyTree:
-
         self._lhs = self.lhs_constructor(vstate, step)
 
         x0 = self.x0 if self.solver_restart else None

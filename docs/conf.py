@@ -180,6 +180,7 @@ html_context = {
 nb_execution_mode = "off"
 nb_execution_allow_errors = False
 
+
 # do not show __init__ if it does not have a docstring
 def autodoc_skip_member(app, what, name, obj, skip, options):
     # Ref: https://stackoverflow.com/a/21449475/

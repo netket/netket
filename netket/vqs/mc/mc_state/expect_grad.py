@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Callable, Tuple
+from typing import Callable
 
 import jax
 from jax import numpy as jnp
@@ -52,7 +52,7 @@ def expect_and_grad_covariance(
     use_covariance: TrueT,
     *,
     mutable: CollectionFilter,
-) -> Tuple[Stats, PyTree]:
+) -> tuple[Stats, PyTree]:
     Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
     Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
     return Ō, Ō_grad
@@ -89,8 +89,7 @@ def expect_and_grad_nonherm(
     use_covariance,
     *,
     mutable: CollectionFilter,
-) -> Tuple[Stats, PyTree]:
-
+) -> tuple[Stats, PyTree]:
     if not isinstance(Ô, Squared) and not config.netket_experimental:
         raise RuntimeError(
             """
@@ -134,8 +133,7 @@ def grad_expect_operator_kernel(
     model_state: PyTree,
     σ: jnp.ndarray,
     local_value_args: PyTree,
-) -> Tuple[PyTree, PyTree, Stats]:
-
+) -> tuple[PyTree, PyTree, Stats]:
     n_chains = σ.shape[0]
     if σ.ndim >= 3:
         σ = jax.lax.collapse(σ, 0, 2)

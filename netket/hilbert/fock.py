@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union
+from typing import Optional, Union
 from functools import partial
 
 import numpy as np
@@ -123,7 +123,7 @@ class Fock(HomogeneousHilbert):
 
         return NotImplemented
 
-    def ptrace(self, sites: Union[int, List]) -> Optional["Fock"]:
+    def ptrace(self, sites: Union[int, list]) -> Optional["Fock"]:
         if isinstance(sites, int):
             sites = [sites]
 

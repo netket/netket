@@ -249,7 +249,6 @@ def test_particle_fail():
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_flip_state_discrete(hi: DiscreteHilbert):
-
     rng = nk.jax.PRNGSeq(1)
     N_batches = 20
 
@@ -270,7 +269,7 @@ def test_flip_state_discrete(hi: DiscreteHilbert):
     states_np = np.asarray(states)
     states_new_np = np.array(new_states)
 
-    for (row, col) in enumerate(ids):
+    for row, col in enumerate(ids):
         states_new_np[row, col] = states_np[row, col]
 
     np.testing.assert_allclose(states_np, states_new_np)
@@ -313,7 +312,7 @@ def test_flip_state_fock_infinite():
     states_np = np.asarray(states)
     states_new_np = np.array(new_states)
 
-    for (row, col) in enumerate(ids):
+    for row, col in enumerate(ids):
         states_new_np[row, col] = states_np[row, col]
 
     np.testing.assert_allclose(states_np, states_new_np)
@@ -370,7 +369,6 @@ def _states_to_local_indices_jit(hilb, x):
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_states_to_local_indices(hi):
-
     x = hi.random_state(jax.random.PRNGKey(3), (200))
     idxs = hi.states_to_local_indices(x)
     idxs_jit = _states_to_local_indices_jit(hi, x)
@@ -662,3 +660,21 @@ def test_hilbert_numba_throws(hi):
         numbers_to_states(hi, 1)
     with pytest.raises(HilbertIndexingDuringTracingError):
         states_to_numbers(hi, jnp.zeros((hi.size,)))()
+
+
+def test_particle_alternative_constructors():
+    hi1 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf), pbc=False)
+    hi2 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf))
+    assert hi1 == hi2
+
+    hi2 = nk.hilbert.Particle(N=5, D=2)
+    assert hi1 == hi2
+
+    with pytest.raises(ValueError, match=r"Must specify at least.*"):
+        nk.hilbert.Particle(N=5)
+
+    with pytest.raises(TypeError, match=r"Cannot specify at the same time.*"):
+        nk.hilbert.Particle(N=5, L=np.inf, D=1)
+
+    with pytest.raises(ValueError, match=r".*must be specified.*"):
+        nk.hilbert.Particle(N=5, L=3)

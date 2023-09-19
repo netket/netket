@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 import warnings
 
 import numpy as np
@@ -95,7 +95,7 @@ class QSR(AbstractVariationalDriver):
 
     def __init__(
         self,
-        training_data: Union[RawQuantumDataset, Tuple[List, List]],
+        training_data: Union[RawQuantumDataset, tuple[list, list]],
         training_batch_size: int,
         optimizer,
         *,

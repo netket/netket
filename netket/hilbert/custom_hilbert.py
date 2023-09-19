@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Callable
+from typing import Optional, Callable
 
 from numbers import Real
 
@@ -26,7 +26,7 @@ class CustomHilbert(HomogeneousHilbert):
 
     def __init__(
         self,
-        local_states: Optional[List[Real]],
+        local_states: Optional[list[Real]],
         N: int = 1,
         constraint_fn: Optional[Callable] = None,
     ):

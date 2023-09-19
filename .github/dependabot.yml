@@ -12,3 +12,4 @@ updates:
     ignore:
       # Ignore updates to "black" because we'd need to reformat everything
       - dependency-name: "black"
+      - dependency-name: "ruff"

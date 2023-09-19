@@ -40,7 +40,8 @@ import inspect
 import re
 import abc
 from importlib import import_module
-from typing import Any, Dict, Iterable, List, Tuple, cast
+from typing import Any, cast
+from collections.abc import Iterable
 
 from docutils import nodes
 from docutils.nodes import Node
@@ -149,13 +150,13 @@ class InheritanceGraph:
 
     def __init__(
         self,
-        class_names: List[str],
+        class_names: list[str],
         currmodule: str,
         show_builtins: bool = False,
         private_bases: bool = False,
         parts: int = 0,
-        aliases: Dict[str, str] = None,
-        top_classes: List[Any] = [],
+        aliases: dict[str, str] = None,
+        top_classes: list[Any] = [],
     ) -> None:
         """*class_names* is a list of child classes to show bases from.
 
@@ -170,7 +171,7 @@ class InheritanceGraph:
         if not self.class_info:
             raise InheritanceException("No classes found for " "inheritance diagram")
 
-    def _import_classes(self, class_names: List[str], currmodule: str) -> List[Any]:
+    def _import_classes(self, class_names: list[str], currmodule: str) -> list[Any]:
         """Import a list of classes."""
         classes = []  # type: List[Any]
         for name in class_names:
@@ -179,13 +180,13 @@ class InheritanceGraph:
 
     def _class_info(
         self,
-        classes: List[Any],
+        classes: list[Any],
         show_builtins: bool,
         private_bases: bool,
         parts: int,
-        aliases: Dict[str, str],
-        top_classes: List[Any],
-    ) -> List[Tuple[str, str, List[str], str]]:
+        aliases: dict[str, str],
+        top_classes: list[Any],
+    ) -> list[tuple[str, str, list[str], str]]:
         """Return name and bases for all classes that are ancestors of
         *classes*.
 
@@ -253,7 +254,7 @@ class InheritanceGraph:
         return list(all_classes.values())
 
     def class_name(
-        self, cls: Any, parts: int = 0, aliases: Dict[str, str] = None
+        self, cls: Any, parts: int = 0, aliases: dict[str, str] = None
     ) -> str:
         """Given a class object, return a fully-qualified name.
 
@@ -264,7 +265,7 @@ class InheritanceGraph:
         if module in ("__builtin__", "builtins"):
             fullname = cls.__name__
         else:
-            fullname = "%s.%s" % (module, cls.__qualname__)
+            fullname = "{}.{}".format(module, cls.__qualname__)
         if parts == 0:
             result = fullname
         else:
@@ -274,11 +275,11 @@ class InheritanceGraph:
             return aliases[result]
         return result
 
-    def get_all_class_names(self) -> List[str]:
+    def get_all_class_names(self) -> list[str]:
         """Get all of the class names involved in the graph."""
         return [fullname for (_, fullname, _, _, _) in self.class_info]
 
-    def get_isabstract_flag(self) -> List[str]:
+    def get_isabstract_flag(self) -> list[str]:
         """Get all of the class names involved in the graph."""
         return [is_abstract for (_, _, _, _, is_abstract) in self.class_info]
 
@@ -302,20 +303,20 @@ class InheritanceGraph:
         "style": '"setlinewidth(0.5)"',
     }
 
-    def _format_node_attrs(self, attrs: Dict) -> str:
+    def _format_node_attrs(self, attrs: dict) -> str:
         return ",".join(["%s=%s" % x for x in sorted(attrs.items())])
 
-    def _format_graph_attrs(self, attrs: Dict) -> str:
+    def _format_graph_attrs(self, attrs: dict) -> str:
         return "".join(["%s=%s;\n" % x for x in sorted(attrs.items())])
 
     def generate_dot(
         self,
         name: str,
-        urls: Dict = {},
+        urls: dict = {},
         env: BuildEnvironment = None,
-        graph_attrs: Dict = {},
-        node_attrs: Dict = {},
-        edge_attrs: Dict = {},
+        graph_attrs: dict = {},
+        node_attrs: dict = {},
+        edge_attrs: dict = {},
     ) -> str:
         """Generate a graphviz dot graph from the classes that were passed in
         to __init__.
@@ -359,7 +360,7 @@ class InheritanceGraph:
                     this_node_attrs["style"] = '"dashed"'
 
             res.append(
-                '  "%s" [%s];\n' % (name, self._format_node_attrs(this_node_attrs))
+                '  "{}" [{}];\n'.format(name, self._format_node_attrs(this_node_attrs))
             )
 
             # Write the edges
@@ -396,7 +397,7 @@ class InheritanceDiagram(SphinxDirective):
         "top-classes": directives.unchanged_required,
     }
 
-    def run(self) -> List[Node]:
+    def run(self) -> list[Node]:
         node = inheritance_diagram()
         node.document = self.state.document
         class_names = self.arguments[0].split()
@@ -534,7 +535,7 @@ def skip(self: nodes.NodeVisitor, node: inheritance_diagram) -> None:
     raise nodes.SkipNode
 
 
-def setup(app: Sphinx) -> Dict[str, Any]:
+def setup(app: Sphinx) -> dict[str, Any]:
     app.setup_extension("sphinx.ext.graphviz")
     app.add_node(
         inheritance_diagram,

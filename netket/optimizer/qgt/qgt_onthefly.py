@@ -240,7 +240,6 @@ def onthefly_mat_treevec(
 def _solve(
     self: QGTOnTheFlyT, solve_fun, y: PyTree, *, x0: Optional[PyTree], **kwargs
 ) -> PyTree:
-
     check_valid_vector_type(self._params, y)
 
     y = nkjax.tree_cast(y, self._params)

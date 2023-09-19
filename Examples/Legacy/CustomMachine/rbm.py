@@ -42,7 +42,7 @@ class PyRbm(netket.machine.CxxMachine):
             use_hidden_bias: specifies whether to use a bias for hidden spins.
         """
         # NOTE: The following call to __init__ is important!
-        super(PyRbm, self).__init__(hilbert, dtype=complex)
+        super().__init__(hilbert, dtype=complex)
         n = hilbert.size
         if alpha < 0:
             raise ValueError("`alpha` should be non-negative")
@@ -78,7 +78,6 @@ class PyRbm(netket.machine.CxxMachine):
         # but the C++ implementation ignores the "constant factor"
 
     def _der_log(self, x, out):
-
         batch_size = x.shape[0]
 
         i = 0

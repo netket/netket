@@ -19,7 +19,6 @@
 import itertools
 from abc import ABC
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 
@@ -132,7 +131,7 @@ def product(ab: Composite, cd: Composite):  # noqa: F811
 
 @dataclass(frozen=True)
 class FiniteSemiGroup:
-    elems: List[Element]
+    elems: list[Element]
 
     def __post_init__(self):
         # manually assign self.__hash == ... for frozen dataclass,

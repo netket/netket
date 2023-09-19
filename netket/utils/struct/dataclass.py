@@ -215,7 +215,7 @@ def process_cached_properties(clz, globals=None):
     for b in clz.__mro__[1:]:
         # Only process classes that have been processed by our
         # decorator.  That is, they have a _FIELDS attribute.
-        for (name, cp) in getattr(b, _CACHES, {}).items():
+        for name, cp in getattr(b, _CACHES, {}).items():
             if name not in cached_props:
                 cached_props[name] = cp
 
@@ -272,7 +272,6 @@ def purge_cache_fields(clz):
 
 
 def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash=False):
-
     # If there is no __pre_init__ method in the class, create a default
     # one calling pre init on super() if there is one.
     if _PRE_INIT_NAME not in data_clz.__dict__:

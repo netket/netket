@@ -141,7 +141,7 @@ def test_tau_corr_fft_logic(batch_size, sig_corr):
     n_samples = 2**20 // batch_size
 
     data = np.empty((batch_size, n_samples))
-    tau_fit = np.empty((batch_size))
+    tau_fit = np.empty(batch_size)
 
     for i in range(batch_size):
         data[i] = _gen_data(n_samples, log_f, sig_corr, i + batch_size)
@@ -150,7 +150,6 @@ def test_tau_corr_fft_logic(batch_size, sig_corr):
         tau_fit[i] = popt[0]
 
     with common.netket_experimental_fft_autocorrelation(True):
-
         tau_fit_mean = 1 + 2 * tau_fit.mean()
         tau_fit_max = 1 + 2 * tau_fit.max()
 

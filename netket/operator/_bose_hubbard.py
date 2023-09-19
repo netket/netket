@@ -151,7 +151,7 @@ class BoseHubbard(SpecialHamiltonian):
                 ha += (self.U / 2) * n_i * (n_i - 1) - self.mu * n_i
 
         if self.J != 0:
-            for (i, j) in self.edges:
+            for i, j in self.edges:
                 ha += self.V * (
                     boson.number(self.hilbert, i) * boson.number(self.hilbert, j)
                 )
@@ -206,7 +206,6 @@ class BoseHubbard(SpecialHamiltonian):
         x_prime=None,
         pad=False,
     ):
-
         batch_size = x.shape[0]
         n_sites = x.shape[1]
 

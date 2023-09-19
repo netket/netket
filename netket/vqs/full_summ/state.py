@@ -14,7 +14,7 @@
 
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 import jax
 from jax import numpy as jnp
@@ -77,7 +77,7 @@ class FullSumState(VariationalState):
         apply_fun: Callable = None,
         seed: Optional[SeedT] = None,
         mutable: CollectionFilter = False,
-        training_kwargs: Dict = {},
+        training_kwargs: dict = {},
         dtype=float,
     ):
         """
@@ -259,7 +259,7 @@ class FullSumState(VariationalState):
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
     def quantum_geometric_tensor(
-        self, qgt_T: LinearOperator = QGTAuto()
+        self, qgt_T: Optional[LinearOperator] = None
     ) -> LinearOperator:
         r"""Computes an estimate of the quantum geometric tensor G_ij.
         This function returns a linear operator that can be used to apply G_ij to a given vector
@@ -272,10 +272,11 @@ class FullSumState(VariationalState):
         Returns:
             nk.optimizer.LinearOperator: A linear operator representing the quantum geometric tensor.
         """
+        if qgt_T is None:
+            qgt_T = QGTAuto()
         return qgt_T(self)
 
     def to_array(self, normalize: bool = True, allgather: bool = True) -> jnp.ndarray:
-
         if self._array is None and normalize:
             self._array = nn.to_array(
                 self.hilbert,

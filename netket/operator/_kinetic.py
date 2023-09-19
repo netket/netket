@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Callable, Union, List
+from typing import Optional, Callable, Union
 from functools import partial
 
 import numpy as np
@@ -58,7 +58,7 @@ class KineticEnergy(ContinuousOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        mass: Union[float, List[float]],
+        mass: Union[float, list[float]],
         dtype: Optional[DType] = None,
     ):
         r"""Args:
@@ -83,7 +83,7 @@ class KineticEnergy(ContinuousOperator):
         return self._is_hermitian
 
     def _expect_kernel_single(
-        self, logpsi: Callable, params: PyTree, x: Array, mass: Optional[PyTree]
+        self, logpsi: Callable, params: PyTree, x: Array, inverse_mass: Optional[PyTree]
     ):
         def logpsi_x(x):
             return logpsi(params, x)
@@ -93,7 +93,7 @@ class KineticEnergy(ContinuousOperator):
         dp_dx2 = jnp.diag(jacfwd(dlogpsi_x)(x)[0].reshape(x.shape[0], x.shape[0]))
         dp_dx = dlogpsi_x(x)[0][0] ** 2
 
-        return -0.5 * jnp.sum(mass * (dp_dx2 + dp_dx), axis=-1)
+        return -0.5 * jnp.sum(inverse_mass * (dp_dx2 + dp_dx), axis=-1)
 
     @partial(jax.vmap, in_axes=(None, None, None, 0, None))
     def _expect_kernel(

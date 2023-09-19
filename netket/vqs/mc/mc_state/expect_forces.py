@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Callable, Tuple
+from typing import Callable
 
 import jax
 from jax import numpy as jnp
@@ -43,7 +43,7 @@ def expect_and_forces(  # noqa: F811
     Ô: AbstractOperator,
     *,
     mutable: CollectionFilter,
-) -> Tuple[Stats, PyTree]:
+) -> tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô)
@@ -73,8 +73,7 @@ def forces_expect_hermitian(
     model_state: PyTree,
     σ: jnp.ndarray,
     local_value_args: PyTree,
-) -> Tuple[PyTree, PyTree]:
-
+) -> tuple[PyTree, PyTree]:
     n_chains = σ.shape[0]
     if σ.ndim >= 3:
         σ = jax.lax.collapse(σ, 0, 2)

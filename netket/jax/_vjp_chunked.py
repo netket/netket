@@ -25,7 +25,6 @@ def _trash_tuple_elements(t, nums=()):
 
 
 def _vjp(fun, cotangents, *primals, nondiff_argnums=(), conjugate=False):
-
     # we pass a closure to vjp, capturing the nondiff_argnums
     # this is necessary to avoid errors when using integer arguments
     # resulting in float0 tangents, which nkvjp tries to conjugate, resulting in an error
@@ -62,7 +61,6 @@ def __vjp_fun_chunked(
     _vjp,
     _append_cond_fun,
 ):
-
     append_cond = _append_cond_fun(primals, nondiff_argnums, chunk_argnums)
     scan_fun = partial(scan_append_reduce, append_cond=append_cond)
     primals = tuple(
@@ -193,7 +191,6 @@ def vjp_chunked(
             chunk_size = None
 
     if chunk_size is None:
-
         y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
 
         if return_forward:

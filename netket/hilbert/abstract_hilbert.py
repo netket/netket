@@ -14,7 +14,8 @@
 
 import abc
 
-from typing import Tuple, Optional, Union, Iterable
+from typing import Optional, Union
+from collections.abc import Iterable
 
 import jax.numpy as jnp
 import numpy as np
@@ -104,7 +105,7 @@ class AbstractHilbert(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def _attrs(self) -> Tuple:
+    def _attrs(self) -> tuple:
         """
         Tuple of hashable attributes, used to compute the immutable
         hash of this Hilbert space

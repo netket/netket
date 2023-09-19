@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Union
+from typing import Optional, Union
 from collections.abc import Iterable
 import numpy as np
 from fractions import Fraction
@@ -41,7 +41,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         self,
         n_orbitals: int,
         s: float = None,
-        n_fermions: Optional[Union[int, List[int]]] = None,
+        n_fermions: Optional[Union[int, list[int]]] = None,
     ):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.

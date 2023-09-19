@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Tuple, Any, Union
+from typing import Callable, Any, Union
 from functools import partial
 
 import jax
@@ -21,7 +21,7 @@ from jax import numpy as jnp
 from jax.tree_util import tree_map
 
 
-from .utils import tree_leaf_iscomplex, eval_shape
+from ._utils_tree import tree_leaf_iscomplex, eval_shape
 
 
 # _grad_CC, _RR and _RC are the chunked gradient functions for machines going
@@ -52,7 +52,7 @@ def _cmplx(re, im, conj=False):
 
 def vjp_cc(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
-) -> Union[Tuple[Any, Callable], Tuple[Any, Callable, Any]]:
+) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
     if has_aux:
         out, _vjp_fun, aux = jax.vjp(fun, *primals, has_aux=True)
     else:
@@ -76,7 +76,7 @@ def vjp_cc(
 
 def vjp_rr(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
-) -> Union[Tuple[Any, Callable], Tuple[Any, Callable, Any]]:
+) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
     if has_aux:
         primals_out, _vjp_fun, aux = jax.vjp(fun, *primals, has_aux=True)
     else:
@@ -103,7 +103,7 @@ def vjp_rr(
 
 def vjp_rc(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
-) -> Union[Tuple[Any, Callable], Tuple[Any, Callable, Any]]:
+) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
     if has_aux:
 
         def real_fun(*primals):
@@ -157,8 +157,7 @@ def vjp_rc(
 # This function dispatches to the right
 def vjp(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
-) -> Union[Tuple[Any, Callable], Tuple[Any, Callable, Any]]:
-
+) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
     # output dtype
     out_shape = eval_shape(fun, *primals, has_aux=has_aux)
 

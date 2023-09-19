@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import partial, reduce
-from typing import Callable, Optional, Tuple
-import operator
+from functools import partial
+from typing import Callable, Optional
 
 import jax
 from jax import numpy as jnp
 import numpy as np
+from math import prod
 
 from netket import jax as nkjax
 from netket.utils import get_afun_if_module, mpi
@@ -154,7 +154,6 @@ def to_matrix(
     normalize: bool = True,
     chunk_size: Optional[int] = None,
 ) -> Array:
-
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
 
@@ -195,8 +194,8 @@ def update_dense_symm(params, names=("dense_symm", "Dense")):
 
 
 def _get_output_idx(
-    shape: Tuple[int, ...], max_bits: Optional[int] = None
-) -> Tuple[Tuple[int, ...], int]:
+    shape: tuple[int, ...], max_bits: Optional[int] = None
+) -> tuple[tuple[int, ...], int]:
     bits_per_local_occupation = tuple(np.ceil(np.log2(shape)).astype(int))
     if max_bits is None:
         max_bits = max(bits_per_local_occupation)
@@ -210,16 +209,11 @@ def _get_output_idx(
 
 
 def _separate_binary_indices(
-    shape: Tuple[int, ...]
-) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
+    shape: tuple[int, ...]
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
     binary_indices = tuple([i for i in range(len(shape)) if shape[i] == 2])
     non_binary_indices = tuple([i for i in range(len(shape)) if shape[i] != 2])
     return binary_indices, non_binary_indices
-
-
-def _prod(iterable):
-    # This is a workaround for math.prod which is not defined for Python 3.8
-    return reduce(operator.mul, iterable, 1)
 
 
 @partial(jax.jit, static_argnames=("hilbert", "max_bits"))
@@ -257,7 +251,7 @@ def binary_encoding(
     for i in binary_indices:
         binarised_states = binarised_states.at[..., i, 0].set(x[..., i])
     return binarised_states.reshape(
-        *binarised_states.shape[:-2], _prod(binarised_states.shape[-2:])
+        *binarised_states.shape[:-2], prod(binarised_states.shape[-2:])
     )[..., output_idx]
 
 
@@ -267,11 +261,6 @@ def states_to_numbers(hilbert: DiscreteHilbert, σ: Array) -> Array:
 
     This function calls `hilbert.states_to_numbers` as a JAX pure callback and can thus be used within
     `jax.jit`.
-
-    .. Note::
-
-        Requires jax >= 0.3.17 and will raise an exception on older versions.
-
 
     Args:
         hilbert: The Hilbert space

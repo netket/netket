@@ -24,7 +24,6 @@ while True:
     nres = len(iters)
     cut = 60
     if nres > cut:
-
         fitx = iters[-cut:-1]
         fity = energy[-cut:-1]
         z = np.polyfit(fitx, fity, deg=0)
@@ -37,7 +36,7 @@ while True:
         plt.gca().text(
             0.95,
             0.8,
-            "Relative Error : " + "{:.2e}".format(error),
+            f"Relative Error : {error:.2e}",
             verticalalignment="bottom",
             horizontalalignment="right",
             color="green",

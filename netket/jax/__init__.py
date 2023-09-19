@@ -14,27 +14,35 @@
 
 from netket.utils import HashablePartial
 
-from .utils import (
-    tree_ravel,
+from ._utils_dtype import (
     is_complex_dtype,
+    dtype_complex,
+    dtype_real,
+    maybe_promote_to_complex,
+)
+
+from ._utils_tree import (
+    tree_ravel,
     tree_size,
     eval_shape,
     tree_leaf_isreal,
     tree_leaf_iscomplex,
     tree_ishomogeneous,
-    dtype_complex,
-    dtype_real,
-    maybe_promote_to_complex,
     tree_conj,
     tree_dot,
     tree_cast,
     tree_axpy,
     tree_to_real,
     compose,
+)
+
+from ._utils_random import (
     mpi_split,
     PRNGKey,
     PRNGSeq,
+    batch_choice,
 )
+
 
 from ._vjp import vjp
 from ._grad import grad, value_and_grad

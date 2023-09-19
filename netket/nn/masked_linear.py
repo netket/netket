@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Tuple
+from typing import Any
 
 import numpy as np
 from flax import linen as nn
@@ -233,9 +233,9 @@ class MaskedConv2D(nn.Module):
 
     features: int
     """number of convolution filters."""
-    kernel_size: Tuple[int, int]
+    kernel_size: tuple[int, int]
     """shape of the convolutional kernel `(h, w)`. Typically, `h = w // 2 + 1`."""
-    kernel_dilation: Tuple[int, int]
+    kernel_dilation: tuple[int, int]
     """a sequence of 2 integers, giving the dilation factor to
     apply in each spatial dimension of the convolution kernel."""
     exclusive: bool

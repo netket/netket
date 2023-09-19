@@ -14,7 +14,7 @@
 
 import abc
 from math import sqrt
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Callable, Union
 
 import jax
 from flax import linen as nn
@@ -195,7 +195,7 @@ class ARNNDense(ARNNSequential):
 
     layers: int
     """number of layers."""
-    features: Union[Tuple[int, ...], int]
+    features: Union[tuple[int, ...], int]
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     activation: Callable[[Array], Array] = nkactivation.reim_selu
@@ -241,7 +241,7 @@ class ARNNConv1D(ARNNSequential):
 
     layers: int
     """number of layers."""
-    features: Union[Tuple[int, ...], int]
+    features: Union[tuple[int, ...], int]
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
     kernel_size: int
@@ -292,12 +292,12 @@ class ARNNConv2D(ARNNSequential):
 
     layers: int
     """number of layers."""
-    features: Union[Tuple[int, ...], int]
+    features: Union[tuple[int, ...], int]
     """output feature density in each layer. If a single number is given,
     all layers except the last one will have the same number of features."""
-    kernel_size: Tuple[int, int]
+    kernel_size: tuple[int, int]
     """shape of the convolutional kernel `(h, w)`. Typically, `h = w // 2 + 1`."""
-    kernel_dilation: Tuple[int, int] = (1, 1)
+    kernel_dilation: tuple[int, int] = (1, 1)
     """a sequence of 2 integers, giving the dilation factor to
     apply in each spatial dimension of the convolution kernel (default: 1)."""
     activation: Callable[[Array], Array] = nkactivation.reim_selu

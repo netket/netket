@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Hashable, Iterable, Optional, Tuple, Union
+from typing import Callable, Optional, Union
+from collections.abc import Hashable, Iterable
 
-from netket.jax.utils import is_scalar
+from netket.utils.numbers import is_scalar
 from netket.utils.types import DType, PyTree, Array
 
 import functools
@@ -38,9 +39,9 @@ class SumOperatorPyTree:
     even if it is identical
     """
 
-    ops: Tuple[ContinuousOperator, ...] = struct.field(pytree_node=False)
+    ops: tuple[ContinuousOperator, ...] = struct.field(pytree_node=False)
     coeffs: Array
-    op_data: Tuple[PyTree, ...]
+    op_data: tuple[PyTree, ...]
 
 
 def _flatten_sumoperators(operators: Iterable[ContinuousOperator], coefficients: Array):
@@ -64,7 +65,7 @@ class SumOperator(ContinuousOperator):
 
     def __init__(
         self,
-        *operators: Tuple[ContinuousOperator, ...],
+        *operators: tuple[ContinuousOperator, ...],
         coefficients: Union[float, Iterable[float]] = 1.0,
         dtype: Optional[DType] = None,
     ):
@@ -107,7 +108,7 @@ class SumOperator(ContinuousOperator):
         return self._is_hermitian
 
     @property
-    def operators(self) -> Tuple[ContinuousOperator, ...]:
+    def operators(self) -> tuple[ContinuousOperator, ...]:
         """The list of all operators in the terms of this sum. Every
         operator is summed with a corresponding coefficient
         """
@@ -136,7 +137,7 @@ class SumOperator(ContinuousOperator):
         )
 
     @property
-    def _attrs(self) -> Tuple[Hashable, ...]:
+    def _attrs(self) -> tuple[Hashable, ...]:
         if self.__attrs is None:
             self.__attrs = (
                 self.hilbert,

@@ -57,7 +57,6 @@ def test_deepset_model_output():
     ],
 )
 def test_rel_dist_deepsets(cusp_exponent, L):
-
     hilb = nk.hilbert.Particle(N=2, L=L, pbc=True)
     sdim = len(hilb.extent)
     x = jnp.hstack([jnp.ones(4), -jnp.ones(4)]).reshape(1, -1)

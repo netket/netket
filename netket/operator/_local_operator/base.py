@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple, Union, List, Optional
+from typing import Union, Optional
 
 import numbers
 
@@ -63,8 +63,8 @@ class LocalOperator(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[List[Array], Array] = [],
-        acting_on: Union[List[int], List[List[int]]] = [],
+        operators: Union[list[Array], Array] = [],
+        acting_on: Union[list[int], list[list[int]]] = [],
         constant: numbers.Number = 0,
         dtype: Optional[DType] = None,
     ):
@@ -117,10 +117,10 @@ class LocalOperator(DiscreteOperator):
         self._constant = np.array(constant, dtype=dtype)
 
         self._operators_dict = {}
-        for (op, aon) in zip(operators, acting_on):
+        for op, aon in zip(operators, acting_on):
             self._add_operator(aon, op)
 
-    def _add_operator(self, acting_on: Tuple, operator: Array):
+    def _add_operator(self, acting_on: tuple, operator: Array):
         """
         Adds an operator acting on a subset of sites.
 
@@ -135,18 +135,18 @@ class LocalOperator(DiscreteOperator):
         self._operators_dict[acting_on] = operator
 
     @property
-    def operators(self) -> List[np.ndarray]:
+    def operators(self) -> list[np.ndarray]:
         """List of the matrices of the operators encoded in this Local Operator.
         Returns a copy.
         """
         return list(self._operators_dict.values())
 
     @property
-    def _operators(self) -> List[np.ndarray]:
+    def _operators(self) -> list[np.ndarray]:
         return self.operators
 
     @property
-    def acting_on(self) -> List[List[int]]:
+    def acting_on(self) -> list[list[int]]:
         """List containing the list of the sites on which every operator acts.
 
         Every operator `self.operators[i]` acts on the sites `self.acting_on[i]`
@@ -279,7 +279,7 @@ class LocalOperator(DiscreteOperator):
 
             assert other.mel_cutoff == self.mel_cutoff
             self._constant += other.constant.item()
-            for (aon, op) in other._operators_dict.items():
+            for aon, op in other._operators_dict.items():
                 self._add_operator(aon, op)
 
             self._reset_caches()
@@ -686,7 +686,6 @@ class LocalOperator(DiscreteOperator):
         acting_size,
         filters,
     ):
-
         batch_size = x.shape[0]
         n_sites = x.shape[1]
         dtype = all_mels.dtype

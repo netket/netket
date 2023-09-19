@@ -95,7 +95,6 @@ def test_gcnn(mode, complex_output):
 
 
 def test_gcnn_mask():
-
     g = nk.graph.Chain(4)
 
     hi = nk.hilbert.Spin(s=1 / 2, total_sz=0, N=g.n_nodes)
@@ -138,7 +137,6 @@ def test_gcnn_mask():
 
 @pytest.mark.parametrize("mode", ["fft", "irreps"])
 def test_GCNN_creation(mode):
-
     g = nk.graph.Chain(8)
     space_group = g.space_group()
     hi = nk.hilbert.Spin(1 / 2, N=8)

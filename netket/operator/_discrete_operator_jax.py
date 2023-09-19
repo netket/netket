@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import abc
-from typing import Tuple
 
 import numpy as np
 import jax.numpy as jnp
@@ -113,7 +112,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         raise NotImplementedError  # pragma: no cover
 
     @abc.abstractmethod
-    def get_conn_padded(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator. This method
         can be executed inside of a Jax function transformation.
 
@@ -137,7 +136,7 @@ class DiscreteJaxOperator(DiscreteOperator):
 
     def get_conn_flattened(
         self, x: np.ndarray, sections: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
         Starting from a given quantum number :math:`x`, it finds all

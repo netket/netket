@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Optional, Callable
+from typing import Union, Optional, Callable
 
 import jax
 from jax import numpy as jnp
@@ -30,12 +30,12 @@ class DeepSetMLP(nn.Module):
     https://arxiv.org/abs/1703.06114
     """
 
-    features_phi: Optional[Union[int, Tuple[int, ...]]] = None
+    features_phi: Optional[Union[int, tuple[int, ...]]] = None
     """
     Number of features in each layer for phi network.
     When features_phi is None, no phi network is created.
     """
-    features_rho: Optional[Union[int, Tuple[int, ...]]] = None
+    features_rho: Optional[Union[int, tuple[int, ...]]] = None
     """
     Number of features in each layer for rho network.
     Should not include the final layer of dimension 1, which is included automatically.
@@ -122,9 +122,9 @@ class DeepSetRelDistance(nn.Module):
     layers_rho: int
     """Number of layers in rho network."""
 
-    features_phi: Union[Tuple, int]
+    features_phi: Union[tuple, int]
     """Number of features in each layer for phi network."""
-    features_rho: Union[Tuple, int]
+    features_rho: Union[tuple, int]
     """
     Number of features in each layer for rho network.
     If specified as a list, the last layer must have 1 feature.
@@ -155,7 +155,6 @@ class DeepSetRelDistance(nn.Module):
     """Initializer for the parameter in the cusp"""
 
     def setup(self):
-
         if not all(self.hilbert.pbc):
             raise ValueError(
                 "The DeepSetRelDistance model only works with "

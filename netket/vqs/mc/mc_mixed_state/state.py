@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import jax
 from jax import numpy as jnp
@@ -174,7 +174,6 @@ class MCMixedState(VariationalMixedState, MCState):
 
     @chain_length_diag.setter
     def chain_length_diag(self, length: int):
-
         self.diagonal.chain_length = length
 
     @property
@@ -207,7 +206,7 @@ class MCMixedState(VariationalMixedState, MCState):
 
     def expect_and_grad_operator(
         self, Ô: AbstractOperator, is_hermitian=None
-    ) -> Tuple[Stats, PyTree]:
+    ) -> tuple[Stats, PyTree]:
         raise NotImplementedError
 
     def to_matrix(self, normalize: bool = True) -> jnp.ndarray:

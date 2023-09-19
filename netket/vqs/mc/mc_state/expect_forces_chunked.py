@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable, Tuple
+from typing import Any, Callable
 import warnings
 
 import jax
@@ -74,7 +74,7 @@ def expect_and_forces_impl(  # noqa: F811
     chunk_size: int,
     *,
     mutable: CollectionFilter,
-) -> Tuple[Stats, PyTree]:
+) -> tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
     local_estimator_fun = get_local_kernel(vstate, Ô, chunk_size)
@@ -106,8 +106,7 @@ def forces_expect_hermitian_chunked(
     model_state: PyTree,
     σ: jnp.ndarray,
     local_value_args: PyTree,
-) -> Tuple[PyTree, PyTree]:
-
+) -> tuple[PyTree, PyTree]:
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))

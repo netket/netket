@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Union
 from textwrap import dedent
 
 import jax
@@ -50,9 +50,7 @@ class MetropolisSamplerState(SamplerState):
 
     # those are initialised to 0. We want to initialise them to zero arrays because they can
     # be passed to jax jitted functions that require type invariance to avoid recompilation
-    n_steps_proc: int = struct.field(
-        default_factory=lambda: jnp.zeros((), dtype=jnp.int64)
-    )
+    n_steps_proc: int = struct.field(default_factory=lambda: jnp.zeros((), dtype=int))
     """Number of moves performed along the chains in this process since the last reset."""
     n_accepted_proc: jnp.ndarray = None
     """Number of accepted transitions among the chains in this process since the last reset."""
@@ -60,7 +58,7 @@ class MetropolisSamplerState(SamplerState):
     def __post_init__(self):
         if self.n_accepted_proc is None:
             object.__setattr__(
-                self, "n_accepted_proc", jnp.zeros(self.σ.shape[0], dtype=jnp.int64)
+                self, "n_accepted_proc", jnp.zeros(self.σ.shape[0], dtype=int)
             )
 
     @property
@@ -99,14 +97,15 @@ class MetropolisSamplerState(SamplerState):
 
 
 def _assert_good_sample_shape(samples, shape, dtype, obj=""):
-    if samples.shape != shape or samples.dtype != dtype:
+    canonical_dtype = jax.dtypes.canonicalize_dtype(dtype)
+    if samples.shape != shape or samples.dtype != canonical_dtype:
         raise ValueError(
             dedent(
                 f"""
 
             The samples returned by the {obj} have `shape={samples.shape}` and
             `dtype={samples.dtype}`, but the sampler requires `shape={shape} and
-            `dtype={dtype}`.
+            `dtype={canonical_dtype}` (canonicalized from {dtype}).
 
             If you are using a custom transition rule, check that it returns the
             correct shape and dtype.
@@ -218,7 +217,7 @@ class MetropolisSampler(Sampler):
         machine: Union[Callable, nn.Module],
         parameters: PyTree,
         state: Optional[SamplerState] = None,
-    ) -> Tuple[SamplerState, jnp.ndarray]:
+    ) -> tuple[SamplerState, jnp.ndarray]:
         """
         Samples the next state in the Markov chain.
 
@@ -418,7 +417,7 @@ def sample_next(
     machine: Union[Callable, nn.Module],
     parameters: PyTree,
     state: Optional[SamplerState] = None,
-) -> Tuple[SamplerState, jnp.ndarray]:
+) -> tuple[SamplerState, jnp.ndarray]:
     """
     Samples the next state in the Markov chain.
 
@@ -525,7 +524,7 @@ def MetropolisExchange(
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = nk.sampler.MetropolisExchange(hi, graph=g)
           >>> print(sa)
-          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, n_sweeps = 100, reset_chains = False, machine_power = 2, dtype = <class 'numpy.float64'>)
+          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, n_sweeps = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
     """
     from .rules import ExchangeRule
 
@@ -577,7 +576,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
        >>> # Construct a MetropolisHamiltonian Sampler
        >>> sa = nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       MetropolisSampler(rule = HamiltonianRuleNumba(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, n_sweeps = 100, reset_chains = False, machine_power = 2, dtype = <class 'numpy.float64'>)
+       MetropolisSampler(rule = HamiltonianRuleNumba(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, n_sweeps = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
     """
     from .rules import HamiltonianRule
 

@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union
 from types import ModuleType
 
 import importlib
@@ -17,7 +17,7 @@ def version_tuple(verstr: str):
     return tuple(int(v) for v in verstr.split("."))[:3]
 
 
-def module_version(module: Union[str, ModuleType]) -> Tuple[int, ...]:
+def module_version(module: Union[str, ModuleType]) -> tuple[int, ...]:
     if isinstance(module, str):
         module = importlib.import_module(module)
 

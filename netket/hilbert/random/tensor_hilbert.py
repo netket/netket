@@ -51,9 +51,8 @@ def _make_subfun(hilb, i, sub_hi):
 
 @dispatch
 def flip_state_scalar(hilb: TensorHilbert, key, state, index):
-
     subfuns = []
-    for (i, sub_hi) in enumerate(hilb._hilbert_spaces):
+    for i, sub_hi in enumerate(hilb._hilbert_spaces):
         subfuns.append(_make_subfun(hilb, i, sub_hi))
 
     branches = []

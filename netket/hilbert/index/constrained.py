@@ -88,7 +88,6 @@ class ConstrainedHilbertIndex:
         return self.__bare_numbers
 
     def states_to_numbers(self, states, out=None):
-
         self._unconstrained_index.states_to_numbers(states, out)
 
         out[:] = np.searchsorted(self._bare_numbers, out)

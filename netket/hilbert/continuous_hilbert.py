@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Tuple, Union
+from typing import Union
 
 from .abstract_hilbert import AbstractHilbert
 
@@ -26,7 +26,7 @@ class ContinuousHilbert(AbstractHilbert):
     in continuous space.
     """
 
-    def __init__(self, domain: Tuple[float, ...], pbc: Union[bool, Tuple[bool, ...]]):
+    def __init__(self, domain: tuple[float, ...], pbc: Union[bool, tuple[bool, ...]]):
         """
         Constructs new ``Particles`` given specifications
          of the continuous space they are defined in.
@@ -58,11 +58,11 @@ class ContinuousHilbert(AbstractHilbert):
         super().__init__()
 
     @property
-    def extent(self) -> Tuple[float, ...]:
+    def extent(self) -> tuple[float, ...]:
         r"""Spatial extension in each spatial dimension"""
         return self._extent
 
     @property
-    def pbc(self) -> Tuple[bool, ...]:
+    def pbc(self) -> tuple[bool, ...]:
         r"""Whether or not to use periodic boundary conditions for each spatial dimension"""
         return self._pbc

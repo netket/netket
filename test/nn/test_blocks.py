@@ -63,7 +63,6 @@ def _eval_model(ma):
 
 
 def test_mlp_input():
-
     # raise because different length
     with pytest.raises(ValueError):
         ma = nk.nn.blocks.MLP(

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
-from typing import List, Union
+from typing import Union
 
 import numpy as np
 
@@ -54,7 +54,6 @@ def _ising_conn_states_jax(x, cond, local_states):
 
 
 def pack_internals(operators, weights, cutoff=0):
-
     # here we group together operators with same final state
     #
     # The final state is determined by the sites we flip,
@@ -80,7 +79,6 @@ def pack_internals(operators, weights, cutoff=0):
             acting[key] = [k]
 
     for i, op in enumerate(operators):
-
         b_to_change = []  # list of all the sites we will need to act on with X
         b_z_check = []  # list of all the sites we act on with Z
         b_weight = weights[i]
@@ -150,6 +148,19 @@ def pack_internals_jax(
     Returns a dictionary with all the data fields
     """
 
+    # Check if there are Y operators in the strings, and in that
+    # case uppromote float to complex
+    # Should never happen because we check in init...
+    if not jnp.issubdtype(weight_dtype, jnp.complexfloating):
+        # this checks if there is an Y in one of the strings
+        if np.any(np.char.find(operators, "Y") != -1):
+            # weight_dtype = jnp.promote_types(jnp.complex64, weight_dtype)
+            raise TypeError(
+                "Found PauliStringsJax with real dtype but with Y paulis.\n"
+                "This should not be happening.\n"
+                "Please open an issue on the netket repository.\n"
+            )
+
     # index_dtype needs to be signed (we use -1 for padding)
 
     _check_mode(mode)
@@ -173,7 +184,6 @@ def pack_internals_jax(
     z_sign_indices_masks = {}
 
     for l, ops in acting_by_num_ops.items():
-
         x_flip_masks_l = []
         weights_l = []
         z_sign_masks_l = []  # if we decide to use masks
@@ -284,11 +294,11 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[str, List[str]] = None,
-        weights: Union[float, complex, List[Union[float, complex]]] = None,
+        operators: Union[str, list[str]] = None,
+        weights: Union[float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 0.0,
-        dtype: DType = complex,
+        dtype: DType = None,
         _mode: str = "index",
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
@@ -349,6 +359,10 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             self._x_flip_masks_stacked = x_flip_masks_stacked
             self._z_data = z_data
             self._initialized = True
+
+    def _reset_caches(self):
+        super()._reset_caches()
+        self._initialized = False
 
     def n_conn(self, x):
         # TODO implement it once we have cutoff

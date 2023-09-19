@@ -274,7 +274,6 @@ def _matmul(
 def _solve(
     self: QGTJacobianPyTreeT, solve_fun, y: PyTree, *, x0: Optional[PyTree] = None
 ) -> PyTree:
-
     check_valid_vector_type(self._params_structure, y)
 
     # Real-imaginary split RHS in R→R and R→C modes

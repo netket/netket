@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, List, Callable
+from typing import Optional, Callable
 
 from numbers import Real
 
@@ -47,7 +47,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     def __init__(
         self,
-        local_states: Optional[List[Real]],
+        local_states: Optional[list[Real]],
         N: int = 1,
         constraint_fn: Optional[Callable] = None,
     ):
@@ -101,7 +101,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self.local_size
 
     @property
-    def local_states(self) -> Optional[List[float]]:
+    def local_states(self) -> Optional[list[float]]:
         r"""A list of discrete local quantum numbers.
         If the local states are infinitely many, None is returned."""
         return self._local_states
@@ -126,7 +126,6 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self._constraint_fn is not None
 
     def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
-
         # this is guaranteed
         # numbers = concrete_or_error(
         #    np.asarray, numbers, HilbertIndexingDuringTracingError
@@ -135,7 +134,6 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self._hilbert_index.numbers_to_states(numbers, out)
 
     def _states_to_numbers(self, states: np.ndarray, out: np.ndarray):
-
         # guaranteed
         # states = concrete_or_error(
         #    np.asarray, states, HilbertIndexingDuringTracingError

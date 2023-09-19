@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple, Callable, Union, Optional
+from typing import Callable, Union, Optional
 
 import jax
 import jax.numpy as jnp
@@ -43,14 +43,14 @@ class MLP(nn.Module):
     """
     output_dim: int = 1
     """The output dimension"""
-    hidden_dims: Optional[Union[int, Tuple[int, ...]]] = None
+    hidden_dims: Optional[Union[int, tuple[int, ...]]] = None
     """The size of the hidden layers, excluding the output layer."""
-    hidden_dims_alpha: Optional[Union[int, Tuple[int, ...]]] = None
+    hidden_dims_alpha: Optional[Union[int, tuple[int, ...]]] = None
     """The size of the hidden layers provided as number of times the input size.
     One must choose to either specify this or the hidden_dims keyword argument"""
     param_dtype: DType = jnp.float64
     """The dtype of the weights."""
-    hidden_activations: Optional[Union[Callable, Tuple[Callable, ...]]] = nknn.gelu
+    hidden_activations: Optional[Union[Callable, tuple[Callable, ...]]] = nknn.gelu
     """The nonlinear activation function after each hidden layer.
     Can be provided as a single activation,
     where the same activation will be used for every layer."""
@@ -70,7 +70,6 @@ class MLP(nn.Module):
 
     @nn.compact
     def __call__(self, input):
-
         if self.hidden_dims is None:
             if self.hidden_dims_alpha is not None:
                 hidden_dims = [

@@ -15,13 +15,13 @@ ha = nk.operator.Heisenberg(hilbert=hi)
 ma = nk.machine.RbmSpin(alpha=1, hilbert=hi)
 ma.init_random_parameters(seed=1234, sigma=0.01)
 
+
 # Defining a custom kernel for MetropolisHastings
 # Notice that this sampler exchanges two random sites
 # thus preserving the total magnetization
 # Also notice that it is not recommended to define custom kernels in python
 # For speed reasons it is better to define exchange kernels using CustomSampler
 def exchange_kernel(v, vnew, loprobcorr):
-
     vnew[:, :] = v[:, :]
     loprobcorr[:] = 0.0
 

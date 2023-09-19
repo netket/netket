@@ -13,15 +13,19 @@
 # limitations under the License.
 
 import re
-from typing import Iterable, List, Union, Optional
+from typing import Union, Optional
+from collections.abc import Iterable
 from netket.utils.types import DType, Array
 
 import numpy as np
+import jax.numpy as jnp
 from numba import jit
 from itertools import product
+from numbers import Number
 
+from netket import jax as nkjax
 from netket.hilbert import Qubit, AbstractHilbert
-from netket.utils.numbers import is_scalar
+from netket.utils.numbers import dtype as _dtype, is_scalar
 
 from .._abstract_operator import AbstractOperator
 from .._discrete_operator import DiscreteOperator
@@ -55,16 +59,11 @@ def cast_operator_matrix_dtype(matrix: Array, dtype: DType):
 
 def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=None):
     if operators is None:
-        raise ValueError(
-            "None valued operators passed. (Might arise when passing None valued hilbert explicitly)"
-        )
+        operators = []
 
     # Support single-operator
     if isinstance(operators, str):
         operators = [operators]
-
-    if len(operators) == 0:
-        raise ValueError("No Pauli operators passed.")
 
     # default weight is 1
     if weights is None:
@@ -76,9 +75,21 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
     if len(weights) != len(operators):
         raise ValueError("weights should have the same length as operators.")
 
-    _hilb_size = len(operators[0])
-    consistent = all(len(op) == _hilb_size for op in operators)
-    if not consistent:
+    if hilbert is None:
+        if len(operators) > 0:
+            hilbert = Qubit(len(operators[0]))
+        else:
+            raise ValueError(
+                "To construct an empty PauliString the hilbert space "
+                "must be specified."
+            )
+
+    if not np.allclose(hilbert.shape, 2):
+        raise ValueError(
+            "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
+        )
+
+    if any(len(op) != hilbert.size for op in operators):
         raise ValueError("Pauli strings have inhomogeneous lengths.")
 
     consistent = all(bool(valid_pauli_regex.search(op)) for op in operators)
@@ -88,18 +99,23 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
             the Pauli operators X,Y,Z, or the identity I"""
         )
 
-    if hilbert is None:
-        hilbert = Qubit(_hilb_size)
-
-    if not np.allclose(hilbert.shape, 2):
-        raise ValueError(
-            "PauliStrings only work for local hilbert size 2 where PauliMatrices are defined"
-        )
-
     weights = _standardize_matrix_input_type(weights)
-    weights = cast_operator_matrix_dtype(weights, dtype=dtype)
+
+    # If we asked for a specific dtype, enforce it.
+    if dtype is None:
+        dtype = jnp.promote_types(np.float32, _dtype(weights))
+    # Fallback to float32 when float64 is disabled in JAX
+    dtype = jnp.empty((), dtype=dtype).dtype
 
     operators = np.asarray(operators, dtype=str)
+
+    # If real dtype but there is a 'Y' in the string, upconvert
+    # the dtype to complex
+    if not nkjax.is_complex_dtype(dtype):
+        if np.any(np.char.find(operators, "Y") != -1):
+            dtype = nkjax.dtype_complex(dtype)
+
+    weights = cast_operator_matrix_dtype(weights, dtype=dtype)
 
     return hilbert, operators, weights, weights.dtype
 
@@ -110,8 +126,8 @@ class PauliStringsBase(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[str, List[str]] = None,
-        weights: Union[float, complex, List[Union[float, complex]]] = None,
+        operators: Union[str, list[str]] = None,
+        weights: Union[float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
         dtype: Optional[DType] = None,
@@ -250,33 +266,37 @@ class PauliStringsBase(DiscreteOperator):
 
     def __repr__(self):
         print_list = []
-        for op, w in zip(self._operators, self._weights):
+        for op, w in zip(self.operators, self.weights):
             print_list.append(f"    {op} : {str(w)}")
-        s = "{}(hilbert={}, n_strings={}, dict(operators:weights)=\n{}\n)".format(
+        s = "{}(hilbert={}, n_strings={}, dtype={}, dict(operators:weights)=\n{}\n)".format(
             type(self).__name__,
             self.hilbert,
-            len(self._operators),
+            len(self.operators),
+            self.dtype,
             ",\n".join(print_list),
         )
         return s
 
-    def copy(self, *, dtype: Optional[DType] = None):
+    def copy(self, *, dtype: Optional[DType] = None, cutoff=None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
 
         Args:
             dtype: optional dtype
+            cutoff: optional override for the cutoff value
         """
 
         if dtype is None:
             dtype = self.dtype
+        if cutoff is None:
+            cutoff = self._cutoff
 
         if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
 
         new = type(self)(self.hilbert, dtype=dtype)
-        new.mel_cutoff = self.mel_cutoff
-        new._operators = self._operators
+        new._cutoff = cutoff
+        new._operators = self.operators
 
         if dtype == self.dtype:
             new._weights = self._weights.copy()
@@ -285,32 +305,42 @@ class PauliStringsBase(DiscreteOperator):
 
         return new
 
+    def _reset_caches(self):
+        self._is_hermitian = None
+
     def _op__matmul__(self, other):
         if not isinstance(other, PauliStringsBase):
             return NotImplementedError
+        op = self.copy(
+            dtype=np.promote_types(self.dtype, _dtype(other)),
+            cutoff=max(self._cutoff, other._cutoff),
+        )
+        return op._op_imatmul_(other)
+
+    def _op_imatmul_(self, other: "PauliStringsBase") -> "PauliStringsBase":
+        if not isinstance(other, PauliStringsBase):
+            return NotImplemented
         if not self.hilbert == other.hilbert:
             raise ValueError(
                 f"Can only multiply identical hilbert spaces (got A@B, A={self.hilbert}, B={other.hilbert})"
             )
         operators, weights = _matmul(
-            self._operators,
-            self._weights,
-            other._operators,
-            other._weights,
-        )
-        return type(self)(
-            self.hilbert,
-            operators,
-            weights,
-            cutoff=max(self._cutoff, other._cutoff),
-            dtype=self.dtype,
+            self.operators,
+            self.weights,
+            other.operators,
+            other.weights,
         )
 
-    def __rmul__(self, scalar):
-        return self * scalar
+        self._operators = operators
+        self._weights = weights
+        self._reset_caches()
+        return self
 
-    def __mul__(self, scalar):
-        if isinstance(scalar, AbstractOperator):
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __mul__(self, other):
+        if isinstance(other, AbstractOperator):
             raise TypeError(
                 "To multiply operators use the matrix`@` "
                 "multiplication operator `@` instead of the element-wise "
@@ -319,20 +349,40 @@ class PauliStringsBase(DiscreteOperator):
                 ">>> nk.operator.PauliStrings('XY')@nk.operator.PauliStrings('ZY')"
                 "\n\n"
             )
+        elif is_scalar(other):
+            op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
+            return op.__imul__(other)
 
-        if not np.issubdtype(type(scalar), np.number):
-            raise NotImplementedError
-        weights = self._weights * scalar
-        return type(self)(
-            self.hilbert,
-            self._operators,
-            weights,
-            dtype=self.dtype,
-            cutoff=self._cutoff,
-        )
+        return NotImplemented
+
+    def __imul__(self, other):
+        if isinstance(other, AbstractOperator):
+            raise TypeError(
+                "To multiply operators use the matrix`@` "
+                "multiplication operator `@` instead of the element-wise "
+                "multiplication operator `*`.\n\n"
+                "For example:\n\n"
+                ">>> nk.operator.PauliStrings('XY')@nk.operator.PauliStrings('ZY')"
+                "\n\n"
+            )
+        elif is_scalar(other):
+            if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
+                raise ValueError(
+                    f"Cannot multiply inplace operator of type {type(self)} and "
+                    f"dtype {self.dtype} to scalar with dtype {_dtype(other)}"
+                )
+            other = np.asarray(
+                other, dtype=jnp.promote_types(self.dtype, _dtype(other))
+            )
+
+            self._weights = self.weights * other
+            self._reset_caches()
+            return self
+
+        return NotImplemented
 
     def __sub__(self, other):
-        return self + (-other)
+        return self.__add__(-other)
 
     def __rsub__(self, other):
         return other + (-self)
@@ -341,30 +391,45 @@ class PauliStringsBase(DiscreteOperator):
         return -1 * self
 
     def __radd__(self, other):
-        return self + other
+        return self.__add__(other)
 
-    def __add__(self, other):
-        if np.issubdtype(type(other), np.number):
+    def __isub__(self, other):
+        return self.__iadd__(-other)
+
+    def __add__(self, other: Union["PauliStringsBase", Number]):
+        op = self.copy(dtype=jnp.promote_types(self.dtype, _dtype(other)))
+        op = op.__iadd__(other)
+        return op
+
+    def __iadd__(self, other):
+        if isinstance(other, PauliStringsBase):
+            if not self.hilbert == other.hilbert:
+                raise ValueError(
+                    f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, B={other.hilbert})"
+                )
+
+            operators = np.concatenate((self.operators, other.operators))
+            weights = np.concatenate((self.weights, other.weights), dtype=self.dtype)
+            operators, weights = _reduce_pauli_string(operators, weights)
+
+            self._operators = operators
+            self._weights = weights
+            self._reset_caches()
+            return self
+
+        elif is_scalar(other):
+            if not np.can_cast(_dtype(other), self.dtype, casting="same_kind"):
+                raise ValueError(
+                    f"Cannot add inplace operator with dtype {_dtype(other)} "
+                    f"to operator with dtype {self.dtype}"
+                )
+
             if other != 0.0:
                 # adding a constant = adding IIII...III with weight being the constant
-                return self + self.identity(self.hilbert) * other
+                return self.__iadd__(other * self.identity(self.hilbert))
             return self
-        if not isinstance(other, PauliStringsBase):
-            raise NotImplementedError
-        if not self.hilbert == other.hilbert:
-            raise ValueError(
-                f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, B={other.hilbert})"
-            )
-        operators = np.concatenate((self._operators, other._operators))
-        weights = np.concatenate((self._weights, other._weights))
-        operators, weights = _reduce_pauli_string(operators, weights)
-        return type(self)(
-            self.hilbert,
-            operators,
-            weights,
-            dtype=self.dtype,
-            cutoff=self._cutoff,
-        )
+
+        raise NotImplementedError
 
 
 def _count_of_locations(of_qubit_operator):
@@ -374,6 +439,7 @@ def _count_of_locations(of_qubit_operator):
     Returns:
         n_qubits (int): number of qubits in the operator, which we can use to create a suitable hilbert space
     """
+
     # we always start counting from 0, so we only determine the maximum location
     def max_or_default(x):
         x = list(x)
@@ -484,7 +550,8 @@ def _reduce_pauli_string(op_arr, w_arr):
         # still remove zeros
         return _remove_zero_weights(op_arr, w_arr)
     summed_weights = np.array(
-        [np.sum(w_arr[idx == i]) for i in range(len(operators_unique))]
+        [np.sum(w_arr[idx == i]) for i in range(len(operators_unique))],
+        dtype=w_arr.dtype,
     )
     operators, weights = _remove_zero_weights(operators_unique, summed_weights)
     return operators, weights

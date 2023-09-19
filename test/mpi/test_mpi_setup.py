@@ -22,7 +22,7 @@ def test_mpi_setup(_mpi_rank, _mpi_size, _mpi_comm):
     comm = _mpi_comm
 
     recv = comm.bcast(rank)
-    assert recv == 0, "rank={}".format(rank)
+    assert recv == 0, f"rank={rank}"
 
     ranks = comm.allgather(rank)
     assert len(ranks) == size

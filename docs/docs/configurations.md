@@ -55,6 +55,11 @@ Please keep in mind that all options related to experimental or internal functio
   - yes
   - Enable debug logging in many netket functions.
 
+* - `NETKET_ENABLE_X64`
+  - **[True]**/False
+  - yes
+  - Enable (or disable) double precision in NetKet and jax.
+
 * - `NETKET_EXPERIMENTAL`
   - True/**[False]**
   - yes

@@ -14,7 +14,7 @@
 
 from enum import IntFlag, auto
 from functools import partial, wraps
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Union
 
 import jax
 import jax.numpy as jnp
@@ -161,7 +161,7 @@ def scaled_error(y, y_err, atol, rtol, *, last_norm_y=None, norm_fn):
     return norm_fn(y_err) / scale, norm_y
 
 
-LimitsType = Tuple[Optional[float], Optional[float]]
+LimitsType = tuple[Optional[float], Optional[float]]
 """Type of the dt limits field, having independently optional upper and lower bounds."""
 
 

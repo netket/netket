@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -190,7 +190,7 @@ class VariationalState(abc.ABC):
         *,
         mutable: Optional[CollectionFilter] = None,
         use_covariance: Optional[bool] = None,
-    ) -> Tuple[Stats, PyTree]:
+    ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient for a given operator O.
 
         Args:
@@ -219,7 +219,7 @@ class VariationalState(abc.ABC):
         Ô: AbstractOperator,
         *,
         mutable: Optional[CollectionFilter] = None,
-    ) -> Tuple[Stats, PyTree]:
+    ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and corresponding force vector for a given operator O.
 
         The force vector F_j is defined as the covariance of log-derivative of the trial wave function
