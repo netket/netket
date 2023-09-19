@@ -57,7 +57,7 @@ tutorials/gs-heisenberg
 tutorials/gs-j1j2
 tutorials/gs-matrix-models
 tutorials/gs-gcnn-honeycomb
-tutorials/gs-continuous_space
+tutorials/gs-continuous-space
 ```   
 
 ```{toctree}
