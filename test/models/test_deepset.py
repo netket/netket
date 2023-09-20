@@ -53,14 +53,16 @@ def test_deepset_model_output():
     [
         pytest.param(jnp.eye(1), id="1D"),
         pytest.param(jnp.eye(2), id="2D-Square"),
-        pytest.param(jnp.array([[1,0],[0,0.5]]), id="2D-Rectangle"),
+        pytest.param(jnp.array([[1, 0], [0, 0.5]]), id="2D-Rectangle"),
     ],
 )
 def test_rel_dist_deepsets(cusp_exponent, lattice):
     geometry = nk.graph._Cell(lattice=lattice)
     hilb = nk.hilbert.Particle(N=2, geometry=geometry)
     sdim = hilb.geometry.dim
-    x = jnp.hstack([jnp.ones(lattice.shape[0]), -jnp.ones(lattice.shape[0])]).reshape(1, -1)
+    x = jnp.hstack([jnp.ones(lattice.shape[0]), -jnp.ones(lattice.shape[0])]).reshape(
+        1, -1
+    )
     xp = jnp.roll(x, sdim)
     ds = nk.models.DeepSetRelDistance(
         hilbert=hilb,

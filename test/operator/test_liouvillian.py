@@ -47,7 +47,7 @@ lind = nk.operator.LocalLiouvillian(ha, j_ops)
 
 def test_lindblad_form():
     ## Construct the lindbladian by hand:
-    idmat = sparse.eye(2**L)
+    idmat = sparse.eye(2 ** L)
 
     # Build the non hermitian matrix
     hnh_mat = ha.to_sparse()
@@ -73,7 +73,7 @@ def test_liouvillian_no_dissipators():
     lind = nk.operator.LocalLiouvillian(ha)
 
     ## Construct the lindbladian by hand:
-    idmat = sparse.eye(2**L)
+    idmat = sparse.eye(2 ** L)
     h_mat = ha.to_sparse()
 
     lind_mat = -1j * sparse.kron(h_mat, idmat) + 1j * sparse.kron(idmat, h_mat.conj())

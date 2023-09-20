@@ -134,9 +134,7 @@ hilberts["TensorContinuous"] = nk.hilbert.Particle(
 """
 N = 10
 geometry = nk.graph._Cell(lattice=N / (0.3 * 2.9673) * jnp.eye(1))
-hilberts["ContinuousHelium"] = nk.hilbert.Particle(
-    N=N, geometry=geometry
-)
+hilberts["ContinuousHelium"] = nk.hilbert.Particle(N=N, geometry=geometry)
 
 all_hilbert_params = [pytest.param(hi, id=name) for name, hi in hilberts.items()]
 discrete_hilbert_params = [
@@ -236,7 +234,8 @@ def test_random_states_particle(hi: Particle):
         state = hi.random_state(jax.random.PRNGKey(13))
         frac_state = hi.geometry.from_standard_to_lat(state)
 
-        assert jnp.all(frac_state < 1.)
+        assert jnp.all(frac_state < 1.0)
+
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_flip_state_discrete(hi: DiscreteHilbert):
@@ -428,7 +427,7 @@ def test_fermions():
     # check the output
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
-    assert hi.n_states == 2**5
+    assert hi.n_states == 2 ** 5
     assert hi.spin is None
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
@@ -454,7 +453,7 @@ def test_fermions_states():
 
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
-    assert hi.n_states == 2**5
+    assert hi.n_states == 2 ** 5
 
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
@@ -588,9 +587,7 @@ def test_tensor_combination():
     assert len(hit._hilbert_spaces) == 1
     assert isinstance(repr(hit), str)
 
-    hit = nk.hilbert.TensorHilbert(
-        nk.hilbert.Particle(N=5, geometry=geometry)
-    )
+    hit = nk.hilbert.TensorHilbert(nk.hilbert.Particle(N=5, geometry=geometry))
     assert isinstance(hit, nk.hilbert._tensor_hilbert.TensorGenericHilbert)
     assert len(hit._hilbert_spaces) == 1
     assert isinstance(repr(hit), str)
@@ -602,7 +599,7 @@ def test_errors():
         1 * hi
     with pytest.raises(TypeError):
         hi * 1
-    geometry = nk.graph._Cell(lattice = jnp.eye(2))
+    geometry = nk.graph._Cell(lattice=jnp.eye(2))
     hi = nk.hilbert.Particle(N=5, geometry=geometry)
     with pytest.raises(TypeError):
         1 * hi
@@ -612,7 +609,7 @@ def test_errors():
 
 def test_pow():
     hi = Spin(s=1 / 2, N=2)
-    assert hi**5 == Spin(1 / 2, N=10)
+    assert hi ** 5 == Spin(1 / 2, N=10)
 
 
 def test_constrained_eq_hash():

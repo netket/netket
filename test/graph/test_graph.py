@@ -599,7 +599,7 @@ def test_grid_point_group_dim(n_dim):
     # hyperoctahedral group of order 2^n n!, see
     # https://en.wikipedia.org/wiki/Hyperoctahedral_group
     point_group = Hypercube(length=3, n_dim=n_dim).point_group()
-    order = 2**n_dim * math.factorial(n_dim)
+    order = 2 ** n_dim * math.factorial(n_dim)
     assert len(point_group) == order
 
 

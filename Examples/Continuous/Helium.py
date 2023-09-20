@@ -19,10 +19,12 @@ import jax.numpy as jnp
 
 from optax._src import linear_algebra
 
+
 def mycb(step, logged_data, driver):
     logged_data["acceptance"] = float(driver.state.sampler_state.acceptance)
     logged_data["globalnorm"] = float(linear_algebra.global_norm(driver._loss_grad))
     return True
+
 
 def minimum_distance(x, sdim):
     """Computes distances between particles using minimum image convention"""
@@ -41,7 +43,7 @@ def potential(x, sdim):
     """Compute Aziz potential for single sample x"""
     dis = minimum_distance(x, sdim)
     eps = 7.846373
-    A = 0.544850 * 10**6
+    A = 0.544850 * 10 ** 6
     alpha = 13.353384
     c6 = 1.37332412
     c8 = 0.4253785
@@ -52,7 +54,7 @@ def potential(x, sdim):
         eps
         * (
             A * jnp.exp(-alpha * dis)
-            - (c6 / dis**6 + c8 / dis**8 + c10 / dis**10)
+            - (c6 / dis ** 6 + c8 / dis ** 8 + c10 / dis ** 10)
             * jnp.where(dis < D, jnp.exp(-((D / dis - 1) ** 2)), 1.0)
         )
     )
@@ -62,7 +64,7 @@ N = 10
 d = 0.3  # 1/Angstrom
 rm = 2.9673  # Angstrom
 L = N / (0.3 * rm)
-geometry = nk.graph._Cell(lattice=L*jnp.eye(1))
+geometry = nk.graph._Cell(lattice=L * jnp.eye(1))
 hilb = nk.hilbert.Particle(N=N, geometry=geometry)
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.01, n_chains=16, n_sweeps=64)
 
@@ -85,4 +87,4 @@ op = nk.optimizer.Sgd(0.001)
 sr = nk.optimizer.SR(diag_shift=0.005)
 
 gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
-gs.run(n_iter=1000,callback=mycb, out="Helium_10_1d")
+gs.run(n_iter=1000, callback=mycb, out="Helium_10_1d")

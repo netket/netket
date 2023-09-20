@@ -376,7 +376,7 @@ def Pyrochlore(
 def _hexagonal_general(
     extent, *, site_offsets=None, pbc: Union[bool, Sequence[bool]] = True, **kwargs
 ) -> Lattice:
-    basis = [[1, 0], [0.5, 0.75**0.5]]
+    basis = [[1, 0], [0.5, 0.75 ** 0.5]]
     # determine if full point group is realised by the simulation box
     point_group = planar.D(6) if np.all(pbc) and extent[0] == extent[1] else None
     return Lattice(
@@ -444,7 +444,7 @@ def Honeycomb(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> L
     """
     return _hexagonal_general(
         extent,
-        site_offsets=[[0.5, 0.5 / 3**0.5], [1, 1 / 3**0.5]],
+        site_offsets=[[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]],
         pbc=pbc,
         **kwargs,
     )
@@ -477,7 +477,7 @@ def Kagome(extent, *, pbc: Union[bool, Sequence[bool]] = True, **kwargs) -> Latt
     """
     return _hexagonal_general(
         extent,
-        site_offsets=[[0.5, 0], [0.25, 0.75**0.5 / 2], [0.75, 0.75**0.5 / 2]],
+        site_offsets=[[0.5, 0], [0.25, 0.75 ** 0.5 / 2], [0.75, 0.75 ** 0.5 / 2]],
         pbc=pbc,
         **kwargs,
     )
@@ -516,15 +516,15 @@ def KitaevHoneycomb(
         9
     """
     return Lattice(
-        basis_vectors=[[1, 0], [0.5, 0.75**0.5]],
+        basis_vectors=[[1, 0], [0.5, 0.75 ** 0.5]],
         extent=extent,
-        site_offsets=[[0.5, 0.5 / 3**0.5], [1, 1 / 3**0.5]],
+        site_offsets=[[0.5, 0.5 / 3 ** 0.5], [1, 1 / 3 ** 0.5]],
         pbc=pbc,
         point_group=planar.C(2) if np.all(pbc) else None,
         custom_edges=[
-            (0, 1, [0.5, 0.5 / 3**0.5]),
-            (0, 1, [-0.5, 0.5 / 3**0.5]),
-            (0, 1, [0, -1 / 3**0.5]),
+            (0, 1, [0.5, 0.5 / 3 ** 0.5]),
+            (0, 1, [-0.5, 0.5 / 3 ** 0.5]),
+            (0, 1, [0, -1 / 3 ** 0.5]),
         ],
         **kwargs,
     )
