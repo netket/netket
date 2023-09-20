@@ -13,8 +13,7 @@
 # limitations under the License.
 import jax.numpy as jnp
 
-from typing import Optional, Union, AnyStr, Tuple
-from collections.abc import Sequence
+from typing import Optional, Union, Tuple
 
 
 class Geometry:
@@ -24,7 +23,6 @@ class Geometry:
         dim: Optional[int] = None,
         lattice: Optional = None,
     ):
-
         if dim is None and lattice is None:
             if isinstance(pbc, bool):
                 raise ValueError(
@@ -47,7 +45,7 @@ class Geometry:
 
         if not self._dim == len(self._pbc) == jnp.shape(self._lat)[0]:
             raise ValueError(
-                """There is a mismatch between the number of spatial dimensions 
+                """There is a mismatch between the number of spatial dimensions
                 inferred by 'pbc', 'lattice' and 'dim."""
             )
 
