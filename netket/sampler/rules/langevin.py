@@ -100,7 +100,7 @@ def _langevin_step(
     if not return_log_corr:
         return rp
     else:
-        log_q_xp = -0.5 * jnp.sum(noise_vec ** 2, axis=-1)
+        log_q_xp = -0.5 * jnp.sum(noise_vec**2, axis=-1)
         grad_logp_rp = nkjax.vmap_chunked(_single_grad, chunk_size=chunk_size)(rp)
         log_q_x = -jnp.sum((r - rp - dt * grad_logp_rp) ** 2, axis=-1) / (4 * dt)
 

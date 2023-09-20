@@ -100,13 +100,10 @@ def l4_norm(x):
     """
     Custom L4 error norm.
     """
-    return (
-        jax.tree_util.tree_reduce(
-            lambda x, y: x + y,
-            jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 4), x),
-        )
-        ** (1.0 / 4.0)
-    )
+    return jax.tree_util.tree_reduce(
+        lambda x, y: x + y,
+        jax.tree_map(lambda x: jnp.sum(jnp.abs(x) ** 4), x),
+    ) ** (1.0 / 4.0)
 
 
 @pytest.mark.parametrize("error_norm", ["euclidean", "qgt", "maximum", l4_norm])

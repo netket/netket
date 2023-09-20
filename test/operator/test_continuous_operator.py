@@ -9,11 +9,11 @@ import pytest
 
 
 def v1(x):
-    return jnp.sum(jnp.exp(-(x ** 2)), axis=-1)
+    return jnp.sum(jnp.exp(-(x**2)), axis=-1)
 
 
 def v2(x):
-    return jnp.sum(2.0 * jnp.exp(-(x ** 2)))
+    return jnp.sum(2.0 * jnp.exp(-(x**2)))
 
 
 v2_vec = jax.vmap(v2)
@@ -45,10 +45,10 @@ etot = pottot + kintot
 etot2 = pot1 + pot2 + 2.0 * kin1 - kin1 + kin2
 
 model1 = lambda p, x: 1.0
-model2 = lambda p, x: jnp.sum(x ** 3)
-model3 = lambda p, x: p * jnp.sum(x ** 3)
-kinexact = lambda x: -0.5 * jnp.sum((3 * x ** 2) ** 2 + 6 * x, axis=-1)
-kinexact2 = lambda p, x: -0.5 * jnp.sum((3 * p * x ** 2) ** 2 + 6 * p * x, axis=-1)
+model2 = lambda p, x: jnp.sum(x**3)
+model3 = lambda p, x: p * jnp.sum(x**3)
+kinexact = lambda x: -0.5 * jnp.sum((3 * x**2) ** 2 + 6 * x, axis=-1)
+kinexact2 = lambda p, x: -0.5 * jnp.sum((3 * p * x**2) ** 2 + 6 * p * x, axis=-1)
 
 
 def test_equality():

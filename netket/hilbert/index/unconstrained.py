@@ -47,7 +47,7 @@ class UnconstrainedHilbertIndex:
 
     @property
     def n_states(self):
-        return self._local_size ** self._size
+        return self._local_size**self._size
 
     @property
     def local_states(self):

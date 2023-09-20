@@ -133,12 +133,12 @@ def test_tau_corr_fft_logic(batch_size, sig_corr):
         return acf
 
     def log_f(x):
-        return -(x ** 2.0) / 2.0
+        return -(x**2.0) / 2.0
 
     def func_corr(x, tau):
         return np.exp(-x / (tau))
 
-    n_samples = 2 ** 20 // batch_size
+    n_samples = 2**20 // batch_size
 
     data = np.empty((batch_size, n_samples))
     tau_fit = np.empty(batch_size)

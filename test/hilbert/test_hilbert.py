@@ -427,7 +427,7 @@ def test_fermions():
     # check the output
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
-    assert hi.n_states == 2 ** 5
+    assert hi.n_states == 2**5
     assert hi.spin is None
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
@@ -453,7 +453,7 @@ def test_fermions_states():
 
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
-    assert hi.n_states == 2 ** 5
+    assert hi.n_states == 2**5
 
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
@@ -609,7 +609,7 @@ def test_errors():
 
 def test_pow():
     hi = Spin(s=1 / 2, N=2)
-    assert hi ** 5 == Spin(1 / 2, N=10)
+    assert hi**5 == Spin(1 / 2, N=10)
 
 
 def test_constrained_eq_hash():

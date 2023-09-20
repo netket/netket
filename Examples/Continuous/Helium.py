@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import jax.random
-import jaxlib.xla_extension.ops
 
 import netket as nk
 import jax.numpy as jnp
@@ -43,7 +41,7 @@ def potential(x, sdim):
     """Compute Aziz potential for single sample x"""
     dis = minimum_distance(x, sdim)
     eps = 7.846373
-    A = 0.544850 * 10 ** 6
+    A = 0.544850 * 10**6
     alpha = 13.353384
     c6 = 1.37332412
     c8 = 0.4253785
@@ -54,7 +52,7 @@ def potential(x, sdim):
         eps
         * (
             A * jnp.exp(-alpha * dis)
-            - (c6 / dis ** 6 + c8 / dis ** 8 + c10 / dis ** 10)
+            - (c6 / dis**6 + c8 / dis**8 + c10 / dis**10)
             * jnp.where(dis < D, jnp.exp(-((D / dis - 1) ** 2)), 1.0)
         )
     )

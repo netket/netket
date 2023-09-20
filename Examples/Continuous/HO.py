@@ -31,7 +31,7 @@ ha = ekin + 0.5 * pot
 
 model = nk.models.Gaussian(param_dtype=float)
 
-vs = nk.vqs.MCState(sab, model, n_samples=10 ** 4, n_discard_per_chain=2000)
+vs = nk.vqs.MCState(sab, model, n_samples=10**4, n_discard_per_chain=2000)
 
 op = nk.optimizer.Sgd(0.05)
 sr = nk.optimizer.SR(diag_shift=0.01)
