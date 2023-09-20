@@ -58,7 +58,6 @@ tutorials/gs-j1j2
 tutorials/gs-matrix-models
 tutorials/gs-gcnn-honeycomb
 tutorials/lattice-fermions
-tutorials/gs-continuous-space
 ```   
 
 ```{toctree}
