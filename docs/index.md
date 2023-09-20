@@ -6,14 +6,14 @@ The purpose of this package is to supply efficient and flexible building blocks 
 NetKet is built on top of [Jax], a framework for Differentiable Programming which works on CPUs, GPUs and TPUs. Neural Network architectures can be specified using any Jax-based framework such as [Flax].
 
 Some of the tasks that NetKet can be used for are:
- 
+
  - Variational Ground State search
  - Variational dynamics
  - Variational tomography
  - Bosonic and Fermionic models
 
 NetKet includes those interesting :
- 
+
  - Support for arbitrary periodic Lattices
    - Automatic generation of symmetry groups and character tables
  - Implementation of Autoregressive Neural Networks
@@ -21,7 +21,7 @@ NetKet includes those interesting :
 
 ## Getting Started and Tutorials
 
-The best way to learn how to use NetKet is to follow along the tutorials listed in the tutorial section on the left navigation bar. 
+The best way to learn how to use NetKet is to follow along the tutorials listed in the tutorial section on the left navigation bar.
 The first few tutorial, [Ising model: ground-state search](tutorials/gs-ising), gives a very broad overview of the workflow when working with NetKet, and how to define a Neural-Network quantum state.
 Then, you can move on to more advanced tutorials.
 
@@ -33,8 +33,8 @@ If you have questions, don't hesitate to start a discussion on the [Github forum
 
 ## Supporting and Citing
 
-The software in this ecosystem was developed as part of academic research. 
-If you would like to help support it, please star the repository as such metrics may help us secure funding in the future. 
+The software in this ecosystem was developed as part of academic research.
+If you would like to help support it, please star the repository as such metrics may help us secure funding in the future.
 If you use NetKet software as part of your research, teaching, or other activities, we would be grateful if you could cite our work.
 
 Guidelines on citation are provided in the [Citation](https://www.netket.org/citation) section of our website.
@@ -57,6 +57,7 @@ tutorials/gs-heisenberg
 tutorials/gs-j1j2
 tutorials/gs-matrix-models
 tutorials/gs-gcnn-honeycomb
+tutorials/lattice-fermions
 tutorials/gs-continuous-space
 ```   
 
