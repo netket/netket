@@ -49,17 +49,18 @@ def test_deepset_model_output():
     "cusp_exponent", [pytest.param(None, id="cusp=None"), pytest.param(5, id="cusp=5")]
 )
 @pytest.mark.parametrize(
-    "L",
+    "lattice",
     [
-        pytest.param(1.0, id="1D"),
-        pytest.param((1.0, 1.0), id="2D-Square"),
-        pytest.param((1.0, 0.5), id="2D-Rectangle"),
+        pytest.param(jnp.eye(1), id="1D"),
+        pytest.param(jnp.eye(2), id="2D-Square"),
+        pytest.param(jnp.array([[1,0],[0,0.5]]), id="2D-Rectangle"),
     ],
 )
-def test_rel_dist_deepsets(cusp_exponent, L):
-    hilb = nk.hilbert.Particle(N=2, L=L, pbc=True)
-    sdim = len(hilb.extent)
-    x = jnp.hstack([jnp.ones(4), -jnp.ones(4)]).reshape(1, -1)
+def test_rel_dist_deepsets(cusp_exponent, lattice):
+    geometry = nk.graph._Cell(lattice=lattice)
+    hilb = nk.hilbert.Particle(N=2, geometry=geometry)
+    sdim = hilb.geometry.dim
+    x = jnp.hstack([jnp.ones(lattice.shape[0]), -jnp.ones(lattice.shape[0])]).reshape(1, -1)
     xp = jnp.roll(x, sdim)
     ds = nk.models.DeepSetRelDistance(
         hilbert=hilb,
@@ -75,10 +76,11 @@ def test_rel_dist_deepsets(cusp_exponent, L):
 
 
 def test_rel_dist_deepsets_error():
-    hilb = nk.hilbert.Particle(N=2, L=1.0, pbc=True)
-    sdim = len(hilb.extent)
+    geometry = nk.graph._Cell(lattice=jnp.eye(1))
+    hilb = nk.hilbert.Particle(N=2, geometry=geometry)
+    sdim = hilb.geometry.dim
 
-    x = jnp.hstack([jnp.ones(4), -jnp.ones(4)]).reshape(1, -1)
+    x = jnp.hstack([jnp.ones(1), -jnp.ones(1)]).reshape(1, -1)
     jnp.roll(x, sdim)
     ds = nk.models.DeepSetRelDistance(
         hilbert=hilb,
@@ -101,9 +103,11 @@ def test_rel_dist_deepsets_error():
         )
         ds.init(jax.random.PRNGKey(42), x)
 
+    geometry = nk.graph._Free(dim=1)
+    hilbert = nk.hilbert.Particle(N=2, geometry=geometry)
     with pytest.raises(ValueError):
         ds = nk.models.DeepSetRelDistance(
-            hilbert=nk.hilbert.Particle(N=2, L=1.0, pbc=False),
+            hilbert=hilbert,
             layers_phi=2,
             layers_rho=2,
             features_phi=(10, 10),

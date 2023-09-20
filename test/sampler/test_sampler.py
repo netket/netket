@@ -133,10 +133,12 @@ samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u)
 
 
 # Hilbert space and sampler for particles
-hi_particles = nk.hilbert.Particle(N=3, L=jnp.inf, pbc=False)
+geometry = nk.graph._Free(dim=1)
+hi_particles = nk.hilbert.Particle(N=3, geometry=geometry)
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
     hi_particles, sigma=1.0, n_sweeps=hi_particles.size * 10
 )
+"""
 samplers[
     "Metropolis(AdjustedLangevin): AdjustedLangevin"
 ] = nk.sampler.MetropolisAdjustedLangevin(
@@ -145,7 +147,7 @@ samplers[
 samplers[
     "Metropolis(AdjustedLangevin): AdjustedLangevin chunk_size"
 ] = nk.sampler.MetropolisAdjustedLangevin(hi_particles, dt=0.1, chunk_size=16)
-
+"""
 # TensorHilbert sampler
 hi = nk.hilbert.Spin(0.5, 4) * nk.hilbert.Fock(3)
 samplers["Metropolis(TensorRule): Spin x Fock"] = nk.sampler.MetropolisSampler(

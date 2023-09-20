@@ -30,6 +30,9 @@ from .common_lattices import (
     Kagome,
     KitaevHoneycomb,
 )
+from .continuous_geometry import Geometry
+from .Cell import Cell
+from .Free import Free
 
 from netket.utils import _hide_submodules
 

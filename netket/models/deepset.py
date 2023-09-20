@@ -189,33 +189,19 @@ class DeepSetRelDistance(nn.Module):
             bias_init=self.bias_init,
         )
 
-    def distance(self, x, sdim, L):
-        n_particles = x.shape[0] // sdim
-        x = x.reshape(-1, sdim)
-
-        dis = -x[jnp.newaxis, :, :] + x[:, jnp.newaxis, :]
-
-        dis = dis[jnp.triu_indices(n_particles, 1)]
-        dis = L[jnp.newaxis, :] / 2.0 * jnp.sin(jnp.pi * dis / L[jnp.newaxis, :])
-        return dis
-
     @nn.compact
     def __call__(self, x):
         batch_shape = x.shape[:-1]
+        N = self.hilbert.n_particles
         param = self.param("cusp", self.params_init, (1,), self.param_dtype)
-
-        L = jnp.array(self.hilbert.extent)
-        sdim = L.size
-
-        d = jax.vmap(self.distance, in_axes=(0, None, None))(x, sdim, L)
-        dis = jnp.linalg.norm(d, axis=-1)
-
+        x = x.reshape(-1, N, self.hilbert.geometry.dim)
+        dis, d = self.hilbert.geometry.distance(x, mode="periodic", norm=True)
+        idx = jnp.triu_indices(N, 1)
+        d = d[..., idx[0], idx[1]]
         cusp = 0.0
         if self.cusp_exponent is not None:
-            cusp = -0.5 * jnp.sum(param / dis**self.cusp_exponent, axis=-1)
-
-        y = (d / L[jnp.newaxis, :]) ** 2
-
+            cusp = -0.5 * jnp.sum(param / d ** (self.cusp_exponent / 2.0), axis=-1)
+        y = dis.reshape(x.shape[0], N, -1)
         y = self.deepset(y)
 
         return (y + cusp).reshape(*batch_shape)

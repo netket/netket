@@ -43,20 +43,28 @@ class GaussianRule(MetropolisRule):
 
         n_chains = r.shape[0]
         hilb = sampler.hilbert
-
-        pbc = np.array(hilb.n_particles * hilb.pbc, dtype=r.dtype)
-        boundary = np.tile(pbc, (n_chains, 1))
-
-        Ls = np.array(hilb.n_particles * hilb.extent, dtype=r.dtype)
-        modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
-
+        dim = hilb.geometry.dim
         prop = jax.random.normal(
             key, shape=(n_chains, hilb.size), dtype=r.dtype
         ) * jnp.asarray(rule.sigma, dtype=r.dtype)
+        if "Free" in repr(hilb.geometry):
+            rp = r + prop
+            return rp, None
 
-        rp = jnp.where(np.equal(boundary, False), (r + prop), (r + prop) % modulus)
+        elif "PeriodicCell" in repr(hilb.geometry):
+            # transfrom to fractional coordinates
+            rtemp = hilb.geometry.from_standard_to_lat(
+                r.reshape(n_chains, hilb.n_particles, dim)
+            ).reshape(n_chains, -1)
+            rp = (rtemp + prop) % 1.0
+            # backtransform to physical space
+            rp = hilb.geometry.from_lat_to_standard(
+                rp.reshape(n_chains, hilb.n_particles, dim)
+            ).reshape(n_chains, -1)
+            return rp, None
 
-        return rp, None
+        else:
+            raise NotImplementedError
 
     def __repr__(self):
         return f"GaussianRule(sigma={self.sigma})"

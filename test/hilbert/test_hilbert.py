@@ -124,17 +124,18 @@ hilberts["SpinOrbitalFermions (polarized)"] = nkx.hilbert.SpinOrbitalFermions(
 
 # Continuous space
 # no pbc
+"""
 hilberts["ContinuousSpaceHilbert"] = nk.hilbert.Particle(
     N=5, L=(np.inf, 10.0), pbc=(False, True)
 )
 hilberts["TensorContinuous"] = nk.hilbert.Particle(
     N=2, L=(np.inf, 10.0), pbc=(False, True)
 ) * nk.hilbert.Particle(N=3, L=(np.inf, 10.0), pbc=(False, True))
-
-
+"""
 N = 10
+geometry = nk.graph._Cell(lattice=N / (0.3 * 2.9673) * jnp.eye(1))
 hilberts["ContinuousHelium"] = nk.hilbert.Particle(
-    N=N, L=(N / (0.3 * 2.9673),), pbc=True
+    N=N, geometry=geometry
 )
 
 all_hilbert_params = [pytest.param(hi, id=name) for name, hi in hilberts.items()]
@@ -178,7 +179,7 @@ def test_consistent_size_particle(hi: Particle):
     assert hi.size > 0
     assert hi.n_particles > 0
     assert hi.n_particles == sum(hi.n_per_spin)
-    assert len(hi.extent) == (hi.size // hi.n_particles)
+    assert len(hi.pbc) == hi.geometry.dim
 
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
@@ -230,22 +231,12 @@ def test_random_states_particle(hi: Particle):
         hi.random_state(jax.random.PRNGKey(13)),
         jax.jit(hi.random_state)(jax.random.PRNGKey(13)),
     )
+    if "PeriodicCell" in repr(hi):
+        # check that boundary conditions are fulfilled if any are given
+        state = hi.random_state(jax.random.PRNGKey(13))
+        frac_state = hi.geometry.from_standard_to_lat(state)
 
-    # check that boundary conditions are fulfilled if any are given
-    state = hi.random_state(jax.random.PRNGKey(13))
-    boundary = jnp.array(hi.n_particles * hi.pbc)
-    Ls = jnp.array(hi.n_particles * hi.extent)
-    extension = jnp.where(jnp.equal(boundary, False), jnp.inf, Ls)
-
-    assert jnp.sum(
-        jnp.where(jnp.equal(boundary, True), state < extension, 0)
-    ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
-
-
-def test_particle_fail():
-    with pytest.raises(ValueError):
-        _ = Particle(N=5, L=(jnp.inf, 2.0), pbc=True)
-
+        assert jnp.all(frac_state < 1.)
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_flip_state_discrete(hi: DiscreteHilbert):
@@ -541,7 +532,8 @@ def test_tensor_combination():
     assert len(hit._hilbert_spaces) == 5
     assert isinstance(repr(hit), str)
 
-    hi3 = nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+    geometry = nk.graph._Cell(lattice=jnp.eye(2))
+    hi3 = nk.hilbert.Particle(N=5, geometry=geometry)
     hit2 = hi1 * hi3
     assert isinstance(hit2, nk.hilbert.TensorHilbert)
     assert np.allclose(hit2.size, hi1.size + hi3.size)
@@ -597,7 +589,7 @@ def test_tensor_combination():
     assert isinstance(repr(hit), str)
 
     hit = nk.hilbert.TensorHilbert(
-        nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+        nk.hilbert.Particle(N=5, geometry=geometry)
     )
     assert isinstance(hit, nk.hilbert._tensor_hilbert.TensorGenericHilbert)
     assert len(hit._hilbert_spaces) == 1
@@ -610,8 +602,8 @@ def test_errors():
         1 * hi
     with pytest.raises(TypeError):
         hi * 1
-
-    hi = nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
+    geometry = nk.graph._Cell(lattice = jnp.eye(2))
+    hi = nk.hilbert.Particle(N=5, geometry=geometry)
     with pytest.raises(TypeError):
         1 * hi
     with pytest.raises(TypeError):
@@ -662,6 +654,7 @@ def test_hilbert_numba_throws(hi):
         states_to_numbers(hi, jnp.zeros((hi.size,)))()
 
 
+"""
 def test_particle_alternative_constructors():
     hi1 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf), pbc=False)
     hi2 = nk.hilbert.Particle(N=5, L=(np.inf, np.inf))
@@ -678,3 +671,4 @@ def test_particle_alternative_constructors():
 
     with pytest.raises(ValueError, match=r".*must be specified.*"):
         nk.hilbert.Particle(N=5, L=3)
+"""

@@ -11,9 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import jax.random
+import jaxlib.xla_extension.ops
+
 import netket as nk
 import jax.numpy as jnp
 
+from optax._src import linear_algebra
+
+def mycb(step, logged_data, driver):
+    logged_data["acceptance"] = float(driver.state.sampler_state.acceptance)
+    logged_data["globalnorm"] = float(linear_algebra.global_norm(driver._loss_grad))
+    return True
 
 def minimum_distance(x, sdim):
     """Computes distances between particles using minimum image convention"""
@@ -53,8 +62,9 @@ N = 10
 d = 0.3  # 1/Angstrom
 rm = 2.9673  # Angstrom
 L = N / (0.3 * rm)
-hilb = nk.hilbert.Particle(N=N, L=(L,), pbc=True)
-sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.05, n_chains=16, n_sweeps=32)
+geometry = nk.graph._Cell(lattice=L*jnp.eye(1))
+hilb = nk.hilbert.Particle(N=N, geometry=geometry)
+sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.01, n_chains=16, n_sweeps=64)
 
 
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
@@ -71,8 +81,8 @@ model = nk.models.DeepSetRelDistance(
 )
 vs = nk.vqs.MCState(sab, model, n_samples=4096, n_discard_per_chain=128)
 
-op = nk.optimizer.Sgd(0.01)
-sr = nk.optimizer.SR(diag_shift=0.01)
+op = nk.optimizer.Sgd(0.001)
+sr = nk.optimizer.SR(diag_shift=0.005)
 
 gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
-gs.run(n_iter=1000, out="Helium_10_1d")
+gs.run(n_iter=1000,callback=mycb, out="Helium_10_1d")
