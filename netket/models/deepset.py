@@ -196,6 +196,7 @@ class DeepSetRelDistance(nn.Module):
         param = self.param("cusp", self.params_init, (1,), self.param_dtype)
         x = x.reshape(-1, N, self.hilbert.geometry.dim)
         dis, d = self.hilbert.geometry.distance(x, mode="periodic", norm=True)
+
         idx = jnp.triu_indices(N, 1)
         d = d[..., idx[0], idx[1]]
         cusp = 0.0

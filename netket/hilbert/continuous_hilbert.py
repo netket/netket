@@ -14,6 +14,8 @@
 
 from .abstract_hilbert import AbstractHilbert
 
+import numpy as np
+
 
 class ContinuousHilbert(AbstractHilbert):
     """Abstract class for the Hilbert space of particles
@@ -29,12 +31,32 @@ class ContinuousHilbert(AbstractHilbert):
          of the continuous space they are defined in.
 
         Args:
-            geometry:
+            geometry: A geometry object. Either a periodic box 'Cell' or free space 'Free'.
         """
-        self._pbc = geometry.pbc
+        self._geo = geometry
+        if not self._geo.extent.size == len(self._geo.pbc):
+            raise ValueError(
+                """`pbc` must be either a bool or a tuple indicating the periodicity of each spatial dimension."""
+            )
+
+        if np.any(np.logical_and(np.isinf(self._geo.extent), self._geo.pbc)):
+            raise ValueError(
+                "If you do have periodic boundary conditions in a given direction the maximum of the quantum number "
+                "in that direction must be finite."
+            )
+
         super().__init__()
+
+    @property
+    def extent(self) -> tuple[float, ...]:
+        r"""Spatial extension in each spatial dimension"""
+        return self._geo.extent
 
     @property
     def pbc(self) -> tuple[bool, ...]:
         r"""Whether or not to use periodic boundary conditions for each spatial dimension"""
-        return self._pbc
+        return self._geo.pbc
+
+    @property
+    def geometry(self):
+        return self._geo

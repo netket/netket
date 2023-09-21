@@ -46,24 +46,11 @@ class GaussianRule(MetropolisRule):
         prop = jax.random.normal(
             key, shape=(n_chains, hilb.size), dtype=r.dtype
         ) * jnp.asarray(rule.sigma, dtype=r.dtype)
-        if "Free" in repr(hilb.geometry):
-            rp = r + prop
-            return rp, None
 
-        elif "PeriodicCell" in repr(hilb.geometry):
-            # transfrom to fractional coordinates
-            rtemp = hilb.geometry.from_standard_to_lat(
-                r.reshape(n_chains, hilb.n_particles, dim)
-            ).reshape(n_chains, -1)
-            rp = (rtemp + prop) % 1.0
-            # backtransform to physical space
-            rp = hilb.geometry.from_lat_to_standard(
-                rp.reshape(n_chains, hilb.n_particles, dim)
-            ).reshape(n_chains, -1)
-            return rp, None
-
-        else:
-            raise NotImplementedError
+        rp = hilb.geometry.back_to_box(
+            r.reshape(n_chains, -1, dim), prop.reshape(n_chains, -1, dim)
+        ).reshape(n_chains, -1)
+        return rp, None
 
     def __repr__(self):
         return f"GaussianRule(sigma={self.sigma})"

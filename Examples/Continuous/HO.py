@@ -22,7 +22,7 @@ def v(x):
 
 geometry = nk.graph._Free(dim=3)
 hilb = nk.hilbert.Particle(N=10, geometry=geometry)
-
+print(hilb._attrs)
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.1, n_chains=16, n_sweeps=32)
 
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)

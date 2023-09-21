@@ -64,13 +64,12 @@ rm = 2.9673  # Angstrom
 L = N / (0.3 * rm)
 geometry = nk.graph._Cell(lattice=L * jnp.eye(1))
 hilb = nk.hilbert.Particle(N=N, geometry=geometry)
-sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.01, n_chains=16, n_sweeps=64)
+sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.008, n_chains=16, n_sweeps=32)
 
 
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
 pot = nk.operator.PotentialEnergy(hilb, lambda x: potential(x, 1))
 ha = ekin + pot
-
 model = nk.models.DeepSetRelDistance(
     hilbert=hilb,
     cusp_exponent=5,

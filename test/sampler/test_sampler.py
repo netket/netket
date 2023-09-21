@@ -133,8 +133,7 @@ samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u)
 
 
 # Hilbert space and sampler for particles
-geometry = nk.graph._Free(dim=1)
-hi_particles = nk.hilbert.Particle(N=3, geometry=geometry)
+hi_particles = nk.hilbert.Particle(N=3, L=jnp.inf, pbc=False)
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
     hi_particles, sigma=1.0, n_sweeps=hi_particles.size * 10
 )
