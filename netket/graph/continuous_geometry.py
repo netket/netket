@@ -134,6 +134,11 @@ class Geometry:
         hash of this Hilbert space
         """
 
+    def __eq__(self, other) -> bool:
+        if isinstance(other, type(self)):
+            return self._attrs == other._attrs
+        return False
+
     def __hash__(self):
         if self._hash is None:
             self._hash = hash(self._attrs)
