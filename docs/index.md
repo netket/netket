@@ -53,11 +53,11 @@ docs/install
 :maxdepth: 2
 
 tutorials/gs-ising
+tutorials/gs-continuous-space
 tutorials/gs-heisenberg
 tutorials/gs-j1j2
 tutorials/gs-matrix-models
 tutorials/gs-gcnn-honeycomb
-tutorials/gs-continuous-space
 tutorials/lattice-fermions
 ```   
 
