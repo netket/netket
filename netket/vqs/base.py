@@ -381,11 +381,6 @@ def expect_and_grad(
                             use_covariance : bool/Literal[True]/Literal[False], * mutable)
                 return ...
     """
-
-    # convert to type-static True/False
-    if isinstance(use_covariance, bool):
-        use_covariance = True if use_covariance else False
-
     if use_covariance is None:
         if isinstance(operator, Squared):
             use_covariance = False
