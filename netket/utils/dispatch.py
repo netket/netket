@@ -38,7 +38,7 @@ def __getattr__(name):
         # Bool = Union[TrueT, FalseT]
         if name == "TrueT":
             return Literal[True]
-        elif name == "TrueT":
+        elif name == "FalseT":
             return Literal[False]
         elif name == "Bool":
             return Union[Literal[True], Literal[False]]
