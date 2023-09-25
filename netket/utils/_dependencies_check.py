@@ -23,7 +23,9 @@ from textwrap import dedent
 from .version_check import module_version, version_string
 
 
-def create_msg(pkg_name, cur_version, desired_version, extra_msg=""):
+def create_msg(pkg_name, cur_version, desired_version, extra_msg="", pip_pkg_name=None):
+    if pip_pkg_name is None:
+        pip_pkg_name = pkg_name
     return dedent(
         f"""
 
@@ -33,7 +35,7 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg=""):
         Please update `{pkg_name}` by running the command:
 
             pip install --upgrade pip
-            pip install --upgrade netket {pkg_name}
+            pip install --upgrade netket {pip_pkg_name}
 
         (assuming you are using pip. Similar commands can be used on conda).
 
@@ -67,3 +69,9 @@ if not module_version("flax") >= (0, 5, 0):
                a bug and did not properly support complex numbers.
                """
     raise ImportError(create_msg("flax", cur_version, "0.5", extra))
+
+if not module_version("plum") >= (2, 2, 2):
+    cur_version = version_string("flax")
+    raise ImportError(
+        create_msg("flax", cur_version, "2.2.2", pip_pkg_name="plum-dispatch")
+    )
