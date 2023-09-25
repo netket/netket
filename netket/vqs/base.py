@@ -29,7 +29,7 @@ import netket.jax as nkjax
 from netket.operator import AbstractOperator, Squared
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import PyTree, PRNGKeyT, NNInitFunc
-from netket.utils.dispatch import dispatch, TrueT, FalseT
+from netket.utils.dispatch import dispatch
 from netket.stats import Stats
 
 
@@ -378,19 +378,14 @@ def expect_and_grad(
 
             @nk.vqs.expect_and_grad.register
             expect_and_grad(vstate : VStateType, operator: OperatorType,
-                            use_covariance : bool/TrueT/FalseT, * mutable)
+                            use_covariance : bool/Literal[True]/Literal[False], * mutable)
                 return ...
     """
-
-    # convert to type-static True/False
-    if isinstance(use_covariance, bool):
-        use_covariance = TrueT() if use_covariance else FalseT()
-
     if use_covariance is None:
         if isinstance(operator, Squared):
-            use_covariance = FalseT()
+            use_covariance = False
         else:
-            use_covariance = TrueT() if operator.is_hermitian else FalseT()
+            use_covariance = True if operator.is_hermitian else False
 
     return expect_and_grad(
         vstate, operator, use_covariance, *args, mutable=mutable, **kwargs
@@ -417,6 +412,6 @@ def expect_and_forces(
 
             @nk.vqs.expect_and_forces.register
             expect_and_forces(vstate : VStateType, operator: OperatorType,
-                              use_covariance : bool/TrueT/FalseT, * mutable)
+                              use_covariance : bool/Literal[True]/Literal[False], * mutable)
                 return ...
     """

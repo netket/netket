@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Callable
+from typing import Callable, Literal
 
 import jax
 from jax import numpy as jnp
@@ -24,7 +24,6 @@ from netket import config
 from netket.stats import Stats
 from netket.utils import mpi
 from netket.utils.types import PyTree
-from netket.utils.dispatch import TrueT, FalseT
 
 from netket.operator import (
     AbstractOperator,
@@ -42,14 +41,14 @@ from netket.vqs.mc import (
 from .state import MCState
 
 
-# Implementation of expect_and_grad for `use_covariance == True` (due to the TrueT
+# Implementation of expect_and_grad for `use_covariance == True` (due to the Literal[True]
 # type in the signature).` This case is equivalent to the composition of the
 # `expect_and_forces` and `_force_to_grad` functions.
 @expect_and_grad.dispatch
 def expect_and_grad_covariance(
     vstate: MCState,
     Ô: AbstractOperator,
-    use_covariance: TrueT,
+    use_covariance: Literal[True],
     *,
     mutable: CollectionFilter,
 ) -> tuple[Stats, PyTree]:
@@ -79,9 +78,9 @@ def _force_to_grad(Ō_grad, parameters):
 # Specialized dispatch rule for pure states with squared operators as well as general operators
 # with use_covariance == False (experimental).
 @expect_and_grad.dispatch_multi(
-    (MCState, Squared[DiscreteOperator], FalseT),
-    (MCState, Squared[AbstractOperator], FalseT),
-    (MCState, AbstractOperator, FalseT),
+    (MCState, Squared[DiscreteOperator], Literal[False]),
+    (MCState, Squared[AbstractOperator], Literal[False]),
+    (MCState, AbstractOperator, Literal[False]),
 )
 def expect_and_grad_nonherm(
     vstate,
