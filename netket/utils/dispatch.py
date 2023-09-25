@@ -16,10 +16,6 @@ from typing import Literal, Union
 
 from plum import dispatch, parametric, convert  # noqa: F401
 
-# Deprecated signature-types for True and False
-# TrueT = Literal[True]
-# FalseT = Literal[False]
-# Bool = Union[TrueT, FalseT]
 
 # Todo: deprecated in netket 3.10/august 2023 . To eventually remove.
 def __getattr__(name):
@@ -36,7 +32,10 @@ def __getattr__(name):
                 `Bool` should be replaced by `bool`
             """
         )
-
+        # Deprecated signature-types for True and False
+        # TrueT = Literal[True]
+        # FalseT = Literal[False]
+        # Bool = Union[TrueT, FalseT]
         if name == "TrueT":
             return Literal[True]
         elif name == "TrueT":
