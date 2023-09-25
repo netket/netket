@@ -50,28 +50,29 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg="", pip_pkg_nam
     )
 
 
-if not module_version("jax") >= (0, 4, 0):
+if not module_version("jax") >= (0, 4, 3):  # pragma: no cover
     cur_version = version_string("optax")
-    raise ImportError(create_msg("jax", cur_version, "0.4"))
+    raise ImportError(create_msg("jax", cur_version, "0.4.3"))
 
-if not module_version("optax") >= (0, 1, 1):
+if not module_version("optax") >= (0, 1, 3):  # pragma: no cover
     cur_version = version_string("optax")
     extra = """Reason: Optax is NetKet's provider of optimisers. Versions before 0.1.1 did not
                support complex numbers and silently returned wrong values, especially when
                using optimisers involving the norm of the gradient such as `Adam`.
                As recent versions of optax correctly work with complex numbers, please upgrade.
                """
-    raise ImportError(create_msg("optax", cur_version, "0.1.1", extra))
+    raise ImportError(create_msg("optax", cur_version, "0.1.3", extra))
 
-if not module_version("flax") >= (0, 5, 0):
+if not module_version("flax") >= (0, 6, 5):  # pragma: no cover
     cur_version = version_string("flax")
     extra = """Reason: Flax is NetKet's default neural-network library. Versions before 0.5 had
                a bug and did not properly support complex numbers.
                """
-    raise ImportError(create_msg("flax", cur_version, "0.5", extra))
+    raise ImportError(create_msg("flax", cur_version, "0.6.5", extra))
 
-if not module_version("plum") >= (2, 2, 2):
-    cur_version = version_string("flax")
+if not module_version("plum") >= (2, 2, 2):  # pragma: no cover
     raise ImportError(
-        create_msg("flax", cur_version, "2.2.2", pip_pkg_name="plum-dispatch")
+        create_msg(
+            "plum", version_string("plum"), "2.2.2", pip_pkg_name="plum-dispatch"
+        )
     )
