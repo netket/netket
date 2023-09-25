@@ -133,6 +133,9 @@ class MCState(VariationalState):
 
     _chunk_size: Optional[int] = None
 
+    _grad_chunk_size: Optional[int] = None
+
+
     def __init__(
         self,
         sampler: Sampler,
@@ -142,6 +145,7 @@ class MCState(VariationalState):
         n_samples_per_rank: Optional[int] = None,
         n_discard_per_chain: Optional[int] = None,
         chunk_size: Optional[int] = None,
+        grad_chunk_size: Optional[int] = None
         variables: Optional[PyTree] = None,
         init_fun: Optional[NNInitFunc] = None,
         apply_fun: Optional[Callable] = None,
@@ -443,6 +447,19 @@ class MCState(VariationalState):
 
         self._chunk_size = chunk_size
 
+    @grad_chunk_size.setter
+    def grad_chunk_size(self, grad_chunk_size: Optional[int]):
+        if grad_chunk_size is None:
+            self._grad_chunk_size = None
+            return
+
+        if grad_chunk_size <= 0:
+            raise ValueError("Grad chunk size must be a positive integer. ")
+
+        if not self.n_samples_per_rank % grad_chunk_size == 0:
+            raise ValueError("""Grad chunk size must be a divisor of the  
+            number of samples per rank""")
+
     def reset(self):
         """
         Resets the sampled states. This method is called automatically every time
@@ -623,6 +640,7 @@ class MCState(VariationalState):
             self.chunk_size,
             mutable=mutable,
             **kwargs,
+            self, Ô, use_covariance, self.chunk_size, self.grad_chunk_size, mutable=mutable
         )
 
     # override to use chunks
@@ -665,7 +683,7 @@ class MCState(VariationalState):
         if mutable is None:
             mutable = self.mutable
 
-        return expect_and_forces(self, O, self.chunk_size, mutable=mutable)
+        return expect_and_forces(self, Ô, self.chunk_size, self.grad_chunk_size, mutable=mutable)
 
     def quantum_geometric_tensor(
         self, qgt_T: Optional[LinearOperator] = None

@@ -53,6 +53,7 @@ def expect_and_forces_fallback(  # noqa: F811
     vstate: MCState,
     operator: AbstractObservable,
     chunk_size: Any,
+    grad_chunk_size: Any,
     *args,
     **kwargs,
 ):
@@ -71,6 +72,7 @@ def expect_and_forces_impl(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
     chunk_size: int,
+    grad_chunk_size: int,
     *,
     mutable: CollectionFilter = False,
 ) -> tuple[Stats, PyTree]:
@@ -80,6 +82,7 @@ def expect_and_forces_impl(  # noqa: F811
 
     Ō, Ō_grad, new_model_state = forces_expect_hermitian_chunked(
         chunk_size,
+        grad_chunk_size,
         local_estimator_fun,
         vstate._apply_fun,
         mutable,
@@ -98,6 +101,7 @@ def expect_and_forces_impl(  # noqa: F811
 @partial(jax.jit, static_argnums=(0, 1, 2, 3))
 def forces_expect_hermitian_chunked(
     chunk_size: int,
+    grad_chunk_size: int,
     local_value_kernel_chunked: Callable,
     model_apply_fun: Callable,
     mutable: CollectionFilter,
@@ -109,6 +113,9 @@ def forces_expect_hermitian_chunked(
     σ_shape = σ.shape
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
+
+    if grad_chunk_size is None:
+        grad_chunk_size = chunk_size
 
     n_samples = σ.shape[0] * mpi.n_nodes
 
@@ -133,7 +140,7 @@ def forces_expect_hermitian_chunked(
             parameters,
             σ,
             conjugate=True,
-            chunk_size=chunk_size,
+            chunk_size=grad_chunk_size,
             chunk_argnums=1,
             nondiff_argnums=1,
         )
