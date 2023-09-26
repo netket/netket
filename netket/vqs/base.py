@@ -27,9 +27,10 @@ from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 import netket.jax as nkjax
 from netket.operator import AbstractOperator, Squared
 from netket.hilbert import AbstractHilbert
+from netket.stats import Stats
 from netket.utils.types import PyTree, PRNGKeyT, NNInitFunc
 from netket.utils.dispatch import dispatch
-from netket.stats import Stats
+from netket.utils.optional_deps import import_optional_dependency
 
 
 class VariationalState(abc.ABC):
@@ -270,10 +271,10 @@ class VariationalState(abc.ABC):
         Returns:
             A :class:`qutip.Qobj` object.
         """
-        from qutip import Qobj
+        qutip = import_optional_dependency("qutip", descr="to_qobj")
 
         q_dims = [list(self.hilbert.shape), [1 for i in range(self.hilbert.size)]]
-        return Qobj(np.asarray(self.to_array()), dims=q_dims)
+        return qutip.Qobj(np.asarray(self.to_array()), dims=q_dims)
 
 
 class VariationalMixedState(VariationalState):
@@ -304,10 +305,10 @@ class VariationalMixedState(VariationalState):
         Returns:
             A :class:`qutip.Qobj` object.
         """
-        from qutip import Qobj
+        qutip = import_optional_dependency("qutip", descr="to_qobj")
 
         q_dims = [list(self.hilbert_physical.shape), list(self.hilbert_physical.shape)]
-        return Qobj(np.asarray(self.to_matrix()), dims=q_dims)
+        return qutip.Qobj(np.asarray(self.to_matrix()), dims=q_dims)
 
 
 @dispatch.abstract

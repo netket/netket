@@ -14,6 +14,8 @@
 
 from numbers import Number
 
+from netket.utils.optional_deps import import_optional_dependency
+
 
 def tree_log(tree, root, data):
     """
@@ -123,9 +125,11 @@ class TensorBoardLog:
         self._old_step = 0
 
     def _init_tensorboard(self):
-        from tensorboardX import SummaryWriter
+        tensorboardX = import_optional_dependency(
+            "tensorboardX", descr="TensorBoardLog"
+        )
 
-        self._writer = SummaryWriter(*self._init_args, **self._init_kwargs)
+        self._writer = tensorboardX.SummaryWriter(*self._init_args, **self._init_kwargs)
 
     def __call__(self, step, item, machine):
         if self._writer is None:

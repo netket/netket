@@ -24,6 +24,7 @@ from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings.base import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
+from netket.utils.optional_deps import import_optional_dependency
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from netket.experimental.hilbert import SpinOrbitalFermions
@@ -182,7 +183,10 @@ class FermionOperator2nd(DiscreteOperator):
                 spin != 0
 
         """
-        from openfermion.ops import FermionOperator
+        openfermion = import_optional_dependency(
+            "openfermion", descr="from_openfermion"
+        )
+        FermionOperator = openfermion.ops.FermionOperator
 
         if hilbert is None:
             raise ValueError(
