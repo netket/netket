@@ -18,6 +18,7 @@ import jax.numpy as jnp
 import jax
 
 import netket as nk
+import netket.experimental as nkexp
 import netket.nn as nknn
 
 
@@ -57,7 +58,7 @@ def test_deepset_model_output():
     ],
 )
 def test_rel_dist_deepsets(cusp_exponent, basis):
-    geometry = nk.graph._Cell(basis=basis)
+    geometry = nkexp.geometry.Cell(basis=basis)
     hilb = nk.hilbert.Particle(N=2, geometry=geometry)
     sdim = hilb.geometry.dim
     x = jnp.hstack([jnp.ones(basis.shape[0]), -jnp.ones(basis.shape[0])]).reshape(1, -1)
@@ -76,7 +77,7 @@ def test_rel_dist_deepsets(cusp_exponent, basis):
 
 
 def test_rel_dist_deepsets_error():
-    geometry = nk.graph._Cell(basis=jnp.eye(1))
+    geometry = nkexp.geometry.Cell(basis=jnp.eye(1))
     hilb = nk.hilbert.Particle(N=2, geometry=geometry)
     sdim = hilb.geometry.dim
 
@@ -103,7 +104,7 @@ def test_rel_dist_deepsets_error():
         )
         ds.init(jax.random.PRNGKey(42), x)
 
-    geometry = nk.graph._Free(dim=1)
+    geometry = nkexp.geometry.Free(dim=1)
     hilbert = nk.hilbert.Particle(N=2, geometry=geometry)
     with pytest.raises(ValueError):
         ds = nk.models.DeepSetRelDistance(
