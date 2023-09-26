@@ -17,8 +17,6 @@ from .json_log import JsonLog
 from .state_log import StateLog
 from .tensorboard import TensorBoardLog
 
-from netket.utils import tensorboard_available as _tensorboard_available
-
 
 from netket.utils import _hide_submodules
 
