@@ -21,7 +21,7 @@ __all__ = [
     "hilbert",
     "operator",
     "logging",
-    "observable"
+    "observable",
 ]
 
 from . import hilbert

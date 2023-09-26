@@ -1,5 +1,3 @@
-import pytest
-
 import netket as nk
 import netket.experimental as nkx
 import numpy as np
