@@ -19,26 +19,24 @@ import numpy as np
 from netket.utils import struct
 
 
-# Mark this class a NetKet dataclass so that it can automatically be serialized by Flax.
-@struct.dataclass(_frozen=False)
-class EarlyStopping:
+class EarlyStopping(struct.Pytree, mutable=True):
     """A simple callback to stop NetKet if there are no more improvements in the training.
     based on `driver._loss_name`.
     """
 
-    min_delta: float = 0.0
+    min_delta: float
     """Minimum change in the monitored quantity to qualify as an improvement."""
-    min_reldelta: float = 0.0
+    min_reldelta: float
     """Minimum relative change in the monitored quantity to qualify as an improvement.
 
     This behaves similarly to `min_delta` but is more useful for intensive quantities that
     converge to 0, where absolute tolerances might not be effective.
     """
-    patience: Union[int, float] = 0
+    patience: Union[int, float]
     """Number of epochs with no improvement after which training will be stopped."""
-    baseline: Optional[float] = None
+    baseline: Optional[float]
     """Baseline value for the monitored quantity. Training will stop if the driver hits the baseline."""
-    monitor: str = "mean"
+    monitor: str
     """Loss statistic to monitor. Should be one of 'mean', 'variance', 'sigma'."""
 
     # The quantities below are internal and should not be edited directly
@@ -46,10 +44,43 @@ class EarlyStopping:
 
     _best_val: float = np.inf
     """Best value of the loss observed up to this iteration. """
-    _best_iter: int = 0
+    _best_iter: int
     """Iteration at which the `_best_val` was observed."""
-    _best_patience_counter: int = 0
+    _best_patience_counter: int
     """Stores the iteration at which we've seen the best loss so far"""
+
+    def __init__(
+        self,
+        min_delta: float = 0.0,
+        min_reldelta: float = 0.0,
+        patience: Union[int, float] = 0,
+        baseline: Optional[float] = None,
+        monitor: str = "mean",
+    ):
+        """
+        Construct an early stopping callback.
+
+        Args:
+            min_delta: Minimum change in the monitored quantity to
+                qualify as an improvement.
+            min_reldelta: Minimum relative change in the monitored
+                quantity to qualify as an improvement.
+            patience: Number of epochs with no improvement after which
+                training will be stopped.
+            baseline: Baseline value for the monitored quantity. Training
+                will stop if the driver hits the baseline.
+            monitor: Loss statistic to monitor. Should be one of
+                `mean`, `variance`, `sigma`.
+        """
+        self.min_delta = min_delta
+        self.min_reldelta = min_reldelta
+        self.patience = patience
+        self.baseline = baseline
+        self.monitor = monitor
+
+        self._best_val = np.infty
+        self._best_iter = 0
+        self._best_patience_counter = 0
 
     def __call__(self, step, log_data, driver):
         """
