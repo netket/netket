@@ -208,20 +208,26 @@ normalisation sets the trace to 1.
 
 ### Manipulating the parameters
 
+:::{note}
+This guide refers to NetKet version `>=3.9.2` and Flax version `>=0.7.2`. Older NetKet and flax versions returned `FronzenDict` for the parameters, which were more complicated to use. 
+For a migration guide from the old behaviour to the new one, refer to the [Flax frozen dictionary migration guide](https://flax.readthedocs.io/en/latest/guides/regular_dict_upgrade_guide.html).
+:::
+
 You can access the parameters of a variational state through the {py:attr}`~netket.vqs.VariationalState.parameters` attribute.
 Similarly, if your model has also a mutable state, you can access it through
 the {py:attr}`~netket.vqs.VariationalState.model_state` attribute.
 
-Parameters are stored as a Flax {code}`FrozenDict`, which behaves like a standard python dictionary but cannot be modified.
+Parameters are stored as a set of nested dictionaries.
 In Jax jargon, Parameters are a PyTree (see [PyTree documentation](https://jax.readthedocs.io/en/latest/pytrees.html)) and they
 can be operated upon with functions like [jax.tree_map](https://jax.readthedocs.io/en/latest/jax.tree_util.html?highlight=tree_map#jax.tree_util.tree_map).
 
-You can also modify the parameters by \_unfreezing\_ them, using the command `flax.core.unfreeze`.
+Before modifying the parameters or what is stored inside of a dictionary of parameters, it is a good idea to make a copy using {func}`flax.core.copy`, which calls recursively `{}.copy()` in all nested dictionaries. 
+If you do not do this, you will only copy the outermost dictionary but the inner ones will be referenced, and so modifying them will modify the original parameters as well.
 
 ```python
 import flax
 
-pars = flax.core.unfreeze(varstate.parameters)
+pars = flax.core.copy(varstate.parameters, {})
 
 pars['Dense']['kernel'] = pars['Dense']['kernel'] +1
 

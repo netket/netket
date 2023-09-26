@@ -21,8 +21,7 @@ import jax
 import jax.numpy as jnp
 from jax.nn.initializers import normal
 
-import flax
-from flax.core.frozen_dict import FrozenDict
+from flax import core as fcore
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 import netket.jax as nkjax
@@ -69,7 +68,7 @@ class VariationalState(abc.ABC):
     @property
     def parameters(self) -> PyTree:
         r"""The pytree of the parameters of the model."""
-        return self._parameters
+        return fcore.copy(self._parameters, {})
 
     @property
     def n_parameters(self) -> int:
@@ -78,24 +77,16 @@ class VariationalState(abc.ABC):
 
     @parameters.setter
     def parameters(self, pars: PyTree):
-        if not isinstance(pars, FrozenDict):
-            if not isinstance(pars, list) and not isinstance(pars, tuple):
-                pars = flax.core.freeze(pars)
-
         self._parameters = pars
         self.reset()
 
     @property
     def model_state(self) -> Optional[PyTree]:
         r"""The optional pytree with the mutable state of the model."""
-        return self._model_state
+        return fcore.copy(self._model_state, {})
 
     @model_state.setter
     def model_state(self, state: PyTree):
-        if not isinstance(state, FrozenDict):
-            if not isinstance(state, list) and not isinstance(state, tuple):
-                state = flax.core.freeze(state)
-
         self._model_state = state
         self.reset()
 
@@ -104,14 +95,11 @@ class VariationalState(abc.ABC):
         r"""The PyTree containing the parameters and state of the model,
         used when evaluating it.
         """
-        return flax.core.freeze({"params": self.parameters, **self.model_state})
+        return {"params": self.parameters, **self.model_state}
 
     @variables.setter
     def variables(self, var: PyTree):
-        if not isinstance(var, FrozenDict):
-            var = flax.core.freeze(var)
-
-        self.model_state, self.parameters = var.pop("params")
+        self.model_state, self.parameters = fcore.pop(var, "params")
 
     def init_parameters(
         self, init_fun: Optional[NNInitFunc] = None, *, seed: Optional[PRNGKeyT] = None
