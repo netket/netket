@@ -54,6 +54,7 @@ extra = [
     "tensorboardx>=2.0.0",
     "openfermion>=1.0.0",
     "h5py>=3.7.0",
+    "qutip>=4",
     ]
 dev = [
     "networkx>=2.4, <4",
