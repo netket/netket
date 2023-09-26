@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2022 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,31 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    "driver",
-    "dynamics",
-    "sampler",
-    "vqs",
-    "TDVP",
-    "hilbert",
-    "operator",
-    "logging",
-    "observable"
-]
+from .S2_operator import Renyi2EntanglementEntropy
 
-from . import hilbert
-from . import operator
-from . import driver
-from . import dynamics
-from . import sampler
-from . import vqs
-from . import logging
-from . import qsr
-from . import observable
-
-from .driver import TDVP
-from .qsr import QSR
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from . import expect
+from . import exact
