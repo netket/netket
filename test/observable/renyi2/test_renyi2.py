@@ -2,6 +2,8 @@ import netket as nk
 import netket.experimental as nkx
 import numpy as np
 
+import pytest
+
 
 from .renyi2_exact import _renyi2_exact
 
@@ -35,6 +37,8 @@ def _setup():
 
 
 def test_MCState():
+    pytest.importorskip("qutip")
+
     vs, vs_exact, S2, subsys = _setup()
     S2_stats = vs.expect(S2)
     S2_exact = _renyi2_exact(vs, subsys)
@@ -46,6 +50,8 @@ def test_MCState():
 
 
 def test_FullSumState():
+    pytest.importorskip("qutip")
+
     vs, vs_exact, S2, subsys = _setup()
     S2_stats = vs_exact.expect(S2)
     S2_exact = _renyi2_exact(vs_exact, subsys)

@@ -1,8 +1,9 @@
 import numpy as np
-import qutip
 
 
 def _renyi2_exact(vstate, subsys):
+    import qutip
+
     sigma = vstate.hilbert.all_states()
     N = sigma.shape[-1]
 
