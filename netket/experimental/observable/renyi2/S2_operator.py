@@ -23,7 +23,6 @@ from netket.utils.types import DType
 
 
 class Renyi2EntanglementEntropy(AbstractOperator):
-
     r"""
     Rényi2 entanglement entropy of a state :math:`| \Psi \rangle` for a partition with subsystem A.
 
