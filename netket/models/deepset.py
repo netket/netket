@@ -155,7 +155,7 @@ class DeepSetRelDistance(nn.Module):
     """Initializer for the parameter in the cusp"""
 
     def setup(self):
-        if not all(self.hilbert.pbc):
+        if not self.hilbert.geometry.pbc:
             raise ValueError(
                 "The DeepSetRelDistance model only works with "
                 "hilbert spaces with periodic boundary conditions "
@@ -195,7 +195,7 @@ class DeepSetRelDistance(nn.Module):
         N = self.hilbert.n_particles
         param = self.param("cusp", self.params_init, (1,), self.param_dtype)
         x = x.reshape(-1, N, self.hilbert.geometry.dim)
-        dis, d = self.hilbert.geometry.distance(x, mode="periodic", norm=True)
+        dis, d = self.hilbert.geometry.distance(x, mode="Periodic", norm=True)
 
         idx = jnp.triu_indices(N, 1)
         d = d[..., idx[0], idx[1]]

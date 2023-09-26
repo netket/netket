@@ -49,20 +49,18 @@ def test_deepset_model_output():
     "cusp_exponent", [pytest.param(None, id="cusp=None"), pytest.param(5, id="cusp=5")]
 )
 @pytest.mark.parametrize(
-    "lattice",
+    "basis",
     [
         pytest.param(jnp.eye(1), id="1D"),
         pytest.param(jnp.eye(2), id="2D-Square"),
         pytest.param(jnp.array([[1, 0], [0, 0.5]]), id="2D-Rectangle"),
     ],
 )
-def test_rel_dist_deepsets(cusp_exponent, lattice):
-    geometry = nk.graph._Cell(lattice=lattice)
+def test_rel_dist_deepsets(cusp_exponent, basis):
+    geometry = nk.graph._Cell(basis=basis)
     hilb = nk.hilbert.Particle(N=2, geometry=geometry)
     sdim = hilb.geometry.dim
-    x = jnp.hstack([jnp.ones(lattice.shape[0]), -jnp.ones(lattice.shape[0])]).reshape(
-        1, -1
-    )
+    x = jnp.hstack([jnp.ones(basis.shape[0]), -jnp.ones(basis.shape[0])]).reshape(1, -1)
     xp = jnp.roll(x, sdim)
     ds = nk.models.DeepSetRelDistance(
         hilbert=hilb,
@@ -78,7 +76,7 @@ def test_rel_dist_deepsets(cusp_exponent, lattice):
 
 
 def test_rel_dist_deepsets_error():
-    geometry = nk.graph._Cell(lattice=jnp.eye(1))
+    geometry = nk.graph._Cell(basis=jnp.eye(1))
     hilb = nk.hilbert.Particle(N=2, geometry=geometry)
     sdim = hilb.geometry.dim
 

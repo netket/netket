@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import netket as nk
+import netket.experimental as nkexp
 import jax.numpy as jnp
 
 from optax._src import linear_algebra
@@ -62,10 +62,9 @@ N = 10
 d = 0.3  # 1/Angstrom
 rm = 2.9673  # Angstrom
 L = N / (0.3 * rm)
-geometry = nk.graph._Cell(lattice=L * jnp.eye(1))
+geometry = nkexp.geometry.Cell(basis=L * jnp.eye(1))
 hilb = nk.hilbert.Particle(N=N, geometry=geometry)
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.008, n_chains=16, n_sweeps=32)
-
 
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
 pot = nk.operator.PotentialEnergy(hilb, lambda x: potential(x, 1))
@@ -81,7 +80,7 @@ model = nk.models.DeepSetRelDistance(
 vs = nk.vqs.MCState(sab, model, n_samples=4096, n_discard_per_chain=128)
 
 op = nk.optimizer.Sgd(0.001)
-sr = nk.optimizer.SR(diag_shift=0.005)
+sr = nk.optimizer.SR(diag_shift=0.001)
 
 gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
 gs.run(n_iter=1000, callback=mycb, out="Helium_10_1d")

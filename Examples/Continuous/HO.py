@@ -1,6 +1,6 @@
 # Copyright 2021 The NetKet Authors - All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the Apaspecificche License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import netket as nk
-
+import netket.experimental as nkexp
 import jax.numpy as jnp
 
 
@@ -20,9 +20,8 @@ def v(x):
     return jnp.linalg.norm(x) ** 2
 
 
-geometry = nk.graph._Free(dim=3)
+geometry = nkexp.geometry.Free(dim=3)
 hilb = nk.hilbert.Particle(N=10, geometry=geometry)
-print(hilb._attrs)
 sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.1, n_chains=16, n_sweeps=32)
 
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)

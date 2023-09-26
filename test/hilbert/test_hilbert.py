@@ -178,7 +178,8 @@ def test_consistent_size_particle(hi: Particle):
     assert hi.size > 0
     assert hi.n_particles > 0
     assert hi.n_particles == sum(hi.n_per_spin)
-    assert len(hi.extent) == (hi.size // hi.n_particles)
+    if hi.geometry.pbc:
+        assert len(hi.geometry.extent) == (hi.size // hi.n_particles)
 
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
@@ -231,15 +232,20 @@ def test_random_states_particle(hi: Particle):
         jax.jit(hi.random_state)(jax.random.PRNGKey(13)),
     )
 
-    # check that boundary conditions are fulfilled if any are given
-    state = hi.random_state(jax.random.PRNGKey(13))
-    boundary = jnp.array(hi.n_particles * hi.pbc)
-    Ls = jnp.array(hi.n_particles * hi.extent)
-    extension = jnp.where(jnp.equal(boundary, False), jnp.inf, Ls)
-
-    assert jnp.sum(
-        jnp.where(jnp.equal(boundary, True), state < extension, 0)
-    ) == jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0))
+    if hi.geometry.pbc:
+        # check that boundary conditions are fulfilled if any are given
+        state = hi.random_state(jax.random.PRNGKey(13))
+        boundary = jnp.array(hi.size * (hi.geometry.pbc,))
+        Ls = jnp.array(hi.n_particles * tuple(hi.geometry.extent[0]))
+        extension = jnp.where(jnp.equal(boundary, False), jnp.inf, Ls)
+        assert jnp.sum(
+            jnp.where(jnp.equal(boundary, True), state < extension, 0)
+        ) == jnp.sum(
+            jnp.where(jnp.equal(boundary, True), 1, 0)
+        ), "Got {} instead of {}".format(
+            jnp.sum(jnp.where(jnp.equal(boundary, True), state < extension, 0)),
+            jnp.sum(jnp.where(jnp.equal(boundary, True), 1, 0)),
+        )
 
 
 def test_particle_fail():

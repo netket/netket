@@ -15,8 +15,6 @@ from typing import Optional, Union
 import jax.numpy as jnp
 import numpy as np
 from .continuous_hilbert import ContinuousHilbert
-from ..graph.Free import Free
-from ..graph.Cell import Cell
 
 
 class Particle(ContinuousHilbert):
@@ -27,7 +25,7 @@ class Particle(ContinuousHilbert):
         self,
         N: Union[int, tuple[int, ...]],
         L: Optional[tuple[float, ...]] = None,
-        pbc: Optional[Union[bool, tuple[bool, ...]]] = None,
+        pbc: Optional[bool] = None,
         *,
         D: Optional[int] = None,
         geometry: Optional = None,
@@ -45,19 +43,21 @@ class Particle(ContinuousHilbert):
                 if there are no boundaries?). If a finite value is given, a minimum value of zero is assumed for the
                 quantum number(s).
                 A particle in a 3D box of size L would take `(L,L,L)`. A rotor model would take e.g. `(2pi,)`.
-            pbc: Tuple or bool indicating whether to use periodic boundary conditions in a given physical dimension.
-                If tuple it must have the same length as domain. If bool the same value is used for all the dimensions
-                defined in domain.
+            pbc: Tuple of bools or bool indicating whether to use periodic boundary conditions in a given physical
+                 dimension. Mixed boundary conditions are not supported at the moment i.e. if tuple it must have the
+                 same length as L and the same entry in all directions.
             D: (Optional) Number of dimensions. Can be specified instead of `L` and `pbc` in order to construct a
-                `Particle` in a $D-$ dimensional infinite box. Equivalent to
-                `Particle(N, L=(np.inf,) * D, pbc=False)`.
-            geometry: (Optional) A geometry object. Either a periodic box 'Cell' or free space 'Free'.
+                `Particle` in a $D-$ dimensional infinite box. Equivalent to `Particle(N, L=(np.inf,) * D, pbc=False)`.
+            geometry: (Optional) Geometry object describing the physical space. Can be specified instead of `L` and
+                      `pbc` as each geometry object contains this information.
+                      Available options are free particles
+                      'Free' equivalent to `Particle(N, L=(np.inf,) * geometry.dim, pbc=False) or particles in a box
+                      'Cell' equivalent to `Particle(N, L=geometry.basis, pbc=True).
+                       If 'D' is specified, giving a geometry errors because 'D' implies free space.
         """
         if D is None and L is None and geometry is None:
             raise ValueError("Must specify at least `L` or `D` or a geometry.")
-        elif D is None and L is None:
-            D = geometry.dim
-            L = geometry.extent
+
         elif D is not None:
             if L is not None:
                 raise TypeError(
@@ -65,61 +65,58 @@ class Particle(ContinuousHilbert):
                     "an infinite box, just specify D, otherwise specify L."
                 )
             if geometry is not None:
-                assert (
-                    D == geometry.dim
-                ), "The provided dimension 'D' does not fit the dimension of the geometry."
-                L = geometry.extent
-            else:
-                # we assume free space if no geometry and no L are provided.
-                L = (np.inf,) * D
+                raise TypeError(
+                    "Cannot specify at the same time 'D' and 'geometry'. If you want to use an infinite box, specify D"
+                    "or input a 'Free' geometry object. If you want to use a periodic box, specify a 'Cell' geometry"
+                    "object."
+                )
+            from netket.experimental.geometry.Free import Free
 
-        # Assume 1D if L is a scalar
-        if not hasattr(L, "__len__"):
-            L = (L,)
+            geometry = Free(basis=jnp.eye(D))
+
+        elif L is not None:
+            if geometry is not None:
+                raise TypeError(
+                    "Cannot specify at the same time 'L' and 'geometry'. Either specify 'L' and 'pbc' or provide a "
+                    "geometry."
+                )
+            # Assume 1D if L is a scalar
+            if not hasattr(L, "__len__"):
+                L = (L,)
+            if pbc is None:
+                if np.all(np.isinf(L)):
+                    pbc = False
+                else:
+                    raise ValueError("`pbc` must be specified if `L` is finite.")
+            if np.any(np.logical_and(np.isinf(L), pbc)):
+                raise ValueError(
+                    "Cannot combine periodic boundary conditions and infinite size along the same dimension."
+                )
+
+            if isinstance(pbc, bool):
+                pbc = (pbc,) * len(L)
+            if all(map(lambda x: x is True, pbc)):
+                from netket.experimental.geometry.Cell import Cell
+
+                geometry = Cell(basis=jnp.array(L) * jnp.eye(len(L)))
+            elif all(map(lambda x: x is False, pbc)):
+                from netket.experimental.geometry.Free import Free
+
+                geometry = Free(basis=jnp.array(L) * jnp.eye(len(L)))
+            else:
+                raise ValueError("Mixed boundary conditions are not supported.")
 
         if not hasattr(N, "__len__"):
             N = (N,)
 
-        if pbc is None:
-            if geometry is not None:
-                pbc = geometry.pbc
-            elif np.all(np.isinf(L)):
-                pbc = False
-            else:
-                raise ValueError("`pbc` must be specified if `L` is finite.")
-
-        if isinstance(pbc, bool):
-            pbc = (pbc,) * len(L)
-
-        if np.any(np.logical_and(np.isinf(L), pbc)):
-            raise ValueError(
-                "Cannot combine periodic boundary conditions and infinite size along the same dimension."
-            )
-
         self._N = sum(N)
         self._n_per_spin = N
-
-        if geometry is None:
-            if all(map(lambda x: x is True, pbc)):
-                # we assume a cubic cell if no specific geometry is provided
-                geometry = Cell(lattice=jnp.array(L) * jnp.eye(len(pbc)))
-            elif all(map(lambda x: x is False, pbc)):
-                geometry = Free(dim=len(pbc))
-            else:
-                raise ValueError(
-                    "There is no geometry object that fits the boundary conditions provided. Try either 'pbc=True' in"
-                    "all directions or 'pbc=False'."
-                )
-
-        assert (
-            pbc == geometry.pbc
-        ), "The geometry has different boundary conditions than the ones provided here."
 
         super().__init__(geometry)
 
     @property
     def size(self) -> int:
-        return self._N * len(self.geometry.extent)
+        return self._N * self.geometry.dim
 
     @property
     def n_particles(self) -> int:

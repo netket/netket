@@ -14,8 +14,6 @@
 import jax
 from jax import numpy as jnp
 
-import numpy as np
-
 from netket import jax as nkjax
 from netket.hilbert import ContinuousHilbert, Particle
 from netket.utils.dispatch import dispatch
@@ -40,32 +38,13 @@ def random_state(hilb: Particle, key, batches: int, *, dtype):
     gaussian = jax.random.normal(
         key, shape=(batches, hilb.size), dtype=nkjax.dtype_real(dtype)
     )
-    dim = hilb.geometry.dim
-    uniform = jnp.zeros_like(gaussian)
-    if all(map(lambda x: x is True, hilb.geometry.pbc)):
-        width = jnp.linalg.norm(hilb.geometry.lattice[0]) / (4.0 * hilb.n_particles)
-        # The width gives the noise level. In the periodic case the
-        # particles are evenly distributed between 0 and the boundary of the box. The
-        # distance between the particles coordinates is therefore given by
-        # size of box / hilb.N. To avoid particles to have coincident
-        # positions the noise level should be smaller than half this distance.
-        # We choose width = min(L) / (4*hilb.N)
-        gaussian = gaussian * width
-        # make uniform grid
-        key = jax.random.split(key, num=batches)
-        dim = hilb.geometry.dim
-        n = int(np.ceil(hilb.n_particles ** (1 / dim)))
-        xs = jnp.linspace(0, 1, n)
-        uniform = jnp.array(jnp.meshgrid(*(dim * [xs]))).T.reshape(-1, dim)
-        uniform = jnp.tile(uniform, (batches, 1, 1))
-        uniform = jax.vmap(take_sub, in_axes=(0, 0, None))(
-            key, uniform, hilb.n_particles
-        ).reshape(batches, -1)
+    shape = (batches, hilb.n_particles, hilb.geometry.dim)
+    init = hilb.geometry.random_init(shape)
 
-    # fold positions to the given periodic lattice using standard to lattice mapping
-    rs = hilb.geometry.from_lat_to_standard(
-        (uniform + gaussian).reshape(batches, hilb.n_particles, dim)
-    ).reshape(batches, -1)
+    rs = hilb.geometry.add(init.reshape(*shape), gaussian.reshape(*shape)).reshape(
+        batches, -1
+    )
+
     return jnp.asarray(rs, dtype=dtype)
 
 

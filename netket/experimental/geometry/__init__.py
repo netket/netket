@@ -11,32 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 __all__ = [
-    "driver",
-    "dynamics",
-    "sampler",
-    "vqs",
-    "TDVP",
-    "hilbert",
-    "operator",
-    "logging",
-    "geometry",
+    "AbstractGeometry",
+    "Cell",
+    "Free",
 ]
-
-from . import hilbert
-from . import operator
-from . import driver
-from . import dynamics
-from . import sampler
-from . import vqs
-from . import logging
-from . import qsr
-from . import geometry
-
-from .driver import TDVP
-from .qsr import QSR
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from .continuous_geometry import AbstractGeometry
+from .Cell import Cell
+from .Free import Free

@@ -42,14 +42,14 @@ class GaussianRule(MetropolisRule):
 
         n_chains = r.shape[0]
         hilb = sampler.hilbert
-        dim = hilb.geometry.dim
+        shape = (n_chains, hilb.n_particles, -1)
         prop = jax.random.normal(
             key, shape=(n_chains, hilb.size), dtype=r.dtype
         ) * jnp.asarray(rule.sigma, dtype=r.dtype)
+        rp = hilb.geometry.add(r.reshape(*shape), prop.reshape(*shape)).reshape(
+            n_chains, -1
+        )
 
-        rp = hilb.geometry.back_to_box(
-            r.reshape(n_chains, -1, dim), prop.reshape(n_chains, -1, dim)
-        ).reshape(n_chains, -1)
         return rp, None
 
     def __repr__(self):
