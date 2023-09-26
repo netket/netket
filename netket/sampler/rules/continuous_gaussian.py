@@ -13,7 +13,6 @@
 # limitations under the License.
 import jax
 import jax.numpy as jnp
-import numpy as np
 
 from flax import struct
 
@@ -43,18 +42,13 @@ class GaussianRule(MetropolisRule):
 
         n_chains = r.shape[0]
         hilb = sampler.hilbert
-
-        pbc = np.array(hilb.n_particles * hilb.pbc, dtype=r.dtype)
-        boundary = np.tile(pbc, (n_chains, 1))
-
-        Ls = np.array(hilb.n_particles * hilb.extent, dtype=r.dtype)
-        modulus = np.where(np.equal(pbc, False), jnp.inf, Ls)
-
+        shape = (n_chains, hilb.n_particles, -1)
         prop = jax.random.normal(
             key, shape=(n_chains, hilb.size), dtype=r.dtype
         ) * jnp.asarray(rule.sigma, dtype=r.dtype)
-
-        rp = jnp.where(np.equal(boundary, False), (r + prop), (r + prop) % modulus)
+        rp = hilb.geometry.add(r.reshape(*shape), prop.reshape(*shape)).reshape(
+            n_chains, -1
+        )
 
         return rp, None
 
