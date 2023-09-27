@@ -88,6 +88,11 @@ def test_continuous():
     with pytest.raises(TypeError):
         nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
 
+    hi = nk.hilbert.Fock(N=5, n_particles=3)
+
+    with pytest.raises(ValueError):
+        nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
+
 
 def test_invalid_partition():
     pytest.importorskip("qutip")

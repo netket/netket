@@ -13,12 +13,13 @@
 # limitations under the License.
 
 from typing import Optional
+from textwrap import dedent
 
 import jax.numpy as jnp
 import numpy as np
 
+from netket.hilbert import HomogeneousHilbert
 from netket.operator import AbstractOperator
-from netket.hilbert import DiscreteHilbert
 from netket.utils.types import DType
 
 
@@ -61,10 +62,34 @@ class Renyi2EntanglementEntropy(AbstractOperator):
             Rényi2 operator for which computing the expected value.
         """
 
-        if not isinstance(hilbert, DiscreteHilbert):
+        # Homogeneos, not discrete... because we don't support
+        # tensorhilbert and such. We could generalize easily by
+        # setting psi(x not in hilbert) = 0
+        if not isinstance(hilbert, HomogeneousHilbert):
             raise TypeError(
-                "Entanglement Entropy estimation is only implemented for Discrete Hilbert spaces. It can be easily generalised to continuous spaces, so if you want this feature get in touch with us!"
+                dedent(
+                    """
+                    Entanglement Entropy estimation is only implemented for
+                    Homogeneous discrete Hilbert spaces.
+
+                    It can be easily generalised to continuous spaces, so if
+                    you want this feature get in touch with us!"
+                    """
+                )
             )
+        else:
+            if hilbert.constrained:
+                raise ValueError(
+                    dedent(
+                        """
+                        Entanglement entropy estimation is not implemented
+                        for constrained Hilbert spaces.
+
+                        It can be generalised, so get in touch with us if you
+                        need this feature.
+                        """
+                    )
+                )
 
         super().__init__(hilbert)
 
