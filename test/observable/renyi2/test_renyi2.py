@@ -8,22 +8,31 @@ import pytest
 from .renyi2_exact import _renyi2_exact
 
 
-def _setup():
+def _setup(useExactSampler=True):
     N = 3
     hi = nk.hilbert.Spin(0.5, N)
 
-    n_samples = 1e4
-    n_discard_per_chain = 1e3
-
-    sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains_per_rank=16)
     ma = nk.models.RBM(alpha=1)
+    n_samples = 1e4
 
-    vs = nk.vqs.MCState(
-        sampler=sa,
-        model=ma,
-        n_samples=n_samples,
-        n_discard_per_chain=n_discard_per_chain,
-    )
+    if useExactSampler:
+        sa = nk.sampler.ExactSampler(hilbert=hi)
+        vs = nk.vqs.MCState(
+            sampler=sa,
+            model=ma,
+            n_samples=n_samples,
+        )
+
+    else:
+        n_discard_per_chain = 1e3
+
+        sa = nk.sampler.MetropolisLocal(hilbert=hi, n_chains_per_rank=16)
+        vs = nk.vqs.MCState(
+            sampler=sa,
+            model=ma,
+            n_samples=n_samples,
+            n_discard_per_chain=n_discard_per_chain,
+        )
 
     vs_exact = nk.vqs.FullSumState(
         hilbert=hi,
@@ -36,10 +45,17 @@ def _setup():
     return vs, vs_exact, S2, subsys
 
 
-def test_MCState():
+@pytest.mark.parametrize(
+    "useExactSampler",
+    [
+        pytest.param(True, id="ExactSampler"),
+        pytest.param(False, id="MetropolisSampler"),
+    ],
+)
+def test_MCState(useExactSampler):
     pytest.importorskip("qutip")
 
-    vs, vs_exact, S2, subsys = _setup()
+    vs, vs_exact, S2, subsys = _setup(useExactSampler)
     S2_stats = vs.expect(S2)
     S2_exact = _renyi2_exact(vs, subsys)
 
@@ -87,3 +103,19 @@ def test_invalid_partition():
 
     with pytest.raises(ValueError):
         S2 = nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
+
+
+def test_oddchains():
+    pytest.importorskip("qutip")
+
+    vs, vs_exact, S2, subsys = _setup()
+
+    N = 3
+    hi = nk.hilbert.Spin(0.5, N)
+    subsys = [0, 1]
+
+    vs.sampler = nk.sampler.MetropolisLocal(hilbert=hi, n_chains_per_rank=3)
+    S2 = nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
+
+    with pytest.raises(ValueError):
+        vs.expect(S2)
