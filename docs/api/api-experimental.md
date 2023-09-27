@@ -182,3 +182,15 @@ It is experimental until it has been thoroughly tested by the community, meaning
    operator.fermion.destroy
    operator.fermion.number
 ```
+
+## Observables
+This module contains various observables that can be computed starting from various variational states.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/experimental/observable
+   :template: class
+   :nosignatures:
+
+   observable.Renyi2EntanglementEntropy
+```

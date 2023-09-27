@@ -25,6 +25,7 @@ from numba.typed import List
 from scipy.sparse.linalg import LinearOperator
 
 import netket.jax as nkjax
+from netket.utils.optional_deps import import_optional_dependency
 
 from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
@@ -474,8 +475,8 @@ class LocalLiouvillian(AbstractSuperOperator):
         Returns:
             A :class:`qutip.liouvillian` object.
         """
-        from qutip import liouvillian
+        qutip = import_optional_dependency("qutip", descr="to_qobj")
 
-        return liouvillian(
+        return qutip.liouvillian(
             self.hamiltonian.to_qobj(), [op.to_qobj() for op in self.jump_operators]
         )

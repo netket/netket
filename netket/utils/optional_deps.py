@@ -12,9 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-try:
-    import tensorboardX  # noqa
+from types import ModuleType
+import importlib
 
-    tensorboard_available = True
-except ImportError:
-    tensorboard_available = False
+
+def import_optional_dependency(name: str, minimum_version="", descr="") -> ModuleType:
+    """Try to import library `name`, and if it cannot be found, raise an
+    informative error.
+    """
+    try:
+        return importlib.import_module(name)
+    except ModuleNotFoundError:
+        if minimum_version != "":
+            minimum_version = f">= {minimum_version}"
+        raise ModuleNotFoundError(
+            f"""
+
+            Could not import `{name}`, which is necessary to use
+            `{descr}`.
+
+            To install it, run
+
+                pip install {name} {minimum_version}
+
+            """
+        )

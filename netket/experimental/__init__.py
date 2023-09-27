@@ -21,6 +21,7 @@ __all__ = [
     "hilbert",
     "operator",
     "logging",
+    "observable",
 ]
 
 from . import hilbert
@@ -31,6 +32,7 @@ from . import sampler
 from . import vqs
 from . import logging
 from . import qsr
+from . import observable
 
 from .driver import TDVP
 from .qsr import QSR

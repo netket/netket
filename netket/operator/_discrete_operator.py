@@ -20,6 +20,7 @@ from scipy.sparse import csr_matrix as _csr_matrix
 
 from netket.hilbert import DiscreteHilbert
 from netket.operator import AbstractOperator
+from netket.utils.optional_deps import import_optional_dependency
 
 
 class DiscreteOperator(AbstractOperator):
@@ -237,9 +238,9 @@ class DiscreteOperator(AbstractOperator):
         Returns:
             A :class:`qutip.Qobj` object.
         """
-        from qutip import Qobj
+        qutip = import_optional_dependency("qutip", descr="to_qobj")
 
-        return Qobj(
+        return qutip.Qobj(
             self.to_sparse(), dims=[list(self.hilbert.shape), list(self.hilbert.shape)]
         )
 

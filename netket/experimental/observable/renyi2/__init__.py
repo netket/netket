@@ -1,4 +1,4 @@
-# Copyright 2021 The NetKet Authors - All rights reserved.
+# Copyright 2022 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .runtime_log import RuntimeLog
-from .json_log import JsonLog
-from .state_log import StateLog
-from .tensorboard import TensorBoardLog
+from .S2_operator import Renyi2EntanglementEntropy
 
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from . import expect
+from . import exact
