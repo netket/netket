@@ -33,7 +33,7 @@ def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy):
     n_chains = samples.shape[0]
     n_samples = samples.shape[0] * samples.shape[1]
 
-    if n_chains % 2 != 0 and vstate.sampler.is_exact:
+    if n_chains % 2 != 0 and not vstate.sampler.is_exact:
         raise ValueError("Use an even number of chains.")
 
     if n_chains == 1:
@@ -52,7 +52,7 @@ def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy):
         vstate.model_state,
         σ_η,
         σp_ηp,
-        op.subsystem,
+        op.partition,
     )
 
 
@@ -63,7 +63,7 @@ def Renyi2_sampling_MCState(
     model_state,
     σ_η,
     σp_ηp,
-    subsystem,
+    partition,
 ):
     n_chains = σ_η.shape[0]
 
@@ -74,14 +74,14 @@ def Renyi2_sampling_MCState(
 
     n_samples = σ_η.shape[0]
 
-    σ = σ_η[:, subsystem]
-    σp = σp_ηp[:, subsystem]
+    σ = σ_η[:, partition]
+    σp = σp_ηp[:, partition]
 
     σ_ηp = jnp.copy(σp_ηp)
     σp_η = jnp.copy(σ_η)
 
-    σ_ηp = σ_ηp.at[:, subsystem].set(σ)
-    σp_η = σp_η.at[:, subsystem].set(σp)
+    σ_ηp = σ_ηp.at[:, partition].set(σ)
+    σp_η = σp_η.at[:, partition].set(σp)
 
     def kernel_fun(params, model_state, σ_ηp, σp_η, σ_η, σp_ηp):
         W = {"params": params, **model_state}

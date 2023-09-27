@@ -25,25 +25,29 @@ from netket.utils.types import DType
 
 class Renyi2EntanglementEntropy(AbstractOperator):
     r"""
-    Rényi2 entanglement entropy of a state :math:`| \Psi \rangle` for a partition with subsystem A.
+    Rényi2 bipartite entanglement entropy of a state :math:`| \Psi \rangle`
+    between partitions A and B.
 
     """
 
     def __init__(
         self,
         hilbert: None,
-        subsystem: jnp.array,
+        partition: jnp.array,
         *,
         dtype: Optional[DType] = None,
     ):
         r"""
-        Constructs the operator computing the Rényi2 entanglement entropy of a state :math:`| \Psi \rangle` for a partition with subsystem A:
+        Constructs the operator computing the Rényi2 entanglement entropy of
+        a state :math:`| \Psi \rangle` for a partition with partition A:
 
         .. math::
 
             S_2 = -\log_2 \text{Tr}_A [\rho^2]
 
-        where :math:`\rho = | \Psi \rangle \langle \Psi |` is the density matrix of the system and :math:`\text{Tr}_A` indicates the partial trace over the subsystem A.
+        where :math:`\rho = | \Psi \rangle \langle \Psi |` is the density
+        matrix of the system and :math:`\text{Tr}_A` indicates the partial
+        trace over the partition A.
 
         The Monte Carlo estimator of S_2 [Hastings et al., PRL 104, 157201 (2010)] is:
 
@@ -51,12 +55,16 @@ class Renyi2EntanglementEntropy(AbstractOperator):
 
             S_2 = - \log \langle \frac{\Psi(\sigma,\eta^{\prime}) \Psi(\sigma^{\prime},\eta)}{\Psi(\sigma,\eta) \Psi(\sigma^{\prime},\eta^{\prime})} \rangle
 
-        where the mean is taken over the distribution :math:`\Pi(σ,η) \Pi(σ',η')`, :math:`\sigma \in A`, :math:`\eta \in \bar{A}` and :math:`\Pi(\sigma, \eta) = |\Psi(\sigma,\eta)|^2 / \langle \Psi | \Psi \rangle`.
+        where the mean is taken over the distribution
+        :math:`\Pi(σ,η) \Pi(σ',η')`, :math:`\sigma \in A`,
+        :math:`\eta \in \bar{A}` and
+        :math:`\Pi(\sigma, \eta) = |\Psi(\sigma,\eta)|^2 / \langle \Psi | \Psi \rangle`.
 
         Args:
             hilbert: hilbert space of the system.
-            subsystem: list of the indices identifying the degrees of freedom in one subsystem of the full system.
-                All indices should be integers between 0 and hilbert.size
+            partition: list of the indices identifying the degrees of
+                freedom in one partition of the full system. All
+                indices should be integers between 0 and hilbert.size
 
         Returns:
             Rényi2 operator for which computing the expected value.
@@ -94,11 +102,11 @@ class Renyi2EntanglementEntropy(AbstractOperator):
         super().__init__(hilbert)
 
         self._dtype = dtype
-        self._subsystem = np.array(list(set(subsystem)))
+        self._partition = np.array(list(set(partition)))
 
         if (
-            np.where(self._subsystem < 0)[0].size > 0
-            or np.where(self._subsystem > hilbert.size - 1)[0].size > 0
+            np.where(self._partition < 0)[0].size > 0
+            or np.where(self._partition > hilbert.size - 1)[0].size > 0
         ):
             raise ValueError(
                 "Invalid partition: possible negative indices or indices outside the system size."
@@ -106,18 +114,24 @@ class Renyi2EntanglementEntropy(AbstractOperator):
 
     @property
     def dtype(self):
+        """
+        dtype of the expectation value.
+
+        It is ignored for this operator
+        """
         return self._dtype
 
     @property
-    def subsystem(self):
+    def partition(self):
         r"""
-        list of indices for the degrees of freedom in the subsystem
+        list of indices for the degrees of freedom in the partition
         """
-        return self._subsystem
+        return self._partition
 
     @property
     def is_hermitian(self):
+        """Ignored for this operator."""
         return True
 
     def __repr__(self):
-        return f"Renyi2EntanglementEntropy(hilbert={self.hilbert}, subsys={self.subsystem})"
+        return f"Renyi2EntanglementEntropy(hilbert={self.hilbert}, partition={self.partition})"

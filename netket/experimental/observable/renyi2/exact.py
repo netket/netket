@@ -29,11 +29,11 @@ def Renyi2(vstate: FullSumState, op: Renyi2EntanglementEntropy):
 
     N = vstate.hilbert.size
 
-    if len(op.subsystem) == N or len(op.subsystem) == 0:
+    if len(op.partition) == N or len(op.partition) == 0:
         out = 0
     else:
         mask = np.zeros(N, dtype=bool)
-        mask[op.subsystem] = True
+        mask[op.partition] = True
 
         rdm = state_qutip.ptrace(np.arange(N)[mask])
 
