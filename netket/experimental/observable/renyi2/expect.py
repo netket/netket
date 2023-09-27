@@ -20,6 +20,7 @@ import netket as nk
 
 from netket.vqs import MCState, expect
 from netket.stats import statistics as mpi_statistics
+from netket.sampler import ExactSampler
 
 from .S2_operator import Renyi2EntanglementEntropy
 
@@ -29,11 +30,29 @@ def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy):
     if op.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
+    samples = vstate.samples
+    n_chains = samples.shape[0]
+    n_samples = samples.shape[0] * samples.shape[1]
+
+    if n_chains % 2 != 0 and not isinstance(vstate.sampler, ExactSampler):
+        raise ValueError("Use an even number of chains.")
+
+    if n_chains == 1:
+        if n_samples % 2 != 0:
+            samples = samples[:, :-1]
+        σ_η = samples[:, : (n_samples // 2)]
+        σp_ηp = samples[:, (n_samples // 2) :]
+
+    else:
+        σ_η = samples[: (n_chains // 2)]
+        σp_ηp = samples[(n_chains // 2) :]
+
     return Renyi2_sampling_MCState(
         vstate._apply_fun,
         vstate.parameters,
         vstate.model_state,
-        vstate.samples,
+        σ_η,
+        σp_ηp,
         op.subsystem,
     )
 
@@ -43,19 +62,19 @@ def Renyi2_sampling_MCState(
     afun,
     params,
     model_state,
-    samples,
+    σ_η,
+    σp_ηp,
     subsystem,
 ):
-    N = samples.shape[-1]
-    n_chains = int(samples.shape[0] / 2)
 
-    σ_η = samples[:n_chains]
-    σp_ηp = samples[n_chains:]
+    n_chains = σ_η.shape[0]
+
+    N = σ_η.shape[-1]
 
     σ_η = σ_η.reshape(-1, N)
     σp_ηp = σp_ηp.reshape(-1, N)
 
-    n_samples = int(σ_η.shape[0] / 2)
+    n_samples = σ_η.shape[0]
 
     σ = σ_η[:, subsystem]
     σp = σp_ηp[:, subsystem]
