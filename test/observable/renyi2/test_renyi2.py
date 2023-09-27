@@ -7,11 +7,11 @@ import pytest
 
 from .renyi2_exact import _renyi2_exact
 
-N = 3
-hi = nk.hilbert.Spin(0.5, N)
-
 
 def _setup():
+    N = 3
+    hi = nk.hilbert.Spin(0.5, N)
+
     n_samples = 1e4
     n_discard_per_chain = 1e3
 
@@ -60,3 +60,30 @@ def test_FullSumState():
     err = 1e-12
 
     np.testing.assert_allclose(S2_exact, S2_mean.real, atol=err)
+
+
+def test_continuous():
+    pytest.importorskip("qutip")
+
+    N = 3
+    hi = nk.hilbert.Particle(N, L=0, pbc=True)
+    subsys = [0, 1]
+
+    with pytest.raises(TypeError):
+        S2 = nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
+
+
+def test_invalid_partition():
+    pytest.importorskip("qutip")
+
+    N = 3
+    hi = nk.hilbert.Spin(0.5, N)
+    subsys = [-1, 0]
+
+    with pytest.raises(ValueError):
+        S2 = nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
+
+    subsys = [0, 1, 2, 3]
+
+    with pytest.raises(ValueError):
+        S2 = nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
