@@ -20,7 +20,6 @@ import netket as nk
 
 from netket.vqs import MCState, expect
 from netket.stats import statistics as mpi_statistics
-from netket.sampler import ExactSampler
 
 from .S2_operator import Renyi2EntanglementEntropy
 
@@ -66,7 +65,6 @@ def Renyi2_sampling_MCState(
     σp_ηp,
     subsystem,
 ):
-
     n_chains = σ_η.shape[0]
 
     N = σ_η.shape[-1]
