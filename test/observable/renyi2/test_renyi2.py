@@ -86,7 +86,7 @@ def test_continuous():
     subsys = [0, 1]
 
     with pytest.raises(TypeError):
-        S2 = nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
+        nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
 
 
 def test_invalid_partition():
@@ -97,12 +97,12 @@ def test_invalid_partition():
     subsys = [-1, 0]
 
     with pytest.raises(ValueError):
-        S2 = nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
+        nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
 
     subsys = [0, 1, 2, 3]
 
     with pytest.raises(ValueError):
-        S2 = nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
+        nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
 
 
 def test_oddchains():
