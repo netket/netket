@@ -69,14 +69,15 @@ class Renyi2EntanglementEntropy(AbstractOperator):
         super().__init__(hilbert)
 
         self._dtype = dtype
-        self._subsystem = np.sort(np.array(subsystem))
+        self._subsystem = np.array(list(set(subsystem)))
 
         if (
-            self._subsystem.size > hilbert.size
-            or np.where(self._subsystem < 0)[0].size > 0
-            or np.where(self._subsystem > hilbert.size)[0].size > 0
+            np.where(self._subsystem < 0)[0].size > 0
+            or np.where(self._subsystem > hilbert.size - 1)[0].size > 0
         ):
-            print("Invalid partition")
+            raise ValueError(
+                "Invalid partition: possible negative indices or indices outside the system size."
+            )
 
     @property
     def dtype(self):
