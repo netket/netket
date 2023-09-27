@@ -34,7 +34,7 @@ def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy):
     n_chains = samples.shape[0]
     n_samples = samples.shape[0] * samples.shape[1]
 
-    if n_chains % 2 != 0 and not isinstance(vstate.sampler, ExactSampler):
+    if n_chains % 2 != 0 and vstate.sampler.is_exact:
         raise ValueError("Use an even number of chains.")
 
     if n_chains == 1:
