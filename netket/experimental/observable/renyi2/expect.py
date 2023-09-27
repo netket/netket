@@ -75,6 +75,7 @@ def Renyi2_sampling_MCState(
 
     Renyi2_stats = mpi_statistics(kernel_values.reshape((n_chains, -1)).T)
 
+    # Propagation of errors from S_2 to -log_2(S_2)
     Renyi2_stats = Renyi2_stats.replace(
         variance=Renyi2_stats.variance / (Renyi2_stats.mean.real * jnp.log(2)) ** 2
     )
