@@ -99,9 +99,8 @@ class ARDirectSampler(Sampler):
     @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(sampler, model, variables, state, chain_length):
         if "cache" in variables:
-            variables_no_cache, _ = variables.pop("cache")
-        else:
-            variables_no_cache = variables
+            variables.pop("cache")
+        variables_no_cache = variables
 
         def scan_fun(carry, index):
             σ, cache, key = carry
