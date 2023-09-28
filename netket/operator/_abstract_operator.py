@@ -18,24 +18,18 @@ from netket.utils.types import DType
 
 from netket.hilbert import AbstractHilbert
 
+from ._abstract_observable import AbstractObservable
 
-class AbstractOperator(abc.ABC):
+
+class AbstractOperator(AbstractObservable):
     """Abstract class for quantum Operators. This class prototypes the methods
     needed by a class satisfying the Operator concept.
     """
 
-    _hilbert: AbstractHilbert
-    r"""The hilbert space associated to this operator."""
-
     __module__ = "netket.operator"
 
     def __init__(self, hilbert: AbstractHilbert):
-        self._hilbert = hilbert
-
-    @property
-    def hilbert(self) -> AbstractHilbert:
-        r"""The hilbert space associated to this operator."""
-        return self._hilbert
+        super().__init__(hilbert)
 
     @property
     def is_hermitian(self) -> bool:

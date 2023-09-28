@@ -12,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
 from textwrap import dedent
 
 import jax.numpy as jnp
 import numpy as np
 
 from netket.hilbert import HomogeneousHilbert
-from netket.operator import AbstractOperator
-from netket.utils.types import DType
+
+from netket.operator._abstract_observable import AbstractObservable
 
 
-class Renyi2EntanglementEntropy(AbstractOperator):
+class Renyi2EntanglementEntropy(AbstractObservable):
     r"""
     Rényi2 bipartite entanglement entropy of a state :math:`| \Psi \rangle`
     between partitions A and B.
@@ -34,8 +33,6 @@ class Renyi2EntanglementEntropy(AbstractOperator):
         self,
         hilbert: None,
         partition: jnp.array,
-        *,
-        dtype: Optional[DType] = None,
     ):
         r"""
         Constructs the operator computing the Rényi2 entanglement entropy of
@@ -101,7 +98,6 @@ class Renyi2EntanglementEntropy(AbstractOperator):
 
         super().__init__(hilbert)
 
-        self._dtype = dtype
         self._partition = np.array(list(set(partition)))
 
         if (
@@ -113,25 +109,11 @@ class Renyi2EntanglementEntropy(AbstractOperator):
             )
 
     @property
-    def dtype(self):
-        """
-        dtype of the expectation value.
-
-        It is ignored for this operator
-        """
-        return self._dtype
-
-    @property
     def partition(self):
         r"""
         list of indices for the degrees of freedom in the partition
         """
         return self._partition
-
-    @property
-    def is_hermitian(self):
-        """Ignored for this operator."""
-        return True
 
     def __repr__(self):
         return f"Renyi2EntanglementEntropy(hilbert={self.hilbert}, partition={self.partition})"

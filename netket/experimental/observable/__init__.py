@@ -12,4 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from netket.operator._abstract_observable import AbstractObservable
+
 from .renyi2 import Renyi2EntanglementEntropy
