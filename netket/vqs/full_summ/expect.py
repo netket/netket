@@ -20,13 +20,12 @@ from jax import numpy as jnp
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
-from netket.operator import Squared
+from netket.operator import DiscreteOperator, Squared
 from netket.stats import Stats
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
-from netket.operator import DiscreteOperator
-
+from netket.vqs.mc.common import force_to_grad
 
 from .state import FullSumState
 
@@ -141,17 +140,5 @@ def expect_and_grad(
     mutable: CollectionFilter,
 ) -> tuple[Stats, PyTree]:
     Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
-    Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
+    Ō_grad = force_to_grad(Ō_grad, vstate.parameters)
     return Ō, Ō_grad
-
-
-@jax.jit
-def _force_to_grad(Ō_grad, parameters):
-    Ō_grad = jax.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
-            target.dtype
-        ),
-        Ō_grad,
-        parameters,
-    )
-    return Ō_grad

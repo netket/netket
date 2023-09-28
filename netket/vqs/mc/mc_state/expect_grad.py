@@ -33,9 +33,10 @@ from netket.operator import (
 
 from netket.vqs import expect_and_grad, expect_and_forces
 
-from netket.vqs.mc import (
+from ..common import (
     get_local_kernel_arguments,
     get_local_kernel,
+    force_to_grad,
 )
 
 from .state import MCState
@@ -43,7 +44,7 @@ from .state import MCState
 
 # Implementation of expect_and_grad for `use_covariance == True` (due to the Literal[True]
 # type in the signature).` This case is equivalent to the composition of the
-# `expect_and_forces` and `_force_to_grad` functions.
+# `expect_and_forces` and `force_to_grad` functions.
 @expect_and_grad.dispatch
 def expect_and_grad_covariance(
     vstate: MCState,
@@ -53,26 +54,8 @@ def expect_and_grad_covariance(
     mutable: CollectionFilter,
 ) -> tuple[Stats, PyTree]:
     Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
-    Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
+    Ō_grad = force_to_grad(Ō_grad, vstate.parameters)
     return Ō, Ō_grad
-
-
-@jax.jit
-def _force_to_grad(Ō_grad, parameters):
-    """
-    Converts the forces vector F_k = cov(O_k, E_loc) to the observable gradient.
-    In case of a complex target (which we assume to correspond to a holomorphic
-    parametrization), this is the identity. For real-valued parameters, the gradient
-    is 2 Re[F].
-    """
-    Ō_grad = jax.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
-            target.dtype
-        ),
-        Ō_grad,
-        parameters,
-    )
-    return Ō_grad
 
 
 # Specialized dispatch rule for pure states with squared operators as well as general operators

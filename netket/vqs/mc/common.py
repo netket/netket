@@ -14,6 +14,9 @@
 
 from typing import Any
 
+import jax
+import jax.numpy as jnp
+
 from netket.hilbert import AbstractHilbert
 from netket.utils.dispatch import dispatch
 
@@ -56,3 +59,21 @@ def get_local_kernel(vstate: Any, Ô: Any):
     Returns:
         A callable accepting the output of `get_configs(vstate, O)`.
     """
+
+
+@jax.jit
+def force_to_grad(Ō_grad, parameters):
+    """
+    Converts the forces vector F_k = cov(O_k, E_loc) to the observable gradient.
+    In case of a complex target (which we assume to correspond to a holomorphic
+    parametrization), this is the identity. For real-valued parameters, the gradient
+    is 2 Re[F].
+    """
+    Ō_grad = jax.tree_map(
+        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
+            target.dtype
+        ),
+        Ō_grad,
+        parameters,
+    )
+    return Ō_grad
