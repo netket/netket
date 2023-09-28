@@ -15,15 +15,14 @@
 from typing import Any, Union, Literal
 import warnings
 
-import jax
-from jax import numpy as jnp
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket.operator import AbstractOperator
 from netket.stats import Stats
 from netket.utils.types import PyTree
-
 from netket.vqs import expect_and_grad, expect_and_forces
+
+from ..common import force_to_grad
 
 from .state import MCState
 
@@ -71,17 +70,5 @@ def expect_and_grad_covariance_chunked(  # noqa: F811
     mutable: CollectionFilter,
 ) -> tuple[Stats, PyTree]:
     Ō, Ō_grad = expect_and_forces(vstate, Ô, chunk_size, mutable=mutable)
-    Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
+    Ō_grad = force_to_grad(Ō_grad, vstate.parameters)
     return Ō, Ō_grad
-
-
-@jax.jit
-def _force_to_grad(Ō_grad, parameters):
-    Ō_grad = jax.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
-            target.dtype
-        ),
-        Ō_grad,
-        parameters,
-    )
-    return Ō_grad
