@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Callable, Literal
+from typing import Callable, Optional
 
 import jax
 from jax import numpy as jnp
@@ -22,56 +22,74 @@ from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 from netket import jax as nkjax
 from netket import config
 from netket.stats import Stats
-from netket.utils import mpi
+from netket.utils import mpi, dispatch
 from netket.utils.types import PyTree
 
 from netket.operator import (
     AbstractOperator,
-    DiscreteOperator,
     Squared,
 )
 
 from netket.vqs import expect_and_grad, expect_and_forces
 
-from ..common import (
-    get_local_kernel_arguments,
-    get_local_kernel,
-    force_to_grad,
-)
+from ..common import force_to_grad, get_local_kernel_arguments, get_local_kernel
 
 from .state import MCState
 
 
-# Implementation of expect_and_grad for `use_covariance == True` (due to the Literal[True]
-# type in the signature).` This case is equivalent to the composition of the
-# `expect_and_forces` and `force_to_grad` functions.
+# General implementation checking hermitianity
 @expect_and_grad.dispatch
-def expect_and_grad_covariance(
+def expect_and_grad_default_formula(
     vstate: MCState,
     Ô: AbstractOperator,
-    use_covariance: Literal[True],
-    *,
-    mutable: CollectionFilter,
+    chunk_size: Optional[int],
+    *args,
+    mutable: CollectionFilter = False,
+    use_covariance: Optional[bool] = None,
 ) -> tuple[Stats, PyTree]:
-    Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
-    Ō_grad = force_to_grad(Ō_grad, vstate.parameters)
-    return Ō, Ō_grad
+    if use_covariance is None:
+        use_covariance = Ô.is_hermitian
+
+    if use_covariance:
+        # Implementation of expect_and_grad for `use_covariance == True` (due to the Literal[True]
+        # type in the signature).` This case is equivalent to the composition of the
+        # `expect_and_forces` and `force_to_grad` functions.
+        # return expect_and_grad_from_covariance(vstate, Ô, *args, mutable=mutable)
+        Ō, Ō_grad = expect_and_forces(vstate, Ô, chunk_size, *args, mutable=mutable)
+        Ō_grad = force_to_grad(Ō_grad, vstate.parameters)
+        return Ō, Ō_grad
+    else:
+        return expect_and_grad_nonhermitian(
+            vstate, Ô, chunk_size, *args, mutable=mutable
+        )
 
 
-# Specialized dispatch rule for pure states with squared operators as well as general operators
-# with use_covariance == False (experimental).
-@expect_and_grad.dispatch_multi(
-    (MCState, Squared[DiscreteOperator], Literal[False]),
-    (MCState, Squared[AbstractOperator], Literal[False]),
-    (MCState, AbstractOperator, Literal[False]),
-)
-def expect_and_grad_nonherm(
-    vstate,
+# Squared is a special operator...
+@expect_and_grad.dispatch
+def expect_and_grad_squared_op(
+    vstate: MCState,
+    Ô: Squared,
+    chunk_size: Optional[int],
+    *args,
+    mutable: CollectionFilter = False,
+    use_covariance: Optional[bool] = None,
+) -> tuple[Stats, PyTree]:
+    if use_covariance is not None:
+        raise ValueError(
+            "Cannot specify `use_covariance` with Squared[...] operator.\n"
+            "This operator must use the same formula as non-hermitian operators to work."
+        )
+    return expect_and_grad_nonhermitian(vstate, Ô, chunk_size, *args, mutable=mutable)
+
+
+@dispatch.dispatch
+def expect_and_grad_nonhermitian(
+    vstate: MCState,
     Ô,
-    use_covariance,
+    chunk_size: None,
     *,
-    mutable: CollectionFilter,
-) -> tuple[Stats, PyTree]:
+    mutable: CollectionFilter = False,
+):
     if not isinstance(Ô, Squared) and not config.netket_experimental:
         raise RuntimeError(
             """
@@ -88,7 +106,7 @@ def expect_and_grad_nonherm(
 
     local_estimator_fun = get_local_kernel(vstate, Ô)
 
-    Ō, Ō_grad, new_model_state = grad_expect_operator_kernel(
+    Ō, Ō_grad, new_model_state = _grad_expect_nonherm_kernel(
         local_estimator_fun,
         vstate._apply_fun,
         vstate.sampler.machine_pow,
@@ -106,7 +124,7 @@ def expect_and_grad_nonherm(
 
 
 @partial(jax.jit, static_argnums=(0, 1, 2, 3))
-def grad_expect_operator_kernel(
+def _grad_expect_nonherm_kernel(
     local_value_kernel: Callable,
     model_apply_fun: Callable,
     machine_pow: int,

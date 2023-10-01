@@ -12,63 +12,63 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Union, Literal
+from typing import Any
 import warnings
 
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
-from netket.operator import AbstractOperator
-from netket.stats import Stats
-from netket.utils.types import PyTree
-from netket.vqs import expect_and_grad, expect_and_forces
+from netket.vqs import expect_and_grad
 
-from ..common import force_to_grad
+# TODO:  merged with above once stabilised
+from netket.operator._abstract_observable import AbstractObservable
 
 from .state import MCState
+from .expect_grad import expect_and_grad_nonhermitian
 
 
-# If batch_size is None, ignore it and remove it from signature
+def ignore_chunk_warning(vstate, operator, chunk_size, name=""):
+    return f"""
+            Ignoring chunk_size={chunk_size} for {name} method with signature
+            ({type(vstate)}, {type(operator)}) because no implementation supporting
+            chunking for this signature exists.
+            """
+
+
+# If chunk size is unspecified, set it to None
 @expect_and_grad.dispatch
-def expect_and_grad_nochunking(  # noqa: F811
+def expect_and_grad_chunking_unspecified(  # noqa: F811
     vstate: MCState,
-    operator: AbstractOperator,
-    use_covariance: Union[Literal[True], Literal[False]],
-    chunk_size: None,
-    *args,
+    operator: AbstractObservable,
     **kwargs,
 ):
-    return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)
+    return expect_and_grad(vstate, operator, None, **kwargs)
 
 
 # if no implementation exists for batched, run the code unbatched
-@expect_and_grad.dispatch
+@expect_and_grad.dispatch(precedence=-10)
 def expect_and_grad_fallback(  # noqa: F811
     vstate: MCState,
-    operator: AbstractOperator,
-    use_covariance: Union[Literal[True], Literal[False]],
+    operator: AbstractObservable,
     chunk_size: Any,
     *args,
     **kwargs,
 ):
     warnings.warn(
-        f"Ignoring chunk_size={chunk_size} for expect_and_grad method with signature "
-        f"({type(vstate)}, {type(operator)}) because no implementation supporting "
-        f"chunking for this signature exists."
+        ignore_chunk_warning(vstate, operator, chunk_size, name="expect_and_grad")
     )
+    return expect_and_grad(vstate, operator, None, *args, **kwargs)
 
-    return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)
 
-
-# dispatch for given chunk_size and use_covariance == True
-@expect_and_grad.dispatch
-def expect_and_grad_covariance_chunked(  # noqa: F811
+@expect_and_grad_nonhermitian.dispatch(precedence=-10)
+def expect_and_grad_nonhermitian_chunk_fallback(
     vstate: MCState,
-    Ô: AbstractOperator,
-    use_covariance: Literal[True],
-    chunk_size: int,
-    *,
-    mutable: CollectionFilter,
-) -> tuple[Stats, PyTree]:
-    Ō, Ō_grad = expect_and_forces(vstate, Ô, chunk_size, mutable=mutable)
-    Ō_grad = force_to_grad(Ō_grad, vstate.parameters)
-    return Ō, Ō_grad
+    Ô,
+    chunk_size: Any,
+    **kwargs,
+):
+    warnings.warn(
+        ignore_chunk_warning(
+            vstate, Ô, chunk_size, name="expect_and_grad_nonhermitian"
+        )
+    )
+    return expect_and_grad_nonhermitian(vstate, Ô, None, **kwargs)
