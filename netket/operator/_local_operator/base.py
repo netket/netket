@@ -60,6 +60,8 @@ class LocalOperator(DiscreteOperator):
     in the quantum information sense).
     """
 
+    __module__ = "netket.operator"
+
     def __init__(
         self,
         hilbert: AbstractHilbert,

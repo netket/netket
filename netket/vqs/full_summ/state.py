@@ -66,6 +66,8 @@ class FullSumState(VariationalState):
 
     _chunk_size: Optional[int] = None
 
+    __module__ = "netket.vqs"
+
     def __init__(
         self,
         hilbert: AbstractHilbert,

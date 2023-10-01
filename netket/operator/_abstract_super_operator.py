@@ -30,6 +30,8 @@ class AbstractSuperOperator(DiscreteOperator):
     Cannot be used to act upon pure states.
     """
 
+    __module__ = "netket.operator"
+
     def __init__(self, hilbert):
         """
         Initialize a super-operator by passing it the physical hilbert space on which it acts.

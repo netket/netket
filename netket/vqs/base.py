@@ -46,6 +46,8 @@ class VariationalState(abc.ABC):
 
     """
 
+    __module__ = "netket.vqs"
+
     def __init__(self, hilbert: AbstractHilbert):
         """Initialize the Abstract base class of a Variational State defined
         on an hilbert space.
@@ -278,6 +280,8 @@ class VariationalState(abc.ABC):
 
 
 class VariationalMixedState(VariationalState):
+    __module__ = "netket.vqs"
+
     def __init__(self, hilbert, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._hilbert_physical = hilbert

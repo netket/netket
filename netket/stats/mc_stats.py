@@ -93,6 +93,8 @@ class Stats:
     `NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION` is set.
     """
 
+    __module__ = "netket.stats"
+
     def to_dict(self):
         jsd = {}
         jsd["Mean"] = _maybe_item(self.mean)

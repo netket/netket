@@ -29,6 +29,7 @@ class DiscreteOperator(AbstractOperator):
     quantum Operators for discrete Hilbert spaces should derive
     their own class from this class
     """
+    __module__ = "netket.operator"
 
     def __init__(self, hilbert: DiscreteHilbert):
         if not isinstance(hilbert, DiscreteHilbert):

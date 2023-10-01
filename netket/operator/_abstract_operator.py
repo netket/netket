@@ -27,6 +27,8 @@ class AbstractOperator(abc.ABC):
     _hilbert: AbstractHilbert
     r"""The hilbert space associated to this operator."""
 
+    __module__ = "netket.operator"
+
     def __init__(self, hilbert: AbstractHilbert):
         self._hilbert = hilbert
 
