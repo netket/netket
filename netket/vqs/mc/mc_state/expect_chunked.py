@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Callable
+from typing import Any, Callable
 import warnings
 
 import jax
@@ -31,6 +31,9 @@ from netket.operator import (
     ContinuousOperator,
     Squared,
 )
+
+# to move up once stabilized
+from netket.operator._abstract_observable import AbstractObservable
 
 from netket.vqs import expect
 
@@ -77,17 +80,16 @@ def get_local_kernel(  # noqa: F811
     return nkjax.HashablePartial(_local_continuous_kernel, Ô._expect_kernel)
 
 
-# If batch_size is None, ignore it and remove it from signature so that we fall back
-# to already implemented methods
+# If batch_size is unspecified, set it to None
 @expect.dispatch
-def expect_nochunking(vstate: MCState, operator: AbstractOperator, chunk_size: None):
-    return expect(vstate, operator)
+def expect_chunking_unspecified(vstate: MCState, operator: AbstractObservable):
+    return expect(vstate, operator, None)
 
 
 # if no implementation exists for batched, fall back to unbatched methods.
-@expect.dispatch
+@expect.dispatch(precedence=-10)
 def expect_fallback(
-    vstate: MCState, operator: AbstractOperator, chunk_size
+    vstate: MCState, operator: AbstractObservable, chunk_size: Any
 ):  # noqa: F811
     warnings.warn(
         f"Ignoring chunk_size={chunk_size} for expect_and_grad method with signature "
@@ -95,7 +97,7 @@ def expect_fallback(
         f"chunking for this signature exists."
     )
 
-    return expect(vstate, operator)
+    return expect(vstate, operator, None)
 
 
 @expect.dispatch
