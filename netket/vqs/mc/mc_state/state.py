@@ -575,7 +575,7 @@ class MCState(VariationalState):
         Ô: AbstractOperator,
         *,
         mutable: Optional[CollectionFilter] = None,
-        use_covariance: Optional[bool] = None,
+        **kwargs,
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient for a given operator O.
 
@@ -588,6 +588,8 @@ class MCState(VariationalState):
                      to implement BatchNorm. Consult
                      `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
                      for a more in-depth explanation).
+
+        Extra args:
             use_covariance: whether to use the covariance formula, usually reserved for
                 hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
 
@@ -599,7 +601,11 @@ class MCState(VariationalState):
             mutable = self.mutable
 
         return expect_and_grad(
-            self, Ô, use_covariance, self.chunk_size, mutable=mutable
+            self,
+            Ô,
+            self.chunk_size,
+            mutable=mutable,
+            **kwargs,
         )
 
     # override to use chunks

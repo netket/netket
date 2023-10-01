@@ -12,33 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Literal, Union
+from typing import Any
 
-from netket.operator import AbstractOperator
+from netket.operator import AbstractOperator, AbstractSuperOperator
 
-from netket.vqs import expect_and_grad, expect_and_forces
+from netket.vqs import expect_and_forces
 
 from .state import MCMixedState
 
 
 # If batch_size is None, ignore it and remove it from signature
-@expect_and_grad.dispatch
-def expect_and_grad_nochunking(
+@expect_and_forces.dispatch
+def expect_and_forces_operators(
     vstate: MCMixedState,
     operator: AbstractOperator,
-    use_covariance: Union[Literal[True], Literal[False]],
-    chunk_size: None,
+    chunk_size: Any,
     *args,
     **kwargs,
 ):
-    return expect_and_grad(vstate, operator, use_covariance, *args, **kwargs)
+    raise NotImplementedError("Gradients for operators are not implemented yet")
 
 
-# If batch_size is None, ignore it and remove it from signature
 @expect_and_forces.dispatch
 def expect_and_forces_nochunking(
     vstate: MCMixedState,
-    operator: AbstractOperator,
+    operator: AbstractSuperOperator,
     chunk_size: None,
     *args,
     **kwargs,
