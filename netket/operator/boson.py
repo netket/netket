@@ -16,7 +16,7 @@ from scipy import sparse as _sparse
 
 from netket.utils.types import DType as _DType
 
-from netket.hilbert import AbstractHilbert as _AbstractHilbert
+from netket.hilbert import DiscreteHilbert as _DiscreteHilbert
 
 from ._local_operator import LocalOperator as _LocalOperator
 
@@ -25,7 +25,7 @@ from .spin import identity  # noqa: F401
 
 
 def destroy(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = None
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the boson destruction operator :math:`\\hat{a}` acting on the `site`-th of
@@ -53,7 +53,7 @@ def destroy(
 
 
 def create(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
     Builds the boson creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th
@@ -81,7 +81,7 @@ def create(
 
 
 def number(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
     Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
@@ -109,7 +109,7 @@ def number(
 
 
 def proj(
-    hilbert: _AbstractHilbert, site: int, n: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, n: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
     Builds the projector operator :math:`|n\\rangle\\langle n |` acting on the

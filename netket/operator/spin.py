@@ -16,12 +16,12 @@ from scipy import sparse as _sparse
 
 from netket.utils.types import DType as _DType
 
-from netket.hilbert import AbstractHilbert as _AbstractHilbert
+from netket.hilbert import DiscreteHilbert as _DiscreteHilbert
 
 from ._local_operator import LocalOperator as _LocalOperator
 
 
-def identity(hilbert: _AbstractHilbert, dtype: _DType = None) -> _LocalOperator:
+def identity(hilbert: _DiscreteHilbert, dtype: _DType = None) -> _LocalOperator:
     """
     Builds the :math:`\\mathbb{I}` identity operator.
 
@@ -36,7 +36,7 @@ def identity(hilbert: _AbstractHilbert, dtype: _DType = None) -> _LocalOperator:
 
 
 def sigmax(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = None
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^x` operator acting on the `site`-th of the Hilbert
@@ -65,7 +65,7 @@ def sigmax(
 
 
 def sigmay(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = None
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^y` operator acting on the `site`-th of the Hilbert
@@ -109,7 +109,7 @@ def sigmay(
 
 
 def sigmaz(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = None
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^z` operator acting on the `site`-th of the Hilbert
@@ -138,7 +138,7 @@ def sigmaz(
 
 
 def sigmam(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = None
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^{-} = \\frac{1}{2}(\\sigma^x - i \\sigma^y)` operator acting on the
@@ -168,7 +168,7 @@ def sigmam(
 
 
 def sigmap(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = None
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^{+} = \\frac{1}{2}(\\sigma^x + i \\sigma^y)` operator acting on the
