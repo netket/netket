@@ -20,9 +20,12 @@ from netket.hilbert import AbstractHilbert as _AbstractHilbert
 
 from ._local_operator import LocalOperator as _LocalOperator
 
+# export identity from here as well
+from .spin import identity  # noqa: F401
+
 
 def destroy(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _AbstractHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the boson destruction operator :math:`\\hat{a}` acting on the `site`-th of
@@ -32,11 +35,12 @@ def destroy(
     as a bosonic space of local dimension M.
 
     Args:
-        hilbert: The hilbert space
-        site: the site on which this operator acts
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
-        The resulting Local Operator
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
@@ -59,11 +63,12 @@ def create(
     as a bosonic space of local dimension M.
 
     Args:
-        hilbert: The hilbert space
-        site: the site on which this operator acts
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
-        The resulting Local Operator
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
@@ -86,11 +91,12 @@ def number(
     as a bosonic space of local dimension M.
 
     Args:
-        hilbert: The hilbert space
-        site: the site on which this operator acts
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
-        The resulting Local Operator
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
@@ -114,12 +120,12 @@ def proj(
     as a bosonic space of local dimension M.
 
     Args:
-        hilbert: The hilbert space
-        site: the site on which this operator acts
-        n: the state on which to project
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
-        the resulting operator
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
