@@ -548,6 +548,31 @@ def test_duplicate_sites():
         nk.operator.LocalOperator(hi, mat, [0, 0])
 
 
+def test_numpy_matrix():
+    # np.matrix dont respect the API of ndarray. They
+    # must be specially handled
+    hi = nk.hilbert.Spin(0.5, 1)
+    mat = np.matrix([[1, 0], [0, 1]])
+    op = nk.operator.LocalOperator(hi, mat, 0)
+    assert_same_matrices(mat, op)
+
+
+def test_mixed_sparse_dense_terms():
+    # bug #1596
+    # tests for https://github.com/netket/netket/issues/1596
+
+    hi = nk.hilbert.Spin(0.5, 3)
+    op = nk.operator.spin.sigmax(hi, 0)
+    mat = op.operators[0].todense()
+
+    op2 = nk.operator.LocalOperator(hi, mat, 1)
+    op3 = op - op2
+
+    res = op3 @ op3
+    res2 = op3.to_pauli_strings() @ op3.to_pauli_strings()
+    assert_same_matrices(res, res2)
+
+
 def test_pauli_strings_conversion():
     hi = nk.hilbert.Spin(1 / 2, N=5)
 
