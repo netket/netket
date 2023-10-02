@@ -49,12 +49,19 @@ def _standardize_matrix_input_type(op):
         return np.asarray(op)
     elif sparse.issparse(op):
         return op.tocoo()
+    elif isinstance(op, np.matrix):
+        # np.matrix does not respect the ndarray interface
+        return np.asarray(op)
     else:
         return op
 
 
 def _kron(A, B):
     if isinstance(A, spmatrix) and isinstance(B, spmatrix):
+        res = sparse.kron(A, B, format="coo")
+    elif isinstance(A, spmatrix) ^ isinstance(B, spmatrix):
+        # XOR, meaning only one is sparse matrix
+        # Then we maintain sparse format (Is this a good idea?)
         res = sparse.kron(A, B, format="coo")
     else:
         res = np.kron(np.asarray(A), np.asarray(B))
