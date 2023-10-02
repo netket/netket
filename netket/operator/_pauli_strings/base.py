@@ -310,7 +310,7 @@ class PauliStringsBase(DiscreteOperator):
 
     def _op__matmul__(self, other):
         if not isinstance(other, PauliStringsBase):
-            return NotImplementedError
+            return NotImplemented
         op = self.copy(
             dtype=np.promote_types(self.dtype, _dtype(other)),
             cutoff=max(self._cutoff, other._cutoff),

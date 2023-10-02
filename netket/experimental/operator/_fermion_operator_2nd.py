@@ -462,7 +462,7 @@ class FermionOperator2nd(DiscreteOperator):
 
     def _op__imatmul__(self, other):
         if not isinstance(other, FermionOperator2nd):
-            return NotImplementedError
+            return NotImplemented
         if not self.hilbert == other.hilbert:
             raise ValueError(
                 "Can only multiply identical hilbert spaces (got A@B, "
@@ -497,7 +497,7 @@ class FermionOperator2nd(DiscreteOperator):
 
     def _op__matmul__(self, other):
         if not isinstance(other, FermionOperator2nd):
-            return NotImplementedError
+            return NotImplemented
         dtype = np.promote_types(self.dtype, other.dtype)
         op = self.copy(dtype=dtype)
         return op._op__imatmul__(other)
