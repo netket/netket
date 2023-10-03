@@ -13,6 +13,7 @@
 
 * It is now possible to disable netket's double precision login and force all calculations to be performed using single precision by setting the environment variable/configuration flag `NETKET_ENABLE_X64=0`, which also sets `JAX_ENABLE_X64=0`. When running with this flag, the number of warnings printed by jax is considerably reduced as well [#1544](https://github.com/netket/netket/pull/1544).
 * Added the operator computing the Rényi2 entanglement entropy on Hilbert spaces with discrete dofs [#1591](https://github.com/netket/netket/pull/1591).
+* Added new shortcuts to build the identity operator as {func}`netket.operator.spin.identity` and {func}`netket.operator.boson.identity` [#15XX](https://github.com/netket/netket/pull/15XX).
 
 ## NetKet 3.9.2
 

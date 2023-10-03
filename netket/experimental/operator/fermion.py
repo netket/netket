@@ -19,13 +19,14 @@ from netket.experimental.operator import FermionOperator2nd as _FermionOperator2
 
 def destroy(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = None):
     """
-    Builds the fermion destruction operator :math:`\\hat{a}` acting on the `site`-th of
-    the Hilbert space `hilbert`.
+    Builds the fermion destruction operator :math:`\\hat{a}` acting
+    on the `site`-th of the Hilbert space `hilbert`.
 
     Args:
-        hilbert: The hilbert space
-        site (int): the site on which this operator acts
-        sz (int): spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 down)
+        hilbert: The hilbert space.
+        site: the site on which this operator acts.
+        sz: spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 down)
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
         The resulting FermionOperator2nd
@@ -36,13 +37,14 @@ def destroy(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType 
 
 def create(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = None):
     """
-    Builds the fermion creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th of
-    the Hilbert space `hilbert`.
+    Builds the fermion creation operator :math:`\\hat{a}^\\dagger` acting
+    on the `site`-th of the Hilbert space `hilbert`.
 
     Args:
         hilbert: The hilbert space
-        site (int): the site on which this operator acts
-        sz (int): spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 down)
+        site: the site on which this operator acts
+        sz: spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 down)
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
         The resulting FermionOperator2nd
@@ -59,8 +61,9 @@ def number(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType =
     Args:
         hilbert: The hilbert space
         site: the site on which this operator acts
-        site (int): the site on which this operator acts
-        sz (int): spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 fermion with spin down)
+        site: the site on which this operator acts
+        sz: spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 fermion with spin down)
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
         The resulting FermionOperator2nd
@@ -93,10 +96,29 @@ def _get_index(hilbert: _AbstractHilbert, site: int, sz: float = None):
 
 
 def identity(hilbert: _AbstractHilbert, dtype: _DType = None):
-    """identity operator"""
+    """
+    Builds the :math:`\\mathbb{I}` identity operator.
+
+    Args:
+        hilbert: The hilbert space.
+        dtype: The datatype to use for the matrix elements.
+
+    Returns:
+        An instance of {class}`nk.operator.LocalOperator`.
+    """
     return _FermionOperator2nd(hilbert, [], [], constant=1.0, dtype=dtype)
 
 
 def zero(hilbert: _AbstractHilbert, dtype: _DType = None):
-    """returns an object that has no contribution, meaning a constant of 0"""
+    """
+    Builds the :math:`0` operator, which has no connected components.
+
+    Why we provide this is a mistery, as you could just multiply by 0.
+
+    Args:
+        hilbert: The hilbert space.
+        dtype: The datatype to use for the matrix elements.
+
+    Returns:
+        An instance of {class}`nk.operator.LocalOperator`."""
     return _FermionOperator2nd(hilbert, [], [], constant=0.0, dtype=dtype)

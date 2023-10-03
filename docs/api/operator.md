@@ -103,8 +103,10 @@ Those are easy-to-use constructors for a {class}`~netket.operator.LocalOperator`
 
    boson.create
    boson.destroy
+   boson.identity
    boson.number
    boson.proj
+   spin.identity
    spin.sigmax
    spin.sigmay
    spin.sigmaz
@@ -124,5 +126,6 @@ In the experimental submodule there are also easy-to-use constructors for common
 
    experimental.operator.fermion.create
    experimental.operator.fermion.destroy
+   experimental.operator.fermion.identity
    experimental.operator.fermion.number
 ```

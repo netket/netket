@@ -16,13 +16,27 @@ from scipy import sparse as _sparse
 
 from netket.utils.types import DType as _DType
 
-from netket.hilbert import AbstractHilbert as _AbstractHilbert
+from netket.hilbert import DiscreteHilbert as _DiscreteHilbert
 
 from ._local_operator import LocalOperator as _LocalOperator
 
 
+def identity(hilbert: _DiscreteHilbert, dtype: _DType = None) -> _LocalOperator:
+    """
+    Builds the :math:`\\mathbb{I}` identity operator.
+
+    Args:
+        hilbert: The hilbert space.
+        dtype: The datatype to use for the matrix elements.
+
+    Returns:
+        An instance of {class}`nk.operator.LocalOperator`.
+    """
+    return _LocalOperator(hilbert, constant=1.0, dtype=dtype)
+
+
 def sigmax(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^x` operator acting on the `site`-th of the Hilbert
@@ -31,9 +45,13 @@ def sigmax(
     If `hilbert` is a non-Spin space of local dimension M, it is considered
     as a (M-1)/2 - spin space.
 
-    :param hilbert: The hilbert space
-    :param site: the site on which this operator acts
-    :return: a nk.operator.LocalOperator
+    Args:
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
+
+    Returns:
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
@@ -47,7 +65,7 @@ def sigmax(
 
 
 def sigmay(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = complex
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^y` operator acting on the `site`-th of the Hilbert
@@ -56,9 +74,13 @@ def sigmay(
     If `hilbert` is a non-Spin space of local dimension M, it is considered
     as a (M-1)/2 - spin space.
 
-    :param hilbert: The hilbert space
-    :param site: the site on which this operator acts
-    :return: a nk.operator.LocalOperator
+    Args:
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
+
+    Returns:
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
     import netket.jax as nkjax
@@ -87,7 +109,7 @@ def sigmay(
 
 
 def sigmaz(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^z` operator acting on the `site`-th of the Hilbert
@@ -96,9 +118,13 @@ def sigmaz(
     If `hilbert` is a non-Spin space of local dimension M, it is considered
     as a (M-1)/2 - spin space.
 
-    :param hilbert: The hilbert space
-    :param site: the site on which this operator acts
-    :return: a nk.operator.LocalOperator
+    Args:
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
+
+    Returns:
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
@@ -112,7 +138,7 @@ def sigmaz(
 
 
 def sigmam(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^{-} = \\frac{1}{2}(\\sigma^x - i \\sigma^y)` operator acting on the
@@ -121,9 +147,13 @@ def sigmam(
     If `hilbert` is a non-Spin space of local dimension M, it is considered
     as a (M-1)/2 - spin space.
 
-    :param hilbert: The hilbert space
-    :param site: the site on which this operator acts
-    :return: a nk.operator.LocalOperator
+    Args:
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
+
+    Returns:
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
@@ -138,7 +168,7 @@ def sigmam(
 
 
 def sigmap(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the :math:`\\sigma^{+} = \\frac{1}{2}(\\sigma^x + i \\sigma^y)` operator acting on the
@@ -147,9 +177,13 @@ def sigmap(
     If `hilbert` is a non-Spin space of local dimension M, it is considered
     as a (M-1)/2 - spin space.
 
-    :param hilbert: The hilbert space
-    :param site: the site on which this operator acts
-    :return: a nk.operator.LocalOperator
+    Args:
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
+
+    Returns:
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 

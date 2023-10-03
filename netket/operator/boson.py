@@ -16,13 +16,16 @@ from scipy import sparse as _sparse
 
 from netket.utils.types import DType as _DType
 
-from netket.hilbert import AbstractHilbert as _AbstractHilbert
+from netket.hilbert import DiscreteHilbert as _DiscreteHilbert
 
 from ._local_operator import LocalOperator as _LocalOperator
 
+# export identity from here as well
+from .spin import identity  # noqa: F401
+
 
 def destroy(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = None
 ) -> _LocalOperator:
     """
     Builds the boson destruction operator :math:`\\hat{a}` acting on the `site`-th of
@@ -32,11 +35,12 @@ def destroy(
     as a bosonic space of local dimension M.
 
     Args:
-        hilbert: The hilbert space
-        site: the site on which this operator acts
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
-        The resulting Local Operator
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
@@ -49,7 +53,7 @@ def destroy(
 
 
 def create(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
     Builds the boson creation operator :math:`\\hat{a}^\\dagger` acting on the `site`-th
@@ -59,11 +63,12 @@ def create(
     as a bosonic space of local dimension M.
 
     Args:
-        hilbert: The hilbert space
-        site: the site on which this operator acts
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
-        The resulting Local Operator
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
@@ -76,7 +81,7 @@ def create(
 
 
 def number(
-    hilbert: _AbstractHilbert, site: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
     Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
@@ -86,11 +91,12 @@ def number(
     as a bosonic space of local dimension M.
 
     Args:
-        hilbert: The hilbert space
-        site: the site on which this operator acts
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
-        The resulting Local Operator
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
@@ -103,7 +109,7 @@ def number(
 
 
 def proj(
-    hilbert: _AbstractHilbert, site: int, n: int, dtype: _DType = float
+    hilbert: _DiscreteHilbert, site: int, n: int, dtype: _DType = float
 ) -> _LocalOperator:
     """
     Builds the projector operator :math:`|n\\rangle\\langle n |` acting on the
@@ -114,12 +120,12 @@ def proj(
     as a bosonic space of local dimension M.
 
     Args:
-        hilbert: The hilbert space
-        site: the site on which this operator acts
-        n: the state on which to project
+        hilbert: The hilbert space.
+        site: The site on which this operator acts.
+        dtype: The datatype to use for the matrix elements.
 
     Returns:
-        the resulting operator
+        An instance of {class}`nk.operator.LocalOperator`.
     """
     import numpy as np
 
