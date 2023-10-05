@@ -10,6 +10,11 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/netket
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
 
     steps:
       - uses: actions/checkout@v3
@@ -29,11 +34,9 @@ jobs:
           python -m pip install --upgrade build
           pip install -U build twine 
 
-      - name: Build and publish
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-
+      - name: Build
         run: |
           python -m build
-          twine upload dist/*
+      
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
