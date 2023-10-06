@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union
 from functools import partial
 
 import jax.numpy as jnp
@@ -20,12 +21,15 @@ import netket as nk
 
 from netket.vqs import MCState, expect
 from netket.stats import statistics as mpi_statistics
+from netket import jax as nkjax
 
 from .S2_operator import Renyi2EntanglementEntropy
 
 
 @expect.dispatch
-def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy):
+def Renyi2(
+    vstate: MCState, op: Renyi2EntanglementEntropy, chunk_size: Union[int, None]
+):
     if op.hilbert != vstate.hilbert:
         raise TypeError("Hilbert spaces should match")
 
@@ -53,17 +57,13 @@ def Renyi2(vstate: MCState, op: Renyi2EntanglementEntropy):
         σ_η,
         σp_ηp,
         op.partition,
+        chunk_size=chunk_size,
     )
 
 
-@partial(jax.jit, static_argnames=("afun"))
+@partial(jax.jit, static_argnames=("afun", "chunk_size"))
 def Renyi2_sampling_MCState(
-    afun,
-    params,
-    model_state,
-    σ_η,
-    σp_ηp,
-    partition,
+    afun, params, model_state, σ_η, σp_ηp, partition, *, chunk_size
 ):
     n_chains = σ_η.shape[0]
 
@@ -83,6 +83,9 @@ def Renyi2_sampling_MCState(
     σ_ηp = σ_ηp.at[:, partition].set(σ)
     σp_η = σp_η.at[:, partition].set(σp)
 
+    @partial(
+        nkjax.apply_chunked, in_axes=(None, None, 0, 0, 0, 0), chunk_size=chunk_size
+    )
     def kernel_fun(params, model_state, σ_ηp, σp_η, σ_η, σp_ηp):
         W = {"params": params, **model_state}
 
