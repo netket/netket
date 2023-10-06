@@ -22,8 +22,25 @@ from ._abstract_observable import AbstractObservable
 
 
 class AbstractOperator(AbstractObservable):
-    """Abstract class for quantum Operators. This class prototypes the methods
-    needed by a class satisfying the Operator concept.
+    """Abstract class for quantum Operators.
+
+    An operator is a general object that defines a linear transformation
+    on vectors of the Hilbert space and their expectation value can
+    be comptued starting from a variational state using the method
+    `expect` or `expect_and_grad` of the variational states.
+
+    If the object is not a linear operator but some more general
+    function, it should inherit from {class}`~netket.operator.AbstractObservable`
+    instead.
+
+    Operators over discrete hilbert spaces that can be converted
+    to a dense representation should instead inherit from
+    {class}`~netket.operator.DiscreteOperator`, while operators
+    over that only work over continuous hilbert spaces should
+    inherit from {class}`~netket.operator.ContinuousOperator`.
+
+    This class determines the basic methods that an operator
+    must implement to work correctly with NetKet.
     """
 
     __module__ = "netket.operator"

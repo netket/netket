@@ -19,19 +19,32 @@ from netket.hilbert import AbstractHilbert
 
 class AbstractObservable(abc.ABC):
     """Abstract class for quantum Observables.
-    This class prototypes the methods
-    needed by a class satisfying the Operator concept.
+
+    An observable is a general object that defines a quantity that
+    can be comptued starting from a variational state. Observables
+    should be computed using the method `expect` of the variational
+    states, and derivatives of this expectation value can sometimes
+    also be computed using the method `expect_and_grad`.
+
+    All operators are Observables, but some observables are not
+    operators (for example, the entanglement entropy observable
+    does is not an operator).
+
+    This class determines the basic methods that an observable
+    must implement to work correctly with NetKet.
     """
 
     _hilbert: AbstractHilbert
-    r"""The hilbert space associated to this operator."""
+    r"""The hilbert space associated to this observable."""
+
+    __module__ = "netket.experimental.observable"
 
     def __init__(self, hilbert: AbstractHilbert):
         self._hilbert = hilbert
 
     @property
     def hilbert(self) -> AbstractHilbert:
-        r"""The hilbert space associated to this operator."""
+        r"""The hilbert space associated to this observable."""
         return self._hilbert
 
     def __repr__(self):
