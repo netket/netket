@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
+from typing import Any, Union
 import warnings
 
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
@@ -49,7 +49,7 @@ def expect_and_grad_chunking_unspecified(  # noqa: F811
 def expect_and_grad_fallback(  # noqa: F811
     vstate: MCState,
     operator: AbstractObservable,
-    chunk_size: Any,
+    chunk_size: Union[int, tuple],
     *args,
     **kwargs,
 ):

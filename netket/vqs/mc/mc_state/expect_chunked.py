@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable
+from typing import Callable, Union
 import warnings
 
 import jax
@@ -89,7 +89,7 @@ def expect_chunking_unspecified(vstate: MCState, operator: AbstractObservable):
 # if no implementation exists for batched, fall back to unbatched methods.
 @expect.dispatch(precedence=-10)
 def expect_fallback(
-    vstate: MCState, operator: AbstractObservable, chunk_size: Any
+    vstate: MCState, operator: AbstractObservable, chunk_size: Union[int, tuple]
 ):  # noqa: F811
     warnings.warn(
         f"Ignoring chunk_size={chunk_size} for expect_and_grad method with signature "
