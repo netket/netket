@@ -53,10 +53,19 @@ def expect_and_grad_fallback(  # noqa: F811
     *args,
     **kwargs,
 ):
-    warnings.warn(
-        ignore_chunk_warning(vstate, operator, chunk_size, name="expect_and_grad")
-    )
-    return expect_and_grad(vstate, operator, None, *args, **kwargs)
+    # chunk size
+    if isinstance(chunk_size, int):
+        chunk_size = None
+        warnings.warn(
+            ignore_chunk_warning(vstate, operator, chunk_size, name="expect_and_grad")
+        )
+
+    # if chunk size is a tuple (for forward and backward)
+    # convert to single chunk size
+    if isinstance(chunk_size, tuple):
+        chunk_size = chunk_size[0]
+
+    return expect_and_grad(vstate, operator, chunk_size, *args, **kwargs)
 
 
 @expect_and_grad_nonhermitian.dispatch(precedence=-10)
@@ -66,9 +75,17 @@ def expect_and_grad_nonhermitian_chunk_fallback(
     chunk_size: Any,
     **kwargs,
 ):
-    warnings.warn(
-        ignore_chunk_warning(
-            vstate, Ô, chunk_size, name="expect_and_grad_nonhermitian"
+    if isinstance(chunk_size, int):
+        chunk_size = None
+        warnings.warn(
+            ignore_chunk_warning(
+                vstate, Ô, chunk_size, name="expect_and_grad_nonhermitian"
+            )
         )
-    )
-    return expect_and_grad_nonhermitian(vstate, Ô, None, **kwargs)
+
+    # if chunk size is a tuple (for forward and backward)
+    # convert to single chunk size
+    if isinstance(chunk_size, tuple):
+        chunk_size = chunk_size[0]
+
+    return expect_and_grad_nonhermitian(vstate, Ô, chunk_size, **kwargs)
