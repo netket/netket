@@ -18,7 +18,7 @@ from functools import partial
 import jax
 
 from jax import numpy as jnp
-from jax.tree_util import tree_map
+from jax.tree_util import Partial, tree_map
 
 
 from ._utils_tree import tree_leaf_iscomplex, eval_shape
@@ -58,7 +58,7 @@ def vjp_cc(
     else:
         out, _vjp_fun = jax.vjp(fun, *primals, has_aux=False)
 
-    def vjp_fun(ȳ):
+    def vjp_fun_cc(_vjp_fun, ȳ):
         ȳ = jnp.asarray(ȳ, dtype=out.dtype)
 
         dȳ = _vjp_fun(ȳ)
@@ -67,6 +67,8 @@ def vjp_cc(
             dȳ = tree_map(jnp.conjugate, dȳ)
 
         return dȳ
+
+    vjp_fun = Partial(vjp_fun_cc, _vjp_fun)
 
     if has_aux:
         return out, vjp_fun, aux
@@ -82,7 +84,7 @@ def vjp_rr(
     else:
         primals_out, _vjp_fun = jax.vjp(fun, *primals, has_aux=False)
 
-    def vjp_fun(ȳ):
+    def vjp_fun_rr(_vjp_fun, ȳ):
         """
         function computing the vjp product for a R->R function.
         """
@@ -94,6 +96,8 @@ def vjp_rr(
             out = tree_map(partial(_cmplx, conj=conjugate), out_r, out_i)
 
         return out
+
+    vjp_fun = Partial(vjp_fun_rr, _vjp_fun)
 
     if has_aux:
         return primals_out, vjp_fun, aux
@@ -126,7 +130,7 @@ def vjp_rc(
 
     primals_out = vals_r + 1j * vals_j
 
-    def vjp_fun(ȳ):
+    def vjp_fun_rc(vjp_r_fun, vjp_j_fun, ȳ):
         """
         function computing the vjp product for a R->C function.
         """
@@ -147,6 +151,9 @@ def vjp_rc(
             out = tree_map(jnp.conjugate, out)
 
         return out
+
+    # TODO pass vals_r and vals_j dtype via HashablePartial?
+    vjp_fun = Partial(vjp_fun_rc, vjp_r_fun, vjp_j_fun)
 
     if has_aux:
         return primals_out, vjp_fun, aux
