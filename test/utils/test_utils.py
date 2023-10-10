@@ -58,6 +58,7 @@ def test_HashableArray(numpy):
     assert hash(wb) == hash(wb)
     assert wb == wb
 
+    assert wa != a
     assert wa != wb
 
     assert_equal(wa.wrapped, np.asarray(wa))
