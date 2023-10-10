@@ -25,7 +25,7 @@ hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
 # Ising spin Hamiltonian
 ha = nk.operator.Ising(hilbert=hi, graph=g, h=1)
 
-# Autoregressive neural network
+# RNN with LSTM cells
 ma = nk.models.FastLSTMNet(hilbert=hi, layers=2, features=10)
 
 # Autoregressive direct sampling

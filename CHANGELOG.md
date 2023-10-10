@@ -5,7 +5,7 @@
 
 ## NetKet 3.10 (⚙️ In development)
 
-### Improvements 
+### Improvements
 
 * Considerably reduced the memory consumption of `LocalOperators`, especially in the case of large local hilbert spaces. Also leveraged sparsity in the terms to speed up compilation (`_setup`) in the same cases [#1558](https://github.com/netket/netket/pull/1558).
 
