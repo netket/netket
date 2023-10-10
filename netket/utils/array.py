@@ -50,7 +50,7 @@ class HashableArray:
         return hash(self.wrapped.tobytes())
 
     def __eq__(self, other):
-        return np.all(self.wrapped == other.wrapped)
+        return type(other) is HashableArray and np.all(self.wrapped == other.wrapped)
 
     def __array__(self, dtype: DType = None):
         if dtype is None:
