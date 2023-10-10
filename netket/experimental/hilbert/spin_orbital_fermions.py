@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 from collections.abc import Iterable
 import numpy as np
 from fractions import Fraction
@@ -66,31 +66,37 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             A SpinOrbitalFermions object
         """
         if s is None:
-            total_size = n_orbitals
+            spin_size = 1
         else:
             spin_size = round(2 * s + 1)
-            total_size = n_orbitals * spin_size
 
-        if n_fermions is None:
-            hilbert = Fock(n_max=1, N=total_size)
-        elif isinstance(n_fermions, int):
-            hilbert = Fock(n_max=1, N=total_size, n_particles=n_fermions)
+        total_size = n_orbitals * spin_size
+
+        if spin_size == 1:
+            hilbert = Fock(n_max=1, N=n_orbitals, n_particles=n_fermions)
+            n_fermions_s = (n_fermions,)
         else:
-            if not isinstance(n_fermions, Iterable):
+            if n_fermions is None:
+                n_fermions_s = tuple(None for _ in range(spin_size))
+            else:
+                n_fermions_s = n_fermions
+
+            if not isinstance(n_fermions_s, Iterable):
                 raise TypeError(
-                    f"n_fermions (whose type is {type(n_fermions)}) "
-                    "must be None, an integer, or an iterable of integers"
+                    f"n_fermions={n_fermions_s} (whose type is {type(n_fermions_s)}) "
+                    "must be None or a list of integers describing the number of "
+                    f"fermions in each of the {total_size} spin subsectors."
                 )
-            if s is None:
-                raise TypeError(
-                    "n_fermions cannot be a sequence if no spin is specified."
-                )
-            if len(n_fermions) != spin_size:
+
+            if len(n_fermions_s) != spin_size:
                 raise ValueError(
-                    "list of number of fermions must equal number of spin components"
+                    "List of number of fermions must equal number of spin components.\n"
+                    f"For s={s}, which has {total_size} components, the same length is "
+                    f"expected."
                 )
+
             spin_hilberts = [
-                Fock(n_max=1, N=n_orbitals, n_particles=Nf) for Nf in n_fermions
+                Fock(n_max=1, N=n_orbitals, n_particles=Nf) for Nf in n_fermions_s
             ]
             hilbert = TensorDiscreteHilbert(*spin_hilberts)
 
@@ -102,22 +108,30 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         # we use the constraints from the Fock spaces, and override `constrained`
         super().__init__(local_states, N=total_size, constraint_fn=None)
         self._s = s
-        self.n_fermions = n_fermions
-        self.n_orbitals = n_orbitals
+        self._n_fermions_per_subsector: Tuple[Optional[int], ...] = n_fermions_s
+        self._n_orbitals = n_orbitals
 
         # we copy the respective functions, independent of what hilbert space they are
         self._numbers_to_states = self._fock._numbers_to_states
         self._states_to_numbers = self._fock._states_to_numbers
         self.all_states = self._fock.all_states
 
-    def __repr__(self):
-        _str = f"SpinOrbitalFermions(n_orbitals={self.n_orbitals}"
-        if self.n_fermions is not None:
-            _str += f", n_fermions={self.n_fermions}"
-        if self.spin is not None:
-            _str += f", s={Fraction(self.spin)}"
-        _str += ")"
-        return _str
+    @property
+    def n_fermions(self) -> Optional[int]:
+        """The total number of fermions"""
+        if self.constrained:
+            return sum(self.n_fermions_per_spin)
+        else:
+            return None
+
+    @property
+    def n_fermions_per_spin(self) -> tuple[Optional[int], ...]:
+        return self._n_fermions_per_subsector
+
+    @property
+    def n_orbitals(self) -> int:
+        """The number of orbitals (for each spin subsector if relevant)."""
+        return self._n_orbitals
 
     @property
     def spin(self) -> float:
@@ -136,7 +150,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
     @property
     def constrained(self):
-        return self.n_fermions is not None
+        return any(f is not None for f in self.n_fermions_per_spin)
 
     @property
     def is_finite(self) -> bool:
@@ -173,3 +187,12 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             raise IndexError("requested orbital index outside of the hilbert space")
         spin_idx = self._spin_index(sz)
         return spin_idx * self.n_orbitals + orb
+
+    def __repr__(self):
+        _str = f"SpinOrbitalFermions(n_orbitals={self.n_orbitals}"
+        if self.n_fermions is not None:
+            _str += f", n_fermions={self.n_fermions}"
+        if self.spin is not None:
+            _str += f", s={Fraction(self.spin)}"
+        _str += ")"
+        return _str
