@@ -26,6 +26,7 @@ release = nk.__version__
 extensions = [
     # "myst_parser",
     "myst_nb",
+    "sphinx_design",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
