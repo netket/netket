@@ -20,6 +20,7 @@ import jax
 from jax import numpy as jnp
 from jax.tree_util import Partial, tree_map
 
+from netket.utils import HashablePartial
 
 from ._utils_tree import tree_leaf_iscomplex, eval_shape
 
@@ -130,7 +131,7 @@ def vjp_rc(
 
     primals_out = vals_r + 1j * vals_j
 
-    def vjp_fun_rc(vjp_r_fun, vjp_j_fun, ȳ):
+    def vjp_fun_rc(vals_r_dtype, vals_j_dtype, vjp_r_fun, vjp_j_fun, ȳ):
         """
         function computing the vjp product for a R->C function.
         """
@@ -138,10 +139,10 @@ def vjp_rc(
         ȳ_j = ȳ.imag
 
         # val = vals_r + vals_j
-        vr_jr = vjp_r_fun(jnp.asarray(ȳ_r, dtype=vals_r.dtype))
-        vj_jr = vjp_r_fun(jnp.asarray(ȳ_j, dtype=vals_r.dtype))
-        vr_jj = vjp_j_fun(jnp.asarray(ȳ_r, dtype=vals_j.dtype))
-        vj_jj = vjp_j_fun(jnp.asarray(ȳ_j, dtype=vals_j.dtype))
+        vr_jr = vjp_r_fun(jnp.asarray(ȳ_r, dtype=vals_r_dtype))
+        vj_jr = vjp_r_fun(jnp.asarray(ȳ_j, dtype=vals_r_dtype))
+        vr_jj = vjp_j_fun(jnp.asarray(ȳ_r, dtype=vals_j_dtype))
+        vj_jj = vjp_j_fun(jnp.asarray(ȳ_j, dtype=vals_j_dtype))
 
         r = tree_map(_cmplx, vr_jr, vj_jr)
         i = tree_map(_cmplx, vr_jj, vj_jj)
@@ -152,8 +153,9 @@ def vjp_rc(
 
         return out
 
-    # TODO pass vals_r and vals_j dtype via HashablePartial?
-    vjp_fun = Partial(vjp_fun_rc, vjp_r_fun, vjp_j_fun)
+    vjp_fun = Partial(
+        HashablePartial(vjp_fun_rc, vals_r.dtype, vals_j.dtype), vjp_r_fun, vjp_j_fun
+    )
 
     if has_aux:
         return primals_out, vjp_fun, aux
