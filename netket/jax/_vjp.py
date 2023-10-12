@@ -51,6 +51,17 @@ def _cmplx(re, im, conj=False):
             return re + 1j * im
 
 
+def vjp_fun_cc(_vjp_fun, ȳ):
+    ȳ = jnp.asarray(ȳ, dtype=out.dtype)
+
+    dȳ = _vjp_fun(ȳ)
+
+    if conjugate:
+        dȳ = tree_map(jnp.conjugate, dȳ)
+
+    return dȳ
+
+
 def vjp_cc(
     fun: Callable, *primals, has_aux: bool = False, conjugate: bool = False
 ) -> Union[tuple[Any, Callable], tuple[Any, Callable, Any]]:
@@ -59,22 +70,26 @@ def vjp_cc(
     else:
         out, _vjp_fun = jax.vjp(fun, *primals, has_aux=False)
 
-    def vjp_fun_cc(_vjp_fun, ȳ):
-        ȳ = jnp.asarray(ȳ, dtype=out.dtype)
-
-        dȳ = _vjp_fun(ȳ)
-
-        if conjugate:
-            dȳ = tree_map(jnp.conjugate, dȳ)
-
-        return dȳ
-
     vjp_fun = Partial(vjp_fun_cc, _vjp_fun)
 
     if has_aux:
         return out, vjp_fun, aux
     else:
         return out, vjp_fun
+
+
+def vjp_fun_rr(_vjp_fun, ȳ):
+    """
+    function computing the vjp product for a R->R function.
+    """
+    if not jnp.iscomplexobj(ȳ):
+        out = _vjp_fun(jnp.asarray(ȳ, dtype=primals_out.dtype))
+    else:
+        out_r = _vjp_fun(jnp.asarray(ȳ.real, dtype=primals_out.dtype))
+        out_i = _vjp_fun(jnp.asarray(ȳ.imag, dtype=primals_out.dtype))
+        out = tree_map(partial(_cmplx, conj=conjugate), out_r, out_i)
+
+    return out
 
 
 def vjp_rr(
@@ -85,25 +100,35 @@ def vjp_rr(
     else:
         primals_out, _vjp_fun = jax.vjp(fun, *primals, has_aux=False)
 
-    def vjp_fun_rr(_vjp_fun, ȳ):
-        """
-        function computing the vjp product for a R->R function.
-        """
-        if not jnp.iscomplexobj(ȳ):
-            out = _vjp_fun(jnp.asarray(ȳ, dtype=primals_out.dtype))
-        else:
-            out_r = _vjp_fun(jnp.asarray(ȳ.real, dtype=primals_out.dtype))
-            out_i = _vjp_fun(jnp.asarray(ȳ.imag, dtype=primals_out.dtype))
-            out = tree_map(partial(_cmplx, conj=conjugate), out_r, out_i)
-
-        return out
-
     vjp_fun = Partial(vjp_fun_rr, _vjp_fun)
 
     if has_aux:
         return primals_out, vjp_fun, aux
     else:
         return primals_out, vjp_fun
+
+
+def vjp_fun_rc(vals_r_dtype, vals_j_dtype, vjp_r_fun, vjp_j_fun, ȳ):
+    """
+    function computing the vjp product for a R->C function.
+    """
+    ȳ_r = ȳ.real
+    ȳ_j = ȳ.imag
+
+    # val = vals_r + vals_j
+    vr_jr = vjp_r_fun(jnp.asarray(ȳ_r, dtype=vals_r_dtype))
+    vj_jr = vjp_r_fun(jnp.asarray(ȳ_j, dtype=vals_r_dtype))
+    vr_jj = vjp_j_fun(jnp.asarray(ȳ_r, dtype=vals_j_dtype))
+    vj_jj = vjp_j_fun(jnp.asarray(ȳ_j, dtype=vals_j_dtype))
+
+    r = tree_map(_cmplx, vr_jr, vj_jr)
+    i = tree_map(_cmplx, vr_jj, vj_jj)
+    out = tree_map(_cmplx, r, i)
+
+    if conjugate:
+        out = tree_map(jnp.conjugate, out)
+
+    return out
 
 
 def vjp_rc(
@@ -130,28 +155,6 @@ def vjp_rc(
         vals_j, vjp_j_fun = jax.vjp(imag_fun, *primals, has_aux=False)
 
     primals_out = vals_r + 1j * vals_j
-
-    def vjp_fun_rc(vals_r_dtype, vals_j_dtype, vjp_r_fun, vjp_j_fun, ȳ):
-        """
-        function computing the vjp product for a R->C function.
-        """
-        ȳ_r = ȳ.real
-        ȳ_j = ȳ.imag
-
-        # val = vals_r + vals_j
-        vr_jr = vjp_r_fun(jnp.asarray(ȳ_r, dtype=vals_r_dtype))
-        vj_jr = vjp_r_fun(jnp.asarray(ȳ_j, dtype=vals_r_dtype))
-        vr_jj = vjp_j_fun(jnp.asarray(ȳ_r, dtype=vals_j_dtype))
-        vj_jj = vjp_j_fun(jnp.asarray(ȳ_j, dtype=vals_j_dtype))
-
-        r = tree_map(_cmplx, vr_jr, vj_jr)
-        i = tree_map(_cmplx, vr_jj, vj_jj)
-        out = tree_map(_cmplx, r, i)
-
-        if conjugate:
-            out = tree_map(jnp.conjugate, out)
-
-        return out
 
     vjp_fun = Partial(
         HashablePartial(vjp_fun_rc, vals_r.dtype, vals_j.dtype), vjp_r_fun, vjp_j_fun
