@@ -51,8 +51,8 @@ def _cmplx(re, im, conj=False):
             return re + 1j * im
 
 
-def vjp_fun_cc(_vjp_fun, ȳ):
-    ȳ = jnp.asarray(ȳ, dtype=out.dtype)
+def vjp_fun_cc(out_dtype, conjugate, _vjp_fun, ȳ):
+    ȳ = jnp.asarray(ȳ, dtype=out_dtype)
 
     dȳ = _vjp_fun(ȳ)
 
@@ -70,7 +70,7 @@ def vjp_cc(
     else:
         out, _vjp_fun = jax.vjp(fun, *primals, has_aux=False)
 
-    vjp_fun = Partial(vjp_fun_cc, _vjp_fun)
+    vjp_fun = Partial(HashablePartial(vjp_fun_cc, out.dtype, conjugate), _vjp_fun)
 
     if has_aux:
         return out, vjp_fun, aux
@@ -78,15 +78,15 @@ def vjp_cc(
         return out, vjp_fun
 
 
-def vjp_fun_rr(_vjp_fun, ȳ):
+def vjp_fun_rr(primals_out_dtype, conjugate, _vjp_fun, ȳ):
     """
     function computing the vjp product for a R->R function.
     """
     if not jnp.iscomplexobj(ȳ):
-        out = _vjp_fun(jnp.asarray(ȳ, dtype=primals_out.dtype))
+        out = _vjp_fun(jnp.asarray(ȳ, dtype=primals_out_dtype))
     else:
-        out_r = _vjp_fun(jnp.asarray(ȳ.real, dtype=primals_out.dtype))
-        out_i = _vjp_fun(jnp.asarray(ȳ.imag, dtype=primals_out.dtype))
+        out_r = _vjp_fun(jnp.asarray(ȳ.real, dtype=primals_out_dtype))
+        out_i = _vjp_fun(jnp.asarray(ȳ.imag, dtype=primals_out_dtype))
         out = tree_map(partial(_cmplx, conj=conjugate), out_r, out_i)
 
     return out
@@ -100,7 +100,9 @@ def vjp_rr(
     else:
         primals_out, _vjp_fun = jax.vjp(fun, *primals, has_aux=False)
 
-    vjp_fun = Partial(vjp_fun_rr, _vjp_fun)
+    vjp_fun = Partial(
+        HashablePartial(vjp_fun_rr, primals_out.dtype, conjugate), _vjp_fun
+    )
 
     if has_aux:
         return primals_out, vjp_fun, aux
@@ -108,7 +110,7 @@ def vjp_rr(
         return primals_out, vjp_fun
 
 
-def vjp_fun_rc(vals_r_dtype, vals_j_dtype, vjp_r_fun, vjp_j_fun, ȳ):
+def vjp_fun_rc(vals_r_dtype, vals_j_dtype, conjugate, vjp_r_fun, vjp_j_fun, ȳ):
     """
     function computing the vjp product for a R->C function.
     """
@@ -157,7 +159,9 @@ def vjp_rc(
     primals_out = vals_r + 1j * vals_j
 
     vjp_fun = Partial(
-        HashablePartial(vjp_fun_rc, vals_r.dtype, vals_j.dtype), vjp_r_fun, vjp_j_fun
+        HashablePartial(vjp_fun_rc, vals_r.dtype, vals_j.dtype, conjugate),
+        vjp_r_fun,
+        vjp_j_fun,
     )
 
     if has_aux:
