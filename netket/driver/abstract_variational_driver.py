@@ -113,14 +113,12 @@ class AbstractVariationalDriver(abc.ABC):
         """
         self.state.reset()
         self._step_count = 0
-        pass
 
     @abc.abstractmethod
     def info(self, depth=0):
         """
         Returns an info string used to print information to screen about this driver.
         """
-        pass  # pragma: no cover
 
     @property
     def state(self):
@@ -332,7 +330,6 @@ class AbstractVariationalDriver(abc.ABC):
         Returns:
             Nothing. The log dictionary should be modified in place.
         """
-        pass  # pragma: no cover
 
 
 @partial(jax.jit, static_argnums=0)

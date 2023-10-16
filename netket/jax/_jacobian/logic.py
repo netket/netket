@@ -42,7 +42,7 @@ def jacobian(
     *,
     mode: str,
     pdf: Array = None,
-    chunk_size: int = None,
+    chunk_size: Optional[int] = None,
     center: bool = False,
     dense: bool = False,
 ) -> PyTree:
@@ -285,9 +285,8 @@ def jacobian(
         jacobian_fun = jac_type.jacobian_real_holo_fun
     else:
         raise NotImplementedError(
-            'Differentiation mode should be one of "real", "complex", or "holomorphic", got {}'.format(
-                mode
-            )
+            "Differentiation mode should be one of 'real', "
+            f"'complex', or 'holomorphic', got {mode}"
         )
 
     # pre-apply the model state

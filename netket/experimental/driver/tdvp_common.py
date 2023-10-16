@@ -216,7 +216,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self,
         T: float,
         tstops: Optional[Sequence[float]] = None,
-        callback: Callable = None,
+        callback: Optional[Callable] = None,
     ):
         """
         Implementation of :code:`iter`. This method accepts and additional `callback` object, which

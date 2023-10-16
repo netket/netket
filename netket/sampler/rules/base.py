@@ -119,7 +119,6 @@ class MetropolisRule(abc.ABC):
            A tuple containing the new configurations :math:`\sigma'` and the optional vector of
            log corrections to the transition probability.
         """
-        pass
 
     def random_state(
         self,

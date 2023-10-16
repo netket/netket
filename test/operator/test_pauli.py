@@ -243,9 +243,7 @@ def test_pauli_output(hilbert):
 
     # following will throw an error if the output is not a valid hilbert state
     for xpi in xp:
-        assert np.any(xpi == all_states), "{} not in hilbert space {}".format(
-            xpi, ha.hilbert
-        )
+        assert np.any(xpi == all_states), "{xpi} not in hilbert space {ha.hilbert}"
 
 
 def test_pauli_dense():

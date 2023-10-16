@@ -76,7 +76,7 @@ class FullSumState(VariationalState):
         chunk_size: Optional[int] = None,
         variables: Optional[PyTree] = None,
         init_fun: NNInitFunc = None,
-        apply_fun: Callable = None,
+        apply_fun: Optional[Callable] = None,
         seed: Optional[SeedT] = None,
         mutable: CollectionFilter = False,
         training_kwargs: dict = {},

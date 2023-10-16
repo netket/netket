@@ -174,7 +174,7 @@ class DenseSymmFFT(Module):
     def setup(self):
         sg = np.asarray(self.space_group)
 
-        self.n_cells = np.product(np.asarray(self.shape))
+        self.n_cells = np.prod(np.asarray(self.shape))
         self.n_point = len(sg) // self.n_cells
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
@@ -306,7 +306,7 @@ class DenseEquivariantFFT(Module):
     def setup(self):
         pt = np.asarray(self.product_table)
 
-        self.n_cells = np.product(np.asarray(self.shape))
+        self.n_cells = np.prod(np.asarray(self.shape))
         self.n_point = len(pt) // self.n_cells
         if self.mask is not None:
             (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
@@ -756,7 +756,7 @@ def DenseSymm(
 @deprecate_dtype
 def DenseEquivariant(
     symmetries,
-    features: int = None,
+    features: Optional[int] = None,
     mode="auto",
     shape=None,
     point_group=None,

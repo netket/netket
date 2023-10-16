@@ -237,7 +237,13 @@ def binary_encoding(
     shape = tuple(hilbert.shape)
     jax.core.concrete_or_error(None, shape, "Shape must be known statically")
     output_idx, max_bits = _get_output_idx(shape, max_bits)
-    binarised_states = jnp.zeros(x.shape + (max_bits,), dtype=x.dtype)
+    binarised_states = jnp.zeros(
+        (
+            *x.shape,
+            max_bits,
+        ),
+        dtype=x.dtype,
+    )
     binary_indices, non_binary_indices = _separate_binary_indices(shape)
     for i in non_binary_indices:
         substates = x[..., i].astype(int)[..., jnp.newaxis]

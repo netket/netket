@@ -84,7 +84,7 @@ def _gen_append_cond_vjp(primals, nondiff_argnums, chunk_argnums):
     return tuple(map(lambda i: i in chunk_argnums, diff_argnums))
 
 
-_gen_append_cond_value_vjp = compose(lambda t: (True,) + t, _gen_append_cond_vjp)
+_gen_append_cond_value_vjp = compose(lambda t: (True, *t), _gen_append_cond_vjp)
 
 _vjp_fun_chunked = partial(
     __vjp_fun_chunked,

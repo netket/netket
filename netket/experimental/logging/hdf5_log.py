@@ -72,7 +72,7 @@ def tree_log(tree, root, data, *, iter=None):
             f_value.resize(f_value.shape[0] + 1, axis=0)
             f_value[-1] = value
         else:
-            maxshape = (None,) + value.shape
+            maxshape = (None, *value.shape)
             data.create_dataset(root, data=[value], maxshape=maxshape)
 
 

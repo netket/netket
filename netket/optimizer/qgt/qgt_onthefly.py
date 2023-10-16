@@ -37,7 +37,7 @@ from ..linear_operator import LinearOperator, Uninitialized
 
 
 def QGTOnTheFly(
-    vstate=None, *, chunk_size=None, holomorphic: bool = None, **kwargs
+    vstate=None, *, chunk_size=None, holomorphic: Optional[bool] = None, **kwargs
 ) -> "QGTOnTheFlyT":
     """
     Lazy representation of an S Matrix computed by performing 2 jvp
