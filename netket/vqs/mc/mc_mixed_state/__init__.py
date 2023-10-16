@@ -17,5 +17,3 @@ from .state import MCMixedState
 from . import expect
 
 from . import expect_chunked
-
-from . import expect_grad_chunked
