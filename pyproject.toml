@@ -139,6 +139,7 @@ filterwarnings = [
     "ignore::DeprecationWarning:tensorboardX",
     "ignore:jax.random.KeyArray is deprecated.",
     "ignore:Raw arrays as random keys to",
+    "ignore:Defaulting to `holomorphic=False`,"
 ]
 testpaths = [
     "test",
