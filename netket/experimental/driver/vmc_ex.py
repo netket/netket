@@ -12,28 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Iterable
+
 import jax
 import jax.numpy as jnp
 
-from textwrap import dedent
 
 from netket.operator import AbstractOperator
 from netket.stats import Stats
-from netket.vqs import MCState
 from netket.optimizer import (
     identity_preconditioner,
     PreconditionerT,
 )
-from netket.utils import warn_deprecation
 
-
+from netket.driver import VMC
 from netket.driver.vmc_common import info
-from netket.driver.abstract_variational_driver import AbstractVariationalDriver
+from netket.vqs import VariationalState
 
-from .expect_grad_ex import expect_and_grad_ex
+from netket.experimental.excited import OperatorWithPenalty
 
 
-class VMC_ex(AbstractVariationalDriver):
+class VMC_ex(VMC):
     """
     (Energy + penalty) minimization using Variational Monte Carlo (VMC).
     """
@@ -43,14 +42,11 @@ class VMC_ex(AbstractVariationalDriver):
         self,
         hamiltonian: AbstractOperator,
         optimizer,
-        *args,
-        variational_state=None,
-        preconditioner: PreconditionerT = None,
-        sr: PreconditionerT = None,
-        sr_restart: bool = None,
-        state_list=None,
-        shift_list=None,
-        **kwargs,
+        *,
+        variational_state: VariationalState,
+        preconditioner: PreconditionerT = identity_preconditioner,
+        states: Iterable[VariationalState] = None,
+        shifts: Iterable[float] = None,
     ):
         """
         Initializes the driver class.
@@ -64,66 +60,30 @@ class VMC_ex(AbstractVariationalDriver):
                 `preconditioners` in the documentation. The standard preconditioner
                 included with NetKet is Stochastic Reconfiguration. By default, no
                 preconditioner is used and the bare gradient is passed to the optimizer.
-            state_list: a set of previously determined states in a list.
-            shift_list: contains the penalty coefficient for each previously determined state.
+            states: a set of previously determined states in a list.
+            shifts: contains the penalty coefficient for each previously determined state.
         """
-        if variational_state is None:
-            variational_state = MCState(*args, **kwargs)
+        hamiltonian = hamiltonian.collect()
+        hamiltonian_with_penalty = OperatorWithPenalty(hamiltonian, states, shifts)
 
-        if variational_state.hilbert != hamiltonian.hilbert:
-            raise TypeError(
-                dedent(
-                    f"""the variational_state has hilbert space {variational_state.hilbert}
-                    (this is normally defined by the hilbert space in the sampler), but
-                    the hamiltonian has hilbert space {hamiltonian.hilbert}.
-                    The two should match.
-                    """
-                )
-            )
+        super().__init__(
+            hamiltonian_with_penalty,
+            optimizer,
+            variational_state=variational_state,
+            preconditioner=preconditioner,
+        )
 
-        if sr is not None:
-            if preconditioner is not None:
-                raise ValueError(
-                    "sr is deprecated in favour of preconditioner kwarg. You should not pass both"
-                )
-            else:
-                preconditioner = sr
-                warn_deprecation(
-                    (
-                        "The `sr` keyword argument is deprecated in favour of `preconditioner`."
-                        "Please update your code to `VMC(.., precondioner=your_sr)`"
-                    )
-                )
-        if sr_restart is not None:
-            if preconditioner is None:
-                raise ValueError(
-                    "sr_restart only makes sense if you have a preconditioner/SR."
-                )
-            else:
-                preconditioner.solver_restart = sr_restart
-                warn_deprecation(
-                    (
-                        "The `sr_restart` keyword argument is deprecated in favour of specifiying "
-                        "`solver_restart` in the constructor of the SR object."
-                        "Please update your code to `VMC(.., preconditioner=nk.optimizer.SR(..., solver_restart=True/False))`"
-                    )
-                )
+        self._raw_hamiltonian = hamiltonian
 
-        # move as kwarg once deprecations are removed
-        if preconditioner is None:
-            preconditioner = identity_preconditioner
+    @property
+    def states(self) -> Iterable[VariationalState]:
+        "..."
+        return self._ham.states
 
-        super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
-
-        self._ham = hamiltonian.collect()  # type: AbstractOperator
-
-        self.preconditioner = preconditioner
-
-        self._dp = None  # type: PyTree
-        self._S = None
-        self._sr_info = None
-        self._state_list = state_list
-        self._shift_list = shift_list
+    @property
+    def shifts(self) -> Iterable[float]:
+        """..."""
+        return self._ham.shifts
 
     def _forward_and_backward(self):
         """
@@ -136,17 +96,15 @@ class VMC_ex(AbstractVariationalDriver):
         self.state.reset()
 
         # we need to reset MCMC samples for each penalty state in the list.
-        for state_i in self._state_list:
+        for state_i in self._ham.states:
             state_i.reset()
 
         # Compute the local energy estimator and average Energy.
-        self._loss_stats, self._loss_grad = expect_and_grad_ex(
-            self.state,
+        (
+            self._loss_stats,
+            self._constraint_loss_stats,
+        ), self._loss_grad = self.state.expect_and_grad(
             self._ham,
-            True,
-            self.state.mutable,
-            self._state_list,
-            self._shift_list,
         )
 
         # if it's the identity it does
@@ -170,9 +128,17 @@ class VMC_ex(AbstractVariationalDriver):
         """
         return self._loss_stats
 
+    @property
+    def loss(self) -> Stats:
+        """
+        Return MCMC statistics for the expectation value of observables in the
+        current state of the driver.
+        """
+        return self._loss_constraint_loss_stats_stats
+
     def __repr__(self):
         return (
-            "Vmc("
+            "VmcWithPenalty("
             + f"\n  step_count = {self.step_count},"
             + f"\n  state = {self.state})"
         )

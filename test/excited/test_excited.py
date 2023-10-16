@@ -6,7 +6,7 @@ from pytest import approx, raises
 import numpy as np
 import jax.numpy as jnp
 import netket as nk
-import netket.experimental.excited.vmc_ex as vmc_ex
+from netket.experimental.driver import VMC_ex
 import netket.experimental.excited.expect_grad_ex as expect_grad_ex
 
 from contextlib import redirect_stderr
@@ -42,13 +42,13 @@ def _setup_vmc(dtype=np.float32, sr=True):
         sr_config = nk.optimizer.SR(holomorphic=True if dtype is complex else False)
     else:
         sr_config = None
-    driver = vmc_ex.VMC_ex(
+    driver = VMC_ex(
         ha,
         op,
         variational_state=vs,
         preconditioner=sr_config,
-        state_list=[vs_0],
-        shift_list=[1],
+        states=[vs_0],
+        shifts=[1],
     )
 
     return ha, sx, vs, vs_0, sa, driver
@@ -76,33 +76,6 @@ def test_reset():
     assert driver.step_count == 1
     driver.reset()
     assert driver.step_count == 0
-
-
-def test_vmc_construction_vstate():
-    ha, sx, ma, ma_0, sa, driver = _setup_vmc()
-
-    op = nk.optimizer.Sgd(learning_rate=0.05)
-
-    driver = vmc_ex.VMC_ex(
-        ha,
-        op,
-        sa,
-        nk.models.RBM(),
-        n_samples=1000,
-        seed=SEED,
-        state_list=[ma_0],
-        shift_list=[1],
-    )
-
-    driver.run(1)
-
-    assert driver.step_count == 1
-
-    with raises(TypeError):
-        ha2 = nk.operator.LocalOperator(ha.hilbert * ha.hilbert)
-        driver = vmc_ex.VMC_ex(
-            ha2, op, variational_state=driver.state, state_list=[ma_0], shift_list=[1]
-        )
 
 
 # we remove this test, as the penalty term may not have zero gradient in our example run (with random penalty state)
