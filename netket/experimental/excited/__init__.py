@@ -12,5 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .operator import OperatorWithPenalty
+
 from . import expect_grad_ex
-from . import vmc_ex
+from . import expect

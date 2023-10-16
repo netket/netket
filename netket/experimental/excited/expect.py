@@ -13,16 +13,15 @@
 # limitations under the License.
 
 from functools import partial
-from typing import Any, Callable, Tuple, Literal
+from typing import Any, Callable, Tuple
 
 import jax
 from jax import numpy as jnp
 
 
-from netket import jax as nkjax
-from netket.stats import Stats, statistics
+from netket.stats import statistics
 from netket.utils import mpi
-from netket.utils.types import PyTree
+from netket.utils.types import PyTree, Array
 
 
 from netket.vqs.mc import (
@@ -30,31 +29,28 @@ from netket.vqs.mc import (
     get_local_kernel,
 )
 
-from netket.vqs.mc.mc_state.state import MCState, expect_and_grad
+from netket.vqs.mc.mc_state.state import MCState, expect
 
 from .operator import OperatorWithPenalty
-from .expect import penalty_kernel
 
 
-# compute the loss and gradient with penalty operator and weight input.
-@expect_and_grad.dispatch
-def expect_and_grad_infidelity_penalty(
-    vstate: MCState,
-    Ô: OperatorWithPenalty,
-    use_covariance: Literal[True],
-    *,
-    mutable,
-) -> Tuple[Stats, PyTree]:
-    σ, args = get_local_kernel_arguments(vstate, Ô.operator)
-    local_estimator_fun = get_local_kernel(vstate, Ô.operator)
+# kernel used for computing amplitude fraction. It assumes the two wavefunctions are of the same ansatz but different variational parameters.
+def penalty_kernel(logpsi1: Callable, pars1: PyTree, pars2: PyTree, σ2: Array):
+    return jnp.exp(logpsi1(pars1, σ2) - logpsi1(pars2, σ2))
 
-    shift_list = Ô.shifts
+
+@expect.dispatch
+def expect_fidelitypenalty(vstate: MCState, Ô: OperatorWithPenalty):
+    σ, args = get_local_kernel_arguments(vstate, Ô.operator)
+    local_estimator_fun = get_local_kernel(vstate, Ô.operator)
+
+    shift_list = Ô.shifts
 
     # here we make lists to be passed as input.
     σ_list = []
     model_state_list = []
     pars_list = []
-    for state_i in Ô.states:
+    for state_i in Ô.states:
         σ_list.append(state_i.samples)
 
         model_state_i = state_i.model_state
@@ -63,10 +59,9 @@ def expect_and_grad_infidelity_penalty(
         pars_i = state_i.parameters
         pars_list.append(pars_i)
 
-    Ō, Ō_grad, new_model_state = grad_expect_hermitian_ex(
+    expect_penalty(
         local_estimator_fun,
         vstate._apply_fun,
-        mutable,
         penalty_kernel,
         vstate.parameters,
         vstate.model_state,
@@ -78,25 +73,15 @@ def expect_and_grad_infidelity_penalty(
         shift_list,
     )
 
-    if mutable is not False:
-        vstate.model_state = new_model_state
-
-    return Ō, Ō_grad
+    return
 
 
 @partial(
-    jax.jit,
-    static_argnames=(
-        "local_value_kernel",
-        "model_apply_fun",
-        "mutable",
-        "penalty_kernel",
-    ),
+    jax.jit, static_argnames=("local_value_kernel", "model_apply_fun", "penalty_kernel")
 )
-def grad_expect_hermitian_ex(
+def expect_penalty(
     local_value_kernel: Callable,
     model_apply_fun: Callable,
-    mutable: bool,
     penalty_kernel: Callable,
     parameters: PyTree,
     model_state: PyTree,
@@ -111,7 +96,7 @@ def grad_expect_hermitian_ex(
     if jnp.ndim(σ) != 2:
         σ = σ.reshape((-1, σ_shape[-1]))
 
-    n_samples = σ.shape[0] * mpi.n_nodes
+    σ.shape[0] * mpi.n_nodes
 
     O_loc = local_value_kernel(
         model_apply_fun,
@@ -121,23 +106,14 @@ def grad_expect_hermitian_ex(
     )
 
     # we need to store O_loc as E_loc in order to modify it afterwards and output loss function in the end.
+    E_loc = O_loc
 
     Ō = statistics(O_loc.reshape(σ_shape[:-1]).T)
     O_loc -= Ō.mean
 
-    # Then compute the vjp.
-    # Code is a bit more complex than a standard one because we support
-    # mutable state (if it's there)
-    is_mutable = mutable is not False
-    _, vjp_fun, *new_model_state = nkjax.vjp(
-        lambda w: model_apply_fun({"params": w, **model_state}, σ, mutable=mutable),
-        parameters,
-        conjugate=True,
-        has_aux=is_mutable,
-    )
-
     # here we write a loop over the previously determined penalty states, and use their information to modify E_loc and O_grad.
     for i in range(len(shift_list)):
+        # state_i = state_list[i]
         shift_i = shift_list[i]
         σ_i = σ_list[i]
         pars_i = pars_list[i]
@@ -173,21 +149,7 @@ def grad_expect_hermitian_ex(
         psi_loc_2 *= shift_i * psi_1.mean
         O_loc += psi_loc_2
 
-    Ō_grad = vjp_fun(jnp.conjugate(O_loc) / n_samples)[0]
-    Ō_grad = jax.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else x.real).astype(
-            target.dtype
-        ),
-        Ō_grad,
-        parameters,
-    )
+    E = statistics(E_loc.reshape(σ_shape[:-1]).T)
+    O = statistics(O_loc.reshape(σ_shape[:-1]).T)
 
-    O_with_penalty = statistics(O_loc.reshape(σ_shape[:-1]).T)
-
-    new_model_state = new_model_state[0] if is_mutable else None
-
-    return (
-        (Ō, O_with_penalty),
-        jax.tree_map(lambda x: mpi.mpi_sum_jax(x)[0], Ō_grad),
-        new_model_state,
-    )
+    return E, O
