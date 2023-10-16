@@ -137,6 +137,8 @@ filterwarnings = [
     "ignore:`np.long`",
     "ignore:`np.int` is a deprecated alias for the builtin `int`",
     "ignore::DeprecationWarning:tensorboardX",
+    "ignore:jax.random.KeyArray is deprecated.",
+    "ignore:Raw arrays as random keys to",
 ]
 testpaths = [
     "test",
