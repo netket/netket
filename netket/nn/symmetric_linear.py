@@ -613,8 +613,10 @@ class DenseEquivariantMatrix(Module):
     @compact
     def __call__(self, x: Array) -> Array:
         """Applies the equivariant transform to the inputs along the last dimension.
+
         Args:
           x: The nd-array to be transformed.
+
         Returns:
           The transformed input.
         """

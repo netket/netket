@@ -147,7 +147,7 @@ testpaths = [
 
 [tool.ruff]
 target-version = "py39"
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "D410", "UP"]
 fixable = ["E", "F", "W"]
 ignore = ["E501", "E731", "E741"]
 #ignore = ["E266"]

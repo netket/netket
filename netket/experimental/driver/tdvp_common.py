@@ -206,6 +206,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                 at which this method will stop and yield. By default, a stop is performed
                 after each time step (at potentially varying step size if an adaptive
                 integrator is used).
+
         Yields:
             The current step count.
         """

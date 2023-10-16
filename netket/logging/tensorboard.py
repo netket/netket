@@ -63,6 +63,7 @@ def tree_log(tree, root, data):
 class TensorBoardLog:
     """
     Creates a tensorboard logger using tensorboardX's summarywriter.
+
     Refer to its documentation for further details
 
     https://tensorboardx.readthedocs.io/en/latest/tensorboard.html
@@ -92,6 +93,7 @@ class TensorBoardLog:
           tensorboard.summary.writer.event_file_writer.EventFileWriter.
         write_to_disk (boolean):
           If pass `False`, TensorBoardLog will not write to disk.
+
     Examples:
         Logging optimisation to tensorboard.
 

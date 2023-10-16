@@ -399,8 +399,9 @@ class MCState(VariationalState):
     def chunk_size(self) -> int:
         """
         Suggested *maximum size* of the chunks used in forward and backward evaluations
-        of the Neural Network model. If your inputs are smaller than the chunk size
-        this setting is ignored.
+        of the Neural Network model.
+
+        If your inputs are smaller than the chunk size this setting is ignored.
 
         This can be used to lower the memory required to run a computation with a very
         high number of samples or on a very large lattice. Notice that inputs and
