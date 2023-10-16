@@ -139,6 +139,7 @@ def QGTJacobianPyTree(
         chunk_size=chunk_size,
         dense=False,
         center=True,
+        _sqrt_rescale=True,
     )
 
     if offset is not None:

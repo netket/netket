@@ -137,6 +137,7 @@ def QGTJacobianDense(
         chunk_size=chunk_size,
         dense=True,
         center=True,
+        _sqrt_rescale=True,
     )
 
     if offset is not None:
