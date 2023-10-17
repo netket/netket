@@ -32,7 +32,15 @@ from . import jacobian_pytree
 
 
 @partial(
-    jax.jit, static_argnames=("apply_fun", "mode", "chunk_size", "center", "dense")
+    jax.jit,
+    static_argnames=(
+        "apply_fun",
+        "mode",
+        "chunk_size",
+        "center",
+        "dense",
+        "_sqrt_rescale",
+    ),
 )
 def jacobian(
     apply_fun: Callable,
@@ -45,6 +53,7 @@ def jacobian(
     chunk_size: Optional[int] = None,
     center: bool = False,
     dense: bool = False,
+    _sqrt_rescale: bool = False,
 ) -> PyTree:
     r"""
     Computes the jacobian of a NN model with respect to its parameters. This function
@@ -121,6 +130,13 @@ def jacobian(
             are the derivatives wrt the real part of the parameters, while the
             second :math:`N_\text{pars}` elements are the derivatives wrt the
             imaginary part of the paramters.
+        _sqrt_rescale: **internal flag** (do not rely on it) a boolean flag
+            (disabled by default). If enabled, the jacobian is rescaled by
+            :math:`1/\sqrt{N_\text{samples}}` to match the scaling emerging in
+            some use-cases such when building the Quantum Geometric Tensor.
+            If a pdf is specified, the scaling will instead be
+            :math:`\sqrt{pdf_i}`. This flag is temporary and internal and might
+            be discontinued at any point in the future. Do not use it.
 
 
     Extra details of the different modes are given below:
@@ -307,11 +323,14 @@ def jacobian(
     )(f, params, samples)
 
     if pdf is None:
-        sqrt_n_samp = math.sqrt(samples.shape[0] * mpi.n_nodes)  # maintain weak type
         if center:
-            jacobians = jax.tree_map(
-                lambda x: subtract_mean(x, axis=0) / sqrt_n_samp, jacobians
-            )
+            jacobians = jax.tree_map(lambda x: subtract_mean(x, axis=0), jacobians)
+
+        if _sqrt_rescale:
+            sqrt_n_samp = math.sqrt(
+                samples.shape[0] * mpi.n_nodes
+            )  # maintain weak type
+            jacobians = jax.tree_map(lambda x: x / sqrt_n_samp, jacobians)
 
     else:
         if center:
@@ -320,7 +339,8 @@ def jacobian(
             )
             jacobians = jax.tree_map(lambda x, y: x - y, jacobians, jacobians_avg)
 
-        jacobians = _multiply_by_pdf(jacobians, jnp.sqrt(pdf))
+        if _sqrt_rescale:
+            jacobians = _multiply_by_pdf(jacobians, jnp.sqrt(pdf))
 
     return jacobians
 
