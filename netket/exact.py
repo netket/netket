@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
+
 import numpy as _np
 from scipy.sparse.linalg import bicgstab as _bicgstab
 from scipy.sparse.linalg import LinearOperator as _LinearOperator
@@ -26,7 +28,7 @@ def lanczos_ed(
     k: int = 1,
     compute_eigenvectors: bool = False,
     matrix_free: bool = False,
-    scipy_args: dict = None,
+    scipy_args: Optional[dict] = None,
 ):
     r"""Computes `first_n` smallest eigenvalues and, optionally, eigenvectors
     of a Hermitian operator using :meth:`scipy.sparse.linalg.eigsh`.

@@ -40,7 +40,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     def __init__(
         self,
         n_orbitals: int,
-        s: float = None,
+        s: Optional[float] = None,
         n_fermions: Optional[Union[int, list[int]]] = None,
     ):
         r"""
@@ -167,7 +167,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     def states_to_local_indices(self, x):
         return self._fock.states_to_local_indices(x)
 
-    def _get_index(self, orb: int, sz: float = None):
+    def _get_index(self, orb: int, sz: Optional[float] = None):
         """go from (site, spin_projection) indices to index in the hilbert space"""
         if orb >= self.n_orbitals:
             raise IndexError("requested orbital index outside of the hilbert space")

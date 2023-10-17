@@ -169,4 +169,4 @@ class VMC(AbstractVariationalDriver):
                 ("State          ", self.state),
             ]
         ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)
+        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])

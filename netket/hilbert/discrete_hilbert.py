@@ -100,6 +100,7 @@ class DiscreteHilbert(AbstractHilbert):
 
     def states_at_index(self, i: int) -> Optional[list[float]]:
         r"""A list of discrete local quantum numbers at the site i.
+
         If the local states are infinitely many, None is returned.
 
         Args:
@@ -114,7 +115,9 @@ class DiscreteHilbert(AbstractHilbert):
         self, numbers: Union[int, np.ndarray], out: Optional[np.ndarray] = None
     ) -> np.ndarray:
         r"""Returns the quantum numbers corresponding to the n-th basis state
-        for input n. n is an array of integer indices such that
+        for input n.
+
+        `n` is an array of integer indices such that
         :code:`numbers[k]=Index(states[k])`.
         Throws an exception iff the space is not indexable.
 
@@ -143,6 +146,7 @@ class DiscreteHilbert(AbstractHilbert):
         self, states: np.ndarray, out: Optional[np.ndarray] = None
     ) -> Union[int, np.ndarray]:
         r"""Returns the basis state number corresponding to given quantum states.
+
         The states are given in a batch, such that states[k] has shape (hilbert.size).
         Throws an exception iff the space is not indexable.
 

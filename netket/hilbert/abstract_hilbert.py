@@ -44,7 +44,8 @@ class AbstractHilbert(abc.ABC):
     @abc.abstractmethod
     def size(self) -> int:
         r"""The number number of degrees of freedom in the basis of this
-        Hilbert space."""
+        Hilbert space.
+        """
         raise NotImplementedError()  # pragma: no cover
 
     def random_state(

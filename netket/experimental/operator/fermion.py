@@ -12,12 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional as _Optional
+
 from netket.utils.types import DType as _DType
 from netket.hilbert.abstract_hilbert import AbstractHilbert as _AbstractHilbert
 from netket.experimental.operator import FermionOperator2nd as _FermionOperator2nd
 
 
-def destroy(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = None):
+def destroy(
+    hilbert: _AbstractHilbert,
+    site: int,
+    sz: _Optional[float] = None,
+    dtype: _DType = None,
+):
     """
     Builds the fermion destruction operator :math:`\\hat{a}` acting
     on the `site`-th of the Hilbert space `hilbert`.
@@ -35,7 +42,12 @@ def destroy(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType 
     return _FermionOperator2nd(hilbert, (f"{idx}",), dtype=dtype)
 
 
-def create(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = None):
+def create(
+    hilbert: _AbstractHilbert,
+    site: int,
+    sz: _Optional[float] = None,
+    dtype: _DType = None,
+):
     """
     Builds the fermion creation operator :math:`\\hat{a}^\\dagger` acting
     on the `site`-th of the Hilbert space `hilbert`.
@@ -53,7 +65,12 @@ def create(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType =
     return _FermionOperator2nd(hilbert, (f"{idx}^",), dtype=dtype)
 
 
-def number(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType = None):
+def number(
+    hilbert: _AbstractHilbert,
+    site: int,
+    sz: _Optional[float] = None,
+    dtype: _DType = None,
+):
     """
     Builds the number operator :math:`\\hat{a}^\\dagger\\hat{a}`  acting on the
     `site`-th of the Hilbert space `hilbert`.
@@ -72,7 +89,7 @@ def number(hilbert: _AbstractHilbert, site: int, sz: int = None, dtype: _DType =
     return _FermionOperator2nd(hilbert, (f"{idx}^ {idx}",), dtype=dtype)
 
 
-def _get_index(hilbert: _AbstractHilbert, site: int, sz: float = None):
+def _get_index(hilbert: _AbstractHilbert, site: int, sz: _Optional[float] = None):
     """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
     if sz is None:
         if hasattr(hilbert, "spin") and hilbert.spin is not None:

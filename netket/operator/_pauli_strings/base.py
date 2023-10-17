@@ -126,8 +126,8 @@ class PauliStringsBase(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[str, list[str]] = None,
-        weights: Union[float, complex, list[Union[float, complex]]] = None,
+        operators: Union[None, str, list[str]] = None,
+        weights: Union[None, float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
         dtype: Optional[DType] = None,
@@ -201,7 +201,7 @@ class PauliStringsBase(DiscreteOperator):
         hilbert: AbstractHilbert,
         of_qubit_operator=None,  # : "openfermion.ops.QubitOperator" type
         *,
-        n_qubits: int = None,
+        n_qubits: Optional[int] = None,
     ) -> "PauliStringsBase":
         r"""
         Converts an openfermion QubitOperator into a netket PauliStrings.
@@ -249,7 +249,7 @@ class PauliStringsBase(DiscreteOperator):
 
         ps_args = (operators, weights)
         if hilbert is not None:
-            ps_args = (hilbert,) + ps_args
+            ps_args = (hilbert, *ps_args)
         return cls(*ps_args)
 
     @property
@@ -434,8 +434,10 @@ class PauliStringsBase(DiscreteOperator):
 
 def _count_of_locations(of_qubit_operator):
     """Obtain the number of qubits in the openfermion QubitOperator. Openfermion builds operators from terms that store operators locations.
+
     Args:
         of_qubit_operator (openfermion.QubitOperator, openfermion.FermionOperator)
+
     Returns:
         n_qubits (int): number of qubits in the operator, which we can use to create a suitable hilbert space
     """

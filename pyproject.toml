@@ -65,8 +65,8 @@ dev = [
     "pytest-json-report>=1.3",
     "coverage>=5",
     "pre-commit>=2.7",
-    "black==23.9.0",
-    "ruff==0.0.287",
+    "black==23.9.1",
+    "ruff==0.1.0",
     "wheel",
     "build",
 ]
@@ -137,6 +137,9 @@ filterwarnings = [
     "ignore:`np.long`",
     "ignore:`np.int` is a deprecated alias for the builtin `int`",
     "ignore::DeprecationWarning:tensorboardX",
+    "ignore:jax.random.KeyArray is deprecated.",
+    "ignore:Raw arrays as random keys to",
+    "ignore:Defaulting to `holomorphic=False`,"
 ]
 testpaths = [
     "test",
@@ -144,7 +147,7 @@ testpaths = [
 
 [tool.ruff]
 target-version = "py39"
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "D410", "UP"]
 fixable = ["E", "F", "W"]
 ignore = ["E501", "E731", "E741"]
 #ignore = ["E266"]
@@ -155,3 +158,4 @@ exclude = ["Examples/Legacy", "docs/conf.py"]
 "__init__.py" = ["E402","F401"]
 "netket/nn/activation.py" = ["F401"]
 "Examples/" = ["F401"]
+"docs/sphinx_extensions/*" = ["UP", "D"]

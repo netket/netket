@@ -75,7 +75,7 @@ hi = nk.hilbert.Spin(s=0.5, N=L)
 
 operators["operator:(Hermitian Real)"] = nk.operator.Ising(hi, graph=g, h=1.0)
 
-H = nk.operator.Ising(hi, graph=g, h=1.0)
+H = nk.operator.Ising(hi, graph=g, h=1.0, dtype=complex)
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmay(H.hilbert, i)
 

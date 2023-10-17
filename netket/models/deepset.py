@@ -91,7 +91,10 @@ def _process_features_rho(features_input):
     else:
         if not hasattr(features_input, "__len__"):
             raise ValueError("features_rho must be a sequence of integers")
-        return tuple(features_input) + (1,)
+        return (
+            *tuple(features_input),
+            1,
+        )
 
 
 @deprecate_dtype

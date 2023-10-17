@@ -25,6 +25,7 @@ def mpi_sum(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -66,6 +67,7 @@ def mpi_prod(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -107,6 +109,7 @@ def mpi_mean(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -137,6 +140,7 @@ def mpi_any(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -176,6 +180,7 @@ def mpi_all(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -215,6 +220,7 @@ def mpi_max(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """

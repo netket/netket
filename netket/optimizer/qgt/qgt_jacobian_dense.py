@@ -37,8 +37,8 @@ from .qgt_jacobian_common import (
 def QGTJacobianDense(
     vstate=None,
     *,
-    mode: str = None,
-    holomorphic: bool = None,
+    mode: Optional[str] = None,
+    holomorphic: Optional[bool] = None,
     diag_shift=None,
     diag_scale=None,
     rescale_shift=None,

@@ -94,12 +94,17 @@ class Particle(ContinuousHilbert):
         return self._N
 
     @property
-    def n_per_spin(self) -> tuple:
-        r"""Gives the number of particles in a specific spin projection.
-        The length of this tuple indicates the total spin whereas the position in the
-        tuple indicates the spin projection.
-        Example: (10,5,3) describes 18 particles of total spin 1 where 10 of those have spin-projection
-        -1, 5 have spin-projection 0 and 3 have spin-projection 1."""
+    def n_per_spin(self) -> tuple[int, ...]:
+        r"""Gives the number of particles in a specific spin
+        projection.
+
+        The length of this tuple indicates the total spin whereas
+        the position in the tuple indicates the spin projection.
+
+        Example: (10,5,3) describes 18 particles of total spin 1
+        where 10 of those have spin-projection -1, 5 have
+        spin-projection 0 and 3 have spin-projection 1.
+        """
         return self._n_per_spin
 
     @property
@@ -107,6 +112,4 @@ class Particle(ContinuousHilbert):
         return (self._N, self.extent, self.pbc)
 
     def __repr__(self):
-        return "ContinuousParticle(N={}, d={})".format(
-            self.n_particles, len(self.extent)
-        )
+        return f"ContinuousParticle(N={self.n_particles}, " f"d={len(self.extent)})"

@@ -260,10 +260,10 @@ def _multiply_operators(
             if site not in support_B:
                 I = _eye_like(hilbert.shape[site], dtype=dtype, like=B)
                 if site < supp_B_min:
-                    _support_B = [site] + _support_B
+                    _support_B = [site, *_support_B]
                     _B = _kron(I, _B)
                 else:  # site > actmax
-                    _support_B = _support_B + [site]
+                    _support_B = [*_support_B, site]
                     _B = _kron(_B, I)
 
         supp_A_min = min(support_A)
@@ -271,10 +271,10 @@ def _multiply_operators(
             if site not in support_A:
                 I = _eye_like(hilbert.shape[site], dtype=dtype, like=A)
                 if site < supp_A_min:
-                    _support_A = [site] + _support_A
+                    _support_A = [site, *_support_A]
                     _A = _kron(I, _A)
                 else:  # site > actmax
-                    _support_A = _support_A + [site]
+                    _support_A = [*_support_A, site]
                     _A = _kron(_A, I)
 
         # reorder

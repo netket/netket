@@ -102,8 +102,8 @@ class PauliStrings(PauliStringsBase):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[str, list[str]] = None,
-        weights: Union[float, complex, list[Union[float, complex]]] = None,
+        operators: Union[None, str, list[str]] = None,
+        weights: Union[None, float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
         dtype: DType = None,

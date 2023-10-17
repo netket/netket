@@ -139,14 +139,14 @@ class MCState(VariationalState):
         sampler: Sampler,
         model=None,
         *,
-        n_samples: int = None,
+        n_samples: Optional[int] = None,
         n_samples_per_rank: Optional[int] = None,
         n_discard_per_chain: Optional[int] = None,
         chunk_size: Optional[int] = None,
         variables: Optional[PyTree] = None,
-        init_fun: NNInitFunc = None,
-        apply_fun: Callable = None,
-        sample_fun: Callable = None,
+        init_fun: Optional[NNInitFunc] = None,
+        apply_fun: Optional[Callable] = None,
+        sample_fun: Optional[Callable] = None,
         seed: Optional[SeedT] = None,
         sampler_seed: Optional[SeedT] = None,
         mutable: CollectionFilter = False,
@@ -399,8 +399,9 @@ class MCState(VariationalState):
     def chunk_size(self) -> int:
         """
         Suggested *maximum size* of the chunks used in forward and backward evaluations
-        of the Neural Network model. If your inputs are smaller than the chunk size
-        this setting is ignored.
+        of the Neural Network model.
+
+        If your inputs are smaller than the chunk size this setting is ignored.
 
         This can be used to lower the memory required to run a computation with a very
         high number of samples or on a very large lattice. Notice that inputs and

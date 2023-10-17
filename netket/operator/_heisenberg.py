@@ -35,7 +35,7 @@ class Heisenberg(GraphOperator):
         J: Union[float, Sequence[float]] = 1.0,
         sign_rule=None,
         *,
-        acting_on_subspace: Union[list[int], int] = None,
+        acting_on_subspace: Union[None, list[int], int] = None,
     ):
         """
         Constructs an Heisenberg operator given a hilbert space and a graph providing the

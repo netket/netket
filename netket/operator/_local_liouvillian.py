@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List as PyList
 import functools
 import warnings
 
@@ -72,7 +71,7 @@ class LocalLiouvillian(AbstractSuperOperator):
     def __init__(
         self,
         ham: DiscreteOperator,
-        jump_ops: PyList[DiscreteOperator] = [],
+        jump_ops: list[DiscreteOperator] = [],
         dtype=None,
     ):
         super().__init__(ham.hilbert)
@@ -123,7 +122,7 @@ class LocalLiouvillian(AbstractSuperOperator):
         return self._Hnh
 
     @property
-    def jump_operators(self) -> PyList[LocalOperator]:
+    def jump_operators(self) -> list[LocalOperator]:
         """The list of local operators in this Liouvillian"""
         return self._jump_ops
 

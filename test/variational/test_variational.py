@@ -83,7 +83,7 @@ operators["operator:(IsingJax)"] = H.to_jax_operator()
 H2 = H @ H
 operators["operator:(Hermitian Real Squared)"] = H2
 
-H = nk.operator.Ising(hi, graph=g, h=1.0)
+H = nk.operator.Ising(hi, graph=g, h=1.0, dtype=complex)
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmay(H.hilbert, i)
 

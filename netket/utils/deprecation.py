@@ -29,9 +29,8 @@ def deprecated(reason=None, func_name=None):
 
     def decorator(func):
         object_type = "class" if inspect.isclass(func) else "function"
-        message = "Call to deprecated {} {!r}".format(
-            object_type, func_name or func.__name__
-        )
+        fname = func_name or func.__name__
+        message = f"Call to deprecated {object_type} {fname!r}"
         if reason is not None:
             message += f" ({dedent(reason)})"
 

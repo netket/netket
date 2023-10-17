@@ -27,6 +27,7 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add):
         append_cond: a bool (if f returns just one result) or a tuple of bools (if f returns multiple values)
             which indicates whether the individual result should be appended or reduced
         op: a function to (pairwise) reduce the specified results. Defaults to a sum.
+
     Returns:
         returns the (tuple of) results corresponding to the output of f
         where each result is given by:
