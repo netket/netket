@@ -113,7 +113,9 @@ class SymmExpSum(nn.Module):
             characters = np.ones(len(np.asarray(self.symm_group)))
         else:
             characters = self.symm_group.character_table()[self.character_id]
-        characters = characters.reshape(-1, 1)
+
+        characters = characters.reshape((-1,) + tuple(1 for _ in range(x.ndim - 1)))
+
         # If those are all positive, then use standard logsumexp that returns a
         # real-valued, positive logsumexp
         logsumexp_fun = (
