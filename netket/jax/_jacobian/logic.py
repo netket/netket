@@ -32,7 +32,15 @@ from . import jacobian_pytree
 
 
 @partial(
-    jax.jit, static_argnames=("apply_fun", "mode", "chunk_size", "center", "dense")
+    jax.jit,
+    static_argnames=(
+        "apply_fun",
+        "mode",
+        "chunk_size",
+        "center",
+        "dense",
+        "_sqrt_rescale",
+    ),
 )
 def jacobian(
     apply_fun: Callable,
