@@ -329,6 +329,7 @@ class PauliStringsBase(DiscreteOperator):
             self.weights,
             other.operators,
             other.weights,
+            dtype=self.dtype,
         )
 
         self._operators = operators
@@ -559,7 +560,7 @@ def _reduce_pauli_string(op_arr, w_arr):
     return operators, weights
 
 
-def _matmul(op_arr1, w_arr1, op_arr2, w_arr2):
+def _matmul(op_arr1, w_arr1, op_arr2, w_arr2, *, dtype):
     """(Symbolic) Tensor product of two PauliStrings
     Args:
         op_arr1, op_arr2 (np.array): Arrays operators (strings) in a PauliStrings sum
@@ -573,9 +574,11 @@ def _matmul(op_arr1, w_arr1, op_arr2, w_arr2):
     operators = []
     weights = []
     for (op1, w1), (op2, w2) in product(zip(op_arr1, w_arr1), zip(op_arr2, w_arr2)):
+        # warning: numba always returns complex values, even if we are expecting float.
         op, w = _make_new_pauli_string(op1, w1, op2, w2)
         operators.append(op)
         weights.append(w)
-    operators, weights = np.array(operators), np.array(weights)
+    # so here we recast to the desired dtype
+    operators, weights = np.array(operators), np.array(weights).astype(dtype)
     operators, weights = _reduce_pauli_string(operators, weights)
     return operators, weights
