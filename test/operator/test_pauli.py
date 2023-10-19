@@ -304,6 +304,17 @@ def test_pauli_jax_sparse_works():
     np.testing.assert_allclose(ham_jax_d, ham_d)
 
 
+def test_pauli_problem():
+    x1 = nk.operator.PauliStringsJax("XII")
+    x2 = nk.operator.PauliStringsJax("IXI")
+    x3 = x1 @ x2
+    assert x1.weights.dtype == jnp.float32
+    assert x2.weights.dtype == jnp.float32
+    assert x3.weights.dtype == jnp.float32
+
+    assert (x1 + x1 @ x2).weights.dtype == jnp.float32
+
+
 def test_pauliY_promotion_to_complex():
     ham = nk.operator.PauliStrings("XXX", dtype=np.float32)
     assert ham.dtype == np.float32
