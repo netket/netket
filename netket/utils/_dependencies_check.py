@@ -70,9 +70,10 @@ if not module_version("flax") >= (0, 6, 5):  # pragma: no cover
                """
     raise ImportError(create_msg("flax", cur_version, "0.6.5", extra))
 
-if not module_version("plum") >= (2, 2, 2):  # pragma: no cover
-    raise ImportError(
-        create_msg(
-            "plum", version_string("plum"), "2.2.2", pip_pkg_name="plum-dispatch"
-        )
-    )
+# TODO: Uncomment and bump version once we unvendor plum.
+# if not module_version("plum") >= (2, 2, 2):  # pragma: no cover
+#     raise ImportError(
+#         create_msg(
+#             "plum", version_string("plum"), "2.2.2", pip_pkg_name="plum-dispatch"
+#         )
+#     )

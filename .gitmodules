@@ -1,0 +1,4 @@
+[submodule "netket/utils/plum"]
+	path = netket/utils/plum
+	url = https://github.com/beartype/plum
+	branch = pv/netket-branch
