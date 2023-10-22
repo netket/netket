@@ -75,6 +75,20 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
     def is_finite(self):
         return all([hi.is_finite for hi in self._hilbert_spaces])
 
+    @property
+    def constrained(self) -> bool:
+        r"""The hilbert space does not contains `prod(hilbert.shape)`
+        basis states.
+
+        Typical constraints are poulation constraints (such as fixed
+        number of bosons, fixed magnetization...) which ensure that
+        only a subset of the total unconstrained space is populated.
+
+        Typically, objects defined in the constrained space cannot be
+        converted to QuTiP or other formats.
+        """
+        return all([hi.constrained for hi in self._hilbert_spaces])
+
     def states_at_index(self, i):
         # j = self._sub_index(i)
         # return self._hilbert_spaces[j].states_at_index(i-self._cum_indices[j-1])
