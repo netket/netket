@@ -9,12 +9,21 @@
 
 * Considerably reduced the memory consumption of `LocalOperators`, especially in the case of large local hilbert spaces. Also leveraged sparsity in the terms to speed up compilation (`_setup`) in the same cases [#1558](https://github.com/netket/netket/pull/1558).
 * {class}`netket.nn.blocks.SymmSumExp` now works with inputs of arbitrary dimensions, while previously it errored for all inputs that were not 2D [#1616](https://github.com/netket/netket/pull/1616)
+* Stop using `FrozenDict` from `flax` and instead return standard dictionaries for the variational parameters from the variational state. This makes it much easier to edit parameters [#1547](https://github.com/netket/netket/pull/1547).
 
 ### New Features
 
-* It is now possible to disable netket's double precision login and force all calculations to be performed using single precision by setting the environment variable/configuration flag `NETKET_ENABLE_X64=0`, which also sets `JAX_ENABLE_X64=0`. When running with this flag, the number of warnings printed by jax is considerably reduced as well [#1544](https://github.com/netket/netket/pull/1544).
+* It is now possible to disable netket's double precision default activation and force all calculations to be performed using single precision by setting the environment variable/configuration flag `NETKET_ENABLE_X64=0`, which also sets `JAX_ENABLE_X64=0`. When running with this flag, the number of warnings printed by jax is considerably reduced as well [#1544](https://github.com/netket/netket/pull/1544).
 * Added the operator computing the Rényi2 entanglement entropy on Hilbert spaces with discrete dofs [#1591](https://github.com/netket/netket/pull/1591).
-* Added new shortcuts to build the identity operator as {func}`netket.operator.spin.identity` and {func}`netket.operator.boson.identity` [#15XX](https://github.com/netket/netket/pull/15XX).
+* Added new shortcuts to build the identity operator as {func}`netket.operator.spin.identity` and {func}`netket.operator.boson.identity` [#1601](https://github.com/netket/netket/pull/1601).
+* Added new {class}`netket.hilbert.Particle` constructor that only takes as input the number of dimensions of the system [#1577](https://github.com/netket/netket/pull/1577).
+
+### Bug Fixes
+
+* Fixed minor bug where {class}`netket.operator.LocalOperator` could not be built with `np.matrix` object obtained by converting scipy sparse matrices to dense [#1597](https://github.com/netket/netket/pull/1597).
+* Raise correct error instead of unintelligible one when multiplying {class}`netket.experimental.operator.FermionOperator2nd` with other operators [#1599](https://github.com/netket/netket/pull/1599).
+* Do not rescale the output of `netket.jax.jacobian` by the square root of number of samples. Previously, when specifying `center=True` we were incorrectly rescaling the output [#1614](https://github.com/netket/netket/pull/1614).
+* Fix bug in {class}`netket.operator.PauliStrings` that caused the dtype to get out of sync with the dtype of the internal arrays, causing errors when manipulating them symbolically [#1619](https://github.com/netket/netket/pull/1619).
 
 ## NetKet 3.9.2
 
