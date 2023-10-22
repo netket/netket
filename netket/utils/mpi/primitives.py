@@ -284,3 +284,39 @@ def mpi_allgather_jax(x, *, token=None, comm=MPI_jax_comm):
         import mpi4jax
 
         return mpi4jax.allgather(x, token=token, comm=comm)
+
+
+def mpi_gather_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
+    if n_nodes == 1:
+        return x
+    else:
+        import mpi4jax
+
+        return mpi4jax.gather(x, token=token, root=root)
+
+
+def mpi_alltoall_jax(x, *, token=None, comm=MPI_jax_comm):
+    if n_nodes == 1:
+        return x
+    else:
+        import mpi4jax
+
+        return mpi4jax.alltoall(x, token=token)
+
+
+def mpi_reduce_sum_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
+    if n_nodes == 1:
+        return x
+    else:
+        import mpi4jax
+
+        return mpi4jax.reduce(x, op=MPI.SUM, root=root, token=token)
+
+
+def mpi_scatter_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
+    if n_nodes == 1:
+        return x
+    else:
+        import mpi4jax
+
+        return mpi4jax.scatter(x, root=root, token=token)
