@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import itertools
+from math import prod
 from functools import partial
 import netket as nk
 import numpy as np
@@ -199,6 +200,12 @@ def test_random_states_discrete(hi: DiscreteHilbert):
     )
 
 
+@pytest.mark.parametrize("hi", discrete_indexable_hilbert_params)
+def test_constrained_correct(hi: DiscreteHilbert):
+    n_states = hi.n_states
+    assert hi.constrained == (n_states != prod(hi.shape))
+
+
 @pytest.mark.parametrize("hi", homogeneous_hilbert_params)
 def test_random_states_homogeneous(hi: HomogeneousHilbert):
     assert len(hi.local_states) == hi.local_size
@@ -320,6 +327,8 @@ def test_flip_state_fock_infinite():
 
 @pytest.mark.parametrize("hi", discrete_hilbert_params)
 def test_hilbert_index_discrete(hi: DiscreteHilbert):
+    assert isinstance(hi.constrained, bool)
+
     log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)
 
     if hi.is_indexable:

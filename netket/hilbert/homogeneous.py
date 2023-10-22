@@ -37,7 +37,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
             - Do not specify the {code}`constraint_fn` keyword argument when
               calling the init method of this abstract class.
-            - Override the property {prop}`~nk.hilbert.HomogeneousHilbert.is_constrained`,
+            - Override the property {prop}`~nk.hilbert.HomogeneousHilbert.constrained`,
               to return `True` or `False`depending on your own logic.
             - Override the property {code}`~nk.hilbert.HomogeneousHilbert._hilbert_index`
               to return an hilbert index object (see the discussion in the source code of
@@ -122,7 +122,16 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     @property
     def constrained(self) -> bool:
-        r"""Returns True if the hilbert space is constrained."""
+        r"""The hilbert space does not contains `prod(hilbert.shape)`
+        basis states.
+
+        Typical constraints are poulation constraints (such as fixed
+        number of bosons, fixed magnetization...) which ensure that
+        only a subset of the total unconstrained space is populated.
+
+        Typically, objects defined in the constrained space cannot be
+        converted to QuTiP or other formats.
+        """
         return self._constraint_fn is not None
 
     def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
