@@ -14,7 +14,7 @@
 
 import abc
 from math import sqrt
-from typing import Any, Callable, Union
+from typing import Any, Callable, Sequence, Union
 
 import jax
 from flax import linen as nn
@@ -157,23 +157,43 @@ class AbstractARNN(nn.Module):
         for the snake ordering. Otherwise, we call it 'ordered'.
 
         The inputs of `conditionals_log_psi`, `conditionals`, `conditional`, and
-        `__call__` are assumed to have unordered layout.
+        `__call__` are assumed to have unordered layout, and those inputs are
+        always transformed through `reorder` before evaluating the network.
+
+        Subclasses may override `reorder` and `inverse_reorder` together to
+        define this transformation.
+
+        Args:
+          inputs: an array with unordered layout along a dimension.
+          axis: the dimension to reorder on.
+
+        Returns:
+          The array with ordered layout.
         """
         return inputs
 
     def inverse_reorder(self, inputs: Array, axis: int = 0) -> Array:
         """
         Transforms an array from ordered to unordered. See `reorder`.
+
+        Args:
+          inputs: an array with ordered layout along a dimension.
+          axis: the dimension to reorder on.
+
+        Returns:
+          The array with unordered layout.
         """
         return inputs
 
 
 class ARNNSequential(AbstractARNN):
     """
-    Implementation of an ARNN that sequentially calls its layers and activation function.
+    Implementation of an ARNN that sequentially calls its layers, and optionally
+    an activation function.
 
-    Subclasses must implement `activation` as a field or a method,
-    and assign a list of ARNN layers to `self._layers` in `setup`.
+    A subclass must assign a list of ARNN layers to `self._layers` in `setup`.
+    If it has a callable attribute `activation`, it will be called before every
+    layer except the first.
 
     Note:
         If you want to use real parameters and output a complex wave function, such as in
@@ -208,13 +228,31 @@ class ARNNSequential(AbstractARNN):
         return inputs
 
 
-def _get_feature_list(model):
+def _get_feature_list(model: ARNNSequential) -> Sequence[int]:
+    """
+    Helper function to transform int-typed `model.features` to a sequence,
+    and to check that it is correctly defined if it is already a sequence.
+
+    Args:
+        model: an `ARNNSequential` instance having the attributes `features`,
+        `layers`, and `hilbert`.
+
+    Returns:
+        A sequence of ints as the numbers of features in all layers.
+    """
     if isinstance(model.features, int):
         features = [model.features] * (model.layers - 1) + [model.hilbert.local_size]
     else:
         features = model.features
-    assert len(features) == model.layers
-    assert features[-1] == model.hilbert.local_size
+
+    if len(features) != model.layers:
+        raise ValueError(
+            f"Features list length {len(features)} is different from number of layers {model.layers}"
+        )
+    if features[-1] != model.hilbert.local_size:
+        raise ValueError(
+            f"Features in the last layer {features[-1]} is different from Hilbert local size {model.hilbert.local_size}"
+        )
     return features
 
 
