@@ -19,6 +19,14 @@ Read more about the design goal of this module in their [README](https://github.
 
    DenseSymm
    DenseEquivariant
+```
+
+The following modules can be used in autoregressive neural networks, see {class}`~netket.models.AbstractARNN`
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/nn
+   :nosignatures:
 
    MaskedDense1D
    MaskedConv1D
