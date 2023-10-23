@@ -14,7 +14,8 @@
 
 import abc
 from math import sqrt
-from typing import Any, Callable, Sequence, Union
+from typing import Any, Callable, Union
+from collections.abc import Sequence
 
 import jax
 from flax import linen as nn

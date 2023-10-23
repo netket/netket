@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 import numpy as np
 from flax import linen as nn
@@ -128,7 +128,7 @@ class RNNLayer(nn.Module):
     # and use the returned function inside lax.scan
     def _get_recur_func(
         self, inputs: Array, hid_features: int
-    ) -> Callable[[Array, Array, Array], Tuple[Array, Array]]:
+    ) -> Callable[[Array, Array, Array], tuple[Array, Array]]:
         raise NotImplementedError
 
     @nn.compact

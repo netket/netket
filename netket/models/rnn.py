@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from math import sqrt
-from typing import Iterable, Optional, Tuple, Union
+from typing import Optional, Union
+from collections.abc import Iterable
 
 import numpy as np
 from jax import numpy as jnp
@@ -128,7 +129,7 @@ def _get_inv_idx(idx: Array) -> HashableArray:
     return inv
 
 
-def _get_extent(graph: AbstractGraph) -> Tuple[int, int, int]:
+def _get_extent(graph: AbstractGraph) -> tuple[int, int, int]:
     V = graph.n_nodes
 
     if isinstance(graph, Lattice):
