@@ -31,7 +31,16 @@ class FastRNN(FastARNNSequential):
     """
     Base class for recurrent neural networks with fast sampling.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    The fast autoregressive sampling is described in `Ramachandran et. {\\it al} <https://arxiv.org/abs/1704.06001>`_.
+    To generate one sample using an autoregressive network, we need to evaluate the network `N` times, where `N` is
+    the number of input sites. But actually we only change one input site each time, and not all intermediate results
+    depend on the changed input because of the autoregressive property, so we can cache unchanged intermediate results
+    and avoid repeated computation.
+
+    This optimization is particularly useful for RNN where each output site of a layer only depends on a small number of
+    input sites. In the slow RNN, we need to run `N` RNN steps in each layer during each AR sampling step. While in the
+    fast RNN, we cache the relevant hidden memories in each layer from the previous AR sampling step, and only run one
+    RNN step to update from the changed input.
 
     See :class:`netket.models.RNN` for explanation of the arguments related to
     the autoregressive order.
@@ -67,7 +76,7 @@ class FastRNN(FastARNNSequential):
     def inverse_reorder(self, inputs: Array, axis: int = 0) -> Array:
         return RNN.inverse_reorder(self, inputs, axis)
 
-    def take_prev_site(self, inputs: Array, index: int) -> Array:
+    def _take_prev_site(self, inputs: Array, index: int) -> Array:
         if self.reorder_idx is None:
             k = index
             prev_index = k - 1
@@ -122,7 +131,7 @@ def FastLSTMNet(*args, **kwargs):
     """
     Long short-term memory network with fast sampling.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
     _ensure_prev_neighbors(kwargs)
     return _FastLSTMNet(*args, **kwargs)
@@ -132,7 +141,7 @@ def FastGRUNet1D(*args, **kwargs):
     """
     Gated recurrent unit network with fast sampling. Only supports one previous neighbor at each site.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
     _ensure_prev_neighbors(kwargs)
     return _FastGRUNet1D(*args, **kwargs)

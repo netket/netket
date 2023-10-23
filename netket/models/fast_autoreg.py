@@ -32,6 +32,16 @@ class FastARNNSequential(ARNNSequential):
 
     Subclasses must implement `activation` as a field or a method,
     and assign a list of fast ARNN layers to `self._layers` in `setup`.
+
+    The fast autoregressive sampling is described in `Ramachandran et. {\\it al} <https://arxiv.org/abs/1704.06001>`_.
+    To generate one sample using an autoregressive network, we need to evaluate the network `N` times, where `N` is
+    the number of input sites. But actually we only change one input site each time, and not all intermediate results
+    depend on the changed input because of the autoregressive property, so we can cache unchanged intermediate results
+    and avoid repeated computation.
+
+    This optimization is particularly useful for convolutional neural networks (CNN) and recurrent neural networks (RNN)
+    where each output site of a layer only depends on a small number of input sites, while not so useful for densely
+    connected layers.
     """
 
     def conditional(self, inputs: Array, index: int) -> Array:
@@ -43,7 +53,7 @@ class FastARNNSequential(ARNNSequential):
             inputs = jnp.expand_dims(inputs, axis=0)
 
         x = jnp.expand_dims(inputs, axis=-1)
-        x = self.take_prev_site(x, index)
+        x = self._take_prev_site(x, index)
 
         for i in range(len(self._layers)):
             if i > 0 and hasattr(self, "activation"):
@@ -54,7 +64,7 @@ class FastARNNSequential(ARNNSequential):
         p = jnp.exp(self.machine_pow * log_psi.real)
         return p
 
-    def take_prev_site(self, inputs: Array, index: int) -> Array:
+    def _take_prev_site(self, inputs: Array, index: int) -> Array:
         """
         Takes the previous site in the autoregressive order.
         """
@@ -67,7 +77,7 @@ class FastARNNDense(FastARNNSequential):
     """
     Fast autoregressive neural network with dense layers.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
 
     TODO: FastMaskedDense1D does not support JIT yet, because it involves slicing the cached inputs
     and the weights with a dynamic shape.
@@ -115,7 +125,7 @@ class FastARNNConv1D(FastARNNSequential):
     """
     Fast autoregressive neural network with 1D convolution layers.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
 
     layers: int
@@ -164,7 +174,7 @@ class FastARNNConv2D(FastARNNSequential):
     """
     Fast autoregressive neural network with 2D convolution layers.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
 
     layers: int

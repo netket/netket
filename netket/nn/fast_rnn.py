@@ -26,7 +26,7 @@ class FastRNNLayer(RNNLayer):
     """
     Base class for recurrent neural network layers with fast sampling.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
 
     size: int = None
@@ -98,7 +98,7 @@ class FastLSTMLayer(FastRNNLayer):
     """
     Long short-term memory layer with fast sampling.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
 
     def _get_recur_func(self, inputs, hid_features):
@@ -109,7 +109,7 @@ class FastGRULayer1D(FastRNNLayer):
     """
     Gated recurrent unit layer with fast sampling. Only supports one previous neighbor at each site.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
 
     def _get_recur_func(self, inputs, hid_features):

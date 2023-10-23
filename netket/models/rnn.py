@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from math import sqrt
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Tuple, Union
 
 import numpy as np
 from jax import numpy as jnp
@@ -119,7 +119,7 @@ class _GRUNet1D(RNN):
         ]
 
 
-def _get_inv_idx(idx):
+def _get_inv_idx(idx: Array) -> HashableArray:
     idx = np.asarray(idx)
     inv = np.empty_like(idx)
     for i, k in enumerate(idx):
@@ -128,7 +128,7 @@ def _get_inv_idx(idx):
     return inv
 
 
-def _get_extent(graph):
+def _get_extent(graph: AbstractGraph) -> Tuple[int, int, int]:
     V = graph.n_nodes
 
     if isinstance(graph, Lattice):
@@ -141,7 +141,7 @@ def _get_extent(graph):
     return V, L, M
 
 
-def _get_snake_inv_reorder_idx(graph):
+def _get_snake_inv_reorder_idx(graph: AbstractGraph) -> HashableArray:
     V, L, M = _get_extent(graph)
     idx = np.arange(V, dtype=np.intp).reshape((L, M))
     idx[1::2, :] = idx[1::2, ::-1]
@@ -150,7 +150,7 @@ def _get_snake_inv_reorder_idx(graph):
     return idx
 
 
-def _get_inv_reorder_idx(graph):
+def _get_inv_reorder_idx(graph: AbstractGraph) -> HashableArray:
     """
     A greedy algorithm to determine an autoregressive order with good locality.
     For any rectangular graph with OBC, it is the same as the usual snake ordering.
@@ -160,6 +160,13 @@ def _get_inv_reorder_idx(graph):
     at each step, choose the unvisited neighbor whose index is the closest to the last one;
     if two neighbors have the same index distance, choose the one with the smaller index;
     if there is no unvisited neighbor, choose the unvisited site with the smallest index.
+
+    Args:
+      graph: A :class:`netket.graph.AbstractGraph` instance.
+
+    Returns:
+      A hashable array of ints describing the indices to transform an array from ordered to unordered.
+      See :meth:`netket.models.AbstractARNN.reorder` for details.
     """
     V = graph.n_nodes
     adj = graph.adjacency_list()
@@ -182,7 +189,7 @@ def _get_inv_reorder_idx(graph):
     return idx
 
 
-def _get_snake_prev_neighbors(graph, _):
+def _get_snake_prev_neighbors(graph: AbstractGraph) -> HashableArray:
     V, L, M = _get_extent(graph)
 
     def h(i, j):
@@ -202,7 +209,9 @@ def _get_snake_prev_neighbors(graph, _):
     return n
 
 
-def _get_prev_neighbors(graph, reorder_idx, max_prev_neighbors=None):
+def _get_prev_neighbors(
+    graph: AbstractGraph, reorder_idx: Array, max_prev_neighbors=None
+) -> HashableArray:
     adj = graph.adjacency_list()
     reorder_idx = np.asarray(reorder_idx)
 
