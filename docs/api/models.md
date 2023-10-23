@@ -25,6 +25,19 @@ neural quantum states.
    NDM
    GCNN
 
+   DeepSetMLP
+   MLP
+
+```
+
+The following autoregressive models can be directly sampled using {class}`~netket.sampler.ARDirectSampler`
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/models
+   :template: flax_model
+   :nosignatures:
+
    AbstractARNN
    ARNNDense
    ARNNConv1D
@@ -36,13 +49,9 @@ neural quantum states.
    GRUNet1D
    FastLSTMNet
    FastGRUNet1D
-
-   DeepSetMLP
-   MLP
-
 ```
 
-The following models are particularly suited for systems with continuous degrees of freedom (:class:`nk.hilbert.Particle`)
+The following models are particularly suited for systems with continuous degrees of freedom ({class}`~netket.hilbert.Particle`)
 
 ```{eval-rst}
 .. autosummary::
