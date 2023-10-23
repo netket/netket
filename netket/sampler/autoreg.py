@@ -14,6 +14,7 @@
 
 from functools import partial
 
+import flax
 import jax
 from jax import numpy as jnp
 
@@ -99,7 +100,7 @@ class ARDirectSampler(Sampler):
     @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(sampler, model, variables, state, chain_length):
         if "cache" in variables:
-            variables.pop("cache")
+            variables, _ = flax.core.pop(variables, "cache")
         variables_no_cache = variables
 
         def scan_fun(carry, index):
