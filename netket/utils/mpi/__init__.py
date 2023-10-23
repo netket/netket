@@ -39,4 +39,8 @@ from .primitives import (
     mpi_max_jax,
     mpi_mean_jax,
     mpi_sum_jax,
+    mpi_gather_jax,
+    mpi_alltoall_jax,
+    mpi_reduce_sum_jax,
+    mpi_scatter_jax,
 )
