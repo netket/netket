@@ -14,6 +14,7 @@
 
 from .abstract_variational_driver import AbstractVariationalDriver
 from .vmc import VMC
+from .vmc_kernel import VMC_kernelSR
 from .steady_state import SteadyState
 
 from netket.utils import _hide_submodules
