@@ -64,6 +64,7 @@ def jacobian_default_mode(
     samples: Array,
     *,
     holomorphic: Optional[bool] = None,
+    warn: bool = True,
 ) -> JacobianMode:
     """
     Returns the default `mode` for {func}`nk.jax.jacobian` given a certain
@@ -94,6 +95,9 @@ def jacobian_default_mode(
         samples: An array of samples.
         holomorphic: A boolean specifying whether `apply_fun` is
             holomorphic or not (`None` by default).
+        warn: A boolean specifying whether to raise a warning
+            when holomorphic is not specified. For internal use
+            only.
 
     """
     nkjax.tree_ishomogeneous(pars)
@@ -118,7 +122,7 @@ def jacobian_default_mode(
 
         if complex_output:
             if not leaf_isreal:
-                if holomorphic is None:
+                if holomorphic is None and warn:
                     warnings.warn(
                         HolomorphicUndeclaredWarning(),
                         UserWarning,
