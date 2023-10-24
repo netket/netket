@@ -15,20 +15,17 @@ from .vmc import VMC
 
 @jax.jit
 def kernel_SR(O_L, de, diag_shift):
-    if O_L.shape[-1] % n_nodes != 0:
+    N_params = O_L.shape[-1]
+    N_mc = O_L.shape[0] * n_nodes
+
+    if N_params % n_nodes != 0:
         raise NotImplementedError() #* in this case O_L should be padded with zeros
 
-    N_mc = O_L.shape[0] * n_nodes
     O_L = O_L / N_mc**0.5
-    dv = de / N_mc**0.5
+    dv = -2.0 * de / N_mc**0.5
 
-    if jnp.iscomplexobj(O_L):
-        O_L = jnp.concatenate((jnp.real(O_L), jnp.imag(O_L)), axis=0)
-        dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)
-    else:
-        dv = dv.real
-
-    dv = -2.0 * dv
+    O_L = jnp.concatenate((O_L[:, 0], O_L[:, 1]), axis=0)
+    dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)
 
     O_LT = rearrange(O_L, 'twons (np proc) -> proc twons np', proc=n_nodes)
     
@@ -52,7 +49,7 @@ def kernel_SR(O_L, de, diag_shift):
     updates = O_L.T @ aus_vector
     updates, token = mpi_allreduce_sum_jax(updates, token=token)
     
-    return updates 
+    return -updates 
 
 class VMC_kernelSR(VMC):
     """
@@ -100,14 +97,11 @@ class VMC_kernelSR(VMC):
                                    self.state.model_state,
                                    mode="complex",
                                    dense=True,
-                                   center=False)
-        
-        O_L = jacobians[:, 0] + 1j * jacobians[:, 1]
-        O_L = O_L - jnp.mean(O_L, axis=0, keepdims=True)
+                                   center=True) #* jaxcobians is centered
 
-        updates = kernel_SR(O_L, de, self.diag_shift)
+        updates = kernel_SR(jacobians, de, self.diag_shift)
 
-        self._dp = self.unravel_params_fn(-updates)
+        self._dp = self.unravel_params_fn(updates)
 
         return self._dp
     
