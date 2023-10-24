@@ -11,14 +11,10 @@ from netket.optimizer import (
 )
 
 import mpi4jax
+from netket.utils.mpi import rank, n_nodes, MPI_jax_comm
 from mpi4py import MPI
 
 from jax.flatten_util import ravel_pytree
-
-comm = MPI.COMM_WORLD
-size = comm.Get_size()
-rank = comm.Get_rank()
-comm_jax = comm.Clone()
 
 from .vmc import VMC
 
@@ -26,7 +22,7 @@ MASTER = 0
 
 @jax.jit
 def kernel_SR_memorysave(O_L, de, diag_shift):
-    N_mc = O_L.shape[0] * size
+    N_mc = O_L.shape[0] * n_nodes
     O_L = jnp.concatenate((jnp.real(O_L), jnp.imag(O_L)), axis=0)
     O_L = O_L / N_mc**0.5
 
@@ -34,27 +30,27 @@ def kernel_SR_memorysave(O_L, de, diag_shift):
     dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)
     dv = -2.0 * dv
 
-    O_LT = rearrange(O_L, 'twons (np proc) -> proc twons np', proc=size)
+    O_LT = rearrange(O_L, 'twons (np proc) -> proc twons np', proc=n_nodes)
     
-    dv, token = mpi4jax.gather(dv, root=MASTER, comm=comm_jax)
+    dv, token = mpi4jax.gather(dv, root=MASTER, comm=MPI_jax_comm)
     dv = dv.reshape(-1, *dv.shape[2:])
-    O_LT, token = mpi4jax.alltoall(O_LT, comm=comm_jax, token=token)
+    O_LT, token = mpi4jax.alltoall(O_LT, comm=MPI_jax_comm, token=token)
 
     O_LT = rearrange(O_LT, 'proc twons np -> (proc twons) np')
     
-    matrix, token = mpi4jax.reduce(O_LT@O_LT.T, op=MPI.SUM, root=MASTER, comm=comm_jax, token=token)
+    matrix, token = mpi4jax.reduce(O_LT@O_LT.T, op=MPI.SUM, root=MASTER, comm=MPI_jax_comm, token=token)
     
     if rank==MASTER:
         matrix = jnp.linalg.inv(matrix + diag_shift * jnp.eye(2*N_mc))
         aus_vector = matrix @ dv
-        aus_vector = aus_vector.reshape(size, -1)
-        aus_vector, token = mpi4jax.scatter(aus_vector, root=MASTER, comm=comm_jax, token=token)
+        aus_vector = aus_vector.reshape(n_nodes, -1)
+        aus_vector, token = mpi4jax.scatter(aus_vector, root=MASTER, comm=MPI_jax_comm, token=token)
     else:
-        shape = jnp.zeros((int(2*N_mc/size),), dtype=jnp.float64)
-        aus_vector, token = mpi4jax.scatter(shape, root=MASTER, comm=comm_jax, token=token)
+        shape = jnp.zeros((int(2*N_mc/n_nodes),), dtype=jnp.float64)
+        aus_vector, token = mpi4jax.scatter(shape, root=MASTER, comm=MPI_jax_comm, token=token)
 
     updates = O_L.T @ aus_vector
-    updates, token = mpi4jax.allreduce(updates, op=MPI.SUM, comm=comm_jax, token=token)
+    updates, token = mpi4jax.allreduce(updates, op=MPI.SUM, comm=MPI_jax_comm, token=token)
     
     return updates 
 
