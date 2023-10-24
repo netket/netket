@@ -92,11 +92,9 @@ class VMC_kernelSR(VMC):
 
         # Compute the local energy estimator and average Energy
         local_energy = self.state.local_estimators(self._ham).squeeze()
-        local_energy = local_energy / 4
         
         e_mean = local_energy.mean()
-        Ns = self.samples.shape[-1]
-        self._loss_stats = e_mean / Ns
+        self._loss_stats = e_mean
 
         de = jnp.conj(local_energy - e_mean)
 
