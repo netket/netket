@@ -34,25 +34,32 @@ class AbstractARNN(nn.Module):
     """
     Base class for autoregressive neural networks.
 
-    Subclasses must implement the method `conditionals_log_psi`, or override the methods
-    `__call__` and `conditionals` if desired.
+    Subclasses must implement the method
+    :meth:`~netket.models.AbstractARNN.conditionals_log_psi`,
+    or override the methods
+    :meth:`~netket.models.AbstractARNN.__call__` and
+    :meth:`~netket.models.AbstractARNN.conditionals` if desired.
 
-    They can override `conditional` to implement the caching for fast autoregressive sampling.
-    See :class:`netket.nn.FastARNNConv1D` for example.
+    They can override :meth:`~netket.models.AbstractARNN.conditional` to
+    implement the caching for fast autoregressive sampling.
+    See :class:`netket.models.FastARNNConv1D` for an example.
 
-    They must also implement the field `machine_pow`,
-    which specifies the exponent to normalize the outputs of `__call__`.
+    They must also implement the field :attr:`~netket.models.AbstractARNN.machine_pow`,
+    which specifies the exponent to normalize the outputs of
+    :meth:`~netket.models.AbstractARNN.__call__`.
     """
 
     hilbert: HomogeneousHilbert
-    """the Hilbert space. Only homogeneous unconstrained Hilbert spaces are supported."""
+    """the Hilbert space. Only homogeneous unconstrained
+    Hilbert spaces are supported."""
 
     def __post_init__(self):
         super().__post_init__()
 
         if not isinstance(self.hilbert, HomogeneousHilbert):
             raise ValueError(
-                f"Only homogeneous Hilbert spaces are supported by ARNN, but hilbert is a {type(self.hilbert)}."
+                "Only homogeneous Hilbert spaces are supported "
+                "by ARNN, but hilbert is a {type(self.hilbert)}."
             )
 
         if self.hilbert.constrained:
@@ -61,7 +68,8 @@ class AbstractARNN(nn.Module):
     @abc.abstractmethod
     def conditionals_log_psi(self, inputs: Array) -> Array:
         """
-        Computes the log of the conditional wave-functions for each site to take each value.
+        Computes the log of the conditional wave-functions for each
+        site to take each value.
 
         Args:
           inputs: configurations with dimensions (batch, Hilbert.size).
