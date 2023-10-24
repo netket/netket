@@ -16,6 +16,10 @@ from .vmc import VMC
 
 @partial(jax.jit, static_argnums=(3,))
 def kernel_SR(O_L, de, diag_shift, mode):
+    """
+    For more details, see `https://arxiv.org/abs/2310.05715'. In particular, 
+    the following parallel implementation is described in Appendix "Distributed SR computation".
+    """
     N_params = O_L.shape[-1]
     N_mc = O_L.shape[0] * n_nodes
 
