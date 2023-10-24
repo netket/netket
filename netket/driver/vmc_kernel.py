@@ -1,3 +1,4 @@
+from functools import partial
 from einops import rearrange
 
 import jax
@@ -13,8 +14,8 @@ from jax.flatten_util import ravel_pytree
 
 from .vmc import VMC
 
-@jax.jit
-def kernel_SR(O_L, de, diag_shift):
+@partial(jax.jit, static_argnums=(3,))
+def kernel_SR(O_L, de, diag_shift, mode):
     N_params = O_L.shape[-1]
     N_mc = O_L.shape[0] * n_nodes
 
@@ -24,8 +25,13 @@ def kernel_SR(O_L, de, diag_shift):
     O_L = O_L / N_mc**0.5
     dv = -2.0 * de / N_mc**0.5
 
-    O_L = jnp.concatenate((O_L[:, 0], O_L[:, 1]), axis=0)
-    dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)
+    if mode=="complex":
+        O_L = jnp.concatenate((O_L[:, 0], O_L[:, 1]), axis=0)
+        dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)
+    elif mode=="real":
+        dv = dv.real
+    else:
+        raise NotImplementedError()
 
     O_LT = rearrange(O_L, 'twons (np proc) -> proc twons np', proc=n_nodes)
     
@@ -36,14 +42,15 @@ def kernel_SR(O_L, de, diag_shift):
     O_LT = rearrange(O_LT, 'proc twons np -> (proc twons) np')
     
     matrix, token = mpi_reduce_sum_jax(O_LT@O_LT.T, token=token)
-    
+    matrix_side = matrix.shape[-1] #* it can be Ns or 2*Ns, depending on mode
+
     if rank==0:
-        matrix = jnp.linalg.inv(matrix + diag_shift * jnp.eye(2*N_mc))
+        matrix = jnp.linalg.inv(matrix + diag_shift * jnp.eye(matrix_side))
         aus_vector = matrix @ dv
         aus_vector = aus_vector.reshape(n_nodes, -1)
         aus_vector, token = mpi_scatter_jax(aus_vector, token=token)
     else:
-        shape = jnp.zeros((int(2*N_mc/n_nodes),), dtype=jnp.float64)
+        shape = jnp.zeros((int(matrix_side/n_nodes),), dtype=jnp.float64)
         aus_vector, token = mpi_scatter_jax(shape, token=token)
 
     updates = O_L.T @ aus_vector
@@ -62,6 +69,7 @@ class VMC_kernelSR(VMC):
         optimizer,
         diag_shift,
         *args,
+        jacobian_mode=None,
         variational_state=None,
         **kwargs,
     ):
@@ -70,6 +78,7 @@ class VMC_kernelSR(VMC):
         self._ham = hamiltonian.collect()  # type: AbstractOperator
         _, self.unravel_params_fn = ravel_pytree(self.state.parameters)
         self.diag_shift = diag_shift
+        self.jacobian_mode = jacobian_mode
 
     def _forward_and_backward(self):
         """
@@ -91,15 +100,22 @@ class VMC_kernelSR(VMC):
 
         de = jnp.conj(local_energy - e_mean)
 
-        jacobians = nkjax.jacobian(self.state._apply_fun,
-                                   self.state.parameters,
-                                   self.samples.squeeze(), 
-                                   self.state.model_state,
-                                   mode="complex",
-                                   dense=True,
-                                   center=True) #* jaxcobians is centered
+        if self.jacobian_mode is None:
+            mode = "complex"
+        else:
+            #* mode='complex' is the most general; mode='holomorphic' could be implemented
+            assert self.jacobian_mode in ["complex", "real"], "Jacobian mode must be 'complex' or 'real'"
+            mode = self.jacobian_mode
 
-        updates = kernel_SR(jacobians, de, self.diag_shift)
+        jacobians = nkjax.jacobian(self.state._apply_fun,
+                                self.state.parameters,
+                                self.samples.squeeze(), 
+                                self.state.model_state,
+                                mode=mode,
+                                dense=True,
+                                center=True) #* jaxcobians is centered
+
+        updates = kernel_SR(jacobians, de, self.diag_shift, mode)
 
         self._dp = self.unravel_params_fn(updates)
 
