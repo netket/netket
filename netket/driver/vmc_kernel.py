@@ -15,6 +15,9 @@ from .vmc import VMC
 
 @jax.jit
 def kernel_SR(O_L, de, diag_shift):
+    if O_L.shape[-1] % n_nodes != 0:
+        raise NotImplementedError() #* in this case O_L should be padded with zeros
+
     N_mc = O_L.shape[0] * n_nodes
     O_L = O_L / N_mc**0.5
     dv = de / N_mc**0.5
@@ -84,14 +87,16 @@ class VMC_kernelSR(VMC):
         # Compute the local energy estimator and average Energy
         local_energy = self.state.local_estimators(self._ham).squeeze()
         local_energy = local_energy / 4
+        
         e_mean = local_energy.mean()
-        self._loss_stats = e_mean / self.state._samples.shape[-1]
+        Ns = self.samples.shape[-1]
+        self._loss_stats = e_mean / Ns
 
         de = jnp.conj(local_energy - e_mean)
 
         jacobians = nkjax.jacobian(self.state._apply_fun,
                                    self.state.parameters,
-                                   self.state._samples.squeeze(), #! THIS IS NOT CORRECT ...
+                                   self.samples.squeeze(), 
                                    self.state.model_state,
                                    mode="complex",
                                    dense=True,
@@ -105,3 +110,7 @@ class VMC_kernelSR(VMC):
         self._dp = self.unravel_params_fn(-updates)
 
         return self._dp
+    
+    @property
+    def samples(self):
+        return self.state._samples #! is there a better way?
