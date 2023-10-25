@@ -122,7 +122,7 @@ class VMC_kernelSR(VMC):
         _, self.unravel_params_fn = ravel_pytree(self.state.parameters)
         self.diag_shift = diag_shift
         self.jacobian_mode = jacobian_mode
-        self.linear_solver_fn = linear_solver_fn
+        self._linear_solver_fn = linear_solver_fn
 
     def _forward_and_backward(self):
         """
