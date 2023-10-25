@@ -157,7 +157,7 @@ class VMC_kernelSR(VMC):
                                 dense=True,
                                 center=True) #* jaxcobians is centered
 
-        updates = kernel_SR(jacobians, de, self.diag_shift, mode, self.linear_solver_fn)
+        updates = kernel_SR(jacobians, de, self.diag_shift, self.jacobian_mode, self._linear_solver_fn)
 
         self._dp = self.unravel_params_fn(updates)
 
