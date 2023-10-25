@@ -18,6 +18,9 @@
 * Added new shortcuts to build the identity operator as {func}`netket.operator.spin.identity` and {func}`netket.operator.boson.identity` [#1601](https://github.com/netket/netket/pull/1601).
 * Added new {class}`netket.hilbert.Particle` constructor that only takes as input the number of dimensions of the system [#1577](https://github.com/netket/netket/pull/1577).
 
+### Breaking Changes
+* The {class}`netket.nn.blocks.SymmExpSum` layer is now normalised by the number of elements in the symmetry group in order to maintain a reasonable normalisation [#1624](https://github.com/netket/netket/pull/1624).
+
 ### Bug Fixes
 
 * Fixed minor bug where {class}`netket.operator.LocalOperator` could not be built with `np.matrix` object obtained by converting scipy sparse matrices to dense [#1597](https://github.com/netket/netket/pull/1597).
