@@ -90,13 +90,13 @@ class VMC_SRt(VMC):
     where :math:`X \in R^{P \times 2M}` is the concatenation of the real and imaginary part
     of the centered Jacobian, with P the number of parameters and M the number of samples.
     The vector f is the concatenation of the real and imaginary part of the centered local
-    energy. Note that, to compute the updates, it is sufficient to invert an :math:`M\\times M` matrix
+    energy. Note that, to compute the updates, it is sufficient to invert an :math:`M\times M` matrix
     instead of a :math:`P\times P` one. As a consequence, this formulation is useful
     in the typical deep learning regime where :math:`P \gg M`.
 
     See `R.Rende, L.L.Viteritti, L.Bardone, F.Becca and S.Goldt <https://arxiv.org/abs/2310.05715>`_
     for a detailed description of the derivation. A similar result can be obtained by minimizing the
-    Fubini-Study distance with a specific constrain, see A.Chen and M.Heyl (https://arxiv.org/abs/2302.01941)
+    Fubini-Study distance with a specific constrain, see `A.Chen and M.Heyl <https://arxiv.org/abs/2302.01941>`_
     for details.
     """
 
@@ -118,7 +118,13 @@ class VMC_SRt(VMC):
             optimizer: Determines how optimization steps are performed given the
                     bare energy gradient.
             diag_shift: The diagonal shift of the stochastic reconfiguration matrix.
-                    Typical values are 1e-4 ÷ 1e-3. Can also be an optax schedule.
+                        Typical values are 1e-4 ÷ 1e-3. Can also be an optax schedule.
+            hamiltonian: The Hamiltonian of the system.
+            linear_solver_fn: Callable to solve the linear problem associated to the
+                              updates of the parameters
+            jacobian_mode: The mode used to compute the jacobian of the variational state. Can be `'real'`
+                    or `'complex'` (defaults to the dtype of the output of the model).
+            variational_state: The :class:`netket.vqs.MCState` to be optimised.
         """
         super().__init__(hamiltonian, optimizer, variational_state=variational_state)
 
