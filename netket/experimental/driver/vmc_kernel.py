@@ -72,7 +72,7 @@ inv_default_solver = lambda A, b: jnp.linalg.inv(A) @ b
 linear_solver = lambda A, b: jsp.linalg.solve(A, b, assume_a="pos")
 
 class VMC_kernelSR(VMC):
-    """
+    r"""
     Energy minimization using Variational Monte Carlo (VMC) and the kernel 
     formulation of Stochastic Reconfiguration (SR). This approach lead to
     *exactly* the same parameter updates of the standard SR with a
