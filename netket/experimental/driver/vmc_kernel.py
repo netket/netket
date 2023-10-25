@@ -151,7 +151,7 @@ class VMC_kernelSR(VMC):
 
         jacobians = nkjax.jacobian(self.state._apply_fun,
                                 self.state.parameters,
-                                self.samples.squeeze(), 
+                                self.state.samples.squeeze(), 
                                 self.state.model_state,
                                 mode=self.jacobian_mode,
                                 dense=True,
