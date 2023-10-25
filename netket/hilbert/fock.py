@@ -66,6 +66,11 @@ class Fock(HomogeneousHilbert):
         self._n_max = n_max
 
         if n_particles is not None:
+            if not isinstance(n_particles, int):
+                raise TypeError(
+                    f"n_particles must be an integer. Got {type(n_particles)}"
+                )
+
             n_particles = int(n_particles)
             if n_particles < 0:
                 raise ValueError(

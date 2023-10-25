@@ -472,23 +472,27 @@ def test_fermions_states():
 
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
+    assert not hi.constrained
     assert hi.n_states == 2**5
 
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
+    assert hi.constrained
     assert np.all(hi.all_states().sum(axis=-1) == 2)
     assert hi.n_states == int(scipy.special.comb(5, 2))
 
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=2)
     assert hi.size == 10
-    assert np.all(hi.all_states().sum(axis=-1) == 2)
+    assert hi.constrained
+    np.testing.assert_equal(hi.all_states().sum(axis=-1), 2)
     # distribute 2 fermions over (2*number of orbitals)
     assert hi.n_states == int(scipy.special.comb(2 * 5, 2))
 
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=(2, 1))
     assert hi.size == 10
-    assert np.all(hi.all_states()[:, :5].sum(axis=-1) == 2)
-    assert np.all(hi.all_states()[:, 5:].sum(axis=-1) == 1)
+    assert hi.constrained
+    np.testing.assert_equal(hi.all_states()[:, :5].sum(axis=-1), 2)
+    np.testing.assert_equal(hi.all_states()[:, 5:].sum(axis=-1), 1)
     # product of all_states for -1/2 spin block and states for 1/2 block
     assert hi.n_states == int(scipy.special.comb(5, 2) * scipy.special.comb(5, 1))
 

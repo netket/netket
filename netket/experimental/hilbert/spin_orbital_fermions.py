@@ -75,18 +75,22 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         if spin_size == 1:
             hilbert = Fock(n_max=1, N=n_orbitals, n_particles=n_fermions)
             n_fermions_s = (n_fermions,)
+        elif isinstance(n_fermions, int):
+            # fixed fermion number but multiple spins subspaces
+            hilbert = Fock(n_max=1, N=total_size, n_particles=n_fermions)
+            n_fermions_s = tuple(None for _ in range(spin_size))
         else:
             if n_fermions is None:
                 n_fermions_s = tuple(None for _ in range(spin_size))
             else:
+                if not isinstance(n_fermions, Iterable):
+                    raise TypeError(
+                        f"n_fermions={n_fermions} (whose type is {type(n_fermions)}) "
+                        "must be None or a list of integers describing the number of "
+                        f"fermions in each of the {total_size} spin subsectors."
+                    )
                 n_fermions_s = n_fermions
-
-            if not isinstance(n_fermions_s, Iterable):
-                raise TypeError(
-                    f"n_fermions={n_fermions_s} (whose type is {type(n_fermions_s)}) "
-                    "must be None or a list of integers describing the number of "
-                    f"fermions in each of the {total_size} spin subsectors."
-                )
+                n_fermions = sum(n_fermions)
 
             if len(n_fermions_s) != spin_size:
                 raise ValueError(
@@ -108,6 +112,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         # we use the constraints from the Fock spaces, and override `constrained`
         super().__init__(local_states, N=total_size, constraint_fn=None)
         self._s = s
+        self._n_fermions = n_fermions
         self._n_fermions_per_subsector: tuple[Optional[int], ...] = n_fermions_s
         self._n_orbitals = n_orbitals
 
@@ -119,10 +124,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
     @property
     def n_fermions(self) -> Optional[int]:
         """The total number of fermions. None if unspecified."""
-        if self.constrained:
-            return sum(self.n_fermions_per_spin)
-        else:
-            return None
+        return self._n_fermions
 
     @property
     def n_fermions_per_spin(self) -> tuple[Optional[int], ...]:
@@ -161,7 +163,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
     @property
     def constrained(self):
-        return any(f is not None for f in self.n_fermions_per_spin)
+        return self._n_fermions is not None
 
     @property
     def is_finite(self) -> bool:
