@@ -22,6 +22,7 @@ import jax
 from jax.tree_util import tree_map
 
 from netket.logging import JsonLog
+from netket.operator import AbstractOperator
 from netket.utils import mpi
 
 
@@ -303,7 +304,14 @@ class AbstractVariationalDriver(abc.ABC):
             A pytree of the same structure as the input, containing MCMC statistics
             for the corresponding operators as leaves.
         """
-        return tree_map(self._estimate_stats, observables)
+
+        # Do not unpack operators, even if they are pytrees!
+        # this is necessary to support jax operators.
+        return tree_map(
+            self._estimate_stats,
+            observables,
+            is_leaf=lambda x: isinstance(x, AbstractOperator),
+        )
 
     def update_parameters(self, dp):
         """

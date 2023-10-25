@@ -227,3 +227,17 @@ def test_preconditioner_deprecated_signature():
         driver.preconditioner = _sr
 
     driver.run(1)
+
+
+def test_observable_jaxoperator():
+    # If we don't stop the flattening correctly the
+    # jax operators are unpacked in expect and everything
+    # breaks
+    ha, sx, ma, sampler, driver = _setup_vmc(sr=True)
+
+    obs = ha.to_local_operator().to_pauli_strings().to_jax_operator()
+    log = nk.logging.RuntimeLog()
+
+    driver.run(10, out=log, obs={"s1": obs})
+
+    assert len(log.data["s1"]["Mean"]) == 10
