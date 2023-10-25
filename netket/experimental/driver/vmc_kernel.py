@@ -172,12 +172,6 @@ class VMC_kernelSR(VMC):
 
         de = jnp.conj(local_energy - e_mean)
 
-        if self.jacobian_mode is None:
-            mode = "complex"
-        else:
-            #* mode='complex' is the most general; mode='holomorphic' could be implemented
-            assert self.jacobian_mode in ["complex", "real"], "Jacobian mode must be 'complex' or 'real'"
-            mode = self.jacobian_mode
 
         jacobians = nkjax.jacobian(self.state._apply_fun,
                                 self.state.parameters,
