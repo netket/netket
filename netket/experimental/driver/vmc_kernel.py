@@ -80,7 +80,8 @@ class VMC_kernelSR(VMC):
     nk.driver.VMC with the preconditioner nk.optimizer.SR(solver=netket.optimizer.solver.solvers.solve))
     In the kernel SR framework, the updates of the parameters can be written as:
 
-    :math:`\delta \\theta = \\tau X(X^TX + \lambda \mathbb{I}_{2M})^{-1} f`,
+    .. math::
+        \delta \theta = \tau X(X^TX + \lambda \mathbb{I}_{2M})^{-1} f,
 
     where :math:`X \in R^{P \\times 2M}` is the concatenation of the real and imaginary part 
     of the centered Jacobian, with P the number of parameters and M the number of samples.
