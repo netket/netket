@@ -69,7 +69,34 @@ linear_solver = lambda A, b: jsp.linalg.solve(A, b, assume_a="pos")
 
 class VMC_kernelSR(VMC):
     """
-    Energy minimization using Variational Monte Carlo (VMC).
+    Energy minimization using Variational Monte Carlo (VMC) and the kernel 
+    formulation of Stochastic Reconfiguration (SR). This approach lead to
+    *exactly* the same parameter updates of the standard SR with a
+    diagonal shift regularization. For this reason, it is equivalent to the standard 
+    nk.driver.VMC with the preconditioner nk.optimizer.SR(solver=netket.optimizer.solver.solvers.solve))
+    In the kernel SR framework, the updates of the parameters can be written as:
+
+    :math:`\delta \\theta = \\tau X(X^TX + \lambda \mathbb{I}_{2M})^{-1} f`,
+
+    where :math:`X \in R^{P \\times 2M}` is the concatenation of the real and imaginary part 
+    of the centered Jacobian, with P the number of parameters and M the number of samples.
+    The vector f is the concatenation of the real and imaginary part of the centered local
+    energy. Note that, to compute the updates, it is sufficient to invert an :math:`M\\times M` matrix
+    instead of a :math:`P\\times P` one. As a consequence, this formulation is useful
+    in the typical deep learning regime where :math:`P \gg M`.
+    
+    See R.Rende, L.L.Viteritti, L.Bardone, F.Becca and S.Goldt (https://arxiv.org/abs/2310.05715)
+    for a detailed description of the derivation. A similar result can be obtained by minimizing the
+    Fubini-Study distance with a specific constrain, see A.Chen and M.Heyl (https://arxiv.org/abs/2302.01941) 
+    for details.
+
+    Args:
+        hamiltonian: The Hamiltonian of the system.
+        optimizer: Determines how optimization steps are performed given the
+                bare energy gradient.
+        diag_shift: The diagonal shift of the stochastic reconfiguration matrix.
+                Typical values are 1e-4 :math:`\divide` 1e-3.
+
     """
 
     def __init__(
