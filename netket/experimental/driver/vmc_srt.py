@@ -135,10 +135,12 @@ class VMC_SRt(VMC):
         super().__init__(hamiltonian, optimizer, variational_state=variational_state)
 
         self._ham = hamiltonian.collect()  # type: AbstractOperator
-        _, self.unravel_params_fn = ravel_pytree(self.state.parameters)
         self.diag_shift = diag_shift
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
+
+        _, unravel_params_fn = ravel_pytree(self.state.parameters)
+        self._unravel_params_fn = jax.jit(unravel_params_fn)
 
         if self.state.n_parameters % mpi.n_nodes != 0:
             raise NotImplementedError(
@@ -211,15 +213,19 @@ class VMC_SRt(VMC):
             center=True,
         )  # * jaxcobians is centered
 
+        diag_shift = self.diag_shift
+        if callable(self.diag_shift):
+            diag_shift = diag_shift(self.step_count)
+
         updates = SRt(
             jacobians,
             local_energies,
-            self.diag_shift,
+            diag_shift,
             mode=self.jacobian_mode,
             solver_fn=self._linear_solver_fn,
             e_mean=self._loss_stats.Mean,
         )
 
-        self._dp = self.unravel_params_fn(updates)
+        self._dp = self._unravel_params_fn(updates)
 
         return self._dp

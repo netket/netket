@@ -18,6 +18,9 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from flax import linen as nn
+import optax
+
+import pytest
 
 from netket.experimental.driver import VMC_SRt
 from netket.optimizer.solver.solvers import solve
@@ -155,3 +158,37 @@ def test_SRt_real_vs_complex():
         energy_real = logger_real.data["Energy"]["Mean"]
 
         np.testing.assert_allclose(energy_real, energy_complex, atol=1e-10)
+
+
+def test_SRt_constructor_errors():
+    """
+    nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
+    """
+    H, opt, vstate_srt = _setup()
+    gs = VMC_SRt(
+        H,
+        opt,
+        variational_state=vstate_srt,
+        diag_shift=0.1,
+    )
+    assert gs.jacobian_mode == "complex"
+    gs.run(1)
+
+    with pytest.raises(ValueError):
+        gs = VMC_SRt(
+            H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="belin"
+        )
+
+
+def test_SRt_schedules():
+    """
+    nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
+    """
+    H, opt, vstate_srt = _setup()
+    gs = VMC_SRt(
+        H,
+        opt,
+        variational_state=vstate_srt,
+        diag_shift=optax.linear_schedule(0.1, 0.001, 100),
+    )
+    gs.run(5)
