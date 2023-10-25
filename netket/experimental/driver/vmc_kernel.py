@@ -113,7 +113,7 @@ class VMC_kernelSR(VMC):
             optimizer: Determines how optimization steps are performed given the
                     bare energy gradient.
             diag_shift: The diagonal shift of the stochastic reconfiguration matrix.
-                    Typical values are 1e-4 ÷ 1e-3.
+                    Typical values are 1e-4 ÷ 1e-3. Can also be an optax schedule.
         """
         super().__init__(hamiltonian, optimizer, variational_state=variational_state)
 
