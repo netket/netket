@@ -87,7 +87,7 @@ class VMC_kernelSR(VMC):
     of the centered Jacobian, with P the number of parameters and M the number of samples.
     The vector f is the concatenation of the real and imaginary part of the centered local
     energy. Note that, to compute the updates, it is sufficient to invert an :math:`M\\times M` matrix
-    instead of a :math:`P\\times P` one. As a consequence, this formulation is useful
+    instead of a :math:`P\times P` one. As a consequence, this formulation is useful
     in the typical deep learning regime where :math:`P \gg M`.
     
     See `R.Rende, L.L.Viteritti, L.Bardone, F.Becca and S.Goldt <https://arxiv.org/abs/2310.05715>`_
