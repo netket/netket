@@ -118,7 +118,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
     @property
     def n_fermions(self) -> Optional[int]:
-        """The total number of fermions"""
+        """The total number of fermions. None if unspecified."""
         if self.constrained:
             return sum(self.n_fermions_per_spin)
         else:
@@ -126,7 +126,18 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
     @property
     def n_fermions_per_spin(self) -> tuple[Optional[int], ...]:
+        """Tuple identifying the per-subsector population constraint.
+
+        This tuple has length 1 for spinless fermions and length 2s+1 for spinful fermions.
+        Every element is an integer or None, where None means no constraint on the number
+        of fermions in that subsector.
+        """
         return self._n_fermions_per_subsector
+
+    @property
+    def n_spin_subsectors(self) -> int:
+        """Total number of spin subsectors. If spin is None, this is 1."""
+        return len(self._n_fermions_per_subsector)
 
     @property
     def n_orbitals(self) -> int:
