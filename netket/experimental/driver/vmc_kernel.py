@@ -11,6 +11,7 @@ from netket.operator import AbstractOperator
 
 from netket.utils.mpi import rank, n_nodes
 from netket.utils.mpi import mpi_gather_jax, mpi_alltoall_jax, mpi_reduce_sum_jax, mpi_scatter_jax, mpi_allreduce_sum_jax
+from netket.utils.types import ScalarOrSchedule
 
 from jax.flatten_util import ravel_pytree
 
