@@ -68,7 +68,7 @@ class Fock(HomogeneousHilbert):
         if n_particles is not None:
             if not isinstance(n_particles, int):
                 raise TypeError(
-                    f"n_particles must be an integer. Got {type(n_particles)}"
+                    f"n_particles must be an integer. Got {n_particles} ({type(n_particles)})"
                 )
 
             n_particles = int(n_particles)

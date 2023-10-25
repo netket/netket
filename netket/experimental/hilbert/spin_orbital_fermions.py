@@ -1,4 +1,4 @@
-# Copyright 2022 The NetKet Authors - All rights reserved.
+# Copyright 2022-2023 The NetKet Authors - All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -73,6 +73,11 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         total_size = n_orbitals * spin_size
 
         if spin_size == 1:
+            if not isinstance(n_fermions, Optional[int]):
+                raise TypeError(
+                    "Spinless fermions require that `n_fermions` be "
+                    f"an integer or None. (Got {n_fermions})"
+                )
             hilbert = Fock(n_max=1, N=n_orbitals, n_particles=n_fermions)
             n_fermions_s = (n_fermions,)
         elif isinstance(n_fermions, int):
