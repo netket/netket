@@ -1,6 +1,5 @@
 from functools import partial
 from typing import Callable
-from einops import rearrange
 
 import jax
 import jax.numpy as jnp
