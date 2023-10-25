@@ -48,7 +48,8 @@ def kernel_SR(O_L, de, diag_shift, mode, solver_fn):
     dv = dv.reshape(-1, *dv.shape[2:])
     O_LT, token = mpi_alltoall_jax(O_LT, token=token)
 
-    O_LT = rearrange(O_LT, 'proc twons np -> (proc twons) np')
+    # proc, twons, np -> (proc, twons) np
+    O_LT = O_LT.reshape(-1, O_LT.shape[-1])
     
     matrix, token = mpi_reduce_sum_jax(O_LT@O_LT.T, token=token)
     matrix_side = matrix.shape[-1] #* it can be Ns or 2*Ns, depending on mode
