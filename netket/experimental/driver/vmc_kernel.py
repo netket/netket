@@ -83,7 +83,7 @@ class VMC_kernelSR(VMC):
     .. math::
         \delta \theta = \tau X(X^TX + \lambda \mathbb{I}_{2M})^{-1} f,
 
-    where :math:`X \in R^{P \\times 2M}` is the concatenation of the real and imaginary part 
+    where :math:`X \in R^{P \times 2M}` is the concatenation of the real and imaginary part 
     of the centered Jacobian, with P the number of parameters and M the number of samples.
     The vector f is the concatenation of the real and imaginary part of the centered local
     energy. Note that, to compute the updates, it is sufficient to invert an :math:`M\\times M` matrix
