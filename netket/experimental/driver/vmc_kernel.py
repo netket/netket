@@ -39,7 +39,10 @@ def kernel_SR(O_L, de, diag_shift, mode, solver_fn):
     else:
         raise NotImplementedError()
 
-    O_LT = rearrange(O_L, 'twons (np proc) -> proc twons np', proc=n_nodes)
+    # twons, (np, n_nodes) -> twons, np, n_nodes
+    O_LT = O_L.reshape(O_L.shape[0], -1, n_nodes)
+    # twons, np, n_nodes -> n_nodes, twons, np
+    O_LT = jnp.moveaxis(O_LT, -1, 0)
     
     dv, token = mpi_gather_jax(dv)
     dv = dv.reshape(-1, *dv.shape[2:])
