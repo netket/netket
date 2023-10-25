@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 from collections.abc import Iterable
 import numpy as np
 from fractions import Fraction
@@ -108,7 +108,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         # we use the constraints from the Fock spaces, and override `constrained`
         super().__init__(local_states, N=total_size, constraint_fn=None)
         self._s = s
-        self._n_fermions_per_subsector: Tuple[Optional[int], ...] = n_fermions_s
+        self._n_fermions_per_subsector: tuple[Optional[int], ...] = n_fermions_s
         self._n_orbitals = n_orbitals
 
         # we copy the respective functions, independent of what hilbert space they are

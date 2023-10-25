@@ -12,33 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    "driver",
-    "dynamics",
-    "sampler",
-    "vqs",
-    "TDVP",
-    "models",
-    "hilbert",
-    "operator",
-    "logging",
-    "observable",
-]
-
-from . import hilbert
-from . import operator
-from . import driver
-from . import dynamics
-from . import sampler
-from . import models
-from . import vqs
-from . import logging
-from . import qsr
-from . import observable
-
-from .driver import TDVP
-from .qsr import QSR
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from netket.models.slater import LogSlater2nd
