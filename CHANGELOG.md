@@ -8,7 +8,7 @@
 ### Improvements 
 
 * Considerably reduced the memory consumption of `LocalOperators`, especially in the case of large local hilbert spaces. Also leveraged sparsity in the terms to speed up compilation (`_setup`) in the same cases [#1558](https://github.com/netket/netket/pull/1558).
-* {class}`netket.nn.blocks.SymmSumExp` now works with inputs of arbitrary dimensions, while previously it errored for all inputs that were not 2D [#1616](https://github.com/netket/netket/pull/1616)
+* {class}`netket.nn.blocks.SymmExpSum` now works with inputs of arbitrary dimensions, while previously it errored for all inputs that were not 2D [#1616](https://github.com/netket/netket/pull/1616)
 * Stop using `FrozenDict` from `flax` and instead return standard dictionaries for the variational parameters from the variational state. This makes it much easier to edit parameters [#1547](https://github.com/netket/netket/pull/1547).
 
 ### New Features
