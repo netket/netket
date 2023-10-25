@@ -7,6 +7,7 @@ import jax.scipy as jsp
 from netket.driver.vmc import VMC
 
 import netket.jax as nkjax
+import netket.stats as nkstats
 from netket.operator import AbstractOperator
 
 from netket.vqs import VariationalState
@@ -16,14 +17,18 @@ from netket.utils.types import ScalarOrSchedule
 from jax.flatten_util import ravel_pytree
 
 
-@partial(jax.jit, static_argnums=(3, 4))
-def SRt(O_L, de, diag_shift, mode, solver_fn):
+@partial(jax.jit, static_argnames=("mode", "solver_fn"))
+def SRt(O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None):
     """
     For more details, see `https://arxiv.org/abs/2310.05715'. In particular,
     the following parallel implementation is described in Appendix "Distributed SR computation".
     """
     N_params = O_L.shape[-1]
     N_mc = O_L.shape[0] * mpi.n_nodes
+
+    if e_mean is None:
+        e_mean = mpi.mean(local_energies)
+    de = jnp.conj(local_energies - e_mean).squeeze()
 
     if N_params % mpi.n_nodes != 0:
         raise NotImplementedError()  # * in this case O_L should be padded with zeros
@@ -176,12 +181,9 @@ class VMC_SRt(VMC):
         self.state.reset()
 
         # Compute the local energy estimator and average Energy
-        local_energy = self.state.local_estimators(self._ham).squeeze()
+        local_energies = self.state.local_estimators(self._ham)
 
-        e_mean = local_energy.mean()
-        self._loss_stats = e_mean
-
-        de = jnp.conj(local_energy - e_mean)
+        self._loss_stats = nkstats.statistics(local_energies)
 
         jacobians = nkjax.jacobian(
             self.state._apply_fun,
@@ -194,7 +196,12 @@ class VMC_SRt(VMC):
         )  # * jaxcobians is centered
 
         updates = SRt(
-            jacobians, de, self.diag_shift, self.jacobian_mode, self._linear_solver_fn
+            jacobians,
+            local_energies,
+            self.diag_shift,
+            mode=self.jacobian_mode,
+            solver_fn=self._linear_solver_fn,
+            e_mean=self._loss_stats.Mean,
         )
 
         self._dp = self.unravel_params_fn(updates)
