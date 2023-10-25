@@ -17,7 +17,7 @@ from jax.flatten_util import ravel_pytree
 
 
 @partial(jax.jit, static_argnums=(3, 4))
-def kernel_SR(O_L, de, diag_shift, mode, solver_fn):
+def SRt(O_L, de, diag_shift, mode, solver_fn):
     """
     For more details, see `https://arxiv.org/abs/2310.05715'. In particular,
     the following parallel implementation is described in Appendix "Distributed SR computation".
@@ -75,7 +75,7 @@ inv_default_solver = lambda A, b: jnp.linalg.inv(A) @ b
 linear_solver = lambda A, b: jsp.linalg.solve(A, b, assume_a="pos")
 
 
-class VMC_kernelSR(VMC):
+class VMC_SRt(VMC):
     r"""
     Energy minimization using Variational Monte Carlo (VMC) and the kernel
     formulation of Stochastic Reconfiguration (SR). This approach lead to
@@ -187,7 +187,7 @@ class VMC_kernelSR(VMC):
             center=True,
         )  # * jaxcobians is centered
 
-        updates = kernel_SR(
+        updates = SRt(
             jacobians, de, self.diag_shift, self.jacobian_mode, self._linear_solver_fn
         )
 
