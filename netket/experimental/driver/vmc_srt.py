@@ -81,7 +81,7 @@ class VMC_SRt(VMC):
     formulation of Stochastic Reconfiguration (SR). This approach lead to
     *exactly* the same parameter updates of the standard SR with a
     diagonal shift regularization. For this reason, it is equivalent to the standard
-    nk.driver.VMC with the preconditioner nk.optimizer.SR(solver=netket.optimizer.solver.solvers.solve))
+    nk.driver.VMC with the preconditioner nk.optimizer.SR(solver=netket.optimizer.solver.solvers.solve)).
     In the kernel SR framework, the updates of the parameters can be written as:
 
     .. math::

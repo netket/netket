@@ -17,6 +17,7 @@
 * Added the operator computing the Rényi2 entanglement entropy on Hilbert spaces with discrete dofs [#1591](https://github.com/netket/netket/pull/1591).
 * Added new shortcuts to build the identity operator as {func}`netket.operator.spin.identity` and {func}`netket.operator.boson.identity` [#1601](https://github.com/netket/netket/pull/1601).
 * Added new {class}`netket.hilbert.Particle` constructor that only takes as input the number of dimensions of the system [#1577](https://github.com/netket/netket/pull/1577).
+* Added new {class}`netket.experimental.driver.VMC_SRt` driver, which leads in identical parameter updates as the standard Stochastic Reconfiguration with diagonal shift regularization. Therefore, it is essentially equivalent to using the standard {class}`nk.driver.VMC` with the {class}`nk.optimizer.SR` preconditioner. The advantage of this method is that it requires the inversion of a matrix with side number of samples instead of number of parameters, making this formulation particularly useful in typical deep learning scenarios [#1623](https://github.com/netket/netket/pull/1623).
 
 ### Bug Fixes
 
