@@ -324,6 +324,7 @@ def mpi_reduce_sum_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
 
         return mpi4jax.reduce(x, op=MPI.SUM, root=root, token=token, comm=comm)
 
+
 def mpi_allreduce_sum_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
     if n_nodes == 1:
         return x, token
