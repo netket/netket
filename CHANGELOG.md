@@ -24,6 +24,7 @@
 * Raise correct error instead of unintelligible one when multiplying {class}`netket.experimental.operator.FermionOperator2nd` with other operators [#1599](https://github.com/netket/netket/pull/1599).
 * Do not rescale the output of `netket.jax.jacobian` by the square root of number of samples. Previously, when specifying `center=True` we were incorrectly rescaling the output [#1614](https://github.com/netket/netket/pull/1614).
 * Fix bug in {class}`netket.operator.PauliStrings` that caused the dtype to get out of sync with the dtype of the internal arrays, causing errors when manipulating them symbolically [#1619](https://github.com/netket/netket/pull/1619).
+* Fix bug that prevented the use of {class}`netket.operator.DiscreteJaxOperator` as observables with all drivers [#1625](https://github.com/netket/netket/pull/1625).
 
 ## NetKet 3.9.2
 
