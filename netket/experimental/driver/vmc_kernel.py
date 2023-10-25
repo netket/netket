@@ -100,12 +100,12 @@ class VMC_kernelSR(VMC):
         self,
         hamiltonian: AbstractOperator,
         optimizer,
-        diag_shift,
-        *args,
+        *,
+        diag_shift: ScalarOrSchedule,
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
-        jacobian_mode = None,
-        variational_state = None,
-        **kwargs,
+        jacobian_mode: Optional[str] = None,
+        variational_state: VariationalState = None
+        )
     ):
         """
         Initializes the driver class.
