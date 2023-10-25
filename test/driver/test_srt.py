@@ -1,6 +1,3 @@
-import jax
-jax.config.update('jax_platform_name', 'cpu')
-
 import netket as nk
 import numpy as np
 from netket.experimental.driver import VMC_SRt
@@ -110,9 +107,7 @@ def test_SRt_real_vs_complex():
     energy_complex = logger[0].data["Energy"]["value"]
 
     H, opt, vstate = _setup(complex=False)
-    gs = VMC_SRt(
-        H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="real"
-    )
+    gs = VMC_SRt(H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="real")
     logger = gs.run(n_iter=10, out="ground_state")
     energy_real = logger[0].data["Energy"]["value"]
 
