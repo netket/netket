@@ -3,6 +3,7 @@ from einops import rearrange
 
 import jax
 import jax.numpy as jnp
+from netket.driver.vmc import VMC
 
 import netket.jax as nkjax
 from netket.operator import AbstractOperator
@@ -12,7 +13,6 @@ from netket.utils.mpi import mpi_gather_jax, mpi_alltoall_jax, mpi_reduce_sum_ja
 
 from jax.flatten_util import ravel_pytree
 
-from .vmc import VMC
 
 @partial(jax.jit, static_argnums=(3,))
 def kernel_SR(O_L, de, diag_shift, mode):

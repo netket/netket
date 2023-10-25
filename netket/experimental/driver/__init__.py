@@ -14,7 +14,7 @@
 
 from .tdvp import TDVP
 from .tdvp_schmitt import TDVPSchmitt
-
+from .vmc_kernel import VMC_kernelSR
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)

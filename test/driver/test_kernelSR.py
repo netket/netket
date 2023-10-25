@@ -1,5 +1,6 @@
 import netket as nk
 import numpy as np
+from netket.experimental.driver import VMC_kernelSR
 
 from netket.optimizer.solver.solvers import solve
 
@@ -71,7 +72,7 @@ def test_kernelSR_vs_linear_solver():
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
     H, opt, vstate = _setup()
-    gs = nk.driver.VMC_kernelSR(H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="complex")
+    gs = VMC_kernelSR(H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="complex")
     logger = gs.run(n_iter=10, out="ground_state")
     energy_kernelSR = logger[0].data['Energy']['value']
 
@@ -88,12 +89,12 @@ def test_kernelSR_real_vs_complex():
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics for a positive definite wave function if jacobian_mode=complex or real
     """
     H, opt, vstate = _setup(complex=False)
-    gs = nk.driver.VMC_kernelSR(H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="complex")
+    gs = VMC_kernelSR(H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="complex")
     logger = gs.run(n_iter=10, out="ground_state")
     energy_complex = logger[0].data['Energy']['value']
 
     H, opt, vstate = _setup(complex=False)
-    gs = nk.driver.VMC_kernelSR(H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="real")
+    gs = VMC_kernelSR(H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="real")
     logger = gs.run(n_iter=10, out="ground_state")
     energy_real = logger[0].data['Energy']['value']
 
