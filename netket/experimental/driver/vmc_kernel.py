@@ -89,14 +89,6 @@ class VMC_kernelSR(VMC):
     for a detailed description of the derivation. A similar result can be obtained by minimizing the
     Fubini-Study distance with a specific constrain, see A.Chen and M.Heyl (https://arxiv.org/abs/2302.01941) 
     for details.
-
-    Args:
-        hamiltonian: The Hamiltonian of the system.
-        optimizer: Determines how optimization steps are performed given the
-                bare energy gradient.
-        diag_shift: The diagonal shift of the stochastic reconfiguration matrix.
-                Typical values are 1e-4 :math:`\divide` 1e-3.
-
     """
 
     def __init__(
@@ -110,6 +102,16 @@ class VMC_kernelSR(VMC):
         variational_state = None,
         **kwargs,
     ):
+        """
+        Initializes the driver class.
+
+        Args:
+            hamiltonian: The Hamiltonian of the system.
+            optimizer: Determines how optimization steps are performed given the
+                    bare energy gradient.
+            diag_shift: The diagonal shift of the stochastic reconfiguration matrix.
+                    Typical values are 1e-4 ÷ 1e-3.
+        """
         super().__init__(hamiltonian, optimizer, variational_state=variational_state)
 
         self._ham = hamiltonian.collect()  # type: AbstractOperator
