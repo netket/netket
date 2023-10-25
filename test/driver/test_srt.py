@@ -1,12 +1,27 @@
+# Copyright 2023 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import netket as nk
 import numpy as np
-from netket.experimental.driver import VMC_SRt
-
-from netket.optimizer.solver.solvers import solve
 
 import jax
 import jax.numpy as jnp
 from flax import linen as nn
+
+from netket.experimental.driver import VMC_SRt
+from netket.optimizer.solver.solvers import solve
+from netket.utils import mpi
 
 
 class RBM(nn.Module):
@@ -79,36 +94,64 @@ def test_SRt_vs_linear_solver():
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
     """
-    H, opt, vstate = _setup()
+    n_iters = 5
+
+    H, opt, vstate_srt = _setup()
     gs = VMC_SRt(
-        H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="complex"
+        H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="complex"
     )
-    logger = gs.run(n_iter=10, out="ground_state")
-    energy_kernelSR = logger[0].data["Energy"]["value"]
+    logger_srt = nk.logging.RuntimeLog()
+    gs.run(n_iter=n_iters, out=logger_srt)
 
-    H, opt, vstate = _setup()
+    H, opt, vstate_sr = _setup()
     sr = nk.optimizer.SR(solver=solve, diag_shift=0.1, holomorphic=False)
-    gs = nk.driver.VMC(H, opt, variational_state=vstate, preconditioner=sr)
-    logger = gs.run(n_iter=10, out="ground_state")
-    energy_SR = logger[0].data["Energy"]["Mean"]
+    gs = nk.driver.VMC(H, opt, variational_state=vstate_sr, preconditioner=sr)
+    logger_sr = nk.logging.RuntimeLog()
+    gs.run(n_iter=n_iters, out=logger_sr)
 
-    assert np.allclose(energy_kernelSR, energy_SR, atol=1e-10)
+    # check same parameters
+    jax.tree_map(
+        np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
+    )
+
+    if mpi.rank == 0:
+        energy_kernelSR = logger_srt.data["Energy"]["Mean"]
+        energy_SR = logger_sr.data["Energy"]["Mean"]
+
+        np.testing.assert_allclose(energy_kernelSR, energy_SR, atol=1e-10)
 
 
 def test_SRt_real_vs_complex():
     """
     nk.driver.VMC_kernelSR must give **exactly** the same dynamics for a positive definite wave function if jacobian_mode=complex or real
     """
-    H, opt, vstate = _setup(complex=False)
+    n_iters = 5
+
+    H, opt, vstate_complex = _setup(complex=False)
     gs = VMC_SRt(
-        H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="complex"
+        H,
+        opt,
+        variational_state=vstate_complex,
+        diag_shift=0.1,
+        jacobian_mode="complex",
     )
-    logger = gs.run(n_iter=10, out="ground_state")
-    energy_complex = logger[0].data["Energy"]["value"]
+    logger_complex = nk.logging.RuntimeLog()
+    gs.run(n_iter=n_iters, out=logger_complex)
 
-    H, opt, vstate = _setup(complex=False)
-    gs = VMC_SRt(H, opt, variational_state=vstate, diag_shift=0.1, jacobian_mode="real")
-    logger = gs.run(n_iter=10, out="ground_state")
-    energy_real = logger[0].data["Energy"]["value"]
+    H, opt, vstate_real = _setup(complex=False)
+    gs = VMC_SRt(
+        H, opt, variational_state=vstate_real, diag_shift=0.1, jacobian_mode="real"
+    )
+    logger_real = nk.logging.RuntimeLog()
+    gs.run(n_iter=n_iters, out=logger_real)
 
-    assert np.allclose(energy_real, energy_complex, atol=1e-10)
+    # check same parameters
+    jax.tree_map(
+        np.testing.assert_allclose, vstate_complex.parameters, vstate_real.parameters
+    )
+
+    if mpi.rank == 0:
+        energy_complex = logger_complex.data["Energy"]["Mean"]
+        energy_real = logger_real.data["Energy"]["Mean"]
+
+        np.testing.assert_allclose(energy_real, energy_complex, atol=1e-10)
