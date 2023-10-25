@@ -124,6 +124,35 @@ class VMC_kernelSR(VMC):
         self.diag_shift = diag_shift
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
+    @property
+    def jacobian_mode(self) -> str:
+        """
+        The mode used to compute the jacobian of the variational state. Can be `'real'`
+        or `'complex'`.
+
+        Real mode truncates imaginary part of the wavefunction, while `complex` does not.
+        This internally uses :func:`netket.jax.jacobian`. See that function for a more
+        complete documentation.
+        """
+        return self._jacobian_mode
+
+    @jacobian_mode.setter
+    def jacobian_mode(self, mode: Optional[str]):
+        if mode is None:
+            mode = nkjax.jacobian_default_mode(
+                self.state._apply_fun, 
+                self.state.parameters, 
+                self.state.model_state,
+                self.state.samples,
+                warn=False
+                )
+
+        if mode not in ["complex", "real"]:
+            raise ValueError("`jacobian_mode` only supports 'real' for real-valued wavefunctions and"
+                "'complex'.\n\n"
+                "`holomorphic` is not yet supported, but could be contributed in the future."
+                )
+        self._jacobian_mode = mode
 
     def _forward_and_backward(self):
         """
