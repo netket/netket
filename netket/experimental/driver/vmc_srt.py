@@ -10,7 +10,7 @@ import netket.jax as nkjax
 import netket.stats as nkstats
 from netket.operator import AbstractOperator
 
-from netket.vqs import VariationalState
+from netket.vqs import MCState
 from netket.utils import mpi
 from netket.utils.types import ScalarOrSchedule
 
@@ -30,8 +30,8 @@ def SRt(O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None):
         e_mean = mpi.mean(local_energies)
     de = jnp.conj(local_energies - e_mean).squeeze()
 
-    if N_params % mpi.n_nodes != 0:
-        raise NotImplementedError()  # * in this case O_L should be padded with zeros
+    # * in this case O_L should be padded with zeros
+    assert (N_params % mpi.n_nodes) == 0
 
     O_L = O_L / N_mc**0.5
     dv = -2.0 * de / N_mc**0.5
@@ -113,7 +113,7 @@ class VMC_SRt(VMC):
         diag_shift: ScalarOrSchedule,
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
         jacobian_mode: Optional[str] = None,
-        variational_state: VariationalState = None,
+        variational_state: MCState = None,
     ):
         """
         Initializes the driver class.
@@ -129,7 +129,8 @@ class VMC_SRt(VMC):
                               updates of the parameters
             jacobian_mode: The mode used to compute the jacobian of the variational state. Can be `'real'`
                     or `'complex'` (defaults to the dtype of the output of the model).
-            variational_state: The :class:`netket.vqs.MCState` to be optimised.
+            variational_state: The :class:`netket.vqs.MCState` to be optimised. Other
+                variational states are not supported.
         """
         super().__init__(hamiltonian, optimizer, variational_state=variational_state)
 
@@ -138,6 +139,21 @@ class VMC_SRt(VMC):
         self.diag_shift = diag_shift
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
+
+        if self.state.n_parameters % mpi.n_nodes != 0:
+            raise NotImplementedError(
+                f"""
+                VMC_SRt requires a network with a number of parameters
+                multiple of the number of MPI devices/ranks in use.
+
+                You have a network with {self.state.n_parameters}, but
+                there are {mpi.n_nodes} MPI ranks in use.
+
+                To fix this, either add some 'fake' parameters to your
+                network, or change the number of MPI nodes, or contribute
+                some padding logic to NetKet!
+                """
+            )
 
     @property
     def jacobian_mode(self) -> str:
