@@ -163,6 +163,3 @@ class VMC_kernelSR(VMC):
 
         return self._dp
     
-    @property
-    def samples(self):
-        return self.state._samples #! is there a better way?
