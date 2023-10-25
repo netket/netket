@@ -153,7 +153,7 @@ class VMC_kernelSR(VMC):
                                 self.state.parameters,
                                 self.samples.squeeze(), 
                                 self.state.model_state,
-                                mode=mode,
+                                mode=self.jacobian_mode,
                                 dense=True,
                                 center=True) #* jaxcobians is centered
 
