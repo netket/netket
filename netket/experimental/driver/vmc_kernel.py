@@ -89,7 +89,7 @@ class VMC_kernelSR(VMC):
     instead of a :math:`P\\times P` one. As a consequence, this formulation is useful
     in the typical deep learning regime where :math:`P \gg M`.
     
-    See R.Rende, L.L.Viteritti, L.Bardone, F.Becca and S.Goldt (https://arxiv.org/abs/2310.05715)
+    See `R.Rende, L.L.Viteritti, L.Bardone, F.Becca and S.Goldt <https://arxiv.org/abs/2310.05715>`_
     for a detailed description of the derivation. A similar result can be obtained by minimizing the
     Fubini-Study distance with a specific constrain, see A.Chen and M.Heyl (https://arxiv.org/abs/2302.01941) 
     for details.
