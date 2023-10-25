@@ -41,8 +41,9 @@ from .state import MCState
 def expect_and_forces(  # noqa: F811
     vstate: MCState,
     Ô: AbstractOperator,
+    chunk_size: None,
     *,
-    mutable: CollectionFilter,
+    mutable: CollectionFilter = False,
 ) -> tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
 
