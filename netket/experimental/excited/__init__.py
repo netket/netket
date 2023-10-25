@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .tdvp import TDVP
-from .tdvp_schmitt import TDVPSchmitt
+from .operator import OperatorWithPenalty
 
-from .vmc_ex import VMC_ex
-
-from netket.utils import _hide_submodules
-
-_hide_submodules(__name__)
+from . import expect_grad_ex
+from . import expect
