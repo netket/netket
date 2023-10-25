@@ -1,8 +1,10 @@
 from functools import partial
+from typing import Callable
 from einops import rearrange
 
 import jax
 import jax.numpy as jnp
+import jax.scipy as jsp
 from netket.driver.vmc import VMC
 
 import netket.jax as nkjax
@@ -14,8 +16,8 @@ from netket.utils.mpi import mpi_gather_jax, mpi_alltoall_jax, mpi_reduce_sum_ja
 from jax.flatten_util import ravel_pytree
 
 
-@partial(jax.jit, static_argnums=(3,))
-def kernel_SR(O_L, de, diag_shift, mode):
+@partial(jax.jit, static_argnums=(3,4))
+def kernel_SR(O_L, de, diag_shift, mode, solver_fn):
     """
     For more details, see `https://arxiv.org/abs/2310.05715'. In particular, 
     the following parallel implementation is described in Appendix "Distributed SR computation".
@@ -49,8 +51,8 @@ def kernel_SR(O_L, de, diag_shift, mode):
     matrix_side = matrix.shape[-1] #* it can be Ns or 2*Ns, depending on mode
 
     if rank==0:
-        matrix = jnp.linalg.inv(matrix + diag_shift * jnp.eye(matrix_side))
-        aus_vector = matrix @ dv
+        matrix = matrix + diag_shift * jnp.eye(matrix_side) #* shift diagonal regularization
+        aus_vector = solver_fn(matrix, dv)
         aus_vector = aus_vector.reshape(n_nodes, -1)
         aus_vector, token = mpi_scatter_jax(aus_vector, token=token)
     else:
@@ -61,6 +63,9 @@ def kernel_SR(O_L, de, diag_shift, mode):
     updates, token = mpi_allreduce_sum_jax(updates, token=token)
     
     return -updates 
+
+inv_default_solver = lambda A, b: jnp.linalg.inv(A) @ b
+linear_solver = lambda A, b: jsp.linalg.solve(A, b, assume_a="pos")
 
 class VMC_kernelSR(VMC):
     """
@@ -73,8 +78,9 @@ class VMC_kernelSR(VMC):
         optimizer,
         diag_shift,
         *args,
-        jacobian_mode=None,
-        variational_state=None,
+        linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
+        jacobian_mode = None,
+        variational_state = None,
         **kwargs,
     ):
         super().__init__(hamiltonian, optimizer, variational_state=variational_state)
@@ -83,6 +89,7 @@ class VMC_kernelSR(VMC):
         _, self.unravel_params_fn = ravel_pytree(self.state.parameters)
         self.diag_shift = diag_shift
         self.jacobian_mode = jacobian_mode
+        self.linear_solver_fn = linear_solver_fn
 
     def _forward_and_backward(self):
         """
@@ -117,7 +124,7 @@ class VMC_kernelSR(VMC):
                                 dense=True,
                                 center=True) #* jaxcobians is centered
 
-        updates = kernel_SR(jacobians, de, self.diag_shift, mode)
+        updates = kernel_SR(jacobians, de, self.diag_shift, mode, self.linear_solver_fn)
 
         self._dp = self.unravel_params_fn(updates)
 
