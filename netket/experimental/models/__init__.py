@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from netket.models.slater import LogSlater2nd
+from netket.models.slater import MeanFieldSlater2nd

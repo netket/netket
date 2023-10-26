@@ -23,16 +23,7 @@ from netket.nn.masked_linear import default_kernel_init
 from netket import jax as nkjax
 
 
-def _log_det(A):
-    """Complex-aware logdeterminant built on top of
-    {func}`jax.numpy.linalg.slogdet` and combining the sign again.
-    """
-    sign, logabsdet = jnp.linalg.slogdet(A)
-    cplx_type = nkjax.dtype_complex(A.dtype)
-    return logabsdet.astype(cplx_type) + jnp.log(sign.astype(cplx_type))
-
-
-class LogSlater2nd(nn.Module):
+class MeanFieldSlater2nd(nn.Module):
     r"""
     A slater determinant ansatz for second-quantised spinless or spin-full
     fermions.
@@ -55,11 +46,11 @@ class LogSlater2nd(nn.Module):
     def __post_init__(self):
         if not isinstance(self.hilbert, SpinOrbitalFermions):
             raise TypeError(
-                "LogSlater2nd only supports 2nd quantised fermionic hilbert spaces."
+                "MeanFieldSlater2nd only supports 2nd quantised fermionic hilbert spaces."
             )
         if self.hilbert.n_fermions is None:
             raise TypeError(
-                "LogSlater2nd only supports hilbert spaces with a "
+                "MeanFieldSlater2nd only supports hilbert spaces with a "
                 "fixed number of fermions."
             )
         super().__post_init__()
@@ -104,7 +95,7 @@ class LogSlater2nd(nn.Module):
                 # extract the corresponding Nf x Nf submatrix
                 A_i = M_i[R_i]
 
-                log_det_sum = log_det_sum + _log_det(A_i)
+                log_det_sum = log_det_sum + nkjax.logdet_cmplx(A_i)
                 i_start = n_fermions_i
 
             return log_det_sum

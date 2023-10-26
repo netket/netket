@@ -21,7 +21,8 @@
 * Added the operator computing the Rényi2 entanglement entropy on Hilbert spaces with discrete dofs [#1591](https://github.com/netket/netket/pull/1591).
 * Added new shortcuts to build the identity operator as {func}`netket.operator.spin.identity` and {func}`netket.operator.boson.identity` [#1601](https://github.com/netket/netket/pull/1601).
 * Added new {class}`netket.hilbert.Particle` constructor that only takes as input the number of dimensions of the system [#1577](https://github.com/netket/netket/pull/1577).
-* Added new {class}`netket.models.LogSlater2nd` model implementing a Slater ansatz [#1622](https://github.com/netket/netket/pull/1622).
+* Added new {class}`netket.models.MeanFieldSlater2nd` model implementing a Slater ansatz [#1622](https://github.com/netket/netket/pull/1622).
+* Added new {func}`netket.jax.logdet_cmplx` function to compute the complex log-determinant of a batch of matrices [#1622](https://github.com/netket/netket/pull/1622).
 
 ### Bug Fixes
 
