@@ -17,6 +17,8 @@ import jax.numpy as jnp
 
 from functools import partial
 
+import numpy as np
+
 from netket.experimental.hilbert import SpinOrbitalFermions
 from netket.utils.types import NNInitFunc, DType
 from netket.nn.masked_linear import default_kernel_init
@@ -38,8 +40,17 @@ class MeanFieldSlater2nd(nn.Module):
     hilbert: SpinOrbitalFermions
     """The Hilbert space upon which this ansatz is defined. Used to determine the number of orbitals
     and spin subspectors."""
+
+    restricted: bool = True
+    """Flag to select the restricted- or unrestricted- Hartree Fock orbtals (Defaults to restricted).
+
+    If restricted, only one set of orbitals are parametrised, and they are used for all spin subsectors.
+    If unrestricted, a different set of orbitals are parametrised and used for each spin subsector.
+    """
+
     kernel_init: NNInitFunc = default_kernel_init
     """Initializer for the orbital parameters."""
+
     param_dtype: DType = float
     """Dtype of the orbital amplitudes."""
 
@@ -53,20 +64,41 @@ class MeanFieldSlater2nd(nn.Module):
                 "MeanFieldSlater2nd only supports hilbert spaces with a "
                 "fixed number of fermions."
             )
+        if self.restricted:
+            if not all(
+                np.equal(
+                    self.hilbert.n_fermions_per_spin,
+                    self.hilbert.n_fermions_per_spin[0],
+                )
+            ):
+                raise ValueError(
+                    "Restricted Hartree Fock only makes sense for spaces with "
+                    "same number of fermions on every subspace."
+                )
         super().__post_init__()
 
     def setup(self):
         # Every determinant is a matrix of shape (n_orbitals, n_fermions_i) where
         # n_fermions_i is the number of fermions in the i-th spin sector.
-        self.determinants = [
-            self.param(
-                f"M_{i}",
+        if self.restricted:
+            M = self.param(
+                "M",
                 self.kernel_init,
-                (self.hilbert.n_orbitals, nf_i),
+                (self.hilbert.n_orbitals, self.hilbert.n_fermions_per_spin[0]),
                 self.param_dtype,
             )
-            for i, nf_i in enumerate(self.hilbert.n_fermions_per_spin)
-        ]
+
+            self.orbitals = [M for _ in self.hilbert.n_fermions_per_spin]
+        else:
+            self.orbitals = [
+                self.param(
+                    f"M_{i}",
+                    self.kernel_init,
+                    (self.hilbert.n_orbitals, nf_i),
+                    self.param_dtype,
+                )
+                for i, nf_i in enumerate(self.hilbert.n_fermions_per_spin)
+            ]
 
     def __call__(self, n):
         """
@@ -88,7 +120,7 @@ class MeanFieldSlater2nd(nn.Module):
             log_det_sum = 0
             i_start = 0
             for i, (n_fermions_i, M_i) in enumerate(
-                zip(self.hilbert.n_fermions_per_spin, self.determinants)
+                zip(self.hilbert.n_fermions_per_spin, self.orbitals)
             ):
                 # convert global orbital positions to spin-sector-local positions
                 R_i = R[i_start : i_start + n_fermions_i] - i * self.hilbert.n_orbitals
