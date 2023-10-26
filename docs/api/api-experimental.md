@@ -15,6 +15,22 @@ import netket as nk
 import netket.experimental as nkx
 ```
 
+(experimental-drivers-api)=
+## Drivers
+Currently NetKet offers an experimental driver implementing Stochastic Reconfiguration with the [kernel trick](https://arxiv.org/abs/2310.05715) 
+(originally introduced under the name of [minSR by Ao Chen and Markus Heyl](https://arxiv.org/abs/2302.01941)). This is slightly more limited in
+features than the standard Stochastic Reconfiguration implementation of {class}`netket.drivers.VMC`, but can scale to millions of parameters
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/experimental/driver
+   :template: class
+   :nosignatures:
+
+   driver.VMC_SRt
+```
+
+
 (experimental-qsr-api)=
 ## Quantum State Reconstruction
 The Quantum State Reconstruction algorithm performs an approximate tomographic reconstruction of measurement data coming from a quantum computer (or similar device) using a Pure or Mixed quantum state.

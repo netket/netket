@@ -25,7 +25,7 @@ from flax import core as fcore
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 import netket.jax as nkjax
-from netket.operator import AbstractOperator, Squared
+from netket.operator import AbstractOperator
 from netket.hilbert import AbstractHilbert
 from netket.stats import Stats
 from netket.utils.types import PyTree, PRNGKeyT, NNInitFunc
@@ -180,7 +180,7 @@ class VariationalState(abc.ABC):
         Ô: AbstractOperator,
         *,
         mutable: Optional[CollectionFilter] = None,
-        use_covariance: Optional[bool] = None,
+        **kwargs,
     ) -> tuple[Stats, PyTree]:
         r"""Estimates the quantum expectation value and its gradient for a given operator O.
 
@@ -193,6 +193,7 @@ class VariationalState(abc.ABC):
                      to implement BatchNorm. Consult
                      `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
                      for a more in-depth explanation).
+        Extra args:
             use_covariance: whether to use the covariance formula, usually reserved for
                 hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
 
@@ -203,7 +204,7 @@ class VariationalState(abc.ABC):
         if mutable is None:
             mutable = self.mutable
 
-        return expect_and_grad(self, Ô, use_covariance, mutable=mutable)
+        return expect_and_grad(self, Ô, mutable=mutable, **kwargs)
 
     def expect_and_forces(
         self,
@@ -350,11 +351,10 @@ def expect(vstate: VariationalState, operator: AbstractOperator):
 # for some arguments, but the one below here is stricter for `use_covariance` which is
 # set to bool. Since this signature below, in the worst case, does nothing, this ensures
 # that `expect_and_grad` is more user-friendly.
-@dispatch(precedence=10)
+@dispatch.abstract
 def expect_and_grad(
     vstate: VariationalState,
     operator: AbstractOperator,
-    use_covariance: Optional[bool],
     *args,
     mutable: CollectionFilter,
     **kwargs,
@@ -374,15 +374,6 @@ def expect_and_grad(
                             use_covariance : bool/Literal[True]/Literal[False], * mutable)
                 return ...
     """
-    if use_covariance is None:
-        if isinstance(operator, Squared):
-            use_covariance = False
-        else:
-            use_covariance = True if operator.is_hermitian else False
-
-    return expect_and_grad(
-        vstate, operator, use_covariance, *args, mutable=mutable, **kwargs
-    )
 
 
 @dispatch.abstract

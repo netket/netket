@@ -153,3 +153,24 @@ To use them in practice, you can do something like the following. Check the docu
 sr = nk.optimizer.SR(diag_shift=optax.linear_schedule(0.01, 0.0001, 100))
 gs = nk.VMC(hamiltonian, optimizer, variational_state=vstate, preconditioner=sr)
 ```
+
+### Kernel Trick and minSR
+
+NetKet has an experimental implementation of SR based on the kernel trick.
+The method was originally named `minSR` by [Chen and Heyl](https://arxiv.org/abs/2302.01941) but we follow the implementation proposed by [Rende and coworkers](https://arxiv.org/abs/2310.05715).
+It is based on not using the Quantum Geoemtric Tensor as discussed above, but instead on constructing the Neural Tangent Kernel. In a sense, If SR can be seen as solving the following equation
+
+\begin{equation}
+\delta W = (J^\dagger J)^{-1} (J\dagger E^{loc})
+\end{equation}
+
+where $J$ is the Jacobian matrix of the log-wavefunctions and it has the shape $N_{\textrm{samples}}\times N_{\textrm{parameters}}$, and $E^{loc}$ is a vector of $N_{\textrm{samples}}$ values.
+It is possible to show that this equation is mathematically equivalent to
+
+\begin{equation}
+\delta W = J^\dagger (J J^\dagger)^{-1} E^{loc}
+\end{equation}
+
+where the difference is that instead of having to invert an $ N_{\textrm{parameters}} \times  N_{\textrm{parameters}} $ matrix, the QGT, one only has to invert a $N_{\textrm{samples}}\times N_{\textrm{samples}}$ object, the neural tangent kernel.
+
+This allows SR to be used for millions of parameters. To use it, have a look at {class}`netket.experimental.driver.VMC_SRt`.

@@ -51,6 +51,15 @@ class SR(AbstractLinearPreconditioner):
 
     You can also construct one of those structures directly.
 
+    .. warning::
+
+        NetKet also has an experimental implementation of the SR preconditioner using
+        the kernel trick, also known as MinSR. This implementation relies on inverting
+        the $ T = X^T X $ matrix, where $ X $ is the Jacobian of wavefunction and is therefore
+        much more efficient than the standard SR for very large numbers of parameters.
+
+        Look at :class:`netket.experimental.driver.VMC_SRt` for more details.
+
     Args:
         qgt: The Quantum Geometric Tensor type to use.
         solver: The method used to solve the linear system. Must be a jax-
