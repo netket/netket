@@ -20,6 +20,7 @@ from fractions import Fraction
 from netket.hilbert.fock import Fock
 from netket.hilbert.tensor_hilbert_discrete import TensorDiscreteHilbert
 from netket.hilbert.homogeneous import HomogeneousHilbert
+from netket.utils.dispatch import dispatch
 
 
 class SpinOrbitalFermions(HomogeneousHilbert):
@@ -214,3 +215,18 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             _str += f", s={Fraction(self.spin)}"
         _str += ")"
         return _str
+
+
+@dispatch
+def random_state(hilb: SpinOrbitalFermions, key, batches: int, *, dtype):
+    return random_state(hilb._fock, key, batches, dtype)
+
+
+@dispatch
+def flip_state_scalar(hilb: SpinOrbitalFermions, key, state, index):
+    return flip_state_scalar(hilb._fock, key, state, index)
+
+
+@dispatch
+def flip_state_batch(hilb: SpinOrbitalFermions, key, state, index):
+    return flip_state_batch(hilb._fock, key, state, index)
