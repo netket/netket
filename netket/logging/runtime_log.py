@@ -95,7 +95,8 @@ class RuntimeLog:
 
     def __repr__(self):
         _str = "RuntimeLog():\n"
-        _str += f" keys = {list(self.data.keys())}"
+        if self.data is not None:
+            _str += f" keys = {list(self.data.keys())}"
         return _str
 
 

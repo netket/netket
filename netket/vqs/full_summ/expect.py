@@ -13,20 +13,20 @@
 # limitations under the License.
 
 from functools import partial, lru_cache
-from typing import Callable, Literal
+from typing import Callable, Optional
 
 import jax
 from jax import numpy as jnp
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
-from netket.operator import Squared
+from netket.operator import DiscreteOperator, Squared
 from netket.stats import Stats
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
-from netket.operator import DiscreteOperator
-
+from netket.vqs import expect_and_grad, expect_and_forces
+from netket.vqs.mc.common import force_to_grad
 
 from .state import FullSumState
 
@@ -65,12 +65,39 @@ def expect(vstate: FullSumState, Ô: DiscreteOperator) -> Stats:  # noqa: F811
     return Stats(mean=expval_O, error_of_mean=0.0, variance=variance)
 
 
-@dispatch
-def expect_and_forces(
+@expect_and_grad.dispatch
+def expect_and_grad_fullsum(
+    vstate: FullSumState,
+    Ô: DiscreteOperator,
+    *args,
+    mutable: CollectionFilter = False,
+    use_covariance: Optional[bool] = None,
+    **kwargs,
+) -> tuple[Stats, PyTree]:
+    if use_covariance is None:
+        use_covariance = Ô.is_hermitian
+
+    if use_covariance:
+        # Implementation of expect_and_grad for `use_covariance == True` (due to the Literal[True]
+        # type in the signature).` This case is equivalent to the composition of the
+        # `expect_and_forces` and `force_to_grad` functions.
+        # return expect_and_grad_from_covariance(vstate, Ô, *args, mutable=mutable)
+        Ō, Ō_grad = expect_and_forces(vstate, Ô, *args, mutable=mutable, **kwargs)
+        Ō_grad = force_to_grad(Ō_grad, vstate.parameters)
+        return Ō, Ō_grad
+    else:
+        raise NotImplementedError(
+            "The gradient of non hermitian operators with "
+            "FullSumState is not yet implemented"
+        )
+
+
+@expect_and_forces.dispatch
+def expect_and_forces_fullsum(
     vstate: FullSumState,
     Ô: DiscreteOperator,
     *,
-    mutable: CollectionFilter,
+    mutable: CollectionFilter = False,
 ) -> tuple[Stats, PyTree]:
     if isinstance(Ô, Squared):
         raise NotImplementedError("expect_and_forces not yet implemented for `Squared`")
@@ -130,28 +157,3 @@ def _exp_forces(
         Ō_grad,
         new_model_state,
     )
-
-
-@dispatch
-def expect_and_grad(
-    vstate: FullSumState,
-    Ô: DiscreteOperator,
-    use_covariance: Literal[True],
-    *,
-    mutable: CollectionFilter,
-) -> tuple[Stats, PyTree]:
-    Ō, Ō_grad = expect_and_forces(vstate, Ô, mutable=mutable)
-    Ō_grad = _force_to_grad(Ō_grad, vstate.parameters)
-    return Ō, Ō_grad
-
-
-@jax.jit
-def _force_to_grad(Ō_grad, parameters):
-    Ō_grad = jax.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else 2 * x.real).astype(
-            target.dtype
-        ),
-        Ō_grad,
-        parameters,
-    )
-    return Ō_grad
