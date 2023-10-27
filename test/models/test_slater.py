@@ -38,7 +38,7 @@ def test_MeanFieldSlater2nd():
     assert out1.shape == (2, 3)
     assert out1.dtype == jnp.complex64
 
-    hi = nkx.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions=(2, 2))
+    hi = nkx.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions_per_spin=(2, 2))
     ma = nkx.models.MeanFieldSlater2nd(hi, restricted=True, param_dtype=jnp.float32)
 
     pars = ma.init(k, hi.all_states())
@@ -57,7 +57,7 @@ def test_MeanFieldSlater2nd():
     x2 = jnp.array([1, 1, 0, 0, 1, 1])  # (0,1,1) (1,1,0)
     np.testing.assert_allclose(ma.apply(pars, x1), ma.apply(pars, x2))
 
-    hi = nkx.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions=(2, 2))
+    hi = nkx.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions_per_spin=(2, 2))
     ma = nkx.models.MeanFieldSlater2nd(hi, restricted=False, param_dtype=jnp.float32)
 
     pars = ma.init(k, hi.all_states())
@@ -88,11 +88,11 @@ def test_MeanFieldSlater2nd_error():
 
     # Requires equal number of fermions
     with pytest.raises(ValueError):
-        hi = nkx.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions=(2, 3))
+        hi = nkx.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions_per_spin=(2, 3))
         ma = nkx.models.MeanFieldSlater2nd(hi, restricted=True)
 
     # Wrong sample shape
     with pytest.raises(ValueError):
-        hi = nkx.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions=(2, 2))
+        hi = nkx.hilbert.SpinOrbitalFermions(3, s=0.5, n_fermions_per_spin=(2, 2))
         ma = nkx.models.MeanFieldSlater2nd(hi, restricted=True)
         ma.init(jax.random.PRNGKey(1), jnp.ones((4,)))

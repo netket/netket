@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional, Union
+from typing import Optional
 from collections.abc import Iterable
 import numpy as np
 from fractions import Fraction
@@ -42,7 +42,9 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         self,
         n_orbitals: int,
         s: Optional[float] = None,
-        n_fermions: Optional[Union[int, list[int]]] = None,
+        *,
+        n_fermions: Optional[int] = None,
+        n_fermions_per_spin: Optional[Iterable[tuple[int, ...]]] = None,
     ):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.
@@ -59,13 +61,26 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 number of fermions per spin is conserved, the different spin
                 configurations are not counted as orbitals and are handled differently.
             s: spin of the fermions.
-            n_fermions: (optional) fixed number of fermions per spin (conserved). In the
-                case n_fermions is an int, the total number of fermions is fixed, while
-                for lists, the number of fermions per spin component is fixed.
+            n_fermions: (optional) fixed number of fermions per spin (conserved). If specified,
+                the total number of fermions is conserved. If the fermions have a spin, the
+                number of fermions per spin subsector is not conserved.
+            n_fermions_per_spin: (optional) list of the fixed number of fermions for every spin
+                subsector. This automatically enforces a global population constraint. Only one
+                between `n_fermions` and `n_fermions_per_spin` can be specified. The length
+                of the iterable should be `2S+1`.
 
         Returns:
             A SpinOrbitalFermions object
         """
+        if not isinstance(n_fermions, Optional[int]):
+            raise TypeError(
+                """
+                The global `n_fermions` constraint must be an integer or be left unspecified.
+
+                To declare a per-spin constraint, specify `n_fermions_per_spin` instead
+                """
+            )
+
         if s is None:
             spin_size = 1
         else:
@@ -74,41 +89,51 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         total_size = n_orbitals * spin_size
 
         if spin_size == 1:
-            if not isinstance(n_fermions, Optional[int]):
-                raise TypeError(
-                    "Spinless fermions require that `n_fermions` be "
-                    f"an integer or None. (Got {n_fermions})"
+            if n_fermions_per_spin is not None:
+                raise ValueError(
+                    "Cannot specify `n_fermions_per_spin` for spin-less " "fermions."
                 )
+
+            n_fermions_per_spin = (n_fermions,)
             hilbert = Fock(n_max=1, N=n_orbitals, n_particles=n_fermions)
-            n_fermions_s = (n_fermions,)
-        elif isinstance(n_fermions, int):
-            # fixed fermion number but multiple spins subspaces
-            hilbert = Fock(n_max=1, N=total_size, n_particles=n_fermions)
-            n_fermions_s = tuple(None for _ in range(spin_size))
         else:
-            if n_fermions is None:
-                n_fermions_s = tuple(None for _ in range(spin_size))
-            else:
-                if not isinstance(n_fermions, Iterable):
+            if n_fermions_per_spin is not None and n_fermions is not None:
+                raise ValueError(
+                    """
+                                 Cannot specify the per-subsector constraint `n_fermions_per_spin`
+                                 at the same time as the global constraint `n_fermions`.
+
+                                 If you want to conserve the total number of fermions, but allow for
+                                 changes in the number of fermions with a certain value of spin, you
+                                 should specify `n_fermions`. If you want to fix the number of fermions
+                                 with each spin component (and therefore the total number of fermions
+                                 as well) you should specify `n_fermions_per_spin`.
+                                 """
+                )
+            elif n_fermions_per_spin is not None:
+                if not isinstance(n_fermions_per_spin, Iterable):
                     raise TypeError(
-                        f"n_fermions={n_fermions} (whose type is {type(n_fermions)}) "
-                        "must be None or a list of integers describing the number of "
+                        f"n_fermions_per_spin={n_fermions_per_spin} (whose type is {type(n_fermions_per_spin)}) "
+                        "must be a list of integers or None describing the number of "
                         f"fermions in each of the {total_size} spin subsectors."
                     )
-                n_fermions_s = n_fermions
-                n_fermions = sum(n_fermions)
-
-            if len(n_fermions_s) != spin_size:
-                raise ValueError(
-                    "List of number of fermions must equal number of spin components.\n"
-                    f"For s={s}, which has {total_size} components, the same length is "
-                    f"expected."
-                )
-
-            spin_hilberts = [
-                Fock(n_max=1, N=n_orbitals, n_particles=Nf) for Nf in n_fermions_s
-            ]
-            hilbert = TensorDiscreteHilbert(*spin_hilberts)
+                if len(n_fermions_per_spin) != spin_size:
+                    raise ValueError(
+                        "List of number of fermions must equal number of spin components.\n"
+                        f"For s={s}, which has {total_size} components, the same length is "
+                        f"expected."
+                    )
+                n_fermions = sum(n_fermions_per_spin)
+                spin_hilberts = [
+                    Fock(n_max=1, N=n_orbitals, n_particles=Nf)
+                    for Nf in n_fermions_per_spin
+                ]
+                hilbert = TensorDiscreteHilbert(*spin_hilberts)
+            else:
+                # fixed fermion number but multiple spins subspaces
+                # global or no constraint
+                n_fermions_per_spin = tuple(None for _ in range(spin_size))
+                hilbert = Fock(n_max=1, N=total_size, n_particles=n_fermions)
 
         self._fock = hilbert
         """Internal representation of this Hilbert space (Fock or TensorHilbert)."""
@@ -119,7 +144,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         super().__init__(local_states, N=total_size, constraint_fn=None)
         self._s = s
         self._n_fermions = n_fermions
-        self._n_fermions_per_subsector: tuple[Optional[int], ...] = n_fermions_s
+        self._n_fermions_per_subsector: tuple[Optional[int], ...] = n_fermions_per_spin
         self._n_orbitals = n_orbitals
 
         # we copy the respective functions, independent of what hilbert space they are
@@ -209,10 +234,14 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
     def __repr__(self):
         _str = f"SpinOrbitalFermions(n_orbitals={self.n_orbitals}"
-        if self.n_fermions is not None:
-            _str += f", n_fermions={self.n_fermions}"
         if self.spin is not None:
             _str += f", s={Fraction(self.spin)}"
+        if self.n_fermions is not None:
+            _str += f", n_fermions={self.n_fermions}"
+        if self.spin is not None and any(
+            x is not None for x in self.n_fermions_per_spin
+        ):
+            _str += f", n_fermions_per_spin={self.n_fermions_per_spin}"
         _str += ")"
         return _str
 
