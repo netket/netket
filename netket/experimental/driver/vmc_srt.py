@@ -9,6 +9,8 @@ from netket.driver.vmc import VMC
 import netket.jax as nkjax
 import netket.stats as nkstats
 from netket.operator import AbstractOperator
+from netket.errors import UnoptimalSRtWarning
+import warnings
 
 from netket.vqs import MCState
 from netket.utils import mpi
@@ -160,6 +162,13 @@ class VMC_SRt(VMC):
                 network, or change the number of MPI nodes, or contribute
                 some padding logic to NetKet!
                 """
+            )
+
+        if self.state.n_parameters < self.state.n_samples:
+            warnings.warn(
+                UnoptimalSRtWarning(self.state.n_parameters, self.state.n_samples),
+                UserWarning,
+                stacklevel=2
             )
 
     @property
