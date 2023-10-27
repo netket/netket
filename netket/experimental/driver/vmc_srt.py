@@ -206,7 +206,7 @@ class VMC_SRt(VMC):
         jacobians = nkjax.jacobian(
             self.state._apply_fun,
             self.state.parameters,
-            self.state.samples.squeeze(),
+            self.state.samples.reshape(-1, self.state.samples.shape[-1]),
             self.state.model_state,
             mode=self.jacobian_mode,
             dense=True,
@@ -219,7 +219,7 @@ class VMC_SRt(VMC):
 
         updates = SRt(
             jacobians,
-            local_energies,
+            local_energies.flatten(),
             diag_shift,
             mode=self.jacobian_mode,
             solver_fn=self._linear_solver_fn,
