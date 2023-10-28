@@ -29,7 +29,7 @@ def SRt(O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None):
     N_mc = O_L.shape[0] * mpi.n_nodes
 
     local_energies = local_energies.flatten()
-    
+
     if e_mean is None:
         e_mean = mpi.mean(local_energies)
     de = jnp.conj(local_energies - e_mean).squeeze()
@@ -83,9 +83,11 @@ def SRt(O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None):
 inv_default_solver = lambda A, b: jnp.linalg.inv(A) @ b
 linear_solver = lambda A, b: jsp.linalg.solve(A, b, assume_a="pos")
 
+
 @jax.jit
 def _flatten_samples(x):
     return x.reshape(-1, x.shape[-1])
+
 
 class VMC_SRt(VMC):
     r"""
@@ -168,7 +170,7 @@ class VMC_SRt(VMC):
             warnings.warn(
                 UnoptimalSRtWarning(self.state.n_parameters, self.state.n_samples),
                 UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
     @property

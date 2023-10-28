@@ -602,7 +602,7 @@ class RealQGTComplexDomainError(Exception):
 class UnoptimalSRtWarning(NetketWarning):
     """
     SRt should be used when the number of parameters exceed the number of samples.
-    If this is not the case, employing `netket.driver.VMC` with the `nk.optimizer.SR` preconditioner 
+    If this is not the case, employing `netket.driver.VMC` with the `nk.optimizer.SR` preconditioner
     is a more efficient option while maintaining the same parameter dynamics.
 
     .. note::
@@ -616,10 +616,11 @@ class UnoptimalSRtWarning(NetketWarning):
             f"""
             You are in the case n_samples > num_params ({n_samples} > {n_parameters}),
             for which the `VMC_SRt` is not optimal. Consider using `netket.driver.VMC`
-            with the preconditioner `nk.optimizer.SR` to achieve the same parameter dynamics, 
+            with the preconditioner `nk.optimizer.SR` to achieve the same parameter dynamics,
             but with improved speed.
             """
         )
+
 
 #################################################
 # Functions to throw errors                     #
