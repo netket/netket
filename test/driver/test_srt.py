@@ -25,6 +25,7 @@ import pytest
 from netket.experimental.driver import VMC_SRt
 from netket.optimizer.solver.solvers import solve
 from netket.utils import mpi
+from netket.errors import UnoptimalSRtWarning
 
 
 class RBM(nn.Module):
@@ -76,7 +77,7 @@ def _setup(complex=True):
 
     sampler = nk.sampler.MetropolisExchange(
         hilbert=hi,
-        n_chains=2048,
+        n_chains=64,
         graph=lattice,
         d_max=2,
     )
@@ -84,7 +85,7 @@ def _setup(complex=True):
     vstate = nk.vqs.MCState(
         sampler=sampler,
         model=machine,
-        n_samples=2048,
+        n_samples=512,
         n_discard_per_chain=0,
         seed=0,
         sampler_seed=0,
@@ -178,6 +179,15 @@ def test_SRt_constructor_errors():
         gs = VMC_SRt(
             H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="belin"
         )
+
+
+def test_SRt_constructor_warns():
+    H, opt, vstate = _setup(complex=False)
+    with pytest.warns(UnoptimalSRtWarning):
+        # more than parameters
+        vstate.n_samples = 1024
+        assert vstate.n_samples > vstate.n_parameters
+        _ = VMC_SRt(H, opt, variational_state=vstate, diag_shift=0.1)
 
 
 def test_SRt_schedules():
