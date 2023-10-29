@@ -9,6 +9,8 @@ from netket.driver.vmc import VMC
 import netket.jax as nkjax
 import netket.stats as nkstats
 from netket.operator import AbstractOperator
+from netket.errors import UnoptimalSRtWarning
+import warnings
 
 from netket.vqs import MCState
 from netket.utils import mpi
@@ -25,6 +27,8 @@ def SRt(O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None):
     """
     N_params = O_L.shape[-1]
     N_mc = O_L.shape[0] * mpi.n_nodes
+
+    local_energies = local_energies.flatten()
 
     if e_mean is None:
         e_mean = mpi.mean(local_energies)
@@ -78,6 +82,11 @@ def SRt(O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None):
 
 inv_default_solver = lambda A, b: jnp.linalg.inv(A) @ b
 linear_solver = lambda A, b: jsp.linalg.solve(A, b, assume_a="pos")
+
+
+@jax.jit
+def _flatten_samples(x):
+    return x.reshape(-1, x.shape[-1])
 
 
 class VMC_SRt(VMC):
@@ -157,6 +166,13 @@ class VMC_SRt(VMC):
                 """
             )
 
+        if self.state.n_parameters < self.state.n_samples:
+            warnings.warn(
+                UnoptimalSRtWarning(self.state.n_parameters, self.state.n_samples),
+                UserWarning,
+                stacklevel=2,
+            )
+
     @property
     def jacobian_mode(self) -> str:
         """
@@ -203,10 +219,11 @@ class VMC_SRt(VMC):
 
         self._loss_stats = nkstats.statistics(local_energies)
 
+        samples = _flatten_samples(self.state.samples)
         jacobians = nkjax.jacobian(
             self.state._apply_fun,
             self.state.parameters,
-            self.state.samples.squeeze(),
+            samples,
             self.state.model_state,
             mode=self.jacobian_mode,
             dense=True,
