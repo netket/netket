@@ -25,7 +25,7 @@ from netket.nn.masked_linear import default_kernel_init
 from netket import jax as nkjax
 
 
-class MeanFieldSlater2nd(nn.Module):
+class Slater2nd(nn.Module):
     r"""
     A slater determinant ansatz for second-quantised spinless or spin-full
     fermions.
@@ -57,11 +57,11 @@ class MeanFieldSlater2nd(nn.Module):
     def __post_init__(self):
         if not isinstance(self.hilbert, SpinOrbitalFermions):
             raise TypeError(
-                "MeanFieldSlater2nd only supports 2nd quantised fermionic hilbert spaces."
+                "Slater2nd only supports 2nd quantised fermionic hilbert spaces."
             )
         if self.hilbert.n_fermions is None:
             raise TypeError(
-                "MeanFieldSlater2nd only supports hilbert spaces with a "
+                "Slater2nd only supports hilbert spaces with a "
                 "fixed number of fermions."
             )
         if self.restricted:
