@@ -531,7 +531,7 @@ def test_no_particles():
     assert np.allclose(states, 0.0)
 
     # same for fermions
-    hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2, n_fermions=(0, 0))
+    hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2, n_fermions_per_spin=(0, 0))
     states = hi.all_states()
     assert states.shape[0] == 1
     assert np.allclose(states, 0.0)
