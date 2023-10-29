@@ -83,6 +83,8 @@ def expect_and_forces_impl(  # noqa: F811
     *,
     mutable: CollectionFilter = False,
 ) -> tuple[Stats, PyTree]:
+    print(chunk_size)
+    print(1, mutable)
     chunk_size, grad_chunk_size = chunk_size
 
     σ, args = get_local_kernel_arguments(vstate, Ô)
@@ -91,6 +93,7 @@ def expect_and_forces_impl(  # noqa: F811
 
     Ō, Ō_grad, new_model_state = forces_expect_hermitian_chunked(
         chunk_size,
+        grad_chunk_size,
         local_estimator_fun,
         vstate._apply_fun,
         mutable,
@@ -106,7 +109,7 @@ def expect_and_forces_impl(  # noqa: F811
     return Ō, Ō_grad
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2, 3))
+@partial(jax.jit, static_argnums=(0, 1, 2, 3, 4))
 def forces_expect_hermitian_chunked(
     chunk_size: int,
     grad_chunk_size: int,
