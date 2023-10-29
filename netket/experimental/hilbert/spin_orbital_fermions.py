@@ -231,14 +231,18 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             )
         return round(2 * self.spin + 1)
 
-    def _spin_index(self, sz: float) -> int:
+    def _spin_index(self, sz: Optional[int]) -> int:
         """return the index of the Fock block corresponding to the sz projection"""
         if self.spin is None:
             if sz is not None or not np.isclose(sz, 0):
                 raise Exception("cannot request spin index of spinless fermions")
             return 0
         else:
-            return round(sz + self.spin)
+            # if not isinstance(sz, int):
+            # This above does not work because floats are integers in python
+            if sz != int(sz):
+                raise TypeError(f"sz must be an integer, but got {type(sz)} ({sz})")
+            return (sz + 1) // 2
 
     def states_to_local_indices(self, x):
         return self._fock.states_to_local_indices(x)
