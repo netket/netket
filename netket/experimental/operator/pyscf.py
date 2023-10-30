@@ -135,9 +135,9 @@ def spinorb_from_spatial_sparse(tij_sparse, vijkl_sparse, interleave=False):
 
 def pyscf_molecule_to_arrays(mol, mo_coeff=None):
     if mo_coeff is None:
-        from pyscf import scf
+        pyscf = import_optional_dependency("pyscf", descr="pyscf_molecule_to_arrays")
 
-        mf = scf.HF(mol).run()
+        mf = pyscf.scf.HF(mol).run()
         mo_coeff = mf.mo_coeff
     return compute_pyscf_integrals(mol, mo_coeff)
 
