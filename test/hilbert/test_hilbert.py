@@ -334,7 +334,9 @@ def test_hilbert_index_discrete(hi: DiscreteHilbert):
     if hi.is_indexable:
         local_sizes = [hi.size_at_index(i) for i in range(hi.size)]
         assert np.sum(np.log(local_sizes)) < log_max_states
-        assert np.allclose(hi.states_to_numbers(hi.all_states()), range(hi.n_states))
+        np.testing.assert_allclose(
+            hi.states_to_numbers(hi.all_states()), range(hi.n_states)
+        )
 
         # batched version of number to state
         n_few = min(hi.n_states, 100)
@@ -342,7 +344,9 @@ def test_hilbert_index_discrete(hi: DiscreteHilbert):
         for k in range(n_few):
             few_states[k] = hi.numbers_to_states(k)
 
-        assert np.allclose(hi.numbers_to_states(np.asarray(range(n_few))), few_states)
+        np.testing.assert_allclose(
+            hi.numbers_to_states(np.asarray(range(n_few))), few_states
+        )
 
     else:
         assert not hi.is_indexable
@@ -396,7 +400,7 @@ def test_state_iteration():
     reference = [np.array(el) for el in itertools.product([-1.0, 1.0], repeat=10)]
 
     for state, ref in zip(hilbert.states(), reference):
-        assert np.allclose(state, ref)
+        np.testing.assert_allclose(state, ref)
 
 
 def test_composite_hilbert_spin():
@@ -520,13 +524,13 @@ def test_no_particles():
     hi = Fock(n_max=3, n_particles=0, N=4)
     states = hi.all_states()
     assert states.shape[0] == 1
-    assert np.allclose(states, 0.0)
+    np.testing.assert_allclose(states, 0.0)
 
     # same for fermions
     hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2, n_fermions=(0, 0))
     states = hi.all_states()
     assert states.shape[0] == 1
-    assert np.allclose(states, 0.0)
+    np.testing.assert_allclose(states, 0.0)
 
     with pytest.raises(ValueError):
         # also test negative particles
@@ -545,7 +549,7 @@ def test_tensor_combination():
     hit = hi1 * hi2
     assert isinstance(hit, nk.hilbert.TensorHilbert)
     assert isinstance(hit, nk.hilbert._tensor_hilbert_discrete.TensorDiscreteHilbert)
-    assert np.allclose(hit.shape, np.hstack([hi1.shape, hi2.shape]))
+    assert hit.shape == hi1.shape + hi2.shape
     assert hit.n_states == hi1.n_states * hi2.n_states
     assert len(hit._hilbert_spaces) == 5
     assert isinstance(repr(hit), str)
@@ -553,7 +557,7 @@ def test_tensor_combination():
     hi3 = nk.hilbert.Particle(N=5, L=(np.inf, 10.0), pbc=(False, True))
     hit2 = hi1 * hi3
     assert isinstance(hit2, nk.hilbert.TensorHilbert)
-    assert np.allclose(hit2.size, hi1.size + hi3.size)
+    assert hit2.size == hi1.size + hi3.size
     assert len(hit2._hilbert_spaces) == 4
     assert isinstance(repr(hit2), str)
     assert hit2 == nk.hilbert.TensorHilbert(hi1, hi3)
