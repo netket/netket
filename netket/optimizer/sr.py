@@ -42,7 +42,7 @@ class SR(AbstractLinearPreconditioner):
 
     Where :math:`S` is the Quantum Geometric Tensor (or Fisher Information Matrix),
     preconditioned according to the diagonal scale :math:`\epsilon_1` (`diag_scale`)
-    and the diagonal shift :math:`epsilon_2` (`diag_shift`). The default
+    and the diagonal shift :math:`\epsilon_2` (`diag_shift`). The default
     regularisation takes :math:`\epsilon_1=0` and :math:`\epsilon_2=0.01`.
 
     Depending on the arguments, an implementation is chosen. For
@@ -55,29 +55,12 @@ class SR(AbstractLinearPreconditioner):
 
         NetKet also has an experimental implementation of the SR preconditioner using
         the kernel trick, also known as MinSR. This implementation relies on inverting
-        the :math:`T = X^T X` matrix, where :math`X` is the Jacobian of wavefunction and
+        the :math:`T = X^T X` matrix, where :math:`X` is the Jacobian of wavefunction and
         is therefore much more efficient than the standard SR for very large numbers
         of parameters.
 
         Look at :class:`netket.experimental.driver.VMC_SRt` for more details.
 
-    Args:
-        qgt: The Quantum Geometric Tensor type to use.
-        solver: The method used to solve the linear system. Must be a jax-
-            jittable function taking as input a pytree and outputting
-            a tuple of the solution and extra data.
-        diag_shift: (Default `0.01`) Diagonal shift added to the S matrix. Can be
-            a Scalar value, an `optax <https://optax.readthedocs.io>`_ schedule
-            or a Callable function.
-        diag_scale: (Default `0`) Scale of the shift proportional to the
-            diagonal of the S matrix added added to it. Can be a Scalar value,
-            an `optax <https://optax.readthedocs.io>`_ schedule or a
-            Callable function.
-        solver_restart: If False uses the last solution of the linear
-            system as a starting point for the solution of the next
-            (default=False).
-        holomorphic: boolean indicating if the ansatz is boolean or not. May
-            speed up computations for models with complex-valued parameters.
     """
 
     diag_shift: ScalarOrSchedule = 0.01
@@ -116,8 +99,9 @@ class SR(AbstractLinearPreconditioner):
 
         Args:
             qgt: The Quantum Geometric Tensor type to use.
-            solver: The method used to solve the linear system. Must be a jax-
-                jittable function taking as input a pytree and outputting
+            solver: (Defaults to :func:`jax.scipy.sparse.linalg.cg`) The method
+                used to solve the linear system. Must be a jax-jittable
+                function taking as input a pytree and outputting
                 a tuple of the solution and extra data.
             diag_shift: (Default `0.01`) Diagonal shift added to the S matrix. Can be
                 a Scalar value, an `optax <https://optax.readthedocs.io>`_ schedule
