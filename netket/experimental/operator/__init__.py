@@ -17,7 +17,8 @@ __all__ = ["FermionOperator2nd"]
 
 from ._fermion_operator_2nd import FermionOperator2nd
 from . import fermion
+from .pyscf import from_pyscf_molecule
 
 from netket.utils import _auto_export
 
-_auto_export(__name__)
+_auto_export(__name__, ignore="pyscf")

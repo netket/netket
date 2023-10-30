@@ -57,6 +57,10 @@ mpi = [
     "mpi4py>=3.0.1, <4",
     "mpi4jax>=0.3.9, <0.5"
     ]
+pyscf = [
+    "sparse>=0.12.0",
+    "pyscf>=2.0"
+]
 extra = [
     "tensorboardx>=2.0.0",
     "openfermion>=1.0.0",

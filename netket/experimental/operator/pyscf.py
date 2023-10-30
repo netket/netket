@@ -1,9 +1,12 @@
+from typing import Optional
+
 import sparse
 import numpy as np
 
 import jax
 import jax.numpy as jnp
 
+from netket.operator import DiscreteOperator
 from netket.utils.optional_deps import import_optional_dependency
 from netket.experimental.hilbert import SpinOrbitalFermions
 from ._fermion_operator_2nd import FermionOperator2nd
@@ -133,15 +136,6 @@ def spinorb_from_spatial_sparse(tij_sparse, vijkl_sparse, interleave=False):
     ), spinorb_from_spatial_sparse_coo4(vijkl_sparse, interleave)
 
 
-def pyscf_molecule_to_arrays(mol, mo_coeff=None):
-    if mo_coeff is None:
-        pyscf = import_optional_dependency("pyscf", descr="pyscf_molecule_to_arrays")
-
-        mf = pyscf.scf.HF(mol).run()
-        mo_coeff = mf.mo_coeff
-    return compute_pyscf_integrals(mol, mo_coeff)
-
-
 def arrays_to_terms(
     const, tij_sparse, vijkl_sparse, term_conj2=(1, 0), term_conj4=(1, 0, 1, 0)
 ):
@@ -202,26 +196,146 @@ def operator_from_arrays(
     return cls(hi, terms, weights, constant)
 
 
-def FermiOperator2nd_from_pyscf_molecule(
-    mol, mo_coeff=None, cutoff=1e-11, cls=FermionOperator2nd
-):
-    """defaults to molecular orbitals
-    !! factor 0.5 is added here
+def TV_from_pyscf_molecule(
+    molecule: "pyscf.gto.mole.Mole",  # noqa: F821
+    mo_coeff: np.ndarray,
+    *,
+    cutoff: float = 1e-11,
+) -> tuple[...]:
     """
-    E_nuc, tij, vijkl = pyscf_molecule_to_arrays(mol, mo_coeff)
+    Computes the T and V tensors encoding the 1-body and 2-body terms
+    in the electronic hamiltonian of a pyscf molecule using the specified
+    molecular orbitals.
+
+    Example:
+        Constructs the hamiltonian for a Li-H molecule, using the `sto-3g` basis
+        and the Boys orbitals
+
+        >>> from pyscf import gto, scf, lo
+        >>> import netket as nk; import netket.experimental as nkx
+        >>>
+        >>> geometry = [('Li', (0., 0., -1.5109/2)), ('H', (0., 0., 1.5109/2))]
+        >>> mol = gto.M(atom=geometry, basis='STO-3G')
+        >>>
+        >>> # compute the boys orbitals
+        >>> mf = scf.RHF(mol).run()
+            converged SCF energy = -7.86338212728528
+        >>> mo_coeff = lo.Boys(mol).kernel(mf.mo_coeff)
+        >>> ha = nkx.operator.pyscf.TV_from_pyscf_molecule(mol, mo_coeff)
+
+    Args:
+        molecule: The pyscf `Mole` object describing the Hamiltonian
+        mo_coeff: The molecular orbital coefficients determining the
+            linear combination of atomic orbitals to produce the
+            molecular orbitals.
+        cutoff: Ignores all matrix elements in the `V` and `T` matrix that have
+            magnitude less than this value. Defaults to :math:`10^{-11}`
+
+    Returns:
+        ...
+
+    """
+    # Compute the T and V matrices
+    E_nuc, tij, vijkl = compute_pyscf_integrals(molecule, mo_coeff)
     tij_sparse = sparse.COO.from_numpy(tij * (np.abs(tij) >= cutoff))
     vijkl_sparse = sparse.COO.from_numpy(vijkl * (np.abs(vijkl) >= cutoff))
     tij_sparse_spin, vijkl_sparse_spin = spinorb_from_spatial_sparse(
         tij_sparse, vijkl_sparse
     )
     vijkl_sparse_spin = to_desc_order_sparse(vijkl_sparse_spin, cutoff)
+
+    return E_nuc, tij_sparse_spin, vijkl_sparse_spin
+
+
+def from_pyscf_molecule(
+    molecule: "pyscf.gto.mole.Mole",  # noqa: F821
+    mo_coeff: Optional[np.ndarray] = None,
+    *,
+    cutoff: float = 1e-11,
+    implementation: DiscreteOperator = FermionOperator2nd,
+) -> DiscreteOperator:
+    """
+    Construct a netket operator encoding the electronic hamiltonian of a pyscf
+    molecule in a chosen orbital basis.
+
+    !! factor 0.5 is added here
+
+    Example:
+        Constructs the hamiltonian for a Li-H molecule, using the `sto-3g` basis
+        and the default Hartree-Fock molecular orbitals.
+
+        >>> from pyscf import gto, scf, fci
+        >>> import netket as nk; import netket.experimental as nkx
+        >>>
+        >>> bond_length = 1.5109
+        >>> geometry = [('Li', (0., 0., -bond_length/2)), ('H', (0., 0., bond_length/2))]
+        >>> mol = gto.M(atom=geometry, basis='STO-3G')
+        >>>
+        >>> mf = scf.RHF(mol).run()
+            converged SCF energy = -7.86338212728528
+        >>> E_hf = sum(mf.scf_summary.values())
+        >>>
+        >>> E_fci = fci.FCI(mf).kernel()[0]
+        >>> print('fci', E_fci)
+            fci -7.882527528833891
+        >>>
+        >>> ha = nkx.operator.from_pyscf_molecule(mol)
+            converged SCF energy = -7.86338212728528
+        >>> E0 = float(nk.exact.lanczos_ed(ha))
+        >>> print(f"{E0 = }, {E_fci = }")
+        E0 = -7.882527528833887, E_fci = -7.882527528833891
+
+    Example:
+        Constructs the hamiltonian for a Li-H molecule, using the `sto-3g` basis
+        and the Boys orbitals
+
+        >>> from pyscf import gto, scf, lo
+        >>> import netket as nk; import netket.experimental as nkx
+        >>>
+        >>> bond_length = 1.5109
+        >>> geometry = [('Li', (0., 0., -bond_length/2)), ('H', (0., 0., bond_length/2))]
+        >>> mol = gto.M(atom=geometry, basis='STO-3G')
+        >>>
+        >>> # compute the boys orbitals
+        >>> mf = scf.RHF(mol).run()
+            converged SCF energy = -7.86338212728528
+        >>> mo_coeff = lo.Boys(mol).kernel(mf.mo_coeff)
+        >>> # use the boys orbitals to construct the netket hamiltonian
+        >>> ha = nkx.operator.from_pyscf_molecule(mol, mo_coeff=mo_coeff)
+
+    Args:
+        molecule: The pyscf `Mole` object describing the Hamiltonian
+        mo_coeff: The molecular orbital coefficients determining the
+            linear combination of atomic orbitals to produce the
+            molecular orbitals. If unspecified this defaults to
+            the hartree fock orbitals.
+        cutoff: Ignores all matrix elements in the `V` and `T` matrix that have
+            magnitude less than this value. Defaults to :math:`10^{-11}`
+        implementation: The particular implementation to use for the operator.
+            Different fermionic operator implementation might have different
+            performances. Defaults to
+            :class:`netket.experimental.operator.FermionOperator2nd` (this might
+            change in the future).
+
+    Returns:
+        A netket second quantised operator that encodes the electronic hamiltonian.
+    """
+    # If unspecified, use HF molecular orbitals
+    if mo_coeff is None:
+        pyscf = import_optional_dependency("pyscf", descr="pyscf_molecule_to_arrays")
+
+        mf = pyscf.scf.HF(molecule).run()
+        mo_coeff = mf.mo_coeff
+
+    E_nuc, Tij, Vijkl = TV_from_pyscf_molecule
+
     ha = operator_from_arrays(
         E_nuc,
-        tij_sparse_spin,
-        0.5 * vijkl_sparse_spin,
-        mol.nelec,
+        Tij,
+        0.5 * Vijkl,
+        molecule.nelec,
         term_conj4=(1, 1, 0, 0),
-        cls=cls,
+        cls=implementation,
     )
     # TODO run setup and set _max_conn_size here estimating it analytially
     return ha
