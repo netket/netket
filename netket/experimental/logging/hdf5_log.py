@@ -196,6 +196,9 @@ class HDF5Log:
         if self._writer is not None:
             self._writer.flush()
 
+    def __del__(self):
+        self.flush()
+
     def __repr__(self):
         _str = f"HDF5Log('{self._file_name}', mode={self._file_mode}"
         return _str

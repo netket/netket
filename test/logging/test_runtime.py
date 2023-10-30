@@ -46,6 +46,7 @@ def test_serialize(vstate, tmp_path):
                     "scalar": 1.0,
                     "scalar_ndarray": jnp.array(1.0),
                     "vector": jnp.array([1.0, 1.0]),
+                    "np_vector": np.array([1.0, 1.0]),
                     "matrix": jnp.array([[1.0, 2.0], [2.0, 1.0]]),
                     "complex_scalar": 1.0j,
                     "complex_matrix": jnp.array([[1.0j], [1.0j]]),
@@ -92,6 +93,9 @@ def test_serialize(vstate, tmp_path):
 
     assert "vector" in data1["vals"]
     assert np.array(data1["vals"]["vector"]["value"]).shape == (10, 2)
+
+    assert "np_vector" in data1["vals"]
+    assert np.array(data1["vals"]["np_vector"]["value"]).shape == (10, 2)
 
     assert "matrix" in data1["vals"]
     assert np.array(data1["vals"]["matrix"]["value"]).shape == (10, 2, 2)
