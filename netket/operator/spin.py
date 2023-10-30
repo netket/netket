@@ -91,13 +91,14 @@ def sigmay(
 
         old_dtype = dtype
         dtype = jnp.promote_types(complex, old_dtype)
-        warnings.warn(
-            np.ComplexWarning(
-                f"A complex dtype is required (dtype={old_dtype} specified). "
-                f"Promoting to dtype={dtype}."
-            ),
-            stacklevel=2,
-        )
+        if old_dtype is not None:
+            warnings.warn(
+                np.ComplexWarning(
+                    f"A complex dtype is required (dtype={old_dtype} specified). "
+                    f"Promoting to dtype={dtype}."
+                ),
+                stacklevel=2,
+            )
 
     N = hilbert.size_at_index(site)
     S = (N - 1) / 2

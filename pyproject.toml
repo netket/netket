@@ -148,7 +148,9 @@ filterwarnings = [
     "ignore::DeprecationWarning:tensorboardX",
     "ignore:jax.random.KeyArray is deprecated.",
     "ignore:Raw arrays as random keys to",
-    "ignore:Defaulting to `holomorphic=False`,"
+    "ignore:Defaulting to `holomorphic=False`,",
+    "ignore::PendingDeprecationWarning: the matrix subclass",
+    "ignore::netket.errors.HolomorphicUndeclaredWarning",
 ]
 testpaths = [
     "test",

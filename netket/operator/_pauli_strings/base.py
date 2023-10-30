@@ -579,6 +579,11 @@ def _matmul(op_arr1, w_arr1, op_arr2, w_arr2, *, dtype):
         operators.append(op)
         weights.append(w)
     # so here we recast to the desired dtype
-    operators, weights = np.array(operators), np.array(weights).astype(dtype)
+    operators, weights = np.array(operators), np.array(weights)
+    # explicit real part ot avoid warning
+    if not nkjax.is_complex_dtype(dtype):
+        weights = weights.real
+    weights = weights.astype(dtype)
+
     operators, weights = _reduce_pauli_string(operators, weights)
     return operators, weights
