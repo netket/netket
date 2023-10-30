@@ -4,6 +4,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
+from netket.utils.optional_deps import import_optional_dependency
 from netket.experimental.hilbert import SpinOrbitalFermions
 from ._fermion_operator_2nd import FermionOperator2nd
 
