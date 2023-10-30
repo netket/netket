@@ -90,10 +90,10 @@ class SpinOrbitalFermions(HomogeneousHilbert):
             n_fermions_per_spin = n_fermions
             n_fermions = None
 
-        if not isinstance(n_fermions, (int, None)):
+        if not (isinstance(n_fermions, int) or n_fermions is None):
             raise TypeError(
                 """
-                The global `n_fermions` constraint must be an integer or be left unspecified.
+                The global `n_fermions` constraint must be an integer or be left unspecified.
 
                 To declare a per-spin constraint, specify `n_fermions_per_spin` instead
                 """
