@@ -5,11 +5,15 @@
 
 ## NetKet 3.10 (⚙️ In development)
 
-### Improvements 
+### Improvements
 
 * Considerably reduced the memory consumption of `LocalOperators`, especially in the case of large local hilbert spaces. Also leveraged sparsity in the terms to speed up compilation (`_setup`) in the same cases [#1558](https://github.com/netket/netket/pull/1558).
 * {class}`netket.nn.blocks.SymmExpSum` now works with inputs of arbitrary dimensions, while previously it errored for all inputs that were not 2D [#1616](https://github.com/netket/netket/pull/1616)
 * Stop using `FrozenDict` from `flax` and instead return standard dictionaries for the variational parameters from the variational state. This makes it much easier to edit parameters [#1547](https://github.com/netket/netket/pull/1547).
+
+### Breaking changes
+
+* {class}`netket.experimental.SpinOrbitalFermions` attributes have been changed: {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions` now always returns an integer with the total number of fermions in the system (if specified). A new attribute {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions_per_spin` has been introduced that returns the same tuple of fermion number per spin subsector as before. A few fields are now marked as read-only as modifications where ignored [#1622](https://github.com/netket/netket/pull/1622).
 
 ### New Features
 
@@ -17,6 +21,8 @@
 * Added the operator computing the Rényi2 entanglement entropy on Hilbert spaces with discrete dofs [#1591](https://github.com/netket/netket/pull/1591).
 * Added new shortcuts to build the identity operator as {func}`netket.operator.spin.identity` and {func}`netket.operator.boson.identity` [#1601](https://github.com/netket/netket/pull/1601).
 * Added new {class}`netket.hilbert.Particle` constructor that only takes as input the number of dimensions of the system [#1577](https://github.com/netket/netket/pull/1577).
+* Added new {class}`netket.models.Slater2nd` model implementing a Slater ansatz [#1622](https://github.com/netket/netket/pull/1622).
+* Added new {func}`netket.jax.logdet_cmplx` function to compute the complex log-determinant of a batch of matrices [#1622](https://github.com/netket/netket/pull/1622).
 * Added new {class}`netket.experimental.driver.VMC_SRt` driver, which leads in identical parameter updates as the standard Stochastic Reconfiguration with diagonal shift regularization. Therefore, it is essentially equivalent to using the standard {class}`nk.driver.VMC` with the {class}`nk.optimizer.SR` preconditioner. The advantage of this method is that it requires the inversion of a matrix with side number of samples instead of number of parameters, making this formulation particularly useful in typical deep learning scenarios [#1623](https://github.com/netket/netket/pull/1623).
 
 ### Breaking Changes

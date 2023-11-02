@@ -54,7 +54,7 @@ from ._scanmap import scan_reduce, scan_append, scan_append_reduce, scanmap
 from ._vjp_chunked import vjp_chunked
 from ._vmap_chunked import apply_chunked, vmap_chunked
 
-from ._math import logsumexp_cplx
+from ._math import logsumexp_cplx, logdet_cmplx
 
 from ._jacobian import jacobian, jacobian_default_mode
 

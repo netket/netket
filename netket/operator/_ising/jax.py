@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp
@@ -27,6 +27,9 @@ from netket.utils.types import DType
 from .._discrete_operator_jax import DiscreteJaxOperator
 
 from .base import IsingBase
+
+if TYPE_CHECKING:
+    from .numba import Ising
 
 
 @register_pytree_node_class

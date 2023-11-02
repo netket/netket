@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
-from typing import Union
+from typing import Union, TYPE_CHECKING
 
 import numpy as np
 
@@ -28,6 +28,9 @@ from netket.errors import concrete_or_error, JaxOperatorSetupDuringTracingError
 from .._discrete_operator_jax import DiscreteJaxOperator
 
 from .base import PauliStringsBase
+
+if TYPE_CHECKING:
+    from .numba import PauliStrings
 
 # pauli-strings operator written in nJax
 # the general idea is the following:

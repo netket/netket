@@ -141,7 +141,7 @@ def test_openfermion_conversion():
     # to check that the constraints are met (convention wrt ordering of states with different spin)
     from openfermion.hamiltonians import fermi_hubbard
 
-    hilbert = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions=(2, 1))
+    hilbert = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions_per_spin=(2, 1))
     of_fermion_operator = fermi_hubbard(1, 3, tunneling=1, coulomb=0, spinless=False)
     fo2 = nkx.operator.FermionOperator2nd.from_openfermion(
         hilbert, of_fermion_operator, convert_spin_blocks=True
@@ -671,7 +671,7 @@ def test_openfermion_conversion_2():
     # to check that the constraints are met (convention wrt ordering of states with different spin)
     from openfermion.hamiltonians import fermi_hubbard
 
-    hilbert = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions=(2, 1))
+    hilbert = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions_per_spin=(2, 1))
     of_fermion_operator = fermi_hubbard(1, 3, tunneling=1, coulomb=0, spinless=False)
     fo2 = nkx.operator.FermionOperator2nd.from_openfermion(
         hilbert, of_fermion_operator, convert_spin_blocks=True
@@ -760,7 +760,7 @@ def test_fermi_hubbard():
     n_sites = g.n_nodes
 
     # create a hilbert space with 2 up and 2 down spins
-    hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions=(2, 2))
+    hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2))
 
     # create an operator representing fermi hubbard interactions
     # -t (i^ j + h.c.) + U (i^ i j^ j)

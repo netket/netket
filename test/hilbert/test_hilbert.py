@@ -117,10 +117,10 @@ hilberts["SpinOrbitalFermions (n_fermions)"] = nkx.hilbert.SpinOrbitalFermions(
     3, n_fermions=2
 )
 hilberts["SpinOrbitalFermions (n_fermions=list)"] = nkx.hilbert.SpinOrbitalFermions(
-    5, s=1 / 2, n_fermions=(2, 3)
+    5, s=1 / 2, n_fermions_per_spin=(2, 3)
 )
 hilberts["SpinOrbitalFermions (polarized)"] = nkx.hilbert.SpinOrbitalFermions(
-    5, s=1 / 2, n_fermions=(2, 0)
+    5, s=1 / 2, n_fermions_per_spin=(2, 0)
 )
 
 # Continuous space
@@ -444,7 +444,7 @@ def test_fermions():
     assert hi.spin == 1 / 2
     hi = nkx.hilbert.SpinOrbitalFermions(3, n_fermions=2)
     assert hi.size == 3
-    hi = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions=(2, 3))
+    hi = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2, n_fermions_per_spin=(2, 3))
     assert hi.size == 6
 
     # check the output
@@ -455,7 +455,7 @@ def test_fermions():
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
     assert np.all(hi.all_states().sum(axis=-1) == 2)
-    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=(2, 1))
+    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions_per_spin=(2, 1))
     assert hi.size == 10
     assert hi.spin == 1 / 2
     assert np.all(hi.all_states()[:, :5].sum(axis=-1) == 2)
@@ -465,10 +465,18 @@ def test_fermions():
 def test_fermion_fails():
     with pytest.raises(TypeError):
         _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2.7)
-    with pytest.raises(TypeError):
-        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
+    # TODO: change to TypeError in 3.12
+    # with pytest.raises(TypeError):
     with pytest.raises(ValueError):
-        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2], s=1)
+        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2])
+    # TODO: Test the hard error in 3.12
+    # with pytest.raises(TypeError):
+    with pytest.warns(DeprecationWarning):
+        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=[1, 2], s=1 / 2)
+    with pytest.raises(ValueError):
+        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions_per_spin=[1, 2])
+    with pytest.raises(ValueError):
+        _ = nkx.hilbert.SpinOrbitalFermions(5, n_fermions_per_spin=[1, 2], s=1)
 
 
 def test_fermions_states():
@@ -476,23 +484,27 @@ def test_fermions_states():
 
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     assert hi.size == 5
+    assert not hi.constrained
     assert hi.n_states == 2**5
 
     hi = nkx.hilbert.SpinOrbitalFermions(5, n_fermions=2)
     assert hi.size == 5
+    assert hi.constrained
     assert np.all(hi.all_states().sum(axis=-1) == 2)
     assert hi.n_states == int(scipy.special.comb(5, 2))
 
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=2)
     assert hi.size == 10
-    assert np.all(hi.all_states().sum(axis=-1) == 2)
+    assert hi.constrained
+    np.testing.assert_equal(hi.all_states().sum(axis=-1), 2)
     # distribute 2 fermions over (2*number of orbitals)
     assert hi.n_states == int(scipy.special.comb(2 * 5, 2))
 
-    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=(2, 1))
+    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions_per_spin=(2, 1))
     assert hi.size == 10
-    assert np.all(hi.all_states()[:, :5].sum(axis=-1) == 2)
-    assert np.all(hi.all_states()[:, 5:].sum(axis=-1) == 1)
+    assert hi.constrained
+    np.testing.assert_equal(hi.all_states()[:, :5].sum(axis=-1), 2)
+    np.testing.assert_equal(hi.all_states()[:, 5:].sum(axis=-1), 1)
     # product of all_states for -1/2 spin block and states for 1/2 block
     assert hi.n_states == int(scipy.special.comb(5, 2) * scipy.special.comb(5, 1))
 
@@ -527,7 +539,7 @@ def test_no_particles():
     np.testing.assert_allclose(states, 0.0)
 
     # same for fermions
-    hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2, n_fermions=(0, 0))
+    hi = nkx.hilbert.SpinOrbitalFermions(2, s=1 / 2, n_fermions_per_spin=(0, 0))
     states = hi.all_states()
     assert states.shape[0] == 1
     np.testing.assert_allclose(states, 0.0)

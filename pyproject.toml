@@ -159,7 +159,7 @@ testpaths = [
 [tool.ruff]
 target-version = "py39"
 select = ["E", "F", "W", "D410", "UP"]
-fixable = ["E", "F", "W"]
+fixable = ["E", "F", "W", "D", "UP"]
 ignore = ["E501", "E731", "E741"]
 #ignore = ["E266"]
 line-length = 88

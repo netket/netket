@@ -1,8 +1,11 @@
 import pytest
 
-from netket.jax import logsumexp_cplx
+from netket.jax import logsumexp_cplx, logdet_cmplx
+
+import jax
 import jax.numpy as jnp
-from numpy.testing import assert_allclose
+
+import numpy as np
 
 from .. import common
 
@@ -21,4 +24,24 @@ def test_logsumexp_cplx(a, b):
     c = logsumexp_cplx(a, b=b)
 
     assert jnp.iscomplexobj(c)
-    assert_allclose(c, expected, atol=1e-8)
+    np.testing.assert_allclose(c, expected, atol=1e-8)
+
+
+def test_logdet():
+    k = jax.random.PRNGKey(1)
+
+    A = jax.random.normal(k, (3, 4, 5, 5), dtype=jnp.float32)
+    ld = logdet_cmplx(A)
+    assert ld.shape == (3, 4)
+    assert ld.dtype == jnp.complex64
+    ldc = logdet_cmplx(A.astype(jnp.complex64))
+    assert ldc.dtype == jnp.complex64
+    np.testing.assert_allclose(ld, ldc, rtol=1e-6)
+
+    A = jax.random.normal(k, (3, 4, 5, 5), dtype=jnp.float64)
+    ld = logdet_cmplx(A)
+    assert ld.shape == (3, 4)
+    assert ld.dtype == jnp.complex128
+    ldc = logdet_cmplx(A.astype(jnp.complex128))
+    assert ldc.dtype == jnp.complex128
+    np.testing.assert_allclose(ld, ldc)

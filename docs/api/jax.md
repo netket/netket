@@ -88,5 +88,6 @@ This part of the API is not public, and can change without notice.
   :nosignatures:
 
   logsumexp_cplx
+  logdet_cmplx
 ```
 

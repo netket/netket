@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import wraps
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import jax
 
@@ -26,6 +26,9 @@ from netket.utils.types import DType
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from .base import IsingBase
+
+if TYPE_CHECKING:
+    from .jax import IsingJax
 
 
 class Ising(IsingBase):
