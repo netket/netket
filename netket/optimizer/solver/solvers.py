@@ -85,8 +85,8 @@ def pinv(A, b, rcond=1e-12, x0=None):
     Solve the linear system using jax's implementation of the
     pseudo-inverse.
 
-    Internally it calls :ref:`~jax.numpy.linalg.pinv` which
-    uses a :ref:`~jax.numpy.linalg.svd` decomposition with
+    Internally it calls :func:`~jax.numpy.linalg.pinv` which
+    uses a :func:`~jax.numpy.linalg.svd` decomposition with
     the same value of **rcond**.
 
     .. note::
@@ -95,7 +95,7 @@ def pinv(A, b, rcond=1e-12, x0=None):
         the pseudo-inverse
         :func:`netket.optimizer.solver.pinv_smooth` (which
         internally uses hermitian diagonaliation) outperform
-        jax's :ref:`~jax.numpy.linalg.pinv`.
+        jax's :func:`~jax.numpy.linalg.pinv`.
 
         For that reason, we suggest to use
         :func:`~netket.optimizer.solver.pinv_smooth` instead of
@@ -128,7 +128,7 @@ def svd(A, b, rcond=None, x0=None):
     Solve the linear system using Singular Value Decomposition.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses {ref}`jax.numpy.linalg.lstsq`.
+    Internally uses :func:`jax.numpy.linalg.lstsq`.
 
     Args:
         A: the matrix A in Ax=b
@@ -150,7 +150,7 @@ def cholesky(A, b, lower=False, x0=None):
     Solve the linear system using a Cholesky Factorisation.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses {ref}`jax.numpy.linalg.cho_solve`.
+    Internally uses :func:`jax.numpy.linalg.cho_solve`.
 
     Args:
         A: the matrix A in Ax=b
@@ -174,7 +174,7 @@ def LU(A, b, trans=0, x0=None):
     Solve the linear system using a LU Factorisation.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses {ref}`jax.numpy.linalg.lu_solve`.
+    Internally uses :func:`jax.numpy.linalg.lu_solve`.
 
     Args:
         A: the matrix A in Ax=b
@@ -200,7 +200,7 @@ def solve(A, b, assume_a="pos", x0=None):
     Solve the linear system.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses {ref}`jax.numpy.solve`.
+    Internally uses :func:`jax.numpy.solve`.
 
     Args:
         A: the matrix A in Ax=b
