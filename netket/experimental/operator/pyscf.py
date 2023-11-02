@@ -269,7 +269,7 @@ def TV_from_pyscf_molecule(
 
 
 def from_pyscf_molecule(
-    molecule: "pyscf.gto.mole.Mole",  # noqa: F821
+    molecule: "pyscf.gto.mole.Mole",  # type: pyscf.gto.mole.Mole  # noqa: F821
     mo_coeff: Optional[np.ndarray] = None,
     *,
     cutoff: float = 1e-11,
@@ -308,7 +308,7 @@ def from_pyscf_molecule(
 
     Example:
         Constructs the hamiltonian for a Li-H molecule, using the `sto-3g` basis
-        and the Boys orbitals
+        and the Boys orbitals using :class:`~pyscf.lo.Boys`.
 
         >>> from pyscf import gto, scf, lo
         >>> import netket as nk; import netket.experimental as nkx
@@ -325,11 +325,12 @@ def from_pyscf_molecule(
         >>> ha = nkx.operator.from_pyscf_molecule(mol, mo_coeff=mo_coeff)
 
     Args:
-        molecule: The pyscf `Mole` object describing the Hamiltonian
+        molecule: The pyscf :class:`~pyscf.gto.mole.Mole` object describing the
+            Hamiltonian
         mo_coeff: The molecular orbital coefficients determining the
             linear combination of atomic orbitals to produce the
             molecular orbitals. If unspecified this defaults to
-            the hartree fock orbitals.
+            the hartree fock orbitals computed using :class:`~pyscf.scf.HF`.
         cutoff: Ignores all matrix elements in the `V` and `T` matrix that have
             magnitude less than this value. Defaults to :math:`10^{-11}`
         implementation: The particular implementation to use for the operator.

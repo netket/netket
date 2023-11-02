@@ -197,6 +197,8 @@ It is experimental until it has been thoroughly tested by the community, meaning
    operator.fermion.create
    operator.fermion.destroy
    operator.fermion.number
+   operator.from_pyscf_molecule
+   operator.pyscf.TV_from_pyscf_molecule
 ```
 
 ## Observables
