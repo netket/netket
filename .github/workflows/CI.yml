@@ -69,20 +69,12 @@ jobs:
           python -m pip install wheel
           echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
 
-      - name: Pip install oldest dependencies
-        if: matrix.oldest_deps
-        run: |
-          pip install --upgrade toml
-          python conf/compute_oldest_dependencies.py
-          pip install --upgrade -r oldest_requirements.txt
-          pip install -e ".[dev,extra]"
-
       - name: Pip install packages
         if: ${{ ! matrix.oldest_deps }}
         run: |
           pip install jaxlib
           if [ -z "${{ matrix.mpi }}" ]; then
-            pip install -e ".[dev,extra]"
+            pip install -e ".[dev,extra,pyscf]"
           else
             pip install -e ".[dev,mpi]"
           fi
