@@ -1,6 +1,19 @@
+# Copyright 2023 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Optional
 
-import sparse
 import numpy as np
 
 import jax
@@ -25,6 +38,8 @@ def compute_pyscf_integrals(mol, mo_coeff):
 
 
 def spinorb_from_spatial_sparse_coo2(tij_sparse, interleave=False, spin_values=[0, 1]):
+    sparse = import_optional_dependency("sparse", descr="TV_from_pyscf_molecule")
+
     # Σ_ijσ t_ij c†_iσ c_jσ
     # for σ ∈ spin_values
     # interleave=True -> 2i+spin
@@ -66,6 +81,8 @@ def spinorb_from_spatial_sparse_coo2(tij_sparse, interleave=False, spin_values=[
 def spinorb_from_spatial_sparse_coo4(
     vijkl_sparse, interleave=False, _order_preserving=False
 ):
+    sparse = import_optional_dependency("sparse", descr="TV_from_pyscf_molecule")
+
     # Σ_ijklμσ v_ijkl c†_iμ c†_jσ c_kμ c_lσ
     # interleave=True -> 2i+spin
     # interleave=False -> n*spin+i
@@ -103,6 +120,8 @@ def spinorb_from_spatial_sparse_coo4(
 
 
 def to_desc_order_sparse(vijkl_sparse, cutoff, set_zero_same=True):
+    sparse = import_optional_dependency("sparse", descr="TV_from_pyscf_molecule")
+
     # !! use this only after adding spin, spinorb_from_spatial_sparse will be wrong
     # because the (implicitly assumed) symmetries of the tensor are not conserved
 
@@ -235,6 +254,8 @@ def TV_from_pyscf_molecule(
         ...
 
     """
+    sparse = import_optional_dependency("sparse", descr="TV_from_pyscf_molecule")
+
     # Compute the T and V matrices
     E_nuc, tij, vijkl = compute_pyscf_integrals(molecule, mo_coeff)
     tij_sparse = sparse.COO.from_numpy(tij * (np.abs(tij) >= cutoff))

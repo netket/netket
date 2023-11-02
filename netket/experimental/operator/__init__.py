@@ -21,4 +21,4 @@ from .pyscf import from_pyscf_molecule
 
 from netket.utils import _auto_export
 
-_auto_export(__name__, ignore="pyscf")
+_auto_export(__name__)
