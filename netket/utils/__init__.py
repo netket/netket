@@ -29,7 +29,12 @@ from . import optional_deps
 
 from .array import HashableArray
 from .partial import HashablePartial
-from .jax import get_afun_if_module, wrap_afun, wrap_to_support_scalar
+from .jax import (
+    get_afun_if_module,
+    wrap_afun,
+    wrap_to_support_scalar,
+    wrap_to_support_multiple_batch_axes,
+)
 from .seed import random_seed
 from .summation import KahanSum
 
