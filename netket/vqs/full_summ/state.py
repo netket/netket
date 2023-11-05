@@ -101,6 +101,9 @@ class FullSumState(VariationalState):
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
             training_kwargs: a dict containing the optional keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
+            chunk_size: (Defaults to `None`) If specified, calculations are split into chunks where the neural network
+                is evaluated at most on :code:`chunk_size` samples at once. This does not change the mathematical results,
+                but will trade a higher computational cost for lower memory cost.
         """
         super().__init__(hilbert)
 
@@ -247,16 +250,18 @@ class FullSumState(VariationalState):
         return self._model
 
     def log_value(self, σ: jnp.ndarray) -> jnp.ndarray:
-        """
+        r"""
         Evaluate the variational state for a batch of states and returns
         the logarithm of the amplitude of the quantum state. For pure states,
-        this is :math:`log(<σ|ψ>)`, whereas for mixed states this is
-        :math:`log(<σr|ρ|σc>)`, where ψ and ρ are respectively a pure state
+        this is :math:`\log(\langle\sigma|\psi\rangle)`, whereas for mixed states
+        this is :math:`\log(\langle\sigma_r|\rho|\sigma_c\rangle)`, where
+        :math:`\psi` and :math:`\rho` are respectively a pure state
         (wavefunction) and a mixed state (density matrix).
         For the density matrix, the left and right-acting states (row and column)
         are obtained as :code:`σr=σ[::,0:N]` and :code:`σc=σ[::,N:]`.
 
-        Given a batch of inputs (Nb, N), returns a batch of outputs (Nb,).
+        Given a batch of inputs :code:`(Nb, N)`, returns a batch of outputs
+        :code:`(Nb,).
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
 

@@ -35,13 +35,13 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         In particular, you can override the following properties and methods:
 
-            - Do not specify the {code}`constraint_fn` keyword argument when
-              calling the init method of this abstract class.
-            - Override the property {prop}`~nk.hilbert.HomogeneousHilbert.constrained`,
-              to return `True` or `False`depending on your own logic.
-            - Override the property {code}`~nk.hilbert.HomogeneousHilbert._hilbert_index`
-              to return an hilbert index object (see the discussion in the source code of
-              the folder {code}`netket/hilbert/index/__init__.py`).
+        - Do not specify the :code:`constraint_fn` keyword argument when
+          calling the init method of this abstract class.
+        - Override the property :py:attr:`~nk.hilbert.HomogeneousHilbert.constrained`,
+          to return `True` or `False` depending on your own logic.
+        - Override the property :py:attr:`~nk.hilbert.HomogeneousHilbert._hilbert_index`
+          to return an hilbert index object (see the discussion in the source code of
+          the folder :code:`netket/hilbert/index/__init__.py`).
 
     """
 
@@ -52,13 +52,14 @@ class HomogeneousHilbert(DiscreteHilbert):
         constraint_fn: Optional[Callable] = None,
     ):
         r"""
-        Constructs a new ``HomogeneousHilbert`` given a list of eigenvalues of the
-        states and a number of sites, or modes, within this hilbert space.
+        Constructs a new :class:`~netket.hilbert.HomogeneousHilbert` given a list of
+        eigenvalues of the states and a number of sites, or modes, within this
+        hilbert space.
 
         This method should only be called from the subclasses `__init__` method.
 
         Args:
-            local_states (list or None): Eigenvalues of the states. If the allowed
+            local_states: Eigenvalues of the states. If the allowed
                 states are an infinite number, None should be passed as an argument.
             N: Number of modes in this hilbert space (default 1).
             constraint_fn: A function specifying constraints on the quantum numbers.

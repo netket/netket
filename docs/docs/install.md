@@ -23,12 +23,6 @@ We recommend to always start a new project with the latest available version.
 python -c "import netket; print(netket.__version__)"
 ```
 
-```{admonition} Apple ARM (M1) processors 
-:class: warning
-
-If you are on an Apple Arm (M1) processor you should follow the [special instructions in this section](apple_arm).
-```
-
 ```{admonition} Conda
 :class: warning
 
@@ -115,24 +109,6 @@ Moreover, you should never use conda's MPI on a supercomputing cluster.
 
 In general, we advise against using conda or conda environments to install NetKet unless someone is pointing a gun at you.
 If you don't want to die from that bullet, but would rather loose your mental sanity fighting conda, do expect weird setup errors.
-
-
-(apple_arm)=
-## Apple ARM Processors (M1) 
-
-NetKet works natively on Apple M1 Arm computers, but [Numba](https://numba.pydata.org/), one of its dependencies, is not easy to install on such platform as of February 2022 (If you are reading this in the future: hopefully this should not be an issue anymore. Probably from April/May 2022 you should be able to ignore those special instructions).
-
-If you attempt to `pip install netket`, `pip` will first attempt to install [Numba], resulting in some hard-to-decipher LLVM compilation errors. 
-The easiest solution is to install numba with `conda`, and everything else with `pip`. 
-Conda is capable of installing numba without issues on Apple ARM processors, and `pip` will detect that Numba was already installed and won't attempt modifying it.
-
-```
-conda install -c conda-forge numba
-pip install --upgrade pip
-pip install --upgrade netket
-```
-
-Alternatively you can use conda by running `conda install -c conda-forge netket`, but we advise against.
 
 
 ## Introduction

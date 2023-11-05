@@ -24,8 +24,8 @@ def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
     eigendecomposition obtained from :func:`jax.numpy.linalg.eigh`.
 
     The eigenvalues :math:`\lambda_i` smaller than
-    :math:`r_\text{cond} \lambda_\text{max}` are truncated (where
-    :math:`\lambda_\text{max}` is the largest eigenvalue).
+    :math:`r_\textrm{cond} \lambda_\textrm{max}` are truncated (where
+    :math:`\lambda_\textrm{max}` is the largest eigenvalue).
 
     The eigenvalues are further smoothed with another filter, originally introduced in
     `Medvidovic, Sels arXiv:2212.11289 (2022) <https://arxiv.org/abs/2212.11289>`_,
@@ -33,7 +33,7 @@ def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
 
     .. math::
 
-        \tilde\lambda_i^{-1}=\frac{\lambda_i^{-1}}{1+\big(\epsilon\frac{\lambda_\text{max}}{\lambda_i}\big)^6}
+        \tilde\lambda_i^{-1}=\frac{\lambda_i^{-1}}{1+\big(\epsilon\frac{\lambda_\textrm{max}}{\lambda_i}\big)^6}
 
 
     .. note::

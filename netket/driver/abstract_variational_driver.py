@@ -109,8 +109,9 @@ class AbstractVariationalDriver(abc.ABC):
     def reset(self):
         """
         Resets the driver.
-        Concrete drivers should also call super().reset() to ensure that the step
-        count is set to 0.
+
+        Subclasses should make sure to call :code:`super().reset()` to ensure
+        that the step count is set to 0.
         """
         self.state.reset()
         self._step_count = 0
@@ -155,9 +156,10 @@ class AbstractVariationalDriver(abc.ABC):
         after every `step_size` steps.
 
         Args:
-            n_iter: The total number of steps to perform.
-            step_size: The number of internal steps the simulation
-                is advanced every turn.
+            n_steps: The total number of steps to perform (this is
+                equivalent to the length of the iterator)
+            step: The number of internal steps the simulation
+                is advanced between yielding from the iterator
 
         Yields:
             int: The current step.
@@ -175,7 +177,9 @@ class AbstractVariationalDriver(abc.ABC):
         """
         Performs `steps` optimization steps.
 
-        steps: (Default=1) number of steps
+        Args:
+            steps: (Default=1) number of steps.
+
         """
         for _ in self.iter(steps):
             pass

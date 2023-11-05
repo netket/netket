@@ -84,15 +84,14 @@ dev = [
     "IPython",
 ]
 docs = [
-    "Sphinx>=5.3,<7.1",
+    "Sphinx>=6.2,<7.1",
     "sphinx-design>=0.4.0",
     "sphinx-autodoc-typehints~=1.22",
     "sphinxcontrib-fulltoc~=1.2.0",
     "sphinxcontrib-jsmath~=1.0.1",
     "sphinxcontrib-napoleon==0.7",
     "myst-parser>=0.18.1,<2.1.0",
-    "nbsphinx~=0.9.1",
-    "myst-nb~=0.17.1",
+    "myst-nb~=1.0.0rc0",
     "sphinx-book-theme~=1.0.1",
 ]
 

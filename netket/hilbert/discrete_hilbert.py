@@ -235,7 +235,8 @@ class DiscreteHilbert(AbstractHilbert):
         For the `Fock` space this returns `x`, but for other hilbert spaces
         such as `Spin` this returns an array of indices.
 
-        NOTE: This function is experimental. Use at your own risk.
+        .. warning::
+            This function is experimental. Use at your own risk.
 
         Args:
             x: a tensor containing samples from this hilbert space

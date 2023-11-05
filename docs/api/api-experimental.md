@@ -61,7 +61,7 @@ several CPUs, but you have to start jax with a specific environment variable.
 
 ```{eval-rst}
 .. autosummary::
-   :toctree: _generated/experimental/samplers
+   :toctree: _generated/samplers
    :template: class
    :nosignatures:
 
