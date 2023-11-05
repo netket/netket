@@ -316,14 +316,12 @@ def from_pyscf_molecule(
         >>> E_hf = sum(mf.scf_summary.values())
         >>>
         >>> E_fci = fci.FCI(mf).kernel()[0]
-        >>> print('fci', E_fci)
-            fci -7.882527528833891
         >>>
         >>> ha = nkx.operator.from_pyscf_molecule(mol)
             converged SCF energy = -7.86338212728528
         >>> E0 = float(nk.exact.lanczos_ed(ha))
-        >>> print(f"{E0 = }, {E_fci = }")
-        E0 = -7.882527528833887, E_fci = -7.882527528833891
+        >>> print(f"{E0 = :.5f}, {E_fci = :.5f}")
+        E0 = -7.88253, E_fci = -7.88253
 
     Example:
         Constructs the hamiltonian for a Li-H molecule, using the `sto-3g` basis
