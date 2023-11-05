@@ -118,6 +118,7 @@ intersphinx_mapping = {
     "flax": ("https://flax.readthedocs.io/en/latest/", None),
     "igraph": ("https://igraph.org/python/api/latest", None),
     "qutip": ("https://qutip.org/docs/latest/", None),
+    "pyscf": ("https://pyscf.org/", None),
 }
 
 # (Optional) Logo. Should be small enough to fit the navbar (ideally 24x24).

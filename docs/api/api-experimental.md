@@ -111,17 +111,6 @@ This module contains experimental loggers that can be used with the optimization
 
 ## Time Evolution Driver
 
-````{admonition} Apple ARM (M1) processors 
-:class: warning
-
-Those drivers are automatically jitted with `jax.jit`. To disable jitting set 
-```python
-netket.config.netket_disable_ode_jit = True
-```
-or set the equivalent environment variable.
-
-````
-
 
 ```{eval-rst}
 .. currentmodule:: netket.experimental
@@ -139,17 +128,6 @@ or set the equivalent environment variable.
 ## ODE Integrators
 
 This is a collection of ODE integrators that can be used with the TDVP driver above.
-
-````{admonition} Apple ARM (M1) processors 
-:class: warning
-
-Those drivers are automatically jitted with `jax.jit`. To disable jitting set 
-```python
-netket.config.netket_disable_ode_jit = True
-```
-or set the equivalent environment variable.
-
-````
 
 ```{eval-rst}
 .. currentmodule:: netket.experimental
@@ -197,6 +175,8 @@ It is experimental until it has been thoroughly tested by the community, meaning
    operator.fermion.create
    operator.fermion.destroy
    operator.fermion.number
+   operator.from_pyscf_molecule
+   operator.pyscf.TV_from_pyscf_molecule
 ```
 
 ## Observables
