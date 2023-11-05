@@ -24,6 +24,8 @@
 * Added new {class}`netket.models.Slater2nd` model implementing a Slater ansatz [#1622](https://github.com/netket/netket/pull/1622).
 * Added new {func}`netket.jax.logdet_cmplx` function to compute the complex log-determinant of a batch of matrices [#1622](https://github.com/netket/netket/pull/1622).
 * Added new {class}`netket.experimental.driver.VMC_SRt` driver, which leads in identical parameter updates as the standard Stochastic Reconfiguration with diagonal shift regularization. Therefore, it is essentially equivalent to using the standard {class}`nk.driver.VMC` with the {class}`nk.optimizer.SR` preconditioner. The advantage of this method is that it requires the inversion of a matrix with side number of samples instead of number of parameters, making this formulation particularly useful in typical deep learning scenarios [#1623](https://github.com/netket/netket/pull/1623).
+* Added a new function :func:`netket.experimental.operator.from_pyscf_molecule` to construct the electronic hamiltonian of a given molecule specified through pyscf. This is accompanied by :func:`netket.experimental.operator.pyscf.TV_from_pyscf_molecule` to compute the T and V tensors of a pyscf molecule [#1602](https://github.com/netket/netket/pull/1602).
+
 
 ### Breaking Changes
 * The {class}`netket.nn.blocks.SymmExpSum` layer is now normalised by the number of elements in the symmetry group in order to maintain a reasonable normalisation [#1624](https://github.com/netket/netket/pull/1624).
