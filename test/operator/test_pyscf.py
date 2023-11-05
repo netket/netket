@@ -30,12 +30,37 @@ def test_pyscf():
         ("Li", (0.0, 0.0, -bond_length / 2)),
         ("H", (0.0, 0.0, bond_length / 2)),
     ]
-    mol = gto.M(atom=geometry, basis="STO-3G")
+    molecule = gto.M(atom=geometry, basis="STO-3G")
 
-    mf = scf.RHF(mol).run()
+    mf = scf.RHF(molecule).run()
     E_fci = fci.FCI(mf).kernel()[0]
 
-    ha = nkx.operator.from_pyscf_molecule(mol, mo_coeff=mf.mo_coeff)
+    ha = nkx.operator.from_pyscf_molecule(molecule, mo_coeff=mf.mo_coeff)
+
+    assert ha.hilbert.n_orbitals == 6
+    assert ha.hilbert.n_fermions == 4
+    assert ha.hilbert.n_fermions_per_spin == (2, 2)
+
+    # check that ED gives same value as FCI in pyscf
+    np.testing.assert_allclose(E_fci, nk.exact.lanczos_ed(ha))
+
+
+def test_pyscf_default():
+    pytest.importorskip("pyscf")
+
+    from pyscf import gto, scf, fci
+
+    bond_length = 1.5109
+    geometry = [
+        ("Li", (0.0, 0.0, -bond_length / 2)),
+        ("H", (0.0, 0.0, bond_length / 2)),
+    ]
+    molecule = gto.M(atom=geometry, basis="STO-3G")
+
+    mf = scf.HF(molecule).run()
+    E_fci = fci.FCI(mf).kernel()[0]
+
+    ha = nkx.operator.from_pyscf_molecule(molecule)
 
     assert ha.hilbert.n_orbitals == 6
     assert ha.hilbert.n_fermions == 4
