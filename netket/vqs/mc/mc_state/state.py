@@ -157,7 +157,9 @@ class MCState(VariationalState):
 
         Args:
             sampler: The sampler
-            model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
+            model: (Optional) The neural quantum state ansatz, encoded into a model.
+                This should be a :class:`flax.linen.Module` instance, or any other supported
+                neural network framework. If not provided, you must specify init_fun and apply_fun.
             n_samples: the total number of samples across chains and processes when sampling (default=1000).
             n_samples_per_rank: the total number of samples across chains on one process when sampling. Cannot be
                 specified together with n_samples (default=None).
@@ -178,6 +180,9 @@ class MCState(VariationalState):
             sample_fun: Optional function used to sample the state, if it is not the same as `apply_fun`.
             training_kwargs: a dict containing the optional keyword arguments to be passed to the apply_fun during training.
                 Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
+            chunk_size: (Defaults to `None`) If specified, calculations are split into chunks where the neural network
+                is evaluated at most on :code:`chunk_size` samples at once. This does not change the mathematical results,
+                but will trade a higher computational cost for lower memory cost.
         """
         super().__init__(sampler.hilbert)
 
@@ -517,16 +522,18 @@ class MCState(VariationalState):
         return self._samples
 
     def log_value(self, σ: jnp.ndarray) -> jnp.ndarray:
-        """
+        r"""
         Evaluate the variational state for a batch of states and returns
         the logarithm of the amplitude of the quantum state. For pure states,
-        this is :math:`log(<σ|ψ>)`, whereas for mixed states this is
-        :math:`log(<σr|ρ|σc>)`, where ψ and ρ are respectively a pure state
+        this is :math:`\log(\langle\sigma|\psi\rangle)`, whereas for mixed states
+        this is :math:`\log(\langle\sigma_r|\rho|\sigma_c\rangle)`, where
+        :math:`\psi` and :math:`\rho` are respectively a pure state
         (wavefunction) and a mixed state (density matrix).
         For the density matrix, the left and right-acting states (row and column)
         are obtained as :code:`σr=σ[::,0:N]` and :code:`σc=σ[::,N:]`.
 
-        Given a batch of inputs (Nb, N), returns a batch of outputs (Nb,).
+        Given a batch of inputs :code:`(Nb, N)`, returns a batch of outputs
+        :code:`(Nb,).
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
@@ -557,42 +564,48 @@ class MCState(VariationalState):
         return local_estimators(self, op, chunk_size=chunk_size)
 
     # override to use chunks
-    def expect(self, Ô: AbstractOperator) -> Stats:
-        r"""Estimates the quantum expectation value for a given operator O.
-            In the case of a pure state $\psi$, this is $<O>= <Psi|O|Psi>/<Psi|Psi>$
-            otherwise for a mixed state $\rho$, this is $<O> = \Tr[\rho \hat{O}/\Tr[\rho]$.
+    def expect(self, O: AbstractOperator) -> Stats:
+        r"""Estimates the quantum expectation value for a given operator
+        :math:`O` or generic observable.
+        In the case of a pure state :math:`\psi` and an operator, this is
+        :math:`\langle O\rangle= \langle \Psi|O|\Psi\rangle/\langle\Psi|\Psi\rangle`
+        otherwise for a  mixed state :math:`\rho`, this is
+        :math:`\langle O\rangle= \textrm{Tr}[\rho \hat{O}]/\textrm{Tr}[\rho]`.
 
         Args:
-            Ô: the operator O.
+            O: the operator or observable for which to compute the expectation
+                value.
 
         Returns:
-            An estimation of the quantum expectation value <O>.
+            An estimation of the quantum expectation value
+            :math:`\langle O\rangle.
         """
-        return expect(self, Ô, self.chunk_size)
+        return expect(self, O, self.chunk_size)
 
     # override to use chunks
     def expect_and_grad(
         self,
-        Ô: AbstractOperator,
+        O: AbstractOperator,
         *,
         mutable: Optional[CollectionFilter] = None,
         **kwargs,
     ) -> tuple[Stats, PyTree]:
-        r"""Estimates the quantum expectation value and its gradient for a given operator O.
+        r"""Estimates the quantum expectation value and its gradient
+        for a given operator :math:`O`.
 
         Args:
-            Ô: The operator Ô for which expectation value and gradient are computed.
-            mutable: Can be bool, str, or list. Specifies which collections in the model_state should
-                     be treated as  mutable: bool: all/no collections are mutable. str: The name of a
-                     single mutable  collection. list: A list of names of mutable collections.
-                     This is used to mutate the state of the model while you train it (for example
-                     to implement BatchNorm. Consult
+            O: The operator :math:`O` for which expectation value and
+                gradient are computed.
+            mutable: Can be bool, str, or list. Specifies which collections in the
+                     model_state should be treated as  mutable: bool: all/no collections
+                     are mutable. str: The name of a single mutable  collection. list: A
+                     list of names of mutable collections. This is used to mutate the state
+                     of the model while you train it (for example to implement BatchNorm. Consult
                      `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
                      for a more in-depth explanation).
-
-        Extra args:
             use_covariance: whether to use the covariance formula, usually reserved for
-                hermitian operators, ⟨∂logψ Oˡᵒᶜ⟩ - ⟨∂logψ⟩⟨Oˡᵒᶜ⟩
+                hermitian operators,
+                :math:`\textrm{Cov}[\partial\log\psi, O_{\textrm{loc}}\rangle]`
 
         Returns:
             An estimate of the quantum expectation value <O>.
@@ -603,7 +616,7 @@ class MCState(VariationalState):
 
         return expect_and_grad(
             self,
-            Ô,
+            O,
             self.chunk_size,
             mutable=mutable,
             **kwargs,
@@ -612,32 +625,36 @@ class MCState(VariationalState):
     # override to use chunks
     def expect_and_forces(
         self,
-        Ô: AbstractOperator,
+        O: AbstractOperator,
         *,
         mutable: Optional[CollectionFilter] = None,
     ) -> tuple[Stats, PyTree]:
-        r"""Estimates the quantum expectation value and the corresponding force vector for a given operator O.
+        r"""Estimates the quantum expectation value and the corresponding force
+        vector for a given operator O.
 
-        The force vector F_j is defined as the covariance of log-derivative of the trial wave function
-        and the local estimators of the operator. For complex holomorphic states, this is
-        equivalent to the expectation gradient d<O>/d(θ_j)* = F_j. For real-parameter states,
-        the gradient is given by d<O>/dθ_j = 2 Re[F_j].
+        The force vector :math:`F_j` is defined as the covariance of log-derivative
+        of the trial wave function and the local estimators of the operator. For complex
+        holomorphic states, this is equivalent to the expectation gradient
+        :math:`\frac{\partial\langle O\rangle}{\partial(\theta_j)^\star} = F_j`. For real-parameter states,
+        the gradient is given by :math:`\frac{\partial\partial_j\langle O\rangle}{\partial\partial_j\theta_j} = 2 \textrm{Re}[F_j]`.
 
         Args:
-            Ô: The operator Ô for which expectation value and force are computed.
-            mutable: Can be bool, str, or list. Specifies which collections in the model_state should
-                     be treated as  mutable: bool: all/no collections are mutable. str: The name of a
-                     single mutable  collection. list: A list of names of mutable collections.
-                     This is used to mutate the state of the model while you train it (for example
-                     to implement BatchNorm. Consult
-                     `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
-                     for a more in-depth explanation).
+            O: The operator O for which expectation value and force are computed.
+            mutable: Can be bool, str, or list. Specifies which collections in
+                the model_state should be treated as  mutable: bool: all/no
+                collections are mutable. str: The name of a single mutable
+                collection. list: A list of names of mutable collections. This is
+                used to mutate the state of the model while you train it (for
+                example to implement BatchNorm. Consult
+                `Flax's Module.apply documentation <https://flax.readthedocs.io/en/latest/_modules/flax/linen/module.html#Module.apply>`_
+                for a more in-depth explanation).
 
         Returns:
             An estimate of the quantum expectation value <O>.
-            An estimate of the forve vector F_j = cov[dlog(ψ)/dx_j, O_loc].
+            An estimate of the force vector
+            :math:`F_j = \textrm{Cov}[\partial_j\log\psi, O_{\textrm{loc}}]`.
         """
-        if isinstance(Ô, Squared):
+        if isinstance(O, Squared):
             raise NotImplementedError(
                 "expect_and_forces not yet implemented for `Squared`"
             )
@@ -645,7 +662,7 @@ class MCState(VariationalState):
         if mutable is None:
             mutable = self.mutable
 
-        return expect_and_forces(self, Ô, self.chunk_size, mutable=mutable)
+        return expect_and_forces(self, O, self.chunk_size, mutable=mutable)
 
     def quantum_geometric_tensor(
         self, qgt_T: Optional[LinearOperator] = None
