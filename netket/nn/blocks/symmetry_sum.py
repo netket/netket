@@ -33,7 +33,7 @@ class SymmExpSum(nn.Module):
 
     .. math::
 
-        \log\psi_\theta(\sigma) = \frac{1}{\abs{G}}\log\sum_{g\in G}
+        \log\psi_\theta(\sigma) = \frac{1}{|G|}\log\sum_{g\in G}
             \chi_g\exp[\log\psi_\theta(T_{g}\sigma)]
 
     For the ground-state, it is usually found that :math:`\chi_g=1 \forall g\in G`.
