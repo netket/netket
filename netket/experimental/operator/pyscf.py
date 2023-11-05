@@ -216,15 +216,33 @@ def operator_from_arrays(
 
 
 def TV_from_pyscf_molecule(
-    molecule: "pyscf.gto.mole.Mole",  # noqa: F821
+    molecule: "pyscf.gto.mole.Mole",  # type: pyscf.gto.mole.Mole  # noqa: F821
     mo_coeff: np.ndarray,
     *,
     cutoff: float = 1e-11,
 ) -> tuple[...]:
-    """
-    Computes the T and V tensors encoding the 1-body and 2-body terms
-    in the electronic hamiltonian of a pyscf molecule using the specified
-    molecular orbitals.
+    r"""
+    Computes the nuclear repulsion energy :math:`E_{nuc}`, and the T and
+    V tensors encoding the 1-body and 2-body terms in the electronic
+    hamiltonian of a pyscf molecule using the specified molecular orbitals.
+
+    The tensors returned correspond to the following expressions:
+
+    .. math::
+
+        \hat{H} = E_{nuc} + \sum_{ij} T_{ij} \hat{c}^\dagger_i\hat{c}_j +
+            \sum_{ijkl} V_{ijkl} \hat{c}^\dagger_i\hat{c}_dagger_j\hat{c}_k\hat{c}_l
+
+    The electronic spin degree of freedom is encoded following the *NetKet convention*
+    where the first :math:`N_{\downarrow}` values of the indices :math:`i,j,k,l` represent
+    the spin down electrons, and the following :math:`N_{\uparrow}` values represent the
+    spin up.
+
+    .. note::
+
+        In the `netket.experimental.operator.pyscf` module you can find some utility
+        functions to convert from normal ordering to other orderings, but
+        those are all internals so if you need them do copy-paste them somewhere else.
 
     Example:
         Constructs the hamiltonian for a Li-H molecule, using the `sto-3g` basis
@@ -243,15 +261,18 @@ def TV_from_pyscf_molecule(
         >>> ha = nkx.operator.pyscf.TV_from_pyscf_molecule(mol, mo_coeff)
 
     Args:
-        molecule: The pyscf `Mole` object describing the Hamiltonian
+        molecule: The pyscf :class:`~pyscf.gto.mole.Mole` object describing the
+            Hamiltonian
         mo_coeff: The molecular orbital coefficients determining the
             linear combination of atomic orbitals to produce the
-            molecular orbitals.
+            molecular orbitals. If unspecified this defaults to
+            the hartree fock orbitals computed using :class:`~pyscf.scf.HF`.
         cutoff: Ignores all matrix elements in the `V` and `T` matrix that have
             magnitude less than this value. Defaults to :math:`10^{-11}`
 
     Returns:
-        ...
+        :code:`E,T,V`: a scalar and two numpy arrays, the first with 2 dimensions
+        and the latter with 4 dimensions.
 
     """
     sparse = import_optional_dependency("sparse", descr="TV_from_pyscf_molecule")
@@ -275,11 +296,9 @@ def from_pyscf_molecule(
     cutoff: float = 1e-11,
     implementation: DiscreteOperator = FermionOperator2nd,
 ) -> DiscreteOperator:
-    """
+    r"""
     Construct a netket operator encoding the electronic hamiltonian of a pyscf
     molecule in a chosen orbital basis.
-
-    !! factor 0.5 is added here
 
     Example:
         Constructs the hamiltonian for a Li-H molecule, using the `sto-3g` basis
@@ -349,7 +368,7 @@ def from_pyscf_molecule(
         mf = pyscf.scf.HF(molecule).run()
         mo_coeff = mf.mo_coeff
 
-    E_nuc, Tij, Vijkl = TV_from_pyscf_molecule
+    E_nuc, Tij, Vijkl = TV_from_pyscf_molecule(molecule, mo_coeff, cutoff=cutoff)
 
     ha = operator_from_arrays(
         E_nuc,
@@ -359,5 +378,5 @@ def from_pyscf_molecule(
         term_conj4=(1, 1, 0, 0),
         cls=implementation,
     )
-    # TODO run setup and set _max_conn_size here estimating it analytially
+    # TODO maybe run setup and set _max_conn_size here estimating it analytially
     return ha
