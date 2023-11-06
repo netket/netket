@@ -59,7 +59,7 @@ class AbstractARNN(nn.Module):
         if not isinstance(self.hilbert, HomogeneousHilbert):
             raise ValueError(
                 "Only homogeneous Hilbert spaces are supported "
-                "by ARNN, but hilbert is a {type(self.hilbert)}."
+                f"by ARNN, but hilbert is a {type(self.hilbert)}."
             )
 
         if self.hilbert.constrained:
