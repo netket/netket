@@ -123,7 +123,7 @@ def identity(hilbert: _AbstractHilbert, dtype: _DType = None):
     Returns:
         An instance of {class}`nk.operator.LocalOperator`.
     """
-    return _FermionOperator2nd(hilbert, [], [], constant=1.0, dtype=dtype)
+    return _FermionOperator2nd.identity(hilbert, dtype=dtype)
 
 
 def zero(hilbert: _AbstractHilbert, dtype: _DType = None):
@@ -138,4 +138,4 @@ def zero(hilbert: _AbstractHilbert, dtype: _DType = None):
 
     Returns:
         An instance of {class}`nk.operator.LocalOperator`."""
-    return _FermionOperator2nd(hilbert, [], [], constant=0.0, dtype=dtype)
+    return _FermionOperator2nd.zero(hilbert, dtype=dtype)

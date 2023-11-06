@@ -263,7 +263,11 @@ class FermionOperator2nd(DiscreteOperator):
 
     @classmethod
     def identity(cls, hilbert: AbstractHilbert, **kwargs):
-        return cls(hilbert, "I" * hilbert.size, **kwargs)
+        return cls(hilbert, [], [], constant=1.0, **kwargs)
+
+    @classmethod
+    def zero(cls, hilbert: AbstractHilbert, **kwargs):
+        return cls(hilbert, [], [], constant=0.0, **kwargs)
 
     @property
     def dtype(self) -> DType:
