@@ -21,14 +21,8 @@ import jax.numpy as jnp
 import numpy as np
 
 from netket import jax as nkjax
+from netket.utils import wrap_to_support_scalar
 from netket.utils.types import Array, Callable, PyTree
-
-
-def _single_sample(forward_fn):
-    """
-    A decorator to make the forward_fn accept a single sample
-    """
-    return lambda W, σ: forward_fn(W, σ[jnp.newaxis, :])[0]
 
 
 def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> PyTree:
@@ -44,7 +38,9 @@ def jacobian_real_holo(forward_fn: Callable, params: PyTree, samples: Array) -> 
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
 
-    y, vjp_fun = jax.vjp(lambda pars: _single_sample(forward_fn)(pars, samples), params)
+    y, vjp_fun = jax.vjp(
+        lambda pars: wrap_to_support_scalar(forward_fn)(pars, samples), params
+    )
     (res,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     return res
 
@@ -68,7 +64,9 @@ def _jacobian_cplx(
         The Jacobian matrix ∂/∂pₖ ln Ψ(σⱼ) as a PyTree
     """
 
-    y, vjp_fun = jax.vjp(lambda pars: _single_sample(forward_fn)(pars, samples), params)
+    y, vjp_fun = jax.vjp(
+        lambda pars: wrap_to_support_scalar(forward_fn)(pars, samples), params
+    )
     (gr,) = vjp_fun(np.array(1.0, dtype=jnp.result_type(y)))
     (gi,) = vjp_fun(np.array(-1.0j, dtype=jnp.result_type(y)))
     return _build_fn(gr, gi)

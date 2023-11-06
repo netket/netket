@@ -105,6 +105,14 @@ def vstate(request):
 
     vs = nk.vqs.MCState(sa, ma, n_samples=1000, seed=SEED)
 
+    # wrap the apply function with a check that the samples have exactly 0 or 1 batch axis
+    def apply_fun_check_shape(apply_fun, params, x, *args, **kwargs):
+        assert x.ndim in (1, 2)
+        return apply_fun(params, x, *args, **kwargs)
+
+    apply_fun = vs._apply_fun
+    vs._apply_fun = partial(apply_fun_check_shape, apply_fun)
+
     return vs
 
 
