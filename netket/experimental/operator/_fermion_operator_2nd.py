@@ -39,9 +39,9 @@ from ._fermion_operator_2nd_utils import (
     _make_tuple_tree,
     _remove_zero_weights,
     _verify_input,
-    OperatorDict,
     OperatorWeightsList,
     OperatorTermsList,
+    OperatorTerm,
     _normal_ordering,
     _pair_ordering,
 )
@@ -254,7 +254,7 @@ class FermionOperator2nd(DiscreteOperator):
         return self._constant
 
     @property
-    def operator_dict(self) -> OperatorDict:
+    def operator_dict(self) -> dict[OperatorTerm, Union[float, complex]]:
         """
         Return a dict with terms as keys and weights as values.
         This does not include the constant term.
@@ -567,7 +567,7 @@ class FermionOperator2nd(DiscreteOperator):
                 f"Cannot add inplace operator with dtype {type(other)} "
                 f"to operator with dtype {self.dtype}"
             )
-        operators = self.operator_dict
+        operators = dict(zip(self.terms, self.weights))
         for t, w in zip(other.terms, other.weights):
             if t in operators.keys():
                 operators[t] += w

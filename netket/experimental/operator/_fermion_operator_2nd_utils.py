@@ -4,7 +4,7 @@ import numpy as np
 import copy
 from typing import Union
 
-from netket.utils.types import DType, PyTree
+from netket.utils.types import PyTree
 
 OperatorTuple = tuple[int, int]
 r""" Creation and annihilation operators at mode i are encoded as
@@ -22,9 +22,6 @@ OperatorTermsList = list[OperatorTerm]
 
 OperatorWeightsList = list[Union[float, complex]]
 """ A list of weights corresponding to the operators in OperatorList """
-
-OperatorDict = dict[OperatorTerm, Union[float, complex]]
-""" A dict containing OperatorTerm as key and weights as the values """
 
 
 def _check_hermitian(
@@ -309,20 +306,6 @@ def _is_diag_term(term: OperatorTerm) -> bool:
     for orb_idx, dagger in term:
         ops[orb_idx][int(dagger)] += 1
     return all((x[0] == x[1]) for x in ops.values())
-
-
-def _reduce_operators(operators: OperatorDict, dtype: DType) -> OperatorDict:
-    """
-    Reduce the operators by adding equivalent terms together
-    """
-
-    red_ops = zero_defaultdict(dtype)
-    terms = list(operators.keys())
-    weights = list(operators.values())
-    for term, weight in zip(*_normal_ordering(terms, weights)):
-        red_ops[term] += weight
-    red_ops = _remove_dict_zeros(dict(red_ops))
-    return red_ops
 
 
 def zero_defaultdict(dtype):
