@@ -261,12 +261,8 @@ class FermionOperator2nd(DiscreteOperator):
 
     def _remove_zeros(self):
         """Reduce the number of operators by removing unnecessary zeros"""
-        op_dict = _remove_dict_zeros(self._operators)
-        terms = list(op_dict.keys())
-        weights = list(op_dict.values())
-        op = FermionOperator2nd(
-            self.hilbert, terms, weights, constant=self._constant, dtype=self.dtype
-        )
+        op = FermionOperator2nd(self.hilbert, constant=self._constant, dtype=self.dtype)
+        op._operators = _remove_dict_zeros(self._operators)
         return op
 
     @property
