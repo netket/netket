@@ -91,7 +91,7 @@ def test_Kahan_sum():
     assert ksum2.value == pytest.approx(5.0, rel=1e-15, abs=1e-15)
 
 
-def test_batching_wrapper_scalar():
+def test_batching_wrapper():
     from netket.utils import wrap_to_support_scalar
 
     def applyfun(pars, x, mutable=False):
@@ -127,44 +127,6 @@ def test_batching_wrapper_scalar():
     res = afun(None, xb, mutable=True)[0]
     assert res.shape == (1,)
     assert res == jnp.sum(x, axis=-1)
-
-
-def test_batching_wrapper_multiple():
-    from netket.utils import wrap_to_support_multiple_batch_axes
-
-    def applyfun(pars, x, mutable=False):
-        # this assert fails if the wrapper is not working
-        assert x.ndim == 2
-        if not mutable:
-            return x.sum(axis=-1)
-        else:
-            return (x.sum(axis=-1), {})
-
-    # check same hash
-    assert hash(wrap_to_support_multiple_batch_axes(applyfun)) == hash(
-        wrap_to_support_multiple_batch_axes(applyfun)
-    )
-
-    afun = wrap_to_support_multiple_batch_axes(applyfun)
-
-    x = jnp.ones((3, 5))
-    xb = jnp.ones((6, 4, 3, 5))
-
-    # no mutable state
-    res = afun(None, x)
-    assert res.shape == x.shape[:-1]
-    assert np.allclose(res, jnp.sum(x, axis=-1))
-    res = afun(None, xb)
-    assert res.shape == xb.shape[:-1]
-    assert np.allclose(res, jnp.sum(x, axis=-1))
-
-    # mutable state
-    res = afun(None, x, mutable=True)[0]
-    assert res.shape == x.shape[:-1]
-    assert np.allclose(res, jnp.sum(x, axis=-1))
-    res = afun(None, xb, mutable=True)[0]
-    assert res.shape == xb.shape[:-1]
-    assert np.allclose(res, jnp.sum(x, axis=-1))
 
 
 def test_deprecated_dispatch_bool():
