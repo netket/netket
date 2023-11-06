@@ -599,8 +599,6 @@ class FermionOperator2nd(DiscreteOperator):
 
         new = FermionOperator2nd(
             self.hilbert,
-            [],
-            [],
             constant=np.conjugate(self._constant),
             dtype=self.dtype,
         )
