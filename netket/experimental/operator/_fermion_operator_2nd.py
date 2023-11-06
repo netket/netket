@@ -15,7 +15,6 @@
 from typing import Union, Optional
 
 import numpy as np
-from jax.tree_util import tree_map
 import numba
 
 from netket.utils.types import DType
@@ -571,8 +570,13 @@ class FermionOperator2nd(DiscreteOperator):
                 f"to operator with dtype {self.dtype}"
             )
         scalar = np.array(scalar, dtype=self.dtype).item()
-        _operators = tree_map(lambda x: x * scalar, self._operators)
-        self._operators = _remove_dict_zeros(_operators)
+
+        if scalar == 0:
+            new_operators = {}
+        else:
+            new_operators = {o: scalar * v for o, v in self._operators.items()}
+
+        self._operators = new_operators
         self._constant *= scalar
         self._reset_caches()
         return self
