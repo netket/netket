@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import Union, TYPE_CHECKING
 from functools import wraps
 
 import numpy as np
@@ -26,6 +26,9 @@ from netket.utils.types import DType
 
 from .base import PauliStringsBase
 from .jax import pack_internals
+
+if TYPE_CHECKING:
+    from .jax import PauliStringsJax
 
 
 def pack_internals_numba(
@@ -102,8 +105,8 @@ class PauliStrings(PauliStringsBase):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        operators: Union[str, list[str]] = None,
-        weights: Union[float, complex, list[Union[float, complex]]] = None,
+        operators: Union[None, str, list[str]] = None,
+        weights: Union[None, float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
         dtype: DType = None,

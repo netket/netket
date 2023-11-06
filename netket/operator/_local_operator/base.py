@@ -40,7 +40,7 @@ from .compile_helpers import pack_internals
 from .convert import local_operators_to_pauli_strings
 
 if TYPE_CHECKING:
-    from netket.operator import PauliStrings
+    from .._pauli_strings import PauliStrings
 
 
 def is_hermitian(a: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:

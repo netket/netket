@@ -24,8 +24,8 @@ def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
     eigendecomposition obtained from :func:`jax.numpy.linalg.eigh`.
 
     The eigenvalues :math:`\lambda_i` smaller than
-    :math:`r_\text{cond} \lambda_\text{max}` are truncated (where
-    :math:`\lambda_\text{max}` is the largest eigenvalue).
+    :math:`r_\textrm{cond} \lambda_\textrm{max}` are truncated (where
+    :math:`\lambda_\textrm{max}` is the largest eigenvalue).
 
     The eigenvalues are further smoothed with another filter, originally introduced in
     `Medvidovic, Sels arXiv:2212.11289 (2022) <https://arxiv.org/abs/2212.11289>`_,
@@ -33,7 +33,7 @@ def pinv_smooth(A, b, rcond=1e-14, rcond_smooth=1e-14, x0=None):
 
     .. math::
 
-        \tilde\lambda_i^{-1}=\frac{\lambda_i^{-1}}{1+\big(\epsilon\frac{\lambda_\text{max}}{\lambda_i}\big)^6}
+        \tilde\lambda_i^{-1}=\frac{\lambda_i^{-1}}{1+\big(\epsilon\frac{\lambda_\textrm{max}}{\lambda_i}\big)^6}
 
 
     .. note::
@@ -85,8 +85,8 @@ def pinv(A, b, rcond=1e-12, x0=None):
     Solve the linear system using jax's implementation of the
     pseudo-inverse.
 
-    Internally it calls :ref:`~jax.numpy.linalg.pinv` which
-    uses a :ref:`~jax.numpy.linalg.svd` decomposition with
+    Internally it calls :func:`~jax.numpy.linalg.pinv` which
+    uses a :func:`~jax.numpy.linalg.svd` decomposition with
     the same value of **rcond**.
 
     .. note::
@@ -95,7 +95,7 @@ def pinv(A, b, rcond=1e-12, x0=None):
         the pseudo-inverse
         :func:`netket.optimizer.solver.pinv_smooth` (which
         internally uses hermitian diagonaliation) outperform
-        jax's :ref:`~jax.numpy.linalg.pinv`.
+        jax's :func:`~jax.numpy.linalg.pinv`.
 
         For that reason, we suggest to use
         :func:`~netket.optimizer.solver.pinv_smooth` instead of
@@ -128,7 +128,7 @@ def svd(A, b, rcond=None, x0=None):
     Solve the linear system using Singular Value Decomposition.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses {ref}`jax.numpy.linalg.lstsq`.
+    Internally uses :func:`jax.numpy.linalg.lstsq`.
 
     Args:
         A: the matrix A in Ax=b
@@ -150,7 +150,7 @@ def cholesky(A, b, lower=False, x0=None):
     Solve the linear system using a Cholesky Factorisation.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses {ref}`jax.numpy.linalg.cho_solve`.
+    Internally uses :func:`jax.numpy.linalg.cho_solve`.
 
     Args:
         A: the matrix A in Ax=b
@@ -174,7 +174,7 @@ def LU(A, b, trans=0, x0=None):
     Solve the linear system using a LU Factorisation.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses {ref}`jax.numpy.linalg.lu_solve`.
+    Internally uses :func:`jax.numpy.linalg.lu_solve`.
 
     Args:
         A: the matrix A in Ax=b
@@ -200,7 +200,7 @@ def solve(A, b, assume_a="pos", x0=None):
     Solve the linear system.
     The diagonal shift on the matrix should be 0.
 
-    Internally uses {ref}`jax.numpy.solve`.
+    Internally uses :func:`jax.numpy.solve`.
 
     Args:
         A: the matrix A in Ax=b

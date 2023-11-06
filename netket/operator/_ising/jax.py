@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp
@@ -27,6 +27,9 @@ from netket.utils.types import DType
 from .._discrete_operator_jax import DiscreteJaxOperator
 
 from .base import IsingBase
+
+if TYPE_CHECKING:
+    from .numba import Ising
 
 
 @register_pytree_node_class
@@ -99,7 +102,13 @@ def _ising_mels_jax(x, edges, h, J):
         max_conn_size = 1
     else:
         max_conn_size = x.shape[-1] + 1
-    mels = jnp.zeros(batch_dims + (max_conn_size,), dtype=J.dtype)
+    mels = jnp.zeros(
+        (
+            *batch_dims,
+            max_conn_size,
+        ),
+        dtype=J.dtype,
+    )
 
     same_spins = x[..., edges[:, 0]] == x[..., edges[:, 1]]
     mels = mels.at[..., 0].set(J * (2 * same_spins - 1).sum(axis=-1))

@@ -26,26 +26,29 @@ from netket.utils.types import Array
 
 class SymmExpSum(nn.Module):
     r"""
-    A flax module symmetrizing the log-wavefunction :math:`\log\psi_\theta(\sigma)` encoded
-    into another flax module (:class:`flax.linen.Module`) by summing over all possible symmetries
-    :math:`g` in a certain discrete permutation group :math:`G`.
+    A flax module symmetrizing the log-wavefunction :math:`\log\psi_\theta(\sigma)`
+    encoded into another flax module (:class:`flax.linen.Module`) by summing over
+    all possible symmetries :math:`g` in a certain discrete permutation
+    group :math:`G`.
 
     .. math::
 
-        \log\psi_\theta(\sigma) = \log\sum_{g\in G}\chi_g\exp[\log\psi_\theta(T_{g}\sigma)]
+        \log\psi_\theta(\sigma) = \frac{1}{|G|}\log\sum_{g\in G}
+            \chi_g\exp[\log\psi_\theta(T_{g}\sigma)]
 
     For the ground-state, it is usually found that :math:`\chi_g=1 \forall g\in G`.
 
-    To construct this network, one has to specify the module, the symmetry group and (optionally)
-    the id of the character to consider. The symmetry
+    To construct this network, one has to specify the module, the symmetry group
+    and (optionally)the id of the character to consider.
 
     The module's :code:`.__call__` will be called.
     The :code:`symm_group` attribute
 
     Examples:
 
-       Constructs a :ref:`netket.nn.blocks.SymmExpSum` for a bare :ref:`netket.models.RBM`,
-       summing over all translations of a 2D Square lattice
+       Constructs a :ref:`netket.nn.blocks.SymmExpSum` for a bare
+       :ref:`netket.models.RBM`, summing over all translations of a
+       2D Square lattice
 
        >>> import netket as nk
        >>> graph = nk.graph.Square(3)
@@ -75,9 +78,12 @@ class SymmExpSum(nn.Module):
     to symmetrize in the :code:`.__call__` function."""
 
     symm_group: PermutationGroup
-    """The symmetry group to use. It should be a valid :ref:`netket.utils.group.PermutationGroup`
-    object. Can be easily extracted from a :ref:`netket.graph.Graph` object by calling
-    :meth:`~netket.graph.Graph.point_group` or :meth:`~netket.graph.Graph.translation_group`
+    """The symmetry group to use. It should be a valid
+    :ref:`netket.utils.group.PermutationGroup` object.
+
+    Can be extracted from a :ref:`netket.graph.Graph` object by calling
+    :meth:`~netket.graph.Graph.point_group` or
+    :meth:`~netket.graph.Graph.translation_group`
 
     .. code::
 
@@ -87,8 +93,10 @@ class SymmExpSum(nn.Module):
     """
 
     character_id: Optional[int] = None
-    """The # identifying the target character in the character table of the symmetry
-    group. By default the characters are taken to be all `1`, giving the homogeneous state.
+    """The # identifying the target character in the character table of
+    the symmetry group. By default the characters are taken to be all
+    `1`, giving the homogeneous state.
+
     The characters are accessed as:
 
     .. code::
@@ -113,13 +121,15 @@ class SymmExpSum(nn.Module):
             characters = np.ones(len(np.asarray(self.symm_group)))
         else:
             characters = self.symm_group.character_table()[self.character_id]
-        characters = characters.reshape(-1, 1)
+
+        characters = characters.reshape((-1,) + tuple(1 for _ in range(x.ndim - 1)))
+
         # If those are all positive, then use standard logsumexp that returns a
         # real-valued, positive logsumexp
         logsumexp_fun = (
             jax.scipy.special.logsumexp if np.all(characters >= 0) else logsumexp_cplx
         )
 
-        # log (sum_i ( c_i* exp(psi[sigma_i])))
-        psi = logsumexp_fun(psi_symm, axis=0, b=characters)
+        # log (sum_i ( c_i/Nsymm* exp(psi[sigma_i])))
+        psi = logsumexp_fun(psi_symm, axis=0, b=characters / len(self.symm_group))
         return psi

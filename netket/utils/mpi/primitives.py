@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import numpy as np
+import jax.numpy as jnp
 
 from .mpi import n_nodes, MPI, MPI_py_comm, MPI_jax_comm
 
@@ -25,6 +26,7 @@ def mpi_sum(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -66,6 +68,7 @@ def mpi_prod(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -107,6 +110,7 @@ def mpi_mean(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -137,6 +141,7 @@ def mpi_any(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -176,6 +181,7 @@ def mpi_all(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -215,6 +221,7 @@ def mpi_max(x, *, comm=MPI_py_comm):
 
     Args:
         a: The input array, which will usually be overwritten in place.
+
     Returns:
         out: The reduced array.
     """
@@ -264,17 +271,64 @@ def mpi_bcast_jax(x, *, token=None, root, comm=MPI_jax_comm):
         return mpi4jax.bcast(x, token=token, root=root, comm=comm)
 
 
-def mpi_allgather(x, *, comm=MPI_py_comm):
+def mpi_allgather(x, *, token=None, comm=MPI_py_comm):
     if n_nodes == 1:
-        return x
+        return x, token
     else:
         return comm.allgather(x)
 
 
+def mpi_gather_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
+    if n_nodes == 1:
+        return jnp.expand_dims(x, 0), token
+    else:
+        import mpi4jax
+
+        return mpi4jax.gather(x, token=token, root=root, comm=comm)
+
+
 def mpi_allgather_jax(x, *, token=None, comm=MPI_jax_comm):
+    if n_nodes == 1:
+        return jnp.expand_dims(x, 0), token
+    else:
+        import mpi4jax
+
+        return mpi4jax.allgather(x, token=token, comm=comm)
+
+
+def mpi_scatter_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
+    if n_nodes == 1:
+        if x.shape[0] != 1:
+            raise ValueError("Scatter input must have shape (nproc, ...)")
+        return x[0], token
+    else:
+        import mpi4jax
+
+        return mpi4jax.scatter(x, root=root, token=token, comm=comm)
+
+
+def mpi_alltoall_jax(x, *, token=None, comm=MPI_jax_comm):
     if n_nodes == 1:
         return x, token
     else:
         import mpi4jax
 
-        return mpi4jax.allgather(x, token=token, comm=comm)
+        return mpi4jax.alltoall(x, token=token, comm=comm)
+
+
+def mpi_reduce_sum_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
+    if n_nodes == 1:
+        return x, token
+    else:
+        import mpi4jax
+
+        return mpi4jax.reduce(x, op=MPI.SUM, root=root, token=token, comm=comm)
+
+
+def mpi_allreduce_sum_jax(x, *, token=None, root: int = 0, comm=MPI_jax_comm):
+    if n_nodes == 1:
+        return x, token
+    else:
+        import mpi4jax
+
+        return mpi4jax.allreduce(x, op=MPI.SUM, token=token, comm=comm)

@@ -71,6 +71,10 @@ class DoubledHilbert(DiscreteHilbert):
     def local_states(self):
         return self.physical.local_states
 
+    @property
+    def constrained(self):
+        return self.physical.constrained
+
     def size_at_index(self, i):
         r"""Size of the local degrees of freedom for the i-th variable.
 

@@ -15,6 +15,22 @@ import netket as nk
 import netket.experimental as nkx
 ```
 
+(experimental-drivers-api)=
+## Drivers
+Currently NetKet offers an experimental driver implementing Stochastic Reconfiguration with the [kernel trick](https://arxiv.org/abs/2310.05715) 
+(originally introduced under the name of [minSR by Ao Chen and Markus Heyl](https://arxiv.org/abs/2302.01941)). This is slightly more limited in
+features than the standard Stochastic Reconfiguration implementation of {class}`netket.drivers.VMC`, but can scale to millions of parameters
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/experimental/driver
+   :template: class
+   :nosignatures:
+
+   driver.VMC_SRt
+```
+
+
 (experimental-qsr-api)=
 ## Quantum State Reconstruction
 The Quantum State Reconstruction algorithm performs an approximate tomographic reconstruction of measurement data coming from a quantum computer (or similar device) using a Pure or Mixed quantum state.
@@ -45,7 +61,7 @@ several CPUs, but you have to start jax with a specific environment variable.
 
 ```{eval-rst}
 .. autosummary::
-   :toctree: _generated/experimental/samplers
+   :toctree: _generated/samplers
    :template: class
    :nosignatures:
 
@@ -95,17 +111,6 @@ This module contains experimental loggers that can be used with the optimization
 
 ## Time Evolution Driver
 
-````{admonition} Apple ARM (M1) processors 
-:class: warning
-
-Those drivers are automatically jitted with `jax.jit`. To disable jitting set 
-```python
-netket.config.netket_disable_ode_jit = True
-```
-or set the equivalent environment variable.
-
-````
-
 
 ```{eval-rst}
 .. currentmodule:: netket.experimental
@@ -123,17 +128,6 @@ or set the equivalent environment variable.
 ## ODE Integrators
 
 This is a collection of ODE integrators that can be used with the TDVP driver above.
-
-````{admonition} Apple ARM (M1) processors 
-:class: warning
-
-Those drivers are automatically jitted with `jax.jit`. To disable jitting set 
-```python
-netket.config.netket_disable_ode_jit = True
-```
-or set the equivalent environment variable.
-
-````
 
 ```{eval-rst}
 .. currentmodule:: netket.experimental
@@ -181,6 +175,8 @@ It is experimental until it has been thoroughly tested by the community, meaning
    operator.fermion.create
    operator.fermion.destroy
    operator.fermion.number
+   operator.from_pyscf_molecule
+   operator.pyscf.TV_from_pyscf_molecule
 ```
 
 ## Observables

@@ -37,8 +37,6 @@ class SamplerState(abc.ABC):
     Base class holding the state of a sampler.
     """
 
-    pass
-
 
 @struct.dataclass
 class Sampler(abc.ABC):

@@ -408,6 +408,7 @@ def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
         mode=mode,
         dense=False,
         center=True,
+        _sqrt_rescale=True,
     )
     # TODO Apply offset if offset is not None
 

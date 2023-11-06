@@ -30,7 +30,7 @@ def expand_dim(tree: PyTree, sz: int):
     """
 
     def _expand(x):
-        return jnp.zeros((sz,) + x.shape, dtype=x.dtype)
+        return jnp.zeros((sz, *x.shape), dtype=x.dtype)
 
     return jax.tree_map(_expand, tree)
 

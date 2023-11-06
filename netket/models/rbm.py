@@ -194,7 +194,13 @@ class RBMMultiVal(nn.Module):
         # do the one hot encoding: output x.shape +(n_classes,)
         x_oh = jax.nn.one_hot(x, self.n_classes)
         # vectorize the last two dimensions
-        x_oh = jnp.reshape(x_oh, batches + (self.n_classes * N,))
+        x_oh = jnp.reshape(
+            x_oh,
+            (
+                *batches,
+                self.n_classes * N,
+            ),
+        )
         # apply the rbm to this output
         return self.RBM(x_oh)
 

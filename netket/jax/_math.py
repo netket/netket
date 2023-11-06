@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
+
+import jax
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 
+from ._utils_dtype import dtype_complex
 
-def logsumexp_cplx(a, b=None, **kwargs):
+
+def logsumexp_cplx(a: jax.Array, b: Optional[jax.Array] = None, **kwargs) -> jax.Array:
     """Compute the log of the sum of exponentials of input elements, always returning a
     complex number.
 
@@ -36,3 +41,29 @@ def logsumexp_cplx(a, b=None, **kwargs):
         a, sgn = logsumexp(a, b=b, **kwargs, return_sign=True)
         a = a + jnp.where(sgn < 0, 1j * jnp.pi, 0j)
         return a
+
+
+def logdet_cmplx(A: jax.Array) -> jax.Array:
+    r"""Log-determinant, with automatic upconversion to a complex
+    output dtype in order to encode the sign.
+
+    This is a thin wrapper on top of {func}`jax.numpy.linalg.slogdet`.
+    The mathematical formula is:
+
+    .. math::
+
+        \log(|A |)
+
+    Args:
+        A: A square matrix, or batch of matrices. The shape should be
+            `(..., N, N)`
+
+    Return:
+        A scalar or batch of scalars with the smallest complex dtype
+        computed from the input dtype. If the input has shape
+        `(..., N, N)` the output has shape `(...)`
+
+    """
+    sign, logabsdet = jnp.linalg.slogdet(A)
+    cplx_type = dtype_complex(A.dtype)
+    return logabsdet.astype(cplx_type) + jnp.log(sign.astype(cplx_type))

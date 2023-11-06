@@ -26,6 +26,7 @@ release = nk.__version__
 extensions = [
     # "myst_parser",
     "myst_nb",
+    "sphinx_design",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
@@ -117,6 +118,7 @@ intersphinx_mapping = {
     "flax": ("https://flax.readthedocs.io/en/latest/", None),
     "igraph": ("https://igraph.org/python/api/latest", None),
     "qutip": ("https://qutip.org/docs/latest/", None),
+    "pyscf": ("https://pyscf.org/", None),
 }
 
 # (Optional) Logo. Should be small enough to fit the navbar (ideally 24x24).

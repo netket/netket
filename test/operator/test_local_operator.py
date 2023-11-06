@@ -609,8 +609,8 @@ def test_pauli_strings_conversion():
     weights = [1.0, 1j, 3, 1]
 
     ps_true, lo, ps_conv = _convert(operators, weights, 9.0)
-    assert np.allclose(ps_true.to_dense(), ps_conv.to_dense())
-    assert np.allclose(lo.to_dense(), ps_conv.to_dense())
+    np.testing.assert_allclose(ps_true.to_dense(), ps_conv.to_dense())
+    np.testing.assert_allclose(lo.to_dense(), ps_conv.to_dense())
 
     operators = [
         "IZZII",
@@ -624,8 +624,8 @@ def test_pauli_strings_conversion():
     weights = [1.0, 1j, 3, 1, 7, 9.5, 6.6]
 
     ps_true, lo, ps_conv = _convert(operators, weights, 1.1)
-    assert np.allclose(ps_true.to_dense(), ps_conv.to_dense())
-    assert np.allclose(lo.to_dense(), ps_conv.to_dense())
+    np.testing.assert_allclose(ps_true.to_dense(), ps_conv.to_dense())
+    np.testing.assert_allclose(lo.to_dense(), ps_conv.to_dense())
 
 
 def test_pauli_strings_conversion_no_warn():

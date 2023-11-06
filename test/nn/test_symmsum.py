@@ -15,6 +15,9 @@
 import pytest
 import numpy as np
 
+import jax
+import jax.numpy as jnp
+
 import netket as nk
 import netket.nn as nknn
 
@@ -49,3 +52,35 @@ def test_symmexpsum(bare_module, character_id):
     if character_id != 1:
         for Tg in g:
             np.testing.assert_allclose(log_psi, vs.log_value(Tg @ hi.all_states()))
+
+    if character_id == 0:
+        # check that for symmetric inputs it gives same output of original
+        s0 = jnp.full((hi.size,), 1.3)
+        out_sym = ma.apply(vs.variables, s0)
+        out_bare = bare_module.apply({"params": vs.parameters["module"]}, s0)
+        np.testing.assert_allclose(out_sym, out_bare)
+
+    # check that it works with different shapes
+    s0 = hi.random_state(jax.random.PRNGKey(0))
+    out0, pars = ma.init_with_output(jax.random.PRNGKey(0), s0)
+    assert out0.shape == ()
+
+    out1 = ma.apply(pars, s0.reshape((1, -1)))
+    assert out1.shape == (1,)
+
+    np.testing.assert_allclose(out0, out1.reshape(()))
+
+    # 2D and 3D
+    s1 = hi.random_state(jax.random.PRNGKey(0), (100,))
+    out1 = ma.apply(pars, s1)
+    assert out1.shape == (100,)
+
+    s2 = s1.reshape((10, 10, hi.size))
+    out2 = ma.apply(pars, s2)
+    assert out2.shape == (10, 10)
+    np.testing.assert_allclose(out1, out2.reshape((-1,)))
+
+    s3 = s1.reshape((2, 5, 10, hi.size))
+    out3 = ma.apply(pars, s3)
+    assert out3.shape == (2, 5, 10)
+    np.testing.assert_allclose(out1, out3.reshape((-1,)))

@@ -155,7 +155,7 @@ def test_one_step_lindbladian(integrator):
                 * nk.operator.spin.sigmaz(hi, (i + 1) % L)
             )
             j_ops.append(nk.operator.spin.sigmam(hi, i))
-        #  Create the liouvillian
+        # Create the liouvillian
         lind = nk.operator.LocalLiouvillian(ha, j_ops)
 
         # Create NDM and vstate
@@ -246,12 +246,11 @@ def test_repr_and_info():
         ha,
         vstate,
         nkx.dynamics.RK23(dt=0.01),
+        qgt=nk.optimizer.qgt.QGTOnTheFly(holomorphic=True),
     )
-    print(str(driver))
     assert "TDVP" in str(driver)
 
     info = driver.info()
-    print(info)
     assert "TDVP" in info
     assert "generator" in info
     assert "integrator" in info
@@ -265,6 +264,7 @@ def test_run_twice():
         ha,
         vstate,
         nkx.dynamics.RK23(dt=0.01),
+        qgt=nk.optimizer.qgt.QGTOnTheFly(holomorphic=True),
     )
     driver.run(0.03)
     driver.run(0.03)

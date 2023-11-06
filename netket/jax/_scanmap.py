@@ -1,10 +1,14 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 
-from jax import linear_util as lu
 from jax.api_util import argnums_partial
 
-from functools import partial
+if jax.__version_info__ >= (0, 4, 16):
+    from jax.extend import linear_util as lu
+else:
+    from jax import linear_util as lu
 
 _tree_add = partial(jax.tree_map, jax.lax.add)
 _tree_zeros_like = partial(jax.tree_map, lambda x: jnp.zeros(x.shape, dtype=x.dtype))
@@ -27,6 +31,7 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add):
         append_cond: a bool (if f returns just one result) or a tuple of bools (if f returns multiple values)
             which indicates whether the individual result should be appended or reduced
         op: a function to (pairwise) reduce the specified results. Defaults to a sum.
+
     Returns:
         returns the (tuple of) results corresponding to the output of f
         where each result is given by:

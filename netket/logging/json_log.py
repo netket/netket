@@ -190,6 +190,10 @@ class JsonLog(RuntimeLog):
         if variational_state is not None:
             self._flush_params(variational_state)
 
+    def __del__(self):
+        if self._steps_notflushed_write > 0:
+            self.flush()
+
     def __repr__(self):
         _str = f"JsonLog('{self._prefix}', mode={self._file_mode}, "
         _str = _str + f"autoflush_cost={self._autoflush_cost})"

@@ -102,6 +102,7 @@ class TensorHilbert(ABC):
 
         Arguments:
             i: Index of a site in :math:`[0, N)`.
+
         Returns:
             The index `j` such that self.subspaces[j] is the Hilbert space
             containing site `i`.

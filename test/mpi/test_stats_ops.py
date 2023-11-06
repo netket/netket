@@ -95,9 +95,7 @@ def test_sum(_mpi_comm, _mpi_rank, _mpi_size):
 
         assert nk_sum.shape == ref_sum.shape, f"axis={axis}"
         assert np.all(nk_sum == ref_sum), f"axis={axis}"
-        assert nk_sum_kd.shape == ref_sum_kd.shape, "axis={}, keepdims=True".format(
-            axis
-        )
+        assert nk_sum_kd.shape == ref_sum_kd.shape, f"axis={axis}, keepdims=True"
         assert np.all(nk_sum_kd == ref_sum_kd), f"axis={axis}, keepdims=True"
 
     # Test with out

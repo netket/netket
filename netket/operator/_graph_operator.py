@@ -55,7 +55,7 @@ class GraphOperator(LocalOperator):
         bond_ops_colors=[],
         dtype: DType = None,
         *,
-        acting_on_subspace: Union[list[int], int] = None,
+        acting_on_subspace: Union[None, list[int], int] = None,
     ):
         r"""
         A graph-based quantum operator. In its simplest terms, this is the sum of

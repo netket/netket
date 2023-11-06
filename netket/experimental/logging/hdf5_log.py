@@ -72,7 +72,7 @@ def tree_log(tree, root, data, *, iter=None):
             f_value.resize(f_value.shape[0] + 1, axis=0)
             f_value[-1] = value
         else:
-            maxshape = (None,) + value.shape
+            maxshape = (None, *value.shape)
             data.create_dataset(root, data=[value], maxshape=maxshape)
 
 
@@ -195,6 +195,9 @@ class HDF5Log:
         """
         if self._writer is not None:
             self._writer.flush()
+
+    def __del__(self):
+        self.flush()
 
     def __repr__(self):
         _str = f"HDF5Log('{self._file_name}', mode={self._file_mode}"

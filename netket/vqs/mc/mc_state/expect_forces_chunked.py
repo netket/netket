@@ -23,6 +23,7 @@ from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
 from netket.operator import AbstractOperator
+from netket.operator._abstract_observable import AbstractObservable
 from netket.stats import Stats, statistics
 from netket.utils import mpi
 from netket.utils.types import PyTree
@@ -36,23 +37,21 @@ from netket.vqs.mc import (
 from .state import MCState
 
 
-# If batch_size is None, ignore it and remove it from signature
+# If batch_size is unspecified, set it to None
 @expect_and_forces.dispatch
-def expect_and_forces_nochunking(  # noqa: F811
+def expect_and_forces_chunking_unspecified(  # noqa: F811
     vstate: MCState,
-    operator: AbstractOperator,
-    chunk_size: None,
-    *args,
+    operator: AbstractObservable,
     **kwargs,
 ):
-    return expect_and_forces(vstate, operator, *args, **kwargs)
+    return expect_and_forces(vstate, operator, None, **kwargs)
 
 
 # if no implementation exists for batched, run the code unbatched
-@expect_and_forces.dispatch
+@expect_and_forces.dispatch(precedence=-10)
 def expect_and_forces_fallback(  # noqa: F811
     vstate: MCState,
-    operator: AbstractOperator,
+    operator: AbstractObservable,
     chunk_size: Any,
     *args,
     **kwargs,
@@ -64,7 +63,7 @@ def expect_and_forces_fallback(  # noqa: F811
         stacklevel=2,
     )
 
-    return expect_and_forces(vstate, operator, *args, **kwargs)
+    return expect_and_forces(vstate, operator, None, *args, **kwargs)
 
 
 @expect_and_forces.dispatch
@@ -73,7 +72,7 @@ def expect_and_forces_impl(  # noqa: F811
     Ô: AbstractOperator,
     chunk_size: int,
     *,
-    mutable: CollectionFilter,
+    mutable: CollectionFilter = False,
 ) -> tuple[Stats, PyTree]:
     σ, args = get_local_kernel_arguments(vstate, Ô)
 

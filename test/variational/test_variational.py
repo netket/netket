@@ -83,7 +83,7 @@ operators["operator:(IsingJax)"] = H.to_jax_operator()
 H2 = H @ H
 operators["operator:(Hermitian Real Squared)"] = H2
 
-H = nk.operator.Ising(hi, graph=g, h=1.0)
+H = nk.operator.Ising(hi, graph=g, h=1.0, dtype=complex)
 for i in range(H.hilbert.size):
     H += nk.operator.spin.sigmay(H.hilbert, i)
 
@@ -468,17 +468,19 @@ def test_forces_gradient_rule():
         "weights": vs2.parameters["weights_re"] + 1j * vs2.parameters["weights_im"]
     }
 
-    assert np.allclose(vs1.to_array(), vs2.to_array())
+    np.testing.assert_allclose(vs1.to_array(), vs2.to_array())
 
     _, f1 = vs1.expect_and_forces(ha)
     _, f2 = vs2.expect_and_forces(ha)
     _, g1 = vs1.expect_and_grad(ha)
     _, g2 = vs2.expect_and_grad(ha)
 
-    assert np.allclose(g1["weights"], f1["weights"])
-    assert np.allclose(g2["weights_re"], 2 * np.real(f2["weights_re"]))
-    assert np.allclose(g2["weights_im"], 2 * np.real(f2["weights_im"]))
-    assert np.allclose(g1["weights"], 0.5 * (g2["weights_re"] + 1j * g2["weights_im"]))
+    np.testing.assert_allclose(g1["weights"], f1["weights"])
+    np.testing.assert_allclose(g2["weights_re"], 2 * np.real(f2["weights_re"]))
+    np.testing.assert_allclose(g2["weights_im"], 2 * np.real(f2["weights_im"]))
+    np.testing.assert_allclose(
+        g1["weights"], 0.5 * (g2["weights_re"] + 1j * g2["weights_im"])
+    )
 
 
 @common.skipif_mpi

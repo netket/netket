@@ -378,8 +378,6 @@ class inheritance_diagram(graphviz):
     A docutils node to use as a placeholder for the inheritance diagram.
     """
 
-    pass
-
 
 class InheritanceDiagram(SphinxDirective):
     """

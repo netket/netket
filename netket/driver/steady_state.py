@@ -119,8 +119,8 @@ class SteadyState(AbstractVariationalDriver):
         argument is the step, used to change some parameters along the
         optimisation.
 
-        Often, this is taken to be :func:`nk.optimizer.SR`. If it is set to
-        `None`, then the identity is used.
+        Often, this is taken to be :func:`~netket.optimizer.SR`. If it is
+        set to `None`, then the identity is used.
         """
         return self._preconditioner
 
@@ -158,4 +158,4 @@ class SteadyState(AbstractVariationalDriver):
                 ("SR solver   ", self.sr),
             ]
         ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self)] + lines)
+        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])

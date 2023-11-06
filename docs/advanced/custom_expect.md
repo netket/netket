@@ -46,10 +46,13 @@ it will work with the rest of NetKet.  If my expect function is defined as:
 
 ```python
 @netket.utils.dispatch.dispatch
-def expect(vstate : VariationalState, operator: AbstractOperator):
+def expect(vstate : VariationalState, operator: MyOperator, chunk_size: Any):
     # a generic algorithm that works for any operator in NetKet
     return netket.stats.statistics(result)
 ```
+
+**Dispatch makes a clear distinction between positional and keyword arguments. Be careful in
+following the example precisely.**
 
 And this function works for anything already implemented in Netket and always returns a 
 statistics object (`netket.stats.Stat`). 
@@ -64,7 +67,7 @@ class CrazyOperator:
     sigma = 0.1
 
 @expect.dispatch
-def expect(vstate : MCState, operator: CrazyOperator):
+def expect(vstate : MCState, operator: CrazyOperator, chunk_size: Any):
     # A crazy implementation that only works for CrazyOperator
     return netket.stats.statistics(np.random.rand(100)*operator.sigma)
 

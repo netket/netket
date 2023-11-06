@@ -25,7 +25,7 @@ def test_deduced_hilbert_pauli():
     assert op.hilbert.size == 3
     assert len(op.hilbert.local_states) == 2
     assert isinstance(op.hilbert, nk.hilbert.Qubit)
-    assert np.allclose(op.hilbert.local_states, (0, 1))
+    np.testing.assert_allclose(op.hilbert.local_states, (0, 1))
 
 
 def test_pauli_tensorhilbert():
@@ -68,7 +68,7 @@ def test_pauli(hilbert):
     )
     op_l -= 1.4 * nk.operator.spin.sigmaz(op.hilbert, 1)
 
-    assert np.allclose(op.to_dense(), op_l.to_dense())
+    np.testing.assert_allclose(op.to_dense(), op_l.to_dense())
 
     assert op.to_sparse().shape == op_l.to_sparse().shape
 
@@ -89,7 +89,7 @@ def test_pauli_simple_constructor():
     op1 = nk.operator.PauliStrings(operator, weight)
     op2 = nk.operator.PauliStrings([operator], [weight])
 
-    assert np.allclose(op1.to_dense(), op2.to_dense())
+    np.testing.assert_allclose(op1.to_dense(), op2.to_dense())
 
 
 def test_pauli_simple_constructor_2():
@@ -99,7 +99,7 @@ def test_pauli_simple_constructor_2():
     op1 = nk.operator.PauliStrings(operators, weight)
     op2 = nk.operator.PauliStrings(operators, [weight for _ in operators])
 
-    assert np.allclose(op1.to_dense(), op2.to_dense())
+    np.testing.assert_allclose(op1.to_dense(), op2.to_dense())
 
 
 def test_pauli_trivials():
@@ -151,9 +151,11 @@ def test_pauli_order():
         * nk.operator.spin.sigmay(op.hilbert, 2)
         * nk.operator.spin.sigmax(op.hilbert, 3)
     )
-    assert np.allclose(op1.to_dense(), op1_true.to_dense())
-    assert np.allclose(op2.to_dense(), op2_true.to_dense())
-    assert np.allclose(op.to_dense(), (op1_true.to_dense() + op2_true.to_dense()))
+    np.testing.assert_allclose(op1.to_dense(), op1_true.to_dense())
+    np.testing.assert_allclose(op2.to_dense(), op2_true.to_dense())
+    np.testing.assert_allclose(
+        op.to_dense(), (op1_true.to_dense() + op2_true.to_dense())
+    )
 
     v = op.hilbert.all_states()
     vp, mels = op.get_conn_padded(v)
@@ -166,7 +168,7 @@ def test_pauli_matmul():
     op2 = nk.operator.PauliStrings(["Y", "Z"], [1, 1])
     op_true_mm = nk.operator.PauliStrings(["Z", "Y"], [1j, -1j])
     op_mm = op1 @ op2
-    assert np.allclose(op_mm.to_dense(), op_true_mm.to_dense())
+    np.testing.assert_allclose(op_mm.to_dense(), op_true_mm.to_dense())
 
     # more extensive test
     operators1, weights1 = ["XII", "IXY"], [1, 3]
@@ -193,7 +195,7 @@ def test_pauli_matmul():
     )
     op2_true += weights2[2] * nk.operator.spin.sigmaz(op.hilbert, 0, dtype=complex)
     op2_true += weights2[3] * nk.operator.spin.sigmay(op.hilbert, 2, dtype=complex)
-    assert np.allclose((op1_true @ op2_true).to_dense(), op.to_dense())
+    np.testing.assert_allclose((op1_true @ op2_true).to_dense(), op.to_dense())
 
 
 def test_pauli_add_and_multiply():
@@ -201,31 +203,31 @@ def test_pauli_add_and_multiply():
     op2 = nk.operator.PauliStrings(["X", "Y", "Z"], [-1, 1, 1])
     op_true_add = nk.operator.PauliStrings(["Y", "Z"], [1, 1])
     op_add = op1 + op2
-    assert np.allclose(op_add.to_dense(), op_true_add.to_dense())
+    np.testing.assert_allclose(op_add.to_dense(), op_true_add.to_dense())
     op_true_multiply = nk.operator.PauliStrings(["X", "Y", "Z"], [-2, 2, 2])
     op_multiply = op2 * 2  # right
-    assert np.allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
+    np.testing.assert_allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
     op_multiply = 2 * op2  # left
-    assert np.allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
+    np.testing.assert_allclose(op_multiply.to_dense(), op_true_multiply.to_dense())
 
     op_add_cte = nk.operator.PauliStrings(["X", "Y", "Z"], [-1, 1, 1]) + 2
     op_true_add_cte = nk.operator.PauliStrings(["X", "Y", "Z", "I"], [-1, 1, 1, 2])
-    assert np.allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
+    np.testing.assert_allclose(op_add_cte.to_dense(), op_true_add_cte.to_dense())
 
     # test multiplication and addition with numpy/jax scalar
     op1 = np.array(0.5) * nk.operator.PauliStrings(["X"], [1])
     op1_true = nk.operator.PauliStrings(["X"], [0.5])
-    assert np.allclose(op1.to_dense(), op1_true.to_dense())
+    np.testing.assert_allclose(op1.to_dense(), op1_true.to_dense())
 
     op1 = jnp.array(0.5) * nk.operator.PauliStrings(["X"], [1])
-    assert np.allclose(op1.to_dense(), op1_true.to_dense())
+    np.testing.assert_allclose(op1.to_dense(), op1_true.to_dense())
 
     op1 = np.array(0.5) + nk.operator.PauliStrings(["X"], [1])
     op1_true = nk.operator.PauliStrings(["I", "X"], [0.5, 1])
-    assert np.allclose(op1.to_dense(), op1_true.to_dense())
+    np.testing.assert_allclose(op1.to_dense(), op1_true.to_dense())
 
     op1 = jnp.array(0.5) + nk.operator.PauliStrings(["X"], [1])
-    assert np.allclose(op1.to_dense(), op1_true.to_dense())
+    np.testing.assert_allclose(op1.to_dense(), op1_true.to_dense())
 
 
 @pytest.mark.parametrize(
@@ -243,16 +245,14 @@ def test_pauli_output(hilbert):
 
     # following will throw an error if the output is not a valid hilbert state
     for xpi in xp:
-        assert np.any(xpi == all_states), "{} not in hilbert space {}".format(
-            xpi, ha.hilbert
-        )
+        assert np.any(xpi == all_states), "{xpi} not in hilbert space {ha.hilbert}"
 
 
 def test_pauli_dense():
     for op in ("I", "X", "Y", "Z"):
         ha1 = nk.operator.PauliStrings(nk.hilbert.Qubit(1), [op], [1])
         ha2 = nk.operator.PauliStrings(nk.hilbert.Spin(1 / 2, 1), [op], [1])
-        assert np.allclose(ha1.to_dense(), ha2.to_dense())
+        np.testing.assert_allclose(ha1.to_dense(), ha2.to_dense())
 
 
 def test_pauli_zero():
@@ -262,7 +262,7 @@ def test_pauli_zero():
 
     all_states = op.hilbert.all_states()
     _, mels = op.get_conn_padded(all_states)
-    assert np.allclose(mels, 0)
+    np.testing.assert_allclose(mels, 0)
 
 
 def test_openfermion_conversion():
@@ -304,6 +304,17 @@ def test_pauli_jax_sparse_works():
 
     ham_d = ham.to_dense()
     np.testing.assert_allclose(ham_jax_d, ham_d)
+
+
+def test_pauli_problem():
+    x1 = nk.operator.PauliStringsJax("XII")
+    x2 = nk.operator.PauliStringsJax("IXI")
+    x3 = x1 @ x2
+    assert x1.weights.dtype == jnp.float32
+    assert x2.weights.dtype == jnp.float32
+    assert x3.weights.dtype == jnp.float32
+
+    assert (x1 + x1 @ x2).weights.dtype == jnp.float32
 
 
 def test_pauliY_promotion_to_complex():

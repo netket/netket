@@ -21,6 +21,7 @@ import numpy as np
 class ContinuousHilbert(AbstractHilbert):
     """Abstract class for the Hilbert space of particles
     in continuous space.
+
     This class defines the common interface that
     can be used to interact with particles defined
     in continuous space.
@@ -28,8 +29,10 @@ class ContinuousHilbert(AbstractHilbert):
 
     def __init__(self, domain: tuple[float, ...], pbc: Union[bool, tuple[bool, ...]]):
         """
-        Constructs new ``Particles`` given specifications
-         of the continuous space they are defined in.
+        Constructs new ``Particles`` given specifications of the continuous
+        space they are defined in.
+
+        This object returns an Hilber space.
 
         Args:
             domain: Tuple indicating the maximum of the continuous quantum number(s) in the configurations. Each entry

@@ -17,8 +17,6 @@ __all__ = ["SpinOrbitalFermions"]
 
 from .spin_orbital_fermions import SpinOrbitalFermions
 
-from . import random
-
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)

@@ -58,6 +58,7 @@ class DiscreteOperator(AbstractOperator):
         Args:
             x : A N-tensor of shape :math:`(...,hilbert.size)` containing
                 the batch/batches of quantum numbers :math:`x`.
+
         Returns:
             **(x_primes, mels)**: The connected states x', in a N+1-tensor and an
             N-tensor containing the matrix elements :math:`O(x,x')`

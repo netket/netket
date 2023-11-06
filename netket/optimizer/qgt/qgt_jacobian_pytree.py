@@ -38,8 +38,8 @@ from .qgt_jacobian_common import (
 def QGTJacobianPyTree(
     vstate=None,
     *,
-    mode: str = None,
-    holomorphic: bool = None,
+    mode: Optional[str] = None,
+    holomorphic: Optional[bool] = None,
     diag_shift=None,
     diag_scale=None,
     rescale_shift=None,
@@ -139,6 +139,7 @@ def QGTJacobianPyTree(
         chunk_size=chunk_size,
         dense=False,
         center=True,
+        _sqrt_rescale=True,
     )
 
     if offset is not None:

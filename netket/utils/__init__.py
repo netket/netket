@@ -51,5 +51,5 @@ from . import mpi
 _hide_submodules(
     __name__,
     remove_self=False,
-    ignore=["numbers", "types", "float", "dispatch", "errors"],
+    ignore=["numbers", "types", "float", "dispatch", "errors", "plum"],
 )
