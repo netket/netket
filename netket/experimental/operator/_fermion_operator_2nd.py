@@ -651,7 +651,6 @@ class FermionOperator2nd(DiscreteOperator):
         Reoder the operators to normal order
         `Normal ordering documentation <https://en.wikipedia.org/wiki/Normal_order#Fermions>`_
         """
-        self.reduce()
         terms, weights = _normal_ordering(self.terms, self.weights)
         new = FermionOperator2nd(
             self.hilbert,
@@ -662,11 +661,11 @@ class FermionOperator2nd(DiscreteOperator):
         )
         new._terms = terms
         new._weights = weights
+        new.reduce()
         return new
 
     def to_pair_order(self):
         """Reoder the operators to pair order"""
-        self.reduce()
         terms, weights = _pair_ordering(self.terms, self.weights)
         new = FermionOperator2nd(
             self.hilbert,
@@ -677,6 +676,7 @@ class FermionOperator2nd(DiscreteOperator):
         )
         new._terms = terms
         new._weights = weights
+        new.reduce()
         return new
 
 
