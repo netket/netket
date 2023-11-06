@@ -154,7 +154,7 @@ class FermionOperator2nd(DiscreteOperator):
             self._constant += _collected_constant
 
             self._max_conn_size = 0
-            if not _isclose(self._constant, 0) or len(self._diag_idxs) > 0:
+            if not np.isclose(self._constant, 0) or len(self._diag_idxs) > 0:
                 self._max_conn_size += 1
             # the following could be reduced further
             self._max_conn_size += len(self._off_diag_idxs)
@@ -322,7 +322,7 @@ class FermionOperator2nd(DiscreteOperator):
     def operator_string(self) -> str:
         """Return a readable string describing all the operator terms"""
         op_string = []
-        if not _isclose(self._constant, 0.0):
+        if not np.isclose(self._constant, 0.0):
             op_string.append(f"{self._constant} []")
         for term, weight in zip(self.terms, self.weights):
             s = []
@@ -520,11 +520,11 @@ class FermionOperator2nd(DiscreteOperator):
             for to, wo in zip(other.terms, other.weights):
                 terms.append(tuple(t) + tuple(to))
                 weights.append(w * wo)
-        if not _isclose(other._constant, 0.0):
+        if not np.isclose(other._constant, 0.0):
             for t, w in zip(self.terms, self.weights):
                 terms.append(tuple(t))
                 weights.append(w * other._constant)
-        if not _isclose(self._constant, 0.0):
+        if not np.isclose(self._constant, 0.0):
             for t, w in zip(other.terms, other.weights):
                 terms.append(tuple(t))
                 weights.append(w * self._constant)
@@ -558,7 +558,7 @@ class FermionOperator2nd(DiscreteOperator):
 
     def __iadd__(self, other):
         if is_scalar(other):
-            if not _isclose(other, 0.0):
+            if not np.isclose(other, 0.0):
                 self._constant += other
             return self
         if not isinstance(other, FermionOperator2nd):
@@ -576,12 +576,18 @@ class FermionOperator2nd(DiscreteOperator):
                 f"Cannot add inplace operator with dtype {type(other)} "
                 f"to operator with dtype {self.dtype}"
             )
-        operators = dict(zip(self.terms, self.weights))
-        for t, w in zip(other.terms, other.weights):
-            if t in operators.keys():
-                operators[t] += w
-            else:
-                operators[t] = w
+
+        operators = self.operator_dict
+        for k, v in other.operator_dict.items():
+            sv = operators.get(k, None)
+            if sv is None and not np.isclose(v, 0):
+                operators[k] = v
+            elif sv is not None:
+                v = sv + v
+                if np.isclose(v, 0):
+                    del operators[k]
+                else:
+                    operators[k] = v
         self._terms = list(operators.keys())
         self._weights = list(operators.values())
         self._constant += other._constant
@@ -745,7 +751,7 @@ def _pack_internals(
 
 
 @numba.jit(nopython=True)
-def _isclose(a, b, cutoff=1e-6):  # pragma: no cover
+def _isclose(a, b, cutoff=1e-8):  # pragma: no cover
     return np.abs(a - b) < cutoff
 
 
