@@ -16,7 +16,6 @@ from typing import Union, Optional
 
 import numpy as np
 from jax.tree_util import tree_map
-import copy
 import numba
 
 from netket.utils.types import DType
@@ -244,13 +243,17 @@ class FermionOperator2nd(DiscreteOperator):
             dtype = self.dtype
         if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
-        op = FermionOperator2nd(
-            self.hilbert, [], [], constant=self._constant, dtype=dtype
-        )
-        # careful to make sure we propagate the correct dtype
-        terms = copy.deepcopy(list(self._operators.keys()))
-        weights = np.array(list(self._operators.values()), dtype=dtype)
-        op._operators = dict(zip(terms, weights))
+
+        op = FermionOperator2nd(self.hilbert, constant=self._constant, dtype=dtype)
+
+        if dtype == self.dtype:
+            operators_new = self._operators.copy()
+        else:
+            operators_new = {
+                k: np.array(v, dtype=dtype) for k, v in self._operators.items()
+            }
+
+        op._operators = operators_new
         return op
 
     def _remove_zeros(self):
