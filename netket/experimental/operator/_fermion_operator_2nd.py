@@ -51,7 +51,7 @@ class FermionOperator2nd(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        terms: Union[list[str], list[list[list[int]]]],
+        terms: Union[list[str], list[list[list[int]]]] = None,
         weights: Optional[list[Union[float, complex]]] = None,
         constant: Union[float, complex] = 0.0,
         dtype: DType = None,

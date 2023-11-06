@@ -199,6 +199,9 @@ def _canonicalize_input(terms, weights, constant, dtype):
         `((1,1), (2,0))`, where (1,1) represents :math:`\hat{a}_1^\dagger` and (2,0)
         represents :math:`\hat{a}_2`.
     """
+    if terms is None:
+        terms = []
+
     if isinstance(terms, str):
         terms = (terms,)
 
