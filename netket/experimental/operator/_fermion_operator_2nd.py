@@ -477,24 +477,24 @@ class FermionOperator2nd(DiscreteOperator):
                 f"to operator with dtype {self.dtype}"
             )
 
-        terms = []
-        weights = []
+        new_operators = {}
         for t, w in self._operators.items():
             for to, wo in other._operators.items():
-                terms.append(tuple(t) + tuple(to))
-                weights.append(w * wo)
+                # if the last operator of t and the first of to are
+                # equal, we have a ĉᵢĉᵢ which is null.
+                if t[-1] != to[0]:
+                    new_t = t + to
+                    new_operators[new_t] = new_operators.get(new_t, 0) + w * wo
+
         if not _isclose(other._constant, 0.0):
             for t, w in self._operators.items():
-                terms.append(tuple(t))
-                weights.append(w * other._constant)
+                new_operators[t] = w * other._constant
         if not _isclose(self._constant, 0.0):
             for t, w in other._operators.items():
-                terms.append(tuple(t))
-                weights.append(w * self._constant)
-        constant = self._constant * other._constant
+                new_operators[t] = w * self._constant
 
-        self._operators = _remove_dict_zeros(dict(zip(terms, weights)))
-        self._constant = constant
+        self._operators = new_operators
+        self._constant = self._constant * other._constant
         self._reset_caches()
         return self
 
