@@ -533,13 +533,19 @@ class FermionOperator2nd(DiscreteOperator):
                 f"Cannot add inplace operator with dtype {type(other)} "
                 f"to operator with dtype {self.dtype}"
             )
+        self_ops = self._operators
         for t, w in other._operators.items():
-            if t in self._operators.keys():
-                self._operators[t] += w
-            else:
-                self._operators[t] = w
+            sw = self_ops.get(t, None)
+            if sw is None and w != 0:
+                self_ops[t] = w
+            elif sw is not None:
+                w = sw + w
+                if w == 0:
+                    del self_ops[t]
+                else:
+                    self_ops[t] = w
+
         self._constant += other._constant
-        self._operators = _remove_dict_zeros(self._operators)
         self._reset_caches()
         return self
 
