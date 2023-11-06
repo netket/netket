@@ -84,36 +84,3 @@ def wrap_to_support_scalar(fun):
         return res
 
     return HashablePartial(maybe_scalar_fun, fun)
-
-
-def wrap_to_support_multiple_batch_axes(fun):
-    """
-    Wraps the flax-compatible apply function, assuming that the state input is the
-    second argumen with possibly many leading batch axes,
-    so that it always calls the wrapped function with a tensor with exactly 2 dimensions.
-    The result is reshaped so that it reflects the dimensions of the input.
-
-    DEVNOTE: This function is used because some users like to define their models with a vmap,
-    only supporting a single batch axis.
-
-    Args:
-        fun: A flax-compatible function.
-
-    Returns:
-        A wrapped function, returned as an `HashablePartial` in order not to retrigger
-        compilation.
-    """
-
-    def _fun(apply_fun, pars, x, *args, **kwargs):
-        xb = x.reshape(-1, x.shape[-1])
-        res = apply_fun(pars, xb, *args, **kwargs)
-        # support models with mutable state
-        if isinstance(res, tuple):
-            res_val = res[0]
-            res_val = res_val.reshape(x.shape[:-1])
-            res = (res_val, res[1])
-        else:
-            res = res.reshape(x.shape[:-1])
-        return res
-
-    return HashablePartial(_fun, fun)
