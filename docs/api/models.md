@@ -39,12 +39,15 @@ The following autoregressive models can be directly sampled using {class}`~netke
    :nosignatures:
 
    AbstractARNN
+   ARNNSequential
+   FastARNNSequential
    ARNNDense
    ARNNConv1D
    ARNNConv2D
    FastARNNConv1D
    FastARNNConv2D
 
+   RNN
    LSTMNet
    GRUNet1D
    FastLSTMNet

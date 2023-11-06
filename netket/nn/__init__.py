@@ -48,9 +48,6 @@ from .symmetric_linear import (
 from .masked_linear import MaskedDense1D, MaskedConv1D, MaskedConv2D
 from .fast_masked_linear import FastMaskedDense1D, FastMaskedConv1D, FastMaskedConv2D
 
-from .rnn import LSTMLayer, GRULayer1D
-from .fast_rnn import FastLSTMLayer, FastGRULayer1D
-
 from .initializers import zeros, ones
 
 from .utils import (

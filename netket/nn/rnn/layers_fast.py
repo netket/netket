@@ -18,7 +18,7 @@ from flax.linen.dtypes import promote_dtype
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.nn.rnn import GRULayer1D, LSTMLayer, RNNLayer
+from .layers import GRULayer1D, LSTMLayer, RNNLayer
 from netket.utils.types import Array
 
 

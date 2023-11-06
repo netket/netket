@@ -380,7 +380,7 @@ def test_throwing():
     ],
 )
 def test_reorder_idx(graph):
-    from netket.models.rnn import (
+    from netket.nn.rnn.ordering import (
         _get_inv_idx,
         _get_inv_reorder_idx,
         _get_prev_neighbors,

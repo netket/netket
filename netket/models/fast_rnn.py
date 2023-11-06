@@ -21,9 +21,8 @@ from jax.nn.initializers import zeros
 from netket.graph import AbstractGraph
 from netket.models.autoreg import _get_feature_list
 from netket.models.fast_autoreg import FastARNNSequential
-from netket.models.rnn import RNN, _ensure_prev_neighbors
-from netket.nn.fast_rnn import FastGRULayer1D, FastLSTMLayer
-from netket.nn.rnn import default_kernel_init
+from netket.models.rnn import RNN, ensure_prev_neighbors
+from netket.nn.rnn import FastGRULayer1D, FastLSTMLayer, default_kernel_init
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 
@@ -71,6 +70,19 @@ class FastRNN(FastARNNSequential):
     machine_pow: int = 2
     """exponent to normalize the outputs of `__call__`."""
 
+    def __post_init__(self):
+        reorder_idx, inv_reorder_idx, prev_neighbors = ensure_prev_neighbors(
+            reorder_idx=self.reorder_idx,
+            inv_reorder_idx=self.inv_reorder_idx,
+            prev_neighbors=self.prev_neighbors,
+            graph=self.graph,
+        )
+
+        self.reorder_idx = reorder_idx
+        self.inv_reorder_idx = inv_reorder_idx
+        self.prev_neighbors = prev_neighbors
+        super().__post_init__()
+
     def reorder(self, inputs: Array, axis: int = 0) -> Array:
         return RNN.reorder(self, inputs, axis)
 
@@ -90,7 +102,13 @@ class FastRNN(FastARNNSequential):
         return inputs_i
 
 
-class _FastLSTMNet(FastRNN):
+class FastLSTMNet(FastRNN):
+    """
+    Long short-term memory network with fast sampling.
+
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
+    """
+
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
@@ -109,7 +127,13 @@ class _FastLSTMNet(FastRNN):
         ]
 
 
-class _FastGRUNet1D(FastRNN):
+class FastGRUNet1D(FastRNN):
+    """
+    Gated recurrent unit network with fast sampling. Only supports one previous neighbor at each site.
+
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
+    """
+
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
@@ -126,23 +150,3 @@ class _FastGRUNet1D(FastRNN):
             )
             for i in range(self.layers)
         ]
-
-
-def FastLSTMNet(*args, **kwargs):
-    """
-    Long short-term memory network with fast sampling.
-
-    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
-    """
-    _ensure_prev_neighbors(kwargs)
-    return _FastLSTMNet(*args, **kwargs)
-
-
-def FastGRUNet1D(*args, **kwargs):
-    """
-    Gated recurrent unit network with fast sampling. Only supports one previous neighbor at each site.
-
-    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
-    """
-    _ensure_prev_neighbors(kwargs)
-    return _FastGRUNet1D(*args, **kwargs)
