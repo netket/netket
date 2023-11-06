@@ -37,6 +37,7 @@ from ._fermion_operator_2nd_utils import (
     _make_tuple_tree,
     _remove_dict_zeros,
     _verify_input,
+    _reduce_operators,
     OperatorDict,
 )
 
@@ -129,6 +130,9 @@ class FermionOperator2nd(DiscreteOperator):
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
+            # remove zeros
+            self._operators = _reduce_operators(self._operators, self.dtype)
+
             # following lists will be used to compute matrix elements
             # they are filled in _add_term
             out = _pack_internals(self._operators, self._dtype)
