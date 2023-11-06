@@ -120,6 +120,7 @@ class FermionOperator2nd(DiscreteOperator):
         self._terms = _terms
         self._weights = _weights
         self._constant = _constant
+        self.reduce()
 
         self._initialized = False
         self._is_hermitian = None  # set when requested
@@ -137,9 +138,7 @@ class FermionOperator2nd(DiscreteOperator):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
             # only reduce once
-            self._terms, self._weights = _remove_zero_weights(
-                self._terms, self._weights
-            )
+            self.reduce()
             # following lists will be used to compute matrix elements
             # they are filled in _add_term
             out = _pack_internals(self._terms, self._weights, self._dtype)
