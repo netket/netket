@@ -136,6 +136,10 @@ class FermionOperator2nd(DiscreteOperator):
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
+            # only reduce once
+            self._terms, self._weights = _remove_zero_weights(
+                self._terms, self._weights
+            )
             # following lists will be used to compute matrix elements
             # they are filled in _add_term
             out = _pack_internals(self._terms, self._weights, self._dtype)
@@ -527,9 +531,15 @@ class FermionOperator2nd(DiscreteOperator):
                 weights.append(w * self._constant)
         constant = self._constant * other._constant
 
-        self._terms, self._weights = _remove_zero_weights(terms, weights)
+        self._terms = terms
+        self._weights = weights
         self._constant = constant
         self._reset_caches()
+        return self
+
+    def reduce(self):
+        """Prunes the operator by removing all terms with zero weights (inplace)"""
+        self._terms, self._weights = _remove_zero_weights(self._terms, self._weights)
         return self
 
     def _op__matmul__(self, other):
@@ -573,9 +583,8 @@ class FermionOperator2nd(DiscreteOperator):
                 operators[t] += w
             else:
                 operators[t] = w
-        terms = list(operators.keys())
-        weights = list(operators.values())
-        self._terms, self._weights = _remove_zero_weights(terms, weights)
+        self._terms = list(operators.keys())
+        self._weights = list(operators.values())
         self._constant += other._constant
         self._reset_caches()
         return self
@@ -602,8 +611,7 @@ class FermionOperator2nd(DiscreteOperator):
                 f"to operator with dtype {self.dtype}"
             )
         scalar = np.array(scalar, dtype=self.dtype).item()
-        new_weights = np.array(self.weights) * scalar
-        self._terms, self._weights = _remove_zero_weights(self.terms, new_weights)
+        self._weights = np.array(self.weights) * scalar
         self._constant *= scalar
         self._reset_caches()
         return self
@@ -638,6 +646,7 @@ class FermionOperator2nd(DiscreteOperator):
         Reoder the operators to normal order
         `Normal ordering documentation <https://en.wikipedia.org/wiki/Normal_order#Fermions>`_
         """
+        self.reduce()
         terms, weights = _normal_ordering(self.terms, self.weights)
         new = FermionOperator2nd(
             self.hilbert,
@@ -652,6 +661,7 @@ class FermionOperator2nd(DiscreteOperator):
 
     def to_pair_order(self):
         """Reoder the operators to pair order"""
+        self.reduce()
         terms, weights = _pair_ordering(self.terms, self.weights)
         new = FermionOperator2nd(
             self.hilbert,
