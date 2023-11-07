@@ -18,6 +18,7 @@ from .state_log import StateLog
 from .tensorboard import TensorBoardLog
 
 
-from netket.utils import _hide_submodules
+from netket.utils import _hide_submodules, _auto_export
 
+_auto_export(__name__)
 _hide_submodules(__name__)
