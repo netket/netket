@@ -231,7 +231,7 @@ def TV_from_pyscf_molecule(
     .. math::
 
         \hat{H} = E_{nuc} + \sum_{ij} T_{ij} \hat{c}^\dagger_i\hat{c}_j +
-            \sum_{ijkl} V_{ijkl} \hat{c}^\dagger_i\hat{c}_dagger_j\hat{c}_k\hat{c}_l
+            \sum_{ijkl} V_{ijkl} \hat{c}^\dagger_i\hat{c}_\dagger_j\hat{c}_k\hat{c}_l
 
     The electronic spin degree of freedom is encoded following the *NetKet convention*
     where the first :math:`N_{\downarrow}` values of the indices :math:`i,j,k,l` represent
