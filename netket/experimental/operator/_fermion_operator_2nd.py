@@ -15,8 +15,6 @@
 from typing import Union, Optional
 
 import numpy as np
-from jax.tree_util import tree_map
-import copy
 import numba
 
 from netket.utils.types import DType
@@ -39,6 +37,7 @@ from ._fermion_operator_2nd_utils import (
     _make_tuple_tree,
     _remove_dict_zeros,
     _verify_input,
+    _reduce_operators,
     OperatorDict,
 )
 
@@ -51,7 +50,7 @@ class FermionOperator2nd(DiscreteOperator):
     def __init__(
         self,
         hilbert: AbstractHilbert,
-        terms: Union[list[str], list[list[list[int]]]],
+        terms: Union[list[str], list[list[list[int]]]] = None,
         weights: Optional[list[Union[float, complex]]] = None,
         constant: Union[float, complex] = 0.0,
         dtype: DType = None,
@@ -131,6 +130,9 @@ class FermionOperator2nd(DiscreteOperator):
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
+            # remove zeros
+            self._operators = _reduce_operators(self._operators, self.dtype)
+
             # following lists will be used to compute matrix elements
             # they are filled in _add_term
             out = _pack_internals(self._operators, self._dtype)
@@ -244,23 +246,23 @@ class FermionOperator2nd(DiscreteOperator):
             dtype = self.dtype
         if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
-        op = FermionOperator2nd(
-            self.hilbert, [], [], constant=self._constant, dtype=dtype
-        )
-        # careful to make sure we propagate the correct dtype
-        terms = copy.deepcopy(list(self._operators.keys()))
-        weights = np.array(list(self._operators.values()), dtype=dtype)
-        op._operators = dict(zip(terms, weights))
+
+        op = FermionOperator2nd(self.hilbert, constant=self._constant, dtype=dtype)
+
+        if dtype == self.dtype:
+            operators_new = self._operators.copy()
+        else:
+            operators_new = {
+                k: np.array(v, dtype=dtype) for k, v in self._operators.items()
+            }
+
+        op._operators = operators_new
         return op
 
     def _remove_zeros(self):
         """Reduce the number of operators by removing unnecessary zeros"""
-        op_dict = _remove_dict_zeros(self._operators)
-        terms = list(op_dict.keys())
-        weights = list(op_dict.values())
-        op = FermionOperator2nd(
-            self.hilbert, terms, weights, constant=self._constant, dtype=self.dtype
-        )
+        op = FermionOperator2nd(self.hilbert, constant=self._constant, dtype=self.dtype)
+        op._operators = _remove_dict_zeros(self._operators)
         return op
 
     @property
@@ -474,24 +476,24 @@ class FermionOperator2nd(DiscreteOperator):
                 f"to operator with dtype {self.dtype}"
             )
 
-        terms = []
-        weights = []
+        new_operators = {}
         for t, w in self._operators.items():
             for to, wo in other._operators.items():
-                terms.append(tuple(t) + tuple(to))
-                weights.append(w * wo)
+                # if the last operator of t and the first of to are
+                # equal, we have a ĉᵢĉᵢ which is null.
+                if t[-1] != to[0]:
+                    new_t = t + to
+                    new_operators[new_t] = new_operators.get(new_t, 0) + w * wo
+
         if not _isclose(other._constant, 0.0):
             for t, w in self._operators.items():
-                terms.append(tuple(t))
-                weights.append(w * other._constant)
+                new_operators[t] = w * other._constant
         if not _isclose(self._constant, 0.0):
             for t, w in other._operators.items():
-                terms.append(tuple(t))
-                weights.append(w * self._constant)
-        constant = self._constant * other._constant
+                new_operators[t] = w * self._constant
 
-        self._operators = _remove_dict_zeros(dict(zip(terms, weights)))
-        self._constant = constant
+        self._operators = new_operators
+        self._constant = self._constant * other._constant
         self._reset_caches()
         return self
 
@@ -530,13 +532,19 @@ class FermionOperator2nd(DiscreteOperator):
                 f"Cannot add inplace operator with dtype {type(other)} "
                 f"to operator with dtype {self.dtype}"
             )
+        self_ops = self._operators
         for t, w in other._operators.items():
-            if t in self._operators.keys():
-                self._operators[t] += w
-            else:
-                self._operators[t] = w
+            sw = self_ops.get(t, None)
+            if sw is None and w != 0:
+                self_ops[t] = w
+            elif sw is not None:
+                w = sw + w
+                if w == 0:
+                    del self_ops[t]
+                else:
+                    self_ops[t] = w
+
         self._constant += other._constant
-        self._operators = _remove_dict_zeros(self._operators)
         self._reset_caches()
         return self
 
@@ -562,8 +570,13 @@ class FermionOperator2nd(DiscreteOperator):
                 f"to operator with dtype {self.dtype}"
             )
         scalar = np.array(scalar, dtype=self.dtype).item()
-        _operators = tree_map(lambda x: x * scalar, self._operators)
-        self._operators = _remove_dict_zeros(_operators)
+
+        if scalar == 0:
+            new_operators = {}
+        else:
+            new_operators = {o: scalar * v for o, v in self._operators.items()}
+
+        self._operators = new_operators
         self._constant *= scalar
         self._reset_caches()
         return self
@@ -586,8 +599,6 @@ class FermionOperator2nd(DiscreteOperator):
 
         new = FermionOperator2nd(
             self.hilbert,
-            [],
-            [],
             constant=np.conjugate(self._constant),
             dtype=self.dtype,
         )
