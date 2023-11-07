@@ -81,9 +81,12 @@ class SymmExpSum(nn.Module):
     """The symmetry group to use. It should be a valid
     :ref:`netket.utils.group.PermutationGroup` object.
 
-    Can be extracted from a :ref:`netket.graph.Graph` object by calling
-    :meth:`~netket.graph.Graph.point_group` or
-    :meth:`~netket.graph.Graph.translation_group`
+    Can be extracted from a :ref:`netket.graph.Lattice` object by calling
+    :meth:`~netket.graph.Lattice.point_group` or
+    :meth:`~netket.graph.Lattice.translation_group`.
+
+    Alternatively, if you have a :class:`netket.graph.Graph` object you
+    can build it from :meth:`~netket.graph.Lattice.automorphisms`.
 
     .. code::
 
@@ -107,6 +110,12 @@ class SymmExpSum(nn.Module):
 
     @nn.compact
     def __call__(self, x: Array):
+        """
+        Accepts a single input or arbitrary batch of inputs.
+
+        The last dimension of x must match the shape of the permutation
+        group.
+        """
         # apply the group and obtain a x_symm of shape (N_symm, ...)
         x_symm = self.symm_group @ x
         # reshape it to (-1, N_sites)
