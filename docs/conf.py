@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.graphviz",
     "custom_inheritance_diagram.inheritance_diagram",  # this is a custom patched version because of bug sphinx#2484
+    "flax_module.fmodule",
 ]
 
 # inheritance_graph_attrs = dict(rankdir="TB", size='""')
