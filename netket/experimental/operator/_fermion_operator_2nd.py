@@ -527,8 +527,11 @@ class FermionOperator2nd(DiscreteOperator):
         new_operators = {}
         for t, w in self._operators.items():
             for to, wo in other._operators.items():
-                new_t = t + to
-                new_operators[new_t] = new_operators.get(new_t, 0) + w * wo
+                # if the last operator of t and the first of to are
+                # equal, we have a ...ĉᵢĉᵢ... which is null.
+                if t[-1] != to[0]:
+                    new_t = t + to
+                    new_operators[new_t] = new_operators.get(new_t, 0) + w * wo
 
         if not np.isclose(other._constant, 0.0):
             for t, w in self._operators.items():

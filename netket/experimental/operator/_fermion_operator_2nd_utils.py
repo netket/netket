@@ -320,7 +320,10 @@ def _canonicalize_input(
     # add the weights of terms that occur multiple times
     operators = zero_defaultdict(dtype)
     for t, w in zip(terms, weights):
-        operators[t] += w
+        if len(t) == 0:  # take the constant out
+            constant += w
+        else:
+            operators[t] += w
     operators = _remove_dict_zeros(dict(operators))
 
     return operators, constant, dtype
