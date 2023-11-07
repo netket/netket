@@ -215,7 +215,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         r"""The hilbert space does not contains `prod(hilbert.shape)`
         basis states.
 
-        Typical constraints are poulation constraints (such as fixed
+        Typical constraints are population constraints (such as fixed
         number of bosons, fixed magnetization...) which ensure that
         only a subset of the total unconstrained space is populated.
         """

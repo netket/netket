@@ -33,7 +33,7 @@ def destroy(
         hilbert: The hilbert space.
         site: the site on which this operator acts.
         sz: spin projection quantum number. This is the eigenvalue of
-            the corresponding spin-Z operator (e.g. `sz = ±1` for
+            the corresponding spin-Z Pauli operator (e.g. `sz = ±1` for
             a spin-1/2, `sz ∈ [-2, -1, 1, 2]` for a spin-3/2 and
             in general `sz ∈ [-2S, -2S + 2, ... 2S-2, 2S]` for
             a spin-S )
@@ -60,7 +60,7 @@ def create(
         hilbert: The hilbert space
         site: the site on which this operator acts
         sz: spin projection quantum number. This is the eigenvalue of
-            the corresponding spin-Z operator (e.g. `sz = ±1` for
+            the corresponding spin-Z Pauli operator (e.g. `sz = ±1` for
             a spin-1/2, `sz ∈ [-2, -1, 1, 2]` for a spin-3/2 and
             in general `sz ∈ [-2S, -2S + 2, ... 2S-2, 2S]` for
             a spin-S )
@@ -88,7 +88,7 @@ def number(
         site: the site on which this operator acts
         site: the site on which this operator acts
         sz: spin projection quantum number. This is the eigenvalue of
-            the corresponding spin-Z operator (e.g. `sz = ±1` for
+            the corresponding spin-Z Pauli operator (e.g. `sz = ±1` for
             a spin-1/2, `sz ∈ [-2, -1, 1, 2]` for a spin-3/2 and
             in general `sz ∈ [-2S, -2S + 2, ... 2S-2, 2S]` for
             a spin-S )
