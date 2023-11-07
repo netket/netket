@@ -862,14 +862,15 @@ def test_fermion_reduce():
 
     hi = nkx.hilbert.SpinOrbitalFermions(2)
 
-    # order, not in place
+    # order
     op1 = nkx.operator.FermionOperator2nd(
         hi,
         terms=("0^ 1", "0^ 1", "0^ 1^", "0 1^", "1 1^"),
         weights=(1, 1, 3, 4j, 7j),
         constant=1,
     )
-    op1_ordered = op1.reduce(inplace=False, order=True)
+    op1_ordered = op1.copy()
+    op1_ordered.reduce(order=True)
     op2 = nkx.operator.FermionOperator2nd(
         hi,
         terms=("0^ 1", "1^ 0^", "1^ 0", "1^ 1"),
@@ -879,19 +880,8 @@ def test_fermion_reduce():
     np.testing.assert_allclose(op1_ordered.to_dense(), op1.to_dense())
     np.testing.assert_allclose(op1_ordered.to_dense(), op2.to_dense())
     _dict_compare(op1_ordered.operators, op2.operators)
-    # inplace, order
-    op1 = nkx.operator.FermionOperator2nd(
-        hi,
-        terms=("0^ 1", "0^ 1", "0^ 1^", "0 1^", "1 1^"),
-        weights=(1, 1, 3, 4j, 7j),
-        constant=1,
-    )
-    op1.reduce(inplace=True, order=True)
-    np.testing.assert_allclose(op1_ordered.to_dense(), op1.to_dense())
-    np.testing.assert_allclose(op1_ordered.to_dense(), op2.to_dense())
-    _dict_compare(op1_ordered.operators, op2.operators)
-    _dict_compare(op1_ordered.operators, op1.operators)
-    # no ordering, not in place
+
+    # no ordering
     op1 = nkx.operator.FermionOperator2nd(
         hi,
         terms=("0^ 1", "0^ 1", "0^ 1^", "0 1^", "1 1^"),
@@ -899,7 +889,8 @@ def test_fermion_reduce():
         constant=1,
     )
     op1_operators = op1.operators.copy()
-    op1_ordered = op1.reduce(inplace=False, order=False)
+    op1_ordered = op1.copy()
+    op1_ordered.reduce(order=False)
     op2 = nkx.operator.FermionOperator2nd(
         hi, terms=("0^ 1", "0 1^", "1 1^"), weights=(2, 4j, 7j), constant=1
     )

@@ -247,22 +247,15 @@ class FermionOperator2nd(DiscreteOperator):
         """Prunes the operator by removing all terms with zero weights, grouping, and normal ordering (inplace)."""
         operators = self._operators
         terms, weights = list(operators.keys()), list(operators.values())
+
         if order:
             terms, weights = _normal_ordering(terms, weights)
+
         terms, weights, constant = _collect_constants(terms, weights)
         operators = dict(zip(terms, weights))
-        operators = _reduce_operators(operators, self.dtype)
-        constant = self._constant + constant
-        if inplace:
-            self._operators = operators
-            self._constant = constant
-        else:
-            new = FermionOperator2nd(
-                self.hilbert, constant=self._constant + constant, dtype=self.dtype
-            )
-            new._operators = operators
-            new._constant = constant
-            return new
+
+        self._operators = _reduce_operators(operators, self.dtype)
+        self._constant = self._constant + constant
 
     @property
     def dtype(self) -> DType:
