@@ -58,7 +58,8 @@ def render_module(modname: str, qualname: str, app):
                 # unset it
                 delattr(obj, name)
     else:
-        template_name = None
+        template_name = "flax_function_wrap"
+
     imported_members = False
     recursive = False
     context = {}
