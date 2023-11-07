@@ -21,14 +21,14 @@ g = nk.graph.Hypercube(length=L, n_dim=D, pbc=True)
 n_sites = g.n_nodes
 
 # create a hilbert space with 2 up and 2 down spins
-hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions=(2, 2))
+hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2))
 
 
 # create an operator representing fermi hubbard interactions
 # -t (i^ j + h.c.) + U (i^ i j^ j)
 
-up = +1 / 2
-down = -1 / 2
+up = +1
+down = -1
 ham = 0.0
 for sz in (up, down):
     for u, v in g.edges():

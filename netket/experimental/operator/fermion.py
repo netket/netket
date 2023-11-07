@@ -22,7 +22,7 @@ from netket.experimental.operator import FermionOperator2nd as _FermionOperator2
 def destroy(
     hilbert: _AbstractHilbert,
     site: int,
-    sz: _Optional[float] = None,
+    sz: _Optional[int] = None,
     dtype: _DType = None,
 ):
     """
@@ -32,7 +32,11 @@ def destroy(
     Args:
         hilbert: The hilbert space.
         site: the site on which this operator acts.
-        sz: spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 down)
+        sz: spin projection quantum number. This is the eigenvalue of
+            the corresponding spin-Z Pauli operator (e.g. `sz = ±1` for
+            a spin-1/2, `sz ∈ [-2, -1, 1, 2]` for a spin-3/2 and
+            in general `sz ∈ [-2S, -2S + 2, ... 2S-2, 2S]` for
+            a spin-S )
         dtype: The datatype to use for the matrix elements.
 
     Returns:
@@ -45,7 +49,7 @@ def destroy(
 def create(
     hilbert: _AbstractHilbert,
     site: int,
-    sz: _Optional[float] = None,
+    sz: _Optional[int] = None,
     dtype: _DType = None,
 ):
     """
@@ -55,7 +59,11 @@ def create(
     Args:
         hilbert: The hilbert space
         site: the site on which this operator acts
-        sz: spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 down)
+        sz: spin projection quantum number. This is the eigenvalue of
+            the corresponding spin-Z Pauli operator (e.g. `sz = ±1` for
+            a spin-1/2, `sz ∈ [-2, -1, 1, 2]` for a spin-3/2 and
+            in general `sz ∈ [-2S, -2S + 2, ... 2S-2, 2S]` for
+            a spin-S )
         dtype: The datatype to use for the matrix elements.
 
     Returns:
@@ -68,7 +76,7 @@ def create(
 def number(
     hilbert: _AbstractHilbert,
     site: int,
-    sz: _Optional[float] = None,
+    sz: _Optional[int] = None,
     dtype: _DType = None,
 ):
     """
@@ -79,7 +87,11 @@ def number(
         hilbert: The hilbert space
         site: the site on which this operator acts
         site: the site on which this operator acts
-        sz: spin projection quantum number (e.g. sz=-0.5 for a spin-1/2 fermion with spin down)
+        sz: spin projection quantum number. This is the eigenvalue of
+            the corresponding spin-Z Pauli operator (e.g. `sz = ±1` for
+            a spin-1/2, `sz ∈ [-2, -1, 1, 2]` for a spin-3/2 and
+            in general `sz ∈ [-2S, -2S + 2, ... 2S-2, 2S]` for
+            a spin-S )
         dtype: The datatype to use for the matrix elements.
 
     Returns:
@@ -98,7 +110,7 @@ def number(
     )
 
 
-def _get_index(hilbert: _AbstractHilbert, site: int, sz: _Optional[float] = None):
+def _get_index(hilbert: _AbstractHilbert, site: int, sz: _Optional[int] = None):
     """go from (site, spin_projection) indices to index in the (tensor) hilbert space"""
     if sz is None:
         if hasattr(hilbert, "spin") and hilbert.spin is not None:

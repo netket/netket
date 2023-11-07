@@ -264,14 +264,14 @@ def test_create_annihil_number():
     hi = nkx.hilbert.SpinOrbitalFermions(4, s=1 / 2)
     op1 = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0", "1^ 6"), weights=(0.3, 2))
 
-    op2 = 0.3 * number(hi, 0, -0.5) + 2 * create(hi, 1, -0.5) * destroy(hi, 2, +0.5)
+    op2 = 0.3 * number(hi, 0, -1) + 2 * create(hi, 1, -1) * destroy(hi, 2, +1)
     np.testing.assert_allclose(op1.to_dense(), op2.to_dense())
     op3 = nkx.operator.FermionOperator2nd(
         hi, terms=("4^ 1", "1^ 2"), weights=(1 + 1j, 2 - 2j), constant=2
     )
     op4 = (
-        (1 + 1j) * create(hi, 0, +0.5) * destroy(hi, 1, -0.5)
-        + (2 - 2j) * create(hi, 1, -0.5) * destroy(hi, 2, -0.5)
+        (1 + 1j) * create(hi, 0, +1) * destroy(hi, 1, -1)
+        + (2 - 2j) * create(hi, 1, -1) * destroy(hi, 2, -1)
         + 2
     )
     np.testing.assert_allclose(op3.to_dense(), op4.to_dense())
@@ -567,8 +567,8 @@ def test_convert_to_spin_blocks():
     Nsites = g.n_nodes
     hi = nkx.hilbert.SpinOrbitalFermions(Nsites, s=1 / 2)
     # create an operator representing fermi hubbard interactions
-    up = +1 / 2
-    down = -1 / 2
+    up = +1
+    down = -1
     terms = []
     weights = []
     for sz in (up, down):
@@ -806,15 +806,15 @@ def test_fermion_create_annihilate():
     with pytest.raises(IndexError):
         c1 = nkx.operator.fermion.create(hi, 2, sz=-1 / 2)  # index not in hilbert
 
-    c1 = nkx.operator.fermion.create(hi, 1, sz=-1 / 2)
+    c1 = nkx.operator.fermion.create(hi, 1, sz=-1)
     c2 = nkx.operator.FermionOperator2nd(hi, terms=("1^",))
     np.testing.assert_allclose(c1.to_dense(), c2.to_dense())
 
-    c1 = nkx.operator.fermion.destroy(hi, 1, sz=+1 / 2)
+    c1 = nkx.operator.fermion.destroy(hi, 1, sz=+1)
     c2 = nkx.operator.FermionOperator2nd(hi, terms=("3",))
     np.testing.assert_allclose(c1.to_dense(), c2.to_dense())
 
-    c1 = nkx.operator.fermion.number(hi, 0, sz=-1 / 2)
+    c1 = nkx.operator.fermion.number(hi, 0, sz=-1)
     c2 = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0",))
     np.testing.assert_allclose(c1.to_dense(), c2.to_dense())
 
@@ -845,8 +845,8 @@ def test_fermi_hubbard():
     def nc(site, sz):
         return nkx.operator.fermion.number(hi, site, sz=sz)
 
-    up = +1 / 2
-    down = -1 / 2
+    up = +1
+    down = -1
     ham = 0.0
     for sz in (up, down):
         for u, v in g.edges():
