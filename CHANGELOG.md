@@ -21,6 +21,7 @@
 
 * {class}`netket.experimental.SpinOrbitalFermions` attributes have been changed: {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions` now always returns an integer with the total number of fermions in the system (if specified). A new attribute {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions_per_spin` has been introduced that returns the same tuple of fermion number per spin subsector as before. A few fields are now marked as read-only as modifications where ignored [#1622](https://github.com/netket/netket/pull/1622).
 * The {class}`netket.nn.blocks.SymmExpSum` layer is now normalised by the number of elements in the symmetry group in order to maintain a reasonable normalisation [#1624](https://github.com/netket/netket/pull/1624).
+* The labelling of spin sectors in {func}`netket.experimental.operator.fermion.create` and similar operators has now changed from the eigenvalue of the spin operator ({math}`\pm 1/2` and so on) to the eigenvalue of the Pauli matrices ({math}`\pm 1` and so on) [#1637](https://github.com/netket/netket/pull/1637).
 
 ### Improvements
 
