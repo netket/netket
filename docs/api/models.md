@@ -12,7 +12,7 @@ neural quantum states.
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/models
-   :template: flax_model
+   :template: flax_module_or_default
    :nosignatures:
 
    LogStateVector
@@ -35,12 +35,12 @@ neural quantum states.
 
 ```
 
-The following models are particularly suited for systems with continuous degrees of freedom (:class:`nk.hilbert.Particle`)
+The following models are particularly suited for systems with continuous degrees of freedom ({class}`netket.hilbert.Particle`)
 
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/models
-   :template: flax_model
+   :template: flax_module_or_default
    :nosignatures:
 
 

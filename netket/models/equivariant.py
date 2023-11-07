@@ -690,12 +690,13 @@ def GCNN(
         bias_init: Initializer for the biases of all layers.
         complex_output: If True, ensures that the network output is always complex.
             Necessary when network parameters are real but some `characters` are negative.
-        input_mask: Optional array of shape `(n_sites,)` used to restrict the convolutional
-        kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
-        boolean mask should be used.
-        hidden_mask: Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
-        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
-        For best performance a boolean mask should be used.
+        input_mask: Optional array of shape :code:`(n_sites,)` used to restrict the convolutional
+            kernel. Only parameters with mask :math:'\ne 0' are used. For best performance a
+            boolean mask should be used.
+        hidden_mask: Optional array of shape :code:`(n_symm,)` where
+            :code:`(n_symm,) = len(graph.automorphisms())` used to restrict the convolutional
+            kernel. Only parameters with mask :math:'\ne 0' are used.
+            For best performance a boolean mask should be used.
 
     """
 
