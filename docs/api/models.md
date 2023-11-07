@@ -12,7 +12,7 @@ neural quantum states.
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/models
-   :template: flax_model
+   :template: flax_module_or_default
    :nosignatures:
 
    LogStateVector
@@ -59,7 +59,7 @@ The following models are particularly suited for systems with continuous degrees
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/models
-   :template: flax_model
+   :template: flax_module_or_default
    :nosignatures:
 
 

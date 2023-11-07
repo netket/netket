@@ -276,8 +276,11 @@ class DenseSymmFFT(Module):
 
 class DenseEquivariantFFT(Module):
     r"""Implements a group convolution using a fast fourier transform over the translation group.
+
     The group convolution can be written in terms of translational convolutions with
-    symmetry transformed filters as described in ` Cohen et. *al* <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    symmetry transformed filters as described in
+    `Cohen et. al <http://proceedings.mlr.press/v48/cohenc16.pdf>_
+
     The translational convolutions are then implemented with Fast Fourier Transforms.
     """
 
@@ -766,11 +769,15 @@ def DenseEquivariant(
 ):
     r"""A group convolution operation that is equivariant over a symmetry group.
 
-    Acts on a feature map of symmetry poses of shape [num_samples, in_features, num_symm]
-    and returns a feature  map of poses of shape [num_samples, features, num_symm]
+    Acts on a feature map of symmetry poses of shape
+    :code:`[num_samples, in_features, num_symm]`
+    and returns a feature  map of poses of shape
+    :code:`[num_samples, features, num_symm]`
 
-    G-convolutions are described in ` Cohen et. {\it al} <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
-    and applied to quantum many-body problems in ` Roth et. {\it al} <https://arxiv.org/pdf/2104.05085.pdf>`_
+    G-convolutions are described in
+    `Cohen et. Al <http://proceedings.mlr.press/v48/cohenc16.pdf>`_
+    and applied to quantum many-body problems in
+    `Roth et. Al <https://arxiv.org/pdf/2104.05085.pdf>`_
 
     The G-convolution generalizes the convolution to non-commuting groups:
 
@@ -797,9 +804,10 @@ def DenseEquivariant(
         features: The number of output features. The full output shape
             is [n_batch,features,n_symm].
         use_bias: A bool specifying whether to add a bias to the output (default: True).
-        mask: Optional array of shape `(n_symm,)` where `(n_symm,)` = `len(graph.automorphisms())`
-        used to restrict the convolutional kernel. Only parameters with mask :math:'\ne 0' are used.
-        For best performance a boolean mask should be used.
+        mask: Optional array of shape :code:`(n_symm,)` where
+            :code:`(n_symm,) = len(graph.automorphisms())` used to restrict
+            the convolutional kernel. Only parameters with mask :math:'\ne 0' are
+            used. For best performance a boolean mask should be used.
         param_dtype: The datatype of the weights. Defaults to a 64bit float.
         precision: Optional argument specifying numerical precision of the computation.
             see :class:`jax.lax.Precision` for details.

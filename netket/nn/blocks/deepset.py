@@ -73,7 +73,7 @@ class DeepSetMLP(nn.Module):
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias"""
     precision: Optional[jax.lax.Precision] = None
-    """numerical precision of the computation see {ref}`jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     def setup(self):
         def _create_mlp(features, output_activation, name):

@@ -84,6 +84,7 @@ This part of the API is not public, and can change without notice.
 ## Math
 
 ```{eval-rst}
+.. autosummary::
   :toctree: _generated/jax
   :nosignatures:
 

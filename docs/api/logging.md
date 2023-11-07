@@ -11,8 +11,7 @@ This module contains the loggers that can be used with the optimization drivers 
 
 
 ```{eval-rst}
-.. inheritance-diagram:: netket.logging
-   :top-classes: netket.logging.RuntimeLog
+.. inheritance-diagram:: netket.logging netket.experimental.logging
    :parts: 1
 
 ```

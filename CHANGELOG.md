@@ -20,12 +20,15 @@
 
 * {class}`netket.experimental.SpinOrbitalFermions` attributes have been changed: {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions` now always returns an integer with the total number of fermions in the system (if specified). A new attribute {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions_per_spin` has been introduced that returns the same tuple of fermion number per spin subsector as before. A few fields are now marked as read-only as modifications where ignored [#1622](https://github.com/netket/netket/pull/1622).
 * The {class}`netket.nn.blocks.SymmExpSum` layer is now normalised by the number of elements in the symmetry group in order to maintain a reasonable normalisation [#1624](https://github.com/netket/netket/pull/1624).
+* The labelling of spin sectors in {func}`netket.experimental.operator.fermion.create` and similar operators has now changed from the eigenvalue of the spin operator ({math}`\pm 1/2` and so on) to the eigenvalue of the Pauli matrices ({math}`\pm 1` and so on) [#1637](https://github.com/netket/netket/pull/1637).
+* The connected elements and expectation values of all non-simmetric fermionic operators is now changed in order to be correct [#1640](https://github.com/netket/netket/pull/1640).
 
 ### Improvements
 
 * Considerably reduced the memory consumption of `LocalOperators`, especially in the case of large local hilbert spaces. Also leveraged sparsity in the terms to speed up compilation (`_setup`) in the same cases [#1558](https://github.com/netket/netket/pull/1558).
 * {class}`netket.nn.blocks.SymmExpSum` now works with inputs of arbitrary dimensions, while previously it errored for all inputs that were not 2D [#1616](https://github.com/netket/netket/pull/1616)
 * Stop using `FrozenDict` from `flax` and instead return standard dictionaries for the variational parameters from the variational state. This makes it much easier to edit parameters [#1547](https://github.com/netket/netket/pull/1547).
+* Vastly improved, finally readable documentation of all Flax modules and neural network architectures [#1641](https://github.com/netket/netket/pull/1641).
 
 ### Bug Fixes
 
@@ -34,6 +37,7 @@
 * Do not rescale the output of `netket.jax.jacobian` by the square root of number of samples. Previously, when specifying `center=True` we were incorrectly rescaling the output [#1614](https://github.com/netket/netket/pull/1614).
 * Fix bug in {class}`netket.operator.PauliStrings` that caused the dtype to get out of sync with the dtype of the internal arrays, causing errors when manipulating them symbolically [#1619](https://github.com/netket/netket/pull/1619).
 * Fix bug that prevented the use of {class}`netket.operator.DiscreteJaxOperator` as observables with all drivers [#1625](https://github.com/netket/netket/pull/1625).
+* Fermionic operator `get_conn` method was returning values as if the operator was transposed, and has now been fixed. This will break the expectation value of non-simmetric fermionic operators, but hopefully nobody was looking into them [#1640](https://github.com/netket/netket/pull/1640).
 
 ## NetKet 3.9.2
 

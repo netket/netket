@@ -68,7 +68,7 @@ def local_value_kernel_jax(
     """
     σp, mel = O.get_conn_padded(σ)
     logpsi_σ = logpsi(pars, σ)
-    logpsi_σp = logpsi(pars, σp)
+    logpsi_σp = logpsi(pars, σp.reshape(-1, σp.shape[-1])).reshape(σp.shape[:-1])
     return jnp.sum(mel * jnp.exp(logpsi_σp - jnp.expand_dims(logpsi_σ, -1)), axis=-1)
 
 

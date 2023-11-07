@@ -34,8 +34,8 @@ def nc(site, sz):
     return nkx.operator.fermion.number(hi, site, sz=sz)
 
 
-up = +1 / 2
-down = -1 / 2
+up = +1
+down = -1
 ham = 0.0
 for sz in (up, down):
     for u, v in g.edges():

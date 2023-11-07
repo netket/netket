@@ -46,12 +46,12 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         s: Optional[float] = None,
         *,
         n_fermions: Optional[int] = None,
-        n_fermions_per_spin: Optional[Iterable[tuple[int, ...]]] = None,
+        n_fermions_per_spin: Optional[tuple[int, ...]] = None,
     ):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.
 
-        Samples of this hilbert space represent occupation numbers (0,1) of the
+        Samples of this hilbert space represent occupation numbers :math:`(0,1)` of the
         orbitals. The number of fermions may be fixed to `n_fermions`.
         If the spin is different from 0 or None, n_fermions can also be a list to fix
         the number of fermions per spin component.
@@ -68,8 +68,8 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 number of fermions per spin subsector is not conserved.
             n_fermions_per_spin: (optional) list of the fixed number of fermions for every spin
                 subsector. This automatically enforces a global population constraint. Only one
-                between `n_fermions` and `n_fermions_per_spin` can be specified. The length
-                of the iterable should be `2S+1`.
+                between **n_fermions** and **n_fermions_per_spin** can be specified. The length
+                of the iterable should be :math:`2S+1`.
 
         Returns:
             A SpinOrbitalFermions object
@@ -212,33 +212,65 @@ class SpinOrbitalFermions(HomogeneousHilbert):
 
     @property
     def constrained(self):
+        r"""The hilbert space does not contains `prod(hilbert.shape)`
+        basis states.
+
+        Typical constraints are population constraints (such as fixed
+        number of bosons, fixed magnetization...) which ensure that
+        only a subset of the total unconstrained space is populated.
+        """
         return self._n_fermions is not None
 
     @property
     def is_finite(self) -> bool:
+        """True if the hilbert space can be indexed by a single
+        32-bit unsigned integer.
+        """
         return self._fock.is_finite
 
     @property
     def n_states(self) -> int:
+        """
+        Total size of the hilbert space, if indexable.
+        """
         return self._fock.n_states
 
     @property
     def _n_spin_states(self) -> int:
-        """return the number of spin projections"""
+        """Return the number of spin projections"""
         if self.spin is None:
             raise Exception(
                 "cannot request number of spin states for spinless fermions"
             )
         return round(2 * self.spin + 1)
 
-    def _spin_index(self, sz: float) -> int:
-        """return the index of the Fock block corresponding to the sz projection"""
+    def _spin_index(self, sz: Optional[int]) -> int:
+        """Return the index of the Fock block corresponding to the sz projection"""
         if self.spin is None:
             if sz is not None or not np.isclose(sz, 0):
                 raise Exception("cannot request spin index of spinless fermions")
             return 0
         else:
-            return round(sz + self.spin)
+            if sz != int(sz):
+                raise TypeError(f"sz must be an integer, but got {type(sz)} ({sz})")
+            if abs(sz) > 2 * self.spin:
+                val = int(2 * self.spin)
+                raise ValueError(
+                    f"Valid spin values are in the interval [{-val},{val}]"
+                )
+            # if integer spin, valid values are even
+            if int(self.spin) == self.spin:
+                if sz % 2 != 0:
+                    raise ValueError(
+                        f"For spin S={self.spin}, valid spin values are odd"
+                    )
+            else:
+                # valid values are odd
+                if sz % 2 == 0:
+                    raise ValueError(
+                        f"For spin S={self.spin}, valid spin values are even"
+                    )
+            return (sz + int(2 * self.spin)) // 2
 
     def states_to_local_indices(self, x):
         return self._fock.states_to_local_indices(x)

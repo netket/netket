@@ -156,7 +156,7 @@ class VariationalState(abc.ABC):
 
         Returns:
             An estimation of the quantum expectation value
-            :math:`\langle O\rangle.
+            :math:`\langle O\rangle`.
         """
         return expect(self, O)
 

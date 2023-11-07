@@ -15,6 +15,7 @@ Read more about the design goal of this module in their [README](https://github.
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/nn
+   :template: flax_module_or_default
    :nosignatures:
 
    DenseSymm
@@ -83,6 +84,7 @@ The following modules can be used in autoregressive neural networks, see {class}
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/nn
+   :template: flax_module_or_default
    :nosignatures:
 
     blocks.MLP

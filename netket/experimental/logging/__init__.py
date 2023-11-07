@@ -13,3 +13,9 @@
 # limitations under the License.
 
 from .hdf5_log import HDF5Log
+
+
+from netket.utils import _hide_submodules, _auto_export
+
+_hide_submodules(__name__)
+_auto_export(__name__)
