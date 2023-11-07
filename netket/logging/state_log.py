@@ -44,6 +44,8 @@ class StateLog:
     deleted or python is shut down.
     """
 
+    __module__ = "netket.logging"
+
     def __init__(
         self,
         output_prefix: str,

@@ -86,7 +86,7 @@ def is_probably_holomorphic(
 
         In most Machine-Learning applications we are only interested in holomorphicity
         almost-everywhere, therefore if the function is not holomorphic on one particular
-        point, such as :math:`\theta=0`, :math:`\theta=1`or similar this will in general
+        point, such as :math:`\theta=0`, :math:`\theta=1` or similar this will in general
         not matter because that is a set of dimension zero that we will never cross.
 
         This is similar to the way the derivative of locally non-differentiable functions like

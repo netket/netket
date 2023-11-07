@@ -20,9 +20,14 @@ import jax
 import jax.numpy as jnp
 
 from netket.operator import DiscreteOperator
-from netket.utils.optional_deps import import_optional_dependency
 from netket.experimental.hilbert import SpinOrbitalFermions
+from netket.utils.optional_deps import import_optional_dependency
+from netket.utils import config
 from ._fermion_operator_2nd import FermionOperator2nd
+
+# Necessary for the type annotation to work
+if config.netket_sphinx_build:
+    import pyscf
 
 
 def compute_pyscf_integrals(mol, mo_coeff):

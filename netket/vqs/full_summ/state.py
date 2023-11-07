@@ -252,8 +252,10 @@ class FullSumState(VariationalState):
     def log_value(self, σ: jnp.ndarray) -> jnp.ndarray:
         r"""
         Evaluate the variational state for a batch of states and returns
-        the logarithm of the amplitude of the quantum state. For pure states,
-        this is :math:`\log(\langle\sigma|\psi\rangle)`, whereas for mixed states
+        the logarithm of the amplitude of the quantum state.
+
+        For pure states, this is :math:`\log(\langle\sigma|\psi\rangle)`,
+        whereas for mixed states
         this is :math:`\log(\langle\sigma_r|\rho|\sigma_c\rangle)`, where
         :math:`\psi` and :math:`\rho` are respectively a pure state
         (wavefunction) and a mixed state (density matrix).
@@ -261,7 +263,7 @@ class FullSumState(VariationalState):
         are obtained as :code:`σr=σ[::,0:N]` and :code:`σc=σ[::,N:]`.
 
         Given a batch of inputs :code:`(Nb, N)`, returns a batch of outputs
-        :code:`(Nb,).
+        :code:`(Nb,)`.
         """
         return jit_evaluate(self._apply_fun, self.variables, σ)
 
