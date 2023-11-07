@@ -92,6 +92,8 @@ docs = [
     "myst-parser>=0.18.1,<2.1.0",
     "myst-nb~=1.0.0rc0",
     "sphinx-book-theme~=1.0.1",
+    # to resolve some references
+    "pyscf",
 ]
 
 [project.urls]
