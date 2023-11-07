@@ -253,7 +253,7 @@ class FermionOperator2nd(DiscreteOperator):
         return self._weights
 
     @property
-    def constant(self) -> Union[float, complex]:
+    def constant(self) -> Number:
         return self._constant
 
     @property
