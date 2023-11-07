@@ -51,7 +51,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         r"""
         Constructs the hilbert space for spin-`s` fermions on `n_orbitals`.
 
-        Samples of this hilbert space represent occupation numbers :math:`(0,1) of the
+        Samples of this hilbert space represent occupation numbers :math:`(0,1)` of the
         orbitals. The number of fermions may be fixed to `n_fermions`.
         If the spin is different from 0 or None, n_fermions can also be a list to fix
         the number of fermions per spin component.
