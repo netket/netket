@@ -136,6 +136,7 @@ html_theme_options = {
     "use_issues_button": True,
     "path_to_docs": "docs",
     "launch_buttons": {"colab_url": "https://colab.research.google.com"},
+    "navigation_with_keys": True,
 }
 
 html_context = {
