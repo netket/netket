@@ -21,6 +21,7 @@
 
 * {class}`netket.experimental.SpinOrbitalFermions` attributes have been changed: {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions` now always returns an integer with the total number of fermions in the system (if specified). A new attribute {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions_per_spin` has been introduced that returns the same tuple of fermion number per spin subsector as before. A few fields are now marked as read-only as modifications where ignored [#1622](https://github.com/netket/netket/pull/1622).
 * The {class}`netket.nn.blocks.SymmExpSum` layer is now normalised by the number of elements in the symmetry group in order to maintain a reasonable normalisation [#1624](https://github.com/netket/netket/pull/1624).
+* The connected elements and expectation values of all non-simmetric fermionic operators is now changed in order to be correct [#1640](https://github.com/netket/netket/pull/1640).
 
 ### Improvements
 
@@ -36,6 +37,7 @@
 * Do not rescale the output of `netket.jax.jacobian` by the square root of number of samples. Previously, when specifying `center=True` we were incorrectly rescaling the output [#1614](https://github.com/netket/netket/pull/1614).
 * Fix bug in {class}`netket.operator.PauliStrings` that caused the dtype to get out of sync with the dtype of the internal arrays, causing errors when manipulating them symbolically [#1619](https://github.com/netket/netket/pull/1619).
 * Fix bug that prevented the use of {class}`netket.operator.DiscreteJaxOperator` as observables with all drivers [#1625](https://github.com/netket/netket/pull/1625).
+* Fermionic operator `get_conn` method was returning values as if the operator was transposed, and has now been fixed. This will break the expectation value of non-simmetric fermionic operators, but hopefully nobody was looking into them [#1640](https://github.com/netket/netket/pull/1640).
 
 ## NetKet 3.9.2
 
