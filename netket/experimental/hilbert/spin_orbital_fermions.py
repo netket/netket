@@ -251,11 +251,26 @@ class SpinOrbitalFermions(HomogeneousHilbert):
                 raise Exception("cannot request spin index of spinless fermions")
             return 0
         else:
-            # if not isinstance(sz, int):
-            # This above does not work because floats are integers in python
             if sz != int(sz):
                 raise TypeError(f"sz must be an integer, but got {type(sz)} ({sz})")
-            return (sz + 1) // 2
+            if abs(sz) > 2 * self.spin:
+                val = int(2 * self.spin)
+                raise ValueError(
+                    f"Valid spin values are in the interval [{-val},{val}]"
+                )
+            # if integer spin, valid values are even
+            if int(self.spin) == self.spin:
+                if sz % 2 != 0:
+                    raise ValueError(
+                        f"For spin S={self.spin}, valid spin values are odd"
+                    )
+            else:
+                # valid values are odd
+                if sz % 2 == 0:
+                    raise ValueError(
+                        f"For spin S={self.spin}, valid spin values are even"
+                    )
+            return (sz + int(2 * self.spin)) // 2
 
     def states_to_local_indices(self, x):
         return self._fock.states_to_local_indices(x)

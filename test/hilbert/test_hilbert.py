@@ -511,25 +511,44 @@ def test_fermions_states():
 
 def test_fermions_spin_index():
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2)
-    assert hi._spin_index(-0.5) == 0  # indexing starts from -spin
-    # sz=-0.5 --> block 0, sz= +0.5 --> block 1
-    assert hi._spin_index(0.5) == 1
+    assert hi._spin_index(-1) == 0  # indexing starts from -spin
+    # sz=-1 --> block 0, sz= +1 --> block 1
+    assert hi._spin_index(1) == 1
+    with pytest.raises(TypeError):
+        hi._spin_index(-0.99)
+    with pytest.raises(ValueError):
+        hi._spin_index(-2)
+    with pytest.raises(ValueError):
+        hi._spin_index(0)
+
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=3 / 2)
-    assert hi._spin_index(-0.5) == 1  # indexing starts from -spin
-    # sz=-1.5 --> block 0, sz=-0.5 --> block 1, sz= 0.5 --> block 2, ...
-    assert hi._spin_index(0.5) == 2
+    assert hi._spin_index(-3) == 0  # indexing starts from -spin
+    assert hi._spin_index(-1) == 1  # indexing starts from -spin
+    # sz=-3 --> block 0, sz=-0.5 --> block 1, sz= 1 --> block 2, ...
+    assert hi._spin_index(1) == 2
+    with pytest.raises(ValueError):
+        hi._spin_index(4)
+    with pytest.raises(ValueError):
+        hi._spin_index(0)
+
+    hi = nkx.hilbert.SpinOrbitalFermions(5, s=1)
+    assert hi._spin_index(-2) == 0  # indexing starts from -spin
+    assert hi._spin_index(0) == 1  # indexing starts from -spin
+    assert hi._spin_index(2) == 2
+    with pytest.raises(ValueError):
+        hi._spin_index(1)
 
 
 def test_fermions_get_index():
     hi = nkx.hilbert.SpinOrbitalFermions(3, s=1 / 2)
-    # first block (-0.5) and first site (1) --> idx = 0
-    assert hi._get_index(0, -0.5) == 0
-    # first block (-0.5) and second site (1) --> idx = 1
-    assert hi._get_index(1, -0.5) == 1
-    # first block (-0.5) and first site (1) --> idx = 0 + n_orbital
-    assert hi._get_index(0, +0.5) == 3
-    # first block (-0.5) and second site (1) --> idx = 1 + n_orbital
-    assert hi._get_index(1, +0.5) == 4
+    # first block (-1) and first site (1) --> idx = 0
+    assert hi._get_index(0, -1) == 0
+    # first block (-1) and second site (1) --> idx = 1
+    assert hi._get_index(1, -1) == 1
+    # first block (-1) and first site (1) --> idx = 0 + n_orbital
+    assert hi._get_index(0, +1) == 3
+    # first block (-1) and second site (1) --> idx = 1 + n_orbital
+    assert hi._get_index(1, +1) == 4
 
 
 def test_no_particles():
