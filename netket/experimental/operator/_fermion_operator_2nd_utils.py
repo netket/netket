@@ -1,7 +1,7 @@
 import re
 from collections import defaultdict
 import numpy as np
-from typing import Union
+from numbers import Number
 import copy
 
 from netket.utils.types import DType, PyTree
@@ -17,19 +17,24 @@ r""" A term of the form :math:`\hat{a}_1^\dagger \hat{a}_2` would take the form
 `((1,1), (2,0))`, where (1,1) represents :math:`\hat{a}_1^\dagger` and (2,0)
 represents :math:`\hat{a}_2`."""
 
-OperatorList = list[OperatorTerm]
+OperatorTermsList = list[OperatorTerm]
 """ A list of operators that would e.g. describe a Hamiltonian """
 
-OperatorDict = dict[OperatorTerm, Union[float, complex]]
+OperatorWeightsList = list[Number]
+""" A list of weights of corresponding terms """
+
+OperatorDict = dict[OperatorTerm, Number]
 """ A dict containing OperatorTerm as key and weights as the values """
 
 
-def _order_fun(term: OperatorTerm, weight: Union[float, complex] = 1.0):
+def _normal_order_term(
+    term: OperatorTerm, weight: Number = 1.0
+) -> tuple[OperatorTermsList, OperatorWeightsList]:
     """
     Return a normal ordered single term of the fermion operator.
-    Normal ordering corresponds to placing the operator acting on the
-    highest index on the left and lowest index on the right. In addition,
-    the creation operators are placed on the left and annihilation on the right.
+    Normal ordering corresponds to placing creating operators on the left
+    and annihilation on the right.
+    Then, it places the highest index on the left and lowest index on the right
     In this ordering, we make sure to account for the anti-commutation of operators.
     """
 
@@ -57,7 +62,7 @@ def _order_fun(term: OperatorTerm, weight: Union[float, complex] = 1.0):
                     new_term = term[: (j - 1)] + term[(j + 1) :]
 
                     # ad the processed term
-                    o, w = _order_fun(tuple(new_term), parity * weight)
+                    o, w = _normal_order_term(tuple(new_term), parity * weight)
                     ordered_terms += o
                     ordered_weights += w
 
@@ -79,18 +84,94 @@ def _order_fun(term: OperatorTerm, weight: Union[float, complex] = 1.0):
     return ordered_terms, ordered_weights
 
 
-def _normal_ordering(terms: OperatorList, weights: list[Union[float, complex]] = 1.0):
+def _normal_ordering(
+    terms: OperatorTermsList, weights: OperatorWeightsList = 1.0
+) -> tuple[OperatorTermsList, OperatorWeightsList]:
     """
     Returns the normal ordered terms and weights of the fermion operator.
-    We use the following normal ordering convention: we order the terms with
-    the highest index of the operator on the left and the lowest index on the right. In addition,
-    creation operators are placed on the left and annihilation operators on the right.
     """
     ordered_terms = []
     ordered_weights = []
     # loop over all the terms and weights and order each single term with corresponding weight
     for term, weight in zip(terms, weights):
-        ordered = _order_fun(term, weight)
+        ordered = _normal_order_term(term, weight)
+        ordered_terms += ordered[0]
+        ordered_weights += ordered[1]
+    ordered_terms = _make_tuple_tree(ordered_terms)
+    return ordered_terms, ordered_weights
+
+
+def _pair_order_term(
+    term: OperatorTerm, weight: Number = 1.0
+) -> tuple[OperatorTermsList, OperatorWeightsList]:
+    """
+    Return a pair ordered single term of the fermion operator.
+    Pair ordering corresponds to placing first the highest indices on the right,
+    and then making sure the creation operators are on the left and annihilation on the right.
+    In this ordering, we make sure to account for the anti-commutation of operators.
+    """
+
+    parity = -1
+    term = copy.deepcopy(list(term))
+    weight = copy.copy(weight)
+    ordered_terms = []
+    ordered_weights = []
+    # the arguments given to this function will be transformed in a normal ordered way
+    # loop through all the operators in the single term from left to right and order them
+    # by swapping the term operators (and transform the weights by multiplying with the parity factors)
+    for i in range(1, len(term)):
+        for j in range(i, 0, -1):
+            right_term = term[j]
+            left_term = term[j - 1]
+            # print("consider term:", left_term, right_term)
+
+            ## exchange operators if biggest is on the right (need commutataion relations)
+            # exchange operators if biggest is on the left (need commutataion relations)
+            if right_term[0] < left_term[0]:  # not the same, always switch
+                # fulfil anti commutation relations
+                term[j - 1] = right_term
+                term[j] = left_term
+                weight *= parity
+
+            # exchange operators if creation operator is on the right and annihilation on the left
+            elif right_term[0] == left_term[0]:
+                if right_term[1] and not left_term[1]:
+                    term[j - 1] = right_term
+                    term[j] = left_term
+                    weight *= parity
+
+                    # if same indices switch order (creation on the left), remember a a^ = 1 + a^ a
+                    # if right_term[0] == left_term[0]:
+                    new_term = term[: (j - 1)] + term[(j + 1) :]
+
+                    # ad the processed term
+                    o, w = _pair_order_term(tuple(new_term), parity * weight)
+                    ordered_terms += o
+                    ordered_weights += w
+
+                # if we have two creation or two annihilation operators
+                elif right_term[1] == left_term[1]:
+                    # If same two Fermionic operators are repeated,
+                    # evaluate to zero.
+                    # if parity == -1 and right_term[0] == left_term[0]:
+                    return ordered_terms, ordered_weights
+
+    ordered_terms.append(term)
+    ordered_weights.append(weight)
+    return ordered_terms, ordered_weights
+
+
+def _pair_ordering(
+    terms: OperatorTermsList, weights: OperatorWeightsList = 1.0
+) -> tuple[OperatorTermsList, OperatorWeightsList]:
+    """
+    Returns the pair ordered terms and weights of the fermion operator.
+    """
+    ordered_terms = []
+    ordered_weights = []
+    # loop over all the terms and weights and order each single term with corresponding weight
+    for term, weight in zip(terms, weights):
+        ordered = _pair_order_term(term, weight)
         ordered_terms += ordered[0]
         ordered_weights += ordered[1]
     ordered_terms = _make_tuple_tree(ordered_terms)
@@ -98,7 +179,7 @@ def _normal_ordering(terms: OperatorList, weights: list[Union[float, complex]] =
 
 
 def _check_hermitian(
-    terms: OperatorList, weights: list[Union[float, complex]] = 1.0
+    terms: OperatorTermsList, weights: OperatorWeightsList = 1.0
 ) -> bool:
     """
     Check whether a set of terms and weights for a hermitian operator
@@ -132,7 +213,9 @@ def _check_hermitian(
     return is_hermitian
 
 
-def _herm_conj(terms: OperatorList, weights: list[Union[float, complex]] = 1):
+def _herm_conj(
+    terms: OperatorTermsList, weights: OperatorWeightsList = 1
+) -> tuple[OperatorTermsList, OperatorWeightsList]:
     """Returns the hermitian conjugate of the terms and weights."""
     conj_term = []
     conj_weight = []
@@ -144,8 +227,8 @@ def _herm_conj(terms: OperatorList, weights: list[Union[float, complex]] = 1):
 
 
 def _convert_terms_to_spin_blocks(
-    terms: OperatorList, n_orbitals: int, n_spin_components: int
-):
+    terms: OperatorTermsList, n_orbitals: int, n_spin_components: int
+) -> OperatorTermsList:
     """
     See explanation in from_openfermion in conversion between conventions of netket
     and openfermion.
@@ -173,7 +256,9 @@ def _convert_terms_to_spin_blocks(
     return tuple(list(map(_convert_term, terms)))
 
 
-def _collect_constants(terms: OperatorList, weights: list[Union[float, complex]]):
+def _collect_constants(
+    terms: OperatorTermsList, weights: OperatorWeightsList
+) -> tuple[OperatorTermsList, OperatorWeightsList, Number]:
     """
     Openfermion has the convention to store constants as empty terms
     Returns new terms and weights list, and the collected constants
@@ -190,7 +275,12 @@ def _collect_constants(terms: OperatorList, weights: list[Union[float, complex]]
     return new_terms, new_weights, constant
 
 
-def _canonicalize_input(terms, weights, constant, dtype):
+def _canonicalize_input(
+    terms: OperatorTermsList,
+    weights: OperatorWeightsList,
+    constant: Number,
+    dtype: DType,
+) -> tuple[OperatorDict, Number, DType]:
     r"""
     The canonical form is a tree tuple with a tuple pair of integers at the
     lowest level
@@ -230,13 +320,16 @@ def _canonicalize_input(terms, weights, constant, dtype):
     # add the weights of terms that occur multiple times
     operators = zero_defaultdict(dtype)
     for t, w in zip(terms, weights):
-        operators[t] += w
+        if len(t) == 0:  # take the constant out
+            constant += w
+        else:
+            operators[t] += w
     operators = _remove_dict_zeros(dict(operators))
 
     return operators, constant, dtype
 
 
-def _verify_input(hilbert, operators, raise_error=True):
+def _verify_input(hilbert, operators, raise_error=True) -> bool:
     """Check whether all input is valid"""
     terms = list(operators.keys())
 
@@ -263,12 +356,12 @@ def _verify_input(hilbert, operators, raise_error=True):
     return all(_check_term(term) for term in terms)
 
 
-def _remove_dict_zeros(d: dict):
+def _remove_dict_zeros(d: dict) -> dict:
     """Remove redundant zero values from a dictionary"""
     return {k: v for k, v in d.items() if not np.isclose(v, 0.0)}
 
 
-def _parse_term_tree(terms) -> OperatorList:
+def _parse_term_tree(terms: OperatorTermsList) -> OperatorTermsList:
     """Convert the terms tree into a canonical form of tuple tree of depth 3"""
 
     def _parse_branch(t):
@@ -332,7 +425,7 @@ def _make_tuple_tree(terms: PyTree) -> PyTree:
     return _make_tuple(terms)
 
 
-def _check_tree_structure(terms) -> OperatorList:
+def _check_tree_structure(terms: OperatorTermsList) -> OperatorTermsList:
     """
     Check whether the terms structure is depth 3 everywhere
     and contains pairs of (idx, dagger) everywhere
@@ -387,7 +480,7 @@ def _reduce_operators(operators: OperatorDict, dtype: DType) -> OperatorDict:
     return red_ops
 
 
-def zero_defaultdict(dtype):
+def zero_defaultdict(dtype: DType) -> defaultdict:
     """
     Temporary function to make sure we get a good initializer for each dtype
     """

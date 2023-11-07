@@ -33,6 +33,8 @@ class RuntimeLog:
     the current content to a file, use the method :py:meth:`~netket.logging.RuntimeLog.serialize`.
     """
 
+    __module__ = "netket.logging"
+
     def __init__(self):
         """
         Crates a Runtime Logger.

@@ -61,7 +61,7 @@ class DeepSetMLP(nn.Module):
     bias_init: NNInitFunc = zeros
     """Initializer for the hidden bias"""
     precision: Optional[jax.lax.Precision] = None
-    """numerical precision of the computation see `jax.lax.Precision`for details."""
+    """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
 
     @nn.compact
     def __call__(self, input):

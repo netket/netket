@@ -111,6 +111,8 @@ class TensorBoardLog:
         >>> # folder location: runs/May04_22-14-54_s-MacBook-Pro.localLR_0.1_BATCH_16/
     """
 
+    __module__ = "netket.logging"
+
     def __init__(
         self,
         *args,
