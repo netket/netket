@@ -22,12 +22,7 @@ import jax.numpy as jnp
 from netket.operator import DiscreteOperator
 from netket.experimental.hilbert import SpinOrbitalFermions
 from netket.utils.optional_deps import import_optional_dependency
-from netket.utils import config
 from ._fermion_operator_2nd import FermionOperator2nd
-
-# Necessary for the type annotation to work
-if config.netket_sphinx_build:
-    import pyscf
 
 
 def compute_pyscf_integrals(mol, mo_coeff):
@@ -221,7 +216,7 @@ def operator_from_arrays(
 
 
 def TV_from_pyscf_molecule(
-    molecule: "pyscf.gto.mole.Mole",  # type: pyscf.gto.mole.Mole  # noqa: F821
+    molecule,  # type: pyscf.gto.mole.Mole  # noqa: F821
     mo_coeff: np.ndarray,
     *,
     cutoff: float = 1e-11,
@@ -295,7 +290,7 @@ def TV_from_pyscf_molecule(
 
 
 def from_pyscf_molecule(
-    molecule: "pyscf.gto.mole.Mole",  # type: pyscf.gto.mole.Mole  # noqa: F821
+    molecule,  # type: pyscf.gto.mole.Mole  # noqa: F821
     mo_coeff: Optional[np.ndarray] = None,
     *,
     cutoff: float = 1e-11,
