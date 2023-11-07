@@ -16,6 +16,7 @@ from typing import Union, Optional
 
 import numpy as np
 import numba
+from numbers import Number
 
 from netket.utils.types import DType
 from netket.operator._discrete_operator import DiscreteOperator
@@ -39,6 +40,10 @@ from ._fermion_operator_2nd_utils import (
     _verify_input,
     _reduce_operators,
     OperatorDict,
+    OperatorTermsList,
+    OperatorWeightsList,
+    _normal_ordering,
+    _pair_ordering,
 )
 
 
@@ -143,7 +148,9 @@ class FermionOperator2nd(DiscreteOperator):
                 self._diag_idxs,
                 self._off_diag_idxs,
                 self._term_split_idxs,
+                _collected_constant,
             ) = out
+            self._constant += _collected_constant
 
             self._max_conn_size = 0
             if not _isclose(self._constant, 0) or len(self._diag_idxs) > 0:
@@ -236,10 +243,51 @@ class FermionOperator2nd(DiscreteOperator):
             f"n_operators={len(self._operators)}, dtype={self.dtype})"
         )
 
+    def reduce(self, order: bool = True, inplace: bool = True):
+        """Prunes the operator by removing all terms with zero weights, grouping, and normal ordering (inplace)."""
+        operators = self._operators
+        terms, weights = list(operators.keys()), list(operators.values())
+        if order:
+            terms, weights = _normal_ordering(terms, weights)
+        terms, weights, constant = _collect_constants(terms, weights)
+        operators = dict(zip(terms, weights))
+        operators = _reduce_operators(operators, self.dtype)
+        constant = self._constant + constant
+        if inplace:
+            self._operators = operators
+            self._constant = constant
+        else:
+            new = FermionOperator2nd(
+                self.hilbert, constant=self._constant + constant, dtype=self.dtype
+            )
+            new._operators = operators
+            new._constant = constant
+            return new
+
     @property
     def dtype(self) -> DType:
         """The dtype of the operator's matrix elements ⟨σ|Ô|σ'⟩."""
         return self._dtype
+
+    @property
+    def terms(self) -> OperatorTermsList:
+        """Returns the list of all terms in the tuple notation."""
+        return list(self._operators.keys())
+
+    @property
+    def weights(self) -> OperatorWeightsList:
+        """Returns the list of the weights correspoding to the operator terms."""
+        return list(self._operators.values())
+
+    @property
+    def constant(self) -> Number:
+        """Returns the operator constant term."""
+        return self._constant
+
+    @property
+    def operators(self) -> OperatorDict:
+        """Returns a dictionary with (term, weight) key-value pairs, with terms in tuple notation. Does not include the constant."""
+        return self._operators
 
     def copy(self, *, dtype: Optional[DType] = None):
         if dtype is None:
@@ -479,16 +527,13 @@ class FermionOperator2nd(DiscreteOperator):
         new_operators = {}
         for t, w in self._operators.items():
             for to, wo in other._operators.items():
-                # if the last operator of t and the first of to are
-                # equal, we have a ĉᵢĉᵢ which is null.
-                if t[-1] != to[0]:
-                    new_t = t + to
-                    new_operators[new_t] = new_operators.get(new_t, 0) + w * wo
+                new_t = t + to
+                new_operators[new_t] = new_operators.get(new_t, 0) + w * wo
 
-        if not _isclose(other._constant, 0.0):
+        if not np.isclose(other._constant, 0.0):
             for t, w in self._operators.items():
                 new_operators[t] = w * other._constant
-        if not _isclose(self._constant, 0.0):
+        if not np.isclose(self._constant, 0.0):
             for t, w in other._operators.items():
                 new_operators[t] = w * self._constant
 
@@ -535,11 +580,11 @@ class FermionOperator2nd(DiscreteOperator):
         self_ops = self._operators
         for t, w in other._operators.items():
             sw = self_ops.get(t, None)
-            if sw is None and w != 0:
+            if sw is None and not np.isclose(w, 0):
                 self_ops[t] = w
             elif sw is not None:
                 w = sw + w
-                if w == 0:
+                if np.isclose(w, 0):
                     del self_ops[t]
                 else:
                     self_ops[t] = w
@@ -571,7 +616,7 @@ class FermionOperator2nd(DiscreteOperator):
             )
         scalar = np.array(scalar, dtype=self.dtype).item()
 
-        if scalar == 0:
+        if np.isclose(scalar, 0):
             new_operators = {}
         else:
             new_operators = {o: scalar * v for o, v in self._operators.items()}
@@ -605,6 +650,39 @@ class FermionOperator2nd(DiscreteOperator):
         new._operators = dict(zip(terms, weights))
         return new
 
+    def to_normal_order(self):
+        """Reoder the operators to normal order.
+        Normal ordering corresponds to placing creating operators on the left and annihilation on the right.
+        Then, it places the highest index on the left and lowest index on the right
+        In this ordering, we make sure to account for the anti-commutation of operators.
+        `Normal ordering documentation <https://en.wikipedia.org/wiki/Normal_order#Fermions>`_
+        """
+        terms, weights = _normal_ordering(self.terms, self.weights)
+        new = FermionOperator2nd(
+            self.hilbert,
+            constant=self._constant,
+            dtype=self.dtype,
+        )
+        new._operators = dict(zip(terms, weights))
+        new.reduce()
+        return new
+
+    def to_pair_order(self):
+        """Reoder the operators to pair order.
+        Pair ordering corresponds to placing first the highest indices on the right,
+        and then making sure the creation operators are on the left and annihilation on the right.
+        In this ordering, we make sure to account for the anti-commutation of operators.
+        """
+        terms, weights = _pair_ordering(self.terms, self.weights)
+        new = FermionOperator2nd(
+            self.hilbert,
+            constant=self._constant,
+            dtype=self.dtype,
+        )
+        new._operators = dict(zip(terms, weights))
+        new.reduce()
+        return new
+
 
 def _pack_internals(operators: OperatorDict, dtype: DType):
     """
@@ -621,12 +699,14 @@ def _pack_internals(operators: OperatorDict, dtype: DType):
     off_diag_idxs = []
     # below connect the second type to the first type (used to split single-fermion lists)
     term_split_idxs = []
+    constants = []
 
     term_counter = 0
     single_op_counter = 0
     for term, weight in operators.items():
         if len(term) == 0:
-            raise ValueError("terms cannot be size 0")
+            constants.append(weight)
+            continue
         if not all(len(t) == 2 for t in term):
             raise ValueError(f"terms must contain (i, dag) pairs, but received {term}")
 
@@ -639,11 +719,11 @@ def _pack_internals(operators: OperatorDict, dtype: DType):
             off_diag_idxs.append(term_counter)
 
         # single-fermion operators
-        for orb_idx, dagger in reversed(term):
+        for orb_idx, dagger in term:
             # orb_idxs: holds the hilbert index of the orbital
             orb_idxs.append(orb_idx)
             # daggers: stores whether operator is creator or annihilator
-            daggers.append(bool(dagger))
+            daggers.append(not bool(dagger))
             single_op_counter += 1
 
         term_split_idxs.append(single_op_counter)
@@ -657,12 +737,21 @@ def _pack_internals(operators: OperatorDict, dtype: DType):
     diag_idxs = np.array(diag_idxs, dtype=np.intp)
     off_diag_idxs = np.array(off_diag_idxs, dtype=np.intp)
     term_split_idxs = np.array(term_split_idxs, dtype=np.intp)
+    constant = sum(constants)
 
-    return orb_idxs, daggers, weights, diag_idxs, off_diag_idxs, term_split_idxs
+    return (
+        orb_idxs,
+        daggers,
+        weights,
+        diag_idxs,
+        off_diag_idxs,
+        term_split_idxs,
+        constant,
+    )
 
 
 @numba.jit(nopython=True)
-def _isclose(a, b, cutoff=1e-6):  # pragma: no cover
+def _isclose(a, b, cutoff=1e-8):  # pragma: no cover
     return np.abs(a - b) < cutoff
 
 

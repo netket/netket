@@ -175,6 +175,16 @@ def compare_openfermion_fermions():
     # compare from_openfermion vs FermionOperator 2nd
     assert np.array_equal(fo_dense, fermop_dense)
 
+    # add a test from a non-hermitian operator
+    of_fermion_operator = FermionOperator("") + FermionOperator(  # todo
+        "0^ 2", 0.5 + 0.3j
+    )
+    fo2 = nkx.operator.FermionOperator2nd.from_openfermion(of_fermion_operator)
+    fo_nk = nkx.operator.FermionOperator2nd(
+        terms=["0^ 2"], weights=[0.5 + 0.3j], constant=1
+    )
+    assert np.array_equal(fo2.to_dense(), fo_nk.to_dense())
+
 
 def test_add_fermions():
     hi = nkx.hilbert.SpinOrbitalFermions(5)
@@ -213,6 +223,22 @@ def test_add_fermions():
 
 
 def test_create_annihil_number():
+    hi = nkx.hilbert.SpinOrbitalFermions(2)
+    op1 = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0", "1^ 0"), weights=(0.3, 2))
+
+    # without spin
+    def c(site):
+        return destroy(hi, site)
+
+    def cdag(site):
+        return create(hi, site)
+
+    def cn(site):
+        return number(hi, site)
+
+    op2 = 0.3 * cn(0) + 2 * cdag(1) * c(0)
+    np.testing.assert_allclose(op1.to_dense(), op2.to_dense())
+
     hi = nkx.hilbert.SpinOrbitalFermions(5)
     op1 = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0", "1^ 2"), weights=(0.3, 2))
 
@@ -695,8 +721,9 @@ def test_fermion_matrices():
     mat = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 2]])
     np.testing.assert_allclose(mat, op.to_dense())
 
+    # test non hermitian (!!! convention is <x|O|x'> !!!)
     op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 1", "1^ 0"), weights=(2, 1))
-    mat = np.array([[0, 0, 0, 0], [0, 0, 2, 0], [0, 1, 0, 0], [0, 0, 0, 0]])
+    mat = np.array([[0, 0, 0, 0], [0, 0, 1, 0], [0, 2, 0, 0], [0, 0, 0, 0]])
     np.testing.assert_allclose(mat, op.to_dense())
 
     op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 0", "1^ 1"), weights=(2, 1))
@@ -704,7 +731,21 @@ def test_fermion_matrices():
     np.testing.assert_allclose(mat, op.to_dense())
 
     op = nkx.operator.FermionOperator2nd(hi, terms=("0^",), weights=(2,))
-    mat = np.array([[0, 0, 2, 0], [0, 0, 0, 2], [0, 0, 0, 0], [0, 0, 0, 0]])
+    mat = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [2, 0, 0, 0], [0, 2, 0, 0]])
+    np.testing.assert_allclose(mat, op.to_dense())
+
+    # check the jordan-wigner sign !
+    op = nkx.operator.FermionOperator2nd(hi, terms=("1^",), weights=(2,))
+    mat = np.array([[0, 0, 0, 0], [2, 0, 0, 0], [0, 0, 0, 0], [0, 0, -2, 0]])
+    np.testing.assert_allclose(mat, op.to_dense())
+
+    # check the jordan-wigner sign !
+    op = nkx.operator.FermionOperator2nd(hi, terms=("1^ 0^",), weights=(2 + 1j,))
+    mat = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [-(2 + 1j), 0, 0, 0]])
+    np.testing.assert_allclose(mat, op.to_dense())
+
+    op = nkx.operator.FermionOperator2nd(hi, terms=("0^ 1^",), weights=(2 + 1j,))
+    mat = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [+(2 + 1j), 0, 0, 0]])
     np.testing.assert_allclose(mat, op.to_dense())
 
     # with fermion constraints
@@ -712,8 +753,8 @@ def test_fermion_matrices():
     op1 = nkx.operator.FermionOperator2nd(hi, terms=("0^ 1", "1^ 0"), weights=(2, 1))
     mat1 = np.array(
         [
-            [0, 2],
-            [1, 0],
+            [0, 1],
+            [2, 0],
         ]
     )
     np.testing.assert_allclose(mat1, op1.to_dense())
@@ -785,3 +826,36 @@ def test_fermi_hubbard():
         ham += U * nc(u, up) * nc(u, down)
 
     print("Hamiltonian =", ham.operator_string())
+
+
+def test_fermion_ordering():
+    from netket.experimental.operator._fermion_operator_2nd_utils import _dict_compare
+
+    hi = nkx.hilbert.SpinOrbitalFermions(2)
+    op1 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 1", "0^ 1^", "0 1^", "1 1^"), weights=(2, 3, 4j, 7j), constant=1
+    )
+    op1_ordered = op1.to_normal_order()
+    op2 = nkx.operator.FermionOperator2nd(
+        hi,
+        terms=("0^ 1", "1^ 0^", "1^ 0", "1^ 1"),
+        weights=(2, -3, -4j, -7j),
+        constant=1 + 7j,
+    )
+    np.testing.assert_allclose(op1_ordered.to_dense(), op1.to_dense())
+    np.testing.assert_allclose(op1_ordered.to_dense(), op2.to_dense())
+    _dict_compare(op1_ordered.operators, op2.operators)
+
+    op1 = nkx.operator.FermionOperator2nd(
+        hi, terms=("0^ 1", "0^ 1^", "0 1^", "1 1^"), weights=(2, 3, 4j, 7j), constant=1
+    )
+    op1_ordered = op1.to_pair_order()
+    op2 = nkx.operator.FermionOperator2nd(
+        hi,
+        terms=("1 0^", "1^ 0^", "1^ 0", "1^ 1"),
+        weights=(-2, -3, -4j, -7j),
+        constant=1 + 7j,
+    )
+    np.testing.assert_allclose(op1_ordered.to_dense(), op1.to_dense())
+    np.testing.assert_allclose(op1_ordered.to_dense(), op2.to_dense())
+    _dict_compare(op1_ordered.operators, op2.operators)
