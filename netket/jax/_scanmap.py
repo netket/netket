@@ -22,7 +22,7 @@ def _multimap(f, *args):
         return f(*args)
 
 
-def scan_append_reduce(f, x, append_cond, op=_tree_add):
+def scan_append_reduce(f, x, append_cond, op=_tree_add, zero_fun=_tree_zeros_like):
     """Evaluate f element by element in x while appending and/or reducing the results
 
     Args:
@@ -31,6 +31,7 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add):
         append_cond: a bool (if f returns just one result) or a tuple of bools (if f returns multiple values)
             which indicates whether the individual result should be appended or reduced
         op: a function to (pairwise) reduce the specified results. Defaults to a sum.
+        zero_fun: a function which prepares the zero element of op for a given input shape/dtype tree. Defaults to zeros.
 
     Returns:
         returns the (tuple of) results corresponding to the output of f
@@ -75,17 +76,14 @@ def scan_append_reduce(f, x, append_cond, op=_tree_add):
     _get_op_part = partial(_multimap, lambda c, x: x if not c else None, append_cond)
     _tree_select = partial(_multimap, lambda c, t1, t2: t1 if c else t2, append_cond)
 
-    carry_init = True, _get_op_part(_tree_zeros_like(jax.eval_shape(f, x0)))
+    carry_init = True, _get_op_part(zero_fun(jax.eval_shape(f, x0)))
 
     def f_(carry, x):
         is_first, y_carry = carry
         y = f(x)
         y_op = _get_op_part(y)
         y_append = _get_append_part(y)
-        # select here to avoid the user having to specify the zero element for op
-        y_reduce = jax.tree_map(
-            partial(jax.lax.select, is_first), y_op, op(y_carry, y_op)
-        )
+        y_reduce = op(y_carry, y_op)
         return (False, y_reduce), y_append
 
     (_, res_op), res_append = jax.lax.scan(f_, carry_init, x, unroll=1)
