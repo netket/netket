@@ -59,6 +59,7 @@ class AbstractVariationalDriver(abc.ABC):
 
     def __init__(self, variational_state, optimizer, minimized_quantity_name=""):
         self._mynode = mpi.node_number
+        self._is_root = self._mynode == 0
         self._mpi_nodes = mpi.n_nodes
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
@@ -231,7 +232,7 @@ class AbstractVariationalDriver(abc.ABC):
             )
 
         # Log only non-root nodes
-        if self._mynode == 0:
+        if self._is_root:
             # if out is a path, create an overwriting Json Log for output
             if isinstance(out, str):
                 loggers = (JsonLog(out, "w", save_params_every, write_every),)

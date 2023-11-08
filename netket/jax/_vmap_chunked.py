@@ -44,7 +44,9 @@ def _fun(vmapped_fun, chunk_size, argnums, *args, **kwargs):
 
 
 def _chunk_vmapped_function(
-    vmapped_fun: Callable, chunk_size: Optional[int], argnums=0
+    vmapped_fun: Callable,
+    chunk_size: Optional[int],
+    argnums=0,
 ) -> Callable:
     """takes a vmapped function and computes it in chunks"""
 
@@ -70,7 +72,12 @@ def _parse_in_axes(in_axes):
     return in_axes, argnums
 
 
-def apply_chunked(f: Callable, in_axes=0, *, chunk_size: Optional[int]) -> Callable:
+def apply_chunked(
+    f: Callable,
+    in_axes=0,
+    *,
+    chunk_size: Optional[int],
+) -> Callable:
     """
     Takes an implicitly vmapped function over the axis 0 and uses scan to
     do the computations in smaller chunks over the 0-th axis of all input arguments.
@@ -101,7 +108,12 @@ def apply_chunked(f: Callable, in_axes=0, *, chunk_size: Optional[int]) -> Calla
     return _chunk_vmapped_function(f, chunk_size, argnums)
 
 
-def vmap_chunked(f: Callable, in_axes=0, *, chunk_size: Optional[int]) -> Callable:
+def vmap_chunked(
+    f: Callable,
+    in_axes=0,
+    *,
+    chunk_size: Optional[int],
+) -> Callable:
     """
     Behaves like jax.vmap but uses scan to chunk the computations in smaller chunks.
 

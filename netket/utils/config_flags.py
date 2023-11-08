@@ -145,6 +145,13 @@ class Config:
 
         self._values[name] = self._types[name](value)
 
+    def __repr__(self):
+        txt = "\nGlobal configurations for NetKet\n"
+        for k, v in self._values.items():
+            txt = txt + f" - {k} = {v}\n"
+
+        return txt
+
 
 config = Config()
 FLAGS = config.FLAGS
@@ -240,9 +247,9 @@ config.define(
 
 
 def _update_x64(val):
-    import jax
+    from jax import config as jax_config
 
-    jax.config.update("jax_enable_x64", val)
+    jax_config.update("jax_enable_x64", val)
 
 
 # This flag is setup to mirror JAX_ENABLE_X64 with True default. any of the two
