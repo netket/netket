@@ -15,6 +15,8 @@
 from typing import Union
 
 import os
+import sys
+import warnings
 from textwrap import dedent
 
 
@@ -282,4 +284,61 @@ config.define(
         """
     ),
     runtime=True,
+)
+
+
+def _setup_experimental_sharding(val):
+    if val:
+        from jax import config as jax_config
+
+        jax_config.update("jax_threefry_partitionable", True)
+
+
+config.define(
+    "NETKET_EXPERIMENTAL_SHARDING",
+    bool,
+    default=int_env("NETKET_EXPERIMENTAL_SHARDING_CPU", 0) > 0,
+    help=dedent(
+        """
+        Enables highly expermiental support of netket for running on multiple jax devices.
+
+        Supports both multiple local devices, as well as global ones in a multi-process environment.
+        See https://jax.readthedocs.io/en/latest/multi_process.html#initializing-the-cluster for
+        how to initialize the latter.
+        Distributes chains and samples equally among all available devices.
+
+        Hybrid parallelization with MPI is not supported, enabling NETKET_EXPERIMENTAL_SHARDING
+        disables mpi.
+        """
+    ),
+    runtime=False,
+    callback=_setup_experimental_sharding,
+)
+
+
+def _setup_experimental_sharding_cpu(n_procs):
+    if n_procs > 1:
+        if "jax" in sys.modules:
+            warnings.warn(
+                "must load NetKet before jax if using experimental_sharding_cpu"
+            )
+
+        flags = os.environ.get("XLA_FLAGS", "")
+        flags = f"{flags} --xla_force_host_platform_device_count={n_procs}"
+        os.environ["XLA_FLAGS"] = flags
+
+
+config.define(
+    "NETKET_EXPERIMENTAL_SHARDING_CPU",
+    int,
+    default=0,
+    help=dedent(
+        """
+        Set to >=1 to force JAX to use multiple threads as separate devices on cpu.
+        Sets the XLA_FLAGS='--xla_force_host_platform_device_count=#' environment variable.
+        Disabled by default.
+        """
+    ),
+    runtime=False,
+    callback=_setup_experimental_sharding_cpu,
 )
