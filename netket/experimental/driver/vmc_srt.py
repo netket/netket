@@ -20,7 +20,9 @@ from jax.flatten_util import ravel_pytree
 
 
 @partial(jax.jit, static_argnames=("mode", "solver_fn"))
-def SRt(O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None):
+def SRt(
+    O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None, params_structure
+):
     """
     For more details, see `https://arxiv.org/abs/2310.05715'. In particular,
     the following parallel implementation is described in Appendix "Distributed SR computation".
@@ -41,7 +43,10 @@ def SRt(O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None):
     dv = -2.0 * de / N_mc**0.5
 
     if mode == "complex":
-        O_L = jnp.concatenate((O_L[:, 0], O_L[:, 1]), axis=0)
+        # Concatenate the real and imaginary derivatives of the ansatz
+        # O_L = jnp.concatenate((O_L[:, 0], O_L[:, 1]), axis=0)
+        O_L = jnp.transpose(O_L, (1, 0, 2)).reshape(-1, O_L.shape[-1])
+
         dv = jnp.concatenate((jnp.real(dv), -jnp.imag(dv)), axis=-1)
     elif mode == "real":
         dv = dv.real
@@ -76,6 +81,12 @@ def SRt(O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None):
 
     updates = O_L.T @ aus_vector
     updates, token = mpi.mpi_allreduce_sum_jax(updates, token=token)
+
+    # If complex mode and we have complex parameters, we need
+    # To repack the real coefficients in order to get complex updates
+    if mode == "complex" and nkjax.tree_leaf_iscomplex(params_structure):
+        np = updates.shape[-1] // 2
+        updates = (updates[:np] + 1j * updates[np:]) / 2
 
     return -updates
 
@@ -143,14 +154,6 @@ class VMC_SRt(VMC):
         """
         super().__init__(hamiltonian, optimizer, variational_state=variational_state)
 
-        self._ham = hamiltonian.collect()  # type: AbstractOperator
-        self.diag_shift = diag_shift
-        self.jacobian_mode = jacobian_mode
-        self._linear_solver_fn = linear_solver_fn
-
-        _, unravel_params_fn = ravel_pytree(self.state.parameters)
-        self._unravel_params_fn = jax.jit(unravel_params_fn)
-
         if self.state.n_parameters % mpi.n_nodes != 0:
             raise NotImplementedError(
                 f"""
@@ -172,6 +175,17 @@ class VMC_SRt(VMC):
                 UserWarning,
                 stacklevel=2,
             )
+
+        self._ham = hamiltonian.collect()  # type: AbstractOperator
+        self.diag_shift = diag_shift
+        self.jacobian_mode = jacobian_mode
+        self._linear_solver_fn = linear_solver_fn
+
+        self._params_structure = jax.tree_map(
+            lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), self.state.parameters
+        )
+        _, unravel_params_fn = ravel_pytree(self.state.parameters)
+        self._unravel_params_fn = jax.jit(unravel_params_fn)
 
     @property
     def jacobian_mode(self) -> str:
@@ -228,7 +242,7 @@ class VMC_SRt(VMC):
             mode=self.jacobian_mode,
             dense=True,
             center=True,
-        )  # * jaxcobians is centered
+        )  # jacobians is centered
 
         diag_shift = self.diag_shift
         if callable(self.diag_shift):
@@ -241,6 +255,7 @@ class VMC_SRt(VMC):
             mode=self.jacobian_mode,
             solver_fn=self._linear_solver_fn,
             e_mean=self._loss_stats.Mean,
+            params_structure=self._params_structure,
         )
 
         self._dp = self._unravel_params_fn(updates)
