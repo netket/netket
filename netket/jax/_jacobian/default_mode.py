@@ -67,7 +67,7 @@ def jacobian_default_mode(
     warn: bool = True,
 ) -> JacobianMode:
     """
-    Returns the default `mode` for {func}`nk.jax.jacobian` given a certain
+    Returns the default `mode` for {func}`netket.jax.jacobian` given a certain
     wave-function ansatz.
 
     This function uses an abstract evaluation of the ansatz to determine if

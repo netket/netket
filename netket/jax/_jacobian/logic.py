@@ -231,7 +231,7 @@ def jacobian(
 
     .. math::
 
-        \tilde\theta = (\Re[\theta], \Im[\tilde])
+        \tilde\theta = (\Re[\theta], \Im[\theta])
 
     and then computing the same quantities as above
 
