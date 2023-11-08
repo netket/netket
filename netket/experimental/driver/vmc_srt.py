@@ -184,6 +184,13 @@ class VMC_SRt(VMC):
         self._params_structure = jax.tree_map(
             lambda x: jax.ShapeDtypeStruct(x.shape, x.dtype), self.state.parameters
         )
+        if not nkjax.tree_ishomogeneous(self._params_structure):
+            raise ValueError(
+                "SRt only supports neural networks with all real or all complex "
+                "parameters. Hybrid structures are not yet supported (but we would welcome "
+                "contributions. Get in touch with us!)"
+            )
+
         _, unravel_params_fn = ravel_pytree(self.state.parameters)
         self._unravel_params_fn = jax.jit(unravel_params_fn)
 
