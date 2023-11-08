@@ -17,6 +17,8 @@ import numpy as np
 from flax.serialization import to_bytes
 from flax.core import pop as fpop, FrozenDict
 
+from netket import config
+
 _mode_shorthands = {"write": "w", "append": "a", "fail": "x"}
 
 
