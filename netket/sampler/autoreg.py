@@ -22,6 +22,7 @@ from netket.sampler import Sampler, SamplerState
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PRNGKeyT
+from netket import config
 
 
 @struct.dataclass
@@ -140,6 +141,11 @@ class ARDirectSampler(Sampler):
             (sampler.n_chains_per_rank * chain_length, sampler.hilbert.size),
             dtype=sampler.dtype,
         )
+
+        if config.netket_experimental_sharding:
+            σ = jax.lax.with_sharding_constraint(
+                σ, jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1)
+            )
 
         # Initialize `cache` before generating each sample,
         # even if `variables` is not changed and `reset` is not called
