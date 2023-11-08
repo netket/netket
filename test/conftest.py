@@ -1,5 +1,4 @@
 import pytest
-import netket as nk
 
 
 @pytest.fixture
@@ -7,6 +6,9 @@ def _mpi_size(request):
     """
     Fixture returning the number of MPI nodes detected by NetKet
     """
+
+    import netket as nk
+
     return nk.utils.mpi.n_nodes
 
 
@@ -15,6 +17,9 @@ def _mpi_rank(request):
     """
     Fixture returning the MPI rank detected by NetKet
     """
+
+    import netket as nk
+
     return nk.utils.mpi.rank
 
 

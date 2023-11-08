@@ -1,8 +1,7 @@
-import jax
-
-from jax.tree_util import Partial
-
 from functools import partial
+
+import jax
+from jax.tree_util import Partial
 
 from netket.jax import (
     compose,
@@ -10,10 +9,9 @@ from netket.jax import (
     scan_append_reduce,
     vjp as nkvjp,
 )
-
+from netket.utils import HashablePartial
 
 from ._scanmap import _multimap
-
 from ._chunk_utils import _chunk as _tree_chunk, _unchunk as _tree_unchunk
 
 
@@ -84,7 +82,7 @@ def _gen_append_cond_vjp(primals, nondiff_argnums, chunk_argnums):
     return tuple(map(lambda i: i in chunk_argnums, diff_argnums))
 
 
-_gen_append_cond_value_vjp = compose(lambda t: (True, *t), _gen_append_cond_vjp)
+_gen_append_cond_value_vjp = compose(lambda t: (True,) + t, _gen_append_cond_vjp)
 
 _vjp_fun_chunked = partial(
     __vjp_fun_chunked,
@@ -97,6 +95,59 @@ _value_and_vjp_fun_chunked = compose(
 )
 
 
+def check_chunk_size(chunk_argnums, chunk_size, *primals):
+    if chunk_size is None:
+        return None
+    else:
+        n_elements = jax.tree_util.tree_leaves(primals[chunk_argnums[0]])[0].shape[0]
+        # check that they are all the same size
+        chunk_leaves = jax.tree_util.tree_leaves([primals[i] for i in chunk_argnums])
+        if not all(map(lambda x: x.shape[0] == n_elements, chunk_leaves)):
+            raise ValueError(
+                "The chunked arguments have inconsistent leading array dimensions"
+            )
+        if chunk_size >= n_elements:
+            return None
+        else:
+            return chunk_size
+
+
+def _vjp_chunked(
+    fun,
+    has_aux,
+    chunk_argnums,
+    chunk_size,
+    nondiff_argnums,
+    return_forward,
+    conjugate,
+):
+    assert chunk_size is not None
+
+    if has_aux:
+        raise NotImplementedError
+    else:
+        return HashablePartial(
+            _value_and_vjp_fun_chunked if return_forward else _vjp_fun_chunked,
+            fun,
+            chunk_argnums=chunk_argnums,
+            nondiff_argnums=nondiff_argnums,
+            chunk_size=chunk_size,
+            conjugate=conjugate,
+        )
+
+
+@partial(
+    jax.jit,
+    static_argnames=(
+        "fun",
+        "has_aux",
+        "chunk_argnums",
+        "chunk_size",
+        "nondiff_argnums",
+        "return_forward",
+        "conjugate",
+    ),
+)
 def vjp_chunked(
     fun,
     *primals,
@@ -177,22 +228,11 @@ def vjp_chunked(
     if chunk_argnums == ():
         chunk_size = None
 
-    if chunk_size is not None:
-        n_elements = jax.tree_util.tree_leaves(primals[chunk_argnums[0]])[0].shape[0]
-
-        # check that they are all the same size
-        chunk_leaves = jax.tree_util.tree_leaves([primals[i] for i in chunk_argnums])
-        if not all(map(lambda x: x.shape[0] == n_elements, chunk_leaves)):
-            raise ValueError(
-                "The chunked arguments have inconsistent leading array dimensions"
-            )
-
-        if chunk_size >= n_elements:
-            chunk_size = None
+    # check the chunk_size is not larger than the arrays
+    chunk_size = check_chunk_size(chunk_argnums, chunk_size, *primals)
 
     if chunk_size is None:
         y, vjp_fun = nkvjp(fun, *primals, conjugate=conjugate, has_aux=has_aux)
-
         if return_forward:
 
             def __vjp_fun(y, vjp_fun, cotangents):
@@ -209,21 +249,14 @@ def vjp_chunked(
                 return res
 
             return Partial(__vjp_fun, vjp_fun)
-    if has_aux:
-        raise NotImplementedError
-        # fun = compose(lambda x_aux: x_aux[0], fun)
-        # TODO in principle we could also return the aux of the fwd pass for every chunk...
-
-    _vjp_fun = _value_and_vjp_fun_chunked if return_forward else _vjp_fun_chunked
-
-    return Partial(
-        partial(
-            _vjp_fun,
+    else:
+        _vjpc = _vjp_chunked(
             fun,
+            has_aux=has_aux,
             chunk_argnums=chunk_argnums,
-            nondiff_argnums=nondiff_argnums,
             chunk_size=chunk_size,
+            nondiff_argnums=nondiff_argnums,
+            return_forward=return_forward,
             conjugate=conjugate,
-        ),
-        primals,
-    )
+        )
+        return Partial(_vjpc, primals)

@@ -43,13 +43,16 @@ def split_array_mpi(array: Array) -> Array:
         A numpy array, of potentially different state on every mpi rank.
     """
 
-    n_states = array.shape[0]
-    states_n = np.arange(n_states)
+    if mpi.n_nodes > 1:
+        n_states = array.shape[0]
+        states_n = np.arange(n_states)
 
-    # divide the hilbert space in chunks for each node
-    states_per_rank = np.array_split(states_n, mpi.n_nodes)
+        # divide the hilbert space in chunks for each node
+        states_per_rank = np.array_split(states_n, mpi.n_nodes)
 
-    return array[states_per_rank[mpi.rank]]
+        return array[states_per_rank[mpi.rank]]
+    else:
+        return array
 
 
 def to_array(
@@ -77,26 +80,48 @@ def to_array(
 
     apply_fun = get_afun_if_module(apply_fun)
 
-    # mpi4jax does not have (yet) allgatherv so we need to be creative
-    # could be made easier if we update mpi4jax
-    n_states = hilbert.n_states
-    n_states_padded = int(np.ceil(n_states / mpi.n_nodes)) * mpi.n_nodes
-    states_n = np.arange(n_states)
-    fake_states_n = np.arange(n_states_padded - n_states)
+    if mpi.n_nodes == 1:
+        xs = hilbert.all_states()
+        mask = None
+        n_states = xs.shape[0]
+    else:
+        # mpi4jax does not have (yet) allgatherv so we need to be creative
+        # could be made easier if we update mpi4jax
+        n_states = hilbert.n_states
+        n_states_padded = int(np.ceil(n_states / mpi.n_nodes)) * mpi.n_nodes
+        states_n = np.arange(n_states)
+        fake_states_n = np.arange(n_states_padded - n_states)
 
-    # divide the hilbert space in chunks for each node
-    states_per_rank = np.split(np.concatenate([states_n, fake_states_n]), mpi.n_nodes)
+        # divide the hilbert space in chunks for each node
+        states_per_rank = np.split(
+            np.concatenate([states_n, fake_states_n]), mpi.n_nodes
+        )
+        xs = hilbert.numbers_to_states(states_per_rank[mpi.rank])
+        mask = None
 
-    xs = hilbert.numbers_to_states(states_per_rank[mpi.rank])
-
-    return _to_array_rank(
-        apply_fun, variables, xs, n_states, normalize, allgather, chunk_size
+    psi = _to_array_rank(
+        apply_fun,
+        variables,
+        xs,
+        n_states,
+        normalize,
+        allgather,
+        chunk_size,
+        mask,
     )
+    return psi
 
 
 @partial(jax.jit, static_argnums=(0, 3, 4, 5, 6))
 def _to_array_rank(
-    apply_fun, variables, σ_rank, n_states, normalize, allgather, chunk_size
+    apply_fun,
+    variables,
+    σ_rank,
+    n_states,
+    normalize,
+    allgather,
+    chunk_size,
+    mask=None,
 ):
     """
     Computes apply_fun(variables, σ_rank) and gathers all results across all ranks.
@@ -127,6 +152,12 @@ def _to_array_rank(
         log_psi_local -= logmax
 
     psi_local = jnp.exp(log_psi_local)
+
+    if mask is not None:
+        # when running under netket_experimental_sharding,
+        # we pad the Hilbert space with extra fake entries,
+        # which in here we mask out to 0
+        psi_local = psi_local * mask
 
     if normalize:
         # compute normalization

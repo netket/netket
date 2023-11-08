@@ -24,6 +24,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 import jax.flatten_util
+from jax.tree_util import Partial
 
 import itertools
 
@@ -213,7 +214,7 @@ class Example:
                     self.dtype,
                 )
 
-        self.f = f
+        self.f = Partial(f)
 
         self.params_real_flat = tree_toreal_flat(self.params)
         self.grad_real_flat = tree_toreal_flat(self.grad)
@@ -269,12 +270,14 @@ def test_matvec(e, jit, chunk_size):
     def f(params_model_state, x):
         return e.f(params_model_state["params"], x)
 
+    samples = e.samples
     if chunk_size is None:
         mat_vec_factory = qgt_onthefly_logic.mat_vec_factory
-        samples = e.samples
+
     else:
-        mat_vec_factory = qgt_onthefly_logic.mat_vec_chunked_factory
-        samples = e.samples.reshape((-1, chunk_size) + e.samples.shape[1:])
+        mat_vec_factory = partial(
+            qgt_onthefly_logic.mat_vec_chunked_factory, chunk_size=chunk_size
+        )
 
     mv = mat_vec_factory(f, e.params, {}, samples)
     if jit:
@@ -296,12 +299,14 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
     def f(params_model_state, x):
         return e.f(params_model_state["params"], x)
 
+    samples = e.samples
+
     if chunk_size is None:
         mat_vec_factory = qgt_onthefly_logic.mat_vec_factory
-        samples = e.samples
     else:
-        mat_vec_factory = qgt_onthefly_logic.mat_vec_chunked_factory
-        samples = e.samples.reshape((-1, chunk_size) + e.samples.shape[1:])
+        mat_vec_factory = partial(
+            qgt_onthefly_logic.mat_vec_chunked_factory, chunk_size=chunk_size
+        )
 
     mv = mat_vec_factory(f, e.params, {}, samples)
 

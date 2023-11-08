@@ -179,5 +179,5 @@ def test_jax_conn(graph, partial_hilbert, partial_H_pair, dtype):
     for σp1_i, σp2_i, mels1_i, mels2_i in zip(σp1, σp2, mels1, mels2):
         σp1_i, mels1_i = canonize(σp1_i, mels1_i)
         σp2_i, mels2_i = canonize(σp2_i, mels2_i)
-        np.testing.assert_equal(σp1_i, σp2_i)
+        np.testing.assert_equal(np.asarray(σp1_i), np.asarray(σp2_i))
         np.testing.assert_equal(mels1_i, mels2_i)

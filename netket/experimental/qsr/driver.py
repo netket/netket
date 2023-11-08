@@ -29,6 +29,8 @@ from netket.optimizer import (
     PreconditionerT,
 )
 from netket.utils.types import Array
+from netket.jax import tree_cast
+
 
 from netket.stats import statistics
 
@@ -283,22 +285,14 @@ class QSR(AbstractVariationalDriver):
             self._loss_grad = jax.tree_map(lambda x: x * 2.0, self._loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
-        self._loss_grad = jax.tree_map(
-            lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
-            self._loss_grad,
-            self.state.parameters,
-        )
+        self._loss_grad = tree_cast(self._loss_grad, self.state.parameters)
 
         # if it's the identity it does
         # self._dp = self._loss_grad
         self._dp = self.preconditioner(self.state, self._loss_grad)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
-        self._dp = jax.tree_map(
-            lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
-            self._dp,
-            self.state.parameters,
-        )
+        self._dp = tree_cast(self._dp, self.state.parameters)
 
         return self._dp
 

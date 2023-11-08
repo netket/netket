@@ -18,6 +18,7 @@ import math
 
 import jax
 import jax.numpy as jnp
+from jax.tree_util import Partial
 
 from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils import mpi
@@ -343,9 +344,11 @@ def jacobian(
     # jacobians is a tree with leaf shapes:
     # - (n_samples, 2, ...) if mode complex, holding the real and imaginary jacobian
     # - (n_samples, ...) if mode real/holomorphic
+    # here we wrap f with a Partial since the shard_map inside vmap_chunked
+    # does not support non-array arguments
     jacobians = vmap_chunked(
         jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
-    )(f, params, samples)
+    )(Partial(f), params, samples)
 
     if pdf is None:
         if center:
