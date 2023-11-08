@@ -17,9 +17,8 @@ from typing import Optional, Union, Callable
 from collections.abc import Iterator
 
 import numpy as np
-
-from jax import numpy as jnp
 from flax import linen as nn
+from jax import numpy as jnp
 
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
@@ -94,20 +93,18 @@ class Sampler(abc.ABC):
                 # Default value
                 n_chains_per_rank = 1
             else:
-                n_devices = mpi.n_nodes
-
-                n_chains_per_rank = max(int(np.ceil(n_chains / n_devices)), 1)
-                if n_devices > 1 and mpi.rank == 0:
-                    if n_chains_per_rank * n_devices != n_chains:
+                n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
+                if mpi.n_nodes > 1 and mpi.rank == 0:
+                    if n_chains_per_rank * mpi.n_nodes != n_chains:
                         import warnings
 
                         warnings.warn(
-                            f"Using {n_chains_per_rank} chains per rank among {n_devices} devices/ranks "
-                            f"(total={n_chains_per_rank * n_devices} instead of n_chains={n_chains}). "
+                            f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks "
+                            f"(total={n_chains_per_rank * mpi.n_nodes} instead of n_chains={n_chains}). "
                             f"To directly control the number of chains on every rank, specify "
                             f"`n_chains_per_rank` when constructing the sampler. "
                             f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
-                            f"that is a multiple of the number of MPI ranks",
+                            f"that is a multiple of the number of MPI ranks.",
                             category=UserWarning,
                             stacklevel=2,
                         )
