@@ -14,9 +14,6 @@
 
 from typing import Optional
 
-import jax
-import jax.numpy as jnp
-
 from inspect import signature
 
 from netket.operator import Squared, AbstractSuperOperator
@@ -26,6 +23,7 @@ from netket.optimizer import (
     PreconditionerT,
     _DeprecatedPreconditionerSignature,
 )
+from netket.jax import tree_cast
 
 from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
@@ -93,11 +91,7 @@ class SteadyState(AbstractVariationalDriver):
         self._dp = self.preconditioner(self.state, self._loss_grad, self.step_count)
 
         # If parameters are real, then take only real part of the gradient (if it's complex)
-        self._dp = jax.tree_map(
-            lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
-            self._dp,
-            self.state.parameters,
-        )
+        self._dp = tree_cast(self._dp, self.state.parameters)
 
         return self._dp
 
