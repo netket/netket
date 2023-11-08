@@ -6,8 +6,12 @@
 ## NetKet 3.11 (⚙️ In development)
 
 
+## NetKet 3.10.1 (8 november 2023)
 
-## NetKet 3.10 (🥶 8 november 2023)
+### Bug Fixes
+* Added support for neural networks with complex parameters to {class}`netket.experimental.driver.VMC_SRt`, which was just crashing with unreadable errors before [#1644](https://github.com/netket/netket/pull/1644).
+
+## NetKet 3.10 (🥶 7 november 2023)
 
 The highlights of this version are a new experimental driver to optimise networks with millions of parameters using SR, and introduces new utility functions to convert a pyscf molecule to a netket Hamiltonian.
 
