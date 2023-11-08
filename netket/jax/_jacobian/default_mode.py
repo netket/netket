@@ -56,7 +56,7 @@ ComplexMode = JacobianMode("complex")
 HolomorphicMode = JacobianMode("holomorphic")
 
 
-@partial(jax.jit, static_argnames=("apply_fun", "holomorphic"))
+@partial(jax.jit, static_argnames=("apply_fun", "holomorphic", "warn"))
 def jacobian_default_mode(
     apply_fun: Callable[[PyTree, Array], Array],
     pars: PyTree,
