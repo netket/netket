@@ -69,50 +69,6 @@ class Sampler(abc.ABC):
     dtype: DType = struct.field(pytree_node=False, default=float)
     """The dtype of the states sampled."""
 
-    def __pre_init__(
-        self, hilbert: AbstractHilbert, n_chains: Optional[int] = None, **kwargs
-    ):
-        """
-        Construct a Monte Carlo sampler.
-
-        Args:
-            hilbert: The Hilbert space to sample.
-            n_chains: The total number of independent chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
-            n_chains_per_rank: Number of independent chains on every MPI rank (default = 1).
-            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-            dtype: The dtype of the states sampled (default = np.float64).
-        """
-
-        if "n_chains_per_rank" in kwargs:
-            if n_chains is not None:
-                raise ValueError(
-                    "Cannot specify both `n_chains` and `n_chains_per_rank`"
-                )
-        else:
-            if n_chains is None:
-                # Default value
-                n_chains_per_rank = 1
-            else:
-                n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
-                if mpi.n_nodes > 1 and mpi.rank == 0:
-                    if n_chains_per_rank * mpi.n_nodes != n_chains:
-                        import warnings
-
-                        warnings.warn(
-                            f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks "
-                            f"(total={n_chains_per_rank * mpi.n_nodes} instead of n_chains={n_chains}). "
-                            f"To directly control the number of chains on every rank, specify "
-                            f"`n_chains_per_rank` when constructing the sampler. "
-                            f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
-                            f"that is a multiple of the number of MPI ranks.",
-                            category=UserWarning,
-                            stacklevel=2,
-                        )
-
-            kwargs["n_chains_per_rank"] = n_chains_per_rank
-
-        return (hilbert,), kwargs
-
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
         if not isinstance(self.hilbert, AbstractHilbert):

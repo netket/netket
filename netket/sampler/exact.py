@@ -62,7 +62,7 @@ class ExactSampler(Sampler):
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
             )
-
+        kwargs["n_chains_per_rank"] = 1
         return super().__pre_init__(*args, **kwargs)
 
     @property
@@ -130,7 +130,8 @@ class ExactSampler(Sampler):
         # TODO run the part above in parallel
         if config.netket_experimental_sharding:
             samples = jax.lax.with_sharding_constraint(
-                samples, jax.sharding.PositionalSharding(jax.devices()).reshape(1, -1, 1)
+                samples,
+                jax.sharding.PositionalSharding(jax.devices()).reshape(1, -1, 1),
             )
 
         return samples, state.replace(rng=new_rng)

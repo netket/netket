@@ -64,7 +64,7 @@ class ARDirectSampler(Sampler):
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
             )
-
+        kwargs["n_chains_per_rank"] = 1
         return super().__pre_init__(*args, **kwargs)
 
     def __post_init__(self):
