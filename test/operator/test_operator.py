@@ -404,3 +404,28 @@ def test_operator_numba_throws(op):
 
     with pytest.raises(NumbaOperatorGetConnDuringTracingError):
         _get_conn_padded(state)
+
+
+def test_pauli_string_operators_hashable_pytree():
+    # Define the Hilbert space
+    graph = nk.graph.Chain(4, pbc=True)
+    hi = nk.hilbert.Qubit(graph.n_nodes)
+
+    # Define the model
+    ma = nk.models.RBM()
+
+    # Define the MC variational state
+    sampler = nk.sampler.ExactSampler(hi)
+    vs = nk.vqs.MCState(sampler, ma)
+
+    # Define the Hamiltonian
+
+    ha = nk.operator.Heisenberg(hi, graph)
+    hap2 = ha.to_pauli_strings()
+    hap1 = ha.to_pauli_strings()
+    haj2 = hap2.to_jax_operator()
+    haj1 = hap1.to_jax_operator()
+
+    e1 = vs.expect(haj1)
+    e2 = vs.expect(haj2)
+    jax.tree_map(np.testing.assert_allclose, e1, e2)
