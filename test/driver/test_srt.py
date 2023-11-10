@@ -63,7 +63,7 @@ class RBM(nn.Module):
             return jnp.sum(x, axis=-1).astype(jnp.complex128)
 
 
-def _setup(complex=True):
+def _setup(*, complex=True, machine=None):
     L = 4
     Ns = L * L
     lattice = nk.graph.Square(L, max_neighbor_order=2)
@@ -73,7 +73,8 @@ def _setup(complex=True):
     )
 
     # Define a variational state
-    machine = RBM(num_hidden=2 * Ns, complex=complex)
+    if machine is None:
+        machine = RBM(num_hidden=2 * Ns, complex=complex)
 
     sampler = nk.sampler.MetropolisExchange(
         hilbert=hi,
@@ -92,6 +93,44 @@ def _setup(complex=True):
     )
 
     return H, opt, vstate
+
+
+def test_SRt_vs_linear_solver_complexpars():
+    """
+    nk.driver.VMC_kernelSR must give **exactly** the same dynamics as nk.driver.VMC with nk.optimizer.SR
+    """
+    n_iters = 5
+
+    model = nk.models.RBM(
+        param_dtype=jnp.complex128,
+        kernel_init=jax.nn.initializers.normal(stddev=0.02),
+        hidden_bias_init=jax.nn.initializers.normal(stddev=0.02),
+        use_visible_bias=False,
+    )
+
+    H, opt, vstate_srt = _setup(machine=model)
+    gs = VMC_SRt(
+        H, opt, variational_state=vstate_srt, diag_shift=0.1, jacobian_mode="complex"
+    )
+    logger_srt = nk.logging.RuntimeLog()
+    gs.run(n_iter=n_iters, out=logger_srt)
+
+    H, opt, vstate_sr = _setup(machine=model)
+    sr = nk.optimizer.SR(solver=solve, diag_shift=0.1, holomorphic=False)
+    gs = nk.driver.VMC(H, opt, variational_state=vstate_sr, preconditioner=sr)
+    logger_sr = nk.logging.RuntimeLog()
+    gs.run(n_iter=n_iters, out=logger_sr)
+
+    # check same parameters
+    jax.tree_map(
+        np.testing.assert_allclose, vstate_srt.parameters, vstate_sr.parameters
+    )
+
+    if mpi.rank == 0:
+        energy_kernelSR = logger_srt.data["Energy"]["Mean"]
+        energy_SR = logger_sr.data["Energy"]["Mean"]
+
+        np.testing.assert_allclose(energy_kernelSR, energy_SR, atol=1e-10)
 
 
 def test_SRt_vs_linear_solver():

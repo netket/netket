@@ -66,3 +66,21 @@ The following models are particularly suited for systems with continuous degrees
    Gaussian
    DeepSetRelDistance
 ```
+
+
+The following models are experimental and related to fermions ({class}`netket.experimental.hilbert.SpinOrbitalFermions`)
+
+```{eval-rst}
+.. currentmodule:: netket.experimental.models
+
+```
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/models
+   :template: flax_module_or_default
+   :nosignatures:
+
+
+   Slater2nd
+```

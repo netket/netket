@@ -56,7 +56,7 @@ ComplexMode = JacobianMode("complex")
 HolomorphicMode = JacobianMode("holomorphic")
 
 
-@partial(jax.jit, static_argnames=("apply_fun", "holomorphic"))
+@partial(jax.jit, static_argnames=("apply_fun", "holomorphic", "warn"))
 def jacobian_default_mode(
     apply_fun: Callable[[PyTree, Array], Array],
     pars: PyTree,
@@ -67,7 +67,7 @@ def jacobian_default_mode(
     warn: bool = True,
 ) -> JacobianMode:
     """
-    Returns the default `mode` for {func}`nk.jax.jacobian` given a certain
+    Returns the default `mode` for {func}`netket.jax.jacobian` given a certain
     wave-function ansatz.
 
     This function uses an abstract evaluation of the ansatz to determine if

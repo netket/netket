@@ -18,6 +18,7 @@ import math
 
 import jax
 import jax.numpy as jnp
+from jax.tree_util import Partial
 
 from netket.stats import subtract_mean, sum as sum_mpi
 from netket.utils import mpi
@@ -103,7 +104,7 @@ def jacobian(
             read the detailed discussion below.
         pdf: Optional coefficient that is used to multiply every row of the Jacobian.
             When performing calculations in full-summation, this can be used to
-            multiply every row by :math:`\abs{\psi(\sigma)}^2`, which is needed to
+            multiply every row by :math:`|\psi(\sigma)|^2`, which is needed to
             compute the correct average.
         chunk_size: Optional integer specifying the maximum number of samples for
             which the gradient is simulataneously computed. Low-values will
@@ -187,11 +188,12 @@ def jacobian(
 
     .. math::
 
-       O_k(\sigma) = \frac{\partial \ln\Re[\Psi(\sigma)]}{\partial \Re[\theta_k]}
+       O^{r}_k(\sigma) = \frac{\partial \ln\Re[\Psi(\sigma)]}{\partial \theta_k}
        \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,
-       O_k(\sigma) = \frac{\partial \ln\Im[\Psi(\sigma)]}{\partial \Re[\theta_k]}
+       O^{i}_k(\sigma) = \frac{\partial \ln\Im[\Psi(\sigma)]}{\partial \theta_k}
 
-    properly concatenated in a single PyTree for every set of parameters. In practice,
+    where :math:`O^{r}_k(\sigma)` and :math:`O^{i}_k(\sigma)` are real-valued pytrees
+    with the same shape as the original parameters. In practice,
     it should return a result roughly equivalent to the following listing:
 
     .. code:: python
@@ -207,17 +209,41 @@ def jacobian(
     do this for performance reason, but the downstream user is free to do it if
     he wishes.
 
-    **If some parameters** :math:`\theta_k` **are complex**, this mode returns the
-    derivatives of the real and imaginary part of the function,
+    If you wish to get the complex jacobian in the case of real parameters, it is
+    possible to define
 
     .. math::
 
-       O_k(\sigma) = \frac{\partial \ln\Re[\Psi(\sigma)]}{\partial \Re[\theta_k]}
-       \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,
-       O_k(\sigma) = \frac{\partial \ln\Im[\Psi(\sigma)]}{\partial \Re[\theta_k]}
+         O_k(\sigma) =  O^{r}_k(\sigma) + i O^{i}_k(\sigma)
 
-    properly concatenated in a single PyTree for every set of parameters. In practice,
-    it should return a result roughly equivalent to the following listing:
+    which is now complex-valued. In code, this is equivalent to
+
+    .. code:: python
+
+      O_k_cmplx = jax.tree_map(lambda jri: jri[:, 0, :] + 1j* jri[:, 1, :], O_k)
+
+
+    **If some parameters** :math:`\theta_k` **are complex**, this mode splits the
+    :math:`N` complex parameters into :math:`2N` real parameters, where the first
+    block of :math:`N` parameters correspond to the real parts and the latter block
+    to the imaginary part, and then follows the logic discussed above.
+
+    In formulas, this can be seen as defining the vector of :math:`2N` real parameters
+
+    .. math::
+
+        \tilde\theta = (\Re[\theta], \Im[\theta])
+
+    and then computing the same quantities as above
+
+    .. math::
+
+       O^{r}_k(\sigma) = \frac{\partial \ln\Re[\Psi(\sigma)]}{\partial \tilde\theta_k]}
+       \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,
+       O^{i}_k(\sigma) = \frac{\partial \ln\Im[\Psi(\sigma)]}{\partial \tilde\theta_k]}
+
+    where now those objects have twice the number of elements as the parameters.
+    In practice, it should return a result roughly equivalent to the following listing:
 
     .. code:: python
 
@@ -318,9 +344,11 @@ def jacobian(
     # jacobians is a tree with leaf shapes:
     # - (n_samples, 2, ...) if mode complex, holding the real and imaginary jacobian
     # - (n_samples, ...) if mode real/holomorphic
+    # here we wrap f with a Partial since the shard_map inside vmap_chunked
+    # does not support non-array arguments
     jacobians = vmap_chunked(
         jacobian_fun, in_axes=(None, None, 0), chunk_size=chunk_size
-    )(f, params, samples)
+    )(Partial(f), params, samples)
 
     if pdf is None:
         if center:

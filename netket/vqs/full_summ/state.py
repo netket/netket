@@ -47,6 +47,11 @@ def jit_evaluate(fun: Callable, *args):
     return fun(*args)
 
 
+@jax.jit
+def _array_to_pdf(v):
+    return jnp.abs(v) ** 2
+
+
 class FullSumState(VariationalState):
     """Variational State for a variational quantum state computed on the whole
     Hilbert space without Monte Carlo sampling.
@@ -312,7 +317,7 @@ class FullSumState(VariationalState):
 
     def probability_distribution(self):
         if self._pdf is None:
-            self._pdf = jnp.abs(self.to_array()) ** 2
+            self._pdf = _array_to_pdf(self.to_array())
 
         return self._pdf
 

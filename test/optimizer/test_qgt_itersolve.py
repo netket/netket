@@ -119,6 +119,7 @@ def vstate(request, model, chunk_size):
         nk.sampler.MetropolisLocal(hi),
         model,
         seed=k1,
+        n_samples=1024,
     )
 
     # initialize the same parameters on every rank

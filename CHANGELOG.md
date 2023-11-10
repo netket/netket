@@ -3,29 +3,41 @@
 
 # Change Log
 
-## NetKet 3.10 (⚙️ In development)
+## NetKet 3.11 (⚙️ In development)
+
+
+## NetKet 3.10.1 (8 november 2023)
+
+### Bug Fixes
+* Added support for neural networks with complex parameters to {class}`netket.experimental.driver.VMC_SRt`, which was just crashing with unreadable errors before [#1644](https://github.com/netket/netket/pull/1644).
+
+## NetKet 3.10 (🥶 7 november 2023)
+
+The highlights of this version are a new experimental driver to optimise networks with millions of parameters using SR, and introduces new utility functions to convert a pyscf molecule to a netket Hamiltonian.
+
+Read below for a more detailed changelog
 
 ### New Features
 
-* It is now possible to disable netket's double precision default activation and force all calculations to be performed using single precision by setting the environment variable/configuration flag `NETKET_ENABLE_X64=0`, which also sets `JAX_ENABLE_X64=0`. When running with this flag, the number of warnings printed by jax is considerably reduced as well [#1544](https://github.com/netket/netket/pull/1544).
+* Added new {class}`netket.experimental.driver.VMC_SRt` driver, which leads in identical parameter updates as the standard Stochastic Reconfiguration with diagonal shift regularization. Therefore, it is essentially equivalent to using the standard {class}`netket.driver.VMC` with the {class}`netket.optimizer.SR` preconditioner. The advantage of this method is that it requires the inversion of a matrix with side number of samples instead of number of parameters, making this formulation particularly useful in typical deep learning scenarios [#1623](https://github.com/netket/netket/pull/1623).
+* Added a new function {func}`netket.experimental.operator.from_pyscf_molecule` to construct the electronic hamiltonian of a given molecule specified through pyscf. This is accompanied by {func}`netket.experimental.operator.pyscf.TV_from_pyscf_molecule` to compute the T and V tensors of a pyscf molecule [#1602](https://github.com/netket/netket/pull/1602).
 * Added the operator computing the Rényi2 entanglement entropy on Hilbert spaces with discrete dofs [#1591](https://github.com/netket/netket/pull/1591).
+* It is now possible to disable netket's double precision default activation and force all calculations to be performed using single precision by setting the environment variable/configuration flag `NETKET_ENABLE_X64=0`, which also sets `JAX_ENABLE_X64=0`. When running with this flag, the number of warnings printed by jax is considerably reduced as well [#1544](https://github.com/netket/netket/pull/1544).
 * Added new shortcuts to build the identity operator as {func}`netket.operator.spin.identity` and {func}`netket.operator.boson.identity` [#1601](https://github.com/netket/netket/pull/1601).
 * Added new {class}`netket.hilbert.Particle` constructor that only takes as input the number of dimensions of the system [#1577](https://github.com/netket/netket/pull/1577).
-* Added new {class}`netket.models.Slater2nd` model implementing a Slater ansatz [#1622](https://github.com/netket/netket/pull/1622).
+* Added new {class}`netket.experimental.models.Slater2nd` model implementing a Slater ansatz [#1622](https://github.com/netket/netket/pull/1622).
 * Added new {func}`netket.jax.logdet_cmplx` function to compute the complex log-determinant of a batch of matrices [#1622](https://github.com/netket/netket/pull/1622).
-* Added new {class}`netket.experimental.driver.VMC_SRt` driver, which leads in identical parameter updates as the standard Stochastic Reconfiguration with diagonal shift regularization. Therefore, it is essentially equivalent to using the standard {class}`nk.driver.VMC` with the {class}`nk.optimizer.SR` preconditioner. The advantage of this method is that it requires the inversion of a matrix with side number of samples instead of number of parameters, making this formulation particularly useful in typical deep learning scenarios [#1623](https://github.com/netket/netket/pull/1623).
-* Added a new function :func:`netket.experimental.operator.from_pyscf_molecule` to construct the electronic hamiltonian of a given molecule specified through pyscf. This is accompanied by :func:`netket.experimental.operator.pyscf.TV_from_pyscf_molecule` to compute the T and V tensors of a pyscf molecule [#1602](https://github.com/netket/netket/pull/1602).
 
 ### Breaking changes
 
-* {class}`netket.experimental.SpinOrbitalFermions` attributes have been changed: {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions` now always returns an integer with the total number of fermions in the system (if specified). A new attribute {attr}`~netket.experimental.SpinOrbitalFermions.n_fermions_per_spin` has been introduced that returns the same tuple of fermion number per spin subsector as before. A few fields are now marked as read-only as modifications where ignored [#1622](https://github.com/netket/netket/pull/1622).
+* {class}`netket.experimental.hilbert.SpinOrbitalFermions` attributes have been changed: {attr}`~netket.experimental.hilbert.SpinOrbitalFermions.n_fermions` now always returns an integer with the total number of fermions in the system (if specified). A new attribute {attr}`~netket.experimental.hilbert.SpinOrbitalFermions.n_fermions_per_spin` has been introduced that returns the same tuple of fermion number per spin subsector as before. A few fields are now marked as read-only as modifications where ignored [#1622](https://github.com/netket/netket/pull/1622).
 * The {class}`netket.nn.blocks.SymmExpSum` layer is now normalised by the number of elements in the symmetry group in order to maintain a reasonable normalisation [#1624](https://github.com/netket/netket/pull/1624).
 * The labelling of spin sectors in {func}`netket.experimental.operator.fermion.create` and similar operators has now changed from the eigenvalue of the spin operator ({math}`\pm 1/2` and so on) to the eigenvalue of the Pauli matrices ({math}`\pm 1` and so on) [#1637](https://github.com/netket/netket/pull/1637).
 * The connected elements and expectation values of all non-simmetric fermionic operators is now changed in order to be correct [#1640](https://github.com/netket/netket/pull/1640).
 
 ### Improvements
 
-* Considerably reduced the memory consumption of `LocalOperators`, especially in the case of large local hilbert spaces. Also leveraged sparsity in the terms to speed up compilation (`_setup`) in the same cases [#1558](https://github.com/netket/netket/pull/1558).
+* Considerably reduced the memory consumption of {class}`~netket.operator.LocalOperator`, especially in the case of large local hilbert spaces. Also leveraged sparsity in the terms to speed up compilation (`_setup`) in the same cases [#1558](https://github.com/netket/netket/pull/1558).
 * {class}`netket.nn.blocks.SymmExpSum` now works with inputs of arbitrary dimensions, while previously it errored for all inputs that were not 2D [#1616](https://github.com/netket/netket/pull/1616)
 * Stop using `FrozenDict` from `flax` and instead return standard dictionaries for the variational parameters from the variational state. This makes it much easier to edit parameters [#1547](https://github.com/netket/netket/pull/1547).
 * Vastly improved, finally readable documentation of all Flax modules and neural network architectures [#1641](https://github.com/netket/netket/pull/1641).
@@ -34,7 +46,7 @@
 
 * Fixed minor bug where {class}`netket.operator.LocalOperator` could not be built with `np.matrix` object obtained by converting scipy sparse matrices to dense [#1597](https://github.com/netket/netket/pull/1597).
 * Raise correct error instead of unintelligible one when multiplying {class}`netket.experimental.operator.FermionOperator2nd` with other operators [#1599](https://github.com/netket/netket/pull/1599).
-* Do not rescale the output of `netket.jax.jacobian` by the square root of number of samples. Previously, when specifying `center=True` we were incorrectly rescaling the output [#1614](https://github.com/netket/netket/pull/1614).
+* Do not rescale the output of {func}`netket.jax.jacobian` by the square root of number of samples. Previously, when specifying `center=True` we were incorrectly rescaling the output [#1614](https://github.com/netket/netket/pull/1614).
 * Fix bug in {class}`netket.operator.PauliStrings` that caused the dtype to get out of sync with the dtype of the internal arrays, causing errors when manipulating them symbolically [#1619](https://github.com/netket/netket/pull/1619).
 * Fix bug that prevented the use of {class}`netket.operator.DiscreteJaxOperator` as observables with all drivers [#1625](https://github.com/netket/netket/pull/1625).
 * Fermionic operator `get_conn` method was returning values as if the operator was transposed, and has now been fixed. This will break the expectation value of non-simmetric fermionic operators, but hopefully nobody was looking into them [#1640](https://github.com/netket/netket/pull/1640).
@@ -58,11 +70,11 @@ This release requires at least Python 3.9 and Jax 0.4.
 This release requires Python 3.8 and Jax 0.4.
 
 ### New Features
-* `netket.callbacks.EarlyStopping` now supports relative tolerances for determining when to stop [#1481](https://github.com/netket/netket/pull/1481).
-* `netket.callbacks.ConvergenceStopping` has been added, which can stop a driver when the loss function reaches a certain threshold [#1481](https://github.com/netket/netket/pull/1481).
+* {class}`netket.callbacks.EarlyStopping` now supports relative tolerances for determining when to stop [#1481](https://github.com/netket/netket/pull/1481).
+* {class}`netket.callbacks.ConvergenceStopping` has been added, which can stop a driver when the loss function reaches a certain threshold [#1481](https://github.com/netket/netket/pull/1481).
 * A new base class {class}`netket.operator.DiscreteJaxOperator` has been added, which will be used as a base class for a set of operators that are jax-compatible [#1506](https://github.com/netket/netket/pull/1506).
 * {func}`netket.sampler.rules.HamiltonianRule` has been split into two implementations, {class}`netket.sampler.rules.HamiltonianRuleJax` and {class}`netket.sampler.rules.HamiltonianRuleNumba`, which are to be used for {class}`~netket.operator.DiscreteJaxOperator` and standard numba-based {class}`~netket.operator.DiscreteOperator`s. The user-facing API is unchanged, but the returned type might now depend on the input operator [#1514](https://github.com/netket/netket/pull/1514).
-* {class}`netket.operator.PauliStringsJax` is a new operator that behaves as `netket.operator.PauliStrings` but is Jax-compatible, meaning that it can be used inside of jax-jitted contexts and works better with chunking. It can also be constructed starting from a standard Ising operator by calling `operator.to_jax_operator()` [#1506](https://github.com/netket/netket/pull/1506).
+* {class}`netket.operator.PauliStringsJax` is a new operator that behaves as {class}`netket.operator.PauliStrings` but is Jax-compatible, meaning that it can be used inside of jax-jitted contexts and works better with chunking. It can also be constructed starting from a standard Ising operator by calling `operator.to_jax_operator()` [#1506](https://github.com/netket/netket/pull/1506).
 * {class}`netket.operator.IsingJax` is a new operator that behaves as `netket.operator.Ising` but is Jax-compatible, meaning that it can be used inside of jax-jitted contexts and works better with chunking. It can also be constructed starting from a standard Ising operator by calling `operator.to_jax_operator()` [#1506](https://github.com/netket/netket/pull/1506).
 * Added a new method {meth}`netket.operator.LocalOperator.to_pauli_strings` to convert {class}`netket.operator.LocalOperator` to {class}`netket.operator.PauliStrings`. As PauliStrings can be converted to Jax-operators, this now allows to convert arbitrary operators to Jax-compatible ones [#1515](https://github.com/netket/netket/pull/1515).
 * The constructor of {meth}`~netket.optimizer.qgt.QGTOnTheFly` now takes an optional boolean argument `holomorphic : Optional[bool]` in line with the other geometric tensor implementations. This flag does not affect the computation algorithm, but will be used to raise an error if the user attempts to call {meth}`~netket.optimizer.qgt.QGTOnTheFly.to_dense()` with a non-holomorphic ansatz. While this might break past code, the numerical results were incorrect.

@@ -85,10 +85,18 @@ def _test_stats_mean_std(hi, ham, ma, n_chains):
 
 
 @common.skipif_mpi
-def test_stats_mean_std():
+@pytest.mark.parametrize(
+    "n_chains",
+    [
+        1,
+        2,
+        16,
+        32,
+    ],
+)
+def test_stats_mean_std(n_chains):
     hi, ham, ma = _setup()
-    for bs in (1, 2, 16, 32):
-        _test_stats_mean_std(hi, ham, ma, bs)
+    _test_stats_mean_std(hi, ham, ma, n_chains)
 
 
 def _gen_data(n_samples, log_f, dx, seed_val):

@@ -93,6 +93,7 @@ def tree_ishomogeneous(pars: PyTree) -> bool:
     return not (tree_leaf_isreal(pars) and tree_leaf_iscomplex(pars))
 
 
+@jax.jit
 def tree_conj(t: PyTree) -> PyTree:
     r"""
     Conjugate all complex leaves. The real leaves are left untouched.
@@ -102,6 +103,7 @@ def tree_conj(t: PyTree) -> PyTree:
     return jax.tree_map(lambda x: jax.lax.conj(x) if jnp.iscomplexobj(x) else x, t)
 
 
+@jax.jit
 def tree_dot(a: PyTree, b: PyTree) -> Scalar:
     r"""
     compute the dot product of two pytrees
@@ -118,6 +120,7 @@ def tree_dot(a: PyTree, b: PyTree) -> Scalar:
     )
 
 
+@jax.jit
 def tree_cast(x: PyTree, target: PyTree) -> PyTree:
     r"""
     cast x the types of target
@@ -141,6 +144,7 @@ def tree_cast(x: PyTree, target: PyTree) -> PyTree:
     )
 
 
+@jax.jit
 def tree_axpy(a: Scalar, x: PyTree, y: PyTree) -> PyTree:
     r"""
     compute a * x + y

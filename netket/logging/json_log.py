@@ -193,8 +193,9 @@ class JsonLog(RuntimeLog):
             self._flush_params(variational_state)
 
     def __del__(self):
-        if self._steps_notflushed_write > 0:
-            self.flush()
+        if hasattr(self, "_steps_notflushed_write"):
+            if self._steps_notflushed_write > 0:
+                self.flush()
 
     def __repr__(self):
         _str = f"JsonLog('{self._prefix}', mode={self._file_mode}, "

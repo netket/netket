@@ -90,10 +90,7 @@ def QGTOnTheFly(
         mv_factory = mat_vec_factory
         chunking = False
     else:
-        samples, _ = nkjax.chunk(samples, chunk_size)
-        if pdf is not None:
-            pdf, _ = nkjax.chunk(pdf, chunk_size)
-        mv_factory = mat_vec_chunked_factory
+        mv_factory = partial(mat_vec_chunked_factory, chunk_size=chunk_size)
         chunking = True
 
     # check if holomorphic or not

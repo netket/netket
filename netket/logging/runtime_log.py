@@ -113,6 +113,8 @@ def default(obj):
                 "real": np.ascontiguousarray(obj.real),
                 "imag": np.ascontiguousarray(obj.imag),
             }
+        else:
+            return np.ascontiguousarray(obj)
     elif isinstance(obj, jax.numpy.ndarray):
         return np.ascontiguousarray(obj)
     elif isinstance(obj, complex):

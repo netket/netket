@@ -25,6 +25,7 @@ from netket.operator import AbstractOperator
 from netket.optimizer.qgt import QGTJacobianDense
 from netket.optimizer.qgt.qgt_jacobian_dense import convert_tree_to_dense_format
 from netket.vqs import VariationalState, VariationalMixedState, MCState
+from netket.jax import tree_cast
 
 from netket.experimental.dynamics import RKIntegratorConfig
 
@@ -249,11 +250,7 @@ def _impl(parameters, n_samples, E_loc, S, rhs_coeff, rcond, rcond_smooth, snr_a
     update_tree = reassemble(update if jnp.iscomplexobj(y) else update.real)
 
     # If parameters are real, then take only real part of the gradient (if it's complex)
-    dw = jax.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
-        update_tree,
-        parameters,
-    )
+    dw = tree_cast(update_tree, parameters)
 
     return E, dw, rmd, snr
 
@@ -301,10 +298,6 @@ def _map_parameters(forces, parameters, loss_grad_factor, propagation_type, stat
         parameters,
     )
 
-    forces = jax.tree_map(
-        lambda x, target: (x if jnp.iscomplexobj(target) else x.real),
-        forces,
-        parameters,
-    )
+    forces = tree_cast(forces, parameters)
 
     return forces

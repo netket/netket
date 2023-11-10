@@ -25,9 +25,9 @@ mpi4jax_available = False
 
 try:
     if not config.netket_mpi:  # pragma: no cover
-        # if mpi is disabled, import a package that does not exist
-        # to trigger import error and follow the no-mpi code path
-        import this_package_does_not_exist_zuzzurellone  # noqa: F401
+        # if mpi is disabled trigger import error
+        # and follow the no-mpi code path
+        raise ImportError
 
     from mpi4py import MPI
 
