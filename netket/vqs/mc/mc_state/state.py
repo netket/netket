@@ -730,7 +730,8 @@ def local_estimators(
 
     shape = s.shape
     if jnp.ndim(s) != 2:
-        s = s.reshape((-1, shape[-1]))
+        # jit for gda
+        s = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(s, 0, s.ndim - 1)
 
     if chunk_size is None:
         chunk_size = state.chunk_size  # state.chunk_size can still be None
