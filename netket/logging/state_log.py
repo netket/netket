@@ -22,6 +22,8 @@ from os import path as _path
 
 from flax import serialization
 
+from netket.jax.sharding import extract_replicated
+
 
 def save_binary_to_tar(tar_file, byte_data, name):
     abuf = BytesIO(byte_data)
@@ -165,7 +167,9 @@ class StateLog:
             self._init_output()
 
         _time = time.time()
-        binary_data = serialization.to_bytes(variational_state.variables)
+        binary_data = serialization.to_bytes(
+            extract_replicated(variational_state.variables)
+        )
         if self._tar:
             save_binary_to_tar(
                 self._tar_file, binary_data, str(self._file_step) + ".mpack"

@@ -20,6 +20,7 @@ import numpy as np
 
 import jax
 from flax import linen as nn
+from flax import serialization
 from jax import numpy as jnp
 
 from netket.hilbert import AbstractHilbert, ContinuousHilbert
@@ -31,7 +32,7 @@ from netket.utils.deprecation import deprecated
 from netket.utils import struct
 
 from netket.utils.config_flags import config
-from netket.jax.sharding import put_global
+from netket.jax.sharding import extract_replicated, gather, put_global
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
@@ -99,6 +100,34 @@ class MetropolisSamplerState(SamplerState):
             acc_string = ""
 
         return f"{type(self).__name__}({acc_string}rng state={self.rng})"
+
+
+# serialization when sharded
+def serialize_MetropolisSamplerState_sharding(sampler_state):
+    state_dict = sampler_state.__dict__
+    for prop in ["σ", "n_accepted_proc"]:
+        x = state_dict.get(prop, None)
+        if x is not None and isinstance(x, jax.Array) and len(x.devices()) > 1:
+            state_dict[prop] = gather(x)
+    state_dict = extract_replicated(state_dict)
+    return state_dict
+
+
+def deserialize_MetropolisSamplerState_sharding(sampler_state, state_dict):
+    for prop in ["σ", "n_accepted_proc"]:
+        x = state_dict[prop]
+        if x is not None:
+            state_dict[prop] = put_global(x)
+    return sampler_state.replace(**state_dict)
+
+
+if config.netket_experimental_sharding:
+    serialization.register_serialization_state(
+        MetropolisSamplerState,
+        serialize_MetropolisSamplerState_sharding,
+        deserialize_MetropolisSamplerState_sharding,
+        override=True,
+    )
 
 
 def _assert_good_sample_shape(samples, shape, dtype, obj=""):

@@ -40,6 +40,8 @@ from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
+from netket.jax.sharding import extract_replicated
+
 from netket.vqs.base import VariationalState, expect, expect_and_grad, expect_and_forces
 from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
 
@@ -746,7 +748,7 @@ def local_estimators(
 # serialization
 def serialize_MCState(vstate):
     state_dict = {
-        "variables": serialization.to_state_dict(vstate.variables),
+        "variables": serialization.to_state_dict(extract_replicated(vstate.variables)),
         "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,

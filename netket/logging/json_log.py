@@ -19,6 +19,8 @@ from os import path as _path
 
 from flax import serialization
 
+from netket.jax.sharding import extract_replicated
+
 from .runtime_log import RuntimeLog
 
 
@@ -173,7 +175,9 @@ class JsonLog(RuntimeLog):
 
         _time = time.time()
 
-        binary_data = serialization.to_bytes(variational_state.variables)
+        binary_data = serialization.to_bytes(
+            extract_replicated(variational_state.variables)
+        )
         with open(self._prefix + ".mpack", "wb") as outfile:
             outfile.write(binary_data)
 
