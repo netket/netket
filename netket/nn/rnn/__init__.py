@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .layers import LSTMLayer, GRULayer1D, default_kernel_init
-from .layers_fast import FastLSTMLayer, FastGRULayer1D
+from .layers import RNNLayer, LSTMCell, GRU1DCell, default_kernel_init
+
+# from .layers_fast import FastLSTMLayer, FastGRULayer1D
 
 from .ordering import ensure_prev_neighbors

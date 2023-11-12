@@ -21,8 +21,9 @@ from jax.nn.initializers import zeros
 from netket.graph import AbstractGraph
 from netket.models.autoreg import ARNNSequential, _get_feature_list
 from netket.nn.rnn import (
-    GRULayer1D,
-    LSTMLayer,
+    GRU1DCell,
+    LSTMCell,
+    RNNLayer,
     default_kernel_init,
     ensure_prev_neighbors,
 )
@@ -110,15 +111,17 @@ class LSTMNet(RNN):
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
-            LSTMLayer(
-                features=features[i],
+            RNNLayer(
+                cell=LSTMCell(
+                    features=features[i],
+                    param_dtype=self.param_dtype,
+                    kernel_init=self.kernel_init,
+                    bias_init=self.bias_init,
+                ),
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
                 inv_reorder_idx=self.inv_reorder_idx,
                 prev_neighbors=self.prev_neighbors,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
             )
             for i in range(self.layers)
         ]
@@ -130,15 +133,17 @@ class GRUNet1D(RNN):
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
-            GRULayer1D(
-                features=features[i],
+            RNNLayer(
+                cell=GRU1DCell(
+                    features=features[i],
+                    param_dtype=self.param_dtype,
+                    kernel_init=self.kernel_init,
+                    bias_init=self.bias_init,
+                ),
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
                 inv_reorder_idx=self.inv_reorder_idx,
                 prev_neighbors=self.prev_neighbors,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
             )
             for i in range(self.layers)
         ]
