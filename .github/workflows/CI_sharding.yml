@@ -37,7 +37,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install wheel
           pip install jaxlib
-          pip install -e ".[dev]"
+          pip install -e ".[dev,extra]"
 
       - name: run tests on 2 cpus
         run: |
