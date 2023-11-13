@@ -5,6 +5,13 @@
 
 ## NetKet 3.11 (⚙️ In development)
 
+## NetKet 3.10.2 (8 november 2023)
+
+### Bug Fixes
+
+* Fixed a bug where it was not possible to recompile functions using two identical but different instances of PauliStringJax [#1647](https://github.com/netket/netket/pull/1647).
+* Fixed a minor bug where chunking was never actually used inside of :meth:`~netket.vqs.MCState.local_estimators`. This will turn on chunking for some other drivers such as {class}`netket.experimental.driver.VMC_SRt` and {class}`netket.experimental.driver.TDVPSchmitt`) [#1650](https://github.com/netket/netket/pull/1650).
+
 
 ## NetKet 3.10.1 (8 november 2023)
 
