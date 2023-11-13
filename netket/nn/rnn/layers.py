@@ -17,14 +17,11 @@ from typing import Optional
 from flax import linen as nn
 from flax.linen.dtypes import promote_dtype
 from jax import numpy as jnp
-from jax.nn.initializers import orthogonal
 
 from netket.utils import HashableArray
 
 from .cells import RNNCell
 from .ordering import check_reorder_idx
-
-default_kernel_init = orthogonal()
 
 
 class RNNLayer(nn.Module):
@@ -52,37 +49,38 @@ class RNNLayer(nn.Module):
         super().__post_init__()
         check_reorder_idx(self.reorder_idx, self.inv_reorder_idx, self.prev_neighbors)
 
-    def reorder(self, states):
-        assert states.ndim == 3
-        if self.reorder_idx is not None:
-            states = states[:, self.reorder_idx.wrapped, :]
-        return states
+    def _extract_inputs_i(self, inputs, k, reorder_idx):
+        assert inputs.ndim == 3
 
-    def inverse_reorder(self, states):
-        assert states.ndim == 3
-        if self.inv_reorder_idx is not None:
-            states = states[:, self.inv_reorder_idx.wrapped, :]
-        return states
+        # Masking for 'exclusive' behaviour of first layer
+        # TODO: Use 0 in masked sites or a value from computational basis?
+        if self.exclusive:
+            # Get the inputs at the previous site in the autoregressive order,
+            # or zeros for the first site
+            if self.reorder_idx is None:
+                inputs_i = inputs[:, k - 1, :]
+            else:
+                inputs_i = inputs[:, reorder_idx[k - 1], :]
+            inputs_i = jnp.where(k == 0, 0, inputs_i)
+        else:
+            # Get the inputs at the current site
+            inputs_i = inputs[:, k, :]
+        return inputs_i
 
-    def extract_memory_state(self, outputs, k):
+    def _extract_hidden(self, outputs, index, prev_neighbors):
         assert outputs.ndim == 3
-        assert k.ndim == 0
+
         if self.reorder_idx is None:
             # Get the hidden memory at the previous site,
             # or zeros for the first site
-            hidden = outputs[:, k - 1, :]
+            hidden = outputs[:, index - 1, :]
             hidden = jnp.expand_dims(hidden, axis=-1)
         else:
-            # convert previous neighbors to reordered previous neighbors
-            prev_neighbors = jnp.asarray(
-                self.inv_reorder_idx.wrapped[self.prev_neighbors.wrapped]
-            )
-
             # Get the hidden memories at the previous neighbors
-            prev_neighbors_k = prev_neighbors[k]
-            hidden = outputs[:, prev_neighbors_k, :]
+            prev_neighbors_i = prev_neighbors[index]
+            hidden = outputs[:, prev_neighbors_i, :]
             # mask out inexistant previous neighbords
-            hidden = jnp.where(prev_neighbors_k[None, :, None] == -1, 0, hidden)
+            hidden = jnp.where(prev_neighbors_i[None, :, None] == -1, 0, hidden)
         return hidden
 
     def __call__(self, inputs):
@@ -102,25 +100,24 @@ class RNNLayer(nn.Module):
             )
 
         batch_size, N, _ = inputs.shape
-        inputs = self.reorder(inputs)
         inputs = promote_dtype(inputs, dtype=self.cell.param_dtype)[0]
+
+        if self.reorder_idx is None:
+            reorder_idx = None
+            prev_neighbors = None
+        else:
+            reorder_idx = jnp.asarray(self.reorder_idx)
+            prev_neighbors = jnp.asarray(self.prev_neighbors)
 
         def scan_func(rnn_cell, carry, k):
             cell_mem, outputs = carry
-
-            # masking for 'exclusive' behaviour of first layer
-            # TODO: Use 0 in masked sites or a value from computational basis?
-            if self.exclusive:
-                # Get the inputs at the previous site in the autoregressive order,
-                # or zeros for the first site
-                inputs_i = inputs[:, k - 1, :]
-                inputs_i = jnp.where(k == 0, 0, inputs_i)
+            if self.reorder_idx is None:
+                index = k
             else:
-                # Get the inputs at the current site
-                inputs_i = inputs[:, k, :]
+                index = reorder_idx[k]
 
-            hidden = self.extract_memory_state(outputs, k)
-
+            inputs_i = self._extract_inputs_i(inputs, k, reorder_idx)
+            hidden = self._extract_hidden(outputs, index, prev_neighbors)
             cell_mem, hidden = rnn_cell(inputs_i, cell_mem, hidden)
             outputs = outputs.at[:, k, :].set(hidden)
             return (cell_mem, outputs), (outputs,)
@@ -134,7 +131,5 @@ class RNNLayer(nn.Module):
 
         cell_mem = jnp.zeros((batch_size, self.cell.features), dtype=inputs.dtype)
         outputs = jnp.zeros((batch_size, N, self.cell.features), dtype=inputs.dtype)
-
         (_, outputs), _ = scan(self.cell, (cell_mem, outputs), jnp.arange(N))
-        outputs = self.inverse_reorder(outputs)
         return outputs

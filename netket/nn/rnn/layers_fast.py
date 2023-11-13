@@ -48,6 +48,9 @@ class FastRNNLayer(RNNLayer):
         batch_size = inputs.shape[0]
         inputs = promote_dtype(inputs, dtype=self.cell.param_dtype)[0]
 
+        if self.reorder_idx is not None:
+            prev_neighbors = jnp.asarray(self.prev_neighbors)
+
         _cell_mem = self.variable(
             "cache",
             "cell_mem",
@@ -67,18 +70,7 @@ class FastRNNLayer(RNNLayer):
         cell_mem = _cell_mem.value
         outputs = _outputs.value
 
-        if self.reorder_idx is None:
-            # Get the hidden memory at the previous site,
-            # or zeros for the first site
-            hidden = outputs[:, index - 1, :]
-            hidden = jnp.expand_dims(hidden, axis=-1)
-        else:
-            # Get the hidden memories at the previous neighbors,
-            # or zeros for boundaries
-            n = self.prev_neighbors.wrapped[index]
-            hidden = outputs[:, n, :]
-            hidden = jnp.where(n[None, :, None] == -1, 0, hidden)
-
+        hidden = self._extract_hidden(outputs, index, prev_neighbors)
         cell_mem, hidden = self.cell(inputs, cell_mem, hidden)
 
         initializing = self.is_mutable_collection("params")
