@@ -384,12 +384,12 @@ def test_reorder_idx(graph):
         _get_inv_idx,
         _get_inv_reorder_idx,
         _get_prev_neighbors,
-        _get_snake_inv_reorder_idx,
+        get_snake_inv_reorder_idx,
         _get_snake_prev_neighbors,
     )
 
     inv_reorder_idx_1 = _get_inv_reorder_idx(graph)
-    inv_reorder_idx_2 = _get_snake_inv_reorder_idx(graph)
+    inv_reorder_idx_2 = get_snake_inv_reorder_idx(graph)
     assert inv_reorder_idx_1 == inv_reorder_idx_2
 
     reorder_idx_1 = _get_inv_idx(inv_reorder_idx_1)

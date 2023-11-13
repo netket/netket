@@ -28,16 +28,9 @@ def check_reorder_idx(
     prev_neighbors: Optional[HashableArray],
 ):
     """
-    Check that the reordering tables determining the autoregressive order of an RNN is
-    correctly declared.
-
-    Args:
-        reorder_idx: ...
-        inv_reorder_idx:
-        prev_neighbors:
-
-    Returns:
-        ...
+    Check that the reordering indices determining the autoregressive order of an
+    RNN are correctly declared.
+    See :class:`netket.models.RNN` for details about the reordering indices.
     """
     if reorder_idx is None and inv_reorder_idx is None and prev_neighbors is None:
         # There is a faster code path for 1D RNN
@@ -91,12 +84,17 @@ def check_reorder_idx(
 
 def ensure_prev_neighbors(
     *,
-    reorder_idx=None,
-    inv_reorder_idx=None,
-    prev_neighbors=None,
-    graph=None,
+    reorder_idx: Optional[HashableArray] = None,
+    inv_reorder_idx: Optional[HashableArray] = None,
+    prev_neighbors: Optional[HashableArray] = None,
+    graph: AbstractGraph = None,
     check: bool = False,
-):
+) -> tuple[HashableArray, HashableArray, HashableArray]:
+    """
+    Deduce the missing ones in reorder_idx, inv_reorder_idx, and inv_reorder_idx
+    from the specified arguments.
+    See :class:`netket.models.RNN` for details about the reordering indices.
+    """
     if inv_reorder_idx is None and graph is not None:
         inv_reorder_idx = _get_inv_reorder_idx(graph)
 
@@ -156,7 +154,12 @@ def _get_extent(graph: AbstractGraph) -> tuple[int, int, int]:
     return V, L, M
 
 
-def _get_snake_inv_reorder_idx(graph: AbstractGraph) -> HashableArray:
+def get_snake_inv_reorder_idx(graph: AbstractGraph) -> HashableArray:
+    """
+    A helper function to generate the inverse reorder indices in the snake order
+    for a 2D graph.
+    See :class:`netket.models.RNN` for details about the reordering indices.
+    """
     V, L, M = _get_extent(graph)
     idx = np.arange(V, dtype=np.intp).reshape((L, M))
     idx[1::2, :] = idx[1::2, ::-1]
@@ -168,7 +171,7 @@ def _get_snake_inv_reorder_idx(graph: AbstractGraph) -> HashableArray:
 def _get_inv_reorder_idx(graph: AbstractGraph) -> HashableArray:
     """
     A greedy algorithm to determine an autoregressive order with good locality.
-    For any rectangular graph with OBC, it is the same as the usual snake ordering.
+    For any rectangular graph with OBC, it is the same as the snake order.
     For PBC, it is mostly the same except at the end of each row.
 
     Start from site 0;

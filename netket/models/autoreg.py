@@ -163,7 +163,7 @@ class AbstractARNN(nn.Module):
 
         We call a 1D array 'unordered' if we need non-trivial indexing to access
         its elements in the autoregressive order, e.g., `a[0], a[1], a[3], a[2]`
-        for the snake ordering. Otherwise, we call it 'ordered'.
+        for the snake order. Otherwise, we call it 'ordered'.
 
         The inputs of `conditionals_log_psi`, `conditionals`, `conditional`, and
         `__call__` are assumed to have unordered layout, and those inputs are

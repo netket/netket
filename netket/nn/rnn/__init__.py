@@ -15,4 +15,8 @@
 from .cells import RNNCell, LSTMCell, GRU1DCell, default_kernel_init
 from .layers import RNNLayer
 from .layers_fast import FastRNNLayer
-from .ordering import ensure_prev_neighbors
+from .ordering import (
+    check_reorder_idx,
+    ensure_prev_neighbors,
+    get_snake_inv_reorder_idx,
+)
