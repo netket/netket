@@ -50,6 +50,7 @@ The following autoregressive models can be directly sampled using {class}`~netke
    RNN
    LSTMNet
    GRUNet1D
+   FastRNN
    FastLSTMNet
    FastGRUNet1D
 ```
