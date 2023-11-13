@@ -33,13 +33,6 @@ class RNNCell(nn.Module):
     param_dtype: DType = jnp.float64
     """the dtype of the computation (default: float64)."""
 
-    def initialize_carry(self, inputs):
-        batch_size, N, _ = inputs.shape
-        inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
-        cell_mem = jnp.zeros((batch_size, self.features), dtype=inputs.dtype)
-        outputs = jnp.zeros((batch_size, N, self.features), dtype=inputs.dtype)
-        return cell_mem, outputs
-
     @abc.abstractmethod
     def __call__(self, inputs, cell_mem, hidden):
         pass

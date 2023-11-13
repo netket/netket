@@ -15,6 +15,7 @@
 from typing import Optional
 
 from flax import linen as nn
+from flax.linen.dtypes import promote_dtype
 from jax import numpy as jnp
 from jax.nn.initializers import orthogonal
 
@@ -102,6 +103,7 @@ class RNNLayer(nn.Module):
 
         batch_size, N, _ = inputs.shape
         inputs = self.reorder(inputs)
+        inputs = promote_dtype(inputs, dtype=self.cell.param_dtype)[0]
 
         def scan_func(rnn_cell, carry, k):
             cell_mem, outputs = carry
@@ -130,7 +132,9 @@ class RNNLayer(nn.Module):
             split_rngs={"params": False},
         )
 
-        cell_mem, outputs = self.cell.initialize_carry(inputs)
+        cell_mem = jnp.zeros((batch_size, self.cell.features), dtype=inputs.dtype)
+        outputs = jnp.zeros((batch_size, N, self.cell.features), dtype=inputs.dtype)
+
         (_, outputs), _ = scan(self.cell, (cell_mem, outputs), jnp.arange(N))
         outputs = self.inverse_reorder(outputs)
         return outputs

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from flax import linen as nn
+from flax.linen.dtypes import promote_dtype
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
@@ -45,6 +46,8 @@ class FastRNNLayer(RNNLayer):
           The output site with dimensions (batch, features).
         """
         batch_size = inputs.shape[0]
+        inputs = promote_dtype(inputs, dtype=self.cell.param_dtype)[0]
+
         _cell_mem = self.variable(
             "cache",
             "cell_mem",
@@ -61,6 +64,7 @@ class FastRNNLayer(RNNLayer):
             (batch_size, self.size, self.cell.features),
             inputs.dtype,
         )
+        cell_mem = _cell_mem.value
         outputs = _outputs.value
 
         if self.reorder_idx is None:
@@ -75,7 +79,7 @@ class FastRNNLayer(RNNLayer):
             hidden = outputs[:, n, :]
             hidden = jnp.where(n[None, :, None] == -1, 0, hidden)
 
-        cell_mem, hidden = self.cell(inputs, _cell_mem.value, hidden)
+        cell_mem, hidden = self.cell(inputs, cell_mem, hidden)
 
         initializing = self.is_mutable_collection("params")
         if not initializing:
