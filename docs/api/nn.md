@@ -36,10 +36,11 @@ The following modules can be used in autoregressive neural networks, see {class}
    FastMaskedConv1D
    FastMaskedConv2D
 
-   LSTMLayer
-   GRULayer1D
-   FastLSTMLayer
-   FastGRULayer1D
+   RNNCell
+   LSTMCell
+   GRU1DCell
+   RNNLayer
+   FastRNNLayer
 ```
 
 ## Activation functions

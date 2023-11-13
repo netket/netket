@@ -13,18 +13,17 @@
 # limitations under the License.
 
 from flax import linen as nn
-from flax.linen.dtypes import promote_dtype
-
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from .layers import GRULayer1D, LSTMLayer, RNNLayer
 from netket.utils.types import Array
+
+from .layers import RNNLayer
 
 
 class FastRNNLayer(RNNLayer):
     """
-    Base class for recurrent neural network layers with fast sampling.
+    Recurrent neural network layer with fast sampling.
 
     See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
@@ -46,25 +45,20 @@ class FastRNNLayer(RNNLayer):
           The output site with dimensions (batch, features).
         """
         batch_size = inputs.shape[0]
-
-        if self.reorder_idx is None:
-            max_prev_neighbors = 1
-        else:
-            prev_neighbors = jnp.asarray(self.prev_neighbors)
-            max_prev_neighbors = prev_neighbors.shape[1]
-
-        recur_func = self._get_recur_func(inputs, max_prev_neighbors * self.features)
-        inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
-
-        _cell = self.variable(
-            "cache", "cell", zeros, None, (batch_size, self.features), inputs.dtype
+        _cell_mem = self.variable(
+            "cache",
+            "cell_mem",
+            zeros,
+            None,
+            (batch_size, self.cell.features),
+            inputs.dtype,
         )
         _outputs = self.variable(
             "cache",
             "outputs",
             zeros,
             None,
-            (batch_size, self.size, self.features),
+            (batch_size, self.size, self.cell.features),
             inputs.dtype,
         )
         outputs = _outputs.value
@@ -77,40 +71,18 @@ class FastRNNLayer(RNNLayer):
         else:
             # Get the hidden memories at the previous neighbors,
             # or zeros for boundaries
-            n = prev_neighbors[index]
+            n = self.prev_neighbors.wrapped[index]
             hidden = outputs[:, n, :]
             hidden = jnp.where(n[None, :, None] == -1, 0, hidden)
 
-        cell, hidden = recur_func(inputs, _cell.value, hidden)
+        cell_mem, hidden = self.cell(inputs, _cell_mem.value, hidden)
 
         initializing = self.is_mutable_collection("params")
         if not initializing:
-            _cell.value = cell
+            _cell_mem.value = cell_mem
             _outputs.value = outputs.at[:, index, :].set(hidden)
 
         return hidden
 
     def __call__(self, inputs: Array) -> Array:
         return RNNLayer.__call__(self, inputs)
-
-
-class FastLSTMLayer(FastRNNLayer):
-    """
-    Long short-term memory layer with fast sampling.
-
-    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
-    """
-
-    def _get_recur_func(self, inputs, hid_features):
-        return LSTMLayer._get_recur_func(self, inputs, hid_features)
-
-
-class FastGRULayer1D(FastRNNLayer):
-    """
-    Gated recurrent unit layer with fast sampling. Only supports one previous neighbor at each site.
-
-    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
-    """
-
-    def _get_recur_func(self, inputs, hid_features):
-        return GRULayer1D._get_recur_func(self, inputs, hid_features)

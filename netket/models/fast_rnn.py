@@ -21,8 +21,14 @@ from jax.nn.initializers import zeros
 from netket.graph import AbstractGraph
 from netket.models.autoreg import _get_feature_list
 from netket.models.fast_autoreg import FastARNNSequential
-from netket.models.rnn import RNN, ensure_prev_neighbors
-from netket.nn.rnn import FastGRULayer1D, FastLSTMLayer, default_kernel_init
+from netket.models.rnn import RNN
+from netket.nn.rnn import (
+    FastRNNLayer,
+    GRU1DCell,
+    LSTMCell,
+    default_kernel_init,
+    ensure_prev_neighbors,
+)
 from netket.utils import HashableArray
 from netket.utils.types import Array, DType, NNInitFunc
 
@@ -112,16 +118,18 @@ class FastLSTMNet(FastRNN):
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
-            FastLSTMLayer(
+            FastRNNLayer(
+                cell=LSTMCell(
+                    features=features[i],
+                    param_dtype=self.param_dtype,
+                    kernel_init=self.kernel_init,
+                    bias_init=self.bias_init,
+                ),
                 size=self.hilbert.size,
-                features=features[i],
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
                 inv_reorder_idx=self.inv_reorder_idx,
                 prev_neighbors=self.prev_neighbors,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
             )
             for i in range(self.layers)
         ]
@@ -137,16 +145,18 @@ class FastGRUNet1D(FastRNN):
     def setup(self):
         features = _get_feature_list(self)
         self._layers = [
-            FastGRULayer1D(
+            FastRNNLayer(
+                cell=GRU1DCell(
+                    features=features[i],
+                    param_dtype=self.param_dtype,
+                    kernel_init=self.kernel_init,
+                    bias_init=self.bias_init,
+                ),
                 size=self.hilbert.size,
-                features=features[i],
                 exclusive=(i == 0),
                 reorder_idx=self.reorder_idx,
                 inv_reorder_idx=self.inv_reorder_idx,
                 prev_neighbors=self.prev_neighbors,
-                param_dtype=self.param_dtype,
-                kernel_init=self.kernel_init,
-                bias_init=self.bias_init,
             )
             for i in range(self.layers)
         ]
