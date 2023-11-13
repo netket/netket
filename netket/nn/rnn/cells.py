@@ -30,9 +30,12 @@ class RNNCell(nn.Module):
 
     features: int
     """output feature density, should be the last dimension."""
+    param_dtype: DType = jnp.float64
+    """the dtype of the computation (default: float64)."""
 
     def initialize_carry(self, inputs):
         batch_size, N, _ = inputs.shape
+        inputs = promote_dtype(inputs, dtype=self.param_dtype)[0]
         cell_mem = jnp.zeros((batch_size, self.features), dtype=inputs.dtype)
         outputs = jnp.zeros((batch_size, N, self.features), dtype=inputs.dtype)
         return cell_mem, outputs
@@ -45,8 +48,6 @@ class RNNCell(nn.Module):
 class LSTMCell(RNNCell):
     """Long short-term memory cell."""
 
-    param_dtype: DType = jnp.float64
-    """the dtype of the computation (default: float64)."""
     kernel_init: NNInitFunc = default_kernel_init
     """initializer for the weight matrix."""
     bias_init: NNInitFunc = zeros
@@ -93,8 +94,6 @@ class GRU1DCell(RNNCell):
     Only supports one previous neighbor at each site.
     """
 
-    param_dtype: DType = jnp.float64
-    """the dtype of the computation (default: float64)."""
     kernel_init: NNInitFunc = default_kernel_init
     """initializer for the weight matrix."""
     bias_init: NNInitFunc = zeros
@@ -125,18 +124,18 @@ class GRU1DCell(RNNCell):
         n_kernel = self.param(
             "n_kernel",
             self.kernel_init,
-            (in_features + hid_features, self.features * 2),
+            (in_features + hid_features, self.features),
             self.param_dtype,
         )
         n_bias = self.param(
             "n_bias",
             self.bias_init,
-            (self.features * 2,),
+            (self.features),
             self.param_dtype,
         )
 
         in_cat, rz_kernel, rz_bias, n_kernel, n_bias = promote_dtype(
-            in_cat, self.rz_kernel, self.rz_bias, self.n_kernel, self.n_bias, dtype=None
+            in_cat, rz_kernel, rz_bias, n_kernel, n_bias, dtype=None
         )
 
         rz = nn.sigmoid(in_cat @ rz_kernel + rz_bias)

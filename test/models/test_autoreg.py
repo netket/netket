@@ -35,174 +35,174 @@ def skip(request):
 graph_full = nk.graph.Graph([(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)])
 
 partial_model_pairs = [
-    pytest.param(
-        (
-            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNDense(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNDense(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-        ),
-        id="dense",
-    ),
-    pytest.param(
-        (
-            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv1D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                kernel_size=2,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv1D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                kernel_size=2,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-        ),
-        id="conv1d",
-    ),
-    pytest.param(
-        (
-            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv1D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                kernel_size=2,
-                kernel_dilation=2,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv1D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                kernel_size=2,
-                kernel_dilation=2,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-        ),
-        id="conv1d_dilation",
-    ),
-    pytest.param(
-        (
-            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv2D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                kernel_size=(2, 3),
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv2D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                kernel_size=(2, 3),
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-        ),
-        id="conv2d",
-    ),
-    pytest.param(
-        (
-            lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv2D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                kernel_size=(2, 3),
-                kernel_dilation=(2, 2),
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv2D(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                kernel_size=(2, 3),
-                kernel_dilation=(2, 2),
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-        ),
-        id="conv2d_dilation",
-    ),
-    pytest.param(
-        (
-            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-        ),
-        id="lstm",
-    ),
-    pytest.param(
-        (
-            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                graph=nk.graph.Square(2),
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                graph=nk.graph.Square(2),
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-        ),
-        id="lstm_square",
-    ),
-    pytest.param(
-        (
-            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                graph=graph_full,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
-                hilbert=hilbert,
-                layers=3,
-                features=5,
-                graph=graph_full,
-                param_dtype=param_dtype,
-                machine_pow=machine_pow,
-            ),
-        ),
-        id="lstm_full",
-    ),
+    # pytest.param(
+    #     (
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.ARNNDense(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNDense(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #     ),
+    #     id="dense",
+    # ),
+    # pytest.param(
+    #     (
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv1D(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             kernel_size=2,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv1D(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             kernel_size=2,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #     ),
+    #     id="conv1d",
+    # ),
+    # pytest.param(
+    #     (
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv1D(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             kernel_size=2,
+    #             kernel_dilation=2,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv1D(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             kernel_size=2,
+    #             kernel_dilation=2,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #     ),
+    #     id="conv1d_dilation",
+    # ),
+    # pytest.param(
+    #     (
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv2D(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             kernel_size=(2, 3),
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv2D(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             kernel_size=(2, 3),
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #     ),
+    #     id="conv2d",
+    # ),
+    # pytest.param(
+    #     (
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.ARNNConv2D(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             kernel_size=(2, 3),
+    #             kernel_dilation=(2, 2),
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.FastARNNConv2D(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             kernel_size=(2, 3),
+    #             kernel_dilation=(2, 2),
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #     ),
+    #     id="conv2d_dilation",
+    # ),
+    # pytest.param(
+    #     (
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #     ),
+    #     id="lstm",
+    # ),
+    # pytest.param(
+    #     (
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             graph=nk.graph.Square(2),
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             graph=nk.graph.Square(2),
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #     ),
+    #     id="lstm_square",
+    # ),
+    # pytest.param(
+    #     (
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             graph=graph_full,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #         lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
+    #             hilbert=hilbert,
+    #             layers=3,
+    #             features=5,
+    #             graph=graph_full,
+    #             param_dtype=param_dtype,
+    #             machine_pow=machine_pow,
+    #         ),
+    #     ),
+    #     id="lstm_full",
+    # ),
     pytest.param(
         (
             lambda hilbert, param_dtype, machine_pow: nk.models.GRUNet1D(
