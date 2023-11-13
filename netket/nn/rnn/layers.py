@@ -28,7 +28,7 @@ class RNNLayer(nn.Module):
     """Recurrent neural network layer that maps inputs at N sites to outputs at N sites."""
 
     cell: RNNCell
-    """Cell to update the hidden memory at each site, such as LSTM or GRU."""
+    """cell to update the hidden memory at each site, such as LSTM or GRU."""
     exclusive: bool
     """True if an output element does not depend on the input element at the same index."""
     reorder_idx: Optional[HashableArray] = None
@@ -42,7 +42,7 @@ class RNNLayer(nn.Module):
     prev_neighbors: Optional[HashableArray] = None
     """previous neighbors of each site."""
     unroll: int = 1
-    """How much to unroll the recurrent loop. Trades compile time for
+    """how many steps to unroll in the recurrent loop. Trades compile time for
     faster runtime when networks are small."""
 
     def __post_init__(self):
