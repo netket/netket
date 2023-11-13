@@ -49,7 +49,7 @@ class RNNLayer(nn.Module):
         super().__post_init__()
         check_reorder_idx(self.reorder_idx, self.inv_reorder_idx, self.prev_neighbors)
 
-    def _extract_inputs_i(self, inputs, k, reorder_idx):
+    def _extract_inputs_i(self, inputs, k, index, prev_index):
         assert inputs.ndim == 3
 
         # Masking for 'exclusive' behaviour of first layer
@@ -57,14 +57,11 @@ class RNNLayer(nn.Module):
         if self.exclusive:
             # Get the inputs at the previous site in the autoregressive order,
             # or zeros for the first site
-            if self.reorder_idx is None:
-                inputs_i = inputs[:, k - 1, :]
-            else:
-                inputs_i = inputs[:, reorder_idx[k - 1], :]
+            inputs_i = inputs[:, prev_index, :]
             inputs_i = jnp.where(k == 0, 0, inputs_i)
         else:
             # Get the inputs at the current site
-            inputs_i = inputs[:, k, :]
+            inputs_i = inputs[:, index, :]
         return inputs_i
 
     def _extract_hidden(self, outputs, index, prev_neighbors):
@@ -113,20 +110,22 @@ class RNNLayer(nn.Module):
             cell_mem, outputs = carry
             if self.reorder_idx is None:
                 index = k
+                prev_index = k - 1
             else:
                 index = reorder_idx[k]
+                prev_index = reorder_idx[k - 1]
 
-            inputs_i = self._extract_inputs_i(inputs, k, reorder_idx)
+            inputs_i = self._extract_inputs_i(inputs, k, index, prev_index)
             hidden = self._extract_hidden(outputs, index, prev_neighbors)
             cell_mem, hidden = rnn_cell(inputs_i, cell_mem, hidden)
-            outputs = outputs.at[:, k, :].set(hidden)
-            return (cell_mem, outputs), (outputs,)
+            outputs = outputs.at[:, index, :].set(hidden)
+            return (cell_mem, outputs), None
 
         scan = nn.scan(
             scan_func,
-            unroll=self.unroll,
             variable_broadcast="params",
             split_rngs={"params": False},
+            unroll=self.unroll,
         )
 
         cell_mem = jnp.zeros((batch_size, self.cell.features), dtype=inputs.dtype)

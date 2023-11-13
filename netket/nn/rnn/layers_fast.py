@@ -48,7 +48,9 @@ class FastRNNLayer(RNNLayer):
         batch_size = inputs.shape[0]
         inputs = promote_dtype(inputs, dtype=self.cell.param_dtype)[0]
 
-        if self.reorder_idx is not None:
+        if self.reorder_idx is None:
+            prev_neighbors = None
+        else:
             prev_neighbors = jnp.asarray(self.prev_neighbors)
 
         _cell_mem = self.variable(
