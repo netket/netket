@@ -736,7 +736,9 @@ def local_estimators(
     if chunk_size is None:
         kernel = get_local_kernel(state, op)
     else:
-        kernel = get_local_kernel(state, op, chunk_size)
+        kernel = nkjax.HashablePartial(
+            get_local_kernel(state, op, chunk_size), chunk_size=chunk_size
+        )
 
     return _local_estimators_kernel(
         kernel, state._apply_fun, shape[:-1], state.variables, s, extra_args
