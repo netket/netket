@@ -5,6 +5,9 @@
 
 ## NetKet 3.11 (⚙️ In development)
 
+### New Features
+
+* Recurrent neural networks and layers have been added to `nkx.models` and `nkx.nn` [#1305](https://github.com/netket/netket/pull/1305).
 
 ## NetKet 3.10.1 (8 november 2023)
 
@@ -102,7 +105,6 @@ Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.MultipleRules` has been added, which can be used to pick from different transition proposals according to a certain probability distribution.
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.TensorRule` has been added, which can be used to combine different transition proposals acting on different subspaces of the Hilbert space together.
 * The new Metropolis sampling transition proposal rules {func}`netket.sampler.rules.FixedRule` has been added, which does not change the configuration.
-* Recurrent neural networks and layers have been added to `models` and `nn` [#1305](https://github.com/netket/netket/pull/1305).
 
 ### Deprecations
 * The non-public API function to select the default QGT mode for `QGTJacobian`, located at `nk.optimizer.qgt.qgt_jacobian_common.choose_jacobian_mode` has been renamed and made part of the public API of as `nk.jax.jacobian_default_mode`. If you were using this function, please update your codes [#1473](https://github.com/netket/netket/pull/1473).
