@@ -16,9 +16,9 @@ import netket as nk
 import netket.experimental as nkx
 
 # 1D Lattice
-L = 20
+L = 10
 
-g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
+g = nk.graph.Hypercube(length=L, n_dim=2, pbc=True)
 
 # Hilbert space of spins on the graph
 hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
