@@ -403,7 +403,7 @@ def test_construct_rnn():
     def build_model(
         reorder_idx=None, inv_reorder_idx=None, prev_neighbors=None, graph=None
     ):
-        model = nk.models.LSTMNet(
+        model = nkx.models.LSTMNet(
             hilbert=nk.hilbert.Spin(s=1 / 2, N=4),
             layers=3,
             features=5,
