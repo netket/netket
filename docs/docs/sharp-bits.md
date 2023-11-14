@@ -96,7 +96,7 @@ import netket as nk
 Then it can be conveniently launched with `srun` (on slurm clusters) or `mpirun`.
 For more details and manual setups we refer to the [jax documentation](https://jax.readthedocs.io/en/latest/multi_process.html).
 
-Note that jax internally uses the [grpc library](https://grpc.io) (essentially a rest api on a http server) to infer the cluster topology and the [nvidia nccl library](https://developer.nvidia.com/nccl) for communication between gpus. Thus it is required that `libnccl2` and `libnccl2-dev` are installed in addition to cuda.
+Note that jax internally uses the [grpc library](https://grpc.io) (launching a http server) for setup and book-keeping of the cluster and the [nvidia nccl library](https://developer.nvidia.com/nccl) for communication between gpus. Thus it is required that `libnccl2` and `libnccl2-dev` are installed in addition to cuda.
 Even if launched with mpirun, mpi is not actually used for communication, but the environment variables set by it are instead picked up by `jax.distributed.initialize`.
 
 If you run into communication errors you might want to set the environment variable `NCCL_DEBUG=INFO` for detailed error messages.
