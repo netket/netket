@@ -30,7 +30,7 @@ def check_reorder_idx(
     """
     Check that the reordering indices determining the autoregressive order of an
     RNN are correctly declared.
-    See :class:`netket.models.RNN` for details about the reordering indices.
+    See :class:`netket.experimental.models.RNN` for details about the reordering indices.
     """
     if reorder_idx is None and inv_reorder_idx is None and prev_neighbors is None:
         # There is a faster code path for 1D RNN
@@ -93,7 +93,7 @@ def ensure_prev_neighbors(
     """
     Deduce the missing ones in reorder_idx, inv_reorder_idx, and inv_reorder_idx
     from the specified arguments.
-    See :class:`netket.models.RNN` for details about the reordering indices.
+    See :class:`netket.experimental.models.RNN` for details about the reordering indices.
     """
     if inv_reorder_idx is None and graph is not None:
         inv_reorder_idx = _get_inv_reorder_idx(graph)
@@ -158,7 +158,7 @@ def get_snake_inv_reorder_idx(graph: AbstractGraph) -> HashableArray:
     """
     A helper function to generate the inverse reorder indices in the snake order
     for a 2D graph.
-    See :class:`netket.models.RNN` for details about the reordering indices.
+    See :class:`netket.experimental.models.RNN` for details about the reordering indices.
     """
     V, L, M = _get_extent(graph)
     idx = np.arange(V, dtype=np.intp).reshape((L, M))

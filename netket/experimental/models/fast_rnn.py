@@ -49,7 +49,7 @@ class FastRNN(FastARNNSequential):
     fast RNN, we cache the relevant hidden memories in each layer from the previous AR sampling step, and only run one
     RNN step to update from the changed input.
 
-    See :class:`netket.models.RNN` for explanation of the arguments related to
+    See :class:`netket.experimental.models.RNN` for explanation of the arguments related to
     the autoregressive order.
     """
 

@@ -40,14 +40,14 @@ class RNN(ARNNSequential):
     it can be deduced from another. If both are unspecified, they can be
     determined from `graph`.
 
-    If :attr:`~netket.models.RNN.prev_neighbors` is unspecified,
-    it can be determined from :attr:`~netket.models.RNN.graph` and
-    :attr:`~netket.models.RNN.reorder_idx`.
+    If :attr:`~netket.experimental.models.RNN.prev_neighbors` is unspecified,
+    it can be determined from :attr:`~netket.experimental.models.RNN.graph` and
+    :attr:`~netket.experimental.models.RNN.reorder_idx`.
 
-    If all of :attr:`~netket.models.RNN.reorder_idx`,
-    :attr:`~netket.models.RNN.inv_reorder_idx`,
-    :attr:`~netket.models.RNN.prev_neighbors`, and
-    :attr:`~netket.models.RNN.graph`
+    If all of :attr:`~netket.experimental.models.RNN.reorder_idx`,
+    :attr:`~netket.experimental.models.RNN.inv_reorder_idx`,
+    :attr:`~netket.experimental.models.RNN.prev_neighbors`, and
+    :attr:`~netket.experimental.models.RNN.graph`
     are unspecified, there is a faster code path for 1D RNN.
     """
 
