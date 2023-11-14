@@ -27,6 +27,7 @@ The following modules can be used in autoregressive neural networks, see {class}
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/nn
+   :template: flax_module_or_default
    :nosignatures:
 
    MaskedDense1D
@@ -35,12 +36,6 @@ The following modules can be used in autoregressive neural networks, see {class}
    FastMaskedDense1D
    FastMaskedConv1D
    FastMaskedConv2D
-
-   RNNCell
-   LSTMCell
-   GRU1DCell
-   RNNLayer
-   FastRNNLayer
 ```
 
 ## Activation functions
@@ -93,3 +88,40 @@ The following modules can be used in autoregressive neural networks, see {class}
     blocks.SymmExpSum
 
 ```
+
+## Experimental
+
+### Recurrent Neural Network cells
+
+The following are RNN layers (in flax those would be called a RNN), which can be stacked within a {class}`netket.experimental.models.RNN`.
+
+
+```{eval-rst}
+.. currentmodule:: netket.experimental.nn
+
+```
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/nn
+   :template: flax_module_or_default
+   :nosignatures:
+
+   rnn.RNNLayer
+   rnn.FastRNNLayer
+```
+
+The following are recurrent cells that can be used with {class}`netket.experimental.nn.rnn.RNNLayer`.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/nn
+   :template: flax_module_or_default
+   :nosignatures:
+
+   rnn.RNNCell
+   rnn.LSTMCell
+   rnn.GRU1DCell
+```
+
+ 

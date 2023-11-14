@@ -13,3 +13,6 @@
 # limitations under the License.
 
 from netket.models.slater import Slater2nd
+
+from .rnn import RNN, LSTMNet, GRUNet1D
+from .fast_rnn import FastRNN, FastLSTMNet, FastGRUNet1D
