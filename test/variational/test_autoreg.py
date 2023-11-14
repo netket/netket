@@ -174,7 +174,7 @@ def test_vmc_same(partial_model_pair, hilbert, dtype, machine_pow, skip):
     samples1 = vstate1.sample()
 
     graph = nk.graph.Hypercube(length=hilbert.size, n_dim=1)
-    H = nk.operator.Ising(hilbert=hilbert, graph=graph, h=1)
+    H = nk.operator.IsingJax(hilbert=hilbert, graph=graph, h=1)
     optimizer = optax.adam(learning_rate=1e-3)
     vmc1 = nk.VMC(H, optimizer, variational_state=vstate1)
     vmc1.run(n_iter=3)
