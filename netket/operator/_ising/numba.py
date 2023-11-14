@@ -69,7 +69,7 @@ class Ising(IsingBase):
         """
         if not isinstance(hilbert, Spin):
             raise TypeError(
-                """The Hilbert space used by Ising must be a `Spin` space.
+                """The Hilbert space used by Ising must be a `Spin-1/2` space.
 
                 This limitation could be lifted by 'fixing' the method
                 `_flattened_kernel` to work with arbitrary hilbert spaces, which
@@ -80,6 +80,8 @@ class Ising(IsingBase):
                 workaround.
                 """
             )
+        if len(hilbert.local_states) != 2:
+            raise ValueError("Ising only supports Spin-1/2 hilbert spaces.")
 
         h = np.array(h, dtype=dtype)
         J = np.array(J, dtype=dtype)

@@ -24,6 +24,21 @@ def test_ising_int_dtype():
     (H @ H).collect()
 
 
+def test_ising_error():
+    g = nk.graph.Hypercube(8, 1)
+    with pytest.raises(TypeError):
+        hi = nk.hilbert.Qubit(8)
+        _ = nk.operator.Ising(hi, graph=g, h=1.0)
+
+    with pytest.raises(ValueError):
+        hi = nk.hilbert.Spin(1.0, 8)
+        _ = nk.operator.Ising(hi, graph=g, h=1.0)
+
+    with pytest.raises(ValueError):
+        hi = nk.hilbert.Spin(1.0, 8)
+        _ = nk.operator.IsingJax(hi, graph=g, h=1.0)
+
+
 def test_Heisenberg():
     g = nk.graph.Hypercube(8, 1)
     hi = nk.hilbert.Spin(0.5) ** 8
