@@ -14,6 +14,7 @@
 
 import jax
 import netket as nk
+import netket.experimental as nkx
 import numpy as np
 import pytest
 from jax import numpy as jnp
@@ -144,14 +145,14 @@ partial_model_pairs = [
     ),
     pytest.param(
         (
-            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
+            lambda hilbert, param_dtype, machine_pow: nkx.models.LSTMNet(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
+            lambda hilbert, param_dtype, machine_pow: nkx.models.FastLSTMNet(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
@@ -163,7 +164,7 @@ partial_model_pairs = [
     ),
     pytest.param(
         (
-            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
+            lambda hilbert, param_dtype, machine_pow: nkx.models.LSTMNet(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
@@ -171,7 +172,7 @@ partial_model_pairs = [
                 param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
+            lambda hilbert, param_dtype, machine_pow: nkx.models.FastLSTMNet(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
@@ -184,7 +185,7 @@ partial_model_pairs = [
     ),
     pytest.param(
         (
-            lambda hilbert, param_dtype, machine_pow: nk.models.LSTMNet(
+            lambda hilbert, param_dtype, machine_pow: nkx.models.LSTMNet(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
@@ -192,7 +193,7 @@ partial_model_pairs = [
                 param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastLSTMNet(
+            lambda hilbert, param_dtype, machine_pow: nkx.models.FastLSTMNet(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
@@ -205,14 +206,14 @@ partial_model_pairs = [
     ),
     pytest.param(
         (
-            lambda hilbert, param_dtype, machine_pow: nk.models.GRUNet1D(
+            lambda hilbert, param_dtype, machine_pow: nkx.models.GRUNet1D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
                 param_dtype=param_dtype,
                 machine_pow=machine_pow,
             ),
-            lambda hilbert, param_dtype, machine_pow: nk.models.FastGRUNet1D(
+            lambda hilbert, param_dtype, machine_pow: nkx.models.FastGRUNet1D(
                 hilbert=hilbert,
                 layers=3,
                 features=5,
@@ -380,7 +381,7 @@ def test_throwing():
     ],
 )
 def test_reorder_idx(graph):
-    from netket.nn.rnn.ordering import (
+    from netket.experimental.nn.rnn.ordering import (
         _get_inv_idx,
         _get_inv_reorder_idx,
         _get_prev_neighbors,
