@@ -39,14 +39,17 @@ class RNNCell(nn.Module):
         Applies the RNN cell to a batch of input sites at a given index.
 
         Args:
-          inputs: input data with dimensions (batch, in_features).
-          cell_mem: cell memory from the previous site with dimensions (batch, features).
-          hidden: hidden memories from the previous neighbors with dimensions (batch, n_neighbors, features).
+            inputs: input data with dimensions (batch, in_features).
+            cell_mem: cell memory from the previous site with dimensions (batch, features).
+            hidden: hidden memories from the previous neighbors with dimensions (batch, n_neighbors, features).
 
         Returns:
-          cell_mem: the updated cell memory with dimensions (batch, features).
-          outputs: the updated hidden memory with dimensions (batch, features),
-            also serves as the output data at the current site for the RNN layer.
+             * :code:`cell_mem`
+                the updated cell memory with dimensions :code:`(batch, self.features)`.
+             * :code:`outputs`
+                the updated hidden memory with dimensions :code:`(batch, self.features)`,
+                also serves as the output data at the current site for the
+                :class:`netket.experimental.nn.rnn.RNNLayer` layer.
         """
 
 

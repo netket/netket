@@ -20,15 +20,16 @@ from jax.nn.initializers import zeros
 
 from netket.graph import AbstractGraph
 from netket.models.autoreg import ARNNSequential, _get_feature_list
-from netket.nn.rnn import (
+from netket.utils import HashableArray
+from netket.utils.types import Array, DType, NNInitFunc
+
+from netket.experimental.nn.rnn import (
     GRU1DCell,
     LSTMCell,
     RNNLayer,
     default_kernel_init,
     ensure_prev_neighbors,
 )
-from netket.utils import HashableArray
-from netket.utils.types import Array, DType, NNInitFunc
 
 
 class RNN(ARNNSequential):
