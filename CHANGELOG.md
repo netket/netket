@@ -6,7 +6,7 @@
 ## NetKet 3.11 (⚙️ In development)
 
 ### New features
-* Added experimental support running netket on multiple jax devices (as an alternative to MPI). It is enabled by setting the environment variable/configuration flag `NETKET_EXPERIMENTAL_SHARDING=1`. Parallelization is achieved by distributing the Markov chains / samples equally across all available devices utilizing [`jax.Array` sharding](https://jax.readthedocs.io/en/latest/notebooks/Distributed_arrays_and_automatic_parallelization.html). On GPU multi-node setups are supported via [jax.distribued](https://jax.readthedocs.io/en/latest/multi_process.html), whereas on CPU it is limited to a single process but several threads can be used by setting `XLA_FLAGS='--xla_force_host_platform_device_count=XX'` [#1511](https://github.com/netket/netket/pull/1511).
+* Added experimental support for running NetKet on multiple jax devices (as an alternative to MPI). It is enabled by setting the environment variable/configuration flag `NETKET_EXPERIMENTAL_SHARDING=1`. Parallelization is achieved by distributing the Markov chains / samples equally across all available devices utilizing [`jax.Array` sharding](https://jax.readthedocs.io/en/latest/notebooks/Distributed_arrays_and_automatic_parallelization.html). On GPU multi-node setups are supported via [jax.distribued](https://jax.readthedocs.io/en/latest/multi_process.html), whereas on CPU it is limited to a single process but several threads can be used by setting `XLA_FLAGS='--xla_force_host_platform_device_count=XX'` [#1511](https://github.com/netket/netket/pull/1511).
 
 
 ## NetKet 3.10.1 (8 november 2023)
