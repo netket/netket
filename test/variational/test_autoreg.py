@@ -173,8 +173,12 @@ def test_vmc_same(partial_model_pair, hilbert, dtype, machine_pow, skip):
     assert vstate1.n_discard_per_chain == 0
     samples1 = vstate1.sample()
 
-    graph = nk.graph.Hypercube(length=hilbert.size, n_dim=1)
-    H = nk.operator.IsingJax(hilbert=hilbert, graph=graph, h=1)
+    H = nk.operator.LocalOperator(hilbert)
+    for i in range(hilbert.size):
+        j = i % hilbert.size
+        H += -nk.operator.spin.sigmax(hilbert, i)
+        H += nk.operator.spin.sigmaz(hilbert, i) @ nk.operator.spin.sigmaz(hilbert, j)
+
     optimizer = optax.adam(learning_rate=1e-3)
     vmc1 = nk.VMC(H, optimizer, variational_state=vstate1)
     vmc1.run(n_iter=3)
