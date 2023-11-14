@@ -357,6 +357,12 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
                 self,
             )
 
+            # Necessary for the tree_flatten in jax.jit, because
+            # metadata must be hashable and comparable. We don't
+            # want to re-hash it at every unpacking so we do it
+            # once in here.
+            self._operators_hashable = HashableArray(self.operators)
+
             x_flip_masks_stacked, z_data = pack_internals_jax(
                 self.operators, weights, weight_dtype=self.dtype, mode=self._mode
             )
@@ -386,7 +392,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         data = (self.weights, self._x_flip_masks_stacked, self._z_data)
         metadata = {
             "hilbert": self.hilbert,
-            "operators": HashableArray(self.operators),
+            "operators": self._operators_hashable,
             "dtype": self.dtype,
         }
         return data, metadata
@@ -395,11 +401,12 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     def tree_unflatten(cls, metadata, data):
         (weights, xm, zd) = data
         hi = metadata["hilbert"]
-        operators = metadata["operators"].wrapped
+        operators_hashable = metadata["operators"]
         dtype = metadata["dtype"]
 
         op = cls(hi, dtype=dtype)
-        op._operators = operators
+        op._operators = operators_hashable.wrapped
+        op._operators_hashable = operators_hashable
         op._weights = weights
         op._x_flip_masks_stacked = xm
         op._z_data = zd

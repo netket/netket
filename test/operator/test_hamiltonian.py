@@ -24,6 +24,21 @@ def test_ising_int_dtype():
     (H @ H).collect()
 
 
+def test_ising_error():
+    g = nk.graph.Hypercube(8, 1)
+    with pytest.raises(TypeError):
+        hi = nk.hilbert.Qubit(8)
+        _ = nk.operator.Ising(hi, graph=g, h=1.0)
+
+    with pytest.raises(ValueError):
+        hi = nk.hilbert.Spin(1.0, 8)
+        _ = nk.operator.Ising(hi, graph=g, h=1.0)
+
+    with pytest.raises(ValueError):
+        hi = nk.hilbert.Spin(1.0, 8)
+        _ = nk.operator.IsingJax(hi, graph=g, h=1.0)
+
+
 def test_Heisenberg():
     g = nk.graph.Hypercube(8, 1)
     hi = nk.hilbert.Spin(0.5) ** 8
@@ -126,11 +141,12 @@ def _colored_graph(graph):
 )
 def test_jax_conn(graph, partial_hilbert, partial_H_pair, dtype):
     hilbert = partial_hilbert(graph)
-    H1 = partial_H_pair[0](hilbert, graph)
     H2 = partial_H_pair[1](hilbert, graph)
 
-    if isinstance(hilbert, nk.hilbert.Qubit) and isinstance(H1, nk.operator.Ising):
+    if isinstance(hilbert, nk.hilbert.Qubit) and isinstance(H2, nk.operator.IsingJax):
         pytest.skip("The original Ising only supports Spin")
+
+    H1 = partial_H_pair[0](hilbert, graph)
 
     σ = hilbert.random_state(nk.jax.PRNGKey(0), size=(10,), dtype=dtype)
     σp1, mels1 = H1.get_conn_padded(σ)
