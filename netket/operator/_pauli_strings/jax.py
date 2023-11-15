@@ -22,8 +22,9 @@ from jax import numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
-from netket.utils.types import DType
 from netket.errors import concrete_or_error, JaxOperatorSetupDuringTracingError
+from netket.utils.types import DType
+from netket.utils import HashableArray
 
 from .._discrete_operator_jax import DiscreteJaxOperator
 
@@ -356,6 +357,12 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
                 self,
             )
 
+            # Necessary for the tree_flatten in jax.jit, because
+            # metadata must be hashable and comparable. We don't
+            # want to re-hash it at every unpacking so we do it
+            # once in here.
+            self._operators_hashable = HashableArray(self.operators)
+
             x_flip_masks_stacked, z_data = pack_internals_jax(
                 self.operators, weights, weight_dtype=self.dtype, mode=self._mode
             )
@@ -382,11 +389,10 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
 
     def tree_flatten(self):
         self._setup()
-
         data = (self.weights, self._x_flip_masks_stacked, self._z_data)
         metadata = {
             "hilbert": self.hilbert,
-            "operators": self.operators,
+            "operators": self._operators_hashable,
             "dtype": self.dtype,
         }
         return data, metadata
@@ -395,10 +401,13 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     def tree_unflatten(cls, metadata, data):
         (weights, xm, zd) = data
         hi = metadata["hilbert"]
-        operators = metadata["operators"]
+        operators_hashable = metadata["operators"]
         dtype = metadata["dtype"]
 
-        op = cls(hi, operators, weights, dtype=dtype)
+        op = cls(hi, dtype=dtype)
+        op._operators = operators_hashable.wrapped
+        op._operators_hashable = operators_hashable
+        op._weights = weights
         op._x_flip_masks_stacked = xm
         op._z_data = zd
         op._initialized = True

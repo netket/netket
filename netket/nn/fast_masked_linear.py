@@ -38,7 +38,7 @@ class FastMaskedDense1D(nn.Module):
     """
     1D linear transformation module with mask for fast autoregressive NN.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
 
     TODO: FastMaskedDense1D does not support JIT yet, because it involves slicing the cached inputs
     and the weights with a dynamic shape.
@@ -168,10 +168,7 @@ class FastMaskedConv1D(nn.Module):
     """
     1D convolution module with mask for fast autoregressive NN.
 
-    The fast autoregressive sampling is described in `Ramachandran et. {\\it al} <https://arxiv.org/abs/1704.06001>`_.
-    To generate one sample using an autoregressive network, we need to evaluate the network `N` times, where `N` is
-    the number of input sites. But we only change one input site each time, so we can cache unchanged intermediate results
-    and avoid repeated computation.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
 
     features: int
@@ -305,7 +302,7 @@ class FastMaskedConv2D(nn.Module):
     """
     2D convolution module with mask for fast autoregressive NN.
 
-    See :class:`netket.nn.FastMaskedConv1D` for a brief explanation of fast autoregressive sampling.
+    See :class:`netket.models.FastARNNSequential` for a brief explanation of fast autoregressive sampling.
     """
 
     L: int

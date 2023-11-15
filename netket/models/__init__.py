@@ -20,13 +20,21 @@ from .mps import MPSPeriodic
 from .gaussian import Gaussian
 from .deepset import DeepSetRelDistance, DeepSetMLP
 from .ndm import NDM
-from .autoreg import AbstractARNN, ARNNDense, ARNNConv1D, ARNNConv2D as _ARNNConv2D
+from .autoreg import (
+    AbstractARNN,
+    ARNNSequential,
+    ARNNDense,
+    ARNNConv1D,
+    ARNNConv2D as _ARNNConv2D,
+)
 from .fast_autoreg import (
+    FastARNNSequential,
     FastARNNDense,
     FastARNNConv1D,
     FastARNNConv2D as _FastARNNConv2D,
 )
 from .mlp import MLP
+
 from .utils import update_GCNN_parity
 
 

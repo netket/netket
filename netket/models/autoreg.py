@@ -15,6 +15,7 @@
 import abc
 from math import sqrt
 from typing import Any, Callable, Union
+from collections.abc import Sequence
 
 import jax
 from flax import linen as nn
@@ -33,25 +34,32 @@ class AbstractARNN(nn.Module):
     """
     Base class for autoregressive neural networks.
 
-    Subclasses must implement the method `conditionals_log_psi`, or override the methods
-    `__call__` and `conditional` if desired.
+    Subclasses must implement the method
+    :meth:`~netket.models.AbstractARNN.conditionals_log_psi`,
+    or override the methods
+    :meth:`~netket.models.AbstractARNN.__call__` and
+    :meth:`~netket.models.AbstractARNN.conditionals` if desired.
 
-    They can override `conditional` to implement the caching for fast autoregressive sampling.
-    See :class:`netket.nn.FastARNNConv1D` for example.
+    They can override :meth:`~netket.models.AbstractARNN.conditional` to
+    implement the caching for fast autoregressive sampling.
+    See :class:`netket.models.FastARNNConv1D` for an example.
 
-    They must also implement the field `machine_pow`,
-    which specifies the exponent to normalize the outputs of `__call__`.
+    They must also implement the field :attr:`~netket.models.AbstractARNN.machine_pow`,
+    which specifies the exponent to normalize the outputs of
+    :meth:`~netket.models.AbstractARNN.__call__`.
     """
 
     hilbert: HomogeneousHilbert
-    """the Hilbert space. Only homogeneous unconstrained Hilbert spaces are supported."""
+    """the Hilbert space. Only homogeneous unconstrained
+    Hilbert spaces are supported."""
 
     def __post_init__(self):
         super().__post_init__()
 
         if not isinstance(self.hilbert, HomogeneousHilbert):
             raise ValueError(
-                f"Only homogeneous Hilbert spaces are supported by ARNN, but hilbert is a {type(self.hilbert)}."
+                "Only homogeneous Hilbert spaces are supported "
+                f"by ARNN, but hilbert is a {type(self.hilbert)}."
             )
 
         if self.hilbert.constrained:
@@ -60,7 +68,8 @@ class AbstractARNN(nn.Module):
     @abc.abstractmethod
     def conditionals_log_psi(self, inputs: Array) -> Array:
         """
-        Computes the log of the conditional wave-functions for each site to take each value.
+        Computes the log of the conditional wave-functions for each
+        site to take each value.
 
         Args:
           inputs: configurations with dimensions (batch, Hilbert.size).
@@ -148,13 +157,52 @@ class AbstractARNN(nn.Module):
         log_psi = log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
         return log_psi
 
+    def reorder(self, inputs: Array, axis: int = 0) -> Array:
+        """
+        Transforms an array from unordered to ordered.
+
+        We call a 1D array 'unordered' if we need non-trivial indexing to access
+        its elements in the autoregressive order, e.g., `a[0], a[1], a[3], a[2]`
+        for the snake order. Otherwise, we call it 'ordered'.
+
+        The inputs of `conditionals_log_psi`, `conditionals`, `conditional`, and
+        `__call__` are assumed to have unordered layout, and those inputs are
+        always transformed through `reorder` before evaluating the network.
+
+        Subclasses may override `reorder` and `inverse_reorder` together to
+        define this transformation.
+
+        Args:
+          inputs: an array with unordered layout along a dimension.
+          axis: the dimension to reorder on.
+
+        Returns:
+          The array with ordered layout.
+        """
+        return inputs
+
+    def inverse_reorder(self, inputs: Array, axis: int = 0) -> Array:
+        """
+        Transforms an array from ordered to unordered. See `reorder`.
+
+        Args:
+          inputs: an array with ordered layout along a dimension.
+          axis: the dimension to reorder on.
+
+        Returns:
+          The array with unordered layout.
+        """
+        return inputs
+
 
 class ARNNSequential(AbstractARNN):
     """
-    Implementation of an ARNN that sequentially calls its layers and activation function.
+    Implementation of an ARNN that sequentially calls its layers, and optionally
+    an activation function.
 
-    Subclasses must implement `activation` as a field or a method,
-    and assign a list of ARNN layers to `self._layers` in `setup`.
+    A subclass must assign a list of ARNN layers to `self._layers` in `setup`.
+    If it has a callable attribute `activation`, it will be called before every
+    layer except the first.
 
     Note:
         If you want to use real parameters and output a complex wave function, such as in
@@ -173,7 +221,7 @@ class ARNNSequential(AbstractARNN):
         x = jnp.expand_dims(inputs, axis=-1)
 
         for i in range(len(self._layers)):
-            if i > 0:
+            if i > 0 and hasattr(self, "activation"):
                 x = self.activation(x)
             x = self._layers[i](x)
 
@@ -187,6 +235,34 @@ class ARNNSequential(AbstractARNN):
         before sending them to the ARNN layers.
         """
         return inputs
+
+
+def _get_feature_list(model: ARNNSequential) -> Sequence[int]:
+    """
+    Helper function to transform int-typed `model.features` to a sequence,
+    and to check that it is correctly defined if it is already a sequence.
+
+    Args:
+        model: an `ARNNSequential` instance having the attributes `features`,
+        `layers`, and `hilbert`.
+
+    Returns:
+        A sequence of ints as the numbers of features in all layers.
+    """
+    if isinstance(model.features, int):
+        features = [model.features] * (model.layers - 1) + [model.hilbert.local_size]
+    else:
+        features = model.features
+
+    if len(features) != model.layers:
+        raise ValueError(
+            f"Features list length {len(features)} is different from number of layers {model.layers}"
+        )
+    if features[-1] != model.hilbert.local_size:
+        raise ValueError(
+            f"Features in the last layer {features[-1]} is different from Hilbert local size {model.hilbert.local_size}"
+        )
+    return features
 
 
 @deprecate_dtype
@@ -214,13 +290,7 @@ class ARNNDense(ARNNSequential):
     """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
+        features = _get_feature_list(self)
         self._layers = [
             MaskedDense1D(
                 features=features[i],
@@ -264,13 +334,7 @@ class ARNNConv1D(ARNNSequential):
     """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
+        features = _get_feature_list(self)
         self._layers = [
             MaskedConv1D(
                 features=features[i],
@@ -319,13 +383,7 @@ class ARNNConv2D(ARNNSequential):
         self.L = int(sqrt(self.hilbert.size))
         assert self.L**2 == self.hilbert.size
 
-        if isinstance(self.features, int):
-            features = [self.features] * (self.layers - 1) + [self.hilbert.local_size]
-        else:
-            features = self.features
-        assert len(features) == self.layers
-        assert features[-1] == self.hilbert.local_size
-
+        features = _get_feature_list(self)
         self._layers = [
             MaskedConv2D(
                 features=features[i],

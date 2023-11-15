@@ -50,12 +50,24 @@ class HashableArray:
         return hash(self.wrapped.tobytes())
 
     def __eq__(self, other):
-        return np.all(self.wrapped == other.wrapped)
+        return type(other) is HashableArray and np.all(self.wrapped == other.wrapped)
 
     def __array__(self, dtype: DType = None):
         if dtype is None:
             dtype = self.wrapped.dtype
         return self.wrapped.__array__(dtype)
+
+    @property
+    def dtype(self) -> DType:
+        return self.wrapped.dtype
+
+    @property
+    def size(self) -> int:
+        return self.wrapped.size
+
+    @property
+    def ndim(self) -> int:
+        return self.wrapped.ndim
 
     @property
     def shape(self) -> Shape:

@@ -206,7 +206,7 @@ class RBMMultiVal(nn.Module):
 
 
 class RBMSymm(nn.Module):
-    """A symmetrized RBM using the :ref:`netket.nn.DenseSymm` layer internally."""
+    """A symmetrized RBM using the :func:`netket.nn.DenseSymm` layer internally."""
 
     symmetries: Union[HashableArray, PermutationGroup]
     """A group of symmetry operations (or array of permutation indices) over which the layer should be invariant.
