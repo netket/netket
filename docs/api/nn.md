@@ -103,7 +103,7 @@ The following are RNN layers (in flax those would be called a RNN), which can be
 
 ```{eval-rst}
 .. autosummary::
-   :toctree: _generated/nn
+   :toctree: _generated/nn/rnn
    :template: flax_module_or_default
    :nosignatures:
 
@@ -115,7 +115,7 @@ The following are recurrent cells that can be used with {class}`netket.experimen
 
 ```{eval-rst}
 .. autosummary::
-   :toctree: _generated/nn
+   :toctree: _generated/nn/rnn
    :template: flax_module_or_default
    :nosignatures:
 
@@ -124,4 +124,17 @@ The following are recurrent cells that can be used with {class}`netket.experimen
    rnn.GRU1DCell
 ```
 
- 
+The following are utility functions to build up custom autoregressive orderings.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/nn/rnn
+   :template: flax_module_or_default
+   :nosignatures:
+
+   rnn.check_reorder_idx
+   rnn.ensure_prev_neighbors
+   rnn.get_snake_inv_reorder_idx
+```
+
+

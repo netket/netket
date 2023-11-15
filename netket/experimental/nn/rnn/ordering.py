@@ -91,9 +91,21 @@ def ensure_prev_neighbors(
     check: bool = False,
 ) -> tuple[HashableArray, HashableArray, HashableArray]:
     """
-    Deduce the missing ones in reorder_idx, inv_reorder_idx, and inv_reorder_idx
-    from the specified arguments.
+    Deduce the missing arguments between *reorder_idx*,
+    *inv_reorder_idx*, and *inv_reorder_idx* from the specified arguments.
+
     See :class:`netket.experimental.models.RNN` for details about the reordering indices.
+
+    If no information on neighbors or graph is provided, assumes a 1D ordering.
+
+    Args:
+        reorder_idx: indices to transform the inputs from unordered to ordered.
+            See :meth:`netket.models.AbstractARNN.reorder` for details
+        inv_reorder_idx: indices to transform the inputs from ordered to unordered.
+            See :meth:`netket.models.AbstractARNN.reorder` for details.
+        prev_neighbors: previous neighbors of each site.
+        graph: graph of the physical system, to deduce neighbors.
+        check: check the validity of the provided values.
     """
     if inv_reorder_idx is None and graph is not None:
         inv_reorder_idx = _get_inv_reorder_idx(graph)
@@ -158,6 +170,7 @@ def get_snake_inv_reorder_idx(graph: AbstractGraph) -> HashableArray:
     """
     A helper function to generate the inverse reorder indices in the snake order
     for a 2D graph.
+
     See :class:`netket.experimental.models.RNN` for details about the reordering indices.
     """
     V, L, M = _get_extent(graph)
