@@ -5,6 +5,10 @@
 
 ## NetKet 3.11 (⚙️ In development)
 
+### New Features
+
+* Recurrent neural networks and layers have been added to `nkx.models` and `nkx.nn` [#1305](https://github.com/netket/netket/pull/1305).
+
 ## NetKet 3.10.2 (14 november 2023)
 
 ### Bug Fixes
@@ -12,7 +16,6 @@
 * Fixed a bug where it was not possible to recompile functions using two identical but different instances of PauliStringJax [#1647](https://github.com/netket/netket/pull/1647).
 * Fixed a minor bug where chunking was never actually used inside of {meth}`~netket.vqs.MCState.local_estimators`. This will turn on chunking for some other drivers such as {class}`netket.experimental.driver.VMC_SRt` and {class}`netket.experimental.driver.TDVPSchmitt`) [#1650](https://github.com/netket/netket/pull/1650).
 * {class}`netket.operator.Ising` now throws an error when it is constructed using a non-{class}`netket.hilbert.Spin` hilbert space [#1648](https://github.com/netket/netket/pull/1648).
-
 
 ## NetKet 3.10.1 (8 november 2023)
 
@@ -231,7 +234,7 @@ A new, more accurate, estimation of the autocorrelation time has been introduced
 ### Deprecations
 
 * `nk.nn.Module` and `nk.nn.compact` have been deprecated. Please use the {class}`flax.linen.Module` and {func}`flax.linen.compact` instead.
-* `nk.nn.Dense(dtype=mydtype)` and related Modules (`Conv`, `DenseGeneral` and `ConvGeneral`) are deprecated. Please use `flax.linen.***(param_dtype=mydtype)` instead. Before flax v0.5 they did not support complex numbers properly within their modules, but starting with flax 0.5 they now do so we have removed our linear module wrappers and encourage you to use them. Please notice that the `dtype` argument previously used by netket should be changed to `param_dtype` to maintain the same effect. [#...](https://github.com/netket/netket/pull/...)  
+* `nk.nn.Dense(dtype=mydtype)` and related Modules (`Conv`, `DenseGeneral` and `ConvGeneral`) are deprecated. Please use `flax.linen.***(param_dtype=mydtype)` instead. Before flax v0.5 they did not support complex numbers properly within their modules, but starting with flax 0.5 they now do so we have removed our linear module wrappers and encourage you to use them. Please notice that the `dtype` argument previously used by netket should be changed to `param_dtype` to maintain the same effect. [#...](https://github.com/netket/netket/pull/...)
 
 ### Bug Fixes
 * Fixed bug where a `nk.operator.LocalOperator` representing the identity would lead to a crash. [#1197](https://github.com/netket/netket/pull/1197)

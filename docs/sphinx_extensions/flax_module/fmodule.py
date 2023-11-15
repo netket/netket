@@ -56,7 +56,11 @@ def render_module(modname: str, qualname: str, app):
         for name, typ in sig.parameters.items():
             if inspect.isfunction(getattr(obj, name, None)):
                 # unset it
-                delattr(obj, name)
+                if hasattr(obj, name):
+                    try:
+                        delattr(obj, name)
+                    except AttributeError:
+                        pass
     else:
         template_name = "flax_function_wrap"
 
