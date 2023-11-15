@@ -9,6 +9,10 @@
 This sub-module contains several pre-built models to be used as
 neural quantum states.
 
+## Generic models
+
+This section lists some simple variational architectures.
+
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/models
@@ -30,17 +34,32 @@ neural quantum states.
 
 ```
 
-The following autoregressive models can be directly sampled using {class}`~netket.sampler.ARDirectSampler`
+
+## Autoregressive models
+
+The following autoregressive models can be directly sampled using {class}`~netket.sampler.ARDirectSampler`.
+
+Those that follow are the abstract classes that can be inherited from in order to build an autoregressive model.
 
 ```{eval-rst}
 .. autosummary::
    :toctree: _generated/models
-   :template: flax_model
+   :template: flax_module_or_default
    :nosignatures:
 
    AbstractARNN
    ARNNSequential
    FastARNNSequential
+```
+
+And those are some default implementation of Dense and Convolutional-autoregressive Neural networks. Those are built by using masked dense and masked convolutional layers.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/models
+   :template: flax_module_or_default
+   :nosignatures:
+
    ARNNDense
    ARNNConv1D
    ARNNConv2D
@@ -48,6 +67,7 @@ The following autoregressive models can be directly sampled using {class}`~netke
    FastARNNConv2D
 
 ```
+
 
 ## Continuous degrees of freedom
 
@@ -63,6 +83,7 @@ The following models are particularly suited for systems with continuous degrees
    Gaussian
    DeepSetRelDistance
 ```
+
 
 ## Experimental models
 
