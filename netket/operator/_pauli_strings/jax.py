@@ -361,7 +361,10 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             # metadata must be hashable and comparable. We don't
             # want to re-hash it at every unpacking so we do it
             # once in here.
-            self._operators_hashable = HashableArray(self.operators)
+            if self._mode == "index":
+                self._operators_hashable = HashableArray(self.operators)
+            else:
+                self._operators_hashable = None
 
             x_flip_masks_stacked, z_data = pack_internals_jax(
                 self.operators, weights, weight_dtype=self.dtype, mode=self._mode
@@ -394,6 +397,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
             "hilbert": self.hilbert,
             "operators": self._operators_hashable,
             "dtype": self.dtype,
+            "mode": self._mode,
         }
         return data, metadata
 
@@ -403,9 +407,12 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         hi = metadata["hilbert"]
         operators_hashable = metadata["operators"]
         dtype = metadata["dtype"]
+        mode = metadata["mode"]
 
-        op = cls(hi, dtype=dtype)
-        op._operators = operators_hashable.wrapped
+        op = cls(hi, dtype=dtype, _mode=mode)
+        op._operators = (
+            operators_hashable.wrapped if operators_hashable is not None else None
+        )
         op._operators_hashable = operators_hashable
         op._weights = weights
         op._x_flip_masks_stacked = xm
