@@ -115,7 +115,7 @@ class Sampler(abc.ABC):
 
         # this does nothing if n_chains_per_rank is not None and n_chains is None
         kwargs["n_chains_per_rank"] = _compute_n_chains_per(
-            kwargs.pop("n_chains", None),
+            n_chains,
             kwargs.pop("n_chains_per_rank", None),
             mpi.n_nodes,
             "rank",
