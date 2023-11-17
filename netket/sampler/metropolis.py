@@ -291,7 +291,7 @@ class MetropolisSampler(Sampler):
             n_chains,
             n_chains_per_rank_or_device,
             n_ranks_or_devices,
-            "device_or_rank",
+            "rank_or_device",
             default_n_chains_per_rank_or_device,
         )
 
