@@ -98,7 +98,7 @@ class Sampler(abc.ABC):
         return (hilbert,), kwargs
 
     def __post_init__(self):
-        # Raise error if n_chains is a multiple of the number of mpi ranks
+        # Raise error if n_chains is not a multiple of the number of mpi ranks
         self.n_chains_per_rank
 
         # Raise errors if hilbert is not an Hilbert
