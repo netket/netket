@@ -16,8 +16,6 @@ from functools import partial
 from typing import Any, Callable, Optional, Union
 from textwrap import dedent
 
-import numpy as np
-
 import jax
 from flax import linen as nn
 from flax import serialization
@@ -40,6 +38,8 @@ from netket.jax.sharding import (
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
+
+from .base import _compute_n_chains_per
 
 
 @struct.dataclass
@@ -180,36 +180,6 @@ def _assert_good_log_prob_shape(log_prob, n_chains_per_rank, machine):
         )
 
 
-def _compute_n_chains_per(
-    n_chains, n_chains_per_whatever, n_whatever, whatever_str, default
-):
-    # small helper function to round the number of chains to the next multiple of [whatever]
-    # here [whatever] can be e.g. mpi ranks or jax devices
-    if n_chains is None and n_chains_per_whatever is None:
-        n_chains_per_whatever = default
-    elif n_chains is not None and n_chains_per_whatever is not None:
-        raise ValueError(
-            f"Cannot specify both `n_chains` and `n_chains_per_{whatever_str}`"
-        )
-    elif n_chains is not None:
-        n_chains_per_whatever = max(int(np.ceil(n_chains / n_whatever)), 1)
-        if n_chains_per_whatever * n_whatever != n_chains:
-            if mpi.rank == 0:
-                import warnings
-
-                warnings.warn(
-                    f"Using {n_chains_per_whatever} chains per {whatever_str} among {n_whatever} {whatever_str}s "
-                    f"(total={n_chains_per_whatever * n_whatever} instead of n_chains={n_chains}). "
-                    f"To directly control the number of chains on every {whatever_str}, specify "
-                    f"`n_chains_per_{whatever_str}` when constructing the sampler. "
-                    f"To silence this warning, either use `n_chains_per_{whatever_str}` or use `n_chains` "
-                    f"that is a multiple of the number of {whatever_str}s",
-                    category=UserWarning,
-                    stacklevel=2,
-                )
-    return n_chains_per_whatever
-
-
 @struct.dataclass
 class MetropolisSampler(Sampler):
     r"""
@@ -228,8 +198,6 @@ class MetropolisSampler(Sampler):
 
     The dtype of the sampled states can be chosen.
     """
-    n_chains_per_rank: int = struct.field(pytree_node=False, default=None, repr=False)
-    """Number of independent chains on every MPI rank."""
     rule: MetropolisRule = None
     """The Metropolis transition rule."""
     n_sweeps: int = struct.field(pytree_node=False, default=None)

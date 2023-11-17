@@ -38,6 +38,36 @@ class SamplerState(abc.ABC):
     """
 
 
+def _compute_n_chains_per(
+    n_chains, n_chains_per_whatever, n_whatever, whatever_str, default
+):
+    # small helper function to round the number of chains to the next multiple of [whatever]
+    # here [whatever] can be e.g. mpi ranks or jax devices
+    if n_chains is None and n_chains_per_whatever is None:
+        n_chains_per_whatever = default
+    elif n_chains is not None and n_chains_per_whatever is not None:
+        raise ValueError(
+            f"Cannot specify both `n_chains` and `n_chains_per_{whatever_str}`"
+        )
+    elif n_chains is not None:
+        n_chains_per_whatever = max(int(np.ceil(n_chains / n_whatever)), 1)
+        if n_chains_per_whatever * n_whatever != n_chains:
+            if mpi.rank == 0:
+                import warnings
+
+                warnings.warn(
+                    f"Using {n_chains_per_whatever} chains per {whatever_str} among {n_whatever} {whatever_str}s "
+                    f"(total={n_chains_per_whatever * n_whatever} instead of n_chains={n_chains}). "
+                    f"To directly control the number of chains on every {whatever_str}, specify "
+                    f"`n_chains_per_{whatever_str}` when constructing the sampler. "
+                    f"To silence this warning, either use `n_chains_per_{whatever_str}` or use `n_chains` "
+                    f"that is a multiple of the number of {whatever_str}s",
+                    category=UserWarning,
+                    stacklevel=2,
+                )
+    return n_chains_per_whatever
+
+
 @struct.dataclass
 class Sampler(abc.ABC):
     """
@@ -68,6 +98,30 @@ class Sampler(abc.ABC):
 
     dtype: DType = struct.field(pytree_node=False, default=float)
     """The dtype of the states sampled."""
+
+    def __pre_init__(
+        self, hilbert: AbstractHilbert, n_chains: Optional[int] = None, **kwargs
+    ):
+        """
+        Construct a Monte Carlo sampler.
+
+        Args:
+            hilbert: The Hilbert space to sample.
+            n_chains: The total number of independent chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
+            n_chains_per_rank: Number of independent chains on every MPI rank (default = 1).
+            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+            dtype: The dtype of the states sampled (default = np.float64).
+        """
+
+        # this does nothing if n_chains_per_rank is not None and n_chains is None
+        kwargs["n_chains_per_rank"] = _compute_n_chains_per(
+            kwargs.pop("n_chains", None),
+            kwargs.pop("n_chains_per_rank", None),
+            mpi.n_nodes,
+            "rank",
+            1,
+        )
+        return (hilbert,), kwargs
 
     def __post_init__(self):
         # Raise errors if hilbert is not an Hilbert
