@@ -29,7 +29,7 @@ from jax.tree_util import Partial
 from jax.sharding import Mesh, PartitionSpec as P, PositionalSharding
 from jax.experimental.shard_map import shard_map
 
-from netket.utils import config
+from netket.utils import config, mpi
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 
@@ -158,7 +158,10 @@ def distribute_to_devices_along_axis(
     inp_data, axis=0, pad=False, pad_value=None, devices=jax.devices()
 ):
     """
-    Distribute a local array equally along an axis to multiple jax devices devices.
+    Distribute a local array equally along an axis to multiple jax devices devices
+
+     .. note:
+        Does nothing if netket.config.netket_experimental_sharding=False.
 
      .. note:
         Each jax process needs to have the whole array (parts not belonging to it can be filled with garbage).
@@ -176,31 +179,36 @@ def distribute_to_devices_along_axis(
         mask: a mask indicating wether a given element is part of the original data (True) of of the padding (False)
               only returned if pad=True
     """
-    if pad:
-        n = inp_data.shape[0]
-        # pad to the next multiple of device_count
-        device_count = jax.device_count()
-        n_pad = math.ceil(inp_data.shape[0] / device_count) * device_count - n
-        inp_data = jnp.pad(inp_data, ((0, n_pad), (0, 0)))
-        if pad_value is not None and n_pad > 0:
-            inp_data = inp_data.at[-n_pad:].set(pad_value)
+    if config.netket_experimental_sharding:
+        if pad:
+            n = inp_data.shape[0]
+            # pad to the next multiple of device_count
+            device_count = jax.device_count()
+            n_pad = math.ceil(inp_data.shape[0] / device_count) * device_count - n
+            inp_data = jnp.pad(inp_data, ((0, n_pad), (0, 0)))
+            if pad_value is not None and n_pad > 0:
+                inp_data = inp_data.at[-n_pad:].set(pad_value)
 
-    shape = [
-        1,
-    ] * inp_data.ndim
-    shape[axis] = -1
-    sharding = PositionalSharding(devices).reshape(shape)
-    out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
-    if pad:
-        if n_pad > 0:
-            mask = jax.jit(
-                _prepare_mask, out_shardings=sharding.reshape(-1), static_argnums=(0, 1)
-            )(n, n_pad)
+        shape = [
+            1,
+        ] * inp_data.ndim
+        shape[axis] = -1
+        sharding = PositionalSharding(devices).reshape(shape)
+        out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
+        if pad:
+            if n_pad > 0:
+                mask = jax.jit(
+                    _prepare_mask,
+                    out_shardings=sharding.reshape(-1),
+                    static_argnums=(0, 1),
+                )(n, n_pad)
+            else:
+                mask = None
+            return out_data, mask
         else:
-            mask = None
-        return out_data, mask
+            return out_data
     else:
-        return out_data
+        return inp_data
 
 
 def extract_replicated(t):
@@ -467,3 +475,19 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
         return _fun
 
     return f
+
+
+def device_count_per_rank():
+    """
+    Helper functions which returns the number of jax devices netket will use
+
+    Returns:
+        jax.device_count() if config.netket_experimental_sharding is True, and 1 otherwise
+    """
+    if config.netket_experimental_sharding:
+        if mpi.n_nodes > 1:
+            # this should never be triggered as we disable mpi when sharding
+            raise NotImplementedError("hybrid mpi and sharding is not not supported")
+        return jax.device_count()
+    else:  # mpi or serial
+        return 1

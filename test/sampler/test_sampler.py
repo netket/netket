@@ -19,6 +19,8 @@ from .. import common
 
 import netket as nk
 from netket.hilbert import DiscreteHilbert, Particle
+from netket.utils import mpi
+from netket.jax.sharding import device_count_per_rank
 
 from netket import experimental as nkx
 
@@ -520,4 +522,7 @@ def test_exact_sampler(sampler):
         assert sampler.n_chains_per_rank == 1
     else:
         assert sampler.is_exact is False
-        assert sampler.n_chains_per_rank == 16 * jax.device_count()
+        assert (
+            sampler.n_chains
+            == 16 * mpi.n_nodes * device_count_per_rank()
+        )
