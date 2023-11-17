@@ -28,7 +28,6 @@ from jax.tree_util import Partial
 
 import itertools
 
-import netket as nk
 from netket import jax as nkjax
 from netket import stats as nkstats
 from netket.utils import mpi
