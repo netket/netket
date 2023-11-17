@@ -16,6 +16,8 @@ from functools import partial
 from typing import Any, Callable, Optional, Union
 from textwrap import dedent
 
+import numpy as np
+
 import jax
 from flax import linen as nn
 from flax import serialization
@@ -26,7 +28,7 @@ from netket.hilbert import AbstractHilbert, ContinuousHilbert
 from netket.utils import mpi, wrap_afun
 from netket.utils.types import PyTree
 
-from netket.utils.deprecation import deprecated
+from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
 
 from netket.utils.config_flags import config
@@ -34,12 +36,11 @@ from netket.jax.sharding import (
     extract_replicated,
     gather,
     distribute_to_devices_along_axis,
+    device_count_per_rank,
 )
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
-
-from .base import _compute_n_chains_per
 
 
 @struct.dataclass
@@ -180,6 +181,36 @@ def _assert_good_log_prob_shape(log_prob, n_chains_per_rank, machine):
         )
 
 
+def _round_n_chains_to_next_multiple(
+    n_chains, n_chains_per_whatever, n_whatever, whatever_str, default
+):
+    # small helper function to round the number of chains to the next multiple of [whatever]
+    # here [whatever] can be e.g. mpi ranks or jax devices
+    if n_chains is None and n_chains_per_whatever is None:
+        n_chains_per_whatever = default
+    elif n_chains is not None and n_chains_per_whatever is not None:
+        raise ValueError(
+            f"Cannot specify both `n_chains` and `n_chains_per_{whatever_str}`"
+        )
+    elif n_chains is not None:
+        n_chains_per_whatever = max(int(np.ceil(n_chains / n_whatever)), 1)
+        if n_chains_per_whatever * n_whatever != n_chains:
+            if mpi.rank == 0:
+                import warnings
+
+                warnings.warn(
+                    f"Using {n_chains_per_whatever} chains per {whatever_str} among {n_whatever} {whatever_str}s "
+                    f"(total={n_chains_per_whatever * n_whatever} instead of n_chains={n_chains}). "
+                    f"To directly control the number of chains on every {whatever_str}, specify "
+                    f"`n_chains_per_{whatever_str}` when constructing the sampler. "
+                    f"To silence this warning, either use `n_chains_per_{whatever_str}` or use `n_chains` "
+                    f"that is a multiple of the number of {whatever_str}s",
+                    category=UserWarning,
+                    stacklevel=2,
+                )
+    return n_chains_per_whatever * n_whatever
+
+
 @struct.dataclass
 class MetropolisSampler(Sampler):
     r"""
@@ -219,8 +250,7 @@ class MetropolisSampler(Sampler):
                 if MPI is enabled and `n_chains` is specified, then every MPI rank will run
                 `n_chains/mpi.n_nodes` chains. In general, we recommend specifying `n_chains_per_rank`
                 as it is more portable.
-            n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
-            n_chains_per_device: Number of independent chains on every jax device (default = 16).
+            n_chains_per_rank_or_device: Number of independent chains on every MPI rank / jax device (default = 16).
             n_sweeps: Number of sweeps for each step along the chain.
                 This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
                 in the Hilbert space.)
@@ -239,27 +269,31 @@ class MetropolisSampler(Sampler):
             )
 
         n_chains = kwargs.pop("n_chains", None)
-        n_chains_per_rank = kwargs.pop("n_chains_per_rank", None)
-        n_chains_per_device = kwargs.pop("n_chains_per_device", None)
+        n_chains_per_rank_or_device = kwargs.pop("n_chains_per_rank_or_device", None)
 
-        if config.netket_experimental_sharding:
-            # here we ignore n_chains_per_rank; TODO raise warning if it is passed?
-            n_devices = jax.device_count()
-            # TODO use more default chains if on gpu?
-            n_chains_per_device = _compute_n_chains_per(
-                n_chains, n_chains_per_device, n_devices, "device", 16
+        if "n_chains_per_rank" in kwargs:
+            warn_deprecation(
+                "Specifying `n_chains_per_rank` when constructing the Sampler is deprecated. Please use `n_chains_per_rank_or_device` instead."
             )
-            # per definition there is only one MPI rank when we are sharded (and use no mpi),
-            # so this is just the total number of chains
-            kwargs["n_chains_per_rank"] = n_chains_per_device * n_devices
-        else:  # MPI
-            # here we ignore n_chains_per_device; TODO raise warning if it is passed?
-            n_nodes = mpi.n_nodes
-            # TODO use more default chains if on gpu?
-            n_chains_per_rank = _compute_n_chains_per(
-                n_chains, n_chains_per_rank, n_nodes, "rank", 16
-            )
-            kwargs["n_chains_per_rank"] = n_chains_per_rank
+            if n_chains_per_rank_or_device is None:
+                n_chains_per_rank_or_device = kwargs.pop("n_chains_per_rank")
+            else:
+                raise ValueError(
+                    "Cannot specify both `n_chains_per_rank_or_device` and `n_chains_per_rank`"
+                )
+
+        # TODO set it to a few hundred if on GPU?
+        default_n_chains_per_rank_or_device = 16
+
+        # we assume either mpi.n_nodes=1 or nk.jax.sharding.device_count_per_rank()=1
+        n_ranks_or_devices = mpi.n_nodes * device_count_per_rank()
+        kwargs["n_chains"] = _round_n_chains_to_next_multiple(
+            n_chains,
+            n_chains_per_rank_or_device,
+            n_ranks_or_devices,
+            "device_or_rank",
+            default_n_chains_per_rank_or_device,
+        )
 
         # process arguments in the base
         args, kwargs = super().__pre_init__(hilbert=hilbert, **kwargs)

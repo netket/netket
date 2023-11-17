@@ -23,6 +23,7 @@ from netket.sampler import Sampler, SamplerState
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PRNGKeyT
+from netket.utils import mpi
 from netket import config
 
 
@@ -65,7 +66,9 @@ class ARDirectSampler(Sampler):
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
             )
-        kwargs["n_chains_per_rank"] = 1
+            kwargs.pop("n_chains_per_rank")
+            kwargs.pop("n_chains")
+        kwargs["n_chains"] = mpi.n_nodes
         return super().__pre_init__(*args, **kwargs)
 
     def __post_init__(self):

@@ -23,6 +23,7 @@ from netket.nn import to_array
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, SeedT
+from netket.utils import mpi
 from netket import config
 
 from .base import Sampler, SamplerState
@@ -62,7 +63,9 @@ class ExactSampler(Sampler):
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
             )
-        kwargs["n_chains_per_rank"] = 1
+            kwargs.pop("n_chains_per_rank")
+            kwargs.pop("n_chains")
+        kwargs["n_chains"] = mpi.n_nodes
         return super().__pre_init__(*args, **kwargs)
 
     @property
