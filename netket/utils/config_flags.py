@@ -342,3 +342,17 @@ config.define(
     runtime=False,
     callback=_setup_experimental_sharding_cpu,
 )
+
+
+config.define(
+    "NETKET_EXPERIMENTAL_SHARDING_NUMBA_WRAPPER_WARNING",
+    bool,
+    default=True,
+    help=dedent(
+        """
+        Raise a warning when the highly experimental wrapper for numba operators
+        acting on sharded arrays is used.
+        """
+    ),
+    runtime=True,
+)

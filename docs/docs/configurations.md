@@ -114,4 +114,10 @@ Please keep in mind that all options related to experimental or internal functio
   - integer
   - no
   - Convenience helper to set the flag `XLA_FLAGS='--xla_force_host_platform_device_count=XX', forcing jax to use multiple threads as separate cpu devices.
+
+* - `NETKET_EXPERIMENTAL_SHARDING_NUMBA_WRAPPER_WARNING`
+  - **[True]**/False
+  - yes
+  - Raise a warning when the highly experimental wrapper for numba operators applied to sharded arrays is used.
+
 `````

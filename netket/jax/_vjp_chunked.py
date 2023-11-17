@@ -162,6 +162,9 @@ def vjp_chunked(
 ):
     """calculate the vjp in small chunks for a function where the leading dimension of the output only depends on the leading dimension of some of the arguments
 
+    .. note::
+        If experimental sharing is activated, the chunk_argnums are assumed to be sharded (not replicated) among devices.
+
     Args:
         fun: Function to be differentiated. It must accept chunks of size chunk_size of the primals in chunk_argnums.
         primals:  A sequence of primal values at which the Jacobian of ``fun`` should be evaluated.
@@ -180,6 +183,7 @@ def vjp_chunked(
         a function corresponding to the vjp_fun returned by an equivalent ``jax.vjp(fun, *primals)[1]``` call
         which computes the vjp in chunks (recomputing the forward pass every time on subsequent calls).
         If return_forward=True the vjp_fun returned returns a tuple containing the output of the forward pass and the vjp.
+
 
     Example:
         >>> import jax

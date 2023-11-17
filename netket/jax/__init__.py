@@ -58,6 +58,9 @@ from ._math import logsumexp_cplx, logdet_cmplx
 
 from ._jacobian import jacobian, jacobian_default_mode
 
+# internal sharding utilities
+from . import sharding
+
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)

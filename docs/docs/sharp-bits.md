@@ -74,12 +74,18 @@ Eventually we would like the selection to be automatic, but this has not yet bee
 Please open tickets if you find issues!
 
 (jax_multi_process)=
-## Running on multi-gpu clusters with jax.distributed
+## Running on multi-gpu clusters
 Historically the main way to run NetKet in parallel has been to use MPI. However, with jax adding shared arrays and collective operations on multiple devices/nodes (see [here](https://jax.readthedocs.io/en/latest/jax_array_migration.html#jax-array-migration) and [here](https://jax.readthedocs.io/en/latest/multi_process.html)) we adapted NetKet to support it.
-This feature is still experimental and can be enabled by setting the flag `NETKET_EXPERIMENTAL_SHARDING=1`.
+To run on a single node with multiple gpus all that is necessary is to set the flag `NETKET_EXPERIMENTAL_SHARDING=1`.
+
+:::{warning}
+This feature is still experimental and not everything may work perfectly right out of the box.
+Any feedback, be it positive or negative, would be greatly appreciated.
+:::
+
 
 (jax_multi_process_setup)=
-### Setup
+### Multi-node setup with jax.distributed
 To launch netket on a multi-node gpu cluster usually all that is required is to add a call to `jax.distributed.initialize()` at the top of the main script, e.g. as follows:
 
 ```python

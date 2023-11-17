@@ -5,7 +5,7 @@ import netket as nk
 import numpy as np
 from functools import partial
 
-from netket.jax.sharding import put_global
+from netket.jax.sharding import distribute_to_devices_along_axis
 from netket import config
 
 from .. import common
@@ -27,8 +27,8 @@ def test_vjp_chunked(chunk_size, jit, return_forward, chunk_argnums, nondiff_arg
 
     k = jax.random.split(jax.random.PRNGKey(123), 4)
     p = jax.random.uniform(k[0], shape=(8,))
-    X = put_global(jax.random.uniform(k[2], shape=(8192, 8)))
-    w = put_global(jax.random.uniform(k[3], shape=(8192,)))
+    X = distribute_to_devices_along_axis(jax.random.uniform(k[2], shape=(8192, 8)))
+    w = distribute_to_devices_along_axis(jax.random.uniform(k[3], shape=(8192,)))
 
     vjp_fun_chunked = nk.jax.vjp_chunked(
         f,

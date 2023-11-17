@@ -36,7 +36,7 @@ from netket.optimizer.qgt import (
     qgt_jacobian_pytree_logic,
     qgt_jacobian_common,
 )
-from netket.jax.sharding import put_global
+from netket.jax.sharding import distribute_to_devices_along_axis
 
 from .. import common
 
@@ -179,8 +179,10 @@ class Example:
         k = jax.random.PRNGKey(seed)
         k1, k2, k3, k4, k5 = jax.random.split(k, 5)
 
-        self.samples = put_global(jax.random.normal(k1, (n_samp, 2)))
-        self.w = put_global(
+        self.samples = distribute_to_devices_along_axis(
+            jax.random.normal(k1, (n_samp, 2))
+        )
+        self.w = distribute_to_devices_along_axis(
             jax.random.normal(k2, (n_samp,), self.dtype).astype(self.dtype)
         )  # TODO remove astype once its fixed in jax
         self.params = tree_random_normal_like(k3, self.target)
