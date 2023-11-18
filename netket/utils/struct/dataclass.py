@@ -196,7 +196,12 @@ def purge_cache_fields(clz):
                 flds.pop(cname)
 
 
-def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash=False):
+def attach_preprocess_init(
+    data_clz, *, globals=None, init_doc=MISSING, cache_hash=False
+):
+    if globals is None:
+        globals = {}
+
     # If there is no __pre_init__ method in the class, create a default
     # one calling pre init on super() if there is one.
     if _PRE_INIT_NAME not in data_clz.__dict__:
@@ -252,11 +257,14 @@ def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash
     setattr(data_clz, "__init__", fun)
 
 
-def replace_hash_method(data_clz, *, globals={}):
+def replace_hash_method(data_clz, *, globals=None):
     """
     Replace __hash__ by a method that checks if it has already been computed
     and returns the cached value otherwise.
     """
+    if globals is None:
+        globals = {}
+
     self_name = "self"
     hash_cache_name = _hash_cache_name(data_clz.__name__)
 
@@ -311,7 +319,6 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
         _frozen: (default True) controls whether the resulting class is frozen or not.
             If it is not frozen, extra care should be taken.
     """
-
     if clz is None:
         return partial(
             dataclass, init_doc=init_doc, cache_hash=cache_hash, _frozen=_frozen
