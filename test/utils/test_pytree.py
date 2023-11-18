@@ -4,7 +4,7 @@ import jax
 import pytest
 from flax import serialization
 
-from netket.utils.struct import Pytree, field, static_field
+from netket.utils.struct import Pytree, dataclass, field, static_field
 
 
 class TestPytree:
@@ -53,6 +53,28 @@ class TestPytree:
         with pytest.raises(
             AttributeError, match="is immutable, trying to update field"
         ):
+            pytree.x = 4
+
+    def test_immutable_pytree_dataclass(self):
+        @dataclass(_frozen=True)
+        class Foo(Pytree):
+            y: int = field()
+            x: int = static_field(default=2)
+
+        pytree = Foo(y=3)
+
+        leaves = jax.tree_util.tree_leaves(pytree)
+        assert leaves == [3]
+
+        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        assert pytree.x == 2
+        assert pytree.y == 6
+
+        pytree = pytree.replace(x=3)
+        assert pytree.x == 3
+        assert pytree.y == 6
+
+        with pytest.raises(AttributeError):
             pytree.x = 4
 
     def test_jit(self):
@@ -181,6 +203,20 @@ class TestPytree:
         with pytest.raises(ValueError, match="Trying to replace unknown fields"):
             Foo().replace(y=1)
 
+    def test_dataclass_inheritance(self):
+        @dataclass
+        class A(Pytree):
+            a: int = 1
+            b: int = static_field(default=2)
+
+        @dataclass
+        class B(A):
+            c: int = 3
+
+        pytree = B()
+        leaves = jax.tree_util.tree_leaves(pytree)
+        assert leaves == [1, 3]
+
     def test_pytree_with_new(self):
         class A(Pytree):
             a: int
@@ -259,3 +295,74 @@ class TestMutablePytree:
 
         with pytest.raises(AttributeError, match=r"Cannot add new fields to"):
             foo.y = 2
+
+    def test_pytree_dataclass(self):
+        with pytest.raises(ValueError):
+
+            @dataclass
+            class _Foo(Pytree, mutable=True):
+                y: int = field()
+                x: int = static_field(default=2)
+
+        @dataclass(_frozen=False)
+        class Foo(Pytree, mutable=True):
+            y: int = field()
+            x: int = static_field(default=2)
+
+        pytree: Foo = Foo(y=3)
+
+        leaves = jax.tree_util.tree_leaves(pytree)
+        assert leaves == [3]
+
+        pytree = jax.tree_map(lambda x: x * 2, pytree)
+        assert pytree.x == 2
+        assert pytree.y == 6
+
+        pytree = pytree.replace(x=3)
+        assert pytree.x == 3
+        assert pytree.y == 6
+
+        # test mutation
+        pytree.x = 4
+        assert pytree.x == 4
+
+    def test_dataclass_inheritance(self):
+        class A(Pytree):
+            y: int = field()
+            x: int = static_field(default=2)
+
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+
+        @dataclass
+        class B(A):
+            z: int
+
+        b = B(1, 2, z=5)
+
+        assert b.x == 1
+        assert b.y == 2
+        assert b.z == 5
+
+        assert jax.tree_util.tree_leaves(b) == [2, 5]
+
+        # pre init
+        with pytest.warns(FutureWarning):
+
+            @dataclass
+            class B(A):
+                z: int
+
+                def __pre_init__(self, x, y, kk):
+                    args, kwargs = super().__pre_init__(x, y)
+                    kwargs["z"] = kk
+                    return args, kwargs
+
+        b = B(1, 2, kk=5)
+
+        assert b.x == 1
+        assert b.y == 2
+        assert b.z == 5
+
+        assert jax.tree_util.tree_leaves(b) == [2, 5]

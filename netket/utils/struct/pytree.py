@@ -219,6 +219,35 @@ class Pytree(metaclass=PytreeMeta):
             partial(cls._from_flax_state_dict, cls._pytree__static_fields),
         )
 
+    def __pre_init__(self, *args, **kwargs):
+        # Default implementation of __pre_init__, used by netket's
+        # dataclasses for preinitialisation shuffling of parameters.
+        #
+        # This is necessary for PyTrees that are subclassed by a dataclass
+        # (like a user-implemented sampler using legacy logic).
+        #
+        # This class takes out all arguments and kw-arguments that are
+        # directed to the PyTree from a processing and 'hides' them
+        # in a proprietary kwargument for later manipulation.
+        #
+        # This is necessary so we call the dataclass init only with
+        # the arguments that it needs.
+        kwargs_dataclass = {}
+        kwargs_pytree = {}
+        for k, v in kwargs.items():
+            if k in self.__dataclass_fields__.keys():
+                kwargs_dataclass[k] = v
+            else:
+                kwargs_pytree[k] = v
+
+        signature_pytree = (args, kwargs_pytree)
+        kwargs_dataclass["__base_init_args"] = signature_pytree
+
+        return (), kwargs_dataclass
+
+    def __post_init__(self):
+        pass
+
     @classmethod
     def _pytree__flatten(
         cls,
