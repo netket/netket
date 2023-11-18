@@ -15,7 +15,8 @@
 from numba import jit
 
 import numpy as np
-from flax import struct
+
+from netket.utils import struct
 
 from .base import MetropolisRule
 

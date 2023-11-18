@@ -1,3 +1,19 @@
+# Copyright 2023 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import Optional
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -9,7 +25,6 @@ from .base import MetropolisRule
 import netket.jax as nkjax
 
 
-@struct.dataclass
 class LangevinRule(MetropolisRule):
     r"""
     A transition rule that uses Langevin dynamics [1] to update samples.
@@ -23,14 +38,21 @@ class LangevinRule(MetropolisRule):
     [1]: https://en.wikipedia.org/wiki/Metropolis-adjusted_Langevin_algorithm
     """
 
-    dt: float = 0.001
-    """
-    Time step in the Langevin dynamics
-    """
-    chunk_size: int = struct.field(pytree_node=False, default=None)
-    """
-    Chunk size for computing gradients of the ansatz
-    """
+    dt: float
+    """Time step in the Langevin dynamics."""
+    chunk_size: Optional[int] = struct.field(pytree_node=False)
+    """Chunk size for computing gradients of the ansatz."""
+
+    def __init__(self, dt: float = 0.001, chunk_size: Optional[int] = None):
+        """
+        Constructs the Langevin Hastings proposal rule.
+
+        Args:
+            dt: the timestep for the langevin dynamics (default=0.001)
+            chunk_size: optional chunk size to reduce memory usage
+        """
+        self.dt = dt
+        self.chunk_size = chunk_size
 
     def transition(rule, sampler, machine, parameters, state, key, r):
         if jnp.issubdtype(r.dtype, jnp.complexfloating):

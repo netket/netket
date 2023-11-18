@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flax import struct
 
 from .base import MetropolisRule
 
 
-@struct.dataclass
 class FixedRule(MetropolisRule):
     r"""
     A transition rule relaxing and doing nothing.
