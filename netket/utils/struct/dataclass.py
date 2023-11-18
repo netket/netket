@@ -43,6 +43,7 @@ from flax import serialization
 import jax
 
 from .utils import _set_new_attribute, _create_fn, get_class_globals
+from .fields import _cache_name, Uninitialized, field, CachedProperty
 
 try:
     from dataclasses import _FIELDS
@@ -59,89 +60,12 @@ _PRE_INIT_NAME = "__pre_init__"
 _DATACLASS_INIT_NAME = "__init_dataclass__"
 
 
-def _cache_name(property_name):
-    return "__" + property_name + "_cache"
-
-
 def _hash_cache_name(class_name):
     return "__" + class_name + "_hash_cache"
 
 
 def _compute_cache_name(property_name):
     return "__" + property_name
-
-
-## Our stuff
-class _Uninitialized:
-    """
-    Sentinel value used to signal uninitialized values
-    """
-
-    def __repr__(self):
-        return "Uninitialized"
-
-
-Uninitialized = _Uninitialized()
-
-jax.tree_util.register_pytree_node(
-    _Uninitialized, lambda x: ((), Uninitialized), lambda *args: Uninitialized
-)
-
-
-def field(pytree_node=True, serialize=True, cache=False, **kwargs):
-    """Mark a field of a dataclass to be:
-
-    Args:
-        pytree_node: a leaf node in the pytree representation of this dataclass.
-            If False this must be hashable
-        serialize: If True the node is included in the serialization.
-            In general you should not specify this.
-        cache: If True this node is a cache and will be reset every time
-            fields are modified.
-    """
-    return dataclasses.field(
-        metadata={"pytree_node": pytree_node, "serialize": serialize, "cache": cache},
-        **kwargs,
-    )
-
-
-class CachedProperty:
-    """Sentinel attribute wrapper to signal that a method is a property
-    but must be cached.
-    """
-
-    def __init__(self, method, pytree_node=False):
-        self.name = method.__name__
-        self.cache_name = _cache_name(self.name)
-        self.method = method
-        self.pytree_node = pytree_node
-        self.type = method.__annotations__.get("return", MISSING)
-        self.doc = method.__doc__
-
-        if self.type is MISSING:
-            raise TypeError(
-                "Cached property {method} requires a return type annotation."
-            )
-
-    def __repr__(self):
-        return (
-            f"CachedProperty(name={self.name}, "
-            f"type={self.type}, pytree_node={self.pytree_node})"
-        )
-
-
-def property_cached(fun=None, pytree_node=False):
-    """Decorator to make the method behave as a property but cache the resulting value and
-    clears it upon replace.
-
-    Args:
-        pytree_node: a leaf node in the pytree representation of this dataclass.
-            If False this must be hashable
-    """
-    if fun is None:
-        return partial(property_cached, pytree_node=pytree_node)
-
-    return CachedProperty(fun, pytree_node=pytree_node)
 
 
 def _set_annotation(clz, attr, typ):
@@ -272,7 +196,12 @@ def purge_cache_fields(clz):
                 flds.pop(cname)
 
 
-def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash=False):
+def attach_preprocess_init(
+    data_clz, *, globals=None, init_doc=MISSING, cache_hash=False
+):
+    if globals is None:
+        globals = {}
+
     # If there is no __pre_init__ method in the class, create a default
     # one calling pre init on super() if there is one.
     if _PRE_INIT_NAME not in data_clz.__dict__:
@@ -328,11 +257,14 @@ def attach_preprocess_init(data_clz, *, globals={}, init_doc=MISSING, cache_hash
     setattr(data_clz, "__init__", fun)
 
 
-def replace_hash_method(data_clz, *, globals={}):
+def replace_hash_method(data_clz, *, globals=None):
     """
     Replace __hash__ by a method that checks if it has already been computed
     and returns the cached value otherwise.
     """
+    if globals is None:
+        globals = {}
+
     self_name = "self"
     hash_cache_name = _hash_cache_name(data_clz.__name__)
 
@@ -387,7 +319,6 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
         _frozen: (default True) controls whether the resulting class is frozen or not.
             If it is not frozen, extra care should be taken.
     """
-
     if clz is None:
         return partial(
             dataclass, init_doc=init_doc, cache_hash=cache_hash, _frozen=_frozen
