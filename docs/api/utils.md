@@ -18,6 +18,18 @@ Utility functions and classes.
    
 ```
 
+## Dataclass and PyTree utilities
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/utils/struct
+   :nosignatures:
+
+   struct.PyTree
+   struct.field
+```
+
+
 ## Utils
 
 Utility functions and classes.
