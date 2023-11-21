@@ -357,11 +357,6 @@ def test_throwing():
         hilbert = nk.hilbert.DoubledHilbert(hilbert)
         build_model(hilbert)
 
-    # Only unconstrained Hilbert spaces are supported
-    with pytest.raises(ValueError):
-        hilbert = nk.hilbert.Fock(n_max=3, N=4, n_particles=3)
-        build_model(hilbert)
-
 
 @pytest.mark.parametrize(
     "graph",

@@ -62,9 +62,6 @@ class AbstractARNN(nn.Module):
                 f"by ARNN, but hilbert is a {type(self.hilbert)}."
             )
 
-        if self.hilbert.constrained:
-            raise ValueError("Only unconstrained Hilbert spaces are supported by ARNN.")
-
     @abc.abstractmethod
     def conditionals_log_psi(self, inputs: Array) -> Array:
         """
