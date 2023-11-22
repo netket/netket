@@ -28,10 +28,29 @@ from netket.utils.types import PyTree
 from netket.utils.deprecation import deprecated
 from netket.utils import struct
 
+from rich.markdown import Text
+from rich.style import Style
+from netket.utils import display
+
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
 
 
+@jax.jit
+def _color_curve(x, k=3):
+    """
+    Takes the value of x and return a value between 0 and 1.
+
+    The k higher the k variable the faster the output will get to 1.
+    The value of 5 has been chosen empirically.
+    """
+    # center from 0...1...2 to 0...\inf
+    x = abs(1 - x)
+    # sigmoid
+    return jnp.exp(k * x) / (1 + jnp.exp(k * x))
+
+
+@display.rich_repr
 @struct.dataclass
 class MetropolisSamplerState(SamplerState):
     """
@@ -85,15 +104,20 @@ class MetropolisSamplerState(SamplerState):
         res, _ = mpi.mpi_sum_jax(jax.jit(jnp.sum)(self.n_accepted_proc))
         return res
 
-    def __repr__(self):
-        if self.n_steps > 0:
-            acc_string = "# accepted = {}/{} ({}%), ".format(
-                self.n_accepted, self.n_steps, self.acceptance * 100
-            )
-        else:
-            acc_string = ""
+    def __rich_console__(self, console, options):
+        txt = Text(f"{type(self).__name__}(")
 
-        return f"{type(self).__name__}({acc_string}rng state={self.rng})"
+        if self.n_steps > 0:
+            acc_ratio = self.acceptance
+            style = Style(color=display.color_good_bad(float(_color_curve(acc_ratio))))
+            txt.append_text(Text("# accepted = "))
+            txt.append_text(Text(f"{self.n_accepted}", style=style))
+            txt.append_text(Text(f"/{self.n_steps} "))
+            txt.append_text(Text(f"({acc_ratio*100:2.2f}%)", style=style))
+            txt.append_text(Text(", "))
+
+        txt.append_text(Text(f"rng state={self.rng})"))
+        return txt
 
 
 def _assert_good_sample_shape(samples, shape, dtype, obj=""):
