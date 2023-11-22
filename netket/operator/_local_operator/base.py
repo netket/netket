@@ -766,3 +766,12 @@ class LocalOperator(DiscreteOperator):
         if len(acting_str) > 55:
             acting_str = f"#acting_on={len(ao)} locations"
         return f"{type(self).__name__}(dim={self.hilbert.size}, {acting_str}, constant={self.constant}, dtype={self.dtype})"
+
+    def to_jax_operator(self) -> "PauliStringsJax":  # noqa: F821
+        """
+        Returns the jax-compatible version of this operator, which is an
+        instance of :class:`netket.operator.PauliStringsJax`.
+        """
+        from .jax import LocalOperatorJax
+
+        return LocalOperatorJax.from_numba_operator(self)
