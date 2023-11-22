@@ -306,6 +306,7 @@ class LocalOperatorJax(DiscreteJaxOperator):
 
     @classmethod
     def from_numba_operator(cls, local_operator_numba):
+        local_operator_numba = local_operator_numba.copy()
         local_operator_numba._setup()
         gcp_fun = get_get_conn_padded_closure(local_operator_numba)
         return cls(gcp_fun, local_operator_numba)
