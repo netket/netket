@@ -32,8 +32,9 @@ pottot = pot1 + pot2
 pot10p52 = pot1 + 0.5 * pot2
 
 # kinetic operators
-kin1 = netket.operator.KineticEnergy(hilb, mass=20.0)
-kin2 = netket.operator.KineticEnergy(hilb, mass=2.0)
+kin1 = netket.operator.KineticEnergy(hilb, mass=20.0, method="parallel")
+kin2 = netket.operator.KineticEnergy(hilb, mass=2.0, method="parallel")
+kin3 = netket.operator.KineticEnergy(hilb, mass=20.0, method="sequential")
 
 # sum of kinetic operators
 kintot = kin1 + kin2
@@ -112,6 +113,13 @@ def test_kinetic_energy():
         np.testing.assert_allclose(energy2, kinen2)
         np.testing.assert_allclose(kin1.mass * kin1._pack_arguments(), 1.0)
         np.testing.assert_equal("KineticEnergy(m=20.0)", repr(kin1))
+
+        energy3a = kin1._expect_kernel(model3, 1.0 + 1.0j, x, kin1._pack_arguments())
+        energy3b = kin3._expect_kernel(model3, 1.0 + 1.0j, x, kin3._pack_arguments())
+        kinen1 = kinexact(x) / kin1.mass
+        kinen2 = kinexact2(1.0 + 1.0j, x) / kin1.mass
+        np.testing.assert_allclose(energy3a, kinen2)
+        np.testing.assert_allclose(energy3b, kinen2)
 
 
 def test_sumoperator():
