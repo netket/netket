@@ -161,6 +161,21 @@ class AbstractARNN(nn.Module):
         pass
 
     def init_cache(self, variables: PyTree, inputs: Array, key: PRNGKeyT) -> PyTree:
+        """
+        Initializes the cache before sampling.
+
+        Subclasses may override :meth:`~netket.models.AbstractARNN._init_independent_cache`
+        for caches that are independent of model parameters or any cache,
+        and :meth:`~netket.models.AbstractARNN._init_dependent_cache` for caches
+        that depend on model parameters or those independent caches.
+
+        When calling this method, `variables` should contain model parameters
+        but not any cache.
+
+        `_init_independent_cache` is called without providing the variables.
+        When `_init_dependent_cache` is called, the variables contain model
+        parameters and independent caches, but not dependent caches.
+        """
         variables_tmp = self.init(key, inputs, method=self._init_independent_cache)
         cache = variables_tmp.get("cache")
         if cache:

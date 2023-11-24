@@ -8,6 +8,7 @@
 ### New Features
 
 * Recurrent neural networks and layers have been added to `nkx.models` and `nkx.nn` [#1305](https://github.com/netket/netket/pull/1305).
+* Caches in ARNN that depend on model parameters can be initialized in {meth}`~netket.models.AbstractARNN._init_dependent_cache` [#1656](https://github.com/netket/netket/pull/1656).
 
 ## NetKet 3.10.2 (14 november 2023)
 
