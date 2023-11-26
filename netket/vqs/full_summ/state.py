@@ -24,7 +24,7 @@ from flax import serialization
 from flax.core.scope import CollectionFilter, DenyList  # noqa: F401
 
 from netket import jax as nkjax
-from netket import nn
+from netket import nn as nknn
 from netket.hilbert import AbstractHilbert
 from netket.utils import maybe_wrap_module, wrap_afun, wrap_to_support_scalar
 from netket.utils.types import PyTree, SeedT, NNInitFunc
@@ -54,7 +54,8 @@ def _array_to_pdf(v):
 
 class FullSumState(VariationalState):
     """Variational State for a variational quantum state computed on the whole
-    Hilbert space without Monte Carlo sampling.
+    Hilbert space without Monte Carlo sampling by summing over the whole Hilbert
+    space.
 
     Expectation values and gradients are deterministic.
     The only non-deterministic part is due to the initialization seed used to generate
@@ -93,7 +94,7 @@ class FullSumState(VariationalState):
         Args:
             hilbert: The Hilbert space
             model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
-            parameters: Optional PyTree of weights from which to start.
+            variables: Optional dictionary for the initial values for the variables (parameters and model state) of the model.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
                 during evaluation, but that should not be optimised. See also :meth:`flax.linen.Module.apply` documentation
@@ -101,7 +102,6 @@ class FullSumState(VariationalState):
             init_fun: Function of the signature f(model, shape, rng_key, dtype) -> Optional_state, parameters used to
                 initialise the parameters. Defaults to the standard flax initialiser. Only specify if your network has
                 a non-standard init method.
-            variables: Optional initial value for the variables (parameters and model state) of the model.
             apply_fun: Function of the signature f(model, variables, σ) that should evaluate the model. Defaults to
                 `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
             training_kwargs: a dict containing the optional keyword arguments to be passed to the apply_fun during training.
@@ -292,7 +292,7 @@ class FullSumState(VariationalState):
 
     def to_array(self, normalize: bool = True, allgather: bool = True) -> jnp.ndarray:
         if self._array is None and normalize:
-            self._array = nn.to_array(
+            self._array = nknn.to_array(
                 self.hilbert,
                 self._apply_fun,
                 self.variables,
@@ -304,7 +304,7 @@ class FullSumState(VariationalState):
         if normalize:
             arr = self._array
         else:
-            arr = nn.to_array(
+            arr = nknn.to_array(
                 self.hilbert,
                 self._apply_fun,
                 self.variables,
