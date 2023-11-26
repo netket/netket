@@ -1,0 +1,203 @@
+# Copyright 2021 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+from jax import numpy as jnp
+
+from flax import serialization
+
+from netket import jax as nkjax
+from netket import nn as nknn
+from netket.hilbert import DoubledHilbert
+from netket.stats import Stats
+from netket.utils.types import PyTree
+from netket.operator import AbstractOperator
+
+from netket.hilbert import AbstractHilbert
+from netket.vqs import VariationalMixedState
+
+from netket.vqs.mc import MCState
+
+from .state import FullSumState
+
+
+def apply_diagonal(bare_afun, w, x, *args, **kwargs):
+    x = jnp.hstack((x, x))
+    return bare_afun(w, x, *args, **kwargs)
+
+
+class FullSumMixedState(VariationalMixedState, FullSumState):
+    """Variational State for a Mixed Variational Neural Quantum State.
+
+    The state is sampled according to the provided sampler, and it's diagonal is sampled
+    according to another sampler.
+    """
+
+    __module__ = "netket.vqs"
+
+    def __init__(
+        self,
+        hilbert: AbstractHilbert,
+        model=None,
+        *,
+        seed=None,
+        variables=None,
+        **kwargs,
+    ):
+        """
+        Constructs the MCMixedState.
+        Arguments are the same as :class:`MCState`.
+
+        Arguments:
+            hilbert: The hilbert space
+            model: (Optional) The model. If not provided, you must provide init_fun and apply_fun.
+            variables: Optional PyTree of weights from which to start.
+            seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
+            mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
+                during evaluation, but that should not be optimised. See also flax.linen.module.apply documentation
+                (default=False)
+            init_fun: Function of the signature f(model, shape, rng_key, dtype) -> Optional_state, parameters used to
+                initialise the parameters. Defaults to the standard flax initialiser. Only specify if your network has
+                a non-standard init method.
+            apply_fun: Function of the signature f(model, variables, σ) that should evaluate the model. Defaults to
+                `model.apply(variables, σ)`. specify only if your network has a non-standard apply method.
+            training_kwargs: a dict containing the optional keyword arguments to be passed to the apply_fun during training.
+                Useful for example when you have a batchnorm layer that constructs the average/mean only during training.
+
+        """
+        if isinstance(hilbert, DoubledHilbert):
+            raise TypeError(
+                "The Hilbert space must be a standard Hilbert space, not the "
+                "Choi (Doubled) space."
+            )
+
+        hilbert = DoubledHilbert(hilbert)
+
+        self._diagonal = None
+        self._matrix = None
+        super().__init__(
+            hilbert.physical,
+            hilbert,
+            model=model,
+            seed=nkjax.PRNGKey(seed),
+            variables=variables,
+            **kwargs,
+        )
+
+        diagonal_apply_fun = nkjax.HashablePartial(apply_diagonal, self._apply_fun)
+
+        self._diagonal = FullSumState(
+            hilbert.physical,
+            apply_fun=diagonal_apply_fun,
+            variables=self.variables,
+            **kwargs,
+        )
+
+    @property
+    def diagonal(self):
+        return self._diagonal
+
+    @MCState.parameters.setter
+    def parameters(self, pars: PyTree):
+        MCState.parameters.fset(self, pars)
+        if self.diagonal is not None:
+            self.diagonal.parameters = pars
+
+    @MCState.model_state.setter
+    def model_state(self, state: PyTree):
+        MCState.model_state.fset(self, state)
+        if self.diagonal is not None:
+            self.diagonal.model_state = state
+
+    def reset(self):
+        super().reset()
+        self._matrix = None
+        if self.diagonal is not None:
+            self.diagonal.reset()
+
+    def expect_and_grad_operator(
+        self, Ô: AbstractOperator, is_hermitian=None
+    ) -> tuple[Stats, PyTree]:
+        raise NotImplementedError
+
+    def to_matrix(self, normalize: bool = True) -> jnp.ndarray:
+        if self._matrix is None and normalize:
+            self._matrix = nknn.to_matrix(
+                self.hilbert,
+                self._apply_fun,
+                self.variables,
+                normalize=normalize,
+                chunk_size=self.chunk_size,
+            )
+
+        if normalize:
+            arr = self._matrix
+        else:
+            arr = nknn.to_matrix(
+                self.hilbert,
+                self._apply_fun,
+                self.variables,
+                normalize=normalize,
+                chunk_size=self.chunk_size,
+            )
+
+        return arr
+
+    def __repr__(self):
+        return (
+            "FullSumMixedState("
+            + f"\n  hilbert = {self.hilbert},"
+            + f"\n  n_parameters = {self.n_parameters})"
+        )
+
+    def __str__(self):
+        return "FullSumMixedState(" + f"hilbert = {self.hilbert}, "
+
+
+# serialization
+
+
+def serialize_FullSumMixedState(vstate):
+    state_dict = {
+        "variables": serialization.to_state_dict(vstate.variables),
+        "diagonal": serialization.to_state_dict(vstate.diagonal),
+        "chunk_size": vstate.chunk_size,
+    }
+    return state_dict
+
+
+def deserialize_FullSumMixedState(vstate, state_dict):
+    import copy
+
+    new_vstate = copy.copy(vstate)
+    new_vstate.reset()
+
+    # restore the diagonal first so we can relink the samples
+    new_vstate._diagonal = serialization.from_state_dict(
+        vstate._diagonal, state_dict["diagonal"]
+    )
+
+    new_vstate.variables = serialization.from_state_dict(
+        vstate.variables, state_dict["variables"]
+    )
+    new_vstate.chunk_size = state_dict["chunk_size"]
+
+    return new_vstate
+
+
+serialization.register_serialization_state(
+    FullSumMixedState,
+    serialize_FullSumMixedState,
+    deserialize_FullSumMixedState,
+)
