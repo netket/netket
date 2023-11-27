@@ -55,16 +55,18 @@ ha = nk.operator.Ising(hilbert=hi, graph=g, h=1.0)
 move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
 
 hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
-hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
-hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
+hi_constrained = nk.hilbert.Spin(s=0.5, N=g.n_nodes, total_sz=0)
+hi_spin1_constrained = nk.hilbert.Spin(s=1, N=g.n_nodes, total_sz=1)
+hi_fock1 = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
+hi_fock = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 
 samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
-samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u)
+samplers["Exact: Fock"] = nk.sampler.ExactSampler(hi_fock)
 
 samplers["Metropolis(Local): Spin"] = nk.sampler.MetropolisLocal(hi)
 
 samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(hi)
-# samplers["MetropolisNumpy(Local): Fock"] = nk.sampler.MetropolisLocalNumpy(hib_u)
+# samplers["MetropolisNumpy(Local): Fock"] = nk.sampler.MetropolisLocalNumpy(hi_fock)
 # samplers["MetropolisNumpy(Local): Doubled-Spin"] = nk.sampler.MetropolisLocalNumpy(
 #    nk.hilbert.DoubledHilbert(nk.hilbert.Spin(s=0.5, N=2))
 # )
@@ -73,11 +75,11 @@ samplers["MetropolisPT(Local): Spin"] = nkx.sampler.MetropolisLocalPt(
     hi, n_replicas=4, n_sweeps=hi.size * 4
 )
 samplers["MetropolisPT(Local): Fock"] = nkx.sampler.MetropolisLocalPt(
-    hib_u, n_replicas=4, n_sweeps=hib_u.size * 4
+    hi_fock, n_replicas=4, n_sweeps=hi_fock.size * 4
 )
 
 samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange(
-    hib, graph=g
+    hi_fock1, graph=g
 )
 
 samplers[
@@ -129,7 +131,14 @@ samplers[
 
 samplers["Autoregressive: Spin 1/2"] = nk.sampler.ARDirectSampler(hi)
 samplers["Autoregressive: Spin 1"] = nk.sampler.ARDirectSampler(hi_spin1)
-samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u)
+samplers["Autoregressive: Spin 1/2, constrained"] = nk.sampler.ARDirectSampler(
+    hi_constrained
+)
+samplers["Autoregressive: Spin 1, constrained"] = nk.sampler.ARDirectSampler(
+    hi_spin1_constrained
+)
+samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hi_fock)
+samplers["Autoregressive: Fock, constrained"] = nk.sampler.ARDirectSampler(hi_fock1)
 
 
 # Hilbert space and sampler for particles
