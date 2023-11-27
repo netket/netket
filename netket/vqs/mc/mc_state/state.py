@@ -165,7 +165,6 @@ class MCState(VariationalState):
                 specified together with n_samples (default=None).
             n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=0 for exact sampler,
                 and n_samples/10 for approximate sampler).
-            parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
             mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
