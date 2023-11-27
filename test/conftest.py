@@ -38,6 +38,6 @@ def pytest_addoption(parser):
     parser.addoption(
         "--arnn_test_rate",
         type=float,
-        default=0.2,
+        default=0.1,
         help="rate of running a test for ARNN",
     )

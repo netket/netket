@@ -19,10 +19,11 @@ from collections.abc import Sequence
 
 import jax
 from flax import linen as nn
+from flax import struct
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.hilbert.homogeneous import HomogeneousHilbert
+from netket.hilbert import HomogeneousHilbert, Spin, Fock
 from netket.nn import MaskedConv1D, MaskedConv2D, MaskedDense1D
 from netket.nn.masked_linear import default_kernel_init
 from netket.nn import activation as nkactivation
@@ -43,15 +44,22 @@ class AbstractARNN(nn.Module):
     They can override :meth:`~netket.models.AbstractARNN.conditional` to
     implement the caching for fast autoregressive sampling.
     See :class:`netket.models.FastARNNConv1D` for an example.
-
-    They must also implement the field :attr:`~netket.models.AbstractARNN.machine_pow`,
-    which specifies the exponent to normalize the outputs of
-    :meth:`~netket.models.AbstractARNN.__call__`.
     """
 
     hilbert: HomogeneousHilbert
-    """the Hilbert space. Only homogeneous unconstrained
-    Hilbert spaces are supported."""
+    """the Hilbert space.
+    Only homogeneous spaces are supported.
+    If a constrained Spin or Fock space is provided, the ARNN will implement the
+    constraint and normalize the conditional probabilities.
+    Other constrained spaces are unsupported, unless
+    `ignore_hilbert_constraint = True`."""
+
+    machine_pow: int = struct.field(kw_only=True, default=2)
+    """exponent to normalize the outputs of `__call__`."""
+
+    ignore_hilbert_constraint: bool = struct.field(kw_only=True, default=False)
+    """If True, you can evaluate the ARNN on samples from the constrained space,
+    but cannot use :class:`~netket.sampler.ARDirectSampler`."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -59,6 +67,16 @@ class AbstractARNN(nn.Module):
         if not isinstance(self.hilbert, HomogeneousHilbert):
             raise ValueError(
                 "Only homogeneous Hilbert spaces are supported "
+                f"by ARNN, but hilbert is a {type(self.hilbert)}."
+            )
+
+        if (
+            not self.ignore_hilbert_constraint
+            and self.hilbert.constrained
+            and not isinstance(self.hilbert, (Spin, Fock))
+        ):
+            raise TypeError(
+                "Constrained Hilbert spaces other than Spin and Fock are unsupported"
                 f"by ARNN, but hilbert is a {type(self.hilbert)}."
             )
 
@@ -213,9 +231,9 @@ class ARNNSequential(AbstractARNN):
     """
 
     def conditionals_log_psi(self, inputs: Array) -> Array:
-        inputs = self.reshape_inputs(inputs)
+        inputs_reshaped = self.reshape_inputs(inputs)
 
-        x = jnp.expand_dims(inputs, axis=-1)
+        x = jnp.expand_dims(inputs_reshaped, axis=-1)
 
         for i in range(len(self._layers)):
             if i > 0 and hasattr(self, "activation"):
@@ -223,6 +241,32 @@ class ARNNSequential(AbstractARNN):
             x = self._layers[i](x)
 
         x = x.reshape((x.shape[0], -1, x.shape[-1]))
+
+        if not self.ignore_hilbert_constraint and self.hilbert.constrained:
+            hilbert = self.hilbert
+            local_size = hilbert.local_size
+            n_particles = _get_n_particles(hilbert)
+
+            # Total number of particles up to the current site
+            cum_particles = hilbert.states_to_local_indices(inputs)
+            cum_particles = jnp.cumsum(cum_particles, axis=1)
+            cum_particles = jnp.pad(cum_particles[:, :-1], ((0, 0), (1, 0)))
+            cum_particles = (
+                cum_particles[:, :, None]
+                + jnp.arange(local_size, dtype=cum_particles.dtype)[None, None, :]
+            )
+            # If all future sites have `local_size - 1` particles
+            max_future = (
+                cum_particles
+                + (local_size - 1) * jnp.arange(hilbert.size - 1, -1, -1)[None, :, None]
+            )
+            # Mask out states that cannot fulfill the constraint
+            x = jnp.where(
+                (cum_particles <= n_particles) & (max_future >= n_particles),
+                x,
+                -jnp.inf,
+            )
+
         log_psi = _normalize(x, self.machine_pow)
         return log_psi
 
@@ -283,8 +327,6 @@ class ARNNDense(ARNNSequential):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
-    machine_pow: int = 2
-    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         features = _get_feature_list(self)
@@ -327,8 +369,6 @@ class ARNNConv1D(ARNNSequential):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
-    machine_pow: int = 2
-    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         features = _get_feature_list(self)
@@ -373,8 +413,6 @@ class ARNNConv2D(ARNNSequential):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
-    machine_pow: int = 2
-    """exponent to normalize the outputs of `__call__`."""
 
     def setup(self):
         self.L = int(sqrt(self.hilbert.size))
@@ -407,3 +445,14 @@ def _normalize(log_psi: Array, machine_pow: int) -> Array:
     return log_psi - 1 / machine_pow * jax.scipy.special.logsumexp(
         machine_pow * log_psi.real, axis=-1, keepdims=True
     )
+
+
+# When implementing the Hilbert space constraint, we convert `Spin.total_sz`
+# into `Fock.n_particles`
+def _get_n_particles(hilbert: Union[Fock, Spin]) -> int:
+    if isinstance(hilbert, Fock):
+        return hilbert.n_particles
+    elif isinstance(hilbert, Spin):
+        return round(hilbert._total_sz + hilbert.size * hilbert._s)
+    else:
+        raise TypeError(f"Unsupported hilbert type: {type(hilbert)}")

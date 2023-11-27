@@ -76,13 +76,6 @@ class ARDirectSampler(Sampler):
                 "ARDirectSampler.machine_pow should not be used. Modify the model `machine_pow` directly."
             )
 
-        if self.hilbert.constrained:
-            raise ValueError(
-                "Only unconstrained Hilbert spaces can be sampled autoregressively with "
-                "this sampler. To sample constrained spaces, you must write your own (do get in "
-                "touch with us. We are interested!)"
-            )
-
     @property
     def is_exact(sampler):
         """
@@ -106,6 +99,12 @@ class ARDirectSampler(Sampler):
 
     @partial(jax.jit, static_argnums=(1, 4))
     def _sample_chain(sampler, model, variables, state, chain_length):
+        if model.ignore_hilbert_constraint:
+            raise ValueError(
+                "Cannot use `ARDirectSampler` when the Hilbert space constraint "
+                "is ignored in the ARNN."
+            )
+
         if "cache" in variables:
             variables, _ = flax.core.pop(variables, "cache")
         variables_no_cache = variables

@@ -44,13 +44,7 @@ def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
             x = jnp.concatenate(
                 (
                     jnp.ones((batches, nup), dtype=dtype),
-                    -jnp.ones(
-                        (
-                            batches,
-                            ndown,
-                        ),
-                        dtype=dtype,
-                    ),
+                    -jnp.ones((batches, ndown), dtype=dtype),
                 ),
                 axis=1,
             )
