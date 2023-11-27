@@ -15,6 +15,7 @@
 from math import sqrt
 from typing import Any, Callable, Union
 
+from flax import linen as nn
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
@@ -49,6 +50,7 @@ class FastARNNSequential(ARNNSequential):
     connected layers.
     """
 
+    @nn.compact
     def conditional(self, inputs: Array, index: int) -> Array:
         """
         Computes the conditional probabilities for one site to take each value.
@@ -57,8 +59,8 @@ class FastARNNSequential(ARNNSequential):
         if inputs.ndim == 1:
             inputs = jnp.expand_dims(inputs, axis=0)
 
-        x = jnp.expand_dims(inputs, axis=-1)
-        x = self._take_prev_site(x, index)
+        prev_inputs = self._take_prev_site(inputs, index)
+        x = jnp.expand_dims(prev_inputs, axis=-1)
 
         for i in range(len(self._layers)):
             if i > 0 and hasattr(self, "activation"):
@@ -69,12 +71,27 @@ class FastARNNSequential(ARNNSequential):
             hilbert = self.hilbert
             local_size = hilbert.local_size
             n_particles = _get_n_particles(hilbert)
-            k = self.inverse_reorder(jnp.arange(hilbert.size, dtype=jnp.int32))[index]
+
+            # Index in the ordered inputs
+            _k = self.variable("cache", "ordered_index", zeros, None, (), jnp.int32)
 
             # Total number of particles up to the current site
-            cum_particles = hilbert.states_to_local_indices(inputs)
-            cum_particles = self.reorder(cum_particles, axis=1)
-            cum_particles = cum_particles[:, :k].sum(axis=1)
+            _cum_particles = self.variable(
+                "cache", "k", zeros, None, (inputs.shape[0]), jnp.int32
+            )
+
+            k = _k.value
+            cum_particles = _cum_particles.value
+            prev_particles = hilbert.states_to_local_indices(prev_inputs)
+            cum_particles = jnp.where(
+                k == 0, cum_particles, cum_particles + prev_particles
+            )
+
+            initializing = self.is_mutable_collection("params")
+            if not initializing:
+                _k.value = k + 1
+                _cum_particles.value = cum_particles
+
             cum_particles = (
                 cum_particles[:, None]
                 + jnp.arange(local_size, dtype=cum_particles.dtype)[None, :]
