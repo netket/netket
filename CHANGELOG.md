@@ -8,6 +8,7 @@
 ### New Features
 
 * Recurrent neural networks and layers have been added to `nkx.models` and `nkx.nn` [#1305](https://github.com/netket/netket/pull/1305).
+* Autoregressive neural networks now support constrained `Spin` and `Fock` spaces [#1659](https://github.com/netket/netket/pull/1659).
 
 ## NetKet 3.10.2 (14 november 2023)
 
