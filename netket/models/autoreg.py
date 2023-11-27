@@ -249,17 +249,23 @@ class ARNNSequential(AbstractARNN):
 
             # Total number of particles up to the current site
             cum_particles = hilbert.states_to_local_indices(inputs)
-            cum_particles = jnp.cumsum(cum_particles, axis=1)
+            cum_particles = self.reorder(cum_particles, axis=1)
             cum_particles = jnp.pad(cum_particles[:, :-1], ((0, 0), (1, 0)))
+            cum_particles = jnp.cumsum(cum_particles, axis=1)
             cum_particles = (
                 cum_particles[:, :, None]
                 + jnp.arange(local_size, dtype=cum_particles.dtype)[None, None, :]
             )
+
             # If all future sites have `local_size - 1` particles
             max_future = (
                 cum_particles
                 + (local_size - 1) * jnp.arange(hilbert.size - 1, -1, -1)[None, :, None]
             )
+
+            cum_particles = self.inverse_reorder(cum_particles, axis=1)
+            max_future = self.inverse_reorder(max_future, axis=1)
+
             # Mask out states that cannot fulfill the constraint
             x = jnp.where(
                 (cum_particles <= n_particles) & (max_future >= n_particles),

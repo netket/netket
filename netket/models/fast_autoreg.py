@@ -18,7 +18,12 @@ from typing import Any, Callable, Union
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.models.autoreg import ARNNSequential, _get_feature_list, _normalize
+from netket.models.autoreg import (
+    ARNNSequential,
+    _get_feature_list,
+    _get_n_particles,
+    _normalize,
+)
 from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
 from netket.nn import activation as nkactivation
 from netket.nn.masked_linear import default_kernel_init
@@ -59,6 +64,31 @@ class FastARNNSequential(ARNNSequential):
             if i > 0 and hasattr(self, "activation"):
                 x = self.activation(x)
             x = self._layers[i].update_site(x, index)
+
+        if not self.ignore_hilbert_constraint and self.hilbert.constrained:
+            hilbert = self.hilbert
+            local_size = hilbert.local_size
+            n_particles = _get_n_particles(hilbert)
+            k = self.inverse_reorder(jnp.arange(hilbert.size, dtype=jnp.int32))[index]
+
+            # Total number of particles up to the current site
+            cum_particles = hilbert.states_to_local_indices(inputs)
+            cum_particles = self.reorder(cum_particles, axis=1)
+            cum_particles = cum_particles[:, :k].sum(axis=1)
+            cum_particles = (
+                cum_particles[:, None]
+                + jnp.arange(local_size, dtype=cum_particles.dtype)[None, :]
+            )
+
+            # If all future sites have `local_size - 1` particles
+            max_future = cum_particles + (local_size - 1) * (hilbert.size - k - 1)
+
+            # Mask out states that cannot fulfill the constraint
+            x = jnp.where(
+                (cum_particles <= n_particles) & (max_future >= n_particles),
+                x,
+                -jnp.inf,
+            )
 
         log_psi = _normalize(x, self.machine_pow)
         p = jnp.exp(self.machine_pow * log_psi.real)
