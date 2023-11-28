@@ -248,6 +248,34 @@ config.define(
 )
 
 
+def _setup_experimental_sharding_cpu(n_procs):
+    if n_procs > 1:
+        if "jax" in sys.modules:
+            warnings.warn(
+                "must load NetKet before jax if using experimental_sharding_cpu"
+            )
+
+        flags = os.environ.get("XLA_FLAGS", "")
+        flags = f"{flags} --xla_force_host_platform_device_count={n_procs}"
+        os.environ["XLA_FLAGS"] = flags
+
+
+config.define(
+    "NETKET_EXPERIMENTAL_SHARDING_CPU",
+    int,
+    default=0,
+    help=dedent(
+        """
+        Set to >=1 to force JAX to use multiple threads as separate devices on cpu.
+        Sets the XLA_FLAGS='--xla_force_host_platform_device_count=#' environment variable.
+        Disabled by default.
+        """
+    ),
+    runtime=False,
+    callback=_setup_experimental_sharding_cpu,
+)
+
+
 def _update_x64(val):
     from jax import config as jax_config
 
@@ -313,34 +341,6 @@ config.define(
     ),
     runtime=False,
     callback=_setup_experimental_sharding,
-)
-
-
-def _setup_experimental_sharding_cpu(n_procs):
-    if n_procs > 1:
-        if "jax" in sys.modules:
-            warnings.warn(
-                "must load NetKet before jax if using experimental_sharding_cpu"
-            )
-
-        flags = os.environ.get("XLA_FLAGS", "")
-        flags = f"{flags} --xla_force_host_platform_device_count={n_procs}"
-        os.environ["XLA_FLAGS"] = flags
-
-
-config.define(
-    "NETKET_EXPERIMENTAL_SHARDING_CPU",
-    int,
-    default=0,
-    help=dedent(
-        """
-        Set to >=1 to force JAX to use multiple threads as separate devices on cpu.
-        Sets the XLA_FLAGS='--xla_force_host_platform_device_count=#' environment variable.
-        Disabled by default.
-        """
-    ),
-    runtime=False,
-    callback=_setup_experimental_sharding_cpu,
 )
 
 
