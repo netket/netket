@@ -19,7 +19,6 @@ from collections.abc import Sequence
 
 import jax
 from flax import linen as nn
-from flax import struct
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
@@ -44,22 +43,29 @@ class AbstractARNN(nn.Module):
     They can override :meth:`~netket.models.AbstractARNN.conditional` to
     implement the caching for fast autoregressive sampling.
     See :class:`netket.models.FastARNNConv1D` for an example.
+
+    They must also implement the fields :attr:`~netket.models.AbstractARNN.machine_pow`
+    and :attr:`~netket.models.AbstractARNN.ignore_hilbert_constraint`.
+    `machine_pow` specifies the exponent to normalize the outputs of
+    :meth:`~netket.models.AbstractARNN.__call__`.
+
+    When `ignore_hilbert_constraint = False` and a constrained Spin or Fock
+    space is provided, the ARNN will implement the constraint and reweight the
+    conditional probabilities in the constrained space. Other constrained spaces
+    are unsupported.
+    When `ignore_hilbert_constraint = True`, the ARNN will not do such
+    reweighting, and you cannot use :class:`~netket.sampler.ARDirectSampler`.
+    You can stil evaluate the ARNN on samples in the constrained space, and use
+    a Markov chain sampler, which is equivalent to reweighting all states in the
+    constrained space by a global constant, and the wave function is different
+    from the former case.
     """
 
+    # TODO: When Python 3.10 is the minimal supported version, move `machine_pow`
+    # and `ignore_hilbert_constraint` to `AbstractARNN` as kw_only fields
+
     hilbert: HomogeneousHilbert
-    """the Hilbert space.
-    Only homogeneous spaces are supported.
-    If a constrained Spin or Fock space is provided, the ARNN will implement the
-    constraint and normalize the conditional probabilities.
-    Other constrained spaces are unsupported, unless
-    `ignore_hilbert_constraint = True`."""
-
-    machine_pow: int = struct.field(kw_only=True, default=2)
-    """exponent to normalize the outputs of `__call__`."""
-
-    ignore_hilbert_constraint: bool = struct.field(kw_only=True, default=False)
-    """If True, you can evaluate the ARNN on samples from the constrained space,
-    but cannot use :class:`~netket.sampler.ARDirectSampler`."""
+    """the Hilbert space. Only homogeneous spaces are supported."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -333,6 +339,10 @@ class ARNNDense(ARNNSequential):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
+    ignore_hilbert_constraint: bool = False
+    """do not reweight the conditional probabilities in the constrained Hilbert space."""
 
     def setup(self):
         features = _get_feature_list(self)
@@ -375,6 +385,10 @@ class ARNNConv1D(ARNNSequential):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
+    ignore_hilbert_constraint: bool = False
+    """do not reweight the conditional probabilities in the constrained Hilbert space."""
 
     def setup(self):
         features = _get_feature_list(self)
@@ -419,6 +433,10 @@ class ARNNConv2D(ARNNSequential):
     """initializer for the weights."""
     bias_init: NNInitFunc = zeros
     """initializer for the biases."""
+    machine_pow: int = 2
+    """exponent to normalize the outputs of `__call__`."""
+    ignore_hilbert_constraint: bool = False
+    """do not reweight the conditional probabilities in the constrained Hilbert space."""
 
     def setup(self):
         self.L = int(sqrt(self.hilbert.size))
