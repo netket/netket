@@ -25,7 +25,7 @@ Utility functions and classes.
    :toctree: _generated/utils/struct
    :nosignatures:
 
-   struct.PyTree
+   struct.Pytree
    struct.field
 ```
 
