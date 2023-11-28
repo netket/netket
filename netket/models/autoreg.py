@@ -55,10 +55,10 @@ class AbstractARNN(nn.Module):
     are unsupported.
     When `ignore_hilbert_constraint = True`, the ARNN will not do such
     reweighting, and you cannot use :class:`~netket.sampler.ARDirectSampler`.
-    You can stil evaluate the ARNN on samples in the constrained space, and use
-    a Markov chain sampler, which is equivalent to reweighting all states in the
-    constrained space by a global constant, and the wave function is different
-    from the former case.
+    You can stil evaluate the ARNN on states in the constrained space, and use
+    a Markov chain sampler that only samples states in the constrained space,
+    which is equivalent to reweighting all states in the constrained space by a
+    global constant, and the wave function is different from the former case.
     """
 
     # TODO: When Python 3.10 is the minimal supported version, move `machine_pow`
