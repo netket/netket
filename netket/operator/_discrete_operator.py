@@ -21,6 +21,7 @@ from scipy.sparse import csr_matrix as _csr_matrix
 from netket.hilbert import DiscreteHilbert
 from netket.operator import AbstractOperator
 from netket.utils.optional_deps import import_optional_dependency
+from netket.jax.sharding import replicate_sharding_decorator_for_get_conn_padded
 
 
 class DiscreteOperator(AbstractOperator):
@@ -43,6 +44,7 @@ class DiscreteOperator(AbstractOperator):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         raise NotImplementedError
 
+    @replicate_sharding_decorator_for_get_conn_padded
     def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 

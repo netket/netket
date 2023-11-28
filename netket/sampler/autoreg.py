@@ -23,6 +23,8 @@ from netket.sampler import Sampler, SamplerState
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PRNGKeyT
+from netket.utils import mpi
+from netket import config
 
 
 @struct.dataclass
@@ -64,7 +66,9 @@ class ARDirectSampler(Sampler):
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
             )
-
+            kwargs.pop("n_chains_per_rank")
+            kwargs.pop("n_chains")
+        kwargs["n_chains"] = mpi.n_nodes
         return super().__pre_init__(*args, **kwargs)
 
     def __post_init__(self):
@@ -143,6 +147,11 @@ class ARDirectSampler(Sampler):
             (sampler.n_chains_per_rank * chain_length, sampler.hilbert.size),
             dtype=sampler.dtype,
         )
+
+        if config.netket_experimental_sharding:
+            σ = jax.lax.with_sharding_constraint(
+                σ, jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1)
+            )
 
         # Initialize `cache` before generating a batch of samples,
         # even if `variables` is not changed and `reset` is not called

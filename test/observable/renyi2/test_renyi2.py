@@ -110,6 +110,9 @@ def test_invalid_partition():
         nkx.observable.Renyi2EntanglementEntropy(hi, subsys)
 
 
+@pytest.mark.skipif(
+    nk.config.netket_experimental_sharding, reason="Only run without sharding"
+)
 def test_oddchains():
     pytest.importorskip("qutip")
 

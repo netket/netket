@@ -59,7 +59,7 @@ class AbstractVariationalDriver(abc.ABC):
 
     def __init__(self, variational_state, optimizer, minimized_quantity_name=""):
         self._mynode = mpi.node_number
-        self._is_root = self._mynode == 0
+        self._is_root = self._mynode == 0 and jax.process_index() == 0
         self._mpi_nodes = mpi.n_nodes
         self._loss_stats = None
         self._loss_name = minimized_quantity_name

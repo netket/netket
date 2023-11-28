@@ -73,8 +73,69 @@ Eventually we would like the selection to be automatic, but this has not yet bee
 
 Please open tickets if you find issues!
 
-(nan)=
+(jax_multi_process)=
+## Running on multi-gpu clusters
+Historically the main way to run NetKet in parallel has been to use MPI. However, with jax adding shared arrays and collective operations on multiple devices/nodes (see [here](https://jax.readthedocs.io/en/latest/jax_array_migration.html#jax-array-migration) and [here](https://jax.readthedocs.io/en/latest/multi_process.html)) we adapted NetKet to support it.
+To run on a single node with multiple gpus all that is necessary is to set the flag `NETKET_EXPERIMENTAL_SHARDING=1`.
 
+:::{warning}
+This feature is still experimental and not everything may work perfectly right out of the box.
+Any feedback, be it positive or negative, would be greatly appreciated.
+:::
+
+
+(jax_multi_process_setup)=
+### Multi-node setup with jax.distributed
+To launch netket on a multi-node gpu cluster usually all that is required is to add a call to `jax.distributed.initialize()` at the top of the main script, e.g. as follows:
+
+```python
+import jax
+jax.distributed.initialize()
+
+import os
+os.environ['NETKET_EXPERIMENTAL_SHARDING'] = 1
+
+import netket as nk
+# ...
+```
+
+Then it can be conveniently launched with `srun` (on slurm clusters) or `mpirun`.
+For more details and manual setups we refer to the [jax documentation](https://jax.readthedocs.io/en/latest/multi_process.html).
+
+Note that jax internally uses the [grpc library](https://grpc.io) (launching a http server) for setup and book-keeping of the cluster and the [nvidia nccl library](https://developer.nvidia.com/nccl) for communication between gpus. Thus it is required that `libnccl2` and `libnccl2-dev` are installed in addition to cuda.
+Even if launched with mpirun, mpi is not actually used for communication, but the environment variables set by it are instead picked up by `jax.distributed.initialize`.
+
+If you run into communication errors you might want to set the environment variable `NCCL_DEBUG=INFO` for detailed error messages.
+
+(grpc_proxy)=
+### GRPC incompatibility with http proxy wildcards
+We noticed that communication errors can arise when a http proxy is used on the cluster. Grpc will try to communicate with the other nodes via the proxy, whenever they are only excluded in the `no_proxy` variable via wildcards (e.g. `no_proxy=10.0.0.*`) which we found grpc cannot parse. To avoid this one needs to include all addresses explicitly.
+
+Alternatively, a simple way to work around it is to disable the proxy completely for jax by unsetting the respective environment variables (see [grpc docs](https://grpc.github.io/grpc/cpp/md_doc_environment_variables.html)) e.g. as follows:
+```python
+import os
+del os.environ['http_proxy']
+del os.environ['https_proxy']
+del os.environ['no_proxy']
+
+import jax
+jax.distributed.initialize()
+```
+
+(multi_device)=
+### Multiple devices per process
+In our testing it is best to use 1 process per gpu on the cluster.
+
+Nevertheless, if you want to use multiple gpus per process you can force jax to do so by setting `local_device_ids`, e.g. extracting it from `CUDA_VISIBLE_DEVICES` as follows:
+
+```python
+import os
+import jax
+ldi = list(map(int, os.environ.get('CUDA_VISIBLE_DEVICES').split(',')))
+jax.distributed.initialize(local_device_ids=ldi)
+```
+
+(nan)=
 ## NaNs in training and loss of precision
 
 If you find NaNs while training, especially if you are using your own model, there might be a few reasons:

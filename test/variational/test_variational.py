@@ -355,8 +355,8 @@ def test_qutip_conversion(vstate):
 )
 def test_expect(vstate, operator):
     # Use lots of samples
-    vstate.n_samples = 5 * 1e5
-    vstate.n_discard_per_chain = 1e3
+    vstate.n_samples = 256 * 1024
+    vstate.n_discard_per_chain = 1024
 
     # sample the expectation value and gradient with tons of samples
     O_stat1 = vstate.expect(operator)
