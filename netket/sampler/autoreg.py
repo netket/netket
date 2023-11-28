@@ -19,6 +19,7 @@ import jax
 from jax import numpy as jnp
 
 from netket import jax as nkjax
+from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.sampler import Sampler, SamplerState
 from netket.utils.deprecation import warn_deprecation

@@ -19,6 +19,7 @@ import jax
 from flax import linen as nn
 from jax import numpy as jnp
 
+from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.nn import to_array
 from netket.utils.deprecation import warn_deprecation

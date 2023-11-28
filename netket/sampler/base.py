@@ -24,7 +24,7 @@ from jax import numpy as jnp
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
 from netket.utils import get_afun_if_module, mpi, numbers, struct, wrap_afun
-from netket.utils.deprecation import deprecated, warn_deprecation
+from netket.utils.deprecation import deprecated
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
 
