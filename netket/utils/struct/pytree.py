@@ -9,6 +9,7 @@ from types import MappingProxyType
 import jax
 
 from .fields import CachedProperty, _cache_name, _raw_cache_name, Uninitialized
+from netket.utils import config
 
 P = tp.TypeVar("P", bound="Pytree")
 
@@ -162,6 +163,18 @@ class Pytree(metaclass=PytreeMeta):
 
         if mutable and len(cached_prop_fields) != 0:
             raise ValueError("cannot use cached properties with " "mutable pytrees.")
+
+        if config.netket_sphinx_build:
+            for k in static_fields:
+                try:
+                    delattr(cls, k)
+                except AttributeError:
+                    pass
+            for k in data_fields:
+                try:
+                    delattr(cls, k)
+                except AttributeError:
+                    pass
 
         # new
         init_fields = tuple(sorted(data_fields.union(static_fields)))
