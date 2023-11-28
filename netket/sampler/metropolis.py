@@ -26,7 +26,7 @@ from jax import numpy as jnp
 from netket.hilbert import AbstractHilbert, ContinuousHilbert
 
 from netket.utils import mpi, wrap_afun
-from netket.utils.types import PyTree
+from netket.utils.types import PyTree, DType
 
 from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
@@ -43,7 +43,6 @@ from .base import Sampler, SamplerState
 from .rules import MetropolisRule
 
 
-@struct.dataclass
 class MetropolisSamplerState(SamplerState):
     """
     State for a Metropolis sampler.
@@ -59,18 +58,19 @@ class MetropolisSamplerState(SamplerState):
     rule_state: Optional[Any]
     """Optional state of the transition rule."""
 
-    # those are initialised to 0. We want to initialise them to zero arrays because they can
-    # be passed to jax jitted functions that require type invariance to avoid recompilation
     n_steps_proc: int = struct.field(default_factory=lambda: jnp.zeros((), dtype=int))
     """Number of moves performed along the chains in this process since the last reset."""
-    n_accepted_proc: jnp.ndarray = None
+    n_accepted_proc: jnp.ndarray
     """Number of accepted transitions among the chains in this process since the last reset."""
 
-    def __post_init__(self):
-        if self.n_accepted_proc is None:
-            object.__setattr__(
-                self, "n_accepted_proc", jnp.zeros(self.σ.shape[0], dtype=int)
-            )
+    def __init__(self, σ: jnp.ndarray, rng: jnp.ndarray, rule_state: Optional[Any]):
+        self.σ = σ
+        self.rng = rng
+        self.rule_state = rule_state
+
+        self.n_accepted_proc = jnp.zeros(σ.shape[0], dtype=int)
+        self.n_steps_proc = jnp.zeros((), dtype=int)
+        super().__init__()
 
     @property
     def acceptance(self) -> float:
@@ -211,7 +211,6 @@ def _round_n_chains_to_next_multiple(
     return n_chains_per_whatever * n_whatever
 
 
-@struct.dataclass
 class MetropolisSampler(Sampler):
     r"""
     Metropolis-Hastings sampler for a Hilbert space according to a specific transition rule.
@@ -234,10 +233,24 @@ class MetropolisSampler(Sampler):
     n_sweeps: int = struct.field(pytree_node=False, default=None)
     """Number of sweeps for each step along the chain. Defaults to the number
     of sites in the Hilbert space."""
+    n_chains: int = struct.field(pytree_node=False)
+    """Number of independent chains on every MPI rank."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
-    def __pre_init__(self, hilbert: AbstractHilbert, rule: MetropolisRule, **kwargs):
+    def __init__(
+        self,
+        hilbert: AbstractHilbert,
+        rule: MetropolisRule,
+        *,
+        n_sweeps: int = None,
+        reset_chains: bool = False,
+        n_chains: Optional[int] = None,
+        n_chains_per_rank: Optional[int] = None,
+        n_chains_per_rank_or_device: Optional[int] = None,
+        machine_pow: int = 2,
+        dtype: DType = float,
+    ):
         """
         Constructs a Metropolis Sampler.
 
@@ -268,15 +281,15 @@ class MetropolisSampler(Sampler):
                 f"`type(rule)={type(rule)}`."
             )
 
-        n_chains = kwargs.pop("n_chains", None)
-        n_chains_per_rank_or_device = kwargs.pop("n_chains_per_rank_or_device", None)
+        if not isinstance(reset_chains, bool):
+            raise TypeError("reset_chains must be a boolean.")
 
-        if "n_chains_per_rank" in kwargs:
+        if n_chains_per_rank is not None:
             warn_deprecation(
                 "Specifying `n_chains_per_rank` when constructing the Sampler is deprecated. Please use `n_chains_per_rank_or_device` instead."
             )
             if n_chains_per_rank_or_device is None:
-                n_chains_per_rank_or_device = kwargs.pop("n_chains_per_rank")
+                n_chains_per_rank_or_device = n_chains_per_rank
             else:
                 raise ValueError(
                     "Cannot specify both `n_chains_per_rank_or_device` and `n_chains_per_rank`"
@@ -287,7 +300,7 @@ class MetropolisSampler(Sampler):
 
         # we assume either mpi.n_nodes=1 or nk.jax.sharding.device_count_per_rank()=1
         n_ranks_or_devices = mpi.n_nodes * device_count_per_rank()
-        kwargs["n_chains"] = _round_n_chains_to_next_multiple(
+        n_chains = _round_n_chains_to_next_multiple(
             n_chains,
             n_chains_per_rank_or_device,
             n_ranks_or_devices,
@@ -295,20 +308,20 @@ class MetropolisSampler(Sampler):
             default_n_chains_per_rank_or_device,
         )
 
-        # process arguments in the base
-        args, kwargs = super().__pre_init__(hilbert=hilbert, **kwargs)
-        kwargs["rule"] = rule
-        return args, kwargs
+        if n_sweeps is None:
+            n_sweeps = hilbert.size
 
-    def __post_init__(self):
-        super().__post_init__()
+        super().__init__(
+            hilbert=hilbert,
+            machine_pow=machine_pow,
+            dtype=dtype,
+        )
 
-        if not isinstance(self.reset_chains, bool):
-            raise TypeError("reset_chains must be a boolean.")
-
-        # Default value of n_sweeps
-        if self.n_sweeps is None:
-            object.__setattr__(self, "n_sweeps", self.hilbert.size)
+        self.n_chains = n_chains
+        self.reset_chains = reset_chains
+        self.rule = rule
+        self.n_sweeps = n_sweeps
+        self.n_chains = n_chains
 
     def sample_next(
         sampler,
