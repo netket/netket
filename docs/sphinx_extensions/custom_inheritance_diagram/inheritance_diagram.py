@@ -37,7 +37,6 @@ import re
 import abc
 from collections.abc import Iterable, Sequence
 from importlib import import_module
-from os import path
 from typing import TYPE_CHECKING, Any, cast
 
 from docutils import nodes
