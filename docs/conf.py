@@ -51,6 +51,8 @@ allow_inherited = True
 autosummary_generate = True
 napoleon_preprocess_types = True
 
+autodoc_mock_imports = ["openfermion", "qutip", "pyscf"]
+
 # PEP 526 annotations
 napoleon_attr_annotations = True
 
@@ -206,8 +208,8 @@ def setup(app):
     # app.connect('autodoc-process-docstring', warn_undocumented_members);
 
     # fix modules
-    process_module_names(netket)
-    process_module_names(netket.experimental)
+    # process_module_names(netket)
+    # process_module_names(netket.experimental)
 
 
 import netket
