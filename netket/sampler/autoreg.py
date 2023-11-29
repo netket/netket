@@ -81,7 +81,7 @@ class ARDirectSampler(Sampler):
                 "ARDirectSampler.machine_pow should not be used. Modify the model `machine_pow` directly."
             )
 
-        if self.hilbert.constrained:
+        if hilbert.constrained:
             raise ValueError(
                 "Only unconstrained Hilbert spaces can be sampled autoregressively with "
                 "this sampler. To sample constrained spaces, you must write your own (do get in "
