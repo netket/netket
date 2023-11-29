@@ -1,6 +1,7 @@
 import netket as nk
 import numpy as np
 import netket.experimental as nkx
+import scipy
 from netket.operator import DiscreteJaxOperator
 
 import pytest
@@ -429,3 +430,20 @@ def test_pauli_string_operators_hashable_pytree():
     e1 = vs.expect(haj1)
     e2 = vs.expect(haj2)
     jax.tree_map(np.testing.assert_allclose, e1, e2)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(op, id=name) for name, op in operators.items()],
+)
+def test_matmul_sparse_vector(op):
+    N = op.hilbert.size
+    v = np.zeros((N, 1), dtype=op.dtype)
+    v[0, 0] = 1
+
+    Ov_dense = op @ v
+
+    v = scipy.sparse.csr_array(v)
+    Ov_sparse = op @ v
+
+    np.testing.assert_equal(Ov_dense, Ov_sparse.todense())
