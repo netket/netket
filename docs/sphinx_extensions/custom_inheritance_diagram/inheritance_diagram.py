@@ -211,7 +211,8 @@ class InheritanceGraph:
                 return
             if cls is abc.ABC:
                 return
-            # if cls.__name__ == "Pytree":
+            if cls.__name__ == "Pytree":
+                return
 
             # parametric classes from plum: go up one level
             if hasattr(cls, "parametric") and cls.parametric:
