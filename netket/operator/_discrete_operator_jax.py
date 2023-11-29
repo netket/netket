@@ -16,10 +16,10 @@ import abc
 
 import numpy as np
 import jax.numpy as jnp
-
 from jax.experimental.sparse import JAXSparse, BCOO
 
-from netket.operator import DiscreteOperator
+from netket.operator import AbstractOperator, DiscreteOperator
+from netket.utils.types import Array
 
 
 class DiscreteJaxOperator(DiscreteOperator):
@@ -221,3 +221,19 @@ class DiscreteJaxOperator(DiscreteOperator):
             The dense matrix representation of the operator as a jax Array.
         """
         return self.to_sparse().todense()
+
+    def __matmul__(self, other):
+        if isinstance(other, (Array, JAXSparse)):
+            return self.apply(other)
+        elif isinstance(other, AbstractOperator):
+            return self._op__matmul__(other)
+        else:
+            return NotImplemented
+
+    def __rmatmul__(self, other):
+        if isinstance(other, (Array, JAXSparse)):
+            return NotImplemented
+        elif isinstance(other, AbstractOperator):
+            return self._op__rmatmul__(other)
+        else:
+            return NotImplemented

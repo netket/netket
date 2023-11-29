@@ -6,6 +6,7 @@ from netket.operator import DiscreteJaxOperator
 
 import pytest
 import jax
+from jax.experimental.sparse import BCOO
 
 operators = {}
 
@@ -434,16 +435,18 @@ def test_pauli_string_operators_hashable_pytree():
 
 @pytest.mark.parametrize(
     "op",
-    [pytest.param(op, id=name) for name, op in operators.items()],
+    [pytest.param(op, id=name) for name, op in op_finite_size.items()],
 )
 def test_matmul_sparse_vector(op):
-    N = op.hilbert.size
-    v = np.zeros((N, 1), dtype=op.dtype)
+    v = np.zeros((op.hilbert.n_states, 1), dtype=op.dtype)
     v[0, 0] = 1
 
     Ov_dense = op @ v
 
-    v = scipy.sparse.csr_array(v)
+    if isinstance(op, DiscreteJaxOperator):
+        v = BCOO.fromdense(v)
+    else:
+        v = scipy.sparse.csr_array(v)
     Ov_sparse = op @ v
 
-    np.testing.assert_equal(Ov_dense, Ov_sparse.todense())
+    np.testing.assert_array_equal(Ov_dense, Ov_sparse.todense())
