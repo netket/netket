@@ -109,7 +109,10 @@ class MetropolisSamplerState(SamplerState):
 
 # serialization when sharded
 def serialize_MetropolisSamplerState_sharding(sampler_state):
-    state_dict = sampler_state.__dict__
+    state_dict = MetropolisSamplerState._to_flax_state_dict(
+        MetropolisSamplerState._pytree__static_fields, sampler_state
+    )
+
     for prop in ["σ", "n_accepted_proc"]:
         x = state_dict.get(prop, None)
         if x is not None and isinstance(x, jax.Array) and len(x.devices()) > 1:
@@ -123,7 +126,10 @@ def deserialize_MetropolisSamplerState_sharding(sampler_state, state_dict):
         x = state_dict[prop]
         if x is not None:
             state_dict[prop] = distribute_to_devices_along_axis(x)
-    return sampler_state.replace(**state_dict)
+
+    return MetropolisSamplerState._from_flax_state_dict(
+        MetropolisSamplerState._pytree__static_fields, sampler_state, state_dict
+    )
 
 
 if config.netket_experimental_sharding:
