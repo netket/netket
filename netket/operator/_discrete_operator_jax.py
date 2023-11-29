@@ -223,7 +223,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         return self.to_sparse().todense()
 
     def __matmul__(self, other):
-        if isinstance(other, (Array, JAXSparse)):
+        if isinstance(other, Array) or isinstance(other, JAXSparse):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
             return self._op__matmul__(other)
@@ -231,7 +231,7 @@ class DiscreteJaxOperator(DiscreteOperator):
             return NotImplemented
 
     def __rmatmul__(self, other):
-        if isinstance(other, (Array, JAXSparse)):
+        if isinstance(other, Array) or isinstance(other, JAXSparse):
             return NotImplemented
         elif isinstance(other, AbstractOperator):
             return self._op__rmatmul__(other)
