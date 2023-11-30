@@ -44,8 +44,8 @@ def test_RBMSymm(use_hidden_bias, use_visible_bias, symmetries):
     v = hi.random_state(jax.random.PRNGKey(1), 3)
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
 
-    for val in vals:
-        assert jnp.allclose(val, vals[0])
+    for val in vals[1:]:
+        np.testing.assert_allclose(val, vals[0])
 
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),

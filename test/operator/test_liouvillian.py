@@ -99,7 +99,7 @@ def test_linear_operator():
     res_sparse = l_sparse @ dm
     res_op = l_op @ dm
 
-    assert np.all(res_sparse - res_op == approx(0.0, rel=1e-6, abs=1e-6))
+    np.testing.assert_allclose(res_sparse, res_op, rtol=1e-6, atol=1e-6)
 
     assert res_sparse.reshape((hi.n_states, hi.n_states)).trace() == approx(
         0.0, rel=1e-6, abs=1e-6
@@ -113,7 +113,7 @@ def test_linear_operator():
     dmptr[:-1] = dm
     res_op2 = l_op @ dmptr
 
-    assert np.all(res_op2[:-1] - res_op == approx(0.0, rel=1e-8, abs=1e-8))
+    np.testing.assert_allclose(res_op2[:-1], res_op, rtol=1e-8, atol=1e-8)
     assert res_op2[-1] - dm.reshape((hi.n_states, hi.n_states)).trace() == approx(
         0.0, rel=1e-8, abs=1e-8
     )
