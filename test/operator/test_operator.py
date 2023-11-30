@@ -1,10 +1,12 @@
 import netket as nk
 import numpy as np
 import netket.experimental as nkx
+import scipy
 from netket.operator import DiscreteJaxOperator
 
 import pytest
 import jax
+from jax.experimental.sparse import BCOO
 
 operators = {}
 
@@ -429,3 +431,22 @@ def test_pauli_string_operators_hashable_pytree():
     e1 = vs.expect(haj1)
     e2 = vs.expect(haj2)
     jax.tree_map(np.testing.assert_allclose, e1, e2)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [pytest.param(op, id=name) for name, op in op_finite_size.items()],
+)
+def test_matmul_sparse_vector(op):
+    v = np.zeros((op.hilbert.n_states, 1), dtype=op.dtype)
+    v[0, 0] = 1
+
+    Ov_dense = op @ v
+
+    if isinstance(op, DiscreteJaxOperator):
+        v = BCOO.fromdense(v)
+    else:
+        v = scipy.sparse.csr_array(v)
+    Ov_sparse = op @ v
+
+    np.testing.assert_array_equal(Ov_dense, Ov_sparse.todense())

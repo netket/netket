@@ -17,6 +17,7 @@ import jax.numpy as jnp
 
 from numba import jit
 from scipy.sparse import csr_matrix as _csr_matrix
+from scipy.sparse import issparse
 
 from netket.hilbert import DiscreteHilbert
 from netket.operator import AbstractOperator
@@ -256,7 +257,11 @@ class DiscreteOperator(AbstractOperator):
         return op @ v
 
     def __matmul__(self, other):
-        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+        if (
+            isinstance(other, np.ndarray)
+            or isinstance(other, jnp.ndarray)
+            or issparse(other)
+        ):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
             return self._op__matmul__(other)
@@ -268,7 +273,11 @@ class DiscreteOperator(AbstractOperator):
         return NotImplemented
 
     def __rmatmul__(self, other):
-        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+        if (
+            isinstance(other, np.ndarray)
+            or isinstance(other, jnp.ndarray)
+            or issparse(other)
+        ):
             # return self.apply(other)
             return NotImplemented
         elif isinstance(other, AbstractOperator):
