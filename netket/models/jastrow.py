@@ -37,7 +37,7 @@ class Jastrow(nn.Module):
         nv = x_in.shape[-1]
         il = jnp.tril_indices(nv,k=-1)
 
-        kernel = self.param("kernel", self.kernel_init, (nv*(nv + 1) // 2,), self.param_dtype)
+        kernel = self.param("kernel", self.kernel_init, (nv*(nv - 1) // 2,), self.param_dtype)
 
         W = jnp.zeros((nv,nv), dtype=self.param_dtype).at[il].set(kernel)
 
