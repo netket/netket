@@ -35,7 +35,7 @@ class Jastrow(nn.Module):
     @nn.compact
     def __call__(self, x_in: Array):
         nv = x_in.shape[-1]
-        il = jnp.tril_indices(nv)
+        il = jnp.tril_indices(nv,k=-1)
 
         kernel = self.param("kernel", self.kernel_init, (nv*(nv + 1) // 2,), self.param_dtype)
 
