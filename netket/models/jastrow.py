@@ -20,7 +20,7 @@ from netket.utils.types import DType, Array, NNInitFunc
 
 class Jastrow(nn.Module):
     r"""
-    Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`,
+    Jastrow wave function :math:`\Psi(s) = \exp(\sum_{i \neq j} s_i W_{ij} s_j)`,
     where W is a symmetric matrix.
 
     The matrix W is treated as low triangular to avoid
