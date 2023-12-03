@@ -18,6 +18,7 @@ from jax.nn.initializers import normal
 from flax.linen.dtypes import promote_dtype
 from netket.utils.types import DType, Array, NNInitFunc
 
+
 class Jastrow(nn.Module):
     r"""
     Jastrow wave function :math:`\Psi(s) = \exp(\sum_{i \neq j} s_i W_{ij} s_j)`,
@@ -35,11 +36,13 @@ class Jastrow(nn.Module):
     @nn.compact
     def __call__(self, x_in: Array):
         nv = x_in.shape[-1]
-        il = jnp.tril_indices(nv,k=-1)
+        il = jnp.tril_indices(nv, k=-1)
 
-        kernel = self.param("kernel", self.kernel_init, (nv*(nv - 1) // 2,), self.param_dtype)
+        kernel = self.param(
+            "kernel", self.kernel_init, (nv * (nv - 1) // 2,), self.param_dtype
+        )
 
-        W = jnp.zeros((nv,nv), dtype=self.param_dtype).at[il].set(kernel)
+        W = jnp.zeros((nv, nv), dtype=self.param_dtype).at[il].set(kernel)
 
         W, x_in = promote_dtype(W, x_in, dtype=None)
         y = jnp.einsum("...i,ij,...j", x_in, W, x_in)
