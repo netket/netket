@@ -48,8 +48,6 @@ class JsonLog(RuntimeLog):
     Complex numbers are logged as dictionaries :code:`{'real':list, 'imag':list}`.
     """
 
-    __module__ = "netket.logging"
-
     def __init__(
         self,
         output_prefix: str,
