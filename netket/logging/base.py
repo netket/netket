@@ -19,6 +19,7 @@ from typing import Any, Optional
 
 from netket.vqs import VariationalState
 
+
 class AbstractLog(abc.ABC):
     """
     Abstract base class detailing the interface that loggers must
@@ -29,7 +30,12 @@ class AbstractLog(abc.ABC):
     """
 
     @abc.abstractmethod
-    def __call__(self, step: int, item: dict[str,Any], variational_state: Optional[VariationalState] = None):
+    def __call__(
+        self,
+        step: int,
+        item: dict[str, Any],
+        variational_state: Optional[VariationalState] = None,
+    ):
         """
         Logs at a given integer step a dictionary of data, optionally
         specifying a variational state to encode additional data.
@@ -43,7 +49,7 @@ class AbstractLog(abc.ABC):
         """
 
     @abc.abstractmethod
-    def flush(self, variational_state: Optional[VariationalState]=None):
+    def flush(self, variational_state: Optional[VariationalState] = None):
         """
         Flushes the data that is stored internally to disk/network.
 
@@ -52,4 +58,3 @@ class AbstractLog(abc.ABC):
                 might be extracted.
 
         """
-
