@@ -10,6 +10,10 @@
 * Recurrent neural networks and layers have been added to `nkx.models` and `nkx.nn` [#1305](https://github.com/netket/netket/pull/1305).
 * Added experimental support for running NetKet on multiple jax devices (as an alternative to MPI). It is enabled by setting the environment variable/configuration flag `NETKET_EXPERIMENTAL_SHARDING=1`. Parallelization is achieved by distributing the Markov chains / samples equally across all available devices utilizing [`jax.Array` sharding](https://jax.readthedocs.io/en/latest/notebooks/Distributed_arrays_and_automatic_parallelization.html). On GPU multi-node setups are supported via [jax.distribued](https://jax.readthedocs.io/en/latest/multi_process.html), whereas on CPU it is limited to a single process but several threads can be used by setting `XLA_FLAGS='--xla_force_host_platform_device_count=XX'` [#1511](https://github.com/netket/netket/pull/1511).
 
+### Breaking Changes
+
+* The {class}`netket.models.Jastrow` wave-function now only has {math}`N (N-1)` variational parameters, instead of the {math}`N^2` redundant ones it had before. Saving and loading format has now changed and won't be compatible with previous versions[#1664](https://github.com/netket/netket/pull/1664).
+
 ## NetKet 3.10.2 (14 november 2023)
 
 ### Bug Fixes
