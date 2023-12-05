@@ -43,8 +43,6 @@ class AbstractOperator(AbstractObservable):
     must implement to work correctly with NetKet.
     """
 
-    __module__ = "netket.operator"
-
     def __init__(self, hilbert: AbstractHilbert):
         super().__init__(hilbert)
 

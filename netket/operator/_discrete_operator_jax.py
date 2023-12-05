@@ -104,7 +104,6 @@ class DiscreteJaxOperator(DiscreteOperator):
 
 
     """
-    __module__ = "netket.operator"
 
     @property
     def max_conn_size(self) -> int:

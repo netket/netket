@@ -27,7 +27,6 @@ class ContinuousOperator(AbstractOperator):
     quantum Operators for continuous Hilbert spaces should subclass
     `ContinuousOperator` and implement its interface.
     """
-    __module__ = "netket.operator"
 
     def __init__(self, hilbert: AbstractHilbert, dtype: DType = float):
         r"""

@@ -45,7 +45,6 @@ class MCMixedState(VariationalMixedState, MCState):
     according to another sampler.
     """
 
-    __module__ = "netket.vqs"
 
     def __init__(
         self,

@@ -37,8 +37,6 @@ class AbstractObservable(abc.ABC):
     _hilbert: AbstractHilbert
     r"""The hilbert space associated to this observable."""
 
-    __module__ = "netket.experimental.observable"
-
     def __init__(self, hilbert: AbstractHilbert):
         self._hilbert = hilbert
 

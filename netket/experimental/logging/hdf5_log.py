@@ -109,8 +109,6 @@ class HDF5Log(AbstractLog):
 
     """
 
-    __module__ = "netket.experimental.logging"
-
     def __init__(
         self,
         path: str,
