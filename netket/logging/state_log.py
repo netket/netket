@@ -22,6 +22,10 @@ from os import path as _path
 
 from flax import serialization
 
+from netket.jax.sharding import extract_replicated
+
+from .base import AbstractLog
+
 
 def save_binary_to_tar(tar_file, byte_data, name):
     abuf = BytesIO(byte_data)
@@ -34,7 +38,7 @@ def save_binary_to_tar(tar_file, byte_data, name):
     tar_file.addfile(tarinfo=info, fileobj=abuf)
 
 
-class StateLog:
+class StateLog(AbstractLog):
     """
     A logger which serializes the variables of the variational state during a run.
 
@@ -43,8 +47,6 @@ class StateLog:
     called. The tar file inside is not flushed to disk (closed) until this object is
     deleted or python is shut down.
     """
-
-    __module__ = "netket.logging"
 
     def __init__(
         self,
@@ -165,7 +167,9 @@ class StateLog:
             self._init_output()
 
         _time = time.time()
-        binary_data = serialization.to_bytes(variational_state.variables)
+        binary_data = serialization.to_bytes(
+            extract_replicated(variational_state.variables)
+        )
         if self._tar:
             save_binary_to_tar(
                 self._tar_file, binary_data, str(self._file_step) + ".mpack"
@@ -181,7 +185,7 @@ class StateLog:
         if hasattr(self, "_closed"):
             self.close()
 
-    def flush(self, variational_state):
+    def flush(self, variational_state=None):
         pass
 
     def __repr__(self):

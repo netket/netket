@@ -15,7 +15,6 @@
 import netket as nk
 import numpy as np
 import jax
-import jax.numpy as jnp
 from jax.nn.initializers import uniform
 
 import pytest
@@ -62,7 +61,7 @@ def test_gcnn_equivariance(parity, symmetries, lattice, mode):
     vals = ma.apply(pars, v).reshape(len(perms), 3)
 
     for val in vals:
-        assert jnp.allclose(val, vals[0])
+        np.testing.assert_allclose(val, vals[0])
 
 
 @pytest.mark.parametrize("mode", ["fft", "irreps"])

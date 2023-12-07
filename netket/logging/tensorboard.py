@@ -16,6 +16,8 @@ from numbers import Number
 
 from netket.utils.optional_deps import import_optional_dependency
 
+from .base import AbstractLog
+
 
 def tree_log(tree, root, data):
     """
@@ -60,7 +62,7 @@ def tree_log(tree, root, data):
         data.append((root, tree))
 
 
-class TensorBoardLog:
+class TensorBoardLog(AbstractLog):
     """
     Creates a tensorboard logger using tensorboardX's summarywriter.
 
@@ -149,6 +151,9 @@ class TensorBoardLog:
         self._writer.flush()
         self._old_step = step
 
+    def __del__(self):
+        self.flush()
+
     def _flush_log(self):
         if self._writer is not None:
             self._writer.flush()
@@ -156,7 +161,7 @@ class TensorBoardLog:
     def _flush_params(self, _):
         return None
 
-    def flush(self, machine=None):
+    def flush(self, variational_state=None):
         """
         Writes to file the content of this logger.
 
@@ -164,5 +169,5 @@ class TensorBoardLog:
         """
         self._flush_log()
 
-        if machine is not None:
-            self._flush_params(machine)
+        if variational_state is not None:
+            self._flush_params(variational_state)

@@ -25,6 +25,13 @@ from netket.utils import get_afun_if_module, mpi
 from netket.utils.types import Array, PyTree
 from netket.hilbert import DiscreteHilbert
 
+from netket.utils import config
+from netket.jax.sharding import (
+    extract_replicated,
+    gather,
+    distribute_to_devices_along_axis,
+)
+
 from flax.traverse_util import flatten_dict, unflatten_dict
 from flax.core import unfreeze
 
@@ -36,6 +43,8 @@ def split_array_mpi(array: Array) -> Array:
     identical on all ranks.
     !!! Warn
          The output is a numpy array.
+    !!! Warn
+         This should not be used with sharding (netket.netket_experimental_sharding=True)
     Args:
          array: A nd-array
 
@@ -68,19 +77,34 @@ def to_array(
     Computes `apply_fun(variables, states)` on all states of `hilbert` and returns
       the results as a vector.
 
+
     Args:
         normalize: If True, the vector is normalized to have L2-norm 1.
-        allgather: If True, the final wave function is stored in full at all MPI ranks.
+        allgather:
+            When running with MPI:
+                If True, the final wave function is stored in full at all MPI ranks.
+            When running with netket_experimental_sharding=True:
+                If allgather=True, the final wave function is a fully replicated array
+                If allgather=False, the final wave function is a sharded array, padded
+                with zeros to the next multiple of the number of devices
         chunk_size: Optional integer to specify the largest chunks of samples that
             the model will be evaluated upon. By default it is `None`, and when specified
             samples are split into chunks of at most `chunk_size`.
+
+    Returns:
+
     """
     if not hilbert.is_indexable:
         raise RuntimeError("The hilbert space is not indexable")
 
     apply_fun = get_afun_if_module(apply_fun)
 
-    if mpi.n_nodes == 1:
+    if config.netket_experimental_sharding:
+        # for now assume no mpi (no hybrid)
+        x = hilbert.all_states()
+        xs, mask = distribute_to_devices_along_axis(x, pad=True, pad_value=x[0])
+        n_states = xs.shape[0]
+    elif mpi.n_nodes == 1:
         xs = hilbert.all_states()
         mask = None
         n_states = xs.shape[0]
@@ -109,6 +133,14 @@ def to_array(
         chunk_size,
         mask,
     )
+    if allgather and config.netket_experimental_sharding:
+        # for simplicity we gather here outside of jit
+        # alternatively we could use a sharding constraint in _to_array_rank
+        psi = gather(psi)
+        # make it a local numpy array, so that we can operate with e.g.
+        # a sparse scipy array on it and jax thinks its replicated next time we pass it to jit
+        psi = np.asarray(extract_replicated(psi))
+        psi = psi[: hilbert.n_states]
     return psi
 
 

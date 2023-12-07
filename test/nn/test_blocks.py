@@ -120,7 +120,7 @@ def test_deepset():
     assert out.shape == outp.shape
     assert out.shape[-1] == 1
 
-    assert jnp.allclose(out, outp)
+    np.testing.assert_allclose(out, outp)
 
     ds = nk.nn.blocks.DeepSetMLP(
         features_phi=16, features_rho=32, output_activation=nknn.gelu

@@ -15,20 +15,17 @@
 import flax.linen as nn
 import jax.numpy as jnp
 from jax.nn.initializers import normal
-
 from flax.linen.dtypes import promote_dtype
-
-from netket.utils import deprecate_dtype
 from netket.utils.types import DType, Array, NNInitFunc
 
 
-@deprecate_dtype
 class Jastrow(nn.Module):
     r"""
-    Jastrow wave function :math:`\Psi(s) = \exp(\sum_{ij} s_i W_{ij} s_j)`.
+    Jastrow wave function :math:`\Psi(s) = \exp(\sum_{i \neq j} s_i W_{ij} s_j)`,
+    where W is a symmetric matrix.
 
-    The W matrix is stored as a non-symmetric matrix, and symmetrized
-    during computation by doing :code:`W = W + W.T` in the computation.
+    The matrix W is treated as low triangular to avoid
+    redundant parameters in the computation.
     """
 
     param_dtype: DType = jnp.complex128
@@ -39,11 +36,15 @@ class Jastrow(nn.Module):
     @nn.compact
     def __call__(self, x_in: Array):
         nv = x_in.shape[-1]
+        il = jnp.tril_indices(nv, k=-1)
 
-        kernel = self.param("kernel", self.kernel_init, (nv, nv), self.param_dtype)
-        kernel = kernel + kernel.T
+        kernel = self.param(
+            "kernel", self.kernel_init, (nv * (nv - 1) // 2,), self.param_dtype
+        )
 
-        kernel, x_in = promote_dtype(kernel, x_in, dtype=None)
-        y = jnp.einsum("...i,ij,...j", x_in, kernel, x_in)
+        W = jnp.zeros((nv, nv), dtype=self.param_dtype).at[il].set(kernel)
+
+        W, x_in = promote_dtype(W, x_in, dtype=None)
+        y = jnp.einsum("...i,ij,...j", x_in, W, x_in)
 
         return y

@@ -40,6 +40,8 @@ from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
+from netket.jax.sharding import extract_replicated
+
 from netket.vqs.base import VariationalState, expect, expect_and_grad, expect_and_forces
 from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
 
@@ -165,7 +167,6 @@ class MCState(VariationalState):
                 specified together with n_samples (default=None).
             n_discard_per_chain: number of discarded samples at the beginning of each monte-carlo chain (default=0 for exact sampler,
                 and n_samples/10 for approximate sampler).
-            parameters: Optional PyTree of weights from which to start.
             seed: rng seed used to generate a set of parameters (only if parameters is not passed). Defaults to a random one.
             sampler_seed: rng seed used to initialise the sampler. Defaults to a random one.
             mutable: Name or list of names of mutable arguments. Use it to specify if the model has a state that can change
@@ -728,7 +729,8 @@ def local_estimators(
 
     shape = s.shape
     if jnp.ndim(s) != 2:
-        s = s.reshape((-1, shape[-1]))
+        # jit for gda
+        s = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(s, 0, s.ndim - 1)
 
     if chunk_size is None:
         chunk_size = state.chunk_size  # state.chunk_size can still be None
@@ -748,7 +750,7 @@ def local_estimators(
 # serialization
 def serialize_MCState(vstate):
     state_dict = {
-        "variables": serialization.to_state_dict(vstate.variables),
+        "variables": serialization.to_state_dict(extract_replicated(vstate.variables)),
         "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,

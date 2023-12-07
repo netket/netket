@@ -355,8 +355,8 @@ def test_qutip_conversion(vstate):
 )
 def test_expect(vstate, operator):
     # Use lots of samples
-    vstate.n_samples = 5 * 1e5
-    vstate.n_discard_per_chain = 1e3
+    vstate.n_samples = 256 * 1024
+    vstate.n_discard_per_chain = 1024
 
     # sample the expectation value and gradient with tons of samples
     O_stat1 = vstate.expect(operator)
@@ -382,7 +382,7 @@ def test_expect(vstate, operator):
     if not operator.is_hermitian:
         assert O1_mean.imag == approx(O_mean.imag, abs=1e-5)
 
-    assert np.asarray(O_stat1.variance) == approx(np.asarray(O_stat.variance), abs=1e-5)
+    np.testing.assert_allclose(O_stat1.variance, O_stat.variance, atol=1e-5)
 
     # Prepare the exact estimations
     pars_0 = vstate.parameters

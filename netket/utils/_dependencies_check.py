@@ -20,6 +20,8 @@ silently or unexpectedly.
 
 from textwrap import dedent
 
+from .config_flags import config
+
 from .version_check import module_version, version_string
 
 
@@ -53,6 +55,16 @@ def create_msg(pkg_name, cur_version, desired_version, extra_msg="", pip_pkg_nam
 if not module_version("jax") >= (0, 4, 3):  # pragma: no cover
     cur_version = version_string("jax")
     raise ImportError(create_msg("jax", cur_version, "0.4.3"))
+
+if config.netket_experimental_sharding:
+    if not module_version("jax") >= (0, 4, 16):  # pragma: no cover
+        cur_version = version_string("jax")
+        extra = """Reason: The experimental sharding mode requires a very
+                   recent jax version. Please update to at least 0.4.16
+                   """
+
+        raise ImportError(create_msg("jax", cur_version, "0.4.16", extra))
+
 
 if not module_version("optax") >= (0, 1, 3):  # pragma: no cover
     cur_version = version_string("optax")

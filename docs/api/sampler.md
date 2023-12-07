@@ -1,16 +1,16 @@
 (netket_sampler_api)=
 # netket.sampler
 
-```{eval-rst}
-.. currentmodule:: netket.sampler
-
-```
-
 
 ```{eval-rst}
 .. inheritance-diagram:: netket.sampler netket.sampler.rules
-   :top-classes: netket.sampler.Sampler
+   :top-classes: netket.sampler.base.Sampler netket.sampler.rules.base.MetropolisRule
    :parts: 1
+
+```
+
+```{eval-rst}
+.. currentmodule:: netket.sampler
 
 ```
 

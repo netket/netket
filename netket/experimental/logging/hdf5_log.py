@@ -17,6 +17,8 @@ import numpy as np
 from flax.serialization import to_bytes
 from flax.core import pop as fpop, FrozenDict
 
+from netket.logging import AbstractLog
+
 _mode_shorthands = {"write": "w", "append": "a", "fail": "x"}
 
 
@@ -76,7 +78,7 @@ def tree_log(tree, root, data, *, iter=None):
             data.create_dataset(root, data=[value], maxshape=maxshape)
 
 
-class HDF5Log:
+class HDF5Log(AbstractLog):
     r"""
     HDF5 Logger, that can be passed with keyword argument `logger` to Monte
     Carlo drivers in order to serialize the output data of the simulation.

@@ -19,6 +19,8 @@ from .. import common
 
 import netket as nk
 from netket.hilbert import DiscreteHilbert, Particle
+from netket.utils import mpi
+from netket.jax.sharding import device_count_per_rank
 
 from netket import experimental as nkx
 
@@ -240,21 +242,21 @@ def set_pdf_power(request):
 
 def test_states_in_hilbert(sampler, model_and_weights):
     hi = sampler.hilbert
+    chain_length = 50
     if isinstance(hi, DiscreteHilbert):
         all_states = hi.all_states()
 
         ma, w = model_and_weights(hi, sampler)
 
-        for sample in sampler.samples(ma, w, chain_length=50):
-            assert sample.shape == (sampler.n_chains, hi.size)
-            for v in sample:
-                assert v in all_states
+        samples, _ = sampler.sample(ma, w, chain_length=chain_length)
+        assert samples.shape == (sampler.n_chains, chain_length, hi.size)
+        for sample in np.asarray(samples).reshape(-1, hi.size):
+            assert sample in all_states
 
     elif isinstance(hi, Particle):
         ma, w = model_and_weights(hi, sampler)
-
-        for sample in sampler.samples(ma, w, chain_length=50):
-            assert sample.shape == (sampler.n_chains, hi.size)
+        samples, _ = sampler.sample(ma, w, chain_length=chain_length)
+        assert samples.shape == (sampler.n_chains, chain_length, hi.size)
 
     # if hasattr(sa, "acceptance"):
     #    assert np.min(sampler.acceptance) >= 0 and np.max(sampler.acceptance) <= 1.0
@@ -520,4 +522,4 @@ def test_exact_sampler(sampler):
         assert sampler.n_chains_per_rank == 1
     else:
         assert sampler.is_exact is False
-        assert sampler.n_chains_per_rank == 16
+        assert sampler.n_chains == 16 * mpi.n_nodes * device_count_per_rank()

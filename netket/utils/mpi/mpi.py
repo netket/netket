@@ -24,7 +24,7 @@ _mpi4jax_loaded = False
 mpi4jax_available = False
 
 try:
-    if not config.netket_mpi:  # pragma: no cover
+    if not config.netket_mpi or config.netket_experimental_sharding:  # pragma: no cover
         # if mpi is disabled trigger import error
         # and follow the no-mpi code path
         raise ImportError

@@ -36,7 +36,7 @@ True
 
 Please note that not all configurations can be set at runtime, and some will raise an error.
 
-Options are used to activate experimental or debug functionalities or to disable some parts of netket. 
+Options are used to activate experimental or debug functionalities or to disable some parts of netket.
 Please keep in mind that all options related to experimental or internal functionalities might be removed in a future release.
 
 # List of configuration options
@@ -104,5 +104,20 @@ Please keep in mind that all options related to experimental or internal functio
   - True/**[False]**
   - no
   - Set to True when building documentation with Sphinx. Disables some decorators. This is for internal use only.
-  
+
+* - `NETKET_EXPERIMENTAL_SHARDING`
+  - True/**[False]**
+  - no
+  - Flag to turn on experimental support for multiple jax devices. When True, NetKet will distribute the markov chains/samples uniformly across all available jax devices and utilize them for computations.
+
+* - `NETKET_EXPERIMENTAL_SHARDING_CPU`
+  - integer
+  - no
+  - Convenience helper to set the flag `XLA_FLAGS='--xla_force_host_platform_device_count=XX', forcing jax to use multiple threads as separate cpu devices.
+
+* - `NETKET_EXPERIMENTAL_SHARDING_NUMBA_WRAPPER_WARNING`
+  - **[True]**/False
+  - yes
+  - Raise a warning when the highly experimental wrapper for numba operators applied to sharded arrays is used.
+
 `````

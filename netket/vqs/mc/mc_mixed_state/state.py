@@ -26,6 +26,8 @@ from netket.stats import Stats
 from netket.utils.types import PyTree
 from netket.operator import AbstractOperator
 
+from netket.jax.sharding import extract_replicated
+
 from netket.vqs import VariationalMixedState
 
 from netket.vqs.mc import MCState
@@ -213,7 +215,11 @@ class MCMixedState(VariationalMixedState, MCState):
 
     def to_matrix(self, normalize: bool = True) -> jnp.ndarray:
         return netket.nn.to_matrix(
-            self.hilbert, self._apply_fun, self.variables, normalize=normalize
+            self.hilbert,
+            self._apply_fun,
+            self.variables,
+            normalize=normalize,
+            chunk_size=self.chunk_size,
         )
 
     def __repr__(self):
@@ -245,7 +251,7 @@ class MCMixedState(VariationalMixedState, MCState):
 
 def serialize_MCMixedState(vstate):
     state_dict = {
-        "variables": serialization.to_state_dict(vstate.variables),
+        "variables": serialization.to_state_dict(extract_replicated(vstate.variables)),
         "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
         "diagonal": serialization.to_state_dict(vstate.diagonal),
         "n_samples": vstate.n_samples,
@@ -272,6 +278,7 @@ def deserialize_MCMixedState(vstate, state_dict):
     new_vstate.sampler_state = serialization.from_state_dict(
         vstate.sampler_state, state_dict["sampler_state"]
     )
+
     new_vstate.n_samples = state_dict["n_samples"]
     new_vstate.n_discard_per_chain = state_dict["n_discard_per_chain"]
     new_vstate.chunk_size = state_dict["chunk_size"]

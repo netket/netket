@@ -122,7 +122,7 @@ def test_DenseSymm(symmetries, use_bias, mode):
     v = hi.random_state(rng.next(), (3, 1))
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
     for val in vals:
-        assert jnp.allclose(jnp.sort(val, -1), jnp.sort(vals[0], -1))
+        np.testing.assert_allclose(jnp.sort(val, -1), jnp.sort(vals[0], -1))
 
 
 @pytest.mark.parametrize("symmetries", ["trans", "space_group"])
@@ -156,7 +156,7 @@ def test_DenseSymm_infeatures(symmetries, use_bias, mode):
     v = hi.random_state(rng.next(), 6).reshape(3, 2, -1)
     vals = [ma.apply(pars, v[..., p]) for p in np.asarray(perms)]
     for val in vals:
-        assert jnp.allclose(jnp.sort(val, -1), jnp.sort(vals[0], -1))
+        np.testing.assert_allclose(jnp.sort(val, -1), jnp.sort(vals[0], -1))
 
 
 @pytest.mark.parametrize("mode", ["fft", "matrix", "irreps"])
@@ -281,7 +281,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
     out_trans = ma.apply(pars, v_trans)
 
     # output should be involution
-    assert jnp.allclose(jnp.matmul(out, sym_op), out_trans)
+    np.testing.assert_allclose(jnp.matmul(out, sym_op), out_trans)
 
 
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
@@ -309,15 +309,17 @@ def test_modes_DenseSymm(lattice, symmetries):
     pars = ma_fft.init(rng.next(), dum_input)
     _ = ma_matrix.init(rng.next(), dum_input)
 
-    assert jnp.allclose(ma_fft.apply(pars, dum_input), ma_matrix.apply(pars, dum_input))
+    np.testing.assert_allclose(
+        ma_fft.apply(pars, dum_input), ma_matrix.apply(pars, dum_input)
+    )
 
     # Test Deprecation warning
     dum_input_nofeatures = dum_input.reshape((dum_input.shape[0], dum_input.shape[2]))
     with pytest.warns(FutureWarning):
-        assert jnp.allclose(
+        np.testing.assert_allclose(
             ma_fft.apply(pars, dum_input), ma_fft.apply(pars, dum_input_nofeatures)
         )
-        assert jnp.allclose(
+        np.testing.assert_allclose(
             ma_matrix.apply(pars, dum_input),
             ma_matrix.apply(pars, dum_input_nofeatures),
         )
@@ -347,7 +349,9 @@ def test_modes_DenseSymm_infeatures(lattice, symmetries):
     pars = ma_fft.init(rng.next(), dum_input)
     _ = ma_matrix.init(rng.next(), dum_input)
 
-    assert jnp.allclose(ma_fft.apply(pars, dum_input), ma_matrix.apply(pars, dum_input))
+    np.testing.assert_allclose(
+        ma_fft.apply(pars, dum_input), ma_matrix.apply(pars, dum_input)
+    )
 
 
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
@@ -385,8 +389,8 @@ def test_modes_DenseEquivariant(lattice, symmetries):
     irreps_out = ma_irreps.apply(pars, dum_input)
     matrix_out = ma_matrix.apply(pars, dum_input)
 
-    assert jnp.allclose(fft_out, irreps_out)
-    assert jnp.allclose(fft_out, matrix_out)
+    np.testing.assert_allclose(fft_out, irreps_out)
+    np.testing.assert_allclose(fft_out, matrix_out)
 
 
 def test_deprecated_inout_features_DenseEquivariant():

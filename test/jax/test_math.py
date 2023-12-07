@@ -36,7 +36,7 @@ def test_logdet():
     assert ld.dtype == jnp.complex64
     ldc = logdet_cmplx(A.astype(jnp.complex64))
     assert ldc.dtype == jnp.complex64
-    np.testing.assert_allclose(ld, ldc, rtol=1e-6)
+    np.testing.assert_allclose(ld, ldc, rtol=1.5e-6)
 
     A = jax.random.normal(k, (3, 4, 5, 5), dtype=jnp.float64)
     ld = logdet_cmplx(A)

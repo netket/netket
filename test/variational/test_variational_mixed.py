@@ -425,7 +425,7 @@ def test_grad_finitedifferences(vstate, operator):
     if not operator.is_hermitian:
         assert O1_mean.imag == approx(O_mean.imag, abs=1e-5)
 
-    assert np.asarray(O_stat1.variance) == approx(np.asarray(O_stat.variance), abs=1e-5)
+    np.testing.assert_allclose(O_stat1.variance, O_stat.variance, atol=1e-5)
 
     # Prepare the exact estimations
     pars_0 = vstate.parameters
