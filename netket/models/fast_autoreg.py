@@ -73,11 +73,11 @@ class FastARNNSequential(ARNNSequential):
             n_particles = _get_n_particles(hilbert)
 
             # Index in the ordered inputs
-            _k = self.variable("cache", "ordered_index", zeros, None, (), jnp.int32)
+            _k = self.variable("cache", "k", zeros, None, (), jnp.int32)
 
             # Total number of particles up to the current site
             _cum_particles = self.variable(
-                "cache", "k", zeros, None, (inputs.shape[0]), jnp.int32
+                "cache", "cum_particles", zeros, None, (inputs.shape[0]), jnp.int32
             )
 
             k = _k.value
