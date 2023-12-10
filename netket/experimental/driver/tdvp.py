@@ -18,7 +18,6 @@ from functools import partial
 import jax
 
 import netket as nk
-from netket.driver.vmc_common import info
 from netket.operator import AbstractOperator
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
@@ -124,18 +123,6 @@ class TDVP(TDVPBaseDriver):
         super().__init__(
             operator, variational_state, integrator, t0=t0, error_norm=error_norm
         )
-
-    def info(self, depth=0):
-        lines = [
-            f"{name}: {info(obj, depth=depth + 1)}"
-            for name, obj in [
-                ("generator     ", self._generator_repr),
-                ("integrator    ", self._integrator),
-                ("linear solver ", self.linear_solver),
-                ("state         ", self.state),
-            ]
-        ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])
 
 
 @odefun.dispatch

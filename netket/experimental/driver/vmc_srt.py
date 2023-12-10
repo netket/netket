@@ -1,5 +1,21 @@
+# Copyright 2023  The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from functools import partial
 from typing import Callable, Optional
+
+from textwrap import dedent
 
 import jax
 import jax.numpy as jnp
@@ -12,9 +28,10 @@ from netket.operator import AbstractOperator
 from netket.errors import UnoptimalSRtWarning
 import warnings
 
+from netket.stats import Stats
 from netket.vqs import MCState
 from netket.utils import mpi
-from netket.utils.types import ScalarOrSchedule
+from netket.utils.types import ScalarOrSchedule, PyTree
 
 from jax.flatten_util import ravel_pytree
 
@@ -152,7 +169,18 @@ class VMC_SRt(VMC):
             variational_state: The :class:`netket.vqs.MCState` to be optimised. Other
                 variational states are not supported.
         """
-        super().__init__(hamiltonian, optimizer, variational_state=variational_state)
+        super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
+
+        if variational_state.hilbert != hamiltonian.hilbert:
+            raise TypeError(
+                dedent(
+                    f"""the variational_state has hilbert space {variational_state.hilbert}
+                    (this is normally defined by the hilbert space in the sampler), but
+                    the hamiltonian has hilbert space {hamiltonian.hilbert}.
+                    The two should match.
+                    """
+                )
+            )
 
         if self.state.n_parameters % mpi.n_nodes != 0:
             raise NotImplementedError(
@@ -177,6 +205,9 @@ class VMC_SRt(VMC):
             )
 
         self._ham = hamiltonian.collect()  # type: AbstractOperator
+        self._dp: PyTree = None
+        self._S = None
+
         self.diag_shift = diag_shift
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
@@ -225,7 +256,7 @@ class VMC_SRt(VMC):
             )
         self._jacobian_mode = mode
 
-    def _forward_and_backward(self):
+    def _step(self):
         """
         Performs a number of VMC optimization steps.
 
@@ -268,3 +299,18 @@ class VMC_SRt(VMC):
         self._dp = self._unravel_params_fn(updates)
 
         return self._dp
+
+    @property
+    def energy(self) -> Stats:
+        """
+        Return MCMC statistics for the expectation value of observables in the
+        current state of the driver.
+        """
+        return self._loss_stats
+
+    def __repr__(self):
+        return (
+            "Vmc_SRt("
+            + f"\n  step_count = {self.step_count},"
+            + f"\n  state = {self.state})"
+        )
