@@ -20,15 +20,14 @@ from inspect import signature
 from netket.utils.types import PyTree
 from netket.operator import AbstractOperator
 from netket.stats import Stats
-from netket.vqs import MCState
 from netket.optimizer import (
     identity_preconditioner,
     PreconditionerT,
     _DeprecatedPreconditionerSignature,
 )
 from netket.jax import tree_cast
+from netket.vqs import VariationalState
 
-from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
 
 
@@ -41,10 +40,8 @@ class VMC(AbstractVariationalDriver):
         self,
         hamiltonian: AbstractOperator,
         optimizer,
-        *args,
-        variational_state=None,
+        variational_state: VariationalState,
         preconditioner: PreconditionerT = identity_preconditioner,
-        **kwargs,
     ):
         """
         Initializes the driver class.
@@ -59,9 +56,6 @@ class VMC(AbstractVariationalDriver):
                 included with NetKet is Stochastic Reconfiguration. By default, no
                 preconditioner is used and the bare gradient is passed to the optimizer.
         """
-        if variational_state is None:
-            variational_state = MCState(*args, **kwargs)
-
         if variational_state.hilbert != hamiltonian.hilbert:
             raise TypeError(
                 dedent(
@@ -116,7 +110,7 @@ class VMC(AbstractVariationalDriver):
 
         self._preconditioner = val
 
-    def _forward_and_backward(self):
+    def _step(self):
         """
         Performs a number of VMC optimization steps.
 
@@ -152,15 +146,3 @@ class VMC(AbstractVariationalDriver):
             + f"\n  step_count = {self.step_count},"
             + f"\n  state = {self.state})"
         )
-
-    def info(self, depth=0):
-        lines = [
-            f"{name}: {info(obj, depth=depth + 1)}"
-            for name, obj in [
-                ("Hamiltonian    ", self._ham),
-                ("Optimizer      ", self._optimizer),
-                ("Preconditioner ", self.preconditioner),
-                ("State          ", self.state),
-            ]
-        ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])

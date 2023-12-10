@@ -25,7 +25,6 @@ from netket.optimizer import (
 )
 from netket.jax import tree_cast
 
-from .vmc_common import info
 from .abstract_variational_driver import AbstractVariationalDriver
 
 
@@ -73,7 +72,7 @@ class SteadyState(AbstractVariationalDriver):
         self._S = None
         self._sr_info = None
 
-    def _forward_and_backward(self):
+    def _step(self):
         """
         Performs a number of VMC optimization steps.
 
@@ -142,14 +141,3 @@ class SteadyState(AbstractVariationalDriver):
             + f"\n  step_count = {self.step_count},"
             + f"\n  state = {self.state})"
         )
-
-    def info(self, depth=0):
-        lines = [
-            f"{name}: {info(obj, depth=depth + 1)}"
-            for name, obj in [
-                ("Lindbladian ", self._lind),
-                ("Optimizer   ", self._optimizer),
-                ("SR solver   ", self.sr),
-            ]
-        ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])

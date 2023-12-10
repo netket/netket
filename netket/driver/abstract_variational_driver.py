@@ -15,15 +15,17 @@
 import abc
 import numbers
 from functools import partial
+from typing import Callable, Optional
+from collections.abc import Iterable
 
 from tqdm import tqdm
 
 import jax
 from jax.tree_util import tree_map
 
-from netket.logging import JsonLog
+from netket.logging import AbstractLog, JsonLog
 from netket.operator import AbstractOperator
-from netket.utils import mpi
+from netket.utils import mpi, warn_deprecation
 
 
 def _to_iterable(maybe_iterable):
@@ -43,13 +45,10 @@ def _to_iterable(maybe_iterable):
 # Note: to implement a new Driver (see also _vmc.py for an example)
 # If you want to inherit the nice interface of AbstractMCDriver, you should
 # subclass it, defining the following methods:
-# - Either _forward_and_backward or individually _forward, _backward, that should
-#   compute the loss function and the gradient. If the driver is minimizing or
-#   maximising some loss function, this quantity should be assigned to self._stats
-#   in order to monitor it.
-# - _estimate_stats should return the MC estimate of a single operator
+# - _step , that should compute the loss function and the gradient.
+#   If the driver is minimizing or maximising some loss function, this quantity
+#   should be assigned to self._stats in order to monitor it.
 # - reset should reset the driver (usually the sampler).
-# - info should return a string with an overview of the driver.
 # - The __init__ method should be called with the machine and the optimizer. If this
 #   driver is minimising a loss function and you want it's name to show up automatically
 #   in the progress bar/output files you should pass the optional keyword argument
@@ -58,9 +57,6 @@ class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
     def __init__(self, variational_state, optimizer, minimized_quantity_name=""):
-        self._mynode = mpi.node_number
-        self._is_root = self._mynode == 0 and jax.process_index() == 0
-        self._mpi_nodes = mpi.n_nodes
         self._loss_stats = None
         self._loss_name = minimized_quantity_name
         self._step_count = 0
@@ -68,7 +64,7 @@ class AbstractVariationalDriver(abc.ABC):
         self._variational_state = variational_state
         self.optimizer = optimizer
 
-    def _forward_and_backward(self):  # pragma: no cover
+    def _step(self):  # pragma: no cover
         """
         Performs the forward and backward pass at the same time.
         Concrete drivers should either override this method, or override individually
@@ -77,35 +73,35 @@ class AbstractVariationalDriver(abc.ABC):
         Returns:
             the update for the weights.
         """
-        self._forward()
-        dp = self._backward()
-        return dp
+        # TODO: deprecated december 2023, remove december 2024
+        if hasattr(self, "_forward_and_backward"):
+            warn_deprecation(
+                """
+                `AbstractVariationalDriver._forward_and_backward()` has been
+                deprecated in favour of the new name `_step()`.
 
-    def _forward(self):
-        """
-        Performs the forward pass, computing the loss function.
-        Concrete should either implement _forward and _backward or the joint method
-        _forward_and_backward.
-        """
-        raise NotImplementedError()  # pragma: no cover
+                If you see this error, you probably defined a custom driver. In
+                this case, please rename the method from `_forward_and_backward`
+                to `_step`.
+                """
+            )
+            return self._forward_and_backward()
+        raise NotImplementedError
 
-    def _backward(self):
+    def _log_additional_data(self, log_dict: dict, step: int):
         """
-        Performs the backward pass, computing the update for the parameters.
-        Concrete should either implement _forward and _backward or the joint method
-        _forward_and_backward.
-        """
-        raise NotImplementedError()  # pragma: no cover
+        Method to be implemented in sub-classes of AbstractVariationalDriver to
+        log additional data at every step.
+        This method is called at every iteration when executing with `run`.
 
-    def _estimate_stats(self, observable):
-        """
-        Returns the MCMC statistics for the expectation value of an observable.
-        Must be implemented by super-classes of AbstractVMC.
+        Args:
+            log_dict: The dictionary containing all logged data. It must be
+                **modified in-place** adding new keys.
+            step: the current step number.
 
-        :param observable: A quantum operator (netket observable)
-        :return:
+        Returns:
+            Nothing. The log dictionary should be modified in place.
         """
-        return self.state.expect(observable)
 
     def reset(self):
         """
@@ -116,12 +112,6 @@ class AbstractVariationalDriver(abc.ABC):
         """
         self.state.reset()
         self._step_count = 0
-
-    @abc.abstractmethod
-    def info(self, depth=0):
-        """
-        Returns an info string used to print information to screen about this driver.
-        """
 
     @property
     def state(self):
@@ -187,37 +177,58 @@ class AbstractVariationalDriver(abc.ABC):
 
     def run(
         self,
-        n_iter,
-        out=None,
-        obs=None,
-        show_progress=True,
-        save_params_every=50,  # for default logger
-        write_every=50,  # for default logger
-        step_size=1,  # for default logger
-        callback=lambda *x: True,
+        n_iter: int,
+        out: Optional[Iterable[AbstractLog]] = None,
+        obs: Optional[dict[str, AbstractOperator]] = None,
+        show_progress: bool = True,
+        save_params_every: int = 50,  # for default logger
+        write_every: int = 50,  # for default logger
+        step_size: int = 1,  # for default logger
+        callback: Callable[
+            [int, dict, "AbstractVariationalDriver"], bool
+        ] = lambda *x: True,
     ):
         """
-        Executes the Monte Carlo Variational optimization, updating the weights of the network
-        stored in this driver for `n_iter` steps and dumping values of the observables `obs`
-        in the output `logger`. If no logger is specified, creates a json file at `out`,
-        overwriting files with the same prefix.
+        Runs this variational driver, updating the weights of the network stored in
+        this driver for `n_iter` steps and dumping values of the observables `obs`
+        in the output `logger`.
 
-        By default uses :class:`nk.logging.JsonLog`. To know about the output format
-        check it's documentation. The logger object is also returned at the end of this function
-        so that you can inspect the results without reading the json output.
+        It is possible to control more specifically what quantities are logged, when to
+        stop the optimisation, or to execute arbitrary code at every step by specifying
+        one or more callbacks, which are passed as a list of functions to the keyword
+        argument `callback`.
+
+        Callbacks are functions that follow this signature:
+
+        .. Code::
+
+            def callback(step, log_data, driver) -> bool:
+                ...
+                return True/False
+
+        If a callback returns True, the optimisation continues, otherwise it is stopped.
+        The `log_data` is a dictionary that can be modified in-place to change what is
+        logged at every step. For example, this can be used to log additional quantities
+        such as the acceptance rate of a sampler.
+
+        Loggers are specified as an iterable passed to the keyword argument `out`. If only
+        a string is specified, this will create by default a :class:`nk.logging.JsonLog`.
+        To know about the output format check its documentation. The logger object is
+        also returned at the end of this function so that you can inspect the results
+        without reading the json output.
 
         Args:
-            n_iter: the total number of iterations
+            n_iter: the total number of iterations to be performed during this run.
             out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
                 If this argument is a string, it will be used as output prefix for the standard JSON logger.
             obs: An iterable containing all observables that should be computed
+            step_size: Every how many steps should observables be logged to disk (default=1)
+            callback: Callable or list of callable callback functions to stop training given a condition
+            show_progress: If true displays a progress bar (default=True)
             save_params_every: Every how many steps the parameters of the network should be
                 serialized to disk (ignored if logger is provided)
             write_every: Every how many steps the json data should be flushed to disk (ignored if
                 logger is provided)
-            step_size: Every how many steps should observables be logged to disk (default=1)
-            show_progress: If true displays a progress bar (default=True)
-            callback: Callable or list of callable callback functions to stop training given a condition
         """
 
         if not isinstance(n_iter, numbers.Number):
@@ -230,18 +241,13 @@ class AbstractVariationalDriver(abc.ABC):
 
         if out is None:
             out = tuple()
-            print(
-                "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
-                "Running the optimization but not saving the output."
-            )
 
         # Log only non-root nodes
-        if self._is_root:
+        if mpi.node_number == 0 and jax.process_index() == 0:
             # if out is a path, create an overwriting Json Log for output
             if isinstance(out, str):
-                loggers = (JsonLog(out, "w", save_params_every, write_every),)
-            else:
-                loggers = _to_iterable(out)
+                out = JsonLog(out, "w", save_params_every, write_every)
+            loggers = _to_iterable(out)
         else:
             loggers = tuple()
             show_progress = False
@@ -313,7 +319,7 @@ class AbstractVariationalDriver(abc.ABC):
         # Do not unpack operators, even if they are pytrees!
         # this is necessary to support jax operators.
         return tree_map(
-            self._estimate_stats,
+            lambda O: self.state.expect(O),
             observables,
             is_leaf=lambda x: isinstance(x, AbstractOperator),
         )
@@ -328,21 +334,6 @@ class AbstractVariationalDriver(abc.ABC):
         self._optimizer_state, self.state.parameters = apply_gradient(
             self._optimizer.update, self._optimizer_state, dp, self.state.parameters
         )
-
-    def _log_additional_data(self, log_dict, step):
-        """
-        Method to be implemented in sub-classes of AbstractVariationalDriver to
-        log additional data at every step.
-        This method is called at every iteration when executing with `run`.
-
-        Args:
-            `log_dict`: The dictionary containing all logged data. It must be
-                modified in-place adding new keys.
-            `step`: the current step number.
-
-        Returns:
-            Nothing. The log dictionary should be modified in place.
-        """
 
 
 @partial(jax.jit, static_argnums=0)
