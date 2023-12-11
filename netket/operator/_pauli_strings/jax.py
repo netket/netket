@@ -344,11 +344,15 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     @property
     def _mode(self):
         """
-        (Experimental) changes the indexing mode of the operator. 
+        (Internal) Indexing mode of the operator. 
 
-        Valid values are "index" or "mask". The latter uses constant-size
-        masks and does not change the shapes if same number of strings in the
-        PauliString.
+        Valid values are "index" or "mask".
+
+        'Index' uses the standard LocalOperator-like indexing of changed points,
+        while the latter uses constant-size masks.
+
+        The latter does not really need recompilation for paulistrings with
+        different values, and this could be changed in the future.
         """
         return self._mode_attr
 
