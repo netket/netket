@@ -344,7 +344,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
     @property
     def _mode(self):
         """
-        (Internal) Indexing mode of the operator. 
+        (Internal) Indexing mode of the operator.
 
         Valid values are "index" or "mask".
 
