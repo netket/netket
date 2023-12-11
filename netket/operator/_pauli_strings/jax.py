@@ -337,10 +337,26 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         #          (and possibly on gpu)
         # By adapting pack_internals_jax hybrid approaches are also possible.
         # depending on performance tests we might expose or remove it
-        _check_mode(_mode)
-        self._mode = _mode
         self._hi_local_states = tuple(self.hilbert.local_states)
         self._initialized = False
+        self._mode = _mode
+
+    @property
+    def _mode(self):
+        """
+        (Experimental) changes the indexing mode of the operator. 
+
+        Valid values are "index" or "mask". The latter uses constant-size
+        masks and does not change the shapes if same number of strings in the
+        PauliString.
+        """
+        return self._mode_attr
+
+    @_mode.setter
+    def _mode(self, mode):
+        _check_mode(mode)
+        self._mode_attr = mode
+        self._reset_caches()
 
     @property
     def max_conn_size(self) -> int:
