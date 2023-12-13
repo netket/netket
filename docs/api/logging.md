@@ -23,7 +23,7 @@ The base class follows the API protocol declared here. You should reimplement th
    :toctree: _generated/driver
    :nosignatures:
 
-   Abstractlog
+   AbstractLog
 ```
 
 While the loggers available for simulations are the following:
