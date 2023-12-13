@@ -17,10 +17,12 @@ import jax.numpy as jnp
 
 from numba import jit
 from scipy.sparse import csr_matrix as _csr_matrix
+from scipy.sparse import issparse
 
 from netket.hilbert import DiscreteHilbert
 from netket.operator import AbstractOperator
 from netket.utils.optional_deps import import_optional_dependency
+from netket.jax.sharding import replicate_sharding_decorator_for_get_conn_padded
 
 
 class DiscreteOperator(AbstractOperator):
@@ -29,7 +31,6 @@ class DiscreteOperator(AbstractOperator):
     quantum Operators for discrete Hilbert spaces should derive
     their own class from this class
     """
-    __module__ = "netket.operator"
 
     def __init__(self, hilbert: DiscreteHilbert):
         if not isinstance(hilbert, DiscreteHilbert):
@@ -43,6 +44,7 @@ class DiscreteOperator(AbstractOperator):
         """The maximum number of non zero ⟨x|O|x'⟩ for every x."""
         raise NotImplementedError
 
+    @replicate_sharding_decorator_for_get_conn_padded
     def get_conn_padded(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         r"""Finds the connected elements of the Operator.
 
@@ -254,7 +256,11 @@ class DiscreteOperator(AbstractOperator):
         return op @ v
 
     def __matmul__(self, other):
-        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+        if (
+            isinstance(other, np.ndarray)
+            or isinstance(other, jnp.ndarray)
+            or issparse(other)
+        ):
             return self.apply(other)
         elif isinstance(other, AbstractOperator):
             return self._op__matmul__(other)
@@ -266,7 +272,11 @@ class DiscreteOperator(AbstractOperator):
         return NotImplemented
 
     def __rmatmul__(self, other):
-        if isinstance(other, np.ndarray) or isinstance(other, jnp.ndarray):
+        if (
+            isinstance(other, np.ndarray)
+            or isinstance(other, jnp.ndarray)
+            or issparse(other)
+        ):
             # return self.apply(other)
             return NotImplemented
         elif isinstance(other, AbstractOperator):

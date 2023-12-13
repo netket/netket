@@ -36,6 +36,7 @@ from netket.optimizer.qgt import (
     qgt_jacobian_pytree_logic,
     qgt_jacobian_common,
 )
+from netket.jax.sharding import distribute_to_devices_along_axis, device_count_per_rank
 
 from .. import common
 
@@ -178,9 +179,11 @@ class Example:
         k = jax.random.PRNGKey(seed)
         k1, k2, k3, k4, k5 = jax.random.split(k, 5)
 
-        self.samples = jax.random.normal(k1, (n_samp, 2))
-        self.w = jax.random.normal(k2, (n_samp,), self.dtype).astype(
-            self.dtype
+        self.samples = distribute_to_devices_along_axis(
+            jax.random.normal(k1, (n_samp, 2))
+        )
+        self.w = distribute_to_devices_along_axis(
+            jax.random.normal(k2, (n_samp,), self.dtype).astype(self.dtype)
         )  # TODO remove astype once its fixed in jax
         self.params = tree_random_normal_like(k3, self.target)
         self.v = tree_random_normal_like(k4, self.target)
@@ -260,7 +263,7 @@ def test_reassemble_complex(e):
 
 
 @common.named_parametrize("holomorphic", [True, False])
-@common.named_parametrize("n_samp", [24, 1024])
+@common.named_parametrize("n_samp", [24 * device_count_per_rank(), 1024])
 @common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 @common.named_parametrize("chunk_size", [8, None])
@@ -291,7 +294,7 @@ def test_matvec(e, jit, chunk_size):
 
 
 @common.named_parametrize("holomorphic", [True, False])
-@common.named_parametrize("n_samp", [24, 1024])
+@common.named_parametrize("n_samp", [24 * device_count_per_rank(), 1024])
 @common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", all_test_types)
 @common.named_parametrize("chunk_size", [8, None])
@@ -337,7 +340,7 @@ def test_matvec_linear_transpose(e, jit, chunk_size):
 
 # TODO separate test for prepare_centered_oks
 @common.named_parametrize("holomorphic", [True])
-@common.named_parametrize("n_samp", [25, 1024])
+@common.named_parametrize("n_samp", [25 * device_count_per_rank(), 1024])
 @common.named_parametrize("jit", [True, False])
 @common.named_parametrize("chunk_size", [7, None])
 @pytest.mark.parametrize(
@@ -361,7 +364,7 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
 
     if jit:
         mv = jax.jit(mv)
-        centered_jacobian_fun = jax.jit(centered_jacobian_fun, static_argnums=0)
+        centered_jacobian_fun = jax.jit(centered_jacobian_fun)
 
     centered_oks = centered_jacobian_fun(e.f, e.params, e.samples)
     centered_oks = divide_by_sqrt_n_samp(centered_oks, e.samples)
@@ -374,7 +377,7 @@ def test_matvec_treemv(e, jit, holomorphic, pardtype, outdtype, chunk_size):
 # TODO separate test for prepare_centered_oks
 # TODO test C->R ?
 @common.named_parametrize("holomorphic", [True, False])
-@common.named_parametrize("n_samp", [25, 1024])
+@common.named_parametrize("n_samp", [25 * device_count_per_rank(), 1024])
 @common.named_parametrize("jit", [True, False])
 @pytest.mark.parametrize("outdtype, pardtype", test_types)
 def test_matvec_treemv_modes(e, jit, holomorphic, pardtype, outdtype):
@@ -431,7 +434,7 @@ def e_offset(n_samp, outdtype, pardtype, holomorphic, offset, seed=123):
 
 
 @pytest.mark.parametrize("holomorphic", [True])
-@pytest.mark.parametrize("n_samp", [25, 1024])
+@pytest.mark.parametrize("n_samp", [25 * device_count_per_rank(), 1024])
 @pytest.mark.parametrize(
     "outdtype, pardtype",
     r_c_test_types,  # r_r_test_types + c_c_test_types + r_c_test_types

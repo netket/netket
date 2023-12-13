@@ -169,11 +169,11 @@ def compare_openfermion_fermions():
     )
     fermop_dense = fermop.to_dense()
     # compare openfermion vs from_openfermion
-    assert np.array_equal(of_dense, fo_dense)
+    np.testing.assert_array_equal(of_dense, fo_dense)
     # compare openfermion vs FermionOperator2nd
-    assert np.array_equal(of_dense, fermop_dense)
+    np.testing.assert_array_equal(of_dense, fermop_dense)
     # compare from_openfermion vs FermionOperator 2nd
-    assert np.array_equal(fo_dense, fermop_dense)
+    np.testing.assert_array_equal(fo_dense, fermop_dense)
 
     # add a test from a non-hermitian operator
     of_fermion_operator = FermionOperator("") + FermionOperator(  # todo

@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+
+  push:
+    branches:
+      - master
+
+jobs:
+  test_sharding:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.10"
+            runscript: "run_test_sharding.sh"
+
+          - os: ubuntu-latest
+            python-version: "3.10"
+            runscript: "run_standard_tests_with_sharding.sh"
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Pip install packages
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install wheel
+          pip install jaxlib
+          pip install -e ".[dev,extra]"
+
+      - name: run tests on 2 cpus
+        run: |
+          ./test_sharding/"${{ matrix.runscript }}"

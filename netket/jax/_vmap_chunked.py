@@ -7,9 +7,11 @@ from ._chunk_utils import _chunk, _unchunk
 from ._scanmap import scanmap, scan_append
 
 from netket.utils import HashablePartial
+from netket.utils import config
+from netket.jax.sharding import sharding_decorator
 
 
-def _fun(vmapped_fun, chunk_size, argnums, *args, **kwargs):
+def _eval_fun_in_chunks(vmapped_fun, chunk_size, argnums, *args, **kwargs):
     n_elements = jax.tree_util.tree_leaves(args[argnums[0]])[0].shape[0]
     n_chunks, n_rest = divmod(n_elements, chunk_size)
 
@@ -43,10 +45,19 @@ def _fun(vmapped_fun, chunk_size, argnums, *args, **kwargs):
     return y
 
 
+def _eval_fun_in_chunks_sharding(vmapped_fun, chunk_size, argnums, *args, **kwargs):
+    # Equivalent to `_eval_fun_in_chunks` above but preserves sharding,
+    # by computing the vmapped_fun in chunks on every shard (which sits on a separate device)
+    sharded_args_tree = tuple(i in argnums for i, a in enumerate(args))
+    f = HashablePartial(_eval_fun_in_chunks, vmapped_fun, chunk_size, argnums, **kwargs)
+    return sharding_decorator(f, sharded_args_tree)(*args)
+
+
 def _chunk_vmapped_function(
     vmapped_fun: Callable,
     chunk_size: Optional[int],
     argnums=0,
+    axis_0_is_sharded=False,
 ) -> Callable:
     """takes a vmapped function and computes it in chunks"""
 
@@ -55,8 +66,12 @@ def _chunk_vmapped_function(
 
     if isinstance(argnums, int):
         argnums = (argnums,)
-
-    return HashablePartial(_fun, vmapped_fun, chunk_size, argnums)
+    if axis_0_is_sharded:
+        return HashablePartial(
+            _eval_fun_in_chunks_sharding, vmapped_fun, chunk_size, argnums
+        )
+    else:
+        return HashablePartial(_eval_fun_in_chunks, vmapped_fun, chunk_size, argnums)
 
 
 def _parse_in_axes(in_axes):
@@ -77,6 +92,7 @@ def apply_chunked(
     in_axes=0,
     *,
     chunk_size: Optional[int],
+    axis_0_is_sharded=config.netket_experimental_sharding,
 ) -> Callable:
     """
     Takes an implicitly vmapped function over the axis 0 and uses scan to
@@ -97,15 +113,22 @@ def apply_chunked(
 
         f = jax.vmap(f_orig)
 
+    .. note::
+        If netket_experimental_sharding is enabled, this function assumes that chunked in_axes are sharded by default.
+        This can be overridden by specifying axis_0_is_sharded=False.
+
     Args:
         f: A function that satisfies the condition above
         in_axes: The axes that should be scanned along. Only supports `0` or `None`
         chunk_size: The maximum size of the chunks to be used. If it is `None`, chunking
             is disabled
+        axis_0_is_sharded: specifies if axis 0 of the arrays scanned is sharded among multiple devices,
+            The function is then computed in chunks of size chunk_size on every device.
+            Defaults True if config.netket_experimental_sharding, oterhwise defaults to False.
 
     """
     _, argnums = _parse_in_axes(in_axes)
-    return _chunk_vmapped_function(f, chunk_size, argnums)
+    return _chunk_vmapped_function(f, chunk_size, argnums, axis_0_is_sharded)
 
 
 def vmap_chunked(
@@ -113,6 +136,7 @@ def vmap_chunked(
     in_axes=0,
     *,
     chunk_size: Optional[int],
+    axis_0_is_sharded=config.netket_experimental_sharding,
 ) -> Callable:
     """
     Behaves like jax.vmap but uses scan to chunk the computations in smaller chunks.
@@ -125,15 +149,22 @@ def vmap_chunked(
 
     Some limitations to `in_axes` apply.
 
+    .. note::
+        If netket_experimental_sharding is enabled, this function assumes that chunked in_axes are sharded by default.
+        This can be overridden by specifying axis_0_is_sharded=False.
+
     Args:
         f: The function to be vectorised.
         in_axes: The axes that should be scanned along. Only supports `0` or `None`
         chunk_size: The maximum size of the chunks to be used. If it is `None`, chunking
             is disabled
+        axis_0_is_sharded: specifies if axis 0 of the arrays scanned is sharded among multiple devices,
+            The function is then computed in chunks of size chunk_size on every device.
+            Defaults True if config.netket_experimental_sharding, oterhwise defaults to False.
 
     Returns:
         A vectorised and chunked function
     """
     in_axes, argnums = _parse_in_axes(in_axes)
     vmapped_fun = jax.vmap(f, in_axes=in_axes)
-    return _chunk_vmapped_function(vmapped_fun, chunk_size, argnums)
+    return _chunk_vmapped_function(vmapped_fun, chunk_size, argnums, axis_0_is_sharded)

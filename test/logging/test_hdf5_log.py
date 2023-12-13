@@ -31,6 +31,9 @@ def vstate(request):
     )
 
 
+@pytest.mark.skipif(
+    nk.config.netket_experimental_sharding, reason="Only run without sharding"
+)
 def test_hdf5log(vstate, tmp_path):
     # skip test if hdf5py not installed
     h5py = pytest.importorskip("h5py")
@@ -59,6 +62,9 @@ def test_hdf5log(vstate, tmp_path):
     assert iters.shape[0] == 30
 
 
+@pytest.mark.skipif(
+    nk.config.netket_experimental_sharding, reason="Only run without sharding"
+)
 def test_lazy_init(tmp_path):
     # skip test if hdf5py not installed
     pytest.importorskip("h5py")

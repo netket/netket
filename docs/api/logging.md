@@ -16,6 +16,17 @@ This module contains the loggers that can be used with the optimization drivers 
 
 ```
 
+The base class follows the API protocol declared here. You should reimplement this class to make a logger that works well together with our drivers.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/driver
+   :nosignatures:
+
+   AbstractLog
+```
+
+While the loggers available for simulations are the following:
 
 ```{eval-rst}
 .. autosummary::

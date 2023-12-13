@@ -19,6 +19,8 @@ from os import path as _path
 
 from flax import serialization
 
+from netket.jax.sharding import extract_replicated
+
 from .runtime_log import RuntimeLog
 
 
@@ -45,8 +47,6 @@ class JsonLog(RuntimeLog):
     then `Mean` and others.
     Complex numbers are logged as dictionaries :code:`{'real':list, 'imag':list}`.
     """
-
-    __module__ = "netket.logging"
 
     def __init__(
         self,
@@ -122,6 +122,8 @@ class JsonLog(RuntimeLog):
         self._autoflush_cost = autoflush_cost
         self._last_flush_time = time.time()
         self._last_flush_runtime = 0.0
+        self._last_flush_pars_time = time.time()
+        self._last_flush_pars_runtime = 0.0
 
         self._flush_log_time = 0.0
         self._flush_pars_time = 0.0
@@ -146,9 +148,16 @@ class JsonLog(RuntimeLog):
             or flush_anyway
         ):
             self._flush_log()
+
+        elapsed_time = time.time() - self._last_flush_pars_time
+        flush_anyway = (
+            self._last_flush_pars_runtime / (elapsed_time + 1e-7) < self._autoflush_cost
+        )
+
         if (
             self._steps_notflushed_pars % self._save_params_every == 0
             or step == old_step - 1
+            or flush_anyway
         ):
             self._flush_params(variational_state)
 
@@ -171,14 +180,16 @@ class JsonLog(RuntimeLog):
         if variational_state is None:
             return
 
-        _time = time.time()
-
-        binary_data = serialization.to_bytes(variational_state.variables)
+        self._last_flush_pars_time = time.time()
+        binary_data = serialization.to_bytes(
+            extract_replicated(variational_state.variables)
+        )
         with open(self._prefix + ".mpack", "wb") as outfile:
             outfile.write(binary_data)
+        self._last_flush_pars_runtime = time.time() - self._last_flush_pars_time
 
+        self._flush_pars_time += self._last_flush_pars_runtime
         self._steps_notflushed_pars = 0
-        self._flush_pars_time += time.time() - _time
 
     def flush(self, variational_state=None):
         """
@@ -195,6 +206,9 @@ class JsonLog(RuntimeLog):
     def __del__(self):
         if hasattr(self, "_steps_notflushed_write"):
             if self._steps_notflushed_write > 0:
+                self.flush()
+        if hasattr(self, "_steps_notflushed_pars"):
+            if self._steps_notflushed_pars > 0:
                 self.flush()
 
     def __repr__(self):

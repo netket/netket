@@ -42,7 +42,9 @@ def maybe_jax_jit(fun, *jit_args, **jit_kwargs):
     @wraps(fun)
     def _maybe_jitted_fun(*args, **kwargs):
         if config.netket_experimental_disable_ode_jit:
-            return fun(*args, **kwargs)
+            with jax.spmd_mode("allow_all"):
+                res = fun(*args, **kwargs)
+            return res
         else:
             return jitted_fun(*args, **kwargs)
 

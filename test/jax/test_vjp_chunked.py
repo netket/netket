@@ -5,14 +5,19 @@ import netket as nk
 import numpy as np
 from functools import partial
 
+from netket.jax.sharding import distribute_to_devices_along_axis
+from netket import config
+
 from .. import common
 
 pytestmark = common.skipif_mpi
 
 
 @pytest.mark.parametrize("jit", [False, True])
-@pytest.mark.parametrize("chunk_size", [None, 16, 10000, 1000000])
-@pytest.mark.parametrize("return_forward", [False, True])
+@pytest.mark.parametrize("chunk_size", [None, 16, 8192, 1000000])
+@pytest.mark.parametrize(
+    "return_forward", [False] if config.netket_experimental_sharding else [False, True]
+)
 @pytest.mark.parametrize("chunk_argnums", [1, (1,)])
 @pytest.mark.parametrize("nondiff_argnums", [1, (1,)])
 def test_vjp_chunked(chunk_size, jit, return_forward, chunk_argnums, nondiff_argnums):
@@ -22,8 +27,8 @@ def test_vjp_chunked(chunk_size, jit, return_forward, chunk_argnums, nondiff_arg
 
     k = jax.random.split(jax.random.PRNGKey(123), 4)
     p = jax.random.uniform(k[0], shape=(8,))
-    X = jax.random.uniform(k[2], shape=(10000, 8))
-    w = jax.random.uniform(k[3], shape=(10000,))
+    X = distribute_to_devices_along_axis(jax.random.uniform(k[2], shape=(8192, 8)))
+    w = distribute_to_devices_along_axis(jax.random.uniform(k[3], shape=(8192,)))
 
     vjp_fun_chunked = nk.jax.vjp_chunked(
         f,

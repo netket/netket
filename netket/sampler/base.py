@@ -22,11 +22,10 @@ from jax import numpy as jnp
 
 from netket import jax as nkjax
 from netket.hilbert import AbstractHilbert
-from netket.utils import mpi, get_afun_if_module, wrap_afun
-from netket.utils.deprecation import deprecated
+from netket.utils import get_afun_if_module, mpi, numbers, struct, wrap_afun
+from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
-from netket.utils import struct, numbers
 
 fancy = []
 
@@ -60,8 +59,8 @@ class Sampler(abc.ABC):
     hilbert: AbstractHilbert = struct.field(pytree_node=False)
     """The Hilbert space to sample."""
 
-    n_chains_per_rank: int = struct.field(pytree_node=False, default=None, repr=False)
-    """Number of independent chains on every MPI rank."""
+    n_chains: int = struct.field(pytree_node=False, default=None, repr=False)
+    """Total Number of independent chains"""
 
     machine_pow: int = struct.field(default=2)
     """The power to which the machine should be exponentiated to generate the pdf."""
@@ -77,43 +76,31 @@ class Sampler(abc.ABC):
 
         Args:
             hilbert: The Hilbert space to sample.
-            n_chains: The total number of independent chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
-            n_chains_per_rank: Number of independent chains on every MPI rank (default = 1).
+            n_chains: The total number of independent chains across all MPI ranks (default = mpi.n_nodes)
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
         """
 
         if "n_chains_per_rank" in kwargs:
-            if n_chains is not None:
+            warn_deprecation(
+                "Specifying `n_chains_per_rank` when constructing the Sampler is deprecated."
+            )
+            if n_chains is None:
+                n_chains = mpi.n_nodes * kwargs.pop("n_chains_per_rank")
+            else:
                 raise ValueError(
                     "Cannot specify both `n_chains` and `n_chains_per_rank`"
                 )
-        else:
-            if n_chains is None:
-                # Default value
-                n_chains_per_rank = 1
-            else:
-                n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
-                if mpi.n_nodes > 1 and mpi.rank == 0:
-                    if n_chains_per_rank * mpi.n_nodes != n_chains:
-                        import warnings
-
-                        warnings.warn(
-                            f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks "
-                            f"(total={n_chains_per_rank * mpi.n_nodes} instead of n_chains={n_chains}). "
-                            f"To directly control the number of chains on every rank, specify "
-                            f"`n_chains_per_rank` when constructing the sampler. "
-                            f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
-                            f"that is a multiple of the number of MPI ranks.",
-                            category=UserWarning,
-                            stacklevel=2,
-                        )
-
-            kwargs["n_chains_per_rank"] = n_chains_per_rank
+        if n_chains is None:
+            n_chains = mpi.n_nodes
+        kwargs["n_chains"] = n_chains
 
         return (hilbert,), kwargs
 
     def __post_init__(self):
+        # Raise error if n_chains is not a multiple of the number of mpi ranks
+        self.n_chains_per_rank
+
         # Raise errors if hilbert is not an Hilbert
         if not isinstance(self.hilbert, AbstractHilbert):
             raise TypeError(
@@ -137,13 +124,18 @@ class Sampler(abc.ABC):
                 )
 
     @property
-    def n_chains(self) -> int:
+    def n_chains_per_rank(self) -> int:
         """
-        The total number of independent chains across all MPI ranks.
+        The total number of independent chains per MPI rank.
 
-        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains_per_rank`.
+        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`.
         """
-        return self.n_chains_per_rank * mpi.n_nodes
+        res, remainder = divmod(self.n_chains, mpi.n_nodes)
+        if remainder != 0:
+            raise RuntimeError(
+                "The number of chains is not a multiple of the number of mpi ranks"
+            )
+        return res
 
     @property
     def n_batches(self) -> int:

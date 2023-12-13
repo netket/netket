@@ -71,7 +71,7 @@ def test_rel_dist_deepsets(cusp_exponent, L):
     )
     p = ds.init(jax.random.PRNGKey(42), x)
 
-    assert jnp.allclose(ds.apply(p, x), ds.apply(p, xp))
+    np.testing.assert_allclose(ds.apply(p, x), ds.apply(p, xp))
 
 
 def test_rel_dist_deepsets_error():

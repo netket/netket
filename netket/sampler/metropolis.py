@@ -16,8 +16,11 @@ from functools import partial
 from typing import Any, Callable, Optional, Union
 from textwrap import dedent
 
+import numpy as np
+
 import jax
 from flax import linen as nn
+from flax import serialization
 from jax import numpy as jnp
 
 from netket.hilbert import AbstractHilbert, ContinuousHilbert
@@ -25,8 +28,16 @@ from netket.hilbert import AbstractHilbert, ContinuousHilbert
 from netket.utils import mpi, wrap_afun
 from netket.utils.types import PyTree
 
-from netket.utils.deprecation import deprecated
+from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
+
+from netket.utils.config_flags import config
+from netket.jax.sharding import (
+    extract_replicated,
+    gather,
+    distribute_to_devices_along_axis,
+    device_count_per_rank,
+)
 
 from .base import Sampler, SamplerState
 from .rules import MetropolisRule
@@ -96,6 +107,41 @@ class MetropolisSamplerState(SamplerState):
         return f"{type(self).__name__}({acc_string}rng state={self.rng})"
 
 
+# serialization when sharded
+def serialize_MetropolisSamplerState_sharding(sampler_state):
+    state_dict = sampler_state.__dict__
+    for prop in ["σ", "n_accepted_proc"]:
+        x = state_dict.get(prop, None)
+        if x is not None and isinstance(x, jax.Array) and len(x.devices()) > 1:
+            state_dict[prop] = gather(x)
+    state_dict = extract_replicated(state_dict)
+    return state_dict
+
+
+def deserialize_MetropolisSamplerState_sharding(sampler_state, state_dict):
+    for prop in ["σ", "n_accepted_proc"]:
+        x = state_dict[prop]
+        if x is not None:
+            state_dict[prop] = distribute_to_devices_along_axis(x)
+    return sampler_state.replace(**state_dict)
+
+
+if config.netket_experimental_sharding:
+    # when running on multiple jax processes the σ and n_accepted_proc are not fully addressable
+    # however, when serializing they need to be so here we register custom handlers which
+    # gather all the data to every process.
+    # when deserializing we distribute the samples again to all availale devices
+    # this way it is enough to serialize on process 0, and we can restart the simulation
+    # also  on a different number of devices, provided the number of samples is still
+    # divisible by the new number of devices
+    serialization.register_serialization_state(
+        MetropolisSamplerState,
+        serialize_MetropolisSamplerState_sharding,
+        deserialize_MetropolisSamplerState_sharding,
+        override=True,
+    )
+
+
 def _assert_good_sample_shape(samples, shape, dtype, obj=""):
     canonical_dtype = jax.dtypes.canonicalize_dtype(dtype)
     if samples.shape != shape or samples.dtype != canonical_dtype:
@@ -135,6 +181,36 @@ def _assert_good_log_prob_shape(log_prob, n_chains_per_rank, machine):
         )
 
 
+def _round_n_chains_to_next_multiple(
+    n_chains, n_chains_per_whatever, n_whatever, whatever_str, default
+):
+    # small helper function to round the number of chains to the next multiple of [whatever]
+    # here [whatever] can be e.g. mpi ranks or jax devices
+    if n_chains is None and n_chains_per_whatever is None:
+        n_chains_per_whatever = default
+    elif n_chains is not None and n_chains_per_whatever is not None:
+        raise ValueError(
+            f"Cannot specify both `n_chains` and `n_chains_per_{whatever_str}`"
+        )
+    elif n_chains is not None:
+        n_chains_per_whatever = max(int(np.ceil(n_chains / n_whatever)), 1)
+        if n_chains_per_whatever * n_whatever != n_chains:
+            if mpi.rank == 0:
+                import warnings
+
+                warnings.warn(
+                    f"Using {n_chains_per_whatever} chains per {whatever_str} among {n_whatever} {whatever_str}s "
+                    f"(total={n_chains_per_whatever * n_whatever} instead of n_chains={n_chains}). "
+                    f"To directly control the number of chains on every {whatever_str}, specify "
+                    f"`n_chains_per_{whatever_str}` when constructing the sampler. "
+                    f"To silence this warning, either use `n_chains_per_{whatever_str}` or use `n_chains` "
+                    f"that is a multiple of the number of {whatever_str}s",
+                    category=UserWarning,
+                    stacklevel=2,
+                )
+    return n_chains_per_whatever * n_whatever
+
+
 @struct.dataclass
 class MetropolisSampler(Sampler):
     r"""
@@ -153,7 +229,6 @@ class MetropolisSampler(Sampler):
 
     The dtype of the sampled states can be chosen.
     """
-
     rule: MetropolisRule = None
     """The Metropolis transition rule."""
     n_sweeps: int = struct.field(pytree_node=False, default=None)
@@ -175,7 +250,7 @@ class MetropolisSampler(Sampler):
                 if MPI is enabled and `n_chains` is specified, then every MPI rank will run
                 `n_chains/mpi.n_nodes` chains. In general, we recommend specifying `n_chains_per_rank`
                 as it is more portable.
-            n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
+            n_chains_per_rank_or_device: Number of independent chains on every MPI rank / jax device (default = 16).
             n_sweeps: Number of sweeps for each step along the chain.
                 This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
                 in the Hilbert space.)
@@ -185,6 +260,7 @@ class MetropolisSampler(Sampler):
                 the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
         """
+
         # Validate the inputs
         if not isinstance(rule, MetropolisRule):
             raise TypeError(
@@ -192,14 +268,36 @@ class MetropolisSampler(Sampler):
                 f"`type(rule)={type(rule)}`."
             )
 
-        if "n_chains" not in kwargs and "n_chains_per_rank" not in kwargs:
-            kwargs["n_chains_per_rank"] = 16
+        n_chains = kwargs.pop("n_chains", None)
+        n_chains_per_rank_or_device = kwargs.pop("n_chains_per_rank_or_device", None)
+
+        if "n_chains_per_rank" in kwargs:
+            warn_deprecation(
+                "Specifying `n_chains_per_rank` when constructing the Sampler is deprecated. Please use `n_chains_per_rank_or_device` instead."
+            )
+            if n_chains_per_rank_or_device is None:
+                n_chains_per_rank_or_device = kwargs.pop("n_chains_per_rank")
+            else:
+                raise ValueError(
+                    "Cannot specify both `n_chains_per_rank_or_device` and `n_chains_per_rank`"
+                )
+
+        # TODO set it to a few hundred if on GPU?
+        default_n_chains_per_rank_or_device = 16
+
+        # we assume either mpi.n_nodes=1 or nk.jax.sharding.device_count_per_rank()=1
+        n_ranks_or_devices = mpi.n_nodes * device_count_per_rank()
+        kwargs["n_chains"] = _round_n_chains_to_next_multiple(
+            n_chains,
+            n_chains_per_rank_or_device,
+            n_ranks_or_devices,
+            "rank_or_device",
+            default_n_chains_per_rank_or_device,
+        )
 
         # process arguments in the base
         args, kwargs = super().__pre_init__(hilbert=hilbert, **kwargs)
-
         kwargs["rule"] = rule
-
         return args, kwargs
 
     def __post_init__(self):
@@ -248,6 +346,10 @@ class MetropolisSampler(Sampler):
             (sampler.n_chains_per_rank, sampler.hilbert.size), dtype=sampler.dtype
         )
 
+        if config.netket_experimental_sharding and jax.device_count() > 1:
+            # TODO If we end up rewriting the hilbert spaces in jax then we can avoid
+            # this and instead jit the random state with the correct out_shardings
+            σ = distribute_to_devices_along_axis(σ)
         state = MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
 
         # If we don't reset the chain at every sampling iteration, then reset it
@@ -255,6 +357,8 @@ class MetropolisSampler(Sampler):
         if not sampler.reset_chains:
             key_state, rng = jax.random.split(key_state)
             σ = sampler.rule.random_state(sampler, machine, params, state, rng)
+            if config.netket_experimental_sharding and jax.device_count() > 1:
+                σ = distribute_to_devices_along_axis(σ)
             _assert_good_sample_shape(
                 σ,
                 (sampler.n_chains_per_rank, sampler.hilbert.size),
@@ -272,6 +376,8 @@ class MetropolisSampler(Sampler):
 
         if sampler.reset_chains:
             σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
+            if config.netket_experimental_sharding and jax.device_count() > 1:
+                σ = distribute_to_devices_along_axis(σ)
             _assert_good_sample_shape(
                 σ,
                 (sampler.n_chains_per_rank, sampler.hilbert.size),

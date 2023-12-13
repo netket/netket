@@ -23,6 +23,8 @@ from netket.nn import to_array
 from netket.utils import struct
 from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, SeedT
+from netket.utils import mpi
+from netket import config
 
 from .base import Sampler, SamplerState
 
@@ -61,7 +63,9 @@ class ExactSampler(Sampler):
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
             )
-
+            kwargs.pop("n_chains_per_rank")
+            kwargs.pop("n_chains")
+        kwargs["n_chains"] = mpi.n_nodes
         return super().__pre_init__(*args, **kwargs)
 
     @property
@@ -125,5 +129,12 @@ class ExactSampler(Sampler):
         samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
             sampler.n_chains_per_rank, chain_length, sampler.hilbert.size
         )
+
+        # TODO run the part above in parallel
+        if config.netket_experimental_sharding:
+            samples = jax.lax.with_sharding_constraint(
+                samples,
+                jax.sharding.PositionalSharding(jax.devices()).reshape(1, -1, 1),
+            )
 
         return samples, state.replace(rng=new_rng)

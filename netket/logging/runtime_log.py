@@ -21,8 +21,10 @@ import orjson
 
 from netket.utils import accum_histories_in_tree
 
+from .base import AbstractLog
 
-class RuntimeLog:
+
+class RuntimeLog(AbstractLog):
     """
     This logger accumulates log data in a set of nested dictionaries which are stored in memory. The log data is not automatically saved to the filesystem.
 
@@ -32,8 +34,6 @@ class RuntimeLog:
     This logger keeps the data in memory, and does not save it to disk. To serialize
     the current content to a file, use the method :py:meth:`~netket.logging.RuntimeLog.serialize`.
     """
-
-    __module__ = "netket.logging"
 
     def __init__(self):
         """
@@ -56,7 +56,7 @@ class RuntimeLog:
     def __getitem__(self, key):
         return self.data[key]
 
-    def flush(self, variational_state):
+    def flush(self, variational_state=None):
         pass
 
     def serialize(self, path: Union[str, Path, IO]):
