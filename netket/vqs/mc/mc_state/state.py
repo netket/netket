@@ -134,7 +134,6 @@ class MCState(VariationalState):
 
     _chunk_size: Optional[int] = None
 
-
     def __init__(
         self,
         sampler: Sampler,
