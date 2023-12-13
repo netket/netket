@@ -72,7 +72,6 @@ class FullSumState(VariationalState):
 
     _chunk_size: Optional[int] = None
 
-
     def __init__(
         self,
         hilbert: AbstractHilbert,

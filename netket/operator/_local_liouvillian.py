@@ -66,7 +66,6 @@ class LocalLiouvillian(AbstractSuperOperator):
 
     """
 
-
     def __init__(
         self,
         ham: DiscreteOperator,

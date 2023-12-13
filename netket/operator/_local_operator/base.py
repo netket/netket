@@ -63,7 +63,6 @@ class LocalOperator(DiscreteOperator):
     in the quantum information sense).
     """
 
-
     def __init__(
         self,
         hilbert: AbstractHilbert,
