@@ -45,7 +45,6 @@ class MCMixedState(VariationalMixedState, MCState):
     according to another sampler.
     """
 
-
     def __init__(
         self,
         sampler,
