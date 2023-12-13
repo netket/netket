@@ -19,7 +19,8 @@ from numba import jit
 import numpy as np
 from flax import struct
 
-from netket.operator import AbstractOperator
+from netket.operator import DiscreteOperator
+from netket.utils.types import Array
 
 from .base import MetropolisRule
 
@@ -31,36 +32,39 @@ class CustomRuleState:
     weight_cumsum: np.ndarray
 
 
-@struct.dataclass
 class CustomRuleNumpy(MetropolisRule):
     operator: Any = struct.field(pytree_node=False)
-    weight_list: Any = struct.field(pytree_node=False, default=None)
+    weight_list: Any = struct.field(pytree_node=False)
 
-    def __post_init__(self):
-        # Raise errors if hilbert is not an Hilbert
-        if not isinstance(self.operator, AbstractOperator):
+    def __init__(self, operator: DiscreteOperator, weight_list: Array = None):
+        """
+        Construct a Custom Rule.
+
+        Args:
+            operator: a LocalOperator describing the possible moves.
+            weight_list: an optional list of probability for every move.
+        """
+        if not isinstance(operator, DiscreteOperator):
             raise TypeError(
                 "Argument to CustomRuleNumpy must be a valid operator, "
-                f"but operator is a {type(self.operator)}."
+                f"but operator is a {type(operator)}."
             )
 
-        _check_operators(self.operator.operators)
+        # Raise errors if hilbert is not valid
+        _check_operators(operator.operators)
 
-        if self.weight_list is not None:
-            if self.weight_list.shape != (self.operator.n_operators,):
+        if weight_list is None:
+            weight_list = np.ones(operator.n_operators, dtype=np.float32)
+
+        if weight_list is not None:
+            if weight_list.shape != (operator.n_operators,):
                 raise ValueError("move_weights have the wrong shape")
-            if self.weight_list.min() < 0:
+            if weight_list.min() < 0:
                 raise ValueError("move_weights must be positive")
-        else:
-            object.__setattr__(
-                self,
-                "weight_list",
-                np.ones(self.operator.n_operators, dtype=np.float32),
-            )
 
-        object.__setattr__(
-            self, "weight_list", self.weight_list / self.weight_list.sum()
-        )
+        self.operator = operator
+        # normalise
+        self.weight_list = weight_list / weight_list.sum()
 
     def init_state(rule, sampler, machine, params, key):
         return CustomRuleState(

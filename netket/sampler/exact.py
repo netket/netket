@@ -19,26 +19,28 @@ import jax
 from flax import linen as nn
 from jax import numpy as jnp
 
-from netket.nn import to_array
-from netket.utils import struct
-from netket.utils.deprecation import warn_deprecation
-from netket.utils.types import PyTree, SeedT
-from netket.utils import mpi
 from netket import config
+from netket.hilbert import DiscreteHilbert
+from netket.nn import to_array
+from netket.utils.deprecation import warn_deprecation
+from netket.utils.types import PyTree, SeedT, DType
 
 from .base import Sampler, SamplerState
 
 
-@struct.dataclass
 class ExactSamplerState(SamplerState):
     pdf: Any
     rng: Any
+
+    def __init__(self, pdf: Any, rng: Any):
+        self.pdf = pdf
+        self.rng = rng
+        super().__init__()
 
     def __repr__(self):
         return f"ExactSamplerState(rng state={self.rng})"
 
 
-@struct.dataclass
 class ExactSampler(Sampler):
     """
     This sampler generates i.i.d. samples from :math:`|\\Psi(\\sigma)|^2`.
@@ -50,7 +52,15 @@ class ExactSampler(Sampler):
     option.
     """
 
-    def __pre_init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        hilbert: DiscreteHilbert,
+        machine_pow: int = 2,
+        dtype: DType = float,
+        *,
+        n_chains=None,
+        n_chains_per_rank=None,
+    ):
         """
         Construct an exact sampler.
 
@@ -59,14 +69,12 @@ class ExactSampler(Sampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
         """
-        if "n_chains" in kwargs or "n_chains_per_rank" in kwargs:
+        if n_chains is not None or n_chains_per_rank is not None:
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
             )
-            kwargs.pop("n_chains_per_rank")
-            kwargs.pop("n_chains")
-        kwargs["n_chains"] = mpi.n_nodes
-        return super().__pre_init__(*args, **kwargs)
+
+        super().__init__(hilbert, machine_pow=machine_pow, dtype=dtype)
 
     @property
     def is_exact(sampler):

@@ -28,8 +28,7 @@ if config.netket_sphinx_build:
     from netket import sampler
 
 
-@struct.dataclass
-class MetropolisRule(abc.ABC):
+class MetropolisRule(struct.Pytree):
     """
     Base class for transition rules of Metropolis, such as Local, Exchange, Hamiltonian
     and several others.

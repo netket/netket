@@ -15,12 +15,10 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from flax import struct
 
 from .base import MetropolisRule
 
 
-@struct.dataclass
 class GaussianRule(MetropolisRule):
     r"""
     A transition rule acting on all particle positions at once.
@@ -29,11 +27,21 @@ class GaussianRule(MetropolisRule):
     Gaussian distribution of width sigma.
     """
 
-    sigma: float = 1.0
+    sigma: float
     """
     The variance of the gaussian distribution centered around the current
     configuration, used to propose new configurations.
     """
+
+    def __init__(self, sigma: float = 1.0):
+        """
+        Constructs the Gaussian hastings proposal rule.
+
+        Args:
+            sigma: The variance of the gaussian distribution centered around the current
+                configuration, used to propose new configurations. (default=1.0)
+        """
+        self.sigma = sigma
 
     def transition(rule, sampler, machine, parameters, state, key, r):
         if jnp.issubdtype(r.dtype, jnp.complexfloating):

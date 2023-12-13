@@ -19,21 +19,22 @@ import jax
 from jax import numpy as jnp
 
 from netket import jax as nkjax
-from netket.sampler import Sampler, SamplerState
-from netket.utils import struct
-from netket.utils.deprecation import warn_deprecation
-from netket.utils.types import PRNGKeyT
-from netket.utils import mpi
 from netket import config
+from netket.hilbert import DiscreteHilbert
+from netket.sampler import Sampler, SamplerState
+from netket.utils.deprecation import warn_deprecation
+from netket.utils.types import PRNGKeyT, DType
 
 
-@struct.dataclass
 class ARDirectSamplerState(SamplerState):
     key: PRNGKeyT
     """state of the random number generator."""
 
+    def __init__(self, key):
+        self.key = key
+        super().__init__()
 
-@struct.dataclass
+
 class ARDirectSampler(Sampler):
     r"""
     Direct sampler for autoregressive neural networks.
@@ -51,7 +52,15 @@ class ARDirectSampler(Sampler):
     sampler.
     """
 
-    def __pre_init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        hilbert: DiscreteHilbert,
+        machine_pow: None = None,
+        dtype: DType = float,
+        *,
+        n_chains=None,
+        n_chains_per_rank=None,
+    ):
         """
         Construct an autoregressive direct sampler.
 
@@ -62,30 +71,24 @@ class ARDirectSampler(Sampler):
         Note:
             `ARDirectSampler.machine_pow` has no effect. Please set the model's `machine_pow` instead.
         """
-        if "n_chains" in kwargs or "n_chains_per_rank" in kwargs:
+        if n_chains is not None or n_chains_per_rank is not None:
             warn_deprecation(
                 "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
             )
-            kwargs.pop("n_chains_per_rank")
-            kwargs.pop("n_chains")
-        kwargs["n_chains"] = mpi.n_nodes
-        return super().__pre_init__(*args, **kwargs)
 
-    def __post_init__(self):
-        super().__post_init__()
-
-        # self.machine_pow may be traced in jit
-        if isinstance(self.machine_pow, int) and self.machine_pow != 2:
+        if machine_pow is not None:
             raise ValueError(
                 "ARDirectSampler.machine_pow should not be used. Modify the model `machine_pow` directly."
             )
 
-        if self.hilbert.constrained:
+        if hilbert.constrained:
             raise ValueError(
                 "Only unconstrained Hilbert spaces can be sampled autoregressively with "
                 "this sampler. To sample constrained spaces, you must write your own (do get in "
                 "touch with us. We are interested!)"
             )
+
+        return super().__init__(hilbert, machine_pow=2, dtype=dtype)
 
     @property
     def is_exact(sampler):
