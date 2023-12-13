@@ -50,12 +50,21 @@ class ExchangeRule(MetropolisRule):
     region where :math:`\sum_i s_i = \mathrm{constant}` is needed,
     otherwise the sampling would be strongly not ergodic.
     """
+
     clusters: jax.Array
+    r"""2-Dimensional tensor :math:`T_{i,j}` of shape
+    :math:`N_\text{clusters}\times 2` where the first dimension
+    runs over the list of 2-site clusters and the second dimension
+    runs over the 2 sites of those clusters.
+
+    The Exchange rule will swap the two sites of a random row of this
+    matrix at every Metropolis step.
+    """
 
     def __init__(
         self,
         *,
-        clusters: Optional[list[list[int]]] = None,
+        clusters: Optional[list[tuple[int, int]]] = None,
         graph: Optional[AbstractGraph] = None,
         d_max: int = 1,
     ):
@@ -66,7 +75,9 @@ class ExchangeRule(MetropolisRule):
         determine the clusters to exchange.
 
         Args:
-            clusters: The list of clusters that can be exchanged.
+            clusters: The list of clusters that can be exchanged. This should be
+                a list of 2-tuples containing two integers. Every tuple is an edge,
+                or cluster of sites to be exchanged.
             graph: A graph, from which the edges determine the clusters
                 that can be exchanged.
             d_max: Only valid if a graph is passed in. The maximum distance
@@ -107,7 +118,12 @@ class ExchangeRule(MetropolisRule):
         return f"ExchangeRule(# of clusters: {len(self.clusters)})"
 
 
-def compute_clusters(graph, d_max):
+def compute_clusters(graph: AbstractGraph, d_max: int):
+    """
+    Given a netket graph and a maximum distance, computes all clusters.
+    If `d_max = 1` this is equivalent to taking the edges of the graph.
+    Then adds next-nearest neighbors and so on.
+    """
     clusters = []
     distances = np.asarray(graph.distances())
     size = distances.shape[0]
