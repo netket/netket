@@ -13,7 +13,6 @@ hi = nkx.hilbert.SpinOrbitalFermions(4)
 
 fermi_operator_impl = {}
 fermi_operator_impl["FermionOperator2nd"] = nkx.operator.FermionOperator2nd
-    ),
 
 for name, Op in fermi_operator_impl.items():
     op_ferm[name + "_hermitian"] = (
