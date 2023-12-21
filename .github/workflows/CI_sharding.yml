@@ -9,7 +9,7 @@ on:
 
 jobs:
   test_sharding:
-    runs-on: ${{ matrix.os }}
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
