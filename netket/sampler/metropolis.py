@@ -249,6 +249,7 @@ class MetropolisSampler(Sampler):
         hilbert: AbstractHilbert,
         rule: MetropolisRule,
         *,
+        n_sweep: int = None,
         n_sweeps: int = None,
         sweep_size: int = None,
         reset_chains: bool = False,
@@ -319,10 +320,17 @@ class MetropolisSampler(Sampler):
             warn_deprecation(
                 "Specifying `n_sweeps` when constructing sampler is deprecated. Please use `sweep_size` instead."
             )
-            if sweep_size is None:
-                sweep_size = n_sweeps
-            else:
+            if sweep_size is not None:
                 raise ValueError("Cannot specify both `sweep_size` and `n_sweeps`")
+            sweep_size = n_sweeps
+
+        if n_sweep is not None:
+            warn_deprecation(
+                "Specifying `n_sweep` when constructing sampler is deprecated. Please use `sweep_size` instead."
+            )
+            if sweep_size is not None:
+                raise ValueError("Cannot specify both `sweep_size` and `n_sweep`")
+            sweep_size = n_sweep
 
         if sweep_size is None:
             sweep_size = hilbert.size
