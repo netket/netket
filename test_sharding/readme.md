@@ -8,7 +8,6 @@ In particular it contains scripts to run:
 
 - run the normal tests on 2 cpu devices (run_standard_tests_with_sharding.sh)
 - run specific tests for sharding on 2 cpu devices (run_test_sharding.sh)
-- run specific tests for sharding on 2 separate processes with 1 gpu each (run_test_sharding_distributed.sh)
-  This is for now tailored specifically to the configuration of our custom runner with 2 gpu vm's
+- run specific tests for sharding on 2 separate processes (run_test_sharding_distributed.sh)
 
 They need to be run from the root folder of the netket repository, e.g. with `./test_sharding/run_test_sharding.sh`
