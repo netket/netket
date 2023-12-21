@@ -87,7 +87,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
             hilbert: The hilbert space to sample
             rule: A `MetropolisRule` to generate random transitions from a given state as
                     well as uniform random states.
-            n_sweeps: The number of exchanges that compose a single sweep.
+            sweep_size: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
                     (the size of the input vector s to the machine).
             reset_chains: If False the state configuration is not reset when reset() is called.
@@ -133,7 +133,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
             self.hilbert,
             n_chains_per_rank=n_chains_per_device,
             rule=self.rule,
-            n_sweeps=self.n_sweeps,
+            sweep_size=self.sweep_size,
             reset_chains=self.reset_chains,
             machine_pow=self.machine_pow,
         )

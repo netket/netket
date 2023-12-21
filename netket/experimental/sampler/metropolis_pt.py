@@ -101,7 +101,7 @@ class MetropolisPtSampler(MetropolisSampler):
             rule: A `MetropolisRule` to generate random transitions from a given state as
                     well as uniform random states.
             n_chains: The number of Markov Chain to be run in parallel on a single process.
-            n_sweeps: The number of exchanges that compose a single sweep.
+            sweep_size: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
                     (the size of the input vector s to the machine).
             n_chains: The number of batches of the states to sample (default = 8)
@@ -372,18 +372,18 @@ class MetropolisPtSampler(MetropolisSampler):
             "beta_position": state.beta_position,
             "beta_diffusion": state.beta_diffusion,
         }
-        s = jax.lax.fori_loop(0, sampler.n_sweeps, loop_body, s)
+        s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
 
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
             # n_accepted=s["accepted"],
-            n_steps_proc=state.n_steps_proc + sampler.n_sweeps * sampler.n_chains,
+            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_chains,
             beta=s["beta"],
             beta_0_index=s["beta_0_index"],
             beta_position=s["beta_position"],
             beta_diffusion=s["beta_diffusion"],
-            exchange_steps=state.exchange_steps + sampler.n_sweeps,
+            exchange_steps=state.exchange_steps + sampler.sweep_size,
             n_accepted_per_beta=s["n_accepted_per_beta"],
         )
 
@@ -423,7 +423,7 @@ def MetropolisLocalPt(hilbert, *args, **kwargs):
     Args:
         hilbert: The hilbert space to sample
         n_chains: The number of Markov Chain to be run in parallel on a single process.
-        n_sweeps: The number of exchanges that compose a single sweep.
+        sweep_size: The number of exchanges that compose a single sweep.
                 If None, sweep_size is equal to the number of degrees of freedom being sampled
                 (the size of the input vector s to the machine).
         n_chains: The number of batches of the states to sample (default = 8)
@@ -461,7 +461,7 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
         hilbert: The hilbert space to sample
         d_max: The maximum graph distance allowed for exchanges.
         n_chains: The number of Markov Chain to be run in parallel on a single process.
-        n_sweeps: The number of exchanges that compose a single sweep.
+        sweep_size: The number of exchanges that compose a single sweep.
                 If None, sweep_size is equal to the number of degrees of freedom being sampled
                 (the size of the input vector s to the machine).
         n_chains: The number of batches of the states to sample (default = 8)
@@ -483,7 +483,7 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = mpt.MetropolisExchangePt(hi, graph=g)
           >>> print(sa)
-          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
+          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = <class 'numpy.float64'>)
     """
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
     return MetropolisPtSampler(hilbert, rule, *args, **kwargs)
@@ -532,7 +532,7 @@ def MetropolisHamiltonianPt(hilbert, hamiltonian, *args, **kwargs):
        >>> # Construct a MetropolisExchange Sampler
        >>> sa = mpt.MetropolisHamiltonianPt(hi, hamiltonian=ha)
        >>> print(sa)
-       MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
+       MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = <class 'numpy.float64'>)
     """
     rule = HamiltonianRule(hamiltonian)
     return MetropolisPtSampler(hilbert, rule, *args, **kwargs)

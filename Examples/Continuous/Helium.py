@@ -54,7 +54,7 @@ d = 0.3  # 1/Angstrom
 rm = 2.9673  # Angstrom
 L = N / (0.3 * rm)
 hilb = nk.hilbert.Particle(N=N, L=(L,), pbc=True)
-sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.05, n_chains=16, n_sweeps=32)
+sab = nk.sampler.MetropolisGaussian(hilb, sigma=0.05, n_chains=16, sweep_size=32)
 
 
 ekin = nk.operator.KineticEnergy(hilb, mass=1.0)
