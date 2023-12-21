@@ -24,16 +24,6 @@ from ._fermion_operator_2nd_utils import _is_diag_term
 
 
 @partial(jax.vmap, in_axes=(0, None, None))
-def _reverse_split_cast_term_part(term, site_dtype, dagger_dtype):
-    # splits sites and daggers out of terms, casts to desired dtype
-
-    # we reverse the order of the single ops so that the operator
-    # returns xp s.t. <x|O|xp> != 0
-    sites, daggers = jnp.array(term)[::-1].reshape([-1, 2]).T
-    return sites.astype(site_dtype), daggers.astype(dagger_dtype)
-
-
-@partial(jax.vmap, in_axes=(0, None, None))
 def _flip_daggers_split_cast_term_part(term, site_dtype, dagger_dtype):
     # splits sites and daggers out of terms, casts to desired dtype
     sites, daggers = jnp.array(term).reshape([-1, 2]).T
@@ -49,15 +39,10 @@ def prepare_terms_list(
     dagger_dtype=np.int8,
     weight_dtype=jnp.float64,
     cutoff=0,
-    _netket_convention=True,
 ):
-    if _netket_convention:
-        # return xp s.t. <x|O|xp> != 0
-        # see https://github.com/netket/netket/issues/1385
-        term_dagger_split_fn = _flip_daggers_split_cast_term_part
-    else:
-        # return xp s.t. <xp|O|x> != 0
-        term_dagger_split_fn = _reverse_split_cast_term_part
+    # return xp s.t. <x|O|xp> != 0
+    # see https://github.com/netket/netket/issues/1385
+    term_dagger_split_fn = _flip_daggers_split_cast_term_part
 
     # group the terms together with respect to the number of sites they act on
     terms_dicts = {}
