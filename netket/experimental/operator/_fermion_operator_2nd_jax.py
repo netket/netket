@@ -26,11 +26,20 @@ from ._fermion_operator_2nd_utils import _is_diag_term
 @partial(jax.vmap, in_axes=(0, None, None))
 def _reverse_split_cast_term_part(term, site_dtype, dagger_dtype):
     # splits sites and daggers out of terms, casts to desired dtype
+
+    # we reverse the order of the single ops so that the operator
+    # returns xp s.t. <x|O|xp> != 0
     sites, daggers = jnp.array(term)[::-1].reshape([-1, 2]).T
     return sites.astype(site_dtype), daggers.astype(dagger_dtype)
 
 
-# TODO write a version for normal ordering, where we group operators which destroy the same sites
+@partial(jax.vmap, in_axes=(0, None, None))
+def _flip_daggers_split_cast_term_part(term, site_dtype, dagger_dtype):
+    # splits sites and daggers out of terms, casts to desired dtype
+    sites, daggers = jnp.array(term).reshape([-1, 2]).T
+    # we flip the daggers so that the operator returns xp s.t. <xp|O|x> != 0
+    daggers = jnp.ones_like(daggers) - daggers
+    return sites.astype(site_dtype), daggers.astype(dagger_dtype)
 
 
 def prepare_terms_list(
@@ -40,7 +49,16 @@ def prepare_terms_list(
     dagger_dtype=np.int8,
     weight_dtype=jnp.float64,
     cutoff=0,
+    _netket_convention=True,
 ):
+    if _netket_convention:
+        # return xp s.t. <x|O|xp> != 0
+        # see https://github.com/netket/netket/issues/1385
+        term_dagger_split_fn = _flip_daggers_split_cast_term_part
+    else:
+        # return xp s.t. <xp|O|x> != 0
+        term_dagger_split_fn = _reverse_split_cast_term_part
+
     # group the terms together with respect to the number of sites they act on
     terms_dicts = {}
     for t, w in operators.items():
@@ -48,16 +66,17 @@ def prepare_terms_list(
         d = terms_dicts.get(l, {})
         d[t] = w
         terms_dicts[l] = d
+
     res = []
     for d in terms_dicts.values():
         w = jnp.array(list(d.values()), dtype=weight_dtype)
         t = np.array(list(d.keys()), dtype=int)
-        res.append((w, *_reverse_split_cast_term_part(t, site_dtype, dagger_dtype)))
+        res.append((w, *term_dagger_split_fn(t, site_dtype, dagger_dtype)))
     if constant is not None and np.abs(constant) > cutoff:
         res.append(
             (
                 jnp.array(constant, dtype=weight_dtype).reshape((1,)),
-                *_reverse_split_cast_term_part(
+                *term_dagger_split_fn(
                     np.zeros((1, 0), dtype=int), site_dtype, dagger_dtype
                 ),
             )
@@ -67,8 +86,6 @@ def prepare_terms_list(
 
 @partial(jax.jit, static_argnums=4)
 def _apply_term_scan(x, weight, sites, daggers, unroll=1):
-    # sites and daggers need to have reversed order (hightest first!)
-
     # here we do jordan wigner:
     # for every site:
     # (1.) destroy/create a particle on current site based the value of dagger
@@ -310,11 +327,6 @@ def apply_terms_scan_bits(
 
 # mostly masks, some indexing
 def _apply_term_masks(x, w, sites, daggers):
-    #!!! sites and daggers need to have reversed order (hightest first!)
-    # i.e. sites, daggers = jnp.array(term)[::-1].reshape([-1, 2]).T
-    # TODO instead apply half to the left and half to the right and compare middle
-    # assuming some ordering
-
     # sites can be an unsigned int
     # daggers and x need to be signed, preferably of the same type
 
@@ -356,8 +368,6 @@ def apply_terms_masks(x, w, sites, daggers):
 
 # only masks
 def _apply_term_only_masks(x, w, sites, daggers):
-    # sites and daggers need to have reversed order (hightest first!)
-
     # sites can be an unsigned int
     # daggers and x need to be signed, preferably of the same type
 
