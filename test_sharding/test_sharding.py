@@ -220,7 +220,7 @@ def test_operators(Op):
     [None, 64],
 )
 def test_fullsumstate(chunk_size):
-    L = 8
+    L = 12
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
     ma = nk.models.RBM(alpha=1, param_dtype=np.complex128)
