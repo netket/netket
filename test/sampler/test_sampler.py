@@ -72,10 +72,10 @@ samplers["MetropolisNumpy(Local): Spin"] = nk.sampler.MetropolisLocalNumpy(hi)
 # )
 
 samplers["MetropolisPT(Local): Spin"] = nkx.sampler.MetropolisLocalPt(
-    hi, n_replicas=4, n_sweeps=hi.size * 4
+    hi, n_replicas=4, sweep_size=hi.size * 4
 )
 samplers["MetropolisPT(Local): Fock"] = nkx.sampler.MetropolisLocalPt(
-    hib_u, n_replicas=4, n_sweeps=hib_u.size * 4
+    hib_u, n_replicas=4, sweep_size=hib_u.size * 4
 )
 
 samplers["Metropolis(Exchange): Fock-1particle"] = nk.sampler.MetropolisExchange(
@@ -137,12 +137,12 @@ samplers["Autoregressive: Fock"] = nk.sampler.ARDirectSampler(hib_u)
 # Hilbert space and sampler for particles
 hi_particles = nk.hilbert.Particle(N=3, L=jnp.inf, pbc=False)
 samplers["Metropolis(Gaussian): Gaussian"] = nk.sampler.MetropolisGaussian(
-    hi_particles, sigma=1.0, n_sweeps=hi_particles.size * 10
+    hi_particles, sigma=1.0, sweep_size=hi_particles.size * 10
 )
 samplers[
     "Metropolis(AdjustedLangevin): AdjustedLangevin"
 ] = nk.sampler.MetropolisAdjustedLangevin(
-    hi_particles, dt=0.1, n_sweeps=hi_particles.size
+    hi_particles, dt=0.1, sweep_size=hi_particles.size
 )
 samplers[
     "Metropolis(AdjustedLangevin): AdjustedLangevin chunk_size"

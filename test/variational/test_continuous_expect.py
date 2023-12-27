@@ -36,7 +36,7 @@ hilb = nk.hilbert.Particle(N=1, L=5, pbc=True)
 pot = nk.operator.PotentialEnergy(hilb, v1)
 kin = nk.operator.KineticEnergy(hilb, mass=1.0)
 e = pot + kin
-sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, n_sweeps=1)
+sab = nk.sampler.MetropolisGaussian(hilb, sigma=1.0, n_chains=16, sweep_size=1)
 
 model = test()
 model2 = test2()

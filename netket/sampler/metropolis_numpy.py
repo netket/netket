@@ -173,7 +173,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
 
         accepted = 0
 
-        for sweep in range(sampler.n_sweeps):
+        for sweep in range(sampler.sweep_size):
             # Propose a new state using the transition kernel
             # σp, log_prob_correction =
             sampler.rule.transition(sampler, machine, parameters, state, state.rng, σ)
@@ -193,7 +193,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
                 random_uniform,
             )
 
-        state.n_steps_proc += sampler.n_sweeps * sampler.n_chains
+        state.n_steps_proc += sampler.sweep_size * sampler.n_chains
         state.n_accepted_proc += accepted
 
         return state, state.σ
@@ -226,7 +226,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             + f"\n  n_chains = {sampler.n_chains},"
             + f"\n  machine_power = {sampler.machine_pow},"
             + f"\n  reset_chains = {sampler.reset_chains},"
-            + f"\n  n_sweeps = {sampler.n_sweeps},"
+            + f"\n  sweep_size = {sampler.sweep_size},"
             + f"\n  dtype = {sampler.dtype},"
             + ")"
         )
@@ -237,7 +237,7 @@ class MetropolisSamplerNumpy(MetropolisSampler):
             + f"rule = {sampler.rule}, "
             + f"n_chains = {sampler.n_chains}, "
             + f"machine_power = {sampler.machine_pow}, "
-            + f"n_sweeps = {sampler.n_sweeps}, "
+            + f"sweep_size = {sampler.sweep_size}, "
             + f"dtype = {sampler.dtype})"
         )
 

@@ -86,7 +86,7 @@ def test_gcnn(mode, complex_output):
     vmc = nk.VMC(
         nk.operator.Ising(hi, g, h=1.0),
         nk.optimizer.Sgd(0.1),
-        nk.sampler.MetropolisLocal(hi, n_chains=2, n_sweeps=2),
+        nk.sampler.MetropolisLocal(hi, n_chains=2, sweep_size=2),
         ma,
         n_samples=8,
     )
