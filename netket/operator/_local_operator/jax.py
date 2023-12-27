@@ -100,7 +100,11 @@ def _local_operator_kernel_jax(
     n_conn_i2_jax = jax.tree_map(_sele, n_conns_jax, xs_n2)
     # start_jax = jax.tree_map(jax.vmap(lambda x: jnp.cumsum(jnp.pad(x, pad_width=(1,0)))[:-1]), n_conn_i2_jax)
 
+    melsop_jax = []
+    x_prime_jax = []
+
     if nonzero_diagonal:
+        # If we have some non-zero in the diagonal, prepare mels0 accordingly
         mels0 = constant + sum(
             jax.tree_map(
                 lambda nc, xx: _sele(nc, xx).sum(axis=-1), diag_mels_jax, xs_n2
@@ -108,10 +112,19 @@ def _local_operator_kernel_jax(
         )
         xp0 = x
     elif max_conn_size is None:
+        # if we don't have non-zero and there are no connected elements (
+        # therefore if the operator is empty, still add something here)
         xp0 = x[:, None][:, :0]
         mels0 = jnp.zeros(xp0.shape[:-1])
-    melsop_jax = [mels0]
-    x_prime_jax = [xp0]
+    else:
+        # zero diagonal, but some other connected elements
+        mels0 = None
+        xp0 = None
+
+    if mels0 is not None:
+        melsop_jax.append(mels0)
+        x_prime_jax.append(xp0)
+
     for kk in range(len(ncmax_jax)):
         ncmax = ncmax_jax[kk]
 
@@ -134,23 +147,28 @@ def _local_operator_kernel_jax(
         mask = jnp.broadcast_to(conn_maskall[:, :, :, None], new.shape)
         new_x_ao = jax.lax.select(mask, new, old)
         xpnew = _s(x, new_x_ao, acting_on)
+
         melsop_jax.append(melsop)
         x_prime_jax.append(xpnew)
 
     if max_conn_size is not None:
-        mask_jax = [jnp.full(mels0.shape, fill_value=True)]
+        mask_jax = []
+
+        if mels0 is not None:
+            mask_jax.append(jnp.full(mels0.shape, fill_value=True))
         for kk in range(len(ncmax_jax)):
             nc = n_conn_i2_jax[kk]
             ncm = ncmax_jax[kk]
             mask = jnp.arange(ncm)[None, None, :] < nc[:, :, None]
             mask_jax.append(mask)
 
+        if xp0 is not None:
+            melsop_jax.append(jnp.zeros(xp0.shape[:-1]))
+
         # pad with old state and mel 0
         # pad_value = -1
         xpm1 = x[:, None][:, :1]
-        melsm10 = jnp.zeros(xp0.shape[:-1])
         x_prime_jax.append(xpm1)
-        melsop_jax.append(melsm10)
         mask_jax.append(jnp.full((x.shape[0], 1), fill_value=False))
 
     mels_jc = jnp.hstack([x.reshape(x.shape[0], -1) for x in melsop_jax])
