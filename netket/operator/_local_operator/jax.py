@@ -216,37 +216,20 @@ def get_get_conn_padded_closure(self):
     # Args:
     #   self: the numba operator
     # TODO run setup before this
-    def f(x):
-        return jax.tree_map(lambda x: jnp.array(x.copy()), x)
 
-    (
-        local_states,
-        basis,
-        constant,
-        diag_mels,
-        n_conns,
-        all_mels,
-        all_x_prime,
-        acting_on,
-        acting_size,
-        nonzero_diagonal,
-    ) = f(
-        (
-            self._local_states,
-            self._basis,
-            self._constant,
-            self._diag_mels,
-            self._n_conns,
-            self._mels,
-            self._x_prime,
-            self._acting_on,
-            self._acting_size,
-            self._nonzero_diagonal,
-        )
-    )
+    local_states = jnp.asarray(self._local_states)
+    basis = jnp.asarray(self._basis)
+    constant = jnp.asarray(self._constant)
+    diag_mels = jnp.asarray(self._diag_mels)
+    n_conns = jnp.asarray(self._n_conns)
+    all_mels = jnp.asarray(self._mels)
+    all_x_prime = jnp.asarray(self._x_prime)
+    acting_on = jnp.asarray(self._acting_on)
 
     mel_cutoff = None  # not implemented
     max_conn_size = self._max_conn_size
+    acting_size = self._acting_size
+    nonzero_diagonal = bool(self._nonzero_diagonal)
 
     local_states_jax = []
     acting_on_jax = []
@@ -275,7 +258,7 @@ def get_get_conn_padded_closure(self):
         constant,
     )
     ncmax_jax = tuple(map(int, jax.tree_map(jnp.max, n_conns_jax)))
-    nonzero_diagonal = bool(nonzero_diagonal)
+
     return Partial(
         HashablePartial(
             _local_operator_kernel_jax2.__wrapped__,
