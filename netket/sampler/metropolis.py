@@ -341,7 +341,7 @@ class MetropolisSampler(Sampler):
     @property
     def n_sweeps(self):
         warn_deprecation(
-            "Specifying `n_sweeps` when constructing sampler is deprecated. Please use `sweep_size` instead."
+            "`MetropolisSampler.n_sweeps` is deprecated. Please use `MetropolisSampler.sweep_size` instead."
         )
         return self.sweep_size
 
