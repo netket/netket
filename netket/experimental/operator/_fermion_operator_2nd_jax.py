@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial, wraps
+from typing import Optional, Union
+
 import jax
 import jax.numpy as jnp
 import numpy as np
-from functools import partial
 
 from jax.tree_util import register_pytree_node_class
 from netket.operator import DiscreteJaxOperator
+from netket.hilbert.abstract_hilbert import AbstractHilbert
+from netket.utils.types import DType
 from ._fermion_operator_2nd_base import FermionOperator2ndBase
 from ._fermion_operator_2nd_utils import _is_diag_term
 
@@ -129,8 +133,6 @@ def _apply_terms_scan(x, w, sites, daggers, unroll):
 @partial(jax.jit, static_argnums=4)
 def apply_terms_scan(x, w, sites, daggers, unroll=1):
     return _apply_terms_scan(x, w, sites, daggers, unroll)
-
-
 
 
 def _biti(i, N, dtype=np.uint8):
@@ -504,6 +506,45 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
     :meth:`~netket.experimental.operator.FermionOperator2ndJax.to_numba_operator()`.
     """
 
+    @wraps(FermionOperator2ndBase.__init__)
+    def __init__(
+        self,
+        hilbert: AbstractHilbert,
+        terms: Union[list[str], list[list[list[int]]]] = None,
+        weights: Optional[list[Union[float, complex]]] = None,
+        constant: Union[float, complex] = 0.0,
+        dtype: DType = None,
+        _mode: str = "scan",
+    ):
+        super().__init__(hilbert, terms, weights, constant, dtype)
+        self._mode = _mode
+
+    @property
+    def _mode(self):
+        """
+        (Internal) Indexing mode of the operator.
+
+        Valid values are "index" or "mask".
+
+        'Index' uses the standard LocalOperator-like indexing of changed points,
+        while the latter uses constant-size masks.
+
+        The latter does not really need recompilation for paulistrings with
+        different values, and this could be changed in the future.
+        """
+        return self._mode_attr
+
+    @_mode.setter
+    def _mode(self, mode):
+        avaible_modes = ["scan", "mask"]
+
+        if mode not in avaible_modes:
+            raise ValueError(
+                f"unknown mode {mode}. Available modes are {avaible_modes}."
+            )
+        self._mode_attr = mode
+        self._reset_caches()
+
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
         if force or not self._initialized:
@@ -537,7 +578,12 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
             )
             self._initialized = True
 
-            self._kwargs = {"apply_terms_fun": apply_terms_scan_bits}
+            if self._mode == "scan":
+                apply_terms_fun = apply_terms_scan_bits
+            elif self._mode == "mask":
+                apply_terms_fun = apply_terms_masks
+
+            self._kwargs = {"apply_terms_fun": apply_terms_fun}
 
     def tree_flatten(self):
         self._setup()
