@@ -1,20 +1,33 @@
+# Copyright 2023-2024 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
 # this file contains a more-or-less 1:1 port of the numba localoperator to jax, using padding where necessary
 # TODO consider a complete rewrite in the future
 
+from functools import partial
 
 import numpy as np
 
 import jax
 import jax.numpy as jnp
+from jax.tree_util import register_pytree_node_class
 
-from functools import partial
-from jax.tree_util import Partial
-from netket.jax import HashablePartial
+from .base import LocalOperatorBase
+from .compile_helpers import pack_internals
 
-from netket.operator import DiscreteJaxOperator, LocalOperator
-
-
-from flax import struct
+from .._discrete_operator_jax import DiscreteJaxOperator
 
 
 @partial(jax.vmap, in_axes=(None, None, None, None, 0))
@@ -196,118 +209,152 @@ def _local_operator_kernel_jax(
         )
 
 
-# same as _local_operator_kernel_jax but does flattening and unflattening of extra axes
-@partial(jax.jit, static_argnums=(0, 1, 2))
-def _local_operator_kernel_jax2(
-    nonzero_diagonal, ncmax_jax, max_conn_size, mel_cutoff, op_args, x
-):
-    shape = x.shape
-    x = x.reshape(-1, x.shape[-1])
-    xp, mels, n_conn = _local_operator_kernel_jax(
-        nonzero_diagonal, ncmax_jax, max_conn_size, mel_cutoff, op_args, x
-    )
-    xp = xp.reshape(shape[:-1] + xp.shape[-2:])
-    mels = mels.reshape(shape[:-1] + mels.shape[-1:])
-    n_conn = n_conn.reshape(shape[:-1])
-    return xp, mels, n_conn
+@register_pytree_node_class
+class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
+    """
+    Jax-compatible version of :class:`netket.operator.LocalOperator`.
+    """
 
+    def _setup(self, force=False):
+        if force or not self._initialized:
+            data = pack_internals(
+                self.hilbert,
+                self._operators_dict,
+                self.constant,
+                self.dtype,
+                self.mel_cutoff,
+            )
 
-def get_get_conn_padded_closure(self):
-    # Args:
-    #   self: the numba operator
-    # TODO run setup before this
+            acting_on = jnp.asarray(data["acting_on"])
+            acting_size = data["acting_size"]
 
-    local_states = jnp.asarray(self._local_states)
-    basis = jnp.asarray(self._basis)
-    constant = jnp.asarray(self._constant)
-    diag_mels = jnp.asarray(self._diag_mels)
-    n_conns = jnp.asarray(self._n_conns)
-    all_mels = jnp.asarray(self._mels)
-    all_x_prime = jnp.asarray(self._x_prime)
-    acting_on = jnp.asarray(self._acting_on)
+            diag_mels = jnp.array(data["diag_mels"])
+            all_mels = jnp.array(data["mels"])
+            all_x_prime = jnp.array(data["x_prime"])
+            n_conns = jnp.asarray(data["n_conns"])
+            local_states = jnp.asarray(data["local_states"])
+            basis = jnp.asarray(data["basis"])
 
-    mel_cutoff = None  # not implemented
-    max_conn_size = self._max_conn_size
-    acting_size = self._acting_size
-    nonzero_diagonal = bool(self._nonzero_diagonal)
+            self._nonzero_diagonal = bool(data["nonzero_diagonal"])
+            self._max_conn_size = int(data["max_conn_size"])
 
-    local_states_jax = []
-    acting_on_jax = []
-    n_conns_jax = []
-    diag_mels_jax = []
-    all_x_prime_jax = []
-    all_mels_jax = []
-    basis_jax = []
-    for s in np.unique(acting_size):
-        (indices,) = np.where(acting_size == s)
-        local_states_jax.append(local_states[indices, :s])
-        acting_on_jax.append(acting_on[indices, :s])
-        n_conns_jax.append(n_conns[indices, : 2 * s])  # TODO 2x is ok?
-        diag_mels_jax.append(diag_mels[indices])  # TODO how long
-        all_x_prime_jax.append(all_x_prime[indices, :, :, :s])
-        all_mels_jax.append(all_mels[indices])
-        basis_jax.append(basis[indices])
-    op_args = (
-        local_states_jax,
-        acting_on_jax,
-        n_conns_jax,
-        diag_mels_jax,
-        all_x_prime_jax,
-        all_mels_jax,
-        basis_jax,
-        constant,
-    )
-    ncmax_jax = tuple(map(int, jax.tree_map(jnp.max, n_conns_jax)))
+            self._local_states_jax = []
+            self._acting_on_jax = []
+            self._n_conns_jax = []
+            self._diag_mels_jax = []
+            self._all_x_prime_jax = []
+            self._all_mels_jax = []
+            self._basis_jax = []
+            for s in np.unique(acting_size):
+                (indices,) = np.where(acting_size == s)
+                self._local_states_jax.append(local_states[indices, :s])
+                self._acting_on_jax.append(acting_on[indices, :s])
+                self._n_conns_jax.append(n_conns[indices, : 2 * s])  # TODO 2x is ok?
+                self._diag_mels_jax.append(diag_mels[indices])  # TODO how long
+                self._all_x_prime_jax.append(all_x_prime[indices, :, :, :s])
+                self._all_mels_jax.append(all_mels[indices])
+                self._basis_jax.append(basis[indices])
 
-    return Partial(
-        HashablePartial(
-            _local_operator_kernel_jax2.__wrapped__,
-            nonzero_diagonal,
-            ncmax_jax,
-            max_conn_size,
-        ),
-        mel_cutoff,
-        op_args,
-    )
+            self._nconn_max_jax = tuple(
+                map(int, jax.tree_map(jnp.max, self._n_conns_jax))
+            )
 
+            self._initialized = True
 
-# For now the only way to construct it is to first create the numba operator and then convert
+    def _get_conn_padded(self, x):
+        self._setup()
 
+        shape = x.shape
+        x = x.reshape(-1, x.shape[-1])
 
-@struct.dataclass
-class LocalOperatorJax(DiscreteJaxOperator):
-    get_conn_padded_fun: Partial
-    operator: LocalOperator = struct.field(pytree_node=False)
+        xp, mels, n_conn = _local_operator_kernel_jax(
+            self._nonzero_diagonal,
+            self._nconn_max_jax,
+            self._max_conn_size,
+            None,
+            (
+                self._local_states_jax,
+                self._acting_on_jax,
+                self._n_conns_jax,
+                self._diag_mels_jax,
+                self._all_x_prime_jax,
+                self._all_mels_jax,
+                self._basis_jax,
+                self._constant,
+            ),
+            x,
+        )
+        xp = xp.reshape(shape[:-1] + xp.shape[-2:])
+        mels = mels.reshape(shape[:-1] + mels.shape[-1:])
+        n_conn = n_conn.reshape(shape[:-1])
 
-    @jax.jit
+        return xp, mels, n_conn
+
     def get_conn_padded(self, x):
-        xp, mels, _ = self.get_conn_padded_fun(x)
+        xp, mels, _ = self._get_conn_padded(x)
         return xp, mels
 
-    @property
-    def dtype(self):
-        return self.operator.dtype
-
-    @property
-    def hilbert(self):
-        return self.operator.hilbert
-
-    @property
-    def is_hermitian(self):
-        return self.operator.is_hermitian
-
-    @property
-    def max_conn_size(self):
-        return self.operator.max_conn_size
-
-    @jax.jit
     def n_conn(self, x):
-        _, _, n_conn = self.get_conn_padded_fun(x)
+        _, _, n_conn = self._get_conn_padded(x)
         return n_conn
 
+    def tree_flatten(self):
+        self._setup()
+        data = (
+            self._local_states_jax,
+            self._acting_on_jax,
+            self._n_conns_jax,
+            self._diag_mels_jax,
+            self._all_x_prime_jax,
+            self._all_mels_jax,
+            self._basis_jax,
+            self._constant,
+        )
+        metadata = {
+            "hilbert": self.hilbert,
+            "dtype": self.dtype,
+            "nonzero_diagonal": self._nonzero_diagonal,
+            "max_conn_size": self._max_conn_size,
+            "nconn_max_jax": self._nconn_max_jax,
+        }
+        return data, metadata
+
     @classmethod
-    def from_numba_operator(cls, local_operator_numba):
-        local_operator_numba = local_operator_numba.copy()
-        local_operator_numba._setup()
-        gcp_fun = get_get_conn_padded_closure(local_operator_numba)
-        return cls(gcp_fun, local_operator_numba)
+    def tree_unflatten(cls, metadata, data):
+        hi = metadata["hilbert"]
+        dtype = metadata["dtype"]
+
+        op = cls(hi, dtype=dtype)
+
+        op._nonzero_diagonal = metadata["nonzero_diagonal"]
+        op._max_conn_size = metadata["max_conn_size"]
+        op._nconn_max_jax = metadata["nconn_max_jax"]
+
+        (
+            op._local_states_jax,
+            op._acting_on_jax,
+            op._n_conns_jax,
+            op._diag_mels_jax,
+            op._all_x_prime_jax,
+            op._all_mels_jax,
+            op._basis_jax,
+            op._constant,
+        ) = data
+
+        op._initialized = True
+        return op
+
+    def to_numba_operator(self) -> "LocalOperator":  # noqa: F821
+        """
+        Returns the standard numba version of this operator, which is an
+        instance of :class:`netket.operator.LocalOperator`.
+        """
+        from .numba import LocalOperator
+
+        return LocalOperator(
+            self.hilbert,
+            self.operators,
+            self.acting_on,
+            self.constant,
+            dtype=self.dtype,
+        )
