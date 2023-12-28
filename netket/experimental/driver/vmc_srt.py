@@ -256,7 +256,7 @@ class VMC_SRt(VMC):
             )
         self._jacobian_mode = mode
 
-    def _step(self):
+    def _forward_and_backward(self):
         """
         Performs a number of VMC optimization steps.
 
