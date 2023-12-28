@@ -45,7 +45,7 @@ def _to_iterable(maybe_iterable):
 # Note: to implement a new Driver (see also _vmc.py for an example)
 # If you want to inherit the nice interface of AbstractMCDriver, you should
 # subclass it, defining the following methods:
-# - _step , that should compute the loss function and the gradient.
+# - _forward_and_backward, that should compute the loss function and the gradient.
 #   If the driver is minimizing or maximising some loss function, this quantity
 #   should be assigned to self._stats in order to monitor it.
 # - reset should reset the driver (usually the sampler).
