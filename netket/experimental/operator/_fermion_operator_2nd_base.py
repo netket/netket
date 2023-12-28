@@ -15,7 +15,6 @@
 from typing import Union, Optional
 
 import numpy as np
-import numba
 from numbers import Number
 
 from netket.utils.types import DType
@@ -43,12 +42,6 @@ from ._fermion_operator_2nd_utils import (
     _normal_ordering,
     _pair_ordering,
 )
-
-
-# TODO is this a reasonable cutoff?
-@numba.jit(nopython=True)
-def _isclose(a, b, cutoff=1e-6):  # pragma: no cover
-    return np.abs(a - b) < cutoff
 
 
 class FermionOperator2ndBase(DiscreteOperator):
@@ -320,7 +313,7 @@ class FermionOperator2ndBase(DiscreteOperator):
     def operator_string(self) -> str:
         """Return a readable string describing all the operator terms"""
         op_string = []
-        if not _isclose(self._constant, 0.0):
+        if not np.isclose(self._constant, 0.0):
             op_string.append(f"{self._constant} []")
         for term, weight in self._operators.items():
             s = []
@@ -384,7 +377,7 @@ class FermionOperator2ndBase(DiscreteOperator):
 
     def __iadd__(self, other):
         if is_scalar(other):
-            if not _isclose(other, 0.0):
+            if not np.isclose(other, 0.0):
                 self._constant += other
             return self
         if not isinstance(other, FermionOperator2ndBase):
