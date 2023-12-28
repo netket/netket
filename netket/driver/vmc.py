@@ -110,7 +110,7 @@ class VMC(AbstractVariationalDriver):
 
         self._preconditioner = val
 
-    def _step(self):
+    def _forward_and_backward(self):
         """
         Performs a number of VMC optimization steps.
 

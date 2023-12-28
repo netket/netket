@@ -72,7 +72,7 @@ class SteadyState(AbstractVariationalDriver):
         self._S = None
         self._sr_info = None
 
-    def _step(self):
+    def _forward_and_backward(self):
         """
         Performs a number of VMC optimization steps.
 

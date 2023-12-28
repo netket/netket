@@ -25,7 +25,7 @@ from jax.tree_util import tree_map
 
 from netket.logging import AbstractLog, JsonLog
 from netket.operator import AbstractOperator
-from netket.utils import mpi, warn_deprecation
+from netket.utils import mpi
 
 
 def _to_iterable(maybe_iterable):
@@ -64,7 +64,9 @@ class AbstractVariationalDriver(abc.ABC):
         self._variational_state = variational_state
         self.optimizer = optimizer
 
-    def _step(self):  # pragma: no cover
+        self._checkpoint_mgr = checkpointer
+
+    def _forward_and_backward(self):  # pragma: no cover
         """
         Performs the forward and backward pass at the same time.
         Concrete drivers should either override this method, or override individually
@@ -73,19 +75,6 @@ class AbstractVariationalDriver(abc.ABC):
         Returns:
             the update for the weights.
         """
-        # TODO: deprecated december 2023, remove december 2024
-        if hasattr(self, "_forward_and_backward"):
-            warn_deprecation(
-                """
-                `AbstractVariationalDriver._forward_and_backward()` has been
-                deprecated in favour of the new name `_step()`.
-
-                If you see this error, you probably defined a custom driver. In
-                this case, please rename the method from `_forward_and_backward`
-                to `_step`.
-                """
-            )
-            return self._forward_and_backward()
         raise NotImplementedError
 
     def _log_additional_data(self, log_dict: dict, step: int):
