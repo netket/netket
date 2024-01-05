@@ -495,7 +495,7 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
 
     .. warning::
 
-        This class is not a Pytree, so it **can** be used inside of jax-transformed
+        This class is a Pytree, so it **can** be used inside of jax-transformed
         functions like `jax.grad` or `jax.jit`.
 
     When using native (experimental) sharding, or when working with GPUs,
