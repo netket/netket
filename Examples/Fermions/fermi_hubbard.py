@@ -54,7 +54,7 @@ print("Hamiltonian =", ham.operator_string())
 
 # g.n_nodes == L*L --> disj_graph == 2*L*L
 disj_graph = nk.graph.disjoint_union(g, g)
-sa = nk.sampler.MetropolisExchange(hi, graph=disj_graph, n_chains=16)
+sa = nk.sampler.MetropolisFermionExchange(hi, graph=disj_graph, n_chains=16)
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM
 # we take complex parameters, since it learns sign structures more easily, and for even fermion number, the wave function might be complex

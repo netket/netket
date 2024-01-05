@@ -59,6 +59,7 @@ move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
 hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
+hi_fermion = nk.experimental.hilbert.SpinOrbitalFermions(g.n_nodes, n_fermions=2)
 
 samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
 samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u)
@@ -89,6 +90,10 @@ samplers[
     hamiltonian=ha,
     reset_chains=True,
 )
+
+samplers[
+    "Metropolis(FermionExchange): SpinOrbitalFermions"
+] = nkx.sampler.MetropolisFermionExchange(hi_fermion, graph=g)
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
     hi,

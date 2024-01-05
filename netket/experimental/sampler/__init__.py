@@ -20,6 +20,8 @@ from .metropolis_pt import (
     MetropolisExchangePt,
 )
 
+from .metropolis import MetropolisFermionExchange
+
 from netket.utils import _hide_submodules
 
 _hide_submodules(__name__)

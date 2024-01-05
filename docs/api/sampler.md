@@ -83,6 +83,7 @@ This is a list of shorthands that allow to construct a {class}`~netket.sampler.M
 
    MetropolisLocal
    MetropolisExchange
+   MetropolisFermionExchange
    MetropolisHamiltonian
    MetropolisGaussian
    MetropolisAdjustedLangevin
