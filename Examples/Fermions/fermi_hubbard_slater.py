@@ -51,12 +51,12 @@ sa = nkx.sampler.MetropolisFermionExchange(hi, graph=disj_graph, n_chains=16)
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM
 # we take complex parameters, since it learns sign structures more easily, and for even fermion number, the wave function might be complex
-ma = nkx.models.Slater2nd(hi, param_dtype=float)
+ma = nkx.models.Slater2nd(hi, param_dtype=complex)
 vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=100, n_samples=512)
 
 # we will use sgd with Stochastic Reconfiguration
 opt = nk.optimizer.Sgd(learning_rate=0.01)
-sr = nk.optimizer.SR(diag_shift=0.1)
+sr = nk.optimizer.SR(diag_shift=0.1, holomorphic=True)
 
 gs = nk.driver.VMC(ham, opt, variational_state=vs, preconditioner=sr)
 
