@@ -20,9 +20,11 @@ import jax.numpy as jnp
 import numpy as np
 
 from jax.tree_util import register_pytree_node_class
+
 from netket.operator import DiscreteJaxOperator
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.types import DType
+
 from ._fermion_operator_2nd_base import FermionOperator2ndBase
 from ._fermion_operator_2nd_utils import _is_diag_term
 
@@ -250,7 +252,6 @@ def _apply_term_masks(x, w, sites, daggers):
 
     # assert x.dtype == np.int8
     # assert daggers.dtype == np.int8
-    # assert sites.dtype == np.uint8
 
     if len(sites) == 0:  # constant diagonal term
         return x, jnp.full(x.shape[:-1], w), jnp.full(x.shape[:-1], True)
@@ -543,7 +544,6 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
                 f"unknown mode {mode}. Available modes are {avaible_modes}."
             )
         self._mode_attr = mode
-        self._reset_caches()
 
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
@@ -578,13 +578,6 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
             )
             self._initialized = True
 
-            if self._mode == "scan":
-                apply_terms_fun = apply_terms_scan_bits
-            elif self._mode == "mask":
-                apply_terms_fun = apply_terms_masks
-
-            self._kwargs = {"apply_terms_fun": apply_terms_fun}
-
     def tree_flatten(self):
         self._setup()
         data = (
@@ -597,7 +590,6 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
             "constant": self._constant,
             "dtype": self.dtype,
             "max_conn_size": self._max_conn_size,
-            "kwargs": self._kwargs,
         }
         return data, metadata
 
@@ -606,12 +598,13 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         hi = metadata["hilbert"]
         constant = metadata["constant"]
         dtype = metadata["dtype"]
+
         op = cls(hi, [], [], constant=constant, dtype=dtype)
+
         op._operators = metadata["operators"]
         op._max_conn_size = metadata["max_conn_size"]
-        op._kwargs = metadata["kwargs"]
-        (op._terms_list_diag, op._terms_list_offdiag) = data
         op._initialized = True
+        (op._terms_list_diag, op._terms_list_offdiag) = data
         return op
 
     def to_numba_operator(self) -> "FermionOperator2nd":  # noqa: F821
@@ -627,17 +620,21 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         new_op._operators = self._operators.copy()
         return new_op
 
-        return self.copy(cls=FermionOperator2nd)
-
-    def _get_conn_padded(self, x):
+    def get_conn_padded(self, x):
         self._setup()
-        xp, mels, n_conn = get_conn_padded_jax(
+
+        if self._mode == "scan":
+            apply_terms_fun = apply_terms_scan_bits
+        elif self._mode == "mask":
+            apply_terms_fun = apply_terms_masks
+
+        xp, mels, _ = get_conn_padded_jax(
             self._max_conn_size,
             self._dtype,
             self._terms_list_diag,
             self._terms_list_offdiag,
             x,
-            **self._kwargs,
+            apply_terms_fun=apply_terms_fun,
         )
         # TODO if we are outside jit (i don't know how to detect it)
         # we coule check here that _max_conn_size was not too small
@@ -647,17 +644,18 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         #     raise ValueError("more connected elements than _max_conn_size")
         #
         # alternatively we could return success
-        return xp, mels, n_conn
-
-    def get_conn_padded(self, x):
-        xp, mels, _ = self._get_conn_padded(x)
         return xp, mels
 
     def n_conn(self, x):
+        if self._mode == "scan":
+            apply_terms_fun = apply_terms_scan_bits
+        elif self._mode == "mask":
+            apply_terms_fun = apply_terms_masks
+
         return n_conn_jax(
             self._dtype,
             self._terms_list_diag,
             self._terms_list_offdiag,
             x,
-            **self.kwargs,
+            apply_terms_fun=apply_terms_fun,
         )
