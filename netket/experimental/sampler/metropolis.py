@@ -1,9 +1,11 @@
 from netket.sampler import MetropolisSampler
 from netket.experimental.hilbert import SpinOrbitalFermions
+from netket.graph import disjoint_union
+import numpy as np
 
 
 def MetropolisFermionExchange(
-    hilbert, *, clusters=None, graph=None, d_max=1, **kwargs
+    hilbert, *, clusters=None, graph=None, d_max=1, copy_per_spin=True, **kwargs
 ) -> MetropolisSampler:
     r"""
     This sampler moves (or hops) a random fermion to a different but random empty mode.
@@ -26,6 +28,16 @@ def MetropolisFermionExchange(
         raise ValueError(
             "This sampler only works with SpinOrbitalFermions hilbert spaces."
         )
+    if copy_per_spin and hilbert.n_spin_subsectors > 1:
+        if graph is not None and graph.n_nodes == hilbert.n_orbitals:
+            graph = disjoint_union(*[graph] * hilbert.n_spin_subsectors)
+        if clusters is not None and np.max(clusters) < hilbert.n_orbitals:
+            clusters = np.concatenate(
+                [
+                    clusters + i * hilbert.n_orbitals
+                    for i in range(hilbert.n_spin_subsectors)
+                ]
+            )
 
     rule = FermionExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
     return MetropolisSampler(hilbert, rule, **kwargs)

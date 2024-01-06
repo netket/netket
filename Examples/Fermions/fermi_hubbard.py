@@ -52,9 +52,12 @@ print("Hamiltonian =", ham.operator_string())
 # move the fermions around independently for both spins
 # and therefore conserve the number of fermions with up and down spin
 
+# we can do this explicitly
 # g.n_nodes == L*L --> disj_graph == 2*L*L
 disj_graph = nk.graph.disjoint_union(g, g)
-sa = nkx.sampler.MetropolisFermionExchange(hi, graph=disj_graph, n_chains=16)
+sa = nkx.sampler.MetropolisFermionExchange(hi, graph=g, n_chains=16)
+# or let netket copy the graph per spin sector
+sa = nkx.sampler.MetropolisFermionExchange(hi, graph=g, n_chains=16, copy_per_spin=True)
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM
 # we take complex parameters, since it learns sign structures more easily, and for even fermion number, the wave function might be complex
