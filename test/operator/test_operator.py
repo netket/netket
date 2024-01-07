@@ -77,20 +77,21 @@ sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
 
+for name, LocalOp_impl in [("numba", nk.operator.LocalOperator),
+                            ("jax", nk.operator.LocalOperatorJax)]:
+    def _loc(*args):
+        return LocalOp_impl(hi, *args)
 
-def _loc(*args):
-    return nk.operator.LocalOperator(hi, *args)
 
+    sx_hat = _loc([sx] * 3, [[0], [1], [5]])
+    sy_hat = _loc([sy] * 4, [[2], [3], [4], [9]])
+    szsz_hat = _loc(sz, [0]) @ _loc(sz, [1])
+    szsz_hat += _loc(sz, [4]) @ _loc(sz, [5])
+    szsz_hat += _loc(sz, [6]) @ _loc(sz, [8])
+    szsz_hat += _loc(sz, [7]) @ _loc(sz, [0])
 
-sx_hat = _loc([sx] * 3, [[0], [1], [5]])
-sy_hat = _loc([sy] * 4, [[2], [3], [4], [9]])
-szsz_hat = _loc(sz, [0]) @ _loc(sz, [1])
-szsz_hat += _loc(sz, [4]) @ _loc(sz, [5])
-szsz_hat += _loc(sz, [6]) @ _loc(sz, [8])
-szsz_hat += _loc(sz, [7]) @ _loc(sz, [0])
-
-operators["Custom Hamiltonian"] = sx_hat + sy_hat + szsz_hat
-operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
+    operators[f"Custom Hamiltonian ({name})"] = sx_hat + sy_hat + szsz_hat
+    operators[f"Custom Hamiltonian Prod ({name})"] = sx_hat * 1.5 + (2.0 * sy_hat)
 
 operators["Pauli Hamiltonian (XX)"] = nk.operator.PauliStrings(["XX"], [0.1])
 operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
