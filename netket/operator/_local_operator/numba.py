@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional
 
-import numbers
 
 
 import numpy as np
 import numba
 
-from netket.hilbert import AbstractHilbert
-from netket.utils.types import DType, Array
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 
