@@ -15,7 +15,6 @@
 from typing import Union, Optional
 
 import numpy as np
-import numba
 from numbers import Number
 
 from netket.utils.types import DType
@@ -24,7 +23,6 @@ from netket.operator._pauli_strings.base import _count_of_locations
 from netket.hilbert.abstract_hilbert import AbstractHilbert
 from netket.utils.numbers import is_scalar, dtype as _dtype
 from netket.utils.optional_deps import import_optional_dependency
-from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from netket.experimental.hilbert import SpinOrbitalFermions
 
@@ -34,7 +32,6 @@ from ._fermion_operator_2nd_utils import (
     _canonicalize_input,
     _check_hermitian,
     _herm_conj,
-    _is_diag_term,
     _make_tuple_tree,
     _remove_dict_zeros,
     _verify_input,
@@ -47,9 +44,12 @@ from ._fermion_operator_2nd_utils import (
 )
 
 
-class FermionOperator2nd(DiscreteOperator):
+class FermionOperator2ndBase(DiscreteOperator):
     r"""
     A fermionic operator in :math:`2^{nd}` quantization.
+
+    This is a base class that only provides symbolic-level manipulation capabilities,
+    and must be inherited from a subclass defining indexing methods.
     """
 
     def __init__(
@@ -134,40 +134,17 @@ class FermionOperator2nd(DiscreteOperator):
 
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
-        if force or not self._initialized:
-            # remove zeros
-            self._operators = _reduce_operators(self._operators, self.dtype)
+        raise NotImplementedError  # pragma: no cover
 
-            # following lists will be used to compute matrix elements
-            # they are filled in _add_term
-            out = _pack_internals(self._operators, self._dtype)
-            (
-                self._orb_idxs,
-                self._daggers,
-                self._weights,
-                self._diag_idxs,
-                self._off_diag_idxs,
-                self._term_split_idxs,
-                _collected_constant,
-            ) = out
-            self._constant += _collected_constant
-
-            self._max_conn_size = 0
-            if not _isclose(self._constant, 0) or len(self._diag_idxs) > 0:
-                self._max_conn_size += 1
-            # the following could be reduced further
-            self._max_conn_size += len(self._off_diag_idxs)
-
-            self._initialized = True
-
-    @staticmethod
+    @classmethod
     def from_openfermion(
+        cls,
         hilbert: AbstractHilbert,
         of_fermion_operator=None,  # : "openfermion.ops.FermionOperator" type
         *,
         n_orbitals: Optional[int] = None,
         convert_spin_blocks: bool = False,
-    ) -> "FermionOperator2nd":
+    ) -> "FermionOperator2ndBase":
         r"""
         Converts an openfermion FermionOperator into a netket FermionOperator2nd.
 
@@ -208,7 +185,7 @@ class FermionOperator2nd(DiscreteOperator):
             # if first argument is not Hilbert, then shift all arguments by one
             hilbert, of_fermion_operator = None, hilbert
 
-        if not isinstance(of_fermion_operator, FermionOperator):
+        if not isinstance(of_fermion_operator, FermionOperator):  # pragma: no cover
             raise NotImplementedError()
 
         if convert_spin_blocks and hilbert is None:
@@ -235,11 +212,11 @@ class FermionOperator2nd(DiscreteOperator):
         if hilbert is None:
             hilbert = SpinOrbitalFermions(n_orbitals)  # no spin splitup assumed
 
-        return FermionOperator2nd(hilbert, terms, weights=weights, constant=constant)
+        return cls(hilbert, terms, weights=weights, constant=constant)
 
     def __repr__(self):
         return (
-            f"FermionOperator2nd(hilbert={self.hilbert}, "
+            f"{type(self).__name__}(hilbert={self.hilbert}, "
             f"n_operators={len(self._operators)}, dtype={self.dtype})"
         )
 
@@ -283,12 +260,23 @@ class FermionOperator2nd(DiscreteOperator):
         return self._operators
 
     def copy(self, *, dtype: Optional[DType] = None):
+        """
+        Creates a deep copy of this operator, potentially changing the dtype of the
+        operator and internal arrays.
+
+        Args:
+            dtype: Optional new dtype. Must be compatible with the current dtype.
+
+        Returns:
+            An identical operator that does not reference the internal arrays of
+            the original one.
+        """
         if dtype is None:
             dtype = self.dtype
         if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
 
-        op = FermionOperator2nd(self.hilbert, constant=self._constant, dtype=dtype)
+        op = type(self)(self.hilbert, constant=self._constant, dtype=dtype)
 
         if dtype == self.dtype:
             operators_new = self._operators.copy()
@@ -302,7 +290,7 @@ class FermionOperator2nd(DiscreteOperator):
 
     def _remove_zeros(self):
         """Reduce the number of operators by removing unnecessary zeros"""
-        op = FermionOperator2nd(self.hilbert, constant=self._constant, dtype=self.dtype)
+        op = type(self)(self.hilbert, constant=self._constant, dtype=self.dtype)
         op._operators = _remove_dict_zeros(self._operators)
         return op
 
@@ -325,7 +313,7 @@ class FermionOperator2nd(DiscreteOperator):
     def operator_string(self) -> str:
         """Return a readable string describing all the operator terms"""
         op_string = []
-        if not _isclose(self._constant, 0.0):
+        if not np.isclose(self._constant, 0.0):
             op_string.append(f"{self._constant} []")
         for term, weight in self._operators.items():
             s = []
@@ -337,174 +325,8 @@ class FermionOperator2nd(DiscreteOperator):
             op_string.append(s)
         return " +\n".join(op_string)
 
-    def _get_conn_flattened_closure(self):
-        self._setup()
-        _max_conn_size = self.max_conn_size
-        _orb_idxs = self._orb_idxs
-        _daggers = self._daggers
-        _weights = self._weights
-        _diag_idxs = self._diag_idxs
-        _off_diag_idxs = self._off_diag_idxs
-        _term_split_idxs = self._term_split_idxs
-
-        _constant = self._constant
-        fun = self._flattened_kernel
-
-        def gccf_fun(x, sections):
-            return fun(
-                x,
-                sections,
-                _max_conn_size,
-                _orb_idxs,
-                _daggers,
-                _weights,
-                _diag_idxs,
-                _off_diag_idxs,
-                _term_split_idxs,
-                _constant,
-            )
-
-        return numba.jit(nopython=True)(gccf_fun)
-
-    def get_conn_flattened(self, x, sections, pad=False):
-        r"""Finds the connected elements of the Operator.
-
-        Starting from a given quantum number x, it finds all other quantum numbers x' such
-        that the matrix element :math:`O(x,x')` is different from zero. In general there
-        will be several different connected states x' satisfying this
-        condition, and they are denoted here :math:`x'(k)`, for :math:`k=0,1...N_{\mathrm{connected}}`.
-
-        This is a batched version, where x is a matrix of shape (batch_size,hilbert.size).
-
-        Args:
-            x: A matrix of shape (batch_size,hilbert.size) containing
-                the batch of quantum numbers x.
-            sections: An array of size (batch_size) useful to unflatten
-                the output of this function.
-                See numpy.split for the meaning of sections.
-
-        Returns:
-            matrix: The connected states x', flattened together in a single matrix.
-            array: An array containing the matrix elements :math:`O(x,x')` associated to each x'.
-        """
-        self._setup()
-
-        x = concrete_or_error(
-            np.asarray,
-            x,
-            NumbaOperatorGetConnDuringTracingError,
-            self,
-        )
-
-        assert (
-            x.shape[-1] == self.hilbert.size
-        ), "size of hilbert space does not match size of x"
-        return self._flattened_kernel(
-            x,
-            sections,
-            self.max_conn_size,
-            self._orb_idxs,
-            self._daggers,
-            self._weights,
-            self._diag_idxs,
-            self._off_diag_idxs,
-            self._term_split_idxs,
-            self._constant,
-            pad,
-        )
-
-    @staticmethod
-    @numba.jit(nopython=True)
-    def _flattened_kernel(
-        x,
-        sections,
-        max_conn,
-        orb_idxs,
-        daggers,
-        weights,
-        diag_idxs,
-        off_diag_idxs,
-        term_split_idxs,
-        constant,
-        pad=False,
-    ):
-        x_prime = np.empty((x.shape[0] * max_conn, x.shape[1]), dtype=x.dtype)
-        mels = np.zeros((x.shape[0] * max_conn), dtype=weights.dtype)
-
-        # do not split at the last one (gives empty array)
-        term_split_idxs = term_split_idxs[:-1]
-        orb_idxs_list = np.split(orb_idxs, term_split_idxs)
-        daggers_list = np.split(daggers, term_split_idxs)
-
-        has_constant = not _isclose(constant, 0.0)
-
-        # loop over the batch dimension
-        n_c = 0
-        for b in range(x.shape[0]):
-            xb = x[b, :]
-
-            # we can already fill up with default values
-            if pad:
-                x_prime[b * max_conn : (b + 1) * max_conn, :] = np.copy(xb)
-
-            non_zero_diag = False
-            if has_constant:
-                non_zero_diag = True
-                x_prime[n_c, :] = np.copy(xb)
-                mels[n_c] += constant
-
-            # first do the diagonal terms, they all generate just 1 term
-            for term_idx in diag_idxs:
-                mel = weights[term_idx]
-                xt = np.copy(xb)
-                has_xp = True
-                for orb_idx, dagger in zip(
-                    orb_idxs_list[term_idx], daggers_list[term_idx]
-                ):
-                    _, mel, op_has_xp = _apply_operator(xt, orb_idx, dagger, mel)
-                    if not op_has_xp:
-                        has_xp = False
-                        continue
-                if has_xp:
-                    x_prime[n_c, :] = np.copy(xb)  # should be untouched
-                    mels[n_c] += mel
-
-                non_zero_diag = non_zero_diag or has_xp
-
-            # end of the diagonal terms
-            if non_zero_diag:
-                n_c += 1
-
-            # now do the off-diagonal terms
-            for term_idx in off_diag_idxs:
-                mel = weights[term_idx]
-                xt = np.copy(xb)
-                has_xp = True
-                for orb_idx, dagger in zip(
-                    orb_idxs_list[term_idx], daggers_list[term_idx]
-                ):
-                    xt, mel, op_has_xp = _apply_operator(xt, orb_idx, dagger, mel)
-                    if not op_has_xp:  # detect zeros
-                        has_xp = False
-                        continue
-                if has_xp:
-                    x_prime[n_c, :] = np.copy(xt)  # should be different
-                    mels[n_c] += mel
-                    n_c += 1
-
-            # end of this sample
-            if pad:
-                n_c = (b + 1) * max_conn
-
-            sections[b] = n_c
-
-        if pad:
-            return x_prime, mels
-        else:
-            return x_prime[:n_c], mels[:n_c]
-
     def _op__imatmul__(self, other):
-        if not isinstance(other, FermionOperator2nd):
+        if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             return NotImplemented
         if not self.hilbert == other.hilbert:
             raise ValueError(
@@ -539,7 +361,7 @@ class FermionOperator2nd(DiscreteOperator):
         return self
 
     def _op__matmul__(self, other):
-        if not isinstance(other, FermionOperator2nd):
+        if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             return NotImplemented
         dtype = np.promote_types(self.dtype, other.dtype)
         op = self.copy(dtype=dtype)
@@ -555,10 +377,10 @@ class FermionOperator2nd(DiscreteOperator):
 
     def __iadd__(self, other):
         if is_scalar(other):
-            if not _isclose(other, 0.0):
+            if not np.isclose(other, 0.0):
                 self._constant += other
             return self
-        if not isinstance(other, FermionOperator2nd):
+        if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             raise NotImplementedError(
                 f"In-place addition not implemented for {type(self)} "
                 f"and {type(other)}"
@@ -638,7 +460,8 @@ class FermionOperator2nd(DiscreteOperator):
         terms, weights = _herm_conj(terms, weights)  # changes also the terms
         terms = _make_tuple_tree(terms)
 
-        new = FermionOperator2nd(
+        cls = type(self)
+        new = cls(
             self.hilbert,
             constant=np.conjugate(self._constant),
             dtype=self.dtype,
@@ -654,7 +477,7 @@ class FermionOperator2nd(DiscreteOperator):
         `Normal ordering documentation <https://en.wikipedia.org/wiki/Normal_order#Fermions>`_
         """
         terms, weights = _normal_ordering(self.terms, self.weights)
-        new = FermionOperator2nd(
+        new = type(self)(
             self.hilbert,
             constant=self._constant,
             dtype=self.dtype,
@@ -670,7 +493,7 @@ class FermionOperator2nd(DiscreteOperator):
         In this ordering, we make sure to account for the anti-commutation of operators.
         """
         terms, weights = _pair_ordering(self.terms, self.weights)
-        new = FermionOperator2nd(
+        new = type(self)(
             self.hilbert,
             constant=self._constant,
             dtype=self.dtype,
@@ -678,105 +501,3 @@ class FermionOperator2nd(DiscreteOperator):
         new._operators = dict(zip(terms, weights))
         new.reduce()
         return new
-
-
-def _pack_internals(operators: OperatorDict, dtype: DType):
-    """
-    Create the internal structures to compute the matrix elements
-    Processes and adds a single term such that we can compute its matrix elements, in tuple format ((1,1), (2,0))
-    """
-    # properties of single-fermion operators, e.g. "0^"
-    orb_idxs = []
-    daggers = []
-    # properties of multi-body operators, e.g. "0^ 1"
-    weights = []
-    # herm_term = []
-    diag_idxs = []
-    off_diag_idxs = []
-    # below connect the second type to the first type (used to split single-fermion lists)
-    term_split_idxs = []
-    constants = []
-
-    term_counter = 0
-    single_op_counter = 0
-    for term, weight in operators.items():
-        if len(term) == 0:
-            constants.append(weight)
-            continue
-        if not all(len(t) == 2 for t in term):
-            raise ValueError(f"terms must contain (i, dag) pairs, but received {term}")
-
-        # fill some info about the term
-        weights.append(weight)
-        is_diag = _is_diag_term(term)
-        if is_diag:
-            diag_idxs.append(term_counter)
-        else:
-            off_diag_idxs.append(term_counter)
-
-        # single-fermion operators
-        for orb_idx, dagger in term:
-            # orb_idxs: holds the hilbert index of the orbital
-            orb_idxs.append(orb_idx)
-            # daggers: stores whether operator is creator or annihilator
-            daggers.append(not bool(dagger))
-            single_op_counter += 1
-
-        term_split_idxs.append(single_op_counter)
-        term_counter += 1
-
-    orb_idxs = np.array(orb_idxs, dtype=np.intp)
-    daggers = np.array(daggers, dtype=bool)
-    weights = np.array(weights, dtype=dtype)
-    # term_ends = np.array(term_ends, dtype=bool)
-    # herm_term = np.array(herm_term, dtype=bool)
-    diag_idxs = np.array(diag_idxs, dtype=np.intp)
-    off_diag_idxs = np.array(off_diag_idxs, dtype=np.intp)
-    term_split_idxs = np.array(term_split_idxs, dtype=np.intp)
-    constant = sum(constants)
-
-    return (
-        orb_idxs,
-        daggers,
-        weights,
-        diag_idxs,
-        off_diag_idxs,
-        term_split_idxs,
-        constant,
-    )
-
-
-@numba.jit(nopython=True)
-def _isclose(a, b, cutoff=1e-8):  # pragma: no cover
-    return np.abs(a - b) < cutoff
-
-
-@numba.jit(nopython=True)
-def _is_empty(site):  # pragma: no cover
-    return _isclose(site, 0)
-
-
-@numba.jit(nopython=True)
-def _flip(site):  # pragma: no cover
-    return 1 - site
-
-
-@numba.jit(nopython=True)
-def _apply_operator(xt, orb_idx, dagger, mel):  # pragma: no cover
-    has_xp = True
-    empty_site = _is_empty(xt[orb_idx])
-    if dagger:
-        if not empty_site:
-            has_xp = False
-        else:
-            mel *= (-1) ** np.sum(xt[:orb_idx])  # jordan wigner sign
-            xt[orb_idx] = _flip(xt[orb_idx])
-    else:
-        if empty_site:
-            has_xp = False
-        else:
-            mel *= (-1) ** np.sum(xt[:orb_idx])  # jordan wigner sign
-            xt[orb_idx] = _flip(xt[orb_idx])
-    if _isclose(mel, 0):
-        has_xp = False
-    return xt, mel, has_xp

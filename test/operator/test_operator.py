@@ -110,6 +110,22 @@ operators["FermionOperator2nd"] = nkx.operator.FermionOperator2nd(
     weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
 )
 
+operators[
+    "FermionOperator2ndJax(_mode=default-scan)"
+] = nkx.operator.FermionOperator2ndJax(
+    hi,
+    terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
+    weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
+)
+
+# TODO: @inailuig Fix this broken test
+# operators["FermionOperator2ndJax(_mode=mask)"] = nkx.operator.FermionOperator2ndJax(
+#    hi,
+#    terms=(((0, 1), (3, 0)), ((3, 1), (0, 0))),
+#    weights=(0.5 + 0.3j, 0.5 - 0.3j),  # must add h.c.
+#    _mode="mask"
+# )
+
 op_special = {}
 for name, op in operators.items():
     if hasattr(op, "to_local_operator"):
