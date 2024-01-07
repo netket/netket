@@ -77,11 +77,13 @@ sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
 
-for name, LocalOp_impl in [("numba", nk.operator.LocalOperator),
-                            ("jax", nk.operator.LocalOperatorJax)]:
+for name, LocalOp_impl in [
+    ("numba", nk.operator.LocalOperator),
+    ("jax", nk.operator.LocalOperatorJax),
+]:
+
     def _loc(*args):
         return LocalOp_impl(hi, *args)
-
 
     sx_hat = _loc([sx] * 3, [[0], [1], [5]])
     sy_hat = _loc([sy] * 4, [[2], [3], [4], [9]])
