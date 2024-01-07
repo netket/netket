@@ -134,7 +134,7 @@ class FermionOperator2ndBase(DiscreteOperator):
 
     def _setup(self, force: bool = False):
         """Analyze the operator strings and precompute arrays for get_conn inference"""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     @classmethod
     def from_openfermion(
@@ -185,7 +185,7 @@ class FermionOperator2ndBase(DiscreteOperator):
             # if first argument is not Hilbert, then shift all arguments by one
             hilbert, of_fermion_operator = None, hilbert
 
-        if not isinstance(of_fermion_operator, FermionOperator):
+        if not isinstance(of_fermion_operator, FermionOperator):  # pragma: no cover
             raise NotImplementedError()
 
         if convert_spin_blocks and hilbert is None:
@@ -326,7 +326,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         return " +\n".join(op_string)
 
     def _op__imatmul__(self, other):
-        if not isinstance(other, FermionOperator2ndBase):
+        if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             return NotImplemented
         if not self.hilbert == other.hilbert:
             raise ValueError(
@@ -361,7 +361,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         return self
 
     def _op__matmul__(self, other):
-        if not isinstance(other, FermionOperator2ndBase):
+        if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             return NotImplemented
         dtype = np.promote_types(self.dtype, other.dtype)
         op = self.copy(dtype=dtype)
@@ -380,7 +380,7 @@ class FermionOperator2ndBase(DiscreteOperator):
             if not np.isclose(other, 0.0):
                 self._constant += other
             return self
-        if not isinstance(other, FermionOperator2ndBase):
+        if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             raise NotImplementedError(
                 f"In-place addition not implemented for {type(self)} "
                 f"and {type(other)}"

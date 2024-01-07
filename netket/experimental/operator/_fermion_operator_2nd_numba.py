@@ -160,7 +160,7 @@ class FermionOperator2nd(FermionOperator2ndBase):
 
     @staticmethod
     @numba.jit(nopython=True)
-    def _flattened_kernel(
+    def _flattened_kernel(  # pragma: no cover
         x,
         sections,
         max_conn,
@@ -272,7 +272,7 @@ def _pack_internals(operators: OperatorDict, dtype: DType):
         if len(term) == 0:
             constants.append(weight)
             continue
-        if not all(len(t) == 2 for t in term):
+        if not all(len(t) == 2 for t in term):  # pragma: no cover
             raise ValueError(f"terms must contain (i, dag) pairs, but received {term}")
 
         # fill some info about the term
