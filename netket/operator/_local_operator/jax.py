@@ -92,6 +92,7 @@ def _local_operator_kernel_jax(
         basis_jax,
         constant,
     ) = op_args
+
     xs_n2 = []
     conn_b2 = []
     for ls, ao, nc, bsi in zip(local_states_jax, acting_on_jax, n_conns_jax, basis_jax):
@@ -145,7 +146,7 @@ def _local_operator_kernel_jax(
         xs_n = xs_n2[kk]
         all_mels = all_mels_jax[kk]
         acting_on = acting_on_jax[kk]
-        all_x_prime = all_x_prime_jax[kk]
+        all_x_prime = all_x_prime_jax[kk].astype(x.dtype)
         n_conns = n_conns_jax[kk]
 
         amixsall = all_mels[np.arange(xs_n.shape[1]), xs_n, :ncmax]
