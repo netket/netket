@@ -927,7 +927,8 @@ def test_fermion_reduce():
     hi = nkx.hilbert.SpinOrbitalFermions(3)
     op1 = nkx.operator.FermionOperator2nd(
         hi,
-        terms=("0 0^ 0 0^ 1^ 1 0^ 0 2 2^ 2 2^ 2 2^", ""),
+        terms=("0 0^ 0 0^ 1^ 1 0^ 0 2 2^ 2 2^ 2 2^",),
+        constant=1,
     )
     op1_ordered = op1.to_normal_order()
     op2 = nkx.operator.FermionOperator2nd(hi, terms=[""], weights=[1])
@@ -942,6 +943,7 @@ def test_fermion_reduce():
         op1 = nkx.operator.FermionOperator2nd(
             hi,
             terms=(op_term,),
+            constant=0,
         )
         op1_ordered = op1.to_normal_order()
         np.testing.assert_allclose(op1_ordered.to_dense(), op1.to_dense())
