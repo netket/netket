@@ -119,7 +119,7 @@ def expect_and_grad_inner_mc(
 
             O2_loc = local_kernel2(afun, W, σ, args2)
 
-            return jnp.absolute(O2_loc - O_mean**2)
+            return O2_loc - O_mean**2
 
         return nkjax.expect(log_pdf, local_kernel_var, params, σ, n_chains=n_chains)
 
