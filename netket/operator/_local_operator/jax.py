@@ -14,7 +14,6 @@
 
 
 # this file contains a more-or-less 1:1 port of the numba localoperator to jax, using padding where necessary
-# TODO consider a complete rewrite in the future
 
 from functools import partial
 
