@@ -270,9 +270,9 @@ def _apply_term_masks(x, w, sites, daggers):
     x_final = jnp.clip(x_final_, 0, 1)
     r = jnp.remainder(jnp.einsum("...ij,ij -> ...", x_at_i, masks_sgn), 2)
     sgn = -1 * r + (1 - r)
-    d = x_at_i != daggers[None, :, None]
+    d = x_at_i != daggers[:, None]
     xi = x_at_i[..., jnp.arange(len(sites), dtype=np.uint32), sites]
-    d = xi != daggers[None]
+    d = xi != daggers
     # here we cast, for the case when x is float64 but weights are float32
     # and jax would promote the result to float64
     w_final = w * (d.prod(axis=-1) * sgn).astype(w.dtype)
