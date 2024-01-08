@@ -74,9 +74,9 @@ Eventually we would like the selection to be automatic, but this has not yet bee
 Please open tickets if you find issues!
 
 (jax_multi_process)=
-## Running on multi-gpu clusters
-Historically the main way to run NetKet in parallel has been to use MPI. However, with jax adding shared arrays and collective operations on multiple devices/nodes (see [here](https://jax.readthedocs.io/en/latest/jax_array_migration.html#jax-array-migration) and [here](https://jax.readthedocs.io/en/latest/multi_process.html)) we adapted NetKet to support it.
-To run on a single node with multiple gpus all that is necessary is to set the flag `NETKET_EXPERIMENTAL_SHARDING=1`.
+## Running on multi-node clusters
+Historically the principal way to run NetKet in parallel has been to use MPI with mpi4py and mpi4jax. However, with jax adding shared arrays and collective operations on multiple devices/nodes (see [here](https://jax.readthedocs.io/en/latest/jax_array_migration.html#jax-array-migration) and [here](https://jax.readthedocs.io/en/latest/multi_process.html)) we adapted NetKet to support it.
+To run on a single process with multiple gpus on a single node all that is necessary is to set the flag `NETKET_EXPERIMENTAL_SHARDING=1`.
 
 :::{warning}
 This feature is still experimental and not everything may work perfectly right out of the box.
@@ -85,9 +85,10 @@ Any feedback, be it positive or negative, would be greatly appreciated.
 
 
 (jax_multi_process_setup)=
-### Multi-node setup with jax.distributed
+### Setup with jax.distributed
 To launch netket on a multi-node gpu cluster usually all that is required is to add a call to `jax.distributed.initialize()` at the top of the main script, e.g. as follows:
 
+- __GPU__
 ```python
 import jax
 jax.distributed.initialize()
@@ -99,13 +100,26 @@ import netket as nk
 # ...
 ```
 
-Then it can be conveniently launched with `srun` (on slurm clusters) or `mpirun`.
+- __CPU__ (experimental, see [jax #11182 (comment)](https://github.com/google/jax/issues/11182#issuecomment-1850822681))
+```python
+import jax
+jax.config.update("jax_cpu_enable_gloo_collectives", True)
+jax.distributed.initialize()
+
+import os
+os.environ['NETKET_EXPERIMENTAL_SHARDING'] = 1
+
+import netket as nk
+# ...
+```
+
+Then the script can be conveniently launched with `srun` (on slurm clusters) or `mpirun` (openmpi only).
 For more details and manual setups we refer to the [jax documentation](https://jax.readthedocs.io/en/latest/multi_process.html).
 
-Note that jax internally uses the [grpc library](https://grpc.io) (launching a http server) for setup and book-keeping of the cluster and the [nvidia nccl library](https://developer.nvidia.com/nccl) for communication between gpus. Thus it is required that `libnccl2` and `libnccl2-dev` are installed in addition to cuda.
-Even if launched with mpirun, mpi is not actually used for communication, but the environment variables set by it are instead picked up by `jax.distributed.initialize`.
+Jax internally uses the [grpc library](https://grpc.io) (launching a http server) for setup and book-keeping of the cluster and the [nvidia nccl library](https://developer.nvidia.com/nccl) for communication between gpus, and (experimentally) [gloo](https://github.com/facebookincubator/gloo) for communication between cpus.
+Note that if launched with mpirun, mpi is currently not used for communication (until somebody writes a plugin for it), but the environment variables set by it are instead picked up by `jax.distributed.initialize` and used to set up the other communication libraries.
 
-If you run into communication errors you might want to set the environment variable `NCCL_DEBUG=INFO` for detailed error messages.
+On GPU it is required that `libnccl2` and `libnccl2-dev` are installed in addition to cuda. If you run into communication errors, you might want to set the environment variable `NCCL_DEBUG=INFO` for detailed error messages.
 
 (grpc_proxy)=
 ### GRPC incompatibility with http proxy wildcards
@@ -123,8 +137,8 @@ jax.distributed.initialize()
 ```
 
 (multi_device)=
-### Multiple devices per process
-In our testing it is best to use 1 process per gpu on the cluster.
+### Multiple GPU devices per process
+According to our testing, it is best to use 1 process per gpu on the cluster.
 
 Nevertheless, if you want to use multiple gpus per process you can force jax to do so by setting `local_device_ids`, e.g. extracting it from `CUDA_VISIBLE_DEVICES` as follows:
 
