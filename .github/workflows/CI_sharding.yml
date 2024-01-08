@@ -1,4 +1,4 @@
-name: CI
+name: CI_sharding
 
 on:
   pull_request:
@@ -16,10 +16,17 @@ jobs:
         include:
           - os: ubuntu-latest
             python-version: "3.10"
+            mpi: ""
             runscript: "run_test_sharding.sh"
+
+          - os: self-hosted
+            python-version: "3.10"
+            mpi: "openmpi"
+            runscript: "run_test_sharding_distributed.sh"
 
           - os: ubuntu-latest
             python-version: "3.10"
+            mpi: ""
             runscript: "run_standard_tests_with_sharding.sh"
 
     steps:
@@ -31,6 +38,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        if: matrix.mpi != ''
+        with:
+          mpi: ${{ matrix.mpi }}
 
       - name: Pip install packages
         run: |
