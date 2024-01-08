@@ -25,7 +25,7 @@ import jax.numpy as jnp
 from jax.tree_util import register_pytree_node_class
 
 from .base import LocalOperatorBase
-from .compile_helpers import pack_internals
+from .compile_helpers import pack_internals, max_nonzero_per_row
 
 from .._discrete_operator_jax import DiscreteJaxOperator
 
@@ -208,6 +208,9 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
 
     def _setup(self, force=False):
         if force or not self._initialized:
+            # TODO !! rewrite a version of pack_internals which directly
+            # assembles the jax represenation below, avoiding padding
+            # in there first and then removing the padding here again
             data = pack_internals(
                 self.hilbert,
                 self._operators_dict,
@@ -236,17 +239,30 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
             self._all_x_prime_jax = []
             self._all_mels_jax = []
             self._basis_jax = []
+
+            operators = list(self._operators_dict.values())
+            op_size = np.array(list(map(lambda x: x.shape[0], operators)))
+            op_n_conns_offdiag = max_nonzero_per_row(operators, self.mel_cutoff)
+
             for s in np.unique(acting_size):
                 (indices,) = np.where(acting_size == s)
                 self._local_states_jax.append(local_states[indices, :s])
                 self._acting_on_jax.append(acting_on[indices, :s])
-                self._n_conns_jax.append(
-                    n_conns[indices, :]
-                )  # TODO !! can we remove some of them, as a function of s???
-                self._diag_mels_jax.append(diag_mels[indices])  # TODO how long
-                self._all_x_prime_jax.append(all_x_prime[indices, :, :, :s])
-                self._all_mels_jax.append(all_mels[indices])
-                self._basis_jax.append(basis[indices])
+                # compute the maximum size of any operator acting on s sites
+                # (maximum size of the matrix / prod of local hilbert spaces)
+                max_op_size_s = max(op_size[indices])
+                # compute the maximum number of offdiag nonzeros in any row of any operator acting on s sites
+                max_op_size_offdiag_s = max(op_n_conns_offdiag[indices])
+                self._n_conns_jax.append(n_conns[indices, :max_op_size_s])
+                self._diag_mels_jax.append(diag_mels[indices, :max_op_size_s])
+
+                self._all_x_prime_jax.append(
+                    all_x_prime[indices, :max_op_size_s, :max_op_size_offdiag_s, :s]
+                )
+                self._all_mels_jax.append(
+                    all_mels[indices, :max_op_size_s, :max_op_size_offdiag_s]
+                )
+                self._basis_jax.append(basis[indices, :s])
 
             self._nconn_max_jax = tuple(
                 map(int, jax.tree_map(jnp.max, self._n_conns_jax))
