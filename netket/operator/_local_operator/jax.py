@@ -251,7 +251,9 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
                 (indices,) = np.where(acting_size == s)
                 self._local_states_jax.append(local_states[indices, :s])
                 self._acting_on_jax.append(acting_on[indices, :s])
-                self._n_conns_jax.append(n_conns[indices, :])  # TODO !! can we remove some of them, as a function of s???
+                self._n_conns_jax.append(
+                    n_conns[indices, :]
+                )  # TODO !! can we remove some of them, as a function of s???
                 self._diag_mels_jax.append(diag_mels[indices])  # TODO how long
                 self._all_x_prime_jax.append(all_x_prime[indices, :, :, :s])
                 self._all_mels_jax.append(all_mels[indices])
