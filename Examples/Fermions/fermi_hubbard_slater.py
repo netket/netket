@@ -48,7 +48,7 @@ print("Hamiltonian =", ham.operator_string())
 # g.n_nodes == L*L --> disj_graph == 2*L*L
 # this is handled by netket by passing the keyword copy_per_spin=True
 sa = nkx.sampler.MetropolisParticleExchange(
-    hi, graph=g, n_chains=16, copy_per_spin=True, sweep_size=64
+    hi, graph=g, n_chains=16, exhange_spins=False, sweep_size=64
 )
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM

@@ -12,17 +12,10 @@ from netket.experimental.hilbert import SpinOrbitalFermions
 class ParticleExchangeRule(ExchangeRule):
     """Exchange rule for particles on a lattice.
 
-    Works similarly to exchange rule, but:
+    Works similarly to ExchangeRule, but:
     takes into account that only occupied orbitals
     can be exchanged with unoccupied ones.
     This sampler conserves the number of particles.
-    """
-
-    copy_per_spin: bool
-    """
-    Whether to copy the graph for each spin sector.
-    This only occurs if cluster indices or number of graph nodes
-    are lower than the number of orbitals per spin sector.
     """
 
     def __init__(
@@ -32,7 +25,7 @@ class ParticleExchangeRule(ExchangeRule):
         clusters: Optional[list[tuple[int, int]]] = None,
         graph: Optional[AbstractGraph] = None,
         d_max: int = 1,
-        copy_per_spin: bool = True,
+        exhange_spins: bool = False,
     ):
         r"""
         Constructs the ParticleExchange Rule.
@@ -52,17 +45,18 @@ class ParticleExchangeRule(ExchangeRule):
                 that can be exchanged.
             d_max: Only valid if a graph is passed in. The maximum distance
                 between two sites
-            copy_per_spin: (default True) If True, the graph must encode the
+            exhange_spins: (default False) If exhange_spins, the graph must encode the
                 connectivity  between the first N physical sites having same spin, and
                 it is replicated using :ref:`netket.graph.disjoint_union` other every
                 spin subsector. This option conserves the number of fermions per
-                spin subsector.
+                spin subsector. If the graph does not have a number of sites equal
+                to the number of orbitals in the hilbert space, this flag has no effect.
         """
         if not isinstance(hilbert, SpinOrbitalFermions):
             raise ValueError(
                 "This sampler rule currently only works with SpinOrbitalFermions hilbert spaces."
             )
-        if copy_per_spin and hilbert.n_spin_subsectors > 1:
+        if not exhange_spins and hilbert.n_spin_subsectors > 1:
             if graph is not None and graph.n_nodes == hilbert.n_orbitals:
                 graph = disjoint_union(*[graph] * hilbert.n_spin_subsectors)
             if clusters is not None and np.max(clusters) < hilbert.n_orbitals:
@@ -72,7 +66,6 @@ class ParticleExchangeRule(ExchangeRule):
                         for i in range(hilbert.n_spin_subsectors)
                     ]
                 )
-        self.copy_per_spin = copy_per_spin
         super().__init__(clusters=clusters, graph=graph, d_max=d_max)
 
     def transition(rule, sampler, machine, parameters, state, key, σ):
