@@ -264,7 +264,7 @@ def _apply_term_masks(x, w, sites, daggers):
     add_flip = masks_flip * daggers_pm[:, None]
     add_flip_padded = jnp.vstack([jnp.zeros_like(add_flip[..., 0, :]), add_flip])
     add_flip_cum = jnp.cumsum(add_flip_padded, axis=-2)
-    x_at_i = x[..., None, :] + add_flip_cum[None]
+    x_at_i = x[..., None, :] + add_flip_cum[(None,)*(x.ndim-1)]
     x_final_ = x_at_i[..., -1, :]
     x_at_i = x_at_i[..., :-1, :]
     x_final = jnp.clip(x_final_, 0, 1)
