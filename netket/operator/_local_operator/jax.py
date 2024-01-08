@@ -183,6 +183,7 @@ def _local_operator_kernel_jax(
         # pad_value = -1
         xpm1 = x[:, None][:, :1]
         x_prime_jax.append(xpm1)
+        melsop_jax.append(jnp.zeros(x.shape[:-1]))
         mask_jax.append(jnp.full((x.shape[0], 1), fill_value=False))
 
     mels_jc = jnp.hstack([x.reshape(x.shape[0], -1) for x in melsop_jax])
