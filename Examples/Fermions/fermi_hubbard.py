@@ -55,14 +55,18 @@ print("Hamiltonian =", ham.operator_string())
 # we can do this explicitly
 # g.n_nodes == L*L --> disj_graph == 2*L*L
 disj_graph = nk.graph.disjoint_union(g, g)
-sa = nkx.sampler.MetropolisFermionExchange(hi, graph=g, n_chains=16)
+sa = nkx.sampler.MetropolisParticleExchange(
+    hi, graph=g, n_chains=16, sweep_size=64, copy_per_spin=False
+)
 # or let netket copy the graph per spin sector
-sa = nkx.sampler.MetropolisFermionExchange(hi, graph=g, n_chains=16, copy_per_spin=True)
+sa = nkx.sampler.MetropolisParticleExchange(
+    hi, graph=g, n_chains=16, sweep_size=64, copy_per_spin=True
+)
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM
 # we take complex parameters, since it learns sign structures more easily, and for even fermion number, the wave function might be complex
 ma = nk.models.RBM(alpha=1, param_dtype=complex, use_visible_bias=False)
-vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=100, n_samples=512)
+vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=10, n_samples=512)
 
 # we will use sgd with Stochastic Reconfiguration
 opt = nk.optimizer.Sgd(learning_rate=0.01)

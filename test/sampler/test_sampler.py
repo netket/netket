@@ -92,8 +92,8 @@ samplers[
 )
 
 samplers[
-    "Metropolis(FermionExchange): SpinOrbitalFermions"
-] = nkx.sampler.MetropolisFermionExchange(hi_fermion, graph=g)
+    "Metropolis(ParticleExchange): SpinOrbitalFermions"
+] = nkx.sampler.MetropolisParticleExchange(hi_fermion, graph=g)
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
     hi,

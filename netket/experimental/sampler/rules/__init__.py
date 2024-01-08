@@ -1,1 +1,1 @@
-from .fermion_2nd import FermionExchangeRule
+from .fermion_2nd import ParticleExchangeRule
