@@ -176,9 +176,6 @@ def _local_operator_kernel_jax(
             mask = jnp.arange(ncm)[None, None, :] < nc[:, :, None]
             mask_jax.append(mask)
 
-        if xp0 is not None:
-            melsop_jax.append(jnp.zeros(xp0.shape[:-1]))
-
         # pad with old state and mel 0
         # pad_value = -1
         xpm1 = x[:, None][:, :1]
