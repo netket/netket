@@ -85,11 +85,11 @@ def _apply_term_scan(x, weight, sites, daggers, unroll=1):
     #            σ⁺|1⟩=0        σ⁻|1⟩=|0⟩
     # (2.) apply σᶻ to all sites before the current site
 
+    assert daggers.dtype == jnp.bool_
+    assert x.dtype == jnp.bool_
+
     if len(sites) == 0:  # constant diagonal term
         return x, jnp.full(x.shape[:-1], weight), jnp.full(x.shape[:-1], True)
-
-    x = x.astype(jnp.bool_)
-    assert daggers.dtype == jnp.bool_
 
     n_orbitals = x.shape[-1]
 
@@ -107,7 +107,7 @@ def _apply_term_scan(x, weight, sites, daggers, unroll=1):
 
         # compute sign from σᶻ (stored as 0/1 for +1/-1)
         mask_all_up_to_site = jnp.arange(n_orbitals, dtype=sites.dtype) < site
-        x_masked = x_ & mask_all_up_to_site[None]
+        x_masked = x_ & mask_all_up_to_site
         sgn = sgn ^ _reduce_xor(x_masked, (x_.ndim - 1,))
 
         # check if we did σ⁺|1⟩=0 or σ⁻|0⟩=0
@@ -124,7 +124,7 @@ def _apply_term_scan(x, weight, sites, daggers, unroll=1):
     not_zero = ~zero
     w_final = weight * not_zero * sign
     # return the xp, the mel and wether mel is zero
-    return x_final.astype(x.dtype), w_final, not_zero
+    return x_final, w_final, not_zero
 
 
 @partial(jax.vmap, in_axes=(None, 0, 0, 0, None), out_axes=(-2, -1, -1))
@@ -134,7 +134,10 @@ def _apply_terms_scan(x, w, sites, daggers, unroll):
 
 @partial(jax.jit, static_argnums=4)
 def apply_terms_scan(x, w, sites, daggers, unroll=1):
-    return _apply_terms_scan(x, w, sites, daggers, unroll)
+    x_res, *res = _apply_terms_scan(
+        x.astype(jnp.bool_), w, sites, daggers.astype(jnp.bool_), unroll
+    )
+    return x_res.astype(x.dtype), *res
 
 
 def _biti(i, N, dtype=np.uint8):
@@ -180,7 +183,8 @@ def _apply_term_scan_bits(
     assert daggers.dtype in [jnp.bool_, jnp.uint8]
     if process:
         n_orbitals = x.shape[-1]
-        x = x.astype(jnp.uint8)
+        # x = x.astype(jnp.uint8)
+        assert x.dtype == jnp.uint8
         xb = jnp.packbits(x, axis=-1, bitorder="little")
     else:
         assert n_orbitals is not None
@@ -242,14 +246,22 @@ def _apply_terms_scan_bits(x, w, sites, daggers, unroll, process, n_orbitals):
 def apply_terms_scan_bits(
     x, w, sites, daggers, unroll=1, process=True, n_orbitals=None
 ):
-    return _apply_terms_scan_bits(x, w, sites, daggers, unroll, process, n_orbitals)
+    x_res, *res = _apply_terms_scan_bits(
+        x.astype(jnp.uint8),
+        w,
+        sites,
+        daggers.astype(jnp.uint8),
+        unroll,
+        process,
+        n_orbitals,
+    )
+    return x_res.astype(x.dtype), *res
 
 
 # mostly masks, some indexing
 def _apply_term_masks(x, w, sites, daggers):
     # sites can be an unsigned int
     # daggers and x need to be signed, preferably of the same type
-
     # assert x.dtype == np.int8
     # assert daggers.dtype == np.int8
 
@@ -264,15 +276,15 @@ def _apply_term_masks(x, w, sites, daggers):
     add_flip = masks_flip * daggers_pm[:, None]
     add_flip_padded = jnp.vstack([jnp.zeros_like(add_flip[..., 0, :]), add_flip])
     add_flip_cum = jnp.cumsum(add_flip_padded, axis=-2)
-    x_at_i = x[..., None, :] + add_flip_cum[None]
+    x_at_i = x[..., None, :] + add_flip_cum[(None,) * (x.ndim - 1)]
     x_final_ = x_at_i[..., -1, :]
     x_at_i = x_at_i[..., :-1, :]
     x_final = jnp.clip(x_final_, 0, 1)
-    r = jnp.remainder(jnp.einsum("aij,ij -> a", x_at_i, masks_sgn), 2)
+    r = jnp.remainder(jnp.einsum("...ij,ij -> ...", x_at_i, masks_sgn), 2)
     sgn = -1 * r + (1 - r)
-    d = x_at_i != daggers[None, :, None]
+    d = x_at_i != daggers[:, None]
     xi = x_at_i[..., jnp.arange(len(sites), dtype=np.uint32), sites]
-    d = xi != daggers[None]
+    d = xi != daggers
     # here we cast, for the case when x is float64 but weights are float32
     # and jax would promote the result to float64
     w_final = w * (d.prod(axis=-1) * sgn).astype(w.dtype)
@@ -281,8 +293,10 @@ def _apply_term_masks(x, w, sites, daggers):
 
 @partial(jax.vmap, in_axes=(None, 0, 0, 0), out_axes=(-2, -1, -1))
 def apply_terms_masks(x, w, sites, daggers):
-    res = _apply_term_masks(x, w, sites, daggers)
-    return res
+    x_res, *res = _apply_term_masks(
+        x.astype(np.int8), w, sites, daggers.astype(np.int8)
+    )
+    return x_res.astype(x.dtype), *res
 
 
 # only masks
@@ -347,7 +361,7 @@ def _apply_term_only_masks(x, w, sites, daggers):
 
     # now apply the actions we just computed
     # this gives us the state when operator i sees it, after all up to i have been applied
-    x_at_i = x[..., None, :] + add_flip_cum[None]
+    x_at_i = x[..., None, :] + add_flip_cum[(None,) * (x.ndim - 1)]
 
     # the last one (remember, we padded) is the final state:
     x_final_ = x_at_i[..., -1, :]
@@ -374,7 +388,7 @@ def _apply_term_only_masks(x, w, sites, daggers):
 
     # jordan-wigner sign
     sgn = 1 - 2 * jnp.remainder(
-        jnp.einsum("...aij,ij -> ...a", x_at_i, masks_all_up_to_site), 2
+        jnp.einsum("...ij,ij -> ...", x_at_i, masks_all_up_to_site), 2
     )
 
     # compute the final matrix element
@@ -387,8 +401,12 @@ def _apply_term_only_masks(x, w, sites, daggers):
 
 @partial(jax.vmap, in_axes=(None, 0, 0, 0), out_axes=(-2, -1, -1))
 def apply_terms_only_masks(x, w, sites, daggers):
+    # force cast to int8
+    # x_res, *res = _apply_term_only_masks(x.astype(np.int8), w, sites, daggers.astype(np.int8))
+    # return x_res.astype(x.dtype), *res
+
+    # run calculations in type of x
     # TODO make sure we have the correct type a priori, and avoid casting here
-    x = x.astype(np.int8)
     daggers = daggers.astype(np.int8)
     return _apply_term_only_masks(x, w, sites, daggers)
 
