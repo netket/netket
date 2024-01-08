@@ -265,6 +265,7 @@ def _canonicalize_input(
     weights: OperatorWeightsList,
     dtype: DType,
     cutoff: float,
+    constant: Number = 0,
 ) -> tuple[OperatorDict, Number, DType]:
     r"""
     The canonical form is a tree tuple with a tuple pair of integers at the
@@ -285,6 +286,12 @@ def _canonicalize_input(
 
     if weights is None:
         weights = [1.0] * len(terms)
+
+    weights = list(weights)
+    # convert a constant to a diagonal operator
+    if not np.isclose(constant, 0.0, atol=cutoff):
+        terms = [()] + list(terms)
+        weights = [constant] + weights
 
     if dtype is None:
         dtype = np.array(weights).dtype

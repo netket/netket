@@ -18,6 +18,7 @@ from typing import Optional, Union
 import jax
 import jax.numpy as jnp
 import numpy as np
+from numbers import Number
 
 from jax.tree_util import register_pytree_node_class
 
@@ -520,11 +521,14 @@ class FermionOperator2ndJax(FermionOperator2ndBase, DiscreteJaxOperator):
         hilbert: AbstractHilbert,
         terms: Union[list[str], list[list[list[int]]]] = None,
         weights: Optional[list[Union[float, complex]]] = None,
+        constant: Number = 0,
         cutoff: float = 1e-10,
         dtype: DType = None,
         _mode: str = "scan",
     ):
-        super().__init__(hilbert, terms, weights, cutoff=cutoff, dtype=dtype)
+        super().__init__(
+            hilbert, terms, weights, constant=constant, cutoff=cutoff, dtype=dtype
+        )
         self._mode = _mode
 
     @property

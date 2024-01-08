@@ -852,11 +852,13 @@ def test_fermion_constants():
     # order
     op1 = nkx.operator.FermionOperator2nd(hi, ["1 1^", ""], [2, 3 + 7j])
     op2 = nkx.operator.FermionOperator2nd(hi, ["1 1^"], [2]) + (3 + 7j)
+    op3 = nkx.operator.FermionOperator2nd(hi, ["1 1^"], [2], constant=3 + 7j)
     np.testing.assert_allclose(op1.to_dense(), op2.to_dense())
+    np.testing.assert_allclose(op1.to_dense(), op3.to_dense())
 
     op = op1 + op2
-    op3 = nkx.operator.FermionOperator2nd(hi, ["1 1^"], [4]) + 2 * (3 + 7j)
-    np.testing.assert_allclose(op.to_dense(), op3.to_dense())
+    op4 = nkx.operator.FermionOperator2nd(hi, ["1 1^"], [4]) + 2 * (3 + 7j)
+    np.testing.assert_allclose(op.to_dense(), op4.to_dense())
 
 
 def test_fermion_reduce():

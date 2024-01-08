@@ -16,6 +16,8 @@ from typing import Union, Optional
 
 import numpy as np
 
+from numbers import Number
+
 from netket.utils.types import DType
 from netket.operator._discrete_operator import DiscreteOperator
 from netket.operator._pauli_strings.base import _count_of_locations
@@ -53,6 +55,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         hilbert: AbstractHilbert,
         terms: Union[list[str], list[list[list[int]]]] = None,
         weights: Optional[list[Union[float, complex]]] = None,
+        constant: Number = 0,
         cutoff: float = 1e-10,
         dtype: DType = None,
     ):
@@ -77,6 +80,8 @@ class FermionOperator2ndBase(DiscreteOperator):
                 example below)
             weights: corresponding coefficients of the single term operators
                 (defaults to a list of 1)
+            constant: constant contribution, corresponding to the
+                identity operator * constant (default = 0)
             cutoff: threshold for the weights, if the absolute value of a weight is below the cutoff, it's discarded.
 
         Returns:
@@ -109,7 +114,9 @@ class FermionOperator2ndBase(DiscreteOperator):
         self._cutoff = cutoff
 
         # bring terms, weights into consistent form, autopromote dtypes if necessary
-        _operators, dtype = _canonicalize_input(terms, weights, dtype, cutoff)
+        _operators, dtype = _canonicalize_input(
+            terms, weights, dtype, cutoff, constant=constant
+        )
         _verify_input(hilbert, _operators, raise_error=True)
         self._dtype = dtype
 
@@ -218,7 +225,14 @@ class FermionOperator2ndBase(DiscreteOperator):
         )
 
     def reduce(self, order: bool = True, inplace: bool = True, cutoff: float = None):
-        """Prunes the operator by removing all terms with zero weights, grouping, and normal ordering (inplace)."""
+        """
+        Prunes the operator by removing all terms with zero weights, grouping, and normal ordering (inplace).
+
+        Args:
+            order: Whether to normal order the operator.
+            inplace: Whether to change the current object in place.
+            cutoff: Optional cutoff for the weights.
+        """
         if cutoff is None:
             cutoff = self._cutoff
 
@@ -371,7 +385,7 @@ class FermionOperator2ndBase(DiscreteOperator):
     def __iadd__(self, other):
         if is_scalar(other):
             return self + self.__class__(
-                self.hilbert, [""], [other], dtype=self.dtype, cutoff=self._cutoff
+                self.hilbert, constant=other, dtype=self.dtype, cutoff=self._cutoff
             )
         if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             raise NotImplementedError(

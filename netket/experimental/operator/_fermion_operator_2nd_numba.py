@@ -203,8 +203,6 @@ class FermionOperator2nd(FermionOperator2ndBase):
                     if not op_has_xp:
                         has_xp = False
                         continue
-                if has_xp and _isclose(mel, 0, cutoff):
-                    has_xp = False
                 if has_xp:
                     x_prime[n_c, :] = np.copy(xb)  # should be untouched
                     mels[n_c] += mel
@@ -229,8 +227,6 @@ class FermionOperator2nd(FermionOperator2ndBase):
                     if not op_has_xp:  # detect zeros
                         has_xp = False
                         continue
-                if has_xp and _isclose(mel, 0, cutoff):
-                    has_xp = False
                 if has_xp:
                     x_prime[n_c, :] = np.copy(xt)  # should be different
                     mels[n_c] += mel
