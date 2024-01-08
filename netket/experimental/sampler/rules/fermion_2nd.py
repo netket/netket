@@ -78,8 +78,8 @@ class ParticleExchangeRule(ExchangeRule):
     def transition(rule, sampler, machine, parameters, state, key, σ):
         n_chains = σ.shape[0]
 
-        hoppable_clusters = _compute_hoppable_clusters_mask(rule.clusters, σ)
         # compute a mask for the clusters that can be hopped
+        hoppable_clusters = _compute_hoppable_clusters_mask(rule.clusters, σ)
 
         keys = jnp.asarray(jax.random.split(key, n_chains))
 
@@ -113,7 +113,7 @@ class ParticleExchangeRule(ExchangeRule):
         )
 
     def __repr__(self):
-        return f"FermionExchangeRule(# of clusters: {len(self.clusters)})"
+        return f"ParticleExchangeRule(# of clusters: {len(self.clusters)})"
 
 
 @jax.jit
