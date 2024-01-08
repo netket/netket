@@ -406,6 +406,18 @@ def test_operator_jax_getconn(op):
         sp_j, mels_j = _get_conn_padded(op_jax, states)
         assert mels_j.shape[-1] <= op.max_conn_size
 
+        # here we deal with the special case when the jax operator is padded
+        # with zeros, but the numba one is not.
+        # For simplicitt we assume that the padding is at the end,
+        # which might not be true in general, so if this fails for your operator
+        # please consider generalizing this test
+        if mels_j.shape[-1] > mels.shape[-1]:
+            n_conn = mels.shape[-1]
+            # make sure padding is at end and zero
+            np.testing.assert_allclose(mels_j[..., n_conn:], 0)
+            sp_j = sp_j[..., :n_conn, :]
+            mels_j = mels_j[..., :n_conn]
+
         np.testing.assert_allclose(sp, sp_j)
         np.testing.assert_allclose(mels, mels_j)
 
