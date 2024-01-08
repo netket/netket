@@ -18,15 +18,13 @@
 
 from functools import partial
 
-import numpy as np
-
 import jax
 import jax.numpy as jnp
 from jax.util import safe_map
 from jax.tree_util import register_pytree_node_class
 
 from .base import LocalOperatorBase
-from .compile_helpers import pack_internals, max_nonzero_per_row
+from .compile_helpers import pack_internals_jax
 
 from .._discrete_operator_jax import DiscreteJaxOperator
 
@@ -223,10 +221,7 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
 
     def _setup(self, force=False):
         if force or not self._initialized:
-            # TODO !! rewrite a version of pack_internals which directly
-            # assembles the jax represenation below, avoiding padding
-            # in there first and then removing the padding here again
-            data = pack_internals(
+            data = pack_internals_jax(
                 self.hilbert,
                 self._operators_dict,
                 self.constant,
@@ -234,57 +229,15 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
                 self.mel_cutoff,
             )
 
-            acting_on = jnp.asarray(data["acting_on"])
-            acting_size = data["acting_size"]
-
-            diag_mels = jnp.array(data["diag_mels"])
-            all_mels = jnp.array(data["mels"])
-            x_prime = jnp.array(data["x_prime"])
-            n_conns = jnp.asarray(data["n_conns"])
-            local_states = jnp.asarray(data["local_states"])
-            basis = jnp.asarray(data["basis"])
-
-            self._nonzero_diagonal = bool(data["nonzero_diagonal"])
-            self._max_conn_size = int(data["max_conn_size"])
-
-            self._local_states = []
-            self._acting_on = []
-            self._n_conns = []
-            self._diag_mels = []
-            self._x_prime = []
-            self._mels = []
-            self._basis = []
-
-            operators = list(self._operators_dict.values())
-            op_size = np.array(list(map(lambda x: x.shape[0], operators)))
-            op_n_conns_offdiag = max_nonzero_per_row(operators, self.mel_cutoff)
-
-            for s in np.unique(acting_size):
-                (indices,) = np.where(acting_size == s)
-                self._local_states.append(local_states[indices, :s])
-                self._acting_on.append(acting_on[indices, :s])
-                # compute the maximum size of any operator acting on s sites
-                # (maximum size of the matrix / prod of local hilbert spaces)
-                max_op_size_s = max(op_size[indices])
-                # compute the maximum number of offdiag nonzeros in any row of any operator acting on s sites
-                max_op_size_offdiag_s = max(op_n_conns_offdiag[indices])
-                self._n_conns.append(n_conns[indices, :max_op_size_s])
-                self._diag_mels.append(diag_mels[indices, :max_op_size_s])
-
-                self._x_prime.append(
-                    x_prime[indices, :max_op_size_s, :max_op_size_offdiag_s, :s]
-                )
-                self._mels.append(
-                    all_mels[indices, :max_op_size_s, :max_op_size_offdiag_s]
-                )
-                self._basis.append(basis[indices, :s])
-            # self._local_states = data["local_states"]
-            # self._acting_on = data["acting_on"]
-            # self._n_conns = data["n_conns"]
-            # self._diag_mels = data["diag_mels"]
-            # self._x_prime = data["x_prime"]
-            # self._mels = data["mels"]
-            # self._basis = data["nonzero_diagonal"]
+            self._local_states = data["local_states"]
+            self._acting_on = data["acting_on"]
+            self._n_conns = data["n_conns"]
+            self._diag_mels = data["diag_mels"]
+            self._x_prime = data["x_prime"]
+            self._mels = data["mels"]
+            self._basis = data["basis"]
+            self._nonzero_diagonal = data["nonzero_diagonal"]
+            self._max_conn_size = data["max_conn_size"]
 
             self._initialized = True
 

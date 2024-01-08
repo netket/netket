@@ -20,6 +20,7 @@ operators.
 import numpy as np
 import numba
 from scipy import sparse
+import jax.numpy as jnp
 
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import DType
@@ -188,6 +189,52 @@ def pack_internals(
         "nonzero_diagonal": nonzero_diagonal,
         "max_conn_size": max_conn_size,
     }
+
+
+def pack_internals_jax(
+    hilbert: AbstractHilbert,
+    operators_dict: dict,
+    constant,
+    dtype: DType,
+    mel_cutoff: float,
+):
+    # we groups together operators which act on the same number of sites
+    # and then call pack_internals on each group
+    #
+    # TODO in the future consider separating also operators with different sizes
+    # to avoid excessive padding
+    # (only relevant for non-uniform number of local states)
+
+    op_acting_on = list(operators_dict.keys())
+    operators = list(operators_dict.values())
+    # how many sites each operator is acting on
+    acting_size = np.array([len(aon) for aon in op_acting_on], dtype=np.intp)
+
+    data = {}
+    data["nonzero_diagonal"] = np.abs(constant) >= mel_cutoff
+    data["max_conn_size"] = 0
+
+    # iterate over groups of operators with same number of sites
+    for s in np.unique(acting_size):
+        (indices,) = np.where(acting_size == s)
+        operators_dict_s = {op_acting_on[i]: operators[i] for i in indices}
+        data_s = pack_internals(hilbert, operators_dict_s, 0, dtype, mel_cutoff)
+        nonzero_diagonal = bool(data_s.pop("nonzero_diagonal"))
+        max_conn_size = int(data_s.pop("max_conn_size"))
+        if nonzero_diagonal:
+            # we only count the diag elem once below, so we subtract it here
+            max_conn_size = max_conn_size - 1
+        data["nonzero_diagonal"] = data["nonzero_diagonal"] or nonzero_diagonal
+        data["max_conn_size"] = data["max_conn_size"] + max_conn_size
+        # append other elements to lists:
+        for k, v in data_s.items():
+            data[k] = data.pop(k, []) + [jnp.asarray(v)]
+
+    # count the diagonal once at the end
+    if data["nonzero_diagonal"]:
+        data["max_conn_size"] = data["max_conn_size"] + 1
+
+    return data
 
 
 @numba.jit(nopython=True)
