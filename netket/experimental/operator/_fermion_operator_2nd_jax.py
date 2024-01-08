@@ -107,7 +107,7 @@ def _apply_term_scan(x, weight, sites, daggers, unroll=1):
 
         # compute sign from σᶻ (stored as 0/1 for +1/-1)
         mask_all_up_to_site = jnp.arange(n_orbitals, dtype=sites.dtype) < site
-        x_masked = x_ & mask_all_up_to_site[None]
+        x_masked = x_ & mask_all_up_to_site
         sgn = sgn ^ _reduce_xor(x_masked, (x_.ndim - 1,))
 
         # check if we did σ⁺|1⟩=0 or σ⁻|0⟩=0
@@ -347,7 +347,7 @@ def _apply_term_only_masks(x, w, sites, daggers):
 
     # now apply the actions we just computed
     # this gives us the state when operator i sees it, after all up to i have been applied
-    x_at_i = x[..., None, :] + add_flip_cum[None]
+    x_at_i = x[..., None, :] + add_flip_cum[(None,)*(x.ndim-1)]
 
     # the last one (remember, we padded) is the final state:
     x_final_ = x_at_i[..., -1, :]
@@ -374,7 +374,7 @@ def _apply_term_only_masks(x, w, sites, daggers):
 
     # jordan-wigner sign
     sgn = 1 - 2 * jnp.remainder(
-        jnp.einsum("...aij,ij -> ...a", x_at_i, masks_all_up_to_site), 2
+        jnp.einsum("...ij,ij -> ...", x_at_i, masks_all_up_to_site), 2
     )
 
     # compute the final matrix element
