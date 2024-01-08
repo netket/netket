@@ -163,6 +163,7 @@ class LocalOperator(LocalOperatorBase):
         assert sections.shape[0] == batch_size
 
         n_operators = n_conns.shape[0]
+        # array to store the row index
         xs_n = np.empty((batch_size, n_operators), dtype=np.intp)
 
         tot_conn = 0
@@ -175,11 +176,15 @@ class LocalOperator(LocalOperatorBase):
             # counting the off-diagonal elements
             for i in range(n_operators):
                 acting_size_i = acting_size[i]
-
+                # compute the number (row index) from the local states
+                # (here we do the inverse of _number_to_state from
+                # compile_helpers.py, so this is essentially _state_to_number)
                 xs_n[b, i] = 0
                 x_b = x[b]
                 x_i = x_b[acting_on[i, :acting_size_i]]
+                # iterate over sites the current operator is acting on
                 for k in range(acting_size_i):
+                    # compute
                     xs_n[b, i] += (
                         np.searchsorted(
                             local_states[i, acting_size_i - k - 1],
@@ -188,6 +193,7 @@ class LocalOperator(LocalOperatorBase):
                         * basis[i, k]
                     )
 
+                # sum the number of off-diagonal connected elements
                 conn_b += n_conns[i, xs_n[b, i]]
 
             tot_conn += conn_b
@@ -216,16 +222,22 @@ class LocalOperator(LocalOperatorBase):
                 if nonzero_diagonal:
                     mels[c_diag] += diag_mels[i, xs_n[b, i]]
 
+                # get the number of connected elements for the current operator
+                # at the rows index corresponding to the state of x at the sites
+                # the operator is acting on
                 n_conn_i = n_conns[i, xs_n[b, i]]
 
                 if n_conn_i > 0:
                     sites = acting_on[i]
                     acting_size_i = acting_size[i]
 
-                    for cc in range(n_conn_i):
+                    for cc in range(n_conn_i):  # iterate over compressed nonzero cols
+                        # get the nonzero mels of the current row
                         mels[c + cc] = all_mels[i, xs_n[b, i], cc]
                         x_prime[c + cc] = np.copy(x_batch)
-
+                        # set the changed local states of the sites the operator
+                        # is acting on
+                        # it is stored in all_x_prime, where we select the row
                         for k in range(acting_size_i):
                             x_prime[c + cc, sites[k]] = all_x_prime[
                                 i, xs_n[b, i], cc, k
