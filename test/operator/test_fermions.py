@@ -1,3 +1,5 @@
+from functools import partial
+
 import netket as nk
 import numpy as np
 import netket.experimental as nkx
@@ -14,6 +16,9 @@ hi = nkx.hilbert.SpinOrbitalFermions(4)
 fermi_operator_impl = {}
 fermi_operator_impl["FermionOperator2nd"] = nkx.operator.FermionOperator2nd
 fermi_operator_impl["FermionOperator2ndJax"] = nkx.operator.FermionOperator2ndJax
+fermi_operator_impl["FermionOperator2ndJax(_mode=mask)"] = partial(
+    nkx.operator.FermionOperator2ndJax, _mode="mask"
+)
 
 for name, Op in fermi_operator_impl.items():
     op_ferm[name + "_hermitian"] = (
@@ -114,7 +119,11 @@ def test_fermion_operator_with_strings(Op):
 
 @pytest.mark.parametrize(
     "Op",
-    [pytest.param(op, id=name) for name, op in fermi_operator_impl.items()],
+    [
+        pytest.param(op, id=name)
+        for name, op in fermi_operator_impl.items()
+        if not isinstance(op, partial)
+    ],
 )
 def test_openfermion_conversion(Op):
     # skip test if openfermion not installed
@@ -157,7 +166,11 @@ def test_openfermion_conversion(Op):
 
 @pytest.mark.parametrize(
     "Op",
-    [pytest.param(op, id=name) for name, op in fermi_operator_impl.items()],
+    [
+        pytest.param(op, id=name)
+        for name, op in fermi_operator_impl.items()
+        if not isinstance(op, partial)
+    ],
 )
 def compare_openfermion_fermions(Op):
     # skip test if openfermion not installed
@@ -624,7 +637,11 @@ def test_fermion_max_conn_size(Op):
 
 @pytest.mark.parametrize(
     "Op",
-    [pytest.param(op, id=name) for name, op in fermi_operator_impl.items()],
+    [
+        pytest.param(op, id=name)
+        for name, op in fermi_operator_impl.items()
+        if not isinstance(op, partial)
+    ],
 )
 def test_openfermion_conversion_2(Op):
     # skip test if openfermion not installed
