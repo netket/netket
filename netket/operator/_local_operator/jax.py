@@ -38,14 +38,6 @@ def _inner_inner(acting_size_i, x_i, local_states_i, basis_i, k):
     return tmp1 * basis_i[k]
 
 
-@partial(jax.jit, static_argnums=0)
-def _inner(acting_size_i, x_i, local_states_i, basis_i):
-    return _inner_inner(
-        acting_size_i, x_i, local_states_i, basis_i, jnp.arange(acting_size_i)
-    ).sum()
-
-
-# @partial(jax.jit, inline=True)
 @partial(jax.vmap, in_axes=(0, None, None))  # samples
 @partial(jax.vmap, in_axes=(0, 0, 0))  # operators
 def inner(x_i, local_states_i, basis_i):
