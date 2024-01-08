@@ -268,7 +268,7 @@ def _apply_term_masks(x, w, sites, daggers):
     x_final_ = x_at_i[..., -1, :]
     x_at_i = x_at_i[..., :-1, :]
     x_final = jnp.clip(x_final_, 0, 1)
-    r = jnp.remainder(jnp.einsum("aij,ij -> a", x_at_i, masks_sgn), 2)
+    r = jnp.remainder(jnp.einsum("...ij,ij -> ...", x_at_i, masks_sgn), 2)
     sgn = -1 * r + (1 - r)
     d = x_at_i != daggers[None, :, None]
     xi = x_at_i[..., jnp.arange(len(sites), dtype=np.uint32), sites]
