@@ -31,23 +31,24 @@ from .compile_helpers import pack_internals, max_nonzero_per_row
 from .._discrete_operator_jax import DiscreteJaxOperator
 
 
-@partial(jax.vmap, in_axes=(None, None, None, None, 0))
-def _inner_inner(acting_size_i, x_i, local_states_i, basis_i, k):
-    tmp1 = jnp.searchsorted(
-        local_states_i[acting_size_i - k - 1], x_i[acting_size_i - k - 1]
-    )
-    return tmp1 * basis_i[k]
-
-
 @partial(jax.vmap, in_axes=(0, None, None))  # samples
 @partial(jax.vmap, in_axes=(0, 0, 0))  # operators
-def state_to_number(x_i, local_states_i, basis_i):
+def _state_to_number(x_i, local_states_i, basis_i):
     # convert array of local states to number
     # in the hilbert space of all the sites the operator is acting on
 
     # number of sites these operators are acting on
     acting_size_i = local_states_i.shape[-2]
-    return _inner_inner(
+
+    @partial(jax.vmap, in_axes=(None, None, None, None, 0))  # vmap over local sites (k)
+    def _f(acting_size_i, x_i, local_states_i, basis_i, k):
+        return basis_i[k] * jnp.searchsorted(
+            local_states_i[acting_size_i - k - 1], x_i[acting_size_i - k - 1]
+        )
+
+    # vmap over sites we are acting on, computing the contribution to the total int,
+    # then taking the sum
+    return _f(
         acting_size_i, x_i, local_states_i, basis_i, jnp.arange(acting_size_i)
     ).sum()
 
@@ -55,69 +56,74 @@ def state_to_number(x_i, local_states_i, basis_i):
 @partial(jax.vmap, in_axes=(0, 0, None))  # Ns
 @partial(jax.vmap, in_axes=(None, 0, 0))  # rows
 @partial(jax.vmap, in_axes=(None, 0, None))  # ncmax
-def _s(x, new_x_ao, acting_on):
+def _set_at(x, new_x_ao, acting_on):
     return x.at[acting_on].set(new_x_ao)
-
-
-@partial(jax.vmap, in_axes=(0, 0, None, None))
-def _extr(xp, mels, max_conn_size, mel_cutoff):
-    index_nonzero = jnp.where(
-        jnp.abs(mels) > mel_cutoff, size=max_conn_size, fill_value=-1
-    )
-    return xp[index_nonzero], mels[index_nonzero]
 
 
 @partial(jax.vmap, in_axes=(None, 0))  # Ns
 @partial(jax.vmap, in_axes=(0, 0))  # rows
-def _sele(diag_mels, xs_n):
-    return diag_mels[xs_n]
+def _index_at(diag_mels, i):
+    return diag_mels[i]
 
 
-@partial(jax.jit, static_argnums=(0, 1, 2))
-def _local_operator_kernel_jax(
-    nonzero_diagonal, ncmax_jax, max_conn_size, mel_cutoff, op_args, x
-):
+# @partial(jax.vmap, in_axes=(0, 0, None, None))
+# def _extr(xp, mels, max_conn_size, mel_cutoff):
+#     index_nonzero = jnp.where(
+#         jnp.abs(mels) > mel_cutoff, size=max_conn_size, fill_value=-1
+#     )
+#     return xp[index_nonzero], mels[index_nonzero]
+
+
+@partial(jax.jit, static_argnums=(0, 1))
+def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_args, x):
     assert x.ndim == 2
-    # batch_size = x.shape[0]
+
+    # in the foollowing variables with a trailing underscore are per group
+    # of operators with the same number of sites they act on
+
     (
-        local_states_jax,
-        acting_on_jax,
-        n_conns_jax,
-        diag_mels_jax,
-        all_x_prime_jax,
-        all_mels_jax,
-        basis_jax,
+        local_states_,
+        acting_on_,
+        n_conns_,
+        diag_mels_,
+        x_prime_,
+        mels_,
+        basis_,
         constant,
     ) = op_args
+
+    n_groups = len(local_states_)
+    ncmax_ = [m.shape[2] for m in mels_]
 
     ###
     # determine the row x corresponds to for each of the operators
     #
-    xs_n2 = []
+    i_row_ = []
     # iterate over all groups of operators acting on a certain number of sites
-    for ls, ao, nc, bsi in zip(local_states_jax, acting_on_jax, n_conns_jax, basis_jax):
+    for k in range(n_groups):
         # extract the local states of all sites the operators are acting on
-        xx = x[:, ao]
-        # compute the corresponding number / row index
-        xs_n2.append(state_to_number(xx, ls, bsi))
+        # and compute the corresponding number / row index
+        i_row_.append(
+            _state_to_number(x[:, acting_on_[k]], local_states_[k], basis_[k])
+        )
     ###
     # compute the number of connected elements
     #
     # extract the number of (nonzero) off-diagonal elements of the rows
-    n_conn_i2_jax = safe_map(_sele, n_conns_jax, xs_n2)
+    n_conn_offdiag_ = safe_map(_index_at, n_conns_, i_row_)
     # sum for each group of operators acting on a certain number of sites
     # and sum over all gropus to get the total
-    n_conn_offdiag = sum([n.sum(axis=-1) for n in n_conn_i2_jax])
+    n_conn_offdiag = sum([n.sum(axis=-1) for n in n_conn_offdiag_])
+    n_conn_diag = 1 if nonzero_diagonal else 0
+    n_conn_total = n_conn_diag + n_conn_offdiag
 
-    n_conn_total = n_conn_offdiag + (1 if nonzero_diagonal else 0)
-
-    mels_offdiag_jax = []
-    x_prime_jax = []
+    mels_offdiag_ = []
+    xp_offdiag_ = []
 
     if nonzero_diagonal:
         xp_diag = x
         # extract diagonal mels of the rows
-        mels_diag_ = safe_map(_sele, diag_mels_jax, xs_n2)
+        mels_diag_ = safe_map(_index_at, diag_mels_, i_row_)
         # sum over operators
         mels_diag = constant + sum([m.sum(axis=-1) for m in mels_diag_])
 
@@ -133,93 +139,78 @@ def _local_operator_kernel_jax(
         xp_diag = None
 
     if mels_diag is not None:
-        mels_offdiag_jax.append(mels_diag)
-        x_prime_jax.append(xp_diag)
+        mels_offdiag_.append(mels_diag)
+        xp_offdiag_.append(xp_diag)
 
     # iterate over all groups of operators acting on a certain number of sites
-    for kk in range(len(all_mels_jax)):
-        xs_n = xs_n2[kk]
-        all_mels = all_mels_jax[kk]
-        acting_on = acting_on_jax[kk]
-        all_x_prime = all_x_prime_jax[kk].astype(x.dtype)
-        n_conns = n_conns_jax[kk]
+    for k in range(n_groups):
+        # indices used to select rows
+        i = i_row_[k]
+        a = jnp.arange(i.shape[1])
 
-        # TODO remove ncmax_jax and just extract it from the shapes
-        ncmax = ncmax_jax[kk]
-        assert all_mels.shape[2] == ncmax
-        assert all_x_prime.shape[2] == ncmax
-
-        a = np.arange(xs_n.shape[1])
-        # select rows
-        amixsall = all_mels[a, xs_n]
-        nconnsall = n_conns[a, xs_n]
-        axxsall = all_x_prime[a, xs_n]
         # mask for the connected elements
         # (not all operators have the same number nonzeros per row, and the
         # arrays we use here are padded to the max within each group)
         # this mask is False whenever it's just padding
-        conn_maskall = np.arange(ncmax)[None, None] < nconnsall[:, :, None]
+        conn_maskall = jnp.arange(ncmax_[k])[None, None] < n_conns_[k][a, i][:, :, None]
 
         # set mels in the padding to 0
         # TODO check this is necessary (shouldn't it already be 0 ???)
-        mels_offdiag = amixsall * conn_maskall
+        mels_offdiag = mels_[k][a, i] * conn_maskall
         #
         # compute xp
         #
         # we start from the xp for the sites the operator is acting on
-        new = axxsall  # (Ns, terms, ncmax, nsitesactiongon)
+        new = x_prime_[k][a, i].astype(x.dtype)  # (Ns, terms, ncmax, nsitesactiongon)
+        acting_on = acting_on_[k]
         old = x[:, acting_on]  # (Ns, terms, nsitesactiongon)
         old = jnp.broadcast_to(old[:, :, None, :], new.shape)
         mask = jnp.broadcast_to(conn_maskall[:, :, :, None], new.shape)
         # select it only if we are not padding, otherwise keep old
         new_x_ao = jax.lax.select(mask, new, old)
         # now insert the local states into the full x
-        xp_offdiag = _s(x, new_x_ao, acting_on)
+        xp_offdiag = _set_at(x, new_x_ao, acting_on)
 
-        mels_offdiag_jax.append(mels_offdiag)
-        x_prime_jax.append(xp_offdiag)
+        mels_offdiag_.append(mels_offdiag)
+        xp_offdiag_.append(xp_offdiag)
 
     if max_conn_size is not None:
         # compute a mask which tells us where the actual mels are and
         # where there is just padding
         # (we could also just be lazy and check the mels for being 0,
         # but allows us to make the order of mels consistent with the numba op)
-        mask_jax = []
+        mask_ = []
         if mels_diag is not None:
-            mask_jax.append(jnp.full(mels_diag.shape, fill_value=True))
+            mask_.append(jnp.full(mels_diag.shape, fill_value=True))
         # iterate over all groups of operators acting on a certain number of sites
-        for kk in range(len(ncmax_jax)):
-            nc = n_conn_i2_jax[kk]
-            ncm = ncmax_jax[kk]
-            mask = jnp.arange(ncm)[None, None, :] < nc[:, :, None]
-            mask_jax.append(mask)
+        for k in range(n_groups):
+            mask = jnp.arange(ncmax_[k])[None, None, :] < n_conn_offdiag_[k][:, :, None]
+            mask_.append(mask)
 
         # pad with old state and mel 0
-        x_prime_jax.append(x[:, None][:, :1])
-        mels_offdiag_jax.append(jnp.zeros(x.shape[:-1]))
-        mask_jax.append(jnp.full((x.shape[0], 1), fill_value=False))
+        xp_offdiag_.append(x[:, None][:, :1])
+        mels_offdiag_.append(jnp.zeros(x.shape[:-1]))
+        mask_.append(jnp.full((x.shape[0], 1), fill_value=False))
 
-    mels_jc = jnp.hstack([x.reshape(x.shape[0], -1) for x in mels_offdiag_jax])
-    xp_jc = jnp.hstack([x.reshape(x.shape[0], -1, x.shape[-1]) for x in x_prime_jax])
+    mels = jnp.hstack([m.reshape(m.shape[0], -1) for m in mels_offdiag_])
+    xp = jnp.hstack([x.reshape(x.shape[0], -1, x.shape[-1]) for x in xp_offdiag_])
 
     # TODO run unique on it, there might be repeated xps
 
     if max_conn_size is None:
-        return xp_jc, mels_jc, n_conn_total
+        return xp, mels, n_conn_total
     else:
         if mel_cutoff is not None:
             raise NotImplementedError
         # this is the lazy one with checking mels
-        # return *_extr(xp_jc, mels_jc, max_conn_size, mel_cutoff), n_conn_total, mels_diag
+        # return *_extr(xp, mels, max_conn_size, mel_cutoff), n_conn_total, mels_diag
 
         # move nonzero mels to the front and keep exactly max_conn_size
-        mask_jc = jnp.hstack([x.reshape(x.shape[0], -1) for x in mask_jax])
-        (ind,) = jax.vmap(partial(jnp.where, size=max_conn_size, fill_value=-1))(
-            mask_jc
-        )
+        mask = jnp.hstack([m.reshape(m.shape[0], -1) for m in mask_])
+        (ind,) = jax.vmap(partial(jnp.where, size=max_conn_size, fill_value=-1))(mask)
         return (
-            xp_jc[jnp.arange(len(ind))[:, None], ind],
-            mels_jc[jnp.arange(len(ind))[:, None], ind],
+            xp[jnp.arange(len(ind))[:, None], ind],
+            mels[jnp.arange(len(ind))[:, None], ind],
             n_conn_total,
         )
 
@@ -248,7 +239,7 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
 
             diag_mels = jnp.array(data["diag_mels"])
             all_mels = jnp.array(data["mels"])
-            all_x_prime = jnp.array(data["x_prime"])
+            x_prime = jnp.array(data["x_prime"])
             n_conns = jnp.asarray(data["n_conns"])
             local_states = jnp.asarray(data["local_states"])
             basis = jnp.asarray(data["basis"])
@@ -256,13 +247,13 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
             self._nonzero_diagonal = bool(data["nonzero_diagonal"])
             self._max_conn_size = int(data["max_conn_size"])
 
-            self._local_states_jax = []
-            self._acting_on_jax = []
-            self._n_conns_jax = []
-            self._diag_mels_jax = []
-            self._all_x_prime_jax = []
-            self._all_mels_jax = []
-            self._basis_jax = []
+            self._local_states = []
+            self._acting_on = []
+            self._n_conns = []
+            self._diag_mels = []
+            self._x_prime = []
+            self._mels = []
+            self._basis = []
 
             operators = list(self._operators_dict.values())
             op_size = np.array(list(map(lambda x: x.shape[0], operators)))
@@ -270,27 +261,30 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
 
             for s in np.unique(acting_size):
                 (indices,) = np.where(acting_size == s)
-                self._local_states_jax.append(local_states[indices, :s])
-                self._acting_on_jax.append(acting_on[indices, :s])
+                self._local_states.append(local_states[indices, :s])
+                self._acting_on.append(acting_on[indices, :s])
                 # compute the maximum size of any operator acting on s sites
                 # (maximum size of the matrix / prod of local hilbert spaces)
                 max_op_size_s = max(op_size[indices])
                 # compute the maximum number of offdiag nonzeros in any row of any operator acting on s sites
                 max_op_size_offdiag_s = max(op_n_conns_offdiag[indices])
-                self._n_conns_jax.append(n_conns[indices, :max_op_size_s])
-                self._diag_mels_jax.append(diag_mels[indices, :max_op_size_s])
+                self._n_conns.append(n_conns[indices, :max_op_size_s])
+                self._diag_mels.append(diag_mels[indices, :max_op_size_s])
 
-                self._all_x_prime_jax.append(
-                    all_x_prime[indices, :max_op_size_s, :max_op_size_offdiag_s, :s]
+                self._x_prime.append(
+                    x_prime[indices, :max_op_size_s, :max_op_size_offdiag_s, :s]
                 )
-                self._all_mels_jax.append(
+                self._mels.append(
                     all_mels[indices, :max_op_size_s, :max_op_size_offdiag_s]
                 )
-                self._basis_jax.append(basis[indices, :s])
-
-            self._nconn_max_jax = tuple(
-                map(int, jax.tree_map(jnp.max, self._n_conns_jax))
-            )
+                self._basis.append(basis[indices, :s])
+            # self._local_states = data["local_states"]
+            # self._acting_on = data["acting_on"]
+            # self._n_conns = data["n_conns"]
+            # self._diag_mels = data["diag_mels"]
+            # self._x_prime = data["x_prime"]
+            # self._mels = data["mels"]
+            # self._basis = data["nonzero_diagonal"]
 
             self._initialized = True
 
@@ -302,17 +296,16 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
 
         xp, mels, n_conn = _local_operator_kernel_jax(
             self._nonzero_diagonal,
-            self._nconn_max_jax,
             self._max_conn_size,
             None,
             (
-                self._local_states_jax,
-                self._acting_on_jax,
-                self._n_conns_jax,
-                self._diag_mels_jax,
-                self._all_x_prime_jax,
-                self._all_mels_jax,
-                self._basis_jax,
+                self._local_states,
+                self._acting_on,
+                self._n_conns,
+                self._diag_mels,
+                self._x_prime,
+                self._mels,
+                self._basis,
                 self._constant,
             ),
             x,
@@ -334,13 +327,13 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
     def tree_flatten(self):
         self._setup()
         data = (
-            self._local_states_jax,
-            self._acting_on_jax,
-            self._n_conns_jax,
-            self._diag_mels_jax,
-            self._all_x_prime_jax,
-            self._all_mels_jax,
-            self._basis_jax,
+            self._local_states,
+            self._acting_on,
+            self._n_conns,
+            self._diag_mels,
+            self._x_prime,
+            self._mels,
+            self._basis,
             self._constant,
         )
         metadata = {
@@ -348,7 +341,6 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
             "dtype": self.dtype,
             "nonzero_diagonal": self._nonzero_diagonal,
             "max_conn_size": self._max_conn_size,
-            "nconn_max_jax": self._nconn_max_jax,
         }
         return data, metadata
 
@@ -361,16 +353,14 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
 
         op._nonzero_diagonal = metadata["nonzero_diagonal"]
         op._max_conn_size = metadata["max_conn_size"]
-        op._nconn_max_jax = metadata["nconn_max_jax"]
-
         (
-            op._local_states_jax,
-            op._acting_on_jax,
-            op._n_conns_jax,
-            op._diag_mels_jax,
-            op._all_x_prime_jax,
-            op._all_mels_jax,
-            op._basis_jax,
+            op._local_states,
+            op._acting_on,
+            op._n_conns,
+            op._diag_mels,
+            op._x_prime,
+            op._mels,
+            op._basis,
             op._constant,
         ) = data
 
