@@ -43,9 +43,14 @@ from flax import serialization
 
 import jax
 
-from .utils import _set_new_attribute, _create_fn, get_class_globals
+from .utils import (
+    _set_new_attribute,
+    _create_fn,
+    get_class_globals,
+    maximum_positional_args,
+)
 from .fields import _cache_name, Uninitialized, field, CachedProperty
-from .pytree import Pytree, DATACLASS_TOP_PYTREE_VAR_NAME
+from .pytree import Pytree, DATACLASS_USER_INIT_N_ARGS
 
 try:
     from dataclasses import _FIELDS
@@ -409,9 +414,15 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
         # the last user-defined __init__ method, which will reside in
         # the top-most non-dataclass class.
         for clz in data_clz.__mro__:
-            if not hasattr(clz, "__dataclass_params__"):
-                setattr(data_clz, DATACLASS_TOP_PYTREE_VAR_NAME, clz)
+            if clz == Pytree:
+                n_args_max = 0
                 break
+            if not hasattr(clz, "__dataclass_params__"):
+                if "__init__" in clz.__dict__:
+                    n_args_max = maximum_positional_args(clz.__init__) - 1
+                    break
+        setattr(data_clz, DATACLASS_USER_INIT_N_ARGS, n_args_max)
+
         return data_clz
 
     # flax stuff: identify states

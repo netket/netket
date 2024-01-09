@@ -214,7 +214,8 @@ def test_cached_pytreenode_properties():
 def test_mixed_inheritance():
     class A(struct.Pytree):
         a: int = None
-        def __init__(self, a = None):
+
+        def __init__(self, a=None):
             self.a = a
 
     @struct.dataclass
@@ -224,9 +225,9 @@ def test_mixed_inheritance():
     @struct.dataclass
     class C(B):
         c: int = -2
+
         def goo(self):
             return self.c
-
 
     b = B(2)
     assert b.a == 2
@@ -281,7 +282,6 @@ def test_mixed_inheritance():
     assert c.b == 3
     assert c.c == 4
 
-
     def _fields_in_init_order(fields):
         # Returns the fields as __init__ will output them.  It returns 2 tuples:
         # the first for normal args, and the second for keyword args.
@@ -290,4 +290,3 @@ def test_mixed_inheritance():
             tuple(f for f in fields if f.init and not f.kw_only),
             tuple(f for f in fields if f.init and f.kw_only),
         )
-

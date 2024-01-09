@@ -9,12 +9,11 @@ from types import MappingProxyType
 import jax
 
 from .fields import CachedProperty, _cache_name, _raw_cache_name, Uninitialized
-from .utils import maximum_positional_args
 from netket.utils import config
 
 P = tp.TypeVar("P", bound="Pytree")
 
-DATACLASS_TOP_PYTREE_VAR_NAME = "_top_pytree_class"
+DATACLASS_USER_INIT_N_ARGS = "_pytree_n_args_max"
 """
 variable name used by dataclasses inheriting from a pytree to
 store the topmost non-dataclass class in a mro.
@@ -31,6 +30,8 @@ class PytreeMeta(ABCMeta):
         obj: P = cls.__new__(cls, *args, **kwargs)
         obj.__dict__["_pytree__initializing"] = True
         try:
+            print(args)
+            print(kwargs)
             obj.__init__(*args, **kwargs)
         finally:
             del obj.__dict__["_pytree__initializing"]
@@ -264,12 +265,8 @@ class Pytree(metaclass=PytreeMeta):
 
         # process positional args. Identify max positional arguments of the
         # topmost user defined init method
-        top_pytree_cls = getattr(self, DATACLASS_TOP_PYTREE_VAR_NAME, None)
-        if top_pytree_cls is not None:
-            max_pytree_args = maximum_positional_args(top_pytree_cls.__init__) - 1
-            n_args_pytree = min(len(args), max_pytree_args)
-        else:
-            n_args_pytree = len(args)
+        max_pytree_args = getattr(self, DATACLASS_USER_INIT_N_ARGS, len(args))
+        n_args_pytree = min(len(args), max_pytree_args)
 
         # First n args are for the pytree initialiser (lower) and later
         # positional arguments are for the dataclass initializer
