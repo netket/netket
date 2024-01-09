@@ -233,7 +233,7 @@ def test_mixed_inheritance():
     assert b.a == 2
     assert b.b == -1
     b = B(b=2)
-    assert b.a == None
+    assert b.a is None
     assert b.b == 2
     b = B(2, 3)
     assert b.a == 2
@@ -250,11 +250,11 @@ def test_mixed_inheritance():
     assert c.b == -1
     assert c.c == -2
     c = C(b=2)
-    assert c.a == None
+    assert c.a is None
     assert c.b == 2
     assert c.c == -2
     c = C(c=2)
-    assert c.a == None
+    assert c.a is None
     assert c.b == -1
     assert c.c == 2
     c = C(2, 3)
@@ -292,11 +292,11 @@ def test_mixed_inheritance_no_base_init():
         b: int = -1
 
     b = B()
-    assert b.a == None
+    assert b.a is None
     assert b.b == -1
     b = B(2)
-    assert b.a == None
+    assert b.a is None
     assert b.b == 2
     b = B(b=2)
-    assert b.a == None
+    assert b.a is None
     assert b.b == 2
