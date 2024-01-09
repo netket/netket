@@ -405,6 +405,13 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
     # if it's an 'auto-style PyTree', use standard dataclass-logic
     # and do not register it with jax/flax
     if is_pytree:
+        # This is used in the `__pre_init__` of Pytrees to identify
+        # the last user-defined __init__ method, which will reside in
+        # the top-most non-dataclass class.
+        for clz in data_clz.__mro__:
+            if not hasattr(clz, "__dataclass_params__"):
+                setattr(data_clz, "_top_pytree_class", clz)
+                break
         return data_clz
 
     # flax stuff: identify states
