@@ -1,5 +1,8 @@
+from typing import Union
+
 import sys
 import builtins
+import inspect
 
 from dataclasses import MISSING
 
@@ -54,3 +57,25 @@ def get_class_globals(clz):
         globals = {}
 
     return globals
+
+
+def maximum_positional_args(fun) -> Union[int, float]:
+    """
+    Given a function, returns an integer that represents the maximum number
+    of position or infinity.
+    """
+    sig = inspect.signature(fun)
+    parameters = sig.parameters.values()
+
+    max_positional_args = 0
+    for param in parameters:
+        if param.kind in [
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        ]:
+            max_positional_args += 1
+        elif param.kind == inspect.Parameter.VAR_POSITIONAL:
+            # This means the function accepts an arbitrary number of positional arguments
+            max_positional_args = float("inf")
+            break
+    return max_positional_args
