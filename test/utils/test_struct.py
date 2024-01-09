@@ -209,3 +209,85 @@ def test_cached_pytreenode_properties():
     res, p3 = compute(p2)
     assert res == 6.0 * 3
     assert p3.__cached_node_cache == 6.0
+
+
+def test_mixed_inheritance():
+    class A(struct.Pytree):
+        a: int = None
+        def __init__(self, a = None):
+            self.a = a
+
+    @struct.dataclass
+    class B(A):
+        b: int = -1
+
+    @struct.dataclass
+    class C(B):
+        c: int = -2
+        def goo(self):
+            return self.c
+
+
+    b = B(2)
+    assert b.a == 2
+    assert b.b == -1
+    b = B(b=2)
+    assert b.a == None
+    assert b.b == 2
+    b = B(2, 3)
+    assert b.a == 2
+    assert b.b == 3
+    b = B(2, b=3)
+    assert b.a == 2
+    assert b.b == 3
+    b = B(a=2, b=3)
+    assert b.a == 2
+    assert b.b == 3
+
+    c = C(2)
+    assert c.a == 2
+    assert c.b == -1
+    assert c.c == -2
+    c = C(b=2)
+    assert c.a == None
+    assert c.b == 2
+    assert c.c == -2
+    c = C(c=2)
+    assert c.a == None
+    assert c.b == -1
+    assert c.c == 2
+    c = C(2, 3)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == -2
+    c = C(2, 3, 4)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == 4
+    c = C(2, b=3)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == -2
+    c = C(a=2, b=3)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == -2
+    c = C(2, c=4)
+    assert c.a == 2
+    assert c.b == -1
+    assert c.c == 4
+    c = C(a=2, b=3, c=4)
+    assert c.a == 2
+    assert c.b == 3
+    assert c.c == 4
+
+
+    def _fields_in_init_order(fields):
+        # Returns the fields as __init__ will output them.  It returns 2 tuples:
+        # the first for normal args, and the second for keyword args.
+
+        return (
+            tuple(f for f in fields if f.init and not f.kw_only),
+            tuple(f for f in fields if f.init and f.kw_only),
+        )
+
