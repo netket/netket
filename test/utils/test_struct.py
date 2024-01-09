@@ -282,11 +282,21 @@ def test_mixed_inheritance():
     assert c.b == 3
     assert c.c == 4
 
-    def _fields_in_init_order(fields):
-        # Returns the fields as __init__ will output them.  It returns 2 tuples:
-        # the first for normal args, and the second for keyword args.
 
-        return (
-            tuple(f for f in fields if f.init and not f.kw_only),
-            tuple(f for f in fields if f.init and f.kw_only),
-        )
+def test_mixed_inheritance_no_base_init():
+    class A(struct.Pytree):
+        a: int = None
+
+    @struct.dataclass
+    class B(A):
+        b: int = -1
+
+    b = B()
+    assert b.a == None
+    assert b.b == -1
+    b = B(2)
+    assert b.a == None
+    assert b.b == 2
+    b = B(b=2)
+    assert b.a == None
+    assert b.b == 2
