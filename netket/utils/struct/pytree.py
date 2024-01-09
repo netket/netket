@@ -14,6 +14,12 @@ from netket.utils import config
 
 P = tp.TypeVar("P", bound="Pytree")
 
+DATACLASS_TOP_PYTREE_VAR_NAME = "_top_pytree_class"
+"""
+variable name used by dataclasses inheriting from a pytree to
+store the topmost non-dataclass class in a mro.
+"""
+
 
 class PytreeMeta(ABCMeta):
     """
@@ -258,10 +264,9 @@ class Pytree(metaclass=PytreeMeta):
 
         # process positional args. Identify max positional arguments of the
         # topmost user defined init method
-        if hasattr(self, "_last_pytree_class"):
-            max_pytree_args = (
-                maximum_positional_args(self._last_pytree_class.__init__) - 1
-            )
+        top_pytree_cls = getattr(self, DATACLASS_TOP_PYTREE_VAR_NAME, None)
+        if top_pytree_cls is not None:
+            max_pytree_args = maximum_positional_args(top_pytree_cls.__init__) - 1
             n_args_pytree = min(len(args), max_pytree_args)
         else:
             n_args_pytree = len(args)

@@ -45,7 +45,7 @@ import jax
 
 from .utils import _set_new_attribute, _create_fn, get_class_globals
 from .fields import _cache_name, Uninitialized, field, CachedProperty
-from .pytree import Pytree
+from .pytree import Pytree, DATACLASS_TOP_PYTREE_VAR_NAME
 
 try:
     from dataclasses import _FIELDS
@@ -410,7 +410,7 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
         # the top-most non-dataclass class.
         for clz in data_clz.__mro__:
             if not hasattr(clz, "__dataclass_params__"):
-                setattr(data_clz, "_top_pytree_class", clz)
+                setattr(data_clz, DATACLASS_TOP_PYTREE_VAR_NAME, clz)
                 break
         return data_clz
 
