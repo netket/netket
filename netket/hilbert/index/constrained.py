@@ -92,7 +92,7 @@ class ConstrainedHilbertIndex:
 
         out[:] = np.searchsorted(self._bare_numbers, out)
 
-        if np.max(out) >= self.n_states:
+        if np.max(out, initial=0) >= self.n_states:
             raise RuntimeError(
                 "The required state does not satisfy " "the given constraints."
             )
