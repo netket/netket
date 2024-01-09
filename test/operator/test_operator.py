@@ -366,11 +366,15 @@ def test_operator_jax_conversion(op):
 
     np.testing.assert_allclose(op_numba.to_dense(), op_jax.to_dense())
 
-    # test packing unpacking
+    # test packing unpacking or correct error
     data, structure = jax.tree_util.tree_flatten(op_jax)
     op_jax2 = jax.tree_util.tree_unflatten(structure, data)
-    op_numba2 = op_jax2.to_numba_operator()
-    np.testing.assert_allclose(op_numba2.to_dense(), op.to_dense())
+    if not hasattr(op_jax, "_convertible"):
+        op_numba2 = op_jax2.to_numba_operator()
+        np.testing.assert_allclose(op_numba2.to_dense(), op.to_dense())
+    else:
+        with pytest.raises(nk.errors.JaxOperatorNotConvertibleToNumba):
+            op_jax2.to_numba_operator()
 
     # check that it is hash stable
     _, structure2 = jax.tree_util.tree_flatten(op.to_jax_operator())

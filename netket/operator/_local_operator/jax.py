@@ -22,6 +22,8 @@ import jax.numpy as jnp
 from jax.util import safe_map
 from jax.tree_util import register_pytree_node_class
 
+from netket.errors import JaxOperatorNotConvertibleToNumba
+
 from .base import LocalOperatorBase
 from .compile_helpers import pack_internals_jax
 
@@ -218,6 +220,10 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
     Jax-compatible version of :class:`netket.operator.LocalOperator`.
     """
 
+    _convertible : bool = True
+    """Internal flag. True if it can be converted to numba, false
+    otherwise."""
+
     def _setup(self, force=False):
         if force or not self._initialized:
             data = pack_internals_jax(
@@ -317,6 +323,7 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         ) = data
 
         op._initialized = True
+        op._convertible = False
         return op
 
     def to_numba_operator(self) -> "LocalOperator":  # noqa: F821
@@ -325,6 +332,9 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         instance of :class:`netket.operator.LocalOperator`.
         """
         from .numba import LocalOperator
+
+        if self._convertible is False:
+            raise JaxOperatorNotConvertibleToNumba(self)
 
         return LocalOperator(
             self.hilbert,
