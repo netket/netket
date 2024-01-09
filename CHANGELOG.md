@@ -19,6 +19,11 @@
 
 * `MetropolisSampler.n_sweeps` has been renamed to `MetropolisSampler.sweep_size` for clarity. Using `n_sweeps` when constructing the sampler now throws a deprecation warning; `sweep_size` should be used instead going forward. [#1657](https://github.com/netket/netket/issues/1657)
 
+### Internal changes
+* A new class {class}`netket.utils.struct.Pytree`, can be used to create Pytrees for which inheritance autoamtically works and for which it is possible to define `__init__`. Several structures such as samplers and rules have been transitioned to this new interface instead of old style `@struct.dataclass` [#1653](https://github.com/netket/netket/issues/1653).
+* The {class}`~netket.experimental.operator.FermionOperator2nd` and related classes now store the constant diagonal shift as another term instead of a completely special cased scalar value. The same operators now also respect the `cutoff` keyword argument more strictly [#1686](https://github.com/netket/netket/issues/1686).
+
+
 ## NetKet 3.10.2 (14 november 2023)
 
 ### Bug Fixes

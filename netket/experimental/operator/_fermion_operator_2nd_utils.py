@@ -41,6 +41,9 @@ def _normal_order_term(
     parity = -1
     term = copy.deepcopy(list(term))
     weight = copy.copy(weight)
+
+    if len(term) == 0:  # a constant
+        return [term], [weight]
     ordered_terms = []
     ordered_weights = []
     # the arguments given to this function will be transformed in a normal ordered way
@@ -114,6 +117,8 @@ def _pair_order_term(
     parity = -1
     term = copy.deepcopy(list(term))
     weight = copy.copy(weight)
+    if len(term) == 0:
+        return [term], [weight]
     ordered_terms = []
     ordered_weights = []
     # the arguments given to this function will be transformed in a normal ordered way
@@ -123,7 +128,6 @@ def _pair_order_term(
         for j in range(i, 0, -1):
             right_term = term[j]
             left_term = term[j - 1]
-            # print("consider term:", left_term, right_term)
 
             ## exchange operators if biggest is on the right (need commutataion relations)
             # exchange operators if biggest is on the left (need commutataion relations)
@@ -179,7 +183,7 @@ def _pair_ordering(
 
 
 def _check_hermitian(
-    terms: OperatorTermsList, weights: OperatorWeightsList = 1.0
+    terms: OperatorTermsList, weights: OperatorWeightsList, cutoff: float
 ) -> bool:
     """
     Check whether a set of terms and weights for a hermitian operator
@@ -207,8 +211,8 @@ def _check_hermitian(
     dict_normal = dict(dict_normal)
     dict_hc_normal = dict(dict_hc_normal)
 
-    # compare dict up to a tolerance
-    is_hermitian = _dict_compare(dict_normal, dict_hc_normal)
+    # compare dict up to a tolerance (1e-10)
+    is_hermitian = _dict_compare(dict_normal, dict_hc_normal, cutoff)
 
     return is_hermitian
 
@@ -256,30 +260,12 @@ def _convert_terms_to_spin_blocks(
     return tuple(list(map(_convert_term, terms)))
 
 
-def _collect_constants(
-    terms: OperatorTermsList, weights: OperatorWeightsList
-) -> tuple[OperatorTermsList, OperatorWeightsList, Number]:
-    """
-    Openfermion has the convention to store constants as empty terms
-    Returns new terms and weights list, and the collected constants
-    """
-    new_terms = []
-    new_weights = []
-    constant = 0.0
-    for t, w in zip(terms, weights):
-        if len(t) == 0:
-            constant += w
-        else:
-            new_terms.append(t)
-            new_weights.append(w)
-    return new_terms, new_weights, constant
-
-
 def _canonicalize_input(
     terms: OperatorTermsList,
     weights: OperatorWeightsList,
-    constant: Number,
     dtype: DType,
+    cutoff: float,
+    constant: Number = 0,
 ) -> tuple[OperatorDict, Number, DType]:
     r"""
     The canonical form is a tree tuple with a tuple pair of integers at the
@@ -301,14 +287,15 @@ def _canonicalize_input(
     if weights is None:
         weights = [1.0] * len(terms)
 
-    # promote dtype iwth constant
-    if dtype is None:
-        constant_dtype = np.array(constant).dtype
-        weights_dtype = np.array(weights).dtype
-        dtype = np.promote_types(constant_dtype, weights_dtype)
+    weights = list(weights)
+    # convert a constant to a diagonal operator
+    if not np.isclose(constant, 0.0, atol=cutoff):
+        terms = [()] + list(terms)
+        weights = [constant] + weights
 
+    if dtype is None:
+        dtype = np.array(weights).dtype
     weights = np.array(weights, dtype=dtype).tolist()
-    constant = np.array(constant, dtype=dtype).item()
 
     if not len(weights) == len(terms):
         raise ValueError(
@@ -320,13 +307,10 @@ def _canonicalize_input(
     # add the weights of terms that occur multiple times
     operators = zero_defaultdict(dtype)
     for t, w in zip(terms, weights):
-        if len(t) == 0:  # take the constant out
-            constant += w
-        else:
-            operators[t] += w
-    operators = _remove_dict_zeros(dict(operators))
+        operators[t] += w
+    operators = _remove_dict_zeros(dict(operators), cutoff)
 
-    return operators, constant, dtype
+    return operators, dtype
 
 
 def _verify_input(hilbert, operators, raise_error=True) -> bool:
@@ -356,9 +340,9 @@ def _verify_input(hilbert, operators, raise_error=True) -> bool:
     return all(_check_term(term) for term in terms)
 
 
-def _remove_dict_zeros(d: dict) -> dict:
+def _remove_dict_zeros(d: dict, cutoff: float) -> dict:
     """Remove redundant zero values from a dictionary"""
-    return {k: v for k, v in d.items() if not np.isclose(v, 0.0)}
+    return {k: v for k, v in d.items() if np.abs(v) > cutoff}
 
 
 def _parse_term_tree(terms: OperatorTermsList) -> OperatorTermsList:
@@ -394,19 +378,19 @@ def _parse_string(s: str) -> OperatorTerm:
     return tuple(processed_terms)
 
 
-def _dict_compare(d1: dict, d2: dict) -> bool:
+def _dict_compare(d1: dict, d2: dict, cutoff: float) -> bool:
     """
     Compare two dicts and return True if their keys and values
     are all the same (up to some tolerance)
     """
-    d1 = _remove_dict_zeros(d1)
-    d2 = _remove_dict_zeros(d2)
+    d1 = _remove_dict_zeros(d1, cutoff)
+    d2 = _remove_dict_zeros(d2, cutoff)
     d1_keys = set(d1.keys())
     d2_keys = set(d2.keys())
     if d1_keys != d2_keys:
         return False
     # We checked that d1 and d2 have the same keys. Now check the values.
-    return all(np.isclose(d1[o], d2[o]) for o in d1_keys)
+    return all(np.isclose(d1[o], d2[o], atol=cutoff) for o in d1_keys)
 
 
 def _make_tuple_tree(terms: PyTree) -> PyTree:
@@ -446,7 +430,9 @@ def _check_tree_structure(terms: OperatorTermsList) -> OperatorTermsList:
     if not np.all(np.array(depths) == 3):
         raise ValueError(f"terms is not a depth 3 tree, found depths {depths}")
     if not np.all(pairs):
-        raise ValueError("terms should be provided in (i, dag) pairs")
+        raise ValueError(
+            "terms should be provided in (i, dag) pairs or empty for a constant"
+        )
 
 
 def _is_diag_term(term: OperatorTerm) -> bool:
@@ -460,24 +446,13 @@ def _is_diag_term(term: OperatorTerm) -> bool:
             0,
         ]  # first one counts number of daggers, second number of non-daggers
 
+    if len(term) == 0:
+        return True  # constant
+
     ops = defaultdict(_init_empty_arr)
     for orb_idx, dagger in term:
         ops[orb_idx][int(dagger)] += 1
     return all((x[0] == x[1]) for x in ops.values())
-
-
-def _reduce_operators(operators: OperatorDict, dtype: DType) -> OperatorDict:
-    """
-    Reduce the operators by adding equivalent terms together
-    """
-
-    red_ops = zero_defaultdict(dtype)
-    terms = list(operators.keys())
-    weights = list(operators.values())
-    for term, weight in zip(*_normal_ordering(terms, weights)):
-        red_ops[term] += weight
-    red_ops = _remove_dict_zeros(dict(red_ops))
-    return red_ops
 
 
 def zero_defaultdict(dtype: DType) -> defaultdict:
