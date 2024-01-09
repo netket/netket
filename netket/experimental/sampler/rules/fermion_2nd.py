@@ -12,7 +12,7 @@ from netket.experimental.hilbert import SpinOrbitalFermions
 class ParticleExchangeRule(ExchangeRule):
     """Exchange rule for particles on a lattice.
 
-    Works similarly to ExchangeRule, but:
+    Works similarly to :class:`netket.sampler.rules.ExchangeRule`, but
     takes into account that only occupied orbitals
     can be exchanged with unoccupied ones.
     This sampler conserves the number of particles.
