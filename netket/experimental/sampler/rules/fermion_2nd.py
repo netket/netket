@@ -15,6 +15,7 @@ class ParticleExchangeRule(ExchangeRule):
     Works similarly to :class:`netket.sampler.rules.ExchangeRule`, but
     takes into account that only occupied orbitals
     can be exchanged with unoccupied ones.
+
     This sampler conserves the number of particles.
     """
 
