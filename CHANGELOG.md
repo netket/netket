@@ -15,6 +15,10 @@
 
 * The {class}`netket.models.Jastrow` wave-function now only has {math}`N (N-1)` variational parameters, instead of the {math}`N^2` redundant ones it had before. Saving and loading format has now changed and won't be compatible with previous versions[#1664](https://github.com/netket/netket/pull/1664).
 
+### Deprecations
+
+* `MetropolisSampler.n_sweeps` has been renamed to `MetropolisSampler.sweep_size` for clarity. Using `n_sweeps` when constructing the sampler now throws a deprecation warning; `sweep_size` should be used instead going forward. [#1657](https://github.com/netket/netket/issues/1657)
+
 ## NetKet 3.10.2 (14 november 2023)
 
 ### Bug Fixes

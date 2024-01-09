@@ -17,7 +17,6 @@ from typing import Any, Optional
 import jax
 import jax.numpy as jnp
 
-from flax import struct
 from flax import linen as nn
 
 from netket import config
@@ -30,44 +29,6 @@ if config.netket_sphinx_build:
 from .base import MetropolisRule
 
 
-def multipleRules(
-    rules: tuple[MetropolisRule, ...], probabilities: Array
-) -> MetropolisRule:
-    r"""A Metropolis sampling rule that can be used to pick a rule from a list of rules
-    with a given probability.
-
-    Each `rule[i]` will be selected with a probability `probabilities[i]`.
-
-    Args:
-        rules: A list of rules, one for each subspace of the tensor hilbert space.
-        probabilities: A list of probabilities, one for each rule.
-    """
-    probabilities = jnp.asarray(probabilities)
-
-    if not jnp.allclose(jnp.sum(probabilities), 1.0):
-        raise ValueError(
-            "The probabilities must sum to 1, but they sum to "
-            f"{jnp.sum(probabilities)}."
-        )
-
-    if not isinstance(rules, (tuple, list)) or not all(
-        isinstance(r, MetropolisRule) for r in rules
-    ):
-        raise TypeError(
-            "The first argument (rules) must be a tuple of `MetropolisRule` "
-            f"rules, but you have passed {type(rules)}."
-        )
-
-    if len(probabilities) != len(rules):
-        raise ValueError(
-            "Length mismatch between the probabilities and the rules: probabilities "
-            f"has length {len(probabilities)} , rules has length {len(rules)}."
-        )
-
-    return MultipleRules(rules, probabilities)
-
-
-@struct.dataclass
 class MultipleRules(MetropolisRule):
     r"""A Metropolis sampling rule that can be used to pick a rule from a list of rules
     with a given probability.
@@ -75,7 +36,47 @@ class MultipleRules(MetropolisRule):
     Each `rule[i]` will be selected with a probability `probabilities[i]`.
     """
     rules: tuple[MetropolisRule, ...]
-    probabilities: Array
+    """List of rules to be selected from."""
+    probabilities: jax.Array
+    """Corresponding list of probabilities with which every rule can be
+    picked."""
+
+    def __init__(
+        self, rules: tuple[MetropolisRule, ...], probabilities: Array
+    ) -> MetropolisRule:
+        r"""A Metropolis sampling rule that can be used to pick a rule from a list of rules
+        with a given probability.
+
+        Each `rule[i]` will be selected with a probability `probabilities[i]`.
+
+        Args:
+            rules: A list of rules, one for each subspace of the tensor hilbert space.
+            probabilities: A list of probabilities, one for each rule.
+        """
+        probabilities = jnp.asarray(probabilities)
+
+        if not jnp.allclose(jnp.sum(probabilities), 1.0):
+            raise ValueError(
+                "The probabilities must sum to 1, but they sum to "
+                f"{jnp.sum(probabilities)}."
+            )
+
+        if not isinstance(rules, (tuple, list)) or not all(
+            isinstance(r, MetropolisRule) for r in rules
+        ):
+            raise TypeError(
+                "The first argument (rules) must be a tuple of `MetropolisRule` "
+                f"rules, but you have passed {type(rules)}."
+            )
+
+        if len(probabilities) != len(rules):
+            raise ValueError(
+                "Length mismatch between the probabilities and the rules: probabilities "
+                f"has length {len(probabilities)} , rules has length {len(rules)}."
+            )
+
+        self.rules = rules
+        self.probabilities = probabilities
 
     def init_state(
         self,

@@ -52,6 +52,7 @@ Where the jaxlib version must correspond to the version of the existing CUDA ins
 Refer to jax documentation to learn more about matching cuda versions with python wheels.
 
 
+(install_mpi)=
 ## MPI
 
 NetKet (due to Jax) only uses 1 or 2 CPU cores or 1 GPU by default at once unless you work on huge systems with mastodontic neural-networks. 

@@ -165,10 +165,17 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         self._n_fermions_per_subsector: tuple[Optional[int], ...] = n_fermions_per_spin
         self._n_orbitals = n_orbitals
 
-        # we copy the respective functions, independent of what hilbert space they are
-        self._numbers_to_states = self._fock._numbers_to_states
-        self._states_to_numbers = self._fock._states_to_numbers
-        self.all_states = self._fock.all_states
+    @property
+    def _numbers_to_states(self):
+        return self._fock._numbers_to_states
+
+    @property
+    def _states_to_numbers(self):
+        return self._fock._states_to_numbers
+
+    @property
+    def all_states(self):
+        return self._fock.all_states
 
     @property
     def n_fermions(self) -> Optional[int]:

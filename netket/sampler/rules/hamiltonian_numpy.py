@@ -17,9 +17,9 @@ import math
 from numba import jit
 
 import numpy as np
-from flax import struct
 
-from netket.operator import AbstractOperator
+from netket.operator import DiscreteOperator
+from netket.utils import struct
 
 from .base import MetropolisRule
 
@@ -30,7 +30,6 @@ class HamiltonianRuleState:
     """Preallocated array for sections"""
 
 
-@struct.dataclass
 class HamiltonianRuleNumpy(MetropolisRule):
     """
     Rule for Numpy sampler backend proposing moves according to the terms in an operator.
@@ -43,16 +42,27 @@ class HamiltonianRuleNumpy(MetropolisRule):
 
     """
 
-    operator: AbstractOperator = struct.field(pytree_node=False)
+    operator: DiscreteOperator = struct.field(pytree_node=False)
     """The (hermitian) operator giving the transition amplitudes."""
 
-    def __post_init__(self):
-        # Raise errors if hilbert is not an Hilbert
-        if not isinstance(self.operator, AbstractOperator):
+    def __init__(self, operator: DiscreteOperator):
+        """
+        Constructs the Hamiltonian sampling rule for the
+        :class:`netket.sampler.MetropolisNumpy`sampler.
+
+        If you are using the standard jax sampler, look for
+        :class:`netket.sampler.rules.HamiltonianRule`.
+
+        Args:
+            operator: The hermitian operator to be used to generate
+                configurations.
+        """
+        if not isinstance(operator, DiscreteOperator):
             raise TypeError(
                 "Argument to HamiltonianRule must be a valid operator, "
-                f"but operator is a {type(self.operator)}."
+                f"but operator is a {type(operator)}."
             )
+        self.operator = operator
 
     def init_state(rule, sampler, machine, params, key):
         if sampler.hilbert != rule.operator.hilbert:

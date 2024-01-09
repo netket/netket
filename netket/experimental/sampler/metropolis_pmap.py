@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+
 from typing import Callable, Union
 from functools import partial
 
@@ -29,7 +31,6 @@ from netket.sampler import SamplerState
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 
 
-@struct.dataclass
 class MetropolisSamplerPmapState(MetropolisSamplerState):
     """
     Sampler State for the `MetropolisSamplerPmap` sampler.
@@ -52,7 +53,6 @@ class MetropolisSamplerPmapState(MetropolisSamplerState):
         super()._repr_pretty_(p, cycle)
 
 
-@struct.dataclass
 class MetropolisSamplerPmap(MetropolisSampler):
     r"""
     Metropolis-Hastings sampler for an Hilbert space according to a specific transition rule where chains are split
@@ -77,7 +77,9 @@ class MetropolisSamplerPmap(MetropolisSampler):
     The dtype of the sampled states can be chosen.
     """
 
-    def __pre_init__(self, *args, n_chains_per_device=None, **kwargs):
+    _sampler_device: MetropolisSampler = struct.static_field()
+
+    def __init__(self, *args, n_chains_per_device=None, **kwargs):
         """
         Constructs a Metropolis Sampler.
 
@@ -85,7 +87,7 @@ class MetropolisSamplerPmap(MetropolisSampler):
             hilbert: The hilbert space to sample
             rule: A `MetropolisRule` to generate random transitions from a given state as
                     well as uniform random states.
-            n_sweeps: The number of exchanges that compose a single sweep.
+            sweep_size: The number of exchanges that compose a single sweep.
                     If None, sweep_size is equal to the number of degrees of freedom being sampled
                     (the size of the input vector s to the machine).
             reset_chains: If False the state configuration is not reset when reset() is called.
@@ -116,8 +118,6 @@ class MetropolisSamplerPmap(MetropolisSampler):
         kwargs["n_chains_per_rank"] = n_chains_per_device * n_devices
 
         if kwargs["n_chains_per_rank"] != n_chains_per_device * n_devices:
-            import warnings
-
             warnings.warn(
                 f"Using {n_chains_per_device*n_devices} chains "
                 f"({n_chains_per_device} chains on each of {n_devices} devices).",
@@ -125,23 +125,18 @@ class MetropolisSamplerPmap(MetropolisSampler):
                 stacklevel=2,
             )
 
-        return args, kwargs
-
-    def __post_init__(self):
-        super().__post_init__()
+        super().__init__(*args, **kwargs)
 
         n_chains_per_device = self.n_chains_per_rank // len(jax.devices())
 
-        _sampler = MetropolisSampler(
+        self._sampler_device = MetropolisSampler(
             self.hilbert,
             n_chains_per_rank=n_chains_per_device,
             rule=self.rule,
-            n_sweeps=self.n_sweeps,
+            sweep_size=self.sweep_size,
             reset_chains=self.reset_chains,
             machine_pow=self.machine_pow,
         )
-
-        object.__setattr__(self, "_sampler_device", _sampler)
 
     @property
     def n_chains_per_device(self):

@@ -31,58 +31,57 @@ if config.netket_sphinx_build:
 from .base import MetropolisRule
 
 
-def tensorRule(
-    hilbert: TensorHilbert, rules: tuple[MetropolisRule, ...]
-) -> "TensorRule":
-    r"""A Metropolis sampling rule that can be used to combine different rules acting
-    on different subspaces of the same tensor-hilbert space.
-
-    It should be constructed by passing a `TensorHilbert` space as a first argument
-    and a list of rules as a second argument. Each `rule[i]` will be used to generate
-    a transition for the `i`-th subspace of the tensor hilbert space.
-
-    Args:
-        hilbert: The tensor hilbert space on which the rule acts.
-        rules: A list of rules, one for each subspace of the tensor hilbert space.
-    """
-    if not isinstance(hilbert, TensorHilbert):
-        raise TypeError(
-            "The Hilbert space of a `CombinedRule` must be a TensorHilbert,"
-            "which is constructed as a product of different Hilbert spaces."
-        )
-
-    if not isinstance(rules, (tuple, list)) or not all(
-        isinstance(r, MetropolisRule) for r in rules
-    ):
-        raise TypeError(
-            "The second argument (rules) must be a tuple of `MetropolisRule` "
-            f"rules, but you have passed {type(rules)}."
-        )
-
-    if len(hilbert.subspaces) != len(rules):
-        raise ValueError(
-            "Length mismatch between the rules and the hilbert space: Hilbert "
-            f"has {len(hilbert.subspaces)} subpsaces, but you specified {len(rules)}."
-        )
-
-    return TensorRule(hilbert, tuple(rules))
-
-
-@struct.dataclass
 class TensorRule(MetropolisRule):
     r"""A Metropolis sampling rule that can be used to combine different rules acting
     on different subspaces of the same tensor-hilbert space.
-
-    It should be constructed by passing a `TensorHilbert` space as a first argument
-    and a list of rules as a second argument. Each `rule[i]` will be used to generate
-    a transition for the `i`-th subspace of the tensor hilbert space.
-
-    Args:
-        hilbert: The tensor hilbert space on which the rule acts.
-        rules: A list of rules, one for each subspace of the tensor hilbert space.
     """
+
     hilbert: TensorHilbert = struct.field(pytree_node=False)
+    """The hilbert space upon which this rule is defined. This
+    must be a :class:`nk.hilbert.TensorHilbert` with the same
+    size as the expected input samples.
+    """
+
     rules: tuple[MetropolisRule, ...]
+    """Tuple of rules to be used on every partition of the hilbert
+    space.
+    """
+
+    def __init__(
+        self, hilbert: TensorHilbert, rules: tuple[MetropolisRule, ...]
+    ) -> "TensorRule":
+        r"""Construct the composition of rules.
+
+        It should be constructed by passing a `TensorHilbert` space as a first argument
+        and a list of rules as a second argument. Each `rule[i]` will be used to generate
+        a transition for the `i`-th subspace of the tensor hilbert space.
+
+        Args:
+            hilbert: The tensor hilbert space on which the rule acts.
+            rules: A list of rules, one for each subspace of the tensor hilbert space.
+        """
+        if not isinstance(hilbert, TensorHilbert):
+            raise TypeError(
+                "The Hilbert space of a `CombinedRule` must be a TensorHilbert,"
+                "which is constructed as a product of different Hilbert spaces."
+            )
+
+        if not isinstance(rules, (tuple, list)) or not all(
+            isinstance(r, MetropolisRule) for r in rules
+        ):
+            raise TypeError(
+                "The second argument (rules) must be a tuple of `MetropolisRule` "
+                f"rules, but you have passed {type(rules)}."
+            )
+
+        if len(hilbert.subspaces) != len(rules):
+            raise ValueError(
+                "Length mismatch between the rules and the hilbert space: Hilbert "
+                f"has {len(hilbert.subspaces)} subpsaces, but you specified {len(rules)}."
+            )
+
+        self.hilbert = hilbert
+        self.rules = tuple(rules)
 
     def init_state(
         self,

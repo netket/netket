@@ -14,14 +14,12 @@
 
 import jax
 
-from flax import struct
 
 from netket.hilbert.random import flip_state
 
 from .base import MetropolisRule
 
 
-@struct.dataclass
 class LocalRule(MetropolisRule):
     r"""
     A transition rule acting on the local degree of freedom.

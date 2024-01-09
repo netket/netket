@@ -26,7 +26,6 @@ from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
 
 
-@struct.dataclass
 class MetropolisPtSamplerState(MetropolisSamplerState):
     beta: jnp.ndarray = None
 
@@ -35,6 +34,25 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
     beta_position: jnp.ndarray = None
     beta_diffusion: jnp.ndarray = None
     exchange_steps: int = 0
+
+    def __init__(
+        self,
+        *,
+        beta,
+        n_accepted_per_beta,
+        beta_0_index,
+        beta_position,
+        beta_diffusion,
+        exchange_steps,
+        **kwargs,
+    ):
+        self.beta = beta
+        self.n_accepted_per_beta = n_accepted_per_beta
+        self.beta_0_index = beta_0_index
+        self.beta_position = beta_position
+        self.beta_diffusion = beta_diffusion
+        self.exchange_steps = exchange_steps
+        super().__init__(**kwargs)
 
     def __repr__(self):
         if self.n_steps > 0:
@@ -50,36 +68,6 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         return text
 
 
-_init_doc = r"""
-``MetropolisSampler`` is a generic Metropolis-Hastings sampler using
-a transition rule to perform moves in the Markov Chain.
-The transition kernel is used to generate
-a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
-The move is accepted with probability
-
-.. math::
-    A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} e^{L(s,s^\prime)} \right),
-
-where the probability being sampled from is :math:`P(s)=|M(s)|^p`. Here :math:`M(s)` is a
-user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
-and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
-
-
-Args:
-    hilbert: The hilbert space to sample
-    rule: A `MetropolisRule` to generate random transitions from a given state as
-            well as uniform random states.
-    n_chains: The number of Markov Chain to be run in parallel on a single process.
-    n_sweeps: The number of exchanges that compose a single sweep.
-            If None, sweep_size is equal to the number of degrees of freedom being sampled
-            (the size of the input vector s to the machine).
-    n_chains: The number of batches of the states to sample (default = 8)
-    machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
-    dtype: The dtype of the states sampled (default = np.float32).
-"""
-
-
-@struct.dataclass(init_doc=_init_doc)
 class MetropolisPtSampler(MetropolisSampler):
     """
     Metropolis-Hastings with Parallel Tempering sampler.
@@ -92,14 +80,43 @@ class MetropolisPtSampler(MetropolisSampler):
     n_replicas: int = struct.field(pytree_node=False, default=32)
     """The number of replicas"""
 
-    def __post_init__(self):
-        super().__post_init__()
+    def __init__(self, *args, n_replicas: int = 32, **kwargs):
+        r"""
+        ``MetropolisSampler`` is a generic Metropolis-Hastings sampler using
+        a transition rule to perform moves in the Markov Chain.
+        The transition kernel is used to generate
+        a proposed state :math:`s^\prime`, starting from the current state :math:`s`.
+        The move is accepted with probability
+
+        .. math::
+            A(s\rightarrow s^\prime) = \mathrm{min}\left (1,\frac{P(s^\prime)}{P(s)} e^{L(s,s^\prime)} \right),
+
+        where the probability being sampled from is :math:`P(s)=|M(s)|^p`. Here :math:`M(s)` is a
+        user-provided function (the machine), :math:`p` is also user-provided with default value :math:`p=2`,
+        and :math:`L(s,s^\prime)` is a suitable correcting factor computed by the transition kernel.
+
+
+        Args:
+            hilbert: The hilbert space to sample
+            rule: A `MetropolisRule` to generate random transitions from a given state as
+                    well as uniform random states.
+            n_chains: The number of Markov Chain to be run in parallel on a single process.
+            sweep_size: The number of exchanges that compose a single sweep.
+                    If None, sweep_size is equal to the number of degrees of freedom being sampled
+                    (the size of the input vector s to the machine).
+            n_chains: The number of batches of the states to sample (default = 8)
+            machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
+            dtype: The dtype of the states sampled (default = np.float32).
+        """
         if (
-            not isinstance(self.n_replicas, int)
-            and self.n_replicas > 0
+            not isinstance(n_replicas, int)
+            and n_replicas > 0
             and np.mod(self.n_replicas, 2) == 0
         ):
             raise ValueError("n_replicas must be an even integer > 0.")
+        self.n_replicas = n_replicas
+
+        super().__init__(*args, **kwargs)
 
     @property
     def n_batches(self):
@@ -122,8 +139,6 @@ class MetropolisPtSampler(MetropolisSampler):
             σ=σ,
             rng=key_state,
             rule_state=rule_state,
-            n_steps_proc=0,
-            n_accepted_proc=0,
             beta=beta,
             beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int64),
             n_accepted_per_beta=jnp.zeros(
@@ -148,7 +163,6 @@ class MetropolisPtSampler(MetropolisSampler):
             σ=σ,
             rng=new_rng,
             rule_state=rule_state,
-            n_steps_proc=0,
             n_accepted_proc=0,
             n_accepted_per_beta=jnp.zeros(
                 (sampler.n_chains, sampler.n_replicas), dtype=jnp.int64
@@ -358,18 +372,18 @@ class MetropolisPtSampler(MetropolisSampler):
             "beta_position": state.beta_position,
             "beta_diffusion": state.beta_diffusion,
         }
-        s = jax.lax.fori_loop(0, sampler.n_sweeps, loop_body, s)
+        s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
 
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
             # n_accepted=s["accepted"],
-            n_steps_proc=state.n_steps_proc + sampler.n_sweeps * sampler.n_chains,
+            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_chains,
             beta=s["beta"],
             beta_0_index=s["beta_0_index"],
             beta_position=s["beta_position"],
             beta_diffusion=s["beta_diffusion"],
-            exchange_steps=state.exchange_steps + sampler.n_sweeps,
+            exchange_steps=state.exchange_steps + sampler.sweep_size,
             n_accepted_per_beta=s["n_accepted_per_beta"],
         )
 
@@ -409,7 +423,7 @@ def MetropolisLocalPt(hilbert, *args, **kwargs):
     Args:
         hilbert: The hilbert space to sample
         n_chains: The number of Markov Chain to be run in parallel on a single process.
-        n_sweeps: The number of exchanges that compose a single sweep.
+        sweep_size: The number of exchanges that compose a single sweep.
                 If None, sweep_size is equal to the number of degrees of freedom being sampled
                 (the size of the input vector s to the machine).
         n_chains: The number of batches of the states to sample (default = 8)
@@ -447,7 +461,7 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
         hilbert: The hilbert space to sample
         d_max: The maximum graph distance allowed for exchanges.
         n_chains: The number of Markov Chain to be run in parallel on a single process.
-        n_sweeps: The number of exchanges that compose a single sweep.
+        sweep_size: The number of exchanges that compose a single sweep.
                 If None, sweep_size is equal to the number of degrees of freedom being sampled
                 (the size of the input vector s to the machine).
         n_chains: The number of batches of the states to sample (default = 8)
@@ -469,7 +483,7 @@ def MetropolisExchangePt(hilbert, *args, clusters=None, graph=None, d_max=1, **k
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = mpt.MetropolisExchangePt(hi, graph=g)
           >>> print(sa)
-          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
+          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = <class 'numpy.float64'>)
     """
     rule = ExchangeRule(clusters=clusters, graph=graph, d_max=d_max)
     return MetropolisPtSampler(hilbert, rule, *args, **kwargs)
@@ -518,7 +532,7 @@ def MetropolisHamiltonianPt(hilbert, hamiltonian, *args, **kwargs):
        >>> # Construct a MetropolisExchange Sampler
        >>> sa = mpt.MetropolisHamiltonianPt(hi, hamiltonian=ha)
        >>> print(sa)
-       MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, n_sweeps = 100, dtype = <class 'numpy.float64'>)
+       MetropolisSampler(rule = HamiltonianRule(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, machine_power = 2, sweep_size = 100, dtype = <class 'numpy.float64'>)
     """
     rule = HamiltonianRule(hamiltonian)
     return MetropolisPtSampler(hilbert, rule, *args, **kwargs)

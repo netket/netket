@@ -19,16 +19,15 @@ import jax.numpy as jnp
 
 import numpy as np
 
-from flax import struct
 from numba import jit
 from numba4jax import njit4jax
 
 from netket.operator import AbstractOperator, DiscreteJaxOperator
+from netket.utils import struct
 
 from .base import MetropolisRule
 
 
-@struct.dataclass
 class HamiltonianRuleBase(MetropolisRule):
     """
     Rule proposing moves according to the terms in an operator.
@@ -36,6 +35,9 @@ class HamiltonianRuleBase(MetropolisRule):
 
     operator: AbstractOperator = struct.field(pytree_node=False)
     """The (hermitian) operator giving the transition amplitudes."""
+
+    def __init__(self, operator: AbstractOperator):
+        self.operator = operator
 
     def init_state(rule, sampler, machine, params, key):
         if sampler.hilbert != rule.operator.hilbert:

@@ -26,7 +26,7 @@ from jax import numpy as jnp
 from netket.hilbert import AbstractHilbert, ContinuousHilbert
 
 from netket.utils import mpi, wrap_afun
-from netket.utils.types import PyTree
+from netket.utils.types import PyTree, DType
 
 from netket.utils.deprecation import deprecated, warn_deprecation
 from netket.utils import struct
@@ -43,7 +43,6 @@ from .base import Sampler, SamplerState
 from .rules import MetropolisRule
 
 
-@struct.dataclass
 class MetropolisSamplerState(SamplerState):
     """
     State for a Metropolis sampler.
@@ -59,18 +58,19 @@ class MetropolisSamplerState(SamplerState):
     rule_state: Optional[Any]
     """Optional state of the transition rule."""
 
-    # those are initialised to 0. We want to initialise them to zero arrays because they can
-    # be passed to jax jitted functions that require type invariance to avoid recompilation
     n_steps_proc: int = struct.field(default_factory=lambda: jnp.zeros((), dtype=int))
     """Number of moves performed along the chains in this process since the last reset."""
-    n_accepted_proc: jnp.ndarray = None
+    n_accepted_proc: jnp.ndarray
     """Number of accepted transitions among the chains in this process since the last reset."""
 
-    def __post_init__(self):
-        if self.n_accepted_proc is None:
-            object.__setattr__(
-                self, "n_accepted_proc", jnp.zeros(self.σ.shape[0], dtype=int)
-            )
+    def __init__(self, σ: jnp.ndarray, rng: jnp.ndarray, rule_state: Optional[Any]):
+        self.σ = σ
+        self.rng = rng
+        self.rule_state = rule_state
+
+        self.n_accepted_proc = jnp.zeros(σ.shape[0], dtype=int)
+        self.n_steps_proc = jnp.zeros((), dtype=int)
+        super().__init__()
 
     @property
     def acceptance(self) -> float:
@@ -109,7 +109,10 @@ class MetropolisSamplerState(SamplerState):
 
 # serialization when sharded
 def serialize_MetropolisSamplerState_sharding(sampler_state):
-    state_dict = sampler_state.__dict__
+    state_dict = MetropolisSamplerState._to_flax_state_dict(
+        MetropolisSamplerState._pytree__static_fields, sampler_state
+    )
+
     for prop in ["σ", "n_accepted_proc"]:
         x = state_dict.get(prop, None)
         if x is not None and isinstance(x, jax.Array) and len(x.devices()) > 1:
@@ -123,7 +126,10 @@ def deserialize_MetropolisSamplerState_sharding(sampler_state, state_dict):
         x = state_dict[prop]
         if x is not None:
             state_dict[prop] = distribute_to_devices_along_axis(x)
-    return sampler_state.replace(**state_dict)
+
+    return MetropolisSamplerState._from_flax_state_dict(
+        MetropolisSamplerState._pytree__static_fields, sampler_state, state_dict
+    )
 
 
 if config.netket_experimental_sharding:
@@ -211,7 +217,6 @@ def _round_n_chains_to_next_multiple(
     return n_chains_per_whatever * n_whatever
 
 
-@struct.dataclass
 class MetropolisSampler(Sampler):
     r"""
     Metropolis-Hastings sampler for a Hilbert space according to a specific transition rule.
@@ -231,13 +236,28 @@ class MetropolisSampler(Sampler):
     """
     rule: MetropolisRule = None
     """The Metropolis transition rule."""
-    n_sweeps: int = struct.field(pytree_node=False, default=None)
+    sweep_size: int = struct.field(pytree_node=False, default=None)
     """Number of sweeps for each step along the chain. Defaults to the number
     of sites in the Hilbert space."""
+    n_chains: int = struct.field(pytree_node=False)
+    """Number of independent chains on every MPI rank."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
-    def __pre_init__(self, hilbert: AbstractHilbert, rule: MetropolisRule, **kwargs):
+    def __init__(
+        self,
+        hilbert: AbstractHilbert,
+        rule: MetropolisRule,
+        *,
+        n_sweeps: int = None,
+        sweep_size: int = None,
+        reset_chains: bool = False,
+        n_chains: Optional[int] = None,
+        n_chains_per_rank: Optional[int] = None,
+        n_chains_per_rank_or_device: Optional[int] = None,
+        machine_pow: int = 2,
+        dtype: DType = float,
+    ):
         """
         Constructs a Metropolis Sampler.
 
@@ -251,7 +271,7 @@ class MetropolisSampler(Sampler):
                 `n_chains/mpi.n_nodes` chains. In general, we recommend specifying `n_chains_per_rank`
                 as it is more portable.
             n_chains_per_rank_or_device: Number of independent chains on every MPI rank / jax device (default = 16).
-            n_sweeps: Number of sweeps for each step along the chain.
+            sweep_size: Number of sweeps for each step along the chain.
                 This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
                 in the Hilbert space.)
             reset_chains: If True, resets the chain state when `reset` is called on every
@@ -268,15 +288,15 @@ class MetropolisSampler(Sampler):
                 f"`type(rule)={type(rule)}`."
             )
 
-        n_chains = kwargs.pop("n_chains", None)
-        n_chains_per_rank_or_device = kwargs.pop("n_chains_per_rank_or_device", None)
+        if not isinstance(reset_chains, bool):
+            raise TypeError("reset_chains must be a boolean.")
 
-        if "n_chains_per_rank" in kwargs:
+        if n_chains_per_rank is not None:
             warn_deprecation(
                 "Specifying `n_chains_per_rank` when constructing the Sampler is deprecated. Please use `n_chains_per_rank_or_device` instead."
             )
             if n_chains_per_rank_or_device is None:
-                n_chains_per_rank_or_device = kwargs.pop("n_chains_per_rank")
+                n_chains_per_rank_or_device = n_chains_per_rank
             else:
                 raise ValueError(
                     "Cannot specify both `n_chains_per_rank_or_device` and `n_chains_per_rank`"
@@ -287,7 +307,7 @@ class MetropolisSampler(Sampler):
 
         # we assume either mpi.n_nodes=1 or nk.jax.sharding.device_count_per_rank()=1
         n_ranks_or_devices = mpi.n_nodes * device_count_per_rank()
-        kwargs["n_chains"] = _round_n_chains_to_next_multiple(
+        n_chains = _round_n_chains_to_next_multiple(
             n_chains,
             n_chains_per_rank_or_device,
             n_ranks_or_devices,
@@ -295,20 +315,35 @@ class MetropolisSampler(Sampler):
             default_n_chains_per_rank_or_device,
         )
 
-        # process arguments in the base
-        args, kwargs = super().__pre_init__(hilbert=hilbert, **kwargs)
-        kwargs["rule"] = rule
-        return args, kwargs
+        if n_sweeps is not None:
+            warn_deprecation(
+                "Specifying `n_sweeps` when constructing sampler is deprecated. Please use `sweep_size` instead."
+            )
+            if sweep_size is not None:
+                raise ValueError("Cannot specify both `sweep_size` and `n_sweeps`")
+            sweep_size = n_sweeps
 
-    def __post_init__(self):
-        super().__post_init__()
+        if sweep_size is None:
+            sweep_size = hilbert.size
 
-        if not isinstance(self.reset_chains, bool):
-            raise TypeError("reset_chains must be a boolean.")
+        super().__init__(
+            hilbert=hilbert,
+            machine_pow=machine_pow,
+            dtype=dtype,
+        )
 
-        # Default value of n_sweeps
-        if self.n_sweeps is None:
-            object.__setattr__(self, "n_sweeps", self.hilbert.size)
+        self.n_chains = n_chains
+        self.reset_chains = reset_chains
+        self.rule = rule
+        self.sweep_size = sweep_size
+        self.n_chains = n_chains
+
+    @property
+    def n_sweeps(self):
+        warn_deprecation(
+            "`MetropolisSampler.n_sweeps` is deprecated. Please use `MetropolisSampler.sweep_size` instead."
+        )
+        return self.sweep_size
 
     def sample_next(
         sampler,
@@ -450,14 +485,14 @@ class MetropolisSampler(Sampler):
             # for logging
             "accepted": state.n_accepted_proc,
         }
-        s = jax.lax.fori_loop(0, sampler.n_sweeps, loop_body, s)
+        s = jax.lax.fori_loop(0, sampler.sweep_size, loop_body, s)
 
         new_state = state.replace(
             rng=new_rng,
             σ=s["σ"],
             n_accepted_proc=s["accepted"],
             n_steps_proc=state.n_steps_proc
-            + sampler.n_sweeps * sampler.n_chains_per_rank,
+            + sampler.sweep_size * sampler.n_chains_per_rank,
         )
 
         return new_state, new_state.σ
@@ -496,7 +531,7 @@ class MetropolisSampler(Sampler):
             + f"\n  hilbert = {sampler.hilbert},"
             + f"\n  rule = {sampler.rule},"
             + f"\n  n_chains = {sampler.n_chains},"
-            + f"\n  n_sweeps = {sampler.n_sweeps},"
+            + f"\n  sweep_size = {sampler.sweep_size},"
             + f"\n  reset_chains = {sampler.reset_chains},"
             + f"\n  machine_power = {sampler.machine_pow},"
             + f"\n  dtype = {sampler.dtype}"
@@ -508,7 +543,7 @@ class MetropolisSampler(Sampler):
             f"{type(sampler).__name__}("
             + f"rule = {sampler.rule}, "
             + f"n_chains = {sampler.n_chains}, "
-            + f"n_sweeps = {sampler.n_sweeps}, "
+            + f"sweep_size = {sampler.sweep_size}, "
             + f"reset_chains = {sampler.reset_chains}, "
             + f"machine_power = {sampler.machine_pow}, "
             + f"dtype = {sampler.dtype})"
@@ -570,7 +605,7 @@ def MetropolisLocal(hilbert, **kwargs) -> MetropolisSampler:
         hilbert: The Hilbert space to sample.
         n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
         n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
-        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+        sweep_size: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
                 This is equivalent to subsampling the Markov chain.
         reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
@@ -612,7 +647,7 @@ def MetropolisExchange(
         d_max: The maximum graph distance allowed for exchanges.
         n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
         n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
-        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+        sweep_size: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
                 This is equivalent to subsampling the Markov chain.
         reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
@@ -630,7 +665,7 @@ def MetropolisExchange(
           >>> # Construct a MetropolisExchange Sampler
           >>> sa = nk.sampler.MetropolisExchange(hi, graph=g)
           >>> print(sa)
-          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, n_sweeps = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
+          MetropolisSampler(rule = ExchangeRule(# of clusters: 200), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
     """
     from .rules import ExchangeRule
 
@@ -662,7 +697,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
         hamiltonian: The operator used to perform off-diagonal transition.
         n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
         n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
-        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+        sweep_size: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
                 This is equivalent to subsampling the Markov chain.
         reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
@@ -682,7 +717,7 @@ def MetropolisHamiltonian(hilbert, hamiltonian, **kwargs) -> MetropolisSampler:
        >>> # Construct a MetropolisHamiltonian Sampler
        >>> sa = nk.sampler.MetropolisHamiltonian(hi, hamiltonian=ha)
        >>> print(sa)
-       MetropolisSampler(rule = HamiltonianRuleNumba(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, n_sweeps = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
+       MetropolisSampler(rule = HamiltonianRuleNumba(Ising(J=1.0, h=1.0; dim=100)), n_chains = 16, sweep_size = 100, reset_chains = False, machine_power = 2, dtype = <class 'float'>)
     """
     from .rules import HamiltonianRule
 
@@ -700,7 +735,7 @@ def MetropolisGaussian(hilbert, sigma=1.0, **kwargs) -> MetropolisSampler:
         sigma: The width of the Gaussian proposal distribution (default = 1.0).
         n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
         n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
-        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+        sweep_size: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
                 This is equivalent to subsampling the Markov chain.
         reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
@@ -735,7 +770,7 @@ def MetropolisAdjustedLangevin(
         chunk_size: Chunk size to compute the gradients of the log probability.
         n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
         n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
-        n_sweeps: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
+        sweep_size: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
                 This is equivalent to subsampling the Markov chain.
         reset_chains: If True, resets the chain state when `reset` is called on every new sampling (default = False).
         machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
