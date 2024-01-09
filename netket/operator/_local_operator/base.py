@@ -200,12 +200,15 @@ class LocalOperatorBase(DiscreteOperator):
             self.hilbert, self.operators, self.acting_on, self.constant, self.dtype
         )
 
-    def copy(self, *, dtype: Optional[DType] = None):
+    def copy(self, *, dtype: Optional[DType] = None, _cls=None):
         """Returns a copy of the operator, while optionally changing the dtype
         of the operator.
 
         Args:
             dtype: optional dtype
+
+        Internal args:
+            _cls: used to specify the target class
         """
 
         if dtype is None:
@@ -214,7 +217,10 @@ class LocalOperatorBase(DiscreteOperator):
         if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
 
-        new = type(self)(self.hilbert, constant=self.constant, dtype=dtype)
+        if _cls is None:
+            _cls = type(self)
+
+        new = _cls(self.hilbert, constant=self.constant, dtype=dtype)
         new.mel_cutoff = self.mel_cutoff
 
         if dtype == self.dtype:

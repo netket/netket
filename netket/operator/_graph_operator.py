@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import Optional, Union
 
 from netket.utils.types import DType
 
@@ -162,6 +162,15 @@ class GraphOperator(LocalOperator):
         the constructor.
         """
         return self._acting_on_subspace
+
+    def copy(self, *, dtype: Optional[DType] = None):
+        """Returns a copy of the operator, while optionally changing the dtype
+        of the operator.
+
+        Args:
+            dtype: optional dtype
+        """
+        return super().copy(dtype=dtype, _cls=LocalOperator)
 
     def __repr__(self):
         ao = self.acting_on
