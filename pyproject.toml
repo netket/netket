@@ -91,7 +91,7 @@ docs = [
     "sphinxcontrib-jsmath~=1.0.1",
     "myst-parser>=2.0.0,<2.1.0",
     "myst-nb~=1.0.0",
-    "sphinx-book-theme~=1.1.0rc1",
+    "sphinx-book-theme~=1.1.0",
 ]
 
 [project.urls]
