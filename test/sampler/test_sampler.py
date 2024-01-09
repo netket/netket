@@ -59,6 +59,10 @@ move_op = sum([nk.operator.spin.sigmax(hi, i) for i in range(hi.size)])
 hi_spin1 = nk.hilbert.Spin(s=1, N=g.n_nodes)
 hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
+hi_fermion = nk.experimental.hilbert.SpinOrbitalFermions(g.n_nodes, n_fermions=2)
+hi_fermion_spin = nk.experimental.hilbert.SpinOrbitalFermions(
+    g.n_nodes, s=1 / 2, n_fermions=(2, 2)
+)
 
 samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
 samplers["Exact: Fock"] = nk.sampler.ExactSampler(hib_u)
@@ -88,6 +92,15 @@ samplers[
     hi,
     hamiltonian=ha,
     reset_chains=True,
+)
+
+samplers[
+    "Metropolis(ParticleExchange): SpinOrbitalFermions"
+] = nkx.sampler.MetropolisParticleExchange(hi_fermion, graph=g)
+samplers[
+    "Metropolis(ParticleExchange,Spinful): SpinOrbitalFermions"
+] = nkx.sampler.MetropolisParticleExchange(
+    hi_fermion_spin, graph=g, exchange_spins=False
 )
 
 samplers["Metropolis(Hamiltonian,Numpy): Spin"] = nk.sampler.MetropolisHamiltonianNumpy(
@@ -523,3 +536,23 @@ def test_exact_sampler(sampler):
     else:
         assert sampler.is_exact is False
         assert sampler.n_chains == 16 * mpi.n_nodes * device_count_per_rank()
+
+
+def test_fermions_spin_exchange():
+    # test that the graph correctly creates a disjoint graph for the spinful case
+    g = nk.graph.Hypercube(length=4, n_dim=1)
+    hi_fermion_spin = nk.experimental.hilbert.SpinOrbitalFermions(
+        g.n_nodes, s=1 / 2, n_fermions=(2, 2)
+    )
+
+    sampler = nkx.sampler.MetropolisParticleExchange(
+        hi_fermion_spin, graph=g, exchange_spins=True
+    )
+    nodes = np.unique(sampler.rule.clusters)
+    assert np.allclose(nodes, np.arange(g.n_nodes))
+
+    sampler = nkx.sampler.MetropolisParticleExchange(
+        hi_fermion_spin, graph=g, exchange_spins=False
+    )
+    nodes = np.unique(sampler.rule.clusters)
+    assert np.allclose(nodes, np.arange(hi_fermion_spin.size))
