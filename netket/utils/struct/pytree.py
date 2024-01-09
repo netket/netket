@@ -30,8 +30,6 @@ class PytreeMeta(ABCMeta):
         obj: P = cls.__new__(cls, *args, **kwargs)
         obj.__dict__["_pytree__initializing"] = True
         try:
-            print(args)
-            print(kwargs)
             obj.__init__(*args, **kwargs)
         finally:
             del obj.__dict__["_pytree__initializing"]
