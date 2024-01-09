@@ -360,7 +360,7 @@ class JaxOperatorNotConvertibleToNumba(NetketError):
     below:
 
     .. code-block:: python
-        
+
         import netket as nk
 
         hi = nk.hilbert.Spin(0.5, 2)
@@ -382,16 +382,16 @@ class JaxOperatorNotConvertibleToNumba(NetketError):
     open an issue.
 
     """
+
     def __init__(self, operator):
-        operator_type = type(operator)
         super().__init__(
-            f"\n"
+            "\n"
             "Illegal attempt to convert to the Numba format a Jax operator that had been flattened "
             "and unflattened."
-            f"\n\n"
-            f"Jax-based operators cannot be flattened or passed to a jax function and then be "
+            "\n\n"
+            "Jax-based operators cannot be flattened or passed to a jax function and then be "
             "converted to their numba format."
-            )
+        )
 
 
 #################################################

@@ -220,7 +220,7 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
     Jax-compatible version of :class:`netket.operator.LocalOperator`.
     """
 
-    _convertible : bool = True
+    _convertible: bool = True
     """Internal flag. True if it can be converted to numba, false
     otherwise."""
 
