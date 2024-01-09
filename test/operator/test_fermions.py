@@ -285,12 +285,8 @@ def test_operations_fermions(Op):
     op2 = Op(hi, terms=("3^ 4"), weights=(1.3,), constant=5.7)
     op2copy = op2.copy()
     assert op2copy.hilbert == op2.hilbert
-    _test_close_trees(
-        list(op2._operators.keys()), list(op2copy._operators.keys())
-    )
-    _test_close_trees(
-        list(op2._operators.values()), list(op2copy._operators.values())
-    )
+    _test_close_trees(list(op2._operators.keys()), list(op2copy._operators.keys()))
+    _test_close_trees(list(op2._operators.values()), list(op2copy._operators.values()))
     assert op2.is_hermitian == op2copy.is_hermitian
     np.testing.assert_allclose(op2.to_dense(), op2copy.to_dense())
 

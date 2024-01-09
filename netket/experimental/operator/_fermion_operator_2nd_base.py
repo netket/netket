@@ -264,7 +264,7 @@ class FermionOperator2ndBase(DiscreteOperator):
     @property
     def operators(self) -> OperatorDict:
         """Returns a dictionary with (term, weight) key-value pairs, with terms in tuple notation.
-        
+
         The constant diagonal shift of the operator is associated with a term represented as an empty tuple.
         """
         return self._operators
