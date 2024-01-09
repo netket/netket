@@ -58,7 +58,7 @@ disj_graph = nk.graph.disjoint_union(g, g)
 sa = nkx.sampler.MetropolisParticleExchange(hi, graph=g, n_chains=16, sweep_size=64)
 # or let netket copy the graph per spin sector
 sa = nkx.sampler.MetropolisParticleExchange(
-    hi, graph=g, n_chains=16, sweep_size=64, exhange_spins=False
+    hi, graph=g, n_chains=16, sweep_size=64, exchange_spins=False
 )
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM

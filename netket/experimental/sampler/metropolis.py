@@ -8,7 +8,7 @@ def MetropolisParticleExchange(
     clusters=None,
     graph=None,
     d_max=1,
-    exhange_spins=False,
+    exchange_spins=False,
     dtype=np.int8,
     **kwargs,
 ) -> MetropolisSampler:
@@ -19,7 +19,7 @@ def MetropolisParticleExchange(
     Args:
         hilbert: The Hilbert space to sample.
         d_max: The maximum graph distance allowed for exchanges.
-        exhange_spins: (default False) If False, exchanges are only allowed between modes with the same spin projection.
+        exchange_spins: (default False) If False, exchanges are only allowed between modes with the same spin projection.
         n_chains: The total number of independent Markov chains across all MPI ranks. Either specify this or `n_chains_per_rank`.
         n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
         sweep_size: Number of sweeps for each step along the chain. Defaults to the number of sites in the Hilbert space.
@@ -35,6 +35,6 @@ def MetropolisParticleExchange(
         clusters=clusters,
         graph=graph,
         d_max=d_max,
-        exhange_spins=exhange_spins,
+        exchange_spins=exchange_spins,
     )
     return MetropolisSampler(hilbert, rule, dtype=dtype, **kwargs)
