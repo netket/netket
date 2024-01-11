@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import numba
 
@@ -20,6 +22,9 @@ from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingEr
 
 from ._fermion_operator_2nd_utils import _is_diag_term, OperatorDict
 from ._fermion_operator_2nd_base import FermionOperator2ndBase
+
+if TYPE_CHECKING:
+    from ._fermion_operator_2nd_jax import FermionOperator2ndJax
 
 
 class FermionOperator2nd(FermionOperator2ndBase):

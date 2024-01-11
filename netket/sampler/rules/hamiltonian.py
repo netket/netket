@@ -201,14 +201,15 @@ class HamiltonianRuleJax(HamiltonianRuleBase):
 
 
 def HamiltonianRule(operator):
-    """
+    r"""
     Rule proposing moves according to the terms in an operator.
 
     In this case, the transition matrix is taken to be:
 
     .. math::
 
-       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
+       T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = 
+        \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),
 
     This is a thin wrapper on top of the constructors of :class:`netket.sampler.rules.HamiltonianRuleJax` and
     :class:`netket.sampler.rules.HamiltonianRuleNumba`, which dispatches on one of the two implementations

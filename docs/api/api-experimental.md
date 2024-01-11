@@ -50,7 +50,7 @@ The Quantum State Reconstruction algorithm performs an approximate tomographic r
 They are experimental, meaning that we could change them at some point, and we actively seeking for feedback and opinions on their usage and APIs.
 
 ```{eval-rst}
-.. currentmodule:: netket.experimental.sampler
+.. currentmodule:: netket.experimental
 
 ```
 
@@ -93,7 +93,7 @@ The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class
    :nosignatures:
 
 
-   MetropolisParticleExchange
+   sampler.MetropolisParticleExchange
 ```
 
 And the corresponding rules
@@ -104,7 +104,7 @@ And the corresponding rules
    :nosignatures:
 
 
-   rules.ParticleExchangeRule
+   sampler.rules.ParticleExchangeRule
 ```
 
 (experimental-logging-api)=

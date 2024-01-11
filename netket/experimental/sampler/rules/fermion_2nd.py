@@ -48,7 +48,7 @@ class ParticleExchangeRule(ExchangeRule):
                 between two sites
             exchange_spins: (default False) If exchange_spins, the graph must encode the
                 connectivity  between the first N physical sites having same spin, and
-                it is replicated using :ref:`netket.graph.disjoint_union` other every
+                it is replicated using :func:`netket.graph.disjoint_union` other every
                 spin subsector. This option conserves the number of fermions per
                 spin subsector. If the graph does not have a number of sites equal
                 to the number of orbitals in the hilbert space, this flag has no effect.

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from . import rules
+
 from .metropolis_pmap import MetropolisSamplerPmap
 
 from .metropolis_pt import (

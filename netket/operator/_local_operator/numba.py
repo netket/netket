@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numba
@@ -21,6 +22,9 @@ from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingEr
 
 from .compile_helpers import pack_internals
 from .base import LocalOperatorBase
+
+if TYPE_CHECKING:
+    from .jax import LocalOperatorJax
 
 
 class LocalOperator(LocalOperatorBase):
