@@ -41,9 +41,7 @@ def _setup(useExactSampler=True):
     H = nk.operator.IsingJax(hi, graph=nk.graph.Chain(N), h=1, J=-1)
     H2 = H @ H
 
-    var_op = nkx.observable.VarianceOperator(H)
-
-    return vs, vs_exact, var_op, H, H2
+    return vs, vs_exact, H, H2
 
 
 def var_exact_fun(params, vs, H, H2):
@@ -62,8 +60,16 @@ def var_exact_fun(params, vs, H, H2):
         pytest.param(False, id="MetropolisSampler"),
     ],
 )
-def test_MCState(useExactSampler):
-    vs, vs_exact, var_op, H, H2 = _setup(useExactSampler)
+@pytest.mark.parametrize(
+    "use_Oloc2",
+    [
+        pytest.param(True, id="UseOloc2"),
+        pytest.param(False, id="NotUseOloc2"),
+    ],
+)
+def test_MCState(useExactSampler, use_Oloc2):
+    vs, vs_exact, H, H2 = _setup(useExactSampler)
+    var_op = nkx.observable.VarianceOperator(H, use_Oloc2=use_Oloc2)
 
     params, unravel = nk.jax.tree_ravel(vs.parameters)
 
@@ -89,9 +95,17 @@ def test_MCState(useExactSampler):
     same_derivatives(var_grad, var_grad_exact, abs_eps=var_err, rel_eps=var_err)
 
 
-def test_FullSumState():
+@pytest.mark.parametrize(
+    "use_Oloc2",
+    [
+        pytest.param(True, id="UseOloc2"),
+        pytest.param(False, id="NotUseOloc2"),
+    ],
+)
+def test_FullSumState(use_Oloc2):
     err = 1e-3
-    vs, vs_exact, var_op, H, H2 = _setup()
+    vs, vs_exact, H, H2 = _setup()
+    var_op = nkx.observable.VarianceOperator(H, use_Oloc2=use_Oloc2)
 
     params, unravel = nk.jax.tree_ravel(vs_exact.parameters)
 

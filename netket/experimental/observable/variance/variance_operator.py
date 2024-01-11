@@ -12,14 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import netket as nk
 from netket.operator import AbstractOperator
 
 
 class VarianceOperator(AbstractOperator):
-    def __init__(self, op):
+    def __init__(self, op, use_Oloc2=False):
         super().__init__(op.hilbert)
         self._op = op
-        self._op2 = op @ op
+
+        if use_Oloc2:
+            self._op2 = nk.operator.Squared(op)
+        else:
+            self._op2 = op @ op
 
     @property
     def op(self):
