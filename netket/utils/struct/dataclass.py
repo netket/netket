@@ -348,9 +348,12 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
 
     if is_pytree:
         if not (clz._pytree__class_is_mutable ^ _frozen):
-            raise ValueError(
+            raise TypeError(
                 f"Inheriting from a mutable={clz._pytree__class_is_mutable} but _frozen={_frozen}"
             )
+        if clz._pytree__class_dynamic_nodes:
+            raise TypeError("dynamic nodes Pytrees are incompatible with the dataclass decorator.")
+
         # let the base class handle the frozeness
         _frozen = False
 
