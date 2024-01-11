@@ -352,7 +352,9 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
                 f"Inheriting from a mutable={clz._pytree__class_is_mutable} but _frozen={_frozen}"
             )
         if clz._pytree__class_dynamic_nodes:
-            raise TypeError("dynamic nodes Pytrees are incompatible with the dataclass decorator.")
+            raise TypeError(
+                "dynamic nodes Pytrees are incompatible with the dataclass decorator."
+            )
 
         # let the base class handle the frozeness
         _frozen = False
@@ -429,7 +431,8 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
 
         # Forbid fields with same name as keyword arguments in the pytree below
         pytree_arg_names = keyword_arg_names(clz.__init__)
-        args_not_ok = [nm for nm in pytree_arg_names if nm in _FIELDS]
+        _data_clz_fields = getattr(data_clz, _FIELDS)
+        args_not_ok = [nm for nm in pytree_arg_names if nm in _data_clz_fields]
         if len(args_not_ok) > 0:
             raise ValueError(
                 f"""
