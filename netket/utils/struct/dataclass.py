@@ -48,6 +48,7 @@ from .utils import (
     _create_fn,
     get_class_globals,
     maximum_positional_args,
+    keyword_arg_names,
 )
 from .fields import _cache_name, Uninitialized, field, CachedProperty
 from .pytree import Pytree, DATACLASS_USER_INIT_N_ARGS
@@ -422,6 +423,32 @@ def dataclass(clz=None, *, init_doc=MISSING, cache_hash=False, _frozen=True):
                     n_args_max = maximum_positional_args(clz.__init__) - 1
                     break
         setattr(data_clz, DATACLASS_USER_INIT_N_ARGS, n_args_max)
+
+        # Forbid fields with same name as keyword arguments in the pytree below
+        pytree_arg_names = keyword_arg_names(clz.__init__)
+        args_not_ok = [nm for nm in pytree_arg_names if nm in _FIELDS]
+        if len(args_not_ok) > 0:
+            raise ValueError(
+                f"""
+                You cannot declare a dataclass with an attribute having the
+                same name as an argument to the `__init__` function of the
+                Pytree it inherits from.
+
+                Pytree {clz = } has the following argument names used in its
+                __init__ method: {pytree_arg_names}, and you cannot use them
+                as attributes or fields of this dataclass.
+
+                In your definition of the dataclass {data_clz = }, which inherits
+                from the pytree above, you have the following illegally named fields:
+                    {args_not_ok}
+
+                Rename them to a valid name to make this error disappear!
+
+                ====================================================================
+                Note: this is experimental functionality. If you believe this should
+                work, please open a bug report on the NetKet repository.
+                """
+            )
 
         return data_clz
 

@@ -79,3 +79,21 @@ def maximum_positional_args(fun) -> Union[int, float]:
             max_positional_args = float("inf")
             break
     return max_positional_args
+
+
+def keyword_arg_names(fun) -> list[str]:
+    """
+    Given a function, returns a list of the argument names that can be passed to it
+    with a keyword.
+    """
+    sig = inspect.signature(fun)
+    parameters = sig.parameters.values()
+
+    names = []
+    for param in parameters:
+        if param.kind in [
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
+        ]:
+            names.append(param.name)
+    return names
