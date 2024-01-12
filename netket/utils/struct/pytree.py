@@ -13,6 +13,12 @@ from netket.utils import config
 
 P = tp.TypeVar("P", bound="Pytree")
 
+DATACLASS_USER_INIT_N_ARGS = "_pytree_n_args_max"
+"""
+variable name used by dataclasses inheriting from a pytree to
+store the topmost non-dataclass class in a mro.
+"""
+
 
 class PytreeMeta(ABCMeta):
     """
@@ -245,6 +251,8 @@ class Pytree(metaclass=PytreeMeta):
         #
         # This is necessary so we call the dataclass init only with
         # the arguments that it needs.
+
+        # process keyword arguments
         kwargs_dataclass = {}
         kwargs_pytree = {}
         for k, v in kwargs.items():
@@ -253,10 +261,20 @@ class Pytree(metaclass=PytreeMeta):
             else:
                 kwargs_pytree[k] = v
 
-        signature_pytree = (args, kwargs_pytree)
+        # process positional args. Identify max positional arguments of the
+        # topmost user defined init method
+        max_pytree_args = getattr(self, DATACLASS_USER_INIT_N_ARGS, len(args))
+        n_args_pytree = min(len(args), max_pytree_args)
+
+        # First n args are for the pytree initialiser (lower) and later
+        # positional arguments are for the dataclass initializer
+        args_pytree = args[:n_args_pytree]
+        args_dataclass = args[n_args_pytree:]
+
+        signature_pytree = (args_pytree, kwargs_pytree)
         kwargs_dataclass["__base_init_args"] = signature_pytree
 
-        return (), kwargs_dataclass
+        return args_dataclass, kwargs_dataclass
 
     def __post_init__(self):
         pass

@@ -297,7 +297,7 @@ class TestMutablePytree:
             foo.y = 2
 
     def test_pytree_dataclass(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
 
             @dataclass
             class _Foo(Pytree, mutable=True):
