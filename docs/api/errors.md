@@ -19,6 +19,7 @@ Netket has the following classes of errors.
   HilbertIndexingDuringTracingError
   HolomorphicUndeclaredWarning
   JaxOperatorSetupDuringTracingError
+  JaxOperatorNotConvertibleToNumba
   NonHolomorphicQGTOnTheFlyDenseRepresentationError
   NumbaOperatorGetConnDuringTracingError
   RealQGTComplexDomainError

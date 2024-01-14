@@ -151,3 +151,37 @@ Those structure hold the state of the sampler.
   SamplerState
   MetropolisSamplerState
 ```
+
+### Experimental
+
+They are experimental, meaning that we could change them at some point, and we actively seeking for feedback and opinions on their usage and APIs.
+
+```{eval-rst}
+.. currentmodule:: netket.experimental.sampler
+
+```
+
+### Particle-specific samplers
+
+The following samplers are for 2nd-quantisation fermionic hilbert spaces ({class}`netket.experimental.hilbert.SpinOrbitalFermions`).
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/samplers
+   :template: flax_module_or_default
+   :nosignatures:
+
+
+   MetropolisParticleExchange
+```
+
+And the corresponding rules
+```{eval-rst}
+.. autosummary::
+   :toctree: _generated/samplers
+   :template: flax_module_or_default
+   :nosignatures:
+
+
+   rules.ParticleExchangeRule
+```

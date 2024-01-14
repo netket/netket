@@ -77,20 +77,23 @@ sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
 hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
 
+for name, LocalOp_impl in [
+    ("numba", nk.operator.LocalOperator),
+    ("jax", nk.operator.LocalOperatorJax),
+]:
 
-def _loc(*args):
-    return nk.operator.LocalOperator(hi, *args)
+    def _loc(*args):
+        return LocalOp_impl(hi, *args)
 
+    sx_hat = _loc([sx] * 3, [[0], [1], [5]])
+    sy_hat = _loc([sy] * 4, [[2], [3], [4], [9]])
+    szsz_hat = _loc(sz, [0]) @ _loc(sz, [1])
+    szsz_hat += _loc(sz, [4]) @ _loc(sz, [5])
+    szsz_hat += _loc(sz, [6]) @ _loc(sz, [8])
+    szsz_hat += _loc(sz, [7]) @ _loc(sz, [0])
 
-sx_hat = _loc([sx] * 3, [[0], [1], [5]])
-sy_hat = _loc([sy] * 4, [[2], [3], [4], [9]])
-szsz_hat = _loc(sz, [0]) @ _loc(sz, [1])
-szsz_hat += _loc(sz, [4]) @ _loc(sz, [5])
-szsz_hat += _loc(sz, [6]) @ _loc(sz, [8])
-szsz_hat += _loc(sz, [7]) @ _loc(sz, [0])
-
-operators["Custom Hamiltonian"] = sx_hat + sy_hat + szsz_hat
-operators["Custom Hamiltonian Prod"] = sx_hat * 1.5 + (2.0 * sy_hat)
+    operators[f"Custom Hamiltonian ({name})"] = sx_hat + sy_hat + szsz_hat
+    operators[f"Custom Hamiltonian Prod ({name})"] = sx_hat * 1.5 + (2.0 * sy_hat)
 
 operators["Pauli Hamiltonian (XX)"] = nk.operator.PauliStrings(["XX"], [0.1])
 operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
@@ -362,11 +365,15 @@ def test_operator_jax_conversion(op):
 
     np.testing.assert_allclose(op_numba.to_dense(), op_jax.to_dense())
 
-    # test packing unpacking
+    # test packing unpacking or correct error
     data, structure = jax.tree_util.tree_flatten(op_jax)
     op_jax2 = jax.tree_util.tree_unflatten(structure, data)
-    op_numba2 = op_jax2.to_numba_operator()
-    np.testing.assert_allclose(op_numba2.to_dense(), op.to_dense())
+    if not hasattr(op_jax, "_convertible"):
+        op_numba2 = op_jax2.to_numba_operator()
+        np.testing.assert_allclose(op_numba2.to_dense(), op.to_dense())
+    else:
+        with pytest.raises(nk.errors.JaxOperatorNotConvertibleToNumba):
+            op_jax2.to_numba_operator()
 
     # check that it is hash stable
     _, structure2 = jax.tree_util.tree_flatten(op.to_jax_operator())
@@ -401,6 +408,18 @@ def test_operator_jax_getconn(op):
         sp, mels = op.get_conn_padded(states)
         sp_j, mels_j = _get_conn_padded(op_jax, states)
         assert mels_j.shape[-1] <= op.max_conn_size
+
+        # here we deal with the special case when the jax operator is padded
+        # with zeros, but the numba one is not.
+        # For simplicitt we assume that the padding is at the end,
+        # which might not be true in general, so if this fails for your operator
+        # please consider generalizing this test
+        if mels_j.shape[-1] > mels.shape[-1]:
+            n_conn = mels.shape[-1]
+            # make sure padding is at end and zero
+            np.testing.assert_allclose(mels_j[..., n_conn:], 0)
+            sp_j = sp_j[..., :n_conn, :]
+            mels_j = mels_j[..., :n_conn]
 
         np.testing.assert_allclose(sp, sp_j)
         np.testing.assert_allclose(mels, mels_j)

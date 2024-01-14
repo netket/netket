@@ -15,6 +15,7 @@
 from typing import Union, Optional
 
 import numpy as np
+
 from numbers import Number
 
 from netket.utils.types import DType
@@ -28,14 +29,11 @@ from netket.experimental.hilbert import SpinOrbitalFermions
 
 from ._fermion_operator_2nd_utils import (
     _convert_terms_to_spin_blocks,
-    _collect_constants,
     _canonicalize_input,
     _check_hermitian,
     _herm_conj,
-    _make_tuple_tree,
     _remove_dict_zeros,
     _verify_input,
-    _reduce_operators,
     OperatorDict,
     OperatorTermsList,
     OperatorWeightsList,
@@ -57,7 +55,8 @@ class FermionOperator2ndBase(DiscreteOperator):
         hilbert: AbstractHilbert,
         terms: Union[list[str], list[list[list[int]]]] = None,
         weights: Optional[list[Union[float, complex]]] = None,
-        constant: Union[float, complex] = 0.0,
+        constant: Number = 0,
+        cutoff: float = 1e-10,
         dtype: DType = None,
     ):
         r"""
@@ -83,6 +82,7 @@ class FermionOperator2ndBase(DiscreteOperator):
                 (defaults to a list of 1)
             constant: constant contribution, corresponding to the
                 identity operator * constant (default = 0)
+            cutoff: threshold for the weights, if the absolute value of a weight is below the cutoff, it's discarded.
 
         Returns:
             A FermionOperator2nd object.
@@ -109,17 +109,19 @@ class FermionOperator2ndBase(DiscreteOperator):
         """
         super().__init__(hilbert)
 
+        if not np.isscalar(cutoff) or cutoff < 0:
+            raise ValueError(f"invalid cutoff in FermionOperator2ndBase: {cutoff}.")
+        self._cutoff = cutoff
+
         # bring terms, weights into consistent form, autopromote dtypes if necessary
-        _operators, _constant, dtype = _canonicalize_input(
-            terms, weights, constant, dtype
+        _operators, dtype = _canonicalize_input(
+            terms, weights, dtype, cutoff, constant=constant
         )
         _verify_input(hilbert, _operators, raise_error=True)
         self._dtype = dtype
 
         # we keep the input, in order to be able to add terms later
         self._operators = _operators
-        self._constant = _constant
-
         self._initialized = False
         self._is_hermitian = None  # set when requested
         self._max_conn_size = None
@@ -144,6 +146,8 @@ class FermionOperator2ndBase(DiscreteOperator):
         *,
         n_orbitals: Optional[int] = None,
         convert_spin_blocks: bool = False,
+        cutoff: float = 1e-10,
+        dtype: DType = None,
     ) -> "FermionOperator2ndBase":
         r"""
         Converts an openfermion FermionOperator into a netket FermionOperator2nd.
@@ -167,6 +171,7 @@ class FermionOperator2ndBase(DiscreteOperator):
             convert_spin_blocks: whether or not we need to convert the FermionOperator
                 to our convention. Only works if hilbert is provided and if it has
                 spin != 0
+            cutoff: threshold for the weights, if the absolute value of a weight is below the cutoff, it's discarded.
 
         """
         openfermion = import_optional_dependency(
@@ -193,7 +198,6 @@ class FermionOperator2ndBase(DiscreteOperator):
 
         terms = list(of_fermion_operator.terms.keys())
         weights = list(of_fermion_operator.terms.values())
-        terms, weights, constant = _collect_constants(terms, weights)
 
         if hilbert is not None:
             # no warning, just overwrite
@@ -212,7 +216,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         if hilbert is None:
             hilbert = SpinOrbitalFermions(n_orbitals)  # no spin splitup assumed
 
-        return cls(hilbert, terms, weights=weights, constant=constant)
+        return cls(hilbert, terms, weights=weights, cutoff=cutoff, dtype=dtype)
 
     def __repr__(self):
         return (
@@ -220,19 +224,27 @@ class FermionOperator2ndBase(DiscreteOperator):
             f"n_operators={len(self._operators)}, dtype={self.dtype})"
         )
 
-    def reduce(self, order: bool = True, inplace: bool = True):
-        """Prunes the operator by removing all terms with zero weights, grouping, and normal ordering (inplace)."""
+    def reduce(self, order: bool = True, inplace: bool = True, cutoff: float = None):
+        """
+        Prunes the operator by removing all terms with zero weights, grouping, and normal ordering (inplace).
+
+        Args:
+            order: Whether to normal order the operator.
+            inplace: Whether to change the current object in place.
+            cutoff: Optional cutoff for the weights.
+        """
+        if cutoff is None:
+            cutoff = self._cutoff
+
         operators = self._operators
         terms, weights = list(operators.keys()), list(operators.values())
 
         if order:
             terms, weights = _normal_ordering(terms, weights)
 
-        terms, weights, constant = _collect_constants(terms, weights)
-        operators = dict(zip(terms, weights))
-
-        self._operators = _reduce_operators(operators, self.dtype)
-        self._constant = self._constant + constant
+        obj = self if inplace else self.copy()
+        obj._operators, _ = _canonicalize_input(terms, weights, self.dtype, cutoff)
+        return obj
 
     @property
     def dtype(self) -> DType:
@@ -250,22 +262,21 @@ class FermionOperator2ndBase(DiscreteOperator):
         return list(self._operators.values())
 
     @property
-    def constant(self) -> Number:
-        """Returns the operator constant term."""
-        return self._constant
-
-    @property
     def operators(self) -> OperatorDict:
-        """Returns a dictionary with (term, weight) key-value pairs, with terms in tuple notation. Does not include the constant."""
+        """Returns a dictionary with (term, weight) key-value pairs, with terms in tuple notation.
+
+        The constant diagonal shift of the operator is associated with a term represented as an empty tuple.
+        """
         return self._operators
 
-    def copy(self, *, dtype: Optional[DType] = None):
+    def copy(self, *, dtype: Optional[DType] = None, cutoff=None):
         """
         Creates a deep copy of this operator, potentially changing the dtype of the
         operator and internal arrays.
 
         Args:
             dtype: Optional new dtype. Must be compatible with the current dtype.
+            cutoff: Optional new cutoff.
 
         Returns:
             An identical operator that does not reference the internal arrays of
@@ -275,8 +286,10 @@ class FermionOperator2ndBase(DiscreteOperator):
             dtype = self.dtype
         if not np.can_cast(self.dtype, dtype, casting="same_kind"):
             raise ValueError(f"Cannot cast {self.dtype} to {dtype}")
+        if cutoff is None:
+            cutoff = self._cutoff
 
-        op = type(self)(self.hilbert, constant=self._constant, dtype=dtype)
+        op = type(self)(self.hilbert, cutoff=self._cutoff, dtype=dtype)
 
         if dtype == self.dtype:
             operators_new = self._operators.copy()
@@ -288,10 +301,12 @@ class FermionOperator2ndBase(DiscreteOperator):
         op._operators = operators_new
         return op
 
-    def _remove_zeros(self):
+    def _remove_zeros(self, cutoff: float = None):
         """Reduce the number of operators by removing unnecessary zeros"""
-        op = type(self)(self.hilbert, constant=self._constant, dtype=self.dtype)
-        op._operators = _remove_dict_zeros(self._operators)
+        if cutoff is None:
+            cutoff = self._cutoff
+        op = type(self)(self.hilbert, cutoff=cutoff, dtype=self.dtype)
+        op._operators = _remove_dict_zeros(self._operators, cutoff)
         return op
 
     @property
@@ -307,14 +322,13 @@ class FermionOperator2ndBase(DiscreteOperator):
         if self._is_hermitian is None:  # only compute when needed, is expensive
             terms = list(self._operators.keys())
             weights = list(self._operators.values())
-            self._is_hermitian = _check_hermitian(terms, weights)
+            cutoff = self._cutoff
+            self._is_hermitian = _check_hermitian(terms, weights, cutoff)
         return self._is_hermitian
 
     def operator_string(self) -> str:
         """Return a readable string describing all the operator terms"""
         op_string = []
-        if not np.isclose(self._constant, 0.0):
-            op_string.append(f"{self._constant} []")
         for term, weight in self._operators.items():
             s = []
             for idx, dag in term:
@@ -344,19 +358,11 @@ class FermionOperator2ndBase(DiscreteOperator):
             for to, wo in other._operators.items():
                 # if the last operator of t and the first of to are
                 # equal, we have a ...ĉᵢĉᵢ... which is null.
-                if t[-1] != to[0]:
+                if len(t) == 0 or len(to) == 0 or t[-1] != to[0]:
                     new_t = t + to
                     new_operators[new_t] = new_operators.get(new_t, 0) + w * wo
 
-        if not np.isclose(other._constant, 0.0):
-            for t, w in self._operators.items():
-                new_operators[t] = w * other._constant
-        if not np.isclose(self._constant, 0.0):
-            for t, w in other._operators.items():
-                new_operators[t] = w * self._constant
-
         self._operators = new_operators
-        self._constant = self._constant * other._constant
         self._reset_caches()
         return self
 
@@ -364,7 +370,8 @@ class FermionOperator2ndBase(DiscreteOperator):
         if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             return NotImplemented
         dtype = np.promote_types(self.dtype, other.dtype)
-        op = self.copy(dtype=dtype)
+        cutoff = max(self._cutoff, other._cutoff)
+        op = self.copy(dtype=dtype, cutoff=cutoff)
         return op._op__imatmul__(other)
 
     def __radd__(self, other):
@@ -377,9 +384,9 @@ class FermionOperator2ndBase(DiscreteOperator):
 
     def __iadd__(self, other):
         if is_scalar(other):
-            if not np.isclose(other, 0.0):
-                self._constant += other
-            return self
+            return self + self.__class__(
+                self.hilbert, constant=other, dtype=self.dtype, cutoff=self._cutoff
+            )
         if not isinstance(other, FermionOperator2ndBase):  # pragma: no cover
             raise NotImplementedError(
                 f"In-place addition not implemented for {type(self)} "
@@ -406,8 +413,6 @@ class FermionOperator2ndBase(DiscreteOperator):
                     del self_ops[t]
                 else:
                     self_ops[t] = w
-
-        self._constant += other._constant
         self._reset_caches()
         return self
 
@@ -440,7 +445,6 @@ class FermionOperator2ndBase(DiscreteOperator):
             new_operators = {o: scalar * v for o, v in self._operators.items()}
 
         self._operators = new_operators
-        self._constant *= scalar
         self._reset_caches()
         return self
 
@@ -458,15 +462,16 @@ class FermionOperator2ndBase(DiscreteOperator):
         terms = list(self._operators.keys())
         weights = list(self._operators.values())
         terms, weights = _herm_conj(terms, weights)  # changes also the terms
-        terms = _make_tuple_tree(terms)
 
         cls = type(self)
         new = cls(
             self.hilbert,
-            constant=np.conjugate(self._constant),
             dtype=self.dtype,
         )
-        new._operators = dict(zip(terms, weights))
+        new._operators, _ = _canonicalize_input(
+            terms, weights, self.dtype, self._cutoff
+        )
+        new._cutoff = self._cutoff
         return new
 
     def to_normal_order(self):
@@ -479,11 +484,13 @@ class FermionOperator2ndBase(DiscreteOperator):
         terms, weights = _normal_ordering(self.terms, self.weights)
         new = type(self)(
             self.hilbert,
-            constant=self._constant,
             dtype=self.dtype,
         )
-        new._operators = dict(zip(terms, weights))
-        new.reduce()
+        new._operators, _ = _canonicalize_input(
+            terms, weights, self.dtype, self._cutoff
+        )
+        new._cutoff = self._cutoff
+        new.reduce(order=False)  # already ordered
         return new
 
     def to_pair_order(self):
@@ -495,9 +502,11 @@ class FermionOperator2ndBase(DiscreteOperator):
         terms, weights = _pair_ordering(self.terms, self.weights)
         new = type(self)(
             self.hilbert,
-            constant=self._constant,
             dtype=self.dtype,
         )
-        new._operators = dict(zip(terms, weights))
-        new.reduce()
+        new._operators, _ = _canonicalize_input(
+            terms, weights, self.dtype, self._cutoff
+        )
+        new._cutoff = self._cutoff
+        new.reduce(order=False)  # already ordered
         return new

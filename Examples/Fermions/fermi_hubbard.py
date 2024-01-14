@@ -15,7 +15,7 @@ g = nk.graph.Hypercube(length=L, n_dim=D, pbc=True)
 n_sites = g.n_nodes
 
 # create a hilbert space with 2 up and 2 down spins
-hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions=(2, 2))
+hi = nkx.hilbert.SpinOrbitalFermions(n_sites, s=1 / 2, n_fermions_per_spin=(2, 2))
 
 
 # create an operator representing fermi hubbard interactions
@@ -52,18 +52,23 @@ print("Hamiltonian =", ham.operator_string())
 # move the fermions around independently for both spins
 # and therefore conserve the number of fermions with up and down spin
 
+# we can do this explicitly
 # g.n_nodes == L*L --> disj_graph == 2*L*L
 disj_graph = nk.graph.disjoint_union(g, g)
-sa = nk.sampler.MetropolisExchange(hi, graph=disj_graph, n_chains=16)
+sa = nkx.sampler.MetropolisParticleExchange(hi, graph=g, n_chains=16, sweep_size=64)
+# or let netket copy the graph per spin sector
+sa = nkx.sampler.MetropolisParticleExchange(
+    hi, graph=g, n_chains=16, sweep_size=64, exchange_spins=False
+)
 
 # since the hilbert basis is a set of occupation numbers, we can take a general RBM
 # we take complex parameters, since it learns sign structures more easily, and for even fermion number, the wave function might be complex
 ma = nk.models.RBM(alpha=1, param_dtype=complex, use_visible_bias=False)
-vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=100, n_samples=512)
+vs = nk.vqs.MCState(sa, ma, n_discard_per_chain=10, n_samples=512)
 
 # we will use sgd with Stochastic Reconfiguration
 opt = nk.optimizer.Sgd(learning_rate=0.01)
-sr = nk.optimizer.SR(diag_shift=0.1)
+sr = nk.optimizer.SR(diag_shift=0.1, holomorphic=True)
 
 gs = nk.driver.VMC(ham, opt, variational_state=vs, preconditioner=sr)
 

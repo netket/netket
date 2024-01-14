@@ -9,7 +9,11 @@
 
 * Recurrent neural networks and layers have been added to `nkx.models` and `nkx.nn` [#1305](https://github.com/netket/netket/pull/1305).
 * Added experimental support for running NetKet on multiple jax devices (as an alternative to MPI). It is enabled by setting the environment variable/configuration flag `NETKET_EXPERIMENTAL_SHARDING=1`. Parallelization is achieved by distributing the Markov chains / samples equally across all available devices utilizing [`jax.Array` sharding](https://jax.readthedocs.io/en/latest/notebooks/Distributed_arrays_and_automatic_parallelization.html). On GPU multi-node setups are supported via [jax.distribued](https://jax.readthedocs.io/en/latest/multi_process.html), whereas on CPU it is limited to a single process but several threads can be used by setting `XLA_FLAGS='--xla_force_host_platform_device_count=XX'` [#1511](https://github.com/netket/netket/pull/1511).
-* Autoregressive neural networks now support constrained `Spin` and `Fock` spaces [#1659](https://github.com/netket/netket/pull/1659).
+* Autoregressive neural networks now support constrained {class}`~netket.operator.Spin` and {class}`~netket.operator.Fock` spaces [#1659](https://github.com/netket/netket/pull/1659).
+* {class}`netket.experimental.operator.FermionOperator2nd` is a new Jax-compatible implementation of fermionic operators. It can also be constructed starting from a standard fermionic operator by calling `operator.to_jax_operator()`, or used in combination with `pyscf` converters[#1675](https://github.com/netket/netket/pull/1675),[#1684](https://github.com/netket/netket/pull/1684).
+* {class}`netket.operator.LocalOperatorJax` is a new Jax-compatible implementation of local operators. It can also be constructed starting from a standard operator by calling `operator.to_jax_operator()` [#1654](https://github.com/netket/netket/pull/1654).
+* The logger interface has been formalised and documented in the abstract base class {class}`netket.logging.AbstractLog` [#1665](https://github.com/netket/netket/pull/1665).
+* The {class}`~netket.experimental.sampler.ParticleExchange` sampler and corresponding rule {class}`~netket.experimental.sampler.rules.ParticleExchangeRule` has been added, which special cases {class}`~netket.sampler.ExchangeSampler` to fermionic spaces in order to avoid proposing moves where the two site exchanged have the same population [#1683](https://github.com/netket/netket/issues/1683).
 
 ### Breaking Changes
 
@@ -17,7 +21,15 @@
 
 ### Deprecations
 
-* `MetropolisSampler.n_sweeps` has been renamed to `MetropolisSampler.sweep_size` for clarity. Using `n_sweeps` when constructing the sampler now throws a deprecation warning; `sweep_size` should be used instead going forward. [#1657](https://github.com/netket/netket/issues/1657)
+* `MetropolisSampler.n_sweeps` has been renamed to {attr}`~netket.sampler.MetropolisSampler.MetropolisSampler.sweep_size` for clarity. Using `n_sweeps` when constructing the sampler now throws a deprecation warning; `sweep_size` should be used instead going forward [#1657](https://github.com/netket/netket/issues/1657).
+* Samplers and metropolis rules defined as {func}`netket.utils.struct.dataclass` are deprecated because the base class is now a {class}`netket.utils.struct.Pytree`. The only change needed is to remove the dataclass decorator and define a standard init method [#1653](https://github.com/netket/netket/issues/1653).
+
+### Internal changes
+* A new class {class}`netket.utils.struct.Pytree`, can be used to create Pytrees for which inheritance autoamtically works and for which it is possible to define `__init__`. Several structures such as samplers and rules have been transitioned to this new interface instead of old style `@struct.dataclass` [#1653](https://github.com/netket/netket/issues/1653).
+* The {class}`~netket.experimental.operator.FermionOperator2nd` and related classes now store the constant diagonal shift as another term instead of a completely special cased scalar value. The same operators now also respect the `cutoff` keyword argument more strictly [#1686](https://github.com/netket/netket/issues/1686).
+
+### Bug Fixes
+* Support multiplication of Discrete Operators by Sparse arrays [#1661](https://github.com/netket/netket/issues/1661).
 
 ## NetKet 3.10.2 (14 november 2023)
 

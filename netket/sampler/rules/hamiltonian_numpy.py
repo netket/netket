@@ -31,14 +31,15 @@ class HamiltonianRuleState:
 
 
 class HamiltonianRuleNumpy(MetropolisRule):
-    """
+    r"""
     Rule for Numpy sampler backend proposing moves according to the terms in an operator.
 
     In this case, the transition matrix is taken to be:
 
     .. math::
 
-       T( \\mathbf{s} \\rightarrow \\mathbf{s}^\\prime) = \\frac{1}{\\mathcal{N}(\\mathbf{s})}\\theta(|H_{\\mathbf{s},\\mathbf{s}^\\prime}|),
+       T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = 
+        \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),
 
     """
 
@@ -48,10 +49,10 @@ class HamiltonianRuleNumpy(MetropolisRule):
     def __init__(self, operator: DiscreteOperator):
         """
         Constructs the Hamiltonian sampling rule for the
-        :class:`netket.sampler.MetropolisNumpy`sampler.
+        :class:`netket.sampler.MetropolisNumpy` sampler.
 
         If you are using the standard jax sampler, look for
-        :class:`netket.sampler.rules.HamiltonianRule`.
+        :class:`netket.sampler.rules.HamiltonianRule` .
 
         Args:
             operator: The hermitian operator to be used to generate
