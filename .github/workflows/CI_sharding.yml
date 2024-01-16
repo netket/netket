@@ -52,6 +52,10 @@ jobs:
           pip install jaxlib
           pip install -e ".[dev,extra]"
 
+      - name: Clear pycache
+        run: |
+          find . | grep -E "(__pycache__|\.pyc$)" | xargs rm -rf
+
       - name: run tests on 2 cpus
         run: |
           ./test_sharding/"${{ matrix.runscript }}"
