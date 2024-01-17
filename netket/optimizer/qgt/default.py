@@ -66,7 +66,7 @@ def default_qgt_matrix(variational_state, solver=False, **kwargs):
         return partial(QGTJacobianDense, **kwargs)
 
     # TODO: Remove this once all QGT support diag_scale.
-    has_diag_rescale = kwargs.pop("diag_scale", None) is not None
+    has_diag_rescale = kwargs.get("diag_scale") is not None
 
     # arbitrary heuristic: if the network's parameters has many leaves
     # (an rbm has 3) then JacobianDense might be faster

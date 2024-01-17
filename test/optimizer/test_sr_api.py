@@ -117,3 +117,24 @@ def test_schedule_err():
 def test_repr():
     sr = nk.optimizer.SR(diag_shift=lambda _: 0.01, diag_scale=lambda _: 0.01)
     assert "SR" in repr(sr)
+
+
+def test_qgt_auto_diag_scale_passed():
+    # See PR/Issue https://github.com/netket/netket/pull/1692
+    # diag_scale was not passed to the concrete type
+
+    # construct a vstate
+    N = 5
+    hi = nk.hilbert.Spin(1 / 2, N)
+    vstate = nk.vqs.MCState(
+        nk.sampler.MetropolisLocal(hi),
+        nk.models.RBM(alpha=1),
+    )
+    vstate.init_parameters()
+    vstate.sample()
+
+    qgt_constructor = nk.optimizer.qgt.QGTAuto(diag_scale=0.2)
+    # NOTE: This assumes that the qgt built is a jacobian
+    # in the future this might change...
+    qgt = qgt_constructor(vstate)
+    assert qgt.scale is not None

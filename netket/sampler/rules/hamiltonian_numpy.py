@@ -38,7 +38,7 @@ class HamiltonianRuleNumpy(MetropolisRule):
 
     .. math::
 
-       T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = 
+       T( \mathbf{s} \rightarrow \mathbf{s}^\prime) =
         \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),
 
     """

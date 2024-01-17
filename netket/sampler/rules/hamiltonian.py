@@ -208,7 +208,7 @@ def HamiltonianRule(operator):
 
     .. math::
 
-       T( \mathbf{s} \rightarrow \mathbf{s}^\prime) = 
+       T( \mathbf{s} \rightarrow \mathbf{s}^\prime) =
         \frac{1}{\mathcal{N}(\mathbf{s})}\theta(|H_{\mathbf{s},\mathbf{s}^\prime}|),
 
     This is a thin wrapper on top of the constructors of :class:`netket.sampler.rules.HamiltonianRuleJax` and
