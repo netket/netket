@@ -301,7 +301,7 @@ def test_get_conn_padded(op, shape, dtype):
 )
 def test_to_local_operator(op):
     op_l = op.to_local_operator()
-    assert isinstance(op_l, nk.operator.LocalOperator)
+    assert isinstance(op_l, nk.operator._local_operator.LocalOperatorBase)
     np.testing.assert_allclose(op.to_dense(), op_l.to_dense(), atol=1e-13)
 
 
