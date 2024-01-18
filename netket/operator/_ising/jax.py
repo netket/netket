@@ -100,7 +100,7 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
                 )
 
         return ha.to_jax_operator()
-    
+
     def tree_flatten(self):
         data = (self.h, self.J, self.edges)
         metadata = {"hilbert": self.hilbert, "dtype": self.dtype}
