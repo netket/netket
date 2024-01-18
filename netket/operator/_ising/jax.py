@@ -86,18 +86,7 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
 
     def to_local_operator(self):
         # The hamiltonian
-        ha = LocalOperator(self.hilbert, dtype=self.dtype)
-
-        if self.h != 0:
-            for i in range(self.hilbert.size):
-                ha -= self.h * spin.sigmax(self.hilbert, int(i), dtype=self.dtype)
-
-        if self.J != 0:
-            for i, j in self.edges:
-                ha += self.J * (
-                    spin.sigmaz(self.hilbert, int(i), dtype=self.dtype)
-                    * spin.sigmaz(self.hilbert, int(j), dtype=self.dtype)
-                )
+        ha = super().to_local_operator()
 
         return ha.to_jax_operator()
 
