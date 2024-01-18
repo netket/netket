@@ -24,7 +24,9 @@ from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import StaticZero
 from netket.utils.types import DType
 
+from .. import spin
 from .._discrete_operator_jax import DiscreteJaxOperator
+from .._local_operator import LocalOperator
 
 from .base import IsingBase
 
@@ -82,6 +84,23 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
             self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
         )
 
+    def to_local_operator(self):
+        # The hamiltonian
+        ha = LocalOperator(self.hilbert, dtype=self.dtype)
+
+        if self.h != 0:
+            for i in range(self.hilbert.size):
+                ha -= self.h * spin.sigmax(self.hilbert, int(i), dtype=self.dtype)
+
+        if self.J != 0:
+            for i, j in self.edges:
+                ha += self.J * (
+                    spin.sigmaz(self.hilbert, int(i), dtype=self.dtype)
+                    * spin.sigmaz(self.hilbert, int(j), dtype=self.dtype)
+                )
+
+        return ha.to_jax_operator()
+    
     def tree_flatten(self):
         data = (self.h, self.J, self.edges)
         metadata = {"hilbert": self.hilbert, "dtype": self.dtype}
