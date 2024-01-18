@@ -24,7 +24,9 @@ from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import StaticZero
 from netket.utils.types import DType
 
+from .. import spin
 from .._discrete_operator_jax import DiscreteJaxOperator
+from .._local_operator import LocalOperator
 
 from .base import IsingBase
 
@@ -81,6 +83,12 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         return Ising(
             self.hilbert, graph=self.edges, h=self.h, J=self.J, dtype=self.dtype
         )
+
+    def to_local_operator(self):
+        # The hamiltonian
+        ha = super().to_local_operator()
+
+        return ha.to_jax_operator()
 
     def tree_flatten(self):
         data = (self.h, self.J, self.edges)
