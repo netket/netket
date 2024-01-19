@@ -79,7 +79,7 @@ class GraphOperator(LocalOperator):
              specified, the user must give a list of site operators.
          bond_ops_colors: A list of edge colors, specifying the color each
              bond operator acts on. The default is an empty list.
-         dtype: Data type type of the matrix elements.
+         dtype: Data type of the matrix elements.
          acting_on_subspace: Specifies the mapping between nodes of the graph and
             Hilbert space sites, so that graph node :code:`i ∈ [0, ..., graph.n_nodes]`,
             corresponds to :code:`acting_on_subspace[i] ∈ [0, ..., hilbert.n_sites]`.
