@@ -24,9 +24,7 @@ from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import StaticZero
 from netket.utils.types import DType
 
-from .. import spin
 from .._discrete_operator_jax import DiscreteJaxOperator
-from .._local_operator import LocalOperator
 
 from .base import IsingBase
 
@@ -110,13 +108,7 @@ def _ising_mels_jax(x, edges, h, J):
         max_conn_size = 1
     else:
         max_conn_size = x.shape[-1] + 1
-    mels = jnp.zeros(
-        (
-            *batch_dims,
-            max_conn_size,
-        ),
-        dtype=J.dtype,
-    )
+    mels = jnp.zeros((*batch_dims, max_conn_size), dtype=J.dtype)
 
     same_spins = x[..., edges[:, 0]] == x[..., edges[:, 1]]
     mels = mels.at[..., 0].set(J * (2 * same_spins - 1).sum(axis=-1))
