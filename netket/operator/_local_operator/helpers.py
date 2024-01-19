@@ -120,7 +120,7 @@ def canonicalize_input(
 
     # If we asked for a specific dtype, enforce it.
     if dtype is None:
-        dtype = np.promote_types(np.float32, _dtype(constant))
+        dtype = np.promote_types(float, _dtype(constant))
         dtype = functools.reduce(
             lambda dt, op: np.promote_types(dt, op.dtype), operators, dtype
         )
