@@ -28,16 +28,18 @@ class ContinuousOperator(AbstractOperator):
     `ContinuousOperator` and implement its interface.
     """
 
-    def __init__(self, hilbert: AbstractHilbert, dtype: DType = float):
+    def __init__(self, hilbert: AbstractHilbert, dtype: Optional[DType] = None):
         r"""
         Constructs the continuous operator acting on the given hilbert space and
         with a certain data type.
 
         Args:
             hilbert: The underlying Hilbert space on which the operator is defined
-            dtype: Data type of the matrix elements. Defaults to `np.float64`
+            dtype: Data type of the operator, which is used to infer the dtype of
+                expectation values. Defaults to `float`
         """
-
+        if dtype is None:
+            dtype = float
         self._dtype = dtype
         self._hash = None
         super().__init__(hilbert)

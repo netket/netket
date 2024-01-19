@@ -64,7 +64,7 @@ class KineticEnergy(ContinuousOperator):
         r"""Args:
         hilbert: The underlying Hilbert space on which the operator is defined
         mass: float if all masses are the same, list indicating the mass of each particle otherwise
-        dtype: Data type of the matrix elements. Defaults to `np.float64`
+        dtype: Data type of the mass
         """
 
         self._mass = jnp.asarray(mass, dtype=dtype)

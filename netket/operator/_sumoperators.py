@@ -17,7 +17,6 @@ from collections.abc import Hashable, Iterable
 from netket.utils.numbers import is_scalar
 from netket.utils.types import DType, PyTree, Array
 
-import functools
 
 from netket.operator import ContinuousOperator
 from netket.utils import struct, HashableArray
@@ -74,7 +73,7 @@ class SumOperator(ContinuousOperator):
         Args:
             operators: A list of ContinuousOperator objects
             coefficients: A coefficient for each ContinuousOperator object
-            dtype: Data type of the matrix elements. Defaults to `np.float64`
+            dtype: Data type of the coefficients
         """
         hi_spaces = [op.hilbert for op in operators]
         if not all(hi == hi_spaces[0] for hi in hi_spaces):
@@ -90,15 +89,13 @@ class SumOperator(ContinuousOperator):
 
         operators, coefficients = _flatten_sumoperators(operators, coefficients)
 
+        if dtype is None:
+            dtype = jnp.result_type(*[op.dtype for op in operators], *coefficients)
+
         self._operators = tuple(operators)
         self._coefficients = jnp.asarray(coefficients, dtype=dtype)
 
-        if dtype is None:
-            dtype = functools.reduce(
-                lambda dt, op: jnp.promote_types(dt, op.dtype), operators, float
-            )
-
-        super().__init__(hi_spaces[0], dtype)
+        super().__init__(hi_spaces[0], self._coefficients.dtype)
 
         self._is_hermitian = all([op.is_hermitian for op in operators])
         self.__attrs = None
