@@ -53,7 +53,7 @@ class GraphOperator(LocalOperator):
         site_ops=[],
         bond_ops=[],
         bond_ops_colors=[],
-        dtype: DType = None,
+        dtype: Optional[DType] = None,
         *,
         acting_on_subspace: Union[None, list[int], int] = None,
     ):
