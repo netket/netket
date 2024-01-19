@@ -101,19 +101,23 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
 
     weights = _standardize_matrix_input_type(weights)
 
+    operators = np.asarray(operators, dtype=str)
+
+    # When there is an odd number of 'Y' in any string, the whole operator must be complex
+    op_is_complex = any(s.count("Y") % 2 == 1 for s in operators)
+
     # If we asked for a specific dtype, enforce it.
     if dtype is None:
-        dtype = jnp.promote_types(np.float32, _dtype(weights))
+        dtype = jnp.promote_types(complex if op_is_complex else float, _dtype(weights))
     # Fallback to float32 when float64 is disabled in JAX
     dtype = jnp.empty((), dtype=dtype).dtype
 
-    operators = np.asarray(operators, dtype=str)
-
-    # If real dtype but there is a 'Y' in the string, upconvert
-    # the dtype to complex
     if not nkjax.is_complex_dtype(dtype):
-        if np.any(np.char.find(operators, "Y") != -1):
-            dtype = nkjax.dtype_complex(dtype)
+        if op_is_complex:
+            raise TypeError("Cannot specify real dtype with an odd number of Y")
+
+        if nkjax.is_complex_dtype(weights.dtype):
+            raise TypeError("Cannot specify real dtype with complex weights")
 
     weights = cast_operator_matrix_dtype(weights, dtype=dtype)
 

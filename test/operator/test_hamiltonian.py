@@ -121,6 +121,21 @@ def _colored_graph(graph):
             ),
             id="pauli",
         ),
+        pytest.param(
+            (
+                lambda hi, g: nk.operator.PauliStrings(
+                    hi,
+                    [s + "I" * (g.n_nodes - len(s)) for s in ["XXI", "YZY", "IZX"]],
+                    [0.1, 0.2, -1.4],
+                ),
+                lambda hi, g: nk.operator.PauliStringsJax(
+                    hi,
+                    [s + "I" * (g.n_nodes - len(s)) for s in ["XXI", "YZY", "IZX"]],
+                    [0.1, 0.2, -1.4],
+                ),
+            ),
+            id="pauli_real",
+        ),
     ],
 )
 @pytest.mark.parametrize(

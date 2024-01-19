@@ -96,16 +96,17 @@ for name, LocalOp_impl in [
     operators[f"Custom Hamiltonian Prod ({name})"] = sx_hat * 1.5 + (2.0 * sy_hat)
 
 operators["Pauli Hamiltonian (XX)"] = nk.operator.PauliStrings(["XX"], [0.1])
+operators["Pauli Hamiltonian (YY)"] = nk.operator.PauliStrings(["YY"], [0.1])
 operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
 operators["Pauli Hamiltonian Jax (_mode=index)"] = nk.operator.PauliStringsJax(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4], _mode="index"
 )
-
 operators["Pauli Hamiltonian Jax (_mode=mask)"] = nk.operator.PauliStringsJax(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4], _mode="mask"
 )
+
 hi = nkx.hilbert.SpinOrbitalFermions(5)
 operators["FermionOperator2nd"] = nkx.operator.FermionOperator2nd(
     hi,

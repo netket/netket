@@ -15,6 +15,7 @@
 import pytest
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 import netket as nk
@@ -310,22 +311,45 @@ def test_pauli_problem():
     x1 = nk.operator.PauliStringsJax("XII")
     x2 = nk.operator.PauliStringsJax("IXI")
     x3 = x1 @ x2
-    assert x1.weights.dtype == jnp.float32
-    assert x2.weights.dtype == jnp.float32
-    assert x3.weights.dtype == jnp.float32
+    dtype = jax.dtypes.canonicalize_dtype(float)
+    assert x1.weights.dtype == dtype
+    assert x2.weights.dtype == dtype
+    assert x3.weights.dtype == dtype
 
-    assert (x1 + x1 @ x2).weights.dtype == jnp.float32
+    assert (x1 + x1 @ x2).weights.dtype == dtype
 
 
-def test_pauliY_promotion_to_complex():
+def test_pauliY_dtype():
     ham = nk.operator.PauliStrings("XXX", dtype=np.float32)
     assert ham.dtype == np.float32
-    ham = nk.operator.PauliStrings("XXY", dtype=np.float32)
-    assert ham.dtype == np.complex64
-    ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.float32)
+    ham = nk.operator.PauliStrings("XYY", dtype=np.float32)
+    assert ham.dtype == np.float32
+    ham = nk.operator.PauliStrings(["XXX", "XYY"], dtype=np.float32)
+    assert ham.dtype == np.float32
+
+    ham = nk.operator.PauliStrings("XXY", dtype=np.complex64)
     assert ham.dtype == np.complex64
     ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.complex64)
     assert ham.dtype == np.complex64
+
+    ham = nk.operator.PauliStrings("XXX", [1j], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings("XYY", [1j], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings(["XXX", "XYY"], [1, 1j], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings("XXY", dtype=np.float32)
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.float32)
+
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings("XXX", [1j], dtype=np.float32)
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings("XYY", [1j], dtype=np.float32)
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings(["XXX", "XYY"], [1, 1j], dtype=np.float32)
 
 
 def test_pauli_empty_constructor_error():
