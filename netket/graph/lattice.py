@@ -22,7 +22,6 @@ import warnings
 
 import numpy as _np
 
-from netket.utils.deprecation import deprecated as _deprecated
 from netket.utils import HashableArray
 from netket.utils.float import comparable, comparable_periodic, is_approx_int
 from netket.utils.group import PointGroup, PermutationGroup, trivial_point_group
@@ -77,18 +76,6 @@ def _create_sites(basis_vectors, extent, site_offsets):
     ]
 
     return sites, basis_coords, positions
-
-
-def deprecated(alternative):
-    def wrapper(fn):
-        msg = (
-            f"{fn.__name__} is deprecated and may be removed in the future. "
-            f"You can use `{alternative}`` instead."
-        )
-        f = _deprecated(msg)(fn)
-        return f
-
-    return wrapper
 
 
 REPR_TEMPLATE = """Lattice(
@@ -154,7 +141,6 @@ class Lattice(Graph):
         *,
         pbc: Union[bool, Sequence[bool]] = True,
         site_offsets: Optional[_np.ndarray] = None,
-        atoms_coord: Optional[_np.ndarray] = None,
         distance_atol: float = 1e-5,
         point_group: Optional[PointGroup] = None,
         max_neighbor_order: Optional[int] = None,
@@ -257,7 +243,6 @@ class Lattice(Graph):
 
         self._site_offsets, site_pos_fractional = self._clean_site_offsets(
             site_offsets,
-            atoms_coord,
             self._basis_vectors,
         )
         self._pbc = self._clean_pbc(pbc, self._ndim)
@@ -322,24 +307,9 @@ class Lattice(Graph):
             raise ValueError("The number of primitive vectors must match their length")
         return basis_vectors
 
-    # TODO: remove atoms_coord argument.
     @staticmethod
-    def _clean_site_offsets(site_offsets, atoms_coord, basis_vectors):
+    def _clean_site_offsets(site_offsets, basis_vectors):
         """Check and convert `site_offsets` init argument."""
-        if atoms_coord is not None and site_offsets is not None:
-            raise ValueError(
-                "atoms_coord is deprecated and replaced by site_offsets, "
-                "so both cannot be specified at the same time."
-            )
-        if atoms_coord is not None:
-            warnings.warn(
-                "atoms_coord is deprecated and may be removed in future versions, "
-                "please use site_offsets instead",
-                FutureWarning,
-                stacklevel=3,
-            )
-            site_offsets = atoms_coord
-
         if site_offsets is None:
             site_offsets = _np.zeros(basis_vectors.shape[0])[None, :]
 
@@ -702,45 +672,3 @@ class Lattice(Graph):
             )
         ax.axis("equal")
         return ax
-
-    # Backwards compatibility
-    # ------------------------------------------------------------------------
-    @deprecated("basis_coords[site_id, -1]")
-    def atom_label(self, site_id: int) -> int:
-        """Deprecated. please use :code:`basis_coords[site_id, -1]` instead."""
-        return self.basis_coords[site_id, -1]
-
-    @deprecated("basis_coords[site_id, :-1]")
-    def site_to_vector(self, site_id: int) -> CoordT:
-        """Deprecated. please use :code:`basis_coords[site_id, :-1]` instead."""
-        return self.basis_coords[site_id, :-1]
-
-    @deprecated("positions[site_id]")
-    def site_to_coord(self, site_id: int) -> PositionT:
-        """Deprecated. please use :code:`positions[site_id]` instead."""
-        return self.positions[site_id]
-
-    @deprecated("id_from_basis_coords([*vector, 0])")
-    def vector_to_site(self, vector: CoordT) -> int:
-        """Deprecated. please use :code:`id_from_basis_coords([*vector, 0])` instead."""
-        # Note: This only gives one site within the unit cell, so that
-        # `vector_to_site(site_to_vector(i)) == i` is _not_ true in general,
-        # which is consistent with the behavior of the v2 lattice.
-        return self.id_from_basis_coords([*vector, 0])
-
-    @deprecated("position_from_basis_coords([*vector, label])")
-    def vector_to_coord(self, vector: CoordT, label: int) -> PositionT:
-        "Deprecated. please use :code:`position_from_basis_coords([*vector, label])`."
-        return self.position_from_basis_coords([*vector, label])
-
-    @property
-    @deprecated("positions")
-    def coordinates(self) -> PositionT:
-        """Deprecated. please use :code:`positions` instead."""
-        return self.positions
-
-    @property
-    @deprecated("site_offsets")
-    def atoms_coord(self) -> PositionT:
-        """Deprecated. please use :code:`site_offsets` instead."""
-        return self._site_offsets
