@@ -20,6 +20,7 @@ import jax.random as random
 import numpy as np
 from jax.nn.initializers import uniform
 from netket.utils.group import PermutationGroup
+from netket.errors import SymmModuleInvalidInputShape
 
 import pytest
 
@@ -315,10 +316,11 @@ def test_modes_DenseSymm(lattice, symmetries):
 
     # Test Deprecation warning
     dum_input_nofeatures = dum_input.reshape((dum_input.shape[0], dum_input.shape[2]))
-    with pytest.warns(FutureWarning):
+    with pytest.raises(SymmModuleInvalidInputShape):
         np.testing.assert_allclose(
             ma_fft.apply(pars, dum_input), ma_fft.apply(pars, dum_input_nofeatures)
         )
+    with pytest.raises(SymmModuleInvalidInputShape):
         np.testing.assert_allclose(
             ma_matrix.apply(pars, dum_input),
             ma_matrix.apply(pars, dum_input_nofeatures),
