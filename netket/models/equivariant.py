@@ -22,7 +22,7 @@ from flax import linen as nn
 from jax.nn.initializers import zeros, lecun_normal
 from jax.scipy.special import logsumexp
 
-from netket.utils import HashableArray, warn_deprecation, deprecate_dtype
+from netket.utils import HashableArray, deprecate_dtype
 from netket.utils.types import NNInitFunc, Array
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
@@ -317,10 +317,6 @@ class GCNN_Parity_FFT(nn.Module):
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
-    extra_bias: bool = False
-    """Deprecated. If True, uses bias in parity-flip layers too. Required for using
-    parameters saved before PR#1030, but hinders performance.
-    See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_gcnn_initializer
@@ -332,15 +328,6 @@ class GCNN_Parity_FFT(nn.Module):
     `characters` are negative."""
 
     def setup(self):
-        # TODO: eventually remove this warning
-        # supports a deprecated attribute
-        if self.extra_bias:
-            warn_deprecation(
-                "`extra_bias` is detrimental for performance and is deprecated. "
-                "Please switch to the default `extra_bias=False`. Previously saved "
-                "parameters can be migrated using `nk.models.update_GCNN_parity`."
-            )
-
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
         self.dense_symm = DenseSymmFFT(
@@ -376,7 +363,7 @@ class GCNN_Parity_FFT(nn.Module):
                 shape=self.shape,
                 features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
-                use_bias=self.extra_bias and self.use_bias,
+                use_bias=self.use_bias,
                 param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,
@@ -502,10 +489,6 @@ class GCNN_Parity_Irrep(nn.Module):
     """If true forces all basis states to have the same amplitude by setting Re[psi] = 0"""
     use_bias: bool = True
     """if True uses a bias in all layers."""
-    extra_bias: bool = False
-    """Deprecated. If True, uses bias in parity-flip layers too. Required for using
-    parameters saved before PR#1030, but hinders performance.
-    See also `nk.models.update_GCNN_parity`."""
     precision: Any = None
     """numerical precision of the computation see :class:`jax.lax.Precision` for details."""
     kernel_init: NNInitFunc = default_gcnn_initializer
@@ -517,15 +500,6 @@ class GCNN_Parity_Irrep(nn.Module):
     `characters` are negative."""
 
     def setup(self):
-        # TODO: eventually remove this warning
-        # supports a deprecated attribute
-        if self.extra_bias:
-            warn_deprecation(
-                "`extra_bias` is detrimental for performance and is deprecated. "
-                "Please switch to the default `extra_bias=False`. Previously saved "
-                "parameters can be migrated using `nk.models.update_GCNN_parity`."
-            )
-
         self.n_symm = np.asarray(self.symmetries).shape[0]
 
         self.dense_symm = DenseSymmMatrix(
@@ -558,7 +532,7 @@ class GCNN_Parity_Irrep(nn.Module):
                 irreps=self.irreps,
                 features=self.features[layer + 1],
                 # this would bias the same outputs as self.equivariant
-                use_bias=self.extra_bias and self.use_bias,
+                use_bias=self.use_bias,
                 param_dtype=self.param_dtype,
                 precision=self.precision,
                 kernel_init=self.kernel_init,

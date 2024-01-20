@@ -18,8 +18,6 @@ from functools import wraps
 import jax
 from jax import numpy as jnp
 
-from netket.utils import deprecated
-
 from jax.nn import celu
 from jax.nn import elu
 from jax.nn import gelu

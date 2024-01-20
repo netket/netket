@@ -27,19 +27,10 @@ from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils.group import PermutationGroup
 from collections.abc import Sequence
 from netket.graph import Graph, Lattice
+from netket.errors import SymmModuleInvalidInputShape
 
 # All layers defined here have kernels of shape [out_features, in_features, n_symm]
 default_equivariant_initializer = lecun_normal(in_axis=1, out_axis=0)
-
-
-def symm_input_warning(x_shape, new_x_shape, name):
-    warn_deprecation(
-        f"{len(x_shape)}-dimensional input to {name} layer is deprecated.\n"
-        f"Input shape {x_shape} has been reshaped to {new_x_shape}, where "
-        "the middle dimension encodes different input channels.\n"
-        "Please provide a 3-dimensional input.\nThis warning will become an "
-        "error in the future."
-    )
 
 
 class DenseSymmMatrix(Module):
@@ -84,16 +75,9 @@ class DenseSymmMatrix(Module):
         Returns:
           The transformed input.
         """
-        # infer in_features and ensure input dimensions (batch, in_features,n_sites)
-
-        # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
+        # ensure input dimensions (batch, in_features,n_sites)
         if x.ndim < 3:
-            old_shape = x.shape
-            if x.ndim == 1:
-                x = jnp.expand_dims(x, (0, 1))
-            elif x.ndim == 2:
-                x = jnp.expand_dims(x, 1)
-            symm_input_warning(old_shape, x.shape, "DenseSymm")
+            raise SymmModuleInvalidInputShape("DenseSymmMatrix", x)
 
         in_features = x.shape[1]
 
@@ -196,15 +180,9 @@ class DenseSymmFFT(Module):
         dimensions (-2: features, -1: group elements)
         """
 
-        # TODO: Deprecated: Eventually remove and error if less than 3 dimensions
-        # infer in_features and ensure input dimensions (batch, in_features,n_sites)
+        # ensure input dimensions (batch, in_features,n_sites)
         if x.ndim < 3:
-            old_shape = x.shape
-            if x.ndim == 1:
-                x = jnp.expand_dims(x, (0, 1))
-            elif x.ndim == 2:
-                x = jnp.expand_dims(x, 1)
-            symm_input_warning(old_shape, x.shape, "DenseSymm")
+            raise SymmModuleInvalidInputShape("DenseSymmMatrix", x)
 
         in_features = x.shape[1]
 
