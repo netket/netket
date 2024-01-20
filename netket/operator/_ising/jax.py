@@ -24,9 +24,7 @@ from netket.hilbert import AbstractHilbert
 from netket.utils.numbers import StaticZero
 from netket.utils.types import DType
 
-from .. import spin
 from .._discrete_operator_jax import DiscreteJaxOperator
-from .._local_operator import LocalOperator
 
 from .base import IsingBase
 
