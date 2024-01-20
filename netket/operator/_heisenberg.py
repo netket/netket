@@ -34,7 +34,7 @@ class Heisenberg(GraphOperator):
         hilbert: AbstractHilbert,
         graph: AbstractGraph,
         J: Union[float, Sequence[float]] = 1.0,
-        sign_rule: Optional[Union[bool, Sequence[bool]]] = None,
+        sign_rule: Union[None, bool, Sequence[bool]] = None,
         dtype: Optional[DType] = None,
         *,
         acting_on_subspace: Union[None, list[int], int] = None,
