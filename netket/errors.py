@@ -550,7 +550,7 @@ class HolomorphicUndeclaredWarning(NetketWarning):
         )
 
 
-class RealQGTComplexDomainError(Exception):
+class RealQGTComplexDomainError(NetketError):
     """
     This error is raised when you apply the Quantum Geometric Tensor of a
     non-holomorphic function to a complex-valued vector, because the
@@ -638,6 +638,34 @@ class RealQGTComplexDomainError(Exception):
 
             Be careful whether you need the real or imaginary part
             of the vector in your equations!
+            """
+        )
+
+
+class SymmModuleInvalidInputShape(NetketError):
+    """
+    This error when you attempt to use a module with an input having a wrong number
+    of dimensions.
+
+    In particular, Simmetric layers require inputs with 3 dimensions :math:`(B, C, L)`:
+        - Batch dimension, which should be 1 if only 1 sample is considered
+        - Channel or Features dimension, which should encode multiple features, usually
+            originated from previous layers. If this is the first simmetric layer, you
+            can set this dimension to 1
+        - Length, which should span the physical degrees of freedom.
+    """
+
+    def __init__(self, name, x):
+        super().__init__(
+            """
+            Input to DenseSymmFFT has {x.ndim =} but 3 are required.
+
+            The input format is (B,C,L), aka (batches, features/channels, length). If
+            you have a single sample, simply use `jnp.atleast_3d(x)` before calling
+            this module.
+
+            If this is the first layer in a network, you usually need to set the channel
+            dimension to 1.
             """
         )
 

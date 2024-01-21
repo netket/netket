@@ -17,6 +17,10 @@
 ### Breaking Changes
 
 * The {class}`netket.models.Jastrow` wave-function now only has {math}`N (N-1)` variational parameters, instead of the {math}`N^2` redundant ones it had before. Saving and loading format has now changed and won't be compatible with previous versions[#1664](https://github.com/netket/netket/pull/1664).
+* Finalize deprecations of some old methods in `nk.sampler` namespace (see original commit [1f77ad8267e16fe8b2b2641d1d48a0e7ae94832e](https://github.com/netket/netket/commit/1f77ad8267e16fe8b2b2641d1d48a0e7ae94832e))
+* Finalize deprecations of 2D input to DenseSymm layers, which now turn into error and `extra_bias` option of Equivariant Networks/GCNNs (see original commit [c61ea542e9d0f3e899d87a7471dea96d4f6b152d](https://github.com/netket/netket/commit/c61ea542e9d0f3e899d87a7471dea96d4f6b152d))
+* Finalize deprecations of very old input/properties to Lattices [0f6f520da9cb6afcd2361dd6fd029e7ad6a2693e](https://github.com/netket/netket/commit/0f6f520da9cb6afcd2361dd6fd029e7ad6a2693e))
+
 
 ### Deprecations
 
@@ -202,7 +206,7 @@ Starting with NetKet 3.9 we will require Jax 0.4, which in turns requires Python
 * {func}`netket.optimizer.qgt.QGTJacobianDense` now returns the correct output for models with mixed real and complex parameters [#1397](https://github.com/netket/netket/pull/1397)
 
 ### Deprecations
-* The `rescale_shift` argument of {func}`~netket.optimizer.qgt.QGTJacobianPyTree` and {func}`~netket.optimizer.qgt.QGTJacobianDense` is deprecated inf avour the more flexible syntax with `diag_scale`. `rescale_shift=False` should be removed. `rescale_shift=True` should be replaced with `diag_scale=old_diag_shift`. [#1352](https://github.com/netket/netket/pull/1352).
+* The `rescale_shift` argument of {func}`~netket.optimizer.qgt.QGTJacobianPyTree` and {func}`~netket.optimizer.qgt.QGTJacobianDense` is deprecated in favour the more flexible syntax with `diag_scale`. `rescale_shift=False` should be removed. `rescale_shift=True` should be replaced with `diag_scale=old_diag_shift`. [#1352](https://github.com/netket/netket/pull/1352).
 * The call signature of preconditioners passed to {class}`netket.driver.VMC` and other drivers has changed as a consequence of scheduling, and preconditioners should now accept an extra optional argument `step`. The old signature is still supported but is deprecated and will eventually be removed [#1364](https://github.com/netket/netket/pull/1364).
 
 

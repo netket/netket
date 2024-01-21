@@ -15,10 +15,6 @@
 from .base import (
     Sampler,
     SamplerState,
-    sampler_state,
-    reset,
-    sample,
-    samples,
 )
 
 from .exact import ExactSampler

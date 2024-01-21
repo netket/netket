@@ -5,8 +5,6 @@ from netket.operator import IsingJax
 from netket.hilbert import Spin
 from netket.graph import Chain
 
-import pytest
-
 
 def test_casting():
     hi = Spin(s=0.5, N=8)

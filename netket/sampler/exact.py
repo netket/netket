@@ -22,7 +22,6 @@ from jax import numpy as jnp
 from netket import config
 from netket.hilbert import DiscreteHilbert
 from netket.nn import to_array
-from netket.utils.deprecation import warn_deprecation
 from netket.utils.types import PyTree, SeedT, DType
 
 from .base import Sampler, SamplerState
@@ -57,9 +56,6 @@ class ExactSampler(Sampler):
         hilbert: DiscreteHilbert,
         machine_pow: int = 2,
         dtype: DType = float,
-        *,
-        n_chains=None,
-        n_chains_per_rank=None,
     ):
         """
         Construct an exact sampler.
@@ -69,11 +65,6 @@ class ExactSampler(Sampler):
             machine_pow: The power to which the machine should be exponentiated to generate the pdf (default = 2).
             dtype: The dtype of the states sampled (default = np.float64).
         """
-        if n_chains is not None or n_chains_per_rank is not None:
-            warn_deprecation(
-                "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
-            )
-
         super().__init__(hilbert, machine_pow=machine_pow, dtype=dtype)
 
     @property
