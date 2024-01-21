@@ -317,7 +317,7 @@ class PauliStringsBase(DiscreteOperator):
         if not isinstance(other, PauliStringsBase):
             return NotImplemented
         op = self.copy(
-            dtype=np.promote_types(self.dtype, _dtype(other)),
+            dtype=jnp.promote_types(self.dtype, _dtype(other)),
             cutoff=max(self._cutoff, other._cutoff),
         )
         return op._op_imatmul_(other)
