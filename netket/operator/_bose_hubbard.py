@@ -16,6 +16,7 @@ from typing import Optional
 from numba import jit
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 import math
 
@@ -82,7 +83,8 @@ class BoseHubbard(SpecialHamiltonian):
             dtype = jnp.promote_types(dtype, _dtype(V))
             dtype = jnp.promote_types(dtype, _dtype(J))
             dtype = jnp.promote_types(dtype, _dtype(mu))
-        dtype = np.empty((), dtype=dtype).dtype
+        # Fallback to x32 when x64 is disabled in JAX
+        dtype = jax.dtypes.canonicalize_dtype(dtype)
         self._dtype = dtype
 
         self._U = np.asarray(U, dtype=dtype)

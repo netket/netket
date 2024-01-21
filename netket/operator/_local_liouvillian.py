@@ -16,6 +16,7 @@ import functools
 from typing import Optional
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 import numba
 from numba import jit
@@ -80,7 +81,8 @@ class LocalLiouvillian(AbstractSuperOperator):
             dtype = functools.reduce(
                 lambda dt, op: jnp.promote_types(dt, op.dtype), jump_ops, dtype
             )
-        dtype = np.empty((), dtype=dtype).dtype
+        # Fallback to x32 when x64 is disabled in JAX
+        dtype = jax.dtypes.canonicalize_dtype(dtype)
 
         if not nkjax.is_complex_dtype(dtype):
             raise TypeError(f"A complex dtype is required (dtype={dtype} specified).")

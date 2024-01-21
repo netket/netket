@@ -15,6 +15,8 @@ import abc
 from typing import Callable, Optional
 from collections.abc import Hashable
 
+import jax
+
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
@@ -36,10 +38,11 @@ class ContinuousOperator(AbstractOperator):
         Args:
             hilbert: The underlying Hilbert space on which the operator is defined
             dtype: Data type of the operator, which is used to infer the dtype of
-                expectation values. Defaults to `float`
+                expectation values
         """
         if dtype is None:
-            dtype = float
+            # Fallback to x32 when x64 is disabled in JAX
+            dtype = jax.dtypes.canonicalize_dtype(float)
         self._dtype = dtype
         self._hash = None
         super().__init__(hilbert)
