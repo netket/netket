@@ -307,6 +307,15 @@ def test_to_local_operator(op):
     np.testing.assert_allclose(op.to_dense(), op_l.to_dense(), atol=1e-13)
 
 
+def test_enforce_float_Ising():
+    g = nk.graph.Hypercube(5, 1)
+    hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
+    op = nk.operator.Ising(hilbert=hi, graph=g, J=1, h=1)
+    assert np.issubdtype(op.dtype, np.floating)
+    op = nk.operator.IsingJax(hilbert=hi, graph=g, J=1, h=1)
+    assert np.issubdtype(op.dtype, np.floating)
+
+
 def test_enforce_float_BoseHubbard():
     g = nk.graph.Hypercube(5, 1)
     hi = nk.hilbert.Fock(N=g.n_nodes, n_particles=3)
