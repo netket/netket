@@ -138,17 +138,32 @@ def test_sumoperator():
 
 
 @pytest.mark.parametrize(
-    "dtype", [jnp.float32, jnp.float64, jnp.complex64, jnp.complex128]
+    "dtype_x", [jnp.float32, jnp.float64, jnp.complex64, jnp.complex128]
 )
-def test_dtype(dtype):
-    pot = netket.operator.PotentialEnergy(hilb, v1, coefficient=1.0, dtype=dtype)
-    assert pot.dtype == dtype
-    assert pot.coefficient.dtype == dtype
+@pytest.mark.parametrize(
+    "dtype_op", [jnp.float32, jnp.float64, jnp.complex64, jnp.complex128]
+)
+def test_dtype(dtype_op, dtype_x):
+    dtype_energy = jnp.promote_types(dtype_op, dtype_x)
+    x = jnp.array([[1, 2, 3], [1, 2, 3]], dtype=dtype_x)
 
-    kin = netket.operator.KineticEnergy(hilb, mass=1.0, dtype=dtype)
-    assert kin.dtype == dtype
-    assert kin.mass.dtype == dtype
+    pot = netket.operator.PotentialEnergy(hilb, v1, coefficient=1.0, dtype=dtype_op)
+    assert pot.dtype == dtype_op
+    assert pot.coefficient.dtype == dtype_op
+
+    energy = pot1._expect_kernel(model3, 0.0, x, pot._pack_arguments())
+    assert energy.dtype == dtype_energy
+
+    kin = netket.operator.KineticEnergy(hilb, mass=1.0, dtype=dtype_op)
+    assert kin.dtype == dtype_op
+    assert kin.mass.dtype == dtype_op
+
+    energy = kin._expect_kernel(model3, 0.0, x, kin._pack_arguments())
+    assert energy.dtype == dtype_energy
 
     etot = pot + kin
-    assert etot.dtype == dtype
-    assert etot.coefficients.dtype == dtype
+    assert etot.dtype == dtype_op
+    assert etot.coefficients.dtype == dtype_op
+
+    energy = etot._expect_kernel(model3, 0.0, x, etot._pack_arguments())
+    assert energy.dtype == dtype_energy
