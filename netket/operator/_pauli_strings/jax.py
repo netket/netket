@@ -111,8 +111,7 @@ def pack_internals(operators, weights, cutoff=0):
         b_z_check = list(sorted(b_z_check))
 
         # If there is an even number of Y in a string, the weight should be real
-        # We compare b_weight.imag with exact float zero
-        if b_weight.imag == 0:
+        if np.isreal(b_weight):
             b_weight = b_weight.real
 
         append(b_to_change, (b_weight, b_z_check))

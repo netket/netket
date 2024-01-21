@@ -194,8 +194,7 @@ def local_operators_to_pauli_strings(hilbert, operators, acting_on, constant, dt
 
     # the calculation above returns complex weights even for operators that are
     # purely real, so we discard their imaginary parts
-    # We compare x.imag with exact float zero
-    weights = [x.real if x.imag == 0 else x for x in weights]
+    weights = [x.real if np.isreal(x) else x for x in weights]
 
     res = PauliStrings(hilbert, operators=pauli_strings, weights=weights, dtype=dtype)
     return res
