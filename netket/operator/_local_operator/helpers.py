@@ -125,7 +125,7 @@ def canonicalize_input(
         dtype = functools.reduce(
             lambda dt, op: jnp.promote_types(dt, op.dtype), operators, dtype
         )
-    # Fallback to float32 when float64 is disabled in JAX
+    # Fallback to x32 when x64 is disabled in JAX
     dtype = jax.dtypes.canonicalize_dtype(dtype)
 
     canonicalized_operators = []

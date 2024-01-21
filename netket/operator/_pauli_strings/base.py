@@ -18,6 +18,7 @@ from collections.abc import Iterable
 from netket.utils.types import DType, Array
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 from numba import jit
 from itertools import product
@@ -110,8 +111,8 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
     # If we asked for a specific dtype, enforce it.
     if dtype is None:
         dtype = jnp.promote_types(complex if op_is_complex else float, _dtype(weights))
-    # Fallback to float32 when float64 is disabled in JAX
-    dtype = jnp.empty((), dtype=dtype).dtype
+    # Fallback to x32 when x64 is disabled in JAX
+    dtype = jax.dtypes.canonicalize_dtype(dtype)
 
     if not nkjax.is_complex_dtype(dtype):
         if op_is_complex:

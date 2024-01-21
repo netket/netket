@@ -67,9 +67,10 @@ class IsingBase(SpecialHamiltonian):
         super().__init__(hilbert)
 
         if dtype is None:
-            dtype = jnp.promote_types(_dtype(h), _dtype(J))
-            # Fallback to float32 when float64 is disabled in JAX
-            dtype = jax.dtypes.canonicalize_dtype(dtype)
+            dtype = jnp.promote_types(float, _dtype(h))
+            dtype = jnp.promote_types(dtype, _dtype(J))
+        # Fallback to x32 when x64 is disabled in JAX
+        dtype = jax.dtypes.canonicalize_dtype(dtype)
 
         if isinstance(graph, AbstractGraph):
             if graph.n_nodes != hilbert.size:
