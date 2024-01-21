@@ -100,6 +100,7 @@ operators["Pauli Hamiltonian (YY)"] = nk.operator.PauliStrings(["YY"], [0.1])
 operators["Pauli Hamiltonian (XX+YZ+IZ)"] = nk.operator.PauliStrings(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4]
 )
+operators["Pauli Hamiltonian Jax (YY)"] = nk.operator.PauliStringsJax(["YY"], [0.1])
 operators["Pauli Hamiltonian Jax (_mode=index)"] = nk.operator.PauliStringsJax(
     ["XX", "YZ", "IZ"], [0.1, 0.2, -1.4], _mode="index"
 )
