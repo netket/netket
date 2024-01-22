@@ -44,7 +44,7 @@ class EarlyStopping:
     # The quantities below are internal and should not be edited directly
     # by the user
 
-    _best_val: float = np.infty
+    _best_val: float = np.inf
     """Best value of the loss observed up to this iteration. """
     _best_iter: int = 0
     """Iteration at which the `_best_val` was observed."""
