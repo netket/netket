@@ -42,7 +42,7 @@ class IsingBase(SpecialHamiltonian):
         graph: Union[AbstractGraph, Array],
         h: float,
         J: float,
-        dtype: DType,
+        dtype: Optional[DType],
     ):
         r"""
         Constructs the Ising Operator from an hilbert space and a

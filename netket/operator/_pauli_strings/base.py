@@ -148,6 +148,8 @@ class PauliStringsBase(DiscreteOperator):
            operators (list(string)): A list of Pauli operators in string format, e.g. ['IXX', 'XZI'].
            weights: A list of amplitudes of the corresponding Pauli operator.
            cutoff (float): a cutoff to remove small matrix elements
+           dtype: The datatype to use for the matrix elements. Defaults to double precision if
+                available.
 
         Examples:
            Constructs a new ``PauliStrings`` operator X_0*X_1 + 3.*Z_0*Z_1 with both construction schemes.

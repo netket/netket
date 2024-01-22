@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 from functools import wraps
 
 import numpy as np
@@ -101,7 +101,7 @@ class PauliStrings(PauliStringsBase):
         weights: Union[None, float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
-        dtype: DType = None,
+        dtype: Optional[DType] = None,
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
 

@@ -82,6 +82,8 @@ class LocalOperatorBase(DiscreteOperator):
                 corresponding sites.
            constant: Constant diagonal shift of the operator, equivalent to
                 :math:`+\text{c}\hat{I}`. Default is 0.0.
+           dtype: The datatype to use for the matrix elements. Defaults to double precision if
+                available.
 
         Examples:
            Constructs a ``LocalOperator`` without any operators.

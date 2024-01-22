@@ -1,3 +1,5 @@
+from typing import Optional
+
 import re
 from collections import defaultdict
 import numpy as np
@@ -263,7 +265,7 @@ def _convert_terms_to_spin_blocks(
 def _canonicalize_input(
     terms: OperatorTermsList,
     weights: OperatorWeightsList,
-    dtype: DType,
+    dtype: Optional[DType],
     cutoff: float,
     constant: Number = 0,
 ) -> tuple[OperatorDict, Number, DType]:
