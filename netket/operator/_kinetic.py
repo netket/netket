@@ -40,11 +40,14 @@ def jacrev(f):
     return jacfun
 
 
-def jacfwd(f):
+def jacfwd(f, vec=None):
     def jacfun(x):
         jvp_fun = lambda s: jax.jvp(f, (x,), (s,))[1]
-        eye = jnp.eye(len(x), dtype=x.dtype)
-        J = jax.vmap(jvp_fun, in_axes=0)(eye)
+        if vec is None:
+            eye = jnp.eye(len(x), dtype=x.dtype)
+            J = jax.vmap(jvp_fun, in_axes=0)(eye)
+        else:
+            J = jvp_fun(vec)
         return J
 
     return jacfun
@@ -60,17 +63,21 @@ class KineticEnergy(ContinuousOperator):
         hilbert: AbstractHilbert,
         mass: Union[float, list[float]],
         dtype: Optional[DType] = None,
+        method: str = "parallel",
     ):
         r"""Args:
         hilbert: The underlying Hilbert space on which the operator is defined
         mass: float if all masses are the same, list indicating the mass of each particle otherwise
         dtype: Data type of the matrix elements. Defaults to `np.float64`
+        method: Method to compute the kinetic energy: "sequential" or "parallel", where sequential uses less memory
         """
 
         self._mass = jnp.asarray(mass, dtype=dtype)
 
         self._is_hermitian = np.allclose(self._mass.imag, 0.0)
         self.__attrs = None
+
+        self._method = method.strip().lower()
 
         super().__init__(hilbert, self._mass.dtype)
 
@@ -89,9 +96,25 @@ class KineticEnergy(ContinuousOperator):
             return logpsi(params, x)
 
         dlogpsi_x = jacrev(logpsi_x)
-
-        dp_dx2 = jnp.diag(jacfwd(dlogpsi_x)(x)[0].reshape(x.shape[0], x.shape[0]))
         dp_dx = dlogpsi_x(x)[0][0] ** 2
+
+        # multiple methods to compute the second order derivatives
+        if self._method == "parallel":
+            dp_dx2 = jnp.diag(jacfwd(dlogpsi_x)(x)[0].reshape(x.shape[0], x.shape[0]))
+        elif self._method == "sequential":
+
+            def make_hess(carry, vec):
+                value = jacfwd(dlogpsi_x, vec=vec)(x)[0]
+                return carry, value
+
+            _, dp_dx2 = jax.lax.scan(
+                make_hess, None, jnp.eye(x.shape[0], dtype=x.dtype)
+            )
+            dp_dx2 = jnp.diag(dp_dx2.reshape(x.shape[0], x.shape[0]))
+        else:
+            raise ValueError(
+                f"method {self._method} to compute the kinetic energy is unknown, the options are parallel or sequential."
+            )
 
         return -0.5 * jnp.sum(inverse_mass * (dp_dx2 + dp_dx), axis=-1)
 
