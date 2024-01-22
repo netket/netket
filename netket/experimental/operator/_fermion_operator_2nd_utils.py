@@ -300,7 +300,7 @@ def _canonicalize_input(
     if dtype is None:
         dtype = np.array(weights).dtype
         dtype = jax.numpy.promote_types(float, dtype)
-        
+
     # Fallback to x32 when x64 is disabled in JAX
     dtype = jax.dtypes.canonicalize_dtype(dtype)
 
