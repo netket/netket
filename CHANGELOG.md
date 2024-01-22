@@ -26,6 +26,7 @@
 ### Internal changes
 * A new class {class}`netket.utils.struct.Pytree`, can be used to create Pytrees for which inheritance autoamtically works and for which it is possible to define `__init__`. Several structures such as samplers and rules have been transitioned to this new interface instead of old style `@struct.dataclass` [#1653](https://github.com/netket/netket/issues/1653).
 * The {class}`~netket.experimental.operator.FermionOperator2nd` and related classes now store the constant diagonal shift as another term instead of a completely special cased scalar value. The same operators now also respect the `cutoff` keyword argument more strictly [#1686](https://github.com/netket/netket/issues/1686).
+* Dtypes of the matrix elements of operators are now handled more correctly, and fewer warnings are raised when running NetKet in X32 mode. Moreover, operators like Ising now default to floating point dtype even if the coefficients are integers [#1697](https://github.com/netket/netket/issues/1697).
 
 ### Bug Fixes
 * Support multiplication of Discrete Operators by Sparse arrays [#1661](https://github.com/netket/netket/issues/1661).
