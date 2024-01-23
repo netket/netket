@@ -550,7 +550,7 @@ class DenseEquivariantIrrep(Module):
 
         x = tuple(
             lax.dot_general(
-                x[i], kernel[i], (((1, 4), (1, 3)), ((2,), (2,)))(0, 2)
+                x[i], kernel[i], (((1, 4), (1, 3)), ((2,), (2,)))
             ).transpose(1, 3, 0, 2, 4)
             for i in range(len(x))
         )
@@ -567,7 +567,7 @@ class DenseEquivariantIrrep(Module):
 
 
 class DenseEquivariantMatrix(Module):
-    r"""Implements a group convolution operation that is equivariant over a symmetry group(0, 2)
+    r"""Implements a group convolution operation that is equivariant over a symmetry group
     by multiplying by the full kernel matrix"""
 
     product_table: HashableArray
