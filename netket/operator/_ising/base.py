@@ -16,11 +16,11 @@ from typing import Optional, Union
 
 import numpy as np
 
-import jax
 from jax import numpy as jnp
 
 from netket.graph import AbstractGraph
 from netket.hilbert import AbstractHilbert
+from netket.jax import canonicalize_dtypes
 from netket.utils.numbers import dtype as _dtype
 from netket.utils.types import Array, DType
 
@@ -66,11 +66,7 @@ class IsingBase(SpecialHamiltonian):
         """
         super().__init__(hilbert)
 
-        if dtype is None:
-            dtype = jnp.promote_types(float, _dtype(h))
-            dtype = jnp.promote_types(dtype, _dtype(J))
-        # Fallback to x32 when x64 is disabled in JAX
-        dtype = jax.dtypes.canonicalize_dtype(dtype)
+        dtype = canonicalize_dtypes(float, h, J, dtype=dtype)
 
         if isinstance(graph, AbstractGraph):
             if graph.n_nodes != hilbert.size:

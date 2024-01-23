@@ -18,13 +18,13 @@ from collections.abc import Iterable
 from netket.utils.types import DType, Array
 
 import numpy as np
-import jax
 import jax.numpy as jnp
 from numba import jit
 from itertools import product
 from numbers import Number
 
 from netket import jax as nkjax
+from netket.jax import canonicalize_dtypes
 from netket.hilbert import Qubit, AbstractHilbert
 from netket.utils.numbers import dtype as _dtype, is_scalar
 
@@ -108,11 +108,9 @@ def canonicalize_input(hilbert: AbstractHilbert, operators, weights, *, dtype=No
     # When there is an odd number of 'Y' in any string, the whole operator must be complex
     op_is_complex = any(s.count("Y") % 2 == 1 for s in operators)
 
-    # If we asked for a specific dtype, enforce it.
-    if dtype is None:
-        dtype = jnp.promote_types(complex if op_is_complex else float, _dtype(weights))
-    # Fallback to x32 when x64 is disabled in JAX
-    dtype = jax.dtypes.canonicalize_dtype(dtype)
+    dtype = canonicalize_dtypes(
+        complex if op_is_complex else float, weights, dtype=dtype
+    )
 
     if not nkjax.is_complex_dtype(dtype):
         if op_is_complex:

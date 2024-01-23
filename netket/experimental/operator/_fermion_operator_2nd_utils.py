@@ -6,8 +6,7 @@ import numpy as np
 from numbers import Number
 import copy
 
-import jax
-
+from netket.jax import canonicalize_dtypes
 from netket.utils.types import DType, PyTree
 
 OperatorTuple = tuple[int, int]
@@ -297,12 +296,7 @@ def _canonicalize_input(
         terms = [()] + list(terms)
         weights = [constant] + weights
 
-    if dtype is None:
-        dtype = np.array(weights).dtype
-        dtype = jax.numpy.promote_types(float, dtype)
-
-    # Fallback to x32 when x64 is disabled in JAX
-    dtype = jax.dtypes.canonicalize_dtype(dtype)
+    dtype = canonicalize_dtypes(float, *weights, constant, dtype=dtype)
 
     weights = np.array(weights, dtype=dtype).tolist()
 

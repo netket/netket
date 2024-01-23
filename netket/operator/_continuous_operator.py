@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import abc
 from typing import Callable, Optional
 from collections.abc import Hashable
 
-import jax
-
+from netket.jax import canonicalize_dtypes
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
@@ -40,9 +40,7 @@ class ContinuousOperator(AbstractOperator):
             dtype: Data type of the operator, which is used to infer the dtype of
                 expectation values
         """
-        if dtype is None:
-            # Fallback to x32 when x64 is disabled in JAX
-            dtype = jax.dtypes.canonicalize_dtype(float)
+        dtype = canonicalize_dtypes(float, dtype=dtype)
         self._dtype = dtype
         self._hash = None
         super().__init__(hilbert)

@@ -18,10 +18,10 @@ from collections.abc import Hashable, Iterable
 from netket.utils.numbers import is_scalar
 from netket.utils.types import DType, PyTree, Array
 
+from netket.jax import canonicalize_dtypes
 from netket.operator import ContinuousOperator
 from netket.utils import struct, HashableArray
 
-import jax
 import jax.numpy as jnp
 
 
@@ -90,12 +90,7 @@ class SumOperator(ContinuousOperator):
 
         operators, coefficients = _flatten_sumoperators(operators, coefficients)
 
-        if dtype is None:
-            dtype = jnp.result_type(
-                float, *[op.dtype for op in operators], *coefficients
-            )
-        # Fallback to x32 when x64 is disabled in JAX
-        dtype = jax.dtypes.canonicalize_dtype(dtype)
+        dtype = canonicalize_dtypes(float, *operators, *coefficients, dtype=dtype)
 
         self._operators = tuple(operators)
         self._coefficients = jnp.asarray(coefficients, dtype=dtype)

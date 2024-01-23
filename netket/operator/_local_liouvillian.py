@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
 from typing import Optional
 
 import numpy as np
-import jax
-import jax.numpy as jnp
 import numba
 from numba import jit
 from numba.typed import List
@@ -25,6 +22,7 @@ from numba.typed import List
 from scipy.sparse.linalg import LinearOperator
 
 import netket.jax as nkjax
+from netket.jax import canonicalize_dtypes
 from netket.utils.optional_deps import import_optional_dependency
 from netket.utils.types import DType
 
@@ -76,13 +74,7 @@ class LocalLiouvillian(AbstractSuperOperator):
     ):
         super().__init__(ham.hilbert)
 
-        if dtype is None:
-            dtype = jnp.promote_types(complex, ham.dtype)
-            dtype = functools.reduce(
-                lambda dt, op: jnp.promote_types(dt, op.dtype), jump_ops, dtype
-            )
-        # Fallback to x32 when x64 is disabled in JAX
-        dtype = jax.dtypes.canonicalize_dtype(dtype)
+        dtype = canonicalize_dtypes(complex, ham, *jump_ops, dtype=dtype)
 
         if not nkjax.is_complex_dtype(dtype):
             raise TypeError(f"A complex dtype is required (dtype={dtype} specified).")

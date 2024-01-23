@@ -19,6 +19,7 @@ from ._utils_dtype import (
     dtype_complex,
     dtype_real,
     maybe_promote_to_complex,
+    canonicalize_dtypes,
 )
 
 from ._utils_tree import (
