@@ -159,7 +159,8 @@ class DenseSymmFFT(Module):
         sg = np.asarray(self.space_group)
 
         self.n_cells = np.prod(np.asarray(self.shape))
-        self.n_point = len(sg) // self.n_cells
+        self.n_symm = len(sg)
+        self.n_point = self.n_symm // self.n_cells
         self.sites_per_cell = sg.shape[1] // self.n_cells
 
         if self.mask is not None:
@@ -184,9 +185,10 @@ class DenseSymmFFT(Module):
         if x.ndim < 3:
             raise SymmModuleInvalidInputShape("DenseSymmMatrix", x)
 
-        in_features = x.shape[1]
+        in_features = x.shape[-2]
+        batch_shape = x.shape[:-2]
 
-        x = x.reshape(*x.shape[:-1], self.n_cells, self.sites_per_cell)
+        x = x.reshape(-1, in_features, self.n_cells, self.sites_per_cell)
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
@@ -241,10 +243,11 @@ class DenseSymmFFT(Module):
         x = x.reshape(*x.shape[:3], *self.shape)
 
         x = jnp.fft.ifftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
-        x = x.transpose(0, 1, 3, 2).reshape(*x.shape[:2], -1)
+        x = x.transpose(0, 1, 3, 2)
+        x = x.reshape(*batch_shape, self.features, self.n_symm)
 
         if self.use_bias:
-            x += jnp.expand_dims(bias, (0, 2))
+            x += jnp.expand_dims(bias, 1)
 
         if jnp.can_cast(x, dtype):
             return x
@@ -287,8 +290,9 @@ class DenseEquivariantFFT(Module):
     def setup(self):
         pt = np.asarray(self.product_table)
 
+        self.n_symm = len(pt)
         self.n_cells = np.prod(np.asarray(self.shape))
-        self.n_point = len(pt) // self.n_cells
+        self.n_point = self.n_symm // self.n_cells
         if self.mask is not None:
             (self.kernel_indices,) = np.nonzero(self.mask.wrapped)
 
@@ -307,8 +311,9 @@ class DenseEquivariantFFT(Module):
         dimensions (-2: features, -1: group elements)
         """
         in_features = x.shape[-2]
+        batch_shape = x.shape[:-2]
 
-        x = x.reshape(*x.shape[:-1], self.n_cells, self.n_point)
+        x = x.reshape(-1, in_features, self.n_cells, self.n_point)
         x = x.transpose(0, 1, 3, 2)
         x = x.reshape(*x.shape[:-1], *self.shape)
 
@@ -362,10 +367,10 @@ class DenseEquivariantFFT(Module):
 
         x = jnp.fft.ifftn(x, s=self.shape).reshape(*x.shape[:3], self.n_cells)
         x = x.transpose(0, 1, 3, 2)
-        x = x.reshape(*x.shape[:2], -1)
+        x = x.reshape(*batch_shape, self.features, self.n_symm)
 
         if self.use_bias:
-            x += jnp.expand_dims(bias, (0, 2))
+            x += jnp.expand_dims(bias, 1)
 
         if jnp.can_cast(x, dtype):
             return x
@@ -506,6 +511,8 @@ class DenseEquivariantIrrep(Module):
         dimensions (-2: features, -1: group elements)
         """
         in_features = x.shape[-2]
+        batch_shape = x.shape[:-2]
+        x = x.reshape(-1, in_features, self.n_symm)
 
         if self.use_bias:
             bias = self.param(
@@ -530,7 +537,7 @@ class DenseEquivariantIrrep(Module):
             kernel = self.param(
                 "kernel",
                 self.kernel_init,
-                (self.features, in_features, self.n_symm),
+                (0, 2)(self.features, in_features, self.n_symm),
                 self.param_dtype,
             )
 
@@ -543,15 +550,15 @@ class DenseEquivariantIrrep(Module):
 
         x = tuple(
             lax.dot_general(
-                x[i], kernel[i], (((1, 4), (1, 3)), ((2,), (2,)))
+                x[i], kernel[i], (((1, 4), (1, 3)), ((2,), (2,)))(0, 2)
             ).transpose(1, 3, 0, 2, 4)
             for i in range(len(x))
         )
 
-        x = self.inverse_ft(x)
+        x = self.inverse_ft(x).reshape(*batch_shape, self.features, self.n_symm)
 
         if self.use_bias:
-            x += jnp.expand_dims(bias, (0, 2))
+            x += jnp.expand_dims(bias, 1)
 
         if jnp.can_cast(x, dtype):
             return x
@@ -560,7 +567,7 @@ class DenseEquivariantIrrep(Module):
 
 
 class DenseEquivariantMatrix(Module):
-    r"""Implements a group convolution operation that is equivariant over a symmetry group
+    r"""Implements a group convolution operation that is equivariant over a symmetry group(0, 2)
     by multiplying by the full kernel matrix"""
 
     product_table: HashableArray

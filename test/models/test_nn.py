@@ -249,7 +249,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask, batch):
         ma = nk.nn.DenseEquivariant(
             symmetries=perms,
             mode=mode,
-            features=1,
+            features=2,
             mask=mask,
             use_bias=use_bias,
             bias_init=uniform(),
@@ -259,7 +259,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask, batch):
             symmetries=pt,
             shape=tuple(g.extent),
             mode=mode,
-            features=1,
+            features=2,
             mask=mask,
             use_bias=use_bias,
             bias_init=uniform(),
@@ -281,6 +281,9 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask, batch):
 
     out = ma.apply(pars, v)
     out_trans = ma.apply(pars, v_trans)
+
+    # check shape
+    assert out.shape == tuple(batch + [2, n_symm])
 
     # output should be involution
     np.testing.assert_allclose(jnp.matmul(out, sym_op), out_trans)
@@ -312,9 +315,13 @@ def test_modes_DenseSymm(lattice, symmetries, batch):
     pars = ma_fft.init(rng.next(), dum_input)
     _ = ma_matrix.init(rng.next(), dum_input)
 
-    np.testing.assert_allclose(
-        ma_fft.apply(pars, dum_input), ma_matrix.apply(pars, dum_input)
-    )
+    out_fft = ma_fft.apply(pars, dum_input)
+    out_matrix = ma_matrix.apply(pars, dum_input)
+
+    assert out_fft.shape == tuple(batch + [4, len(perms)])
+    assert out_matrix.shape == tuple(batch + [4, len(perms)])
+
+    np.testing.assert_allclose(out_fft, out_matrix)
 
     # Test Deprecation warning
     dum_input_nofeatures = dum_input.reshape((dum_input.shape[0], dum_input.shape[2]))
