@@ -90,7 +90,7 @@ def maybe_promote_to_complex(*types):
 def canonicalize_dtypes(*values, dtype=None):
     """
     If `dtype` is None, determine it by promoting `values` in JAX.
-    The returned dtype is always cast to x32 if x64 is disabled.
+    The returned dtype is cast to x32 if x64 is disabled.
     """
     if dtype is None:
         dtype = jnp.result_type(*[_dtype(x) for x in values])
