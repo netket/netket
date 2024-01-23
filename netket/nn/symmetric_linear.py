@@ -537,7 +537,7 @@ class DenseEquivariantIrrep(Module):
             kernel = self.param(
                 "kernel",
                 self.kernel_init,
-                (0, 2)(self.features, in_features, self.n_symm),
+                (self.features, in_features, self.n_symm),
                 self.param_dtype,
             )
 
