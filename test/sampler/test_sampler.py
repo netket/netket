@@ -19,7 +19,7 @@ from .. import common
 
 import netket as nk
 from netket.hilbert import DiscreteHilbert, Particle
-from netket.utils import mpi
+from netket.utils import array_in, mpi
 from netket.jax.sharding import device_count_per_rank
 
 from netket import experimental as nkx
@@ -264,7 +264,7 @@ def test_states_in_hilbert(sampler, model_and_weights):
         samples, _ = sampler.sample(ma, w, chain_length=chain_length)
         assert samples.shape == (sampler.n_chains, chain_length, hi.size)
         for sample in np.asarray(samples).reshape(-1, hi.size):
-            assert sample in all_states
+            assert array_in(sample, all_states)
 
     elif isinstance(hi, Particle):
         ma, w = model_and_weights(hi, sampler)
