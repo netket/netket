@@ -230,7 +230,8 @@ def test_DenseEquivariant_creation(mode):
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
 @pytest.mark.parametrize("mode", ["fft", "matrix", "irreps"])
 @pytest.mark.parametrize("mask", [True, False])
-def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
+@pytest.mark.parametrize("batch", [[3], [2, 2]])
+def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask, batch):
     rng = nk.jax.PRNGSeq(0)
 
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
@@ -275,7 +276,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
     inv_pt = inverse.product_table
     sym_op = np.where(inv_pt == chosen_op, 1.0, 0.0)
 
-    v = random.normal(rng.next(), [3, 1, n_symm])
+    v = random.normal(rng.next(), batch + [1, n_symm])
     v_trans = jnp.matmul(v, sym_op)
 
     out = ma.apply(pars, v)
@@ -287,7 +288,8 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask):
 
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
 @pytest.mark.parametrize("symmetries", ["trans", "space_group"])
-def test_modes_DenseSymm(lattice, symmetries):
+@pytest.mark.parametrize("batch", [[3], [2, 2]])
+def test_modes_DenseSymm(lattice, symmetries, batch):
     rng = nk.jax.PRNGSeq(0)
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
 
@@ -305,7 +307,7 @@ def test_modes_DenseSymm(lattice, symmetries):
         bias_init=uniform(),
     )
 
-    dum_input = jax.random.normal(rng.next(), (3, 1, g.n_nodes))
+    dum_input = jax.random.normal(rng.next(), batch + [1, g.n_nodes])
 
     pars = ma_fft.init(rng.next(), dum_input)
     _ = ma_matrix.init(rng.next(), dum_input)
