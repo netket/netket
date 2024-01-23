@@ -79,7 +79,7 @@ class DenseSymmMatrix(Module):
         if x.ndim < 3:
             raise SymmModuleInvalidInputShape("DenseSymmMatrix", x)
 
-        in_features = x.shape[1]
+        in_features = x.shape[-2]
 
         if self.use_bias:
             bias = self.param(
