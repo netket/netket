@@ -27,7 +27,7 @@ from . import types
 from . import float
 from . import optional_deps
 
-from .array import HashableArray
+from .array import HashableArray, array_in
 from .partial import HashablePartial
 from .jax import get_afun_if_module, wrap_afun, wrap_to_support_scalar
 from .seed import random_seed

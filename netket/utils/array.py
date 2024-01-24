@@ -72,3 +72,18 @@ class HashableArray:
     @property
     def shape(self) -> Shape:
         return self.wrapped.shape
+
+
+def array_in(x, ys):
+    """
+    Interpret ys as a list of arrays, and test if x is equal to any y in ys,
+    with exactly the same shape but not exactly the same dtype.
+
+    Note:
+        In numpy, :code:`x in ys` is equivalent to :code:`any(x == ys)`,
+        which is usually not what we intend when :code:`x.size > 1`.
+        JAX arrays will raise an error rather than silently compute it.
+    """
+    x = x.reshape(1, -1)
+    ys = ys.reshape(ys.shape[0], -1)
+    return (x == ys).all(axis=1).any()
