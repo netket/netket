@@ -50,14 +50,14 @@ class PotentialEnergy(ContinuousOperator):
         hilbert: AbstractHilbert,
         afun: Callable,
         coefficient: float = 1.0,
-        dtype: Optional[DType] = float,
+        dtype: Optional[DType] = None,
     ):
         r"""
         Args:
             hilbert: The underlying Hilbert space on which the operator is defined
             afun: The potential energy as function of x
-            coefficients: A coefficient for the ContinuousOperator object
-            dtype: Data type of the matrix elements. Defaults to `np.float64`
+            coefficient: A coefficient for the ContinuousOperator object
+            dtype: Data type of the coefficient
         """
 
         self._afun = afun
@@ -65,7 +65,7 @@ class PotentialEnergy(ContinuousOperator):
 
         self.__attrs = None
 
-        super().__init__(hilbert, self.coefficient.dtype)
+        super().__init__(hilbert, self._coefficient.dtype)
 
     @property
     def coefficient(self) -> Array:

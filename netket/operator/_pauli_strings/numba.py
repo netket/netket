@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 from functools import wraps
 
 import numpy as np
 from numba import jit
 
-import jax.numpy as jnp
 
 from netket.hilbert import AbstractHilbert, HomogeneousHilbert
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
@@ -51,13 +50,6 @@ def pack_internals_numba(
     _n_op_max = max(
         list(map(lambda x: len(x), list(acting.values()))), default=n_operators
     )
-
-    # Check if there are Y operators in the strings, and in that
-    # case uppromote float to complex
-    if not jnp.issubdtype(dtype, jnp.complexfloating):
-        # this checks if there is an Y in one of the strings
-        if np.any(np.char.find(operators, "Y") != -1):
-            dtype = jnp.promote_types(jnp.complex64, dtype)
 
     # unpacking the dictionary into fixed-size arrays
 
@@ -109,7 +101,7 @@ class PauliStrings(PauliStringsBase):
         weights: Union[None, float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 1.0e-10,
-        dtype: DType = None,
+        dtype: Optional[DType] = None,
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)
 

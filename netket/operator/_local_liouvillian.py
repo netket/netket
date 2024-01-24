@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
-import warnings
+from typing import Optional
 
 import numpy as np
-import jax.numpy as jnp
 import numba
 from numba import jit
 from numba.typed import List
@@ -24,7 +22,9 @@ from numba.typed import List
 from scipy.sparse.linalg import LinearOperator
 
 import netket.jax as nkjax
+from netket.jax import canonicalize_dtypes
 from netket.utils.optional_deps import import_optional_dependency
+from netket.utils.types import DType
 
 from ._discrete_operator import DiscreteOperator
 from ._local_operator import LocalOperator
@@ -70,26 +70,14 @@ class LocalLiouvillian(AbstractSuperOperator):
         self,
         ham: DiscreteOperator,
         jump_ops: list[DiscreteOperator] = [],
-        dtype=None,
+        dtype: Optional[DType] = None,
     ):
         super().__init__(ham.hilbert)
 
-        if dtype is None:
-            dtype = jnp.promote_types(complex, ham.dtype)
-            dtype = functools.reduce(
-                lambda dt, op: jnp.promote_types(dt, op.dtype), jump_ops, dtype
-            )
-        elif not nkjax.is_complex_dtype(dtype):
-            old_dtype = dtype
-            dtype = jnp.promote_types(complex, old_dtype)
-            warnings.warn(
-                np.ComplexWarning(
-                    f"A complex dtype is required (dtype={old_dtype} specified). "
-                    f"Promoting to dtype={dtype}."
-                )
-            )
+        dtype = canonicalize_dtypes(complex, ham, *jump_ops, dtype=dtype)
 
-        dtype = np.empty((), dtype=dtype).dtype
+        if not nkjax.is_complex_dtype(dtype):
+            raise TypeError(f"A complex dtype is required (dtype={dtype} specified).")
 
         self._H = ham
         self._jump_ops = [op.copy(dtype=dtype) for op in jump_ops]  # to accept dicts

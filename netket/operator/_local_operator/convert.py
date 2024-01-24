@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import warnings
 
 import jax
 import jax.numpy as jnp
@@ -20,7 +19,6 @@ import numpy as np
 import itertools
 from scipy.sparse import issparse
 
-from netket.jax import is_complex_dtype
 from netket.operator import PauliStrings
 
 # Pauli Matrices: shape (2, 2)
@@ -194,17 +192,9 @@ def local_operators_to_pauli_strings(hilbert, operators, acting_on, constant, dt
         pauli_strings.append("I" * hilbert.size)
         weights.append(constant)
 
-    # the calculation above returns complex coefficients even for operators that are
-    # purely real. So we suppress complexwarnings in that case
+    # the calculation above returns complex weights even for operators that are
+    # purely real, so we discard their imaginary parts
+    weights = [x.real if np.isreal(x) else x for x in weights]
 
-    if not is_complex_dtype(dtype):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=np.ComplexWarning)
-            res = PauliStrings(
-                hilbert, operators=pauli_strings, weights=weights, dtype=dtype
-            )
-    else:
-        res = PauliStrings(
-            hilbert, operators=pauli_strings, weights=weights, dtype=dtype
-        )
+    res = PauliStrings(hilbert, operators=pauli_strings, weights=weights, dtype=dtype)
     return res

@@ -57,7 +57,7 @@ class FermionOperator2ndBase(DiscreteOperator):
         weights: Optional[list[Union[float, complex]]] = None,
         constant: Number = 0,
         cutoff: float = 1e-10,
-        dtype: DType = None,
+        dtype: Optional[DType] = None,
     ):
         r"""
         Constructs a fermion operator given the single terms (set of
@@ -83,6 +83,8 @@ class FermionOperator2ndBase(DiscreteOperator):
             constant: constant contribution, corresponding to the
                 identity operator * constant (default = 0)
             cutoff: threshold for the weights, if the absolute value of a weight is below the cutoff, it's discarded.
+            dtype: The datatype to use for the matrix elements. Defaults to double precision if
+                available.
 
         Returns:
             A FermionOperator2nd object.

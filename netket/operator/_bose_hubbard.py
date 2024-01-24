@@ -16,13 +16,12 @@ from typing import Optional
 from numba import jit
 
 import numpy as np
-import jax.numpy as jnp
 import math
 
 from netket.graph import AbstractGraph, Graph
 from netket.hilbert import Fock
+from netket.jax import canonicalize_dtypes
 from netket.utils.types import DType
-from netket.utils.numbers import dtype as _dtype
 from netket.errors import concrete_or_error, NumbaOperatorGetConnDuringTracingError
 
 from . import boson
@@ -77,12 +76,7 @@ class BoseHubbard(SpecialHamiltonian):
         assert isinstance(hilbert, Fock)
         super().__init__(hilbert)
 
-        if dtype is None:
-            dtype = jnp.promote_types(_dtype(U), _dtype(V))
-            dtype = jnp.promote_types(dtype, _dtype(J))
-            dtype = jnp.promote_types(dtype, _dtype(mu))
-        dtype = jnp.promote_types(float, dtype)
-        dtype = np.empty((), dtype=dtype).dtype
+        dtype = canonicalize_dtypes(float, U, V, J, mu, dtype=dtype)
         self._dtype = dtype
 
         self._U = np.asarray(U, dtype=dtype)

@@ -1,9 +1,12 @@
+from typing import Optional
+
 import re
 from collections import defaultdict
 import numpy as np
 from numbers import Number
 import copy
 
+from netket.jax import canonicalize_dtypes
 from netket.utils.types import DType, PyTree
 
 OperatorTuple = tuple[int, int]
@@ -263,7 +266,7 @@ def _convert_terms_to_spin_blocks(
 def _canonicalize_input(
     terms: OperatorTermsList,
     weights: OperatorWeightsList,
-    dtype: DType,
+    dtype: Optional[DType],
     cutoff: float,
     constant: Number = 0,
 ) -> tuple[OperatorDict, Number, DType]:
@@ -293,8 +296,8 @@ def _canonicalize_input(
         terms = [()] + list(terms)
         weights = [constant] + weights
 
-    if dtype is None:
-        dtype = np.array(weights).dtype
+    dtype = canonicalize_dtypes(float, *weights, constant, dtype=dtype)
+
     weights = np.array(weights, dtype=dtype).tolist()
 
     if not len(weights) == len(terms):

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial, wraps
-from typing import Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 
 import numpy as np
 
@@ -110,6 +110,10 @@ def pack_internals(operators, weights, cutoff=0):
         # sort b_z_check in ascending order, for better locality
         b_z_check = list(sorted(b_z_check))
 
+        # If there is an even number of Y in a string, the weight should be real
+        if np.isreal(b_weight):
+            b_weight = b_weight.real
+
         append(b_to_change, (b_weight, b_z_check))
     return acting
 
@@ -151,20 +155,6 @@ def pack_internals_jax(
 
     Returns a dictionary with all the data fields
     """
-
-    # Check if there are Y operators in the strings, and in that
-    # case uppromote float to complex
-    # Should never happen because we check in init...
-    if not jnp.issubdtype(weight_dtype, jnp.complexfloating):
-        # this checks if there is an Y in one of the strings
-        if np.any(np.char.find(operators, "Y") != -1):
-            # weight_dtype = jnp.promote_types(jnp.complex64, weight_dtype)
-            raise TypeError(
-                "Found PauliStringsJax with real dtype but with Y paulis.\n"
-                "This should not be happening.\n"
-                "Please open an issue on the netket repository.\n"
-            )
-
     # index_dtype needs to be signed (we use -1 for padding)
 
     _check_mode(mode)
@@ -302,7 +292,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         weights: Union[None, float, complex, list[Union[float, complex]]] = None,
         *,
         cutoff: float = 0.0,
-        dtype: DType = None,
+        dtype: Optional[DType] = None,
         _mode: str = "index",
     ):
         super().__init__(hilbert, operators, weights, cutoff=cutoff, dtype=dtype)

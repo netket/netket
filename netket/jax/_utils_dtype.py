@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import numpy as np
 
+import jax
 from jax import numpy as jnp
+
+from netket.utils.numbers import dtype as _dtype
 
 
 def is_complex_dtype(typ):
@@ -83,3 +85,27 @@ def maybe_promote_to_complex(*types):
             return dtype_complex(main_typ)
     else:
         return main_typ
+
+
+def canonicalize_dtypes(*values, dtype=None):
+    """
+    Return the canonicalised result dtype of an operation combining several
+    values, with a possible default dtype.
+
+    Equivalent to
+
+    .. code-block:: python
+
+        if dtype is None:
+            dtype = jnp.result_type(*[_dtype(x) for x in values])
+        return jax.dtypes.canonicalize_dtype(dtype)
+
+    Args:
+        *values: all values to combine. Ignored if dtype is not None
+        dtype: default value overriding values.
+    """
+    if dtype is None:
+        dtype = jnp.result_type(*[_dtype(x) for x in values])
+    # Fallback to x32 when x64 is disabled in JAX
+    dtype = jax.dtypes.canonicalize_dtype(dtype)
+    return dtype

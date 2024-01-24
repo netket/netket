@@ -127,10 +127,9 @@ dtypes = dtypes_r + dtypes_c
 @pytest.mark.parametrize("dtype", dtypes)
 def test_dtype(dtype):
     if not nk.jax.is_complex_dtype(dtype):
-        with pytest.warns(np.ComplexWarning):
+        with pytest.raises(TypeError):
             lind = nk.operator.LocalLiouvillian(ha, j_ops, dtype=dtype)
-            dtype_c = nk.jax.dtype_complex(dtype)
-
+        return
     else:
         lind = nk.operator.LocalLiouvillian(ha, j_ops, dtype=dtype)
         dtype_c = dtype

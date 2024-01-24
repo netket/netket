@@ -15,6 +15,7 @@
 import pytest
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 import netket as nk
@@ -310,24 +311,74 @@ def test_pauli_problem():
     x1 = nk.operator.PauliStringsJax("XII")
     x2 = nk.operator.PauliStringsJax("IXI")
     x3 = x1 @ x2
-    assert x1.weights.dtype == jnp.float32
-    assert x2.weights.dtype == jnp.float32
-    assert x3.weights.dtype == jnp.float32
+    dtype = jax.dtypes.canonicalize_dtype(float)
+    assert x1.weights.dtype == dtype
+    assert x2.weights.dtype == dtype
+    assert x3.weights.dtype == dtype
 
-    assert (x1 + x1 @ x2).weights.dtype == jnp.float32
+    assert (x1 + x1 @ x2).weights.dtype == dtype
 
 
-def test_pauliY_promotion_to_complex():
+def test_pauliY_dtype():
     ham = nk.operator.PauliStrings("XXX", dtype=np.float32)
     assert ham.dtype == np.float32
-    ham = nk.operator.PauliStrings("XXY", dtype=np.float32)
-    assert ham.dtype == np.complex64
-    ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.float32)
+    ham = nk.operator.PauliStrings("XYY", dtype=np.float32)
+    assert ham.dtype == np.float32
+    ham = nk.operator.PauliStrings(["XXX", "XYY"], dtype=np.float32)
+    assert ham.dtype == np.float32
+
+    ham = nk.operator.PauliStrings("XXY", dtype=np.complex64)
     assert ham.dtype == np.complex64
     ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.complex64)
     assert ham.dtype == np.complex64
+
+    ham = nk.operator.PauliStrings("XXX", [1j], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings("XYY", [1j], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+    ham = nk.operator.PauliStrings(["XXX", "XYY"], [1, 1j], dtype=np.complex64)
+    assert ham.dtype == np.complex64
+
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings("XXY", dtype=np.float32)
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings(["XXX", "XXY"], dtype=np.float32)
+
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings("XXX", [1j], dtype=np.float32)
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings("XYY", [1j], dtype=np.float32)
+    with pytest.raises(TypeError):
+        ham = nk.operator.PauliStrings(["XXX", "XYY"], [1, 1j], dtype=np.float32)
 
 
 def test_pauli_empty_constructor_error():
     with pytest.raises(ValueError, match=r".*the hilbert space must be specified.*"):
         nk.operator.PauliStrings([])
+
+
+operators_to_test = [
+    pytest.param(nk.operator.PauliStrings("X", dtype=np.float32), id="X"),
+    pytest.param(nk.operator.PauliStrings("Z", dtype=np.complex64), id="Z_complex"),
+    pytest.param(nk.operator.PauliStrings("Y", dtype=np.complex64), id="Y"),
+    pytest.param(nk.operator.PauliStrings("X", [1j], dtype=np.complex64), id="X_1j"),
+]
+
+
+@pytest.mark.parametrize("b", operators_to_test)
+@pytest.mark.parametrize("a", operators_to_test)
+def test_pauli_inplace(a, b):
+    if a.dtype == np.float32 and b.dtype == np.complex64:
+        with pytest.raises(TypeError):
+            a += b
+    else:
+        a1 = a.copy()
+        a1 += b
+        assert a1.dtype == a.dtype
+        np.testing.assert_allclose(a1.to_dense(), (a + b).to_dense())
+
+    # Currently DiscreteOperator does not implement __imatmul__,
+    # so imatmul will call __matmul__ and may change dtype
+    a1 = a.copy()
+    a1 @= b
+    np.testing.assert_allclose(a1.to_dense(), (a @ b).to_dense())
