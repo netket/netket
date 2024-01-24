@@ -230,7 +230,7 @@ def test_DenseEquivariant_creation(mode):
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
 @pytest.mark.parametrize("mode", ["fft", "matrix", "irreps"])
 @pytest.mark.parametrize("mask", [True, False])
-@pytest.mark.parametrize("batch", [[3], [2, 2]])
+@pytest.mark.parametrize("batch", [(3,), (2, 2)])
 def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask, batch):
     rng = nk.jax.PRNGSeq(0)
 
@@ -276,14 +276,14 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask, batch):
     inv_pt = inverse.product_table
     sym_op = np.where(inv_pt == chosen_op, 1.0, 0.0)
 
-    v = random.normal(rng.next(), batch + [1, n_symm])
+    v = random.normal(rng.next(), batch + (1, n_symm))
     v_trans = jnp.matmul(v, sym_op)
 
     out = ma.apply(pars, v)
     out_trans = ma.apply(pars, v_trans)
 
     # check shape
-    assert out.shape == tuple(batch + [2, n_symm])
+    assert out.shape == tuple(batch + (2, n_symm))
 
     # output should be involution
     np.testing.assert_allclose(jnp.matmul(out, sym_op), out_trans)
@@ -291,7 +291,7 @@ def test_DenseEquivariant(symmetries, use_bias, lattice, mode, mask, batch):
 
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
 @pytest.mark.parametrize("symmetries", ["trans", "space_group"])
-@pytest.mark.parametrize("batch", [[3], [2, 2]])
+@pytest.mark.parametrize("batch", [(3,), (2, 2)])
 def test_modes_DenseSymm(lattice, symmetries, batch):
     rng = nk.jax.PRNGSeq(0)
     g, hi, perms = _setup_symm(symmetries, N=3, lattice=lattice)
@@ -310,7 +310,7 @@ def test_modes_DenseSymm(lattice, symmetries, batch):
         bias_init=uniform(),
     )
 
-    dum_input = jax.random.normal(rng.next(), batch + [1, g.n_nodes])
+    dum_input = jax.random.normal(rng.next(), batch + (1, g.n_nodes))
 
     pars = ma_fft.init(rng.next(), dum_input)
     _ = ma_matrix.init(rng.next(), dum_input)
@@ -318,22 +318,18 @@ def test_modes_DenseSymm(lattice, symmetries, batch):
     out_fft = ma_fft.apply(pars, dum_input)
     out_matrix = ma_matrix.apply(pars, dum_input)
 
-    assert out_fft.shape == tuple(batch + [4, len(perms)])
-    assert out_matrix.shape == tuple(batch + [4, len(perms)])
+    assert out_fft.shape == tuple(batch + (4, len(perms)))
+    assert out_matrix.shape == tuple(batch + (4, len(perms)))
 
     np.testing.assert_allclose(out_fft, out_matrix)
 
-    # Test Deprecation warning
-    dum_input_nofeatures = dum_input.reshape((dum_input.shape[0], dum_input.shape[2]))
+    # Test errors for less than 3 dimensions (missing features)
+    dum_input_nofeatures = dum_input.reshape((sum(batch), dum_input.shape[-1]))
     with pytest.raises(SymmModuleInvalidInputShape):
-        np.testing.assert_allclose(
-            ma_fft.apply(pars, dum_input), ma_fft.apply(pars, dum_input_nofeatures)
-        )
+        ma_fft.apply(pars, dum_input_nofeatures)
+
     with pytest.raises(SymmModuleInvalidInputShape):
-        np.testing.assert_allclose(
-            ma_matrix.apply(pars, dum_input),
-            ma_matrix.apply(pars, dum_input_nofeatures),
-        )
+        ma_matrix.apply(pars, dum_input_nofeatures)
 
 
 @pytest.mark.parametrize("lattice", [nk.graph.Chain, nk.graph.Square])
