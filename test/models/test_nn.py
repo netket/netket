@@ -324,7 +324,7 @@ def test_modes_DenseSymm(lattice, symmetries, batch):
     np.testing.assert_allclose(out_fft, out_matrix)
 
     # Test errors for less than 3 dimensions (missing features)
-    dum_input_nofeatures = dum_input.reshape((sum(batch), dum_input.shape[-1]))
+    dum_input_nofeatures = dum_input.reshape((np.prod(batch), dum_input.shape[-1]))
     with pytest.raises(SymmModuleInvalidInputShape):
         ma_fft.apply(pars, dum_input_nofeatures)
 
