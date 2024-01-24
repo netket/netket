@@ -84,4 +84,6 @@ def array_in(x, ys):
         which is usually not what we intend when :code:`x.size > 1`.
         JAX arrays will raise an error rather than silently compute it.
     """
-    return any(np.array_equal(x, y) for y in ys)
+    x = x.reshape(1, -1)
+    ys = ys.reshape(ys.shape[0], -1)
+    return (x == ys).all(axis=1).any()
