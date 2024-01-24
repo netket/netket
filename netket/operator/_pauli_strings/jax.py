@@ -309,7 +309,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         operators: Union[None, str, list[str]] = None,
         weights: Union[None, float, complex, list[Union[float, complex]]] = None,
         *,
-        cutoff: float = 0.0,
+        cutoff: float = 1.0e-10,
         dtype: Optional[DType] = None,
         _mode: str = "index",
     ):
