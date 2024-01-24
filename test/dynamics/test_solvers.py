@@ -119,7 +119,6 @@ def test_ode_solver(method):
     t = []
     y_t = []
     for _ in range(n_steps):
-        # print(solv.t, solv.y)
         t.append(solv.t)
         y_t.append(solv.y)
         solv.step()
