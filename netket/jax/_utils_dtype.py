@@ -89,8 +89,20 @@ def maybe_promote_to_complex(*types):
 
 def canonicalize_dtypes(*values, dtype=None):
     """
-    If `dtype` is None, determine it by promoting `values` in JAX.
-    The returned dtype is cast to x32 if x64 is disabled.
+    Return the canonicalised result dtype of an operation combining several
+    values, with a possible default dtype.
+
+    Equivalent to
+
+    .. code-block:: python
+
+        if dtype is None:
+            dtype = jnp.result_type(*[_dtype(x) for x in values])
+        return jax.dtypes.canonicalize_dtype(dtype)
+
+    Args:
+        *values: all values to combine. Ignored if dtype is not None
+        dtype: default value overriding values.
     """
     if dtype is None:
         dtype = jnp.result_type(*[_dtype(x) for x in values])
