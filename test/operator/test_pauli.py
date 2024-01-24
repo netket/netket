@@ -382,3 +382,13 @@ def test_pauli_inplace(a, b):
     a1 = a.copy()
     a1 @= b
     np.testing.assert_allclose(a1.to_dense(), (a @ b).to_dense())
+
+
+@pytest.mark.parametrize("Op", [nk.operator.PauliStrings, nk.operator.PauliStringsJax])
+def test_cutoff(Op):
+    hi = nk.hilbert.Spin(s=1 / 2, total_sz=0, N=4)
+    ha = Op(hi, ["XXII", "YYII"], [1, 1], cutoff=0, dtype=int)
+    x = jnp.array([-1, -1, 1, 1])
+    xp, mels = ha.get_conn_padded(x)
+    np.testing.assert_allclose(mels, 0)
+    np.testing.assert_allclose(xp, x[None])
