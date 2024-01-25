@@ -24,7 +24,7 @@ from jax.tree_util import tree_map
 from netket.logging import JsonLog
 from netket.operator import AbstractOperator
 from netket.utils import mpi
-from netket.utils.types import Optimizer
+from netket.utils.types import Optimizer, PyTree
 from netket.vqs import VariationalState
 
 
@@ -42,22 +42,55 @@ def _to_iterable(maybe_iterable):
     return surely_iterable
 
 
-# Note: to implement a new Driver (see also _vmc.py for an example)
-# If you want to inherit the nice interface of AbstractMCDriver, you should
-# subclass it, defining the following methods:
-# - Either _forward_and_backward or individually _forward, _backward, that should
-#   compute the loss function and the gradient. If the driver is minimizing or
-#   maximising some loss function, this quantity should be assigned to self._stats
-#   in order to monitor it.
-# - _estimate_stats should return the MC estimate of a single operator
-# - reset should reset the driver (usually the sampler).
-# - info should return a string with an overview of the driver.
-# - The __init__ method should be called with the machine and the optimizer. If this
-#   driver is minimising a loss function and you want it's name to show up automatically
-#   in the progress bar/output files you should pass the optional keyword argument
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
 #   minimized_quantity_name.
 class AbstractVariationalDriver(abc.ABC):
-    """Abstract base class for NetKet Variational Monte Carlo drivers"""
+    """Abstract base class for NetKet Variational Monte Carlo drivers
+
+    This class must be inherited from in order to create an optimization driver that
+    immediately works with NetKet loggers and callback mechanism.
+
+    .. note::
+
+        How to implement a new driver
+
+        For a concrete example, look at the file `netket/driver/vmc.py`.
+
+        If you want to inherit the nice interface of :class:`netket.driver.AbstractVariationalDriver`,
+        you should subclass it, and define the following methods:
+
+        - The :meth:`~netket.driver.AbstractVariationalDriver.__init__` method should be called
+          with the machine, optimizer and optionally the name of the loss minimised. If this
+          driver is minimising a loss function and you want it's name to show up automatically
+          in the progress bar/output files you should pass the optional keyword argument.
+
+        - :meth:`~netket.driver.AbstractVariationalDriver._forward_and_backward`,
+          that should compute the loss function and the gradient, returning the latter.
+          If the driver is minimizing or maximising some loss function,
+          this quantity should be assigned to the field `self._loss_stats`
+          in order to monitor it.
+
+        - :meth:`~netket.driver.AbstractVariationalDriver._estimate_stats` should return
+          the expectation value over the variational state of a single observable.
+
+        - :meth_`~netket.driver.AbstractVariationalDriver.reset`,
+          should reset the driver (usually the sampler). The basic implementation will call
+          :meth:`~netket.vqs.VariationalState.reset`, but you are responsible for resetting
+          extra fields in the driver itself.
+
+    """
 
     def __init__(
         self,
@@ -65,6 +98,17 @@ class AbstractVariationalDriver(abc.ABC):
         optimizer: Optimizer,
         minimized_quantity_name: str = "loss",
     ):
+        """
+        Initializes a variational optimization driver.
+
+        Args:
+            variational_state: The variational state to be optimized
+            optimizer: an :ref:`optax` optimizer. If you do not want
+                to use an optimizer, just pass a sgd optimizer with
+                learning rate `-1`.
+            minimized_quantity_name: the name of the loss function in
+                the logged data set.
+        """
         self._mynode = mpi.node_number
         self._is_root = self._mynode == 0 and jax.process_index() == 0
         self._mpi_nodes = mpi.n_nodes
@@ -75,32 +119,31 @@ class AbstractVariationalDriver(abc.ABC):
         self._variational_state = variational_state
         self.optimizer = optimizer
 
-    def _forward_and_backward(self):  # pragma: no cover
+    def _forward_and_backward(self) -> PyTree:  # pragma: no cover
         """
-        Performs the forward and backward pass at the same time.
-        Concrete drivers should either override this method, or override individually
-        _forward and _backward.
+        Performs a step of the optimization driver, returning the PyTree
+        of the gradients that will be optimized.
+
+        Concrete drivers must override this method.
+
+        :meta public:
+
+        .. note::
+
+            When implementing this function on a subclass, you must return the
+            gradient which must match the pytree structure of the parameters
+            of the variational state.
+
+            The gradient will then be passed on to the optimizer in order to update
+            the parameters.
+
+            Moreover, if you are minimising a loss function you must set the
+            field `self._loss_stats` with the current value of the loss function.
+
+            This will be logged to any logger during optimisation.
 
         Returns:
             the update for the weights.
-        """
-        self._forward()
-        dp = self._backward()
-        return dp
-
-    def _forward(self):
-        """
-        Performs the forward pass, computing the loss function.
-        Concrete should either implement _forward and _backward or the joint method
-        _forward_and_backward.
-        """
-        raise NotImplementedError()  # pragma: no cover
-
-    def _backward(self):
-        """
-        Performs the backward pass, computing the update for the parameters.
-        Concrete should either implement _forward and _backward or the joint method
-        _forward_and_backward.
         """
         raise NotImplementedError()  # pragma: no cover
 

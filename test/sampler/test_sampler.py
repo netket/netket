@@ -17,6 +17,12 @@ from jax import numpy as jnp
 
 from .. import common
 
+import numpy as np
+import pytest
+from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
+import jax
+from jax.nn.initializers import normal
+
 import netket as nk
 from netket.hilbert import DiscreteHilbert, Particle
 from netket.utils import array_in, mpi
@@ -24,15 +30,7 @@ from netket.jax.sharding import device_count_per_rank
 
 from netket import experimental as nkx
 
-import numpy as np
-import pytest
-from scipy.stats import combine_pvalues, chisquare, multivariate_normal, kstest
-import jax
-from jax.nn.initializers import normal
-
-from jax.config import config
-
-config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 
 pytestmark = common.skipif_mpi
@@ -61,7 +59,7 @@ hib = nk.hilbert.Fock(n_max=1, N=g.n_nodes, n_particles=1)
 hib_u = nk.hilbert.Fock(n_max=3, N=g.n_nodes)
 hi_fermion = nk.experimental.hilbert.SpinOrbitalFermions(g.n_nodes, n_fermions=2)
 hi_fermion_spin = nk.experimental.hilbert.SpinOrbitalFermions(
-    g.n_nodes, s=1 / 2, n_fermions=(2, 2)
+    g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
 )
 
 samplers["Exact: Spin"] = nk.sampler.ExactSampler(hi)
@@ -542,7 +540,7 @@ def test_fermions_spin_exchange():
     # test that the graph correctly creates a disjoint graph for the spinful case
     g = nk.graph.Hypercube(length=4, n_dim=1)
     hi_fermion_spin = nk.experimental.hilbert.SpinOrbitalFermions(
-        g.n_nodes, s=1 / 2, n_fermions=(2, 2)
+        g.n_nodes, s=1 / 2, n_fermions_per_spin=(2, 2)
     )
 
     sampler = nkx.sampler.MetropolisParticleExchange(
