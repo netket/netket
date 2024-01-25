@@ -42,20 +42,6 @@ def _to_iterable(maybe_iterable):
     return surely_iterable
 
 
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#   minimized_quantity_name.
 class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers
 
@@ -85,7 +71,7 @@ class AbstractVariationalDriver(abc.ABC):
         - :meth:`~netket.driver.AbstractVariationalDriver._estimate_stats` should return
           the expectation value over the variational state of a single observable.
 
-        - :meth_`~netket.driver.AbstractVariationalDriver.reset`,
+        - :meth:`~netket.driver.AbstractVariationalDriver.reset`,
           should reset the driver (usually the sampler). The basic implementation will call
           :meth:`~netket.vqs.VariationalState.reset`, but you are responsible for resetting
           extra fields in the driver itself.
@@ -103,7 +89,8 @@ class AbstractVariationalDriver(abc.ABC):
 
         Args:
             variational_state: The variational state to be optimized
-            optimizer: an :ref:`optax` optimizer. If you do not want
+            optimizer: an `optax <https://optax.readthedocs.io/en/latest/>`_ optimizer.
+                If you do not want
                 to use an optimizer, just pass a sgd optimizer with
                 learning rate `-1`.
             minimized_quantity_name: the name of the loss function in
@@ -121,12 +108,12 @@ class AbstractVariationalDriver(abc.ABC):
 
     def _forward_and_backward(self) -> PyTree:  # pragma: no cover
         """
+        :meta public:
+
         Performs a step of the optimization driver, returning the PyTree
         of the gradients that will be optimized.
 
         Concrete drivers must override this method.
-
-        :meta public:
 
         .. note::
 
@@ -154,6 +141,9 @@ class AbstractVariationalDriver(abc.ABC):
 
         :param observable: A quantum operator (netket observable)
         :return:
+
+        :meta public:
+
         """
         return self.state.expect(observable)
 
