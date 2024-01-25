@@ -254,7 +254,7 @@ class MetropolisSampler(Sampler):
         reset_chains: bool = False,
         n_chains: Optional[int] = None,
         n_chains_per_rank: Optional[int] = None,
-        n_chains_per_rank_or_device: Optional[int] = None,
+        n_chains_per_device: Optional[int] = None,
         machine_pow: int = 2,
         dtype: DType = float,
     ):
@@ -270,7 +270,8 @@ class MetropolisSampler(Sampler):
                 if MPI is enabled and `n_chains` is specified, then every MPI rank will run
                 `n_chains/mpi.n_nodes` chains. In general, we recommend specifying `n_chains_per_rank`
                 as it is more portable.
-            n_chains_per_rank_or_device: Number of independent chains on every MPI rank / jax device (default = 16).
+            n_chains_per_rank: Number of independent chains on every MPI rank (default = n_chains_per_device if it's set, otherwise 16).
+            n_chains_per_device: Number of independent chains on every jax device (default = n_chains_per_rank if it's set, otherwise 16).
             sweep_size: Number of sweeps for each step along the chain.
                 This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
                 in the Hilbert space.)
@@ -291,16 +292,15 @@ class MetropolisSampler(Sampler):
         if not isinstance(reset_chains, bool):
             raise TypeError("reset_chains must be a boolean.")
 
-        if n_chains_per_rank is not None:
-            warn_deprecation(
-                "Specifying `n_chains_per_rank` when constructing the Sampler is deprecated. Please use `n_chains_per_rank_or_device` instead."
-            )
-            if n_chains_per_rank_or_device is None:
-                n_chains_per_rank_or_device = n_chains_per_rank
-            else:
-                raise ValueError(
-                    "Cannot specify both `n_chains_per_rank_or_device` and `n_chains_per_rank`"
-                )
+        if n_chains_per_rank is None:
+            n_chains_per_rank = n_chains_per_device
+        if n_chains_per_device is None:
+            n_chains_per_device = n_chains_per_rank
+
+        if config.netket_experimental_sharding:
+            n_chains_per_rank_or_device = n_chains_per_device
+        else:
+            n_chains_per_rank_or_device = n_chains_per_rank
 
         # TODO set it to a few hundred if on GPU?
         default_n_chains_per_rank_or_device = 16
