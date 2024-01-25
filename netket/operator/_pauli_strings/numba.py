@@ -172,7 +172,7 @@ class PauliStrings(PauliStringsBase):
     def _flattened_kernel(
         x,
         sections,
-        x_prime,
+        x_prime_,
         mels,
         sites,
         ns,
@@ -185,7 +185,7 @@ class PauliStrings(PauliStringsBase):
         local_states,
         pad=False,
     ):
-        x_prime = np.empty((x.shape[0] * max_conn, x_prime.shape[1]), dtype=x.dtype)
+        x_prime = np.empty((x.shape[0] * max_conn, x_prime_.shape[1]), dtype=x.dtype)
         mels = np.zeros((x.shape[0] * max_conn), dtype=mels.dtype)
         state_1 = local_states[-1]
 
@@ -208,7 +208,7 @@ class PauliStrings(PauliStringsBase):
                     # multiply with -1 for every site we did Z which was state_1
                     mel += weights[i, j] * (-1.0) ** n_z
 
-                if abs(mel) > cutoff:
+                if cutoff is None or abs(mel) > cutoff:
                     x_prime[n_c] = np.copy(xb)
                     # now flip all the sites in the X string
                     for site in sites[i, : ns[i]]:
