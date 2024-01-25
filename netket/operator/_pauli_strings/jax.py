@@ -402,6 +402,7 @@ class PauliStringsJax(PauliStringsBase, DiscreteJaxOperator):
         self._initialized = False
 
     def n_conn(self, x):
+        self._setup()
         return _pauli_strings_n_conn_jax(
             self._hi_local_states,
             self._x_flip_masks_stacked,
