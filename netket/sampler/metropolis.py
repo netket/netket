@@ -272,7 +272,7 @@ class MetropolisSampler(Sampler):
             n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
                                If netket_experimental_sharding is enabled this is interpreted as the number
                                of independent chains on every jax device, and the n_chains_per_rank
-                               property of the sampler will return 1.
+                               property of the sampler will return the total number of chains on all devices.
             sweep_size: Number of sweeps for each step along the chain.
                 This is equivalent to subsampling the Markov chain. (Defaults to the number of sites
                 in the Hilbert space.)
