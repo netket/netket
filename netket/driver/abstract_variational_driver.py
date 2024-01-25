@@ -24,6 +24,8 @@ from jax.tree_util import tree_map
 from netket.logging import JsonLog
 from netket.operator import AbstractOperator
 from netket.utils import mpi
+from netket.utils.types import Optimizer
+from netket.vqs import VariationalState
 
 
 def _to_iterable(maybe_iterable):
@@ -57,7 +59,12 @@ def _to_iterable(maybe_iterable):
 class AbstractVariationalDriver(abc.ABC):
     """Abstract base class for NetKet Variational Monte Carlo drivers"""
 
-    def __init__(self, variational_state, optimizer, minimized_quantity_name=""):
+    def __init__(
+        self,
+        variational_state: VariationalState,
+        optimizer: Optimizer,
+        minimized_quantity_name: str = "loss",
+    ):
         self._mynode = mpi.node_number
         self._is_root = self._mynode == 0 and jax.process_index() == 0
         self._mpi_nodes = mpi.n_nodes

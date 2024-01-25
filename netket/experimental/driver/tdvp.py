@@ -57,7 +57,7 @@ class TDVP(TDVPBaseDriver):
         integrator: RKIntegratorConfig,
         *,
         t0: float = 0.0,
-        propagation_type="real",
+        propagation_type: str = "real",
         qgt: LinearOperator = None,
         linear_solver=nk.optimizer.solver.pinv_smooth,
         linear_solver_restart: bool = False,

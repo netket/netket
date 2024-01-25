@@ -107,7 +107,7 @@ class TDVPSchmitt(TDVPBaseDriver):
         integrator: RKIntegratorConfig,
         *,
         t0: float = 0.0,
-        propagation_type="real",
+        propagation_type: str = "real",
         holomorphic: Optional[bool] = None,
         diag_shift: float = 0.0,
         diag_scale: Optional[float] = None,

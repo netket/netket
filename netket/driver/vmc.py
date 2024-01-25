@@ -17,7 +17,7 @@ from typing import Optional
 from textwrap import dedent
 from inspect import signature
 
-from netket.utils.types import PyTree
+from netket.utils.types import PyTree, Optimizer
 from netket.operator import AbstractOperator
 from netket.stats import Stats
 from netket.optimizer import (
@@ -25,6 +25,7 @@ from netket.optimizer import (
     PreconditionerT,
     _DeprecatedPreconditionerSignature,
 )
+from netket.vqs import VariationalState
 from netket.jax import tree_cast
 
 from .abstract_variational_driver import AbstractVariationalDriver
@@ -38,9 +39,9 @@ class VMC(AbstractVariationalDriver):
     def __init__(
         self,
         hamiltonian: AbstractOperator,
-        optimizer,
+        optimizer: Optimizer,
         *,
-        variational_state,
+        variational_state: VariationalState,
         preconditioner: PreconditionerT = identity_preconditioner,
     ):
         """
@@ -50,6 +51,8 @@ class VMC(AbstractVariationalDriver):
             hamiltonian: The Hamiltonian of the system.
             optimizer: Determines how optimization steps are performed given the
                 bare energy gradient.
+            variational_state: The variational state for which the hamiltonian must
+                be minimised.
             preconditioner: Determines which preconditioner to use for the loss gradient.
                 This must be a tuple of `(object, solver)` as documented in the section
                 `preconditioners` in the documentation. The standard preconditioner

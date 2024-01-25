@@ -24,6 +24,7 @@ from netket.optimizer import (
     _DeprecatedPreconditionerSignature,
 )
 from netket.jax import tree_cast
+from netket.utils.types import Optimizer
 
 from .abstract_variational_driver import AbstractVariationalDriver
 
@@ -35,8 +36,8 @@ class SteadyState(AbstractVariationalDriver):
 
     def __init__(
         self,
-        lindbladian,
-        optimizer,
+        lindbladian: AbstractSuperOperator,
+        optimizer: Optimizer,
         *,
         variational_state: MCMixedState,
         preconditioner: PreconditionerT = identity_preconditioner,

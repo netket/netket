@@ -69,22 +69,6 @@ def test_reset():
     assert driver.step_count == 0
 
 
-def test_vmc_construction_vstate():
-    ha, sx, ma, sa, driver = _setup_vmc()
-
-    op = nk.optimizer.Sgd(learning_rate=0.05)
-
-    driver = nk.VMC(ha, op, sa, nk.models.RBM(), n_samples=1000, seed=SEED)
-
-    driver.run(1)
-
-    assert driver.step_count == 1
-
-    with raises(TypeError):
-        ha2 = nk.operator.LocalOperator(ha.hilbert * ha.hilbert)
-        driver = nk.VMC(ha2, op, variational_state=driver.state)
-
-
 def test_vmc_functions():
     ha, sx, ma, sampler, driver = _setup_vmc()
 

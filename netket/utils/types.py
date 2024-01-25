@@ -37,3 +37,5 @@ PyTree = Any
 Scalar = Any
 
 ScalarOrSchedule = Union[Scalar, _optax.Schedule]
+
+Optimizer = Any
