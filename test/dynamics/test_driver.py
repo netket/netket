@@ -250,12 +250,6 @@ def test_repr_and_info():
     )
     assert "TDVP" in str(driver)
 
-    info = driver.info()
-    assert "TDVP" in info
-    assert "generator" in info
-    assert "integrator" in info
-    assert "RK23" in info
-
 
 def test_run_twice():
     # 1100

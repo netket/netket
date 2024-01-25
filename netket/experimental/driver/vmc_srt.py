@@ -14,7 +14,7 @@ import warnings
 
 from netket.vqs import MCState
 from netket.utils import mpi
-from netket.utils.types import ScalarOrSchedule
+from netket.utils.types import ScalarOrSchedule, Optimizer
 
 from jax.flatten_util import ravel_pytree
 
@@ -128,7 +128,7 @@ class VMC_SRt(VMC):
     def __init__(
         self,
         hamiltonian: AbstractOperator,
-        optimizer,
+        optimizer: Optimizer,
         *,
         diag_shift: ScalarOrSchedule,
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,

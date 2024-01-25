@@ -83,12 +83,16 @@ def test_gcnn(mode, complex_output):
         complex_output=complex_output,
     )
 
-    vmc = nk.VMC(
-        nk.operator.Ising(hi, g, h=1.0),
-        nk.optimizer.Sgd(0.1),
+    vs = nk.vqs.MCState(
         nk.sampler.MetropolisLocal(hi, n_chains=2, sweep_size=2),
         ma,
         n_samples=8,
+    )
+
+    vmc = nk.VMC(
+        nk.operator.Ising(hi, g, h=1.0),
+        nk.optimizer.Sgd(0.1),
+        variational_state=vs,
     )
     vmc.advance(1)
 

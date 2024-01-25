@@ -21,7 +21,6 @@ import jax.numpy as jnp
 
 from netket import jax as nkjax
 from netket.driver import AbstractVariationalDriver
-from netket.driver.vmc_common import info
 from netket.operator import AbstractOperator
 from netket.vqs import VariationalState
 from netket.optimizer import (
@@ -514,14 +513,3 @@ class QSR(AbstractVariationalDriver):
             + f"\n  step_count = {self.step_count},"
             + f"\n  state = {self.state})"
         )
-
-    def info(self, depth=0):
-        lines = [
-            f"{name}: {info(obj, depth=depth + 1)}"
-            for name, obj in [
-                ("Optimizer   ", self._optimizer),
-                ("SR solver   ", self.sr),
-                ("State       ", self.state),
-            ]
-        ]
-        return "\n{}".format(" " * 3 * (depth + 1)).join([str(self), *lines])

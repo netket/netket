@@ -12,9 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from netket.utils import deprecated
 
-def info(obj, depth=None):
+
+@deprecated(reason="Will be removed. Please remove usages.")
+def _info(obj, depth=None):
     if hasattr(obj, "info") and callable(obj.info):
         return obj.info(depth)
     else:
         return str(obj)
+
+
+_deprecated_names = {"info": _info}
+
+
+def __getattr__(name):
+    from netket.utils import warn_deprecation
+
+    if name in _deprecated_names:
+        warn_deprecation(
+            " \n"
+            " \n"
+            "          =======================================================================\n"
+            "            `nk.driver.vmc_common is deprecated and the functionality removed.   \n"
+            "          =======================================================================\n"
+            " \n"
+            "If you imported `nk.driver.vmc_common`, you must reimplement that functionality yourself.\n\n"
+        )
+        return _deprecated_names[name]
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")
