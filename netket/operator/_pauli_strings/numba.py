@@ -172,7 +172,7 @@ class PauliStrings(PauliStringsBase):
     def _flattened_kernel(
         x,
         sections,
-        x_prime_,
+        x_prime,
         mels,
         sites,
         ns,
@@ -185,7 +185,7 @@ class PauliStrings(PauliStringsBase):
         local_states,
         pad=False,
     ):
-        x_prime = np.empty((x.shape[0] * max_conn, x_prime_.shape[1]), dtype=x.dtype)
+        x_prime = np.empty((x.shape[0] * max_conn, x_prime.shape[1]), dtype=x.dtype)
         mels = np.zeros((x.shape[0] * max_conn), dtype=mels.dtype)
         state_1 = local_states[-1]
 
