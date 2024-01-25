@@ -117,12 +117,6 @@ class AbstractVariationalDriver(abc.ABC):
         self.state.reset()
         self._step_count = 0
 
-    @abc.abstractmethod
-    def info(self, depth=0):
-        """
-        Returns an info string used to print information to screen about this driver.
-        """
-
     @property
     def state(self):
         """

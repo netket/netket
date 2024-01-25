@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from netket.utils import deprecated
 
+
+@deprecated(reason="Will be removed. Please remove usages.")
 def info(obj, depth=None):
     if hasattr(obj, "info") and callable(obj.info):
         return obj.info(depth)
