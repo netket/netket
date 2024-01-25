@@ -269,7 +269,7 @@ class MetropolisSampler(Sampler):
                 if MPI is enabled and `n_chains` is specified, then every MPI rank will run
                 `n_chains/mpi.n_nodes` chains. In general, we recommend specifying `n_chains_per_rank`
                 as it is more portable.
-            n_chains_per_rank: Number of independent chains on every MPI rank (default = otherwise 16).
+            n_chains_per_rank: Number of independent chains on every MPI rank (default = 16).
                                If netket_experimental_sharding is enabled this is interpreted as the number
                                of independent chains on every jax device, and the n_chains_per_rank
                                property of the sampler will return 1.
