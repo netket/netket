@@ -389,7 +389,12 @@ def test_pauli_inplace(a, b):
 def test_cutoff(Op, cutoff):
     coeff = 1.0e-5
     hi = nk.hilbert.Spin(s=1 / 2, total_sz=0, N=4)
-    ha = Op(hi, ["XXII", "YYII"], [1.0, 1.0 + coeff], cutoff=cutoff)
+    if cutoff is not None:
+        ha = Op(hi, ["XXII", "YYII"], [1.0, 1.0 + coeff], cutoff=cutoff)
+    else:
+        # cutoff=None is not yet part of the public API
+        ha = Op(hi, ["XXII", "YYII"], [1.0, 1.0 + coeff], cutoff=0)
+        ha._cutoff = None
     # numba n_conn does not support a single sample, so we add a dummy axis here
     x = jnp.array([-1, -1, 1, 1])[None]
     n_conn = ha.n_conn(x)
