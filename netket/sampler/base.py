@@ -116,10 +116,13 @@ class Sampler(struct.Pytree):
     @property
     def n_chains(self) -> int:
         """
-        The total number of independent chains per MPI rank.
-
-        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`.
+        The total number of independent chains.
         """
+        # This is the default number of chains, intended for generic non-mcmc
+        # samplers which don't have a concept of chains.
+        # If there is no mpi we assume there is globally 1 dummy chain, and with
+        # mpi one per rank.
+        # Currently this is used by the exact samplers (ExactSampler, ARDirectSampler).
         return mpi.n_nodes
 
     @property
