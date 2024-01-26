@@ -28,44 +28,6 @@ from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
 
 
-def compute_n_chains(
-    n_chains_per_rank: Optional[int] = None, n_chains: Optional[int] = None, default=1
-) -> int:
-    """
-    Compute the number of chains per rank given either n_chains_per_rank
-    and n_chains
-    """
-    if n_chains_per_rank is not None and n_chains is not None:
-        raise ValueError("Cannot specify both `n_chains` and `n_chains_per_rank`")
-    elif n_chains is not None:
-        n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
-        if mpi.n_nodes > 1 and mpi.rank == 0:
-            if n_chains_per_rank * mpi.n_nodes != n_chains:
-                warnings.warn(
-                    f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks "
-                    f"(total={n_chains_per_rank * mpi.n_nodes} instead of n_chains={n_chains}). "
-                    f"To directly control the number of chains on every rank, specify "
-                    f"`n_chains_per_rank` when constructing the sampler. "
-                    f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
-                    f"that is a multiple of the number of MPI ranks.",
-                    category=UserWarning,
-                    stacklevel=2,
-                )
-    elif n_chains_per_rank is not None:
-        pass
-    else:
-        # Default value
-        n_chains_per_rank = default
-
-    if not n_chains_per_rank > 0:
-        raise TypeError(
-            "n_chains_per_rank must be a positive integer, but "
-            f"you specified {n_chains_per_rank}"
-        )
-
-    return n_chains_per_rank * mpi.n_nodes
-
-
 class SamplerState(struct.Pytree):
     """
     Base class holding the state of a sampler.
