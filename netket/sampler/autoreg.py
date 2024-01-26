@@ -57,9 +57,6 @@ class ARDirectSampler(Sampler):
         hilbert: DiscreteHilbert,
         machine_pow: None = None,
         dtype: DType = float,
-        *,
-        n_chains=None,
-        n_chains_per_rank=None,
     ):
         """
         Construct an autoregressive direct sampler.
@@ -71,10 +68,6 @@ class ARDirectSampler(Sampler):
         Note:
             `ARDirectSampler.machine_pow` has no effect. Please set the model's `machine_pow` instead.
         """
-        if n_chains is not None or n_chains_per_rank is not None:
-            warn_deprecation(
-                "Specifying `n_chains` or `n_chains_per_rank` when constructing exact samplers is deprecated."
-            )
 
         if machine_pow is not None:
             raise ValueError(
