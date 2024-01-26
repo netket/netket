@@ -383,3 +383,39 @@ def test_pauli_inplace(a, b):
     a1 = a.copy()
     a1 @= b
     np.testing.assert_allclose(a1.to_dense(), (a @ b).to_dense())
+
+
+@pytest.mark.parametrize("cutoff", [1.0e-3, 0.0, None])
+@pytest.mark.parametrize("Op", [nk.operator.PauliStrings, nk.operator.PauliStringsJax])
+def test_cutoff(Op, cutoff):
+    coeff = 1.0e-5
+    hi = nk.hilbert.Spin(s=1 / 2, total_sz=0, N=4)
+    if cutoff is not None:
+        ha = Op(hi, ["XXII", "YYII"], [1.0, 1.0 + coeff], cutoff=cutoff)
+    else:
+        # cutoff=None is not yet part of the public API
+        ha = Op(hi, ["XXII", "YYII"], [1.0, 1.0 + coeff], cutoff=0)
+        ha._cutoff = None
+    # numba n_conn does not support a single sample, so we add a dummy axis here
+    x = jnp.array([-1, -1, 1, 1])[None]
+    n_conn = ha.n_conn(x)
+    xp, mels = ha.get_conn_padded(x)
+    np.testing.assert_equal(ha.max_conn_size, 1)
+    if cutoff is not None and np.abs(coeff) < cutoff:
+        np.testing.assert_array_equal(n_conn, np.array([0]))
+        np.testing.assert_array_equal(mels, 0.0)
+        np.testing.assert_array_equal(xp, x[None])
+    else:
+        np.testing.assert_array_equal(n_conn, np.array([1]))
+        np.testing.assert_allclose(mels, -coeff)
+        np.testing.assert_array_equal(xp, np.array([[[1, 1, 1, 1]]]))
+
+
+@pytest.mark.parametrize("Op", [nk.operator.PauliStrings, nk.operator.PauliStringsJax])
+def test_cutoff_constrained(Op):
+    hi = nk.hilbert.Spin(s=1 / 2, total_sz=0, N=4)
+    ha = Op(hi, ["XXII", "YYII"], [1, 1], cutoff=0, dtype=int)
+    x = jnp.array([-1, -1, 1, 1])
+    xp, mels = ha.get_conn_padded(x)
+    np.testing.assert_array_equal(mels, 0)
+    np.testing.assert_array_equal(xp, x[None])

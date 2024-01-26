@@ -131,8 +131,7 @@ class PauliStrings(PauliStringsBase):
             self.operators,
             self.weights,
             dtype=self.dtype,
-            # TODO: don't ignore the cutoff.
-            # cutoff=self._cutoff,
+            cutoff=self._cutoff,
         )
 
     @property
@@ -209,7 +208,7 @@ class PauliStrings(PauliStringsBase):
                     # multiply with -1 for every site we did Z which was state_1
                     mel += weights[i, j] * (-1.0) ** n_z
 
-                if abs(mel) > cutoff:
+                if cutoff is None or abs(mel) > cutoff:
                     x_prime[n_c] = np.copy(xb)
                     # now flip all the sites in the X string
                     for site in sites[i, : ns[i]]:

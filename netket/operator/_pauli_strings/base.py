@@ -145,7 +145,7 @@ class PauliStringsBase(DiscreteOperator):
            hilbert: A hilbert space, optional (is no ``AbstractHilbert`` is passed, default is Qubit)
            operators (list(string)): A list of Pauli operators in string format, e.g. ['IXX', 'XZI'].
            weights: A list of amplitudes of the corresponding Pauli operator.
-           cutoff (float): a cutoff to remove small matrix elements
+           cutoff (float): a cutoff to remove small matrix elements (default = 1e-10)
            dtype: The datatype to use for the matrix elements. Defaults to double precision if
                 available.
 
@@ -319,7 +319,7 @@ class PauliStringsBase(DiscreteOperator):
             return NotImplemented
         op = self.copy(
             dtype=jnp.promote_types(self.dtype, _dtype(other)),
-            cutoff=max(self._cutoff, other._cutoff),
+            cutoff=min(self._cutoff, other._cutoff),
         )
         return op._op_imatmul_(other)
 
@@ -421,6 +421,7 @@ class PauliStringsBase(DiscreteOperator):
 
             self._operators = operators
             self._weights = weights
+            self._cutoff = min(self._cutoff, other._cutoff)
             self._reset_caches()
             return self
 
