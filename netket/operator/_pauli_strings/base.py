@@ -319,7 +319,7 @@ class PauliStringsBase(DiscreteOperator):
             return NotImplemented
         op = self.copy(
             dtype=jnp.promote_types(self.dtype, _dtype(other)),
-            cutoff=max(self._cutoff, other._cutoff),
+            cutoff=min(self._cutoff, other._cutoff),
         )
         return op._op_imatmul_(other)
 
@@ -421,6 +421,7 @@ class PauliStringsBase(DiscreteOperator):
 
             self._operators = operators
             self._weights = weights
+            self._cutoff = min(self._cutoff, other._cutoff)
             self._reset_caches()
             return self
 
