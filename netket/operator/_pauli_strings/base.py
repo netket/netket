@@ -176,7 +176,7 @@ class PauliStringsBase(DiscreteOperator):
             hilbert, operators, weights, dtype=dtype
         )
 
-        if cutoff is not None and (not np.isscalar(cutoff) or cutoff < 0):
+        if not np.isscalar(cutoff) or cutoff < 0:
             raise ValueError("invalid cutoff in PauliStrings.")
 
         super().__init__(hilbert)
