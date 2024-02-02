@@ -21,7 +21,15 @@ from jax.flatten_util import ravel_pytree
 
 @partial(jax.jit, static_argnames=("mode", "solver_fn"))
 def SRt(
-    O_L, local_energies, diag_shift, *, mode, solver_fn, e_mean=None, params_structure
+    O_L,
+    local_energies,
+    diag_shift,
+    proj_reg,
+    *,
+    mode,
+    solver_fn,
+    e_mean=None,
+    params_structure,
 ):
     """
     For more details, see `https://arxiv.org/abs/2310.05715'. In particular,
@@ -69,9 +77,8 @@ def SRt(
     matrix_side = matrix.shape[-1]  # * it can be Ns or 2*Ns, depending on mode
 
     if mpi.rank == 0:
-        matrix = matrix + diag_shift * jnp.eye(
-            matrix_side
-        )  # * shift diagonal regularization
+        matrix += diag_shift * jnp.eye(matrix_side, dtype=matrix.dtype)
+        matrix += jnp.full_like(matrix, proj_reg / matrix_side)
         aus_vector = solver_fn(matrix, dv)
         aus_vector = aus_vector.reshape(mpi.n_nodes, -1)
         aus_vector, token = mpi.mpi_scatter_jax(aus_vector, token=token)
@@ -131,6 +138,7 @@ class VMC_SRt(VMC):
         optimizer: Optimizer,
         *,
         diag_shift: ScalarOrSchedule,
+        proj_reg: ScalarOrSchedule,
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
         jacobian_mode: Optional[str] = None,
         variational_state: MCState = None,
@@ -144,6 +152,8 @@ class VMC_SRt(VMC):
                     bare energy gradient.
             diag_shift: The diagonal shift of the stochastic reconfiguration matrix.
                         Typical values are 1e-4 ÷ 1e-3. Can also be an optax schedule.
+            proj_reg: Weight before the matrix `1/N_samples \\bm{1} \\bm{1}^T`
+                      used to regularize the linear solver in SPRING.
             hamiltonian: The Hamiltonian of the system.
             linear_solver_fn: Callable to solve the linear problem associated to the
                               updates of the parameters
@@ -178,6 +188,7 @@ class VMC_SRt(VMC):
 
         self._ham = hamiltonian.collect()  # type: AbstractOperator
         self.diag_shift = diag_shift
+        self.proj_reg = proj_reg
         self.jacobian_mode = jacobian_mode
         self._linear_solver_fn = linear_solver_fn
 
@@ -252,13 +263,17 @@ class VMC_SRt(VMC):
         )  # jacobians is centered
 
         diag_shift = self.diag_shift
-        if callable(self.diag_shift):
+        proj_reg = self.proj_reg
+        if callable(diag_shift):
             diag_shift = diag_shift(self.step_count)
+        if callable(proj_reg):
+            proj_reg = proj_reg(self.step_count)
 
         updates = SRt(
             jacobians,
             local_energies,
             diag_shift,
+            proj_reg,
             mode=self.jacobian_mode,
             solver_fn=self._linear_solver_fn,
             e_mean=self._loss_stats.Mean,
