@@ -472,7 +472,9 @@ class MCState(VariationalState):
         if n_samples is None and chain_length is None:
             chain_length = self.chain_length
         else:
-            if chain_length is None:
+            if chain_length is not None and n_samples is not None:
+                raise ValueError("Cannot specify both `chain_length` and `n_samples`.")
+            elif chain_length is None:
                 chain_length = compute_chain_length(self.sampler.n_chains, n_samples)
 
             if self.chunk_size is not None:
