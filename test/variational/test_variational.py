@@ -227,6 +227,11 @@ def test_chunk_size_api(vstate, _mpi_size):
     ):
         vstate.sample(n_samples=1008 + 16)
 
+    with raises(
+        ValueError,
+    ):
+        vstate.sample(n_samples=1008, chain_length=100)
+
 
 @common.skipif_mpi
 def test_constructor():
