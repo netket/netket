@@ -496,8 +496,7 @@ def test_sanitize_diag_shift(inputs, expected):
 
     if expected == "error":
         with pytest.raises(ValueError):
-            with ctx:
-                qgt_jacobian_common.sanitize_diag_shift(*inputs)
+            qgt_jacobian_common.sanitize_diag_shift(*inputs)
     else:
         with ctx:
             output = qgt_jacobian_common.sanitize_diag_shift(*inputs)

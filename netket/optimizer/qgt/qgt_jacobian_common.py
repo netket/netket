@@ -33,32 +33,29 @@ def sanitize_diag_shift(diag_shift, diag_scale, rescale_shift):
     if diag_shift is None:
         diag_shift = 0.0
 
+    if rescale_shift is not None and diag_scale is not None:
+        raise ValueError(
+            "`rescale_shift` has been deprecated, and cannot be declared with `diag_scale`.\n"
+            "Use only `diag_scale` instead."
+        )
+
     if rescale_shift is False:
         warn_deprecation(
             "`rescale_shift` is deprecated, please do not specify `rescale_shift=False`."
         )
-        if diag_scale is not None:
-            raise ValueError(
-                "`rescale_shift` and `diag_scale` must not be specified together."
-            )
-
-        return diag_shift, 0.0
+        diag_scale = 0.0
     elif rescale_shift is True:
         warn_deprecation(
             f"`rescale_shift` is deprecated, use `diag_scale={diag_shift}, diag_shift=0` instead."
         )
-        if diag_scale is not None:
-            raise ValueError(
-                "`rescale_shift` and `diag_scale` must not be specified together."
-            )
-
-        return 0.0, diag_shift
+        diag_scale = diag_shift
+        diag_shift = 0.0
     elif rescale_shift is None:
         if diag_scale is None:
             diag_scale = 0.0
-        return diag_shift, diag_scale
     else:
         raise ValueError("`rescale_shift` must be boolean or None.")
+    return diag_shift, diag_scale
 
 
 def to_shift_offset(diag_shift, diag_scale):
