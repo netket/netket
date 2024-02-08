@@ -17,9 +17,10 @@ jobs:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
+          fetch-tags: true
 
       # make sure tags are fetched so we can get a version
       - run: |

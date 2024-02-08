@@ -30,9 +30,10 @@ jobs:
             runscript: "run_standard_tests_with_sharding.sh"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
+          fetch-tags: true
 
       - name: Set up Python ${{ matrix.python-version }} on ${{ matrix.os }}
         uses: actions/setup-python@v4
