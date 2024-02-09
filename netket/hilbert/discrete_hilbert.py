@@ -20,7 +20,6 @@ from functools import reduce
 import numpy as np
 
 from netket.utils.types import Array
-from netket.utils.numbers import is_scalar
 from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
 
 from .abstract_hilbert import AbstractHilbert
@@ -152,16 +151,17 @@ class DiscreteHilbert(AbstractHilbert):
             np.asarray, numbers, HilbertIndexingDuringTracingError
         )
 
+        numbers_r = np.asarray(np.reshape(numbers, -1))
+
         if out is None:
-            out = np.empty((np.atleast_1d(numbers).shape[0], self.size))
+            out = np.empty((numbers_r.size, self.size))
 
         if np.any(numbers >= self.n_states):
             raise ValueError("numbers outside the range of allowed states")
 
-        if is_scalar(numbers):
-            return self._numbers_to_states(np.atleast_1d(numbers), out=out)[0, :]
-        else:
-            return self._numbers_to_states(numbers, out=out)
+        out = self._numbers_to_states(numbers_r, out=out)
+
+        return out.reshape((*numbers.shape, self.size))
 
     def states_to_numbers(
         self, states: np.ndarray, out: Optional[np.ndarray] = None

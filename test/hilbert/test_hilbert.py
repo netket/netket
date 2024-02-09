@@ -348,6 +348,11 @@ def test_hilbert_index_discrete(hi: DiscreteHilbert):
             hi.numbers_to_states(np.asarray(range(n_few))), few_states
         )
 
+        few_states_n = np.asarray(range(n_few)).reshape(1, -1)
+        np.testing.assert_allclose(
+            hi.numbers_to_states(few_states_n), few_states.reshape(1, -1, hi.size)
+        )
+
     else:
         assert not hi.is_indexable
 
