@@ -22,7 +22,7 @@ from jax import numpy as jnp
 
 from netket import config
 from netket.utils.types import PyTree, PRNGKeyT
-from netket.utils import struct, mpi
+from netket.utils import struct
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
