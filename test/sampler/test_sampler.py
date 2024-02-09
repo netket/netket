@@ -30,8 +30,6 @@ from netket.jax.sharding import device_count_per_rank
 
 from netket import experimental as nkx
 
-jax.config.update("jax_enable_x64", True)
-
 
 pytestmark = common.skipif_mpi
 
@@ -554,3 +552,28 @@ def test_fermions_spin_exchange():
     )
     nodes = np.unique(sampler.rule.clusters)
     assert np.allclose(nodes, np.arange(hi_fermion_spin.size))
+
+
+def test_multiplerules_pt():
+    hi = ha.hilbert
+    sa = nkx.sampler.MetropolisPtSampler(
+        hi,
+        rule=nk.sampler.rules.MultipleRules(
+            [nk.sampler.rules.LocalRule(), nk.sampler.rules.HamiltonianRule(ha)],
+            [0.8, 0.2],
+        ),
+        n_replicas=4,
+        sweep_size=hib_u.size * 4,
+    )
+
+    ma, w = model_and_weights(hi, sa)
+
+    sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
+    sampler_state = sa.reset(ma, w, state=sampler_state)
+    samples, sampler_state = sampler.sample(
+        ma,
+        w,
+        state=sampler_state,
+        chain_length=10,
+    )
+    assert samples.shape == (sa.n_chains, 10, hi.size)
