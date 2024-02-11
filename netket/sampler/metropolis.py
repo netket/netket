@@ -36,7 +36,7 @@ from netket.jax.sharding import (
     extract_replicated,
     gather,
     distribute_to_devices_along_axis,
-    device_count_per_rank,
+    device_count,
 )
 
 from .base import Sampler, SamplerState
@@ -188,13 +188,13 @@ def _assert_good_log_prob_shape(log_prob, n_chains_per_rank, machine):
 
 
 def _round_n_chains_to_next_multiple(
-    n_chains, n_chains_per_whatever, n_whatever, whatever_str, default
+    n_chains, n_chains_per_whatever, n_whatever, whatever_str
 ):
     # small helper function to round the number of chains to the next multiple of [whatever]
     # here [whatever] can be e.g. mpi ranks or jax devices
-    if n_chains is None and n_chains_per_whatever is None:
-        n_chains_per_whatever = default
-    elif n_chains is not None and n_chains_per_whatever is not None:
+    # if n_chains is None and n_chains_per_whatever is None:
+    #    n_chains_per_whatever = default
+    if n_chains is not None and n_chains_per_whatever is not None:
         raise ValueError(
             f"Cannot specify both `n_chains` and `n_chains_per_{whatever_str}`"
         )
@@ -240,7 +240,7 @@ class MetropolisSampler(Sampler):
     """Number of sweeps for each step along the chain. Defaults to the number
     of sites in the Hilbert space."""
     n_chains: int = struct.field(pytree_node=False)
-    """Number of independent chains on every MPI rank."""
+    """Total number of independent chains across all MPI ranks and/or devices."""
     reset_chains: bool = struct.field(pytree_node=False, default=False)
     """If True, resets the chain state when `reset` is called on every new sampling."""
 
@@ -293,20 +293,6 @@ class MetropolisSampler(Sampler):
         if not isinstance(reset_chains, bool):
             raise TypeError("reset_chains must be a boolean.")
 
-        n_chains_per_rank_or_device = n_chains_per_rank
-        # TODO set it to a few hundred if on GPU?
-        default_n_chains_per_rank_or_device = 16
-        # we assume either mpi.n_nodes=1 or nk.jax.sharding.device_count_per_rank()=1
-        n_ranks_or_devices = mpi.n_nodes * device_count_per_rank()
-
-        n_chains = _round_n_chains_to_next_multiple(
-            n_chains,
-            n_chains_per_rank_or_device,
-            n_ranks_or_devices,
-            "rank_or_device",
-            default_n_chains_per_rank_or_device,
-        )
-
         if n_sweeps is not None:
             warn_deprecation(
                 "Specifying `n_sweeps` when constructing sampler is deprecated. Please use `sweep_size` instead."
@@ -318,6 +304,18 @@ class MetropolisSampler(Sampler):
         if sweep_size is None:
             sweep_size = hilbert.size
 
+        # Default n_chains per rank, if unset
+        if n_chains is None and n_chains_per_rank is None:
+            # TODO set it to a few hundred if on GPU?
+            n_chains_per_rank = 16
+
+        n_chains = _round_n_chains_to_next_multiple(
+            n_chains,
+            n_chains_per_rank,
+            device_count(),
+            "rank_or_device",
+        )
+
         super().__init__(
             hilbert=hilbert,
             machine_pow=machine_pow,
@@ -328,7 +326,6 @@ class MetropolisSampler(Sampler):
         self.reset_chains = reset_chains
         self.rule = rule
         self.sweep_size = sweep_size
-        self.n_chains = n_chains
 
     @property
     def n_sweeps(self):
@@ -367,47 +364,32 @@ class MetropolisSampler(Sampler):
         return sampler._sample_next(wrap_afun(machine), parameters, state)
 
     def _init_state(sampler, machine, params, key):
-        key_state, key_rule = jax.random.split(key, 2)
+        key_state, key_rule, rng = jax.random.split(key, 3)
         rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
-        σ = jnp.zeros(
-            (sampler.n_chains_per_rank, sampler.hilbert.size), dtype=sampler.dtype
+        σ = sampler.rule.random_state(sampler, machine, params, rule_state, rng)
+        _assert_good_sample_shape(
+            σ,
+            (sampler.n_batches, sampler.hilbert.size),
+            sampler.dtype,
+            f"{sampler.rule}.random_state",
         )
-
         if config.netket_experimental_sharding and jax.device_count() > 1:
             # TODO If we end up rewriting the hilbert spaces in jax then we can avoid
             # this and instead jit the random state with the correct out_shardings
-            σ = distribute_to_devices_along_axis(σ)
-        state = MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
-
-        # If we don't reset the chain at every sampling iteration, then reset it
-        # now.
-        if not sampler.reset_chains:
-            key_state, rng = jax.random.split(key_state)
-            σ = sampler.rule.random_state(sampler, machine, params, state, rng)
-            if config.netket_experimental_sharding and jax.device_count() > 1:
-                σ = distribute_to_devices_along_axis(σ)
-            _assert_good_sample_shape(
-                σ,
-                (sampler.n_chains_per_rank, sampler.hilbert.size),
-                sampler.dtype,
-                f"{sampler.rule}.random_state",
-            )
-            state = state.replace(σ=σ, rng=key_state)
-
-        return state
+            σ = distribute_to_devices_along_axis(σ, axis=0)
+        return MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
 
     def _reset(sampler, machine, parameters, state):
-        new_rng, rng = jax.jit(jax.random.split)(
-            state.rng
-        )  # use jit so that we can do it on global shared array
+        # use jit so that we can do it on global shared array
+        new_rng, rng = jax.jit(jax.random.split)(state.rng)
 
         if sampler.reset_chains:
             σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
             if config.netket_experimental_sharding and jax.device_count() > 1:
-                σ = distribute_to_devices_along_axis(σ)
+                σ = distribute_to_devices_along_axis(σ, axis=0)
             _assert_good_sample_shape(
                 σ,
-                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                (sampler.n_batches, sampler.hilbert.size),
                 sampler.dtype,
                 f"{sampler.rule}.random_state",
             )
@@ -441,16 +423,14 @@ class MetropolisSampler(Sampler):
             )
             _assert_good_sample_shape(
                 σp,
-                (sampler.n_chains_per_rank, sampler.hilbert.size),
+                (sampler.n_batches, sampler.hilbert.size),
                 sampler.dtype,
                 f"{sampler.rule}.transition",
             )
             proposal_log_prob = sampler.machine_pow * machine.apply(parameters, σp).real
-            _assert_good_log_prob_shape(
-                proposal_log_prob, sampler.n_chains_per_rank, machine
-            )
+            _assert_good_log_prob_shape(proposal_log_prob, sampler.n_batches, machine)
 
-            uniform = jax.random.uniform(key2, shape=(sampler.n_chains_per_rank,))
+            uniform = jax.random.uniform(key2, shape=(sampler.n_batches,))
             if log_prob_correction is not None:
                 do_accept = uniform < jnp.exp(
                     proposal_log_prob - s["log_prob"] + log_prob_correction
@@ -483,8 +463,7 @@ class MetropolisSampler(Sampler):
             rng=new_rng,
             σ=s["σ"],
             n_accepted_proc=s["accepted"],
-            n_steps_proc=state.n_steps_proc
-            + sampler.sweep_size * sampler.n_chains_per_rank,
+            n_steps_proc=state.n_steps_proc + sampler.sweep_size * sampler.n_batches,
         )
 
         return new_state, new_state.σ

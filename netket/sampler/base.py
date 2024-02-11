@@ -15,13 +15,15 @@
 import abc
 from typing import Optional, Union, Callable
 from collections.abc import Iterator
-import warnings
 
 import numpy as np
 from flax import linen as nn
+
+import jax
 from jax import numpy as jnp
 
 from netket import jax as nkjax
+from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.utils import get_afun_if_module, mpi, numbers, struct, wrap_afun
 from netket.utils.types import PyTree, DType, SeedT
@@ -106,7 +108,16 @@ class Sampler(struct.Pytree):
 
         If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`.
         """
-        res, remainder = divmod(self.n_chains, mpi.n_nodes)
+        if config.netket_experimental_sharding:
+            n_devices = jax.device_count()
+            if self.n_chains == 1:
+                res, remainder = 1, 0
+            else:
+                res, remainder = divmod(self.n_chains, n_devices)
+        else:
+            n_devices = mpi.n_nodes
+            res, remainder = divmod(self.n_chains, n_devices)
+
         if remainder != 0:
             raise RuntimeError(
                 "The number of chains is not a multiple of the number of mpi ranks"
@@ -128,11 +139,24 @@ class Sampler(struct.Pytree):
     @property
     def n_batches(self) -> int:
         r"""
-        The batch size of the configuration $\sigma$ used by this sampler.
+        The batch size of the configuration $\sigma$ used by this sampler on this
+        jax process.
 
-        In general, it is equivalent to :attr:`~Sampler.n_chains_per_rank`.
+        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`, but if
+        you are using MPI this is equal to :attr:`~Sampler.n_chains_per_rank`.
+
+        Samplers may override this to have a larger batch size, for example to
+        propagate multiple replicas.
         """
-        return self.n_chains_per_rank
+        if config.netket_experimental_sharding:
+            n_batches = self.n_chains
+        else:
+            n_batches, remainder = divmod(self.n_chains, mpi.n_nodes)
+            if remainder != 0:
+                raise RuntimeError(
+                    "The number of chains is not a multiple of the number of mpi ranks"
+                )
+        return n_batches
 
     @property
     def is_exact(self) -> bool:

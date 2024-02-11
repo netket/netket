@@ -103,7 +103,10 @@ class ExactSampler(Sampler):
         numbers = jax.random.choice(
             rng,
             sampler.hilbert.n_states,
-            shape=(chain_length * sampler.n_chains_per_rank,),
+            shape=(
+                sampler.n_batches,
+                chain_length,
+            ),
             replace=True,
             p=state.pdf,
         )
@@ -120,13 +123,13 @@ class ExactSampler(Sampler):
                 sampler.dtype
             ),
             jax.ShapeDtypeStruct(
-                (sampler.n_chains_per_rank * chain_length, sampler.hilbert.size),
+                (sampler.n_batches, chain_length, sampler.hilbert.size),
                 sampler.dtype,
             ),
             numbers,
         )
         samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
-            sampler.n_chains_per_rank, chain_length, sampler.hilbert.size
+            sampler.n_batches, chain_length, sampler.hilbert.size
         )
 
         # TODO run the part above in parallel
