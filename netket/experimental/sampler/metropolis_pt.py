@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any, Optional
 from functools import partial
 
 import numpy as np
@@ -19,11 +20,23 @@ import numpy as np
 import jax
 from jax import numpy as jnp
 
+from netket import config
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils import struct
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
+
+
+from netket.jax.sharding import (
+    distribute_to_devices_along_axis,
+)
+
+# Original C++ Implementation
+# https://github.com/netket/netket/blob/1e187ae2b9d2aa3f2e53b09fe743e50763d04c9a/Sources/Sampler/metropolis_hastings_pt.hpp
+# https://github.com/netket/netket/blob/1e187ae2b9d2aa3f2e53b09fe743e50763d04c9a/Sources/Sampler/metropolis_hastings_pt.cc
+# Python port
+# https://github.com/netket/netket/blob/87d469aa8c23f71c4838cf09d7ed7b87ff2ea01f/netket/legacy/sampler/numpy/metropolis_hastings_pt.py
 
 
 class MetropolisPtSamplerState(MetropolisSamplerState):
@@ -37,22 +50,20 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
 
     def __init__(
         self,
-        *,
-        beta,
-        n_accepted_per_beta,
-        beta_0_index,
-        beta_position,
-        beta_diffusion,
-        exchange_steps,
-        **kwargs,
+        σ: jnp.ndarray,
+        rng: jnp.ndarray,
+        rule_state: Optional[Any],
+        beta: jnp.ndarray,
     ):
+        n_chains, n_replicas = beta.shape
+
         self.beta = beta
-        self.n_accepted_per_beta = n_accepted_per_beta
-        self.beta_0_index = beta_0_index
-        self.beta_position = beta_position
-        self.beta_diffusion = beta_diffusion
-        self.exchange_steps = exchange_steps
-        super().__init__(**kwargs)
+        self.n_accepted_per_beta = jnp.zeros((n_chains, n_replicas), dtype=int)
+        self.beta_0_index = jnp.zeros((n_chains,), dtype=int)
+        self.beta_position = jnp.zeros((n_chains,), dtype=float)
+        self.beta_diffusion = jnp.zeros((n_chains,), dtype=float)
+        self.exchange_steps = jnp.zeros((), dtype=int)
+        super().__init__(σ, rng, rule_state)
 
     def __repr__(self):
         if self.n_steps > 0:
@@ -63,7 +74,6 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
             acc_string = ""
 
         text = "MetropolisNumpySamplerState(" + acc_string + f"rng state={self.rng})"
-
         text = "MetropolisPtSamplerState(" + acc_string + f"rng state={self.rng}"
         return text
 
@@ -78,7 +88,12 @@ class MetropolisPtSampler(MetropolisSampler):
     """
 
     n_replicas: int = struct.field(pytree_node=False, default=32)
-    """The number of replicas"""
+    """
+    The number of replicas evolving with different temperatures for every
+    _physical_ markov chain.
+
+    The total number of chains evolved is :code:`n_chains * n_replicas`.
+    """
 
     def __init__(self, *args, n_replicas: int = 32, **kwargs):
         r"""
@@ -125,12 +140,14 @@ class MetropolisPtSampler(MetropolisSampler):
     def _init_state(
         sampler, machine, params: PyTree, key: PRNGKeyT
     ) -> MetropolisPtSamplerState:
-        key_state, key_rule = jax.random.split(key, 2)
-        σ = jnp.zeros(
-            (sampler.n_batches, sampler.hilbert.size),
-            dtype=sampler.dtype,
-        )
+        key_state, key_rule, rng = jax.random.split(key, 3)
         rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
+        σ = sampler.rule.random_state(sampler, machine, params, rule_state, rng)
+
+        if config.netket_experimental_sharding and jax.device_count() > 1:
+            # TODO If we end up rewriting the hilbert spaces in jax then we can avoid
+            # this and instead jit the random state with the correct out_shardings
+            σ = distribute_to_devices_along_axis(σ, axis=0)
 
         beta = 1.0 - jnp.arange(sampler.n_replicas) / sampler.n_replicas
         beta = jnp.tile(beta, (sampler.n_chains, 1))
@@ -140,36 +157,15 @@ class MetropolisPtSampler(MetropolisSampler):
             rng=key_state,
             rule_state=rule_state,
             beta=beta,
-            beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int64),
-            n_accepted_per_beta=jnp.zeros(
-                (sampler.n_chains, sampler.n_replicas), dtype=jnp.int64
-            ),
-            beta_position=jnp.zeros((sampler.n_chains,)),
-            beta_diffusion=jnp.zeros((sampler.n_chains,)),
-            exchange_steps=0,
         )
 
     def _reset(sampler, machine, parameters: PyTree, state: MetropolisPtSamplerState):
-        new_rng, rng = jax.random.split(state.rng)
-
-        σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
-
-        rule_state = sampler.rule.reset(sampler, machine, parameters, state)
-
-        beta = 1.0 - jnp.arange(sampler.n_replicas) / sampler.n_replicas
-        beta = jnp.tile(beta, (sampler.n_chains, 1))
-
+        state = super()._reset(machine, parameters, state)
         return state.replace(
-            σ=σ,
-            rng=new_rng,
-            rule_state=rule_state,
-            n_accepted_proc=0,
-            n_accepted_per_beta=jnp.zeros(
-                (sampler.n_chains, sampler.n_replicas), dtype=jnp.int64
-            ),
-            beta_position=jnp.zeros((sampler.n_chains,)),
-            beta_diffusion=jnp.zeros(sampler.n_chains),
-            exchange_steps=0,
+            n_accepted_per_beta=jnp.zeros_like(state.n_accepted_per_beta),
+            beta_position=jnp.zeros_like(state.beta_position),
+            beta_diffusion=jnp.zeros_like(state.beta_diffusion),
+            exchange_steps=jnp.zeros_like(state.exchange_steps),
             # beta=beta,
             # beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int64),
         )

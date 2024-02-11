@@ -127,7 +127,7 @@ class MultipleRules(MetropolisRule):
         indices = jax.random.choice(
             keys[-1],
             N,
-            shape=(sampler.n_chains_per_rank,),
+            shape=(sampler.n_batches,),
             p=self.probabilities,
         )
 
@@ -138,7 +138,7 @@ class MultipleRules(MetropolisRule):
         if any(x is not None for x in log_prob_corrs):
             log_prob_corrs = jnp.stack(
                 [
-                    x if x is not None else jnp.zeros((sampler.n_chains_per_rank,))
+                    x if x is not None else jnp.zeros((sampler.n_batches,))
                     for x in log_prob_corrs
                 ]
             )
