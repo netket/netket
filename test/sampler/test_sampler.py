@@ -554,7 +554,7 @@ def test_fermions_spin_exchange():
     assert np.allclose(nodes, np.arange(hi_fermion_spin.size))
 
 
-def test_multiplerules_pt():
+def test_multiplerules_pt(model_and_weights):
     hi = ha.hilbert
     sa = nkx.sampler.MetropolisPtSampler(
         hi,
@@ -570,7 +570,7 @@ def test_multiplerules_pt():
 
     sampler_state = sa.init_state(ma, w, seed=SAMPLER_SEED)
     sampler_state = sa.reset(ma, w, state=sampler_state)
-    samples, sampler_state = sampler.sample(
+    samples, sampler_state = sa.sample(
         ma,
         w,
         state=sampler_state,

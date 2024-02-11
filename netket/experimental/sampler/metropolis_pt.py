@@ -32,6 +32,12 @@ from netket.jax.sharding import (
     distribute_to_devices_along_axis,
 )
 
+# Original C++ Implementation
+# https://github.com/netket/netket/blob/1e187ae2b9d2aa3f2e53b09fe743e50763d04c9a/Sources/Sampler/metropolis_hastings_pt.hpp
+# https://github.com/netket/netket/blob/1e187ae2b9d2aa3f2e53b09fe743e50763d04c9a/Sources/Sampler/metropolis_hastings_pt.cc
+# Python port
+# https://github.com/netket/netket/blob/87d469aa8c23f71c4838cf09d7ed7b87ff2ea01f/netket/legacy/sampler/numpy/metropolis_hastings_pt.py
+
 
 class MetropolisPtSamplerState(MetropolisSamplerState):
     beta: jnp.ndarray = None
@@ -49,14 +55,13 @@ class MetropolisPtSamplerState(MetropolisSamplerState):
         rule_state: Optional[Any],
         beta: jnp.ndarray,
     ):
-        n_replicas = beta.size
-        n_chains = σ.shape[0] / n_replicas
+        n_chains, n_replicas = beta.shape
 
         self.beta = beta
         self.n_accepted_per_beta = jnp.zeros((n_chains, n_replicas), dtype=int)
         self.beta_0_index = jnp.zeros((n_chains,), dtype=int)
-        self.beta_position = jnp.zeros((n_chains,), dtype=int)
-        self.beta_diffusion = jnp.zeros((n_chains,), dtype=int)
+        self.beta_position = jnp.zeros((n_chains,), dtype=float)
+        self.beta_diffusion = jnp.zeros((n_chains,), dtype=float)
         self.exchange_steps = jnp.zeros((), dtype=int)
         super().__init__(σ, rng, rule_state)
 
@@ -158,9 +163,9 @@ class MetropolisPtSampler(MetropolisSampler):
         state = super()._reset(machine, parameters, state)
         return state.replace(
             n_accepted_per_beta=jnp.zeros_like(state.n_accepted_per_beta),
-            beta_position=jnp.zeros_like(sampler.beta_position),
-            beta_diffusion=jnp.zeros_like(sampler.beta_diffusion),
-            exchange_steps=jnp.zeros_like(sampler.exchange_steps),
+            beta_position=jnp.zeros_like(state.beta_position),
+            beta_diffusion=jnp.zeros_like(state.beta_diffusion),
+            exchange_steps=jnp.zeros_like(state.exchange_steps),
             # beta=beta,
             # beta_0_index=jnp.zeros((sampler.n_chains,), dtype=jnp.int64),
         )
