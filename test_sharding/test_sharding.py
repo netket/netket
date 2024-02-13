@@ -6,7 +6,7 @@ import netket as nk
 import netket.experimental as nkx
 
 from flax import serialization
-from jax.sharding import PositionalSharding
+from jax.sharding import PositionalSharding, SingleDeviceSharding
 
 
 def _setup(L, alpha=1):
@@ -38,21 +38,30 @@ def test_sampling():
     # check sampler state has correct sharding
     x = vs.sampler_state.σ
     assert x.shape == (n_chains, vs.hilbert.size)
-    assert isinstance(x.sharding, PositionalSharding)
+    assert isinstance(
+        x.sharding,
+        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+    )
     assert x.sharding.shape == (jax.device_count(), 1)
     assert x.sharding.device_set == set(jax.devices())
 
     # check samples have correct sharding
     samples = vs.sample()
     assert samples.shape == (n_chains, n_samples // n_chains, vs.hilbert.size)
-    assert isinstance(samples.sharding, PositionalSharding)
+    assert isinstance(
+        samples.sharding,
+        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+    )
     assert samples.sharding.shape == (jax.device_count(), 1, 1)
     assert samples.sharding.device_set == set(jax.devices())
 
     # check sampler state still has correct sharding after having sampled
     x = vs.sampler_state.σ
     assert x.shape == (n_chains, vs.hilbert.size)
-    assert isinstance(x.sharding, PositionalSharding)
+    assert isinstance(
+        x.sharding,
+        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+    )
     assert x.sharding.shape == (jax.device_count(), 1)
     assert x.sharding.device_set == set(jax.devices())
 
@@ -67,7 +76,10 @@ def test_expect():
     str(E)
     for l in jax.tree_util.tree_leaves(E):
         assert l.is_fully_replicated
-        assert isinstance(l.sharding, PositionalSharding)
+        assert isinstance(
+            l.sharding,
+            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+        )
         assert l.sharding.device_set == set(jax.devices())
 
 
@@ -81,12 +93,18 @@ def test_grad():
     str(E)
     for l in jax.tree_util.tree_leaves(E):
         assert l.is_fully_replicated
-        assert isinstance(l.sharding, PositionalSharding)
+        assert isinstance(
+            l.sharding,
+            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+        )
         assert l.sharding.device_set == set(jax.devices())
 
     for l in jax.tree_util.tree_leaves(G):
         assert l.is_fully_replicated
-        assert isinstance(l.sharding, PositionalSharding)
+        assert isinstance(
+            l.sharding,
+            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+        )
         assert l.sharding.device_set == set(jax.devices())
 
 
@@ -130,7 +148,10 @@ def test_vmc(Op, qgt, chunk_size):
 
     for l in jax.tree_util.tree_leaves(vs.variables):
         assert l.is_fully_replicated
-        assert isinstance(l.sharding, PositionalSharding)
+        assert isinstance(
+            l.sharding,
+            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+        )
         assert l.sharding.device_set == set(jax.devices())
 
 
@@ -150,7 +171,10 @@ def test_qgt_jacobian(qgt):
     S = vs.quantum_geometric_tensor(qgt(holomorphic=True))
     for l in jax.tree_util.tree_leaves(S.O):
         assert l.shape[0] == n_samples
-        assert isinstance(l.sharding, PositionalSharding)
+        assert isinstance(
+            l.sharding,
+            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+        )
         assert l.sharding.shape[0] == jax.device_count()
         assert l.sharding.device_set == set(jax.devices())
     v = vs.parameters
@@ -158,7 +182,10 @@ def test_qgt_jacobian(qgt):
 
     for l in jax.tree_util.tree_leaves(res):
         assert l.is_fully_replicated
-        assert isinstance(l.sharding, PositionalSharding)
+        assert isinstance(
+            l.sharding,
+            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+        )
         assert l.sharding.device_set == set(jax.devices())
 
 
@@ -174,7 +201,10 @@ def test_qgt_onthefly():
 
     for l in jax.tree_util.tree_leaves(res):
         assert l.is_fully_replicated
-        assert isinstance(l.sharding, PositionalSharding)
+        assert isinstance(
+            l.sharding,
+            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+        )
         assert l.sharding.device_set == set(jax.devices())
 
 
@@ -202,8 +232,14 @@ def test_operators(Op):
     assert xp.shape == (x.shape[0], n_conn, x.shape[-1])
     assert mels.shape == (x.shape[0], n_conn)
 
-    assert isinstance(xp.sharding, PositionalSharding)
-    assert isinstance(mels.sharding, PositionalSharding)
+    assert isinstance(
+        xp.sharding,
+        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+    )
+    assert isinstance(
+        mels.sharding,
+        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
+    )
 
     assert xp.sharding.shape == (jax.device_count(), 1, 1)
     assert mels.sharding.shape == (jax.device_count(), 1)
