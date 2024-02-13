@@ -26,7 +26,12 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from jax.tree_util import Partial
-from jax.sharding import Mesh, PartitionSpec as P, PositionalSharding
+from jax.sharding import (
+    Mesh,
+    PartitionSpec as P,
+    PositionalSharding,
+    SingleDeviceSharding,
+)
 from jax.experimental.shard_map import shard_map
 
 from netket.utils import config, mpi
@@ -250,6 +255,9 @@ def gather(x):
         # TODO in the future we could chagne it to just return x unchanged
         # but for now we error if x is not a jax array to ensure gather is used correctly
         raise RuntimeError("gather can only be applied to a jax.Array")
+
+    if isinstance(x.sharding, SingleDeviceSharding):
+        return x
 
     if not isinstance(x.sharding, PositionalSharding):
         raise NotImplementedError(
