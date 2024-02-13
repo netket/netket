@@ -19,12 +19,12 @@ def _setup(L, alpha=1):
     return vs, g, ha
 
 
-@pytest.mark.skipif(
-    not nk.config.netket_experimental_sharding, reason="Only run with sharding"
-)
-def test_setup():
-    # make sure that the tests are running with >1 devices
-    assert jax.device_count() > 1
+# @pytest.mark.skipif(
+#     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
+# )
+# def test_setup():
+#     # make sure that the tests are running with >1 devices
+#     assert jax.device_count() > 1
 
 
 @pytest.mark.skipif(

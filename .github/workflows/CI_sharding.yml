@@ -17,13 +17,12 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.10"
             mpi: ""
-            runscript: "run_test_sharding.sh"
+            runscript: "run_test_sharding_1cpu.sh"
 
           - os: ubuntu-latest
             python-version: "3.10"
             mpi: ""
-            runscript: "run_test_sharding.sh"
-            env: NETKET_EXPERIMENTAL_SHARDING_CPU=2
+            runscript: "run_test_sharding_2cpu.sh"
 
           - os: self-hosted
             python-version: "3.10"
@@ -59,6 +58,6 @@ jobs:
           pip install jaxlib
           pip install -e ".[dev,extra]"
 
-      - name: run tests on 2 cpus
+      - name: run tests
         run: |
           ./test_sharding/"${{ matrix.runscript }}"
