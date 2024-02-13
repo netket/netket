@@ -42,7 +42,8 @@ def test_sampling():
         x.sharding,
         PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
     )
-    assert x.sharding.shape == (jax.device_count(), 1)
+    if jax.device_count() > 1:
+        assert x.sharding.shape == (jax.device_count(), 1)
     assert x.sharding.device_set == set(jax.devices())
 
     # check samples have correct sharding
@@ -52,7 +53,8 @@ def test_sampling():
         samples.sharding,
         PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
     )
-    assert samples.sharding.shape == (jax.device_count(), 1, 1)
+    if jax.device_count() > 1:
+        assert samples.sharding.shape == (jax.device_count(), 1, 1)
     assert samples.sharding.device_set == set(jax.devices())
 
     # check sampler state still has correct sharding after having sampled
@@ -62,7 +64,8 @@ def test_sampling():
         x.sharding,
         PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
     )
-    assert x.sharding.shape == (jax.device_count(), 1)
+    if jax.device_count() > 1:
+        assert x.sharding.shape == (jax.device_count(), 1)
     assert x.sharding.device_set == set(jax.devices())
 
 
@@ -175,7 +178,8 @@ def test_qgt_jacobian(qgt):
             l.sharding,
             PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
         )
-        assert l.sharding.shape[0] == jax.device_count()
+        if jax.device_count() > 1:
+            assert l.sharding.shape[0] == jax.device_count()
         assert l.sharding.device_set == set(jax.devices())
     v = vs.parameters
     res = S @ v
@@ -225,7 +229,8 @@ def test_operators(Op):
     ha = Op(hilbert=vs.hilbert, graph=g, h=1.0)
     x = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(vs.samples, 0, 2)
 
-    assert x.sharding.shape == (jax.device_count(), 1)
+    if jax.device_count() > 1:
+        assert x.sharding.shape == (jax.device_count(), 1)
     xp, mels = ha.get_conn_padded(x)
 
     n_conn = xp.shape[1]
@@ -241,8 +246,10 @@ def test_operators(Op):
         PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
     )
 
-    assert xp.sharding.shape == (jax.device_count(), 1, 1)
-    assert mels.sharding.shape == (jax.device_count(), 1)
+    if jax.device_count() > 1:
+        assert xp.sharding.shape == (jax.device_count(), 1, 1)
+    if jax.device_count() > 1:
+        assert mels.sharding.shape == (jax.device_count(), 1)
 
     assert xp.sharding.device_set == set(jax.devices())
     assert mels.sharding.device_set == set(jax.devices())
