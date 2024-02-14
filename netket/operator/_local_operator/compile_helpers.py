@@ -215,7 +215,8 @@ def pack_internals_jax(
     data["max_conn_size"] = 0
 
     # iterate over groups of operators with same number of sites
-    for s in np.unique(acting_size):
+    # special case for empty operator
+    for s in np.unique(acting_size) if len(acting_size) > 0 else [0]:
         (indices,) = np.where(acting_size == s)
         operators_dict_s = {op_acting_on[i]: operators[i] for i in indices}
         data_s = pack_internals(hilbert, operators_dict_s, 0, dtype, mel_cutoff)

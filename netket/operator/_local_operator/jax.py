@@ -41,6 +41,9 @@ def _state_to_number(x_i, local_states_i, basis_i):
 
     @partial(jax.vmap, in_axes=(None, None, None, None, 0))  # vmap over local sites (k)
     def _f(acting_size_i, x_i, local_states_i, basis_i, k):
+        # special case for empty operator
+        if len(basis_i) == 0:
+            return jnp.zeros((), dtype=basis_i.dtype)
         return basis_i[k] * jnp.searchsorted(
             local_states_i[acting_size_i - k - 1], x_i[acting_size_i - k - 1]
         )
@@ -62,6 +65,9 @@ def _set_at(x, new_x_ao, acting_on):
 @partial(jax.vmap, in_axes=(None, 0))  # Ns
 @partial(jax.vmap, in_axes=(0, 0))  # rows
 def _index_at(diag_mels, i):
+    # special case for empty operator
+    if len(diag_mels) == 0:
+        return jnp.zeros((), dtype=diag_mels.dtype)
     return diag_mels[i]
 
 
