@@ -366,9 +366,7 @@ class MetropolisSampler(Sampler):
     def _init_state(sampler, machine, params, key):
         key_state, key_rule = jax.random.split(key, 2)
         rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
-        σ = jnp.zeros(
-            (sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype
-        )
+        σ = jnp.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
         if config.netket_experimental_sharding and jax.device_count() > 1:
             σ = distribute_to_devices_along_axis(σ, axis=0)
         state = MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
