@@ -128,15 +128,15 @@ class ExactSampler(Sampler):
             ),
             numbers,
         )
-        samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
-            1, sampler.n_batches * chain_length, sampler.hilbert.size
-        )
+        # samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
+        #    sampler.n_batches, chain_length, sampler.hilbert.size
+        # )
 
         # TODO run the part above in parallel
         if config.netket_experimental_sharding:
             samples = jax.lax.with_sharding_constraint(
                 samples,
-                jax.sharding.PositionalSharding(jax.devices()).reshape(1, -1, 1),
+                jax.sharding.PositionalSharding(jax.devices()).reshape(-1, 1, 1),
             )
 
         return samples, state.replace(rng=new_rng)
