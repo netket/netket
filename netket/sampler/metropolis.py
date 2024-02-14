@@ -364,20 +364,31 @@ class MetropolisSampler(Sampler):
         return sampler._sample_next(wrap_afun(machine), parameters, state)
 
     def _init_state(sampler, machine, params, key):
-        key_state, key_rule, rng = jax.random.split(key, 3)
+        key_state, key_rule = jax.random.split(key, 2)
         rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
-        σ = sampler.rule.random_state(sampler, machine, params, rule_state, rng)
-        _assert_good_sample_shape(
-            σ,
-            (sampler.n_batches, sampler.hilbert.size),
-            sampler.dtype,
-            f"{sampler.rule}.random_state",
+        σ = jnp.zeros(
+            (sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype
         )
         if config.netket_experimental_sharding and jax.device_count() > 1:
-            # TODO If we end up rewriting the hilbert spaces in jax then we can avoid
-            # this and instead jit the random state with the correct out_shardings
             σ = distribute_to_devices_along_axis(σ, axis=0)
-        return MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
+        state = MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
+
+        # If we don't reset the chain at every sampling iteration, then reset it
+        # now.
+        if not sampler.reset_chains:
+            key_state, rng = jax.random.split(key_state)
+            σ = sampler.rule.random_state(sampler, machine, params, state, rng)
+            if config.netket_experimental_sharding and jax.device_count() > 1:
+                σ = distribute_to_devices_along_axis(σ, axis=0)
+            _assert_good_sample_shape(
+                σ,
+                (sampler.n_batches, sampler.hilbert.size),
+                sampler.dtype,
+                f"{sampler.rule}.random_state",
+            )
+            state = state.replace(σ=σ, rng=key_state)
+
+        return state
 
     def _reset(sampler, machine, parameters, state):
         # use jit so that we can do it on global shared array

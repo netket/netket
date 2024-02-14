@@ -23,6 +23,7 @@ import jax
 from jax import numpy as jnp
 
 from netket import jax as nkjax
+from netket.jax import sharding
 from netket import config
 from netket.hilbert import AbstractHilbert
 from netket.utils import get_afun_if_module, mpi, numbers, struct, wrap_afun
@@ -108,15 +109,8 @@ class Sampler(struct.Pytree):
 
         If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`.
         """
-        if config.netket_experimental_sharding:
-            n_devices = jax.device_count()
-            if self.n_chains == 1:
-                res, remainder = 1, 0
-            else:
-                res, remainder = divmod(self.n_chains, n_devices)
-        else:
-            n_devices = mpi.n_nodes
-            res, remainder = divmod(self.n_chains, n_devices)
+        n_devices = sharding.device_count()
+        res, remainder = divmod(self.n_chains, n_devices)
 
         if remainder != 0:
             raise RuntimeError(
@@ -134,7 +128,7 @@ class Sampler(struct.Pytree):
         # If there is no mpi we assume there is globally 1 dummy chain, and with
         # mpi one per rank.
         # Currently this is used by the exact samplers (ExactSampler, ARDirectSampler).
-        return mpi.n_nodes
+        return sharding.device_count()
 
     @property
     def n_batches(self) -> int:
@@ -151,11 +145,7 @@ class Sampler(struct.Pytree):
         if config.netket_experimental_sharding:
             n_batches = self.n_chains
         else:
-            n_batches, remainder = divmod(self.n_chains, mpi.n_nodes)
-            if remainder != 0:
-                raise RuntimeError(
-                    "The number of chains is not a multiple of the number of mpi ranks"
-                )
+            n_batches = self.n_chains_per_rank
         return n_batches
 
     @property

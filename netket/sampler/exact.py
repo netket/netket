@@ -129,7 +129,7 @@ class ExactSampler(Sampler):
             numbers,
         )
         samples = jnp.asarray(samples, dtype=sampler.dtype).reshape(
-            sampler.n_batches, chain_length, sampler.hilbert.size
+            1, sampler.n_batches * chain_length, sampler.hilbert.size
         )
 
         # TODO run the part above in parallel
