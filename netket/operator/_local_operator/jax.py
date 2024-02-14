@@ -192,9 +192,9 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
     else:
         if mel_cutoff is not None:
             mask = jnp.abs(mels) > mel_cutoff
+            n_conn_total = mask.sum(axis=-1)
         else:
             mask = jnp.hstack([m.reshape(m.shape[0], -1) for m in mask_])
-            n_conn_total = mask.sum(axis=-1)
         # move nonzero mels to the front and keep exactly max_conn_size
         (ind,) = jax.vmap(partial(jnp.where, size=max_conn_size, fill_value=-1))(mask)
         return (

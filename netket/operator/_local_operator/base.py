@@ -372,7 +372,7 @@ class LocalOperatorBase(DiscreteOperator):
         if not isinstance(other, LocalOperatorBase):
             return NotImplemented
 
-        self.mel_cutoff = min(self.mel_cutoff, other.mel_cutoff)
+        self.mel_cutoff = min(other.mel_cutoff, self.mel_cutoff)
 
         # (α + ∑ᵢAᵢ)(β + ∑ᵢBᵢ) =
         # = αβ + α ∑ᵢBᵢ + β ∑ᵢAᵢ + ∑ᵢⱼAᵢBⱼ
