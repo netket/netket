@@ -71,14 +71,6 @@ def _index_at(diag_mels, i):
     return diag_mels[i]
 
 
-# @partial(jax.vmap, in_axes=(0, 0, None, None))
-# def _extr(xp, mels, max_conn_size, mel_cutoff):
-#     index_nonzero = jnp.where(
-#         jnp.abs(mels) > mel_cutoff, size=max_conn_size, fill_value=-1
-#     )
-#     return xp[index_nonzero], mels[index_nonzero]
-
-
 @partial(jax.jit, static_argnums=(0, 1))
 def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_args, x):
     assert x.ndim == 2
@@ -131,15 +123,8 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         mels_diag_ = safe_map(_index_at, diag_mels_, i_row_)
         # sum over operators
         mels_diag = constant + sum([m.sum(axis=-1) for m in mels_diag_])
-
-    elif max_conn_size is None:
-        # if we don't have non-zero and there are no connected elements
-        # therefore if the operator is empty, still add something here
-        # TODO why can't we just return empty xp and mels?
-        xp_diag = x[:, None][:, :0]
-        mels_diag = jnp.zeros(xp_diag.shape[:-1])
     else:
-        # zero diagonal, but some other connected elements
+        # zero diagonal
         mels_diag = None
         xp_diag = None
 
@@ -207,8 +192,6 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
     else:
         if mel_cutoff is not None:
             raise NotImplementedError
-        # this is the lazy one with checking mels
-        # return *_extr(xp, mels, max_conn_size, mel_cutoff), n_conn_total, mels_diag
 
         # move nonzero mels to the front and keep exactly max_conn_size
         mask = jnp.hstack([m.reshape(m.shape[0], -1) for m in mask_])
