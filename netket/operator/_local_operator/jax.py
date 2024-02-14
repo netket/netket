@@ -41,6 +41,9 @@ def _state_to_number(x_i, local_states_i, basis_i):
 
     @partial(jax.vmap, in_axes=(None, None, None, None, 0))  # vmap over local sites (k)
     def _f(acting_size_i, x_i, local_states_i, basis_i, k):
+        # special case for empty operator
+        if len(basis_i) == 0:
+            return jnp.zeros((), dtype=basis_i.dtype)
         return basis_i[k] * jnp.searchsorted(
             local_states_i[acting_size_i - k - 1], x_i[acting_size_i - k - 1]
         )
@@ -62,15 +65,10 @@ def _set_at(x, new_x_ao, acting_on):
 @partial(jax.vmap, in_axes=(None, 0))  # Ns
 @partial(jax.vmap, in_axes=(0, 0))  # rows
 def _index_at(diag_mels, i):
+    # special case for empty operator
+    if len(diag_mels) == 0:
+        return jnp.zeros((), dtype=diag_mels.dtype)
     return diag_mels[i]
-
-
-# @partial(jax.vmap, in_axes=(0, 0, None, None))
-# def _extr(xp, mels, max_conn_size, mel_cutoff):
-#     index_nonzero = jnp.where(
-#         jnp.abs(mels) > mel_cutoff, size=max_conn_size, fill_value=-1
-#     )
-#     return xp[index_nonzero], mels[index_nonzero]
 
 
 @partial(jax.jit, static_argnums=(0, 1))
@@ -125,15 +123,8 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         mels_diag_ = safe_map(_index_at, diag_mels_, i_row_)
         # sum over operators
         mels_diag = constant + sum([m.sum(axis=-1) for m in mels_diag_])
-
-    elif max_conn_size is None:
-        # if we don't have non-zero and there are no connected elements
-        # therefore if the operator is empty, still add something here
-        # TODO why can't we just return empty xp and mels?
-        xp_diag = x[:, None][:, :0]
-        mels_diag = jnp.zeros(xp_diag.shape[:-1])
     else:
-        # zero diagonal, but some other connected elements
+        # zero diagonal
         mels_diag = None
         xp_diag = None
 
@@ -200,12 +191,11 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         return xp, mels, n_conn_total
     else:
         if mel_cutoff is not None:
-            raise NotImplementedError
-        # this is the lazy one with checking mels
-        # return *_extr(xp, mels, max_conn_size, mel_cutoff), n_conn_total, mels_diag
-
+            mask = jnp.abs(mels) > mel_cutoff
+            n_conn_total = mask.sum(axis=-1)
+        else:
+            mask = jnp.hstack([m.reshape(m.shape[0], -1) for m in mask_])
         # move nonzero mels to the front and keep exactly max_conn_size
-        mask = jnp.hstack([m.reshape(m.shape[0], -1) for m in mask_])
         (ind,) = jax.vmap(partial(jnp.where, size=max_conn_size, fill_value=-1))(mask)
         return (
             xp[jnp.arange(len(ind))[:, None], ind],
@@ -255,7 +245,7 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         xp, mels, n_conn = _local_operator_kernel_jax(
             self._nonzero_diagonal,
             self._max_conn_size,
-            None,
+            self._mel_cutoff,
             (
                 self._local_states,
                 self._acting_on,
@@ -342,4 +332,5 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
             self.acting_on,
             self.constant,
             dtype=self.dtype,
+            mel_cutoff=self.mel_cutoff,
         )
