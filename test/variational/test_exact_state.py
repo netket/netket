@@ -251,7 +251,7 @@ def test_TFIM_energy_strictly_decreases(
     )
 
     log = nk.logging.RuntimeLog()
-    gs.run(n_iter=n_iterations, out=log)
+    gs.run(n_iter=n_iterations, out=log, show_progress=False)
 
     energies = log.data["Energy"]["Mean"]
 
@@ -286,7 +286,7 @@ def test_chunk_size_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
-        vstate.chunk_size = 13
+        vstate.chunk_size = 3
 
     assert vstate.chunk_size is None
 

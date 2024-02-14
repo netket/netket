@@ -121,7 +121,7 @@ def check_consistent(vstate, mpi_size):
     assert vstate.n_samples == vstate.chain_length * vstate.sampler.n_chains
 
 
-def test_n_samples_api(vstate, _mpi_size):
+def test_n_samples_api(vstate, _device_count):
     with raises(TypeError, match="should be a subtype"):
         vstate.sampler = 1
 
@@ -147,19 +147,19 @@ def test_n_samples_api(vstate, _mpi_size):
 
     # Tests for `ExactSampler` with `n_chains == 1`
     vstate.n_samples = 3
-    check_consistent(vstate, _mpi_size)
+    check_consistent(vstate, _device_count)
     assert vstate.samples.shape[0:2] == (
-        vstate.sampler.n_chains_per_rank,
-        int(np.ceil(3 / _mpi_size)),
+        vstate.sampler.n_batches,
+        int(np.ceil(3 / _device_count)),
     )
 
     vstate.n_samples_per_rank = 4
-    check_consistent(vstate, _mpi_size)
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 4)
+    check_consistent(vstate, _device_count)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 4)
 
     vstate.chain_length = 2
-    check_consistent(vstate, _mpi_size)
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 2)
+    check_consistent(vstate, _device_count)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 2)
 
     vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
@@ -170,24 +170,24 @@ def test_n_samples_api(vstate, _mpi_size):
     # `n_samples` is rounded up
     assert vstate.n_samples == 1008
     assert vstate.chain_length == 63
-    check_consistent(vstate, _mpi_size)
+    check_consistent(vstate, _device_count)
 
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
     vstate.n_samples = 3
-    check_consistent(vstate, _mpi_size)
+    check_consistent(vstate, _device_count)
     # `n_samples` is rounded up
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 1)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 1)
 
-    vstate.n_samples_per_rank = 16 // _mpi_size + 1
-    check_consistent(vstate, _mpi_size)
+    vstate.n_samples_per_rank = 16 // _device_count + 1
+    check_consistent(vstate, _device_count)
     # `n_samples` is rounded up
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 2)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 2)
 
     vstate.chain_length = 2
-    check_consistent(vstate, _mpi_size)
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 2)
+    check_consistent(vstate, _device_count)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 2)
 
 
 @common.skipif_mpi
@@ -218,7 +218,7 @@ def test_chunk_size_api(vstate, _mpi_size):
     with raises(
         ValueError,
     ):
-        vstate.chunk_size = 1500
+        vstate.chunk_size = 500
 
     _ = vstate.sample()
     _ = vstate.sample(n_samples=vstate.n_samples)
@@ -515,7 +515,7 @@ def test_local_estimators(vstate, operator):
 
     def inner_test():
         oloc = vstate.local_estimators(operator)
-        assert oloc.shape == (vstate.sampler.n_chains, vstate.n_samples)
+        assert oloc.shape == (vstate.sampler.n_chains, vstate.chain_length)
 
         stats1 = nk.stats.statistics(oloc)
         stats2 = vstate.expect(operator)

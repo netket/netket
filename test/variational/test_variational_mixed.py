@@ -81,7 +81,7 @@ def vstate(request):
     return vs
 
 
-def test_n_samples_api(vstate, _mpi_size):
+def test_n_samples_api(vstate, _device_count):
     with raises(
         ValueError,
     ):
@@ -104,19 +104,19 @@ def test_n_samples_api(vstate, _mpi_size):
 
     # Tests for `ExactSampler` with `n_chains == 1`
     vstate.n_samples = 3
-    check_consistent(vstate, _mpi_size)
+    check_consistent(vstate, _device_count)
     assert vstate.samples.shape[0:2] == (
-        vstate.sampler.n_chains_per_rank,
-        int(np.ceil(3 / _mpi_size)),
+        vstate.sampler.n_batches,
+        int(np.ceil(3 / _device_count)),
     )
 
     vstate.n_samples_per_rank = 4
-    check_consistent(vstate, _mpi_size)
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 4)
+    check_consistent(vstate, _device_count)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 4)
 
     vstate.chain_length = 2
-    check_consistent(vstate, _mpi_size)
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 2)
+    check_consistent(vstate, _device_count)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 2)
 
     vstate.n_samples = 1000
     vstate.n_discard_per_chain = None
@@ -129,27 +129,28 @@ def test_n_samples_api(vstate, _mpi_size):
     # `n_samples` is rounded up
     assert vstate.n_samples == 1008
     assert vstate.chain_length == 63
-    check_consistent(vstate, _mpi_size)
+    check_consistent(vstate, _device_count)
 
     vstate.n_discard_per_chain = None
     assert vstate.n_discard_per_chain == vstate.n_samples // 10
 
     vstate.n_samples = 3
-    check_consistent(vstate, _mpi_size)
+    check_consistent(vstate, _device_count)
     # `n_samples` is rounded up
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 1)
+    print(vstate.samples.shape)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 1)
 
-    vstate.n_samples_per_rank = 16 // _mpi_size + 1
-    check_consistent(vstate, _mpi_size)
+    vstate.n_samples_per_rank = 16 // _device_count + 1
+    check_consistent(vstate, _device_count)
     # `n_samples` is rounded up
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 2)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 2)
 
     vstate.chain_length = 2
-    check_consistent(vstate, _mpi_size)
-    assert vstate.samples.shape[0:2] == (vstate.sampler.n_chains_per_rank, 2)
+    check_consistent(vstate, _device_count)
+    assert vstate.samples.shape[0:2] == (vstate.sampler.n_batches, 2)
 
 
-def test_n_samples_diag_api(vstate, _mpi_size):
+def test_n_samples_diag_api(vstate, _device_count):
     with raises(
         ValueError,
     ):
@@ -170,16 +171,16 @@ def test_n_samples_diag_api(vstate, _mpi_size):
     check_consistent_diag(vstate)
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (vstate.sampler_diag.n_chains_per_rank, int(np.ceil(3 / _mpi_size)))
-        == (vstate.diagonal.sampler.n_chains_per_rank, int(np.ceil(3 / _mpi_size)))
+        == (vstate.sampler_diag.n_batches, int(np.ceil(3 / _device_count)))
+        == (vstate.diagonal.sampler.n_batches, int(np.ceil(3 / _device_count)))
     )
 
     vstate.chain_length_diag = 2
     check_consistent_diag(vstate)
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (vstate.sampler_diag.n_chains_per_rank, 2)
-        == (vstate.diagonal.sampler.n_chains_per_rank, 2)
+        == (vstate.sampler_diag.n_batches, 2)
+        == (vstate.diagonal.sampler.n_batches, 2)
     )
 
     vstate.n_samples_diag = 1000
@@ -205,8 +206,8 @@ def test_n_samples_diag_api(vstate, _mpi_size):
     # `n_samples_diag` is rounded up
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (vstate.sampler_diag.n_chains_per_rank, 1)
-        == (vstate.diagonal.sampler.n_chains_per_rank, 1)
+        == (vstate.sampler_diag.n_batches, 1)
+        == (vstate.diagonal.sampler.n_batches, 1)
     )
 
     vstate.chain_length_diag = 2
@@ -218,8 +219,8 @@ def test_n_samples_diag_api(vstate, _mpi_size):
     )
     assert (
         vstate.diagonal.samples.shape[0:2]
-        == (vstate.sampler_diag.n_chains_per_rank, 2)
-        == (vstate.diagonal.sampler.n_chains_per_rank, 2)
+        == (vstate.sampler_diag.n_batches, 2)
+        == (vstate.diagonal.sampler.n_batches, 2)
     )
 
 
