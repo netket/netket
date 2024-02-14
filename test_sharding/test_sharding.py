@@ -293,7 +293,7 @@ def test_exactsampler(chunk_size):
     vs = nk.vqs.MCState(sa, ma, n_samples=1024, chunk_size=chunk_size)
 
     pos_sharding = jax.sharding.PositionalSharding(jax.devices())
-    assert vs.samples.sharding.is_equivalent_to(pos_sharding.reshape(1, -1, 1), 3)
+    assert vs.samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
 
     ha = nk.operator.IsingJax(hilbert=vs.hilbert, graph=g, h=1.0)
     opt = nk.optimizer.Sgd(learning_rate=0.05)
@@ -318,7 +318,7 @@ def test_autoreg():
     sr = nk.optimizer.SR(diag_shift=0.01)
     vs = nk.vqs.MCState(sa, ma, n_samples=256)
     pos_sharding = jax.sharding.PositionalSharding(jax.devices())
-    assert vs.samples.sharding.is_equivalent_to(pos_sharding.reshape(1, -1, 1), 3)
+    assert vs.samples.sharding.is_equivalent_to(pos_sharding.reshape(-1, 1, 1), 3)
     gs = nk.VMC(ha, opt, variational_state=vs, preconditioner=sr)
     gs.run(n_iter=5)
 
