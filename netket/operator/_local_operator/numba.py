@@ -403,4 +403,5 @@ class LocalOperator(LocalOperatorBase):
             self.acting_on,
             self.constant,
             dtype=self.dtype,
+            mel_cutoff=self.mel_cutoff,
         )

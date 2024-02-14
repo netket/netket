@@ -191,10 +191,11 @@ def _local_operator_kernel_jax(nonzero_diagonal, max_conn_size, mel_cutoff, op_a
         return xp, mels, n_conn_total
     else:
         if mel_cutoff is not None:
-            raise NotImplementedError
-
+            mask = jnp.abs(mels) > mel_cutoff
+        else:
+            mask = jnp.hstack([m.reshape(m.shape[0], -1) for m in mask_])
+            n_conn_total = mask.sum(axis=-1)
         # move nonzero mels to the front and keep exactly max_conn_size
-        mask = jnp.hstack([m.reshape(m.shape[0], -1) for m in mask_])
         (ind,) = jax.vmap(partial(jnp.where, size=max_conn_size, fill_value=-1))(mask)
         return (
             xp[jnp.arange(len(ind))[:, None], ind],
@@ -244,7 +245,7 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
         xp, mels, n_conn = _local_operator_kernel_jax(
             self._nonzero_diagonal,
             self._max_conn_size,
-            None,
+            self._mel_cutoff,
             (
                 self._local_states,
                 self._acting_on,
@@ -331,4 +332,5 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
             self.acting_on,
             self.constant,
             dtype=self.dtype,
+            mel_cutoff=self.mel_cutoff,
         )
