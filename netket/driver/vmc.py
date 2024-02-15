@@ -78,7 +78,6 @@ class VMC(AbstractVariationalDriver):
 
         self._dp: PyTree = None
         self._S = None
-        self._sr_info = None
 
     @property
     def preconditioner(self):
