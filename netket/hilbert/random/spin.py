@@ -15,81 +15,65 @@
 import jax
 import numpy as np
 from jax import numpy as jnp
+from functools import partial
 
 from netket.hilbert import Spin
 from netket.utils.dispatch import dispatch
 
+from .fock import _choice
+
 
 @dispatch
 def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
-    S = hilb._s
-    shape = (batches, hilb.size)
-
-    # If unconstrained space, use fast sampling
+    shape = (batches,)
     if hilb._total_sz is None:
-        n_states = int(2 * S + 1)
-        rs = jax.random.randint(key, shape=shape, minval=0, maxval=n_states)
-
-        two = jnp.asarray(2, dtype=dtype)
-        return jnp.asarray(rs * two - (n_states - 1), dtype=dtype)
+        return _random_states(hilb, key, shape, dtype)
     else:
-        N = hilb.size
-        n_states = int(2 * S) + 1
-        # if constrained and S == 1/2, use a trick to sample quickly
-        if n_states == 2:
-            m = int(hilb._total_sz * 2)
-            nup = (N + m) // 2
-            ndown = (N - m) // 2
+        return _random_states_with_constraint(hilb, key, shape, dtype)
 
-            x = jnp.concatenate(
-                (
-                    jnp.ones((batches, nup), dtype=dtype),
-                    -jnp.ones(
-                        (
-                            batches,
-                            ndown,
-                        ),
-                        dtype=dtype,
-                    ),
-                ),
-                axis=1,
-            )
 
-            return jax.vmap(jax.random.permutation)(
-                jax.random.split(key, x.shape[0]), x
-            )
+@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
+def _random_states(hilb, key, shape, dtype):
+    S = hilb._s
+    n_states = int(2 * S + 1)
+    rs = jax.random.randint(key, shape=shape + (hilb.size,), minval=0, maxval=n_states)
+    return (2 * rs - (n_states - 1)).astype(dtype)
 
+
+@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
+def _random_states_with_constraint(hilb, rngkey, shape, dtype):
+    # Generate random spin states with a given hilb._total_sz.
+    # Note that this is NOT a uniform distribution over the
+    # basis states of the constrained hilbert space.
+
+    N = hilb.size
+    S = hilb._s
+    n_states = int(2 * S) + 1
+    # if constrained and S == 1/2, use a trick to sample quickly
+    if n_states == 2:
+        m = int(hilb._total_sz * 2)
+        nup = (N + m) // 2
+        ndown = (N - m) // 2
+        x = jnp.ones(shape + (nup + ndown,), dtype=dtype).at[..., -ndown:].set(-1)
+        return jax.random.permutation(rngkey, x, axis=-1, independent=True)
+    else:
         # if constrained and S != 1/2, then use a slow fallback algorithm
         # TODO: find better, faster way to sample constrained arbitrary spaces.
-        else:
-            state = jax.pure_callback(
-                lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype),
-                jax.ShapeDtypeStruct(shape, dtype),
-                key,
-            )
 
-            return state
+        # start with all spins in the state with the lowest eigenvalue
+        init = jnp.full(shape + (hilb.size,), -round(2 * hilb._s), dtype=dtype)
 
+        def body_fn(out, key):
+            # find all spins which are not yet in the highest state
+            mask = out <= round(2 * hilb._s - 1)
+            # select one of those spins uniformly and change it's state to the next higher one
+            out = jax.lax.select(_choice(key, mask), out + 2, out)
+            return out, None
 
-# TODO: could numba-jit this
-def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
-    out = np.full((n_batches, hilb.size), -round(2 * hilb._s), dtype=dtype)
-    rgen = np.random.default_rng(np.asarray(rngkey))
-
-    for b in range(n_batches):
-        sites = list(range(hilb.size))
-        ss = hilb.size
-
-        for i in range(round(hilb._s * hilb.size + hilb._total_sz)):
-            s = rgen.integers(0, ss, size=())
-
-            out[b, sites[s]] += 2
-
-            if out[b, sites[s]] > round(2 * hilb._s - 1):
-                sites.pop(s)
-                ss -= 1
-
-    return out
+        # iterate until total_sz is reached
+        n = round(hilb._s * hilb.size + hilb._total_sz)
+        keys = jax.random.split(rngkey, n)
+        return jax.lax.scan(body_fn, init, keys)[0]
 
 
 @dispatch
