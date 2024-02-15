@@ -300,6 +300,8 @@ class AbstractVariationalDriver(abc.ABC):
         # if out is a path, create an overwriting Json Log for output
         if isinstance(out, str):
             out = JsonLog(out, "w", save_params_every, write_every)
+        elif out is None:
+            out = ()
 
         # Log only non-root nodes
         if self._is_root:

@@ -87,7 +87,7 @@ def test_exact_ss_iterative(liouvillian, sparse, rho0):
         rho0 = None
 
     dm_ss = nk.exact.steady_state(
-        lind, sparse=sparse, method="iterative", atol=1e-5, tol=1e-5, rho0=rho0
+        lind, sparse=sparse, method="iterative", atol=1e-5, rho0=rho0
     )
     Lop = lind.to_linear_operator()
 
