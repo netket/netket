@@ -124,8 +124,7 @@ class Sampler(struct.Pytree):
         """
         # This is the default number of chains, intended for generic non-mcmc
         # samplers which don't have a concept of chains.
-        # If there is no mpi we assume there is globally 1 dummy chain, and with
-        # mpi one per rank.
+        # We assume there is 1 dummy chain per mpi rank / jax device.
         # Currently this is used by the exact samplers (ExactSampler, ARDirectSampler).
         return sharding.device_count()
 

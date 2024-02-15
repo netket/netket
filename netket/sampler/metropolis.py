@@ -313,7 +313,7 @@ class MetropolisSampler(Sampler):
             n_chains,
             n_chains_per_rank,
             device_count(),
-            "rank_or_device",
+            "rank",
         )
 
         super().__init__(
