@@ -146,7 +146,7 @@ class Sampler(struct.Pytree):
     def n_batches(self) -> int:
         r"""
         The batch size of the configuration $\sigma$ used by this sampler on this
-        jax process. 
+        jax process.
 
         This is used to determine the shape of the batches generated in a single process.
         This is needed because when using MPI, every process must create a batch of chains
