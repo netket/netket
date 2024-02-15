@@ -43,6 +43,7 @@ class VMC(AbstractVariationalDriver):
         *,
         variational_state: VariationalState,
         preconditioner: PreconditionerT = identity_preconditioner,
+        checkpointer=None,
     ):
         """
         Initializes the driver class.
@@ -70,7 +71,12 @@ class VMC(AbstractVariationalDriver):
                 )
             )
 
-        super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
+        super().__init__(
+            variational_state,
+            optimizer,
+            minimized_quantity_name="Energy",
+            checkpointer=checkpointer,
+        )
 
         self._ham = hamiltonian.collect()  # type: AbstractOperator
 

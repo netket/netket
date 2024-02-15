@@ -150,6 +150,7 @@ class VMC_SRt(AbstractVariationalDriver):
         linear_solver_fn: Callable[[jax.Array, jax.Array], jax.Array] = linear_solver,
         jacobian_mode: Optional[str] = None,
         variational_state: MCState = None,
+        checkpointer=None,
     ):
         """
         Initializes the driver class.
@@ -168,7 +169,12 @@ class VMC_SRt(AbstractVariationalDriver):
             variational_state: The :class:`netket.vqs.MCState` to be optimised. Other
                 variational states are not supported.
         """
-        super().__init__(variational_state, optimizer, minimized_quantity_name="Energy")
+        super().__init__(
+            variational_state,
+            optimizer,
+            minimized_quantity_name="Energy",
+            checkpointer=checkpointer,
+        )
 
         if variational_state.hilbert != hamiltonian.hilbert:
             raise TypeError(
