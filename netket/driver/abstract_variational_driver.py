@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Callable, Optional
+from collections.abc import Iterable
+
 import abc
 import numbers
 from functools import partial
@@ -19,10 +22,9 @@ from functools import partial
 from tqdm import tqdm
 
 import jax
-from jax.tree_util import tree_map
 
-from netket.logging import JsonLog
-from netket.operator import AbstractOperator
+from netket.logging import AbstractLog, JsonLog
+from netket.operator._abstract_observable import AbstractObservable
 from netket.utils import mpi
 from netket.utils.types import Optimizer, PyTree
 from netket.vqs import VariationalState
@@ -139,13 +141,25 @@ class AbstractVariationalDriver(abc.ABC):
         Returns the MCMC statistics for the expectation value of an observable.
         Must be implemented by super-classes of AbstractVMC.
 
-        :param observable: A quantum operator (netket observable)
-        :return:
+        Args:
+            observable: A quantum operator (netket observable)
 
-        :meta public:
-
+        Returns:
+            The expectation value of the observable.
         """
         return self.state.expect(observable)
+
+    def _log_additional_data(self, log_dict: dict, step: int):
+        """
+        Method to be implemented in sub-classes of AbstractVariationalDriver to
+        log additional data at every step.
+        This method is called at every iteration when executing with `run`.
+
+        Args:
+            log_dict: The dictionary containing all logged data. It must be
+                **modified in-place** adding new keys.
+            step: the current step number.
+        """
 
     def reset(self):
         """
@@ -221,37 +235,58 @@ class AbstractVariationalDriver(abc.ABC):
 
     def run(
         self,
-        n_iter,
-        out=None,
-        obs=None,
-        show_progress=True,
-        save_params_every=50,  # for default logger
-        write_every=50,  # for default logger
-        step_size=1,  # for default logger
-        callback=lambda *x: True,
+        n_iter: int,
+        out: Optional[Iterable[AbstractLog]] = (),
+        obs: Optional[dict[str, AbstractObservable]] = None,
+        step_size: int = 1,
+        show_progress: bool = True,
+        save_params_every: int = 50,  # for default logger
+        write_every: int = 50,  # for default logger
+        callback: Callable[
+            [int, dict, "AbstractVariationalDriver"], bool
+        ] = lambda *x: True,
     ):
         """
-        Executes the Monte Carlo Variational optimization, updating the weights of the network
-        stored in this driver for `n_iter` steps and dumping values of the observables `obs`
-        in the output `logger`. If no logger is specified, creates a json file at `out`,
-        overwriting files with the same prefix.
+        Runs this variational driver, updating the weights of the network stored in
+        this driver for `n_iter` steps and dumping values of the observables `obs`
+        in the output `logger`.
 
-        By default uses :class:`nk.logging.JsonLog`. To know about the output format
-        check it's documentation. The logger object is also returned at the end of this function
-        so that you can inspect the results without reading the json output.
+        It is possible to control more specifically what quantities are logged, when to
+        stop the optimisation, or to execute arbitrary code at every step by specifying
+        one or more callbacks, which are passed as a list of functions to the keyword
+        argument `callback`.
+
+        Callbacks are functions that follow this signature:
+
+        .. Code::
+
+            def callback(step, log_data, driver) -> bool:
+                ...
+                return True/False
+
+        If a callback returns True, the optimisation continues, otherwise it is stopped.
+        The `log_data` is a dictionary that can be modified in-place to change what is
+        logged at every step. For example, this can be used to log additional quantities
+        such as the acceptance rate of a sampler.
+
+        Loggers are specified as an iterable passed to the keyword argument `out`. If only
+        a string is specified, this will create by default a :class:`nk.logging.JsonLog`.
+        To know about the output format check its documentation. The logger object is
+        also returned at the end of this function so that you can inspect the results
+        without reading the json output.
 
         Args:
-            n_iter: the total number of iterations
+            n_iter: the total number of iterations to be performed during this run.
             out: A logger object, or an iterable of loggers, to be used to store simulation log and data.
                 If this argument is a string, it will be used as output prefix for the standard JSON logger.
             obs: An iterable containing all observables that should be computed
+            step_size: Every how many steps should observables be logged to disk (default=1)
+            callback: Callable or list of callable callback functions to stop training given a condition
+            show_progress: If true displays a progress bar (default=True)
             save_params_every: Every how many steps the parameters of the network should be
                 serialized to disk (ignored if logger is provided)
             write_every: Every how many steps the json data should be flushed to disk (ignored if
                 logger is provided)
-            step_size: Every how many steps should observables be logged to disk (default=1)
-            show_progress: If true displays a progress bar (default=True)
-            callback: Callable or list of callable callback functions to stop training given a condition
         """
 
         if not isinstance(n_iter, numbers.Number):
@@ -262,20 +297,13 @@ class AbstractVariationalDriver(abc.ABC):
         if obs is None:
             obs = {}
 
-        if out is None:
-            out = tuple()
-            print(
-                "No output specified (out=[apath|nk.logging.JsonLogger(...)])."
-                "Running the optimization but not saving the output."
-            )
+        # if out is a path, create an overwriting Json Log for output
+        if isinstance(out, str):
+            out = JsonLog(out, "w", save_params_every, write_every)
 
         # Log only non-root nodes
         if self._is_root:
-            # if out is a path, create an overwriting Json Log for output
-            if isinstance(out, str):
-                loggers = (JsonLog(out, "w", save_params_every, write_every),)
-            else:
-                loggers = _to_iterable(out)
+            loggers = _to_iterable(out)
         else:
             loggers = tuple()
             show_progress = False
@@ -346,10 +374,10 @@ class AbstractVariationalDriver(abc.ABC):
 
         # Do not unpack operators, even if they are pytrees!
         # this is necessary to support jax operators.
-        return tree_map(
+        return jax.tree_map(
             self._estimate_stats,
             observables,
-            is_leaf=lambda x: isinstance(x, AbstractOperator),
+            is_leaf=lambda x: isinstance(x, AbstractObservable),
         )
 
     def update_parameters(self, dp):
@@ -362,21 +390,6 @@ class AbstractVariationalDriver(abc.ABC):
         self._optimizer_state, self.state.parameters = apply_gradient(
             self._optimizer.update, self._optimizer_state, dp, self.state.parameters
         )
-
-    def _log_additional_data(self, log_dict, step):
-        """
-        Method to be implemented in sub-classes of AbstractVariationalDriver to
-        log additional data at every step.
-        This method is called at every iteration when executing with `run`.
-
-        Args:
-            `log_dict`: The dictionary containing all logged data. It must be
-                modified in-place adding new keys.
-            `step`: the current step number.
-
-        Returns:
-            Nothing. The log dictionary should be modified in place.
-        """
 
 
 @partial(jax.jit, static_argnums=0)
