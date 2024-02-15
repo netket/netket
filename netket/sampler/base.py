@@ -15,55 +15,19 @@
 import abc
 from typing import Optional, Union, Callable
 from collections.abc import Iterator
-import warnings
 
 import numpy as np
 from flax import linen as nn
+
 from jax import numpy as jnp
 
 from netket import jax as nkjax
+from netket.jax import sharding
+from netket import config
 from netket.hilbert import AbstractHilbert
-from netket.utils import get_afun_if_module, mpi, numbers, struct, wrap_afun
+from netket.utils import get_afun_if_module, numbers, struct, wrap_afun
 from netket.utils.types import PyTree, DType, SeedT
 from netket.jax import HashablePartial
-
-
-def compute_n_chains(
-    n_chains_per_rank: Optional[int] = None, n_chains: Optional[int] = None, default=1
-) -> int:
-    """
-    Compute the number of chains per rank given either n_chains_per_rank
-    and n_chains
-    """
-    if n_chains_per_rank is not None and n_chains is not None:
-        raise ValueError("Cannot specify both `n_chains` and `n_chains_per_rank`")
-    elif n_chains is not None:
-        n_chains_per_rank = max(int(np.ceil(n_chains / mpi.n_nodes)), 1)
-        if mpi.n_nodes > 1 and mpi.rank == 0:
-            if n_chains_per_rank * mpi.n_nodes != n_chains:
-                warnings.warn(
-                    f"Using {n_chains_per_rank} chains per rank among {mpi.n_nodes} ranks "
-                    f"(total={n_chains_per_rank * mpi.n_nodes} instead of n_chains={n_chains}). "
-                    f"To directly control the number of chains on every rank, specify "
-                    f"`n_chains_per_rank` when constructing the sampler. "
-                    f"To silence this warning, either use `n_chains_per_rank` or use `n_chains` "
-                    f"that is a multiple of the number of MPI ranks.",
-                    category=UserWarning,
-                    stacklevel=2,
-                )
-    elif n_chains_per_rank is not None:
-        pass
-    else:
-        # Default value
-        n_chains_per_rank = default
-
-    if not n_chains_per_rank > 0:
-        raise TypeError(
-            "n_chains_per_rank must be a positive integer, but "
-            f"you specified {n_chains_per_rank}"
-        )
-
-    return n_chains_per_rank * mpi.n_nodes
 
 
 class SamplerState(struct.Pytree):
@@ -140,11 +104,24 @@ class Sampler(struct.Pytree):
     @property
     def n_chains_per_rank(self) -> int:
         """
-        The total number of independent chains per MPI rank.
+        The total number of independent chains per MPI rank (or jax device
+        if you set `NETKET_EXPERIMENTAL_SHARDING=1`).
 
-        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`.
+        If you are not distributing the calculation among different MPI ranks
+        or jax devices, this is equal to :attr:`~Sampler.n_chains`.
+
+        In general this is equal to
+
+        .. code:: python
+
+        from netket.jax import sharding
+        sharding.device_count()
+        sampler.n_chains // sharding.device_count()
+
         """
-        res, remainder = divmod(self.n_chains, mpi.n_nodes)
+        n_devices = sharding.device_count()
+        res, remainder = divmod(self.n_chains, n_devices)
+
         if remainder != 0:
             raise RuntimeError(
                 "The number of chains is not a multiple of the number of mpi ranks"
@@ -154,20 +131,38 @@ class Sampler(struct.Pytree):
     @property
     def n_chains(self) -> int:
         """
-        The total number of independent chains per MPI rank.
+        The total number of independent chains.
 
-        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`.
+        This is at least equal to the total number of MPI ranks/jax devices that
+        are used to distribute the calculation.
         """
-        return mpi.n_nodes
+        # This is the default number of chains, intended for generic non-mcmc
+        # samplers which don't have a concept of chains.
+        # We assume there is 1 dummy chain per mpi rank / jax device.
+        # Currently this is used by the exact samplers (ExactSampler, ARDirectSampler).
+        return sharding.device_count()
 
     @property
     def n_batches(self) -> int:
         r"""
-        The batch size of the configuration $\sigma$ used by this sampler.
+        The batch size of the configuration $\sigma$ used by this sampler on this
+        jax process.
 
-        In general, it is equivalent to :attr:`~Sampler.n_chains_per_rank`.
+        This is used to determine the shape of the batches generated in a single process.
+        This is needed because when using MPI, every process must create a batch of chains
+        of :attr:`~Sampler.n_chains_per_rank`, while when using the experimental sharding
+        mode we must declare the full shape on every jax process, therefore this returns
+        :attr:`~Sampler.n_chains`.
+
+        Usage of this flag is required to support both MPI and sharding.
+
+        Samplers may override this to have a larger batch size, for example to
+        propagate multiple replicas (in the case of parallel tempering).
         """
-        return self.n_chains_per_rank
+        if config.netket_experimental_sharding:
+            return self.n_chains
+        else:
+            return self.n_chains_per_rank
 
     @property
     def is_exact(self) -> bool:

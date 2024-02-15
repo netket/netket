@@ -32,7 +32,6 @@ from netket.operator import AbstractOperator, Squared
 from netket.sampler import Sampler, SamplerState
 from netket.utils import (
     maybe_wrap_module,
-    mpi,
     wrap_afun,
     wrap_to_support_scalar,
 )
@@ -40,7 +39,7 @@ from netket.utils.types import PyTree, SeedT, NNInitFunc
 from netket.optimizer import LinearOperator
 from netket.optimizer.qgt import QGTAuto
 
-from netket.jax.sharding import extract_replicated
+from netket.jax import sharding
 
 from netket.vqs.base import VariationalState, expect, expect_and_grad, expect_and_forces
 from netket.vqs.mc import get_local_kernel, get_local_kernel_arguments
@@ -53,14 +52,14 @@ def compute_chain_length(n_chains, n_samples):
     chain_length = int(np.ceil(n_samples / n_chains))
 
     n_samples_new = chain_length * n_chains
-    n_samples_per_rank_new = n_samples_new // mpi.n_nodes
+    n_samples_per_rank_new = n_samples_new // sharding.device_count()
 
     if n_samples_new != n_samples:
-        n_samples_per_rank = n_samples // mpi.n_nodes
+        n_samples_per_rank = n_samples // sharding.device_count()
         warnings.warn(
-            f"n_samples={n_samples} ({n_samples_per_rank} per MPI rank) does not "
-            f"divide n_chains={n_chains}, increased to {n_samples_new} "
-            f"({n_samples_per_rank_new} per MPI rank)",
+            f"n_samples={n_samples} ({n_samples_per_rank} per device/MPI rank) "
+            f"does not divide n_chains={n_chains}, increased to {n_samples_new} "
+            f"({n_samples_per_rank_new} per device/MPI rank)",
             UserWarning,
             stacklevel=3,
         )
@@ -69,7 +68,7 @@ def compute_chain_length(n_chains, n_samples):
 
 
 def check_chunk_size(n_samples, chunk_size):
-    n_samples_per_rank = n_samples // mpi.n_nodes
+    n_samples_per_rank = n_samples // sharding.device_count()
 
     if chunk_size is not None:
         if chunk_size < n_samples_per_rank and n_samples_per_rank % chunk_size != 0:
@@ -341,12 +340,13 @@ class MCState(VariationalState):
 
     @property
     def n_samples_per_rank(self) -> int:
-        """The number of samples generated on one MPI rank at every sampling step."""
+        """The number of samples generated on every jax device or MPI rank
+        at every sampling step."""
         return self.chain_length * self.sampler.n_chains_per_rank
 
     @n_samples_per_rank.setter
     def n_samples_per_rank(self, n_samples_per_rank: int):
-        self.n_samples = n_samples_per_rank * mpi.n_nodes
+        self.n_samples = n_samples_per_rank * sharding.device_count()
 
     @property
     def chain_length(self) -> int:
@@ -750,7 +750,9 @@ def local_estimators(
 # serialization
 def serialize_MCState(vstate):
     state_dict = {
-        "variables": serialization.to_state_dict(extract_replicated(vstate.variables)),
+        "variables": serialization.to_state_dict(
+            sharding.extract_replicated(vstate.variables)
+        ),
         "sampler_state": serialization.to_state_dict(vstate._sampler_state_previous),
         "n_samples": vstate.n_samples,
         "n_discard_per_chain": vstate.n_discard_per_chain,

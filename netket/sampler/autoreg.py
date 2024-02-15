@@ -139,7 +139,7 @@ class ARDirectSampler(Sampler):
         # Initialize a buffer for `σ` before generating a batch of samples
         # The result should not depend on its initial content
         σ = jnp.zeros(
-            (sampler.n_chains_per_rank * chain_length, sampler.hilbert.size),
+            (sampler.n_batches * chain_length, sampler.hilbert.size),
             dtype=sampler.dtype,
         )
 
@@ -159,7 +159,7 @@ class ARDirectSampler(Sampler):
         indices = jnp.arange(sampler.hilbert.size)
         indices = model.apply(variables, indices, method=model.reorder)
         (σ, _, _), _ = jax.lax.scan(scan_fun, (σ, cache, key_scan), indices)
-        σ = σ.reshape((sampler.n_chains_per_rank, chain_length, sampler.hilbert.size))
+        σ = σ.reshape((sampler.n_batches, chain_length, sampler.hilbert.size))
 
         new_state = state.replace(key=new_key)
         return σ, new_state

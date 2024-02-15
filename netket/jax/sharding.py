@@ -487,7 +487,8 @@ def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
 
 def device_count_per_rank():
     """
-    Helper functions which returns the number of jax devices netket will use
+    Helper functions which returns the number of jax devices netket will use for every
+    MPI rank.
 
     Returns:
         jax.device_count() if config.netket_experimental_sharding is True, and 1 otherwise
@@ -499,3 +500,13 @@ def device_count_per_rank():
         return jax.device_count()
     else:  # mpi or serial
         return 1
+
+
+def device_count():
+    """
+    Helper functions which returns the TOTAL number of jax devices netket will use.
+
+    Returns:
+        jax.device_count() if config.netket_experimental_sharding is True, and mpi.rank otherwise.
+    """
+    return mpi.n_nodes * device_count_per_rank()

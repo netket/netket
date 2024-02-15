@@ -22,7 +22,7 @@ from jax import numpy as jnp
 
 from netket import config
 from netket.utils.types import PyTree, PRNGKeyT
-from netket.utils import struct
+from netket.utils import struct, mpi
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
@@ -134,8 +134,23 @@ class MetropolisPtSampler(MetropolisSampler):
         super().__init__(*args, **kwargs)
 
     @property
-    def n_batches(self):
-        return self.n_chains * self.n_replicas
+    def n_batches(self) -> int:
+        r"""
+        The batch size of the configuration $\sigma$ used by this sampler on this
+        jax process.
+
+        If you are not using MPI, this is equal to `n_chains * n_replicas`, but if
+        you are using MPI this is equal to `n_chains_per_rank * n_replicas`.
+        """
+        if config.netket_experimental_sharding:
+            n_batches = self.n_chains
+        else:
+            n_batches, remainder = divmod(self.n_chains, mpi.n_nodes)
+            if remainder != 0:
+                raise RuntimeError(
+                    "The number of chains is not a multiple of the number of mpi ranks"
+                )
+        return n_batches * self.n_replicas
 
     def _init_state(
         sampler, machine, params: PyTree, key: PRNGKeyT
