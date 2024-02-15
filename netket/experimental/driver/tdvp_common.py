@@ -64,6 +64,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         *,
         t0: float = 0.0,
         error_norm: Union[str, Callable] = "qgt",
+        checkpointer=None,
     ):
         r"""
         Initializes the time evolution driver.
@@ -90,7 +91,10 @@ class TDVPBaseDriver(AbstractVariationalDriver):
         self._t0 = t0
 
         super().__init__(
-            variational_state, optimizer=None, minimized_quantity_name="Generator"
+            variational_state,
+            optimizer=None,
+            minimized_quantity_name="Generator",
+            checkpointer=checkpointer,
         )
 
         self._generator_repr = repr(operator)
@@ -403,6 +407,12 @@ class TDVPBaseDriver(AbstractVariationalDriver):
     def _log_additional_data(self, log_dict, step):
         super()._log_additional_data(log_dict, step)
         log_dict["t"] = self.t
+
+    def _checkpoint_state(self) -> dict:
+        state = super()._checkpoint_state()
+        state["_integrator"] = self._integrator
+        state["_stop_count"] = self._stop_count
+        return state
 
     @property
     def _default_step_size(self):

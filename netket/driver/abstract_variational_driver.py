@@ -23,6 +23,8 @@ from tqdm.auto import tqdm
 
 import jax
 
+from flax import serialization
+
 from netket.logging import AbstractLog, JsonLog
 from netket.operator._abstract_observable import AbstractObservable
 from netket.utils import mpi, timing
@@ -85,6 +87,7 @@ class AbstractVariationalDriver(abc.ABC):
         variational_state: VariationalState,
         optimizer: Optimizer,
         minimized_quantity_name: str = "loss",
+        checkpointer=None,
     ):
         """
         Initializes a variational optimization driver.
@@ -108,6 +111,8 @@ class AbstractVariationalDriver(abc.ABC):
 
         self._variational_state = variational_state
         self.optimizer = optimizer
+
+        self._checkpoint_mgr = checkpointer
 
     def _forward_and_backward(self) -> PyTree:  # pragma: no cover
         """
@@ -194,6 +199,7 @@ class AbstractVariationalDriver(abc.ABC):
     @optimizer.setter
     def optimizer(self, optimizer):
         self._optimizer = optimizer
+        self._optimizer_state = None
         if optimizer is not None:
             self._optimizer_state = optimizer.init(self.state.parameters)
 
@@ -355,6 +361,8 @@ class AbstractVariationalDriver(abc.ABC):
                         if mpi.mpi_any(callback_stop):
                             break
 
+                    self.checkpoint()
+
                     # Reset the timing of tqdm after the first step, to ignore compilation time
                     if first_step:
                         first_step = False
@@ -377,7 +385,43 @@ class AbstractVariationalDriver(abc.ABC):
             if self._is_root:
                 print(timer)
 
+        self.checkpoint(sync=True)
+
         return loggers
+
+    def checkpoint(self, *, sync: bool = False):
+        if self._checkpoint_mgr is None:
+            return
+
+        state = self._checkpoint_state()
+        self._ck_state = state
+        self._checkpoint_mgr.save(self.step_count, state)
+
+        if sync:
+            self._checkpoint_mgr.wait_until_finished()
+
+    def restore_checkpoint(self, step=None):
+        if step is None:
+            step = self._checkpoint_mgr.latest_step()
+
+        target_state = self._checkpoint_state()
+        restore_data = self._checkpoint_mgr.restore(step, items=target_state)
+        vstate = serialization.from_state_dict(
+            self.state, restore_data.pop("_variational_state")
+        )
+        for k, v in vstate.__dict__.items():
+            self.state.__dict__[k] = v
+
+        for k, v in restore_data.items():
+            self.__dict__[k] = v
+
+    def _checkpoint_state(self) -> dict:
+        return {
+            "_variational_state": serialization.to_state_dict(self._variational_state),
+            "_optimizer_state": self._optimizer_state,
+            "_step_count": self._step_count,
+            "_loss_stats": self._loss_stats,
+        }
 
     def estimate(self, observables):
         """
