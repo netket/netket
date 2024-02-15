@@ -104,9 +104,20 @@ class Sampler(struct.Pytree):
     @property
     def n_chains_per_rank(self) -> int:
         """
-        The total number of independent chains per MPI rank.
+        The total number of independent chains per MPI rank (or jax device
+        if you set `NETKET_EXPERIMENTAL_SHARDING=1`).
 
-        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`.
+        If you are not distributing the calculation among different MPI ranks
+        or jax devices, this is equal to :attr:`~Sampler.n_chains`.
+
+        In general this is equal to
+
+        .. code:: python
+
+        >>> from netket.jax import sharding
+        >>> sharding.device_count()
+        >>> sampler.n_chains // sharding.device_count()
+
         """
         n_devices = sharding.device_count()
         res, remainder = divmod(self.n_chains, n_devices)
@@ -121,6 +132,9 @@ class Sampler(struct.Pytree):
     def n_chains(self) -> int:
         """
         The total number of independent chains.
+
+        This is at least equal to the total number of MPI ranks/jax devices that
+        are used to distribute the calculation.
         """
         # This is the default number of chains, intended for generic non-mcmc
         # samplers which don't have a concept of chains.
@@ -132,27 +146,31 @@ class Sampler(struct.Pytree):
     def n_batches(self) -> int:
         r"""
         The batch size of the configuration $\sigma$ used by this sampler on this
-        jax process.
+        jax process. 
 
-        If you are not using MPI, this is equal to :attr:`~Sampler.n_chains`, but if
-        you are using MPI this is equal to :attr:`~Sampler.n_chains_per_rank`.
+        This is used to determine the shape of the batches generated in a single process.
+        This is needed because when using MPI, every process must create a batch of chains
+        of :attr:`~Sampler.n_chains_per_rank`, while when using the experimental sharding
+        mode we must declare the full shape on every jax process, therefore this returns
+        :attr:`~Sampler.n_chains`.
+
+        Usage of this flag is required to support both MPI and sharding.
 
         Samplers may override this to have a larger batch size, for example to
-        propagate multiple replicas.
+        propagate multiple replicas (in the case of parallel tempering).
         """
         if config.netket_experimental_sharding:
-            n_batches = self.n_chains
+            return self.n_chains
         else:
-            n_batches = self.n_chains_per_rank
-        return n_batches
+            return self.n_chains_per_rank
 
     @property
     def is_exact(self) -> bool:
         """
         Returns `True` if the sampler is exact.
 
-        The sampler is exact if all the samples are exactly distributed according to the
-        chosen power of the variational state, and there is no correlation among them.
+        The sampler is exact if all the samples  exactly distributed according to the
+        chosen power of the variational state, and arethere is no correlation among them.
         """
         return False
 
