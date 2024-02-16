@@ -116,11 +116,3 @@ def test_RBMMultiVal(use_hidden_bias, use_visible_bias):
         variational_state=vs,
     )
     vmc.advance(1)
-
-
-def test_deprecated_dtype():
-    with pytest.warns(FutureWarning):
-        module = nk.models.RBM(dtype=complex)
-
-    with pytest.warns(FutureWarning):
-        assert module.dtype == module.param_dtype
