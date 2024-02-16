@@ -22,13 +22,11 @@ from jax import numpy as jnp
 import numpy as np
 from jax.nn.initializers import normal
 
-from netket.utils import deprecate_dtype
 from netket.graph import AbstractGraph, Chain
 from netket.hilbert import AbstractHilbert
 from netket.utils.types import NNInitFunc
 
 
-@deprecate_dtype
 class MPSPeriodic(nn.Module):
     r"""
     A periodic Matrix Product State (MPS) for a quantum state of discrete

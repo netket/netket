@@ -20,6 +20,7 @@
 * Finalize deprecations of some old methods in `nk.sampler` namespace (see original commit [1f77ad8267e16fe8b2b2641d1d48a0e7ae94832e](https://github.com/netket/netket/commit/1f77ad8267e16fe8b2b2641d1d48a0e7ae94832e))
 * Finalize deprecations of 2D input to DenseSymm layers, which now turn into error and `extra_bias` option of Equivariant Networks/GCNNs (see original commit [c61ea542e9d0f3e899d87a7471dea96d4f6b152d](https://github.com/netket/netket/commit/c61ea542e9d0f3e899d87a7471dea96d4f6b152d))
 * Finalize deprecations of very old input/properties to Lattices [0f6f520da9cb6afcd2361dd6fd029e7ad6a2693e](https://github.com/netket/netket/commit/0f6f520da9cb6afcd2361dd6fd029e7ad6a2693e))
+* Finalie the deprecation for `dtype=` attribute of several modules in `nk.nn` and `nk.models`, which has been printing an error since April 2022. You should update usages of `dtype=` to `param_dtype=` [#1724](https://github.com/netket/netket/issues/1724)
 
 
 ### Deprecations

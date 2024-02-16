@@ -39,7 +39,6 @@ from .deprecation import (
     warn_deprecation,
     deprecated,
     deprecated_new_name,
-    deprecate_dtype,
 )
 
 from .model_frameworks import maybe_wrap_module

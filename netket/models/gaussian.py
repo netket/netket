@@ -4,11 +4,9 @@ import jax.numpy as jnp
 from flax.linen.dtypes import promote_dtype
 from flax.linen.initializers import normal
 
-from netket.utils import deprecate_dtype
 from netket.utils.types import DType, Array, NNInitFunc
 
 
-@deprecate_dtype
 class Gaussian(nn.Module):
     r"""
     Multivariate Gaussian function with mean 0 and parametrised covariance matrix

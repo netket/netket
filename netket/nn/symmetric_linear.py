@@ -22,7 +22,7 @@ from jax.nn.initializers import zeros, lecun_normal
 from flax.linen.module import Module, compact
 from flax.linen.dtypes import promote_dtype
 
-from netket.utils import HashableArray, warn_deprecation, deprecate_dtype
+from netket.utils import HashableArray, warn_deprecation
 from netket.utils.types import Array, DType, NNInitFunc
 from netket.utils.group import PermutationGroup
 from collections.abc import Sequence
@@ -656,7 +656,6 @@ class DenseEquivariantMatrix(Module):
         return x
 
 
-@deprecate_dtype
 def DenseSymm(
     symmetries, point_group=None, mode="auto", shape=None, mask=None, **kwargs
 ):
@@ -737,7 +736,6 @@ def DenseSymm(
         )
 
 
-@deprecate_dtype
 def DenseEquivariant(
     symmetries,
     features: Optional[int] = None,

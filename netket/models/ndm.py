@@ -21,7 +21,6 @@ from jax import numpy as jnp
 from flax import linen as nn
 from jax.nn.initializers import zeros, normal
 
-from netket.utils import deprecate_dtype
 from netket.utils.types import NNInitFunc
 from netket import jax as nkjax
 from netket import nn as nknn
@@ -146,7 +145,6 @@ class MixedRBM(nn.Module):
         return y.sum(axis=-1)
 
 
-@deprecate_dtype
 class NDM(nn.Module):
     """
     Encodes a Positive-Definite Neural Density Matrix using the ansatz from Torlai and

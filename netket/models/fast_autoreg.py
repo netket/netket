@@ -23,7 +23,6 @@ from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
 from netket.nn import activation as nkactivation
 from netket.nn.masked_linear import default_kernel_init
 from netket.utils.types import Array, DType, NNInitFunc
-from netket.utils import deprecate_dtype
 
 
 class FastARNNSequential(ARNNSequential):
@@ -72,7 +71,6 @@ class FastARNNSequential(ARNNSequential):
         return inputs[:, index - 1]
 
 
-@deprecate_dtype
 class FastARNNDense(FastARNNSequential):
     """
     Fast autoregressive neural network with dense layers.
@@ -121,7 +119,6 @@ class FastARNNDense(FastARNNSequential):
         ]
 
 
-@deprecate_dtype
 class FastARNNConv1D(FastARNNSequential):
     """
     Fast autoregressive neural network with 1D convolution layers.
