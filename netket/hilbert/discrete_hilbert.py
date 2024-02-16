@@ -21,6 +21,7 @@ import numpy as np
 
 from netket.utils.types import Array
 from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
+from netket.utils.deprecation import warn_deprecation
 
 from .abstract_hilbert import AbstractHilbert
 
@@ -155,6 +156,23 @@ class DiscreteHilbert(AbstractHilbert):
 
         if out is None:
             out = np.empty((numbers_r.size, self.size))
+        else:
+            warn_deprecation(
+                """
+           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                The `out` keyword of `numbers_to_states(..., out=)` will be
+                deprecated in the next release.
+
+                We recommend to remove such usages.
+
+                Do note that the out keyword is deprecated for all the following
+                methods:
+                 - DiscreteHilbert.states_to_numbers
+                 - DiscreteHilbert.numbers_to_states
+                 - DiscreteHilbert.all_states
+            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                """
+            )
 
         if np.any(numbers >= self.n_states):
             raise ValueError("numbers outside the range of allowed states")
@@ -193,6 +211,23 @@ class DiscreteHilbert(AbstractHilbert):
 
         if out is None:
             out = np.empty(states_r.shape[:-1], dtype=np.int64)
+        else:
+            warn_deprecation(
+                """
+           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                The `out` keyword of `states_to_numbers(..., out=)` will be
+                deprecated in the next release.
+
+                We recommend to remove such usages.
+
+                Do note that the out keyword is deprecated for all the following
+                methods:
+                 - DiscreteHilbert.states_to_numbers
+                 - DiscreteHilbert.numbers_to_states
+                 - DiscreteHilbert.all_states
+            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                """
+            )
 
         out = self._states_to_numbers(states_r, out=out.reshape(-1))
 
@@ -223,6 +258,24 @@ class DiscreteHilbert(AbstractHilbert):
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
+        if out is not None:
+            warn_deprecation(
+                """
+           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                The `out` keyword of `all_states(out=)` will be
+                deprecated in the next release.
+
+                We recommend to remove such usages.
+
+                Do note that the out keyword is deprecated for all the following
+                methods:
+                 - DiscreteHilbert.states_to_numbers
+                 - DiscreteHilbert.numbers_to_states
+                 - DiscreteHilbert.all_states
+            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                """
+            )
+
         numbers = np.arange(0, self.n_states, dtype=np.int64)
 
         return self.numbers_to_states(numbers, out)
