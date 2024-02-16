@@ -58,18 +58,29 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
             )
 
         shape = np.concatenate([hi.shape for hi in hilb_spaces])
-
+        self._initialized = False
         super().__init__(hilb_spaces, shape=shape)
 
-        # pre-compute indexing data iff the tensor space is still indexable
-        if all(hi.is_indexable for hi in hilb_spaces) and _is_indexable(shape):
-            self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
-            self._ns_states_r = np.flip(self._ns_states)
-            self._cum_ns_states = np.concatenate([[0], np.cumprod(self._ns_states)])
-            self._cum_ns_states_r = np.flip(
-                np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
-            )
-            self._n_states = np.prod(self._ns_states)
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the space can be indexed with an integer"""
+        return all(hi.is_indexable for hi in self._hilbert_spaces) and _is_indexable(
+            self.shape
+        )
+
+    def _setup(self):
+        if not self._initialized:
+            if self.is_indexable:
+                self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
+                self._ns_states_r = np.flip(self._ns_states)
+                self._cum_ns_states = np.concatenate([[0], np.cumprod(self._ns_states)])
+                self._cum_ns_states_r = np.flip(
+                    np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
+                )
+                self._n_states = np.prod(self._ns_states)
+                self._initialized = True
+            else:
+                raise RuntimeError("The hilbert space is too large to be indexed.")
 
     @property
     def is_finite(self):
@@ -98,8 +109,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
 
     @property
     def n_states(self) -> int:
-        if not self.is_indexable:
-            raise RuntimeError("The hilbert space is too large to be indexed.")
+        self._setup()
         return self._n_states
 
     def _numbers_to_states(self, numbers, out):
@@ -114,6 +124,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         # 2 -> [0,0,1,0]
         # etc...
 
+        self._setup()
         rem = numbers
         for i, dim in enumerate(self._ns_states_r):
             rem, loc_numbers = np.divmod(rem, dim)
@@ -125,6 +136,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         return out
 
     def _states_to_numbers(self, states, out):
+        self._setup()
         out[:] = 0
 
         temp = out.copy()
