@@ -68,7 +68,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
             self.shape
         )
 
-    def _computue_indexing_data(self):
+    def _setup(self):
         if not self._initialized:
             if self.is_indexable:
                 self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
@@ -109,7 +109,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
 
     @property
     def n_states(self) -> int:
-        self._computue_indexing_data()
+        self._setup()
         return self._n_states
 
     def _numbers_to_states(self, numbers, out):
@@ -124,7 +124,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         # 2 -> [0,0,1,0]
         # etc...
 
-        self._computue_indexing_data()
+        self._setup()
         rem = numbers
         for i, dim in enumerate(self._ns_states_r):
             rem, loc_numbers = np.divmod(rem, dim)
@@ -136,7 +136,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         return out
 
     def _states_to_numbers(self, states, out):
-        self._computue_indexing_data()
+        self._setup()
         out[:] = 0
 
         temp = out.copy()
