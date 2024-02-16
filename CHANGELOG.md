@@ -3,7 +3,29 @@
 
 # Change Log
 
-## NetKet 3.11 (⚙️ In development)
+## NetKet 3.12 (⚙️ In development)
+
+### New Features
+
+
+### Breaking Changes
+
+
+### Deprecations
+
+
+### Internal changes
+
+
+### Bug Fixes
+
+
+
+## NetKet 3.11 (~💘 16 february 2024)
+
+This release supports Python 3.12 through the latest release of Numba, introduces several new jax-compatible operators and adds a new experimental way to distribute calculations among multiple GPUs without using MPI.
+
+We have a few breaking changes as well: deprecations that were issued more than 18 months ago have now been finalized, most notable the `dtype` argument to several models and layers, some keywords to GCNN and setting the number of chains of exact samplers.
 
 ### New Features
 
