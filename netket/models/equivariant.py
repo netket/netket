@@ -22,7 +22,7 @@ from flax import linen as nn
 from jax.nn.initializers import zeros, lecun_normal
 from jax.scipy.special import logsumexp
 
-from netket.utils import HashableArray, deprecate_dtype
+from netket.utils import HashableArray
 from netket.utils.types import NNInitFunc, Array
 from netket.utils.group import PermutationGroup
 from netket.graph import Graph, Lattice
@@ -44,7 +44,6 @@ def identity(x):
     return x
 
 
-@deprecate_dtype
 class GCNN_FFT(nn.Module):
     r"""Implements a GCNN using a fast fourier transform over the translation group.
 
@@ -151,7 +150,6 @@ class GCNN_FFT(nn.Module):
             return x
 
 
-@deprecate_dtype
 class GCNN_Irrep(nn.Module):
     r"""Implements a GCNN by projecting onto irreducible
     representations of the group. The projection onto
@@ -271,7 +269,6 @@ class GCNN_Irrep(nn.Module):
             return x
 
 
-@deprecate_dtype
 class GCNN_Parity_FFT(nn.Module):
     r"""Implements a GCNN using a fast fourier transform over the translation group.
     The group convolution can be written in terms of translational convolutions with
@@ -425,7 +422,6 @@ class GCNN_Parity_FFT(nn.Module):
             return x
 
 
-@deprecate_dtype
 class GCNN_Parity_Irrep(nn.Module):
     r"""Implements a GCNN by projecting onto irreducible
     representations of the group. The projection onto
@@ -594,7 +590,6 @@ class GCNN_Parity_Irrep(nn.Module):
             return x
 
 
-@deprecate_dtype
 def GCNN(
     symmetries=None,
     product_table=None,

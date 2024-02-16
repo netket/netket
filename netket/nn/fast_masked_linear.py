@@ -30,10 +30,8 @@ from netket.nn.masked_linear import (
     wrap_kernel_init,
 )
 from netket.utils.types import Array, DType, NNInitFunc
-from netket.utils import deprecate_dtype
 
 
-@deprecate_dtype
 class FastMaskedDense1D(nn.Module):
     """
     1D linear transformation module with mask for fast autoregressive NN.
@@ -163,7 +161,6 @@ class FastMaskedDense1D(nn.Module):
         return MaskedDense1D.__call__(self, inputs)
 
 
-@deprecate_dtype
 class FastMaskedConv1D(nn.Module):
     """
     1D convolution module with mask for fast autoregressive NN.
@@ -297,7 +294,6 @@ class FastMaskedConv1D(nn.Module):
         return MaskedConv1D.__call__(self, inputs)
 
 
-@deprecate_dtype
 class FastMaskedConv2D(nn.Module):
     """
     2D convolution module with mask for fast autoregressive NN.
