@@ -18,6 +18,8 @@ from numbers import Real
 
 import numpy as np
 
+from netket.utils.deprecation import warn_deprecation
+
 from .discrete_hilbert import DiscreteHilbert
 from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex
 
@@ -165,6 +167,24 @@ class HomogeneousHilbert(DiscreteHilbert):
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
+        if out is not None:
+            warn_deprecation(
+                """
+           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                The `out` keyword of `all_states(out=)` will be
+                deprecated in the next release.
+
+                We recommend to remove such usages.
+
+                Do note that the out keyword is deprecated for all the following
+                methods:
+                 - DiscreteHilbert.states_to_numbers
+                 - DiscreteHilbert.numbers_to_states
+                 - DiscreteHilbert.all_states
+            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                """
+            )
+
         return self._hilbert_index.all_states(out)
 
     @property

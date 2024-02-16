@@ -27,6 +27,7 @@
 
 * `MetropolisSampler.n_sweeps` has been renamed to {attr}`~netket.sampler.MetropolisSampler.MetropolisSampler.sweep_size` for clarity. Using `n_sweeps` when constructing the sampler now throws a deprecation warning; `sweep_size` should be used instead going forward [#1657](https://github.com/netket/netket/issues/1657).
 * Samplers and metropolis rules defined as {func}`netket.utils.struct.dataclass` are deprecated because the base class is now a {class}`netket.utils.struct.Pytree`. The only change needed is to remove the dataclass decorator and define a standard init method [#1653](https://github.com/netket/netket/issues/1653).
+* The `out` keyword of Discrete Hilbert indexing methods (`all_states`, `numbers_to_states` and `states_to_numbers`) is deprecated and will be removed in the next release. Plan ahead and remove usages to avoid breaking your code 3 months from now [#1725](https://github.com/netket/netket/issues/1725)!
 
 ### Internal changes
 * A new class {class}`netket.utils.struct.Pytree`, can be used to create Pytrees for which inheritance autoamtically works and for which it is possible to define `__init__`. Several structures such as samplers and rules have been transitioned to this new interface instead of old style `@struct.dataclass` [#1653](https://github.com/netket/netket/issues/1653).
