@@ -9,11 +9,13 @@ from flax import serialization
 from jax.sharding import PositionalSharding, SingleDeviceSharding
 
 
-def _setup(L, alpha=1):
+def _setup(L, alpha=1, reset_chains=False):
     g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
     hi = nk.hilbert.Spin(s=1 / 2, N=g.n_nodes)
     ma = nk.models.RBM(alpha=alpha, param_dtype=np.complex128)
-    sa = nk.sampler.MetropolisLocal(hi, n_chains=16 * jax.device_count(), dtype=np.int8)
+    sa = nk.sampler.MetropolisLocal(
+        hi, n_chains=16 * jax.device_count(), dtype=np.int8, reset_chains=reset_chains
+    )
     vs = nk.vqs.MCState(sa, ma, n_samples=1024, n_discard_per_chain=8)
     ha = nk.operator.IsingJax(hilbert=vs.hilbert, graph=g, h=1.0)
     return vs, g, ha
@@ -132,11 +134,15 @@ def test_grad():
     "chunk_size",
     [None, 64],
 )
+@pytest.mark.parametrize(
+    "reset_chains",
+    [False, True],
+)
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
-def test_vmc(Op, qgt, chunk_size):
-    vs, g, _ = _setup(16)
+def test_vmc(Op, qgt, chunk_size, reset_chains):
+    vs, g, _ = _setup(16, reset_chains=reset_chains)
     vs.chunk_size = chunk_size
     # initially the params are only on the first device of each process
     # but they will be broadcast on the first invocation, so here we only check its fully addressable
