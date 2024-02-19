@@ -138,10 +138,10 @@ class DoubledHilbert(DiscreteHilbert):
         n = self.physical.size
         dim = self.physical.n_states
 
-        out = self.physical._states_to_numbers(states[:, 0:n])
+        out = self.physical._states_to_numbers(states[:, 0:n], out=out)
         _out_l = out * dim
 
-        out = self.physical._states_to_numbers(states[:, n : 2 * n])
+        out = self.physical._states_to_numbers(states[:, n : 2 * n], out=out)
         out += _out_l
 
         return out
