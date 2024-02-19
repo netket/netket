@@ -375,8 +375,7 @@ class MetropolisSampler(Sampler):
         # now.
         if not sampler.reset_chains:
             key_state, rng = jax.random.split(key_state)
-            with jax.spmd_mode("allow_all"):
-                σ = sampler.rule.random_state(sampler, machine, params, state, rng)
+            σ = sampler.rule.random_state(sampler, machine, params, state, rng)
             if config.netket_experimental_sharding and jax.device_count() > 1:
                 σ = distribute_to_devices_along_axis(σ, axis=0)
             _assert_good_sample_shape(
@@ -394,8 +393,7 @@ class MetropolisSampler(Sampler):
         new_rng, rng = jax.jit(jax.random.split)(state.rng)
 
         if sampler.reset_chains:
-            with jax.spmd_mode("allow_all"):
-                σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
+            σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
             if config.netket_experimental_sharding and jax.device_count() > 1:
                 σ = distribute_to_devices_along_axis(σ, axis=0)
             _assert_good_sample_shape(
