@@ -21,7 +21,6 @@ import numpy as np
 
 from netket.utils.types import Array
 from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
-from netket.utils.deprecation import warn_deprecation
 
 from .abstract_hilbert import AbstractHilbert
 
@@ -132,9 +131,7 @@ class DiscreteHilbert(AbstractHilbert):
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def numbers_to_states(
-        self, numbers: Union[int, np.ndarray], out: Optional[np.ndarray] = None
-    ) -> np.ndarray:
+    def numbers_to_states(self, numbers: Union[int, np.ndarray]) -> np.ndarray:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n.
 
@@ -145,7 +142,6 @@ class DiscreteHilbert(AbstractHilbert):
         Args:
             numbers (numpy.array): Batch of input numbers to be converted into arrays of
                 quantum numbers.
-            out: Optional Array of quantum numbers corresponding to numbers.
         """
 
         numbers = concrete_or_error(
@@ -154,36 +150,14 @@ class DiscreteHilbert(AbstractHilbert):
 
         numbers_r = np.asarray(np.reshape(numbers, -1))
 
-        if out is None:
-            out = np.empty((numbers_r.size, self.size))
-        else:
-            warn_deprecation(
-                """
-           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                The `out` keyword of `numbers_to_states(..., out=)` will be
-                deprecated in the next release.
-
-                We recommend to remove such usages.
-
-                Do note that the out keyword is deprecated for all the following
-                methods:
-                 - DiscreteHilbert.states_to_numbers
-                 - DiscreteHilbert.numbers_to_states
-                 - DiscreteHilbert.all_states
-            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                """
-            )
-
         if np.any(numbers >= self.n_states):
             raise ValueError("numbers outside the range of allowed states")
 
-        out = self._numbers_to_states(numbers_r, out=out)
+        out = self._numbers_to_states(numbers_r)
 
         return out.reshape((*numbers.shape, self.size))
 
-    def states_to_numbers(
-        self, states: np.ndarray, out: Optional[np.ndarray] = None
-    ) -> Union[int, np.ndarray]:
+    def states_to_numbers(self, states: np.ndarray) -> Union[int, np.ndarray]:
         r"""Returns the basis state number corresponding to given quantum states.
 
         The states are given in a batch, such that states[k] has shape (hilbert.size).
@@ -191,12 +165,11 @@ class DiscreteHilbert(AbstractHilbert):
 
         Args:
             states: Batch of states to be converted into the corresponding integers.
-            out: Array of integers such that out[k]=Index(states[k]).
-                 If None, memory is allocated.
 
         Returns:
-            numpy.darray: Array of integers corresponding to out.
+            numpy.darray: Array of integers corresponding to states.
         """
+
         if states.shape[-1] != self.size:
             raise ValueError(
                 f"Size of this state ({states.shape[-1]}) not"
@@ -209,27 +182,7 @@ class DiscreteHilbert(AbstractHilbert):
 
         states_r = np.asarray(np.reshape(states, (-1, states.shape[-1])))
 
-        if out is None:
-            out = np.empty(states_r.shape[:-1], dtype=np.int64)
-        else:
-            warn_deprecation(
-                """
-           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                The `out` keyword of `states_to_numbers(..., out=)` will be
-                deprecated in the next release.
-
-                We recommend to remove such usages.
-
-                Do note that the out keyword is deprecated for all the following
-                methods:
-                 - DiscreteHilbert.states_to_numbers
-                 - DiscreteHilbert.numbers_to_states
-                 - DiscreteHilbert.all_states
-            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                """
-            )
-
-        out = self._states_to_numbers(states_r, out=out.reshape(-1))
+        out = self._states_to_numbers(states_r)
 
         if states.ndim == 1:
             return out[0]
@@ -246,39 +199,19 @@ class DiscreteHilbert(AbstractHilbert):
         for i in range(self.n_states):
             yield self.numbers_to_states(i).reshape(-1)
 
-    def all_states(self, out: Optional[np.ndarray] = None) -> np.ndarray:
+    def all_states(self) -> np.ndarray:
         r"""Returns all valid states of the Hilbert space.
 
         Throws an exception if the space is not indexable.
-
-        Args:
-            out: an optional pre-allocated output array
 
         Returns:
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
-        if out is not None:
-            warn_deprecation(
-                """
-           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                The `out` keyword of `all_states(out=)` will be
-                deprecated in the next release.
-
-                We recommend to remove such usages.
-
-                Do note that the out keyword is deprecated for all the following
-                methods:
-                 - DiscreteHilbert.states_to_numbers
-                 - DiscreteHilbert.numbers_to_states
-                 - DiscreteHilbert.all_states
-            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                """
-            )
 
         numbers = np.arange(0, self.n_states, dtype=np.int64)
 
-        return self.numbers_to_states(numbers, out)
+        return self.numbers_to_states(numbers)
 
     def states_to_local_indices(self, x: Array):
         r"""Returns a tensor with the same shape of `x`, where all local

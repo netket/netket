@@ -57,12 +57,8 @@ class UnconstrainedHilbertIndex:
     def local_size(self) -> int:
         return self._local_size
 
-    def number_to_state(self, number, out=None):
-        if out is None:
-            out = np.empty(self._size)
-        # else:
-        #     assert out.size == self._size
-
+    def number_to_state(self, number):
+        out = np.empty(self._size)
         out.fill(self._local_states[0])
 
         ip = number
@@ -74,15 +70,11 @@ class UnconstrainedHilbertIndex:
 
         return out
 
-    def states_to_numbers(self, states, out=None):
+    def states_to_numbers(self, states):
         if states.ndim != 2:
             raise RuntimeError("Invalid input shape, expecting a 2d array.")
 
-        if out is None:
-            out = np.empty(states.shape[0], np.int64)
-        # else:
-        #     assert out.size == states.shape[0]
-
+        out = np.empty(states.shape[0], np.int64)
         for i in range(states.shape[0]):
             out[i] = 0
             for j in range(self._size):
@@ -92,24 +84,17 @@ class UnconstrainedHilbertIndex:
                 )
         return out
 
-    def numbers_to_states(self, numbers, out=None):
+    def numbers_to_states(self, numbers):
         if numbers.ndim != 1:
             raise RuntimeError("Invalid input shape, expecting a 1d array.")
 
-        if out is None:
-            out = np.empty((numbers.shape[0], self._size))
-        # else:
-        #     assert out.shape == (numbers.shape[0], self._size)
-
+        out = np.empty((numbers.shape[0], self._size))
         for i, n in enumerate(numbers):
             out[i] = self.number_to_state(n)
-
         return out
 
-    def all_states(self, out=None):
-        if out is None:
-            out = np.empty((self.n_states, self._size))
-
+    def all_states(self):
+        out = np.empty((self.n_states, self._size))
         for i in range(self.n_states):
-            self.number_to_state(i, out[i])
+            out[i] = self.number_to_state(i)
         return out
