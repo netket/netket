@@ -509,8 +509,8 @@ def test_fermions_states():
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions_per_spin=(2, 1))
     assert hi.size == 10
     assert hi.constrained
-    np.testing.assert_equal(hi.all_states()[:, :5].sum(axis=-1), 2)
-    np.testing.assert_equal(hi.all_states()[:, 5:].sum(axis=-1), 1)
+    np.testing.assert_array_equal(hi.all_states()[:, :5].sum(axis=-1), 2)
+    np.testing.assert_array_equal(hi.all_states()[:, 5:].sum(axis=-1), 1)
     # product of all_states for -1/2 spin block and states for 1/2 block
     assert hi.n_states == int(scipy.special.comb(5, 2) * scipy.special.comb(5, 1))
 

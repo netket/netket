@@ -112,7 +112,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         self._setup()
         return self._n_states
 
-    def _numbers_to_states(self, numbers, out):
+    def _numbers_to_states(self, numbers):
         # !!! WARNING
         # This code assumes that states are stored in a MSB
         # (Most Significant Bit) format.
@@ -126,30 +126,25 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
 
         self._setup()
         rem = numbers
+        out = jnp.empty((numbers.size, self.size), dtype=jnp.int32)
         for i, dim in enumerate(self._ns_states_r):
             rem, loc_numbers = np.divmod(rem, dim)
             hi_i = self._n_hilbert_spaces - (i + 1)
-            out[
-                :, self._cum_indices[hi_i] : self._cum_sizes[hi_i]
-            ] = self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers)
-
+            out = out.at[:, self._cum_indices[hi_i] : self._cum_sizes[hi_i]].set(
+                self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers)
+            )
         return out
 
-    def _states_to_numbers(self, states, out):
-        self._setup()
-        out[:] = 0
-
-        temp = out.copy()
-
+    def _states_to_numbers(self, states):
         # !!! WARNING
         # See note above in numbers_to_states
-
+        self._setup()
+        out = 0
         for i, dim in enumerate(self._cum_ns_states_r):
             temp = self._hilbert_spaces[i].states_to_numbers(
                 states[:, self._cum_indices[i] : self._cum_sizes[i]]
             )
-            out += temp * dim
-
+            out = out + temp * dim
         return out
 
     def states_to_local_indices(self, x):

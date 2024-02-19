@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Protocol, Optional
+from typing import Protocol
 
 from netket.utils.types import Array
 
@@ -22,26 +22,18 @@ class HilbertIndex(Protocol):
     def n_states(self) -> int:
         """Returns the size of the hilbert space."""
 
-    def states_to_numbers(self, states: Array, out: Optional[Array] = None) -> Array:
+    def states_to_numbers(self, states: Array) -> Array:
         """Given a Batch of N states of size M, returns an array
         of np.int32 or np.int64 integers used to numerate those states.
-
-        If out is not None the returned array should be out and it should
-        contain the result. We are planning to deprecate `out` but this
-        has not happened yet.
         """
 
-    def numbers_to_states(self, numbers: Array, out: Optional[Array] = None) -> Array:
+    def numbers_to_states(self, numbers: Array) -> Array:
         """Given a list of N integers, returns a batch of N states of size M
         of corresponding to those states. This function is the inverse
         of `states_to_numbers`.
-
-        If out is not None the returned array should be out and it should
-        contain the result. We are planning to deprecate `out` but this
-        has not happened yet.
         """
 
-    def all_states(self, out: Optional[Array] = None) -> Array:
+    def all_states(self) -> Array:
         """Should behave as `self.numbers_to_states(range(self.n_states))`
         but might be optimised for iterating across the full hilbert
         space.

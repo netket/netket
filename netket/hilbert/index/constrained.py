@@ -87,10 +87,10 @@ class ConstrainedHilbertIndex:
 
         return self.__bare_numbers
 
-    def states_to_numbers(self, states, out=None):
-        self._unconstrained_index.states_to_numbers(states, out)
+    def states_to_numbers(self, states):
+        out = self._unconstrained_index.states_to_numbers(states)
 
-        out[:] = np.searchsorted(self._bare_numbers, out)
+        out = np.searchsorted(self._bare_numbers, out)
 
         if np.max(out, initial=0) >= self.n_states:
             raise RuntimeError(
@@ -99,20 +99,16 @@ class ConstrainedHilbertIndex:
 
         return out
 
-    def numbers_to_states(self, numbers, out=None):
+    def numbers_to_states(self, numbers):
         if numbers.ndim != 1:
             raise RuntimeError("Invalid input shape, expecting a 1d array.")
 
         # convert to original space
         numbers = self._bare_numbers[numbers]
-
-        if out is None:
-            out = np.empty((numbers.shape[0], self.size))
-
+        out = np.empty((numbers.shape[0], self.size))
         for i in range(numbers.shape[0]):
             out[i] = self._unconstrained_index.number_to_state(numbers[i])
-
         return out
 
-    def all_states(self, out=None):
-        return self.numbers_to_states(np.arange(self.n_states), out=out)
+    def all_states(self):
+        return self.numbers_to_states(np.arange(self.n_states))

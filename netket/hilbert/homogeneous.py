@@ -18,7 +18,6 @@ from numbers import Real
 
 import numpy as np
 
-from netket.utils.deprecation import warn_deprecation
 
 from .discrete_hilbert import DiscreteHilbert
 from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex
@@ -137,44 +136,36 @@ class HomogeneousHilbert(DiscreteHilbert):
         """
         return self._constraint_fn is not None
 
-    def _numbers_to_states(self, numbers: np.ndarray, out: np.ndarray) -> np.ndarray:
+    def _numbers_to_states(self, numbers: np.ndarray) -> np.ndarray:
         # this is guaranteed
         # numbers = concrete_or_error(
         #    np.asarray, numbers, HilbertIndexingDuringTracingError
         # )
 
-        return self._hilbert_index.numbers_to_states(numbers, out)
+        return self._hilbert_index.numbers_to_states(numbers)
 
-    def _states_to_numbers(self, states: np.ndarray, out: np.ndarray):
+    def _states_to_numbers(self, states: np.ndarray):
         # guaranteed
         # states = concrete_or_error(
         #    np.asarray, states, HilbertIndexingDuringTracingError
         # )
 
-        self._hilbert_index.states_to_numbers(states, out)
+        return self._hilbert_index.states_to_numbers(states)
 
-        return out
-
-    def all_states(self, out: Optional[np.ndarray] = None) -> np.ndarray:
+    def all_states(self, out=None) -> np.ndarray:
         r"""Returns all valid states of the Hilbert space.
 
         Throws an exception if the space is not indexable.
-
-        Args:
-            out: an optional pre-allocated output array
 
         Returns:
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
         if out is not None:
-            warn_deprecation(
+            raise NotImplementedError(
                 """
            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                The `out` keyword of `all_states(out=)` will be
-                deprecated in the next release.
-
-                We recommend to remove such usages.
+                The `out` keyword of `all_states(out=)` is deprecated.
 
                 Do note that the out keyword is deprecated for all the following
                 methods:
@@ -185,7 +176,7 @@ class HomogeneousHilbert(DiscreteHilbert):
                 """
             )
 
-        return self._hilbert_index.all_states(out)
+        return self._hilbert_index.all_states()
 
     @property
     def _hilbert_index(self) -> HilbertIndex:
