@@ -12,6 +12,7 @@
 
 
 ### Deprecations
+* The `out` keyword of Discrete Hilbert indexing methods (`all_states`, `numbers_to_states` and `states_to_numbers`) deprecated in the last release has been removed completely [#1722](https://github.com/netket/netket/issues/1722).
 
 
 ### Internal changes
