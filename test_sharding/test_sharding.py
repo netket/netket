@@ -29,6 +29,16 @@ def _setup(L, alpha=1, reset_chains=False):
 #     assert jax.device_count() > 1
 
 
+def _check_correct_sharding(x, replicated=False):
+    if jax.device_count() > 1:
+        s = PositionalSharding(jax.devices()).reshape((-1,) + (1,) * (x.ndim - 1))
+        if replicated:
+            s = s.replicate()
+    else:
+        s = SingleDeviceSharding()
+    assert x.sharding.is_equivalent_to(s, x.ndim)
+
+
 @pytest.mark.skipif(
     not nk.config.netket_experimental_sharding, reason="Only run with sharding"
 )
@@ -40,35 +50,17 @@ def test_sampling():
     # check sampler state has correct sharding
     x = vs.sampler_state.σ
     assert x.shape == (n_chains, vs.hilbert.size)
-    assert isinstance(
-        x.sharding,
-        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-    )
-    if jax.device_count() > 1:
-        assert x.sharding.shape == (jax.device_count(), 1)
-    assert x.sharding.device_set == set(jax.devices())
+    _check_correct_sharding(x)
 
     # check samples have correct sharding
     samples = vs.sample()
     assert samples.shape == (n_chains, n_samples // n_chains, vs.hilbert.size)
-    assert isinstance(
-        samples.sharding,
-        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-    )
-    if jax.device_count() > 1:
-        assert samples.sharding.shape == (jax.device_count(), 1, 1)
-    assert samples.sharding.device_set == set(jax.devices())
+    _check_correct_sharding(samples)
 
     # check sampler state still has correct sharding after having sampled
     x = vs.sampler_state.σ
     assert x.shape == (n_chains, vs.hilbert.size)
-    assert isinstance(
-        x.sharding,
-        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-    )
-    if jax.device_count() > 1:
-        assert x.sharding.shape == (jax.device_count(), 1)
-    assert x.sharding.device_set == set(jax.devices())
+    _check_correct_sharding(x)
 
 
 @pytest.mark.skipif(
@@ -80,12 +72,7 @@ def test_expect():
     # check printing works
     str(E)
     for l in jax.tree_util.tree_leaves(E):
-        assert l.is_fully_replicated
-        assert isinstance(
-            l.sharding,
-            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-        )
-        assert l.sharding.device_set == set(jax.devices())
+        _check_correct_sharding(l, replicated=True)
 
 
 @pytest.mark.skipif(
@@ -97,20 +84,10 @@ def test_grad():
     # check printing works
     str(E)
     for l in jax.tree_util.tree_leaves(E):
-        assert l.is_fully_replicated
-        assert isinstance(
-            l.sharding,
-            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-        )
-        assert l.sharding.device_set == set(jax.devices())
+        _check_correct_sharding(l, replicated=True)
 
     for l in jax.tree_util.tree_leaves(G):
-        assert l.is_fully_replicated
-        assert isinstance(
-            l.sharding,
-            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-        )
-        assert l.sharding.device_set == set(jax.devices())
+        _check_correct_sharding(l, replicated=True)
 
 
 @pytest.mark.parametrize(
@@ -156,12 +133,7 @@ def test_vmc(Op, qgt, chunk_size, reset_chains):
     gs.run(5)
 
     for l in jax.tree_util.tree_leaves(vs.variables):
-        assert l.is_fully_replicated
-        assert isinstance(
-            l.sharding,
-            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-        )
-        assert l.sharding.device_set == set(jax.devices())
+        _check_correct_sharding(l, replicated=True)
 
 
 @pytest.mark.parametrize(
@@ -180,23 +152,13 @@ def test_qgt_jacobian(qgt):
     S = vs.quantum_geometric_tensor(qgt(holomorphic=True))
     for l in jax.tree_util.tree_leaves(S.O):
         assert l.shape[0] == n_samples
-        assert isinstance(
-            l.sharding,
-            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-        )
-        if jax.device_count() > 1:
-            assert l.sharding.shape[0] == jax.device_count()
-        assert l.sharding.device_set == set(jax.devices())
+        _check_correct_sharding(l)
+
     v = vs.parameters
     res = S @ v
 
     for l in jax.tree_util.tree_leaves(res):
-        assert l.is_fully_replicated
-        assert isinstance(
-            l.sharding,
-            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-        )
-        assert l.sharding.device_set == set(jax.devices())
+        _check_correct_sharding(l, replicated=True)
 
 
 @pytest.mark.skipif(
@@ -210,12 +172,7 @@ def test_qgt_onthefly():
     res = S @ v
 
     for l in jax.tree_util.tree_leaves(res):
-        assert l.is_fully_replicated
-        assert isinstance(
-            l.sharding,
-            PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-        )
-        assert l.sharding.device_set == set(jax.devices())
+        _check_correct_sharding(l, replicated=True)
 
 
 @pytest.mark.parametrize(
@@ -235,30 +192,15 @@ def test_operators(Op):
     ha = Op(hilbert=vs.hilbert, graph=g, h=1.0)
     x = jax.jit(jax.lax.collapse, static_argnums=(1, 2))(vs.samples, 0, 2)
 
-    if jax.device_count() > 1:
-        assert x.sharding.shape == (jax.device_count(), 1)
+    _check_correct_sharding(x)
     xp, mels = ha.get_conn_padded(x)
 
     n_conn = xp.shape[1]
     assert xp.shape == (x.shape[0], n_conn, x.shape[-1])
     assert mels.shape == (x.shape[0], n_conn)
 
-    assert isinstance(
-        xp.sharding,
-        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-    )
-    assert isinstance(
-        mels.sharding,
-        PositionalSharding if jax.device_count() > 1 else SingleDeviceSharding,
-    )
-
-    if jax.device_count() > 1:
-        assert xp.sharding.shape == (jax.device_count(), 1, 1)
-    if jax.device_count() > 1:
-        assert mels.sharding.shape == (jax.device_count(), 1)
-
-    assert xp.sharding.device_set == set(jax.devices())
-    assert mels.sharding.device_set == set(jax.devices())
+    _check_correct_sharding(xp)
+    _check_correct_sharding(mels)
 
 
 @pytest.mark.skipif(
