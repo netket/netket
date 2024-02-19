@@ -20,6 +20,13 @@
 ### Bug Fixes
 
 
+## NetKet 3.11.1 (19 february 2024)
+
+Bugfix release to solve two issues:
+
+* Fix `reset_chains=True` does not work in `NETKET_EXPERIMENTAL_SHARDING` mode [#1727](https://github.com/netket/netket/pull/1727).
+* Fix unsolvable deprecation warning when using `DoubledHilbert` [#1728](https://github.com/netket/netket/pull/1728).
+
 
 ## NetKet 3.11 (~💘 16 february 2024)
 
