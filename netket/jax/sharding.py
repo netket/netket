@@ -30,7 +30,6 @@ from jax.sharding import (
     Mesh,
     PartitionSpec as P,
     PositionalSharding,
-    SingleDeviceSharding,
 )
 from jax.experimental.shard_map import shard_map
 
@@ -255,18 +254,20 @@ def gather(x):
         # TODO in the future we could chagne it to just return x unchanged
         # but for now we error if x is not a jax array to ensure gather is used correctly
         raise RuntimeError("gather can only be applied to a jax.Array")
-
-    if isinstance(x.sharding, SingleDeviceSharding):
+    elif x.is_fully_replicated:  # includes SingleDeviceSharding
         return x
-
-    if not isinstance(x.sharding, PositionalSharding):
+    elif isinstance(x.sharding, jax.sharding.GSPMDSharding):
+        out_shardings = x.sharding.get_replicated(x.sharding.device_set)
+    elif isinstance(x.sharding, PositionalSharding):
+        out_shardings = x.sharding.replicate()
+    else:
         raise NotImplementedError(
             f"Gather is only compatible with PositionalSharding, but array has {x.sharding} Please open a feature request."
         )
     # if isinstance(x.sharding, jax.sharding.GSPMDSharding):
     #    x = _convert_gspmdsharding_to_positionalsharding(x)
 
-    return jax.jit(_identity, out_shardings=x.sharding.replicate())(x)
+    return jax.jit(_identity, out_shardings=out_shardings)(x)
 
 
 def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
