@@ -152,7 +152,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         return self._hilbert_index.states_to_numbers(states)
 
-    def all_states(self, out=None) -> np.ndarray:
+    def all_states(self) -> np.ndarray:
         r"""Returns all valid states of the Hilbert space.
 
         Throws an exception if the space is not indexable.
@@ -161,20 +161,6 @@ class HomogeneousHilbert(DiscreteHilbert):
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
-        if out is not None:
-            raise NotImplementedError(
-                """
-           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                The `out` keyword of `all_states(out=)` is deprecated.
-
-                Do note that the out keyword is deprecated for all the following
-                methods:
-                 - DiscreteHilbert.states_to_numbers
-                 - DiscreteHilbert.numbers_to_states
-                 - DiscreteHilbert.all_states
-            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                """
-            )
 
         return self._hilbert_index.all_states()
 

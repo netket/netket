@@ -131,9 +131,7 @@ class DiscreteHilbert(AbstractHilbert):
         """
         raise NotImplementedError()  # pragma: no cover
 
-    def numbers_to_states(
-        self, numbers: Union[int, np.ndarray], out=None
-    ) -> np.ndarray:
+    def numbers_to_states(self, numbers: Union[int, np.ndarray]) -> np.ndarray:
         r"""Returns the quantum numbers corresponding to the n-th basis state
         for input n.
 
@@ -145,21 +143,6 @@ class DiscreteHilbert(AbstractHilbert):
             numbers (numpy.array): Batch of input numbers to be converted into arrays of
                 quantum numbers.
         """
-
-        if out is not None:
-            raise NotImplementedError(
-                """
-           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                The `out` keyword of `all_states(out=)` is deprecated.
-
-                Do note that the out keyword is deprecated for all the following
-                methods:
-                 - DiscreteHilbert.states_to_numbers
-                 - DiscreteHilbert.numbers_to_states
-                 - DiscreteHilbert.all_states
-            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                """
-            )
 
         numbers = concrete_or_error(
             np.asarray, numbers, HilbertIndexingDuringTracingError
@@ -174,7 +157,7 @@ class DiscreteHilbert(AbstractHilbert):
 
         return out.reshape((*numbers.shape, self.size))
 
-    def states_to_numbers(self, states: np.ndarray, out=None) -> Union[int, np.ndarray]:
+    def states_to_numbers(self, states: np.ndarray) -> Union[int, np.ndarray]:
         r"""Returns the basis state number corresponding to given quantum states.
 
         The states are given in a batch, such that states[k] has shape (hilbert.size).
@@ -186,21 +169,6 @@ class DiscreteHilbert(AbstractHilbert):
         Returns:
             numpy.darray: Array of integers corresponding to states.
         """
-
-        if out is not None:
-            raise NotImplementedError(
-                """
-           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                The `out` keyword of `all_states(out=)` is deprecated.
-
-                Do note that the out keyword is deprecated for all the following
-                methods:
-                 - DiscreteHilbert.states_to_numbers
-                 - DiscreteHilbert.numbers_to_states
-                 - DiscreteHilbert.all_states
-            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                """
-            )
 
         if states.shape[-1] != self.size:
             raise ValueError(
@@ -231,7 +199,7 @@ class DiscreteHilbert(AbstractHilbert):
         for i in range(self.n_states):
             yield self.numbers_to_states(i).reshape(-1)
 
-    def all_states(self, out=None) -> np.ndarray:
+    def all_states(self) -> np.ndarray:
         r"""Returns all valid states of the Hilbert space.
 
         Throws an exception if the space is not indexable.
@@ -240,20 +208,6 @@ class DiscreteHilbert(AbstractHilbert):
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
-        if out is not None:
-            raise NotImplementedError(
-                """
-           +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                The `out` keyword of `all_states(out=)` is deprecated.
-
-                Do note that the out keyword is deprecated for all the following
-                methods:
-                 - DiscreteHilbert.states_to_numbers
-                 - DiscreteHilbert.numbers_to_states
-                 - DiscreteHilbert.all_states
-            +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                """
-            )
 
         numbers = np.arange(0, self.n_states, dtype=np.int64)
 
