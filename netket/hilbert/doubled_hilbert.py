@@ -126,8 +126,8 @@ class DoubledHilbert(DiscreteHilbert):
         dim = self.physical.n_states
         left, right = np.divmod(numbers, dim)
 
-        self.physical.numbers_to_states(left, out=out[:, 0:n])
-        self.physical.numbers_to_states(right, out=out[:, n : 2 * n])
+        out[:, 0:n] = self.physical.numbers_to_states(left)
+        out[:, n : 2 * n] = self.physical.numbers_to_states(right)
 
         return out
 
@@ -138,10 +138,10 @@ class DoubledHilbert(DiscreteHilbert):
         n = self.physical.size
         dim = self.physical.n_states
 
-        self.physical._states_to_numbers(states[:, 0:n], out=out)
+        out = self.physical._states_to_numbers(states[:, 0:n])
         _out_l = out * dim
 
-        self.physical._states_to_numbers(states[:, n : 2 * n], out=out)
+        out = self.physical._states_to_numbers(states[:, n : 2 * n])
         out += _out_l
 
         return out

@@ -129,9 +129,9 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         for i, dim in enumerate(self._ns_states_r):
             rem, loc_numbers = np.divmod(rem, dim)
             hi_i = self._n_hilbert_spaces - (i + 1)
-            self._hilbert_spaces[hi_i].numbers_to_states(
-                loc_numbers, out=out[:, self._cum_indices[hi_i] : self._cum_sizes[hi_i]]
-            )
+            out[
+                :, self._cum_indices[hi_i] : self._cum_sizes[hi_i]
+            ] = self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers)
 
         return out
 
@@ -145,8 +145,8 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         # See note above in numbers_to_states
 
         for i, dim in enumerate(self._cum_ns_states_r):
-            self._hilbert_spaces[i].states_to_numbers(
-                states[:, self._cum_indices[i] : self._cum_sizes[i]], out=temp
+            temp = self._hilbert_spaces[i].states_to_numbers(
+                states[:, self._cum_indices[i] : self._cum_sizes[i]]
             )
             out += temp * dim
 
