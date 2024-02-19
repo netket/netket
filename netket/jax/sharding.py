@@ -215,6 +215,20 @@ def distribute_to_devices_along_axis(
         return inp_data
 
 
+# TODO consider merging this with distribute_to_devices_along_axis
+@jax.jit
+def with_samples_sharding_constraint(x, shape=None):
+    """
+    ensure the input x is sharded along axis 0 on all devices
+    works both outside and inside of jit
+    """
+    if config.netket_experimental_sharding and jax.device_count() > 1:
+        x = jax.lax.with_sharding_constraint(
+            x, PositionalSharding(jax.devices()).reshape((-1,) + (1,) * (x.ndim - 1))
+        )
+    return x
+
+
 def extract_replicated(t):
     """
     Extract the value of a fully replicated global device array.

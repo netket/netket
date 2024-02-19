@@ -37,6 +37,7 @@ from netket.jax.sharding import (
     gather,
     distribute_to_devices_along_axis,
     device_count,
+    with_samples_sharding_constraint,
 )
 
 from .base import Sampler, SamplerState
@@ -363,45 +364,42 @@ class MetropolisSampler(Sampler):
 
         return sampler._sample_next(wrap_afun(machine), parameters, state)
 
-    def _init_state(sampler, machine, params, key):
-        key_state, key_rule = jax.random.split(key, 2)
-        rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
+    @partial(jax.jit, static_argnums=1)
+    def _init_state(sampler, machine, parameters, key):
+        key_state, key_rule = jax.random.split(key)
+        rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
         σ = jnp.zeros((sampler.n_batches, sampler.hilbert.size), dtype=sampler.dtype)
-        if config.netket_experimental_sharding and jax.device_count() > 1:
-            σ = distribute_to_devices_along_axis(σ, axis=0)
+        σ = with_samples_sharding_constraint(σ)
         state = MetropolisSamplerState(σ=σ, rng=key_state, rule_state=rule_state)
-
         # If we don't reset the chain at every sampling iteration, then reset it
         # now.
         if not sampler.reset_chains:
-            key_state, rng = jax.random.split(key_state)
-            σ = sampler.rule.random_state(sampler, machine, params, state, rng)
-            if config.netket_experimental_sharding and jax.device_count() > 1:
-                σ = distribute_to_devices_along_axis(σ, axis=0)
+            key_state, rng = jax.jit(jax.random.split)(key_state)
+            σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
             _assert_good_sample_shape(
                 σ,
                 (sampler.n_batches, sampler.hilbert.size),
                 sampler.dtype,
                 f"{sampler.rule}.random_state",
             )
+            σ = with_samples_sharding_constraint(σ)
             state = state.replace(σ=σ, rng=key_state)
-
         return state
 
+    @partial(jax.jit, static_argnums=1)
     def _reset(sampler, machine, parameters, state):
-        # use jit so that we can do it on global shared array
-        new_rng, rng = jax.jit(jax.random.split)(state.rng)
+        rng = state.rng
 
         if sampler.reset_chains:
+            rng, key = jax.random.split(state.rng)
             σ = sampler.rule.random_state(sampler, machine, parameters, state, rng)
-            if config.netket_experimental_sharding and jax.device_count() > 1:
-                σ = distribute_to_devices_along_axis(σ, axis=0)
             _assert_good_sample_shape(
                 σ,
                 (sampler.n_batches, sampler.hilbert.size),
                 sampler.dtype,
                 f"{sampler.rule}.random_state",
             )
+            σ = with_samples_sharding_constraint(σ)
         else:
             σ = state.σ
 
@@ -409,7 +407,7 @@ class MetropolisSampler(Sampler):
 
         return state.replace(
             σ=σ,
-            rng=new_rng,
+            rng=rng,
             rule_state=rule_state,
             n_steps_proc=jnp.zeros_like(state.n_steps_proc),
             n_accepted_proc=jnp.zeros_like(state.n_accepted_proc),
