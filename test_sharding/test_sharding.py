@@ -35,7 +35,7 @@ def _check_correct_sharding(x, replicated=False):
         if replicated:
             s = s.replicate()
     else:
-        s = SingleDeviceSharding()
+        s = SingleDeviceSharding(jax.devices()[0])
     assert x.sharding.is_equivalent_to(s, x.ndim)
 
 
