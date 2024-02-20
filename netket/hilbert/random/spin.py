@@ -14,13 +14,12 @@
 
 import jax
 import numpy as np
-from jax import numpy as jnp
 from functools import partial
 
 from netket.hilbert import Spin
 from netket.utils.dispatch import dispatch
 
-from .fock import _choice
+from .fock import _random_states_with_constraint_fock
 
 
 @dispatch
@@ -32,48 +31,31 @@ def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
         return _random_states_with_constraint(hilb, key, shape, dtype)
 
 
+_spin_to_fock = lambda two_times_s, x: (two_times_s + x) // 2
+_fock_to_spin = lambda two_times_s, x: 2 * x - two_times_s
+
+
 @partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
 def _random_states(hilb, key, shape, dtype):
-    S = hilb._s
-    n_states = int(2 * S + 1)
-    rs = jax.random.randint(key, shape=shape + (hilb.size,), minval=0, maxval=n_states)
-    return (2 * rs - (n_states - 1)).astype(dtype)
+    two_times_s = round(2 * hilb._s)
+    x_fock = jax.random.randint(
+        key, shape=shape + (hilb.size,), minval=0, maxval=two_times_s + 1
+    )
+    return _fock_to_spin(two_times_s, x_fock).astype(dtype)
 
 
 @partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
-def _random_states_with_constraint(hilb, rngkey, shape, dtype):
+def _random_states_with_constraint(hilb, key, shape, dtype):
     # Generate random spin states with a given hilb._total_sz.
     # Note that this is NOT a uniform distribution over the
     # basis states of the constrained hilbert space.
-
-    N = hilb.size
-    S = hilb._s
-    n_states = int(2 * S) + 1
-    # if constrained and S == 1/2, use a trick to sample quickly
-    if n_states == 2:
-        m = int(hilb._total_sz * 2)
-        nup = (N + m) // 2
-        ndown = (N - m) // 2
-        x = jnp.ones(shape + (nup + ndown,), dtype=dtype).at[..., -ndown:].set(-1)
-        return jax.random.permutation(rngkey, x, axis=-1, independent=True)
-    else:
-        # if constrained and S != 1/2, then use a slow fallback algorithm
-        # TODO: find better, faster way to sample constrained arbitrary spaces.
-
-        # start with all spins in the state with the lowest eigenvalue
-        init = jnp.full(shape + (hilb.size,), -round(2 * hilb._s), dtype=dtype)
-
-        def body_fn(out, key):
-            # find all spins which are not yet in the highest state
-            mask = out <= round(2 * hilb._s - 1)
-            # select one of those spins uniformly and change it's state to the next higher one
-            out = jax.lax.select(_choice(key, mask), out + 2, out)
-            return out, None
-
-        # iterate until total_sz is reached
-        n = round(hilb._s * hilb.size + hilb._total_sz)
-        keys = jax.random.split(rngkey, n)
-        return jax.lax.scan(body_fn, init, keys)[0]
+    two_times_s = round(2 * hilb._s)
+    two_times_total_sz = round(2 * hilb._total_sz)
+    n_particles = _spin_to_fock(two_times_s * hilb.size, two_times_total_sz)
+    x_fock = _random_states_with_constraint_fock(
+        n_particles, hilb.shape, key, shape, dtype
+    )
+    return _fock_to_spin(two_times_s, x_fock).astype(dtype)
 
 
 @dispatch

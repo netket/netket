@@ -83,19 +83,27 @@ def _choice(key, p):
     return (cs * p) == jax.lax.floor(r).astype(cs.dtype)[..., None]
 
 
-@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
-def _random_states_with_constraint(hilb, key, shape, dtype):
+@partial(jax.jit, static_argnames=("n_particles", "hilb_shape", "shape", "dtype"))
+def _random_states_with_constraint_fock(n_particles, hilb_shape, key, shape, dtype):
     # Distribute hilb.n_particles onto hilb.size sites
     # and put at most hilb.shape-1 particles in every site.
     # Note that this is NOT a uniform distribution over the
     # basis states of the constrained hilbert space.
 
-    assert hilb.n_particles is not None
-    # shape is per site n_max
-    n_max = jnp.array(hilb.shape) - 1
+    assert n_particles is not None
+    hilb_size = len(hilb_shape)
 
     # start with all sites empty
-    init = jnp.zeros(shape + (hilb.size,), dtype=dtype)
+    init = jnp.zeros(shape + (hilb_size,), dtype=dtype)
+
+    # if constrained and uniformly n_max == 2, use a trick to sample quickly
+    if set(hilb_shape) == {2}:
+        return jax.random.permutation(
+            key, init.at[..., :n_particles].set(1), axis=-1, independent=True
+        )
+
+    # shape is per site n_max
+    n_max = jnp.array(hilb_shape) - 1
 
     def body_fun(x, key):
         # select all sites which are not yet full
@@ -106,8 +114,15 @@ def _random_states_with_constraint(hilb, key, shape, dtype):
         return carry, None
 
     # iterate body_fun above n_particles times
-    keys = jax.random.split(key, hilb.n_particles)
+    keys = jax.random.split(key, n_particles)
     return jax.lax.scan(body_fun, init, keys)[0]
+
+
+@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
+def _random_states_with_constraint(hilb, key, shape, dtype):
+    return _random_states_with_constraint_fock(
+        hilb.n_particles, hilb.shape, key, shape, dtype
+    )
 
 
 @dispatch
