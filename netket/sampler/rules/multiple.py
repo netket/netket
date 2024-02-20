@@ -149,4 +149,4 @@ class MultipleRules(MetropolisRule):
         return σp, log_prob_corr
 
     def __repr__(self):
-        return "MultipleRules(probabilities={self.probabilities}, rules={self.rules})"
+        return f"MultipleRules(probabilities={self.probabilities}, rules={self.rules})"

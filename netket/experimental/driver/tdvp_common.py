@@ -253,8 +253,7 @@ class TDVPBaseDriver(AbstractVariationalDriver):
                 step_accepted = self._integrator.step(max_dt=max_dt)
                 if self._integrator.errors:
                     raise RuntimeError(
-                        f"RK solver: {self._integrator.errors.message()}",
-                        stacklevel=3,
+                        f"RK solver: {self._integrator.errors.message()}"
                     )
                 elif self._integrator.warnings:
                     warnings.warn(
