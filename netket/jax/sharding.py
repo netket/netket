@@ -51,6 +51,8 @@ def _convert_gspmdsharding_to_positionalsharding(x):
     s_new = PositionalSharding(jax.devices()).reshape(shard_shape)
     assert s.is_equivalent_to(s_new, x.ndim)
     return jax.jit(_identity, out_shardings=s_new)(x)
+    # TODO support gspmdsharding in numba wrapper and use this
+    # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, s_new)
 
 
 def replicate_sharding_decorator_for_get_conn_padded(f):
@@ -199,6 +201,11 @@ def distribute_to_devices_along_axis(
         shape[axis] = -1
         sharding = PositionalSharding(devices).reshape(shape)
         out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
+        # TODO support gspmdsharding in numba wrapper and use this
+        # out_data = jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(
+        #     inp_data, sharding
+        # )
+
         if pad:
             if n_pad > 0:
                 mask = jax.jit(
@@ -271,17 +278,20 @@ def gather(x):
     elif x.is_fully_replicated:  # includes SingleDeviceSharding
         return x
     elif isinstance(x.sharding, jax.sharding.GSPMDSharding):
-        out_shardings = x.sharding.get_replicated(x.sharding.device_set)
+        # x.sharding.device_set has reversed order
+        out_shardings = PositionalSharding(
+            tuple(x.sharding.device_set)[::-1]
+        ).replicate()
+        # out_shardings = x.sharding.get_replicated(tuple(x.sharding.device_set)[::-1])
     elif isinstance(x.sharding, PositionalSharding):
         out_shardings = x.sharding.replicate()
     else:
         raise NotImplementedError(
             f"Gather is only compatible with PositionalSharding, but array has {x.sharding} Please open a feature request."
         )
-    # if isinstance(x.sharding, jax.sharding.GSPMDSharding):
-    #    x = _convert_gspmdsharding_to_positionalsharding(x)
-
     return jax.jit(_identity, out_shardings=out_shardings)(x)
+    # TODO support gspmdsharding in numba wrapper and use this
+    # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, out_shardings)
 
 
 def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
