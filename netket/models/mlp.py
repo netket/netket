@@ -59,7 +59,7 @@ class MLP(nn.Module):
     If None is provided, the output layer will be essentially linear."""
     use_hidden_bias: bool = True
     """if True uses a bias in the hidden layer."""
-    use_output_bias: bool = True
+    use_output_bias: bool = False
     """if True adds a bias to the output layer."""
     precision: Optional[jax.lax.Precision] = None
     """Numerical precision of the computation see :class:`jax.lax.Precision` for details."""
