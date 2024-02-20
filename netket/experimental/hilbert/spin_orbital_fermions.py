@@ -303,6 +303,11 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         _str += ")"
         return _str
 
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the space can be indexed with an integer"""
+        return self._fock.is_indexable
+
 
 @dispatch
 def random_state(hilb: SpinOrbitalFermions, key, batches: int, *, dtype):
