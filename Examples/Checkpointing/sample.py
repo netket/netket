@@ -10,7 +10,6 @@ path = epath.Path("/tmp/nkcheckpt-04")
 
 checkpointer = ocp.CheckpointManager(
     path,
-    ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler()),
     options=ocp.CheckpointManagerOptions(max_to_keep=3, save_interval_steps=1),
 )
 
@@ -34,4 +33,4 @@ log = nkx.logging.HDF5Log("log2", mode="append")
 log = nk.logging.RuntimeLog()
 
 # Run the optimization for 500 iterations
-gs.run(n_iter=49, out=log, show_progress=False)
+gs.run(n_iter=49, out=log, show_progress=True)
