@@ -71,7 +71,7 @@ class RNNLayer(nn.Module):
             # Get the hidden memory at the previous site,
             # or zeros for the first site
             hidden = outputs[:, index - 1, :]
-            hidden = jnp.expand_dims(hidden, axis=-1)
+            hidden = jnp.expand_dims(hidden, axis=1)
         else:
             # Get the hidden memories at the previous neighbors
             prev_neighbors_i = prev_neighbors[index]
@@ -108,7 +108,7 @@ class RNNLayer(nn.Module):
 
         def scan_func(rnn_cell, carry, k):
             cell_mem, outputs = carry
-            if self.reorder_idx is None:
+            if reorder_idx is None:
                 index = k
                 prev_index = k - 1
             else:

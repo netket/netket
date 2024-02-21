@@ -76,6 +76,8 @@ class FastRNN(FastARNNSequential):
     """initializer for the biases."""
     machine_pow: int = 2
     """exponent to normalize the outputs of `__call__`."""
+    ignore_hilbert_constraint: bool = False
+    """do not reweight the conditional probabilities in the constrained Hilbert space."""
 
     def __post_init__(self):
         reorder_idx, inv_reorder_idx, prev_neighbors = ensure_prev_neighbors(
@@ -104,7 +106,7 @@ class FastRNN(FastARNNSequential):
             k = jnp.asarray(self.inv_reorder_idx)[index]
             prev_index = jnp.asarray(self.reorder_idx)[k - 1]
 
-        inputs_i = inputs[:, prev_index, :]
+        inputs_i = inputs[:, prev_index]
         inputs_i = jnp.where(k == 0, 0, inputs_i)
         return inputs_i
 

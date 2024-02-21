@@ -251,6 +251,18 @@ partial_models += [
             nk.hilbert.Fock(n_max=3, N=4),
             id="fock",
         ),
+        pytest.param(
+            nk.hilbert.Spin(s=1 / 2, N=4, total_sz=0),
+            id="spin_1/2_constrained",
+        ),
+        pytest.param(
+            nk.hilbert.Spin(s=1, N=4, total_sz=1),
+            id="spin_1_constrained",
+        ),
+        pytest.param(
+            nk.hilbert.Fock(n_max=3, N=4, n_particles=3),
+            id="fock_constrained",
+        ),
     ],
 )
 class TestARNN:

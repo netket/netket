@@ -15,10 +15,16 @@
 from math import sqrt
 from typing import Any, Callable, Union
 
+from flax import linen as nn
 from jax import numpy as jnp
 from jax.nn.initializers import zeros
 
-from netket.models.autoreg import ARNNSequential, _get_feature_list, _normalize
+from netket.models.autoreg import (
+    ARNNSequential,
+    _get_feature_list,
+    _get_n_particles,
+    _normalize,
+)
 from netket.nn import FastMaskedConv1D, FastMaskedConv2D, FastMaskedDense1D
 from netket.nn import activation as nkactivation
 from netket.nn.masked_linear import default_kernel_init
@@ -43,6 +49,7 @@ class FastARNNSequential(ARNNSequential):
     connected layers.
     """
 
+    @nn.compact
     def conditional(self, inputs: Array, index: int) -> Array:
         """
         Computes the conditional probabilities for one site to take each value.
@@ -51,13 +58,53 @@ class FastARNNSequential(ARNNSequential):
         if inputs.ndim == 1:
             inputs = jnp.expand_dims(inputs, axis=0)
 
-        x = jnp.expand_dims(inputs, axis=-1)
-        x = self._take_prev_site(x, index)
+        prev_inputs = self._take_prev_site(inputs, index)
+        x = jnp.expand_dims(prev_inputs, axis=-1)
 
         for i in range(len(self._layers)):
             if i > 0 and hasattr(self, "activation"):
                 x = self.activation(x)
             x = self._layers[i].update_site(x, index)
+
+        if not self.ignore_hilbert_constraint and self.hilbert.constrained:
+            hilbert = self.hilbert
+            local_size = hilbert.local_size
+            n_particles = _get_n_particles(hilbert)
+
+            # Index in the ordered inputs
+            _k = self.variable("cache", "k", zeros, None, (), jnp.int32)
+
+            # Total number of particles up to the current site
+            _cum_particles = self.variable(
+                "cache", "cum_particles", zeros, None, (inputs.shape[0]), jnp.int32
+            )
+
+            k = _k.value
+            cum_particles = _cum_particles.value
+            prev_particles = hilbert.states_to_local_indices(prev_inputs)
+            cum_particles = jnp.where(
+                k == 0, cum_particles, cum_particles + prev_particles
+            )
+
+            initializing = self.is_mutable_collection("params")
+            if not initializing:
+                _k.value = k + 1
+                _cum_particles.value = cum_particles
+
+            cum_particles = (
+                cum_particles[:, None]
+                + jnp.arange(local_size, dtype=cum_particles.dtype)[None, :]
+            )
+
+            # If all future sites have `local_size - 1` particles
+            max_future = cum_particles + (local_size - 1) * (hilbert.size - k - 1)
+
+            # Mask out states that cannot fulfill the constraint
+            x = jnp.where(
+                (cum_particles <= n_particles) & (max_future >= n_particles),
+                x,
+                -jnp.inf,
+            )
 
         log_psi = _normalize(x, self.machine_pow)
         p = jnp.exp(self.machine_pow * log_psi.real)
@@ -101,6 +148,8 @@ class FastARNNDense(FastARNNSequential):
     """initializer for the biases."""
     machine_pow: int = 2
     """exponent to normalize the outputs of `__call__`."""
+    ignore_hilbert_constraint: bool = False
+    """do not reweight the conditional probabilities in the constrained Hilbert space."""
 
     def setup(self):
         features = _get_feature_list(self)
@@ -150,6 +199,8 @@ class FastARNNConv1D(FastARNNSequential):
     """initializer for the biases."""
     machine_pow: int = 2
     """exponent to normalize the outputs of `__call__`."""
+    ignore_hilbert_constraint: bool = False
+    """do not reweight the conditional probabilities in the constrained Hilbert space."""
 
     def setup(self):
         features = _get_feature_list(self)
@@ -200,6 +251,8 @@ class FastARNNConv2D(FastARNNSequential):
     """initializer for the biases."""
     machine_pow: int = 2
     """exponent to normalize the outputs of `__call__`."""
+    ignore_hilbert_constraint: bool = False
+    """do not reweight the conditional probabilities in the constrained Hilbert space."""
 
     def setup(self):
         self.L = int(sqrt(self.hilbert.size))
