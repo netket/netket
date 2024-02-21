@@ -26,17 +26,20 @@ from .fock import _random_states_with_constraint_fock
 def random_state(hilb: Spin, key, batches: int, *, dtype=np.float32):
     shape = (batches,)
     if hilb._total_sz is None:
-        return _random_states(hilb, key, shape, dtype)
+        return _random_states_unconstrained(hilb, key, shape, dtype)
     else:
         return _random_states_with_constraint(hilb, key, shape, dtype)
 
+
+# For the implementations of constrained spaces, we use those found inside of
+# fock.py, and simply convert the spin values (-1, 1) to fock values (0,1, ...).
 
 _spin_to_fock = lambda two_times_s, x: (two_times_s + x) // 2
 _fock_to_spin = lambda two_times_s, x: 2 * x - two_times_s
 
 
 @partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
-def _random_states(hilb, key, shape, dtype):
+def _random_states_unconstrained(hilb, key, shape, dtype):
     two_times_s = round(2 * hilb._s)
     x_fock = jax.random.randint(
         key, shape=shape + (hilb.size,), minval=0, maxval=two_times_s + 1

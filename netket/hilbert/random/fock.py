@@ -28,13 +28,13 @@ def random_state(hilb: Fock, key, batches: int, *, dtype=np.float32):
 
     # If unconstrained space, use fast sampling
     if hilb.n_particles is None:
-        return _random_states(hilb, key, shape, dtype)
+        return _random_states_unconstrained(hilb, key, shape, dtype)
     else:
         return _random_states_with_constraint(hilb, key, shape, dtype)
 
 
 @partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
-def _random_states(hilb, key, shape, dtype):
+def _random_states_unconstrained(hilb, key, shape, dtype):
     assert hilb.n_particles is None
     return jax.random.randint(
         key, shape=shape + (hilb.size,), minval=0, maxval=hilb.n_max + 1
