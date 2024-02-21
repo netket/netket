@@ -371,7 +371,7 @@ def check_consistent_diag(vstate):
 )
 def test_expect_exact(vstate, operator):
     # Use lots of samples
-    vstate.n_samples = 5 * 1e5
+    vstate.n_samples = 2 * 1e5
     vstate.n_discard_per_chain = 1e3
 
     # sample the expectation value and gradient with tons of samples

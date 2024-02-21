@@ -19,44 +19,110 @@ from jax import numpy as jnp
 from netket.hilbert import Fock
 from netket.utils.dispatch import dispatch
 
+from functools import partial
+
 
 @dispatch
 def random_state(hilb: Fock, key, batches: int, *, dtype=np.float32):
-    shape = (batches, hilb.size)
+    shape = (batches,)
 
     # If unconstrained space, use fast sampling
     if hilb.n_particles is None:
-        rs = jax.random.randint(key, shape=shape, minval=0, maxval=hilb.n_max + 1)
-        return jnp.asarray(rs, dtype=dtype)
-
+        return _random_states_unconstrained(hilb, key, shape, dtype)
     else:
-        state = jax.pure_callback(
-            lambda rng: _random_states_with_constraint(hilb, rng, batches, dtype),
-            jax.ShapeDtypeStruct(shape, dtype),
-            key,
+        return _random_states_with_constraint(hilb, key, shape, dtype)
+
+
+@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
+def _random_states_unconstrained(hilb, key, shape, dtype):
+    assert hilb.n_particles is None
+    return jax.random.randint(
+        key, shape=shape + (hilb.size,), minval=0, maxval=hilb.n_max + 1
+    ).astype(dtype)
+
+
+def _choice(key, p):
+    """
+    Replacement for jax.random.choice with the following differences:
+
+    - p can only contain 0 or 1
+    - the return value is not a number i, but a mask with a single 1 at index i,
+      and the rest 0
+    - it supports arbitrary leading batch axes for p
+
+    Args:
+        key: a jax.random.PRNGKey
+        p: an integer/boolean vector of probabilities, can only contain 0 or 1
+           and does not have to sum up to 1. Can have arbitrary many leading batch dimensions
+    Returns:
+        A mask with a single 1, selecting one of the 1's in every vector of p uniformly
+
+    It is functionally equivalent to, but more efficient than the following function:
+
+    import jax
+    import jax.numpy as jnp
+
+    def _choice_jax(key, p):
+        p_flat = p.reshape(-1, p.shape[-1])
+        @jax.vmap
+        def _f(k,p):
+            return jax.random.choice(k, len(p), p=p) == jnp.arange(len(p))
+        keys = jax.random.split(key, len(p_flat))
+        return _f(keys, p_flat).reshape(p.shape)
+    """
+    # p needs to be in [0, 1], of type integer or bool
+    # in the following all the sites are indexed starting from 1
+    # to distinguish between site 0 (now 1) and not selecting it
+    # e.g  take p = [[1 0 0 1 0 1 1 0]]
+    cs = jnp.cumsum(p, axis=-1)  # now  cs = [[1 1 1 2 2 3 4 4]]
+    n_candidates = cs[..., -1]  # == p.sum(axis=-1, keepdims=True)
+    # 1 is exlusive in random.uniform
+    # +1 because we index starting from 1
+    r = jax.random.uniform(key, p.shape[:-1]) * n_candidates + 1
+    # now cs*p = [[1 0 0 2 0 3 4 0]] and floor(r) in [1,2,3,4]
+    return (cs * p) == jax.lax.floor(r).astype(cs.dtype)[..., None]
+
+
+@partial(jax.jit, static_argnames=("n_particles", "hilb_shape", "shape", "dtype"))
+def _random_states_with_constraint_fock(n_particles, hilb_shape, key, shape, dtype):
+    # Distribute hilb.n_particles onto hilb.size sites
+    # and put at most hilb.shape-1 particles in every site.
+    # Note that this is NOT a uniform distribution over the
+    # basis states of the constrained hilbert space.
+
+    assert n_particles is not None
+    hilb_size = len(hilb_shape)
+
+    # start with all sites empty
+    init = jnp.zeros(shape + (hilb_size,), dtype=dtype)
+
+    # if constrained and uniformly n_max == 2, use a trick to sample quickly
+    if set(hilb_shape) == {2}:
+        return jax.random.permutation(
+            key, init.at[..., :n_particles].set(1), axis=-1, independent=True
         )
 
-        return state
+    # shape is per site n_max
+    n_max = jnp.array(hilb_shape) - 1
+
+    def body_fun(x, key):
+        # select all sites which are not yet full
+        p = x < n_max
+        # uniformly select a site among the not yet full ones
+        # and put a particle in it
+        carry = x + _choice(key, p)
+        return carry, None
+
+    # iterate body_fun above n_particles times
+    keys = jax.random.split(key, n_particles)
+    return jax.lax.scan(body_fun, init, keys)[0]
 
 
-def _random_states_with_constraint(hilb, rngkey, n_batches, dtype):
-    out = np.zeros((n_batches, hilb.size), dtype=dtype)
-    rgen = np.random.default_rng(np.asarray(rngkey))
-
-    for b in range(n_batches):
-        sites = list(range(hilb.size))
-        ss = hilb.size
-
-        for i in range(hilb.n_particles):
-            s = rgen.integers(0, ss, size=())
-
-            out[b, sites[s]] += 1
-
-            if out[b, sites[s]] == hilb.n_max:
-                sites.pop(s)
-                ss -= 1
-
-    return out
+@partial(jax.jit, static_argnames=("hilb", "shape", "dtype"))
+def _random_states_with_constraint(hilb, key, shape, dtype):
+    return _random_states_with_constraint_fock(
+        hilb.n_particles, hilb.shape, key, shape, dtype
+    )
 
 
 @dispatch

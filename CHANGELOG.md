@@ -13,6 +13,8 @@
 
 ### Deprecations
 
+### Improvements
+* Rewrite the code for generating random states of `netket.hilbert.Fock` and `netket.hilbert.Spin` in Jax and jit the `init` and `reset` functions of `netket.sampler.MetropolisSampler` for better performance and improved compatibility with sharding [#1721](https://github.com/netket/netket/pull/1721).
 
 ### Internal changes
 

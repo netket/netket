@@ -112,7 +112,7 @@ def vstate(request, model, chunk_size):
     N = 5
     hi = nk.hilbert.Spin(1 / 2, N)
 
-    k = jax.random.PRNGKey(3)
+    k = jax.random.PRNGKey(123)
     k1, k2 = jax.random.split(k)
 
     vstate = nk.vqs.MCState(

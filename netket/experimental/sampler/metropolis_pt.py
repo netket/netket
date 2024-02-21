@@ -23,14 +23,10 @@ from jax import numpy as jnp
 from netket import config
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils import struct, mpi
+from netket.jax.sharding import with_samples_sharding_constraint
 
 from netket.sampler import MetropolisSamplerState, MetropolisSampler
 from netket.sampler.rules import LocalRule, ExchangeRule, HamiltonianRule
-
-
-from netket.jax.sharding import (
-    distribute_to_devices_along_axis,
-)
 
 # Original C++ Implementation
 # https://github.com/netket/netket/blob/1e187ae2b9d2aa3f2e53b09fe743e50763d04c9a/Sources/Sampler/metropolis_hastings_pt.hpp
@@ -152,17 +148,14 @@ class MetropolisPtSampler(MetropolisSampler):
                 )
         return n_batches * self.n_replicas
 
+    @partial(jax.jit, static_argnums=1)
     def _init_state(
-        sampler, machine, params: PyTree, key: PRNGKeyT
+        sampler, machine, parameters: PyTree, key: PRNGKeyT
     ) -> MetropolisPtSamplerState:
         key_state, key_rule, rng = jax.random.split(key, 3)
-        rule_state = sampler.rule.init_state(sampler, machine, params, key_rule)
-        σ = sampler.rule.random_state(sampler, machine, params, rule_state, rng)
-
-        if config.netket_experimental_sharding and jax.device_count() > 1:
-            # TODO If we end up rewriting the hilbert spaces in jax then we can avoid
-            # this and instead jit the random state with the correct out_shardings
-            σ = distribute_to_devices_along_axis(σ, axis=0)
+        rule_state = sampler.rule.init_state(sampler, machine, parameters, key_rule)
+        σ = sampler.rule.random_state(sampler, machine, parameters, rule_state, rng)
+        σ = with_samples_sharding_constraint(σ)
 
         beta = 1.0 - jnp.arange(sampler.n_replicas) / sampler.n_replicas
         beta = jnp.tile(beta, (sampler.n_chains, 1))
@@ -174,6 +167,7 @@ class MetropolisPtSampler(MetropolisSampler):
             beta=beta,
         )
 
+    @partial(jax.jit, static_argnums=1)
     def _reset(sampler, machine, parameters: PyTree, state: MetropolisPtSamplerState):
         state = super()._reset(machine, parameters, state)
         return state.replace(

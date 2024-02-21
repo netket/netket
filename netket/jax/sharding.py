@@ -30,7 +30,6 @@ from jax.sharding import (
     Mesh,
     PartitionSpec as P,
     PositionalSharding,
-    SingleDeviceSharding,
 )
 from jax.experimental.shard_map import shard_map
 
@@ -52,6 +51,8 @@ def _convert_gspmdsharding_to_positionalsharding(x):
     s_new = PositionalSharding(jax.devices()).reshape(shard_shape)
     assert s.is_equivalent_to(s_new, x.ndim)
     return jax.jit(_identity, out_shardings=s_new)(x)
+    # TODO support gspmdsharding in numba wrapper and use this
+    # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, s_new)
 
 
 def replicate_sharding_decorator_for_get_conn_padded(f):
@@ -200,6 +201,11 @@ def distribute_to_devices_along_axis(
         shape[axis] = -1
         sharding = PositionalSharding(devices).reshape(shape)
         out_data = jax.jit(_identity, out_shardings=sharding)(inp_data)
+        # TODO support gspmdsharding in numba wrapper and use this
+        # out_data = jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(
+        #     inp_data, sharding
+        # )
+
         if pad:
             if n_pad > 0:
                 mask = jax.jit(
@@ -214,6 +220,20 @@ def distribute_to_devices_along_axis(
             return out_data
     else:
         return inp_data
+
+
+# TODO consider merging this with distribute_to_devices_along_axis
+@jax.jit
+def with_samples_sharding_constraint(x, shape=None):
+    """
+    ensure the input x is sharded along axis 0 on all devices
+    works both outside and inside of jit
+    """
+    if config.netket_experimental_sharding and jax.device_count() > 1:
+        x = jax.lax.with_sharding_constraint(
+            x, PositionalSharding(jax.devices()).reshape((-1,) + (1,) * (x.ndim - 1))
+        )
+    return x
 
 
 def extract_replicated(t):
@@ -255,18 +275,22 @@ def gather(x):
         # TODO in the future we could chagne it to just return x unchanged
         # but for now we error if x is not a jax array to ensure gather is used correctly
         raise RuntimeError("gather can only be applied to a jax.Array")
-
-    if isinstance(x.sharding, SingleDeviceSharding):
+    elif x.is_fully_replicated:  # includes SingleDeviceSharding
         return x
-
-    if not isinstance(x.sharding, PositionalSharding):
+    elif isinstance(x.sharding, jax.sharding.GSPMDSharding):
+        # x.sharding.device_set has arbitrary order
+        # Hardcode all devices until I figure out a way to deduce the order from x
+        out_shardings = PositionalSharding(jax.devices()).replicate()
+        # out_shardings = x.sharding.get_replicated(jax.devices())
+    elif isinstance(x.sharding, PositionalSharding):
+        out_shardings = x.sharding.replicate()
+    else:
         raise NotImplementedError(
             f"Gather is only compatible with PositionalSharding, but array has {x.sharding} Please open a feature request."
         )
-    # if isinstance(x.sharding, jax.sharding.GSPMDSharding):
-    #    x = _convert_gspmdsharding_to_positionalsharding(x)
-
-    return jax.jit(_identity, out_shardings=x.sharding.replicate())(x)
+    return jax.jit(_identity, out_shardings=out_shardings)(x)
+    # TODO support gspmdsharding in numba wrapper and use this
+    # return jax.jit(jax.lax.with_sharding_constraint, static_argnums=1)(x, out_shardings)
 
 
 def sharding_decorator(f, sharded_args_tree, reduction_op_tree=False):
