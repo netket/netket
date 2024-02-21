@@ -278,11 +278,10 @@ def gather(x):
     elif x.is_fully_replicated:  # includes SingleDeviceSharding
         return x
     elif isinstance(x.sharding, jax.sharding.GSPMDSharding):
-        # x.sharding.device_set has reversed order
-        out_shardings = PositionalSharding(
-            tuple(x.sharding.device_set)[::-1]
-        ).replicate()
-        # out_shardings = x.sharding.get_replicated(tuple(x.sharding.device_set)[::-1])
+        # x.sharding.device_set has arbitrary order
+        # Hardcode all devices until I figure out a way to deduce the order from x
+        out_shardings = PositionalSharding(jax.devices()).replicate()
+        # out_shardings = x.sharding.get_replicated(jax.devices())
     elif isinstance(x.sharding, PositionalSharding):
         out_shardings = x.sharding.replicate()
     else:
