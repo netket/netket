@@ -99,7 +99,7 @@ class Fock(HomogeneousHilbert):
             local_states = StaticRange(0, 1, self._n_max + 1, dtype=int)
         else:
             self._n_max = FOCK_MAX
-            local_states = None
+            local_states = StaticRange(0, 1, self._n_max + 1, dtype=int)
 
         super().__init__(local_states, N, constraints)
 
