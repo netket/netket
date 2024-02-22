@@ -68,7 +68,12 @@ class HashableArray:
         return self._hash
 
     def __eq__(self, other):
-        return type(other) is HashableArray and np.all(self.wrapped == other.wrapped)
+        return (
+            type(other) is HashableArray
+            and self.shape == other.shape
+            and self.dtype == other.dtype
+            and np.all(self.wrapped == other.wrapped)
+        )
 
     def __array__(self, dtype: DType = None):
         if dtype is None:
