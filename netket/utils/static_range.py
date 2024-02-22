@@ -48,8 +48,8 @@ class Range(struct.Pytree):
         """
         dtype = canonicalize_dtypes(start, step, dtype=dtype)
 
-        self.start = np.array(start, dtype=dtype)
-        self.step = np.array(step, dtype=dtype)
+        self.start = np.array(start, dtype=dtype).item()
+        self.step = np.array(step, dtype=dtype).item()
         self.length = int(length)
 
         self.dtype = dtype
@@ -76,7 +76,9 @@ class Range(struct.Pytree):
     def numbers_to_states(self, i, dtype: DType = None):
         if dtype is None:
             dtype = self.dtype
-        return (self.start + self.step * i).astype(dtype)
+        start = jnp.array(self.start, dtype=dtype)
+        step = jnp.array(self.step, dtype=dtype)
+        return (start + step * i).astype(dtype)
 
     def flip_state(self, state):
         if not len(self) == 2:
