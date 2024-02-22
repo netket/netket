@@ -14,10 +14,9 @@
 
 from typing import Optional, Callable
 
-from numbers import Real
-
 import numpy as np
 
+from netket.utils import StaticRange
 
 from .discrete_hilbert import DiscreteHilbert
 from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex
@@ -48,7 +47,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     def __init__(
         self,
-        local_states: Optional[list[Real]],
+        local_states: StaticRange,
         N: int = 1,
         constraint_fn: Optional[Callable] = None,
     ):
@@ -69,15 +68,11 @@ class HomogeneousHilbert(DiscreteHilbert):
         """
         assert isinstance(N, int)
 
-        self._is_finite = local_states is not None
+        if not isinstance(local_states, StaticRange):
+            raise TypeError("local_states must be a StaticRange.")
 
-        if self._is_finite:
-            self._local_states = local_states
-            self._local_size = len(self._local_states)
-        else:
-            self._local_states = None
-            self._local_size = np.iinfo(np.intp).max
-
+        self._local_states = local_states
+        self._local_size = len(self._local_states)
         self._constraint_fn = constraint_fn
 
         self.__hilbert_index = None
@@ -118,7 +113,7 @@ class HomogeneousHilbert(DiscreteHilbert):
     @property
     def is_finite(self) -> bool:
         r"""Whether the local hilbert space is finite."""
-        return self._is_finite
+        return True
 
     @property
     def constrained(self) -> bool:
