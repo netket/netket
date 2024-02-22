@@ -120,7 +120,7 @@ class HomogeneousHilbert(DiscreteHilbert):
     @property
     def is_finite(self) -> bool:
         r"""Whether the local hilbert space is finite."""
-        return True
+        return self._is_finite
 
     @property
     def constrained(self) -> bool:
