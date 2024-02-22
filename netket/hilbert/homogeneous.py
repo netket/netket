@@ -47,7 +47,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     def __init__(
         self,
-        local_states: StaticRange,
+        local_states: Optional[StaticRange],
         N: int = 1,
         constraint_fn: Optional[Callable] = None,
     ):
