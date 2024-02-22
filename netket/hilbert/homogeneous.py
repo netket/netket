@@ -71,8 +71,15 @@ class HomogeneousHilbert(DiscreteHilbert):
         if not isinstance(local_states, StaticRange):
             raise TypeError("local_states must be a StaticRange.")
 
-        self._local_states = local_states
-        self._local_size = len(self._local_states)
+        self._is_finite = local_states is not None
+
+        if self._is_finite:
+            self._local_states = local_states
+            self._local_size = len(local_states)
+        else:
+            self._local_states = None
+            self._local_size = np.iinfo(np.intp).max
+
         self._constraint_fn = constraint_fn
 
         self.__hilbert_index = None
