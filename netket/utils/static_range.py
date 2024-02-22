@@ -13,9 +13,9 @@
 # limitations under the License.
 
 from numbers import Number
+from functools import partial
 
 import jax
-import jax.numpy as jnp
 import numpy as np
 
 from netket.utils import struct
@@ -48,9 +48,9 @@ class Range(struct.Pytree):
         """
         dtype = canonicalize_dtypes(start, step, dtype=dtype)
 
-        self.start = jnp.array(start, dtype=dtype)
-        self.step = jnp.array(step, dtype=dtype)
-        self.length = length
+        self.start = np.array(start, dtype=dtype)
+        self.step = np.array(step, dtype=dtype)
+        self.length = int(length)
 
         self.dtype = dtype
 
@@ -65,19 +65,18 @@ class Range(struct.Pytree):
     def find(self, val):
         return int((val - self.start) / self.step)
 
-    @jax.jit
+    @partial(jax.jit, static_argnames="dtype")
     def states_to_numbers(self, x, dtype: DType = None):
         idx = (x - self.start) / self.step
         if dtype is not None:
             idx = idx.astype(dtype)
         return idx
 
-    @jax.jit
+    @partial(jax.jit, static_argnames="dtype")
     def numbers_to_states(self, i, dtype: DType = None):
-        state = self.start + self.step * i
-        if dtype is not None:
-            state = state.astype(dtype)
-        return state
+        if dtype is None:
+            dtype = self.dtype
+        return (self.start + self.step * i).astype(dtype)
 
     def flip_state(self, state):
         if not len(self) == 2:
@@ -86,7 +85,10 @@ class Range(struct.Pytree):
         return constant_sum - state
 
     def __array__(self, dtype=None):
-        return self.start + np.arange(self.length, dtype=dtype) * self.step
+        if dtype is None:
+            dtype = self.dtype
+        states = self.start + np.arange(self.length, dtype=dtype) * self.step
+        return states.astype(dtype)
 
     def __hash__(self):
         return hash(("StaticRange", self.start, self.step, self.length))
