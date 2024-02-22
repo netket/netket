@@ -72,7 +72,7 @@ class HashableArray:
             type(other) is HashableArray
             and self.shape == other.shape
             and self.dtype == other.dtype
-            and np.all(self.wrapped == other.wrapped)
+            and hash(self) == hash(other)
         )
 
     def __array__(self, dtype: DType = None):
