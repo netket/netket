@@ -72,14 +72,10 @@ class HomogeneousHilbert(DiscreteHilbert):
         self._is_finite = local_states is not None
 
         if self._is_finite:
-            self._local_states = np.asarray(local_states)
-            assert self._local_states.ndim == 1
-            self._local_size = self._local_states.shape[0]
-            self._local_states = self._local_states.tolist()
-            self._local_states_frozen = frozenset(self._local_states)
+            self._local_states = local_states
+            self._local_size = len(self._local_states)
         else:
             self._local_states = None
-            self._local_states_frozen = None
             self._local_size = np.iinfo(np.intp).max
 
         self._constraint_fn = constraint_fn
@@ -106,6 +102,8 @@ class HomogeneousHilbert(DiscreteHilbert):
     def local_states(self) -> Optional[list[float]]:
         r"""A list of discrete local quantum numbers.
         If the local states are infinitely many, None is returned."""
+        if self.is_finite:
+            return list(self._local_states)
         return self._local_states
 
     def states_at_index(self, i: int):
@@ -176,13 +174,13 @@ class HomogeneousHilbert(DiscreteHilbert):
 
             if self.constrained:
                 self.__hilbert_index = ConstrainedHilbertIndex(
-                    np.asarray(self.local_states, dtype=np.float64),
+                    np.asarray(self.local_states),
                     self.size,
                     self._constraint_fn,
                 )
             else:
                 self.__hilbert_index = UnconstrainedHilbertIndex(
-                    np.asarray(self.local_states, dtype=np.float64), self.size
+                    np.asarray(self.local_states), self.size
                 )
 
         return self.__hilbert_index
@@ -198,7 +196,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         return (
             self.size,
             self.local_size,
-            self._local_states_frozen,
+            self._local_states,
             self.constrained,
             self._constraint_fn,
         )
