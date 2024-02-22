@@ -22,6 +22,7 @@ from netket.utils import struct
 from netket.utils.types import DType
 from netket.jax import canonicalize_dtypes
 
+
 class Range(struct.Pytree):
     """
     An object representing a range similar to python's range, but that
@@ -31,17 +32,12 @@ class Range(struct.Pytree):
     configurations to integer indices ∈ [0,length].
     """
 
-    start : Number = struct.field(pytree_node=False)
-    step : Number = struct.field(pytree_node=False)
-    length : int = struct.field(pytree_node=False)
+    start: Number = struct.field(pytree_node=False)
+    step: Number = struct.field(pytree_node=False)
+    length: int = struct.field(pytree_node=False)
     dtype: DType = struct.field(pytree_node=False)
 
-    def __init__(self, 
-            start: Number, 
-            step: Number, 
-            length: int, 
-            dtype: DType = None
-            ):
+    def __init__(self, start: Number, step: Number, length: int, dtype: DType = None):
         """
         Constructs a Static Range object.
 
@@ -51,13 +47,12 @@ class Range(struct.Pytree):
             length: Length of this range
         """
         dtype = canonicalize_dtypes(start, step, dtype=dtype)
-        
+
         self.start = jnp.array(start, dtype=dtype)
         self.step = jnp.array(step, dtype=dtype)
         self.length = length
 
         self.dtype = dtype
-
 
     def __len__(self):
         return self.length
@@ -71,15 +66,18 @@ class Range(struct.Pytree):
         return int((val - self.start) / self.step)
 
     @jax.jit
-    def states_to_numbers(self, x, dtype : DType=None):
-        idx = ((x - self.start) / self.step)
+    def states_to_numbers(self, x, dtype: DType = None):
+        idx = (x - self.start) / self.step
         if dtype is not None:
             idx = idx.astype(dtype)
         return idx
 
     @jax.jit
-    def numbers_to_states(self, i):
-        return self.start + self.step * i
+    def numbers_to_states(self, i, dtype: DType = None):
+        state = self.start + self.step * i
+        if dtype is not None:
+            state = state.astype(dtype)
+        return state
 
     def flip_state(self, state):
         if not len(self) == 2:
@@ -95,11 +93,13 @@ class Range(struct.Pytree):
 
     def __eq__(self, o):
         if isinstance(o, Range):
-            return self.start == o.start and self.step == o.step and self.length == o.length
+            return (
+                self.start == o.start
+                and self.step == o.step
+                and self.length == o.length
+            )
         else:
             return self.__array__() == o
 
     def __repr__(self):
-        return (
-            f"StaticRange(start={self.start}, step={self.step}, length={self.length})"
-        )
+        return f"StaticRange(start={self.start}, step={self.step}, length={self.length}, dtype={self.dtype})"
