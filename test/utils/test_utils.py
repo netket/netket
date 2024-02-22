@@ -63,6 +63,13 @@ def test_HashableArray(numpy):
     assert wa != a
     assert wa != wb
 
+    # check __eq__ does not fail on two arrays w/ different shape
+    wc = HashableArray(a[np.newaxis])
+    assert wc != wa
+    # check __eq__ does not fail on two arrays w/ different dtype
+    wd = HashableArray(a.astype(int))
+    assert wd != wa
+
     assert_equal(wa.wrapped, np.asarray(wa))
     assert_equal(wa.wrapped, jnp.asarray(wa))
     assert wa.wrapped is not wa
@@ -85,16 +92,6 @@ def test_HashableArray(numpy):
     leafs, _ = jax.tree_util.tree_flatten(wa)
     assert len(leafs) == 1
     assert leafs[0] == wa
-
-    # check eq different values
-    assert wa != wb
-
-    # check __eq__ does not fail on two arrays w/ different shape
-    wc = HashableArray(a[np.newaxis])
-    assert wc != wa
-    # check __eq__ does not fail on two arrays w/ different dtype
-    wd = HashableArray(a.astype(int))
-    assert wd != wa
 
 
 def test_Kahan_sum():
