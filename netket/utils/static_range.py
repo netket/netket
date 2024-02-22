@@ -25,28 +25,89 @@ from netket.utils.types import DType
 from netket.jax import canonicalize_dtypes
 
 
-class Range(struct.Pytree):
+class StaticRange(struct.Pytree):
     """
     An object representing a range similar to python's range, but that
-    works with `jax.jit` and can be used within Numba-blocks.
+    works with `jax.jit`.
 
     This range object can also be used to convert 'computational basis'
     configurations to integer indices ∈ [0,length].
+
+    This object is used inside of Hilbert spaces.
+
+    This object can be converted to a numpy or jax array:
+
+    .. code-block:: python
+
+        >>> import netket as nk; import numpy as np
+        >>> n_max = 10
+        >>> ran = nk.utils.StaticRange(start=0, step=1, length=n_max)
+        >>> np.array(ran)
+        array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+    And it can be used to convert between integer values starting at 0
+    and the values in the range.
+
+    .. code-block:: python
+
+        >>> import netket as nk; import numpy as np
+        >>> ran = nk.utils.StaticRange(start=-2, step=2, length=3)
+        >>> np.array(ran)
+        array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        >>> len(ran)
+        3
+        >>> ran.states_to_numbers(0)
+        Array(1., dtype=float64, weak_type=True)
+        >>> ran.numbers_to_states(0)
+        Array(-2, dtype=int64)
+        
+        >>> ran.numbers_to_states(1)
+        Array(0, dtype=int64)
+        
+        >>> ran.numbers_to_states(2)
+        Array(2, dtype=int64)
+
     """
 
     start: Number = struct.field(pytree_node=False)
+    """The first value in the range."""
     step: Number = struct.field(pytree_node=False)
+    """The difference between two consecutive values in the range."""
     length: int = struct.field(pytree_node=False)
+    """The number of entries in the range."""
     dtype: DType = struct.field(pytree_node=False)
+    """The dtype of the range."""
 
     def __init__(self, start: Number, step: Number, length: int, dtype: DType = None):
         """
-        Constructs a Static Range object.
+        Constructs a Static Range object. 
+
+        To construct it, one must specify the start value, the step and the length.
+        It is also possible to specify a `dtype`. In case it's not specified, it's
+        inferred from the input arguments.
+
+        For example, the :class:`~netket.utils.StaticRange` of a Fock Hilbert space
+        is constructed as 
+
+        .. code-block:: python
+
+            >>> import netket as nk
+            >>> n_max = 10
+            >>> nk.utils.StaticRange(start=0, step=1, length=n_max)
+
+        and the range of a Spin-1/2 Hilbert space is constructed as:
+
+        .. code-block:: python
+
+            >>> import netket as nk
+            >>> n_max = 10
+            >>> nk.utils.StaticRange(start=-1, step=2, length=2)
 
         Args:
             start: Value of the first entry
-            step: step between the entries
+            step: Step between the entries
             length: Length of this range
+            dtype: The data type
         """
         dtype = canonicalize_dtypes(start, step, dtype=dtype)
 
@@ -68,7 +129,17 @@ class Range(struct.Pytree):
         return int((val - self.start) / self.step)
 
     @partial(jax.jit, static_argnames="dtype")
-    def states_to_numbers(self, x, dtype: DType = None):
+    def states_to_numbers(self, x, dtype: DType = int):
+        """Given an element in the range, returns it's index.
+
+        Args:
+            x: array of elements beloging to this range. No bounds checking
+                is performed.
+            dtype: Optional dtype to be used for the output.
+
+        Returns:
+            An array of integers, which can be.
+        """
         idx = (x - self.start) / self.step
         if dtype is not None:
             idx = idx.astype(dtype)
@@ -76,6 +147,17 @@ class Range(struct.Pytree):
 
     @partial(jax.jit, static_argnames="dtype")
     def numbers_to_states(self, i, dtype: DType = None):
+        """Given an integer index, returns the i-th elements in the range.
+
+        Args:
+            x: indices to extract from the range.
+            dtype: Optional dtype to be used for the output.
+
+        Returns:
+            An array of values from the range. The dtype by default
+            is that of the range.
+        """
+
         if dtype is None:
             dtype = self.dtype
         start = jnp.array(self.start, dtype=dtype)

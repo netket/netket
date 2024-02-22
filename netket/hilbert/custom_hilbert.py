@@ -18,6 +18,8 @@ from numbers import Real
 
 import jax.numpy as jnp
 
+from netket.utils import StaticRange
+
 from .homogeneous import HomogeneousHilbert
 
 
@@ -26,7 +28,7 @@ class CustomHilbert(HomogeneousHilbert):
 
     def __init__(
         self,
-        local_states: Optional[list[Real]],
+        local_states: Optional[StaticRange],
         N: int = 1,
         constraint_fn: Optional[Callable] = None,
     ):
@@ -35,21 +37,45 @@ class CustomHilbert(HomogeneousHilbert):
         a number of sites, or modes, within this hilbert space.
 
         Args:
-            local_states (list or None): Eigenvalues of the states. If the allowed
-                states are an infinite number, None should be passed as an argument.
+            local_states: :class:`~netket.utils.StaticRange` object describing the
+                numbers used to encode the local degree of freedom of this Hilbert
+                Space.
             N: Number of modes in this hilbert space (default 1).
             constraint_fn: A function specifying constraints on the quantum numbers.
                 Given a batch of quantum numbers it should return a vector
                 of bools specifying whether those states are valid or not.
 
-        Examples:
-           Simple custom hilbert space.
+        The :class:`netket.utils.StaticRange` object works like a standard `range`
+        object and is used to define the valid configurations of the local degrees
+        of freedom. 
 
-           >>> import netket
-           >>> g = netket.graph.Hypercube(length=10,n_dim=2,pbc=True)
-           >>> hi = netket.hilbert.CustomHilbert(local_states=[-1232, 132, 0], N=100)
-           >>> print(hi.size)
-           100
+        For example, the :class:`~netket.utils.StaticRange` of a Fock Hilbert space
+        is constructed as 
+
+        .. code-block:: python
+
+            >>> import netket as nk
+            >>> n_max = 10
+            >>> nk.utils.StaticRange(start=0, step=1, length=n_max)
+
+        and the range of a Spin-1/2 Hilbert space is constructed as:
+
+        .. code-block:: python
+
+            >>> import netket as nk
+            >>> n_max = 10
+            >>> nk.utils.StaticRange(start=-1, step=2, length=2)
+
+
+        Examples:
+            Simple custom hilbert space.
+
+            >>> import netket as nk
+            >>> g = nk.graph.Hypercube(length=10,n_dim=2,pbc=True)
+            >>> local_states = nk.utils.StaticRange(start=-2.0, step=1.0, length=4)
+            >>> hi = nk.hilbert.CustomHilbert(local_states=local_states, N=100)
+            >>> print(hi.size)
+            100
         """
         super().__init__(local_states, N, constraint_fn)
 

@@ -47,7 +47,7 @@ from .history import History, accum_in_tree, accum_histories_in_tree
 
 from . import mpi
 
-from .static_range import Range as StaticRange
+from .static_range import StaticRange
 
 _hide_submodules(
     __name__,

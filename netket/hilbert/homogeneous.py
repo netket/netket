@@ -59,8 +59,9 @@ class HomogeneousHilbert(DiscreteHilbert):
         This method should only be called from the subclasses `__init__` method.
 
         Args:
-            local_states: Eigenvalues of the states. If the allowed
-                states are an infinite number, None should be passed as an argument.
+            local_states: :class:`~netket.utils.StaticRange` object describing the
+                numbers used to encode the local degree of freedom of this Hilbert
+                Space.
             N: Number of modes in this hilbert space (default 1).
             constraint_fn: A function specifying constraints on the quantum numbers.
                 Given a batch of quantum numbers it should return a vector of bools
@@ -68,7 +69,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         """
         assert isinstance(N, int)
 
-        if not isinstance(local_states, StaticRange):
+        if not (isinstance(local_states, StaticRange) or local_states is None):
             raise TypeError("local_states must be a StaticRange.")
 
         self._is_finite = local_states is not None
