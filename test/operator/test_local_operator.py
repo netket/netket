@@ -28,7 +28,7 @@ sz = [[1, 0], [0, -1]]
 sm = [[0, 0], [1, 0]]
 sp = [[0, 1], [0, 0]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(8)])
-hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
+hi = nk.hilbert.CustomHilbert(local_states=nk.utils.StaticRange(-1, 2, 2), N=g.n_nodes)
 
 sy_sparse = sparse.csr_matrix(sy)
 
@@ -368,7 +368,7 @@ def test_copy(op):
 
 
 def test_raises_unsorted_hilbert():
-    hi = nk.hilbert.CustomHilbert([-1, 1, 0], N=3)
+    hi = nk.hilbert.CustomHilbert(nk.utils.StaticRange(1, -2, 2), N=3)
     with pytest.raises(ValueError):
         nk.operator.LocalOperator(hi)
 

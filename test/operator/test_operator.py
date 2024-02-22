@@ -39,7 +39,7 @@ mszsz = np.asarray([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
 edges = [[i, i + 1] for i in range(N - 1)] + [[N - 1, 0]]
 
 g = nk.graph.Graph(edges=edges)
-hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
+hi = nk.hilbert.CustomHilbert(local_states=nk.utils.StaticRange(-1, 2, 2), N=g.n_nodes)
 operators["Graph Hamiltonian"] = nk.operator.GraphOperator(
     hi, g, site_ops=[sigmax], bond_ops=[mszsz]
 )
@@ -56,7 +56,7 @@ operators["Graph Hamiltonian (on subspace)"] = nk.operator.GraphOperator(
 # Graph Hamiltonian with colored edges
 edges_c = [(i, j, i % 2) for i, j in edges]
 g = nk.graph.Graph(edges=edges_c)
-hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
+hi = nk.hilbert.CustomHilbert(local_states=nk.utils.StaticRange(-1, 2, 2), N=g.n_nodes)
 operators["Graph Hamiltonian (colored edges)"] = nk.operator.GraphOperator(
     hi,
     g,
@@ -75,7 +75,7 @@ sx = [[0, 1], [1, 0]]
 sy = [[0, -1.0j], [1.0j, 0]]
 sz = [[1, 0], [0, -1]]
 g = nk.graph.Graph(edges=[[i, i + 1] for i in range(20)])
-hi = nk.hilbert.CustomHilbert(local_states=[-1, 1], N=g.n_nodes)
+hi = nk.hilbert.CustomHilbert(local_states=nk.utils.StaticRange(-1, 2, 2), N=g.n_nodes)
 
 for name, LocalOp_impl in [
     ("numba", nk.operator.LocalOperator),
