@@ -91,9 +91,9 @@ class LocalOperatorBase(DiscreteOperator):
         Examples:
            Constructs a ``LocalOperator`` without any operators.
 
-           >>> from netket.hilbert import CustomHilbert
+           >>> from netket.hilbert import Spin
            >>> from netket.operator import LocalOperator
-           >>> hi = CustomHilbert(local_states=[-1, 1])**20
+           >>> hi = Spin(0.5)**20
            >>> empty_hat = LocalOperator(hi)
            >>> print(len(empty_hat.acting_on))
            0

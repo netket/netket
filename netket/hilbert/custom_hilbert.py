@@ -56,6 +56,7 @@ class CustomHilbert(HomogeneousHilbert):
             >>> import netket as nk
             >>> n_max = 10
             >>> nk.utils.StaticRange(start=0, step=1, length=n_max)
+            StaticRange(start=0, step=1, length=10, dtype=int64)
 
         and the range of a Spin-1/2 Hilbert space is constructed as:
 
@@ -64,6 +65,7 @@ class CustomHilbert(HomogeneousHilbert):
             >>> import netket as nk
             >>> n_max = 10
             >>> nk.utils.StaticRange(start=-1, step=2, length=2)
+            StaticRange(start=-1, step=2, length=2, dtype=int64)
 
 
         Examples:
