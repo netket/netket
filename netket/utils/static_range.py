@@ -60,10 +60,10 @@ class StaticRange(struct.Pytree):
         Array(1., dtype=float64, weak_type=True)
         >>> ran.numbers_to_states(0)
         Array(-2, dtype=int64)
-        
+
         >>> ran.numbers_to_states(1)
         Array(0, dtype=int64)
-        
+
         >>> ran.numbers_to_states(2)
         Array(2, dtype=int64)
 
@@ -80,14 +80,14 @@ class StaticRange(struct.Pytree):
 
     def __init__(self, start: Number, step: Number, length: int, dtype: DType = None):
         """
-        Constructs a Static Range object. 
+        Constructs a Static Range object.
 
         To construct it, one must specify the start value, the step and the length.
         It is also possible to specify a `dtype`. In case it's not specified, it's
         inferred from the input arguments.
 
         For example, the :class:`~netket.utils.StaticRange` of a Fock Hilbert space
-        is constructed as 
+        is constructed as
 
         .. code-block:: python
 
@@ -180,7 +180,7 @@ class StaticRange(struct.Pytree):
         return hash(("StaticRange", self.start, self.step, self.length))
 
     def __eq__(self, o):
-        if isinstance(o, Range):
+        if isinstance(o, StaticRange):
             return (
                 self.start == o.start
                 and self.step == o.step

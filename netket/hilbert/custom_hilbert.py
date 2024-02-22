@@ -14,7 +14,6 @@
 
 from typing import Optional, Callable
 
-from numbers import Real
 
 import jax.numpy as jnp
 
@@ -47,10 +46,10 @@ class CustomHilbert(HomogeneousHilbert):
 
         The :class:`netket.utils.StaticRange` object works like a standard `range`
         object and is used to define the valid configurations of the local degrees
-        of freedom. 
+        of freedom.
 
         For example, the :class:`~netket.utils.StaticRange` of a Fock Hilbert space
-        is constructed as 
+        is constructed as
 
         .. code-block:: python
 
