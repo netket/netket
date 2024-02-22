@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
+
 import numpy as np
 import jax
 
 from .types import Array, DType, Shape
-from .struct import dataclass
 
 
-@dataclass(cache_hash=True)
 class HashableArray:
     """
     This class wraps a numpy or jax array in order to make it hashable and
@@ -29,10 +29,20 @@ class HashableArray:
     The underlying array can also be accessed using :code:`numpy.asarray(self)`.
     """
 
-    wrapped: Array
-    """The wrapped array. Note that this array is read-only."""
+    def __init__(self, wrapped: Array):
+        """
+        Wraps an array into an object that is hashable, and that can be
+        converted again into an array.
 
-    def __pre_init__(self, wrapped):
+        Forces all arrays to numpy and sets them to readonly.
+        They can be converted back to jax later or a writeable numpy copy
+        can be created by using `np.array(...)`
+
+        The hash is computed by hashing the whole content of the array.
+
+        Args:
+            wrapped: array to be wrapped
+        """
         if isinstance(wrapped, HashableArray):
             wrapped = wrapped.wrapped
         else:
@@ -44,13 +54,26 @@ class HashableArray:
             if isinstance(wrapped, np.ndarray):
                 wrapped.flags.writeable = False
 
-        return (wrapped,), {}
+        self._wrapped: np.array = wrapped
+        self._hash: Optional[int] = None
+
+    @property
+    def wrapped(self):
+        """The read-only wrapped array."""
+        return self._wrapped
 
     def __hash__(self):
-        return hash(self.wrapped.tobytes())
+        if self._hash is None:
+            self._hash = hash(self.wrapped.tobytes())
+        return self._hash
 
     def __eq__(self, other):
-        return type(other) is HashableArray and np.all(self.wrapped == other.wrapped)
+        return (
+            type(other) is HashableArray
+            and self.shape == other.shape
+            and self.dtype == other.dtype
+            and hash(self) == hash(other)
+        )
 
     def __array__(self, dtype: DType = None):
         if dtype is None:
@@ -72,6 +95,14 @@ class HashableArray:
     @property
     def shape(self) -> Shape:
         return self.wrapped.shape
+
+    def __repr__(self) -> str:
+        return f"HashableArray({self.wrapped},\n shape={self.shape}, dtype={self.dtype}, hash={hash(self)})"
+
+    def __str__(self) -> str:
+        return (
+            f"HashableArray(shape={self.shape}, dtype={self.dtype}, hash={hash(self)})"
+        )
 
 
 def array_in(x, ys):
