@@ -93,6 +93,10 @@ def test_HashableArray(numpy):
     assert len(leafs) == 1
     assert leafs[0] == wa
 
+    # ensure that repr and str work
+    assert isinstance(repr(wa), str)
+    assert isinstance(str(wa), str)
+
 
 def test_Kahan_sum():
     ksum1 = KahanSum(0.0)

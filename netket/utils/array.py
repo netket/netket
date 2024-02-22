@@ -96,6 +96,14 @@ class HashableArray:
     def shape(self) -> Shape:
         return self.wrapped.shape
 
+    def __repr__(self) -> str:
+        return f"HashableArray({self.wrapped},\n shape={self.shape}, dtype={self.dtype}, hash={hash(self)})"
+
+    def __str__(self) -> str:
+        return (
+            f"HashableArray(shape={self.shape}, dtype={self.dtype}, hash={hash(self)})"
+        )
+
 
 def array_in(x, ys):
     """
