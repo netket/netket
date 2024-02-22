@@ -84,7 +84,7 @@ def test_HashableArray(numpy):
     # Check that it is a leaf object, and not a pytree
     leafs, _ = jax.tree_util.tree_flatten(wa)
     assert len(leafs) == 1
-    assert leafs[0] == wa 
+    assert leafs[0] == wa
 
 
 def test_Kahan_sum():
