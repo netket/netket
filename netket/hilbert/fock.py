@@ -96,7 +96,7 @@ class Fock(HomogeneousHilbert):
 
         if self._n_max is not None:
             # assert self._n_max > 0
-            local_states = StaticRange(0, 1, self._n_max + 1)
+            local_states = StaticRange(0, 1, self._n_max + 1, dtype=int)
         else:
             self._n_max = FOCK_MAX
             local_states = None
