@@ -143,13 +143,22 @@ class RungeKuttaState:
     """Flags containing information on the solver state."""
 
     def __repr__(self):
-        return "RKState(step_no(total)={}({}), t={}, dt={:.2e}{}{})".format(
+        try:
+            dt = "{self.dt:.2e}"
+            last_norm = f", {self.last_norm:.2e}" if self.last_norm is not None else ""
+            accepted = (f", {'A' if self.accepted else 'R'}",)
+        except (ValueError, TypeError):
+            dt = f"{self.dt}"
+            last_norm = f"{self.last_norm}"
+            accepted = f"{SolverFlags.INFO_STEP_ACCEPTED}"
+
+        return "RKState(step_no(total)={}({}), t={}, dt={}{}{})".format(
             self.step_no,
             self.step_no_total,
             self.t.value,
-            self.dt,
-            f", {self.last_norm:.2e}" if self.last_norm is not None else "",
-            f", {'A' if self.accepted else 'R'}",
+            dt,
+            last_norm,
+            accepted,
         )
 
     @property

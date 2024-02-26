@@ -15,6 +15,7 @@
 import pytest
 import numpy as np
 
+import jax
 import scipy.integrate as sci
 
 from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
@@ -137,6 +138,28 @@ def test_ode_solver(method):
     }.get(solver.tableau.name, 1e-3)
     np.testing.assert_allclose(y_t[:, 0], y_ref, rtol=rtol)
 
+
+def test_ode_repr():
+    dt = 0.01
+
+    def ode(t, x, **_):
+        return -t * x
+
+    solver = RK23(dt=dt, adaptive=True)
+
+    y0 = np.array([1.0])
+    solv = solver(ode, 0.0, y0)
+
+    assert isinstance(repr(solv), str)
+    assert isinstance(repr(solv._rkstate), str)
+
+    @jax.jit
+    def _test_jit_repr(x):
+        assert isinstance(repr(x), str)
+        return 1
+
+    _test_jit_repr(solv._rkstate)
+    # _test_jit_repr(solv) # this is broken. should be fixed in the zukumft
 
 @pytest.mark.parametrize("solver", explicit_adaptive_solvers_params)
 def test_adaptive_solver(solver):
