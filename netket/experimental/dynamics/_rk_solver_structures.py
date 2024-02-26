@@ -341,8 +341,8 @@ class RungeKuttaIntegrator:
             self.dt_limits = (None, 10 * self.initial_dt)
 
         t_dtype = jnp.result_type(_dtype(self.t0), _dtype(self.initial_dt))
-        setattr(self, 't0', jnp.array(self.t0, dtype=t_dtype))
-        setattr(self, 'initial_dt', jnp.array(self.initial_dt, dtype=t_dtype))
+        setattr(self, "t0", jnp.array(self.t0, dtype=t_dtype))
+        setattr(self, "initial_dt", jnp.array(self.initial_dt, dtype=t_dtype))
 
         self._rkstate = RungeKuttaState(
             step_no=0,
