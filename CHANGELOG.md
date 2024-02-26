@@ -20,6 +20,15 @@
 ### Bug Fixes
 
 
+
+## NetKet 3.11.2 (27 february 2024)
+
+Bugfix release to solve the following issues:
+* Fix error thrown in repr method of error thrown in TDVP integrators. 
+* Fix repr error of {class}`nk.sampler.rules.MultipleRules` [#1729](https://github.com/netket/netket/pull/1729).
+* Solve an issue with RK Integrators that could not be initialised with integer `t0` initial time if `dt` was a float, as well as a wrong `repr` method leading to uncomprehensible stacktraces [#1736](https://github.com/netket/netket/pull/1736).
+
+
 ## NetKet 3.11.1 (19 february 2024)
 
 Bugfix release to solve two issues:
