@@ -15,6 +15,7 @@
 import pytest
 import numpy as np
 
+import jax
 import scipy.integrate as sci
 
 from netket.experimental.dynamics import Euler, Heun, Midpoint, RK4, RK12, RK23, RK45
@@ -136,6 +137,48 @@ def test_ode_solver(method):
         "RK4": 5e-4,
     }.get(solver.tableau.name, 1e-3)
     np.testing.assert_allclose(y_t[:, 0], y_ref, rtol=rtol)
+
+
+def test_ode_repr():
+    dt = 0.01
+
+    def ode(t, x, **_):
+        return -t * x
+
+    solver = RK23(dt=dt, adaptive=True)
+
+    y0 = np.array([1.0])
+    solv = solver(ode, 0.0, y0)
+
+    assert isinstance(repr(solv), str)
+    assert isinstance(repr(solv._rkstate), str)
+
+    @jax.jit
+    def _test_jit_repr(x):
+        assert isinstance(repr(x), str)
+        return 1
+
+    _test_jit_repr(solv._rkstate)
+    # _test_jit_repr(solv) # this is broken. should be fixed in the zukumft
+
+
+def test_solver_t0_is_integer():
+    # See issue netket/netket#1735
+    # https://github.com/netket/netket/issues/1735
+
+    def df(t, y, stage=None):
+        return np.sin(t) ** 2 * y
+
+    int_config = RK23(
+        dt=0.04, adaptive=True, atol=1e-3, rtol=1e-3, dt_limits=[1e-3, 1e-1]
+    )
+    integrator = int_config(
+        df, 0, np.array([1.0])
+    )  # <-- the second argument has to be a float
+
+    integrator.step()
+    assert integrator.t > 0.0
+    assert integrator.t.dtype == integrator.dt.dtype
 
 
 @pytest.mark.parametrize("solver", explicit_adaptive_solvers_params)

@@ -24,6 +24,7 @@ from netket import config
 from netket.utils.mpi.primitives import mpi_all_jax
 from netket.utils.struct import dataclass, field
 from netket.utils.types import Array, PyTree
+from netket.utils.numbers import dtype as _dtype
 
 from . import _rk_tableau as rkt
 
@@ -143,13 +144,22 @@ class RungeKuttaState:
     """Flags containing information on the solver state."""
 
     def __repr__(self):
-        return "RKState(step_no(total)={}({}), t={}, dt={:.2e}{}{})".format(
+        try:
+            dt = "{self.dt:.2e}"
+            last_norm = f", {self.last_norm:.2e}" if self.last_norm is not None else ""
+            accepted = (f", {'A' if self.accepted else 'R'}",)
+        except (ValueError, TypeError):
+            dt = f"{self.dt}"
+            last_norm = f"{self.last_norm}"
+            accepted = f"{SolverFlags.INFO_STEP_ACCEPTED}"
+
+        return "RKState(step_no(total)={}({}), t={}, dt={}{}{})".format(
             self.step_no,
             self.step_no_total,
             self.t.value,
-            self.dt,
-            f", {self.last_norm:.2e}" if self.last_norm is not None else "",
-            f", {'A' if self.accepted else 'R'}",
+            dt,
+            last_norm,
+            accepted,
         )
 
     @property
@@ -329,6 +339,10 @@ class RungeKuttaIntegrator:
 
         if self.dt_limits is None:
             self.dt_limits = (None, 10 * self.initial_dt)
+
+        t_dtype = jnp.result_type(_dtype(self.t0), _dtype(self.initial_dt))
+        setattr(self, "t0", jnp.array(self.t0, dtype=t_dtype))
+        setattr(self, "initial_dt", jnp.array(self.initial_dt, dtype=t_dtype))
 
         self._rkstate = RungeKuttaState(
             step_no=0,
