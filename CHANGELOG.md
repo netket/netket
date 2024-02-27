@@ -6,10 +6,12 @@
 ## NetKet 3.12 (⚙️ In development)
 
 ### New Features
+* Discrete Hilbert spaces now use a special {class}`nk.utils.StaticRange` object to store the local values that label the local degree of freedom. This special object is jax friendly and can be converted to arrays, and allows for easy conversion from the local degrees of freedom to integers that can be used to index into arrays, and back. While those objects are not really used internally yet, in the future they will be used to simplify the implementations of operators and other objects [#1732](https://github.com/netket/netket/issues/1732).
 
 
 ### Breaking Changes
 * The `out` keyword of Discrete Hilbert indexing methods (`all_states`, `numbers_to_states` and `states_to_numbers`) deprecated in the last release has been removed completely [#1722](https://github.com/netket/netket/issues/1722).
+* The Homogeneous Hilbert spaces now must store the list of valid local values for the states with a {class}`nk.utils.StaticRange` objects instead of list of floats. The constructors have been updated accordingly. {class}`~nk.utils.StaticRange` is a range-like object that is jax-compatible and from now on should be used to index into local hilbert spaces [#1732](https://github.com/netket/netket/issues/1732).
 
 ### Deprecations
 
