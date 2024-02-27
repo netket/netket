@@ -136,7 +136,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         Returns:
             a tensor containing integer indices into the local hilbert
         """
-        self._local_states.states_to_numbers(x, dtype=np.int32)
+        return self._local_states.states_to_numbers(x, dtype=np.int32)
 
     @property
     def is_finite(self) -> bool:
