@@ -17,6 +17,7 @@ from typing import Optional, Callable
 import numpy as np
 
 from netket.utils import StaticRange
+from netket.utils.types import Array
 
 from .discrete_hilbert import DiscreteHilbert
 from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex

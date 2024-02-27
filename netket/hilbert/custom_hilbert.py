@@ -15,8 +15,6 @@
 from typing import Optional, Callable
 
 
-import jax.numpy as jnp
-
 from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
