@@ -40,9 +40,6 @@ class Qubit(HomogeneousHilbert):
         """
         super().__init__(StaticRange(0, 1, 2, dtype=float), N)
 
-    def states_to_local_indices(self, x):
-        return x.astype(np.int32)
-
     def __pow__(self, n):
         return Qubit(self.size * n)
 

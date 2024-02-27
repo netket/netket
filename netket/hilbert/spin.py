@@ -134,10 +134,6 @@ class Spin(HomogeneousHilbert):
         else:
             return Spin(s=self._s, N=self.size - Nsites)
 
-    def states_to_local_indices(self, x):
-        numbers = (x + self.local_size - 1) / 2
-        return numbers.astype(np.int32)
-
     def __repr__(self):
         total_sz = f", total_sz={self._total_sz}" if self._total_sz is not None else ""
         return f"Spin(s={Fraction(self._s)}{total_sz}, N={self.size})"

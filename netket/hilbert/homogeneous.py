@@ -118,6 +118,25 @@ class HomogeneousHilbert(DiscreteHilbert):
         Throws an exception iff the space is not indexable."""
         return self._hilbert_index.n_states
 
+    def states_to_local_indices(self, x: Array):
+        r"""Returns a tensor with the same shape of `x`, where all local
+        values are converted to indices in the range `0...self.shape[i]`.
+        This function is guaranteed to be jax-jittable.
+
+        For the `Fock` space this returns `x`, but for other hilbert spaces
+        such as `Spin` this returns an array of indices.
+
+        .. warning::
+            This function is experimental. Use at your own risk.
+
+        Args:
+            x: a tensor containing samples from this hilbert space
+
+        Returns:
+            a tensor containing integer indices into the local hilbert
+        """
+        self._local_states.states_to_numbers(x, dtype=np.int32)
+
     @property
     def is_finite(self) -> bool:
         r"""Whether the local hilbert space is finite."""

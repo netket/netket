@@ -80,19 +80,6 @@ class CustomHilbert(HomogeneousHilbert):
         """
         super().__init__(local_states, N, constraint_fn)
 
-    def states_to_local_indices(self, x):
-        local_states = jnp.asarray(self.local_states)
-        local_states = local_states.reshape(tuple(1 for _ in range(x.ndim)) + (-1,))
-        x = x.reshape(
-            (
-                *x.shape,
-                1,
-            )
-        )
-        x_idmap = x == local_states
-        idxs = jnp.arange(self.local_size).reshape(local_states.shape)
-        return jnp.sum(x_idmap * idxs, axis=-1)
-
     def _mul_sametype_(self, other):
         assert type(self) == type(other)
         if not self.constrained:
