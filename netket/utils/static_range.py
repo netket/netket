@@ -13,11 +13,9 @@
 # limitations under the License.
 
 from numbers import Number
-from functools import partial
 
 import numpy as np
 
-import jax
 import jax.numpy as jnp
 
 from netket.utils import struct
