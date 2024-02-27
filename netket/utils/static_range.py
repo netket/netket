@@ -16,6 +16,7 @@ from numbers import Number
 
 import numpy as np
 
+import jax
 import jax.numpy as jnp
 
 from netket.utils import struct
@@ -152,7 +153,10 @@ class StaticRange(struct.Pytree):
         """
         idx = (x - self.start) / self.step
         if dtype is not None:
-            idx = idx.astype(dtype)
+            if not hasattr(idx, "astype"):
+                idx = np.array(idx, dtype=dtype)
+            else:
+                idx = idx.astype(dtype)
         return idx
 
     def numbers_to_states(self, i, dtype: DType = None):
@@ -169,8 +173,11 @@ class StaticRange(struct.Pytree):
 
         if dtype is None:
             dtype = self.dtype
-        start = jnp.array(self.start, dtype=dtype)
-        step = jnp.array(self.step, dtype=dtype)
+
+        npx = jnp if isinstance(i, jax.Array) else np
+
+        start = npx.array(self.start, dtype=dtype)
+        step = npx.array(self.step, dtype=dtype)
         return (start + step * i).astype(dtype)
 
     def flip_state(self, state):

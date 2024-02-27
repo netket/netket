@@ -1,7 +1,9 @@
-import jax
 import pytest
 
 import numpy as np
+
+import jax
+import jax.numpy as jnp
 
 from netket.utils import StaticRange
 
@@ -54,16 +56,23 @@ def test_staticrange_array_interface():
     )
     assert ran.states_to_numbers(10).dtype == int
     assert ran.states_to_numbers(10, dtype=float).dtype == float
+    assert isinstance(ran.states_to_numbers(10), np.ndarray)
+    assert isinstance(ran.states_to_numbers(np.array([10, 20])), np.ndarray)
+    assert isinstance(ran.states_to_numbers(jnp.array(10)), jax.Array)
 
     np.testing.assert_allclose(
         ran.numbers_to_states(np.array([0, 1, 10])), np.array([0, 10, 100])
     )
     assert ran.numbers_to_states(1).dtype == int
+    assert isinstance(ran.numbers_to_states(1), np.int_)
+    assert isinstance(ran.numbers_to_states(np.array([1, 2])), np.ndarray)
+    assert isinstance(ran.numbers_to_states(jnp.array(1)), jax.Array)
 
     ran = StaticRange(0, 10, 100, dtype=float)
     assert ran.dtype == float
     assert ran.states_to_numbers(1).dtype == int
     assert ran.numbers_to_states(1).dtype == float
+    assert isinstance(ran.numbers_to_states(1), float)
     assert np.array(ran).dtype == float
     np.testing.assert_allclose(
         np.array(StaticRange(0, 10, 100)),
