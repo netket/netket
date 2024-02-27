@@ -119,6 +119,20 @@ class StaticRange(struct.Pytree):
 
         self.dtype = dtype
 
+    @property
+    def shape(self):
+        """The shape of the range, if converted to an array. It's always (length,)."""
+        return (self.length,)
+
+    @property
+    def ndim(self):
+        """The number of dimensions of the range, if converted to an array. It's always 1."""
+        return 1
+
+    def astype(self, dtype: DType):
+        """Returns a new StaticRange with a different dtype."""
+        return StaticRange(self.start, self.step, self.length, dtype=dtype)
+
     def __len__(self):
         return self.length
 
@@ -126,9 +140,6 @@ class StaticRange(struct.Pytree):
         if i >= self.length:
             raise IndexError
         return self.start + self.step * i
-
-    def find(self, val):
-        return int((val - self.start) / self.step)
 
     @partial(jax.jit, static_argnames="dtype")
     def states_to_numbers(self, x, dtype: DType = int):
@@ -167,6 +178,7 @@ class StaticRange(struct.Pytree):
         return (start + step * i).astype(dtype)
 
     def flip_state(self, state):
+        """Only works if this range has length 2. Given a state, returns the other state."""
         if not len(self) == 2:
             raise ValueError
         constant_sum = 2 * self.start + self.step
@@ -188,8 +200,14 @@ class StaticRange(struct.Pytree):
                 and self.step == o.step
                 and self.length == o.length
             )
-        else:
-            return self.__array__() == o
+        elif hasattr(o, "shape"):
+            if self.shape == o.shape:
+                return self.__array__() == o
+        elif hasattr(o, "__array__"):
+            if hasattr(o, "shape") and self.shape == o.shape:
+                return self.__array__() == o
+
+        return False
 
     def __repr__(self):
         return f"StaticRange(start={self.start}, step={self.step}, length={self.length}, dtype={self.dtype})"
