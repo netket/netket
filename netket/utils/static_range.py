@@ -141,7 +141,6 @@ class StaticRange(struct.Pytree):
             raise IndexError
         return self.start + self.step * i
 
-    @partial(jax.jit, static_argnames="dtype")
     def states_to_numbers(self, x, dtype: DType = int):
         """Given an element in the range, returns it's index.
 
@@ -158,7 +157,6 @@ class StaticRange(struct.Pytree):
             idx = idx.astype(dtype)
         return idx
 
-    @partial(jax.jit, static_argnames="dtype")
     def numbers_to_states(self, i, dtype: DType = None):
         """Given an integer index, returns the i-th elements in the range.
 
