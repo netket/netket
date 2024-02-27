@@ -56,15 +56,13 @@ class StaticRange(struct.Pytree):
         >>> len(ran)
         3
         >>> ran.states_to_numbers(0)
-        Array(1, dtype=int64)
+        array(1)
         >>> ran.numbers_to_states(0)
-        Array(-2, dtype=int64)
-
+        -2
         >>> ran.numbers_to_states(1)
-        Array(0, dtype=int64)
-
+        0
         >>> ran.numbers_to_states(2)
-        Array(2, dtype=int64)
+        2
 
     """
 
