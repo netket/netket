@@ -157,7 +157,7 @@ class SpinOrbitalFermions(HomogeneousHilbert):
         self._fock = hilbert
         """Internal representation of this Hilbert space (Fock or TensorHilbert)."""
         # local states are the occupation numbers (0, 1)
-        local_states = StaticRange(0.0, 1.0, 2, dtype=float)
+        local_states = StaticRange(0.0, 1.0, 2, dtype=np.int8)
 
         # we use the constraints from the Fock spaces, and override `constrained`
         super().__init__(local_states, N=total_size, constraint_fn=None)

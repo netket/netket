@@ -85,7 +85,9 @@ class Spin(HomogeneousHilbert):
         local_states = np.empty(local_size)
 
         assert int(2 * s + 1) == local_size
-        local_states = StaticRange(1 - local_size, 2, local_size, dtype=float)
+        local_states = StaticRange(
+            1 - local_size, 2, local_size, dtype=np.int8 if local_size < 2**7 else int
+        )
 
         _check_total_sz(total_sz, s, N)
         if total_sz is not None:
