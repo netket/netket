@@ -128,13 +128,16 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
 
         self._setup()
         rem = numbers
-        out = jnp.empty((numbers.size, self.size), dtype=jnp.int32)
+        tmp = []
         for i, dim in enumerate(self._ns_states_r):
             rem, loc_numbers = np.divmod(rem, dim)
             hi_i = self._n_hilbert_spaces - (i + 1)
-            out = out.at[:, self._cum_indices[hi_i] : self._cum_sizes[hi_i]].set(
-                self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers)
-            )
+            tmp.append(self._hilbert_spaces[hi_i].numbers_to_states(loc_numbers))
+
+        out = jnp.empty((numbers.size, self.size), dtype=jnp.result_type(*tmp))
+        for i, dim in enumerate(self._ns_states_r):
+            hi_i = self._n_hilbert_spaces - (i + 1)
+            out = out.at[:, self._cum_indices[hi_i] : self._cum_sizes[hi_i]].set(tmp[i])
         return out
 
     def _states_to_numbers(self, states):
@@ -150,13 +153,16 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         return out
 
     def states_to_local_indices(self, x):
-        out = jnp.empty_like(x, dtype=jnp.int32)
+        tmp = []
         for i, hilb_i in enumerate(self._hilbert_spaces):
-            out = out.at[..., self._cum_indices[i] : self._cum_sizes[i]].set(
+            tmp.append(
                 hilb_i.states_to_local_indices(
                     x[..., self._cum_indices[i] : self._cum_sizes[i]]
                 )
             )
+        out = jnp.empty(x.shape, dtype=jnp.result_type(*tmp))
+        for i, _ in enumerate(self._hilbert_spaces):
+            out = out.at[..., self._cum_indices[i] : self._cum_sizes[i]].set(tmp[i])
         return out
 
     def __mul__(self, other):
