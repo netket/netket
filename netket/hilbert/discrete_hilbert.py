@@ -23,18 +23,7 @@ from netket.utils.types import Array
 from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
 
 from .abstract_hilbert import AbstractHilbert
-
-max_states = np.iinfo(np.int32).max
-"""int: Maximum number of states that can be indexed"""
-
-
-def _is_indexable(shape):
-    """
-    Returns whether a discrete Hilbert space of shape `shape` is
-    indexable (i.e., its total number of states is below the maximum).
-    """
-    log_max = np.log(max_states)
-    return np.sum(np.log(shape)) <= log_max
+from .index.base import _is_indexable
 
 
 class DiscreteHilbert(AbstractHilbert):
@@ -209,7 +198,7 @@ class DiscreteHilbert(AbstractHilbert):
             to the pre-allocated array if it was passed.
         """
 
-        numbers = np.arange(0, self.n_states, dtype=np.int64)
+        numbers = np.arange(0, self.n_states, dtype=np.int32)
 
         return self.numbers_to_states(numbers)
 

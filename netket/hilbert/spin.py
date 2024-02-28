@@ -14,13 +14,14 @@
 
 from fractions import Fraction
 from typing import Optional, Union
-from functools import partial
 
 import numpy as np
-from numba import jit
+
 from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
+
+from .index import SumConstraint
 
 
 def _check_total_sz(total_sz, S, size):
@@ -49,11 +50,6 @@ def _check_total_sz(total_sz, S, size):
             raise ValueError(
                 "Cannot fix the total magnetization to a half-integer number"
             )
-
-
-@jit(nopython=True)
-def _sum_constraint(x, total_sz):
-    return np.sum(x, axis=1) == round(2 * total_sz)
 
 
 class Spin(HomogeneousHilbert):
@@ -89,7 +85,7 @@ class Spin(HomogeneousHilbert):
 
         _check_total_sz(total_sz, s, N)
         if total_sz is not None:
-            constraints = partial(_sum_constraint, total_sz=total_sz)
+            constraints = SumConstraint(round(2 * total_sz))
         else:
             constraints = None
 

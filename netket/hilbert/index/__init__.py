@@ -30,5 +30,8 @@ defined in the file `base.py`.
 """
 
 from .base import HilbertIndex
-from .unconstrained import UnconstrainedHilbertIndex
-from .constrained import ConstrainedHilbertIndex
+from .constrained import ConstrainedHilbertIndex, SumConstrainedHilbertIndex
+from .meta import UniformTensorProductHilbertIndex
+from .unconstrained import LookupTableHilbertIndex
+
+from .constraints import SumConstraint

@@ -13,13 +13,13 @@
 # limitations under the License.
 
 from typing import Optional, Union
-from functools import partial
 
 import numpy as np
-from numba import jit
+
 from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
+from .index import SumConstraint
 
 FOCK_MAX = np.iinfo(np.intp).max - 1
 """
@@ -27,11 +27,6 @@ Maximum number of particles in the fock space.
 It is `maxvalue(np.int64)-1` because we use N+1 in several formulas
 and it would overflow.
 """
-
-
-@jit(nopython=True)
-def _sum_constraint(x, n_particles):
-    return np.sum(x, axis=1) == n_particles
 
 
 class Fock(HomogeneousHilbert):
@@ -87,9 +82,7 @@ class Fock(HomogeneousHilbert):
                         """The required total number of bosons is not compatible
                         with the given n_max."""
                     )
-
-            constraints = partial(_sum_constraint, n_particles=n_particles)
-
+            constraints = SumConstraint(n_particles)
         else:
             constraints = None
             self._n_particles = None

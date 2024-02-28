@@ -20,9 +20,6 @@ from collections.abc import Iterable
 import jax.numpy as jnp
 import numpy as np
 
-max_states = np.iinfo(np.int32).max
-"""int: Maximum number of states that can be indexed"""
-
 
 class AbstractHilbert(abc.ABC):
     """Abstract class for NetKet hilbert objects.

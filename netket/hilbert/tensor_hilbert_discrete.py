@@ -72,12 +72,14 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
         if not self._initialized:
             if self.is_indexable:
                 self._ns_states = [hi.n_states for hi in self._hilbert_spaces]
-                self._ns_states_r = np.flip(self._ns_states)
-                self._cum_ns_states = np.concatenate([[0], np.cumprod(self._ns_states)])
+                self._ns_states_r = np.flip(self._ns_states).tolist()
+                self._cum_ns_states = np.concatenate(
+                    [[0], np.cumprod(self._ns_states)]
+                ).tolist()
                 self._cum_ns_states_r = np.flip(
                     np.cumprod(np.concatenate([[1], np.flip(self._ns_states)]))[:-1]
-                )
-                self._n_states = np.prod(self._ns_states)
+                ).tolist()
+                self._n_states = int(np.prod(self._ns_states))
                 self._initialized = True
             else:
                 raise RuntimeError("The hilbert space is too large to be indexed.")

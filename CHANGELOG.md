@@ -18,6 +18,8 @@
 ### Improvements
 * Rewrite the code for generating random states of `netket.hilbert.Fock` and `netket.hilbert.Spin` in Jax and jit the `init` and `reset` functions of `netket.sampler.MetropolisSampler` for better performance and improved compatibility with sharding [#1721](https://github.com/netket/netket/pull/1721).
 
+* Rewrite `netket.hilbert.index` used by `HomogeneousHilbert` (including `Spin` and `Fock`) so that larger spaces with a sum constraint can be indexed. This can be useful for `netket.sampler.Exactsampler`, `netket.vqs.FullSumState` as well as for ED calculations [#1720](https://github.com/netket/netket/pull/1720).
+
 ### Internal changes
 
 

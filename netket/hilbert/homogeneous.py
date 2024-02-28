@@ -20,7 +20,13 @@ from netket.utils import StaticRange
 from netket.utils.types import Array
 
 from .discrete_hilbert import DiscreteHilbert
-from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex
+from .index import (
+    HilbertIndex,
+    UniformTensorProductHilbertIndex,
+    ConstrainedHilbertIndex,
+    SumConstrainedHilbertIndex,
+    SumConstraint,
+)
 
 
 class HomogeneousHilbert(DiscreteHilbert):
@@ -84,7 +90,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
         self._constraint_fn = constraint_fn
 
-        self.__hilbert_index = None
+        self._hilbert_index_ = None
 
         shape = tuple(self._local_size for _ in range(N))
         super().__init__(shape=shape)
@@ -117,6 +123,8 @@ class HomogeneousHilbert(DiscreteHilbert):
     def n_states(self) -> int:
         r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
         return self._hilbert_index.n_states
 
     def states_to_local_indices(self, x: Array):
@@ -158,19 +166,13 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self._constraint_fn is not None
 
     def _numbers_to_states(self, numbers: np.ndarray) -> np.ndarray:
-        # this is guaranteed
-        # numbers = concrete_or_error(
-        #    np.asarray, numbers, HilbertIndexingDuringTracingError
-        # )
-
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
         return self._hilbert_index.numbers_to_states(numbers)
 
     def _states_to_numbers(self, states: np.ndarray):
-        # guaranteed
-        # states = concrete_or_error(
-        #    np.asarray, states, HilbertIndexingDuringTracingError
-        # )
-
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
         return self._hilbert_index.states_to_numbers(states)
 
     def all_states(self) -> np.ndarray:
@@ -182,31 +184,36 @@ class HomogeneousHilbert(DiscreteHilbert):
             A (n_states x size) batch of states. this corresponds
             to the pre-allocated array if it was passed.
         """
+        if not self.is_indexable:  # includes call to _setup
+            raise RuntimeError("The hilbert space is too large to be indexed.")
 
         return self._hilbert_index.all_states()
 
     @property
     def _hilbert_index(self) -> HilbertIndex:
-        """
-        Returns the `HilbertIndex` object, which is a numba jitclass used to convert
-        integers to states and vice-versa.
-        """
-        if self.__hilbert_index is None:
-            if not self.is_indexable:
-                raise RuntimeError("The hilbert space is too large to be indexed.")
-
+        if self._hilbert_index_ is None:
+            # the unconstrained index
+            index = UniformTensorProductHilbertIndex(self._local_states, self.size)
             if self.constrained:
-                self.__hilbert_index = ConstrainedHilbertIndex(
-                    np.asarray(self.local_states),
-                    self.size,
-                    self._constraint_fn,
-                )
-            else:
-                self.__hilbert_index = UnconstrainedHilbertIndex(
-                    np.asarray(self.local_states), self.size
-                )
+                # generic constrained index
+                index = ConstrainedHilbertIndex(index, self._constraint_fn)
+                if isinstance(self._constraint_fn, SumConstraint):
+                    # local_states are always a StaticRange
+                    sum_constrained_index = SumConstrainedHilbertIndex(
+                        self._local_states, self.size, self._constraint_fn.sum_value
+                    )
+                    # use specialized implementation if it is more efficient
+                    if sum_constrained_index.n_states_bound < index.n_states_bound:
+                        index = sum_constrained_index
+            self._hilbert_index_ = index
+        return self._hilbert_index_
 
-        return self.__hilbert_index
+    @property
+    def is_indexable(self) -> bool:
+        """Whether the space can be indexed with an integer"""
+        if not self.is_finite:
+            return False
+        return self._hilbert_index.is_indexable
 
     def __repr__(self):
         constr = f", constrained={self.constrained}" if self.constrained else ""
