@@ -65,7 +65,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
     def is_indexable(self) -> bool:
         """Whether the space can be indexed with an integer"""
         return all(hi.is_indexable for hi in self._hilbert_spaces) and _is_indexable(
-            self.shape
+            list(hi.n_states for hi in self._hilbert_spaces)
         )
 
     def _setup(self):

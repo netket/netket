@@ -40,6 +40,8 @@ Utility functions and classes.
    :nosignatures:
 
    HashableArray
+   StaticRange
+   numbers.StaticZero
    
 ```
 

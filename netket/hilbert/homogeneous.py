@@ -14,10 +14,10 @@
 
 from typing import Optional, Callable
 
-from numbers import Real
-
 import numpy as np
 
+from netket.utils import StaticRange
+from netket.utils.types import Array
 
 from .discrete_hilbert import DiscreteHilbert
 from .index import HilbertIndex, UnconstrainedHilbertIndex, ConstrainedHilbertIndex
@@ -48,7 +48,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     def __init__(
         self,
-        local_states: Optional[list[Real]],
+        local_states: Optional[StaticRange],
         N: int = 1,
         constraint_fn: Optional[Callable] = None,
     ):
@@ -60,8 +60,9 @@ class HomogeneousHilbert(DiscreteHilbert):
         This method should only be called from the subclasses `__init__` method.
 
         Args:
-            local_states: Eigenvalues of the states. If the allowed
-                states are an infinite number, None should be passed as an argument.
+            local_states: :class:`~netket.utils.StaticRange` object describing the
+                numbers used to encode the local degree of freedom of this Hilbert
+                Space.
             N: Number of modes in this hilbert space (default 1).
             constraint_fn: A function specifying constraints on the quantum numbers.
                 Given a batch of quantum numbers it should return a vector of bools
@@ -69,17 +70,16 @@ class HomogeneousHilbert(DiscreteHilbert):
         """
         assert isinstance(N, int)
 
+        if not (isinstance(local_states, StaticRange) or local_states is None):
+            raise TypeError("local_states must be a StaticRange.")
+
         self._is_finite = local_states is not None
 
         if self._is_finite:
-            self._local_states = np.asarray(local_states)
-            assert self._local_states.ndim == 1
-            self._local_size = self._local_states.shape[0]
-            self._local_states = self._local_states.tolist()
-            self._local_states_frozen = frozenset(self._local_states)
+            self._local_states = local_states
+            self._local_size = len(local_states)
         else:
             self._local_states = None
-            self._local_states_frozen = None
             self._local_size = np.iinfo(np.intp).max
 
         self._constraint_fn = constraint_fn
@@ -106,6 +106,8 @@ class HomogeneousHilbert(DiscreteHilbert):
     def local_states(self) -> Optional[list[float]]:
         r"""A list of discrete local quantum numbers.
         If the local states are infinitely many, None is returned."""
+        if self.is_finite:
+            return list(self._local_states)
         return self._local_states
 
     def states_at_index(self, i: int):
@@ -116,6 +118,25 @@ class HomogeneousHilbert(DiscreteHilbert):
         r"""The total dimension of the many-body Hilbert space.
         Throws an exception iff the space is not indexable."""
         return self._hilbert_index.n_states
+
+    def states_to_local_indices(self, x: Array):
+        r"""Returns a tensor with the same shape of `x`, where all local
+        values are converted to indices in the range `0...self.shape[i]`.
+        This function is guaranteed to be jax-jittable.
+
+        For the `Fock` space this returns `x`, but for other hilbert spaces
+        such as `Spin` this returns an array of indices.
+
+        .. warning::
+            This function is experimental. Use at your own risk.
+
+        Args:
+            x: a tensor containing samples from this hilbert space
+
+        Returns:
+            a tensor containing integer indices into the local hilbert
+        """
+        return self._local_states.states_to_numbers(x, dtype=np.int32)
 
     @property
     def is_finite(self) -> bool:
@@ -176,13 +197,13 @@ class HomogeneousHilbert(DiscreteHilbert):
 
             if self.constrained:
                 self.__hilbert_index = ConstrainedHilbertIndex(
-                    np.asarray(self.local_states, dtype=np.float64),
+                    np.asarray(self.local_states),
                     self.size,
                     self._constraint_fn,
                 )
             else:
                 self.__hilbert_index = UnconstrainedHilbertIndex(
-                    np.asarray(self.local_states, dtype=np.float64), self.size
+                    np.asarray(self.local_states), self.size
                 )
 
         return self.__hilbert_index
@@ -198,7 +219,7 @@ class HomogeneousHilbert(DiscreteHilbert):
         return (
             self.size,
             self.local_size,
-            self._local_states_frozen,
+            self._local_states,
             self.constrained,
             self._constraint_fn,
         )

@@ -17,6 +17,7 @@ from functools import partial
 
 import numpy as np
 from numba import jit
+from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
 
@@ -95,7 +96,7 @@ class Fock(HomogeneousHilbert):
 
         if self._n_max is not None:
             # assert self._n_max > 0
-            local_states = np.arange(self._n_max + 1)
+            local_states = StaticRange(0, 1, self._n_max + 1, dtype=int)
         else:
             self._n_max = FOCK_MAX
             local_states = None
@@ -158,9 +159,6 @@ class Fock(HomogeneousHilbert):
         )
         nmax = self._n_max if self._n_max < FOCK_MAX else "FOCK_MAX"
         return f"Fock(n_max={nmax}{n_particles}, N={self.size})"
-
-    def states_to_local_indices(self, x):
-        return x.astype(np.int32)
 
     @property
     def _attrs(self):

@@ -18,6 +18,7 @@ from functools import partial
 
 import numpy as np
 from numba import jit
+from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
 
@@ -84,10 +85,7 @@ class Spin(HomogeneousHilbert):
         local_states = np.empty(local_size)
 
         assert int(2 * s + 1) == local_size
-
-        for i in range(local_size):
-            local_states[i] = -round(2 * s) + 2 * i
-        local_states = local_states.tolist()
+        local_states = StaticRange(1 - local_size, 2, local_size, dtype=float)
 
         _check_total_sz(total_sz, s, N)
         if total_sz is not None:
@@ -135,10 +133,6 @@ class Spin(HomogeneousHilbert):
             return None
         else:
             return Spin(s=self._s, N=self.size - Nsites)
-
-    def states_to_local_indices(self, x):
-        numbers = (x + self.local_size - 1) / 2
-        return numbers.astype(np.int32)
 
     def __repr__(self):
         total_sz = f", total_sz={self._total_sz}" if self._total_sz is not None else ""
