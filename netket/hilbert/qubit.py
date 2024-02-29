@@ -14,7 +14,6 @@
 
 from typing import Optional, Union
 
-import numpy as np
 
 from netket.utils import StaticRange
 
