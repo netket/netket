@@ -645,7 +645,7 @@ class MCState(VariationalState):
 
         return expect_and_grad(
             self,
-            Ô,
+            O,
             (self.chunk_size, self.grad_chunk_size),
             mutable=mutable,
             **kwargs,
@@ -692,7 +692,7 @@ class MCState(VariationalState):
             mutable = self.mutable
 
         return expect_and_forces(
-            self, Ô, (self.chunk_size, self.grad_chunk_size), mutable=mutable
+            self, O, (self.chunk_size, self.grad_chunk_size), mutable=mutable
         )
 
     def quantum_geometric_tensor(
