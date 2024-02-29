@@ -61,6 +61,7 @@ from ._jacobian import jacobian, jacobian_default_mode
 
 from ._sparse import COOTensor
 from ._sort import sort, searchsorted
+from ._lax import reduce_xor
 
 from ._expect import expect
 
