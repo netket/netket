@@ -27,7 +27,6 @@ import jax.numpy as jnp
 from netket.utils.types import Array, DType
 
 
-@jax.jit
 def _sort_lexicographic(x):
     assert x.ndim == 2
     perm = jnp.lexsort(list(x.T)[::-1])
@@ -42,6 +41,15 @@ def sort(x: Array) -> Array:
         x: 1D/2D Input array
     Returns:
         A sorted copy of x
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from netket.jax import sort
+        >>> x = jnp.array([[1,2,3], [0,2,2], [0,1,2]])
+        >>> sort(x)
+        Array([[0, 1, 2],
+               [0, 2, 2],
+               [1, 2, 3]], dtype=int64)
     """
     if x.ndim == 1:
         return jnp.sort(x)
@@ -64,7 +72,6 @@ def _less_equal_lexicographic(x_keys, y_keys):
     return p
 
 
-@partial(jax.jit, static_argnames=("dtype", "op"))
 @partial(jnp.vectorize, signature="(n)->()", excluded={0, 2, 3})
 def _searchsorted_via_scan(sorted_arr, query, dtype, op):
     def body_fun(_, state):
@@ -80,17 +87,18 @@ def _searchsorted_via_scan(sorted_arr, query, dtype, op):
     return jax.lax.fori_loop(0, n_levels, body_fun, init)[1]
 
 
-@jax.jit
-def _searchsorted_lexicographic(a, v):
+def _searchsorted_lexicographic(a, v, dtype=None):
     assert a.ndim == 2
     assert v.ndim >= 1
     assert a.shape[-1] == v.shape[-1]
-    dtype = np.uint32 if len(a) <= np.iinfo(np.uint32).max else np.uint64
+    if dtype is None:
+        dtype = np.int32 if len(a) <= np.iinfo(np.int32).max else np.int64
     a = a.astype(jnp.promote_types(a, v))
     v = v.astype(jnp.promote_types(a, v))
     return _searchsorted_via_scan(a, v, dtype, _less_equal_lexicographic)
 
 
+@partial(jax.jit, static_argnames="dtype")
 def searchsorted(a: Array, v: Array, dtype: DType = None) -> Array:
     """Find the indices where rows should be inserted into a matrix to maintain lexicographic order.
 
@@ -100,11 +108,20 @@ def searchsorted(a: Array, v: Array, dtype: DType = None) -> Array:
         dtype: (optional) dtype to cast the result to
     Returns:
         A integer array of row indices with shape v.shape[:-1]
+
+    Example:
+        >>> import jax.numpy as jnp
+        >>> from netket.jax import searchsorted
+        >>> a = jnp.array([[0,1,2], [0,2,2], [1,2,3]])
+        >>> v = jnp.array([[0,2,2]])
+        >>> searchsorted(a, v)
+        Array([1], dtype=int32)
     """
     if a.ndim == 1:
         res = jnp.searchsorted(a, v)
+        if dtype is not None:
+            res = res.astype(dtype)
     else:
-        res = _searchsorted_lexicographic(a, v)
-    if dtype is not None:
-        res = res.astype(dtype)
+        res = _searchsorted_lexicographic(a, v, dtype)
+
     return res
