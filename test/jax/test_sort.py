@@ -27,4 +27,3 @@ def test_searchsorted(shape):
         np.testing.assert_array_equal(x_sorted[k], x[i])
 
     assert searchsorted(x_sorted, x[0]).dtype == np.int32
-    assert searchsorted(x_sorted, x[0], dtype=np.uint8).dtype == np.uint8

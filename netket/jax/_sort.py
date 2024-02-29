@@ -24,7 +24,7 @@ import numpy as np
 from functools import partial
 import jax.numpy as jnp
 
-from netket.utils.types import Array, DType
+from netket.utils.types import Array
 
 
 def _sort_lexicographic(x):
@@ -87,25 +87,23 @@ def _searchsorted_via_scan(sorted_arr, query, dtype, op):
     return jax.lax.fori_loop(0, n_levels, body_fun, init)[1]
 
 
-def _searchsorted_lexicographic(a, v, dtype=None):
+def _searchsorted_lexicographic(a, v):
     assert a.ndim == 2
     assert v.ndim >= 1
     assert a.shape[-1] == v.shape[-1]
-    if dtype is None:
-        dtype = np.int32 if len(a) <= np.iinfo(np.int32).max else np.int64
+    dtype = np.int32 if len(a) <= np.iinfo(np.int32).max else np.int64
     a = a.astype(jnp.promote_types(a, v))
     v = v.astype(jnp.promote_types(a, v))
     return _searchsorted_via_scan(a, v, dtype, _less_equal_lexicographic)
 
 
-@partial(jax.jit, static_argnames="dtype")
-def searchsorted(a: Array, v: Array, dtype: DType = None) -> Array:
+@partial(jax.jit)
+def searchsorted(a: Array, v: Array) -> Array:
     """Find the indices where rows should be inserted into a matrix to maintain lexicographic order.
 
     Args:
         a: 1D/2D Input array. Rows must me sorted lexicographically in ascending order.
         v: Array of rows to insert into a
-        dtype: (optional) dtype to cast the result to
     Returns:
         A integer array of row indices with shape v.shape[:-1]
 
@@ -118,10 +116,6 @@ def searchsorted(a: Array, v: Array, dtype: DType = None) -> Array:
         Array([1], dtype=int32)
     """
     if a.ndim == 1:
-        res = jnp.searchsorted(a, v)
-        if dtype is not None:
-            res = res.astype(dtype)
+        return jnp.searchsorted(a, v)
     else:
-        res = _searchsorted_lexicographic(a, v, dtype)
-
-    return res
+        return _searchsorted_lexicographic(a, v)
