@@ -59,6 +59,8 @@ from ._math import logsumexp_cplx, logdet_cmplx
 
 from ._jacobian import jacobian, jacobian_default_mode
 
+from ._sort import sort, searchsorted
+
 # internal sharding utilities
 from . import sharding
 
