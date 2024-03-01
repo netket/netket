@@ -129,9 +129,9 @@ class AbstractHilbert(abc.ABC):
         if not isinstance(other, AbstractHilbert):
             return NotImplemented
 
-        from .tensor_hilbert import TensorGenericHilbert
+        from .tensor_hilbert import TensorHilbert
 
-        return TensorGenericHilbert(other, self)
+        return TensorHilbert(other, self)
 
     def _mul_sametype_(self, other: "AbstractHilbert") -> "AbstractHilbert":
         """This function can be implemented by subclasses to
