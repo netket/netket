@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from .base import SumOperator
-from .observable import SumObservable
 from .operator import SumGenericOperator
 from .discrete_operator import SumDiscreteOperator
 from .discrete_jax_operator import SumDiscreteJaxOperator
