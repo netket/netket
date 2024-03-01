@@ -35,5 +35,5 @@ vs = nk.vqs.MCState(sab, model, n_samples=10**4, n_discard_per_chain=2000)
 op = nk.optimizer.Sgd(0.05)
 sr = nk.optimizer.SR(diag_shift=0.01)
 
-gs = nk.VMC(ha, op, sab, variational_state=vs, preconditioner=sr)
+gs = nk.VMC(ha, op, variational_state=vs, preconditioner=sr)
 gs.run(n_iter=100, out="HO_10_3d")

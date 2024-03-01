@@ -166,17 +166,6 @@ class TensorHilbert(ABC):
 
         return _str
 
-
-class TensorGenericHilbert(TensorHilbert, AbstractHilbert):
-    def __init__(self, *hilb_spaces: AbstractHilbert):
-        if not all(isinstance(hi, AbstractHilbert) for hi in hilb_spaces):
-            raise TypeError(
-                "Arguments to TensorHilbert must all be subtypes of "
-                "AbstractHilbert. However the types are:\n\n"
-                f"{list(type(hi) for hi in hilb_spaces)}\n"
-            )
-        super().__init__(hilb_spaces)
-
     def __mul__(self, other):
         spaces_l = self._hilbert_spaces[:-1]
         space_center_l = self._hilbert_spaces[-1]
@@ -195,4 +184,15 @@ class TensorGenericHilbert(TensorHilbert, AbstractHilbert):
         else:
             spaces_center = (spaces_center,)
 
-        return TensorGenericHilbert(*spaces_l, *spaces_center, *spaces_r)
+        return TensorHilbert(*spaces_l, *spaces_center, *spaces_r)
+
+
+class TensorGenericHilbert(TensorHilbert, AbstractHilbert):
+    def __init__(self, *hilb_spaces: AbstractHilbert):
+        if not all(isinstance(hi, AbstractHilbert) for hi in hilb_spaces):
+            raise TypeError(
+                "Arguments to TensorHilbert must all be subtypes of "
+                "AbstractHilbert. However the types are:\n\n"
+                f"{list(type(hi) for hi in hilb_spaces)}\n"
+            )
+        super().__init__(hilb_spaces)

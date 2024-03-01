@@ -156,26 +156,3 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
                 )
             )
         return out
-
-    def __mul__(self, other):
-        if not isinstance(other, DiscreteHilbert):
-            return NotImplemented
-
-        spaces_l = self._hilbert_spaces[:-1]
-        space_center_l = self._hilbert_spaces[-1]
-
-        if isinstance(other, TensorDiscreteHilbert):
-            space_center_r = other._hilbert_spaces[0]
-            spaces_r = other._hilbert_spaces[1:]
-        else:
-            space_center_r = other
-            spaces_r = tuple()
-
-        # Attempt to 'merge' the two spaces at the interface.
-        spaces_center = space_center_l * space_center_r
-        if isinstance(spaces_center, TensorDiscreteHilbert):
-            spaces_center = (space_center_l, space_center_r)
-        else:
-            spaces_center = (spaces_center,)
-
-        return TensorDiscreteHilbert(*spaces_l, *spaces_center, *spaces_r)
