@@ -21,6 +21,7 @@ from jax import numpy as jnp
 from netket.stats import Stats, statistics
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
+from netket.utils import HashablePartial
 
 from netket.operator import (
     AbstractOperator,
@@ -29,7 +30,7 @@ from netket.operator import (
     ContinuousOperator,
     DiscreteJaxOperator,
 )
-
+from netket.operator._sum import SumGenericOperator
 from netket.vqs.mc import (
     kernels,
     check_hilbert,
@@ -95,6 +96,30 @@ def get_local_kernel(vstate: MCState, Ô: ContinuousOperator):  # noqa: F811
     return HashablePartial(
         lambda logpsi, params, x, op: op._expect_kernel(logpsi, params, x)
     )
+
+
+## sum operators
+
+
+@partial(get_local_kernel_arguments.dispatch, precedence=-2)
+def get_local_kernel_args_sum(vs: MCState, O: SumGenericOperator):
+    samples = vs.samples
+    args = [get_local_kernel_arguments(vs, o)[1] for o in O.operators]
+    return samples, (O.coefficients, args)
+
+
+@partial(get_local_kernel.dispatch, precedence=-2)
+def get_local_kernel_sum(vs: MCState, O: SumGenericOperator):
+    O_kernels = tuple(get_local_kernel(vs, o) for o in O.operators)
+
+    def sum_eval(logpsi, pars, σ, args, O_kernels):
+        coeffs, O_args = args
+        O_locs = 0
+        for O_kernel, O_arg, k in zip(O_kernels, O_args, coeffs):
+            O_locs = O_locs + k * O_kernel(logpsi, pars, σ, O_arg)
+        return O_locs
+
+    return HashablePartial(sum_eval, O_kernels=O_kernels)
 
 
 # Standard implementation of expect for an MCState (pure) and a generic operator
