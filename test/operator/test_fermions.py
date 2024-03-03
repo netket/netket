@@ -315,7 +315,8 @@ def test_operations_fermions(Op):
     op8_trueconj = Op(
         hi, terms=("1^ 0", "3^ 2"), weights=(1 - 1j, 2 + 0.5j), constant=1.0 - 3j
     )
-    np.testing.assert_allclose(op8.conjugate().to_dense(), op8_trueconj.to_dense())
+    np.testing.assert_allclose(op8.transpose(concrete=False).conjugate().to_dense(), op8_trueconj.to_dense())
+    np.testing.assert_allclose(op8.transpose(concrete=True).conjugate().to_dense(), op8_trueconj.to_dense())
 
     op9 = nkx.operator.FermionOperator2nd(
         hi, terms=("",), weights=(1,), constant=2, dtype=complex
