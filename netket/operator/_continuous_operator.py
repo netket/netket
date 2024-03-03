@@ -28,7 +28,7 @@ class ContinuousOperator(AbstractOperator):
     continuous Hilbert space. They are valid jax-pytrees and can
     be manipulated inside of jax function transformations.
 
-    Any operator inheriting from this base class can additionally 
+    Any operator inheriting from this base class can additionally
     be used inside of :func:`jax.jit`,
     :func:`jax.grad`, :func:`jax.vmap` or similar transformations.
     When passed to those functions, jax-compatible operators
@@ -80,7 +80,10 @@ class ContinuousOperator(AbstractOperator):
 
     @abc.abstractmethod
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array,
+        self,
+        logpsi: Callable,
+        params: PyTree,
+        x: Array,
     ):
         r"""This method defines the action of the local operator on a given quantum state
         `logpsi` for a given configuration `x`.
