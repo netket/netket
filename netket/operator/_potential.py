@@ -14,34 +14,18 @@
 from typing import Callable, Optional
 from collections.abc import Hashable
 
+import jax
+import jax.numpy as jnp
+from jax.tree_util import register_pytree_node_class
+
 from netket.utils.types import DType, PyTree, Array
 
 from netket.hilbert import AbstractHilbert
 from netket.operator import ContinuousOperator
-from netket.utils import struct, HashableArray
-
-import jax
-import jax.numpy as jnp
+from netket.utils import HashableArray
 
 
-@struct.dataclass
-class PotentialOperatorPyTree:
-    """Internal class used to pass data from the operator to the jax kernel.
-
-    This is used such that we can pass a PyTree containing some static data.
-    We could avoid this if the operator itself was a pytree, but as this is not
-    the case we need to pass as a separte object all fields that are used in
-    the kernel.
-
-    We could forego this, but then the kernel could not be marked as
-    @staticmethod and we would recompile every time we construct a new operator,
-    even if it is identical
-    """
-
-    potential_fun: Callable = struct.field(pytree_node=False)
-    coefficient: Array
-
-
+@register_pytree_node_class
 class PotentialEnergy(ContinuousOperator):
     r"""Returns the local potential energy defined in afun"""
 
@@ -72,17 +56,18 @@ class PotentialEnergy(ContinuousOperator):
         return self._coefficient
 
     @property
+    def potential_fun(self):
+        return self._afun
+
+    @property
     def is_hermitian(self) -> bool:
         return True
 
-    @staticmethod
-    def _expect_kernel(
-        logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
-    ) -> Array:
-        return data.coefficient * jax.vmap(data.potential_fun, in_axes=(0,))(x)
+    def _expect_kernel(self, logpsi: Callable, params: PyTree, x: Array) -> Array:
+        return self.coefficient * jax.vmap(self.potential_fun, in_axes=(0,))(x)
 
-    def _pack_arguments(self) -> PotentialOperatorPyTree:
-        return PotentialOperatorPyTree(self._afun, self.coefficient)
+    def _pack_arguments(self):
+        return None
 
     @property
     def _attrs(self) -> tuple[Hashable, ...]:
@@ -97,3 +82,22 @@ class PotentialEnergy(ContinuousOperator):
 
     def __repr__(self):
         return f"Potential(coefficient={self.coefficient}, function={self._afun})"
+
+    def tree_flatten(self):
+        data = (self.coefficient,)
+        metadata = {
+            "hilbert": self.hilbert,
+            "potential_fun": self.potential_fun,
+            "dtype": self.dtype,
+        }
+        return data, metadata
+
+    @classmethod
+    def tree_unflatten(cls, metadata, data):
+        (coeff,) = data
+        hi = metadata["hilbert"]
+        potential_fun = metadata["potential_fun"]
+        dtype = metadata["dtype"]
+
+        op = cls(hi, potential_fun, coefficient=coeff, dtype=dtype)
+        return op

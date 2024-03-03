@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Optional, Callable, Union
-from functools import partial
 
 import numpy as np
 
 import jax
 import jax.numpy as jnp
+from jax.tree_util import register_pytree_node_class
 
 from netket.utils.types import DType, PyTree, Array
 import netket.jax as nkjax
@@ -50,6 +50,7 @@ def jacfwd(f):
     return jacfun
 
 
+@register_pytree_node_class
 class KineticEnergy(ContinuousOperator):
     r"""This is the kinetic energy operator (hbar = 1). The local value is given by:
     :math:`E_{kin} = -1/2 ( \sum_i \frac{1}{m_i} (\log(\psi))'^2 + (\log(\psi))'' )`
@@ -69,7 +70,7 @@ class KineticEnergy(ContinuousOperator):
 
         self._mass = jnp.asarray(mass, dtype=dtype)
 
-        self._is_hermitian = np.allclose(self._mass.imag, 0.0)
+        self._is_hermitian = None
         self.__attrs = None
 
         super().__init__(hilbert, self._mass.dtype)
@@ -80,10 +81,15 @@ class KineticEnergy(ContinuousOperator):
 
     @property
     def is_hermitian(self):
+        if self._is_hermitian is None:
+            self._is_hermitian = bool(np.allclose(self._mass.imag, 0.0))
         return self._is_hermitian
 
     def _expect_kernel_single(
-        self, logpsi: Callable, params: PyTree, x: Array, inverse_mass: Optional[PyTree]
+        self,
+        logpsi: Callable,
+        params: PyTree,
+        x: Array,
     ):
         def logpsi_x(x):
             return logpsi(params, x)
@@ -93,16 +99,21 @@ class KineticEnergy(ContinuousOperator):
         dp_dx2 = jnp.diag(jacfwd(dlogpsi_x)(x)[0].reshape(x.shape[0], x.shape[0]))
         dp_dx = dlogpsi_x(x)[0][0] ** 2
 
+        inverse_mass = jnp.reciprocal(self.mass)
         return -0.5 * jnp.sum(inverse_mass * (dp_dx2 + dp_dx), axis=-1)
 
-    @partial(jax.vmap, in_axes=(None, None, None, 0, None))
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, coefficient: Optional[PyTree]
+        self,
+        logpsi: Callable,
+        params: PyTree,
+        x: Array,
     ):
-        return self._expect_kernel_single(logpsi, params, x, coefficient)
+        return jax.vmap(self._expect_kernel_single, in_axes=(None, None, 0))(
+            logpsi, params, x
+        )
 
     def _pack_arguments(self) -> PyTree:
-        return 1.0 / self._mass
+        return None
 
     @property
     def _attrs(self):
@@ -112,3 +123,23 @@ class KineticEnergy(ContinuousOperator):
 
     def __repr__(self):
         return f"KineticEnergy(m={self._mass})"
+
+    def tree_flatten(self):
+        data = (self.mass,)
+        metadata = {
+            "hilbert": self.hilbert,
+            "dtype": self.dtype,
+            "is_hermitian": self.is_hermitian,
+        }
+        return data, metadata
+
+    @classmethod
+    def tree_unflatten(cls, metadata, data):
+        (mass,) = data
+        hi = metadata["hilbert"]
+        dtype = metadata["dtype"]
+        is_hermitian = metadata["is_hermitian"]
+
+        op = cls(hi, mass, dtype=dtype)
+        op._is_hermitian = is_hermitian
+        return op

@@ -19,6 +19,7 @@ import jax
 from jax import numpy as jnp
 
 from netket.stats import Stats, statistics as mpi_statistics
+from netket.utils import HashablePartial
 from netket.utils.types import PyTree
 from netket.utils.dispatch import dispatch
 
@@ -86,14 +87,16 @@ def get_local_kernel_arguments(vstate: MCState, Ô: ContinuousOperator):  # noq
     check_hilbert(vstate.hilbert, Ô.hilbert)
 
     σ = vstate.samples
-    args = Ô._pack_arguments()
-    return σ, args
+    return σ, Ô
 
 
 @dispatch
-def get_local_kernel(vstate: MCState, Ô: ContinuousOperator):  # noqa: F811
+def get_local_kernel(vstate: MCState, _: ContinuousOperator):  # noqa: F811
     # TODO: this should be moved other to dispatch in order to support MCMixedState
-    return Ô._expect_kernel
+    def _local_kernel_continuous(logpsi, parameters, σ, Ô):
+        return Ô._expect_kernel(logpsi, parameters, σ)
+
+    return HashablePartial(_local_kernel_continuous)
 
 
 # Standard implementation of expect for an MCState (pure) and a generic operator
