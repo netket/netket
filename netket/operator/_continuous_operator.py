@@ -25,9 +25,38 @@ from netket.operator import AbstractOperator
 
 class ContinuousOperator(AbstractOperator):
     r"""This class is the abstract base class for operators defined on a
-    continuous Hilbert space. Users interested in implementing new
+    continuous Hilbert space. They are valid jax-pytrees and can
+    be manipulated inside of jax function transformations.
+
+    Any operator inheriting from this base class can additionally 
+    be used inside of :func:`jax.jit`,
+    :func:`jax.grad`, :func:`jax.vmap` or similar transformations.
+    When passed to those functions, jax-compatible operators
+    must not be passed as static arguments but as standard
+    arguments, and they will not trigger recompilation if
+    only the coefficients have changed.
+
+    Users interested in implementing new
     quantum Operators for continuous Hilbert spaces should subclass
     `ContinuousOperator` and implement its interface.
+
+    Methods in the interface include:
+
+    - `_expect_kernel(self, logpsi, variables, x)` which can be used to
+        compute the entry of the wavefucntion on which the operator acts.
+
+    - `_attrs` that should return an hashable tuple of entries used for
+        comparing and hashing operators.
+
+
+    Defining custom continuous operators that are Jax-compatible
+    ------------------------------------------------------------
+
+    Classes inheriting from `ContinuousOperator`` should be
+    declared following the declaration of the pytree flattening and
+    unflattening, following the standard APIs of Jax discussed
+    in the `Jax Pytree documentation <https://jax.readthedocs.io/en/latest/pytrees.html#custom-pytrees-and-initialization>`_.
+
     """
 
     def __init__(self, hilbert: AbstractHilbert, dtype: Optional[DType] = None):
@@ -51,7 +80,7 @@ class ContinuousOperator(AbstractOperator):
 
     @abc.abstractmethod
     def _expect_kernel(
-        self, logpsi: Callable, params: PyTree, x: Array, data: Optional[PyTree]
+        self, logpsi: Callable, params: PyTree, x: Array,
     ):
         r"""This method defines the action of the local operator on a given quantum state
         `logpsi` for a given configuration `x`.
@@ -65,17 +94,16 @@ class ContinuousOperator(AbstractOperator):
             logpsi: variational state
             params: parameters for the variational state
             x: a sample of particle positions
-            data: additional data
         """
 
-    @abc.abstractmethod
     def _pack_arguments(self) -> Optional[PyTree]:
         r"""This methods should return a PyTree that will be passed as the `data` argument
         to the `_expect_kernel`. The PyTree should be composed of jax arrays or hashable
         objects.
 
         For example for the kinetic energy this method would return the masses of the
-        individual particles."""
+        individual particles.
+        """
 
     @abc.abstractproperty
     def _attrs(self) -> tuple[Hashable, ...]:
