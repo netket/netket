@@ -96,15 +96,6 @@ class ContinuousOperator(AbstractOperator):
             x: a sample of particle positions
         """
 
-    def _pack_arguments(self) -> Optional[PyTree]:
-        r"""This methods should return a PyTree that will be passed as the `data` argument
-        to the `_expect_kernel`. The PyTree should be composed of jax arrays or hashable
-        objects.
-
-        For example for the kinetic energy this method would return the masses of the
-        individual particles.
-        """
-
     @abc.abstractproperty
     def _attrs(self) -> tuple[Hashable, ...]:
         """This must return a tuple of (hashable) attributes used to compare two operators of

@@ -108,9 +108,6 @@ class SumOperator(ContinuousOperator):
 
         return sum(result)
 
-    def _pack_arguments(self):
-        return None
-
     @property
     def _attrs(self) -> tuple[Hashable, ...]:
         if self.__attrs is None:

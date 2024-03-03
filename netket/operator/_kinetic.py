@@ -112,9 +112,6 @@ class KineticEnergy(ContinuousOperator):
             logpsi, params, x
         )
 
-    def _pack_arguments(self) -> PyTree:
-        return None
-
     @property
     def _attrs(self):
         if self.__attrs is None:

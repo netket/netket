@@ -66,9 +66,6 @@ class PotentialEnergy(ContinuousOperator):
     def _expect_kernel(self, logpsi: Callable, params: PyTree, x: Array) -> Array:
         return self.coefficient * jax.vmap(self.potential_fun, in_axes=(0,))(x)
 
-    def _pack_arguments(self):
-        return None
-
     @property
     def _attrs(self) -> tuple[Hashable, ...]:
         if self.__attrs is None:
