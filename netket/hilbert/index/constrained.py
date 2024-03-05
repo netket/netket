@@ -124,5 +124,11 @@ class ConstrainedHilbertIndex(HilbertIndex):
 
     @property
     def n_states_bound(self) -> int:
-        # upper bound on n_states
+        """
+        Returns an integer upper bound on the total number of states.
+        Used as a proxy of the computational cost of using this indexer object,
+        and by Hilbert spaces to decide which implementation to pick.
+
+        Can be used to avoid the computation of n_states which might be expensive.
+        """
         return self.unconstrained_index.n_states
