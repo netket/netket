@@ -23,9 +23,8 @@ from .discrete_hilbert import DiscreteHilbert
 from .index import (
     HilbertIndex,
     UniformTensorProductHilbertIndex,
-    ConstrainedHilbertIndex,
+    optimalConstrainedHilbertindex_generic,
 )
-from .index.constraints import get_specialized_constrained_hilbert_index
 
 
 class HomogeneousHilbert(DiscreteHilbert):
@@ -193,19 +192,12 @@ class HomogeneousHilbert(DiscreteHilbert):
         as well as the handling of constraints if necessary.
         """
         if self._hilbert_index_ is None:
-            # the unconstrained index
-            index = UniformTensorProductHilbertIndex(self._local_states, self.size)
-            if self.constrained:
-                # If we have a constraint, we tentatively construct a specialised Hilbert index for that particular constraint.
-                # If this specialised indexer object exists, we check whether it is more efficient than the generic
-                # ConstrainedHilbertIndex one. If it is more efficient, we use it, otherwise we keep the generic one.
-                index = ConstrainedHilbertIndex(index, self._constraint_fn)
-                specialized_index = get_specialized_constrained_hilbert_index(
-                    self._constraint_fn, self._local_states, self.size
+            if not self.constrained:
+                index = UniformTensorProductHilbertIndex(self._local_states, self.size)
+            else:
+                index = optimalConstrainedHilbertindex_generic(
+                    self._local_states, self.size, self._constraint_fn
                 )
-                if specialized_index is not None:
-                    if specialized_index.n_states_bound < index.n_states_bound:
-                        index = specialized_index
             self._hilbert_index_ = index
         return self._hilbert_index_
 

@@ -23,51 +23,27 @@ import jax.numpy as jnp
 from typing import Union
 from netket.utils.types import Array
 from netket.utils import struct, StaticRange
+from netket.utils.dispatch import dispatch
 
-from .base import HilbertIndex
+from ..base import HilbertIndex
+from ..uniform_tensor import UniformTensorProductHilbertIndex
 
 
-# This function has exponential runtime in self.size, so we cache it in order to
-# only compute it once.
-# TODO: distribute over devices/MPI (expensive constraint_fun),  choose better chunk size
-@partial(jax.jit, static_argnames=("chunk_size"))
-def compute_constrained_to_bare_conversion_table(
-    hilbert_index: HilbertIndex,
-    constraint_fun: Callable[[Array], Array],
-    *,
-    chunk_size: int = 65536,
-):
+@dispatch.abstract
+def optimalConstrainedHilbertindex(local_states, size, constraint):
     """
-    Computes the conversion table that converts the 'constrained' indices
-    of an hilbert space to bare indices, so that routines generating
-    only values in an unconstrained space can be used.
+    Returns the optimal Hilbert Index to index into the uniform
+    state with local degrees of freedom `local_states`, size sites
+    and given constraint.
+
+    This function uses dispatch to select a potential optimal implementation,
+    and generally returns a default implementation if None better is available.
 
     Args:
-        hilbert_index:
-            A dataclass with only metadata (only pytree_node=False)
-        constraint_fun:
-            A dataclass with only metadata (only pytree_node=False) and __call__ attribute
-            Python functions can be used by wrapping them in a jax.tree_util.Partial
-            with no args and keywords.
-        chunk_size: (optional, default=65536)
-            This function operates on blocks of `chunk_size` states at a time in order
-            to lower the memory cost. The default chunk size has been chosen arbitrarily
-            and might need tweaking depending on the particular constraint_fun.
+        local_states: The StaticRange Local states.
+        size: integer of the number of degrees of freedom.
+        constraint: callable class implementing the constraint.
     """
-
-    with jax.ensure_compile_time_eval():
-        n_chunks = int(np.ceil(hilbert_index.n_states / chunk_size))
-        bare_number_chunks = []
-        for i in range(n_chunks):
-            id_start = chunk_size * i
-            id_end = np.minimum(chunk_size * (i + 1), hilbert_index.n_states)
-            ids = jnp.arange(id_start, id_end, dtype=jnp.int32)
-            states = hilbert_index.numbers_to_states(ids)
-            is_constrained = constraint_fun(states)
-            (chunk_bare_number,) = jnp.nonzero(is_constrained)
-            bare_number_chunks.append(chunk_bare_number + id_start)
-        bare_numbers = jnp.concatenate(bare_number_chunks)
-    return bare_numbers
 
 
 @struct.dataclass
@@ -130,3 +106,53 @@ class ConstrainedHilbertIndex(HilbertIndex):
         and by Hilbert spaces to decide which implementation to pick.
         """
         return self.unconstrained_index.n_states
+
+
+@optimalConstrainedHilbertindex.dispatch
+def optimalConstrainedHilbertindex_generic(local_states, size, constraint):
+    # Generic dispatch rule based on a lookup table.
+    bare_index = UniformTensorProductHilbertIndex(local_states, size)
+    return ConstrainedHilbertIndex(bare_index, constraint)
+
+
+# This function has exponential runtime in self.size, so we cache it in order to
+# only compute it once.
+# TODO: distribute over devices/MPI (expensive constraint_fun),  choose better chunk size
+@partial(jax.jit, static_argnames=("chunk_size"))
+def compute_constrained_to_bare_conversion_table(
+    hilbert_index: HilbertIndex,
+    constraint_fun: Callable[[Array], Array],
+    *,
+    chunk_size: int = 65536,
+):
+    """
+    Computes the conversion table that converts the 'constrained' indices
+    of an hilbert space to bare indices, so that routines generating
+    only values in an unconstrained space can be used.
+
+    Args:
+        hilbert_index:
+            A dataclass with only metadata (only pytree_node=False)
+        constraint_fun:
+            A dataclass with only metadata (only pytree_node=False) and __call__ attribute
+            Python functions can be used by wrapping them in a jax.tree_util.Partial
+            with no args and keywords.
+        chunk_size: (optional, default=65536)
+            This function operates on blocks of `chunk_size` states at a time in order
+            to lower the memory cost. The default chunk size has been chosen arbitrarily
+            and might need tweaking depending on the particular constraint_fun.
+    """
+
+    with jax.ensure_compile_time_eval():
+        n_chunks = int(np.ceil(hilbert_index.n_states / chunk_size))
+        bare_number_chunks = []
+        for i in range(n_chunks):
+            id_start = chunk_size * i
+            id_end = np.minimum(chunk_size * (i + 1), hilbert_index.n_states)
+            ids = jnp.arange(id_start, id_end, dtype=jnp.int32)
+            states = hilbert_index.numbers_to_states(ids)
+            is_constrained = constraint_fun(states)
+            (chunk_bare_number,) = jnp.nonzero(is_constrained)
+            bare_number_chunks.append(chunk_bare_number + id_start)
+        bare_numbers = jnp.concatenate(bare_number_chunks)
+    return bare_numbers
