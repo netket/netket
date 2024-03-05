@@ -29,26 +29,32 @@ class SumConstraint:
         return x.sum(axis=1) == self.sum_value
 
 
-class SumConstrainedHilbertIndexFock(HilbertIndex):
+class SumConstrainedHilbertIndex(HilbertIndex):
     """
-    Specialized implementation for a constrained Fock space with a fixed number of particles.
+    Specialized implementation for a constrained space with a SumConstraint.
     Does not require the unconstrained space to be indexable.
-
-    This is the generic Implementation supporting non-uniform shape,
-    i.e. different cutoff (n_max) on different sites.
     """
 
-    shape: tuple[int] = struct.field(pytree_node=False)
-    n_particles: int = struct.field(pytree_node=False)
+    size: int = struct.field(pytree_node=False)
+    _n_particles: int = struct.field(pytree_node=False)
+    _range: StaticRange
 
-    def __init__(self, shape, n_particles):
-        self.shape = shape
-        self.n_particles = n_particles
+    def __init__(self, range_, size, sum_value):
+        self.size = size
+        self._range = range_
+        # sum_value: e.g. total_sz
+        # convert the constraint to a constraint for the number of particles
+        # of a fock space with staes in the range [0,1,...,n]
+        self._n_particles = round((sum_value - range_.start * size) / range_.step)
+
+    @property
+    def shape(self):
+        return (self.range_.length,) * self.size
 
     @property
     def n_states(self):
         if self._n_max == 1:
-            return math.comb(self.size, self.n_particles)
+            return math.comb(self.size, self._n_particles)
         else:
             return self._lookup_table.n_states
 
@@ -70,7 +76,7 @@ class SumConstrainedHilbertIndexFock(HilbertIndex):
         return self._lookup_table.all_states()
 
     def _compute_all_states(self):
-        if self.n_particles == 0:
+        if self._n_particles == 0:
             return jnp.zeros((1, self.size), dtype=jnp.int32)
         c = jnp.repeat(
             jnp.eye(self.size, dtype=jnp.int32),
@@ -78,13 +84,14 @@ class SumConstrainedHilbertIndexFock(HilbertIndex):
             axis=0,
         )
         combs = jnp.array(
-            list(itertools.combinations(np.arange(len(c)), self.n_particles))
+            list(itertools.combinations(np.arange(len(c)), self._n_particles))
         )
         all_states = c[combs].sum(axis=1, dtype=jnp.int32)
         if (np.array(self.shape) > 1).any():
             with jax.ensure_compile_time_eval():
                 all_states = jnp.unique(all_states, axis=0)
-        return jnp.asarray(all_states)
+        all_states_fock = jnp.asarray(all_states)
+        return self._range.numbers_to_states(all_states_fock, dtype=np.int32)
 
     @struct.property_cached(pytree_node=True)
     def _lookup_table(self) -> LookupTableHilbertIndex:
@@ -94,36 +101,12 @@ class SumConstrainedHilbertIndexFock(HilbertIndex):
     def n_states_bound(self):
         # upper bound on n_states, exact if n_max == 1
         # number of combinations to check in _compute_all_states
-        return math.comb((np.array(self.shape) - 1).sum(), self.n_particles)
+        return math.comb((np.array(self.shape) - 1).sum(), self._n_particles)
 
     @property
     def is_indexable(self):
         # make sure we have less than than max_states to check in _compute_all_states
         return is_indexable(self.n_states_bound)
-
-
-class SumConstrainedHilbertIndex(SumConstrainedHilbertIndexFock):
-    """
-    Specialized implementation for a constrained Fock space with a fixed number of particles.
-    Does not require the unconstrained space to be indexable.
-
-    This is the specialized implementation for spaces with uniform shape,
-    with same StaticRange of local states on all sites.
-    """
-
-    _range: StaticRange
-
-    def __init__(self, range_, size, sum_value):
-        # sum_value: e.g. total_sz
-        self.shape = (range_.length,) * size
-        # convert the constraint to a constraint on the range [0,1,...,n]
-        self.n_particles = round((sum_value - range_.start * size) / range_.step)
-
-        self._range = range_
-
-    def _compute_all_states(self):
-        all_states_fock = super()._compute_all_states()
-        return self._range.numbers_to_states(all_states_fock, dtype=np.int32)
 
 
 register_constrained_hilbert_index(
