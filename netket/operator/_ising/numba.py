@@ -114,7 +114,9 @@ class Ising(IsingBase):
         for i in range(x.shape[0]):
             mels[diag_ind] = 0.0
             for k in range(edges.shape[0]):
-                mels[diag_ind] += J * x[i, edges[k, 0]] * x[i, edges[k, 1]]
+                mels[diag_ind] += (
+                    J * (2 * x[i, edges[k, 0]] - 1) * (2 * x[i, edges[k, 1]] - 1)
+                )
 
             odiag_ind = 1 + diag_ind
 
