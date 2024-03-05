@@ -332,7 +332,7 @@ def test_flip_state_fock_infinite():
 def test_hilbert_index_discrete(hi: DiscreteHilbert):
     assert isinstance(hi.constrained, bool)
 
-    log_max_states = np.log(nk.hilbert._abstract_hilbert.max_states)
+    log_max_states = np.log(nk.hilbert.index.max_states)
 
     if hi.is_indexable:
         local_sizes = [hi.size_at_index(i) for i in range(hi.size)]
@@ -358,10 +358,13 @@ def test_hilbert_index_discrete(hi: DiscreteHilbert):
 
     else:
         assert not hi.is_indexable
-
         with pytest.raises(RuntimeError):
             hi.n_states
+        with pytest.raises(RuntimeError):
+            hi.all_states()
 
+
+def test_hilbert_index_discrete_large_errors():
     # Check that a large hilbert space raises error when constructing matrices
     g = nk.graph.Hypercube(length=100, n_dim=1)
     op = nk.operator.Heisenberg(hilbert=Spin(s=0.5, N=g.n_nodes), graph=g)
@@ -432,11 +435,12 @@ def test_inhomogeneous_fock():
 
     for i in range(0, 40):
         assert hi.size_at_index(i) == 8
-        assert hi.states_at_index(i) == list(range(8))
+        # np.states_at_index(i) is a StaticRange
+        np.testing.assert_array_equal(hi.states_at_index(i), np.arange(8))
 
     for i in range(40, 80):
         assert hi.size_at_index(i) == 3
-        assert hi.states_at_index(i) == list(range(3))
+        np.testing.assert_array_equal(hi.states_at_index(i), np.arange(3))
 
 
 def test_fermions():
@@ -505,7 +509,7 @@ def test_fermions_states():
     hi = nkx.hilbert.SpinOrbitalFermions(5, s=1 / 2, n_fermions=2)
     assert hi.size == 10
     assert hi.constrained
-    np.testing.assert_equal(hi.all_states().sum(axis=-1), 2)
+    np.testing.assert_array_equal(hi.all_states().sum(axis=-1), 2)
     # distribute 2 fermions over (2*number of orbitals)
     assert hi.n_states == int(scipy.special.comb(2 * 5, 2))
 
