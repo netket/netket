@@ -30,7 +30,14 @@ class SumConstraint:
 
 
 class SumConstrainedHilbertIndexFock(HilbertIndex):
-    # Fock, supports non-uniform shape
+    """
+    Specialized implementation for a constrained Fock space with a fixed number of particles.
+    Does not require the unconstrained space to be indexable.
+
+    This is the generic Implementation supporting non-uniform shape,
+    i.e. different cutoff (n_max) on different sites.
+    """
+
     shape: tuple[int] = struct.field(pytree_node=False)
     n_particles: int = struct.field(pytree_node=False)
 
@@ -96,7 +103,14 @@ class SumConstrainedHilbertIndexFock(HilbertIndex):
 
 
 class SumConstrainedHilbertIndex(SumConstrainedHilbertIndexFock):
-    # shape is uniform, with same StaticRange on all sites
+    """
+    Specialized implementation for a constrained Fock space with a fixed number of particles.
+    Does not require the unconstrained space to be indexable.
+
+    This is the specialized implementation for spaces with uniform shape,
+    with same StaticRange of local states on all sites.
+    """
+
     _range: StaticRange
 
     def __init__(self, range_, size, sum_value):
