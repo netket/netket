@@ -27,7 +27,7 @@ from .base import HilbertIndex, _is_indexable
 class LookupTableHilbertIndex(HilbertIndex):
     _all_states: HashableArray = struct.field(pytree_node=False)
 
-    def __init__(self, all_states: Array, _sorted=False):
+    def __init__(self, all_states: Array):
         self._all_states = HashableArray(all_states)
 
     @property
