@@ -62,17 +62,20 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
 
         self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
-        self._hi_local_states = tuple(self.hilbert.local_states)
 
     @jax.jit
     @wraps(IsingBase.n_conn)
     def n_conn(self, x):
-        return _ising_n_conn_jax(x, self._edges, self.h, self.J)
+        x_ids = self.hilbert.states_to_local_indices(x)
+        return _ising_n_conn_jax(x_ids, self._edges, self.h, self.J)
 
     @jax.jit
     @wraps(IsingBase.get_conn_padded)
     def get_conn_padded(self, x):
-        return _ising_kernel_jax(x, self._edges, self.h, self.J, self._hi_local_states)
+        x_ids = self.hilbert.states_to_local_indices(x)
+        xp_ids, mels = _ising_kernel_jax(x_ids, self._edges, self.h, self.J)
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
+        return xp, mels
 
     def to_numba_operator(self) -> "Ising":  # noqa: F821
         """
@@ -124,26 +127,15 @@ def _ising_mels_jax(x, edges, h, J):
     return mels
 
 
-def _ising_conn_states_jax(x, cond, local_states):
-    # TODO here we could special-case for qubit / ising
-    # by taking -x / 1 - x
-    # i.e
-    # if local_states[0] + local_states[1] == 0:
-    #     return jnp.where(cond, -x, x)
-    # elif local_states[0] == 0:
-    #     return jnp.where(cond, local_states[1] - x, x)
-    # elif local_states[1] == 0:
-    #     return jnp.where(cond, local_states[0] - x, x)
-    # else:
-    #     ...
-    was_state_0 = x == local_states[0]
-    state_0 = jnp.asarray(local_states[0], dtype=x.dtype)
-    state_1 = jnp.asarray(local_states[1], dtype=x.dtype)
+def _ising_conn_states_jax(x, cond):
+    was_state_0 = x == 0
+    state_0 = jnp.asarray(0, dtype=x.dtype)
+    state_1 = jnp.asarray(1, dtype=x.dtype)
     return jnp.where(cond ^ was_state_0, state_0, state_1)
 
 
-@partial(jax.jit, static_argnames=("local_states"))
-def _ising_kernel_jax(x, edges, h, J, local_states):
+@partial(jax.jit)
+def _ising_kernel_jax(x, edges, h, J):
     hilb_size = x.shape[-1]
     batch_shape = x.shape[:-1]
     x = x.reshape((-1, hilb_size))
@@ -156,7 +148,7 @@ def _ising_kernel_jax(x, edges, h, J, local_states):
     else:
         max_conn_size = hilb_size + 1
         flip = jnp.eye(max_conn_size, hilb_size, k=-1, dtype=bool)
-        x_prime = _ising_conn_states_jax(x[..., None, :], flip, local_states)
+        x_prime = _ising_conn_states_jax(x[..., None, :], flip)
 
     x_prime = x_prime.reshape(batch_shape + x_prime.shape[1:])
 
