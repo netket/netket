@@ -22,7 +22,7 @@ max_states = np.iinfo(np.int32).max
 """int: Maximum number of states that can be indexed"""
 
 
-def is_indexable(shape: Union[tuple[Scalar], Scalar]):
+def is_indexable(shape: Union[tuple[Scalar], Scalar]) -> bool:
     """
     Returns whether a discrete Hilbert space of shape `shape` is
     indexable (i.e., its total number of states is below the maximum).
