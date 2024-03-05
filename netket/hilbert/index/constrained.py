@@ -21,7 +21,6 @@ from typing import Callable
 
 import jax
 import jax.numpy as jnp
-from jax.tree_util import Partial
 
 from typing import Union
 from netket.utils.types import Array
@@ -68,22 +67,15 @@ def compute_constrained_to_bare_conversion_table(
     return bare_numbers
 
 
+@struct.dataclass
 class ConstrainedHilbertIndex(HilbertIndex):
-    _unconstrained_index: HilbertIndex
-    _constraint_fun: Partial = struct.field(pytree_node=False)
-
-    def __init__(
-        self,
-        unconstrained_index: HilbertIndex,
-        constraint_fun: Callable[[Array], Array],
-    ):
-        self._unconstrained_index = unconstrained_index
-        self._constraint_fun = constraint_fun
+    unconstrained_index: HilbertIndex
+    constraint_fun: Callable[[Array], Array] = struct.field(pytree_node=False)
 
     @struct.property_cached(pytree_node=True)
     def _bare_numbers(self) -> Array:
         return compute_constrained_to_bare_conversion_table(
-            self._unconstrained_index, self._constraint_fun
+            self.unconstrained_index, self.constraint_fun
         )
 
     @property
@@ -92,19 +84,19 @@ class ConstrainedHilbertIndex(HilbertIndex):
 
     @property
     def size(self) -> int:
-        return self._unconstrained_index.size
+        return self.unconstrained_index.size
 
     @property
     def local_states(self) -> Union[Array, StaticRange]:
-        return self._unconstrained_index.local_states
+        return self.unconstrained_index.local_states
 
     @property
     def local_size(self) -> int:
-        return self._unconstrained_index.local_size
+        return self.unconstrained_index.local_size
 
     @jax.jit
     def _states_to_numbers(self, states: Array) -> Array:
-        out = self._unconstrained_index.states_to_numbers(states)
+        out = self.unconstrained_index.states_to_numbers(states)
         return jnp.searchsorted(self._bare_numbers, out)
 
     def states_to_numbers(self, states: Array) -> Array:
@@ -114,7 +106,7 @@ class ConstrainedHilbertIndex(HilbertIndex):
     def _numbers_to_states(self, numbers: Array) -> Array:
         # convert to original space
         numbers = self._bare_numbers[numbers]
-        return self._unconstrained_index.numbers_to_states(numbers)
+        return self.unconstrained_index.numbers_to_states(numbers)
 
     def numbers_to_states(self, numbers: Array) -> Array:
         return self._numbers_to_states(numbers)
@@ -122,17 +114,14 @@ class ConstrainedHilbertIndex(HilbertIndex):
     def all_states(self) -> Array:
         return self.numbers_to_states(jnp.arange(self.n_states))
 
-    def _to_lookup_table(self) -> HilbertIndex:
-        return LookupTableHilbertIndex(self.all_states())
-
     @property
     def is_indexable(self) -> bool:
-        return self._unconstrained_index.is_indexable
+        return self.unconstrained_index.is_indexable
 
     @property
     def n_states_bound(self) -> int:
         # upper bound on n_states
-        return self._unconstrained_index.n_states
+        return self.unconstrained_index.n_states
 
 
 class SumConstrainedHilbertIndexFock(HilbertIndex):
