@@ -32,8 +32,6 @@ from .unconstrained import LookupTableHilbertIndex
 
 # This function has exponential runtime in self.size, so we cache it in order to
 # only compute it once.
-# hilbert_index shoud be a dataclass with only metadata (only pytree_node=False)
-# constraint_fun should be a Partial with no args and keywords
 # TODO: distribute over devices/MPI (expensive constraint_fun),  choose better chunk size
 @partial(jax.jit, static_argnames=("chunk_size"))
 def compute_constrained_to_bare_conversion_table(
@@ -47,9 +45,17 @@ def compute_constrained_to_bare_conversion_table(
     of an hilbert space to bare indices, so that routines generating
     only values in an unconstrained space can be used.
 
-    This function operates on blocks of `chunk_size` states at a time in order
-    to lower the memory cost. The default chunk size has been chosen by instinct
-    and is likely wrong.
+    Args:
+        hilbert_index:
+            A dataclass with only metadata (only pytree_node=False)
+        constraint_fun:
+            A dataclass with only metadata (only pytree_node=False) and __call__ attribute
+            Python functions can be used by wrapping them in a jax.tree_util.Partial
+            with no args and keywords.
+        chunk_size: (optional, default=65536)
+            This function operates on blocks of `chunk_size` states at a time in order
+            to lower the memory cost. The default chunk size has been chosen arbitrarily
+            and might need tweaking depending on the particular constraint_fun.
     """
 
     with jax.ensure_compile_time_eval():
