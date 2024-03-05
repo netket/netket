@@ -23,6 +23,13 @@ from .base import HilbertIndex, is_indexable
 
 @struct.dataclass
 class UniformTensorProductHilbertIndex(HilbertIndex):
+    """
+    Indexes a tensor product of multiple HilbertIndexes, ordered in LSB order
+    (so when increasing by one the index, the right-most degree of freedom is increased).
+    This index assumes a tensor product of the same Hilbert index with itself _size times,
+    and is used to represent all UniformHilbert spaces.
+    """
+
     # tensor product with uniform local space
     local_index: HilbertIndex
     size: int = struct.field(pytree_node=False)
