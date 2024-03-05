@@ -72,6 +72,13 @@ def compute_constrained_to_bare_conversion_table(
 
 @struct.dataclass
 class ConstrainedHilbertIndex(HilbertIndex):
+    """
+    Indexes a constrained hilbert space with a generic constraint function,
+    by building an internal lookup table of all states in the constrained space.
+
+    Requires that the unconstrained index is indexable.
+    """
+
     unconstrained_index: HilbertIndex
     constraint_fun: Callable[[Array], Array] = struct.field(pytree_node=False)
 
