@@ -128,7 +128,5 @@ class ConstrainedHilbertIndex(HilbertIndex):
         Returns an integer upper bound on the total number of states.
         Used as a proxy of the computational cost of using this indexer object,
         and by Hilbert spaces to decide which implementation to pick.
-
-        Is used to avoid the expensive computation of the exact n_states.
         """
         return self.unconstrained_index.n_states
