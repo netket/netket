@@ -17,6 +17,7 @@ from typing import Optional, Union
 import numpy as np
 
 from netket.utils import StaticRange
+from netket.utils.types import DType
 
 from .homogeneous import HomogeneousHilbert
 from .index.constraints import SumConstraint
@@ -37,6 +38,7 @@ class Fock(HomogeneousHilbert):
         n_max: Optional[int] = None,
         N: int = 1,
         n_particles: Optional[int] = None,
+        dtype: DType = None,
     ):
         r"""
         Constructs a new ``Boson`` given a maximum occupation number, number of sites
@@ -88,10 +90,10 @@ class Fock(HomogeneousHilbert):
             self._n_particles = None
 
         if self._n_max is not None:
+            if dtype is None:
+                dtype = np.int8 if self._n_max < 2**6 else int
             # assert self._n_max > 0
-            local_states = StaticRange(
-                0, 1, self._n_max + 1, dtype=np.int8 if self._n_max < 2**6 else int
-            )
+            local_states = StaticRange(0, 1, self._n_max + 1, dtype=dtype)
         else:
             self._n_max = FOCK_MAX
             local_states = None

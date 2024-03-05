@@ -17,6 +17,7 @@ from typing import Optional, Union
 import numpy as np
 
 from netket.utils import StaticRange
+from netket.utils.types import DType
 
 from .homogeneous import HomogeneousHilbert
 
@@ -24,7 +25,7 @@ from .homogeneous import HomogeneousHilbert
 class Qubit(HomogeneousHilbert):
     r"""Hilbert space obtained as tensor product of local qubit states."""
 
-    def __init__(self, N: int = 1):
+    def __init__(self, N: int = 1, dtype: DType = np.int8):
         r"""Initializes a qubit hilbert space.
 
         Args:
@@ -38,7 +39,7 @@ class Qubit(HomogeneousHilbert):
             >>> print(hi.size)
             100
         """
-        super().__init__(StaticRange(0, 1, 2, dtype=np.int8), N)
+        super().__init__(StaticRange(0, 1, 2, dtype=dtype), N)
 
     def __pow__(self, n):
         return Qubit(self.size * n)

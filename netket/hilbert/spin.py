@@ -18,6 +18,7 @@ from typing import Optional, Union
 import numpy as np
 
 from netket.utils import StaticRange
+from netket.utils.types import DType
 
 from .homogeneous import HomogeneousHilbert
 
@@ -60,6 +61,7 @@ class Spin(HomogeneousHilbert):
         s: float,
         N: int = 1,
         total_sz: Optional[float] = None,
+        dtype: DType = None,
     ):
         r"""Hilbert space obtained as tensor product of local spin states.
 
@@ -78,12 +80,11 @@ class Spin(HomogeneousHilbert):
            4
         """
         local_size = round(2 * s + 1)
-        local_states = np.empty(local_size)
-
         assert int(2 * s + 1) == local_size
-        local_states = StaticRange(
-            1 - local_size, 2, local_size, dtype=np.int8 if local_size < 2**7 else int
-        )
+        if dtype is None:
+            dtype = np.int8 if local_size < 2**7 else int
+
+        local_states = StaticRange(1 - local_size, 2, local_size, dtype=dtype)
 
         _check_total_sz(total_sz, s, N)
         if total_sz is not None:
