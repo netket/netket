@@ -23,16 +23,21 @@ from netket.hilbert import HomogeneousHilbert
 from netket.utils.types import NNInitFunc
 from netket.jax import dtype_complex
 
+default_kernel_init = normal(stddev=0.01)
+
 
 class MPSPeriodic(nn.Module):
     r"""
     A periodic Matrix Product State (MPS) for a quantum state of discrete
-    degrees of freedom, wrapped as Jax machine.
+    degrees of freedom.
     The MPS is defined as
-    .. math:: \Psi(s_1,\dots s_N) = \mathrm{Tr} \left[ A[s_1]\dots A[s_N] \right] ,
-    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_1]` is a matrix
-    of dimension (bdim,bdim), depending on the value of the local quantum number :math:`s_i`.
+
+    .. math:: \Psi(s_1,\dots s_N) = \mathrm{Tr} \left[ A[s_1] \dots A[s_N] \right] ,
+
+    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_i]` is a matrix
+    of dimension (bond_dim,bond_dim), depending on the value of the local quantum number :math:`s_i`.
     """
+
     hilbert: HomogeneousHilbert
     """Hilbert space on which the state is defined."""
     bond_dim: int
@@ -46,7 +51,7 @@ class MPSPeriodic(nn.Module):
     """
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
-    kernel_init: NNInitFunc = normal(stddev=0.01)
+    kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
     param_dtype: Any = jnp.float64
     """complex or float, whether the variational parameters of the MPS are real or complex."""
@@ -57,7 +62,7 @@ class MPSPeriodic(nn.Module):
 
         self.param_dtype_cplx = dtype_complex(self.param_dtype)
 
-        # determine shape of unit cell
+        # determine the shape of the unit cell
         if self.symperiod is None:
             self._symperiod = L
         else:
@@ -118,17 +123,20 @@ class MPSOpen(nn.Module):
     An open Matrix Product State (MPS) for a quantum state of discrete
     degrees of freedom, wrapped as Jax machine.
     The MPS is defined as
+
     .. math:: \Psi(s_1,\dots s_N) = \mathrm{Tr} \left[ A[s_1]\dots A[s_N] \right] ,
-    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_1]` is a matrix
-    of dimension (bdim,bdim), depending on the value of the local quantum number :math:`s_i`.
+
+    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_{1,N}]` are vectors of dimension (bond_dim) and :math:`A[s_{2,\dots,N-1}]` are matrices
+    of dimension (bond_dim,bond_dim), depending on the value of the local quantum number :math:`s_i`.
     """
+
     hilbert: HomogeneousHilbert
     """Hilbert space on which the state is defined."""
     bond_dim: int
     """Bond dimension of the MPS tensors."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
-    kernel_init: NNInitFunc = normal(stddev=0.01)
+    kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
     param_dtype: Any = jnp.float64
     """complex or float, whether the variational parameters of the MPS are real or complex."""
@@ -148,7 +156,7 @@ class MPSOpen(nn.Module):
             + iden_boundary_tensor
         )
 
-        # determine shape of unit cell
+        # determine the shape of the unit cell
         unit_cell_shape = (L - 2, d, D, D)
 
         iden_tensors = jnp.repeat(

@@ -25,7 +25,10 @@ This section lists some simple variational architectures.
    RBMMultiVal
    RBMSymm
    Jastrow
+   MPSOpen
    MPSPeriodic
+   MPDOOpen
+   MPDOPeriodic
    NDM
    GCNN
 

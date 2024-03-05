@@ -1,3 +1,17 @@
+# Copyright 2024 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.Mon
+
 from typing import Any, Optional
 
 from flax import linen as nn
@@ -10,22 +24,24 @@ from netket.hilbert import HomogeneousHilbert
 from netket.utils.types import NNInitFunc
 from netket.jax import dtype_complex
 
+default_kernel_init = normal(stddev=0.01)
+
 
 class MPDOPeriodic(nn.Module):
     r"""
     A Matrix Product Density Operator (MPDO) with periodic boundary conditions for a quantum mixed state of discrete
-    degrees of freedom, wrapped as a Jax machine.
+    degrees of freedom. The purification is used.
 
     The MPDO is defined as
-    .. math:: \rho(s_1,\dots s_N, s_1',\dots s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}} A^{\alpha_1}[s_1, s_1']
-    \dots A^{\alpha_{N-1}}[s_N, s_N'] \dots A^{\alpha_N}[s_1, s_1'],
+
+    .. math::
+        \rho(s_1,\dots s_N, s_1',\dots s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}} A^{\alpha_1}[s_1, s_1'] \dots A^{\alpha_{N-1}}[s_N, s_N'] \dots A^{\alpha_N}[s_1, s_1'],
 
     for arbitrary local quantum numbers :math:`s_i`, where :math:`A^{\alpha_i}[s_i, s_i']` is a tensor
     of dimensions (bdim, bdim), depending on the value of the local quantum number :math:`s_i` and
-    the bond index :math:`\alpha_{i}` connecting the adjacent tensors.
+    the bond index :math:`\alpha_{i}` connecting the adjacent tensors (the purification).
 
-    The periodic boundary conditions imply that there are connections between the first and the last tensors:
-    .. math:: A^{\alpha_N}[s_1, s_1'] = A^{\alpha_1}[s_1, s_1'] \delta_{s_N, s_N'}
+    The periodic boundary conditions imply that there are connections between the first and the last tensors.
     """
 
     hilbert: HomogeneousHilbert
@@ -43,11 +59,9 @@ class MPDOPeriodic(nn.Module):
     """
     param_dtype: Any = jnp.float64
     """complex or float, whether the variational parameters of the MPDO are real or complex."""
-
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
-
-    kernel_init: NNInitFunc = normal(stddev=0.01)
+    kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
 
     def setup(self):
@@ -61,7 +75,7 @@ class MPDOPeriodic(nn.Module):
 
         self.param_dtype_cplx = dtype_complex(self.param_dtype)
 
-        # determine shape of unit cell
+        # determine the shape of the unit cell
         if self.symperiod is None:
             self._symperiod = L
         else:
@@ -118,18 +132,19 @@ class MPDOPeriodic(nn.Module):
 class MPDOOpen(nn.Module):
     r"""
     A Matrix Product Density Operator (MPDO) with open boundary conditions for a quantum mixed state of discrete
-    degrees of freedom, wrapped as a Jax machine.
+    degrees of freedom. The purification is used.
 
     The MPDO is defined as
-    .. math:: \rho(s_1,\dots s_N, s_1',\dots s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}}
-    A[s_1, s_1']^{\alpha_1} \dots A[s_N, s_N']^{\alpha_{N-1}},
+
+    .. math::
+        \rho(s_1,\dots, s_N, s_1',\dots, s_N') = \sum_{\alpha_1, \dots, \alpha_{N-1}} A[s_1, s_1']^{\alpha_1} \dots A[s_N, s_N']^{\alpha_{N-1}},
 
     for arbitrary local quantum numbers :math:`s_i`, where :math:`A^{\alpha_i}[s_i, s_i']` is a tensor
     of dimensions (bdim, bdim), depending on the value of the local quantum number :math:`s_i`
-    and the bond index :math:`\alpha_{i}` connecting the adjacent tensors.
+    and the bond index :math:`\alpha_{i}` connecting the adjacent tensors (the purification).
 
     The open boundary conditions imply that there are no connections between the first and the last tensors:
-    .. math:: A[s_1, s_1']^{\alpha_0} = A[s_N, s_N']^{\alpha_N} = \delta_{s_1, s_1'} \delta_{s_N, s_N'}
+    :math:`A[s_1, s_1']^{\alpha_0} = A[s_N, s_N']^{\alpha_N} = \delta_{s_1, s_1'} \delta_{s_N, s_N'}`
     """
 
     hilbert: HomogeneousHilbert
@@ -140,7 +155,7 @@ class MPDOOpen(nn.Module):
     """Kraus dimension of the MPDO tensors."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
-    kernel_init: NNInitFunc = normal(stddev=0.01)
+    kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
     param_dtype: Any = jnp.float64
     """complex or float, whether the variational parameters of the MPDO are real or complex."""
@@ -165,7 +180,7 @@ class MPDOOpen(nn.Module):
             + iden_boundary_tensor
         )
 
-        # determine shape of unit cell
+        # determine the shape of the unit cell
         unit_cell_shape = (L - 2, d, D, D, Χ)
 
         # define diagonal tensors with correct unit cell shape
