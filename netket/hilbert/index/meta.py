@@ -18,7 +18,7 @@ import jax.numpy as jnp
 from netket.utils import struct
 from netket.utils.types import Array
 
-from .base import HilbertIndex, _is_indexable
+from .base import HilbertIndex, is_indexable
 
 
 class UniformTensorProductHilbertIndex(HilbertIndex):
@@ -66,4 +66,4 @@ class UniformTensorProductHilbertIndex(HilbertIndex):
 
     @property
     def is_indexable(self) -> bool:
-        return _is_indexable(self.n_states)
+        return is_indexable(self.n_states)

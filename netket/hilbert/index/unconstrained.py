@@ -21,7 +21,7 @@ from netket.utils.types import Array
 from netket.utils import HashableArray, struct
 from netket.jax import sort, searchsorted
 
-from .base import HilbertIndex, _is_indexable
+from .base import HilbertIndex, is_indexable
 
 
 class LookupTableHilbertIndex(HilbertIndex):
@@ -52,4 +52,4 @@ class LookupTableHilbertIndex(HilbertIndex):
 
     @property
     def is_indexable(self) -> bool:
-        return _is_indexable(self.n_states)
+        return is_indexable(self.n_states)

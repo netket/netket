@@ -332,7 +332,7 @@ def test_flip_state_fock_infinite():
 def test_hilbert_index_discrete(hi: DiscreteHilbert):
     assert isinstance(hi.constrained, bool)
 
-    log_max_states = np.log(nk.hilbert.index.base.max_states)
+    log_max_states = np.log(nk.hilbert.index.max_states)
 
     if hi.is_indexable:
         local_sizes = [hi.size_at_index(i) for i in range(hi.size)]

@@ -29,7 +29,7 @@ defined in the file `base.py`.
 
 """
 
-from .base import HilbertIndex
+from .base import HilbertIndex, is_indexable, max_states
 from .constrained import ConstrainedHilbertIndex, SumConstrainedHilbertIndex
 from .meta import UniformTensorProductHilbertIndex
 from .unconstrained import LookupTableHilbertIndex

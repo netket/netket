@@ -23,7 +23,7 @@ from netket.utils.types import Array
 from netket.errors import HilbertIndexingDuringTracingError, concrete_or_error
 
 from .abstract_hilbert import AbstractHilbert
-from .index.base import _is_indexable
+from .index import is_indexable
 
 
 class DiscreteHilbert(AbstractHilbert):
@@ -229,7 +229,7 @@ class DiscreteHilbert(AbstractHilbert):
         """Whether the space can be indexed with an integer"""
         if not self.is_finite:
             return False
-        return _is_indexable(self.shape)
+        return is_indexable(self.shape)
 
     def __mul__(self, other: "DiscreteHilbert"):
         if type(self) == type(other):

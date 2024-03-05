@@ -15,7 +15,8 @@
 import numpy as np
 import jax.numpy as jnp
 
-from .discrete_hilbert import DiscreteHilbert, _is_indexable
+from .index import is_indexable
+from .discrete_hilbert import DiscreteHilbert
 from .tensor_hilbert import TensorHilbert
 
 
@@ -64,7 +65,7 @@ class TensorDiscreteHilbert(TensorHilbert, DiscreteHilbert):
     @property
     def is_indexable(self) -> bool:
         """Whether the space can be indexed with an integer"""
-        return all(hi.is_indexable for hi in self._hilbert_spaces) and _is_indexable(
+        return all(hi.is_indexable for hi in self._hilbert_spaces) and is_indexable(
             list(hi.n_states for hi in self._hilbert_spaces)
         )
 

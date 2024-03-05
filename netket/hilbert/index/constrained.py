@@ -27,7 +27,7 @@ from typing import Union
 from netket.utils.types import Array
 from netket.utils import struct, StaticRange
 
-from .base import HilbertIndex, _is_indexable
+from .base import HilbertIndex, is_indexable
 from .unconstrained import LookupTableHilbertIndex
 
 
@@ -198,7 +198,7 @@ class SumConstrainedHilbertIndexFock(HilbertIndex):
     @property
     def is_indexable(self):
         # make sure we have less than than max_states to check in _compute_all_states
-        return _is_indexable(self.n_states_bound)
+        return is_indexable(self.n_states_bound)
 
 
 class SumConstrainedHilbertIndex(SumConstrainedHilbertIndexFock):
