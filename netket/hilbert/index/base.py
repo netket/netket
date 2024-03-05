@@ -39,29 +39,29 @@ class HilbertIndex(struct.Pytree):
     @property
     def n_states(self) -> int:
         """Returns the size of the hilbert space."""
-        return NotImplemented
+        return NotImplemented  # pragma: no cover
 
     @property
     def is_indexable(self) -> bool:
         """Whether the index can be indexed with an integer"""
-        return NotImplemented
+        return NotImplemented  # pragma: no cover
 
     def states_to_numbers(self, states: Array) -> Array:
         """Given a Batch of N states of size M, returns an array
         of np.int32 integers used to numerate those states.
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def numbers_to_states(self, numbers: Array) -> Array:
         """Given a list of N integers, returns a batch of N states of size M
         of corresponding to those states. This function is the inverse
         of `states_to_numbers`.
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def all_states(self) -> Array:
         """Should behave as `self.numbers_to_states(range(self.n_states))`
         but might be optimised for iterating across the full hilbert
         space.
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
