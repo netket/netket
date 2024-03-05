@@ -75,6 +75,7 @@ class SumConstrainedHilbertIndex(HilbertIndex):
     def all_states(self):
         return self._lookup_table.all_states()
 
+    @jax.jit
     def _compute_all_states(self):
         if self._n_particles == 0:
             return jnp.zeros((1, self.size), dtype=jnp.int32)
