@@ -105,21 +105,15 @@ class ConstrainedHilbertIndex(HilbertIndex):
         return self.unconstrained_index.local_size
 
     @jax.jit
-    def _states_to_numbers(self, states: Array) -> Array:
+    def states_to_numbers(self, states: Array) -> Array:
         out = self.unconstrained_index.states_to_numbers(states)
         return jnp.searchsorted(self._bare_numbers, out)
 
-    def states_to_numbers(self, states: Array) -> Array:
-        return self._states_to_numbers(states)
-
     @jax.jit
-    def _numbers_to_states(self, numbers: Array) -> Array:
+    def numbers_to_states(self, numbers: Array) -> Array:
         # convert to original space
         numbers = self._bare_numbers[numbers]
         return self.unconstrained_index.numbers_to_states(numbers)
-
-    def numbers_to_states(self, numbers: Array) -> Array:
-        return self._numbers_to_states(numbers)
 
     def all_states(self) -> Array:
         return self.numbers_to_states(jnp.arange(self.n_states))
