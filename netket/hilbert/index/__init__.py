@@ -30,6 +30,6 @@ defined in the file `base.py`.
 """
 
 from .base import HilbertIndex, is_indexable, max_states
-from .constraints import ConstrainedHilbertIndex, optimalConstrainedHilbertindex_generic
+from .constraints import ConstrainedHilbertIndex, optimalConstrainedHilbertindex
 from .unconstrained import LookupTableHilbertIndex
 from .uniform_tensor import UniformTensorProductHilbertIndex

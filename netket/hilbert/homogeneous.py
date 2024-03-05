@@ -23,7 +23,7 @@ from .discrete_hilbert import DiscreteHilbert
 from .index import (
     HilbertIndex,
     UniformTensorProductHilbertIndex,
-    optimalConstrainedHilbertindex_generic,
+    optimalConstrainedHilbertindex,
 )
 
 
@@ -195,7 +195,7 @@ class HomogeneousHilbert(DiscreteHilbert):
             if not self.constrained:
                 index = UniformTensorProductHilbertIndex(self._local_states, self.size)
             else:
-                index = optimalConstrainedHilbertindex_generic(
+                index = optimalConstrainedHilbertindex(
                     self._local_states, self.size, self._constraint_fn
                 )
             self._hilbert_index_ = index
