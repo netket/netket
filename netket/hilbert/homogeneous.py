@@ -152,7 +152,7 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     @property
     def constrained(self) -> bool:
-        r"""The hilbert space does not contains `prod(hilbert.shape)`
+        r"""The hilbert space does not contain `prod(hilbert.shape)`
         basis states.
 
         Typical constraints are population constraints (such as fixed
@@ -186,21 +186,26 @@ class HomogeneousHilbert(DiscreteHilbert):
 
     @property
     def _hilbert_index(self) -> HilbertIndex:
+        """
+        The `self._hilbert_index` is a lazily constructed object used to index into homogeneous Hilbert spaces.
+
+        This indexing object implements the logic for `number_to_states`, `states_to_numbers` and `n_states`,
+        as well as the handling of constraints if necessary.
+        """
         if self._hilbert_index_ is None:
             # the unconstrained index
             index = UniformTensorProductHilbertIndex(self._local_states, self.size)
             if self.constrained:
-                # generic constrained index
+                # If we have a constraint, we tentatively construct a specialised Hilbert index for that particular constraint.
+                # If this specialised indexer object exists, we check whether it is more efficient than the generic
+                # ConstrainedHilbertIndex one. If it is more efficient, we use it, otherwise we keep the generic one.
                 index = ConstrainedHilbertIndex(index, self._constraint_fn)
                 specialized_index = get_specialized_constrained_hilbert_index(
                     self._constraint_fn, self._local_states, self.size
                 )
-                # use specialized implementation if it is more efficient
-                if (
-                    specialized_index is not None
-                    and specialized_index.n_states_bound < index.n_states_bound
-                ):
-                    index = specialized_index
+                if specialized_index is not None:
+                    if specialized_index.n_states_bound < index.n_states_bound:
+                        index = specialized_index
             self._hilbert_index_ = index
         return self._hilbert_index_
 
