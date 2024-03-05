@@ -15,6 +15,13 @@ from .registry import register_constrained_hilbert_index
 
 @struct.dataclass
 class SumConstraint:
+    """
+    Constraint of an Hilbert space enforcing a total sum of all the values in the degrees of freedom.
+
+    Constructed by specifying the total sum. For Fock-like spaces this is the total population,
+    while for Spin-like spaces this is the magnetisation.
+    """
+
     sum_value: Scalar = struct.field(pytree_node=False)
 
     @jax.jit
