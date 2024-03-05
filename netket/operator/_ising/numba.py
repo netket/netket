@@ -162,14 +162,3 @@ class Ising(IsingBase):
         )
 
         return self._flattened_kernel(x, sections, self.edges, self._h, self._J)
-
-    def _get_conn_flattened_closure(self):
-        _edges = self._edges
-        _h = self._h
-        _J = self._J
-        fun = self._flattened_kernel
-
-        def gccf_fun(x, sections):  # pragma: no cover
-            return fun(x, sections, _edges, _h, _J)
-
-        return jit(nopython=True)(gccf_fun)

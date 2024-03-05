@@ -79,8 +79,10 @@ class HamiltonianRuleNumba(HamiltonianRuleBase):
     def transition(rule, sampler, machine, parameters, state, key, σ):
         """
         This implements the transition rule for `DiscreteOperator`s that are
-        implemented in Numba, relying on the `_get_conn_flattened_closure`
-        hack to make it work in numba.
+        not jax-compatible by using a :ref:`jax.pure_callback`, which has a large
+        overhead.
+
+        If possible, consider using a jax-variant of the operators.
         """
         log_prob_dtype = jax.dtypes.canonicalize_dtype(float)
 
