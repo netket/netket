@@ -34,10 +34,6 @@ class MPDOPeriodic(nn.Module):
     """Bond dimension of the MPDO tensors."""
     kraus_dim: int = 2
     """Kraus dimension of the MPDO tensors."""
-    local_size: int = 2
-    """Size of the local degrees of freedom"""
-    L: Optional[int] = None
-    """Number of sites in the MPS chain (which can be used to re-define the length)."""
     symperiod: Optional[bool] = None
     """
     Periodicity in the chain of MPDO tensors.
@@ -61,8 +57,6 @@ class MPDOPeriodic(nn.Module):
             self.bond_dim,
             self.kraus_dim,
         )
-        if self.L is not None:
-            L = self.L
         self._L, self._d, self._D, self._Χ = L, d, D, Χ
 
         self.param_dtype_cplx = dtype_complex(self.param_dtype)
@@ -144,10 +138,6 @@ class MPDOOpen(nn.Module):
     """Bond dimension of the MPDO tensors."""
     kraus_dim: int = 2
     """Kraus dimension of the MPDO tensors."""
-    local_size: int = 2
-    """Size of the local degrees of freedom"""
-    L: Optional[int] = None
-    """Number of sites in the MPS chain (which can be used to re-define the length)."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
     kernel_init: NNInitFunc = normal(stddev=0.01)
@@ -162,8 +152,6 @@ class MPDOOpen(nn.Module):
             self.bond_dim,
             self.kraus_dim,
         )
-        if self.L is not None:
-            L = self.L
         self._L, self._d, self._D, self._Χ = L, d, D, Χ
         self.param_dtype_cplx = dtype_complex(self.param_dtype)
 
