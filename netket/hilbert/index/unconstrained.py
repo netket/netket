@@ -25,6 +25,15 @@ from .base import HilbertIndex, is_indexable
 
 
 class LookupTableHilbertIndex(HilbertIndex):
+    """Index states according to a pre-defined array containing all possible states.
+
+    Does lookup (states_to_numbers) in log time in the number of states,
+    and indexing (numbers_to_states) in constant time.
+
+    The pre-defined array is sorted internally in ascending order (lexicographically).
+    Lookup of states not in all_states results in undefined behaviour.
+    """
+
     _all_states: HashableArray = struct.field(pytree_node=False)
 
     def __init__(self, all_states: Array):
