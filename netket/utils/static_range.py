@@ -185,7 +185,6 @@ class StaticRange(struct.Pytree):
         constant_sum = 2 * self.start + self.step
         return constant_sum - state
 
-    @property
     def all_states(self, dtype: DType = None):
         """Return all elements in the range. Equal to __array__
 
