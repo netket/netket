@@ -165,13 +165,9 @@ class HomogeneousHilbert(DiscreteHilbert):
         return self._constraint_fn is not None
 
     def _numbers_to_states(self, numbers: np.ndarray) -> np.ndarray:
-        if not self.is_indexable:
-            raise RuntimeError("The hilbert space is too large to be indexed.")
         return self._hilbert_index.numbers_to_states(numbers)
 
     def _states_to_numbers(self, states: np.ndarray):
-        if not self.is_indexable:
-            raise RuntimeError("The hilbert space is too large to be indexed.")
         return self._hilbert_index.states_to_numbers(states)
 
     def all_states(self) -> np.ndarray:

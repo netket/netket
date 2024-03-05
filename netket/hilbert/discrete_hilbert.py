@@ -142,6 +142,9 @@ class DiscreteHilbert(AbstractHilbert):
         if np.any(numbers >= self.n_states):
             raise ValueError("numbers outside the range of allowed states")
 
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
+
         out = self._numbers_to_states(numbers_r)
 
         return out.reshape((*numbers.shape, self.size))
@@ -170,6 +173,9 @@ class DiscreteHilbert(AbstractHilbert):
         )
 
         states_r = np.asarray(np.reshape(states, (-1, states.shape[-1])))
+
+        if not self.is_indexable:
+            raise RuntimeError("The hilbert space is too large to be indexed.")
 
         out = self._states_to_numbers(states_r)
 
