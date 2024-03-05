@@ -1,3 +1,17 @@
+# Copyright 2024 The NetKet Authors - All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from typing import Any, Optional
 
 from flax import linen as nn
@@ -23,11 +37,7 @@ class MPSPeriodic(nn.Module):
     """Hilbert space on which the state is defined."""
     bond_dim: int
     """Bond dimension of the MPS tensors."""
-    local_size: int = 2
-    """Size of the local degrees of freedom"""
-    L: Optional[int] = None
-    """Number of sites in the MPS chain (which can be used to re-define the length)."""
-    symperiod: Optional[bool] = None
+    symperiod: Optional[int] = None
     """
     Periodicity in the chain of MPS tensors.
     The chain of MPS tensors is constructed as a sequence of identical
@@ -43,8 +53,6 @@ class MPSPeriodic(nn.Module):
 
     def setup(self):
         L, d, D = self.hilbert.size, self.hilbert.local_size, self.bond_dim
-        if self.L is not None:
-            L = self.L
         self._L, self._d, self._D = L, d, D
 
         self.param_dtype_cplx = dtype_complex(self.param_dtype)
@@ -58,7 +66,9 @@ class MPSPeriodic(nn.Module):
         if L % self._symperiod == 0 and self._symperiod > 0:
             unit_cell_shape = (self._symperiod, d, D, D)
         else:
-            raise AssertionError("The number of degrees of freedom of the Hilbert space needs to be a multiple of the period of the MPS")
+            raise AssertionError(
+                "The number of degrees of freedom of the Hilbert space needs to be a multiple of the period of the MPS"
+            )
 
         # define diagonal tensors with correct unit cell shape
         iden_tensors = jnp.repeat(
@@ -68,7 +78,10 @@ class MPSPeriodic(nn.Module):
         )
         iden_tensors = iden_tensors.reshape(self._symperiod, d, D, D)
 
-        self.tensors = self.param("tensors", self.kernel_init, unit_cell_shape, self.param_dtype) + iden_tensors
+        self.tensors = (
+            self.param("tensors", self.kernel_init, unit_cell_shape, self.param_dtype)
+            + iden_tensors
+        )
 
     def __call__(self, x):
         x = jnp.atleast_2d(x)
@@ -113,8 +126,6 @@ class MPSOpen(nn.Module):
     """Hilbert space on which the state is defined."""
     bond_dim: int
     """Bond dimension of the MPS tensors."""
-    L: Optional[int] = None
-    """Number of sites in the MPS chain (which can be used to re-define the length)."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
     kernel_init: NNInitFunc = normal(stddev=0.01)
@@ -124,14 +135,18 @@ class MPSOpen(nn.Module):
 
     def setup(self):
         L, d, D = self.hilbert.size, self.hilbert.local_size, self.bond_dim
-        if self.L is not None:
-            L = self.L
         self._L, self._d, self._D = L, d, D
         self.param_dtype_cplx = dtype_complex(self.param_dtype)
 
         iden_boundary_tensor = jnp.ones((d, D), dtype=self.param_dtype)
-        self.left_tensors = self.param("left_tensors", self.kernel_init, (d, D), self.param_dtype) + iden_boundary_tensor
-        self.right_tensors = self.param("right_tensors", self.kernel_init, (d, D), self.param_dtype) + iden_boundary_tensor
+        self.left_tensors = (
+            self.param("left_tensors", self.kernel_init, (d, D), self.param_dtype)
+            + iden_boundary_tensor
+        )
+        self.right_tensors = (
+            self.param("right_tensors", self.kernel_init, (d, D), self.param_dtype)
+            + iden_boundary_tensor
+        )
 
         # determine shape of unit cell
         unit_cell_shape = (L - 2, d, D, D)
@@ -142,7 +157,12 @@ class MPSOpen(nn.Module):
             axis=0,
         )
         iden_tensors = iden_tensors.reshape(L - 2, d, D, D)
-        self.middle_tensors = self.param("middle_tensors", self.kernel_init, unit_cell_shape, self.param_dtype) + iden_tensors
+        self.middle_tensors = (
+            self.param(
+                "middle_tensors", self.kernel_init, unit_cell_shape, self.param_dtype
+            )
+            + iden_tensors
+        )
 
     def __call__(self, x):
         x = jnp.atleast_2d(x)
@@ -165,6 +185,8 @@ class MPSOpen(nn.Module):
             edge = edge @ tensor[qn, :]
             return edge, None
 
-        edge, _ = jax.lax.scan(scan_func, edge, (self.middle_tensors, qn[1:-1]), unroll=self.unroll)
+        edge, _ = jax.lax.scan(
+            scan_func, edge, (self.middle_tensors, qn[1:-1]), unroll=self.unroll
+        )
         psi = self.right_tensors[qn[-1], :] @ edge
         return psi

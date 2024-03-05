@@ -55,7 +55,12 @@ class MPDOPeriodic(nn.Module):
     """the initializer for the MPS weights."""
 
     def setup(self):
-        L, d, D, Χ = self.hilbert.size, self.hilbert.local_size, self.bond_dim, self.kraus_dim
+        L, d, D, Χ = (
+            self.hilbert.size,
+            self.hilbert.local_size,
+            self.bond_dim,
+            self.kraus_dim,
+        )
         if self.L is not None:
             L = self.L
         self._L, self._d, self._D, self._Χ = L, d, D, Χ
@@ -71,7 +76,9 @@ class MPDOPeriodic(nn.Module):
         if L % self._symperiod == 0 and self._symperiod > 0:
             unit_cell_shape = (self._symperiod, d, D, D, Χ)
         else:
-            raise AssertionError("The number of degrees of freedom of the Hilbert space needs to be a multiple of the period of the MPS")
+            raise AssertionError(
+                "The number of degrees of freedom of the Hilbert space needs to be a multiple of the period of the MPS"
+            )
 
         iden_tensors = jnp.repeat(
             jnp.eye(self.bond_dim, dtype=self.param_dtype)[jnp.newaxis, :, :],
@@ -79,7 +86,10 @@ class MPDOPeriodic(nn.Module):
             axis=0,
         )
         iden_tensors = iden_tensors.reshape(self._symperiod, d, D, D, Χ)
-        self.tensors = self.param("tensors", self.kernel_init, unit_cell_shape, self.param_dtype) + iden_tensors
+        self.tensors = (
+            self.param("tensors", self.kernel_init, unit_cell_shape, self.param_dtype)
+            + iden_tensors
+        )
 
     def __call__(self, x):
         # create all tensors in mps from unit cell
@@ -96,13 +106,17 @@ class MPDOPeriodic(nn.Module):
 
         def scan_func(edge, pair):
             tensor, qn_r, qn_c = pair
-            tensor_contracted = jnp.einsum("ijk,lmk->iljm", tensor[qn_r, :], jnp.conj(tensor[qn_c, :]))
+            tensor_contracted = jnp.einsum(
+                "ijk,lmk->iljm", tensor[qn_r, :], jnp.conj(tensor[qn_c, :])
+            )
             matrix = tensor_contracted.reshape(self._D**2, self._D**2)
             edge = edge @ matrix
             return edge, None
 
         qn_r, qn_c = jnp.split(qn, 2, axis=-1)
-        edge, _ = jax.lax.scan(scan_func, edge, (all_tensors, qn_r, qn_c), unroll=self.unroll)
+        edge, _ = jax.lax.scan(
+            scan_func, edge, (all_tensors, qn_r, qn_c), unroll=self.unroll
+        )
         rho = jnp.trace(edge)
         return rho
 
@@ -142,15 +156,26 @@ class MPDOOpen(nn.Module):
     """complex or float, whether the variational parameters of the MPDO are real or complex."""
 
     def setup(self):
-        L, d, D, Χ = self.hilbert.size, self.hilbert.local_size, self.bond_dim, self.kraus_dim
+        L, d, D, Χ = (
+            self.hilbert.size,
+            self.hilbert.local_size,
+            self.bond_dim,
+            self.kraus_dim,
+        )
         if self.L is not None:
             L = self.L
         self._L, self._d, self._D, self._Χ = L, d, D, Χ
         self.param_dtype_cplx = dtype_complex(self.param_dtype)
 
         iden_boundary_tensor = jnp.ones((d, D, Χ), dtype=self.param_dtype)
-        self.left_tensors = self.param("left_tensors", self.kernel_init, (d, D, Χ), self.param_dtype) + iden_boundary_tensor
-        self.right_tensors = self.param("right_tensors", self.kernel_init, (d, D, Χ), self.param_dtype) + iden_boundary_tensor
+        self.left_tensors = (
+            self.param("left_tensors", self.kernel_init, (d, D, Χ), self.param_dtype)
+            + iden_boundary_tensor
+        )
+        self.right_tensors = (
+            self.param("right_tensors", self.kernel_init, (d, D, Χ), self.param_dtype)
+            + iden_boundary_tensor
+        )
 
         # determine shape of unit cell
         unit_cell_shape = (L - 2, d, D, D, Χ)
@@ -162,7 +187,12 @@ class MPDOOpen(nn.Module):
             axis=0,
         )
         iden_tensors = iden_tensors.reshape(L - 2, d, D, D, Χ)
-        self.middle_tensors = self.param("middle_tensors", self.kernel_init, unit_cell_shape, self.param_dtype) + iden_tensors
+        self.middle_tensors = (
+            self.param(
+                "middle_tensors", self.kernel_init, unit_cell_shape, self.param_dtype
+            )
+            + iden_tensors
+        )
 
     def __call__(self, x):
         x = jnp.atleast_2d(x)
@@ -175,8 +205,13 @@ class MPDOOpen(nn.Module):
 
     def contract_mpdo(self, qn):
         qn_r, qn_c = jnp.split(qn, 2, axis=-1)
-        left_edge = self.left_tensors[qn_r[0], :] @ jnp.conj(self.left_tensors[qn_c[0], :]).T
-        right_edge = self.right_tensors[qn_r[-1], :] @ jnp.conj(self.right_tensors[qn_c[-1], :]).T
+        left_edge = (
+            self.left_tensors[qn_r[0], :] @ jnp.conj(self.left_tensors[qn_c[0], :]).T
+        )
+        right_edge = (
+            self.right_tensors[qn_r[-1], :]
+            @ jnp.conj(self.right_tensors[qn_c[-1], :]).T
+        )
 
         @jax.checkpoint
         def scan_func(edge, pair):
@@ -185,10 +220,12 @@ class MPDOOpen(nn.Module):
             edge = jnp.einsum("jkl,lmk->jm", triangle_tensor, jnp.conj(tensor[qn_c, :]))
             return edge, None
 
-        edge, _ = jax.lax.scan(scan_func, left_edge, (self.middle_tensors, qn_r[1:-1], qn_c[1:-1]), unroll=self.unroll)
+        edge, _ = jax.lax.scan(
+            scan_func,
+            left_edge,
+            (self.middle_tensors, qn_r[1:-1], qn_c[1:-1]),
+            unroll=self.unroll,
+        )
 
         rho = jnp.einsum("ij,ij->", edge, right_edge)
         return rho
-
-
-
