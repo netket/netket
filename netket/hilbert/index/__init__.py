@@ -30,8 +30,6 @@ defined in the file `base.py`.
 """
 
 from .base import HilbertIndex, is_indexable, max_states
-from .constrained import ConstrainedHilbertIndex, SumConstrainedHilbertIndex
+from .constrained import ConstrainedHilbertIndex
 from .meta import UniformTensorProductHilbertIndex
 from .unconstrained import LookupTableHilbertIndex
-
-from .constraints import SumConstraint

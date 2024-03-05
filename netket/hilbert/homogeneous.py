@@ -24,9 +24,8 @@ from .index import (
     HilbertIndex,
     UniformTensorProductHilbertIndex,
     ConstrainedHilbertIndex,
-    SumConstrainedHilbertIndex,
-    SumConstraint,
 )
+from .index.constraints import get_specialized_constrained_hilbert_index
 
 
 class HomogeneousHilbert(DiscreteHilbert):
@@ -197,14 +196,15 @@ class HomogeneousHilbert(DiscreteHilbert):
             if self.constrained:
                 # generic constrained index
                 index = ConstrainedHilbertIndex(index, self._constraint_fn)
-                if isinstance(self._constraint_fn, SumConstraint):
-                    # local_states are always a StaticRange
-                    sum_constrained_index = SumConstrainedHilbertIndex(
-                        self._local_states, self.size, self._constraint_fn.sum_value
-                    )
-                    # use specialized implementation if it is more efficient
-                    if sum_constrained_index.n_states_bound < index.n_states_bound:
-                        index = sum_constrained_index
+                specialized_index = get_specialized_constrained_hilbert_index(
+                    self._constraint_fn, self._local_states, self.size
+                )
+                # use specialized implementation if it is more efficient
+                if (
+                    specialized_index is not None
+                    and specialized_index.n_states_bound < index.n_states_bound
+                ):
+                    index = specialized_index
             self._hilbert_index_ = index
         return self._hilbert_index_
 

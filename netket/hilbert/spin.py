@@ -21,7 +21,7 @@ from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
 
-from .index import SumConstraint
+from .index.constraints import SumConstraint
 
 
 def _check_total_sz(total_sz, S, size):

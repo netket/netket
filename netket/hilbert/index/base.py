@@ -42,6 +42,11 @@ class HilbertIndex(struct.Pytree):
         return NotImplemented  # pragma: no cover
 
     @property
+    def n_states_bound(self) -> int:
+        """Returns an upper bound on the size of the hilbert space."""
+        return self.n_states
+
+    @property
     def is_indexable(self) -> bool:
         """Whether the index can be indexed with an integer"""
         return NotImplemented  # pragma: no cover

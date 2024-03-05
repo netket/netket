@@ -19,7 +19,7 @@ import numpy as np
 from netket.utils import StaticRange
 
 from .homogeneous import HomogeneousHilbert
-from .index import SumConstraint
+from .index.constraints import SumConstraint
 
 FOCK_MAX = np.iinfo(np.intp).max - 1
 """
