@@ -15,7 +15,7 @@
 from ._abstract_operator import AbstractOperator
 
 from ._discrete_operator import DiscreteOperator
-from ._discrete_operator_jax import DiscreteJaxOperator
+from ._discrete_operator_jax import DiscreteJaxOperator, DiscreteJaxOperatorPytree
 
 from ._pauli_strings import PauliStrings, PauliStringsJax
 from ._local_operator import LocalOperator, LocalOperatorJax

@@ -17,14 +17,13 @@ from typing import Optional, TYPE_CHECKING
 
 import jax
 from jax import numpy as jnp
-from jax.tree_util import register_pytree_node_class
 
 from netket.graph import AbstractGraph
-from netket.hilbert import AbstractHilbert
+from netket.hilbert import DiscreteHilbert
 from netket.utils.numbers import StaticZero
-from netket.utils.types import DType
+from netket.utils.types import DType, Array
 
-from .._discrete_operator_jax import DiscreteJaxOperator
+from .._discrete_operator_jax import DiscreteJaxOperatorPytree
 
 from .base import IsingBase
 
@@ -32,12 +31,15 @@ if TYPE_CHECKING:
     from .numba import Ising
 
 
-@register_pytree_node_class
-class IsingJax(IsingBase, DiscreteJaxOperator):
+class IsingJax(IsingBase, DiscreteJaxOperatorPytree):
+    _edges: Array
+    _h: Array
+    _J: Array
+
     @wraps(IsingBase.__init__)
     def __init__(
         self,
-        hilbert: AbstractHilbert,
+        hilbert: DiscreteHilbert,
         graph: AbstractGraph,
         h: float,
         J: float = 1.0,
@@ -58,7 +60,10 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         super().__init__(hilbert, graph=graph, h=h, J=J, dtype=dtype)
 
         self._edges = jnp.asarray(self.edges, dtype=jnp.int32)
-        self._hi_local_states = tuple(self.hilbert.local_states)
+
+    @property
+    def _hi_local_states(self):
+        return tuple(self.hilbert.local_states)
 
     @jax.jit
     @wraps(IsingBase.n_conn)
@@ -87,19 +92,6 @@ class IsingJax(IsingBase, DiscreteJaxOperator):
         ha = super().to_local_operator()
 
         return ha.to_jax_operator()
-
-    def tree_flatten(self):
-        data = (self.h, self.J, self.edges)
-        metadata = {"hilbert": self.hilbert, "dtype": self.dtype}
-        return data, metadata
-
-    @classmethod
-    def tree_unflatten(cls, metadata, data):
-        h, J, edges = data
-        hi = metadata["hilbert"]
-        dtype = metadata["dtype"]
-
-        return cls(hi, h=h, J=J, graph=edges, dtype=dtype)
 
 
 def _ising_mels_jax(x, edges, h, J):

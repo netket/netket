@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import abc
+from functools import lru_cache, wraps
 
 import numpy as np
 from scipy import sparse
@@ -20,6 +21,8 @@ from scipy import sparse
 import jax.numpy as jnp
 from jax.experimental.sparse import JAXSparse, BCOO
 
+from netket.utils import struct
+from netket.hilbert import DiscreteHilbert
 from netket.operator import AbstractOperator, DiscreteOperator
 from netket.utils.optional_deps import import_optional_dependency
 
@@ -190,6 +193,18 @@ class DiscreteJaxOperator(DiscreteOperator):
             out[:] = self.max_conn_size
         return out
 
+    # non-cached version for internal use
+    def _to_sparse(self):
+        x = self.hilbert.all_states()
+        n = x.shape[0]
+        xp, mels = self.get_conn_padded(x)
+        a = mels.ravel()
+        i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
+        j = self.hilbert.states_to_numbers(xp).ravel()
+        ij = np.concatenate((i[:, None], j[:, None]), axis=1)
+        return BCOO((a, ij), shape=(n, n))
+
+    @lru_cache(5)
     def to_sparse(self) -> JAXSparse:
         r"""Returns the sparse matrix representation of the operator. Note that,
         in general, the size of the matrix is exponential in the number of quantum
@@ -201,14 +216,7 @@ class DiscreteJaxOperator(DiscreteOperator):
         Returns:
             The sparse jax matrix representation of the operator.
         """
-        x = self.hilbert.all_states()
-        n = x.shape[0]
-        xp, mels = self.get_conn_padded(x)
-        a = mels.ravel()
-        i = np.broadcast_to(np.arange(n)[..., None], mels.shape).ravel()
-        j = self.hilbert.states_to_numbers(xp).ravel()
-        ij = np.concatenate((i[:, None], j[:, None]), axis=1)
-        return BCOO((a, ij), shape=(n, n))
+        return self._to_sparse()
 
     def to_dense(self) -> np.ndarray:
         r"""Returns the dense matrix representation of the operator. Note that,
@@ -268,3 +276,15 @@ class DiscreteJaxOperator(DiscreteOperator):
             return self._op__rmatmul__(other)
         else:
             return NotImplemented
+
+
+class DiscreteJaxOperatorPytree(DiscreteJaxOperator, struct.Pytree):
+    _hilbert: DiscreteHilbert = struct.field(pytree_node=False)
+
+    @struct.property_cached(pytree_node=True)
+    def _sparse(self) -> JAXSparse:
+        return self._to_sparse()
+
+    @wraps(DiscreteJaxOperator.to_sparse)
+    def to_sparse(self) -> JAXSparse:
+        return self._sparse
