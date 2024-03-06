@@ -85,35 +85,6 @@ class FermionOperator2nd(FermionOperator2ndBase):
         new_op._operators = self._operators.copy()
         return new_op
 
-    def _get_conn_flattened_closure(self):
-        self._setup()
-        _max_conn_size = self.max_conn_size
-        _orb_idxs = self._orb_idxs
-        _daggers = self._daggers
-        _weights = self._numba_weights
-        _diag_idxs = self._diag_idxs
-        _off_diag_idxs = self._off_diag_idxs
-        _term_split_idxs = self._term_split_idxs
-        _cutoff = self._cutoff
-
-        fun = self._flattened_kernel
-
-        def gccf_fun(x, sections):
-            return fun(
-                x,
-                sections,
-                _max_conn_size,
-                _orb_idxs,
-                _daggers,
-                _weights,
-                _diag_idxs,
-                _off_diag_idxs,
-                _term_split_idxs,
-                _cutoff,
-            )
-
-        return numba.jit(nopython=True)(gccf_fun)
-
     def get_conn_flattened(self, x, sections, pad=False):
         r"""Finds the connected elements of the Operator.
 
