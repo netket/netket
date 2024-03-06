@@ -310,12 +310,31 @@ def test_operations_fermions(Op):
     op67 += op7
     np.testing.assert_allclose((op6 + op7).to_dense(), op8.to_dense())
     np.testing.assert_allclose(op67.to_dense(), op8.to_dense())
+    np.testing.assert_allclose(
+        op67.transpose(concrete=True).to_dense(), op8.to_dense().transpose()
+    )
+    np.testing.assert_allclose(
+        op67.conjugate(concrete=True).to_dense(), op8.to_dense().conjugate()
+    )
+    np.testing.assert_allclose(
+        op67.H.collect().to_dense(), op8.to_dense().conjugate().transpose()
+    )
+    np.testing.assert_allclose(
+        op67.conjugate(concrete=True).transpose(concrete=True).to_dense(),
+        op8.to_dense().conjugate().transpose(),
+    )
 
     op8 = Op(hi, terms=("0^ 1", "2^ 3"), weights=(1 + 1j, 2 - 0.5j), constant=1.0 + 3j)
     op8_trueconj = Op(
         hi, terms=("1^ 0", "3^ 2"), weights=(1 - 1j, 2 + 0.5j), constant=1.0 - 3j
     )
-    np.testing.assert_allclose(op8.conjugate().to_dense(), op8_trueconj.to_dense())
+    np.testing.assert_allclose(
+        op8.transpose(concrete=False).conjugate().to_dense(), op8_trueconj.to_dense()
+    )
+    np.testing.assert_allclose(
+        op8.transpose(concrete=True).conjugate().to_dense(), op8_trueconj.to_dense()
+    )
+    np.testing.assert_allclose(op8.H.collect().to_dense(), op8_trueconj.to_dense())
 
     op9 = nkx.operator.FermionOperator2nd(
         hi, terms=("",), weights=(1,), constant=2, dtype=complex

@@ -18,7 +18,7 @@
 
 
 ### Bug Fixes
-
+* Fixes a bug where the conjugate of a fermionic operator was the conjugate-transpose, and the hermitian transpose `.H` was the identity [#1743](https://github.com/netket/netket/pull/1743).
 
 
 ## NetKet 3.11.2 (27 february 2024)
