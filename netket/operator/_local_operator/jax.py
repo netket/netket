@@ -252,7 +252,7 @@ class LocalOperatorJax(LocalOperatorBase, DiscreteJaxOperator):
             x_ids,
         )
 
-        xp = self.hilbert.local_indices_to_states(xp_ids)
+        xp = self.hilbert.local_indices_to_states(xp_ids, dtype=x.dtype)
         xp = xp.reshape(shape[:-1] + xp.shape[-2:])
         mels = mels.reshape(shape[:-1] + mels.shape[-1:])
         n_conn = n_conn.reshape(shape[:-1])
