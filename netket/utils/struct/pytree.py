@@ -383,6 +383,9 @@ class Pytree(metaclass=PytreeMeta):
 
         pytree = copy(self)
         pytree.__dict__.update(kwargs)
+        # Reset cached properties
+        for fname in pytree._pytree__cachedprop_fields:
+            setattr(pytree, fname, Uninitialized)
         return pytree
 
     if not tp.TYPE_CHECKING:
