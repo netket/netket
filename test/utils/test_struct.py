@@ -161,7 +161,7 @@ def test_cached_property_inheritance():
 
 
 @pytest.mark.parametrize("TestT", [TestDC, TestPT])
-def test_cached_property_reset_pytree(TestT):
+def test_cached_property_reset(TestT):
     t1 = TestT(1)
     assert t1.y == 1
     t2 = t1.replace(x=2)
