@@ -372,17 +372,22 @@ class Pytree(metaclass=PytreeMeta):
         type as the original object.
         """
         if dataclasses.is_dataclass(self):
-            return dataclasses.replace(self, **kwargs)
+            pytree = dataclasses.replace(self, **kwargs)
+        else:
+            unknown_keys = set(kwargs) - set(vars(self))
+            if unknown_keys:
+                raise ValueError(
+                    f"Trying to replace unknown fields {unknown_keys} "
+                    f"for '{type(self).__name__}'"
+                )
 
-        unknown_keys = set(kwargs) - set(vars(self))
-        if unknown_keys:
-            raise ValueError(
-                f"Trying to replace unknown fields {unknown_keys} "
-                f"for '{type(self).__name__}'"
-            )
+            pytree = copy(self)
+            pytree.__dict__.update(kwargs)
 
-        pytree = copy(self)
-        pytree.__dict__.update(kwargs)
+        # Reset cached properties
+        for fname in pytree._pytree__cachedprop_fields:
+            setattr(pytree, fname, Uninitialized)
+
         return pytree
 
     if not tp.TYPE_CHECKING:
