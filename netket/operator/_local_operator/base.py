@@ -276,6 +276,8 @@ class LocalOperatorBase(DiscreteOperator):
         return op
 
     def __iadd__(self, other):
+        # copy so that we get a new hash
+        self = self.copy()
         if isinstance(other, LocalOperatorBase):
             if self.hilbert != other.hilbert:
                 return NotImplemented
@@ -327,6 +329,8 @@ class LocalOperatorBase(DiscreteOperator):
         return NotImplemented
 
     def __imul__(self, other):
+        # copy so that we get a new hash
+        self = self.copy()
         if isinstance(other, DiscreteOperator):
             return self.__imatmul__(other)
         elif is_scalar(other):
@@ -371,6 +375,9 @@ class LocalOperatorBase(DiscreteOperator):
     def _op_imatmul_(self, other: "LocalOperatorBase") -> "LocalOperatorBase":
         if not isinstance(other, LocalOperatorBase):
             return NotImplemented
+
+        # copy so that we get a new hash
+        self = self.copy()
 
         self.mel_cutoff = min(other.mel_cutoff, self.mel_cutoff)
 
