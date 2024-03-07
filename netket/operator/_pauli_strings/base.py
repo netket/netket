@@ -338,6 +338,9 @@ class PauliStringsBase(DiscreteOperator):
             dtype=self.dtype,
         )
 
+        # copy so that we get a new hash
+        self = self.copy()
+
         self._operators = operators
         self._weights = weights
         self._reset_caches()
@@ -378,6 +381,10 @@ class PauliStringsBase(DiscreteOperator):
                     f"Cannot multiply inplace operator of type {type(self)} and "
                     f"dtype {self.dtype} to scalar with dtype {_dtype(other)}"
                 )
+
+            # copy so that we get a new hash
+            self = self.copy()
+
             other = np.asarray(
                 other, dtype=jnp.promote_types(self.dtype, _dtype(other))
             )
@@ -414,6 +421,9 @@ class PauliStringsBase(DiscreteOperator):
                 raise ValueError(
                     f"Can only add identical hilbert spaces (got A+B, A={self.hilbert}, B={other.hilbert})"
                 )
+
+            # copy so that we get a new hash
+            self = self.copy()
 
             operators = np.concatenate((self.operators, other.operators))
             weights = np.concatenate((self.weights, other.weights), dtype=self.dtype)
