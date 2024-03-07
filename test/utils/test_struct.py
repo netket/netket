@@ -75,6 +75,26 @@ Point1ChildConstructor = partial(Point1Child, z=3)
 Point1Child2Constructor = partial(Point1Child2, z=3)
 
 
+class TestPT(struct.Pytree):
+    x: int
+
+    def __init__(self, x):
+        self.x = x
+
+    @struct.property_cached
+    def y(self) -> int:
+        return self.x
+
+
+@struct.dataclass
+class TestDC:
+    x: int
+
+    @struct.property_cached
+    def y(self) -> int:
+        return self.x
+
+
 @pytest.mark.parametrize(
     "PointT", [Point0, Point1, Point1ChildConstructor, Point1Child2Constructor]
 )
@@ -138,6 +158,14 @@ def test_cached_property_inheritance():
     assert p.__cached_node_cache is struct.Uninitialized
     p._precompute_cached_properties()
     assert p.__cached_node_cache == 4
+
+
+@pytest.mark.parametrize("TestT", [TestDC, TestPT])
+def test_cached_property_reset(TestT):
+    t1 = TestT(1)
+    assert t1.y == 1
+    t2 = t1.replace(x=2)
+    assert t2.y == 2
 
 
 def test_pre_init_property():
