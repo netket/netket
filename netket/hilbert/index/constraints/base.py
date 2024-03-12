@@ -58,7 +58,7 @@ class ConstrainedHilbertIndex(HilbertIndex):
     unconstrained_index: HilbertIndex
     constraint_fun: Callable[[Array], Array] = struct.field(pytree_node=False)
 
-    @struct.property_cached(pytree_node=True)
+    @property
     def _bare_numbers(self) -> Array:
         return compute_constrained_to_bare_conversion_table(
             self.unconstrained_index, self.constraint_fun
@@ -118,7 +118,7 @@ def optimalConstrainedHilbertindex_generic(local_states, size, constraint):
 # This function has exponential runtime in self.size, so we cache it in order to
 # only compute it once.
 # TODO: distribute over devices/MPI (expensive constraint_fun),  choose better chunk size
-@partial(jax.jit, static_argnames=("chunk_size"))
+@partial(jax.jit, static_argnames=("chunk_size", "constraint_fun"))
 def compute_constrained_to_bare_conversion_table(
     hilbert_index: HilbertIndex,
     constraint_fun: Callable[[Array], Array],
