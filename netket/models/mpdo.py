@@ -47,7 +47,7 @@ class MPDOPeriodic(nn.Module):
     hilbert: HomogeneousHilbert
     """Hilbert space on which the state is defined."""
     bond_dim: int
-    """Bond dimension of the MPDO tensors."""
+    """Bond dimension of the MPDO tensors. See formula above."""
     kraus_dim: int = 2
     """Kraus dimension of the MPDO tensors."""
     symperiod: Optional[bool] = None
@@ -57,7 +57,7 @@ class MPDOPeriodic(nn.Module):
     unit cells consisting of symperiod tensors. if None, symperiod equals the
     number of physical degrees of freedom.
     """
-    param_dtype: Any = jnp.float64
+    param_dtype: DType = float
     """complex or float, whether the variational parameters of the MPDO are real or complex."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""

@@ -126,14 +126,14 @@ class MPSOpen(nn.Module):
 
     .. math:: \Psi(s_1,\dots s_N) = \mathrm{Tr} \left[ A[s_1]\dots A[s_N] \right] ,
 
-    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_{1,N}]` are vectors of dimension (bond_dim) and :math:`A[s_{2,\dots,N-1}]` are matrices
-    of dimension (bond_dim,bond_dim), depending on the value of the local quantum number :math:`s_i`.
+    for arbitrary local quantum numbers :math:`s_i`, where :math:`A[s_{i}]` are vectors of shape :math:`(\text{bond_dim},)` for :math:`i=1,N` and matrices
+    of shape :math:`(\text{bond_dim}, \text{bond_dim})` for  :math:`i=2, \dots N-1` , depending on the value of the local quantum number :math:`s_i`.
     """
 
     hilbert: HomogeneousHilbert
     """Hilbert space on which the state is defined."""
     bond_dim: int
-    """Bond dimension of the MPS tensors."""
+    """Bond dimension of the MPS tensors. See formula above."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
     kernel_init: NNInitFunc = default_kernel_init
