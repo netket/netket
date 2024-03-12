@@ -63,12 +63,14 @@ class MPDOPeriodic(nn.Module):
     unit cells consisting of symperiod tensors. if None, symperiod equals the
     number of physical degrees of freedom.
     """
-    param_dtype: DType = float
-    """complex or float, whether the variational parameters of the MPDO are real or complex."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
+    checkpoint: bool = True
+    """Whether to use jax.checkpoint on the scan function for memory efficiency."""
     kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
+    param_dtype: DType = float
+    """complex or float, whether the variational parameters of the MPDO are real or complex."""
 
     def setup(self):
         L, d, D, Χ = (
@@ -117,7 +119,7 @@ class MPDOPeriodic(nn.Module):
     def contract_mpdo(self, qn, all_tensors):
         edge = jnp.eye(self._D**2, dtype=self.param_dtype)
 
-        def scan_func(edge, pair):
+        def base_scan_func(edge, pair):
             tensor, qn_r, qn_c = pair
             tensor_contracted = jnp.einsum(
                 "ijk,lmk->iljm", tensor[qn_r, :], jnp.conj(tensor[qn_c, :])
@@ -125,6 +127,11 @@ class MPDOPeriodic(nn.Module):
             matrix = tensor_contracted.reshape(self._D**2, self._D**2)
             edge = edge @ matrix
             return edge, None
+
+        # Apply jax.checkpoint conditionally to the base_scan_func
+        scan_func = (
+            jax.checkpoint(base_scan_func) if self.checkpoint else base_scan_func
+        )
 
         qn_r, qn_c = jnp.split(qn, 2, axis=-1)
         edge, _ = jax.lax.scan(
@@ -164,6 +171,8 @@ class MPDOOpen(nn.Module):
     """The local Kraus dimension of the MPDO tensors. See formula above."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
+    checkpoint: bool = True
+    """Whether to use jax.checkpoint on the scan function for memory efficiency."""
     kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
     param_dtype: DType = float
@@ -225,12 +234,16 @@ class MPDOOpen(nn.Module):
             @ jnp.conj(self.right_tensors[qn_c[-1], :]).T
         )
 
-        @jax.checkpoint
-        def scan_func(edge, pair):
+        def base_scan_func(edge, pair):
             tensor, qn_r, qn_c = pair
             triangle_tensor = jnp.einsum("ijk,il->jkl", tensor[qn_r, :], edge)
             edge = jnp.einsum("jkl,lmk->jm", triangle_tensor, jnp.conj(tensor[qn_c, :]))
             return edge, None
+
+        # Apply jax.checkpoint conditionally to the base_scan_func
+        scan_func = (
+            jax.checkpoint(base_scan_func) if self.checkpoint else base_scan_func
+        )
 
         edge, _ = jax.lax.scan(
             scan_func,

@@ -51,6 +51,8 @@ class MPSPeriodic(nn.Module):
     """
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
+    checkpoint: bool = True
+    """Whether to use jax.checkpoint on the scan function for memory efficiency."""
     kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
     param_dtype: DType = float
@@ -106,11 +108,15 @@ class MPSPeriodic(nn.Module):
     def contract_mps(self, qn, all_tensors):
         edge = jnp.eye(self._D, dtype=self.param_dtype)
 
-        @jax.checkpoint
-        def scan_func(edge, pair):
+        def base_scan_func(edge, pair):
             tensor, qn = pair
             edge = edge @ tensor[qn, :]
             return edge, None
+
+        # Apply jax.checkpoint conditionally to the base_scan_func
+        scan_func = (
+            jax.checkpoint(base_scan_func) if self.checkpoint else base_scan_func
+        )
 
         edge, _ = jax.lax.scan(scan_func, edge, (all_tensors, qn), unroll=self.unroll)
 
@@ -135,6 +141,8 @@ class MPSOpen(nn.Module):
     """Bond dimension of the MPS tensors. See formula above."""
     unroll: int = 1
     """the number of scan iterations to unroll within a single iteration of a loop."""
+    checkpoint: bool = True
+    """Whether to use jax.checkpoint on the scan function for memory efficiency."""
     kernel_init: NNInitFunc = default_kernel_init
     """the initializer for the MPS weights."""
     param_dtype: DType = float
@@ -187,11 +195,15 @@ class MPSOpen(nn.Module):
     def contract_mps(self, qn):
         edge = self.left_tensors[qn[0], :]
 
-        @jax.checkpoint
-        def scan_func(edge, pair):
+        def base_scan_func(edge, pair):
             tensor, qn = pair
             edge = edge @ tensor[qn, :]
             return edge, None
+
+        # Apply jax.checkpoint conditionally to the base_scan_func
+        scan_func = (
+            jax.checkpoint(base_scan_func) if self.checkpoint else base_scan_func
+        )
 
         edge, _ = jax.lax.scan(
             scan_func, edge, (self.middle_tensors, qn[1:-1]), unroll=self.unroll
