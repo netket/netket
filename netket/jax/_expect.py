@@ -22,6 +22,7 @@ from jax import numpy as jnp
 
 from netket.stats import statistics as mpi_statistics, mean as mpi_mean, Stats
 from netket.utils.types import PyTree
+from netket.utils.mpi import mpi_sum_jax
 
 from ._vjp import vjp as nkvjp
 
@@ -95,6 +96,8 @@ def _expect_bwd(n_chains, log_pdf, expected_fun, residuals, dout):
 
     _, pb = nkvjp(f, pars, σ, *cost_args)
     grad_f = pb(dL̄)
+    grad_f = jax.tree_map(lambda x: mpi_sum_jax(x)[0], grad_f)
+
     return grad_f
 
 
